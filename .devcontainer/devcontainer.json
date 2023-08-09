@@ -1,0 +1,45 @@
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/typescript-node
+{
+	"name": "webstatus.dev DevContainer",
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+        "ghcr.io/devcontainers/features/go:1": {
+            "version": "1.20.7"
+        },
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {
+            "dockerDashComposeVersion": "v2"
+        },
+        "ghcr.io/devcontainers/features/terraform:1": {
+            "version": "1.5.4"
+        },
+        "ghcr.io/rio/features/skaffold:2": {},
+        "ghcr.io/dhoeric/features/google-cloud-cli:1": {},
+		"ghcr.io/devcontainers/features/java:1": {}
+	},
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"googlecloudtools.cloudcode",
+				"hashicorp.terraform"
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	"postCreateCommand": "curl -Lo skaffold https://github.com/jcscottiii/skaffold/releases/download/9006-workaround/skaffold && sudo install skaffold /usr/local/bin/ && rm skaffold"
+
+	// Configure tool-specific properties.
+	// "customizations": {},
+
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

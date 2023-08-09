@@ -1,0 +1,34 @@
+main:
+  params: [input]
+  steps:
+    - callCustomCode:
+        call: http.get
+        args:
+          url: ${sample_custom_step_url}
+          auth:
+            type: OIDC
+        result: testResponse
+    - checkSearchTermInInput:
+        switch:
+          - condition: '$${"searchTerm" in input}'
+            assign:
+              - searchTerm: '$${input.searchTerm}'
+            next: readWikipedia
+    - getLocation:
+        call: sys.get_env
+        args:
+          name: GOOGLE_CLOUD_LOCATION
+        result: location
+    - setFromCallResult:
+        assign:
+          - searchTerm: '$${text.split(location, "-")[0]}'
+    - readWikipedia:
+        call: http.get
+        args:
+          url: 'https://en.wikipedia.org/w/api.php'
+          query:
+            action: opensearch
+            search: '$${searchTerm}'
+        result: wikiResult
+    - returnOutput:
+        return: '$${wikiResult.body[1]}'

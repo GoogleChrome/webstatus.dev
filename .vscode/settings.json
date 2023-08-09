@@ -1,0 +1,12 @@
+{
+    "[terraform]": {
+        "editor.tabSize": 2
+    },
+    "editor.rulers": [
+        80,
+        {
+            "column": 120,
+            "color": "#ff0000"
+        },
+    ]
+}

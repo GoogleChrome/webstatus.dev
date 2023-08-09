@@ -1,0 +1,6 @@
+go 1.20
+
+use (
+	./backend
+	./workflows/common_custom_steps/sample_service
+)
