@@ -20,7 +20,8 @@
         },
         "ghcr.io/rio/features/skaffold:2": {},
         "ghcr.io/dhoeric/features/google-cloud-cli:1": {},
-		"ghcr.io/devcontainers/features/java:1": {}
+		"ghcr.io/devcontainers/features/java:1": {},
+		"ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {}
 	},
 	"customizations": {
 		"vscode": {
@@ -35,7 +36,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	"postCreateCommand": "curl -Lo skaffold https://github.com/jcscottiii/skaffold/releases/download/9006-workaround/skaffold && sudo install skaffold /usr/local/bin/ && rm skaffold"
+	"postCreateCommand": "./.devcontainer/post_create.sh"
 
 	// Configure tool-specific properties.
 	// "customizations": {},

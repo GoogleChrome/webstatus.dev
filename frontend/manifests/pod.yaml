@@ -12,24 +12,20 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta6
-kind: Config
+apiVersion: v1
+kind: Pod
 metadata:
-  name: frontend-config
-profiles:
-  - name: local
-    build:
-      artifacts:
-      - image: frontend
-        context: .
-      local: {}
-    manifests:
-      rawYaml:
-        - manifests/*
-    deploy:
-      kubectl: {}
-    portForward:
-      - resourceType: pod
-        resourceName: frontend
-        port: 8000
-      
+  name: frontend
+  labels:
+    app.kubernetes.io/name: frontend
+spec:
+  containers:
+  - name: frontend
+    image: frontend
+    ports:
+      - containerPort: 8000
+        name: http-frontend
+    resources:
+      limits:
+        cpu: 250m
+        memory: 512Mi

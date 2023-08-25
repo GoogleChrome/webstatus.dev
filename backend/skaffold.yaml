@@ -16,20 +16,23 @@ apiVersion: skaffold/v4beta6
 kind: Config
 metadata:
   name: backend-config
+requires:
+  - path: ../.dev/firestore
+  - path: ../.dev/spanner
 profiles:
   - name: local
     build:
       artifacts:
       - image: backend
         context: .
-      local:
-        push: false
+      local: {}
+    manifests:
+      rawYaml:
+        - manifests/*
     deploy:
-      docker:
-        images:
-          - backend
+      kubectl: {}
     portForward:
-      - resourceType: container
+      - resourceType: pod
         resourceName: backend
         port: 8080
       

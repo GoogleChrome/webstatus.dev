@@ -12,24 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta6
-kind: Config
+apiVersion: v1
+kind: Service
 metadata:
-  name: frontend-config
-profiles:
-  - name: local
-    build:
-      artifacts:
-      - image: frontend
-        context: .
-      local: {}
-    manifests:
-      rawYaml:
-        - manifests/*
-    deploy:
-      kubectl: {}
-    portForward:
-      - resourceType: pod
-        resourceName: frontend
-        port: 8000
-      
+  name: firestore
+spec:
+  selector:
+    app.kubernetes.io/name: firestore
+  ports:
+  - protocol: TCP
+    port: 8085
+    targetPort: firestore-port

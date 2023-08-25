@@ -15,12 +15,12 @@
 apiVersion: skaffold/v4beta6
 kind: Config
 metadata:
-  name: frontend-config
+  name: firestore-config
 profiles:
   - name: local
     build:
       artifacts:
-      - image: frontend
+      - image: firestore
         context: .
       local: {}
     manifests:
@@ -28,8 +28,4 @@ profiles:
         - manifests/*
     deploy:
       kubectl: {}
-    portForward:
-      - resourceType: pod
-        resourceName: frontend
-        port: 8000
       

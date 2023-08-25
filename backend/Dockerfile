@@ -24,7 +24,13 @@ COPY . ./
 
 RUN go build -o server ./cmd/server
 
-FROM debian:bullseye-slim
+FROM debian:bullseye-slim as release
 
 COPY --from=builder /app/server /server
 CMD ["/server"]
+
+FROM release as docker_local_release
+ENV SPANNER_DATABASE=
+ENV SPANNER_EMULATOR_HOST=spanner:9010
+ENV PROJECT_ID=local
+ENV FIRESTORE_DATABASE=
