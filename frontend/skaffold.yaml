@@ -20,8 +20,16 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: frontend
+      - image: localhost:5000/frontend
         context: .
+        runtimeType: nodejs
+        docker:
+          target: app
+      - image: localhost:5000/frontend-test
+        context: .
+        runtimeType: nodejs
+        docker:
+          target: test
       local: {}
     manifests:
       rawYaml:
@@ -32,4 +40,9 @@ profiles:
       - resourceType: pod
         resourceName: frontend
         port: 8000
-      
+    test:
+      - context: .
+        image: localhost:5000/frontend-test
+        custom:
+            # Need SYS_ADMIN for the chrome sandbox
+          - command: docker run --cap-add SYS_ADMIN $IMAGE

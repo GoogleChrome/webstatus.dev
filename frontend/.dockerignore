@@ -23,4 +23,5 @@
 storybook-static
 custom-elements.json
 
+Dockerfile
 skaffold.yaml

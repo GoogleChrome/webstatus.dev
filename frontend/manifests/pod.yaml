@@ -21,7 +21,7 @@ metadata:
 spec:
   containers:
   - name: frontend
-    image: frontend
+    image: localhost:5000/frontend
     ports:
       - containerPort: 8000
         name: http-frontend
