@@ -25,6 +25,7 @@ profiles:
       artifacts:
       - image: backend
         context: .
+        runtimeType: go
       local: {}
     manifests:
       rawYaml:

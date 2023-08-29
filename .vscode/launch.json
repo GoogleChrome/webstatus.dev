@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Kubernetes: Run/Debug - local",
+            "type": "cloudcode.kubernetes",
+            "request": "launch",
+            "skaffoldConfig": "${workspaceFolder}/backend/skaffold.yaml",
+            "profile": "local",
+            "watch": true,
+            "cleanUp": true,
+            "portForward": true,
+            "imageRegistry": "localhost:5000",
+            "debug": [
+                {
+                    "image": "backend",
+                    "containerName": "backend",
+                    "sourceFileMap": {
+                        "${workspaceFolder}/backend": "/app"
+                    }
+                }
+            ]
+        }
+    ]
+}
