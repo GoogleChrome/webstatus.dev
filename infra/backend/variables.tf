@@ -5,9 +5,10 @@ variable "spanner_datails" {
   })
 }
 
-variable "firestore_datails" {
+variable "firestore_info" {
   type = object({
-    database = string
+    database_name = string
+    project_id    = string
   })
 }
 

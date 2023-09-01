@@ -1,53 +1,32 @@
-// Copyright 2023 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     https://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
-	"encoding/json"
-	"fmt"
-	"log"
-	"net/http"
+	"log/slog"
 	"os"
+
+	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
+	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 )
 
 func main() {
-	log.Print("starting server...")
-	http.HandleFunc("/", handler)
-
-	// Determine port for HTTP service.
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-		log.Printf("defaulting to port %s", port)
+	var datastoreDB *string
+	if value, found := os.LookupEnv("DATASTORE_DATABASE"); found {
+		datastoreDB = &value
+	}
+	fs, err := gds.NewWebFeatureClient(os.Getenv("PROJECT_ID"), datastoreDB)
+	if err != nil {
+		slog.Error("failed to create datastore client", "error", err.Error())
+		os.Exit(1)
 	}
 
-	// Start HTTP server.
-	log.Printf("listening on port %s", port)
-	if err := http.ListenAndServe(":"+port, nil); err != nil {
-		log.Fatal(err)
+	srv, err := httpserver.NewHTTPServer("8080", fs)
+	if err != nil {
+		slog.Error("unable to create server", "error", err.Error())
+		os.Exit(1)
 	}
-}
-
-func handler(w http.ResponseWriter, r *http.Request) {
-	name := os.Getenv("NAME")
-	if name == "" {
-		name = "World"
+	err = srv.ListenAndServe()
+	if err != nil {
+		slog.Error("unable to start server", "error", err.Error())
+		os.Exit(1)
 	}
-	resp := struct {
-		Message string `json:"message,omitempty"`
-	}{Message: fmt.Sprintf("Hello %s!", name)}
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(&resp)
 }

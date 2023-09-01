@@ -17,15 +17,19 @@ kind: Config
 metadata:
   name: backend-config
 requires:
-  - path: ../.dev/firestore
+  - path: ../.dev/datastore
   - path: ../.dev/spanner
 profiles:
   - name: local
     build:
       artifacts:
       - image: backend
-        context: .
+        context: ..
         runtimeType: go
+        docker:
+          dockerfile: images/go_service.Dockerfile
+          buildArgs:
+            service_dir: backend
       local: {}
     manifests:
       rawYaml:

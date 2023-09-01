@@ -10,36 +10,104 @@ everything pre-installed.
 
 # Running locally
 
-*Notice:* Due to this
-[issue](https://github.com/GoogleContainerTools/skaffold/issues/9006), we need
-to use a manually built version of skaffold. It is installed already in the
-devcontainer. Also, `skaffold dev` currently creates new containers on new ports
-instead of replacing them on existing ports. As a result, we need to disable the
-auto build functionality.
-
 ## Running
 
 ```sh
-skaffold dev -p local --auto-build=true
+# Terminal 1
+skaffold dev -p local
 ```
 
-It should print something like:
+### Locally Deployed Resources
 
+The above skaffold command deploys multiple resources:
+
+| Resource | Description | Port Forwarded Address | Internal Address |
+| --- | ----------- | --------------- | --------------- |
+| backend | Backend service in ./backend | http://localhost:8080 | http://backend:8080 |
+| frontend | Frontend service in ./frontend | http://localhost:8000 | http://frontend:8080 |
+| datastore | Datastore Emulator | N/A | http://datastore:8085 |
+| spanner | Spanner Emulator | N/A | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
+| gcs | Google Cloud Storage Emulator | N/A | http://gcs:4443 |
+| repo-downloader | Repo Downloader Workflow Step in<br />./workflows/steps/services/common/repo_downloader | http://localhost:8091 | http://repo-downloader:8080 |
+| web-feature-consumer | Web Feature Consumer Step in<br />./workflows/steps/services/web_feature_consumer | http://localhost:8092 | http://web-feature-consumer:8080 |
+
+### Populate Data Locally
+
+After doing an initial deployment, the databases will be empty, run the following:
+
+```sh
+# Terminal 2 - Populate data
+DOWNLOAD_RESPONSE=$(curl -X 'POST' \
+  'http://localhost:8091/v1/github.com/web-platform-dx/web-features' \
+  -H 'accept: application/json' \
+  -H 'Content-Type: application/json' \
+  -d '{
+  "archive": {
+    "type": "TAR",
+    "tar_strip_components": 1
+  },
+  "file_filters": [
+    {
+      "prefix": "feature-group-definitions",
+      "suffix": ".yml"
+    }
+  ]
+}')
+OBJECT_PREFIX=$(echo $DOWNLOAD_RESPONSE | jq -r -c '.destination.gcs.repo_prefix')
+BUCKET=$(echo $DOWNLOAD_RESPONSE | jq -r -c '.destination.gcs.bucket')
+echo $DOWNLOAD_RESPONSE | jq -r -c '.destination.gcs.filenames[]' | while read object; do
+    curl -X 'POST' \
+        'http://localhost:8092/v1/web-features' \
+        -H 'accept: */*' \
+        -H 'Content-Type: application/json' \
+        -d "{
+            \"location\": {
+            \"gcs\": {
+                \"bucket\": \"${BUCKET}\",
+                \"object\": \"${OBJECT_PREFIX}/${object}\"
+            }
+        }
+    }"
+done
 ```
-[backend] Forwarding container port 8080 -> local port http://127.0.0.1:XXXX
-[frontend] Forwarding container port 8000 -> local port http://127.0.0.1:XXXX
+
+Then open `http://localhost:8080/v1/features` to see the features populated
+from the latest snapshot from the web-features repo.
+
+## OpenAPI
+
+Every web service has its own OpenAPI description.
+
+| Resource | Location |
+| -------- | -------- |
+| backend  | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml) |
+| repo-downloader | [openapi/workflows/steps/common/repo_downloader/openapi.yaml](openapi/workflows/steps/common/repo_downloader/openapi.yaml) |
+| web-feature-consumer | [openapi/workflows/steps/web_feature_consumer/openapi.yaml](openapi/workflows/steps/web_feature_consumer/openapi.yaml) |
+
+### Go and OpenAPI
+
+There two common configurations used to generate code for Go.
+
+- [openapi/server.cfg.yaml](openapi/server.cfg.yaml)
+- [openapi/types.cfg.yaml](openapi/types.cfg.yaml)
+
+This repository uses
+[deepmap/oapi-codegen](https://github.com/deepmap/oapi-codegen) to generate the
+types.
+
+If changes are made, run:
+
+```sh
+make -B openapi
 ```
 
-You'll want the backend and frontned to be forwarded to http://127.0.0.1:8080
-and http://127.0.0.1:8000 respectively. If not, check if there's something
-already running. If you may have another set of docker containers running, refer
-to the helpful commands.
+### TypeScript and OpenAPI
 
-You may open your browser to those two addresses now! :)
+TODO
 
-## Helpful Commands
+## JSONSchema
 
-- `docker kill $(docker ps -q)` delete all running containers.
+TODO
 
 # Deploying
 
@@ -72,3 +140,5 @@ terraform workspace delete $ENV_ID
 ```
 
 ## Deploying staging
+
+TODO

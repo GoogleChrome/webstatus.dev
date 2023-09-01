@@ -20,13 +20,11 @@ resource "google_workflows_workflow" "workflow" {
 data "google_project" "project" {
 }
 
-resource "google_cloud_run_v2_service_iam_binding" "sample_step_invoker" {
+resource "google_cloud_run_v2_service_iam_member" "sample_step_invoker" {
   count    = length(var.regions)
   project  = data.google_project.project.number
   location = var.regions[count.index]
   name     = var.sample_custom_step_region_to_step_info_map[var.regions[count.index]].name
   role     = "roles/run.invoker"
-  members = [
-    google_service_account.service_account.member,
-  ]
+  member   = google_service_account.service_account.member
 }

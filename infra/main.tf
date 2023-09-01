@@ -16,16 +16,19 @@ module "ingestion" {
   env_id                    = var.env_id
   docker_repository_details = module.storage.docker_repository_details
   regions                   = var.regions
+  buckets                   = module.storage.buckets
+  secret_ids                = var.secret_ids
+  firestore_info            = module.storage.firestore_info
 }
 
 module "backend" {
   source = "./backend"
 
   env_id                    = var.env_id
-  spanner_datails           = module.storage.spanner_details
+  spanner_datails           = module.storage.spanner_info
   docker_repository_details = module.storage.docker_repository_details
   regions                   = var.regions
-  firestore_datails         = module.storage.firestore_details
+  firestore_info            = module.storage.firestore_info
 }
 
 module "frontend" {

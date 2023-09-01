@@ -41,3 +41,9 @@ variable "docker_repository_region_override" {
 locals {
   docker_repository_region = coalesce(var.docker_repository_region_override, var.regions[0])
 }
+
+variable "secret_ids" {
+  type = object({
+    github_token = string
+  })
+}

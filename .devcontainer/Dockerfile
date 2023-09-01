@@ -23,7 +23,7 @@ RUN if [ `uname -m` = 'x86_64' ]; then echo -n "x86_64" > /tmp/arch; else echo -
 RUN ARCH=`cat /tmp/arch` && curl -O https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${ARCH}.tar.gz && \
     tar xzf google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${ARCH}.tar.gz && \
     rm google-cloud-cli-${CLOUD_SDK_VERSION}-linux-${ARCH}.tar.gz
-RUN echo -n "alpha beta gke-gcloud-auth-plugin kubectl skaffold minikube" > /tmp/additional_components
+RUN echo -n "alpha beta gke-gcloud-auth-plugin kubectl skaffold minikube cloud-run-proxy" > /tmp/additional_components
 RUN /google-cloud-sdk/install.sh --usage-reporting=false \
 	--additional-components `cat /tmp/additional_components` && rm -rf /google-cloud-sdk/.install/.backup
 

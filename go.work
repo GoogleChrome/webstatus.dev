@@ -1,6 +1,9 @@
-go 1.20
+go 1.21.0
 
 use (
 	./backend
+	./lib
 	./workflows/common_custom_steps/sample_service
+	./workflows/steps/services/common/repo_downloader
+	./workflows/steps/services/web_feature_consumer
 )

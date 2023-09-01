@@ -36,7 +36,7 @@ resource "google_cloud_run_v2_service" "service" {
   }
 }
 
-# resource "google_cloud_run_service_iam_binding" "public" {
+# resource "google_cloud_run_service_iam_member" "public" {
 #   count = length(google_cloud_run_v2_service.service)
 #   location = google_cloud_run_v2_service.service[count.index].location
 #   service  = google_cloud_run_v2_service.service[count.index].name

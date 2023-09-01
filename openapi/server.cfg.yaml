@@ -1,0 +1,6 @@
+generate:
+  chi-server: true
+  embedded-spec: true
+  strict-server: true
+compatibility:
+  apply-chi-middleware-first-to-last: true

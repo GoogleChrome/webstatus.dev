@@ -9,7 +9,7 @@
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
         "ghcr.io/devcontainers/features/go:1": {
-            "version": "1.20.7"
+            "version": "1.21.0"
         },
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/devcontainers/features/docker-in-docker:2": {
@@ -24,7 +24,8 @@
 		"vscode": {
 			"extensions": [
 				"googlecloudtools.cloudcode",
-				"hashicorp.terraform"
+				"hashicorp.terraform",
+				"42Crunch.vscode-openapi"
 			]
 		}
 	},

@@ -1,0 +1,67 @@
+linters:
+  # Disable all linters enabled by default.
+  # See: https://golangci-lint.run/usage/linters
+  disable-all: true  
+  # Enabling specified linters.
+  # See: https://github.com/web-platform-tests/wpt.fyi/issues/2983
+  enable: 
+    - staticcheck
+    - errcheck
+    - gosimple
+    - govet
+    - typecheck
+    - unused
+    - ineffassign
+    - containedctx
+    - dupl
+    - dogsled
+    - errname
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - exportloopref
+    - gochecknoglobals
+    - gocognit
+    - goconst
+    - gocyclo
+    - godot
+    - godox
+    - gofmt
+    - goheader
+    - gomoddirectives
+    - gosec
+    - importas
+    - ireturn
+    - lll
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nilnil
+    - nlreturn  
+    - noctx
+    - prealloc
+    - revive
+    - unparam
+    - usestdlibvars
+# issues:
+#   max-issues-per-linter: 0
+#   max-same-issues: 0
+# linters-settings:
+#   exhaustruct:
+#     # List of regular expressions to exclude struct packages and names from check.
+#     # We exclude third-party structs with entirely optional (omitempty) fields.
+#     exclude: 
+#       - 'github\.com/google/go-github/v47/github\.CheckRunOutput'
+#       - 'github\.com/google/go-github/v47/github\.ListCheckRunsOptions'
+#       - 'github\.com/google/go-github/v47/github\.ListOptions'
+#       - 'github\.com/golang-jwt/jwt\.StandardClaims'
+#       - 'net/http\.Client'
+#   gomoddirectives:  
+#     # List of allowed `replace directives`
+#     # See: https://github.com/web-platform-tests/wpt.fyi/blob/main/go.mod
+#     replace-allow-list:
+#       - launchpad.net/gocheck
+run:
+  skip-dirs:
+    - lib/gen

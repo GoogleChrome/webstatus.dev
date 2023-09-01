@@ -1,0 +1,41 @@
+main:
+  params: [input]
+  steps:
+    - downloadRepo:
+        call: http.post
+        args:
+          url: ${repo_downloader_step_url}/v1/github.com/web-platform-dx/web-features
+          auth:
+            type: OIDC
+          headers:
+            Content-Type: "application/json"
+          body:
+            archive:
+              type: "TAR"
+              tar_strip_components: 1
+            file_filters:
+              - prefix: "feature-group-definitions"
+                suffix: ".yml"
+        result: downloadResponse
+    - consumeWebFeatures:
+        parallel:
+          for:
+            value: filename
+            in: $${downloadResponse.body.destination.gcs.filenames}
+            steps:
+              - consumeWebFeature:
+                  call: http.post
+                  args:
+                    url: ${web_feature_consume_step_url}/v1/web-features
+                    auth:
+                      type: OIDC
+                    headers:
+                      Content-Type: "application/json"
+                    body:
+                      location:
+                        gcs:
+                          bucket: $${downloadResponse.body.destination.gcs.bucket}
+                          object: $${downloadResponse.body.destination.gcs.repo_prefix + "/" + filename}
+                  result: consumeResponse
+#    - returnOutput:
+#        return: '$${downloadResponse.body}'
