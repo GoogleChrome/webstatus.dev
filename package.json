@@ -9,6 +9,7 @@
   "author": "",
   "license": "Apache-2.0",
   "workspaces": [
-    "workflows/common_custom_steps/feature_set_consumer_service"
+    "frontend",
+    "lib/gen/openapi/ts-webstatus.dev-backend-types"
   ]
 }

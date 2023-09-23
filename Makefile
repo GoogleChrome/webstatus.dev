@@ -8,6 +8,7 @@ openapi:
 	oapi-codegen -config openapi/server.cfg.yaml -o lib/gen/openapi/workflows/steps/web_feature_consumer/server.gen.go -package web_feature_consumer openapi/workflows/steps/web_feature_consumer/openapi.yaml
 	oapi-codegen -config openapi/types.cfg.yaml -o lib/gen/openapi/workflows/steps/common/repo_downloader/types.gen.go -package repo_downloader openapi/workflows/steps/common/repo_downloader/openapi.yaml
 	oapi-codegen -config openapi/server.cfg.yaml -o lib/gen/openapi/workflows/steps/common/repo_downloader/server.gen.go -package repo_downloader openapi/workflows/steps/common/repo_downloader/openapi.yaml
+	npx openapi-typescript openapi/backend/openapi.yaml -o lib/gen/openapi/ts-webstatus.dev-backend-types/types.d.ts
 
 jsonschema:
 	quicktype \

@@ -35,3 +35,5 @@ override.tf.json
 terraform.rc
 
 node_modules
+dist
+frontend/static
