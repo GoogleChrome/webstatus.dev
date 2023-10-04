@@ -14,10 +14,27 @@ import (
 
 type WebFeatureMetadataStorer interface {
 	List(ctx context.Context) ([]backend.Feature, error)
+	Get(ctx context.Context, featureId string) (*backend.Feature, error)
 }
 
 type Server struct {
 	metadataStorer WebFeatureMetadataStorer
+}
+
+// GetV1FeaturesFeatureId implements backend.StrictServerInterface.
+func (s *Server) GetV1FeaturesFeatureId(
+	ctx context.Context,
+	request backend.GetV1FeaturesFeatureIdRequestObject,
+) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
+	feature, err := s.metadataStorer.Get(ctx, request.FeatureId)
+	if err != nil {
+		slog.Error("unable to get feature", "error", err)
+		return backend.GetV1FeaturesFeatureId500JSONResponse{
+			Code:    500,
+			Message: "unable to get feature",
+		}, nil
+	}
+	return backend.GetV1FeaturesFeatureId200JSONResponse(*feature), nil
 }
 
 // GetV1Features implements backend.StrictServerInterface.

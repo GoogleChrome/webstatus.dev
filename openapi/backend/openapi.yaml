@@ -43,7 +43,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BasicErrorModel'                
+                $ref: '#/components/schemas/BasicErrorModel'
         '429':
           description: Rate Limit
           content:
@@ -56,6 +56,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/features/{feature_id}:
+    parameters:
+      - name: feature_id
+        in: path
+        description: Feature ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get Feature
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Feature'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+
 components:
   parameters:
     paginationTokenParam:

@@ -26,6 +26,9 @@ type ServerInterface interface {
 	// List features
 	// (GET /v1/features)
 	GetV1Features(w http.ResponseWriter, r *http.Request, params GetV1FeaturesParams)
+	// Get Feature
+	// (GET /v1/features/{feature_id})
+	GetV1FeaturesFeatureId(w http.ResponseWriter, r *http.Request, featureId string)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -35,6 +38,12 @@ type Unimplemented struct{}
 // List features
 // (GET /v1/features)
 func (_ Unimplemented) GetV1Features(w http.ResponseWriter, r *http.Request, params GetV1FeaturesParams) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get Feature
+// (GET /v1/features/{feature_id})
+func (_ Unimplemented) GetV1FeaturesFeatureId(w http.ResponseWriter, r *http.Request, featureId string) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -90,6 +99,32 @@ func (siw *ServerInterfaceWrapper) GetV1Features(w http.ResponseWriter, r *http.
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetV1Features(w, r, params)
+	}))
+
+	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
+		handler = siw.HandlerMiddlewares[i](handler)
+	}
+
+	handler.ServeHTTP(w, r.WithContext(ctx))
+}
+
+// GetV1FeaturesFeatureId operation middleware
+func (siw *ServerInterfaceWrapper) GetV1FeaturesFeatureId(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var err error
+
+	// ------------- Path parameter "feature_id" -------------
+	var featureId string
+
+	err = runtime.BindStyledParameterWithLocation("simple", false, "feature_id", runtime.ParamLocationPath, chi.URLParam(r, "feature_id"), &featureId)
+	if err != nil {
+		siw.ErrorHandlerFunc(w, r, &InvalidParamFormatError{ParamName: "feature_id", Err: err})
+		return
+	}
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.GetV1FeaturesFeatureId(w, r, featureId)
 	}))
 
 	for i := len(siw.HandlerMiddlewares) - 1; i >= 0; i-- {
@@ -215,6 +250,9 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/v1/features", wrapper.GetV1Features)
 	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/v1/features/{feature_id}", wrapper.GetV1FeaturesFeatureId)
+	})
 
 	return r
 }
@@ -272,11 +310,67 @@ func (response GetV1Features500JSONResponse) VisitGetV1FeaturesResponse(w http.R
 	return json.NewEncoder(w).Encode(response)
 }
 
+type GetV1FeaturesFeatureIdRequestObject struct {
+	FeatureId string `json:"feature_id"`
+}
+
+type GetV1FeaturesFeatureIdResponseObject interface {
+	VisitGetV1FeaturesFeatureIdResponse(w http.ResponseWriter) error
+}
+
+type GetV1FeaturesFeatureId200JSONResponse Feature
+
+func (response GetV1FeaturesFeatureId200JSONResponse) VisitGetV1FeaturesFeatureIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(200)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1FeaturesFeatureId400JSONResponse BasicErrorModel
+
+func (response GetV1FeaturesFeatureId400JSONResponse) VisitGetV1FeaturesFeatureIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(400)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1FeaturesFeatureId404JSONResponse BasicErrorModel
+
+func (response GetV1FeaturesFeatureId404JSONResponse) VisitGetV1FeaturesFeatureIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(404)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1FeaturesFeatureId429JSONResponse BasicErrorModel
+
+func (response GetV1FeaturesFeatureId429JSONResponse) VisitGetV1FeaturesFeatureIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(429)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
+type GetV1FeaturesFeatureId500JSONResponse BasicErrorModel
+
+func (response GetV1FeaturesFeatureId500JSONResponse) VisitGetV1FeaturesFeatureIdResponse(w http.ResponseWriter) error {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(500)
+
+	return json.NewEncoder(w).Encode(response)
+}
+
 // StrictServerInterface represents all server handlers.
 type StrictServerInterface interface {
 	// List features
 	// (GET /v1/features)
 	GetV1Features(ctx context.Context, request GetV1FeaturesRequestObject) (GetV1FeaturesResponseObject, error)
+	// Get Feature
+	// (GET /v1/features/{feature_id})
+	GetV1FeaturesFeatureId(ctx context.Context, request GetV1FeaturesFeatureIdRequestObject) (GetV1FeaturesFeatureIdResponseObject, error)
 }
 
 type StrictHandlerFunc = strictnethttp.StrictHttpHandlerFunc
@@ -334,21 +428,48 @@ func (sh *strictHandler) GetV1Features(w http.ResponseWriter, r *http.Request, p
 	}
 }
 
+// GetV1FeaturesFeatureId operation middleware
+func (sh *strictHandler) GetV1FeaturesFeatureId(w http.ResponseWriter, r *http.Request, featureId string) {
+	var request GetV1FeaturesFeatureIdRequestObject
+
+	request.FeatureId = featureId
+
+	handler := func(ctx context.Context, w http.ResponseWriter, r *http.Request, request interface{}) (interface{}, error) {
+		return sh.ssi.GetV1FeaturesFeatureId(ctx, request.(GetV1FeaturesFeatureIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetV1FeaturesFeatureId")
+	}
+
+	response, err := handler(r.Context(), w, r, request)
+
+	if err != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, err)
+	} else if validResponse, ok := response.(GetV1FeaturesFeatureIdResponseObject); ok {
+		if err := validResponse.VisitGetV1FeaturesFeatureIdResponse(w); err != nil {
+			sh.options.ResponseErrorHandlerFunc(w, r, err)
+		}
+	} else if response != nil {
+		sh.options.ResponseErrorHandlerFunc(w, r, fmt.Errorf("unexpected response type: %T", response))
+	}
+}
+
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/7xVTW/jRgz9KwO2hxYQLNlJClS3BkgKo0lqNEEvQWCMJdqerOYjHMobJ/B/X8zI8qcS",
-	"7GJ3c5KHfMP3yCHpVyisdtagYQ/5KzhJUiMjrU8zZSQra27VC46CL5hL9AUpF+yQw02tJ0jCTgWhryv2",
-	"gq0g5JoMJKAC5KlGWkICRmqEPITFsVcvCAn4Yo5aNlGnsq4Y8iwBLZ+VrjXkg7MEtDLNIUuAly5EUIZx",
-	"hgSrVbIj8s5+QvOGytEGJTjA3pPWArba1rSeSZkZrAJt44xlOpdeFRdElq5tiVWsHFmHxAojoLAlhu8m",
-	"rT+ybCevftaRWQIavZcz7OJPgPCpVoQl5PcbYNIQPWyC2ckjFhxiXaLkmvBY2rRxjFXZwZOAd1gEh2LU",
-	"vhOxNkgiuTxSthP9HVWjdZb7ykrJco/6V8Ip5PBLum3ZdP0KaZvfkaBQRpZtrPdCBBXXLfYwkWjsSmHv",
-	"1lEOBp95vNNTnU95EDOYlJnaCFZcBd9fo6G4i78TWCD5pqf7vSxIsA6NdApyOOllvQGEkeB55E8X/XT9",
-	"BvE8Qw6fIDHOwrCEHP5G/r9/2aKSvR1w312zLSTtHL9V8g33trslXNsf21uWxIKkmaH4TZmiqr1a4O9i",
-	"akl8nqMRbXZigoXUKFzA26mYSI+VMvjGnLfusQ8E4yVK2hv47QLKBic7o9ocj7fQoe4LU/5M1WjK79b8",
-	"EDrcO2t80xuDLGt2lWE0sU2kc5Uq4hulj97G9t3SfcU4xsGODb1fnX//CX17+gMJD1dwB+m5LMXQuJob",
-	"7tOP5L6xLC5tbcrIPfjzI7n/k4ziSmkVEz/72KIPDSMZWYlbpIUqUER4XHu+1lrSEnK4Up43I7H+d0Va",
-	"tAuopgpymDM7n6epdKrXeHuMntNFH1YPqy8BAAD//5LbkzfICAAA",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

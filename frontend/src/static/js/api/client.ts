@@ -14,4 +14,13 @@ export class Client {
         }
         return data.data;
     }
+    public async getFeature(feature_id:string) {
+        const { data, error } = await this.client.GET("/v1/features/{feature_id}", {
+            params: {path: {feature_id: feature_id}}
+        });
+        if (error) {
+            throw new Error(error.message);
+        }
+        return data;
+    }
 }

@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "run:local": "npm run build && npx rollup -c && node dist/server/index.js",
+    "local": "npm run build && npx rollup -c && node dist/server/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",

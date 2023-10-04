@@ -52,6 +52,55 @@ export interface paths {
       };
     };
   };
+  "/v1/features/{feature_id}": {
+    /** Get Feature */
+    get: {
+      parameters: {
+        path: {
+          /** @description Feature ID */
+          feature_id: string;
+        };
+      };
+      responses: {
+        /** @description OK */
+        200: {
+          content: {
+            "application/json": components["schemas"]["Feature"];
+          };
+        };
+        /** @description Bad Input */
+        400: {
+          content: {
+            "application/json": components["schemas"]["BasicErrorModel"];
+          };
+        };
+        /** @description Not Found */
+        404: {
+          content: {
+            "application/json": components["schemas"]["BasicErrorModel"];
+          };
+        };
+        /** @description Rate Limit */
+        429: {
+          content: {
+            "application/json": components["schemas"]["BasicErrorModel"];
+          };
+        };
+        /** @description Internal Service Error */
+        500: {
+          content: {
+            "application/json": components["schemas"]["BasicErrorModel"];
+          };
+        };
+      };
+    };
+    parameters: {
+      path: {
+        /** @description Feature ID */
+        feature_id: string;
+      };
+    };
+  };
 }
 
 export type webhooks = Record<string, never>;
