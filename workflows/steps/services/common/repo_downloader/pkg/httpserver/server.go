@@ -1,3 +1,17 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package httpserver
 
 import (
@@ -8,6 +22,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/common/repo_downloader"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/repo_downloader/pkg/filefilter"
@@ -30,6 +45,7 @@ type Server struct {
 	storer     Storer
 }
 
+// nolint:ireturn // Expected ireturn for openapi generation.
 func (s *Server) PostV1GithubComOwnerName(ctx context.Context,
 	request repo_downloader.PostV1GithubComOwnerNameRequestObject) (
 	repo_downloader.PostV1GithubComOwnerNameResponseObject, error) {
@@ -133,8 +149,10 @@ func NewHTTPServer(port string, downloader *gh.Downloader, storer Storer) (*http
 	// We now register our repo downloader above as the handler for the interface
 	repo_downloader.HandlerFromMux(srvStrictHandler, r)
 
+	// nolint:exhaustruct // No need to populate 3rd party struct
 	return &http.Server{
-		Handler: r,
-		Addr:    net.JoinHostPort("0.0.0.0", port),
+		Handler:           r,
+		Addr:              net.JoinHostPort("0.0.0.0", port),
+		ReadHeaderTimeout: 30 * time.Second,
 	}, nil
 }

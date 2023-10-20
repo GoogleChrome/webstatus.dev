@@ -1,4 +1,19 @@
-
+COPYRIGHT_NAME := Google LLC
+# Description of ignored files
+# lib/gen - all generated files
+# .terraform.lock.hcl - generated lock file for terraform
+# frontend/dist - built files, not source files that are checked in
+# frontend/static - built files, not source files that are checked in
+# frontend/node_modules - External Node dependencies
+# node_modules - External Node dependencies
+ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
+	-l apache \
+	-ignore 'lib/gen' \
+	-ignore '**/.terraform.lock.hcl' \
+	-ignore 'frontend/dist/**' \
+	-ignore 'frontend/static/**' \
+	-ignore 'frontend/node_modules/**' \
+	-ignore 'node_modules/**'
 gen: openapi jsonschema
 
 openapi:
@@ -20,8 +35,26 @@ jsonschema:
 		--package web_platform_dx__web_features \
 		--field-tags json
 
-lint-version:
+golint-version:
 	golangci-lint --version
 
-lint: lint-version
+frontend-deps:
+	npm install -w frontend 
+
+lint: golint-version frontend-deps
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
+	npm run lint -w frontend
+	terraform fmt -recursive -check .
+	shellcheck .devcontainer/*.sh
+
+lint-fix: frontend-deps
+	npm run lint-fix -w frontend
+	terraform fmt -recursive .
+
+download-addlicense:
+	go install github.com/google/addlicense@latest
+
+license-check: download-addlicense
+	addlicense -check $(ADDLICENSE_ARGS) .
+license-fix: download-addlicense
+	addlicense $(ADDLICENSE_ARGS) .

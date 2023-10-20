@@ -1,3 +1,17 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gds
 
 import (
@@ -35,6 +49,7 @@ func NewWebFeatureClient(projectID string, database *string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return &Client{client}, nil
 }
 
@@ -43,10 +58,14 @@ type FeatureData struct {
 	id           int64  // The integer ID used in the datastore.
 }
 
+func (f FeatureData) ID() int64 {
+	return f.id
+}
+
 func (c *Client) Upsert(
 	ctx context.Context,
 	webFeatureID string,
-	featureData web_platform_dx__web_features.FeatureData,
+	_ web_platform_dx__web_features.FeatureData,
 ) error {
 	// Begin a transaction.
 	_, err := c.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
@@ -71,6 +90,7 @@ func (c *Client) Upsert(
 			key = datastore.IncompleteKey(featureDataKey, nil)
 		}
 
+		// nolint: exhaustruct // id does not exist yet
 		feature := &FeatureData{
 			WebFeatureID: webFeatureID,
 		}
@@ -78,16 +98,19 @@ func (c *Client) Upsert(
 		if err != nil {
 			// Handle any errors in an appropriate way, such as returning them.
 			slog.Error("unable to upsert metadata", "error", err)
+
 			return err
 		}
 
 		return nil
 	})
+
 	if err != nil {
 		slog.Error("failed to commit upsert transaction", "error", err)
 
 		return err
 	}
+
 	return nil
 }
 
@@ -101,8 +124,10 @@ func (c *Client) List(ctx context.Context) ([]backend.Feature, error) {
 	for idx, val := range featureData {
 		ret[idx] = backend.Feature{
 			FeatureId: val.WebFeatureID,
+			Spec:      nil,
 		}
 	}
+
 	return ret, nil
 }
 
@@ -115,7 +140,9 @@ func (c *Client) Get(ctx context.Context, webFeatureID string) (*backend.Feature
 	if err != nil {
 		return nil, err
 	}
+
 	return &backend.Feature{
 		FeatureId: featureData[0].WebFeatureID,
+		Spec:      nil,
 	}, nil
 }

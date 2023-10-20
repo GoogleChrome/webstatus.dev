@@ -1,165 +1,36 @@
-import express from "express";
+/**
+ * Copyright 2023 Google LLC
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
-import { NavigationBar } from "../static/js/components/navigation-bar.js";
-import "../static/js/components/home-page.js";
-import "../static/js/components/feature-page.js";
+import Koa from 'koa'
+import Router from '@koa/router'
+import mount from 'koa-mount'
+import { renderBase } from './templates/_base.js'
+import { html } from 'lit'
+import { RenderResultReadable } from '@lit-labs/ssr/lib/render-result-readable.js'
 
-import {render} from '@lit-labs/ssr';
-// import {RenderResultReadable} from '@lit-labs/ssr/lib/render-result-readable.js';
-import {collectResult, collectResultSync} from '@lit-labs/ssr/lib/render-result.js';
-import { html } from "lit";
+import staticFiles from 'koa-static'
 
-const app = express();
-app.use('/public', express.static('static'))
+const app = new Koa()
+const router = new Router()
 
-// Set up the navigation bar middleware
-app.use((_, res, next) => {
-    const navigationBar = new NavigationBar();
-    const renderedNavigationBar = render(navigationBar.render());
-  
-    res.locals.navigationBar = collectResultSync(renderedNavigationBar);
-  
-    next();
-  });
-  
+router.get('/', async (ctx) => {
+  ctx.type = 'text/html'
+  ctx.body = new RenderResultReadable(renderBase(html`<webstatus-overview-page></webstatus-overview-page>`))
+})
 
-// Render the home page
-app.get("/", async (_, res) => {
-    const result = render(html`<home-page></home-page>`);
-    const renderedHtml = await collectResult(result);
-    res.send(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <!-- On browsers that don't yet support native declarative shadow DOM, a
-              paint can occur after some or all pre-rendered HTML has been parsed,
-              but before the declarative shadow DOM polyfill has taken effect. This
-              paint is undesirable because it won't include any component shadow DOM.
-              To prevent layout shifts that can result from this render, we use a
-              "dsd-pending" attribute to ensure we only paint after we know
-              shadow DOM is active. -->
-          <style>
-            body[dsd-pending] {
-              display: none;
-            }
-          </style>
-          <title>Home Page</title>
-        </head>
-        <body dsd-pending>
-          <script>
-            if (HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
-              // This browser has native declarative shadow DOM support, so we can
-              // allow painting immediately.
-              document.body.removeAttribute('dsd-pending');
-            }
-          </script>
-          <script src="/public/index.js"></script>
-          ${res.locals.navigationBar}
-          <main>${renderedHtml}</main>
-          <br />
-          Hi
-          <script type="module">
-            // Check if we require the template shadow root polyfill.
-            if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
-              // Fetch the template shadow root polyfill.
-              const {hydrateShadowRoots} = await import(
-                '/node_modules/@webcomponents/template-shadowroot/template-shadowroot.js'
-              );
-
-              // Apply the polyfill. This is a one-shot operation, so it is important
-              // it happens after all HTML has been parsed.
-              hydrateShadowRoots(document.body);
-
-              // At this point, browsers without native declarative shadow DOM
-              // support can paint the initial state of your components!
-              document.body.removeAttribute('dsd-pending');
-            }
-          </script>
-
-        </body>
-      </html>
-    `);
-  });
-  
-//   // Render the item details page
-//   app.get("/items/:itemId", async (req, res) => {
-//     const itemId = req.params.itemId;
-  
-//     const itemDetailsPage = new ItemDetailsPage();
-//     itemDetailsPage.setAttribute("item-id", itemId);
-  
-//     const renderedItemDetailsPage = itemDetailsPage.renderToString();
-  
-//     res.send(`
-//       <!DOCTYPE html>
-//       <html>
-//         <head>
-//           <title>Item Details</title>
-//         </head>
-//         <body>
-//           ${res.locals.navigationBar}
-//           <main>${renderedItemDetailsPage}</main>
-//         </body>
-//       </html>
-//     `);
-//   });
-app.get("/features/:feature_id", async (req, res) => {
-  const result = render(html`<feature-page id=${req.params.feature_id}></feature-page>`);
-  const renderedHtml = await collectResult(result);
-  res.send(`
-    <!DOCTYPE html>
-    <html>
-      <head>
-        <!-- On browsers that don't yet support native declarative shadow DOM, a
-            paint can occur after some or all pre-rendered HTML has been parsed,
-            but before the declarative shadow DOM polyfill has taken effect. This
-            paint is undesirable because it won't include any component shadow DOM.
-            To prevent layout shifts that can result from this render, we use a
-            "dsd-pending" attribute to ensure we only paint after we know
-            shadow DOM is active. -->
-        <style>
-          body[dsd-pending] {
-            display: none;
-          }
-        </style>
-        <title>Feature Page</title>
-      </head>
-      <body dsd-pending>
-        <script>
-          if (HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
-            // This browser has native declarative shadow DOM support, so we can
-            // allow painting immediately.
-            document.body.removeAttribute('dsd-pending');
-          }
-        </script>
-        <script src="/public/index.js"></script>
-        ${res.locals.navigationBar}
-        <main>${renderedHtml}</main>
-        <br />
-        Hi
-        <script type="module">
-          // Check if we require the template shadow root polyfill.
-          if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {
-            // Fetch the template shadow root polyfill.
-            const {hydrateShadowRoots} = await import(
-              '/node_modules/@webcomponents/template-shadowroot/template-shadowroot.js'
-            );
-
-            // Apply the polyfill. This is a one-shot operation, so it is important
-            // it happens after all HTML has been parsed.
-            hydrateShadowRoots(document.body);
-
-            // At this point, browsers without native declarative shadow DOM
-            // support can paint the initial state of your components!
-            document.body.removeAttribute('dsd-pending');
-          }
-        </script>
-
-      </body>
-    </html>
-  `);
-});
-
-app.listen(3002, () => {
-    console.log("Server listening on port 3002");
-});
+app.use(router.routes())
+app.use(mount('/public', staticFiles('static')))
+app.listen(5555)

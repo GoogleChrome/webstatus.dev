@@ -1,3 +1,17 @@
+// Copyright 2023 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package httpserver
 
 import (
@@ -8,6 +22,7 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
@@ -31,10 +46,12 @@ type Server struct {
 func getFilenameBaseWithoutExt(filePath string) string {
 	base := filepath.Base(filePath)
 	ext := filepath.Ext(base)
+
 	return strings.TrimSuffix(base, ext)
 }
 
 // PostV1WebFeatures implements web_feature_consumer.StrictServerInterface.
+// nolint:ireturn // Expected ireturn for openapi generation.
 func (s *Server) PostV1WebFeatures(
 	ctx context.Context,
 	request web_feature_consumer.PostV1WebFeaturesRequestObject,
@@ -45,6 +62,7 @@ func (s *Server) PostV1WebFeatures(
 	if err != nil {
 		// TODO check error type
 		slog.Error("unable to get file", "file", request.Body.Location.Gcs.Object, "error", err)
+
 		return web_feature_consumer.PostV1WebFeatures404JSONResponse{
 			Code:    404,
 			Message: "unable to get file",
@@ -53,6 +71,7 @@ func (s *Server) PostV1WebFeatures(
 	jsonBytes, err := yaml.YAMLToJSON(yamlBytes)
 	if err != nil {
 		slog.Error("unable to read data", "error", err)
+
 		return web_feature_consumer.PostV1WebFeatures400JSONResponse{
 			Code:    400,
 			Message: "unable to read file as json",
@@ -61,6 +80,7 @@ func (s *Server) PostV1WebFeatures(
 	featureData, err := web_platform_dx__web_features.UnmarshalFeatureData(jsonBytes)
 	if err != nil {
 		slog.Error("unable to convert data", "error", err)
+
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,
 			Message: "unable to convert data to expected format",
@@ -70,11 +90,13 @@ func (s *Server) PostV1WebFeatures(
 	err = s.metadataStorer.Upsert(ctx, webFeatureKey, featureData)
 	if err != nil {
 		slog.Error("unable to store data", "error", err)
+
 		return web_feature_consumer.PostV1WebFeatures400JSONResponse{
 			Code:    400,
 			Message: "unable to store data",
 		}, nil
 	}
+
 	return web_feature_consumer.PostV1WebFeatures200Response{}, nil
 }
 
@@ -108,8 +130,10 @@ func NewHTTPServer(
 	// We now register our web feature router above as the handler for the interface
 	web_feature_consumer.HandlerFromMux(srvStrictHandler, r)
 
+	// nolint:exhaustruct // No need to populate 3rd party struct
 	return &http.Server{
-		Handler: r,
-		Addr:    net.JoinHostPort("0.0.0.0", port),
+		Handler:           r,
+		Addr:              net.JoinHostPort("0.0.0.0", port),
+		ReadHeaderTimeout: 30 * time.Second,
 	}, nil
 }

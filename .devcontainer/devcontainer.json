@@ -16,7 +16,10 @@
             "dockerDashComposeVersion": "v2"
         },
         "ghcr.io/devcontainers/features/terraform:1": {
-            "version": "1.5.4"
+            "version": "1.6.3"
+        },
+		"ghcr.io/lukewiwa/features/shellcheck:0": {
+            "version": "v0.9.0"
         },
 		"ghcr.io/devcontainers/features/java:1": {}
 	},
