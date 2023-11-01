@@ -37,3 +37,8 @@ terraform.rc
 node_modules
 dist
 frontend/static
+
+# Generated files
+*.gen.go
+lib/gen/*/*/*.go
+lib/gen/*/*/*.ts
