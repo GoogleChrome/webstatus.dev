@@ -24,7 +24,7 @@ The above skaffold command deploys multiple resources:
 | Resource | Description | Port Forwarded Address | Internal Address |
 | --- | ----------- | --------------- | --------------- |
 | backend | Backend service in ./backend | http://localhost:8080 | http://backend:8080 |
-| frontend | Frontend service in ./frontend | http://localhost:8000 | http://frontend:8080 |
+| frontend | Frontend service in ./frontend | http://localhost:5555 | http://frontend:5555 |
 | datastore | Datastore Emulator | N/A | http://datastore:8085 |
 | spanner | Spanner Emulator | N/A | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
 | gcs | Google Cloud Storage Emulator | N/A | http://gcs:4443 |
@@ -124,7 +124,8 @@ terraform plan \
     -var-file=".envs/staging.tfvars" \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
-    -var "deletion_protection=false"
+    -var "deletion_protection=false" \
+    -var "datastore_region_id=us-east1"
 ```
 
 When you are done with your own copy
@@ -134,7 +135,8 @@ terraform destroy \
     -var-file=".envs/staging.tfvars" \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
-    -var "deletion_protection=false"
+    -var "deletion_protection=false" \
+    -var "datastore_region_id=us-east1"
 terraform workspace select default
 terraform workspace delete $ENV_ID
 ```

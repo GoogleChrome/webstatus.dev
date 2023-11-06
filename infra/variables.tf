@@ -17,15 +17,6 @@ variable "project_name" {
   description = "The ID of the Google Cloud project"
 }
 
-variable "primary_region" {
-  type        = string
-  description = "Primary region. Useful for ."
-}
-
-variable "regions" {
-  type = list(string)
-}
-
 variable "spanner_region_override" {
   type     = string
   nullable = true
@@ -46,6 +37,10 @@ variable "env_id" {
   type        = string
 }
 
+variable "datastore_region_id" {
+  type = string
+}
+
 variable "docker_repository_region_override" {
   type     = string
   nullable = true
@@ -53,11 +48,38 @@ variable "docker_repository_region_override" {
 }
 
 locals {
-  docker_repository_region = coalesce(var.docker_repository_region_override, var.regions[0])
+  docker_repository_region = coalesce(
+    var.docker_repository_region_override,
+  keys(var.region_information)[0])
+  spanner_repository_region = coalesce(
+    var.spanner_region_override,
+  "regional-${keys(var.region_information)[0]}")
+  region_to_subnet_map = { for region, info in var.region_information : region => info.networks }
 }
 
 variable "secret_ids" {
   type = object({
     github_token = string
   })
+}
+
+variable "projects" {
+  type = object({
+    host     = string
+    internal = string
+    public   = string
+  })
+}
+
+variable "region_information" {
+  type = map(object({
+    networks = object({
+      internal = object({
+        cidr = string
+      })
+      public = object({
+        cidr = string
+      })
+    })
+  }))
 }

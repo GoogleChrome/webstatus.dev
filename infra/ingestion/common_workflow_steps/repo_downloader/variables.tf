@@ -24,6 +24,8 @@ variable "docker_repository_details" {
   type = object({
     hostname = string
     url      = string
+    location = string
+    name     = string
   })
 }
 
@@ -33,4 +35,12 @@ variable "repo_bucket" {
 
 variable "github_token_secret_id" {
   type = string
+}
+
+variable "projects" {
+  type = object({
+    host     = string
+    internal = string
+    public   = string
+  })
 }

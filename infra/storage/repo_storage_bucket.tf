@@ -12,11 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-data "google_project" "project" {
-}
-
 resource "google_storage_bucket" "repo_storage_bucket" {
-  name          = "repo-storage-bucket-${data.google_project.project.name}-${var.env_id}"
+  project       = var.projects.internal
+  name          = "repo-storage-bucket-${var.projects.internal}-${var.env_id}"
   location      = "US"
   storage_class = "STANDARD"
 

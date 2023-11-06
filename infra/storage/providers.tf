@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "env_id" {
-  type = string
-}
-
-variable "regions" {
-  type = list(string)
-}
-
-variable "sample_custom_step_region_to_step_info_map" {
-  type = map(object({
-    name = string
-    url  = string
-  }))
+terraform {
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      configuration_aliases = [
+        google.internal_project,
+        google.public_project,
+      ]
+    }
+  }
 }

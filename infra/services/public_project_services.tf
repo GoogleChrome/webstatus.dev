@@ -12,17 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "env_id" {
-  type = string
-}
+resource "google_project_service" "public_cloud_run" {
+  provider = google.public_project
+  service  = "run.googleapis.com"
 
-variable "regions" {
-  type = list(string)
-}
-
-variable "docker_repository_details" {
-  type = object({
-    hostname = string
-    url      = string
-  })
+  disable_dependent_services = true
+  disable_on_destroy         = false
 }

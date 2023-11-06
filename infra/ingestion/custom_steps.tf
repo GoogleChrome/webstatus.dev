@@ -12,20 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module "sample_custom_step" {
-  source = "./common_workflow_steps/sample_step"
-
-  env_id                    = var.env_id
-  regions                   = var.regions
-  docker_repository_details = var.docker_repository_details
-}
-
 module "repo_downloader_step" {
   source = "./common_workflow_steps/repo_downloader"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
 
   env_id                    = var.env_id
   regions                   = var.regions
   docker_repository_details = var.docker_repository_details
   repo_bucket               = var.buckets.repo_download_bucket
   github_token_secret_id    = var.secret_ids.github_token
+  projects                  = var.projects
 }

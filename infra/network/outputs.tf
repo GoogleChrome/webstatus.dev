@@ -12,10 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_firestore_database" "datastore_db" {
-  project                 = var.projects.internal
-  name                    = "${var.env_id}-db"
-  location_id             = var.datastore_region_id
-  type                    = "DATASTORE_MODE"
-  delete_protection_state = var.deletion_protection ? "DELETE_PROTECTION_ENABLED" : "DELETE_PROTECTION_DISABLED"
+output "region_to_subnet_info_map" {
+  value = {
+    for region, value in var.region_to_subnet_map :
+    region => {
+      internal = google_compute_subnetwork.subnetwork_internal[region].name
+      public   = google_compute_subnetwork.subnetwork_public[region].name
+    }
+  }
+}
+
+output "vpc_name" {
+  value = google_compute_network.shared_vpc.name
 }

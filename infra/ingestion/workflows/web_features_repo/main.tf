@@ -14,11 +14,13 @@
 
 resource "google_service_account" "service_account" {
   account_id   = "web-features-repo-${var.env_id}"
+  provider     = google.internal_project
   display_name = "Web Features Repo service account for ${var.env_id}"
 }
 
 resource "google_workflows_workflow" "workflow" {
   count           = length(var.regions)
+  provider        = google.internal_project
   name            = "${var.env_id}-web-features-repo-${var.regions[count.index]}"
   region          = var.regions[count.index]
   description     = "Web Feature Repo Workflow. Env id: ${var.env_id}"
@@ -32,12 +34,9 @@ resource "google_workflows_workflow" "workflow" {
   )
 }
 
-data "google_project" "project" {
-}
-
 resource "google_cloud_run_v2_service_iam_member" "repo_downloader_step_invoker" {
   count    = length(var.regions)
-  project  = data.google_project.project.number
+  provider = google.internal_project
   location = var.regions[count.index]
   name     = var.repo_downloader_step_region_to_step_info_map[var.regions[count.index]].name
   role     = "roles/run.invoker"

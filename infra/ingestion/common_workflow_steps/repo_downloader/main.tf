@@ -36,28 +36,41 @@ resource "docker_registry_image" "repo_downloader_remote_image" {
   }
 }
 
-resource "google_storage_bucket_iam_member" "binding" {
-  bucket = var.repo_bucket
-  role   = "roles/storage.objectUser"
-  member = google_service_account.service_account.member
+resource "google_storage_bucket_iam_member" "iam_member" {
+  provider = google.internal_project
+  bucket   = var.repo_bucket
+  role     = "roles/storage.objectUser"
+  member   = google_service_account.service_account.member
 }
 
-resource "google_secret_manager_secret_iam_member" "binding" {
+resource "google_secret_manager_secret_iam_member" "iam_member" {
+  provider  = google.internal_project
   secret_id = data.google_secret_manager_secret.github_token.id
   role      = "roles/secretmanager.secretAccessor"
   member    = google_service_account.service_account.member
 }
 
+resource "google_artifact_registry_repository_iam_member" "iam_member" {
+  provider   = google.internal_project
+  repository = var.docker_repository_details.name
+  location   = var.docker_repository_details.location
+  role       = "roles/artifactregistry.reader"
+  member     = google_service_account.service_account.member
+}
+
 resource "google_service_account" "service_account" {
+  provider     = google.internal_project
   account_id   = "repo-downloader-${var.env_id}"
   display_name = "Repo Downloader service account for ${var.env_id}"
 }
 
 data "google_secret_manager_secret" "github_token" {
+  provider  = google.internal_project
   secret_id = var.github_token_secret_id
 }
 
 resource "google_cloud_run_v2_service" "service" {
+  provider = google.internal_project
   count    = length(var.regions)
   name     = "${var.env_id}-${var.regions[count.index]}-repo-downloader-srv"
   location = var.regions[count.index]
@@ -82,7 +95,8 @@ resource "google_cloud_run_v2_service" "service" {
     service_account = google_service_account.service_account.email
   }
   depends_on = [
-    google_storage_bucket_iam_member.binding,
-    google_secret_manager_secret_iam_member.binding
+    google_storage_bucket_iam_member.iam_member,
+    google_secret_manager_secret_iam_member.iam_member,
+    google_artifact_registry_repository_iam_member.iam_member,
   ]
 }

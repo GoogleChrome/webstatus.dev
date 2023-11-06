@@ -39,6 +39,7 @@ resource "docker_registry_image" "backend_remote_image" {
 
 resource "google_cloud_run_v2_service" "service" {
   count    = length(var.regions)
+  provider = google.public_project
   name     = "${var.env_id}-${var.regions[count.index]}-webstatus-backend"
   location = var.regions[count.index]
 
@@ -58,26 +59,40 @@ resource "google_cloud_run_v2_service" "service" {
       }
       env {
         name  = "PROJECT_ID"
-        value = var.firestore_info.project_id
+        value = var.datastore_info.project_id
       }
       env {
         name  = "DATASTORE_DATABASE"
-        value = var.firestore_info.database_name
+        value = var.datastore_info.database_name
       }
     }
     service_account = google_service_account.backend.email
   }
+  depends_on = [
+    google_project_iam_member.gcp_datastore_user,
+    google_artifact_registry_repository_iam_member.iam_member,
+  ]
 }
 
 resource "google_service_account" "backend" {
   account_id   = "backend-${var.env_id}"
+  provider     = google.public_project
   display_name = "Backend service account for ${var.env_id}"
 }
 
-resource "google_project_iam_member" "gcp_firestore_user" {
-  role    = "roles/datastore.user"
-  project = var.firestore_info.project_id
-  member  = google_service_account.backend.member
+resource "google_project_iam_member" "gcp_datastore_user" {
+  role     = "roles/datastore.user"
+  provider = google.internal_project
+  project  = var.datastore_info.project_id
+  member   = google_service_account.backend.member
+}
+
+resource "google_artifact_registry_repository_iam_member" "iam_member" {
+  provider   = google.internal_project
+  repository = var.docker_repository_details.name
+  location   = var.docker_repository_details.location
+  role       = "roles/artifactregistry.reader"
+  member     = google_service_account.backend.member
 }
 
 # resource "google_cloud_run_service_iam_member" "public" {

@@ -12,10 +12,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  service_dir = "frontend"
+}
+
 resource "docker_image" "frontend" {
   name = "${var.docker_repository_details.url}/frontend"
   build {
-    context = "${path.cwd}/../frontend"
+    context = "${path.cwd}/.."
+    build_args = {
+      service_dir : local.service_dir
+    }
+    dockerfile = "images/nodejs_service.Dockerfile"
   }
 }
 resource "docker_registry_image" "frontend_remote_image" {
@@ -28,6 +36,7 @@ data "google_project" "project" {
 
 
 resource "google_cloud_run_v2_service" "service" {
+  provider = google.public_project
   count    = length(var.regions)
   name     = "${var.env_id}-${var.regions[count.index]}-webstatus-frontend"
   location = var.regions[count.index]
@@ -36,7 +45,7 @@ resource "google_cloud_run_v2_service" "service" {
     containers {
       image = "${docker_image.frontend.name}@${docker_registry_image.frontend_remote_image.sha256_digest}"
       ports {
-        container_port = 8000
+        container_port = 5555
       }
       env {
         name  = "BACKEND_API_HOST"

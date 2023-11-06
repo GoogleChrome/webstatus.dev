@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,10 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-resource "google_firestore_database" "datastore_db" {
-  project                 = var.projects.internal
-  name                    = "${var.env_id}-db"
-  location_id             = var.datastore_region_id
-  type                    = "DATASTORE_MODE"
-  delete_protection_state = var.deletion_protection ? "DELETE_PROTECTION_ENABLED" : "DELETE_PROTECTION_DISABLED"
-}
+
+# There may be some network resources that are enforced at the organization
+# level. As a result, terraform will be unable to delete the network
+# successfully. This script does a cleanup of any of those resources so that the
+# network can be cleaned up successfully.
+
+PROJECT_ID=$1
+NETWORK_NAME=$2
+
+gcloud compute firewall-rules delete --project="${PROJECT_ID}" \
+    "$(gcloud compute firewall-rules list --project "${PROJECT_ID}" --filter="name~'${NETWORK_NAME}-*'" --format="value(name)")"

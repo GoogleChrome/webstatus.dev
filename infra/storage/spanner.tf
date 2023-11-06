@@ -13,6 +13,7 @@
 # limitations under the License.
 
 resource "google_spanner_instance" "main" {
+  project          = var.projects.internal
   name             = "${var.env_id}-spanner"
   config           = var.spanner_region_id
   display_name     = "${var.env_id} Spanner"
@@ -21,6 +22,7 @@ resource "google_spanner_instance" "main" {
 }
 
 resource "google_spanner_database" "database" {
+  project                  = var.projects.internal
   instance                 = google_spanner_instance.main.name
   name                     = "${var.env_id}-database"
   version_retention_period = "3d"

@@ -12,15 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.20-alpine3.18 as builder
+variable "env_id" {
+  type = string
+}
 
-WORKDIR /work
-COPY . .
+variable "host_project_id" {
+  type = string
+}
 
-RUN go mod download && go build
-
-FROM alpine:3.18
-
-COPY --from=builder /work/sample .
-
-CMD ./sample
+variable "region_to_subnet_map" {
+  type = map(map(object({
+    cidr = string
+  })))
+  description = <<EOF
+  maps region to a map. that map is the purpose of the subnet. the secondary map maps to an object which contains the subnet info
+EOF
+}

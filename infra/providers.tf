@@ -16,20 +16,28 @@ terraform {
   required_providers {
     google = {
       source  = "hashicorp/google"
-      version = "4.81.0"
+      version = ">= 5.4.0"
     }
     docker = {
       source  = "kreuzwerker/docker"
-      version = "3.0.2"
+      version = ">= 3.0.2"
     }
   }
 }
 
 provider "google" {
   project = var.project_name
-  region  = "us-central1"
 }
 
+provider "google" {
+  alias   = "internal_project"
+  project = var.projects.internal
+}
+
+provider "google" {
+  alias   = "public_project"
+  project = var.projects.public
+}
 
 provider "docker" {
   host = "unix:///var/run/docker.sock"

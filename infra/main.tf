@@ -12,44 +12,82 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+module "services" {
+  source = "./services"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+
+  projects = var.projects
+}
+
+module "network" {
+  source               = "./network"
+  env_id               = var.env_id
+  host_project_id      = var.projects.host
+  region_to_subnet_map = local.region_to_subnet_map
+  depends_on           = [module.services]
+}
 
 module "storage" {
   source = "./storage"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
 
   env_id              = var.env_id
   deletion_protection = false
   # `gcloud spanner instance-configs list --project=<PROJECT>` returns the available configs
-  spanner_region_id        = coalesce(var.spanner_region_override, "regional-${var.regions[0]}")
+  spanner_region_id        = local.spanner_repository_region
+  datastore_region_id      = var.datastore_region_id
   spanner_processing_units = var.spanner_processing_units
-  docker_repository_region = coalesce(var.docker_repository_region_override, var.regions[0])
+  docker_repository_region = local.docker_repository_region
+  projects                 = var.projects
+  depends_on               = [module.services]
 }
 
 module "ingestion" {
   source = "./ingestion"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
 
   env_id                    = var.env_id
   docker_repository_details = module.storage.docker_repository_details
-  regions                   = var.regions
+  regions                   = keys(var.region_information)
   buckets                   = module.storage.buckets
   secret_ids                = var.secret_ids
-  firestore_info            = module.storage.firestore_info
+  datastore_info            = module.storage.datastore_info
+  projects                  = var.projects
+  depends_on                = [module.services]
 }
 
 module "backend" {
   source = "./backend"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
 
   env_id                    = var.env_id
   spanner_datails           = module.storage.spanner_info
   docker_repository_details = module.storage.docker_repository_details
-  regions                   = var.regions
-  firestore_info            = module.storage.firestore_info
+  regions                   = keys(var.region_information)
+  datastore_info            = module.storage.datastore_info
 }
 
 module "frontend" {
   source = "./frontend"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
 
   env_id                    = var.env_id
   docker_repository_details = module.storage.docker_repository_details
-  regions                   = var.regions
+  regions                   = keys(var.region_information)
   backend_api_host          = "TODO"
 }

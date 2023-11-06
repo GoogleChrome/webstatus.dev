@@ -24,6 +24,8 @@ variable "docker_repository_details" {
   type = object({
     hostname = string
     url      = string
+    location = string
+    name     = string
   })
 }
 

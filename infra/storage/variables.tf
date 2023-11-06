@@ -28,6 +28,11 @@ variable "spanner_region_id" {
   description = "Configuration from https://cloud.google.com/spanner/docs/instance-configurations#available-configurations-multi-region"
 }
 
+variable "datastore_region_id" {
+  type        = string
+  description = "Configuration from https://cloud.google.com/datastore/docs/locations"
+}
+
 variable "spanner_processing_units" {
   type = number
 }
@@ -37,5 +42,14 @@ variable "deletion_protection" {
 }
 
 variable "docker_repository_region" {
-  type = string
+  type        = string
+  description = "Configuration from https://cloud.google.com/datastore/docs/locations"
+}
+
+variable "projects" {
+  type = object({
+    host     = string
+    internal = string
+    public   = string
+  })
 }

@@ -16,11 +16,14 @@ FROM node:20.8.1-alpine3.18
 
 WORKDIR /work
 ARG service_dir
-COPY ${service_dir}/package.json ${service_dir}/package-lock.json ${service_dir}/
+COPY package.json package.json
+COPY package-lock.json package-lock.json
+COPY ${service_dir}/package.json ${service_dir}/package.json
 COPY lib/gen/openapi/ lib/gen/openapi/
 WORKDIR /work/${service_dir}
-RUN npm install
+RUN npm install --ignore-scripts
 COPY ${service_dir}/ /work/${service_dir}/
+RUN npm run postinstall || true
 RUN npm run build
 
 CMD npm run start

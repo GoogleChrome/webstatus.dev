@@ -24,8 +24,11 @@ variable "docker_repository_details" {
   type = object({
     hostname = string
     url      = string
+    location = string
+    name     = string
   })
 }
+
 variable "buckets" {
   type = object({
     repo_download_bucket = string
@@ -38,9 +41,17 @@ variable "secret_ids" {
   })
 }
 
-variable "firestore_info" {
+variable "datastore_info" {
   type = object({
     database_name = string
     project_id    = string
+  })
+}
+
+variable "projects" {
+  type = object({
+    host     = string
+    internal = string
+    public   = string
   })
 }

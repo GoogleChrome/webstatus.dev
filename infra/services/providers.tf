@@ -14,8 +14,12 @@
 
 terraform {
   required_providers {
-    docker = {
-      source = "kreuzwerker/docker"
+    google = {
+      source = "hashicorp/google"
+      configuration_aliases = [
+        google.internal_project,
+        google.public_project,
+      ]
     }
   }
 }

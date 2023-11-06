@@ -19,10 +19,10 @@ output "spanner_info" {
   }
 }
 
-output "firestore_info" {
+output "datastore_info" {
   value = {
-    database_name = google_firestore_database.firestore_db.name
-    project_id    = google_firestore_database.firestore_db.project
+    database_name = google_firestore_database.datastore_db.name
+    project_id    = google_firestore_database.datastore_db.project
   }
 }
 
@@ -31,6 +31,8 @@ output "docker_repository_details" {
   value = {
     hostname = "${google_artifact_registry_repository.docker.location}-docker.pkg.dev"
     url      = "${google_artifact_registry_repository.docker.location}-docker.pkg.dev/${google_artifact_registry_repository.docker.project}/${google_artifact_registry_repository.docker.name}"
+    location = google_artifact_registry_repository.docker.location
+    name     = google_artifact_registry_repository.docker.name
   }
 }
 
