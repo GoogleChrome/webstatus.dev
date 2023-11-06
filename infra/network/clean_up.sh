@@ -22,5 +22,6 @@
 PROJECT_ID=$1
 NETWORK_NAME=$2
 
-gcloud compute firewall-rules delete --project="${PROJECT_ID}" \
-    "$(gcloud compute firewall-rules list --project "${PROJECT_ID}" --filter="name~'${NETWORK_NAME}-*'" --format="value(name)")"
+# shellcheck disable=SC2046
+gcloud compute firewall-rules delete -q --project="${PROJECT_ID}" \
+    $(gcloud compute firewall-rules list --project "${PROJECT_ID}" --filter="name~'${NETWORK_NAME}-*'" --format="value(name)")

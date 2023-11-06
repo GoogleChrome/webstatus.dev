@@ -46,6 +46,7 @@ lint: golint-version frontend-deps
 	npm run lint -w frontend
 	terraform fmt -recursive -check .
 	shellcheck .devcontainer/*.sh
+	shellcheck infra/**/*.sh
 
 lint-fix: frontend-deps
 	npm run lint-fix -w frontend
