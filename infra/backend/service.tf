@@ -37,11 +37,17 @@ resource "docker_registry_image" "backend_remote_image" {
   }
 }
 
+data "google_project" "host_project" {
+}
+
+
 resource "google_cloud_run_v2_service" "service" {
-  count    = length(var.regions)
-  provider = google.public_project
-  name     = "${var.env_id}-${var.regions[count.index]}-webstatus-backend"
-  location = var.regions[count.index]
+  for_each     = var.region_to_subnet_info_map
+  provider     = google.public_project
+  launch_stage = "BETA"
+  name         = "${var.env_id}-${each.key}-webstatus-backend"
+  location     = each.key
+  ingress      = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     containers {
@@ -66,11 +72,17 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.datastore_info.database_name
       }
     }
+    vpc_access {
+      network_interfaces {
+        network    = "projects/${data.google_project.host_project.name}/global/networks/${var.vpc_name}"
+        subnetwork = "projects/${data.google_project.host_project.name}/regions/${each.key}/subnetworks/${each.value.public}"
+      }
+      egress = "ALL_TRAFFIC"
+    }
     service_account = google_service_account.backend.email
   }
   depends_on = [
     google_project_iam_member.gcp_datastore_user,
-    google_artifact_registry_repository_iam_member.iam_member,
   ]
 }
 
@@ -87,20 +99,11 @@ resource "google_project_iam_member" "gcp_datastore_user" {
   member   = google_service_account.backend.member
 }
 
-resource "google_artifact_registry_repository_iam_member" "iam_member" {
-  provider   = google.internal_project
-  repository = var.docker_repository_details.name
-  location   = var.docker_repository_details.location
-  role       = "roles/artifactregistry.reader"
-  member     = google_service_account.backend.member
+resource "google_cloud_run_service_iam_member" "public" {
+  provider = google.public_project
+  for_each = google_cloud_run_v2_service.service
+  location = each.value.location
+  service  = each.value.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
 }
-
-# resource "google_cloud_run_service_iam_member" "public" {
-#   count = length(google_cloud_run_v2_service.service)
-#   location = google_cloud_run_v2_service.service[count.index].location
-#   service  = google_cloud_run_v2_service.service[count.index].name
-#   role     = "roles/run.invoker"
-#   members = [
-#     "allUsers"
-#   ]
-# }

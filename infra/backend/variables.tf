@@ -31,8 +31,15 @@ variable "env_id" {
   type = string
 }
 
-variable "regions" {
-  type = list(string)
+variable "vpc_name" {
+  type = string
+}
+
+variable "region_to_subnet_info_map" {
+  type = map(object({
+    internal = string
+    public   = string
+  }))
 }
 
 variable "docker_repository_details" {

@@ -50,14 +50,6 @@ resource "google_secret_manager_secret_iam_member" "iam_member" {
   member    = google_service_account.service_account.member
 }
 
-resource "google_artifact_registry_repository_iam_member" "iam_member" {
-  provider   = google.internal_project
-  repository = var.docker_repository_details.name
-  location   = var.docker_repository_details.location
-  role       = "roles/artifactregistry.reader"
-  member     = google_service_account.service_account.member
-}
-
 resource "google_service_account" "service_account" {
   provider     = google.internal_project
   account_id   = "repo-downloader-${var.env_id}"
@@ -97,6 +89,5 @@ resource "google_cloud_run_v2_service" "service" {
   depends_on = [
     google_storage_bucket_iam_member.iam_member,
     google_secret_manager_secret_iam_member.iam_member,
-    google_artifact_registry_repository_iam_member.iam_member,
   ]
 }

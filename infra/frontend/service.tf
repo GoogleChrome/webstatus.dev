@@ -31,15 +31,28 @@ resource "docker_registry_image" "frontend_remote_image" {
   keep_remotely = true
 }
 
-data "google_project" "project" {
+
+resource "google_service_account" "frontend" {
+  account_id   = "frontend-${var.env_id}"
+  provider     = google.public_project
+  display_name = "Frontend service account for ${var.env_id}"
+}
+
+data "google_project" "host_project" {
+}
+
+data "google_project" "datastore_project" {
 }
 
 
+
 resource "google_cloud_run_v2_service" "service" {
-  provider = google.public_project
-  count    = length(var.regions)
-  name     = "${var.env_id}-${var.regions[count.index]}-webstatus-frontend"
-  location = var.regions[count.index]
+  for_each     = var.region_to_subnet_info_map
+  provider     = google.public_project
+  launch_stage = "BETA"
+  name         = "${var.env_id}-${each.key}-webstatus-frontend"
+  location     = each.key
+  ingress      = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     containers {
@@ -53,18 +66,106 @@ resource "google_cloud_run_v2_service" "service" {
       }
       env {
         name  = "PROJECT_ID"
-        value = data.google_project.project.number
+        value = data.google_project.datastore_project.number
       }
     }
+    vpc_access {
+      network_interfaces {
+        network    = "projects/${data.google_project.host_project.name}/global/networks/${var.vpc_name}"
+        subnetwork = "projects/${data.google_project.host_project.name}/regions/${each.key}/subnetworks/${each.value.public}"
+      }
+      egress = "ALL_TRAFFIC"
+    }
+    service_account = google_service_account.frontend.email
   }
 }
 
-# resource "google_cloud_run_service_iam_member" "public" {
-#   count = length(google_cloud_run_v2_service.service)
-#   location = google_cloud_run_v2_service.service[count.index].location
-#   service  = google_cloud_run_v2_service.service[count.index].name
-#   role     = "roles/run.invoker"
-#   members = [
-#     "allUsers"
-#   ]
+resource "google_cloud_run_service_iam_member" "public" {
+  provider = google.public_project
+  for_each = google_cloud_run_v2_service.service
+  location = each.value.location
+  service  = each.value.name
+  role     = "roles/run.invoker"
+  member   = "allUsers"
+}
+
+resource "google_compute_region_network_endpoint_group" "neg" {
+  provider = google.public_project
+  for_each = google_cloud_run_v2_service.service
+
+  name                  = "${var.env_id}-frontend-neg-${each.value.location}"
+  network_endpoint_type = "SERVERLESS"
+  region                = each.value.location
+
+  cloud_run {
+    service = each.value.name
+  }
+  depends_on = [
+    google_cloud_run_v2_service.service
+  ]
+}
+
+resource "google_compute_backend_service" "lb_backend" {
+  provider = google.public_project
+  name     = "${var.env_id}-frontend-service"
+  dynamic "backend" {
+    for_each = google_compute_region_network_endpoint_group.neg
+    content {
+      group = backend.value.id
+    }
+  }
+  # health_checks = [google_compute_http_health_check.default.id]
+}
+
+resource "google_compute_url_map" "url_map" {
+  provider = google.public_project
+  name     = "${var.env_id}-frontend-url-map"
+
+  default_service = google_compute_backend_service.lb_backend.id
+}
+
+resource "google_compute_target_http_proxy" "lb_http_proxy" {
+  provider = google.public_project
+  name     = "${var.env_id}-frontend-http-proxy"
+
+  url_map = google_compute_url_map.url_map.id
+}
+
+# resource "google_compute_global_forwarding_rule" "https" {
+#   provider = google.public_project
+#   name        = "${var.env_id}-frontend-https-rule"
+#   ip_protocol = "TCP"
+#   port_range   = "443"
+#   target       = google_compute_target_http_proxy.lb_https_proxy.id
+# }
+
+# resource "google_compute_target_https_proxy" "lb_https_proxy" {
+#   name             = "${var.env_id}-frontend-https-proxy"
+#   url_map          = google_compute_url_map.url_map.id
+#   ssl_certificates = [google_compute_ssl_certificate.default.id]
+# }
+
+
+# Fake certificate
+# resource "google_compute_ssl_certificate" "default" {
+#   # The name will contain 8 random hex digits,
+#   # e.g. "my-certificate-48ab27cd2a"
+#   name        = random_id.certificate.hex
+#   private_key = file("path/to/private.key")
+#   certificate = file("path/to/certificate.crt")
+
+#   lifecycle {
+#     create_before_destroy = true
+#   }
+# }
+
+# resource "random_id" "certificate" {
+#   byte_length = 4
+#   prefix      = "frontend-certificate-"
+
+#   # For security, do not expose raw certificate values in the output
+#   keepers = {
+#     private_key = filebase64sha256("path/to/private.key")
+#     certificate = filebase64sha256("path/to/certificate.crt")
+#   }
 # }

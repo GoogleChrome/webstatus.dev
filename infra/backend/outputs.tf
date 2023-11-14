@@ -22,9 +22,9 @@ locals {
   ])
 }
 
-output "region_to_backend_info_map" {
-  value = zipmap(var.regions, local.backend_regional_info)
-}
+# output "region_to_backend_info_map" {
+#   value = zipmap(var.regions, local.backend_regional_info)
+# }
 
 # output "backend_dns_host" {
 #   value = 

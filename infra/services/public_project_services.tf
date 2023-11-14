@@ -19,3 +19,11 @@ resource "google_project_service" "public_cloud_run" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+resource "google_project_service" "public_certificate_manager" {
+  provider = google.public_project
+  service  = "certificatemanager.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}

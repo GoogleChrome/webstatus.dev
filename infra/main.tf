@@ -23,7 +23,11 @@ module "services" {
 }
 
 module "network" {
-  source               = "./network"
+  source = "./network"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
   env_id               = var.env_id
   host_project_id      = var.projects.host
   region_to_subnet_map = local.region_to_subnet_map
@@ -72,11 +76,12 @@ module "backend" {
     google.public_project   = google.public_project
   }
 
+  region_to_subnet_info_map = module.network.region_to_subnet_info_map
   env_id                    = var.env_id
   spanner_datails           = module.storage.spanner_info
   docker_repository_details = module.storage.docker_repository_details
-  regions                   = keys(var.region_information)
   datastore_info            = module.storage.datastore_info
+  vpc_name                  = module.network.vpc_name
 }
 
 module "frontend" {
@@ -88,6 +93,7 @@ module "frontend" {
 
   env_id                    = var.env_id
   docker_repository_details = module.storage.docker_repository_details
-  regions                   = keys(var.region_information)
   backend_api_host          = "TODO"
+  region_to_subnet_info_map = module.network.region_to_subnet_info_map
+  vpc_name                  = module.network.vpc_name
 }

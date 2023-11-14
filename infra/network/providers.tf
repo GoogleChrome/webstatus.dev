@@ -12,30 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-variable "env_id" {
-  type = string
-}
-
-variable "vpc_name" {
-  type = string
-}
-
-variable "region_to_subnet_info_map" {
-  type = map(object({
-    internal = string
-    public   = string
-  }))
-}
-
-variable "docker_repository_details" {
-  type = object({
-    hostname = string
-    url      = string
-    location = string
-    name     = string
-  })
-}
-
-variable "backend_api_host" {
-  type = string
+terraform {
+  required_providers {
+    google = {
+      source = "hashicorp/google"
+      configuration_aliases = [
+        google.internal_project,
+        google.public_project,
+      ]
+    }
+  }
 }

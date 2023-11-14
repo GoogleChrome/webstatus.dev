@@ -55,3 +55,24 @@ resource "google_compute_subnetwork" "subnetwork_public" {
 
   network = google_compute_network.shared_vpc.id
 }
+
+data "google_project" "public" {
+  provider = google.public_project
+}
+
+data "google_project" "internal" {
+  provider = google.internal_project
+}
+
+resource "google_project_iam_member" "public_network_user" {
+  project = var.host_project_id
+  role    = "roles/compute.networkUser"
+  member  = "serviceAccount:service-${data.google_project.public.number}@serverless-robot-prod.iam.gserviceaccount.com"
+}
+
+
+resource "google_project_iam_member" "internal_network_user" {
+  project = var.host_project_id
+  role    = "roles/compute.networkUser"
+  member  = "serviceAccount:service-${data.google_project.internal.number}@serverless-robot-prod.iam.gserviceaccount.com"
+}

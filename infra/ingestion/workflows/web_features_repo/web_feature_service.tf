@@ -83,7 +83,6 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
   }
   depends_on = [
     google_storage_bucket_iam_member.web_feature_consumer,
-    google_artifact_registry_repository_iam_member.iam_member,
   ]
 }
 
@@ -95,12 +94,4 @@ resource "google_cloud_run_v2_service_iam_member" "web_feature_step_invoker" {
   # name     = var.repo_downloader_step_region_to_step_info_map[var.regions[count.index]].name
   role   = "roles/run.invoker"
   member = google_service_account.service_account.member
-}
-
-resource "google_artifact_registry_repository_iam_member" "iam_member" {
-  provider   = google.internal_project
-  repository = var.docker_repository_details.name
-  location   = var.docker_repository_details.location
-  role       = "roles/artifactregistry.reader"
-  member     = google_service_account.service_account.member
 }

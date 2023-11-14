@@ -13,6 +13,7 @@
 # limitations under the License.
 
 terraform {
+  backend "gcs" {}
   required_providers {
     google = {
       source  = "hashicorp/google"
