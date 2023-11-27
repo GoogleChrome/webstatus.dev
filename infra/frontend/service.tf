@@ -114,7 +114,6 @@ resource "google_compute_backend_service" "lb_backend" {
       group = backend.value.id
     }
   }
-  # health_checks = [google_compute_http_health_check.default.id]
 }
 
 resource "google_compute_url_map" "url_map" {
@@ -124,48 +123,25 @@ resource "google_compute_url_map" "url_map" {
   default_service = google_compute_backend_service.lb_backend.id
 }
 
-resource "google_compute_target_http_proxy" "lb_http_proxy" {
-  provider = google.public_project
-  name     = "${var.env_id}-frontend-http-proxy"
-
-  url_map = google_compute_url_map.url_map.id
+resource "google_compute_global_forwarding_rule" "https" {
+  provider    = google.public_project
+  name        = "${var.env_id}-frontend-https-rule"
+  ip_protocol = "TCP"
+  port_range  = "443"
+  ip_address  = google_compute_global_address.ub_ip_address.id
+  target      = google_compute_target_https_proxy.lb_https_proxy.id
 }
 
-# resource "google_compute_global_forwarding_rule" "https" {
-#   provider = google.public_project
-#   name        = "${var.env_id}-frontend-https-rule"
-#   ip_protocol = "TCP"
-#   port_range   = "443"
-#   target       = google_compute_target_http_proxy.lb_https_proxy.id
-# }
+resource "google_compute_global_address" "ub_ip_address" {
+  provider = google.public_project
+  name     = "${var.env_id}-frontend-ip"
+}
 
-# resource "google_compute_target_https_proxy" "lb_https_proxy" {
-#   name             = "${var.env_id}-frontend-https-proxy"
-#   url_map          = google_compute_url_map.url_map.id
-#   ssl_certificates = [google_compute_ssl_certificate.default.id]
-# }
-
-
-# Fake certificate
-# resource "google_compute_ssl_certificate" "default" {
-#   # The name will contain 8 random hex digits,
-#   # e.g. "my-certificate-48ab27cd2a"
-#   name        = random_id.certificate.hex
-#   private_key = file("path/to/private.key")
-#   certificate = file("path/to/certificate.crt")
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
-# resource "random_id" "certificate" {
-#   byte_length = 4
-#   prefix      = "frontend-certificate-"
-
-#   # For security, do not expose raw certificate values in the output
-#   keepers = {
-#     private_key = filebase64sha256("path/to/private.key")
-#     certificate = filebase64sha256("path/to/certificate.crt")
-#   }
-# }
+resource "google_compute_target_https_proxy" "lb_https_proxy" {
+  provider = google.public_project
+  name     = "${var.env_id}-frontend-https-proxy"
+  url_map  = google_compute_url_map.url_map.id
+  ssl_certificates = [
+    "ub-self-sign" # Temporary for UB
+  ]
+}
