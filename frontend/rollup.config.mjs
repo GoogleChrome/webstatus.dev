@@ -19,8 +19,6 @@
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import copy from 'rollup-plugin-copy'
-// import minifyHTML from 'rollup-plugin-minify-html-literals';
-import summary from 'rollup-plugin-summary';
 
 export default {
   input: 'dist/static/js/index.js',
@@ -33,16 +31,12 @@ export default {
     // }),
     // Resolve bare module specifiers to relative paths
     nodeResolve(),
-    // Minify HTML template literals
-    // minifyHTML(),
     // Minify JS
     terser({
       ecma: 2020,
       module: true,
       warnings: true,
     }),
-    // Print bundle summary
-    summary(),
     copy({
       targets: [
         // Copy the svg files
