@@ -21,8 +21,6 @@ import { customElement } from 'lit/decorators.js'
 export class WebstatusOverviewSidebarSectionBodyPresets extends LitElement {
   // TODO: move to base template
   static styles = css`
-    @import url('https://fonts.googleapis.com/icon?family=Material+Icons');
-
     .material-icons {
       font-family: 'Material Icons';
       font-size: 24px;
