@@ -14,9 +14,26 @@
  * limitations under the License.
  */
 
-import '@lit-labs/ssr-client/lit-element-hydrate-support.js'
+import { LitElement, html, type TemplateResult, type CSSResultGroup } from 'lit'
+import { SHARED_STYLES } from '../css/shared-css.js'
+import { customElement } from 'lit/decorators.js'
+import './webstatus-header.js'
+import './webstatus-page.js'
 
-import './components/webstatus-overview-page.js'
-// import './components/webstatus-feature-page.js'
-// import './components/webstatus-header.js'
-// import './components/webstatus-login.js'
+@customElement('webstatus-app')
+export class WebstatusApp extends LitElement {
+  static get styles (): CSSResultGroup {
+    return [
+      SHARED_STYLES
+    ]
+  }
+
+  protected render (): TemplateResult {
+    return html`
+      <webstatus-header></webstatus-header>
+      <webstatus-page>
+        <slot></slot>
+      </webstatus-page>
+    `
+  }
+}

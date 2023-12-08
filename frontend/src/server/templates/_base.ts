@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import '../../static/js/components/webstatus-header.js'
+import '../../static/js/components/webstatus-app.js'
 import { type RenderResult, render } from '@lit-labs/ssr'
 import { type TemplateResult, html } from 'lit'
 export function * renderBase (page: TemplateResult): Generator<string | Promise<RenderResult>, void, undefined> {
@@ -55,10 +55,11 @@ export function * renderBase (page: TemplateResult): Generator<string | Promise<
         </script>
         <script src="/public/index.js"></script>
     `
-  yield * render(html`<webstatus-header></webstatus-header>`)
   yield * render(html`
-      ${page}
-      `)
+    <webstatus-app>
+    ${page}
+    </webstatus-app>
+  `)
   yield `
         <script type="module">
         // Check if we require the template shadow root polyfill.

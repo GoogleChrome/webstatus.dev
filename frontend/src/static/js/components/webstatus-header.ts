@@ -17,10 +17,15 @@
 import { html, LitElement, css, type TemplateResult, type CSSResultGroup } from 'lit'
 import { customElement } from 'lit/decorators.js'
 import { SHARED_STYLES } from '../css/shared-css.js'
-import './webstatus-login.js'
+// import './webstatus-login.js'
 
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
+  static override shadowRootOptions = {
+    ...LitElement.shadowRootOptions,
+    delegatesFocus: true
+  }
+
   static get styles (): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -98,7 +103,6 @@ export class WebstatusHeader extends LitElement {
         </nav>
 
         <div class="sign-in">
-          <webstatus-login></webstatus-login>
         </div>
       </header>
     `

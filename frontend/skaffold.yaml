@@ -19,9 +19,9 @@ metadata:
 requires:
   - path: ../.dev/datastore
   - path: ../.dev/spanner
-  - path: ../.dev/mock-backend
+  - path: ../backend
 profiles:
-  - name: mock-local
+  - name: local
     build:
       artifacts:
       - image: frontend
