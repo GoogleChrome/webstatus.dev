@@ -16,8 +16,10 @@
 
 import { html, LitElement, type TemplateResult } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
-import { Client } from '../api/client.js'
+import { type APIClient } from '../api/client.js'
 import { type components } from 'webstatus.dev-backend'
+import { consume } from '@lit/context'
+import { apiClientContext } from '../contexts/api-client-context.js'
 
 @customElement('feature-page')
 export class FeaturePage extends LitElement {
@@ -29,9 +31,11 @@ export class FeaturePage extends LitElement {
   @property()
     loading: boolean = true
 
+  @consume({ context: apiClientContext })
+    apiClient!: APIClient
+
   async firstUpdated (): Promise<void> {
-    const client = new Client('http://localhost:8080')
-    this.feature = await client.getFeature(this.id)
+    this.feature = await this.apiClient.getFeature(this.id)
     this.loading = false
   }
 

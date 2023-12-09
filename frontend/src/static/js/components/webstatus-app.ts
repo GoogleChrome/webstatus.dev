@@ -14,26 +14,48 @@
  * limitations under the License.
  */
 
-import { LitElement, html, type TemplateResult, type CSSResultGroup } from 'lit'
+import { LitElement, html, type TemplateResult, type CSSResultGroup, isServer } from 'lit'
 import { SHARED_STYLES } from '../css/shared-css.js'
 import { customElement } from 'lit/decorators.js'
 import './webstatus-header.js'
 import './webstatus-page.js'
+import './webstatus-app-settings.js'
+import { ContextProvider } from '@lit/context'
+import { apiClientContext } from '../contexts/api-client-context.js'
+import { APIClient } from '../api/client.js'
+import { SettingsMixin } from '../mixins/settings-mixin.js'
 
 @customElement('webstatus-app')
-export class WebstatusApp extends LitElement {
+export class WebstatusApp extends SettingsMixin(LitElement) {
   static get styles (): CSSResultGroup {
     return [
       SHARED_STYLES
     ]
   }
 
+  connectedCallback(): void {
+    super.connectedCallback()
+    if(!isServer){
+      console.log("adding provs")
+      this.apiClientProvider = new ContextProvider(this, { context: apiClientContext });
+      this.apiClientProvider.setValue(new APIClient('http://localhost:8080'))
+    } else {
+      console.log("not addings")
+    }
+  }
+
+  apiClientProvider:any;
+  // @provide({ context: apiClientContext })
+  //   apiClient = new APIClient('http://localhost:8080')
+
   protected render (): TemplateResult {
     return html`
-      <webstatus-header></webstatus-header>
-      <webstatus-page>
-        <slot></slot>
-      </webstatus-page>
+      <webstatus-app-settings apiURL=${this.apiURL}>
+        <webstatus-header></webstatus-header>
+        <webstatus-page>
+          <slot></slot>
+        </webstatus-page>
+      </webstatus-app-settings>
     `
   }
 }

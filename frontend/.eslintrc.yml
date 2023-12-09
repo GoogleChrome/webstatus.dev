@@ -15,10 +15,15 @@
 env:
   browser: true
   es2021: true
+parser: '@typescript-eslint/parser'
 extends:
-- standard-with-typescript
+- eslint:recommended
+- plugin:@typescript-eslint/recommended
 - plugin:lit/recommended
+plugins:
+- "@typescript-eslint"
 parserOptions:
   ecmaVersion: latest
   sourceType: module
 rules: {}
+root: true

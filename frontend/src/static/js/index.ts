@@ -17,6 +17,8 @@
 import '@lit-labs/ssr-client/lit-element-hydrate-support.js'
 
 import './components/webstatus-overview-page.js'
-// import './components/webstatus-feature-page.js'
-// import './components/webstatus-header.js'
-// import './components/webstatus-login.js'
+import './components/webstatus-feature-page.js'
+import './components/webstatus-header.js'
+import './components/webstatus-login.js'
+import './components/webstatus-app-settings.js'
+// import './components/webstatus-app.js'

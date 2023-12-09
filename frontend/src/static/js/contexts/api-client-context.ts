@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 
-import '../../static/js/components/webstatus-header.js'
+import { createContext } from '@lit/context'
 
-// export
+import type { APIClient } from '../api/client.js'
+export type { APIClient } from '../api/client.js'
+
+export const apiClientContext = createContext<APIClient>('api-client')

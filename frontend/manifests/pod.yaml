@@ -25,6 +25,9 @@ spec:
     ports:
       - containerPort: 5555
         name: http-frontend
+    env:
+      - name: API_URL
+        value: http://localhost:8080
     resources:
       limits:
         cpu: 250m
