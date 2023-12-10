@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-import { LitElement, html, type TemplateResult, type CSSResultGroup, isServer } from 'lit'
+import { LitElement, html, type TemplateResult, type CSSResultGroup } from 'lit'
 import { SHARED_STYLES } from '../css/shared-css.js'
-import { customElement } from 'lit/decorators.js'
+import { customElement, property } from 'lit/decorators.js'
+import { SettingsMixin } from '../mixins/settings-mixin.js'
+import './webstatus-app-settings.js'
 import './webstatus-header.js'
 import './webstatus-page.js'
-import './webstatus-app-settings.js'
-import { ContextProvider } from '@lit/context'
-import { apiClientContext } from '../contexts/api-client-context.js'
-import { APIClient } from '../api/client.js'
-import { SettingsMixin } from '../mixins/settings-mixin.js'
+import { AppSettings } from '../../../common/app-settings.js'
 
 @customElement('webstatus-app')
 export class WebstatusApp extends SettingsMixin(LitElement) {
@@ -33,24 +31,14 @@ export class WebstatusApp extends SettingsMixin(LitElement) {
     ]
   }
 
-  connectedCallback(): void {
-    super.connectedCallback()
-    if(!isServer){
-      console.log("adding provs")
-      this.apiClientProvider = new ContextProvider(this, { context: apiClientContext });
-      this.apiClientProvider.setValue(new APIClient('http://localhost:8080'))
-    } else {
-      console.log("not addings")
-    }
-  }
-
-  apiClientProvider:any;
-  // @provide({ context: apiClientContext })
-  //   apiClient = new APIClient('http://localhost:8080')
+  @property({ type: Object })
+  settings!: AppSettings
 
   protected render (): TemplateResult {
     return html`
-      <webstatus-app-settings apiURL=${this.apiURL}>
+      <webstatus-app-settings
+        appSettings='${JSON.stringify(this.settings)}'
+        >
         <webstatus-header></webstatus-header>
         <webstatus-page>
           <slot></slot>

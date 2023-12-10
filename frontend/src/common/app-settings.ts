@@ -14,11 +14,8 @@
  * limitations under the License.
  */
 
-import '@lit-labs/ssr-client/lit-element-hydrate-support.js'
-
-import './components/webstatus-overview-page.js'
-import './components/webstatus-feature-page.js'
-import './components/webstatus-header.js'
-import './components/webstatus-login.js'
-import './components/webstatus-app-settings.js'
-// Do not import the webstatus-app component.
+// AppSettings contains non sensitive settings that can be passed to the client.
+export interface AppSettings {
+  apiUrl: string
+  gsiClientId: string
+}

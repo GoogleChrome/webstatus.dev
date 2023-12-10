@@ -17,7 +17,8 @@
 import '../../static/js/components/webstatus-app.js'
 import { type RenderResult, render } from '@lit-labs/ssr'
 import { type TemplateResult, html } from 'lit'
-export function * renderBase (page: TemplateResult): Generator<string | Promise<RenderResult>, void, undefined> {
+import { AppSettings } from '../../common/app-settings.js'
+export function * renderBase (appSettings: AppSettings, page: TemplateResult): Generator<string | Promise<RenderResult>, void, undefined> {
   yield `
     <!DOCTYPE html>
     <html>
@@ -56,8 +57,8 @@ export function * renderBase (page: TemplateResult): Generator<string | Promise<
         <script src="/public/index.js"></script>
     `
   yield * render(html`
-    <webstatus-app>
-    ${page}
+    <webstatus-app settings='${JSON.stringify(appSettings)}'>
+      ${page}
     </webstatus-app>
   `)
   yield `

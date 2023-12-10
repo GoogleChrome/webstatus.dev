@@ -23,12 +23,27 @@ import { RenderResultReadable } from '@lit-labs/ssr/lib/render-result-readable.j
 
 import staticFiles from 'koa-static'
 
+import { AppSettings } from '../common/app-settings.js'
+export function loadAppSettingsFromProcess(): AppSettings{
+  const apiUrl = process.env.API_URL!
+  const gsiClientId = process.env.GSI_CLIENT_ID!
+  // TODO: check if values are null or empty string
+  return {
+    apiUrl: apiUrl,
+    gsiClientId: gsiClientId,
+  }
+}
+
 const app = new Koa()
 const router = new Router()
 
+const appSettings = loadAppSettingsFromProcess()
+
 router.get('/', async (ctx) => {
   ctx.type = 'text/html'
-  ctx.body = new RenderResultReadable(renderBase(html`<webstatus-overview-page></webstatus-overview-page>`))
+  ctx.body = new RenderResultReadable(renderBase(
+    appSettings,
+    html`<webstatus-overview-page></webstatus-overview-page>`))
 })
 
 app.use(router.routes())

@@ -16,6 +16,8 @@
 
 import { LitElement, type TemplateResult, html } from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
+import { AppSettings, appSettingsContext } from '../contexts/app-settings-context.js'
+import { consume } from '@lit/context'
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
@@ -24,6 +26,10 @@ export class WebstatusLogin extends LitElement {
 
   @query('#login-container')
   protected container!: HTMLElement
+
+  @consume({context: appSettingsContext})
+  @property()
+  appSettings?: AppSettings
 
   protected scriptInserted: boolean
   protected libraryLoaded: boolean
@@ -39,7 +45,7 @@ export class WebstatusLogin extends LitElement {
     this.initializeLibrary()
   }
 
-  firstUpdated (): void {
+  connectedCallback (): void {
     this.loadScript().then(
       // TODO. Success case
       () => {},
@@ -49,9 +55,12 @@ export class WebstatusLogin extends LitElement {
   }
 
   async loadScript (): Promise<void> {
+    console.log("checking if i should load script")
     if (this.scriptInserted) {
+      console.log("script already inserted")
       return
     }
+    console.log("loading script")
     // Load the script.
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
@@ -79,7 +88,8 @@ export class WebstatusLogin extends LitElement {
 
     // @ts-expect-error TODO: figure out how to import nested namespace
     google.accounts.id.initialize({
-      client_id: 'YOUR_GOOGLE_CLIENT_ID',
+      client_id: this.appSettings?.gsiClientId,
+      // nonce: '',
       // @ts-expect-error TODO: figure out how to import nested namespace
       callback: (response: google.accounts.id.CredentialResponse) => {
         this._signin(response.credential).then(() => {

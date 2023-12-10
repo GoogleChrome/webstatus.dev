@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-import '@lit-labs/ssr-client/lit-element-hydrate-support.js'
+import { createContext } from '@lit/context'
 
-import './components/webstatus-overview-page.js'
-import './components/webstatus-feature-page.js'
-import './components/webstatus-header.js'
-import './components/webstatus-login.js'
-import './components/webstatus-app-settings.js'
-// Do not import the webstatus-app component.
+import type { AppSettings } from '../../../common/app-settings.js'
+export type { AppSettings } from '../../../common/app-settings.js'
+
+export const appSettingsContext = createContext<AppSettings>('app-settings')
