@@ -73,7 +73,6 @@ export class WebstatusOverviewSidebarSection extends LitElement {
   }
 
   toggleOpen (): void {
-    console.log('toggle open')
     this.open = !this.open
   }
 }

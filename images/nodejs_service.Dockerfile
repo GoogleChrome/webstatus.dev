@@ -12,7 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:20.8.1-alpine3.18
+FROM node:20.10.0-alpine3.18 as base
+
+FROM base as builder
 
 WORKDIR /work
 ARG service_dir
@@ -26,4 +28,16 @@ COPY ${service_dir}/ /work/${service_dir}/
 RUN npm run postinstall || true
 RUN npm run build
 
+
+FROM base as production
+
+WORKDIR /work
+ARG service_dir
+COPY --from=builder /work/package.json /work/package.json
+COPY --from=builder /work/package-lock.json /work/package-lock.json
+COPY --from=builder /work/${service_dir}/package.json /work/${service_dir}/package.json
+WORKDIR /work/${service_dir}
+RUN npm install --ignore-scripts --production
+RUN ln -s /work/node_modules /work/${service_dir}/node_modules
+COPY --from=builder /work/${service_dir}/dist /work/${service_dir}/dist
 CMD npm run start

@@ -17,14 +17,13 @@
 import { LitElement, html, type TemplateResult, type CSSResultGroup } from 'lit'
 import { SHARED_STYLES } from '../css/shared-css.js'
 import { customElement, property } from 'lit/decorators.js'
-import { SettingsMixin } from '../mixins/settings-mixin.js'
 import './webstatus-app-settings.js'
 import './webstatus-header.js'
 import './webstatus-page.js'
 import { AppSettings } from '../../../common/app-settings.js'
 
 @customElement('webstatus-app')
-export class WebstatusApp extends SettingsMixin(LitElement) {
+export class WebstatusApp extends LitElement {
   static get styles (): CSSResultGroup {
     return [
       SHARED_STYLES
@@ -36,8 +35,7 @@ export class WebstatusApp extends SettingsMixin(LitElement) {
 
   protected render (): TemplateResult {
     return html`
-      <webstatus-app-settings
-        appSettings='${JSON.stringify(this.settings)}'
+      <webstatus-app-settings appSettings='${JSON.stringify(this.settings)}'
         >
         <webstatus-header></webstatus-header>
         <webstatus-page>

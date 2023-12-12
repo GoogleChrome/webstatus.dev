@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import '../../static/js/components/webstatus-app.js'
-import { type RenderResult, render } from '@lit-labs/ssr'
-import { type TemplateResult, html } from 'lit'
 import { AppSettings } from '../../common/app-settings.js'
-export function * renderBase (appSettings: AppSettings, page: TemplateResult): Generator<string | Promise<RenderResult>, void, undefined> {
-  yield `
+export function renderBase (
+  appSettings: AppSettings,
+  page: string,
+  scriptLocation: string): string {
+  return `
     <!DOCTYPE html>
     <html>
       <head>
@@ -54,14 +54,10 @@ export function * renderBase (appSettings: AppSettings, page: TemplateResult): G
             document.body.removeAttribute('dsd-pending');
           }
         </script>
-        <script src="/public/index.js"></script>
-    `
-  yield * render(html`
-    <webstatus-app settings='${JSON.stringify(appSettings)}'>
-      ${page}
-    </webstatus-app>
-  `)
-  yield `
+        <script src="${scriptLocation}"></script>
+        <webstatus-app settings='${JSON.stringify(appSettings)}'>
+          ${page}
+        </webstatus-app>
         <script type="module">
         // Check if we require the template shadow root polyfill.
         if (!HTMLTemplateElement.prototype.hasOwnProperty('shadowRoot')) {

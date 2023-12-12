@@ -15,9 +15,10 @@
  */
 
 import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement, property, query } from 'lit/decorators.js'
-import { AppSettings, appSettingsContext } from '../contexts/app-settings-context.js'
+import { customElement, property, query, state } from 'lit/decorators.js'
+import { AppSettings, appSettingsContext } from '../contexts/settings-context.js'
 import { consume } from '@lit/context'
+import { LoadingState } from '../../../common/loading-state.js'
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
@@ -25,27 +26,26 @@ export class WebstatusLogin extends LitElement {
   declare public redirectTo: null | string
 
   @query('#login-container')
-  protected container!: HTMLElement
+  @state()
+  protected container?: HTMLElement | null
 
-  @consume({context: appSettingsContext})
-  @property()
+  @consume({ context: appSettingsContext })
   appSettings?: AppSettings
 
-  protected scriptInserted: boolean
-  protected libraryLoaded: boolean
+
+  protected scriptInserted: boolean = false
+  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED
 
   constructor () {
     super()
     this.redirectTo = ''
-    this.scriptInserted = false
-    this.libraryLoaded = false
   }
 
   scriptLoaded (): void {
     this.initializeLibrary()
   }
 
-  connectedCallback (): void {
+  firstUpdated (): void {
     this.loadScript().then(
       // TODO. Success case
       () => {},
@@ -55,12 +55,10 @@ export class WebstatusLogin extends LitElement {
   }
 
   async loadScript (): Promise<void> {
-    console.log("checking if i should load script")
     if (this.scriptInserted) {
-      console.log("script already inserted")
       return
     }
-    console.log("loading script")
+
     // Load the script.
     const script = document.createElement('script')
     script.src = 'https://accounts.google.com/gsi/client'
@@ -82,45 +80,43 @@ export class WebstatusLogin extends LitElement {
   }
 
   initializeLibrary (): void {
-    if (this.libraryLoaded) {
+    if (this.libraryLoaded == LoadingState.COMPLETE || !this.appSettings || !this.container) {
       return
     }
 
     // @ts-expect-error TODO: figure out how to import nested namespace
     google.accounts.id.initialize({
       client_id: this.appSettings?.gsiClientId,
-      // nonce: '',
       // @ts-expect-error TODO: figure out how to import nested namespace
       callback: (response: google.accounts.id.CredentialResponse) => {
         this._signin(response.credential).then(() => {
-          // window.location.href = this.redirectTo;
-          console.log('hello')
+          // TODO. Do successful redirect
         }, () => {
-          console.log('something went wrong')
+          // TODO. Handle the error case
         })
       }
     })
-    if (this.container !== null) {
-      // @ts-expect-error TODO: figure out how to import nested namespace
-      google.accounts.id.renderButton(
-        this.container,
-        { theme: 'outline', size: 'large', type: 'standard' } // customization attributes
-      )
-      // @ts-expect-error TODO: figure out how to import nested namespace
-      google.accounts.id.prompt() // also display the One Tap dialog
-    }
 
-    this.libraryLoaded = true
+    // @ts-expect-error TODO: figure out how to import nested namespace
+    google.accounts.id.renderButton(
+      this.container,
+      { theme: 'outline', size: 'large', type: 'standard' } // customization attributes
+    )
+    // @ts-expect-error TODO: figure out how to import nested namespace
+    google.accounts.id.prompt() // also display the One Tap dialog
+
+    this.libraryLoaded = LoadingState.COMPLETE
   }
 
   render (): TemplateResult {
     return html`
-      <script id="login-script" @load=${this.scriptLoaded} src="https://accounts.google.com/gsi/client"></script>
       <div id="login-container"></div>
     `
   }
 
-  async _signin (token: string): Promise<void> {
-    console.log(token)
+  // TODO: remove eslint exemption when token handling is complete.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async _signin (_token: string): Promise<void> {
+    // TODO: Handle the token
   }
 }

@@ -18,12 +18,9 @@ import Koa from 'koa'
 import Router from '@koa/router'
 import mount from 'koa-mount'
 import { renderBase } from './templates/_base.js'
-import { html } from 'lit'
-import { RenderResultReadable } from '@lit-labs/ssr/lib/render-result-readable.js'
-
 import staticFiles from 'koa-static'
-
 import { AppSettings } from '../common/app-settings.js'
+
 export function loadAppSettingsFromProcess(): AppSettings{
   const apiUrl = process.env.API_URL!
   const gsiClientId = process.env.GSI_CLIENT_ID!
@@ -41,11 +38,12 @@ const appSettings = loadAppSettingsFromProcess()
 
 router.get('/', async (ctx) => {
   ctx.type = 'text/html'
-  ctx.body = new RenderResultReadable(renderBase(
+  ctx.body = renderBase(
     appSettings,
-    html`<webstatus-overview-page></webstatus-overview-page>`))
+    `<webstatus-overview-page></webstatus-overview-page>`,
+    '/public/js/overview.js')
 })
 
 app.use(router.routes())
-app.use(mount('/public', staticFiles('static')))
+app.use(mount('/public', staticFiles('dist/static')))
 app.listen(5555)

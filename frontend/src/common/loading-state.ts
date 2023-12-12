@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * Copyright 2023 Google LLC
  *
@@ -15,15 +14,10 @@
  * limitations under the License.
  */
 
-
-import cpy from 'cpy';
-
-const BROWSER_LOGO_DIR='../node_modules/@browser-logos';
-const IMG_DEST='.postinstall/static/img';
-
-await cpy(`${BROWSER_LOGO_DIR}/chrome-dev/*_24x24.png`, IMG_DEST);
-await cpy(`${BROWSER_LOGO_DIR}/firefox-nightly/*_24x24.png`, IMG_DEST);
-await cpy(`${BROWSER_LOGO_DIR}/safari-technology-preview/*_24x24.png`, IMG_DEST, {rename: 'safari-preview_24x24.png'});
-
-console.log(`copied logos to ${IMG_DEST}`);
-
+export enum LoadingState {
+  UNKNOWN,
+  NOT_STARTED,
+  LOADING,
+  COMPLETE,
+  COMPLETE_WITH_ERRORS
+}

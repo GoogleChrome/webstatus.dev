@@ -20,43 +20,50 @@ import { nodeResolve } from '@rollup/plugin-node-resolve';
 import terser from '@rollup/plugin-terser';
 import copy from 'rollup-plugin-copy'
 
-export default {
-  input: 'dist/static/js/index.js',
-  // output: 'static/js/index.js',
-  plugins: [
-    // Entry point for application build; can specify a glob to build multiple
-    // HTML files for non-SPA app
-    // html({
-    //   input: 'index.html',
-    // }),
-    // Resolve bare module specifiers to relative paths
-    nodeResolve(),
-    // Minify JS
-    terser({
-      ecma: 2020,
-      module: true,
-      warnings: true,
-    }),
-    copy({
-      targets: [
-        // Copy the svg files
-        // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
-        {src: 'src/static/img/*.svg', dest: 'static/img'}
-      ]
-    }),
-  ],
-  output: {
-    dir: 'static',
-  },
-  onwarn: (warning) => {
-    if (warning.code === 'THIS_IS_UNDECLARED') {
-      return;
-    }
-    if (warning.code === 'THIS_IS_UNDEFINED') {
-      return;
-    }
+export default [
+  {
+    input: 'build/static/js/overview.js',
+    plugins: [
+      // Entry point for application build; can specify a glob to build multiple
+      // HTML files for non-SPA app
+      // html({
+      //   input: 'index.html',
+      // }),
+      // Resolve bare module specifiers to relative paths
+      nodeResolve(),
+      // Minify JS
+      terser({
+        ecma: 2020,
+        module: true,
+        warnings: true,
+      }),
+      copy({
+        targets: [
+          // Copy the svg files
+          // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
+          {src: 'src/static/img/*.svg', dest: 'dist/static/img'},
+          // Copy the img files
+          // Currently copying img files from ./scripts/postinstall.js
+          {src: '.postinstall/static/img/*', dest: 'dist/static/img'},
+          // Copy the server files
+          // Currently copying img files from ./scripts/postinstall.js
+          {src: 'build/server/*', dest: 'dist/server'}
+        ]
+      }),
+    ],
+    output: {
+      dir: 'dist/static/js',
+    },
+    onwarn: (warning) => {
+      if (warning.code === 'THIS_IS_UNDECLARED') {
+        return;
+      }
+      if (warning.code === 'THIS_IS_UNDEFINED') {
+        return;
+      }
 
-    console.warn(warning.message);
-  },
-  preserveEntrySignatures: 'strict',
-};
+      console.warn(warning.message);
+    },
+    preserveEntrySignatures: 'strict',
+  }
+]

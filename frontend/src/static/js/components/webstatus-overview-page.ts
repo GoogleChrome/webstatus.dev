@@ -15,15 +15,15 @@
  */
 
 import { css, type CSSResultGroup, html, LitElement, type TemplateResult } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, state } from 'lit/decorators.js'
 import { type APIClient } from '../api/client.js'
 import { type components } from 'webstatus.dev-backend'
 import './webstatus-overview-sidebar.js'
 import './webstatus-overview-content.js'
 import { SHARED_STYLES } from '../css/shared-css.js'
-import { consume } from '@lit/context'
 import { apiClientContext } from '../contexts/api-client-context.js'
-import { ContextConsumer } from '@lit/context'
+import { consume } from '@lit/context'
+import { LoadingState } from '../../../common/loading-state.js'
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -68,34 +68,19 @@ export class OverviewPage extends LitElement {
     ]
   }
 
-  @property()
+  @state()
     items: Array<components['schemas']['Feature']> = []
 
-  @property()
-    loading: boolean = true
+    loading: LoadingState = LoadingState.NOT_STARTED
 
   @consume({ context: apiClientContext })
     apiClient?: APIClient
-  
-    _consumer: any
-  updated(): void {
-    if (this._consumer.value) {
-      console.log("found the thing")
-      this.apiClient = this._consumer.value
-    }
-    console.log("finish looking for the thing")
-  }
-
-  connectedCallback(): void {
-    super.connectedCallback()
-    console.log("starting the thing")
-    this._consumer = new ContextConsumer(this, {context: apiClientContext})
-  }
 
   async firstUpdated (): Promise<void> {
-    if(this.apiClient) 
+    if(this.apiClient && this.loading != LoadingState.COMPLETE ) {
       this.items = await this.apiClient.getFeatures()
-    this.loading = false
+      this.loading = LoadingState.COMPLETE
+    }
   }
 
   render (): TemplateResult {

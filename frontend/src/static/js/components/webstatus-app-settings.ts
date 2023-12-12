@@ -20,7 +20,7 @@ import { apiClientContext } from '../contexts/api-client-context.js'
 import { APIClient } from '../api/client.js'
 import { ContextProvider } from "@lit/context";
 import { AppSettings } from "../../../common/app-settings.js";
-import { appSettingsContext } from "../contexts/app-settings-context.js";
+import { appSettingsContext } from "../contexts/settings-context.js";
 
 
 @customElement('webstatus-app-settings')
@@ -28,22 +28,11 @@ export class WebstatusAppSettings extends LitElement {
   @property({type: Object})
   appSettings!: AppSettings
 
-  // Providers
-  // We must create the context provider manually in connectedCallback because
-  // currently SSR calls the constructor server side. And there's an issue
-  // where context is not supported by SSR [1]. Once it is resolved, we can do
-  // things like:
-  //    @provide()
-  //    @property()
-  //    varName: type
-  // [1] https://github.com/lit/lit/issues/3301
   apiClientProvider?:ContextProvider<typeof apiClientContext>;
   appSettingsProvider?: ContextProvider<typeof appSettingsContext>
 
   connectedCallback(): void {
     super.connectedCallback()
-    console.log("found these settings")
-    console.log(this.appSettings)
     this.apiClientProvider = new ContextProvider(this, { context: apiClientContext });
     this.apiClientProvider.setValue(new APIClient(this.appSettings.apiUrl))
 
