@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { AppSettings } from '../../common/app-settings.js'
+import { type AppSettings } from '../../common/app-settings.js'
 export function renderBase (
   appSettings: AppSettings,
   page: string,

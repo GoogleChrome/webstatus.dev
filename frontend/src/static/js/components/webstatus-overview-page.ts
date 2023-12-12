@@ -14,19 +14,28 @@
  * limitations under the License.
  */
 
-import { css, type CSSResultGroup, html, LitElement, type TemplateResult } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
-import { type APIClient } from '../api/client.js'
-import { type components } from 'webstatus.dev-backend'
-import './webstatus-overview-sidebar.js'
-import './webstatus-overview-content.js'
-import { SHARED_STYLES } from '../css/shared-css.js'
-import { apiClientContext } from '../contexts/api-client-context.js'
 import { consume } from '@lit/context'
+import { type CSSResultGroup, LitElement, type TemplateResult, css, html } from 'lit'
+import { customElement, state } from 'lit/decorators.js'
+import { type components } from 'webstatus.dev-backend'
+
 import { LoadingState } from '../../../common/loading-state.js'
+import { type APIClient } from '../api/client.js'
+import { apiClientContext } from '../contexts/api-client-context.js'
+import { SHARED_STYLES } from '../css/shared-css.js'
+import './webstatus-overview-content.js'
+import './webstatus-overview-sidebar.js'
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
+  @consume({ context: apiClientContext })
+    apiClient?: APIClient
+
+  @state()
+    items: Array<components['schemas']['Feature']> = []
+
+  loading: LoadingState = LoadingState.NOT_STARTED
+
   static get styles (): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -68,16 +77,10 @@ export class OverviewPage extends LitElement {
     ]
   }
 
-  @state()
-    items: Array<components['schemas']['Feature']> = []
-
-    loading: LoadingState = LoadingState.NOT_STARTED
-
-  @consume({ context: apiClientContext })
-    apiClient?: APIClient
-
   async firstUpdated (): Promise<void> {
-    if(this.apiClient && this.loading != LoadingState.COMPLETE ) {
+    if (
+      (this.apiClient != null) &&
+      this.loading !== LoadingState.COMPLETE) {
       this.items = await this.apiClient.getFeatures()
       this.loading = LoadingState.COMPLETE
     }

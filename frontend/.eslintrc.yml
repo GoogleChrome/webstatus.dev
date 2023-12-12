@@ -17,9 +17,11 @@ env:
   es2021: true
 parser: '@typescript-eslint/parser'
 extends:
+- standard-with-typescript
 - eslint:recommended
 - plugin:@typescript-eslint/recommended
 - plugin:lit/recommended
+- plugin:perfectionist/recommended-natural
 plugins:
 - "@typescript-eslint"
 parserOptions:

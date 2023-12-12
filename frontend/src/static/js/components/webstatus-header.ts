@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import { html, LitElement, css, type TemplateResult, type CSSResultGroup } from 'lit'
+import { type CSSResultGroup, LitElement, type TemplateResult, css, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
+
 import { SHARED_STYLES } from '../css/shared-css.js'
 import './webstatus-login.js'
 

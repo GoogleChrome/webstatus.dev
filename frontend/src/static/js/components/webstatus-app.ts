@@ -14,24 +14,25 @@
  * limitations under the License.
  */
 
-import { LitElement, html, type TemplateResult, type CSSResultGroup } from 'lit'
-import { SHARED_STYLES } from '../css/shared-css.js'
+import { type CSSResultGroup, LitElement, type TemplateResult, html } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
+
+import { type AppSettings } from '../../../common/app-settings.js'
+import { SHARED_STYLES } from '../css/shared-css.js'
 import './webstatus-app-settings.js'
 import './webstatus-header.js'
 import './webstatus-page.js'
-import { AppSettings } from '../../../common/app-settings.js'
 
 @customElement('webstatus-app')
 export class WebstatusApp extends LitElement {
+  @property({ type: Object })
+    settings!: AppSettings
+
   static get styles (): CSSResultGroup {
     return [
       SHARED_STYLES
     ]
   }
-
-  @property({ type: Object })
-  settings!: AppSettings
 
   protected render (): TemplateResult {
     return html`

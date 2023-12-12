@@ -22,16 +22,6 @@ export class APIClient {
     this.client = createClient<paths>({ baseUrl })
   }
 
-  public async getFeatures (): Promise<components['schemas']['FeaturePage']['data']> {
-    const { data, error } = await this.client.GET('/v1/features', {
-      params: {}
-    })
-    if (error != null) {
-      throw new Error(error.message)
-    }
-    return data.data
-  }
-
   public async getFeature (featureId: string): Promise<components['schemas']['Feature']> {
     const { data, error } = await this.client.GET('/v1/features/{feature_id}', {
       params: { path: { feature_id: featureId } }
@@ -40,5 +30,15 @@ export class APIClient {
       throw new Error(error.message)
     }
     return data
+  }
+
+  public async getFeatures (): Promise<components['schemas']['FeaturePage']['data']> {
+    const { data, error } = await this.client.GET('/v1/features', {
+      params: {}
+    })
+    if (error != null) {
+      throw new Error(error.message)
+    }
+    return data.data
   }
 }

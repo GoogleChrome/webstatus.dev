@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { type CSSResultGroup, LitElement, html, type TemplateResult } from 'lit'
+import { type CSSResultGroup, LitElement, type TemplateResult, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
-import { SHARED_STYLES } from '../css/shared-css.js'
 
-import './webstatus-overview-sidebar-section-body-presets.js'
+import { SHARED_STYLES } from '../css/shared-css.js'
 import './webstatus-overview-sidebar-section.js'
+import './webstatus-overview-sidebar-section-body-presets.js'
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {

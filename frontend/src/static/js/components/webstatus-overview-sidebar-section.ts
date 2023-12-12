@@ -19,6 +19,17 @@ import { customElement, property } from 'lit/decorators.js'
 
 @customElement('webstatus-overview-sidebar-section')
 export class WebstatusOverviewSidebarSection extends LitElement {
+  @property()
+    header!: string
+
+  @property({ attribute: 'open' })
+    open!: boolean
+
+  constructor () {
+    super()
+    this.open = false
+  }
+
   static get styles (): CSSResultGroup {
     return [
       css`
@@ -43,17 +54,6 @@ export class WebstatusOverviewSidebarSection extends LitElement {
         max-height: 1000px;
       }
     `]
-  }
-
-  @property()
-    header!: string
-
-  @property({ attribute: 'open' })
-    open!: boolean
-
-  constructor () {
-    super()
-    this.open = false
   }
 
   render (): TemplateResult {

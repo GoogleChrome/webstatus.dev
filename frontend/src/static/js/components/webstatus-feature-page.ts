@@ -14,25 +14,26 @@
  * limitations under the License.
  */
 
-import { html, LitElement, type TemplateResult } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
-import { type APIClient } from '../api/client.js'
-import { type components } from 'webstatus.dev-backend'
 import { consume } from '@lit/context'
+import { LitElement, type TemplateResult, html } from 'lit'
+import { customElement, property } from 'lit/decorators.js'
+import { type components } from 'webstatus.dev-backend'
+
+import { type APIClient } from '../api/client.js'
 import { apiClientContext } from '../contexts/api-client-context.js'
 
 @customElement('feature-page')
 export class FeaturePage extends LitElement {
-  id!: string
+  @consume({ context: apiClientContext })
+    apiClient!: APIClient
 
   @property()
     feature?: components['schemas']['Feature'] | undefined
 
+  id!: string
+
   @property()
     loading: boolean = true
-
-  @consume({ context: apiClientContext })
-    apiClient!: APIClient
 
   async firstUpdated (): Promise<void> {
     this.feature = await this.apiClient.getFeature(this.id)

@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-
+import './components/webstatus-app.js'
+import './components/webstatus-overview-content.js'
 import './components/webstatus-overview-page.js'
 import './components/webstatus-overview-sidebar.js'
-import './components/webstatus-overview-content.js'
-
-import './components/webstatus-app.js'

@@ -14,20 +14,26 @@
  * limitations under the License.
  */
 
-import Koa from 'koa'
 import Router from '@koa/router'
+import Koa from 'koa'
 import mount from 'koa-mount'
-import { renderBase } from './templates/_base.js'
 import staticFiles from 'koa-static'
-import { AppSettings } from '../common/app-settings.js'
 
-export function loadAppSettingsFromProcess(): AppSettings{
-  const apiUrl = process.env.API_URL!
-  const gsiClientId = process.env.GSI_CLIENT_ID!
-  // TODO: check if values are null or empty string
+import { type AppSettings } from '../common/app-settings.js'
+import { renderBase } from './templates/_base.js'
+
+export function loadAppSettingsFromProcess (): AppSettings {
+  const apiUrl = process.env.API_URL
+  if (apiUrl == null) {
+    throw new Error('Missing API_URL env var')
+  }
+  const gsiClientId = process.env.GSI_CLIENT_ID
+  if (gsiClientId == null) {
+    throw new Error('Missing GSI_CLIENT_ID env var')
+  }
   return {
-    apiUrl: apiUrl,
-    gsiClientId: gsiClientId,
+    apiUrl,
+    gsiClientId
   }
 }
 
@@ -40,7 +46,7 @@ router.get('/', async (ctx) => {
   ctx.type = 'text/html'
   ctx.body = renderBase(
     appSettings,
-    `<webstatus-overview-page></webstatus-overview-page>`,
+    '<webstatus-overview-page></webstatus-overview-page>',
     '/public/js/overview.js')
 })
 

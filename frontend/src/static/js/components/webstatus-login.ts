@@ -14,35 +14,37 @@
  * limitations under the License.
  */
 
+import { consume } from '@lit/context'
 import { LitElement, type TemplateResult, html } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
-import { AppSettings, appSettingsContext } from '../contexts/settings-context.js'
-import { consume } from '@lit/context'
+
 import { LoadingState } from '../../../common/loading-state.js'
+import { type AppSettings, appSettingsContext } from '../contexts/settings-context.js'
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
-  @property()
-  declare public redirectTo: null | string
+  @consume({ context: appSettingsContext })
+    appSettings?: AppSettings
 
   @query('#login-container')
   @state()
   protected container?: HTMLElement | null
 
-  @consume({ context: appSettingsContext })
-  appSettings?: AppSettings
+  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED
 
+  @property()
+  declare public redirectTo: null | string
 
   protected scriptInserted: boolean = false
-  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED
 
   constructor () {
     super()
     this.redirectTo = ''
   }
 
-  scriptLoaded (): void {
-    this.initializeLibrary()
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  async _signin (_token: string): Promise<void> {
+    // TODO: Handle the token
   }
 
   firstUpdated (): void {
@@ -52,6 +54,38 @@ export class WebstatusLogin extends LitElement {
       // TODO. Failure case
       () => {}
     )
+  }
+
+  initializeLibrary (): void {
+    if (this.libraryLoaded === LoadingState.COMPLETE ||
+        this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
+        (this.appSettings == null) ||
+        (this.container == null)) {
+      return
+    }
+
+    // @ts-expect-error TODO: figure out how to import nested namespace
+    google.accounts.id.initialize({
+      // @ts-expect-error TODO: figure out how to import nested namespace
+      callback: (response: google.accounts.id.CredentialResponse) => {
+        this._signin(response.credential).then(() => {
+          // TODO. Do successful redirect
+        }, () => {
+          // TODO. Handle the error case
+        })
+      },
+      client_id: this.appSettings?.gsiClientId
+    })
+
+    // @ts-expect-error TODO: figure out how to import nested namespace
+    google.accounts.id.renderButton(
+      this.container,
+      { size: 'large', theme: 'outline', type: 'standard' } // customization attributes
+    )
+    // @ts-expect-error TODO: figure out how to import nested namespace
+    google.accounts.id.prompt() // also display the One Tap dialog
+
+    this.libraryLoaded = LoadingState.COMPLETE
   }
 
   async loadScript (): Promise<void> {
@@ -79,35 +113,6 @@ export class WebstatusLogin extends LitElement {
     })
   }
 
-  initializeLibrary (): void {
-    if (this.libraryLoaded == LoadingState.COMPLETE || !this.appSettings || !this.container) {
-      return
-    }
-
-    // @ts-expect-error TODO: figure out how to import nested namespace
-    google.accounts.id.initialize({
-      client_id: this.appSettings?.gsiClientId,
-      // @ts-expect-error TODO: figure out how to import nested namespace
-      callback: (response: google.accounts.id.CredentialResponse) => {
-        this._signin(response.credential).then(() => {
-          // TODO. Do successful redirect
-        }, () => {
-          // TODO. Handle the error case
-        })
-      }
-    })
-
-    // @ts-expect-error TODO: figure out how to import nested namespace
-    google.accounts.id.renderButton(
-      this.container,
-      { theme: 'outline', size: 'large', type: 'standard' } // customization attributes
-    )
-    // @ts-expect-error TODO: figure out how to import nested namespace
-    google.accounts.id.prompt() // also display the One Tap dialog
-
-    this.libraryLoaded = LoadingState.COMPLETE
-  }
-
   render (): TemplateResult {
     return html`
       <div id="login-container"></div>
@@ -115,8 +120,7 @@ export class WebstatusLogin extends LitElement {
   }
 
   // TODO: remove eslint exemption when token handling is complete.
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async _signin (_token: string): Promise<void> {
-    // TODO: Handle the token
+  scriptLoaded (): void {
+    this.initializeLibrary()
   }
 }

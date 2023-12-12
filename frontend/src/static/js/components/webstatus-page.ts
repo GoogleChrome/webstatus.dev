@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-import { LitElement, html, type TemplateResult, type CSSResultGroup } from 'lit'
-import { SHARED_STYLES } from '../css/shared-css.js'
+import { type CSSResultGroup, LitElement, type TemplateResult, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
+
+import { SHARED_STYLES } from '../css/shared-css.js'
 
 @customElement('webstatus-page')
 export class WebstatusPage extends LitElement {
