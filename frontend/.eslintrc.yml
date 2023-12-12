@@ -29,3 +29,8 @@ parserOptions:
   sourceType: module
 rules: {}
 root: true
+ignorePatterns:
+- rollup.config.mjs
+- dist/*
+- scripts/*
+- build/*

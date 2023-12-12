@@ -2,6 +2,9 @@
     "[terraform]": {
         "editor.tabSize": 2
     },
+    "[typescript]": {
+        "editor.tabSize": 2
+    },
     "editor.rulers": [
         80,
         {
