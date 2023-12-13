@@ -18,7 +18,9 @@ import createClient from 'openapi-fetch'
 import { type components, type paths } from 'webstatus.dev-backend'
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>
+  public readonly baseUrl: string
   constructor (baseUrl: string) {
+    this.baseUrl = baseUrl
     this.client = createClient<paths>({ baseUrl })
   }
 

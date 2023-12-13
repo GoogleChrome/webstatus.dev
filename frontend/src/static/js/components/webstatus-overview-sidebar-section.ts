@@ -22,7 +22,7 @@ export class WebstatusOverviewSidebarSection extends LitElement {
   @property()
     header!: string
 
-  @property({ attribute: 'open' })
+  @property({ attribute: 'open', type: Boolean })
     open!: boolean
 
   constructor () {

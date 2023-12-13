@@ -27,13 +27,12 @@ export class FeaturePage extends LitElement {
   @consume({ context: apiClientContext })
     apiClient!: APIClient
 
-  @property()
+  @property({ type: Object })
     feature?: components['schemas']['Feature'] | undefined
 
   id!: string
 
-  @property()
-    loading: boolean = true
+  loading: boolean = true
 
   async firstUpdated (): Promise<void> {
     this.feature = await this.apiClient.getFeature(this.id)

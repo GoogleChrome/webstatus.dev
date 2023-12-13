@@ -34,3 +34,5 @@ ignorePatterns:
 - dist/*
 - scripts/*
 - build/*
+- web-test-runner.config.mjs
+- coverage/lcov-report/*

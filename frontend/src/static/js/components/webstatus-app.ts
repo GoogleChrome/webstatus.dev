@@ -36,7 +36,7 @@ export class WebstatusApp extends LitElement {
 
   protected render (): TemplateResult {
     return html`
-      <webstatus-app-settings appSettings='${JSON.stringify(this.settings)}'
+      <webstatus-app-settings .appSettings='${this.settings}'
         >
         <webstatus-header></webstatus-header>
         <webstatus-page>

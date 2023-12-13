@@ -16,7 +16,7 @@
 
 import { ContextProvider } from '@lit/context'
 import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, property, state } from 'lit/decorators.js'
 
 import { type AppSettings } from '../../../common/app-settings.js'
 import { APIClient } from '../api/client.js'
@@ -25,19 +25,17 @@ import { appSettingsContext } from '../contexts/settings-context.js'
 
 @customElement('webstatus-app-settings')
 export class WebstatusAppSettings extends LitElement {
-  apiClientProvider?: ContextProvider<typeof apiClientContext>
+  @state()
+    apiClientProvider = new ContextProvider(this, { context: apiClientContext })
 
   @property({ type: Object })
     appSettings!: AppSettings
 
-  appSettingsProvider?: ContextProvider<typeof appSettingsContext>
+  @state()
+    appSettingsProvider = new ContextProvider(this, { context: appSettingsContext })
 
-  connectedCallback (): void {
-    super.connectedCallback()
-    this.apiClientProvider = new ContextProvider(this, { context: apiClientContext })
+  firstUpdated (): void {
     this.apiClientProvider.setValue(new APIClient(this.appSettings.apiUrl))
-
-    this.appSettingsProvider = new ContextProvider(this, { context: appSettingsContext })
     this.appSettingsProvider.setValue(this.appSettings)
   }
 
