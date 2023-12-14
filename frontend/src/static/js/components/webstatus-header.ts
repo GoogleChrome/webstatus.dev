@@ -103,7 +103,7 @@ export class WebstatusHeader extends LitElement {
         </div>
 
         <nav class="nav-links">
-          <a href="#">Features</a>
+          <a href="/">Features</a>
           <a href="#">About</a>
           <a href="#">Stats</a>
         </nav>

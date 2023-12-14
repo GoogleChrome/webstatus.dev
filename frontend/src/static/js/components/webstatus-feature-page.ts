@@ -16,22 +16,23 @@
 
 import { consume } from '@lit/context'
 import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement, state } from 'lit/decorators.js'
 import { type components } from 'webstatus.dev-backend'
 
 import { type APIClient } from '../api/client.js'
 import { apiClientContext } from '../contexts/api-client-context.js'
 
-@customElement('feature-page')
+@customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
   @consume({ context: apiClientContext })
   apiClient!: APIClient
 
-  @property({ type: Object })
+  @state()
   feature?: components['schemas']['Feature'] | undefined
 
   id!: string
 
+  @state()
   loading: boolean = true
 
   async firstUpdated(): Promise<void> {

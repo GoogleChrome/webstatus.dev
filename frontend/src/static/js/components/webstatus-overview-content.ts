@@ -47,7 +47,7 @@ export class WebstatusOverviewContent extends LitElement {
           </thead>
           <tbody>
             <tr>
-              <td>Container queries</td>
+              <td><a href="/features/1">Container queries</a></td>
               <td><img height="24" src="/public/img/cross.svg" /></td>
               <td>
                 <img src="/public/img/chrome-dev_24x24.png" /> 100%
@@ -56,7 +56,7 @@ export class WebstatusOverviewContent extends LitElement {
               </td>
             </tr>
             <tr>
-              <td>Flexbox</td>
+              <td><a href="/features/1">Flexbox</a></td>
               <td><img height="24" src="/public/img/check.svg" /></td>
               <td>
                 <img src="/public/img/chrome-dev_24x24.png" /> 100%
@@ -65,7 +65,7 @@ export class WebstatusOverviewContent extends LitElement {
               </td>
             </tr>
             <tr>
-              <td>Grid</td>
+              <td><a href="/features/1">Grid</a></td>
               <td><img height="24" src="/public/img/cross.svg" /></td>
               <td>
                 <img src="/public/img/chrome-dev_24x24.png" /> 100%
