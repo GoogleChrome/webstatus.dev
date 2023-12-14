@@ -1,4 +1,3 @@
-#!/bin/sh
 # Copyright 2023 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,9 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-INDEX_HTML="/usr/share/nginx/html/index.html"
-TMP_INDEX_HTML="/tmp/index.html"
-OLD_INDEX_HTML="/tmp/old-index.html"
-envsubst < "${INDEX_HTML}" > "${TMP_INDEX_HTML}"
-cp "${INDEX_HTML}" "${OLD_INDEX_HTML}"
-cp "${TMP_INDEX_HTML}" "${INDEX_HTML}"
+FROM nginx:alpine3.18-slim as static
+
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY dist/static /usr/share/nginx/html
+COPY run.sh /run.sh

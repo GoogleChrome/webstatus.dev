@@ -32,7 +32,8 @@
 				"ms-vscode.makefile-tools",
 				"ms-kubernetes-tools.vscode-kubernetes-tools",
 				"runem.lit-plugin",
-				"dbaeumer.vscode-eslint"
+				"dbaeumer.vscode-eslint",
+				"esbenp.prettier-vscode"
 			]
 		}
 	},

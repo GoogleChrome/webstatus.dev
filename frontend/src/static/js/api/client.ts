@@ -24,11 +24,13 @@ const temporaryFetchOptions: FetchOptions<unknown> = {
 
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>
-  constructor (baseUrl: string) {
+  constructor(baseUrl: string) {
     this.client = createClient<paths>({ baseUrl })
   }
 
-  public async getFeature (featureId: string): Promise<components['schemas']['Feature']> {
+  public async getFeature(
+    featureId: string
+  ): Promise<components['schemas']['Feature']> {
     const { data, error } = await this.client.GET('/v1/features/{feature_id}', {
       ...temporaryFetchOptions,
       params: { path: { feature_id: featureId } }
@@ -39,7 +41,9 @@ export class APIClient {
     return data
   }
 
-  public async getFeatures (): Promise<components['schemas']['FeaturePage']['data']> {
+  public async getFeatures(): Promise<
+    components['schemas']['FeaturePage']['data']
+  > {
     const { data, error } = await this.client.GET('/v1/features', {
       params: {},
       ...temporaryFetchOptions

@@ -14,7 +14,13 @@
  * limitations under the License.
  */
 
-import { type CSSResultGroup, LitElement, type TemplateResult, css, html } from 'lit'
+import {
+  type CSSResultGroup,
+  LitElement,
+  type TemplateResult,
+  css,
+  html
+} from 'lit'
 import { customElement } from 'lit/decorators.js'
 
 import { SHARED_STYLES } from '../css/shared-css.js'
@@ -22,73 +28,77 @@ import './webstatus-login.js'
 
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
-  static get styles (): CSSResultGroup {
+  static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
       css`
-      header {
-        display: flex;
-        justify-content: space-between;
-        background: #f2f2f2;
-        height: 94px;
-      }
-      .title {
-        display: flex;
-      }
+        header {
+          display: flex;
+          justify-content: space-between;
+          background: #f2f2f2;
+          height: 94px;
+        }
+        .title {
+          display: flex;
+        }
 
-      .website-logo {
-        width: 31px;
-        height: 31px;
-        background-color: #ccc;
-        margin-left: 1em;
-        margin-top: auto;
-        margin-bottom: auto;
-      }
+        .website-logo {
+          width: 31px;
+          height: 31px;
+          background-color: #ccc;
+          margin-left: 1em;
+          margin-top: auto;
+          margin-bottom: auto;
+        }
 
-      .website-title {
-        font-weight: 700;
-        font-size: 24px;
-        color: #1f1f1f;
-        margin-left: 5px;
-        margin-top: auto;
-        margin-bottom: auto;
-      }
+        .website-title {
+          font-weight: 700;
+          font-size: 24px;
+          color: #1f1f1f;
+          margin-left: 5px;
+          margin-top: auto;
+          margin-bottom: auto;
+        }
 
-      nav {
-        display: flex;
-        align-items: center;
-      }
+        nav {
+          display: flex;
+          align-items: center;
+        }
 
-      .nav-links {
-        display: flex;
-        align-items: center;
-      }
-      nav a {
-        font-size: 16px;
-        color: #1f1f1f;
-        text-decoration: none;
-        margin-left: 20px;
-      }
+        .nav-links {
+          display: flex;
+          align-items: center;
+        }
+        nav a {
+          font-size: 16px;
+          color: #1f1f1f;
+          text-decoration: none;
+          margin-left: 20px;
+        }
 
-      nav a.active {
-        font-weight: bold;
-        color: #0b57d0;
-        text-decoration: underline;
-      }
+        nav a.active {
+          font-weight: bold;
+          color: #0b57d0;
+          text-decoration: underline;
+        }
 
-      .sign-in {
-        margin-top: auto;
-        margin-bottom: auto;
-        margin-right: 1em;
-      }
-    `]
+        .sign-in {
+          margin-top: auto;
+          margin-bottom: auto;
+          margin-right: 1em;
+        }
+      `
+    ]
   }
 
-  render (): TemplateResult {
+  render(): TemplateResult {
     return html`
       <header>
         <div class="title">
-          <img class="website-logo" src="https://fakeimg.pl/400x400?text=LOGO" />
+          <img
+            class="website-logo"
+            src="https://fakeimg.pl/400x400?text=LOGO"
+          />
           <div class="website-title">Web Platform Dashboard</div>
         </div>
 

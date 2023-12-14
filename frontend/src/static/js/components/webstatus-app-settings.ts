@@ -26,20 +26,22 @@ import { appSettingsContext } from '../contexts/settings-context.js'
 @customElement('webstatus-app-settings')
 export class WebstatusAppSettings extends LitElement {
   @state()
-    apiClientProvider = new ContextProvider(this, { context: apiClientContext })
+  apiClientProvider = new ContextProvider(this, { context: apiClientContext })
 
   @property({ type: Object })
-    appSettings!: AppSettings
+  appSettings!: AppSettings
 
   @state()
-    appSettingsProvider = new ContextProvider(this, { context: appSettingsContext })
+  appSettingsProvider = new ContextProvider(this, {
+    context: appSettingsContext
+  })
 
-  firstUpdated (): void {
+  firstUpdated(): void {
     this.apiClientProvider.setValue(new APIClient(this.appSettings.apiUrl))
     this.appSettingsProvider.setValue(this.appSettings)
   }
 
-  protected render (): TemplateResult {
+  protected render(): TemplateResult {
     return html`<slot></slot>`
   }
 }

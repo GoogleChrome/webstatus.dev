@@ -20,6 +20,6 @@ spec:
   selector:
     app.kubernetes.io/name: frontend
   ports:
-  - protocol: TCP
-    port: 5555
-    targetPort: http-frontend
+    - protocol: TCP
+      port: 5555
+      targetPort: http-frontend

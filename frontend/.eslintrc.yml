@@ -17,22 +17,29 @@ env:
   es2021: true
 parser: '@typescript-eslint/parser'
 extends:
-- standard-with-typescript
-- eslint:recommended
-- plugin:@typescript-eslint/recommended
-- plugin:lit/recommended
-- plugin:perfectionist/recommended-natural
+  - standard-with-typescript
+  - eslint:recommended
+  - plugin:@typescript-eslint/recommended
+  - plugin:lit/recommended
+  - plugin:perfectionist/recommended-natural
 plugins:
-- "@typescript-eslint"
+  - '@typescript-eslint'
 parserOptions:
   ecmaVersion: latest
   sourceType: module
-rules: {}
+# Ignore eslint formatting rules and allow prettier to handle those
+# https://prettier.io/docs/en/comparison
+rules:
+  {
+    'indent': 'off',
+    '@typescript-eslint/indent': 'off',
+    '@typescript-eslint/space-before-function-paren': 'off'
+  }
 root: true
 ignorePatterns:
-- rollup.config.mjs
-- dist/*
-- scripts/*
-- build/*
-- web-test-runner.config.mjs
-- coverage/lcov-report/*
+  - rollup.config.mjs
+  - dist/*
+  - scripts/*
+  - build/*
+  - web-test-runner.config.mjs
+  - coverage/lcov-report/*

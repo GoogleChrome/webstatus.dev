@@ -26,18 +26,15 @@ import './webstatus-page.js'
 @customElement('webstatus-app')
 export class WebstatusApp extends LitElement {
   @property({ type: Object })
-    settings!: AppSettings
+  settings!: AppSettings
 
-  static get styles (): CSSResultGroup {
-    return [
-      SHARED_STYLES
-    ]
+  static get styles(): CSSResultGroup {
+    return [SHARED_STYLES]
   }
 
-  protected render (): TemplateResult {
+  protected render(): TemplateResult {
     return html`
-      <webstatus-app-settings .appSettings='${this.settings}'
-        >
+      <webstatus-app-settings .appSettings="${this.settings}">
         <webstatus-header></webstatus-header>
         <webstatus-page>
           <slot></slot>

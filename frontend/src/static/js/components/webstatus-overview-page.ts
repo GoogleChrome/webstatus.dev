@@ -15,7 +15,13 @@
  */
 
 import { consume } from '@lit/context'
-import { type CSSResultGroup, LitElement, type TemplateResult, css, html } from 'lit'
+import {
+  type CSSResultGroup,
+  LitElement,
+  type TemplateResult,
+  css,
+  html
+} from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { type components } from 'webstatus.dev-backend'
 
@@ -29,69 +35,67 @@ import './webstatus-overview-sidebar.js'
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
   @consume({ context: apiClientContext })
-    apiClient?: APIClient
+  apiClient?: APIClient
 
   @state()
-    items: Array<components['schemas']['Feature']> = []
+  items: Array<components['schemas']['Feature']> = []
 
   loading: LoadingState = LoadingState.NOT_STARTED
 
-  static get styles (): CSSResultGroup {
+  static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
       css`
-          @media (max-width: 768px) {
-            webstatus-overview-sidebar {
-              display: none;
-            }
+        @media (max-width: 768px) {
+          webstatus-overview-sidebar {
+            display: none;
           }
+        }
+        .container {
+          display: flex;
+          flex-direction: row;
+        }
+
+        webstatus-overview-sidebar {
+          flex: 1;
+        }
+
+        webstatus-overview-content {
+          flex: 2;
+          padding-left: 20px;
+          padding-right: 20px;
+          padding-top: 10px;
+        }
+
+        webstatus-overview-sidebar {
+          min-width: 300px;
+          padding-left: 20px;
+          padding-right: 20px;
+          padding-top: 10px;
+        }
+
+        @media (max-width: 768px) {
           .container {
-            display: flex;
-            flex-direction: row;
+            flex-direction: column;
           }
-  
-          webstatus-overview-sidebar {
-            flex: 1;
-          }
-
-          webstatus-overview-content {
-            flex: 2;
-            padding-left: 20px;
-            padding-right: 20px;
-            padding-top: 10px;
-          }
-
-          webstatus-overview-sidebar {
-            min-width: 300px;
-            padding-left: 20px;
-            padding-right: 20px;
-            padding-top: 10px;
-          }
-  
-          @media (max-width: 768px) {
-            .container {
-              flex-direction: column;
-            }
-          }
-        `
+        }
+      `
     ]
   }
 
-  async firstUpdated (): Promise<void> {
-    if (
-      (this.apiClient != null) &&
-      this.loading !== LoadingState.COMPLETE) {
+  async firstUpdated(): Promise<void> {
+    if (this.apiClient != null && this.loading !== LoadingState.COMPLETE) {
       this.items = await this.apiClient.getFeatures()
       this.loading = LoadingState.COMPLETE
     }
   }
 
-  render (): TemplateResult {
+  render(): TemplateResult {
     return html`
-        <div class="container">
-          <webstatus-overview-sidebar></webstatus-overview-sidebar>
-          <webstatus-overview-content></webstatus-overview-content>
-        </div>
-      `
+      <div class="container">
+        <webstatus-overview-sidebar></webstatus-overview-sidebar>
+        <webstatus-overview-content></webstatus-overview-content>
+      </div>
+    `
   }
 }

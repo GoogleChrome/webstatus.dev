@@ -24,13 +24,13 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: frontend
-        context: ..
-        runtimeType: nodejs
-        docker:
-          dockerfile: images/nodejs_service.Dockerfile
-          buildArgs:
-            service_dir: frontend
+        - image: frontend
+          context: ..
+          runtimeType: nodejs
+          docker:
+            dockerfile: images/nodejs_service.Dockerfile
+            buildArgs:
+              service_dir: frontend
       local: {}
     manifests:
       rawYaml:
@@ -41,4 +41,3 @@ profiles:
       - resourceType: pod
         resourceName: frontend
         port: 5555
-      

@@ -21,15 +21,11 @@ import { SHARED_STYLES } from '../css/shared-css.js'
 
 @customElement('webstatus-page')
 export class WebstatusPage extends LitElement {
-  static get styles (): CSSResultGroup {
-    return [
-      SHARED_STYLES
-    ]
+  static get styles(): CSSResultGroup {
+    return [SHARED_STYLES]
   }
 
-  protected render (): TemplateResult {
-    return html`
-            <slot></slot>
-        `
+  protected render(): TemplateResult {
+    return html` <slot></slot> `
   }
 }

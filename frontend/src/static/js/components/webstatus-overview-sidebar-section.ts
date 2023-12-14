@@ -14,49 +14,56 @@
  * limitations under the License.
  */
 
-import { type CSSResultGroup, LitElement, type TemplateResult, css, html } from 'lit'
+import {
+  type CSSResultGroup,
+  LitElement,
+  type TemplateResult,
+  css,
+  html
+} from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
 @customElement('webstatus-overview-sidebar-section')
 export class WebstatusOverviewSidebarSection extends LitElement {
   @property()
-    header!: string
+  header!: string
 
   @property({ attribute: 'open', type: Boolean })
-    open!: boolean
+  open!: boolean
 
-  constructor () {
+  constructor() {
     super()
     this.open = false
   }
 
-  static get styles (): CSSResultGroup {
+  static get styles(): CSSResultGroup {
     return [
       css`
-      .collapsible-section .header {
-        display: flex;
-        align-items: center;
-        cursor: pointer;
-      }
+        .collapsible-section .header {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+        }
 
-      .collapsible-section .arrow {
-        margin-left: auto;
-      }
+        .collapsible-section .arrow {
+          margin-left: auto;
+        }
 
-      .collapsible-section .content {
-        max-height: 0;
-        overflow: hidden;
-        transition: max-height 0.5s ease;
-      }
+        .collapsible-section .content {
+          max-height: 0;
+          overflow: hidden;
+          transition: max-height 0.5s ease;
+        }
 
-      .collapsible-section .content.open {
-        display: block;
-        max-height: 1000px;
-      }
-    `]
+        .collapsible-section .content.open {
+          display: block;
+          max-height: 1000px;
+        }
+      `
+    ]
   }
 
-  render (): TemplateResult {
+  render(): TemplateResult {
     const arrow = this.open ? '▲' : '▼'
     const contentClass = this.open ? 'content open' : 'content'
     return html`
@@ -72,7 +79,7 @@ export class WebstatusOverviewSidebarSection extends LitElement {
     `
   }
 
-  toggleOpen (): void {
+  toggleOpen(): void {
     this.open = !this.open
   }
 }

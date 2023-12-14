@@ -23,13 +23,11 @@ import './webstatus-overview-sidebar-section-body-presets.js'
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {
-  static get styles (): CSSResultGroup {
-    return [
-      SHARED_STYLES
-    ]
+  static get styles(): CSSResultGroup {
+    return [SHARED_STYLES]
   }
 
-  render (): TemplateResult {
+  render(): TemplateResult {
     return html`
       <div class="sidebar">
         <webstatus-overview-sidebar-section header="Presets">

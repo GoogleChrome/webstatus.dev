@@ -19,12 +19,15 @@ import { LitElement, type TemplateResult, html } from 'lit'
 import { customElement, property, query, state } from 'lit/decorators.js'
 
 import { LoadingState } from '../../../common/loading-state.js'
-import { type AppSettings, appSettingsContext } from '../contexts/settings-context.js'
+import {
+  type AppSettings,
+  appSettingsContext
+} from '../contexts/settings-context.js'
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
   @consume({ context: appSettingsContext })
-    appSettings?: AppSettings
+  appSettings?: AppSettings
 
   @query('#login-container')
   @state()
@@ -33,21 +36,21 @@ export class WebstatusLogin extends LitElement {
   protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED
 
   @property()
-  declare public redirectTo: null | string
+  public declare redirectTo: null | string
 
   protected scriptInserted: boolean = false
 
-  constructor () {
+  constructor() {
     super()
     this.redirectTo = ''
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async _signin (_token: string): Promise<void> {
+  async _signin(_token: string): Promise<void> {
     // TODO: Handle the token
   }
 
-  firstUpdated (): void {
+  firstUpdated(): void {
     this.loadScript().then(
       // TODO. Success case
       () => {},
@@ -56,11 +59,13 @@ export class WebstatusLogin extends LitElement {
     )
   }
 
-  initializeLibrary (): void {
-    if (this.libraryLoaded === LoadingState.COMPLETE ||
-        this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
-        (this.appSettings == null) ||
-        (this.container == null)) {
+  initializeLibrary(): void {
+    if (
+      this.libraryLoaded === LoadingState.COMPLETE ||
+      this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
+      this.appSettings == null ||
+      this.container == null
+    ) {
       return
     }
 
@@ -68,11 +73,14 @@ export class WebstatusLogin extends LitElement {
     google.accounts.id.initialize({
       // @ts-expect-error TODO: figure out how to import nested namespace
       callback: (response: google.accounts.id.CredentialResponse) => {
-        this._signin(response.credential).then(() => {
-          // TODO. Do successful redirect
-        }, () => {
-          // TODO. Handle the error case
-        })
+        this._signin(response.credential).then(
+          () => {
+            // TODO. Do successful redirect
+          },
+          () => {
+            // TODO. Handle the error case
+          }
+        )
       },
       client_id: this.appSettings?.gsiClientId
     })
@@ -88,7 +96,7 @@ export class WebstatusLogin extends LitElement {
     this.libraryLoaded = LoadingState.COMPLETE
   }
 
-  async loadScript (): Promise<void> {
+  async loadScript(): Promise<void> {
     if (this.scriptInserted) {
       return
     }
@@ -113,14 +121,12 @@ export class WebstatusLogin extends LitElement {
     })
   }
 
-  render (): TemplateResult {
-    return html`
-      <div id="login-container"></div>
-    `
+  render(): TemplateResult {
+    return html` <div id="login-container"></div> `
   }
 
   // TODO: remove eslint exemption when token handling is complete.
-  scriptLoaded (): void {
+  scriptLoaded(): void {
     this.initializeLibrary()
   }
 }

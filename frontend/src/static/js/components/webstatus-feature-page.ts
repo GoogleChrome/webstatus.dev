@@ -25,28 +25,30 @@ import { apiClientContext } from '../contexts/api-client-context.js'
 @customElement('feature-page')
 export class FeaturePage extends LitElement {
   @consume({ context: apiClientContext })
-    apiClient!: APIClient
+  apiClient!: APIClient
 
   @property({ type: Object })
-    feature?: components['schemas']['Feature'] | undefined
+  feature?: components['schemas']['Feature'] | undefined
 
   id!: string
 
   loading: boolean = true
 
-  async firstUpdated (): Promise<void> {
+  async firstUpdated(): Promise<void> {
     this.feature = await this.apiClient.getFeature(this.id)
     this.loading = false
   }
 
-  render (): TemplateResult {
-    if (this.loading) { return html`Loading` } else {
+  render(): TemplateResult {
+    if (this.loading) {
+      return html`Loading`
+    } else {
       return html`
-          <h1>Feature Page</h1>
-          spec size: ${((this.feature?.spec) != null) ? this.feature.spec.length : 0}
-          <br/>
-          Specs:
-        `
+        <h1>Feature Page</h1>
+        spec size: ${this.feature?.spec != null ? this.feature.spec.length : 0}
+        <br />
+        Specs:
+      `
     }
   }
 }

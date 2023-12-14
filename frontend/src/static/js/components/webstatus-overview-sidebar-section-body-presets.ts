@@ -29,17 +29,29 @@ export class WebstatusOverviewSidebarSectionBodyPresets extends LitElement {
 
     .preset {
       border-radius: 25px;
-      border: 1px solid #C4C7C5;
+      border: 1px solid #c4c7c5;
       padding: 5px;
       max-width: max-content;
     }
   `
-  render (): TemplateResult {
+  render(): TemplateResult {
     return html`
-      <div class="preset"><span class="material-icons md-24">label</span> Baseline 2023</div><br />
-      <div class="preset"><span class="material-icons md-24">label</span> Top Developer Needs</div><br />
-      <div class="preset"><span class="material-icons md-24">label</span> WPT score &lt; 99%</div><br />
-      <div class="preset"><span class="material-icons md-24">bookmark</span> Subscribed by me</div><br />
+      <div class="preset">
+        <span class="material-icons md-24">label</span> Baseline 2023
+      </div>
+      <br />
+      <div class="preset">
+        <span class="material-icons md-24">label</span> Top Developer Needs
+      </div>
+      <br />
+      <div class="preset">
+        <span class="material-icons md-24">label</span> WPT score &lt; 99%
+      </div>
+      <br />
+      <div class="preset">
+        <span class="material-icons md-24">bookmark</span> Subscribed by me
+      </div>
+      <br />
     `
   }
 }

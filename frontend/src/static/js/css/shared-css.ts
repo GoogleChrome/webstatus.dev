@@ -21,7 +21,8 @@ import { RESET } from './_reset-css.js'
 export const SHARED_STYLES = [
   RESET,
   css`
-        :host {
-            font-family: "Inter";
-        }
-`]
+    :host {
+      font-family: 'Inter';
+    }
+  `
+]

@@ -1,0 +1,4 @@
+frontend/build
+frontend/dist
+node_modules
+frontend/coverage

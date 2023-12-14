@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { nodeResolve } from '@rollup/plugin-node-resolve';
-import terser from '@rollup/plugin-terser';
+import { nodeResolve } from '@rollup/plugin-node-resolve'
+import terser from '@rollup/plugin-terser'
 import copy from 'rollup-plugin-copy'
 
 export default [
@@ -33,34 +33,34 @@ export default [
       terser({
         ecma: 2020,
         module: true,
-        warnings: true,
+        warnings: true
       }),
       copy({
         targets: [
           // Copy the svg files
           // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
-          {src: 'src/static/img/*.svg', dest: 'dist/static/public/img'},
+          { src: 'src/static/img/*.svg', dest: 'dist/static/public/img' },
           // Copy the img files
           // Currently copying img files from ./scripts/postinstall.js
-          {src: '.postinstall/static/img/*', dest: 'dist/static/public/img'},
+          { src: '.postinstall/static/img/*', dest: 'dist/static/public/img' },
           // Copy the html file
-          {src: 'src/static/index.html', dest: 'dist/static'}
+          { src: 'src/static/index.html', dest: 'dist/static' }
         ]
-      }),
+      })
     ],
     output: {
-      dir: 'dist/static/public/js',
+      dir: 'dist/static/public/js'
     },
     onwarn: (warning) => {
       if (warning.code === 'THIS_IS_UNDECLARED') {
-        return;
+        return
       }
       if (warning.code === 'THIS_IS_UNDEFINED') {
-        return;
+        return
       }
 
-      console.warn(warning.message);
+      console.warn(warning.message)
     },
-    preserveEntrySignatures: 'strict',
+    preserveEntrySignatures: 'strict'
   }
 ]

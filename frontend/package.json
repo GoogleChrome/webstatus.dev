@@ -7,8 +7,8 @@
   "scripts": {
     "build": "npm run clean && tsc && npx rollup -c",
     "clean": "rm -rf build && rm -rf static && rm -rf dist",
-    "lint": "eslint \"**/*.{js,ts}\" && lit-analyzer \"src/**/*.{js,ts}\" && tsc --noEmit",
-    "lint-fix": "eslint \"**/*.{js,ts}\" --fix",
+    "lint": "cd .. && prettier frontend/ --check && cd frontend && eslint \"**/*.{js,ts}\" && lit-analyzer \"src/**/*.{js,ts}\" && tsc --noEmit",
+    "lint-fix": "cd .. && prettier frontend/ --write && cd frontend && eslint \"**/*.{js,ts}\" --fix",
     "local": "npm run build && TODO",
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",

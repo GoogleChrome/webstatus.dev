@@ -27,7 +27,7 @@ export class WebstatusOverviewContent extends LitElement {
       text-align: left;
     }
   `
-  render (): TemplateResult {
+  render(): TemplateResult {
     return html`
       <div class="main">
         <div class="filters">
@@ -48,29 +48,29 @@ export class WebstatusOverviewContent extends LitElement {
           <tbody>
             <tr>
               <td>Container queries</td>
-              <td><img height="24" src="/public/img/cross.svg"></td>
+              <td><img height="24" src="/public/img/cross.svg" /></td>
               <td>
-                <img src="/public/img/chrome-dev_24x24.png"> 100%
-                <img src="/public/img/firefox-nightly_24x24.png"> 100%
-                <img src="/public/img/safari-preview_24x24.png"> 100%
+                <img src="/public/img/chrome-dev_24x24.png" /> 100%
+                <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+                <img src="/public/img/safari-preview_24x24.png" /> 100%
               </td>
             </tr>
             <tr>
               <td>Flexbox</td>
-              <td><img height="24" src="/public/img/check.svg"></td>
+              <td><img height="24" src="/public/img/check.svg" /></td>
               <td>
-                <img src="/public/img/chrome-dev_24x24.png"> 100%
-                <img src="/public/img/firefox-nightly_24x24.png"> 100%
-                <img src="/public/img/safari-preview_24x24.png"> 100%
+                <img src="/public/img/chrome-dev_24x24.png" /> 100%
+                <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+                <img src="/public/img/safari-preview_24x24.png" /> 100%
               </td>
             </tr>
             <tr>
               <td>Grid</td>
-              <td><img height="24" src="/public/img/cross.svg"></td>
+              <td><img height="24" src="/public/img/cross.svg" /></td>
               <td>
-                <img src="/public/img/chrome-dev_24x24.png"> 100%
-                <img src="/public/img/firefox-nightly_24x24.png"> 100%
-                <img src="/public/img/safari-preview_24x24.png"> 100%
+                <img src="/public/img/chrome-dev_24x24.png" /> 100%
+                <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+                <img src="/public/img/safari-preview_24x24.png" /> 100%
               </td>
             </tr>
           </tbody>
