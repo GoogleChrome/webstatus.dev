@@ -3,13 +3,12 @@ COPYRIGHT_NAME := Google LLC
 # Description of ignored files
 # lib/gen - all generated files
 # .terraform.lock.hcl - generated lock file for terraform
-# frontend/dist - built files, not source files that are checked in
-# frontend/static - built files, not source files that are checked in
+# frontend/{dist|static|build} - built files, not source files that are checked in
 # frontend/node_modules - External Node dependencies
 # node_modules - External Node dependencies
 ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
-	-ignore 'lib/gen' \
+	-ignore 'lib/gen/**' \
 	-ignore '**/.terraform.lock.hcl' \
 	-ignore 'frontend/dist/**' \
 	-ignore 'frontend/static/**' \

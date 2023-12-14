@@ -115,6 +115,7 @@ TODO
 
 ```sh
 cd infra
+gcloud auth login
 gcloud auth application-default login --project=web-compass-staging
 ENV_ID="some-unique-string-here" # Something 6 characters long. Could use "openssl rand -hex 3"
 # SAVE THAT ENV_ID
