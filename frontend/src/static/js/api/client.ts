@@ -14,18 +14,23 @@
  * limitations under the License.
  */
 
-import createClient from 'openapi-fetch'
+import createClient, { type FetchOptions } from 'openapi-fetch'
 import { type components, type paths } from 'webstatus.dev-backend'
+
+// TODO. Remove once not behind UbP
+const temporaryFetchOptions: FetchOptions<unknown> = {
+  credentials: 'include'
+}
+
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>
-  public readonly baseUrl: string
   constructor (baseUrl: string) {
-    this.baseUrl = baseUrl
     this.client = createClient<paths>({ baseUrl })
   }
 
   public async getFeature (featureId: string): Promise<components['schemas']['Feature']> {
     const { data, error } = await this.client.GET('/v1/features/{feature_id}', {
+      ...temporaryFetchOptions,
       params: { path: { feature_id: featureId } }
     })
     if (error != null) {
@@ -36,7 +41,8 @@ export class APIClient {
 
   public async getFeatures (): Promise<components['schemas']['FeaturePage']['data']> {
     const { data, error } = await this.client.GET('/v1/features', {
-      params: {}
+      params: {},
+      ...temporaryFetchOptions
     })
     if (error != null) {
       throw new Error(error.message)

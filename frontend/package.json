@@ -45,6 +45,7 @@
     "eslint-plugin-promise": "^6.1.1",
     "lit-analyzer": "^2.0.2",
     "playwright": "^1.40.1",
+    "prettier": "3.1.1",
     "rollup": "^4.2.0",
     "rollup-plugin-copy": "^3.5.0",
     "ts-lit-plugin": "^2.0.1",
