@@ -83,3 +83,11 @@ variable "region_information" {
     })
   }))
 }
+
+variable "backend_api_url" {
+  type = string
+}
+
+variable "gsi_client_id" {
+  type = string
+}

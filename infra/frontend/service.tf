@@ -23,12 +23,20 @@ resource "docker_image" "frontend" {
     build_args = {
       service_dir : local.service_dir
     }
+    target = "static"
     dockerfile = "images/nodejs_service.Dockerfile"
   }
+  triggers = {
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "/../${local.service_dir}/**") : filesha1(f)], [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]))
+  }
 }
+
 resource "docker_registry_image" "frontend_remote_image" {
   name          = docker_image.frontend.name
   keep_remotely = true
+  triggers = {
+    dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "/../${local.service_dir}/**") : filesha1(f)], [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]))
+  }
 }
 
 
@@ -61,8 +69,12 @@ resource "google_cloud_run_v2_service" "service" {
         container_port = 5555
       }
       env {
-        name  = "BACKEND_API_HOST"
+        name  = "API_URL"
         value = var.backend_api_host
+      }
+      env {
+        name  = "GSI_CLIENT_ID"
+        value = var.gsi_client_id
       }
       env {
         name  = "PROJECT_ID"

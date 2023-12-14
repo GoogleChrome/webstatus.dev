@@ -93,7 +93,8 @@ module "frontend" {
 
   env_id                    = var.env_id
   docker_repository_details = module.storage.docker_repository_details
-  backend_api_host          = "TODO"
+  backend_api_host          = var.backend_api_url
+  gsi_client_id =  var.gsi_client_id
   region_to_subnet_info_map = module.network.region_to_subnet_info_map
   vpc_name                  = module.network.vpc_name
 }

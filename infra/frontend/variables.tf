@@ -39,3 +39,6 @@ variable "docker_repository_details" {
 variable "backend_api_host" {
   type = string
 }
+variable "gsi_client_id" {
+  type = string
+}

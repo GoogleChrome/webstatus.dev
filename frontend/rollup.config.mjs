@@ -20,7 +20,7 @@ import copy from 'rollup-plugin-copy'
 
 export default [
   {
-    input: 'build/static/js/overview.js',
+    input: 'build/static/js/index.js',
     plugins: [
       // Entry point for application build; can specify a glob to build multiple
       // HTML files for non-SPA app
@@ -39,18 +39,17 @@ export default [
         targets: [
           // Copy the svg files
           // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
-          {src: 'src/static/img/*.svg', dest: 'dist/static/img'},
+          {src: 'src/static/img/*.svg', dest: 'dist/static/public/img'},
           // Copy the img files
           // Currently copying img files from ./scripts/postinstall.js
-          {src: '.postinstall/static/img/*', dest: 'dist/static/img'},
-          // Copy the server files
-          // Currently copying img files from ./scripts/postinstall.js
-          {src: 'build/server/*', dest: 'dist/server'}
+          {src: '.postinstall/static/img/*', dest: 'dist/static/public/img'},
+          // Copy the html file
+          {src: 'src/static/index.html', dest: 'dist/static'}
         ]
       }),
     ],
     output: {
-      dir: 'dist/static/js',
+      dir: 'dist/static/public/js',
     },
     onwarn: (warning) => {
       if (warning.code === 'THIS_IS_UNDECLARED') {

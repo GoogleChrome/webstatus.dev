@@ -9,7 +9,7 @@
     "clean": "rm -rf build && rm -rf static && rm -rf dist",
     "lint": "eslint \"**/*.{js,ts}\" && lit-analyzer \"src/**/*.{js,ts}\" && tsc --noEmit",
     "lint-fix": "eslint \"**/*.{js,ts}\" --fix",
-    "local": "npm run build && node dist/server/index.js",
+    "local": "npm run build && TODO",
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
     "test": "tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit"
@@ -24,9 +24,6 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@types/chai": "^4.3.11",
     "@types/google.accounts": "^0.0.13",
-    "@types/koa": "^2.13.10",
-    "@types/koa-mount": "^4.0.4",
-    "@types/koa-static": "^4.0.3",
     "@types/mocha": "^10.0.6",
     "@types/node": "^20.6.1",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
@@ -54,13 +51,8 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@koa/router": "^12.0.1",
     "@lit/context": "^1.1.0",
     "@lit/task": "^1.0.0",
-    "@types/koa__router": "^12.0.2",
-    "koa": "^2.14.2",
-    "koa-mount": "^4.0.0",
-    "koa-static": "^5.0.0",
     "lit": "^3.0.1",
     "openapi-fetch": "^0.8.1"
   }
