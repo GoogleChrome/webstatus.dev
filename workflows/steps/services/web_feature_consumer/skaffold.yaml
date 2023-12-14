@@ -23,13 +23,13 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: web-feature-consumer
-        context: ../../../../
-        runtimeType: go
-        docker:
-          dockerfile: images/go_service.Dockerfile
-          buildArgs:
-            service_dir: workflows/steps/services/web_feature_consumer
+        - image: web-feature-consumer
+          context: ../../../../
+          runtimeType: go
+          docker:
+            dockerfile: images/go_service.Dockerfile
+            buildArgs:
+              service_dir: workflows/steps/services/web_feature_consumer
       local: {}
     manifests:
       rawYaml:
@@ -41,4 +41,3 @@ profiles:
         resourceName: web-feature-consumer
         port: 8080
         localPort: 8092
-      

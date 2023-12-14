@@ -20,12 +20,12 @@ metadata:
     app.kubernetes.io/name: mock-backend
 spec:
   containers:
-  - name: mock-backend
-    image: mock-backend
-    ports:
-      - containerPort: 4010
-        name: mock-backend
-    resources:
-      limits:
-        cpu: 250m
-        memory: 256Mi
+    - name: mock-backend
+      image: mock-backend
+      ports:
+        - containerPort: 4010
+          name: mock-backend
+      resources:
+        limits:
+          cpu: 250m
+          memory: 256Mi

@@ -20,6 +20,6 @@ spec:
   selector:
     app.kubernetes.io/name: mock-backend
   ports:
-  - protocol: TCP
-    port: 4010
-    targetPort: mock-backend
+    - protocol: TCP
+      port: 4010
+      targetPort: mock-backend

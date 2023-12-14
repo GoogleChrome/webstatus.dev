@@ -21,15 +21,15 @@ skaffold dev -p local
 
 The above skaffold command deploys multiple resources:
 
-| Resource | Description | Port Forwarded Address | Internal Address |
-| --- | ----------- | --------------- | --------------- |
-| backend | Backend service in ./backend | http://localhost:8080 | http://backend:8080 |
-| frontend | Frontend service in ./frontend | http://localhost:5555 | http://frontend:5555 |
-| datastore | Datastore Emulator | N/A | http://datastore:8085 |
-| spanner | Spanner Emulator | N/A | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
-| gcs | Google Cloud Storage Emulator | N/A | http://gcs:4443 |
-| repo-downloader | Repo Downloader Workflow Step in<br />./workflows/steps/services/common/repo_downloader | http://localhost:8091 | http://repo-downloader:8080 |
-| web-feature-consumer | Web Feature Consumer Step in<br />./workflows/steps/services/web_feature_consumer | http://localhost:8092 | http://web-feature-consumer:8080 |
+| Resource             | Description                                                                             | Port Forwarded Address | Internal Address                                    |
+| -------------------- | --------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------- |
+| backend              | Backend service in ./backend                                                            | http://localhost:8080  | http://backend:8080                                 |
+| frontend             | Frontend service in ./frontend                                                          | http://localhost:5555  | http://frontend:5555                                |
+| datastore            | Datastore Emulator                                                                      | N/A                    | http://datastore:8085                               |
+| spanner              | Spanner Emulator                                                                        | N/A                    | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
+| gcs                  | Google Cloud Storage Emulator                                                           | N/A                    | http://gcs:4443                                     |
+| repo-downloader      | Repo Downloader Workflow Step in<br />./workflows/steps/services/common/repo_downloader | http://localhost:8091  | http://repo-downloader:8080                         |
+| web-feature-consumer | Web Feature Consumer Step in<br />./workflows/steps/services/web_feature_consumer       | http://localhost:8092  | http://web-feature-consumer:8080                    |
 
 ### Populate Data Locally
 
@@ -78,11 +78,11 @@ from the latest snapshot from the web-features repo.
 
 Every web service has its own OpenAPI description.
 
-| Resource | Location |
-| -------- | -------- |
-| backend  | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml) |
-| repo-downloader | [openapi/workflows/steps/common/repo_downloader/openapi.yaml](openapi/workflows/steps/common/repo_downloader/openapi.yaml) |
-| web-feature-consumer | [openapi/workflows/steps/web_feature_consumer/openapi.yaml](openapi/workflows/steps/web_feature_consumer/openapi.yaml) |
+| Resource             | Location                                                                                                                   |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| backend              | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml)                                                               |
+| repo-downloader      | [openapi/workflows/steps/common/repo_downloader/openapi.yaml](openapi/workflows/steps/common/repo_downloader/openapi.yaml) |
+| web-feature-consumer | [openapi/workflows/steps/web_feature_consumer/openapi.yaml](openapi/workflows/steps/web_feature_consumer/openapi.yaml)     |
 
 ### Go and OpenAPI
 

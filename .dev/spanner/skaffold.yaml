@@ -20,12 +20,11 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: spanner
-        context: .
+        - image: spanner
+          context: .
       local: {}
     manifests:
       rawYaml:
         - manifests/*
     deploy:
       kubectl: {}
-      

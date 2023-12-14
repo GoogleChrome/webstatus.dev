@@ -1,4 +1,3 @@
-
 ```
 TEMP_DIR=$(mktemp -d)
 wget -q -O ${TEMP_DIR}/go-jsonschema_Linux_x86_64.tar.gz \
@@ -17,7 +16,6 @@ go-jsonschema defs.schema.json -p schemas -o schemas/feature_set.go -e
 oapi-codegen -config server.cfg.yaml openapi.yaml
 oapi-codegen -config types.cfg.yaml openapi.yaml
 ```
-
 
 ```
 quicktype \

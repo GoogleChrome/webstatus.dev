@@ -23,13 +23,13 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: backend
-        context: ..
-        runtimeType: go
-        docker:
-          dockerfile: images/go_service.Dockerfile
-          buildArgs:
-            service_dir: backend
+        - image: backend
+          context: ..
+          runtimeType: go
+          docker:
+            dockerfile: images/go_service.Dockerfile
+            buildArgs:
+              service_dir: backend
       local: {}
     manifests:
       rawYaml:
@@ -40,4 +40,3 @@ profiles:
       - resourceType: pod
         resourceName: backend
         port: 8080
-      

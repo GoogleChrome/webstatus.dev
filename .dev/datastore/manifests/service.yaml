@@ -20,6 +20,6 @@ spec:
   selector:
     app.kubernetes.io/name: datastore
   ports:
-  - protocol: TCP
-    port: 8085
-    targetPort: datastore-port
+    - protocol: TCP
+      port: 8085
+      targetPort: datastore-port

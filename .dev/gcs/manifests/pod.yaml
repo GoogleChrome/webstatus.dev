@@ -20,19 +20,19 @@ metadata:
     app.kubernetes.io/name: gcs
 spec:
   containers:
-  - name: gcs
-    image: gcs
-    ports:
-      - containerPort: 4443
-        name: gcs-port
-    resources:
-      limits:
-        cpu: 250m
-        memory: 1024Mi
-    volumeMounts:
-    - mountPath: /data/testbucket
-      name: bucket-volume
+    - name: gcs
+      image: gcs
+      ports:
+        - containerPort: 4443
+          name: gcs-port
+      resources:
+        limits:
+          cpu: 250m
+          memory: 1024Mi
+      volumeMounts:
+        - mountPath: /data/testbucket
+          name: bucket-volume
   volumes:
-  - name: bucket-volume
-    emptyDir:
-      sizeLimit: 500Mi
+    - name: bucket-volume
+      emptyDir:
+        sizeLimit: 500Mi

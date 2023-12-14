@@ -72,13 +72,13 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.datastore_info.database_name
       }
     }
-    vpc_access {
-      network_interfaces {
-        network    = "projects/${data.google_project.host_project.name}/global/networks/${var.vpc_name}"
-        subnetwork = "projects/${data.google_project.host_project.name}/regions/${each.key}/subnetworks/${each.value.public}"
-      }
-      egress = "ALL_TRAFFIC"
-    }
+    # vpc_access {
+    #   network_interfaces {
+    #     network    = "projects/${data.google_project.host_project.name}/global/networks/${var.vpc_name}"
+    #     subnetwork = "projects/${data.google_project.host_project.name}/regions/${each.key}/subnetworks/${each.value.public}"
+    #   }
+    #   egress = "ALL_TRAFFIC"
+    # }
     service_account = google_service_account.backend.email
   }
   depends_on = [

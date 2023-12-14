@@ -20,6 +20,6 @@ spec:
   selector:
     app.kubernetes.io/name: repo-downloader
   ports:
-  - protocol: TCP
-    port: 8080
-    targetPort: http-svc
+    - protocol: TCP
+      port: 8080
+      targetPort: http-svc

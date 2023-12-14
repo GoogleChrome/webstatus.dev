@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-openapi: "3.0.0"
+openapi: '3.0.0'
 info:
   title: Feature
   version: 1.0.0
 servers:
-- url: http://localhost:8080
+  - url: http://localhost:8080
 paths:
   /v1/web-features:
     post:
@@ -31,8 +31,7 @@ paths:
                 - location
               properties:
                 location:
-                  $ref: "#/components/schemas/ObjectLocation"
-       
+                  $ref: '#/components/schemas/ObjectLocation'
 
       responses:
         '200':
@@ -61,7 +60,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-                          
+
 components:
   schemas:
     ObjectLocation:
@@ -92,7 +91,7 @@ components:
           minimum: 100
           maximum: 600
     ExtendedErrorModel:
-      allOf:     # Combines the BasicErrorModel and the inline model
+      allOf: # Combines the BasicErrorModel and the inline model
         - $ref: '#/components/schemas/BasicErrorModel'
         - type: object
           required:

@@ -20,23 +20,23 @@ metadata:
     app.kubernetes.io/name: backend
 spec:
   containers:
-  - name: backend
-    image: backend
-    ports:
-      - containerPort: 8080
-        name: http-backend
-    env:
-      - name: SPANNER_DATABASE
-        value: "(default)"
-      - name: SPANNER_EMULATOR_HOST
-        value: "spanner:9010"
-      - name: PROJECT_ID
-        value: local
-      - name: DATASTORE_DATABASE
-        value: ""
-      - name: DATASTORE_EMULATOR_HOST
-        value: "datastore:8085"
-    resources:
-      limits:
-        cpu: 250m
-        memory: 512Mi
+    - name: backend
+      image: backend
+      ports:
+        - containerPort: 8080
+          name: http-backend
+      env:
+        - name: SPANNER_DATABASE
+          value: '(default)'
+        - name: SPANNER_EMULATOR_HOST
+          value: 'spanner:9010'
+        - name: PROJECT_ID
+          value: local
+        - name: DATASTORE_DATABASE
+          value: ''
+        - name: DATASTORE_EMULATOR_HOST
+          value: 'datastore:8085'
+      resources:
+        limits:
+          cpu: 250m
+          memory: 512Mi

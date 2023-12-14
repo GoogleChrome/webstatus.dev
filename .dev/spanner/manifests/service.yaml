@@ -20,11 +20,11 @@ spec:
   selector:
     app.kubernetes.io/name: spanner
   ports:
-  - name: grpc
-    protocol: TCP
-    port: 9010
-    targetPort: grpc-port
-  - name: rest
-    protocol: TCP
-    port: 9020
-    targetPort: rest-port
+    - name: grpc
+      protocol: TCP
+      port: 9010
+      targetPort: grpc-port
+    - name: rest
+      protocol: TCP
+      port: 9020
+      targetPort: rest-port

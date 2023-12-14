@@ -23,8 +23,8 @@ paths:
     get:
       summary: List features
       parameters:
-        - $ref: "#/components/parameters/paginationTokenParam"
-        - $ref: "#/components/parameters/paginationSizeParam"
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
           name: baseline_start_year
           schema:
@@ -172,7 +172,7 @@ components:
           minimum: 100
           maximum: 600
     ExtendedErrorModel:
-      allOf:     # Combines the BasicErrorModel and the inline model
+      allOf: # Combines the BasicErrorModel and the inline model
         - $ref: '#/components/schemas/BasicErrorModel'
         - type: object
           required:

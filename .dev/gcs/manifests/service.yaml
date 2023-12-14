@@ -20,6 +20,6 @@ spec:
   selector:
     app.kubernetes.io/name: gcs
   ports:
-  - protocol: TCP
-    port: 4443
-    targetPort: gcs-port
+    - protocol: TCP
+      port: 4443
+      targetPort: gcs-port

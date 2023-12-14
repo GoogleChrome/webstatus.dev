@@ -23,13 +23,13 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: repo-downloader
-        context: ../../../../../
-        runtimeType: go
-        docker:
-          dockerfile: images/go_service.Dockerfile
-          buildArgs:
-            service_dir: workflows/steps/services/common/repo_downloader
+        - image: repo-downloader
+          context: ../../../../../
+          runtimeType: go
+          docker:
+            dockerfile: images/go_service.Dockerfile
+            buildArgs:
+              service_dir: workflows/steps/services/common/repo_downloader
       local: {}
     manifests:
       rawYaml:
@@ -41,4 +41,3 @@ profiles:
         resourceName: repo-downloader
         port: 8080
         localPort: 8091
-      

@@ -20,23 +20,23 @@ metadata:
     app.kubernetes.io/name: web-feature-consumer
 spec:
   containers:
-  - name: web-feature-consumer
-    image: web-feature-consumer
-    ports:
-      - containerPort: 8080
-        name: http-svc
-    env:
-      - name: BUCKET
-        value: "testbucket"
-      - name: STORAGE_EMULATOR_HOST
-        value: "http://gcs:4443"
-      - name: PROJECT_ID
-        value: local
-      - name: DATASTORE_DATABASE
-        value: ""
-      - name: DATASTORE_EMULATOR_HOST
-        value: "datastore:8085"
-    resources:
-      limits:
-        cpu: 250m
-        memory: 512Mi
+    - name: web-feature-consumer
+      image: web-feature-consumer
+      ports:
+        - containerPort: 8080
+          name: http-svc
+      env:
+        - name: BUCKET
+          value: 'testbucket'
+        - name: STORAGE_EMULATOR_HOST
+          value: 'http://gcs:4443'
+        - name: PROJECT_ID
+          value: local
+        - name: DATASTORE_DATABASE
+          value: ''
+        - name: DATASTORE_EMULATOR_HOST
+          value: 'datastore:8085'
+      resources:
+        limits:
+          cpu: 250m
+          memory: 512Mi

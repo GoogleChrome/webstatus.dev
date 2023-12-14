@@ -20,14 +20,14 @@ metadata:
     app.kubernetes.io/name: spanner
 spec:
   containers:
-  - name: spanner
-    image: spanner
-    ports:
-      - containerPort: 9010
-        name: grpc-port
-      - containerPort: 9020
-        name: rest-port
-    resources:
-      limits:
-        cpu: 250m
-        memory: 1024Mi
+    - name: spanner
+      image: spanner
+      ports:
+        - containerPort: 9010
+          name: grpc-port
+        - containerPort: 9020
+          name: rest-port
+      resources:
+        limits:
+          cpu: 250m
+          memory: 1024Mi

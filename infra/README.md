@@ -29,5 +29,3 @@ In the UI, follow the
 [instructions](https://cloud.google.com/vpc/docs/provisioning-shared-vpc#set-up-shared-vpc)
 to setup a shared vpc in ${HOST_VPC_PROJECT} and attach ${INTERNAL_PROJECT} and
 ${PUBLIC_PROJECT}.
-
-

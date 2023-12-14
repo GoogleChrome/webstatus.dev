@@ -20,12 +20,11 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: datastore
-        context: .
+        - image: datastore
+          context: .
       local: {}
     manifests:
       rawYaml:
         - manifests/*
     deploy:
       kubectl: {}
-      

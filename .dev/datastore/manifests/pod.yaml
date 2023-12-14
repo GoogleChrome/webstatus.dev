@@ -20,12 +20,12 @@ metadata:
     app.kubernetes.io/name: datastore
 spec:
   containers:
-  - name: datastore
-    image: datastore
-    ports:
-      - containerPort: 8085
-        name: datastore-port
-    resources:
-      limits:
-        cpu: 250m
-        memory: 1024Mi
+    - name: datastore
+      image: datastore
+      ports:
+        - containerPort: 8085
+          name: datastore-port
+      resources:
+        limits:
+          cpu: 250m
+          memory: 1024Mi

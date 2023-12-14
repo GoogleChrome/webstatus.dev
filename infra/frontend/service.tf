@@ -23,7 +23,7 @@ resource "docker_image" "frontend" {
     build_args = {
       service_dir : local.service_dir
     }
-    target = "static"
+    target     = "static"
     dockerfile = "images/nodejs_service.Dockerfile"
   }
   triggers = {

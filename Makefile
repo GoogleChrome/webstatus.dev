@@ -39,7 +39,7 @@ golint-version:
 	golangci-lint --version
 
 frontend-deps:
-	npm install -w frontend 
+	npm install -w frontend
 
 lint: golint-version frontend-deps
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
@@ -47,6 +47,7 @@ lint: golint-version frontend-deps
 	terraform fmt -recursive -check .
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
+	npx prettier . --check
 
 unit-test:
 	@declare -a GO_MODULES=(); \
@@ -65,6 +66,7 @@ unit-test:
 lint-fix: frontend-deps
 	npm run lint-fix -w frontend
 	terraform fmt -recursive .
+	npx prettier . --write
 
 download-addlicense:
 	go install github.com/google/addlicense@latest

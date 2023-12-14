@@ -20,10 +20,10 @@ profiles:
   - name: mock-local
     build:
       artifacts:
-      - image: mock-backend
-        context: ../..
-        docker:
-          dockerfile: .dev/mock-backend/Dockerfile
+        - image: mock-backend
+          context: ../..
+          docker:
+            dockerfile: .dev/mock-backend/Dockerfile
       local: {}
     manifests:
       rawYaml:
@@ -35,4 +35,3 @@ profiles:
         resourceName: mock-backend
         localPort: 8080
         port: 4010
-      

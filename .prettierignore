@@ -2,3 +2,5 @@ frontend/build
 frontend/dist
 node_modules
 frontend/coverage
+lib/gen
+jsonschema/web-platform-dx_web-features

@@ -20,12 +20,11 @@ profiles:
   - name: local
     build:
       artifacts:
-      - image: gcs
-        context: .
+        - image: gcs
+          context: .
       local: {}
     manifests:
       rawYaml:
         - manifests/*
     deploy:
       kubectl: {}
-      
