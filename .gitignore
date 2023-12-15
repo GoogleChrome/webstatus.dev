@@ -46,3 +46,9 @@ lib/gen/*/*/*.ts
 
 # Ignore coverage files
 coverage
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
+./e2e/test-results/

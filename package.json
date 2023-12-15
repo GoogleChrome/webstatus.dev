@@ -3,9 +3,7 @@
   "version": "1.0.0",
   "description": "webstatus.dev is a tool to monitor and track the status of all Web Platform features across dimensions that are related to availability across browsers, and adoption and usage by web developers.",
   "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+  "scripts": {},
   "author": "",
   "license": "Apache-2.0",
   "workspaces": [
@@ -13,6 +11,8 @@
     "lib/gen/openapi/ts-webstatus.dev-backend-types"
   ],
   "devDependencies": {
+    "@playwright/test": "^1.40.1",
+    "@types/node": "^20.10.4",
     "openapi-typescript": "6.7.3",
     "prettier": "3.1.1",
     "quicktype": "23.0.80"

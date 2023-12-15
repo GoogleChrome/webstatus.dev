@@ -103,5 +103,9 @@ npm i -g openapi-typescript@6.6.1
 # Install global npm tools
 npm i --workspaces=false
 
+# Install playwright and system deps
+npx playwright install
+sudo npx playwright install-deps
+
 # Generate files
 make gen -B

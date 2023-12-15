@@ -14,26 +14,10 @@
  * limitations under the License.
  */
 
-import { Router } from '@vaadin/router'
+import { test, expect } from '@playwright/test'
 
-import '../components/webstatus-overview-page.js'
-import '../components/webstatus-feature-page.js'
+test('matches the screenshot', async ({ page }) => {
+  await page.goto('http://localhost:5555/')
 
-export const initRouter = async (element: HTMLElement): Promise<Router> => {
-  const router = new Router(element)
-  await router.setRoutes([
-    {
-      component: 'webstatus-overview-page',
-      path: '/'
-    },
-    {
-      component: 'webstatus-feature-page',
-      path: '/features/:featureId'
-    },
-    {
-      path: '(.*)',
-      redirect: '/'
-    }
-  ])
-  return router
-}
+  await expect(page).toHaveScreenshot()
+})
