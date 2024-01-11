@@ -34,7 +34,8 @@
         "runem.lit-plugin",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "ms-playwright.playwright"
+        "ms-playwright.playwright",
+        "figma.figma-vscode-extension"
       ]
     }
   },

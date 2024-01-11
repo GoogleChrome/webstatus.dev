@@ -79,7 +79,7 @@ func (s *Server) PostV1WebFeatures(
 	}
 	featureData, err := web_platform_dx__web_features.UnmarshalFeatureData(jsonBytes)
 	if err != nil {
-		slog.Error("unable to convert data", "error", err)
+		slog.Error("unable to convert data", "error", err, "bytes", string(jsonBytes))
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,

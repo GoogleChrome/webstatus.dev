@@ -15,6 +15,6 @@
     "@types/node": "^20.10.4",
     "openapi-typescript": "6.7.3",
     "prettier": "3.1.1",
-    "quicktype": "23.0.80"
+    "quicktype": "23.0.81"
   }
 }

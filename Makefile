@@ -25,6 +25,10 @@ openapi:
 	oapi-codegen -config openapi/server.cfg.yaml -o lib/gen/openapi/workflows/steps/common/repo_downloader/server.gen.go -package repo_downloader openapi/workflows/steps/common/repo_downloader/openapi.yaml
 	npx openapi-typescript openapi/backend/openapi.yaml -o lib/gen/openapi/ts-webstatus.dev-backend-types/types.d.ts
 
+download-schemas:
+	wget -O jsonschema/web-platform-dx_web-features/defs.schema.json \
+		https://raw.githubusercontent.com/web-platform-dx/feature-set/main/schemas/defs.schema.json
+
 jsonschema:
 	quicktype \
 		--src jsonschema/web-platform-dx_web-features/defs.schema.json \
