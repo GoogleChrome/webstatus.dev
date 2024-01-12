@@ -90,10 +90,6 @@ data:
     help: "https://kind.sigs.k8s.io/docs/user/local-registry/"
 EOF
 
-
-# Install quicktype
-npm install -g quicktype@23.0.75
-
 # Install oapi-codegen
 go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.15.0
 

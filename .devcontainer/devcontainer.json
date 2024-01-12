@@ -29,7 +29,6 @@
         "googlecloudtools.cloudcode",
         "hashicorp.terraform",
         "42Crunch.vscode-openapi",
-        "ms-vscode.makefile-tools",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
         "runem.lit-plugin",
         "dbaeumer.vscode-eslint",
