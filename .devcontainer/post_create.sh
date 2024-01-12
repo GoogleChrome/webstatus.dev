@@ -93,10 +93,7 @@ EOF
 # Install oapi-codegen
 go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.15.0
 
-# install openapi generator for typescript
-npm i -g openapi-typescript@6.6.1
-
-# Install global npm tools
+# Install repo-wide npm tools
 npm i --workspaces=false
 
 # Install playwright and system deps

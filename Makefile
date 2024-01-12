@@ -41,7 +41,7 @@ download-schemas:
 		https://raw.githubusercontent.com/web-platform-dx/feature-set/main/schemas/defs.schema.json
 
 jsonschema:
-	quicktype \
+	npx quicktype \
 		--src jsonschema/web-platform-dx_web-features/defs.schema.json \
 		--src-lang schema \
 		--lang go \
