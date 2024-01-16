@@ -12,13 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta6
+apiVersion: skaffold/v4beta9
 kind: Config
 metadata:
   name: frontend-config
 requires:
-  - path: ../.dev/datastore
-  - path: ../.dev/spanner
   - path: ../backend
 profiles:
   - name: local
