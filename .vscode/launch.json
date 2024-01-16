@@ -1,24 +1,40 @@
 {
   "configurations": [
     {
-      "name": "Kubernetes: Run/Debug - local",
+      "name": "Debug 'Backend' service",
       "type": "cloudcode.kubernetes",
-      "request": "launch",
-      "skaffoldConfig": "${workspaceFolder}/backend/skaffold.yaml",
-      "profile": "local",
-      "watch": true,
-      "cleanUp": true,
-      "portForward": true,
-      "imageRegistry": "localhost:5000",
-      "debug": [
-        {
-          "image": "backend",
-          "containerName": "backend",
-          "sourceFileMap": {
-            "${workspaceFolder}/backend": "/app"
-          }
-        }
-      ]
-    }
+      "request": "attach",
+      "language": "Go",
+      "debugPort": 56268,
+      "podSelector": {
+        "app.kubernetes.io/name": "backend"
+      },
+      "localRoot": "${workspaceFolder}/backend",
+      "remoteRoot": "/work/backend"
+    },
+    {
+      "name": "Debug 'Repo Downloader' service",
+      "type": "cloudcode.kubernetes",
+      "request": "attach",
+      "language": "Go",
+      "debugPort": 56268,
+      "podSelector": {
+        "app.kubernetes.io/name": "repo-downloader"
+      },
+      "localRoot": "${workspaceFolder}/workflows/steps/services/common/repo_downloader",
+      "remoteRoot": "/work/workflows/steps/services/common/repo_downloader"
+    },
+    {
+      "name": "Debug 'Web Feature Consumer' service",
+      "type": "cloudcode.kubernetes",
+      "request": "attach",
+      "language": "Go",
+      "debugPort": 56268,
+      "podSelector": {
+        "app.kubernetes.io/name": "web-feature-consumer"
+      },
+      "localRoot": "${workspaceFolder}/workflows/steps/services/web_feature_consumer",
+      "remoteRoot": "/work/workflows/steps/services/web_feature_consumer"
+    },
   ]
 }

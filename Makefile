@@ -1,12 +1,35 @@
 SHELL := /bin/bash
 
-.PHONY: all clean test gen openapi lint
+.PHONY: all clean test gen openapi lint test
 
-gen: openapi jsonschema
+build: gen go-build
+go-build:
+	go list -f '{{.Dir}}/...' -m | xargs go mod tidy
+	go list -f '{{.Dir}}/...' -m | xargs go build
 
+################################
+# Local Environment
+################################
+MINIKUBE_PROFILE = webstatus-dev
+start-local: minikube-running
+	skaffold dev -p local
+
+debug-local: minikube-running
+	skaffold debug -p local
+
+# Prerequisite target to start minikube if necessary
+minikube-running:
+		# Check if minikube is running using a shell command
+		@if ! minikube status -p $(MINIKUBE_PROFILE) | grep -q "Running"; then \
+				minikube start -p $(MINIKUBE_PROFILE); \
+		fi
+stop-local:
+	minikube stop -p $(MINIKUBE_PROFILE)
 ################################
 # OpenAPI Generation
 ################################
+gen: openapi jsonschema
+
 openapi: go-openapi node-openapi
 
 OAPI_GEN_CONFIG = openapi/types.cfg.yaml
@@ -72,10 +95,17 @@ shell-lint:
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
 
+lint-fix: frontend-deps
+	npm run lint-fix -w frontend
+	terraform fmt -recursive .
+	npx prettier . --write
+
 ################################
 # Test
 ################################
-unit-test:
+test: go-test node-test
+
+go-test:
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
@@ -89,10 +119,8 @@ unit-test:
 		echo -e "\n\n" ; \
 	done
 
-lint-fix: frontend-deps
-	npm run lint-fix -w frontend
-	terraform fmt -recursive .
-	npx prettier . --write
+node-test:
+	npm run test -ws
 
 ################################
 # License

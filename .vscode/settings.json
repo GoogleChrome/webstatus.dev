@@ -23,9 +23,6 @@
       "color": "#ff0000"
     }
   ],
-  "yaml.schemas": {
-    "https://raw.githubusercontent.com/OAI/OpenAPI-Specification/main/schemas/v3.1/schema.json": "file:///workspaces/webstatus.dev/workflows/common_custom_steps/repo_downloader/api/openapi.yaml"
-  },
   "editor.tabSize": 2,
   "files.trimTrailingWhitespace": true,
   "[markdown]": {

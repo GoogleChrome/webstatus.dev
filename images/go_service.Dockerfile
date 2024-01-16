@@ -26,7 +26,8 @@ RUN  go mod download
 WORKDIR /work
 COPY lib lib
 COPY ${service_dir} ${service_dir}
-RUN go build -o server ./${service_dir}/cmd/server
+ARG SKAFFOLD_GO_GCFLAGS
+RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o server ./${service_dir}/cmd/server
 
 FROM alpine:3.18
 

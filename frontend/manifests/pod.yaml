@@ -18,6 +18,9 @@ metadata:
   name: frontend
   labels:
     app.kubernetes.io/name: frontend
+  annotations:
+    # This disables debug mode since this is running an NGINX container.
+    debug.cloud.google.com/config: '{}'
 spec:
   containers:
     - name: frontend
