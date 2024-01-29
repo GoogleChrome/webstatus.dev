@@ -1,11 +1,18 @@
 SHELL := /bin/bash
 
-.PHONY: all clean test gen openapi lint test
+.PHONY: all clean test gen openapi jsonschema lint test
 
 build: gen go-build
-go-build:
+
+go-tidy:
 	go list -f '{{.Dir}}/...' -m | xargs go mod tidy
+go-build: # TODO: Add go-tidy here once we move to GitHub.
 	go list -f '{{.Dir}}/...' -m | xargs go build
+
+clean: clean-gen clean-node
+
+clean-node:
+	npm run clean -ws
 
 ################################
 # Local Environment
@@ -25,39 +32,53 @@ minikube-running:
 		fi
 stop-local:
 	minikube stop -p $(MINIKUBE_PROFILE)
+
 ################################
-# OpenAPI Generation
+# Generated Files
 ################################
 gen: openapi jsonschema
 
+clean-gen: clean-openapi clean-jsonschema
+
+################################
+# Generated Files: From OpenAPI
+################################
 openapi: go-openapi node-openapi
 
+clean-openapi: clean-go-openapi
+
 OAPI_GEN_CONFIG = openapi/types.cfg.yaml
-OUT_DIR = lib/gen/openapi
+OPENAPI_OUT_DIR = lib/gen/openapi
 
 # Pattern rule to generate types and server code for different packages
-$(OUT_DIR)/%/types.gen.go: openapi/%/openapi.yaml
+$(OPENAPI_OUT_DIR)/%/types.gen.go: openapi/%/openapi.yaml
 	oapi-codegen -config $(OAPI_GEN_CONFIG) \
-	             -o $(OUT_DIR)/$*/types.gen.go -package $(shell basename $*) $<
+	             -o $(OPENAPI_OUT_DIR)/$*/types.gen.go -package $(shell basename $*) $<
 
-$(OUT_DIR)/%/server.gen.go: openapi/%/openapi.yaml
+$(OPENAPI_OUT_DIR)/%/server.gen.go: openapi/%/openapi.yaml
 	oapi-codegen -config openapi/server.cfg.yaml \
-	             -o $(OUT_DIR)/$*/server.gen.go -package $(shell basename $*) $<
+	             -o $(OPENAPI_OUT_DIR)/$*/server.gen.go -package $(shell basename $*) $<
 
 # Target to generate all OpenAPI code
-go-openapi: $(OUT_DIR)/backend/types.gen.go \
-            $(OUT_DIR)/backend/server.gen.go \
-            $(OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
-            $(OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
-            $(OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
-            $(OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
+go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
+            $(OPENAPI_OUT_DIR)/backend/server.gen.go \
+            $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
+            $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
+            $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
+            $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
+
+clean-go-openapi:
+	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/, */types.gen.go */server.gen.go)
 
 node-openapi:
 	npx openapi-typescript openapi/backend/openapi.yaml -o lib/gen/openapi/ts-webstatus.dev-backend-types/types.d.ts
 
+# No need for a clean-node-openapi as it is covered by the `node-clean` target.
+
 ################################
-# JSON Schema
+# Generated Files: From JSONSchema
 ################################
+JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 
 download-schemas:
 	wget -O jsonschema/web-platform-dx_web-features/defs.schema.json \
@@ -69,9 +90,12 @@ jsonschema:
 		--src-lang schema \
 		--lang go \
 		--top-level FeatureData \
-		--out lib/gen/jsonschema/web_platform_dx__web_features/feature_data.go \
+		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
+
+clean-jsonschema:
+	rm -rf $(JSONSCHEMA_OUT_DIR)/**/*.go
 
 ################################
 # Lint
@@ -84,7 +108,7 @@ lint: go-lint node-lint tf-lint shell-lint
 go-lint: golint-version
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
 
-node-lint: frontend-deps
+node-lint: node-deps
 	npm run lint -w frontend
 	npx prettier . --check
 
@@ -95,7 +119,7 @@ shell-lint:
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
 
-lint-fix: frontend-deps
+lint-fix: node-deps
 	npm run lint-fix -w frontend
 	terraform fmt -recursive .
 	npx prettier . --write
@@ -152,5 +176,5 @@ license-fix: download-addlicense
 ################################
 # Misc
 ################################
-frontend-deps:
-	npm install -w frontend
+node-deps:
+	npm install -ws

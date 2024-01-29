@@ -14,7 +14,7 @@ everything pre-installed.
 
 ```sh
 # Terminal 1
-skaffold dev -p local
+make start-local
 ```
 
 ### Locally Deployed Resources
@@ -30,6 +30,10 @@ The above skaffold command deploys multiple resources:
 | gcs                  | Google Cloud Storage Emulator                                                           | N/A                    | http://gcs:4443                                     |
 | repo-downloader      | Repo Downloader Workflow Step in<br />./workflows/steps/services/common/repo_downloader | http://localhost:8091  | http://repo-downloader:8080                         |
 | web-feature-consumer | Web Feature Consumer Step in<br />./workflows/steps/services/web_feature_consumer       | http://localhost:8092  | http://web-feature-consumer:8080                    |
+
+_In the event the servers are not responsive, make a temporary change to a file_
+_in a watched directory (e.g. backend). This will rebuild and expose the_
+_services._
 
 ### Populate Data Locally
 
