@@ -55,6 +55,7 @@ func NewWebFeatureClient(projectID string, database *string) (*Client, error) {
 
 type FeatureData struct {
 	WebFeatureID string `datastore:"web_feature_id"`
+	Name         string `datastore:"name"`
 	id           int64  // The integer ID used in the datastore.
 }
 
@@ -65,7 +66,7 @@ func (f FeatureData) ID() int64 {
 func (c *Client) Upsert(
 	ctx context.Context,
 	webFeatureID string,
-	_ web_platform_dx__web_features.FeatureData,
+	data web_platform_dx__web_features.FeatureData,
 ) error {
 	// Begin a transaction.
 	_, err := c.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
@@ -93,6 +94,7 @@ func (c *Client) Upsert(
 		// nolint: exhaustruct // id does not exist yet
 		feature := &FeatureData{
 			WebFeatureID: webFeatureID,
+			Name:         data.Name,
 		}
 		_, err = tx.Put(key, feature)
 		if err != nil {
@@ -124,6 +126,7 @@ func (c *Client) List(ctx context.Context) ([]backend.Feature, error) {
 	for idx, val := range featureData {
 		ret[idx] = backend.Feature{
 			FeatureId: val.WebFeatureID,
+			Name:      val.Name,
 			Spec:      nil,
 		}
 	}

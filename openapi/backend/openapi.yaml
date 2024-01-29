@@ -153,12 +153,19 @@ components:
       properties:
         feature_id:
           type: string
+        name:
+          type: string
+          description: >
+            Short name that is intended to be human friendly.
+            Comes from FeatureData's 'name' field in
+            https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
         spec:
           type: array
           items:
             type: string
       required:
         - feature_id
+        - name
     BasicErrorModel:
       type: object
       required:

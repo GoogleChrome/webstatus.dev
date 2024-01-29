@@ -93,21 +93,37 @@ func TestUpsert(t *testing.T) {
 	client, cleanup := getTestDatabase(ctx, t)
 	defer cleanup()
 
-	err := client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{})
+	// Part 1. Try to insert the first version
+	err := client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{
+		Name: "version-1-name",
+	})
 	if err != nil {
 		t.Errorf("failed to upsert %s", err.Error())
 	}
-	err = client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{})
-	if err != nil {
-		t.Errorf("failed to upsert again %s", err.Error())
-	}
-
 	features, err := client.List(ctx)
 	if err != nil {
 		t.Errorf("failed to list %s", err.Error())
 	}
 
-	expectedFeatures := []backend.Feature{{FeatureId: "id-1", Spec: nil}}
+	expectedFeatures := []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-1-name"}}
+	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
+		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
+	}
+
+	// Part 2. Upsert the second version
+	err = client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{
+		Name: "version-2-name",
+	})
+	if err != nil {
+		t.Errorf("failed to upsert again %s", err.Error())
+	}
+
+	features, err = client.List(ctx)
+	if err != nil {
+		t.Errorf("failed to list %s", err.Error())
+	}
+
+	expectedFeatures = []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-2-name"}}
 	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
 		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
 	}
