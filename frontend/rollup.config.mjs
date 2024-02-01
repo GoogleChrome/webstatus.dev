@@ -45,7 +45,8 @@ export default [
           { src: '.postinstall/static/img/*', dest: 'dist/static/public/img' },
           // Copy the html file
           { src: 'src/static/index.html', dest: 'dist/static' }
-        ]
+        ],
+        verbose: true
       })
     ],
     output: {

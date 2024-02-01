@@ -2,17 +2,9 @@ SHELL := /bin/bash
 
 .PHONY: all clean test gen openapi jsonschema lint test
 
-build: gen go-build
-
-go-tidy:
-	go list -f '{{.Dir}}/...' -m | xargs go mod tidy
-go-build: # TODO: Add go-tidy here once we move to GitHub.
-	go list -f '{{.Dir}}/...' -m | xargs go build
+build: gen go-build node-install
 
 clean: clean-gen clean-node
-
-clean-node:
-	npm run clean -ws
 
 ################################
 # Local Environment
@@ -108,7 +100,7 @@ lint: go-lint node-lint tf-lint shell-lint
 go-lint: golint-version
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
 
-node-lint: node-deps
+node-lint: node-install
 	npm run lint -w frontend
 	npx prettier . --check
 
@@ -119,7 +111,7 @@ shell-lint:
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
 
-lint-fix: node-deps
+lint-fix: node-install
 	npm run lint-fix -w frontend
 	terraform fmt -recursive .
 	npx prettier . --write
@@ -174,7 +166,19 @@ license-fix: download-addlicense
 	addlicense $(ADDLICENSE_ARGS) .
 
 ################################
-# Misc
+# Go Misc
 ################################
-node-deps:
-	npm install -ws
+
+go-tidy:
+	go list -f '{{.Dir}}/...' -m | xargs go mod tidy
+go-build: # TODO: Add go-tidy here once we move to GitHub.
+	go list -f '{{.Dir}}/...' -m | xargs go build
+
+################################
+# Node Misc
+################################
+node-install:
+	npm install -ws --foreground-scripts
+
+clean-node:
+	npm run clean -ws
