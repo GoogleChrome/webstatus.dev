@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 
-.PHONY: all clean test gen openapi jsonschema lint test
+.PHONY: all clean test gen openapi jsonschema lint test dev_workflows
 
 build: gen go-build node-install
 
@@ -51,11 +51,17 @@ $(OPENAPI_OUT_DIR)/%/server.gen.go: openapi/%/openapi.yaml
 	oapi-codegen -config openapi/server.cfg.yaml \
 	             -o $(OPENAPI_OUT_DIR)/$*/server.gen.go -package $(shell basename $*) $<
 
+$(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml
+	oapi-codegen -config openapi/client.cfg.yaml \
+	             -o $(OPENAPI_OUT_DIR)/$*/client.gen.go -package $(shell basename $*) $<
+
 # Target to generate all OpenAPI code
 go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
             $(OPENAPI_OUT_DIR)/backend/server.gen.go \
+            $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
             $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
             $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
+            $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
             $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
             $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
 
@@ -182,3 +188,11 @@ node-install:
 
 clean-node:
 	npm run clean -ws
+
+################################
+# Local Data / Workflows
+################################
+dev_workflows: web_feature_local_workflow
+web_feature_local_workflow: FLAGS := -repo_downloader_host=http://localhost:8091 -web_consumer_host=http://localhost:8092
+web_feature_local_workflow:
+	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)

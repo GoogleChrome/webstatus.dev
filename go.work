@@ -3,6 +3,7 @@ go 1.21.0
 use (
 	./backend
 	./lib
+	./util
 	./workflows/steps/services/common/repo_downloader
 	./workflows/steps/services/web_feature_consumer
 )

@@ -37,45 +37,30 @@ _services._
 
 ### Populate Data Locally
 
-After doing an initial deployment, the databases will be empty, run the following:
+After doing an initial deployment, the databases will be empty. Currently, you
+can run a local version of the workflow to populate your database.
+
+#### Option 1: Run local workflow to populate database
+
+Run the following:
 
 ```sh
-# Terminal 2 - Populate data
-DOWNLOAD_RESPONSE=$(curl -X 'POST' \
-  'http://localhost:8091/v1/github.com/web-platform-dx/web-features' \
-  -H 'accept: application/json' \
-  -H 'Content-Type: application/json' \
-  -d '{
-  "archive": {
-    "type": "TAR",
-    "tar_strip_components": 1
-  },
-  "file_filters": [
-    {
-      "prefix": "feature-group-definitions",
-      "suffix": ".yml"
-    }
-  ]
-}')
-OBJECT_PREFIX=$(echo $DOWNLOAD_RESPONSE | jq -r -c '.destination.gcs.repo_prefix')
-BUCKET=$(echo $DOWNLOAD_RESPONSE | jq -r -c '.destination.gcs.bucket')
-echo $DOWNLOAD_RESPONSE | jq -r -c '.destination.gcs.filenames[]' | while read object; do
-    curl -X 'POST' \
-        'http://localhost:8092/v1/web-features' \
-        -H 'accept: */*' \
-        -H 'Content-Type: application/json' \
-        -d "{
-            \"location\": {
-            \"gcs\": {
-                \"bucket\": \"${BUCKET}\",
-                \"object\": \"${OBJECT_PREFIX}/${object}\"
-            }
-        }
-    }"
-done
+# Terminal 2 - Run local workflows
+make dev_workflows
 ```
 
-Then open `http://localhost:8080/v1/features` to see the features populated
+_Note: If the command fails, there might be a problem with the live data it is pulling_
+
+#### Option 2: Run command to populate with fake data
+
+An option could be to populate the database with dummy data. This is useful if
+the live data sources are down or constantly changing.
+
+_TODO_
+
+#### Verify the database has data
+
+Open `http://localhost:8080/v1/features` to see the features populated
 from the latest snapshot from the web-features repo.
 
 ## OpenAPI
