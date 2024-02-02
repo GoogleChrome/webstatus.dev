@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import path from 'path'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import terser from '@rollup/plugin-terser'
 import copy from 'rollup-plugin-copy'
@@ -45,6 +46,20 @@ export default [
           { src: '.postinstall/static/img/*', dest: 'dist/static/public/img' },
           // Copy the html file
           { src: 'src/static/index.html', dest: 'dist/static' }
+        ],
+        verbose: true
+      }),
+      // Copy Shoelace assets to dist/shoelace
+      copy({
+        copyOnce: true,
+        targets: [
+          {
+            src: path.resolve(
+              'frontend',
+              'node_modules/@shoelace-style/shoelace/dist/assets'
+            ),
+            dest: path.resolve('frontend', 'dist/shoelace')
+          }
         ],
         verbose: true
       })

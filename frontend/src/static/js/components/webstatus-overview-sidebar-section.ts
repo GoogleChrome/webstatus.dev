@@ -67,6 +67,34 @@ export class WebstatusOverviewSidebarSection extends LitElement {
     const arrow = this.open ? '▲' : '▼'
     const contentClass = this.open ? 'content open' : 'content'
     return html`
+      <!-- Use shoelace tree and tree-item components -->
+      <sl-tree class="collapsible-section">
+        <sl-tree-item>
+          ${this.header}
+          <sl-tree-item>Birch</sl-tree-item>
+          <sl-tree-item>
+            Maple
+            <sl-tree-item>Field maple</sl-tree-item>
+            <sl-tree-item>Red maple</sl-tree-item>
+            <sl-tree-item>Sugar maple</sl-tree-item>
+          </sl-tree-item>
+          <sl-tree-item>Oak</sl-tree-item>
+        </sl-tree-item>
+
+        <sl-tree-item>
+          Coniferous
+          <sl-tree-item>Cedar</sl-tree-item>
+          <sl-tree-item>Pine</sl-tree-item>
+          <sl-tree-item>Spruce</sl-tree-item>
+        </sl-tree-item>
+
+        <sl-tree-item>
+          Non-trees
+          <sl-tree-item>Bamboo</sl-tree-item>
+          <sl-tree-item>Cactus</sl-tree-item>
+          <sl-tree-item>Fern</sl-tree-item>
+        </sl-tree-item>
+      </sl-tree>
       <div class="collapsible-section">
         <div class="header" @click=${this.toggleOpen}>
           ${this.header}
