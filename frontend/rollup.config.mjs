@@ -18,6 +18,7 @@ import path from 'path'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
 import terser from '@rollup/plugin-terser'
 import copy from 'rollup-plugin-copy'
+import css from 'rollup-plugin-css-only'
 
 export default [
   {
@@ -36,11 +37,14 @@ export default [
         module: true,
         warnings: true
       }),
+      css({
+        output: 'css/styles.css'
+      }),
       copy({
         targets: [
-          // Copy the svg files
+          // Copy all files in img recursively.
           // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
-          { src: 'src/static/img/*.svg', dest: 'dist/static/public/img' },
+          { src: 'src/static/img/**', dest: 'dist/static/public/img' },
           // Copy the img files
           // Currently copying img files from ./scripts/postinstall.js
           { src: '.postinstall/static/img/*', dest: 'dist/static/public/img' },
@@ -48,24 +52,11 @@ export default [
           { src: 'src/static/index.html', dest: 'dist/static' }
         ],
         verbose: true
-      }),
-      // Copy Shoelace assets to dist/shoelace
-      copy({
-        copyOnce: true,
-        targets: [
-          {
-            src: path.resolve(
-              'frontend',
-              'node_modules/@shoelace-style/shoelace/dist/assets'
-            ),
-            dest: path.resolve('frontend', 'dist/shoelace')
-          }
-        ],
-        verbose: true
       })
     ],
     output: {
-      dir: 'dist/static/public/js'
+      dir: 'dist/static/public',
+      entryFileNames: 'js/[name].js'
     },
     onwarn: (warning) => {
       if (warning.code === 'THIS_IS_UNDECLARED') {

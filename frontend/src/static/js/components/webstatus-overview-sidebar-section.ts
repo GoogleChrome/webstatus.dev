@@ -39,75 +39,51 @@ export class WebstatusOverviewSidebarSection extends LitElement {
   static get styles(): CSSResultGroup {
     return [
       css`
-        .collapsible-section .header {
-          display: flex;
-          align-items: center;
-          cursor: pointer;
+        .material-icons {
+          font-family: 'Material Icons';
+          font-size: 24px;
+          vertical-align: middle;
         }
 
-        .collapsible-section .arrow {
-          margin-left: auto;
-        }
-
-        .collapsible-section .content {
-          max-height: 0;
-          overflow: hidden;
-          transition: max-height 0.5s ease;
-        }
-
-        .collapsible-section .content.open {
-          display: block;
-          max-height: 1000px;
+        .preset {
+          border-radius: 25px;
+          border: 1px solid #c4c7c5;
+          padding: 5px;
+          max-width: max-content;
         }
       `
     ]
   }
 
   render(): TemplateResult {
-    const arrow = this.open ? '▲' : '▼'
-    const contentClass = this.open ? 'content open' : 'content'
     return html`
-      <!-- Use shoelace tree and tree-item components -->
-      <sl-tree class="collapsible-section">
-        <sl-tree-item>
-          ${this.header}
-          <sl-tree-item>Birch</sl-tree-item>
-          <sl-tree-item>
-            Maple
-            <sl-tree-item>Field maple</sl-tree-item>
-            <sl-tree-item>Red maple</sl-tree-item>
-            <sl-tree-item>Sugar maple</sl-tree-item>
+      <sl-tree selection="leaf">
+        <sl-icon name="caret-right-fill" slot="expand-icon"></sl-icon>
+        <sl-icon name="caret-right-fill" slot="collapse-icon"></sl-icon>
+
+        <sl-tree-item class="header">
+          <span class="material-icons md-24">folder</span> Features
+          <sl-tree-item class="preset">
+            <sl-icon name="bookmark-star"></sl-icon> Baseline 2023
           </sl-tree-item>
-          <sl-tree-item>Oak</sl-tree-item>
+          <sl-tree-item class="preset">
+            <span class="material-icons md-24">workspace_premium</span> Top
+            Developer Needs
+          </sl-tree-item>
+          <sl-tree-item class="preset">
+            <span class="material-icons md-24">label</span> WPT score &lt; 99%
+          </sl-tree-item>
+          <sl-tree-item class="preset">
+            <span class="material-icons md-24">bookmark</span> Subscribed by me
+          </sl-tree-item>
         </sl-tree-item>
-
-        <sl-tree-item>
-          Coniferous
-          <sl-tree-item>Cedar</sl-tree-item>
-          <sl-tree-item>Pine</sl-tree-item>
-          <sl-tree-item>Spruce</sl-tree-item>
+        <sl-tree-item class="header">
+          <span class="material-icons md-24">query_stats</span> Statistics
         </sl-tree-item>
-
-        <sl-tree-item>
-          Non-trees
-          <sl-tree-item>Bamboo</sl-tree-item>
-          <sl-tree-item>Cactus</sl-tree-item>
-          <sl-tree-item>Fern</sl-tree-item>
+        <sl-tree-item class="header">
+          <span class="material-icons md-24">info</span> About
         </sl-tree-item>
       </sl-tree>
-      <div class="collapsible-section">
-        <div class="header" @click=${this.toggleOpen}>
-          ${this.header}
-          <span class="arrow">${arrow}</span>
-        </div>
-        <div class="${contentClass}" ?hidden=${!this.open}>
-          <slot></slot>
-        </div>
-      </div>
     `
-  }
-
-  toggleOpen(): void {
-    this.open = !this.open
   }
 }

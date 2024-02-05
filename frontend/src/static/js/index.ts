@@ -16,15 +16,12 @@
 
 import './components/webstatus-app.js'
 
-// import '@shoelace-style/shoelace/dist/themes/light.css'
-// import '@shoelace-style/shoelace/dist/components/button/button.js'
-// import '@shoelace-style/shoelace/dist/components/icon/icon.js'
-// import '@shoelace-style/shoelace/dist/components/input/input.js'
-// import '@shoelace-style/shoelace/dist/components/rating/rating.js'
-// import '@shoelace-style/shoelace/dist/shoelace.js'
+import '@shoelace-style/shoelace/dist/themes/light.css'
+import '@shoelace-style/shoelace/dist/components/icon/icon.js'
 import '@shoelace-style/shoelace/dist/components/tree/tree.js'
 import '@shoelace-style/shoelace/dist/components/tree-item/tree-item.js'
 import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js'
 
-// Set the base path to the folder you copied Shoelace's assets to
-setBasePath('/frontend/dist/shoelace')
+// Set the base path to the folder you copied Shoelace's assets to.
+// Shoelace will prefix icon files with '/assets/icons/'.
+setBasePath('/public/img/shoelace')
