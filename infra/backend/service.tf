@@ -71,6 +71,10 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "DATASTORE_DATABASE"
         value = var.datastore_info.database_name
       }
+      env {
+        name  = "CORS_ALLOWED_ORIGIN"
+        value = "https://website-webstatus-dev.corp.goog"
+      }
     }
     # vpc_access {
     #   network_interfaces {

@@ -36,6 +36,8 @@ spec:
           value: ''
         - name: DATASTORE_EMULATOR_HOST
           value: 'datastore:8085'
+        - name: CORS_ALLOWED_ORIGIN
+          value: 'http://localhost:5555'
       resources:
         limits:
           cpu: 250m
