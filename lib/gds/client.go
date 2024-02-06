@@ -138,13 +138,14 @@ func (c *Client) Get(ctx context.Context, webFeatureID string) (*backend.Feature
 	var featureData []*FeatureData
 	_, err := c.GetAll(
 		ctx, datastore.NewQuery(featureDataKey).
-			FilterField("web_feature_id", "=", webFeatureID),
+			FilterField("web_feature_id", "=", webFeatureID).Limit(1),
 		&featureData)
 	if err != nil {
 		return nil, err
 	}
 
 	return &backend.Feature{
+		Name:      featureData[0].WebFeatureID,
 		FeatureId: featureData[0].WebFeatureID,
 		Spec:      nil,
 	}, nil

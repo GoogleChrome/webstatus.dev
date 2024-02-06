@@ -206,8 +206,6 @@ profiles:
 - [ ] Make sure the container comes up successfully when running both the
       `make start-local` and `make debug-local` commands.
 
-
-
 ## Prepare It For GCP Deployment
 
 Terraform allows the team to describe the desired state of the infrastructure

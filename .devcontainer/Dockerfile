@@ -12,9 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The Node version from https://mcr.microsoft.com/en-us/product/devcontainers/typescript-node/tags
-ARG VARIANT="20"
-FROM mcr.microsoft.com/devcontainers/typescript-node:1-${VARIANT}
+FROM mcr.microsoft.com/devcontainers/base:bullseye
 
 ENV CLOUD_SDK_VERSION=459.0.0
 # Install gcloud similarly to how it is done in cloud-sdk-docker
@@ -28,6 +26,6 @@ RUN /google-cloud-sdk/install.sh --usage-reporting=false \
     --additional-components `cat /tmp/additional_components` && rm -rf /google-cloud-sdk/.install/.backup
 
 # Switch to the default user and append to PATH
-USER node
+USER vscode
 
 RUN echo 'PATH=${PATH}:/google-cloud-sdk/bin' >> ~/.bashrc

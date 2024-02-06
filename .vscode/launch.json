@@ -35,6 +35,6 @@
       },
       "localRoot": "${workspaceFolder}/workflows/steps/services/web_feature_consumer",
       "remoteRoot": "/work/workflows/steps/services/web_feature_consumer"
-    },
+    }
   ]
 }

@@ -29,7 +29,7 @@ npm i --workspaces=false
 
 # Install playwright and system deps
 npx playwright install
-sudo npx playwright install-deps
+npx playwright install-deps
 
 # Generate files
 make gen -B

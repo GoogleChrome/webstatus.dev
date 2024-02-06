@@ -1,10 +1,12 @@
 SHELL := /bin/bash
 
-.PHONY: all clean test gen openapi jsonschema lint test dev_workflows
+.PHONY: all clean test gen openapi jsonschema lint test dev_workflows precommit
 
 build: gen go-build node-install
 
 clean: clean-gen clean-node
+
+precommit: lint test
 
 ################################
 # Local Environment
@@ -19,11 +21,11 @@ debug-local: minikube-running
 # Prerequisite target to start minikube if necessary
 minikube-running:
 		# Check if minikube is running using a shell command
-		@if ! minikube status -p $(MINIKUBE_PROFILE) | grep -q "Running"; then \
-				minikube start -p $(MINIKUBE_PROFILE); \
+		@if ! minikube status -p "$(MINIKUBE_PROFILE)" | grep -q "Running"; then \
+				minikube start -p "$(MINIKUBE_PROFILE)"; \
 		fi
 stop-local:
-	minikube stop -p $(MINIKUBE_PROFILE)
+	minikube stop -p "$(MINIKUBE_PROFILE)"
 
 ################################
 # Generated Files
@@ -45,25 +47,25 @@ OPENAPI_OUT_DIR = lib/gen/openapi
 # Pattern rule to generate types and server code for different packages
 $(OPENAPI_OUT_DIR)/%/types.gen.go: openapi/%/openapi.yaml
 	oapi-codegen -config $(OAPI_GEN_CONFIG) \
-	             -o $(OPENAPI_OUT_DIR)/$*/types.gen.go -package $(shell basename $*) $<
+							 -o $(OPENAPI_OUT_DIR)/$*/types.gen.go -package $(shell basename $*) $<
 
 $(OPENAPI_OUT_DIR)/%/server.gen.go: openapi/%/openapi.yaml
 	oapi-codegen -config openapi/server.cfg.yaml \
-	             -o $(OPENAPI_OUT_DIR)/$*/server.gen.go -package $(shell basename $*) $<
+							 -o $(OPENAPI_OUT_DIR)/$*/server.gen.go -package $(shell basename $*) $<
 
 $(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml
 	oapi-codegen -config openapi/client.cfg.yaml \
-	             -o $(OPENAPI_OUT_DIR)/$*/client.gen.go -package $(shell basename $*) $<
+							 -o $(OPENAPI_OUT_DIR)/$*/client.gen.go -package $(shell basename $*) $<
 
 # Target to generate all OpenAPI code
 go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
-            $(OPENAPI_OUT_DIR)/backend/server.gen.go \
-            $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
-            $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
-            $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
-            $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
-            $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
-            $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
+			$(OPENAPI_OUT_DIR)/backend/server.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
 
 clean-go-openapi:
 	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/, */types.gen.go */server.gen.go)
@@ -101,7 +103,7 @@ clean-jsonschema:
 golint-version:
 	golangci-lint --version
 
-lint: go-lint node-lint tf-lint shell-lint
+lint: go-lint node-lint tf-lint shell-lint style-lint
 
 go-lint: golint-version
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
@@ -121,6 +123,10 @@ lint-fix: node-install
 	npm run lint-fix -w frontend
 	terraform fmt -recursive .
 	npx prettier . --write
+	npx stylelint "frontend/src/**/*.css" --fix
+
+style-lint:
+	npx stylelint "frontend/src/**/*.css"
 
 ################################
 # Test

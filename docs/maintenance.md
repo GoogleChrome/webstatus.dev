@@ -9,6 +9,7 @@ any other dependencies that may not be clear.
 | ----------------------- | ------------------------------------------------------- |
 | gcloud                  | devcontainer [Dockerfile](../.devcontainer/Dockerfile)  |
 | go                      | [devcontainer.json](../.devcontainer/devcontainer.json) |
+| node                    | [devcontainer.json](../.devcontainer/devcontainer.json) |
 | Github CLI              | [devcontainer.json](../.devcontainer/devcontainer.json) |
 | terraform               | [devcontainer.json](../.devcontainer/devcontainer.json) |
 | shellcheck              | [devcontainer.json](../.devcontainer/devcontainer.json) |

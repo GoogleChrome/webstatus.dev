@@ -84,10 +84,11 @@ q {
   vertical-align: baseline;
   quotes: '' '';
 }
-blockquote:before,
-q:before,
-blockquote:after,
-q:after {
+
+blockquote::before,
+q::before,
+blockquote::after,
+q::after {
   content: '';
 }
 
@@ -97,11 +98,9 @@ caption {
   margin: 0;
   padding: 0;
   border: 0;
-  font-weight: inherit;
   font-style: inherit;
   font-size: 100%;
   font-family: inherit;
-  vertical-align: baseline;
   text-align: left;
   font-weight: normal;
   vertical-align: middle;
@@ -115,7 +114,6 @@ table {
   font-style: inherit;
   font-size: 100%;
   font-family: inherit;
-  vertical-align: baseline;
   border-collapse: separate;
   border-spacing: 0;
   vertical-align: middle;

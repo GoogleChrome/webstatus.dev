@@ -16,6 +16,9 @@
   "[yaml]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "[makefile]": {
+    "editor.insertSpaces": false
+  },
   "editor.rulers": [
     80,
     {
@@ -23,8 +26,9 @@
       "color": "#ff0000"
     }
   ],
-  "editor.tabSize": 2,
+  "editor.tabSize": 4,
   "files.trimTrailingWhitespace": true,
+  "editor.insertSpaces": true,
   "[markdown]": {
     "files.trimTrailingWhitespace": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
