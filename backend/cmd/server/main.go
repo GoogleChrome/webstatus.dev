@@ -33,7 +33,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv, err := httpserver.NewHTTPServer("8080", fs)
+	// Allowed Origin. Can remove after UbP.
+	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
+
+	srv, err := httpserver.NewHTTPServer("8080", fs, allowedOrigin)
 	if err != nil {
 		slog.Error("unable to create server", "error", err.Error())
 		os.Exit(1)

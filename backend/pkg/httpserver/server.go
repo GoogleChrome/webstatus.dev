@@ -78,7 +78,7 @@ func (s *Server) GetV1Features(
 	}, nil
 }
 
-func NewHTTPServer(port string, metadataStorer WebFeatureMetadataStorer) (*http.Server, error) {
+func NewHTTPServer(port string, metadataStorer WebFeatureMetadataStorer, allowedOrigin string) (*http.Server, error) {
 	_, err := backend.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("error loading swagger spec. %w", err)
@@ -95,14 +95,13 @@ func NewHTTPServer(port string, metadataStorer WebFeatureMetadataStorer) (*http.
 	r := chi.NewRouter()
 	//nolint: exhaustruct // No need to use every option of 3rd party struct.
 	r.Use(cors.Handler(cors.Options{
-		// AllowedOrigins:   []string{"https://foo.com"}, // Use this to allow specific origin hosts
-		AllowedOrigins: []string{"https://*", "http://*"},
+		AllowedOrigins: []string{allowedOrigin},
 		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 		AllowedMethods: []string{"GET", "OPTIONS"},
 		// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		// ExposedHeaders:   []string{"Link"},
-		// AllowCredentials: false,
-		MaxAge: 300, // Maximum value not ignored by any of major browsers
+		AllowCredentials: true, // Remove after UbP
+		MaxAge:           300,  // Maximum value not ignored by any of major browsers
 	}))
 
 	// Use our validation middleware to check all requests against the
