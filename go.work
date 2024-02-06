@@ -6,4 +6,5 @@ use (
 	./util
 	./workflows/steps/services/common/repo_downloader
 	./workflows/steps/services/web_feature_consumer
+	./workflows/steps/services/wpt_consumer
 )
