@@ -25,15 +25,8 @@ import { customElement, property } from 'lit/decorators.js'
 
 @customElement('webstatus-overview-sidebar-menu')
 export class WebstatusOverviewSidebarMenu extends LitElement {
-  @property()
-  header!: string
-
-  @property({ attribute: 'open', type: Boolean })
-  open!: boolean
-
   constructor() {
     super()
-    this.open = false
   }
 
   static get styles(): CSSResultGroup {
