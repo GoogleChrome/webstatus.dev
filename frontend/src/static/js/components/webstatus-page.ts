@@ -17,12 +17,10 @@
 import { type CSSResultGroup, LitElement, type TemplateResult, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
 
-import { SHARED_STYLES } from '../css/shared-css.js'
-
 @customElement('webstatus-page')
 export class WebstatusPage extends LitElement {
   static get styles(): CSSResultGroup {
-    return [SHARED_STYLES]
+    return []
   }
 
   protected render(): TemplateResult {

@@ -23,8 +23,8 @@ import {
 } from 'lit'
 import { customElement, property } from 'lit/decorators.js'
 
-@customElement('webstatus-overview-sidebar-section')
-export class WebstatusOverviewSidebarSection extends LitElement {
+@customElement('webstatus-overview-sidebar-menu')
+export class WebstatusOverviewSidebarMenu extends LitElement {
   @property()
   header!: string
 
@@ -44,44 +44,28 @@ export class WebstatusOverviewSidebarSection extends LitElement {
           font-size: 24px;
           vertical-align: middle;
         }
-
-        .preset {
-          border-radius: 25px;
-          border: 1px solid #c4c7c5;
-          padding: 5px;
-          max-width: max-content;
-        }
       `
     ]
   }
 
   render(): TemplateResult {
     return html`
-      <sl-tree selection="leaf">
+      <sl-tree>
         <sl-icon name="caret-right-fill" slot="expand-icon"></sl-icon>
         <sl-icon name="caret-right-fill" slot="collapse-icon"></sl-icon>
 
         <sl-tree-item class="header">
-          <span class="material-icons md-24">folder</span> Features
-          <sl-tree-item class="preset">
-            <sl-icon name="bookmark-star"></sl-icon> Baseline 2023
-          </sl-tree-item>
-          <sl-tree-item class="preset">
-            <span class="material-icons md-24">workspace_premium</span> Top
-            Developer Needs
-          </sl-tree-item>
-          <sl-tree-item class="preset">
-            <span class="material-icons md-24">label</span> WPT score &lt; 99%
-          </sl-tree-item>
-          <sl-tree-item class="preset">
-            <span class="material-icons md-24">bookmark</span> Subscribed by me
-          </sl-tree-item>
+          <sl-icon name="menu-button"></sl-icon> Features
+          <sl-tree-item> Baseline 2023 </sl-tree-item>
+          <sl-tree-item> Top Developer Needs </sl-tree-item>
+          <sl-tree-item> WPT score &lt; 99% </sl-tree-item>
+          <sl-tree-item> Subscribed by me </sl-tree-item>
         </sl-tree-item>
         <sl-tree-item class="header">
-          <span class="material-icons md-24">query_stats</span> Statistics
+          <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item>
         <sl-tree-item class="header">
-          <span class="material-icons md-24">info</span> About
+          <sl-icon name="info-circle"></sl-icon> About
         </sl-tree-item>
       </sl-tree>
     `

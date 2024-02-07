@@ -54,10 +54,12 @@ export class OverviewPage extends LitElement {
         .container {
           display: flex;
           flex-direction: row;
+          height: auto;
         }
 
         webstatus-overview-sidebar {
           flex: 1;
+          height: 100%;
         }
 
         webstatus-overview-content {
@@ -68,7 +70,7 @@ export class OverviewPage extends LitElement {
         }
 
         webstatus-overview-sidebar {
-          min-width: 300px;
+          width: 288px;
           padding-left: 20px;
           padding-right: 20px;
           padding-top: 10px;

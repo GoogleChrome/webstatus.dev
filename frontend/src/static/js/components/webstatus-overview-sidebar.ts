@@ -14,18 +14,39 @@
  * limitations under the License.
  */
 
-import { LitElement, type TemplateResult, html } from 'lit'
+import {
+  type CSSResultGroup,
+  LitElement,
+  type TemplateResult,
+  css,
+  html
+} from 'lit'
 import { customElement } from 'lit/decorators.js'
 
-import './webstatus-overview-sidebar-section.js'
+import './webstatus-overview-sidebar-menu.js'
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {
+  static get styles(): CSSResultGroup {
+    return [
+      css`
+        sl-split-panel [slot='start'] {
+          height: 100%;
+          display: flex;
+          align-items: top;
+          justify-content: left;
+        }
+      `
+    ]
+  }
+
   render(): TemplateResult {
     return html`
       <div class="sidebar">
-        <webstatus-overview-sidebar-section header="Presets">
-        </webstatus-overview-sidebar-section>
+        <webstatus-overview-sidebar-menu></webstatus-overview-sidebar-menu>
+        <sl-divider></sl-divider>
+        <button>Sign in with Google</button>
+        <div>Bottom stuff</div>
       </div>
     `
   }

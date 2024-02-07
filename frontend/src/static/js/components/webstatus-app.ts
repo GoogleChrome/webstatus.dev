@@ -16,7 +16,13 @@
 
 import { provide } from '@lit/context'
 import { type Router } from '@vaadin/router'
-import { type CSSResultGroup, LitElement, type TemplateResult, html } from 'lit'
+import {
+  type CSSResultGroup,
+  LitElement,
+  type TemplateResult,
+  css,
+  html
+} from 'lit'
 import { customElement, property, query } from 'lit/decorators.js'
 
 import { type AppSettings } from '../../../common/app-settings.js'
@@ -39,7 +45,24 @@ export class WebstatusApp extends LitElement {
   settings!: AppSettings
 
   static get styles(): CSSResultGroup {
-    return [SHARED_STYLES]
+    return [
+      SHARED_STYLES,
+      css`
+        body {
+          height: 100%;
+        }
+        :host {
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        }
+        :host > webstatus-app-settings {
+          display: flex;
+          flex-direction: column;
+          flex: 1;
+        }
+      `
+    ]
   }
 
   firstUpdated(): void {
