@@ -34,7 +34,6 @@ export class WebstatusOverviewSidebar extends LitElement {
         flex-direction: column;
         height: 100%;
         width: 288px;
-        padding-left: 20px;
         padding-right: 20px;
         padding-top: 10px;
       }
@@ -50,6 +49,10 @@ export class WebstatusOverviewSidebar extends LitElement {
       sl-tree-item#theme-selector::part(expand-button) {
         width: 0;
       }
+
+      #theme-selector > sl-select > sl-icon {
+        margin-inline-end: 8px;
+      }
     `
   }
 
@@ -57,9 +60,10 @@ export class WebstatusOverviewSidebar extends LitElement {
     return html`
       <div class="sidebar">
         <webstatus-overview-sidebar-menu></webstatus-overview-sidebar-menu>
+
         <sl-divider></sl-divider>
-        <button>Sign in with Google</button>
-        <div style="margin-top: 20px; margin-bottom: 20px;">
+
+        <div style="margin-top: 100px; margin-bottom: 8px;">
           <sl-tree id="bottom-menu">
             <sl-tree-item>
               <sl-icon name="github"></sl-icon> Report an issue
