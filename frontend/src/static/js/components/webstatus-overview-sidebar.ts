@@ -14,32 +14,13 @@
  * limitations under the License.
  */
 
-import {
-  type CSSResultGroup,
-  LitElement,
-  type TemplateResult,
-  css,
-  html
-} from 'lit'
+import { LitElement, type TemplateResult, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
 
 import './webstatus-overview-sidebar-menu.js'
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {
-  static get styles(): CSSResultGroup {
-    return [
-      css`
-        sl-split-panel [slot='start'] {
-          height: 100%;
-          display: flex;
-          align-items: top;
-          justify-content: left;
-        }
-      `
-    ]
-  }
-
   render(): TemplateResult {
     return html`
       <div class="sidebar">

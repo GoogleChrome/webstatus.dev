@@ -21,14 +21,10 @@ import {
   css,
   html
 } from 'lit'
-import { customElement, property } from 'lit/decorators.js'
+import { customElement } from 'lit/decorators.js'
 
 @customElement('webstatus-overview-sidebar-menu')
 export class WebstatusOverviewSidebarMenu extends LitElement {
-  constructor() {
-    super()
-  }
-
   static get styles(): CSSResultGroup {
     return [
       css`
