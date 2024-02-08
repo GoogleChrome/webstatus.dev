@@ -43,17 +43,21 @@ export class WebstatusOverviewSidebarMenu extends LitElement {
         <sl-icon name="caret-right-fill" slot="expand-icon"></sl-icon>
         <sl-icon name="caret-right-fill" slot="collapse-icon"></sl-icon>
 
-        <sl-tree-item class="header">
+        <sl-tree-item>
           <sl-icon name="menu-button"></sl-icon> Features
-          <sl-tree-item> Baseline 2023 </sl-tree-item>
-          <sl-tree-item> Top Developer Needs </sl-tree-item>
-          <sl-tree-item> WPT score &lt; 99% </sl-tree-item>
-          <sl-tree-item> Subscribed by me </sl-tree-item>
+          <sl-tree-item>
+            <sl-icon name="bookmark"></sl-icon> Baseline 2023
+          </sl-tree-item>
+          <sl-tree-item>
+            <sl-icon name="bookmark"></sl-icon> Top Developer Needs
+          </sl-tree-item>
+          <sl-tree-item> <sl-icon name="star"></sl-icon> Starred </sl-tree-item>
         </sl-tree-item>
-        <sl-tree-item class="header">
+        <sl-tree-item>
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item>
-        <sl-tree-item class="header">
+        <sl-tree-item> <sl-icon name="bell"></sl-icon> Updates </sl-tree-item>
+        <sl-tree-item>
           <sl-icon name="info-circle"></sl-icon> About
         </sl-tree-item>
       </sl-tree>

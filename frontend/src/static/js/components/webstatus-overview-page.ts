@@ -71,7 +71,6 @@ export class OverviewPage extends LitElement {
 
         webstatus-overview-sidebar {
           max-width: 288px;
-          padding-left: 20px;
           padding-right: 20px;
           padding-top: 10px;
         }
