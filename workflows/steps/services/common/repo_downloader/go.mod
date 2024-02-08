@@ -1,6 +1,7 @@
 module github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/repo_downloader
 
 go 1.21
+
 toolchain go1.22.0
 
 require (
@@ -44,3 +45,5 @@ require (
 	google.golang.org/grpc v1.59.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
+
+replace github.com/GoogleChrome/webstatus.dev/lib => ../../../../../lib
