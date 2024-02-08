@@ -21,6 +21,8 @@ import '@shoelace-style/shoelace/dist/components/icon/icon.js'
 import '@shoelace-style/shoelace/dist/components/tree/tree.js'
 import '@shoelace-style/shoelace/dist/components/tree-item/tree-item.js'
 import '@shoelace-style/shoelace/dist/components/divider/divider.js'
+import '@shoelace-style/shoelace/dist/components/select/select.js'
+import '@shoelace-style/shoelace/dist/components/option/option.js'
 import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js'
 
 // Set the base path to the folder you copied Shoelace's assets to.

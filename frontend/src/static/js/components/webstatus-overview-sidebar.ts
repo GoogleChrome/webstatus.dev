@@ -14,20 +14,75 @@
  * limitations under the License.
  */
 
-import { LitElement, type TemplateResult, html } from 'lit'
+import {
+  type CSSResultGroup,
+  LitElement,
+  type TemplateResult,
+  css,
+  html
+} from 'lit'
 import { customElement } from 'lit/decorators.js'
 
 import './webstatus-overview-sidebar-menu.js'
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {
+  static get styles(): CSSResultGroup {
+    return css`
+      .sidebar {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        width: 288px;
+        padding-left: 20px;
+        padding-right: 20px;
+        padding-top: 10px;
+      }
+
+      sl-tree#bottom-menu {
+        margin-top: auto;
+      }
+
+      sl-tree-item#theme-selector sl-select::part(combobox) {
+        border: 0;
+      }
+
+      sl-tree-item#theme-selector::part(expand-button) {
+        width: 0;
+      }
+    `
+  }
+
   render(): TemplateResult {
     return html`
       <div class="sidebar">
         <webstatus-overview-sidebar-menu></webstatus-overview-sidebar-menu>
         <sl-divider></sl-divider>
         <button>Sign in with Google</button>
-        <div>Bottom stuff</div>
+        <div style="margin-top: 20px; margin-bottom: 20px;">
+          <sl-tree id="bottom-menu">
+            <sl-tree-item>
+              <sl-icon name="github"></sl-icon> Report an issue
+            </sl-tree-item>
+            <sl-tree-item id="theme-selector">
+              <sl-select value="light">
+                <sl-icon name="brightness-high" slot="prefix"></sl-icon>
+                <sl-option value="light">
+                  <sl-icon name="brightness-high" slot="prefix"></sl-icon>
+                  Light theme</sl-option
+                >
+                <sl-option value="dark">
+                  <sl-icon
+                    name="brightness-high-fill"
+                    style="color: black"
+                    slot="prefix"
+                  ></sl-icon>
+                  Dark theme</sl-option
+                >
+              </sl-select>
+            </sl-tree-item>
+          </sl-tree>
+        </div>
       </div>
     `
   }
