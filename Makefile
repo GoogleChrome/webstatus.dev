@@ -42,14 +42,14 @@ deploy-local: configure-skaffold
 delete-local:
 	skaffold delete -p local || true
 
-port-forward-manual:
+port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 
 port-forward-terminate:
-	pkill kubectl -9
+	pkill kubectl -9 || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:
