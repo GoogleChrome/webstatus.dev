@@ -14,47 +14,39 @@
  * limitations under the License.
  */
 
-import {
-  type CSSResultGroup,
-  LitElement,
-  type TemplateResult,
-  css,
-  html
-} from 'lit'
+import { LitElement, type TemplateResult, css, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
 
 import './webstatus-overview-sidebar-menu.js'
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {
-  static get styles(): CSSResultGroup {
-    return css`
-      .sidebar {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        width: 288px;
-        padding-right: 20px;
-        padding-top: 10px;
-      }
+  static readonly styles = css`
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      width: 288px;
+      padding-right: 20px;
+      padding-top: 10px;
+    }
 
-      sl-tree#bottom-menu {
-        margin-top: auto;
-      }
+    sl-tree#bottom-menu {
+      margin-top: auto;
+    }
 
-      sl-tree-item#theme-selector sl-select::part(combobox) {
-        border: 0;
-      }
+    sl-tree-item#theme-selector sl-select::part(combobox) {
+      border: 0;
+    }
 
-      sl-tree-item#theme-selector::part(expand-button) {
-        width: 0;
-      }
+    sl-tree-item#theme-selector::part(expand-button) {
+      width: 0;
+    }
 
-      #theme-selector > sl-select > sl-icon {
-        margin-inline-end: 8px;
-      }
-    `
-  }
+    #theme-selector > sl-select > sl-icon {
+      margin-inline-end: 8px;
+    }
+  `
 
   render(): TemplateResult {
     return html`
