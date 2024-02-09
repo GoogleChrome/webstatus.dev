@@ -49,7 +49,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20 # matches the version in .devcontainer/devcontainer.json
-      - name: Install root level packages
-        run: npm i --workspaces=false
+      - name: Run post_create.sh to finish setting up.
+        run: ./.devcontainer/post_create.sh
       - name: Run playwright tests
         run: CI=true MINIKUBE_PROFILE=webstatus-dev make playwright-test
