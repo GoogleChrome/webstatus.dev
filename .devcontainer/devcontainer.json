@@ -13,7 +13,8 @@
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "dockerDashComposeVersion": "v2",
-      // Debian will work with moby.
+      // Debian will not work with moby.
+      // Related to https://github.com/devcontainers/features/issues/831
       "moby": false
     },
     "ghcr.io/devcontainers/features/node:1": {
