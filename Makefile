@@ -217,8 +217,7 @@ license-fix: download-addlicense
 ################################
 # Playwright
 ################################
-fresh-env-for-playwright: playwright-test: playwright-install delete-local deploy-local port-forward-manual
-	npx playwright test
+fresh-env-for-playwright: playwright-install delete-local deploy-local port-forward-manual
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots
@@ -228,9 +227,6 @@ playwright-install:
 
 playwright-test: fresh-env-for-playwright
 	npx playwright test
-
-playwright-update-snapshots: playwright-install delete-local deploy-local port-forward-manual
-	npx playwright test --update-snapshots
 
 ################################
 # Go Misc
