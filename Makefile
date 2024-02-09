@@ -184,7 +184,7 @@ go-test:
 		echo -e "\n\n" ; \
 	done
 
-node-test:
+node-test: playwright-install
 	npm run test -ws
 
 ################################

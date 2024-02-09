@@ -35,10 +35,13 @@ jobs:
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
       - name: Start minikube
-        uses: medyagh/setup-minikube@master
+        uses: medyagh/setup-minikube@4f680380adb365368edacbb09d9ac531070c53e6
         with:
           start-args: '--profile webstatus-dev'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20 # matches the version in devcontainer.json
       - name: Install root level packages
         run: npm i --workspaces=false
-      - name: Install root level packages
-        run: make playwright-test
+      - name: Run playwright tests
+        run: CI=true MINIKUBE_PROFILE=webstatus-dev make playwright-test
