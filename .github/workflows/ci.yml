@@ -50,6 +50,6 @@ jobs:
         with:
           node-version: 20 # matches the version in .devcontainer/devcontainer.json
       - name: Run post_create.sh to finish setting up.
-        run: ./.devcontainer/post_create.sh
+        run: MINIKUBE_PROFILE=webstatus-dev ./.devcontainer/post_create.sh
       - name: Run playwright tests
         run: CI=true MINIKUBE_PROFILE=webstatus-dev make playwright-test
