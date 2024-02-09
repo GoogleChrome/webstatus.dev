@@ -34,6 +34,11 @@ jobs:
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
+      - name: Install skaffold
+        run: |
+          curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 && \
+          sudo install skaffold /usr/local/bin/
+          echo "Skaffold Version: $(skaffold version)"
       - name: Start minikube
         uses: medyagh/setup-minikube@4f680380adb365368edacbb09d9ac531070c53e6
         with:
