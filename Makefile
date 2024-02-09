@@ -100,6 +100,9 @@ go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/wpt_consumer/client.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/wpt_consumer/types.gen.go \
+			$(OPENAPI_OUT_DIR)/workflows/steps/wpt_consumer/server.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go

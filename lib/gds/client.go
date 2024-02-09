@@ -20,8 +20,6 @@ import (
 	"log/slog"
 
 	"cloud.google.com/go/datastore"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
 const featureDataKey = "FeatureDataTest"
@@ -30,7 +28,7 @@ type Client struct {
 	*datastore.Client
 }
 
-func NewWebFeatureClient(projectID string, database *string) (*Client, error) {
+func NewDatastoreClient(projectID string, database *string) (*Client, error) {
 	if projectID == "" {
 		return nil, errors.New("projectID is empty")
 	}
@@ -56,25 +54,28 @@ func NewWebFeatureClient(projectID string, database *string) (*Client, error) {
 type FeatureData struct {
 	WebFeatureID string `datastore:"web_feature_id"`
 	Name         string `datastore:"name"`
-	id           int64  // The integer ID used in the datastore.
 }
 
-func (f FeatureData) ID() int64 {
-	return f.id
+type Filterable interface {
+	FilterQuery(*datastore.Query) *datastore.Query
 }
 
-func (c *Client) Upsert(
-	ctx context.Context,
-	webFeatureID string,
-	data web_platform_dx__web_features.FeatureData,
-) error {
+type entityClient[T any] struct {
+	*Client
+}
+
+func (c *entityClient[T]) upsert(ctx context.Context, kind string, data *T, filterables ...Filterable) error {
 	// Begin a transaction.
 	_, err := c.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 		// Get the entity, if it exists.
-		var entity []FeatureData
-		query := datastore.NewQuery(featureDataKey).FilterField("web_feature_id", "=", webFeatureID).Transaction(tx)
+		var existingEntity []T
+		query := datastore.NewQuery(kind)
+		for _, filterable := range filterables {
+			query = filterable.FilterQuery(query)
+		}
+		query = query.Limit(1).Transaction(tx)
 
-		keys, err := c.GetAll(ctx, query, &entity)
+		keys, err := c.GetAll(ctx, query, &existingEntity)
 		if err != nil && !errors.Is(err, datastore.ErrNoSuchEntity) {
 			slog.Error("unable to check for existing entities", "error", err)
 
@@ -88,18 +89,13 @@ func (c *Client) Upsert(
 
 		} else {
 			// If the entity does not exist, insert it.
-			key = datastore.IncompleteKey(featureDataKey, nil)
+			key = datastore.IncompleteKey(kind, nil)
 		}
 
-		// nolint: exhaustruct // id does not exist yet
-		feature := &FeatureData{
-			WebFeatureID: webFeatureID,
-			Name:         data.Name,
-		}
-		_, err = tx.Put(key, feature)
+		_, err = tx.Put(key, data)
 		if err != nil {
 			// Handle any errors in an appropriate way, such as returning them.
-			slog.Error("unable to upsert metadata", "error", err)
+			slog.Error("unable to upsert entity", "error", err)
 
 			return err
 		}
@@ -116,42 +112,18 @@ func (c *Client) Upsert(
 	return nil
 }
 
-func (c *Client) List(ctx context.Context) ([]backend.Feature, error) {
-	var featureData []*FeatureData
-	_, err := c.GetAll(ctx, datastore.NewQuery(featureDataKey), &featureData)
-	if err != nil {
-		return nil, err
+func (c entityClient[T]) list(ctx context.Context, kind string, filterables ...Filterable) ([]*T, error) {
+	var data []*T
+	query := datastore.NewQuery(kind)
+	for _, filterable := range filterables {
+		query = filterable.FilterQuery(query)
 	}
-	ret := make([]backend.Feature, len(featureData))
-
-	// nolint: exhaustruct
-	// TODO. Will fix this lint error once the data is coming in.
-	for idx, val := range featureData {
-		ret[idx] = backend.Feature{
-			FeatureId: val.WebFeatureID,
-			Name:      val.Name,
-			Spec:      nil,
-		}
-	}
-
-	return ret, nil
-}
-
-func (c *Client) Get(ctx context.Context, webFeatureID string) (*backend.Feature, error) {
-	var featureData []*FeatureData
-	_, err := c.GetAll(
-		ctx, datastore.NewQuery(featureDataKey).
-			FilterField("web_feature_id", "=", webFeatureID).Limit(1),
-		&featureData)
+	_, err := c.GetAll(ctx, query, &data)
 	if err != nil {
+		slog.Error("failed to list data", "error", err, "kind", kind)
+
 		return nil, err
 	}
 
-	// nolint: exhaustruct
-	// TODO. Will fix this lint error once the data is coming in.
-	return &backend.Feature{
-		Name:      featureData[0].WebFeatureID,
-		FeatureId: featureData[0].WebFeatureID,
-		Spec:      nil,
-	}, nil
+	return data, nil
 }

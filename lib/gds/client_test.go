@@ -19,11 +19,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
 	"testing"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -60,7 +57,7 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 	db := ""
 	dbPtr := &db
 	os.Setenv("DATASTORE_EMULATOR_HOST", fmt.Sprintf("localhost:%s", mappedPort.Port()))
-	dsClient, err := NewWebFeatureClient(testDatastoreProject, dbPtr)
+	dsClient, err := NewDatastoreClient(testDatastoreProject, dbPtr)
 	if err != nil {
 		if unsetErr := os.Unsetenv("DATASTORE_EMULATOR_HOST"); unsetErr != nil {
 			t.Errorf("failed to unset env. %s", unsetErr.Error())
@@ -84,47 +81,5 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 		if err := container.Terminate(ctx); err != nil {
 			t.Errorf("failed to terminate datastore. %s", err.Error())
 		}
-	}
-}
-
-// nolint: exhaustruct // No need to use every option of 3rd party struct.
-func TestUpsert(t *testing.T) {
-	ctx := context.Background()
-	client, cleanup := getTestDatabase(ctx, t)
-	defer cleanup()
-
-	// Part 1. Try to insert the first version
-	err := client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{
-		Name: "version-1-name",
-	})
-	if err != nil {
-		t.Errorf("failed to upsert %s", err.Error())
-	}
-	features, err := client.List(ctx)
-	if err != nil {
-		t.Errorf("failed to list %s", err.Error())
-	}
-
-	expectedFeatures := []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-1-name"}}
-	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
-		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
-	}
-
-	// Part 2. Upsert the second version
-	err = client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{
-		Name: "version-2-name",
-	})
-	if err != nil {
-		t.Errorf("failed to upsert again %s", err.Error())
-	}
-
-	features, err = client.List(ctx)
-	if err != nil {
-		t.Errorf("failed to list %s", err.Error())
-	}
-
-	expectedFeatures = []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-2-name"}}
-	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
-		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
 	}
 }

@@ -28,7 +28,7 @@ import (
 )
 
 type WebFeatureMetadataStorer interface {
-	List(ctx context.Context) ([]backend.Feature, error)
+	ListWebFeataureData(ctx context.Context) ([]backend.Feature, error)
 	Get(ctx context.Context, featureID string) (*backend.Feature, error)
 }
 
@@ -61,7 +61,7 @@ func (s *Server) GetV1Features(
 	ctx context.Context,
 	_ backend.GetV1FeaturesRequestObject,
 ) (backend.GetV1FeaturesResponseObject, error) {
-	featureData, err := s.metadataStorer.List(ctx)
+	featureData, err := s.metadataStorer.ListWebFeataureData(ctx)
 	if err != nil {
 		// TODO check error type
 		slog.Error("unable to get list of features", "error", err)
