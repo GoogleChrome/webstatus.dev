@@ -34,7 +34,11 @@ jobs:
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
-      - name: Run playwright test target for CI
-        uses: devcontainers/ci@v0.3
+      - name: Start minikube
+        uses: medyagh/setup-minikube@master
         with:
-          runCmd: CI=true make playwright-test
+          start-args: '--profile webstatus-dev'
+      - name: Install root level packages
+        run: npm i --workspaces=false
+      - name: Install root level packages
+        run: make playwright-test

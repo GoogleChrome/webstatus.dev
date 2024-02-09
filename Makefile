@@ -22,7 +22,7 @@ build: gen go-build node-install
 
 clean: clean-gen clean-node port-forward-terminate minikube-delete
 
-precommit: lint test
+precommit: license-check lint test
 
 ################################
 # Local Environment
@@ -196,6 +196,8 @@ COPYRIGHT_NAME := Google LLC
 # .terraform.lock.hcl - generated lock file for terraform
 # frontend/{dist|static|build} - built files, not source files that are checked in
 # frontend/node_modules - External Node dependencies
+# frontend/coverage - Generated html files for coverage
+# playwright-report - Generated html files for playwright
 # node_modules - External Node dependencies
 ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
@@ -204,6 +206,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'frontend/dist/**' \
 	-ignore 'frontend/static/**' \
 	-ignore 'frontend/node_modules/**' \
+	-ignore 'frontend/coverage/**' \
+	-ignore 'playwright-report/**' \
 	-ignore 'node_modules/**'
 download-addlicense:
 	go install github.com/google/addlicense@latest
