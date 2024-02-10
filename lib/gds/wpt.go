@@ -137,12 +137,14 @@ func (c *Client) GetWPTMetricsByBrowser(
 	ctx context.Context,
 	browser string,
 	startAt time.Time,
-	endAt time.Time) ([]*WPTRunMetricsData, error) {
+	endAt time.Time,
+	pageToken *string) ([]*WPTRunMetricsData, *string, error) {
 	entityClient := entityClient[WPTRunMetricsData]{c}
 
 	return entityClient.list(
 		ctx,
 		wptRunMetricsDataKey,
+		pageToken,
 		wptMetricsByBrowserFilter{
 			startAt: startAt,
 			endAt:   endAt,
@@ -165,12 +167,14 @@ func (c *Client) GetWPTMetricsByBrowserByFeature(
 	browser string,
 	startAt time.Time,
 	endAt time.Time,
-	featureID string) ([]*WPTRunMetricsGroupByFeature, error) {
+	featureID string,
+	pageToken *string) ([]*WPTRunMetricsGroupByFeature, *string, error) {
 	entityClient := entityClient[WPTRunMetricsGroupByFeature]{c}
 
 	return entityClient.list(
 		ctx,
 		wptRunMetricsGroupByFeatureKey,
+		pageToken,
 		wptMetricsByBrowserFilter{
 			startAt: startAt,
 			endAt:   endAt,

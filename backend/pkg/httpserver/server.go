@@ -29,7 +29,7 @@ import (
 
 type WebFeatureMetadataStorer interface {
 	ListWebFeataureData(ctx context.Context) ([]backend.Feature, error)
-	Get(ctx context.Context, featureID string) (*backend.Feature, error)
+	GetWebFeatureData(ctx context.Context, featureID string) (*backend.Feature, error)
 }
 
 type Server struct {
@@ -42,7 +42,7 @@ func (s *Server) GetV1FeaturesFeatureId(
 	ctx context.Context,
 	request backend.GetV1FeaturesFeatureIdRequestObject,
 ) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
-	feature, err := s.metadataStorer.Get(ctx, request.FeatureId)
+	feature, err := s.metadataStorer.GetWebFeatureData(ctx, request.FeatureId)
 	if err != nil {
 		slog.Error("unable to get feature", "error", err)
 

@@ -49,11 +49,11 @@ func (c *Client) UpsertFeatureData(
 	)
 }
 
-func (c *Client) ListWebFeataureData(ctx context.Context) ([]backend.Feature, error) {
-	var featureData []*FeatureData
-	_, err := c.GetAll(ctx, datastore.NewQuery(featureDataKey), &featureData)
+func (c *Client) ListWebFeataureData(ctx context.Context, pageToken *string) ([]backend.Feature, *string, error) {
+	entityClient := entityClient[FeatureData]{c}
+	featureData, nextPageToken, err := entityClient.list(ctx, featureDataKey, pageToken)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	ret := make([]backend.Feature, len(featureData))
 	for idx, val := range featureData {
@@ -64,22 +64,21 @@ func (c *Client) ListWebFeataureData(ctx context.Context) ([]backend.Feature, er
 		}
 	}
 
-	return ret, nil
+	return ret, nextPageToken, nil
 }
 
-func (c *Client) Get(ctx context.Context, webFeatureID string) (*backend.Feature, error) {
-	var featureData []*FeatureData
-	_, err := c.GetAll(
-		ctx, datastore.NewQuery(featureDataKey).
-			FilterField("web_feature_id", "=", webFeatureID).Limit(1),
-		&featureData)
+func (c *Client) GetWebFeatureData(ctx context.Context, webFeatureID string) (*backend.Feature, error) {
+	entityClient := entityClient[FeatureData]{c}
+	featureData, err := entityClient.get(ctx, featureDataKey, webFeaturesFilter{
+		webFeatureID: webFeatureID,
+	})
 	if err != nil {
 		return nil, err
 	}
 
 	return &backend.Feature{
-		Name:      featureData[0].WebFeatureID,
-		FeatureId: featureData[0].WebFeatureID,
+		Name:      featureData.WebFeatureID,
+		FeatureId: featureData.WebFeatureID,
 		Spec:      nil,
 	}, nil
 }

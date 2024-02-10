@@ -47,7 +47,7 @@ type WPTScorerForWebFeatures struct{}
 func (s WPTScorerForWebFeatures) Score(
 	ctx context.Context,
 	summary ResultsSummaryFile,
-	testToWebFeatures shared.WebFeaturesData) {
+	testToWebFeatures shared.WebFeaturesData) map[string]WebFeatureScore {
 	scoreMap := make(map[string]WebFeatureScore)
 	for test, testSummary := range summary {
 		if len(testSummary.Counts) < 2 {
@@ -56,6 +56,7 @@ func (s WPTScorerForWebFeatures) Score(
 		}
 		s.scoreTest(ctx, test, scoreMap, testToWebFeatures, testSummary.Counts[0], testSummary.Counts[1])
 	}
+	return scoreMap
 }
 
 func (s WPTScorerForWebFeatures) scoreTest(

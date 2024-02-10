@@ -20,6 +20,7 @@ import (
 	"log/slog"
 
 	"cloud.google.com/go/datastore"
+	"google.golang.org/api/iterator"
 )
 
 const featureDataKey = "FeatureDataTest"
@@ -112,12 +113,50 @@ func (c *entityClient[T]) upsert(ctx context.Context, kind string, data *T, filt
 	return nil
 }
 
-func (c entityClient[T]) list(ctx context.Context, kind string, filterables ...Filterable) ([]*T, error) {
+func (c entityClient[T]) list(
+	ctx context.Context,
+	kind string,
+	pageToken *string,
+	filterables ...Filterable) ([]*T, *string, error) {
+	var data []*T
+	query := datastore.NewQuery(kind)
+	if pageToken != nil {
+		cursor, err := datastore.DecodeCursor(*pageToken)
+		if err != nil {
+			return nil, nil, err
+		}
+		query = query.Start(cursor)
+	}
+	for _, filterable := range filterables {
+		query = filterable.FilterQuery(query)
+	}
+	it := c.Run(ctx, query)
+	for {
+		var entity T
+		_, err := it.Next(&entity)
+		if err == iterator.Done {
+			cursor, err := it.Cursor()
+			if err != nil {
+				// TODO: Handle error.
+				return nil, nil, err
+			}
+			nextToken := cursor.String()
+			return data, &nextToken, nil
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		data = append(data, &entity)
+	}
+}
+
+func (c entityClient[T]) get(ctx context.Context, kind string, filterables ...Filterable) (*T, error) {
 	var data []*T
 	query := datastore.NewQuery(kind)
 	for _, filterable := range filterables {
 		query = filterable.FilterQuery(query)
 	}
+	query = query.Limit(1)
 	_, err := c.GetAll(ctx, query, &data)
 	if err != nil {
 		slog.Error("failed to list data", "error", err, "kind", kind)
@@ -125,5 +164,5 @@ func (c entityClient[T]) list(ctx context.Context, kind string, filterables ...F
 		return nil, err
 	}
 
-	return data, nil
+	return data[0], nil
 }
