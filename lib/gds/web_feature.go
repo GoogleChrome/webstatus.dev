@@ -22,6 +22,13 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+const featureDataKey = "FeatureData"
+
+type FeatureData struct {
+	WebFeatureID string `datastore:"web_feature_id"`
+	Name         string `datastore:"name"`
+}
+
 type webFeaturesFilter struct {
 	webFeatureID string
 }

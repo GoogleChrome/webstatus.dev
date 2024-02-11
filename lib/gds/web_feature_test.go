@@ -24,7 +24,7 @@ import (
 )
 
 // nolint: exhaustruct // No need to use every option of 3rd party struct.
-func TestUpsertFeatureData(t *testing.T) {
+func TestFeatureDataOperations(t *testing.T) {
 	ctx := context.Background()
 	client, cleanup := getTestDatabase(ctx, t)
 	defer cleanup()

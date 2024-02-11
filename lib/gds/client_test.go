@@ -16,11 +16,15 @@ package gds
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
+	"time"
 
+	"cloud.google.com/go/datastore"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -81,5 +85,187 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 		if err := container.Terminate(ctx); err != nil {
 			t.Errorf("failed to terminate datastore. %s", err.Error())
 		}
+	}
+}
+
+const sampleKey = "SampleData"
+
+type TestSample struct {
+	Name      string    `datastore:"name"`
+	Value     int       `datastore:"value"`
+	CreatedAt time.Time `datastore:"created_at"`
+}
+
+type nameFilter struct {
+	name string
+}
+
+func (f nameFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.FilterField("name", "=", f.name)
+}
+
+type sortSampleFilter struct {
+}
+
+func (f sortSampleFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.Order("-created_at")
+}
+
+type limitSampleFilter struct {
+	size int
+}
+
+func (f limitSampleFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.Limit(f.size)
+}
+
+// nolint: gochecknoglobals
+var testSamples = []TestSample{
+	{
+		Name:      "a",
+		Value:     0,
+		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+	{
+		Name:      "b",
+		Value:     1,
+		CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+	{
+		Name:      "c",
+		Value:     2,
+		CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+	{
+		Name:      "d",
+		Value:     3,
+		CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+}
+
+func insertEntities(
+	ctx context.Context,
+	t *testing.T,
+	c entityClient[TestSample]) {
+	for i := range testSamples {
+		err := c.upsert(ctx, sampleKey, &testSamples[i], nameFilter{name: testSamples[i].Name})
+		if err != nil {
+			t.Fatalf("failed to insert entities. %s", err.Error())
+		}
+	}
+}
+
+func TestEntityClientOperations(t *testing.T) {
+	ctx := context.Background()
+	client, cleanup := getTestDatabase(ctx, t)
+	defer cleanup()
+	c := entityClient[TestSample]{client}
+	// Step 1. Make sure the entity is not there yet.
+	// Step 1a. Do Get
+	entity, err := c.get(ctx, sampleKey, nameFilter{name: "a"})
+	if entity != nil {
+		t.Error("expected no entity")
+	}
+	if !errors.Is(err, ErrEntityNotFound) {
+		t.Error("expected ErrEntityNotFound")
+	}
+	// Step 1b. Do List
+	pageEmpty, nextPageToken, err := c.list(ctx, sampleKey, nil)
+	if err != nil {
+		t.Errorf("list query failed. %s", err.Error())
+	}
+	if nextPageToken == nil {
+		t.Error("expected next page token")
+	}
+	if pageEmpty != nil {
+		t.Error("expected empty page")
+	}
+	// Step 2. Insert the entities
+	insertEntities(ctx, t, c)
+	// Step 3. Get the entity
+	entity, err = c.get(ctx, sampleKey, nameFilter{name: "a"})
+	if err != nil {
+		t.Errorf("expected error %s", err.Error())
+	}
+	if entity == nil {
+		t.Error("expected entity")
+		t.FailNow()
+	}
+	if !reflect.DeepEqual(*entity, TestSample{
+		Name:      "a",
+		Value:     0,
+		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}) {
+		t.Errorf("values not equal. received %+v", *entity)
+	}
+	// Step 4. Upsert the entity
+	entity.Value = 200
+	err = c.upsert(ctx, sampleKey, entity, nameFilter{name: "a"})
+	if err != nil {
+		t.Errorf("upsert failed %s", err.Error())
+	}
+	// Step 5. Get the updated entity
+	entity, err = c.get(ctx, sampleKey, nameFilter{name: "a"})
+	if err != nil {
+		t.Errorf("expected error %s", err.Error())
+	}
+	if entity == nil {
+		t.Error("expected entity")
+		t.FailNow()
+	}
+	if !reflect.DeepEqual(*entity, TestSample{
+		Name:      "a",
+		Value:     200,
+		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}) {
+		t.Errorf("values not equal. received %+v", *entity)
+	}
+	// Step 6. List the entities
+	// Step 6a. Get first page
+	filters := []Filterable{sortSampleFilter{}, limitSampleFilter{size: 2}}
+	pageOne, nextPageToken, err := c.list(ctx, sampleKey, nil, filters...)
+	if err != nil {
+		t.Errorf("page one query failed. %s", err.Error())
+	}
+	if nextPageToken == nil {
+		t.Error("expected next page token")
+	}
+	expectedPageOne := []*TestSample{
+		{
+			Name:      "d",
+			Value:     3,
+			CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Name:      "c",
+			Value:     2,
+			CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	if !reflect.DeepEqual(pageOne, expectedPageOne) {
+		t.Error("values not equal")
+	}
+	// Step 6b. Get second page
+	pageTwo, nextPageToken, err := c.list(ctx, sampleKey, nextPageToken, filters...)
+	if err != nil {
+		t.Errorf("page two query failed. %s", err.Error())
+	}
+	if nextPageToken == nil {
+		t.Error("expected next page token")
+	}
+	expectedPageTwo := []*TestSample{
+		{
+			Name:      "a",
+			Value:     200,
+			CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Name:      "b",
+			Value:     1,
+			CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	if !reflect.DeepEqual(pageTwo, expectedPageTwo) {
+		t.Error("values not equal")
 	}
 }

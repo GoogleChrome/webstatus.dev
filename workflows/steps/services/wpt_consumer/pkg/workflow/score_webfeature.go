@@ -56,6 +56,7 @@ func (s WPTScorerForWebFeatures) Score(
 		}
 		s.scoreTest(ctx, test, scoreMap, testToWebFeatures, testSummary.Counts[0], testSummary.Counts[1])
 	}
+
 	return scoreMap
 }
 

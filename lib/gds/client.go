@@ -23,8 +23,6 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-const featureDataKey = "FeatureDataTest"
-
 type Client struct {
 	*datastore.Client
 }
@@ -50,11 +48,6 @@ func NewDatastoreClient(projectID string, database *string) (*Client, error) {
 	}
 
 	return &Client{client}, nil
-}
-
-type FeatureData struct {
-	WebFeatureID string `datastore:"web_feature_id"`
-	Name         string `datastore:"name"`
 }
 
 type Filterable interface {
@@ -134,13 +127,14 @@ func (c entityClient[T]) list(
 	for {
 		var entity T
 		_, err := it.Next(&entity)
-		if err == iterator.Done {
+		if errors.Is(err, iterator.Done) {
 			cursor, err := it.Cursor()
 			if err != nil {
 				// TODO: Handle error.
 				return nil, nil, err
 			}
 			nextToken := cursor.String()
+
 			return data, &nextToken, nil
 		}
 		if err != nil {
@@ -149,6 +143,8 @@ func (c entityClient[T]) list(
 		data = append(data, &entity)
 	}
 }
+
+var ErrEntityNotFound = errors.New("queried entity not found")
 
 func (c entityClient[T]) get(ctx context.Context, kind string, filterables ...Filterable) (*T, error) {
 	var data []*T
@@ -162,6 +158,10 @@ func (c entityClient[T]) get(ctx context.Context, kind string, filterables ...Fi
 		slog.Error("failed to list data", "error", err, "kind", kind)
 
 		return nil, err
+	}
+
+	if len(data) < 1 {
+		return nil, ErrEntityNotFound
 	}
 
 	return data[0], nil
