@@ -44,8 +44,9 @@ type WPTRunMetadata struct {
 
 // WPTRunMetric is the basic unit for measuring the tests in a given run.
 type WPTRunMetric struct {
-	TotalTests *uint `datastore:"total_tests"`
-	TestPass   *uint `datastore:"test_pass"`
+	// Datastore does not support unsigned integer currently.
+	TotalTests *int `datastore:"total_tests"`
+	TestPass   *int `datastore:"test_pass"`
 }
 
 // wptRunIDFilter implements Filterable to filter by run_id.
@@ -82,8 +83,8 @@ type wptRunMetricMerge struct{}
 
 func (m wptRunMetricMerge) Merge(existing *WPTRunMetric, new *WPTRunMetric) *WPTRunMetric {
 	return &WPTRunMetric{
-		TotalTests: cmp.Or[*uint](new.TotalTests, existing.TotalTests),
-		TestPass:   cmp.Or[*uint](new.TestPass, existing.TestPass),
+		TotalTests: cmp.Or[*int](new.TotalTests, existing.TotalTests),
+		TestPass:   cmp.Or[*int](new.TestPass, existing.TestPass),
 	}
 }
 

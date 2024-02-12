@@ -14,8 +14,238 @@
 
 package gds
 
-import "testing"
+import (
+	"context"
+	"reflect"
+	"testing"
+	"time"
 
-func TestWPTRunMetricOperations(t *testing.T) {
+	"github.com/web-platform-tests/wpt.fyi/shared"
+)
 
+// nolint: gochecknoglobals
+var sampleWPTRunMetrics = []WPTRunMetrics{
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          0,
+			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.StableLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(2),
+			TestPass:   intPtr(2),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          1,
+			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.ExperimentalLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(3),
+			TestPass:   intPtr(3),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          2,
+			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "barBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.StableLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(2),
+			TestPass:   intPtr(2),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          3,
+			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "barBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.ExperimentalLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(3),
+			TestPass:   intPtr(3),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          6,
+			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.StableLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(2),
+			TestPass:   intPtr(2),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          7,
+			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.ExperimentalLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(3),
+			TestPass:   intPtr(3),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          8,
+			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "barBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.StableLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(2),
+			TestPass:   intPtr(2),
+		},
+	},
+	{
+		WPTRunMetadata: WPTRunMetadata{
+			RunID:          9,
+			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
+			BrowserName:    "barBrowser",
+			BrowserVersion: "0.0.0",
+			Channel:        shared.ExperimentalLabel,
+			OSName:         "os",
+			OSVersion:      "0.0.0",
+		},
+		WPTRunMetric: WPTRunMetric{
+			TotalTests: intPtr(3),
+			TestPass:   intPtr(3),
+		},
+	},
+}
+
+func TestWPTRunMetricsOperations(t *testing.T) {
+	ctx := context.Background()
+	client, cleanup := getTestDatabase(ctx, t)
+	defer cleanup()
+	for _, metric := range sampleWPTRunMetrics {
+		err := client.StoreWPTRunMetrics(ctx, metric.WPTRunMetadata, metric.WPTRunMetric)
+		if err != nil {
+			t.Errorf("unable to store wpt run metric %s", err.Error())
+		}
+	}
+	// Get the foo browser
+	// Step 1. Pick a range that gets both entries.
+	metrics, _, err := client.GetWPTMetricsByBrowser(
+		ctx,
+		"fooBrowser",
+		shared.StableLabel,
+		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
+		nil,
+	)
+	if err != nil {
+		t.Errorf("unable to get metrics for browser. %s", err.Error())
+	}
+	expectedPageBoth := []*WPTRunMetrics{
+		{
+			WPTRunMetadata: WPTRunMetadata{
+				RunID:          6,
+				TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+				TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "0.0.0",
+				Channel:        shared.StableLabel,
+				OSName:         "os",
+				OSVersion:      "0.0.0",
+			},
+			WPTRunMetric: WPTRunMetric{
+				TotalTests: intPtr(2),
+				TestPass:   intPtr(2),
+			},
+		},
+		{
+			WPTRunMetadata: WPTRunMetadata{
+				RunID:          0,
+				TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "0.0.0",
+				Channel:        shared.StableLabel,
+				OSName:         "os",
+				OSVersion:      "0.0.0",
+			},
+			WPTRunMetric: WPTRunMetric{
+				TotalTests: intPtr(2),
+				TestPass:   intPtr(2),
+			},
+		},
+	}
+	if !reflect.DeepEqual(expectedPageBoth, metrics) {
+		t.Error("unequal slices")
+	}
+	// Step 2. Pick a range that only gets one.
+	metrics, _, err = client.GetWPTMetricsByBrowser(
+		ctx,
+		"fooBrowser",
+		shared.StableLabel,
+		time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+		time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
+		nil,
+	)
+	if err != nil {
+		t.Errorf("unable to get metrics for browser. %s", err.Error())
+	}
+	expectedPageLast := []*WPTRunMetrics{
+		{
+			WPTRunMetadata: WPTRunMetadata{
+				RunID:          6,
+				TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+				TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "0.0.0",
+				Channel:        shared.StableLabel,
+				OSName:         "os",
+				OSVersion:      "0.0.0",
+			},
+			WPTRunMetric: WPTRunMetric{
+				TotalTests: intPtr(2),
+				TestPass:   intPtr(2),
+			},
+		},
+	}
+	if !reflect.DeepEqual(expectedPageLast, metrics) {
+		t.Error("unequal slices")
+	}
 }
