@@ -15,6 +15,7 @@
 package gds
 
 import (
+	"cmp"
 	"context"
 
 	"cloud.google.com/go/datastore"
@@ -24,11 +25,17 @@ import (
 
 const featureDataKey = "FeatureData"
 
+// FeatureData contains:
+// - basic metadata about the web feature.
+// - snapshot of latest metrics.
 type FeatureData struct {
-	WebFeatureID string `datastore:"web_feature_id"`
-	Name         string `datastore:"name"`
+	WebFeatureID *string `datastore:"web_feature_id"`
+	Name         *string `datastore:"name"`
 }
 
+// webFeaturesFilter implements Filterable to filter by web_feature_id.
+// Compatible kinds:
+// - featureDataKey.
 type webFeaturesFilter struct {
 	webFeatureID string
 }
@@ -37,6 +44,18 @@ func (f webFeaturesFilter) FilterQuery(query *datastore.Query) *datastore.Query 
 	return query.FilterField("web_feature_id", "=", f.webFeatureID)
 }
 
+// webFeatureMerge implements Mergeable for FeatureData.
+type webFeatureMerge struct{}
+
+func (m webFeatureMerge) Merge(existing *FeatureData, new *FeatureData) *FeatureData {
+	return &FeatureData{
+		Name: cmp.Or[*string](new.Name, existing.Name),
+		// The below fields cannot be overridden during a merge.
+		WebFeatureID: existing.WebFeatureID,
+	}
+}
+
+// UpsertFeatureData inserts/updates data for the given web feature.
 func (c *Client) UpsertFeatureData(
 	ctx context.Context,
 	webFeatureID string,
@@ -47,15 +66,17 @@ func (c *Client) UpsertFeatureData(
 	return entityClient.upsert(ctx,
 		featureDataKey,
 		&FeatureData{
-			WebFeatureID: webFeatureID,
-			Name:         data.Name,
+			WebFeatureID: &webFeatureID,
+			Name:         &data.Name,
 		},
+		webFeatureMerge{},
 		webFeaturesFilter{
 			webFeatureID: webFeatureID,
 		},
 	)
 }
 
+// ListWebFeataureData lists web features data.
 func (c *Client) ListWebFeataureData(ctx context.Context, pageToken *string) ([]backend.Feature, *string, error) {
 	entityClient := entityClient[FeatureData]{c}
 	featureData, nextPageToken, err := entityClient.list(ctx, featureDataKey, pageToken)
@@ -65,8 +86,8 @@ func (c *Client) ListWebFeataureData(ctx context.Context, pageToken *string) ([]
 	ret := make([]backend.Feature, len(featureData))
 	for idx, val := range featureData {
 		ret[idx] = backend.Feature{
-			FeatureId: val.WebFeatureID,
-			Name:      val.Name,
+			FeatureId: *val.WebFeatureID,
+			Name:      *val.Name,
 			Spec:      nil,
 		}
 	}
@@ -74,6 +95,7 @@ func (c *Client) ListWebFeataureData(ctx context.Context, pageToken *string) ([]
 	return ret, nextPageToken, nil
 }
 
+// GetWebFeatureData atttempts to get data for a given web feature.
 func (c *Client) GetWebFeatureData(ctx context.Context, webFeatureID string) (*backend.Feature, error) {
 	entityClient := entityClient[FeatureData]{c}
 	featureData, err := entityClient.get(ctx, featureDataKey, webFeaturesFilter{
@@ -84,8 +106,8 @@ func (c *Client) GetWebFeatureData(ctx context.Context, webFeatureID string) (*b
 	}
 
 	return &backend.Feature{
-		Name:      featureData.WebFeatureID,
-		FeatureId: featureData.WebFeatureID,
+		Name:      *featureData.Name,
+		FeatureId: *featureData.WebFeatureID,
 		Spec:      nil,
 	}, nil
 }

@@ -27,6 +27,7 @@ type Client struct {
 	*datastore.Client
 }
 
+// NewDatastoreClient returns a Client for the Google Datastore service.
 func NewDatastoreClient(projectID string, database *string) (*Client, error) {
 	if projectID == "" {
 		return nil, errors.New("projectID is empty")
@@ -50,15 +51,27 @@ func NewDatastoreClient(projectID string, database *string) (*Client, error) {
 	return &Client{client}, nil
 }
 
+// Filterable modifies a query with a given filter.
 type Filterable interface {
 	FilterQuery(*datastore.Query) *datastore.Query
 }
 
+// entityClient is generic client that contains generic methods that can apply
+// to any entity stored in datastore.
 type entityClient[T any] struct {
 	*Client
 }
 
-func (c *entityClient[T]) upsert(ctx context.Context, kind string, data *T, filterables ...Filterable) error {
+type Mergeable[T any] interface {
+	Merge(existing *T, new *T) *T
+}
+
+func (c *entityClient[T]) upsert(
+	ctx context.Context,
+	kind string,
+	data *T,
+	mergeable Mergeable[T],
+	filterables ...Filterable) error {
 	// Begin a transaction.
 	_, err := c.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 		// Get the entity, if it exists.
@@ -77,10 +90,10 @@ func (c *entityClient[T]) upsert(ctx context.Context, kind string, data *T, filt
 		}
 
 		var key *datastore.Key
-		// If the entity exists, update it.
+		// If the entity exists, merge the two entities.
 		if len(keys) > 0 {
 			key = keys[0]
-
+			data = mergeable.Merge(&existingEntity[0], data)
 		} else {
 			// If the entity does not exist, insert it.
 			key = datastore.IncompleteKey(kind, nil)

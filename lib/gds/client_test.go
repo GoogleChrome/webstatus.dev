@@ -15,6 +15,7 @@
 package gds
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
@@ -92,7 +93,7 @@ const sampleKey = "SampleData"
 
 type TestSample struct {
 	Name      string    `datastore:"name"`
-	Value     int       `datastore:"value"`
+	Value     *int      `datastore:"value"`
 	CreatedAt time.Time `datastore:"created_at"`
 }
 
@@ -119,26 +120,42 @@ func (f limitSampleFilter) FilterQuery(query *datastore.Query) *datastore.Query 
 	return query.Limit(f.size)
 }
 
+// testSampleMerge implements Mergeable for TestSample.
+type testSampleMerge struct{}
+
+func (m testSampleMerge) Merge(existing *TestSample, new *TestSample) *TestSample {
+	return &TestSample{
+		Value: cmp.Or[*int](new.Value, existing.Value),
+		// The below fields cannot be overridden during a merge.
+		Name:      existing.Name,
+		CreatedAt: existing.CreatedAt,
+	}
+}
+
+func intPtr(in int) *int {
+	return &in
+}
+
 // nolint: gochecknoglobals
 var testSamples = []TestSample{
 	{
 		Name:      "a",
-		Value:     0,
+		Value:     intPtr(0),
 		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 	{
 		Name:      "b",
-		Value:     1,
+		Value:     intPtr(1),
 		CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 	{
 		Name:      "c",
-		Value:     2,
+		Value:     intPtr(2),
 		CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 	{
 		Name:      "d",
-		Value:     3,
+		Value:     intPtr(3),
 		CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 }
@@ -148,7 +165,7 @@ func insertEntities(
 	t *testing.T,
 	c entityClient[TestSample]) {
 	for i := range testSamples {
-		err := c.upsert(ctx, sampleKey, &testSamples[i], nameFilter{name: testSamples[i].Name})
+		err := c.upsert(ctx, sampleKey, &testSamples[i], testSampleMerge{}, nameFilter{name: testSamples[i].Name})
 		if err != nil {
 			t.Fatalf("failed to insert entities. %s", err.Error())
 		}
@@ -193,14 +210,16 @@ func TestEntityClientOperations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(*entity, TestSample{
 		Name:      "a",
-		Value:     0,
+		Value:     intPtr(0),
 		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}) {
 		t.Errorf("values not equal. received %+v", *entity)
 	}
 	// Step 4. Upsert the entity
-	entity.Value = 200
-	err = c.upsert(ctx, sampleKey, entity, nameFilter{name: "a"})
+	entity.Value = intPtr(200)
+	// CreatedAt should not update due to the Mergeable policy
+	entity.CreatedAt = time.Date(3000, time.March, 1, 0, 0, 0, 0, time.UTC)
+	err = c.upsert(ctx, sampleKey, entity, testSampleMerge{}, nameFilter{name: "a"})
 	if err != nil {
 		t.Errorf("upsert failed %s", err.Error())
 	}
@@ -215,7 +234,7 @@ func TestEntityClientOperations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(*entity, TestSample{
 		Name:      "a",
-		Value:     200,
+		Value:     intPtr(200),
 		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}) {
 		t.Errorf("values not equal. received %+v", *entity)
@@ -233,12 +252,12 @@ func TestEntityClientOperations(t *testing.T) {
 	expectedPageOne := []*TestSample{
 		{
 			Name:      "d",
-			Value:     3,
+			Value:     intPtr(3),
 			CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			Name:      "c",
-			Value:     2,
+			Value:     intPtr(2),
 			CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 	}
@@ -256,12 +275,12 @@ func TestEntityClientOperations(t *testing.T) {
 	expectedPageTwo := []*TestSample{
 		{
 			Name:      "a",
-			Value:     200,
+			Value:     intPtr(200),
 			CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			Name:      "b",
-			Value:     1,
+			Value:     intPtr(1),
 			CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 	}
