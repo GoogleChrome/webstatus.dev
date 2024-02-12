@@ -13,3 +13,60 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import { LitElement, type TemplateResult, css, html } from 'lit'
+import { customElement } from 'lit/decorators.js'
+
+@customElement('webstatus-overview-table')
+export class WebstatusOverviewTable extends LitElement {
+  static styles = css`
+    .data-table {
+      width: 100%;
+    }
+    th {
+      text-align: left;
+    }
+  `
+
+  render(): TemplateResult {
+    return html`
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Feature Name</th>
+            <th>Baseline Status</th>
+            <th>WPT Scores</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><a href="/features/1">Container queries</a></td>
+            <td><img height="24" src="/public/img/cross.svg" /></td>
+            <td>
+              <img src="/public/img/chrome-dev_24x24.png" /> 100%
+              <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+              <img src="/public/img/safari-preview_24x24.png" /> 100%
+            </td>
+          </tr>
+          <tr>
+            <td><a href="/features/1">Flexbox</a></td>
+            <td><img height="24" src="/public/img/check.svg" /></td>
+            <td>
+              <img src="/public/img/chrome-dev_24x24.png" /> 100%
+              <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+              <img src="/public/img/safari-preview_24x24.png" /> 100%
+            </td>
+          </tr>
+          <tr>
+            <td><a href="/features/1">Grid</a></td>
+            <td><img height="24" src="/public/img/cross.svg" /></td>
+            <td>
+              <img src="/public/img/chrome-dev_24x24.png" /> 100%
+              <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+              <img src="/public/img/safari-preview_24x24.png" /> 100%
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    `
+  }
+}
