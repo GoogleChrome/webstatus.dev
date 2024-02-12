@@ -16,6 +16,7 @@
 
 import { LitElement, type TemplateResult, css, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
+
 import './webstatus-overview-table.js'
 
 @customElement('webstatus-overview-content')
@@ -23,8 +24,7 @@ export class WebstatusOverviewContent extends LitElement {
   static styles = css`
     .stats-summary {
       color: #6c7381;
-    }
-  `
+    }  `
 
   render(): TemplateResult {
     return html`
