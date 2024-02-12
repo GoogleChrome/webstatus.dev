@@ -12,7 +12,10 @@
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
-      "dockerDashComposeVersion": "v2"
+      "dockerDashComposeVersion": "v2",
+      // Debian will not work with moby.
+      // Related to https://github.com/devcontainers/features/issues/831
+      "moby": false
     },
     "ghcr.io/devcontainers/features/node:1": {
       "version": "20.11.0"
@@ -23,7 +26,6 @@
     "ghcr.io/lukewiwa/features/shellcheck:0": {
       "version": "v0.9.0"
     },
-    "ghcr.io/devcontainers/features/java:1": {},
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
     "ghcr.io/rio/features/skaffold:2": {}
   },
@@ -42,6 +44,7 @@
       ]
     }
   },
+  "runArgs": ["--env-file", ".devcontainer/devcontainer.env"],
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.

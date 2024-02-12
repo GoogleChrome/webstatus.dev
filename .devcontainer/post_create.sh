@@ -13,23 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-CLUSTER_NAME="webstatus-dev"
-
-minikube delete -p "${CLUSTER_NAME}" || true
-minikube start -p "${CLUSTER_NAME}"
-
-# Enable direct pushing into the cluster for quicker reloads
-skaffold config set --kube-context "${CLUSTER_NAME}" local-cluster true
+# Clean up minikube just in case to ensure a fresh cluster.
+make minikube-delete
 
 # Install oapi-codegen
 go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.15.0
 
 # Install repo-wide npm tools
 npm i --workspaces=false
-
-# Install playwright and system deps
-npx playwright install
-npx playwright install-deps
 
 # Generate files
 make gen -B

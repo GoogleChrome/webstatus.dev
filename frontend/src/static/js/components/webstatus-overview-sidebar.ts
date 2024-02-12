@@ -14,13 +14,7 @@
  * limitations under the License.
  */
 
-import {
-  type CSSResultGroup,
-  LitElement,
-  type TemplateResult,
-  css,
-  html
-} from 'lit'
+import { LitElement, type TemplateResult, css, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
 
 import './webstatus-overview-sidebar-menu.js'

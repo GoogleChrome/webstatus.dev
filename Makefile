@@ -1,31 +1,68 @@
 SHELL := /bin/bash
 
-.PHONY: all clean test gen openapi jsonschema lint test dev_workflows precommit
+.PHONY: all \
+		clean \
+		test \
+		gen \
+		openapi \
+		jsonschema \
+		lint \
+		test \
+		dev_workflows \
+		precommit \
+		minikube-delete \
+		minikube-clean-restart \
+		start-local \
+		deploy-local \
+		stop-local \
+		port-forward-manual \
+		port-forward-terminate
 
 build: gen go-build node-install
 
-clean: clean-gen clean-node
+clean: clean-gen clean-node port-forward-terminate minikube-delete
 
-precommit: lint test
+precommit: license-check lint test
 
 ################################
 # Local Environment
 ################################
-MINIKUBE_PROFILE = webstatus-dev
-start-local: minikube-running
+start-local: configure-skaffold
 	skaffold dev -p local
 
-debug-local: minikube-running
+debug-local: configure-skaffold
 	skaffold debug -p local
+
+configure-skaffold: minikube-running
+	skaffold config set --kube-context "$${MINIKUBE_PROFILE}" local-cluster true
+
+deploy-local: configure-skaffold
+	skaffold run -p local --status-check=true --port-forward=off
+
+delete-local:
+	skaffold delete -p local || true
+
+port-forward-manual: port-forward-terminate
+	kubectl wait --for=condition=ready pod/frontend
+	kubectl wait --for=condition=ready pod/backend
+	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
+
+port-forward-terminate:
+	pkill kubectl -9 || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:
 		# Check if minikube is running using a shell command
-		@if ! minikube status -p "$(MINIKUBE_PROFILE)" | grep -q "Running"; then \
-				minikube start -p "$(MINIKUBE_PROFILE)"; \
+		@if ! minikube status -p "$${MINIKUBE_PROFILE}" | grep -q "Running"; then \
+				minikube start -p "$${MINIKUBE_PROFILE}"; \
 		fi
+minikube-clean-restart: minikube-delete minikube-running
+minikube-delete:
+	minikube delete -p "$${MINIKUBE_PROFILE}" || true
+
 stop-local:
-	minikube stop -p "$(MINIKUBE_PROFILE)"
+	minikube stop -p "$${MINIKUBE_PROFILE}"
 
 ################################
 # Generated Files
@@ -147,7 +184,7 @@ go-test:
 		echo -e "\n\n" ; \
 	done
 
-node-test:
+node-test: playwright-install
 	npm run test -ws
 
 ################################
@@ -159,6 +196,8 @@ COPYRIGHT_NAME := Google LLC
 # .terraform.lock.hcl - generated lock file for terraform
 # frontend/{dist|static|build} - built files, not source files that are checked in
 # frontend/node_modules - External Node dependencies
+# frontend/coverage - Generated html files for coverage
+# playwright-report - Generated html files for playwright
 # node_modules - External Node dependencies
 ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
@@ -167,6 +206,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'frontend/dist/**' \
 	-ignore 'frontend/static/**' \
 	-ignore 'frontend/node_modules/**' \
+	-ignore 'frontend/coverage/**' \
+	-ignore 'playwright-report/**' \
 	-ignore 'node_modules/**'
 download-addlicense:
 	go install github.com/google/addlicense@latest
@@ -176,6 +217,20 @@ license-check: download-addlicense
 
 license-fix: download-addlicense
 	addlicense $(ADDLICENSE_ARGS) .
+
+################################
+# Playwright
+################################
+fresh-env-for-playwright: playwright-install delete-local deploy-local port-forward-manual
+
+playwright-update-snapshots: fresh-env-for-playwright
+	npx playwright test --update-snapshots
+
+playwright-install:
+	npx playwright install --with-deps
+
+playwright-test: fresh-env-for-playwright
+	npx playwright test
 
 ################################
 # Go Misc
