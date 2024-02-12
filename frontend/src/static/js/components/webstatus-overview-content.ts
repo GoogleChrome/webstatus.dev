@@ -24,7 +24,8 @@ export class WebstatusOverviewContent extends LitElement {
   static styles = css`
     .stats-summary {
       color: #6c7381;
-    }  `
+    }
+  `
 
   render(): TemplateResult {
     return html`
