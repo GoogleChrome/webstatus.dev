@@ -26,6 +26,18 @@ import { customElement } from 'lit/decorators.js'
 import { SHARED_STYLES } from '../css/shared-css.js'
 import './webstatus-login.js'
 
+
+// Determine if the browser looks like the user is on a mobile device.
+// We assume that a small enough window width implies a mobile device.
+const NARROW_WINDOW_MAX_WIDTH = 700;
+
+export const IS_MOBILE = (() => {
+  const width = window.innerWidth ||
+    document.documentElement.clientWidth ||
+    document.body.clientWidth;
+  return width <= NARROW_WINDOW_MAX_WIDTH;
+})();
+
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
   static get styles(): CSSResultGroup {
@@ -91,10 +103,33 @@ export class WebstatusHeader extends LitElement {
     ]
   }
 
+  _fireEvent(eventName, detail) {
+    const event = new CustomEvent(eventName, {
+      bubbles: true,
+      composed: true,
+      detail
+    })
+    this.dispatchEvent(event)
+  }
+
+  handleDrawer() {
+    this._fireEvent('drawer-clicked', {})
+  }
+
   render(): TemplateResult {
     return html`
       <header>
         <div class="title">
+          <sl-icon-button
+            data-testid="menu"
+            variant="text"
+            library="material"
+            class="menu"
+            style="font-size: 2.4rem;"
+            name="menu_20px"
+            @click="${this.handleDrawer}"
+          >
+          </sl-icon-button>
           <img
             class="website-logo"
             src="https://fakeimg.pl/400x400?text=LOGO"
