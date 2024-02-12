@@ -16,20 +16,39 @@
 
 import { LitElement, type TemplateResult, css, html } from 'lit'
 import { customElement } from 'lit/decorators.js'
+import './webstatus-overview-table.js'
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
   static styles = css`
-    .data-table {
-      width: 100%;
-    }
-    th {
-      text-align: left;
+    .stats-summary {
+      color: #6c7381;
     }
   `
+
   render(): TemplateResult {
     return html`
       <div class="main">
+        <h2>Features overview</h2>
+        <span class="stats-summary">
+          <sl-icon library="phosphor" name="list-magnifying-glass"></sl-icon>
+          1433 features</span
+        >
+
+        <sl-input placeholder="Filter by feature name...">
+          <sl-icon name="search" slot="prefix"></sl-icon>
+        </sl-input>
+        <sl-button
+          ><sl-icon slot="prefix" name="filter"></sl-icon>Filter</sl-button
+        >
+        <sl-button>
+          <sl-icon
+            slot="prefix"
+            name="square-split-horizontal"
+            library="phosphor"
+          ></sl-icon>
+        </sl-button>
+
         <div class="filters">
           <select>
             <option value="all">All</option>
@@ -37,44 +56,8 @@ export class WebstatusOverviewContent extends LitElement {
             <option value="inactive">Inactive</option>
           </select>
         </div>
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>Feature Name</th>
-              <th>Baseline Status</th>
-              <th>WPT Scores</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><a href="/features/1">Container queries</a></td>
-              <td><img height="24" src="/public/img/cross.svg" /></td>
-              <td>
-                <img src="/public/img/chrome-dev_24x24.png" /> 100%
-                <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-                <img src="/public/img/safari-preview_24x24.png" /> 100%
-              </td>
-            </tr>
-            <tr>
-              <td><a href="/features/1">Flexbox</a></td>
-              <td><img height="24" src="/public/img/check.svg" /></td>
-              <td>
-                <img src="/public/img/chrome-dev_24x24.png" /> 100%
-                <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-                <img src="/public/img/safari-preview_24x24.png" /> 100%
-              </td>
-            </tr>
-            <tr>
-              <td><a href="/features/1">Grid</a></td>
-              <td><img height="24" src="/public/img/cross.svg" /></td>
-              <td>
-                <img src="/public/img/chrome-dev_24x24.png" /> 100%
-                <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-                <img src="/public/img/safari-preview_24x24.png" /> 100%
-              </td>
-            </tr>
-          </tbody>
-        </table>
+
+        <webstatus-overview-table></webstatus-overview-table>
         <button>Modify Columns</button>
       </div>
     `

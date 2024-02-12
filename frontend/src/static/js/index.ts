@@ -18,13 +18,23 @@ import './components/webstatus-app.js'
 
 import '@shoelace-style/shoelace/dist/themes/light.css'
 import '@shoelace-style/shoelace/dist/components/icon/icon.js'
+import '@shoelace-style/shoelace/dist/components/icon-button/icon-button.js'
 import '@shoelace-style/shoelace/dist/components/tree/tree.js'
 import '@shoelace-style/shoelace/dist/components/tree-item/tree-item.js'
 import '@shoelace-style/shoelace/dist/components/divider/divider.js'
+import '@shoelace-style/shoelace/dist/components/input/input.js'
+import '@shoelace-style/shoelace/dist/components/button/button.js'
 import '@shoelace-style/shoelace/dist/components/select/select.js'
 import '@shoelace-style/shoelace/dist/components/option/option.js'
+
 import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js'
+import { registerIconLibrary } from '@shoelace-style/shoelace/dist/utilities/icon-library.js'
 
 // Set the base path to the folder you copied Shoelace's assets to.
 // Shoelace will prefix icon files with '/assets/icons/'.
 setBasePath('/public/img/shoelace')
+
+registerIconLibrary('phosphor', {
+  resolver: (name) => `/public/img/phosphor/assets/icons/${name}.svg`,
+  mutator: (svg) => svg.setAttribute('fill', 'currentColor')
+})
