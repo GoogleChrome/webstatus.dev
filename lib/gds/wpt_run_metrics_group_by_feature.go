@@ -16,6 +16,7 @@ package gds
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"cloud.google.com/go/datastore"
@@ -26,7 +27,6 @@ const wptRunMetricsGroupByFeatureKey = "WPTRunMetricsGroupByFeature"
 // WPTRunMetricsGroupByFeature contains metrics for a given web feature in a
 // WPT run.
 type WPTRunMetricsGroupByFeature struct {
-	WPTRunMetadata
 	WPTRunMetric
 	FeatureID string `datastore:"web_feature_id"`
 }
@@ -53,33 +53,37 @@ func (m wptRunMetricsGroupByFeatureMerge) Merge(
 			&existing.WPTRunMetric,
 			&new.WPTRunMetric,
 		),
-		WPTRunMetadata: *wptRunMetadataMerge{}.Merge(
-			&existing.WPTRunMetadata,
-			&new.WPTRunMetadata,
-		),
 		// The below fields cannot be overridden during a merge.
 		FeatureID: existing.FeatureID,
 	}
 }
 
 // StoreWPTRunMetricsForFeatures stores the metrics for a given web feature and run.
+// Assumes that all the data belongs to a single run.
 func (c *Client) StoreWPTRunMetricsForFeatures(
 	ctx context.Context,
-	runMetadata WPTRunMetadata,
+	run WPTRun,
 	dataPerFeature map[string]WPTRunMetric) error {
+	// Try to get the WPT Run first.
+	_, err := c.GetWPTRun(ctx, run.RunID)
+	if err != nil {
+		return err
+	}
 	entityClient := entityClient[WPTRunMetricsGroupByFeature]{c}
 	for featureID, featureData := range dataPerFeature {
+		if featureData.RunID != run.RunID {
+			return errors.New("feature data does not match run data")
+		}
 		err := entityClient.upsert(
 			ctx,
 			wptRunMetricsGroupByFeatureKey,
 			&WPTRunMetricsGroupByFeature{
-				WPTRunMetadata: runMetadata,
-				WPTRunMetric:   featureData,
-				FeatureID:      featureID,
+				WPTRunMetric: featureData,
+				FeatureID:    featureID,
 			},
 			wptRunMetricsGroupByFeatureMerge{},
 			wptRunIDFilter{
-				runID: runMetadata.RunID,
+				runID: featureData.RunID,
 			},
 			wptMetricsByFeatureFilter{
 				featureID: featureID,
@@ -103,21 +107,30 @@ func (c *Client) GetWPTMetricsByBrowserByFeature(
 	endAt time.Time,
 	featureID string,
 	pageToken *string) ([]*WPTRunMetricsGroupByFeature, *string, error) {
+	runs, _, err := c.ListWPTRunsByBrowser(ctx, browser, channel, startAt, endAt, pageToken)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// TODO. If the number of run ids grows too much, will need to batch these.
+	runIDs := make([]int64, len(runs))
+	m := make(map[int64]WPTRunToMetrics, len(runs))
+	for idx := range runs {
+		runIDs[idx] = runs[idx].RunID
+		m[runs[idx].RunID] = WPTRunToMetrics{WPTRun: *runs[idx], metrics: nil}
+	}
+
 	entityClient := entityClient[WPTRunMetricsGroupByFeature]{c}
 
 	return entityClient.list(
 		ctx,
 		wptRunMetricsGroupByFeatureKey,
 		pageToken,
-		wptMetricsByBrowserFilter{
-			startAt: startAt,
-			endAt:   endAt,
-			browser: browser,
-			channel: channel,
+		wptMetricByRunIDs{
+			runIDs: runIDs,
 		},
 		wptMetricsByFeatureFilter{
 			featureID: featureID,
 		},
-		wptMetricsSortByTimeStart{},
 	)
 }

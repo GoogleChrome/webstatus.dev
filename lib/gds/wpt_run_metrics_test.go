@@ -24,9 +24,9 @@ import (
 )
 
 // nolint: gochecknoglobals
-var sampleWPTRunMetrics = []WPTRunMetrics{
+var sampleWPTRunMetrics = []WPTRunToMetrics{
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          0,
 			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
@@ -36,13 +36,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      0,
 			TotalTests: intPtr(2),
 			TestPass:   intPtr(2),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          1,
 			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
@@ -52,13 +53,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      1,
 			TotalTests: intPtr(3),
 			TestPass:   intPtr(3),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          2,
 			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
@@ -68,13 +70,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      2,
 			TotalTests: intPtr(2),
 			TestPass:   intPtr(2),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          3,
 			TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
@@ -84,13 +87,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      3,
 			TotalTests: intPtr(3),
 			TestPass:   intPtr(3),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          6,
 			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
@@ -100,13 +104,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      6,
 			TotalTests: intPtr(2),
 			TestPass:   intPtr(2),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          7,
 			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
@@ -116,13 +121,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      7,
 			TotalTests: intPtr(3),
 			TestPass:   intPtr(3),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          8,
 			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
@@ -132,13 +138,14 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      8,
 			TotalTests: intPtr(2),
 			TestPass:   intPtr(2),
 		},
 	},
 	{
-		WPTRunMetadata: WPTRunMetadata{
+		WPTRun: WPTRun{
 			RunID:          9,
 			TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 			TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
@@ -148,7 +155,8 @@ var sampleWPTRunMetrics = []WPTRunMetrics{
 			OSName:         "os",
 			OSVersion:      "0.0.0",
 		},
-		WPTRunMetric: WPTRunMetric{
+		metrics: &WPTRunMetric{
+			RunID:      9,
 			TotalTests: intPtr(3),
 			TestPass:   intPtr(3),
 		},
@@ -160,14 +168,18 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 	client, cleanup := getTestDatabase(ctx, t)
 	defer cleanup()
 	for _, metric := range sampleWPTRunMetrics {
-		err := client.StoreWPTRunMetrics(ctx, metric.WPTRunMetadata, metric.WPTRunMetric)
+		err := client.StoreWPTRun(ctx, *&metric.WPTRun)
+		if err != nil {
+			t.Errorf("unable to store wpt run %s", err.Error())
+		}
+		err = client.StoreWPTRunMetrics(ctx, *metric.metrics)
 		if err != nil {
 			t.Errorf("unable to store wpt run metric %s", err.Error())
 		}
 	}
 	// Get the foo browser
 	// Step 1. Pick a range that gets both entries.
-	metrics, _, err := client.GetWPTMetricsByBrowser(
+	metrics, _, err := client.ListWPTMetricsByBrowser(
 		ctx,
 		"fooBrowser",
 		shared.StableLabel,
@@ -178,9 +190,9 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 	if err != nil {
 		t.Errorf("unable to get metrics for browser. %s", err.Error())
 	}
-	expectedPageBoth := []*WPTRunMetrics{
+	expectedPageBoth := []WPTRunToMetrics{
 		{
-			WPTRunMetadata: WPTRunMetadata{
+			WPTRun: WPTRun{
 				RunID:          6,
 				TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 				TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
@@ -190,13 +202,14 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 				OSName:         "os",
 				OSVersion:      "0.0.0",
 			},
-			WPTRunMetric: WPTRunMetric{
+			metrics: &WPTRunMetric{
+				RunID:      6,
 				TotalTests: intPtr(2),
 				TestPass:   intPtr(2),
 			},
 		},
 		{
-			WPTRunMetadata: WPTRunMetadata{
+			WPTRun: WPTRun{
 				RunID:          0,
 				TimeStart:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				TimeEnd:        time.Date(2000, time.January, 1, 1, 0, 0, 0, time.UTC),
@@ -206,7 +219,8 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 				OSName:         "os",
 				OSVersion:      "0.0.0",
 			},
-			WPTRunMetric: WPTRunMetric{
+			metrics: &WPTRunMetric{
+				RunID:      0,
 				TotalTests: intPtr(2),
 				TestPass:   intPtr(2),
 			},
@@ -216,7 +230,7 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 		t.Error("unequal slices")
 	}
 	// Step 2. Pick a range that only gets one.
-	metrics, _, err = client.GetWPTMetricsByBrowser(
+	metrics, _, err = client.ListWPTMetricsByBrowser(
 		ctx,
 		"fooBrowser",
 		shared.StableLabel,
@@ -227,9 +241,9 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 	if err != nil {
 		t.Errorf("unable to get metrics for browser. %s", err.Error())
 	}
-	expectedPageLast := []*WPTRunMetrics{
+	expectedPageLast := []WPTRunToMetrics{
 		{
-			WPTRunMetadata: WPTRunMetadata{
+			WPTRun: WPTRun{
 				RunID:          6,
 				TimeStart:      time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 				TimeEnd:        time.Date(2000, time.January, 2, 1, 0, 0, 0, time.UTC),
@@ -239,7 +253,8 @@ func TestWPTRunMetricsOperations(t *testing.T) {
 				OSName:         "os",
 				OSVersion:      "0.0.0",
 			},
-			WPTRunMetric: WPTRunMetric{
+			metrics: &WPTRunMetric{
+				RunID:      6,
 				TotalTests: intPtr(2),
 				TestPass:   intPtr(2),
 			},
