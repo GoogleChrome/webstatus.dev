@@ -20,6 +20,10 @@ import (
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
+func NewWPTRunsProcessor(runProcessor RunProcessor) *WPTRunsProcessor {
+	return &WPTRunsProcessor{runProcessor: runProcessor}
+}
+
 // WPTRunsProcessor contains all the steps for the workflow to process wpt data
 // of multiple WPT runs.
 type WPTRunsProcessor struct {
@@ -30,7 +34,7 @@ type RunProcessor interface {
 	ProcessRun(context.Context, shared.TestRun) error
 }
 
-func (r WPTRunsProcessor) Start(ctx context.Context, runs shared.TestRuns) error {
+func (r WPTRunsProcessor) ProcessRuns(ctx context.Context, runs shared.TestRuns) error {
 	for _, run := range runs {
 		err := r.runProcessor.ProcessRun(ctx, run)
 		if err != nil {

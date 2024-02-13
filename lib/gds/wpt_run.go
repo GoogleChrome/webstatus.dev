@@ -9,8 +9,8 @@ import (
 
 const wptRunsKey = "WptRuns"
 
-// WPTRun contains common metadata for a run.
-type WPTRun struct {
+// WPTRunMetadata contains common metadata for a run.
+type WPTRunMetadata struct {
 	RunID          int64     `datastore:"run_id"`
 	TimeStart      time.Time `datastore:"time_start"`
 	TimeEnd        time.Time `datastore:"time_end"`
@@ -21,11 +21,16 @@ type WPTRun struct {
 	OSVersion      string    `datastore:"os_version"`
 }
 
+// WPTRun contains all information about a WPT run.
+type WPTRun struct {
+	WPTRunMetadata
+	TestMetric         *WPTRunMetric                 `datastore:"test_metric"`
+	FeatureTestMetrics []WPTRunMetricsGroupByFeature `datastore:"feature_test_metrics"`
+}
+
 // wptRunIDFilter implements Filterable to filter by run_id.
 // Compatible kinds:
 // - wptRunsKey.
-// - wptRunMetricsKey.
-// - wptRunMetricsGroupByFeatureKey.
 type wptRunIDFilter struct {
 	runID int64
 }
@@ -37,9 +42,21 @@ func (f wptRunIDFilter) FilterQuery(query *datastore.Query) *datastore.Query {
 // wptRunMerge implements Mergeable for WPTRun.
 type wptRunMerge struct{}
 
-func (m wptRunMerge) Merge(existing *WPTRun, _ *WPTRun) *WPTRun {
-	// The below fields cannot be overridden during a merge.
+func (m wptRunMerge) Merge(existing *WPTRun, new *WPTRun) *WPTRun {
 	return &WPTRun{
+		WPTRunMetadata: *wptRunMetadataMerge{}.Merge(
+			&existing.WPTRunMetadata, &new.WPTRunMetadata),
+		TestMetric:         wptRunMetricMerge{}.Merge(existing.TestMetric, new.TestMetric),
+		FeatureTestMetrics: *wptRunFeatureTestMetricsMerge{}.Merge(&existing.FeatureTestMetrics, &new.FeatureTestMetrics),
+	}
+}
+
+// wptRunMetadataMerge implements Mergeable for WPTRunMetadata.
+type wptRunMetadataMerge struct{}
+
+func (m wptRunMetadataMerge) Merge(existing *WPTRunMetadata, _ *WPTRunMetadata) *WPTRunMetadata {
+	// The below fields cannot be overridden during a merge.
+	return &WPTRunMetadata{
 		RunID:          existing.RunID,
 		TimeStart:      existing.TimeStart,
 		TimeEnd:        existing.TimeEnd,
@@ -52,17 +69,21 @@ func (m wptRunMerge) Merge(existing *WPTRun, _ *WPTRun) *WPTRun {
 }
 
 // StoreWPTRun stores the metadata for a given run.
-func (c *Client) StoreWPTRun(
+func (c *Client) StoreWPTRunMetadata(
 	ctx context.Context,
-	run WPTRun) error {
+	metadata WPTRunMetadata) error {
 	entityClient := entityClient[WPTRun]{c}
 
 	return entityClient.upsert(
 		ctx,
 		wptRunsKey,
-		&run,
+		&WPTRun{
+			WPTRunMetadata:     metadata,
+			TestMetric:         nil,
+			FeatureTestMetrics: nil,
+		},
 		wptRunMerge{},
-		wptRunIDFilter{runID: run.RunID},
+		wptRunIDFilter{runID: metadata.RunID},
 	)
 }
 
@@ -104,7 +125,8 @@ func (f wptRunsByBrowserFilter) FilterQuery(query *datastore.Query) *datastore.Q
 		Order("-time_start")
 }
 
-// ListWPTRunsByBrowser gets the metadata for a given run.
+// ListWPTRunsByBrowser returns a list of runs
+// This is a helper method for other list methods.
 func (c *Client) ListWPTRunsByBrowser(
 	ctx context.Context,
 	browser string,

@@ -18,16 +18,19 @@ import (
 	"cmp"
 	"context"
 	"time"
-
-	"cloud.google.com/go/datastore"
 )
-
-const wptRunMetricsKey = "WptRunMetrics"
 
 // WPTRunToMetrics contains metrics about a particular WPT run.
 type WPTRunToMetrics struct {
-	WPTRun
-	metrics *WPTRunMetric
+	WPTRunMetadata
+	*WPTRunMetric
+}
+
+// WPTRunToMetrics contains metrics about a particular WPT run.
+type WPTRunToMetricsByFeature struct {
+	WPTRunMetadata
+	*WPTRunMetric
+	FeatureID string
 }
 
 // WPTRunMetrics contains metrics for multiple WPT runs over time.
@@ -38,58 +41,48 @@ type WPTRunMetric struct {
 	// Datastore does not support unsigned integer currently.
 	TotalTests *int `datastore:"total_tests"`
 	TestPass   *int `datastore:"test_pass"`
-	// The below fields cannot be overridden during a merge.
-	RunID int64 `datastore:"run_id"`
 }
 
 // wptRunMetricMerge implements Mergeable for WPTRunMetric.
 type wptRunMetricMerge struct{}
 
 func (m wptRunMetricMerge) Merge(existing *WPTRunMetric, new *WPTRunMetric) *WPTRunMetric {
+	if existing == nil && new != nil {
+		return new
+	}
+	if existing != nil && new == nil {
+		return existing
+	}
+	if existing == nil && new == nil {
+		return nil
+	}
+
 	return &WPTRunMetric{
 		TotalTests: cmp.Or[*int](new.TotalTests, existing.TotalTests),
 		TestPass:   cmp.Or[*int](new.TestPass, existing.TestPass),
 	}
 }
 
-// wptMetricByRunIDs implements Filterable to filter by:
-// - run_id (if given entity has a run_id that is part of a list)
-// Compatible kinds:
-// - wptRunsKey.
-type wptMetricByRunIDs struct {
-	runIDs []int64
-}
-
-func (f wptMetricByRunIDs) FilterQuery(query *datastore.Query) *datastore.Query {
-	filters := make([]datastore.EntityFilter, 0, len(f.runIDs))
-	for i := 0; i < len(f.runIDs); i++ {
-		filters = append(filters, datastore.PropertyFilter{
-			FieldName: "run_id",
-			Operator:  "=",
-			Value:     f.runIDs[i],
-		})
-	}
-	return query.FilterEntity(datastore.OrFilter{Filters: filters})
-}
-
 // StoreWPTRunMetrics stores the metrics for a given run.
 func (c *Client) StoreWPTRunMetrics(
 	ctx context.Context,
-	metric WPTRunMetric) error {
+	runID int64,
+	metric *WPTRunMetric) error {
 	// Try to get the WPT Run first.
-	_, err := c.GetWPTRun(ctx, metric.RunID)
+	run, err := c.GetWPTRun(ctx, runID)
 	if err != nil {
 		return err
 	}
 
-	entityClient := entityClient[WPTRunMetric]{c}
+	run.TestMetric = metric
+	entityClient := entityClient[WPTRun]{c}
 
 	return entityClient.upsert(
 		ctx,
-		wptRunMetricsKey,
-		&metric,
-		wptRunMetricMerge{},
-		wptRunIDFilter{runID: metric.RunID},
+		wptRunsKey,
+		run,
+		wptRunMerge{},
+		wptRunIDFilter{runID: runID},
 	)
 }
 
@@ -103,41 +96,18 @@ func (c *Client) ListWPTMetricsByBrowser(
 	endAt time.Time,
 	pageToken *string) ([]WPTRunToMetrics, *string, error) {
 
-	// TODO. create nested page token.
 	runs, _, err := c.ListWPTRunsByBrowser(ctx, browser, channel, startAt, endAt, pageToken)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// TODO. If the number of run ids grows too much, will need to batch these.
-	runIDs := make([]int64, len(runs))
-	m := make(map[int64]WPTRunToMetrics, len(runs))
-	for idx := range runs {
-		runIDs[idx] = runs[idx].RunID
-		m[runs[idx].RunID] = WPTRunToMetrics{WPTRun: *runs[idx], metrics: nil}
-	}
-	entityClient := entityClient[WPTRunMetric]{c}
-
-	metrics, _, err := entityClient.list(
-		ctx,
-		wptRunMetricsKey,
-		pageToken,
-		wptMetricByRunIDs{
-			runIDs: runIDs,
-		},
-	)
-	if err != nil {
-		return nil, nil, err
+	ret := make([]WPTRunToMetrics, 0, len(runs))
+	for _, run := range runs {
+		ret = append(ret, WPTRunToMetrics{
+			WPTRunMetadata: run.WPTRunMetadata,
+			WPTRunMetric:   run.TestMetric,
+		})
 	}
 
-	for _, metric := range metrics {
-		current := m[metric.RunID]
-		current.metrics = metric
-		m[metric.RunID] = current
-	}
-	ret := make([]WPTRunToMetrics, 0, len(m))
-	for _, v := range ret {
-		ret = append(ret, v)
-	}
 	return ret, nil, nil
 }

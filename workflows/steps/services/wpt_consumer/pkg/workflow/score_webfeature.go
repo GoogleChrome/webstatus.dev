@@ -18,13 +18,9 @@ import (
 	"cmp"
 	"context"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
-
-type WebFeatureScore struct {
-	numberOfTests        int
-	numberOfPassingTests int
-}
 
 type WPTStatusAbbreviation string
 
@@ -47,23 +43,25 @@ type WPTScorerForWebFeatures struct{}
 func (s WPTScorerForWebFeatures) Score(
 	ctx context.Context,
 	summary ResultsSummaryFile,
-	testToWebFeatures shared.WebFeaturesData) map[string]WebFeatureScore {
-	scoreMap := make(map[string]WebFeatureScore)
+	testToWebFeatures shared.WebFeaturesData) (*gds.WPTRunMetric, map[string]gds.WPTRunMetric) {
+	scoreMap := make(map[string]gds.WPTRunMetric)
+	overall := new(gds.WPTRunMetric)
 	for test, testSummary := range summary {
 		if len(testSummary.Counts) < 2 {
 			// Need at least the number of subtests passes and the number of subtests
 			continue
 		}
-		s.scoreTest(ctx, test, scoreMap, testToWebFeatures, testSummary.Counts[0], testSummary.Counts[1])
+		s.scoreTest(ctx, test, overall, scoreMap, testToWebFeatures, testSummary.Counts[0], testSummary.Counts[1])
 	}
 
-	return scoreMap
+	return overall, scoreMap
 }
 
 func (s WPTScorerForWebFeatures) scoreTest(
 	_ context.Context,
 	test string,
-	webFeatureScoreMap map[string]WebFeatureScore,
+	overall *gds.WPTRunMetric,
+	webFeatureScoreMap map[string]gds.WPTRunMetric,
 	testToWebFeatures shared.WebFeaturesData,
 	numberOfSubtestPassing int,
 	numberofSubtests int,
@@ -74,16 +72,24 @@ func (s WPTScorerForWebFeatures) scoreTest(
 		// There are no web features associated with this test. Skip
 		return
 	}
+	*overall.TotalTests++
 	// Calculate the value early so we can re-use for multiple web features.
 	countsAsPassing := numberOfSubtestPassing == numberofSubtests
+	if countsAsPassing {
+		*overall.TestPass++
+	}
 	for webFeature := range webFeatures {
+		initialTotal := new(int)
+		initialPass := new(int)
+		*initialTotal = 0
+		*initialPass = 0
 		webFeatureScore := cmp.Or(
 			webFeatureScoreMap[webFeature],
-			WebFeatureScore{numberOfTests: 0, numberOfPassingTests: 0})
-		webFeatureScore.numberOfTests++
+			gds.WPTRunMetric{TotalTests: initialTotal, TestPass: initialPass})
+		*webFeatureScore.TotalTests++
 		// If all of the sub tests passed, only count it.
 		if countsAsPassing {
-			webFeatureScore.numberOfPassingTests++
+			*webFeatureScore.TestPass++
 		}
 		webFeatureScoreMap[webFeature] = webFeatureScore
 	}

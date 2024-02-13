@@ -15,8 +15,29 @@
 apiVersion: skaffold/v4beta9
 kind: Config
 metadata:
-  name: workflows
+  name: wpt-consumer-config
 requires:
-  - path: ./steps/services/common/repo_downloader
-  - path: ./steps/services/web_feature_consumer
-  - path: ./steps/services/wpt_consumer
+  - path: ../../../../.dev/datastore
+  - path: ../../../../.dev/gcs
+profiles:
+  - name: local
+    build:
+      artifacts:
+        - image: wpt-consumer
+          context: ../../../../
+          runtimeType: go
+          docker:
+            dockerfile: images/go_service.Dockerfile
+            buildArgs:
+              service_dir: workflows/steps/services/web_feature_consumer
+      local: {}
+    manifests:
+      rawYaml:
+        - manifests/*
+    deploy:
+      kubectl: {}
+    portForward:
+      - resourceType: pod
+        resourceName: wpt-consumer
+        port: 8080
+        localPort: 8093

@@ -17,6 +17,7 @@ package workflow
 import (
 	"context"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
@@ -35,6 +36,19 @@ type WPTRunProcessor struct {
 	scoreStorer           WebFeatureWPTScoreStorer
 }
 
+func NewWPTRunProcessor(
+	resultsDownloader ResultsDownloader,
+	webFeaturesDataGetter WebFeaturesDataGetter,
+	scorer WebFeatureWPTScorer,
+	scoreStorer WebFeatureWPTScoreStorer) *WPTRunProcessor {
+	return &WPTRunProcessor{
+		resultsDownloader:     resultsDownloader,
+		webFeaturesDataGetter: webFeaturesDataGetter,
+		scorer:                scorer,
+		scoreStorer:           scoreStorer,
+	}
+}
+
 type ResultsDownloader interface {
 	DownloadResults(context.Context, string) (ResultsSummaryFile, error)
 }
@@ -44,11 +58,15 @@ type WebFeaturesDataGetter interface {
 }
 
 type WebFeatureWPTScorer interface {
-	Score(context.Context, ResultsSummaryFile, shared.WebFeaturesData)
+	Score(context.Context, ResultsSummaryFile, shared.WebFeaturesData) (*gds.WPTRunMetric, map[string]gds.WPTRunMetric)
 }
 
 type WebFeatureWPTScoreStorer interface {
-	Store(context.Context) error
+	StoreWPTRunMetrics(context.Context, int64, *gds.WPTRunMetric) error
+	StoreWPTRunMetricsForFeatures(
+		context.Context,
+		int64,
+		map[string]gds.WPTRunMetric) error
 }
 
 func (w WPTRunProcessor) ProcessRun(
@@ -67,7 +85,17 @@ func (w WPTRunProcessor) ProcessRun(
 	if err != nil {
 		return err
 	}
-	w.scorer.Score(ctx, resultsSummaryFile, webFeaturesData)
+	runMetrics, metricsPerFeature := w.scorer.Score(ctx, resultsSummaryFile, webFeaturesData)
 
-	return w.scoreStorer.Store(ctx)
+	err = w.scoreStorer.StoreWPTRunMetrics(ctx, run.ID, runMetrics)
+	if err != nil {
+		return err
+	}
+
+	err = w.scoreStorer.StoreWPTRunMetricsForFeatures(ctx, run.ID, metricsPerFeature)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

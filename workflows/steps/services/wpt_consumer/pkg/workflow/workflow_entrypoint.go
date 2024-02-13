@@ -25,14 +25,15 @@ import (
 )
 
 type Entrypoint struct {
-	workerStarter WorkerStarter
+	Starter    WorkerStarter
+	NumWorkers int
 }
 
 type WorkerStarter interface {
 	Start(ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan workflowArguments, errChan chan<- error)
 }
 
-func (w Entrypoint) Start(ctx context.Context, numWorkers int, stopAt time.Time) error {
+func (w Entrypoint) Start(ctx context.Context, from time.Time) error {
 	browsers := shared.GetDefaultBrowserNames()
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	wg := sync.WaitGroup{}
@@ -41,15 +42,15 @@ func (w Entrypoint) Start(ctx context.Context, numWorkers int, stopAt time.Time)
 	errChan := make(chan error, numberOfJobs)
 
 	// Start the workers
-	for i := 0; i < numWorkers; i++ {
+	for i := 0; i < w.NumWorkers; i++ {
 		wg.Add(1)
-		go w.workerStarter.Start(ctx, i, &wg, jobsChan, errChan)
+		go w.Starter.Start(ctx, i, &wg, jobsChan, errChan)
 	}
 	wg.Add(len(browsers) * len(channels))
 	for _, browser := range browsers {
 		for _, channel := range channels {
 			jobsChan <- workflowArguments{
-				stopAt:  stopAt,
+				from:    from,
 				browser: browser,
 				channel: channel,
 			}

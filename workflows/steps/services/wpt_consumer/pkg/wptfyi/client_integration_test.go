@@ -22,7 +22,7 @@ import (
 
 func TestGetRunsIntegration(t *testing.T) {
 	client := NewHTTPClient("wpt.fyi")
-	runs, err := client.GetRuns(context.TODO(), time.Now().AddDate(0, 0, -365).UTC())
+	runs, err := client.GetRuns(context.TODO(), time.Now().AddDate(0, 0, -365).UTC(), 0, "chrome", "stable")
 	if err != nil {
 		t.Errorf("unexpected error getting runs: %s\n", err.Error())
 	}

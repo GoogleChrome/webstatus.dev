@@ -20,6 +20,10 @@ import (
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
+func NewGitHubWebFeaturesDataGetter(client *shared.GitHubWebFeaturesClient) *GitHubWebFeaturesDataGetter {
+	return &GitHubWebFeaturesDataGetter{client: client}
+}
+
 type GitHubWebFeaturesDataGetter struct {
 	client *shared.GitHubWebFeaturesClient
 }

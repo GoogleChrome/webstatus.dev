@@ -12,11 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta9
-kind: Config
+apiVersion: v1
+kind: Service
 metadata:
-  name: workflows
-requires:
-  - path: ./steps/services/common/repo_downloader
-  - path: ./steps/services/web_feature_consumer
-  - path: ./steps/services/wpt_consumer
+  name: wpt-consumer
+spec:
+  selector:
+    app.kubernetes.io/name: wpt-consumer
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: http-svc

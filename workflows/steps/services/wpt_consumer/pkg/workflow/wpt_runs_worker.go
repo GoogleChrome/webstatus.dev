@@ -23,13 +23,20 @@ import (
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
-type wptRunsWorker struct {
+func NewWptRunsWorker(runsGetter RunsGetter, runsProcessor RunsProcessor) *WptRunsWorker {
+	return &WptRunsWorker{
+		runsGetter:    runsGetter,
+		runsProcessor: runsProcessor,
+	}
+}
+
+type WptRunsWorker struct {
 	runsGetter    RunsGetter
 	runsProcessor RunsProcessor
 }
 
 type workflowArguments struct {
-	stopAt  time.Time
+	from    time.Time
 	browser string
 	channel string
 }
@@ -43,14 +50,14 @@ type RunsProcessor interface {
 type RunsGetter interface {
 	GetRuns(
 		ctx context.Context,
-		stopAt time.Time,
+		from time.Time,
 		runsPerPage int,
 		browserName string,
 		channelName string,
 	) (shared.TestRuns, error)
 }
 
-func (w wptRunsWorker) Start(
+func (w WptRunsWorker) Start(
 	ctx context.Context,
 	id int,
 	wg *sync.WaitGroup,
@@ -66,10 +73,10 @@ func (w wptRunsWorker) Start(
 	}
 }
 
-func (w wptRunsWorker) startWorkflowForBrowserAndChannel(
+func (w WptRunsWorker) startWorkflowForBrowserAndChannel(
 	ctx context.Context,
 	job workflowArguments) error {
-	runs, err := w.runsGetter.GetRuns(ctx, job.stopAt, shared.MaxCountMaxValue, job.browser, job.channel)
+	runs, err := w.runsGetter.GetRuns(ctx, job.from, shared.MaxCountMaxValue, job.browser, job.channel)
 	if err != nil {
 		return err
 	}

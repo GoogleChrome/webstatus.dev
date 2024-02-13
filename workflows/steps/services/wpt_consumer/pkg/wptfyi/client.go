@@ -37,15 +37,17 @@ func NewHTTPClient(hostname string) HTTPClient {
 
 func (w HTTPClient) GetRuns(
 	_ context.Context,
-	stopAt time.Time,
+	from time.Time,
+	_ int,
+	browserName string,
+	channelName string,
 ) (shared.TestRuns, error) {
 	//nolint:exhaustruct
 	// External struct does not need comply with exhaustruct.
-	// productSet := mapset.NewSetWith("chrome")
 	apiOptions := shared.TestRunFilter{
-		From:     &stopAt,
+		From:     &from,
 		MaxCount: &w.pageLimit,
-		Labels:   mapset.NewSetWith("chrome", "stable"),
+		Labels:   mapset.NewSetWith(browserName, channelName),
 	}
 	allRuns := shared.TestRuns{}
 	runs, err := shared.FetchRuns(w.hostname, apiOptions)
