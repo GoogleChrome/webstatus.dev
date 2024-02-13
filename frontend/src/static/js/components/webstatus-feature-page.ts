@@ -28,6 +28,7 @@ export class FeaturePage extends LitElement {
   _loadingTask: Task
 
   @consume({ context: apiClientContext })
+  @state()
   apiClient!: APIClient
 
   @state()
@@ -41,10 +42,10 @@ export class FeaturePage extends LitElement {
   constructor() {
     super()
     this._loadingTask = new Task(this, {
-      args: () => [this.featureId],
-      task: async ([featureId], _unusedOptions) => {
-        if (featureId !== undefined) {
-          this.feature = await this.apiClient.getFeature(featureId)
+      args: () => [this.apiClient, this.featureId],
+      task: async ([apiClient, featureId], _unusedOptions) => {
+        if (typeof apiClient === 'object' && typeof featureId === 'string') {
+          this.feature = await apiClient.getFeature(featureId)
         }
         return this.feature
       }
