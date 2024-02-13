@@ -15,6 +15,7 @@
  */
 
 import { consume } from '@lit/context'
+import { Task } from '@lit/task'
 import { LitElement, type TemplateResult, html } from 'lit'
 import { customElement, state } from 'lit/decorators.js'
 import { type components } from 'webstatus.dev-backend'
@@ -24,36 +25,65 @@ import { apiClientContext } from '../contexts/api-client-context.js'
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
+  _loadingTask: Task
+
   @consume({ context: apiClientContext })
   apiClient!: APIClient
 
   @state()
   feature?: components['schemas']['Feature'] | undefined
 
-  featureId!: string
   @state()
-  loading: boolean = true
+  featureId!: string
 
   location!: { params: { featureId: string } } // Set by router.
+
+  constructor() {
+    super()
+    this._loadingTask = new Task(this, {
+      args: () => [this.featureId],
+      task: async ([featureId], _unusedOptions) => {
+        if (featureId !== undefined) {
+          this.feature = await this.apiClient.getFeature(featureId)
+        }
+        return this.feature
+      }
+    })
+  }
 
   async firstUpdated(): Promise<void> {
     // TODO(jrobbins): Use routerContext instead of this.location so that
     // nested components could also access the router.
     this.featureId = this.location.params.featureId
-    this.feature = await this.apiClient.getFeature(this.featureId)
-    this.loading = false
   }
 
-  render(): TemplateResult {
-    if (this.loading) {
-      return html`Loading`
-    } else {
-      return html`
-        <h1>${this.feature?.name}</h1>
-        spec size: ${this.feature?.spec != null ? this.feature.spec.length : 0}
-        <br />
-        Specs:
-      `
-    }
+  render(): TemplateResult | undefined {
+    return this._loadingTask.render({
+      complete: () => this.renderWhenComplete(),
+      error: () => this.renderWhenError(),
+      initial: () => this.renderWhenInitial(),
+      pending: () => this.renderWhenPending()
+    })
+  }
+
+  renderWhenComplete(): TemplateResult {
+    return html`
+      <h1>${this.feature?.name}</h1>
+      spec size: ${this.feature?.spec != null ? this.feature.spec.length : 0}
+      <br />
+      Specs:
+    `
+  }
+
+  renderWhenError(): TemplateResult {
+    return html`Error when loading feature ${this.featureId}.`
+  }
+
+  renderWhenInitial(): TemplateResult {
+    return html`Preparing request for ${this.featureId}.`
+  }
+
+  renderWhenPending(): TemplateResult {
+    return html`Loading ${this.featureId}.`
   }
 }
