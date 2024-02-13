@@ -30,13 +30,17 @@ export class FeaturePage extends LitElement {
   @state()
   feature?: components['schemas']['Feature'] | undefined
 
-  id!: string
+  location!: {params: {featureId: string}}  // Set by router.
+  featureId!: string
 
   @state()
   loading: boolean = true
 
   async firstUpdated(): Promise<void> {
-    this.feature = await this.apiClient.getFeature(this.id)
+    // TODO(jrobbins): Use routerContext instead of this.location so that
+    // nested components could also access the router.
+    this.featureId = this.location.params.featureId
+    this.feature = await this.apiClient.getFeature(this.featureId)
     this.loading = false
   }
 
@@ -45,7 +49,7 @@ export class FeaturePage extends LitElement {
       return html`Loading`
     } else {
       return html`
-        <h1>Feature Page</h1>
+        <h1>${this.feature?.name}</h1>
         spec size: ${this.feature?.spec != null ? this.feature.spec.length : 0}
         <br />
         Specs:
