@@ -26,17 +26,26 @@ import { customElement } from 'lit/decorators.js'
 import { SHARED_STYLES } from '../css/shared-css.js'
 import './webstatus-login.js'
 
+export const DRAWER_WIDTH_PX = 390 // TODO: Should be whatever screenwidth is.
 
 // Determine if the browser looks like the user is on a mobile device.
 // We assume that a small enough window width implies a mobile device.
-const NARROW_WINDOW_MAX_WIDTH = 700;
+const NARROW_WINDOW_MAX_WIDTH = 700
 
 export const IS_MOBILE = (() => {
-  const width = window.innerWidth ||
-    document.documentElement.clientWidth ||
-    document.body.clientWidth;
-  return width <= NARROW_WINDOW_MAX_WIDTH;
-})();
+  // If innerWidth is non-zero, use it.
+  // Otherwise, use the documentElement.clientWidth, if non-zero.
+  // Otherwise, use the body.clientWidth.
+
+  const width =
+    window.innerWidth !== 0
+      ? window.innerWidth
+      : document.documentElement?.clientWidth !== 0
+        ? document.documentElement.clientWidth
+        : document.body.clientWidth
+
+  return width <= NARROW_WINDOW_MAX_WIDTH || width === 0
+})()
 
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
@@ -103,7 +112,8 @@ export class WebstatusHeader extends LitElement {
     ]
   }
 
-  _fireEvent(eventName, detail) {
+  _fireEvent(eventName: string, detail: CustomEventInit | undefined): void {
+    console.info(`Firing event: ${eventName}`)
     const event = new CustomEvent(eventName, {
       bubbles: true,
       composed: true,
@@ -112,7 +122,7 @@ export class WebstatusHeader extends LitElement {
     this.dispatchEvent(event)
   }
 
-  handleDrawer() {
+  handleDrawer(): void {
     this._fireEvent('drawer-clicked', {})
   }
 
@@ -120,22 +130,15 @@ export class WebstatusHeader extends LitElement {
     return html`
       <header>
         <div class="title">
-          <sl-icon-button
-            data-testid="menu"
-            variant="text"
-            library="material"
-            class="menu"
-            style="font-size: 2.4rem;"
-            name="menu_20px"
-            @click="${this.handleDrawer}"
-          >
-          </sl-icon-button>
+          ${this.renderHamburger()}
           <img
             class="website-logo"
             src="https://fakeimg.pl/400x400?text=LOGO"
           />
           <div class="website-title">Web Platform Dashboard</div>
         </div>
+
+        ${this.renderDrawer()}
 
         <nav class="nav-links">
           <a href="/">Features</a>
@@ -148,5 +151,53 @@ export class WebstatusHeader extends LitElement {
         </div>
       </header>
     `
+  }
+
+  renderDrawer(): TemplateResult {
+    if (IS_MOBILE) {
+      return html`
+        <sl-drawer
+          label="Menu"
+          placement="start"
+          class="drawer-placement-start"
+          style="--size: ${DRAWER_WIDTH_PX}px;"
+          contained
+          noHeader
+          @drawer-clicked="${this.toggleDrawer}"
+        >
+          >
+          <webstatus-overview-sidebar></webstatus-overview-sidebar>
+        </sl-drawer>
+      `
+    } else {
+      return html``
+    }
+  }
+
+  renderHamburger(): TemplateResult {
+    if (IS_MOBILE) {
+      return html`
+        <sl-icon-button
+          data-testid="menu"
+          variant="text"
+          class="menu"
+          style="font-size: 2.4rem;"
+          @click="${this.handleDrawer}"
+          name="list"
+        >
+        </sl-icon-button>
+      `
+    } else {
+      return html``
+    }
+  }
+
+  toggleDrawer(): void {
+    const drawer = this.shadowRoot?.querySelector('sl-drawer')
+    if (drawer?.open === true) {
+      void drawer.hide()
+    } else {
+      if (drawer != null) void drawer.show()
+    }
   }
 }

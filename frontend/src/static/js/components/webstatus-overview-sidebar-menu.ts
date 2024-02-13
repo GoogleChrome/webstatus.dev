@@ -43,7 +43,7 @@ export class WebstatusOverviewSidebarMenu extends LitElement {
         <sl-icon name="caret-right-fill" slot="expand-icon"></sl-icon>
         <sl-icon name="caret-right-fill" slot="collapse-icon"></sl-icon>
 
-        <sl-tree-item>
+        <sl-tree-item id="features-item">
           <sl-icon name="menu-button"></sl-icon> Features
           <sl-tree-item>
             <sl-icon name="bookmark"></sl-icon> Baseline 2023
@@ -62,5 +62,15 @@ export class WebstatusOverviewSidebarMenu extends LitElement {
         </sl-tree-item>
       </sl-tree>
     `
+  }
+
+  updated(): void {
+    // Handle click on features-item
+    const featuresItem = this.shadowRoot?.querySelector('#features-item')
+    featuresItem?.addEventListener('click', (_event) => {
+      // Visit Featurs overview page
+      // console.info('clicked on features-item')
+      // window.location.href = '/features'
+    })
   }
 }
