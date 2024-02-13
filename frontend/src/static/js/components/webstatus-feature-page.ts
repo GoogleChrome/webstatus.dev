@@ -30,11 +30,11 @@ export class FeaturePage extends LitElement {
   @state()
   feature?: components['schemas']['Feature'] | undefined
 
-  location!: {params: {featureId: string}}  // Set by router.
   featureId!: string
-
   @state()
   loading: boolean = true
+
+  location!: { params: { featureId: string } } // Set by router.
 
   async firstUpdated(): Promise<void> {
     // TODO(jrobbins): Use routerContext instead of this.location so that
