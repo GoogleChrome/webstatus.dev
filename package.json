@@ -12,6 +12,7 @@
   ],
   "devDependencies": {
     "@playwright/test": "^1.40.1",
+    "@rollup/plugin-typescript": "^11.1.6",
     "@types/node": "^20.10.4",
     "openapi-typescript": "6.7.3",
     "prettier": "3.1.1",
