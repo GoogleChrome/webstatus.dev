@@ -123,6 +123,9 @@ func (c *Client) List(ctx context.Context) ([]backend.Feature, error) {
 		return nil, err
 	}
 	ret := make([]backend.Feature, len(featureData))
+
+	// nolint: exhaustruct
+	// TODO. Will fix this lint error once the data is coming in.
 	for idx, val := range featureData {
 		ret[idx] = backend.Feature{
 			FeatureId: val.WebFeatureID,
@@ -144,6 +147,8 @@ func (c *Client) Get(ctx context.Context, webFeatureID string) (*backend.Feature
 		return nil, err
 	}
 
+	// nolint: exhaustruct
+	// TODO. Will fix this lint error once the data is coming in.
 	return &backend.Feature{
 		Name:      featureData[0].WebFeatureID,
 		FeatureId: featureData[0].WebFeatureID,
