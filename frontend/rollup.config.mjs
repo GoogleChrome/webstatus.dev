@@ -16,15 +16,13 @@
 
 import path from 'path'
 import { nodeResolve } from '@rollup/plugin-node-resolve'
-// import sourcemaps from 'rollup-plugin-sourcemaps'
 import terser from '@rollup/plugin-terser'
 import copy from 'rollup-plugin-copy'
 import css from 'rollup-plugin-css-only'
-// import typescript from '@rollup/plugin-typescript'
 
 export default [
   {
-    input: 'dist/static/public/build/static/js/index.js',
+    // input: 'dist/static/public/build/static/js/index.js',
     plugins: [
       // Entry point for application build; can specify a glob to build multiple
       // HTML files for non-SPA app
@@ -34,7 +32,6 @@ export default [
       // Resolve bare module specifiers to relative paths
       nodeResolve(),
       // Minify JS
-      // sourcemaps(),
       terser({
         ecma: 2020,
         module: true,
@@ -43,10 +40,6 @@ export default [
       css({
         output: 'css/styles.css'
       }),
-      // typescript({
-      //   sourceMap: true
-      //   // inlineSources: true
-      // }),
       copy({
         targets: [
           // Copy all files in img recursively.
@@ -56,14 +49,14 @@ export default [
           // Currently copying img files from ./scripts/postinstall.js
           { src: '.postinstall/static/img/*', dest: 'dist/static/public/img' },
           // Copy the html file
-          { src: 'src/static/index.html', dest: 'dist/static' }
+          { src: 'src/static/index.html', dest: 'dist/static' },
           // Copy sourcemaps from build
-          // {
-          //   src: 'dist/static/public/build/**/*.map',
-          //   dest: 'dist/static/public/build'
-          // },
-          // // Copy source .ts files
-          // { src: 'src/static/**/*.ts', dest: 'dist/static/public/ts' }
+          {
+            src: 'dist/static/public/build/**/*.map',
+            dest: 'dist/static/public/build'
+          },
+          // Copy source .ts files
+          { src: 'src/static/**/*.ts', dest: 'dist/static/public/ts' }
         ],
         verbose: true
       })
@@ -71,6 +64,7 @@ export default [
     output: {
       dir: 'dist/static/public',
       entryFileNames: 'js/[name].js',
+      // Include js files in .../public/build
       sourcemap: 'inline'
     },
     onwarn: (warning) => {
