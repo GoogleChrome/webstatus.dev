@@ -132,6 +132,12 @@ components:
       required: false
       description: Number of results to return
   schemas:
+    WPTFeatureData:
+      type: object
+      properties:
+        score:
+          type: number
+          format: float
     PageMetadata:
       type: object
       properties:
@@ -163,9 +169,42 @@ components:
           type: array
           items:
             type: string
+        baseline_status:
+          type: string
+          enum:
+            - none
+            - low
+            - high
+        usage:
+          type: number
+          format: float
+          description: >
+            Latest snapshot of the usage metric for the given feature.
+          minimum: 0.0
+          maximum: 100.0
+        wpt:
+          type: object
+          properties:
+            stable:
+              type: object
+              description: >
+                Contains snapshot of the stable WPT data. The keys for the
+                object comes from the different cases in
+                https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
+              additionalProperties:
+                $ref: '#/components/schemas/WPTFeatureData'
+            experimental:
+              type: object
+              description: >
+                Contains snapshot of the experimental WPT data. The keys for the
+                object comes from the different cases in
+                https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
+              additionalProperties:
+                $ref: '#/components/schemas/WPTFeatureData'
       required:
         - feature_id
         - name
+        - baseline_status
     BasicErrorModel:
       type: object
       required:
