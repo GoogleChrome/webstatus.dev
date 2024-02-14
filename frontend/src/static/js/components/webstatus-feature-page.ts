@@ -14,48 +14,48 @@
  * limitations under the License.
  */
 
-import { consume } from '@lit/context'
-import { Task } from '@lit/task'
-import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement, state } from 'lit/decorators.js'
-import { type components } from 'webstatus.dev-backend'
+import {consume} from '@lit/context';
+import {Task} from '@lit/task';
+import {LitElement, type TemplateResult, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
+import {type components} from 'webstatus.dev-backend';
 
-import { type APIClient } from '../api/client.js'
-import { apiClientContext } from '../contexts/api-client-context.js'
+import {type APIClient} from '../api/client.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
-  _loadingTask: Task
+  _loadingTask: Task;
 
-  @consume({ context: apiClientContext })
+  @consume({context: apiClientContext})
   @state()
-  apiClient!: APIClient
-
-  @state()
-  feature?: components['schemas']['Feature'] | undefined
+  apiClient!: APIClient;
 
   @state()
-  featureId!: string
+  feature?: components['schemas']['Feature'] | undefined;
 
-  location!: { params: { featureId: string } } // Set by router.
+  @state()
+  featureId!: string;
+
+  location!: {params: {featureId: string}}; // Set by router.
 
   constructor() {
-    super()
+    super();
     this._loadingTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
-      task: async ([apiClient, featureId], _unusedOptions) => {
+      task: async ([apiClient, featureId]) => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
-          this.feature = await apiClient.getFeature(featureId)
+          this.feature = await apiClient.getFeature(featureId);
         }
-        return this.feature
-      }
-    })
+        return this.feature;
+      },
+    });
   }
 
   async firstUpdated(): Promise<void> {
     // TODO(jrobbins): Use routerContext instead of this.location so that
     // nested components could also access the router.
-    this.featureId = this.location.params.featureId
+    this.featureId = this.location.params.featureId;
   }
 
   render(): TemplateResult | undefined {
@@ -63,28 +63,28 @@ export class FeaturePage extends LitElement {
       complete: () => this.renderWhenComplete(),
       error: () => this.renderWhenError(),
       initial: () => this.renderWhenInitial(),
-      pending: () => this.renderWhenPending()
-    })
+      pending: () => this.renderWhenPending(),
+    });
   }
 
   renderWhenComplete(): TemplateResult {
     return html`
       <h1>${this.feature?.name}</h1>
-      spec size: ${this.feature?.spec != null ? this.feature.spec.length : 0}
+      spec size: ${this.feature?.spec !== null ? this.feature!.spec!.length : 0}
       <br />
       Specs:
-    `
+    `;
   }
 
   renderWhenError(): TemplateResult {
-    return html`Error when loading feature ${this.featureId}.`
+    return html`Error when loading feature ${this.featureId}.`;
   }
 
   renderWhenInitial(): TemplateResult {
-    return html`Preparing request for ${this.featureId}.`
+    return html`Preparing request for ${this.featureId}.`;
   }
 
   renderWhenPending(): TemplateResult {
-    return html`Loading ${this.featureId}.`
+    return html`Loading ${this.featureId}.`;
   }
 }

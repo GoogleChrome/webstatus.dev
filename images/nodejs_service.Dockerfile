@@ -23,7 +23,7 @@ COPY package-lock.json package-lock.json
 COPY ${service_dir}/package.json ${service_dir}/package.json
 COPY lib/gen/openapi/ lib/gen/openapi/
 WORKDIR /work/${service_dir}
-RUN npm install --ignore-scripts
+RUN npm install --ignore-scripts --include-workspace-root=true
 COPY ${service_dir}/ /work/${service_dir}/
 RUN npm run postinstall || true
 RUN npm run build

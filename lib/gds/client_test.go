@@ -15,15 +15,17 @@
 package gds
 
 import (
+	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
-	"slices"
+	"reflect"
 	"testing"
+	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"cloud.google.com/go/datastore"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -60,7 +62,7 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 	db := ""
 	dbPtr := &db
 	os.Setenv("DATASTORE_EMULATOR_HOST", fmt.Sprintf("localhost:%s", mappedPort.Port()))
-	dsClient, err := NewWebFeatureClient(testDatastoreProject, dbPtr)
+	dsClient, err := NewDatastoreClient(testDatastoreProject, dbPtr)
 	if err != nil {
 		if unsetErr := os.Unsetenv("DATASTORE_EMULATOR_HOST"); unsetErr != nil {
 			t.Errorf("failed to unset env. %s", unsetErr.Error())
@@ -87,44 +89,202 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 	}
 }
 
-// nolint: exhaustruct // No need to use every option of 3rd party struct.
-func TestUpsert(t *testing.T) {
+const sampleKey = "SampleData"
+
+type TestSample struct {
+	Name      string    `datastore:"name"`
+	Value     *int      `datastore:"value"`
+	CreatedAt time.Time `datastore:"created_at"`
+}
+
+type nameFilter struct {
+	name string
+}
+
+func (f nameFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.FilterField("name", "=", f.name)
+}
+
+type sortSampleFilter struct {
+}
+
+func (f sortSampleFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.Order("-created_at")
+}
+
+type limitSampleFilter struct {
+	size int
+}
+
+func (f limitSampleFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.Limit(f.size)
+}
+
+// testSampleMerge implements Mergeable for TestSample.
+type testSampleMerge struct{}
+
+func (m testSampleMerge) Merge(existing *TestSample, new *TestSample) *TestSample {
+	return &TestSample{
+		Value: cmp.Or[*int](new.Value, existing.Value),
+		// The below fields cannot be overridden during a merge.
+		Name:      existing.Name,
+		CreatedAt: existing.CreatedAt,
+	}
+}
+
+func intPtr(in int) *int {
+	return &in
+}
+
+// nolint: gochecknoglobals
+var testSamples = []TestSample{
+	{
+		Name:      "a",
+		Value:     intPtr(0),
+		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+	{
+		Name:      "b",
+		Value:     intPtr(1),
+		CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+	{
+		Name:      "c",
+		Value:     intPtr(2),
+		CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+	{
+		Name:      "d",
+		Value:     intPtr(3),
+		CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
+	},
+}
+
+func insertEntities(
+	ctx context.Context,
+	t *testing.T,
+	c entityClient[TestSample]) {
+	for i := range testSamples {
+		err := c.upsert(ctx, sampleKey, &testSamples[i], testSampleMerge{}, nameFilter{name: testSamples[i].Name})
+		if err != nil {
+			t.Fatalf("failed to insert entities. %s", err.Error())
+		}
+	}
+}
+
+func TestEntityClientOperations(t *testing.T) {
 	ctx := context.Background()
 	client, cleanup := getTestDatabase(ctx, t)
 	defer cleanup()
-
-	// Part 1. Try to insert the first version
-	err := client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{
-		Name: "version-1-name",
-	})
+	c := entityClient[TestSample]{client}
+	// Step 1. Make sure the entity is not there yet.
+	// Step 1a. Do Get
+	entity, err := c.get(ctx, sampleKey, nameFilter{name: "a"})
+	if entity != nil {
+		t.Error("expected no entity")
+	}
+	if !errors.Is(err, ErrEntityNotFound) {
+		t.Error("expected ErrEntityNotFound")
+	}
+	// Step 1b. Do List
+	pageEmpty, nextPageToken, err := c.list(ctx, sampleKey, nil)
 	if err != nil {
-		t.Errorf("failed to upsert %s", err.Error())
+		t.Errorf("list query failed. %s", err.Error())
 	}
-	features, err := client.List(ctx)
+	if nextPageToken == nil {
+		t.Error("expected next page token")
+	}
+	if pageEmpty != nil {
+		t.Error("expected empty page")
+	}
+	// Step 2. Insert the entities
+	insertEntities(ctx, t, c)
+	// Step 3. Get the entity
+	entity, err = c.get(ctx, sampleKey, nameFilter{name: "a"})
 	if err != nil {
-		t.Errorf("failed to list %s", err.Error())
+		t.Errorf("expected error %s", err.Error())
 	}
-
-	expectedFeatures := []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-1-name"}}
-	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
-		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
+	if entity == nil {
+		t.Error("expected entity")
+		t.FailNow()
 	}
-
-	// Part 2. Upsert the second version
-	err = client.Upsert(ctx, "id-1", web_platform_dx__web_features.FeatureData{
-		Name: "version-2-name",
-	})
+	if !reflect.DeepEqual(*entity, TestSample{
+		Name:      "a",
+		Value:     intPtr(0),
+		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}) {
+		t.Errorf("values not equal. received %+v", *entity)
+	}
+	// Step 4. Upsert the entity
+	entity.Value = intPtr(200)
+	// CreatedAt should not update due to the Mergeable policy
+	entity.CreatedAt = time.Date(3000, time.March, 1, 0, 0, 0, 0, time.UTC)
+	err = c.upsert(ctx, sampleKey, entity, testSampleMerge{}, nameFilter{name: "a"})
 	if err != nil {
-		t.Errorf("failed to upsert again %s", err.Error())
+		t.Errorf("upsert failed %s", err.Error())
 	}
-
-	features, err = client.List(ctx)
+	// Step 5. Get the updated entity
+	entity, err = c.get(ctx, sampleKey, nameFilter{name: "a"})
 	if err != nil {
-		t.Errorf("failed to list %s", err.Error())
+		t.Errorf("expected error %s", err.Error())
 	}
-
-	expectedFeatures = []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-2-name"}}
-	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
-		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
+	if entity == nil {
+		t.Error("expected entity")
+		t.FailNow()
+	}
+	if !reflect.DeepEqual(*entity, TestSample{
+		Name:      "a",
+		Value:     intPtr(200),
+		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+	}) {
+		t.Errorf("values not equal. received %+v", *entity)
+	}
+	// Step 6. List the entities
+	// Step 6a. Get first page
+	filters := []Filterable{sortSampleFilter{}, limitSampleFilter{size: 2}}
+	pageOne, nextPageToken, err := c.list(ctx, sampleKey, nil, filters...)
+	if err != nil {
+		t.Errorf("page one query failed. %s", err.Error())
+	}
+	if nextPageToken == nil {
+		t.Error("expected next page token")
+	}
+	expectedPageOne := []*TestSample{
+		{
+			Name:      "d",
+			Value:     intPtr(3),
+			CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Name:      "c",
+			Value:     intPtr(2),
+			CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	if !reflect.DeepEqual(pageOne, expectedPageOne) {
+		t.Error("values not equal")
+	}
+	// Step 6b. Get second page
+	pageTwo, nextPageToken, err := c.list(ctx, sampleKey, nextPageToken, filters...)
+	if err != nil {
+		t.Errorf("page two query failed. %s", err.Error())
+	}
+	if nextPageToken == nil {
+		t.Error("expected next page token")
+	}
+	expectedPageTwo := []*TestSample{
+		{
+			Name:      "a",
+			Value:     intPtr(200),
+			CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			Name:      "b",
+			Value:     intPtr(1),
+			CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+	if !reflect.DeepEqual(pageTwo, expectedPageTwo) {
+		t.Error("values not equal")
 	}
 }

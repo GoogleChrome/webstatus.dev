@@ -17,11 +17,8 @@ env:
   es2021: true
 parser: '@typescript-eslint/parser'
 extends:
-  - standard-with-typescript
-  - eslint:recommended
-  - plugin:@typescript-eslint/recommended
+  - ../node_modules/gts/
   - plugin:lit/recommended
-  - plugin:perfectionist/recommended-natural
 plugins:
   - '@typescript-eslint'
 parserOptions:
@@ -29,11 +26,12 @@ parserOptions:
   sourceType: module
 # Ignore eslint formatting rules and allow prettier to handle those
 # https://prettier.io/docs/en/comparison
-rules:
-  {
+rules: {
     'indent': 'off',
     '@typescript-eslint/indent': 'off',
-    '@typescript-eslint/space-before-function-paren': 'off'
+    '@typescript-eslint/space-before-function-paren': 'off',
+    # For @open-wc/testing
+    'node/no-unpublished-import': ['off'],
   }
 root: true
 ignorePatterns:

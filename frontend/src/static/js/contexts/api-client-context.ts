@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { createContext } from '@lit/context'
+import {createContext} from '@lit/context';
 
-import type { APIClient } from '../api/client.js'
-export type { APIClient } from '../api/client.js'
+import type {APIClient} from '../api/client.js';
+export type {APIClient} from '../api/client.js';
 
-export const apiClientContext = createContext<APIClient>('api-client')
+export const apiClientContext = createContext<APIClient>('api-client');

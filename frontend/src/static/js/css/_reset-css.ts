@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import { css } from 'lit'
+import {css} from 'lit';
 
 export const RESET = css`
   html,
@@ -127,4 +127,4 @@ export const RESET = css`
   a img {
     border: none;
   }
-`
+`;

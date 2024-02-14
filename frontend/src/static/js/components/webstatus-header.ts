@@ -19,14 +19,13 @@ import {
   LitElement,
   type TemplateResult,
   css,
-  html
-} from 'lit'
-import { customElement } from 'lit/decorators.js'
+  html,
+} from 'lit';
+import {customElement} from 'lit/decorators.js';
 
-import { SHARED_STYLES } from '../css/shared-css.js'
-import { DRAWER_WIDTH_PX, IS_MOBILE } from './utils.js'
-import './webstatus-login.js'
-
+import { SHARED_STYLES } from '../css/shared-css.js';
+import { DRAWER_WIDTH_PX, IS_MOBILE } from './utils.js';
+import './webstatus-login.js';
 
 
 @customElement('webstatus-header')
@@ -90,8 +89,8 @@ export class WebstatusHeader extends LitElement {
           margin-bottom: auto;
           margin-right: 1em;
         }
-      `
-    ]
+      `,
+    ];
   }
 
   _fireEvent(eventName: string, detail: CustomEventInit | undefined): void {
@@ -132,7 +131,7 @@ export class WebstatusHeader extends LitElement {
           <webstatus-login></webstatus-login>
         </div>
       </header>
-    `
+    `;
   }
 
   renderDrawer(): TemplateResult {

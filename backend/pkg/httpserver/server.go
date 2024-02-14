@@ -28,8 +28,8 @@ import (
 )
 
 type WebFeatureMetadataStorer interface {
-	List(ctx context.Context) ([]backend.Feature, error)
-	Get(ctx context.Context, featureID string) (*backend.Feature, error)
+	ListWebFeatureData(ctx context.Context, nextPageToken *string) ([]backend.Feature, *string, error)
+	GetWebFeatureData(ctx context.Context, featureID string) (*backend.Feature, error)
 }
 
 type Server struct {
@@ -42,7 +42,7 @@ func (s *Server) GetV1FeaturesFeatureId(
 	ctx context.Context,
 	request backend.GetV1FeaturesFeatureIdRequestObject,
 ) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
-	feature, err := s.metadataStorer.Get(ctx, request.FeatureId)
+	feature, err := s.metadataStorer.GetWebFeatureData(ctx, request.FeatureId)
 	if err != nil {
 		slog.Error("unable to get feature", "error", err)
 
@@ -61,7 +61,8 @@ func (s *Server) GetV1Features(
 	ctx context.Context,
 	_ backend.GetV1FeaturesRequestObject,
 ) (backend.GetV1FeaturesResponseObject, error) {
-	featureData, err := s.metadataStorer.List(ctx)
+	// TODO. Pass next page token.
+	featureData, _, err := s.metadataStorer.ListWebFeatureData(ctx, nil)
 	if err != nil {
 		// TODO check error type
 		slog.Error("unable to get list of features", "error", err)

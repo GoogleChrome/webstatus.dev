@@ -19,9 +19,9 @@ import {
   LitElement,
   type TemplateResult,
   css,
-  html
-} from 'lit'
-import { customElement } from 'lit/decorators.js'
+  html,
+} from 'lit';
+import {customElement} from 'lit/decorators.js';
 
 @customElement('webstatus-overview-sidebar-menu')
 export class WebstatusOverviewSidebarMenu extends LitElement {
@@ -33,8 +33,8 @@ export class WebstatusOverviewSidebarMenu extends LitElement {
           font-size: 24px;
           vertical-align: middle;
         }
-      `
-    ]
+      `,
+    ];
   }
 
   firstUpdated(): void {
@@ -71,6 +71,6 @@ export class WebstatusOverviewSidebarMenu extends LitElement {
           <sl-icon name="info-circle"></sl-icon> About
         </sl-tree-item>
       </sl-tree>
-    `
+    `;
   }
 }

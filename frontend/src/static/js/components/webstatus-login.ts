@@ -14,35 +14,35 @@
  * limitations under the License.
  */
 
-import { consume } from '@lit/context'
-import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement, property, query, state } from 'lit/decorators.js'
+import {consume} from '@lit/context';
+import {LitElement, type TemplateResult, html} from 'lit';
+import {customElement, property, query, state} from 'lit/decorators.js';
 
-import { LoadingState } from '../../../common/loading-state.js'
+import {LoadingState} from '../../../common/loading-state.js';
 import {
   type AppSettings,
-  appSettingsContext
-} from '../contexts/settings-context.js'
+  appSettingsContext,
+} from '../contexts/settings-context.js';
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
-  @consume({ context: appSettingsContext })
-  appSettings?: AppSettings
+  @consume({context: appSettingsContext})
+  appSettings?: AppSettings;
 
   @query('#login-container')
   @state()
-  protected container?: HTMLElement | null
+  protected container?: HTMLElement | null;
 
-  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED
+  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED;
 
   @property()
-  public declare redirectTo: null | string
+  public declare redirectTo: null | string;
 
-  protected scriptInserted: boolean = false
+  protected scriptInserted: boolean = false;
 
   constructor() {
-    super()
-    this.redirectTo = ''
+    super();
+    this.redirectTo = '';
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -56,17 +56,17 @@ export class WebstatusLogin extends LitElement {
       () => {},
       // TODO. Failure case
       () => {}
-    )
+    );
   }
 
   initializeLibrary(): void {
     if (
       this.libraryLoaded === LoadingState.COMPLETE ||
       this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
-      this.appSettings == null ||
-      this.container == null
+      this.appSettings === null ||
+      this.container === null
     ) {
-      return
+      return;
     }
 
     // @ts-expect-error TODO: figure out how to import nested namespace
@@ -80,53 +80,53 @@ export class WebstatusLogin extends LitElement {
           () => {
             // TODO. Handle the error case
           }
-        )
+        );
       },
-      client_id: this.appSettings?.gsiClientId
-    })
+      client_id: this.appSettings?.gsiClientId,
+    });
 
     // @ts-expect-error TODO: figure out how to import nested namespace
     google.accounts.id.renderButton(
       this.container,
-      { size: 'large', theme: 'outline', type: 'standard' } // customization attributes
-    )
+      {size: 'large', theme: 'outline', type: 'standard'} // customization attributes
+    );
     // @ts-expect-error TODO: figure out how to import nested namespace
-    google.accounts.id.prompt() // also display the One Tap dialog
+    google.accounts.id.prompt(); // also display the One Tap dialog
 
-    this.libraryLoaded = LoadingState.COMPLETE
+    this.libraryLoaded = LoadingState.COMPLETE;
   }
 
   async loadScript(): Promise<void> {
     if (this.scriptInserted) {
-      return
+      return;
     }
 
     // Load the script.
-    const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
-    document.head.appendChild(script)
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    document.head.appendChild(script);
 
-    this.scriptInserted = true
+    this.scriptInserted = true;
 
-    const promise = new Promise<void>((resolve) => {
+    const promise = new Promise<void>(resolve => {
       script.addEventListener('load', () => {
-        resolve()
-      })
-    })
+        resolve();
+      });
+    });
 
     // When the script is loaded, request an update.
     await promise.then(() => {
-      this.scriptLoaded()
-      this.requestUpdate()
-    })
+      this.scriptLoaded();
+      this.requestUpdate();
+    });
   }
 
   render(): TemplateResult {
-    return html` <div id="login-container"></div> `
+    return html` <div id="login-container"></div> `;
   }
 
   // TODO: remove eslint exemption when token handling is complete.
   scriptLoaded(): void {
-    this.initializeLibrary()
+    this.initializeLibrary();
   }
 }

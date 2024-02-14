@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { LitElement, type TemplateResult, css, html } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import {LitElement, type TemplateResult, css, html} from 'lit';
+import {customElement} from 'lit/decorators.js';
 
-import './webstatus-overview-table.js'
+import './webstatus-overview-table.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -25,7 +25,7 @@ export class WebstatusOverviewContent extends LitElement {
     .stats-summary {
       color: #6c7381;
     }
-  `
+  `;
 
   render(): TemplateResult {
     return html`
@@ -61,6 +61,6 @@ export class WebstatusOverviewContent extends LitElement {
         <webstatus-overview-table></webstatus-overview-table>
         <button>Modify Columns</button>
       </div>
-    `
+    `;
   }
 }
