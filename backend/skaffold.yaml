@@ -18,6 +18,7 @@ metadata:
   name: backend-config
 requires:
   - path: ../.dev/datastore
+  - path: ../.dev/redis
   - path: ../.dev/spanner
 profiles:
   - name: local
