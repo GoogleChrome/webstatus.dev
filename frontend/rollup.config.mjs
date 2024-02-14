@@ -19,6 +19,8 @@ import terser from '@rollup/plugin-terser';
 import copy from 'rollup-plugin-copy';
 import css from 'rollup-plugin-css-only';
 
+const isLocalEnv = process.env.BUILD_ENV === 'local';
+
 export default [
   {
     input: 'build/static/js/index.js',
@@ -55,6 +57,7 @@ export default [
     ],
     output: {
       dir: 'dist/static/public',
+      sourcemap: isLocalEnv,
       entryFileNames: 'js/[name].js',
     },
     onwarn: warning => {

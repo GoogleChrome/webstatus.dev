@@ -18,6 +18,8 @@ FROM base as builder
 
 WORKDIR /work
 ARG service_dir
+ARG build_env
+ENV BUILD_ENV ${build_env}
 COPY package.json package.json
 COPY package-lock.json package-lock.json
 COPY ${service_dir}/package.json ${service_dir}/package.json
