@@ -15,12 +15,19 @@
  */
 
 import {LitElement, type TemplateResult, css, html} from 'lit';
-import {customElement} from 'lit/decorators.js';
+import {customElement, state} from 'lit/decorators.js';
+import {type components} from 'webstatus.dev-backend';
+import {getSearchQuery} from '../utils/urls.js';
 
 import './webstatus-overview-table.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
+  @state()
+  features: Array<components['schemas']['Feature']> = [];
+
+  location!: {search: string}; // Set by parent.
+
   static styles = css`
     .stats-summary {
       color: #6c7381;
@@ -28,15 +35,17 @@ export class WebstatusOverviewContent extends LitElement {
   `;
 
   render(): TemplateResult {
+    const numFeatures = this.features.length;
+    const query = getSearchQuery(this.location);
     return html`
       <div class="main">
         <h2>Features overview</h2>
         <span class="stats-summary">
           <sl-icon library="phosphor" name="list-magnifying-glass"></sl-icon>
-          1433 features</span
+          ${numFeatures} features</span
         >
 
-        <sl-input placeholder="Filter by feature name...">
+        <sl-input placeholder="Filter by feature name..." value=${query}>
           <sl-icon name="search" slot="prefix"></sl-icon>
         </sl-input>
         <sl-button
@@ -58,7 +67,10 @@ export class WebstatusOverviewContent extends LitElement {
           </select>
         </div>
 
-        <webstatus-overview-table></webstatus-overview-table>
+        <webstatus-overview-table
+          .location=${this.location}
+          .features=${this.features}>
+        </webstatus-overview-table>
         <button>Modify Columns</button>
       </div>
     `;

@@ -16,11 +16,12 @@
 
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
-import {LitElement, type TemplateResult, html} from 'lit';
+import {LitElement, type TemplateResult, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {type APIClient} from '../api/client.js';
+import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 
 @customElement('webstatus-feature-page')
@@ -37,7 +38,16 @@ export class FeaturePage extends LitElement {
   @state()
   featureId!: string;
 
-  location!: {params: {featureId: string}}; // Set by router.
+  location!: {params: {featureId: string}, search: string}; // Set by router.
+
+  static styles = css`
+    .crumbs {
+      color: #aaa;
+    }
+    .crumbs a {
+      text-decoration: none;
+    }
+  `;
 
   constructor() {
     super();
@@ -67,10 +77,23 @@ export class FeaturePage extends LitElement {
     });
   }
 
+    renderCrumbs(): TemplateResult {
+    const overviewUrl = formatOverviewPageUrl(this.location);
+    const canonicalFeatureUrl = formatFeaturePageUrl(this.feature!);
+    return html`
+      <div class="crumbs">
+        <a href=${overviewUrl}>Feature overview</a>
+        &rsaquo;
+        <a href=${canonicalFeatureUrl}>${this.feature!.name}</a>
+      </div>
+    `;
+  }
+
   renderWhenComplete(): TemplateResult {
     return html`
-      <h1>${this.feature?.name}</h1>
-      spec size: ${this.feature?.spec !== null ? this.feature!.spec!.length : 0}
+      ${this.renderCrumbs()}
+      <h1>${this.feature!.name}</h1>
+      spec size: ${this.feature!.spec?.length || 0}
       <br />
       Specs:
     `;
