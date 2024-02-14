@@ -28,7 +28,7 @@ import (
 )
 
 type WebFeatureMetadataStorer interface {
-	ListWebFeataureData(ctx context.Context, nextPageToken *string) ([]backend.Feature, *string, error)
+	ListWebFeatureData(ctx context.Context, nextPageToken *string) ([]backend.Feature, *string, error)
 	GetWebFeatureData(ctx context.Context, featureID string) (*backend.Feature, error)
 }
 
@@ -62,7 +62,7 @@ func (s *Server) GetV1Features(
 	_ backend.GetV1FeaturesRequestObject,
 ) (backend.GetV1FeaturesResponseObject, error) {
 	// TODO. Pass next page token.
-	featureData, _, err := s.metadataStorer.ListWebFeataureData(ctx, nil)
+	featureData, _, err := s.metadataStorer.ListWebFeatureData(ctx, nil)
 	if err != nil {
 		// TODO check error type
 		slog.Error("unable to get list of features", "error", err)

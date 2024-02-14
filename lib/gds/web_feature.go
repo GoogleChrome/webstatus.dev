@@ -76,8 +76,8 @@ func (c *Client) UpsertFeatureData(
 	)
 }
 
-// ListWebFeataureData lists web features data.
-func (c *Client) ListWebFeataureData(ctx context.Context, pageToken *string) ([]backend.Feature, *string, error) {
+// ListWebFeatureData lists web features data.
+func (c *Client) ListWebFeatureData(ctx context.Context, pageToken *string) ([]backend.Feature, *string, error) {
 	entityClient := entityClient[FeatureData]{c}
 	featureData, nextPageToken, err := entityClient.list(ctx, featureDataKey, pageToken)
 	if err != nil {

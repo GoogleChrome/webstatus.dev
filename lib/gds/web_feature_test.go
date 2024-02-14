@@ -36,7 +36,7 @@ func TestFeatureDataOperations(t *testing.T) {
 	if err != nil {
 		t.Errorf("failed to upsert %s", err.Error())
 	}
-	features, _, err := client.ListWebFeataureData(ctx, nil)
+	features, _, err := client.ListWebFeatureData(ctx, nil)
 	if err != nil {
 		t.Errorf("failed to list %s", err.Error())
 	}
@@ -54,7 +54,7 @@ func TestFeatureDataOperations(t *testing.T) {
 		t.Errorf("failed to upsert again %s", err.Error())
 	}
 
-	features, _, err = client.ListWebFeataureData(ctx, nil)
+	features, _, err = client.ListWebFeatureData(ctx, nil)
 	if err != nil {
 		t.Errorf("failed to list %s", err.Error())
 	}
