@@ -77,7 +77,7 @@ export class FeaturePage extends LitElement {
     });
   }
 
-    renderCrumbs(): TemplateResult {
+  renderCrumbs(): TemplateResult {
     const overviewUrl = formatOverviewPageUrl(this.location);
     const canonicalFeatureUrl = formatFeaturePageUrl(this.feature!);
     return html`
