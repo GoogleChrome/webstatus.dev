@@ -39,12 +39,12 @@ export class WebstatusOverviewSidebarMenu extends LitElement {
 
   firstUpdated(): void {
     // Handle click on features-item
-    const featuresItem = this.shadowRoot?.querySelector('#features-item')
-    featuresItem?.addEventListener('click', (_event) => {
+    const featuresItem = this.shadowRoot?.querySelector('#features-item');
+    featuresItem?.addEventListener('click', () => {
       // Visit Featurs overview page
       // console.info('clicked on features-item')
       // window.location.href = '/features'
-    })
+    });
   }
 
   render(): TemplateResult {

@@ -23,10 +23,9 @@ import {
 } from 'lit';
 import {customElement} from 'lit/decorators.js';
 
-import { SHARED_STYLES } from '../css/shared-css.js';
-import { DRAWER_WIDTH_PX, IS_MOBILE } from './utils.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
+import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
 import './webstatus-login.js';
-
 
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
@@ -94,17 +93,17 @@ export class WebstatusHeader extends LitElement {
   }
 
   _fireEvent(eventName: string, detail: CustomEventInit | undefined): void {
-    console.info(`Firing event: ${eventName}`)
+    console.info(`Firing event: ${eventName}`);
     const event = new CustomEvent(eventName, {
       bubbles: true,
       composed: true,
-      detail
-    })
-    this.dispatchEvent(event)
+      detail,
+    });
+    this.dispatchEvent(event);
   }
 
   handleDrawer(): void {
-    this._fireEvent('drawer-clicked', {})
+    this._fireEvent('drawer-clicked', {});
   }
 
   render(): TemplateResult {
@@ -149,9 +148,9 @@ export class WebstatusHeader extends LitElement {
           >
           <webstatus-overview-sidebar></webstatus-overview-sidebar>
         </sl-drawer>
-      `
+      `;
     } else {
-      return html``
+      return html``;
     }
   }
 
@@ -167,18 +166,18 @@ export class WebstatusHeader extends LitElement {
           name="list"
         >
         </sl-icon-button>
-      `
+      `;
     } else {
-      return html``
+      return html``;
     }
   }
 
   toggleDrawer(): void {
-    const drawer = this.shadowRoot?.querySelector('sl-drawer')
+    const drawer = this.shadowRoot?.querySelector('sl-drawer');
     if (drawer?.open === true) {
-      void drawer.hide()
+      void drawer.hide();
     } else {
-      if (drawer != null) void drawer.show()
+      if (drawer !== null && drawer !== undefined) void drawer?.show();
     }
   }
 }
