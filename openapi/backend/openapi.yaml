@@ -112,7 +112,54 @@ paths:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
 
+  /v1/features/{feature_id}/metrics/wpt/test-metrics/browser/{browser_name}/channel/{channel_name}:
+    parameters:
+      - name: feature_id
+        in: path
+        description: Feature ID
+        required: true
+        schema:
+          type: string
+      - name: browser_name
+        in: path
+        description: Browser name
+        required: true
+        schema:
+          type: string
+          enum:
+            - chrome
+            - firefox
+            - safari
+      - name: channel_name
+        in: path
+        description: Channel name
+        required: true
+        schema:
+          type: string
+          enum:
+            - stable
+            - experimental
+    get:
+      operationId: v1ListFeatureMetricsByBrowserAndChannel
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+      summary: List WPT metrics for a particular browser and channel
+      responses:
+        '200':
+          description: OK
+          headers:
+            X-Next-Page-Token:
+              $ref: '#/components/headers/X-Next-Page-Token'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WPTRunFeatureMetricPage'
 components:
+  headers:
+    X-Next-Page-Token:
+      description: 'Opaque string for the next set of results'
+      schema:
+        type: string
   parameters:
     paginationTokenParam:
       in: query
@@ -138,6 +185,86 @@ components:
         score:
           type: number
           format: float
+    WPTRunFeatureMetricPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WPTRunFeatureMetric'
+      required:
+        - data
+    WPTRunFeatureMetric:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/WPTRunMetadata'
+        test_measurement:
+          $ref: '#/components/schemas/WPTRunTestMeasurement'
+        feature:
+          type: string
+      required:
+        - metadata
+        - feature
+    WPTRunMetric:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/WPTRunMetadata'
+        test_measurement:
+          $ref: '#/components/schemas/WPTRunTestMeasurement'
+      required:
+        - metadata
+    WPTRunTestMeasurement:
+      type: object
+      properties:
+        total_tests:
+          description: Total number of tests in this measurement.
+          type: number
+        passing_tests:
+          description: Number of passing tests in this measurement.
+          type: number
+      required:
+        - total_tests
+        - passing_tests
+    WPTRunMetadata:
+      type: object
+      properties:
+        run_id:
+          type: number
+          description: The identifier of the run in WPT.
+        time_start:
+          type: string
+          description: The start time of the run. (RFC3339 date-time format)
+          format: date-time
+        time_end:
+          type: string
+          description: The end time of the run. (RFC3339 date-time format)
+          format: date-time
+        browser_name:
+          type: string
+          description: The browser name
+        browser_version:
+          type: string
+          description: The browser version
+        channel:
+          type: string
+          description: The channel of the browser. (e.g. stable, experimental)
+        os_name:
+          type: string
+          description: The OS name
+        os_version:
+          type: string
+          description: The OS version
+      required:
+        - run_id
+        - time_start
+        - time_end
+        - browser_name
+        - browser_version
+        - channel
+        - os_name
+        - os_version
     PageMetadata:
       type: object
       properties:

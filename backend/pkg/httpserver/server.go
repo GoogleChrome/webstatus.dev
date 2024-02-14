@@ -36,6 +36,11 @@ type Server struct {
 	metadataStorer WebFeatureMetadataStorer
 }
 
+// V1ListFeatureMetricsByBrowserAndChannel implements backend.StrictServerInterface.
+func (*Server) V1ListFeatureMetricsByBrowserAndChannel(ctx context.Context, request backend.V1ListFeatureMetricsByBrowserAndChannelRequestObject) (backend.V1ListFeatureMetricsByBrowserAndChannelResponseObject, error) {
+	panic("unimplemented")
+}
+
 // GetV1FeaturesFeatureId implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
 func (s *Server) GetV1FeaturesFeatureId(
