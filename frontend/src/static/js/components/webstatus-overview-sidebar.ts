@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-import { LitElement, type TemplateResult, css, html } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import {LitElement, type TemplateResult, css, html} from 'lit';
+import {customElement} from 'lit/decorators.js';
 
-import './webstatus-overview-sidebar-menu.js'
+import './webstatus-overview-sidebar-menu.js';
 
 @customElement('webstatus-overview-sidebar')
 export class WebstatusOverviewSidebar extends LitElement {
@@ -46,7 +46,7 @@ export class WebstatusOverviewSidebar extends LitElement {
     #theme-selector > sl-select > sl-icon {
       margin-inline-end: 8px;
     }
-  `
+  `;
 
   render(): TemplateResult {
     return html`
@@ -80,6 +80,6 @@ export class WebstatusOverviewSidebar extends LitElement {
           </sl-tree>
         </div>
       </div>
-    `
+    `;
   }
 }

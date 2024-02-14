@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import { test, expect } from '@playwright/test'
+import {test, expect} from '@playwright/test';
 
-test('matches the screenshot', async ({ page }) => {
-  await page.goto('http://localhost:5555/')
+test('matches the screenshot', async ({page}) => {
+  await page.goto('http://localhost:5555/');
 
   await expect(page).toHaveScreenshot({
     // Temporarily allow a higher diff ratio as these tests become more stable
-    maxDiffPixelRatio: 0.05
-  })
-})
+    maxDiffPixelRatio: 0.05,
+  });
+});

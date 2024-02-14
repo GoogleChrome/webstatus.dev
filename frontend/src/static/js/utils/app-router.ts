@@ -14,26 +14,26 @@
  * limitations under the License.
  */
 
-import { Router } from '@vaadin/router'
+import {Router} from '@vaadin/router';
 
-import '../components/webstatus-overview-page.js'
-import '../components/webstatus-feature-page.js'
+import '../components/webstatus-overview-page.js';
+import '../components/webstatus-feature-page.js';
 
 export const initRouter = async (element: HTMLElement): Promise<Router> => {
-  const router = new Router(element)
+  const router = new Router(element);
   await router.setRoutes([
     {
       component: 'webstatus-overview-page',
-      path: '/'
+      path: '/',
     },
     {
       component: 'webstatus-feature-page',
-      path: '/features/:featureId'
+      path: '/features/:featureId',
     },
     {
       path: '(.*)',
-      redirect: '/'
-    }
-  ])
-  return router
-}
+      redirect: '/',
+    },
+  ]);
+  return router;
+};

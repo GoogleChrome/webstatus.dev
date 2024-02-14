@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import { LitElement, type TemplateResult, css, html } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import {LitElement, type TemplateResult, css, html} from 'lit';
+import {customElement} from 'lit/decorators.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -25,7 +25,7 @@ export class WebstatusOverviewTable extends LitElement {
     th {
       text-align: left;
     }
-  `
+  `;
 
   render(): TemplateResult {
     return html`
@@ -67,6 +67,6 @@ export class WebstatusOverviewTable extends LitElement {
           </tr>
         </tbody>
       </table>
-    `
+    `;
   }
 }

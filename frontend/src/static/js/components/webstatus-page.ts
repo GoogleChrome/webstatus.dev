@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement } from 'lit/decorators.js'
+import {LitElement, type TemplateResult, html} from 'lit';
+import {customElement} from 'lit/decorators.js';
 
 @customElement('webstatus-page')
 export class WebstatusPage extends LitElement {
   protected render(): TemplateResult {
-    return html` <slot></slot> `
+    return html` <slot></slot> `;
   }
 }

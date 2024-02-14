@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { css } from 'lit'
+import {css} from 'lit';
 
-import { RESET } from './_reset-css.js'
+import {RESET} from './_reset-css.js';
 
 export const SHARED_STYLES = [
   RESET,
@@ -25,5 +25,5 @@ export const SHARED_STYLES = [
       font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
     }
-  `
-]
+  `,
+];
