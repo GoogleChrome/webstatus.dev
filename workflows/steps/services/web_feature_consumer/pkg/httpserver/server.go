@@ -35,7 +35,10 @@ type ObjectGetter interface {
 }
 
 type WebFeatureMetadataStorer interface {
-	Upsert(ctx context.Context, webFeatureID string, featureData web_platform_dx__web_features.FeatureData) error
+	UpsertFeatureData(
+		ctx context.Context,
+		webFeatureID string,
+		featureData web_platform_dx__web_features.FeatureData) error
 }
 
 type Server struct {
@@ -87,7 +90,7 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
-	err = s.metadataStorer.Upsert(ctx, webFeatureKey, featureData)
+	err = s.metadataStorer.UpsertFeatureData(ctx, webFeatureKey, featureData)
 	if err != nil {
 		slog.Error("unable to store data", "error", err)
 
