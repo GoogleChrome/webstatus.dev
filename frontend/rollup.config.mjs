@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-import path from 'path'
-import { nodeResolve } from '@rollup/plugin-node-resolve'
-import terser from '@rollup/plugin-terser'
-import copy from 'rollup-plugin-copy'
-import css from 'rollup-plugin-css-only'
+import {nodeResolve} from '@rollup/plugin-node-resolve';
+import terser from '@rollup/plugin-terser';
+import copy from 'rollup-plugin-copy';
+import css from 'rollup-plugin-css-only';
 
 export default [
   {
@@ -35,39 +34,39 @@ export default [
       terser({
         ecma: 2020,
         module: true,
-        warnings: true
+        warnings: true,
       }),
       css({
-        output: 'css/styles.css'
+        output: 'css/styles.css',
       }),
       copy({
         targets: [
           // Copy all files in img recursively.
           // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
-          { src: 'src/static/img/**', dest: 'dist/static/public/img' },
+          {src: 'src/static/img/**', dest: 'dist/static/public/img'},
           // Copy the img files
           // Currently copying img files from ./scripts/postinstall.js
-          { src: '.postinstall/static/img/*', dest: 'dist/static/public/img' },
+          {src: '.postinstall/static/img/*', dest: 'dist/static/public/img'},
           // Copy the html file
-          { src: 'src/static/index.html', dest: 'dist/static' }
+          {src: 'src/static/index.html', dest: 'dist/static'},
         ],
-        verbose: true
-      })
+        verbose: true,
+      }),
     ],
     output: {
       dir: 'dist/static/public',
-      entryFileNames: 'js/[name].js'
+      entryFileNames: 'js/[name].js',
     },
-    onwarn: (warning) => {
+    onwarn: warning => {
       if (warning.code === 'THIS_IS_UNDECLARED') {
-        return
+        return;
       }
       if (warning.code === 'THIS_IS_UNDEFINED') {
-        return
+        return;
       }
 
-      console.warn(warning.message)
+      console.warn(warning.message);
     },
-    preserveEntrySignatures: 'strict'
-  }
-]
+    preserveEntrySignatures: 'strict',
+  },
+];

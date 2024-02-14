@@ -14,34 +14,34 @@
  * limitations under the License.
  */
 
-import { ContextProvider } from '@lit/context'
-import { LitElement, type TemplateResult, html } from 'lit'
-import { customElement, property, state } from 'lit/decorators.js'
+import {ContextProvider} from '@lit/context';
+import {LitElement, type TemplateResult, html} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
 
-import { type AppSettings } from '../../../common/app-settings.js'
-import { APIClient } from '../api/client.js'
-import { apiClientContext } from '../contexts/api-client-context.js'
-import { appSettingsContext } from '../contexts/settings-context.js'
+import {type AppSettings} from '../../../common/app-settings.js';
+import {APIClient} from '../api/client.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
+import {appSettingsContext} from '../contexts/settings-context.js';
 
 @customElement('webstatus-app-settings')
 export class WebstatusAppSettings extends LitElement {
   @state()
-  apiClientProvider = new ContextProvider(this, { context: apiClientContext })
+  apiClientProvider = new ContextProvider(this, {context: apiClientContext});
 
-  @property({ type: Object })
-  appSettings!: AppSettings
+  @property({type: Object})
+  appSettings!: AppSettings;
 
   @state()
   appSettingsProvider = new ContextProvider(this, {
-    context: appSettingsContext
-  })
+    context: appSettingsContext,
+  });
 
   firstUpdated(): void {
-    this.apiClientProvider.setValue(new APIClient(this.appSettings.apiUrl))
-    this.appSettingsProvider.setValue(this.appSettings)
+    this.apiClientProvider.setValue(new APIClient(this.appSettings.apiUrl));
+    this.appSettingsProvider.setValue(this.appSettings);
   }
 
   protected render(): TemplateResult {
-    return html`<slot></slot>`
+    return html`<slot></slot>`;
   }
 }

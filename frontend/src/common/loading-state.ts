@@ -19,5 +19,5 @@ export enum LoadingState {
   NOT_STARTED,
   LOADING,
   COMPLETE,
-  COMPLETE_WITH_ERRORS
+  COMPLETE_WITH_ERRORS,
 }

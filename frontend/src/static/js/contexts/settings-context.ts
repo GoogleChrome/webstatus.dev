@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-import { createContext } from '@lit/context'
+import {createContext} from '@lit/context';
 
-import type { AppSettings } from '../../../common/app-settings.js'
-export type { AppSettings } from '../../../common/app-settings.js'
+import type {AppSettings} from '../../../common/app-settings.js';
+export type {AppSettings} from '../../../common/app-settings.js';
 
-export const appSettingsContext = createContext<AppSettings>('app-settings')
+export const appSettingsContext = createContext<AppSettings>('app-settings');
