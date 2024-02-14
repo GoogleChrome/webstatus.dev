@@ -49,7 +49,7 @@ func main() {
 	if value, found := os.LookupEnv("DATASTORE_DATABASE"); found {
 		datastoreDB = &value
 	}
-	fs, err := gds.NewWebFeatureClient(os.Getenv("PROJECT_ID"), datastoreDB)
+	fs, err := gds.NewDatastoreClient(os.Getenv("PROJECT_ID"), datastoreDB)
 	if err != nil {
 		slog.Error("failed to create datastore client", "error", err.Error())
 		os.Exit(1)

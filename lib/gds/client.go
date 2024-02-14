@@ -20,17 +20,15 @@ import (
 	"log/slog"
 
 	"cloud.google.com/go/datastore"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"google.golang.org/api/iterator"
 )
-
-const featureDataKey = "FeatureDataTest"
 
 type Client struct {
 	*datastore.Client
 }
 
-func NewWebFeatureClient(projectID string, database *string) (*Client, error) {
+// NewDatastoreClient returns a Client for the Google Datastore service.
+func NewDatastoreClient(projectID string, database *string) (*Client, error) {
 	if projectID == "" {
 		return nil, errors.New("projectID is empty")
 	}
@@ -53,28 +51,38 @@ func NewWebFeatureClient(projectID string, database *string) (*Client, error) {
 	return &Client{client}, nil
 }
 
-type FeatureData struct {
-	WebFeatureID string `datastore:"web_feature_id"`
-	Name         string `datastore:"name"`
-	id           int64  // The integer ID used in the datastore.
+// Filterable modifies a query with a given filter.
+type Filterable interface {
+	FilterQuery(*datastore.Query) *datastore.Query
 }
 
-func (f FeatureData) ID() int64 {
-	return f.id
+// entityClient is generic client that contains generic methods that can apply
+// to any entity stored in datastore.
+type entityClient[T any] struct {
+	*Client
 }
 
-func (c *Client) Upsert(
+type Mergeable[T any] interface {
+	Merge(existing *T, new *T) *T
+}
+
+func (c *entityClient[T]) upsert(
 	ctx context.Context,
-	webFeatureID string,
-	data web_platform_dx__web_features.FeatureData,
-) error {
+	kind string,
+	data *T,
+	mergeable Mergeable[T],
+	filterables ...Filterable) error {
 	// Begin a transaction.
 	_, err := c.RunInTransaction(ctx, func(tx *datastore.Transaction) error {
 		// Get the entity, if it exists.
-		var entity []FeatureData
-		query := datastore.NewQuery(featureDataKey).FilterField("web_feature_id", "=", webFeatureID).Transaction(tx)
+		var existingEntity []T
+		query := datastore.NewQuery(kind)
+		for _, filterable := range filterables {
+			query = filterable.FilterQuery(query)
+		}
+		query = query.Limit(1).Transaction(tx)
 
-		keys, err := c.GetAll(ctx, query, &entity)
+		keys, err := c.GetAll(ctx, query, &existingEntity)
 		if err != nil && !errors.Is(err, datastore.ErrNoSuchEntity) {
 			slog.Error("unable to check for existing entities", "error", err)
 
@@ -82,24 +90,19 @@ func (c *Client) Upsert(
 		}
 
 		var key *datastore.Key
-		// If the entity exists, update it.
+		// If the entity exists, merge the two entities.
 		if len(keys) > 0 {
 			key = keys[0]
-
+			data = mergeable.Merge(&existingEntity[0], data)
 		} else {
 			// If the entity does not exist, insert it.
-			key = datastore.IncompleteKey(featureDataKey, nil)
+			key = datastore.IncompleteKey(kind, nil)
 		}
 
-		// nolint: exhaustruct // id does not exist yet
-		feature := &FeatureData{
-			WebFeatureID: webFeatureID,
-			Name:         data.Name,
-		}
-		_, err = tx.Put(key, feature)
+		_, err = tx.Put(key, data)
 		if err != nil {
 			// Handle any errors in an appropriate way, such as returning them.
-			slog.Error("unable to upsert metadata", "error", err)
+			slog.Error("unable to upsert entity", "error", err)
 
 			return err
 		}
@@ -116,42 +119,63 @@ func (c *Client) Upsert(
 	return nil
 }
 
-func (c *Client) List(ctx context.Context) ([]backend.Feature, error) {
-	var featureData []*FeatureData
-	_, err := c.GetAll(ctx, datastore.NewQuery(featureDataKey), &featureData)
-	if err != nil {
-		return nil, err
-	}
-	ret := make([]backend.Feature, len(featureData))
-
-	// nolint: exhaustruct
-	// TODO. Will fix this lint error once the data is coming in.
-	for idx, val := range featureData {
-		ret[idx] = backend.Feature{
-			FeatureId: val.WebFeatureID,
-			Name:      val.Name,
-			Spec:      nil,
+func (c entityClient[T]) list(
+	ctx context.Context,
+	kind string,
+	pageToken *string,
+	filterables ...Filterable) ([]*T, *string, error) {
+	var data []*T
+	query := datastore.NewQuery(kind)
+	if pageToken != nil {
+		cursor, err := datastore.DecodeCursor(*pageToken)
+		if err != nil {
+			return nil, nil, err
 		}
+		query = query.Start(cursor)
 	}
+	for _, filterable := range filterables {
+		query = filterable.FilterQuery(query)
+	}
+	it := c.Run(ctx, query)
+	for {
+		var entity T
+		_, err := it.Next(&entity)
+		if errors.Is(err, iterator.Done) {
+			cursor, err := it.Cursor()
+			if err != nil {
+				// TODO: Handle error.
+				return nil, nil, err
+			}
+			nextToken := cursor.String()
 
-	return ret, nil
+			return data, &nextToken, nil
+		}
+		if err != nil {
+			return nil, nil, err
+		}
+		data = append(data, &entity)
+	}
 }
 
-func (c *Client) Get(ctx context.Context, webFeatureID string) (*backend.Feature, error) {
-	var featureData []*FeatureData
-	_, err := c.GetAll(
-		ctx, datastore.NewQuery(featureDataKey).
-			FilterField("web_feature_id", "=", webFeatureID).Limit(1),
-		&featureData)
+var ErrEntityNotFound = errors.New("queried entity not found")
+
+func (c entityClient[T]) get(ctx context.Context, kind string, filterables ...Filterable) (*T, error) {
+	var data []*T
+	query := datastore.NewQuery(kind)
+	for _, filterable := range filterables {
+		query = filterable.FilterQuery(query)
+	}
+	query = query.Limit(1)
+	_, err := c.GetAll(ctx, query, &data)
 	if err != nil {
+		slog.Error("failed to list data", "error", err, "kind", kind)
+
 		return nil, err
 	}
 
-	// nolint: exhaustruct
-	// TODO. Will fix this lint error once the data is coming in.
-	return &backend.Feature{
-		Name:      featureData[0].WebFeatureID,
-		FeatureId: featureData[0].WebFeatureID,
-		Spec:      nil,
-	}, nil
+	if len(data) < 1 {
+		return nil, ErrEntityNotFound
+	}
+
+	return data[0], nil
 }
