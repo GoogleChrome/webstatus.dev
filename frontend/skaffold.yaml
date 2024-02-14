@@ -29,6 +29,7 @@ profiles:
             dockerfile: images/nodejs_service.Dockerfile
             buildArgs:
               service_dir: frontend
+              build_env: local
       local: {}
     manifests:
       rawYaml:
