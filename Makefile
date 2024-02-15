@@ -170,18 +170,21 @@ style-lint:
 ################################
 test: go-test node-test
 
+# Skip the module if it ends in 'lib/gen'
 go-test:
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
 	do \
-		echo "********* Testing module: $${GO_MODULE} *********" ; \
-		GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
-		mkdir -p $${GO_COVERAGE_DIR} ; \
-		go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..."; \
-		echo "Generating coverage report for $${GO_MODULE}" ; \
-		go tool cover --func=$${GO_COVERAGE_DIR}/cover.out ; \
-		echo -e "\n\n" ; \
+		if [[ "$$GO_MODULE" != *"lib/gen" ]]; then \
+			echo "********* Testing module: $${GO_MODULE} *********" ; \
+			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
+			mkdir -p $${GO_COVERAGE_DIR} ; \
+			go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..."; \
+			echo "Generating coverage report for $${GO_MODULE}" ; \
+			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out ; \
+			echo -e "\n\n" ; \
+		fi \
 	done
 
 node-test: playwright-install
