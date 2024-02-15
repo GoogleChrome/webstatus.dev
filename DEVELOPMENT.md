@@ -27,6 +27,7 @@ The above skaffold command deploys multiple resources:
 | frontend             | Frontend service in ./frontend                                                          | http://localhost:5555  | http://frontend:5555                                |
 | datastore            | Datastore Emulator                                                                      | N/A                    | http://datastore:8085                               |
 | spanner              | Spanner Emulator                                                                        | N/A                    | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
+| redis                | Redis                                                                                   | N/A                    | redis:6379                                          |
 | gcs                  | Google Cloud Storage Emulator                                                           | N/A                    | http://gcs:4443                                     |
 | repo-downloader      | Repo Downloader Workflow Step in<br />./workflows/steps/services/common/repo_downloader | http://localhost:8091  | http://repo-downloader:8080                         |
 | web-feature-consumer | Web Feature Consumer Step in<br />./workflows/steps/services/web_feature_consumer       | http://localhost:8092  | http://web-feature-consumer:8080                    |
