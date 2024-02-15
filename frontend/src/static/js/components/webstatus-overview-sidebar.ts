@@ -28,8 +28,6 @@ export class WebstatusOverviewSidebar extends LitElement {
       justify-content: flex-start;
       height: 100%;
       width: 288px;
-      /* padding-right: 20px;
-      padding-top: 10px; */
     }
 
     sl-tree#bottom-menu {
