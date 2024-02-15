@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-import { test, expect } from '@playwright/test'
+import {test, expect} from '@playwright/test';
 
 test('matches the screenshot', async ({ page }) => {
-  await page.goto('http://localhost:5555/')
+  await page.goto('http://localhost:5555/');
 
-  const sidebar = page.locator('webstatus-overview-sidebar')
-  await expect(sidebar).toHaveScreenshot('overview-sidebar')
+  const sidebar = page.locator('webstatus-overview-sidebar');
+  await expect(sidebar).toHaveScreenshot('overview-sidebar');
 })

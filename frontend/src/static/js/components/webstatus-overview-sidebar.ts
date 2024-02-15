@@ -25,14 +25,19 @@ export class WebstatusOverviewSidebar extends LitElement {
     .sidebar {
       display: flex;
       flex-direction: column;
+      justify-content: flex-start;
       height: 100%;
       width: 288px;
-      padding-right: 20px;
-      padding-top: 10px;
+      /* padding-right: 20px;
+      padding-top: 10px; */
     }
 
     sl-tree#bottom-menu {
       margin-top: auto;
+    }
+    #sidebar-bottom {
+      flex-grow: 2;
+      display: flex;
     }
 
     sl-tree-item#theme-selector sl-select::part(combobox) {
@@ -55,7 +60,7 @@ export class WebstatusOverviewSidebar extends LitElement {
 
         <sl-divider></sl-divider>
 
-        <div style="margin-top: 100px; margin-bottom: 8px;">
+        <div id="sidebar-bottom">
           <sl-tree id="bottom-menu">
             <sl-tree-item>
               <sl-icon name="github"></sl-icon> Report an issue
