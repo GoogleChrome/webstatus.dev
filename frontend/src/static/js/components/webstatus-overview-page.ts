@@ -32,7 +32,6 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-overview-content.js';
 import './webstatus-overview-sidebar.js';
 
-
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
   _loadingTask: Task;
@@ -93,7 +92,7 @@ export class OverviewPage extends LitElement {
       args: () => [this.apiClient],
       task: async ([apiClient]) => {
         if (typeof apiClient === 'object') {
-            this.features = await apiClient.getFeatures();
+          this.features = await apiClient.getFeatures();
         }
         return this.features;
       },
@@ -106,7 +105,8 @@ export class OverviewPage extends LitElement {
         <webstatus-overview-sidebar></webstatus-overview-sidebar>
         <webstatus-overview-content
           .location=${this.location}
-          .features=${this.features}>
+          .features=${this.features}
+        >
         </webstatus-overview-content>
       </div>
     `;

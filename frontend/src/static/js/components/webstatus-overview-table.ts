@@ -45,7 +45,7 @@ export class WebstatusOverviewTable extends LitElement {
           </tr>
         </thead>
         <tbody>
-          ${this.features.map((f) => this.renderFeatureRow(f))}
+          ${this.features.map(f => this.renderFeatureRow(f))}
         </tbody>
       </table>
     `;
@@ -65,5 +65,4 @@ export class WebstatusOverviewTable extends LitElement {
       </tr>
     `;
   }
-
 }

@@ -69,7 +69,8 @@ export class WebstatusOverviewContent extends LitElement {
 
         <webstatus-overview-table
           .location=${this.location}
-          .features=${this.features}>
+          .features=${this.features}
+        >
         </webstatus-overview-table>
         <button>Modify Columns</button>
       </div>

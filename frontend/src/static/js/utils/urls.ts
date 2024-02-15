@@ -16,46 +16,43 @@
 
 import {type components} from 'webstatus.dev-backend';
 
-
 export function getSearchQuery(location: {search: string}): string {
   const params = new URLSearchParams(location.search || '');
   return params.get('q') || '';
 }
-
 
 /* Given the router location object, return a query string with
    parameters that maintain the user's navigational state.
    E.g., if I start searching for 'mouse', then as I navigate
    around, I should still be searching for 'mouse'. */
 function getContextualQueryStringParams(
-    location: {search: string} | undefined): string {
-    if (location === undefined) {
-        return '';
-    }
-    const parts: string[] = [];
-    if (getSearchQuery(location)) {
-        parts.push('q=' + getSearchQuery(location));
-    }
-    // TODO(jrobbins): Pagination, sorting, columns, etc.
-    if (parts.length > 0) {
-        return '?' + parts.join('&');
-    }
+  location: {search: string} | undefined
+): string {
+  if (location === undefined) {
     return '';
+  }
+  const parts: string[] = [];
+  if (getSearchQuery(location)) {
+    parts.push('q=' + getSearchQuery(location));
+  }
+  // TODO(jrobbins): Pagination, sorting, columns, etc.
+  if (parts.length > 0) {
+    return '?' + parts.join('&');
+  }
+  return '';
 }
-
 
 /* Return a URL for the overview (feature list) page. */
 export function formatOverviewPageUrl(location?: {search: string}): string {
-    const qs = getContextualQueryStringParams(location);
-    return `/${qs}`;
+  const qs = getContextualQueryStringParams(location);
+  return `/${qs}`;
 }
-
 
 /* Return a URL to the given feature. */
 export function formatFeaturePageUrl(
-    feature: components['schemas']['Feature'],
-    location?: {search: string}): string {
-
-    const qs = getContextualQueryStringParams(location);
-    return `/features/${feature.feature_id}${qs}`;
+  feature: components['schemas']['Feature'],
+  location?: {search: string}
+): string {
+  const qs = getContextualQueryStringParams(location);
+  return `/features/${feature.feature_id}${qs}`;
 }

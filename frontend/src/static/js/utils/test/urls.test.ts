@@ -18,11 +18,10 @@ import {assert} from '@open-wc/testing';
 import {type components} from 'webstatus.dev-backend';
 
 import {
-    getSearchQuery,
-    formatOverviewPageUrl,
-    formatFeaturePageUrl,
+  getSearchQuery,
+  formatOverviewPageUrl,
+  formatFeaturePageUrl,
 } from '../urls.js';
-
 
 describe('getSearchQuery', () => {
   it('returns empty string when there was no q= param', () => {
@@ -39,9 +38,7 @@ describe('getSearchQuery', () => {
     const q = getSearchQuery({search: '?q=memory%20leak'});
     assert.equal(q, 'memory leak');
   });
-
 });
-
 
 describe('formatOverviewPageUrl', () => {
   it('returns a plain URL when no location is passed', () => {
@@ -58,16 +55,14 @@ describe('formatOverviewPageUrl', () => {
     const url = formatOverviewPageUrl({search: '?q=css'});
     assert.equal(url, '/?q=css');
   });
-
 });
 
-
 describe('formatFeaturePageUrl', () => {
-    const feature: components['schemas']['Feature'] = {
-        feature_id: 'grid',
-        name: 'test feature',
-        baseline_status: 'none',
-    };
+  const feature: components['schemas']['Feature'] = {
+    feature_id: 'grid',
+    name: 'test feature',
+    baseline_status: 'none',
+  };
   it('returns a plain URL when no location is passed', () => {
     const url = formatFeaturePageUrl(feature);
     assert.equal(url, '/features/grid');
@@ -82,5 +77,4 @@ describe('formatFeaturePageUrl', () => {
     const url = formatFeaturePageUrl(feature, {search: '?q=css'});
     assert.equal(url, '/features/grid?q=css');
   });
-
 });

@@ -38,7 +38,7 @@ export class FeaturePage extends LitElement {
   @state()
   featureId!: string;
 
-  location!: {params: {featureId: string}, search: string}; // Set by router.
+  location!: {params: {featureId: string}; search: string}; // Set by router.
 
   static styles = css`
     .crumbs {
