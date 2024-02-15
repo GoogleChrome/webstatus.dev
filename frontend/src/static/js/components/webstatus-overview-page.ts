@@ -15,6 +15,7 @@
  */
 
 import {consume} from '@lit/context';
+import {Task} from '@lit/task';
 import {
   type CSSResultGroup,
   LitElement,
@@ -25,7 +26,6 @@ import {
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
-import {LoadingState} from '../../../common/loading-state.js';
 import {type APIClient} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
@@ -34,13 +34,15 @@ import './webstatus-overview-sidebar.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
+  _loadingTask: Task;
+
   @consume({context: apiClientContext})
   apiClient?: APIClient;
 
   @state()
-  items: Array<components['schemas']['Feature']> = [];
+  features: Array<components['schemas']['Feature']> = [];
 
-  loading: LoadingState = LoadingState.NOT_STARTED;
+  location!: {search: string}; // Set by router.
 
   static get styles(): CSSResultGroup {
     return [
@@ -84,18 +86,28 @@ export class OverviewPage extends LitElement {
     ];
   }
 
-  async firstUpdated(): Promise<void> {
-    if (this.apiClient !== null && this.loading !== LoadingState.COMPLETE) {
-      this.items = await this.apiClient!.getFeatures();
-      this.loading = LoadingState.COMPLETE;
-    }
+  constructor() {
+    super();
+    this._loadingTask = new Task(this, {
+      args: () => [this.apiClient],
+      task: async ([apiClient]) => {
+        if (typeof apiClient === 'object') {
+          this.features = await apiClient.getFeatures();
+        }
+        return this.features;
+      },
+    });
   }
 
   render(): TemplateResult {
     return html`
       <div class="container">
         <webstatus-overview-sidebar></webstatus-overview-sidebar>
-        <webstatus-overview-content></webstatus-overview-content>
+        <webstatus-overview-content
+          .location=${this.location}
+          .features=${this.features}
+        >
+        </webstatus-overview-content>
       </div>
     `;
   }

@@ -14,10 +14,17 @@
  * limitations under the License.
  */
 import {LitElement, type TemplateResult, css, html} from 'lit';
-import {customElement} from 'lit/decorators.js';
+import {customElement, state} from 'lit/decorators.js';
+import {type components} from 'webstatus.dev-backend';
+import {formatFeaturePageUrl} from '../utils/urls.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
+  @state()
+  features: Array<components['schemas']['Feature']> = [];
+
+  location!: {search: string}; // Set by parent.
+
   static styles = css`
     .data-table {
       width: 100%;
@@ -38,35 +45,24 @@ export class WebstatusOverviewTable extends LitElement {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td><a href="/features/1">Container queries</a></td>
-            <td><img height="24" src="/public/img/cross.svg" /></td>
-            <td>
-              <img src="/public/img/chrome-dev_24x24.png" /> 100%
-              <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-              <img src="/public/img/safari-preview_24x24.png" /> 100%
-            </td>
-          </tr>
-          <tr>
-            <td><a href="/features/1">Flexbox</a></td>
-            <td><img height="24" src="/public/img/check.svg" /></td>
-            <td>
-              <img src="/public/img/chrome-dev_24x24.png" /> 100%
-              <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-              <img src="/public/img/safari-preview_24x24.png" /> 100%
-            </td>
-          </tr>
-          <tr>
-            <td><a href="/features/1">Grid</a></td>
-            <td><img height="24" src="/public/img/cross.svg" /></td>
-            <td>
-              <img src="/public/img/chrome-dev_24x24.png" /> 100%
-              <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-              <img src="/public/img/safari-preview_24x24.png" /> 100%
-            </td>
-          </tr>
+          ${this.features.map(f => this.renderFeatureRow(f))}
         </tbody>
       </table>
+    `;
+  }
+
+  renderFeatureRow(feature: components['schemas']['Feature']): TemplateResult {
+    const featureUrl = formatFeaturePageUrl(feature, this.location);
+    return html`
+      <tr>
+        <td><a href=${featureUrl}>${feature.name}</a></td>
+        <td><img height="24" src="/public/img/cross.svg" /></td>
+        <td>
+          <img src="/public/img/chrome-dev_24x24.png" /> 100%
+          <img src="/public/img/firefox-nightly_24x24.png" /> 100%
+          <img src="/public/img/safari-preview_24x24.png" /> 100%
+        </td>
+      </tr>
     `;
   }
 }
