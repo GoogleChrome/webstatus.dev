@@ -30,7 +30,8 @@ export function getSearchQuery(location: {search: string}): string {
    E.g., if I start searching for 'mouse', then as I navigate
    around, I should still be searching for 'mouse'. */
 function getContextualQueryStringParams(
-  location: {search: string} | undefined): string {
+  location: {search: string} | undefined
+): string {
   if (location === undefined) {
     return '';
   }
