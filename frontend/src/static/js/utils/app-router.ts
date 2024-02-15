@@ -18,6 +18,7 @@ import {Router} from '@vaadin/router';
 
 import '../components/webstatus-overview-page.js';
 import '../components/webstatus-feature-page.js';
+import '../components/webstatus-notfound-error-page.js';
 
 export const initRouter = async (element: HTMLElement): Promise<Router> => {
   const router = new Router(element);
@@ -32,7 +33,7 @@ export const initRouter = async (element: HTMLElement): Promise<Router> => {
     },
     {
       path: '(.*)',
-      redirect: '/',
+      component: 'webstatus-not-found-error-page',
     },
   ]);
   return router;

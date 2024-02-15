@@ -38,6 +38,11 @@ export class WebstatusSidebar extends LitElement {
       display: flex;
     }
 
+    sl-tree#bottom-menu a {
+      color: inherit;
+      text-decoration: none;
+    }
+
     sl-tree-item#theme-selector sl-select::part(combobox) {
       border: 0;
     }
@@ -61,7 +66,10 @@ export class WebstatusSidebar extends LitElement {
         <div id="sidebar-bottom">
           <sl-tree id="bottom-menu">
             <sl-tree-item>
-              <sl-icon name="github"></sl-icon> Report an issue
+              <sl-icon name="github"></sl-icon>
+              <a href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
+                >Report an issue</a
+              >
             </sl-tree-item>
             <sl-tree-item id="theme-selector">
               <sl-select value="light">
