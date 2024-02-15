@@ -16,10 +16,12 @@ FROM golang:1.22.0-alpine3.18 as builder
 
 WORKDIR /work
 COPY lib/go.mod lib/go.sum lib/
+COPY lib/gen/go.mod lib/gen/go.sum lib/gen/
 ARG service_dir
 COPY ${service_dir}/go.mod ${service_dir}/go.sum ${service_dir}/
 RUN go work init && \
     go work use ./lib && \
+    go work use ./lib/gen && \
     go work use ${service_dir} ${service_dir}
 WORKDIR /work/${service_dir}
 RUN  go mod download
