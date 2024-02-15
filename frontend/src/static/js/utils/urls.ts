@@ -25,8 +25,9 @@ function getQueryParam(qs: string, paramName: string): string {
     if (!keyVal.includes('=')) {
       keyVal += '=';
     }
-    let key: string, val: string;
-    [key, val] = keyVal.split('=');
+    const parts: string[] = keyVal.split('=');
+    const key: string = parts[0];
+    const val: string = parts[1];
     if (decodeURIComponent(key) === paramName) {
       return decodeURIComponent(val);
     }
