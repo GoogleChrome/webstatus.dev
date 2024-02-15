@@ -34,15 +34,14 @@ function getContextualQueryStringParams(
   if (location === undefined) {
     return '';
   }
-  const parts: string[] = [];
-  if (getSearchQuery(location)) {
-    parts.push('q=' + getSearchQuery(location));
+  const searchParams = new URLSearchParams();
+  const searchQuery = getSearchQuery(location);
+  if (searchQuery) {
+    searchParams.set('q', searchQuery);
   }
   // TODO(jrobbins): Pagination, sorting, columns, etc.
-  if (parts.length > 0) {
-    return '?' + parts.join('&');
-  }
-  return '';
+
+  return searchParams.toString() ? '?' + searchParams.toString() : '';
 }
 
 /* Return a URL for the overview (feature list) page. */
