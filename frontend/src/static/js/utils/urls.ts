@@ -16,23 +16,9 @@
 
 import {type components} from 'webstatus.dev-backend';
 
-// TODO(jrobbins): Use new URLSearchParams() if we require node >= 10.0.
 function getQueryParam(qs: string, paramName: string): string {
-  qs = qs || '';
-  const mainQs = qs.startsWith('?') ? qs.substring(1) : qs;
-  const pairs = mainQs.split('&');
-  for (let keyVal of pairs) {
-    if (!keyVal.includes('=')) {
-      keyVal += '=';
-    }
-    const parts: string[] = keyVal.split('=');
-    const key: string = parts[0];
-    const val: string = parts[1];
-    if (decodeURIComponent(key) === paramName) {
-      return decodeURIComponent(val);
-    }
-  }
-  return '';
+  const params = new URLSearchParams(qs);
+  return params.get(paramName) || '';
 }
 
 export function getSearchQuery(location: {search: string}): string {
@@ -44,8 +30,7 @@ export function getSearchQuery(location: {search: string}): string {
    E.g., if I start searching for 'mouse', then as I navigate
    around, I should still be searching for 'mouse'. */
 function getContextualQueryStringParams(
-  location: {search: string} | undefined
-): string {
+  location: {search: string} | undefined): string {
   if (location === undefined) {
     return '';
   }

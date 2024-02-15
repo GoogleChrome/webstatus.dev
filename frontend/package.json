@@ -1,6 +1,9 @@
 {
   "name": "frontend",
   "version": "1.0.0",
+  "engines": {
+    "node": ">=10.0.0"
+  },
   "description": "webstatus.dev frontend",
   "main": "index.js",
   "type": "module",
