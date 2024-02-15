@@ -16,9 +16,26 @@
 
 import {type components} from 'webstatus.dev-backend';
 
+// TODO(jrobbins): Use new URLSearchParams() if we require node >= 10.0.
+function getQueryParam(qs: string, paramName: string): string {
+  qs = qs || '';
+  const mainQs = qs.startsWith('?') ? qs.substring(1) : qs;
+  const pairs = mainQs.split('&');
+  for (let keyVal of pairs) {
+    if (!keyVal.includes('=')) {
+      keyVal += '=';
+    }
+    let key: string, val: string;
+    [key, val] = keyVal.split('=');
+    if (decodeURIComponent(key) === paramName) {
+      return decodeURIComponent(val);
+    }
+  }
+  return '';
+}
+
 export function getSearchQuery(location: {search: string}): string {
-  const params = new URLSearchParams(location.search || '');
-  return params.get('q') || '';
+  return getQueryParam(location.search, 'q');
 }
 
 /* Given the router location object, return a query string with
