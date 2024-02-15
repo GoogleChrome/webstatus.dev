@@ -20,5 +20,5 @@ test('matches the screenshot', async ({ page }) => {
   await page.goto('http://localhost:5555/');
 
   const sidebar = page.locator('webstatus-overview-sidebar');
-  await expect(sidebar).toHaveScreenshot('overview-sidebar');
+  await expect(sidebar).toHaveScreenshot('overview-sidebar.png');
 })
