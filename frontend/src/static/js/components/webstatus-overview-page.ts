@@ -48,20 +48,28 @@ export class OverviewPage extends LitElement {
     return [
       SHARED_STYLES,
       css`
-        @media (max-width: 768px) {
-          webstatus-overview-sidebar {
-            display: none;
-          }
-        }
         .container {
           display: flex;
           flex-direction: row;
-          height: auto;
+          height: 100%;
+        }
+        @media (max-width: 768px) {
+          .container {
+            flex-direction: column;
+          }
         }
 
         webstatus-overview-sidebar {
           flex: 1;
-          height: 100%;
+          align-self: stretch;
+          max-width: 288px;
+          padding-right: 20px;
+          padding-top: 10px;
+        }
+        @media (max-width: 768px) {
+          webstatus-overview-sidebar {
+            display: none;
+          }
         }
 
         webstatus-overview-content {
@@ -69,18 +77,6 @@ export class OverviewPage extends LitElement {
           padding-left: 20px;
           padding-right: 20px;
           padding-top: 10px;
-        }
-
-        webstatus-overview-sidebar {
-          max-width: 288px;
-          padding-right: 20px;
-          padding-top: 10px;
-        }
-
-        @media (max-width: 768px) {
-          .container {
-            flex-direction: column;
-          }
         }
       `,
     ];
