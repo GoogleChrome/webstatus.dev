@@ -17,10 +17,10 @@
 import {LitElement, type TemplateResult, css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 
-import './webstatus-overview-sidebar-menu.js';
+import './webstatus-sidebar-menu.js';
 
-@customElement('webstatus-overview-sidebar')
-export class WebstatusOverviewSidebar extends LitElement {
+@customElement('webstatus-sidebar')
+export class WebstatusSidebar extends LitElement {
   static readonly styles = css`
     .sidebar {
       display: flex;
@@ -54,7 +54,7 @@ export class WebstatusOverviewSidebar extends LitElement {
   render(): TemplateResult {
     return html`
       <div class="sidebar">
-        <webstatus-overview-sidebar-menu></webstatus-overview-sidebar-menu>
+        <webstatus-sidebar-menu></webstatus-sidebar-menu>
 
         <sl-divider></sl-divider>
 

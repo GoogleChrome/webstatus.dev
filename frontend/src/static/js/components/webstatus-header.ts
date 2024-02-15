@@ -146,7 +146,7 @@ export class WebstatusHeader extends LitElement {
           @drawer-clicked="${this.toggleDrawer}"
         >
           >
-          <webstatus-overview-sidebar></webstatus-overview-sidebar>
+          <webstatus-sidebar></webstatus-sidebar>
         </sl-drawer>
       `;
     } else {
