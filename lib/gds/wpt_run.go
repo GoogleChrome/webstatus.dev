@@ -37,7 +37,7 @@ type WPTRunMetadata struct {
 
 // WPTRun contains all information about a WPT run.
 type WPTRun struct {
-	WPTRunMetadata
+	*WPTRunMetadata
 	TestMetric         *WPTRunMetric                 `datastore:"test_metric"`
 	FeatureTestMetrics []WPTRunMetricsGroupByFeature `datastore:"feature_test_metrics"`
 }
@@ -58,8 +58,8 @@ type wptRunMerge struct{}
 
 func (m wptRunMerge) Merge(existing *WPTRun, new *WPTRun) *WPTRun {
 	return &WPTRun{
-		WPTRunMetadata: *wptRunMetadataMerge{}.Merge(
-			&existing.WPTRunMetadata, &new.WPTRunMetadata),
+		WPTRunMetadata: wptRunMetadataMerge{}.Merge(
+			existing.WPTRunMetadata, new.WPTRunMetadata),
 		TestMetric:         wptRunMetricMerge{}.Merge(existing.TestMetric, new.TestMetric),
 		FeatureTestMetrics: *wptRunFeatureTestMetricsMerge{}.Merge(&existing.FeatureTestMetrics, &new.FeatureTestMetrics),
 	}
@@ -85,7 +85,7 @@ func (m wptRunMetadataMerge) Merge(existing *WPTRunMetadata, _ *WPTRunMetadata) 
 // StoreWPTRun stores the metadata for a given run.
 func (c *Client) StoreWPTRunMetadata(
 	ctx context.Context,
-	metadata WPTRunMetadata) error {
+	metadata *WPTRunMetadata) error {
 	entityClient := entityClient[WPTRun]{c}
 
 	return entityClient.upsert(
@@ -114,29 +114,76 @@ func (c *Client) GetWPTRun(
 	)
 }
 
-// nolint: lll
-// wptRunsByBrowserFilter implements Filterable to filter by:
+// GetWPTRun gets the latest run for a given browser and channel.
+func (c *Client) GetWPTLatestRunForBrowserAndChannel(
+	ctx context.Context,
+	browser string,
+	channel string) (*WPTRun, error) {
+	entityClient := entityClient[WPTRun]{c}
+
+	return entityClient.get(
+		ctx,
+		wptRunsKey,
+		wptRunsByBrowserAndChannelFilter{
+			browser: browser,
+			channel: channel,
+		},
+		wptRunsSortByDescendingTimeFilter{},
+	)
+}
+
+// wptRunsByBrowserAndChannelFilter implements Filterable to filter by:
 // - browser_name (equality)
 // - channel (equality)
+//
+// Compatible kinds:
+// - wptRunsKey.
+type wptRunsByBrowserAndChannelFilter struct {
+	browser string
+	channel string
+}
+
+func (f wptRunsByBrowserAndChannelFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.FilterField("browser_name", "=", f.browser).
+		FilterField("channel", "=", f.channel)
+}
+
+// nolint: lll
+// wptRunsTimeRangeFilter implements Filterable to filter by:
 // - time_start (startAt >= x < endAt)
 // - sort by time_start
 // https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/test_run_query.go#L183-L186
 //
 // Compatible kinds:
 // - wptRunsKey.
-type wptRunsByBrowserFilter struct {
+type wptRunsTimeRangeFilter struct {
 	startAt time.Time
 	endAt   time.Time
-	browser string
-	channel string
 }
 
-func (f wptRunsByBrowserFilter) FilterQuery(query *datastore.Query) *datastore.Query {
-	return query.FilterField("browser_name", "=", f.browser).
-		FilterField("channel", "=", f.channel).
-		FilterField("time_start", ">=", f.startAt).
-		FilterField("time_start", "<", f.endAt).
-		Order("-time_start")
+func (f wptRunsTimeRangeFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.FilterField("time_start", ">=", f.startAt).
+		FilterField("time_start", "<", f.endAt)
+}
+
+// wptRunsSortByDescendingTimeFilter implements Filterable to filter by:
+// - sort by time_start in descending order
+// Compatible kinds:
+// - wptRunsKey.
+type wptRunsSortByDescendingTimeFilter struct{}
+
+func (f wptRunsSortByDescendingTimeFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.Order("-time_start")
+}
+
+// wptRunsSortByDescendingTimeFilter implements Filterable to filter by:
+// - sort by data in descending order
+// Compatible kinds:
+// - wptRunsKey.
+type wptRunsSortByAscendingMetricFeatureIDFilter struct{}
+
+func (f wptRunsSortByAscendingMetricFeatureIDFilter) FilterQuery(query *datastore.Query) *datastore.Query {
+	return query.Order("-feature_test_metrics.web_feature_id")
 }
 
 // ListWPTRunsByBrowser returns a list of runs
@@ -154,11 +201,15 @@ func (c *Client) ListWPTRunsByBrowser(
 		ctx,
 		wptRunsKey,
 		pageToken,
-		wptRunsByBrowserFilter{
-			startAt: startAt,
-			endAt:   endAt,
+		wptRunsByBrowserAndChannelFilter{
 			browser: browser,
 			channel: channel,
 		},
+		wptRunsTimeRangeFilter{
+			startAt: startAt,
+			endAt:   endAt,
+		},
+		wptRunsSortByDescendingTimeFilter{},
+		wptRunsSortByAscendingMetricFeatureIDFilter{},
 	)
 }

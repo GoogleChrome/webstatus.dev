@@ -26,7 +26,7 @@ import (
 // nolint: exhaustruct // No need to use every option of 3rd party struct.
 func TestFeatureDataOperations(t *testing.T) {
 	ctx := context.Background()
-	client, cleanup := getTestDatabase(ctx, t)
+	client, _, cleanup := getTestDatabase(ctx, t)
 	defer cleanup()
 
 	// Part 1. Try to insert the first version

@@ -104,7 +104,7 @@ func (c *Client) ListWPTMetricsByBrowser(
 	ret := make([]WPTRunToMetrics, 0, len(runs))
 	for _, run := range runs {
 		ret = append(ret, WPTRunToMetrics{
-			WPTRunMetadata: run.WPTRunMetadata,
+			WPTRunMetadata: *run.WPTRunMetadata,
 			WPTRunMetric:   run.TestMetric,
 		})
 	}

@@ -19,6 +19,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -33,7 +34,11 @@ import (
 const testDatastoreProject = "local"
 
 // nolint: exhaustruct // No need to use every option of 3rd party struct.
-func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
+// Returns three things:
+// - The Client
+// - A data reset function that can be used in between test suites
+// - A database teardown function to be used after all tests are completed.
+func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func(), func()) {
 	datastoreFolder, err := filepath.Abs(filepath.Join(".", "..", "..", ".dev", "datastore"))
 	if err != nil {
 		t.Fatal(err)
@@ -61,7 +66,8 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 
 	db := ""
 	dbPtr := &db
-	os.Setenv("DATASTORE_EMULATOR_HOST", fmt.Sprintf("localhost:%s", mappedPort.Port()))
+	dbHost := fmt.Sprintf("localhost:%s", mappedPort.Port())
+	os.Setenv("DATASTORE_EMULATOR_HOST", dbHost)
 	dsClient, err := NewDatastoreClient(testDatastoreProject, dbPtr)
 	if err != nil {
 		if unsetErr := os.Unsetenv("DATASTORE_EMULATOR_HOST"); unsetErr != nil {
@@ -76,17 +82,31 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 		t.Fatalf("failed to create datastore client. %s", err.Error())
 	}
 
-	return dsClient, func() {
-		if unsetErr := os.Unsetenv("DATASTORE_EMULATOR_HOST"); unsetErr != nil {
-			t.Errorf("failed to unset env. %s", unsetErr.Error())
+	return dsClient,
+		func() {
+			req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://%s/reset", dbHost), nil)
+			if err != nil {
+				t.Errorf("unable to build request to reset database %s", err.Error())
+				return
+			}
+			_, err = http.DefaultClient.Do(req)
+			if err != nil {
+				t.Errorf("unable to reset database state %s", err.Error())
+				return
+			}
+			t.Log("successfully reset database state")
+		},
+		func() {
+			if unsetErr := os.Unsetenv("DATASTORE_EMULATOR_HOST"); unsetErr != nil {
+				t.Errorf("failed to unset env. %s", unsetErr.Error())
+			}
+			if err := dsClient.Close(); err != nil {
+				t.Errorf("failed to close datastore client. %s", err.Error())
+			}
+			if err := container.Terminate(ctx); err != nil {
+				t.Errorf("failed to terminate datastore. %s", err.Error())
+			}
 		}
-		if err := dsClient.Close(); err != nil {
-			t.Errorf("failed to close datastore client. %s", err.Error())
-		}
-		if err := container.Terminate(ctx); err != nil {
-			t.Errorf("failed to terminate datastore. %s", err.Error())
-		}
-	}
 }
 
 const sampleKey = "SampleData"
@@ -174,7 +194,7 @@ func insertEntities(
 
 func TestEntityClientOperations(t *testing.T) {
 	ctx := context.Background()
-	client, cleanup := getTestDatabase(ctx, t)
+	client, _, cleanup := getTestDatabase(ctx, t)
 	defer cleanup()
 	c := entityClient[TestSample]{client}
 	// Step 1. Make sure the entity is not there yet.

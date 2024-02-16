@@ -15,7 +15,9 @@
 package gds
 
 import (
+	"cmp"
 	"context"
+	"slices"
 	"time"
 )
 
@@ -109,16 +111,18 @@ func (c *Client) ListWPTMetricsByBrowserByFeature(
 
 	ret := make([]*WPTRunToMetricsByFeature, 0, len(runs))
 	for _, run := range runs {
-		for i, metric := range run.FeatureTestMetrics {
-			if metric.FeatureID == featureID {
-				ret = append(ret, &WPTRunToMetricsByFeature{
-					WPTRunMetadata: run.WPTRunMetadata,
-					WPTRunMetric:   &run.FeatureTestMetrics[i].WPTRunMetric,
-					FeatureID:      featureID,
-				})
-			}
+		// Can use binary search since the feature metric is sorted by feature id
+		idx, found := slices.BinarySearchFunc[[]WPTRunMetricsGroupByFeature, WPTRunMetricsGroupByFeature](run.FeatureTestMetrics, featureID, func(feature WPTRunMetricsGroupByFeature, targetFeatureID string) int {
+			value := cmp.Compare[string](feature.FeatureID, targetFeatureID)
+			return value
+		})
+		if found {
+			ret = append(ret, &WPTRunToMetricsByFeature{
+				WPTRunMetadata: *run.WPTRunMetadata,
+				WPTRunMetric:   &run.FeatureTestMetrics[idx].WPTRunMetric,
+				FeatureID:      featureID,
+			})
 		}
-
 	}
 
 	return ret, nil, nil
