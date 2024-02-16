@@ -53,6 +53,7 @@ export class WebstatusApp extends LitElement {
         }
         :host {
           display: flex;
+          flex: 0 0 auto;
           flex-direction: column;
           height: 100%;
         }
@@ -60,6 +61,15 @@ export class WebstatusApp extends LitElement {
           display: flex;
           flex-direction: column;
           flex: 1;
+          align-self: stretch;
+        }
+        webstatus-page {
+          flex-grow: 2;
+          display: flex;
+          flex-direction: row;
+        }
+        webstatus-page > * {
+          flex-grow: 3;
         }
       `,
     ];

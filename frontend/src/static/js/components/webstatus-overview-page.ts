@@ -15,88 +15,47 @@
  */
 
 import {consume} from '@lit/context';
-import {
-  type CSSResultGroup,
-  LitElement,
-  type TemplateResult,
-  css,
-  html,
-} from 'lit';
+import {Task} from '@lit/task';
+import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
-import {LoadingState} from '../../../common/loading-state.js';
 import {type APIClient} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-overview-content.js';
-import './webstatus-overview-sidebar.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
+  _loadingTask: Task;
+
   @consume({context: apiClientContext})
   apiClient?: APIClient;
 
   @state()
-  items: Array<components['schemas']['Feature']> = [];
+  features: Array<components['schemas']['Feature']> = [];
 
-  loading: LoadingState = LoadingState.NOT_STARTED;
+  location!: {search: string}; // Set by router.
 
-  static get styles(): CSSResultGroup {
-    return [
-      SHARED_STYLES,
-      css`
-        @media (max-width: 768px) {
-          webstatus-overview-sidebar {
-            display: none;
-          }
+  constructor() {
+    super();
+    this._loadingTask = new Task(this, {
+      args: () => [this.apiClient],
+      task: async ([apiClient]) => {
+        if (typeof apiClient === 'object') {
+          this.features = await apiClient.getFeatures();
         }
-        .container {
-          display: flex;
-          flex-direction: row;
-          height: auto;
-        }
-
-        webstatus-overview-sidebar {
-          flex: 1;
-          height: 100%;
-        }
-
-        webstatus-overview-content {
-          flex: 2;
-          padding-left: 20px;
-          padding-right: 20px;
-          padding-top: 10px;
-        }
-
-        webstatus-overview-sidebar {
-          max-width: 288px;
-          padding-right: 20px;
-          padding-top: 10px;
-        }
-
-        @media (max-width: 768px) {
-          .container {
-            flex-direction: column;
-          }
-        }
-      `,
-    ];
-  }
-
-  async firstUpdated(): Promise<void> {
-    if (this.apiClient !== null && this.loading !== LoadingState.COMPLETE) {
-      this.items = await this.apiClient!.getFeatures();
-      this.loading = LoadingState.COMPLETE;
-    }
+        return this.features;
+      },
+    });
   }
 
   render(): TemplateResult {
     return html`
-      <div class="container">
-        <webstatus-overview-sidebar></webstatus-overview-sidebar>
-        <webstatus-overview-content></webstatus-overview-content>
-      </div>
+      <webstatus-overview-content
+        .location=${this.location}
+        .features=${this.features}
+      >
+      </webstatus-overview-content>
     `;
   }
 }
