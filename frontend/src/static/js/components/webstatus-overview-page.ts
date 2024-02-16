@@ -16,21 +16,13 @@
 
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
-import {
-  type CSSResultGroup,
-  LitElement,
-  type TemplateResult,
-  css,
-  html,
-} from 'lit';
+import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {type APIClient} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-overview-content.js';
-import './webstatus-overview-sidebar.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -43,44 +35,6 @@ export class OverviewPage extends LitElement {
   features: Array<components['schemas']['Feature']> = [];
 
   location!: {search: string}; // Set by router.
-
-  static get styles(): CSSResultGroup {
-    return [
-      SHARED_STYLES,
-      css`
-        .container {
-          display: flex;
-          flex-direction: row;
-          height: 100%;
-        }
-        @media (max-width: 768px) {
-          .container {
-            flex-direction: column;
-          }
-        }
-
-        webstatus-overview-sidebar {
-          flex: 1;
-          align-self: stretch;
-          max-width: 288px;
-          padding-right: 20px;
-          padding-top: 10px;
-        }
-        @media (max-width: 768px) {
-          webstatus-overview-sidebar {
-            display: none;
-          }
-        }
-
-        webstatus-overview-content {
-          flex: 2;
-          padding-left: 20px;
-          padding-right: 20px;
-          padding-top: 10px;
-        }
-      `,
-    ];
-  }
 
   constructor() {
     super();
@@ -97,14 +51,11 @@ export class OverviewPage extends LitElement {
 
   render(): TemplateResult {
     return html`
-      <div class="container">
-        <webstatus-overview-sidebar></webstatus-overview-sidebar>
-        <webstatus-overview-content
-          .location=${this.location}
-          .features=${this.features}
-        >
-        </webstatus-overview-content>
-      </div>
+      <webstatus-overview-content
+        .location=${this.location}
+        .features=${this.features}
+      >
+      </webstatus-overview-content>
     `;
   }
 }
