@@ -25,11 +25,6 @@ export class WebstatusPage extends LitElement {
     return [
       SHARED_STYLES,
       css`
-        @media (max-width: 768px) {
-          webstatus-sidebar {
-            display: none;
-          }
-        }
         .container {
           display: flex;
           flex-direction: row;
@@ -37,11 +32,10 @@ export class WebstatusPage extends LitElement {
           width: 100%;
         }
 
-        .page-container {
-          flex: 2;
-          padding-left: 20px;
-          padding-right: 20px;
-          padding-top: 10px;
+        @media (max-width: 768px) {
+          .container {
+            flex-direction: column;
+          }
         }
 
         webstatus-sidebar {
@@ -53,9 +47,16 @@ export class WebstatusPage extends LitElement {
         }
 
         @media (max-width: 768px) {
-          .container {
-            flex-direction: column;
+          webstatus-sidebar {
+            display: none;
           }
+        }
+
+        .page-container {
+          flex: 2;
+          padding-left: 20px;
+          padding-right: 20px;
+          padding-top: 10px;
         }
       `,
     ];
