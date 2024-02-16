@@ -1,8 +1,9 @@
-go 1.21.0
+go 1.22.0
 
 use (
 	./backend
 	./lib
+	./lib/gen
 	./util
 	./workflows/steps/services/common/repo_downloader
 	./workflows/steps/services/web_feature_consumer
