@@ -35,7 +35,7 @@ rules:
   '@typescript-eslint/no-unused-vars':
     - error
     - argsIgnorePattern: '^_'
-  # require the use of === and !==, except for null
+  # require the use of === and !==, except for comparisons with null
   # http://eslint.org/docs/rules/eqeqeq
   eqeqeq: ['error', 'allow-null']
 root: true
