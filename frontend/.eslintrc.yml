@@ -26,13 +26,18 @@ parserOptions:
   sourceType: module
 # Ignore eslint formatting rules and allow prettier to handle those
 # https://prettier.io/docs/en/comparison
-rules: {
-    'indent': 'off',
-    '@typescript-eslint/indent': 'off',
-    '@typescript-eslint/space-before-function-paren': 'off',
-    # For @open-wc/testing
-    'node/no-unpublished-import': ['off'],
-  }
+rules:
+  'indent': 'off'
+  '@typescript-eslint/indent': 'off'
+  '@typescript-eslint/space-before-function-paren': 'off'
+  # For @open-wc/testing
+  'node/no-unpublished-import': ['off']
+  '@typescript-eslint/no-unused-vars':
+    - error
+    - argsIgnorePattern: '^_'
+  # require the use of === and !==, except for null
+  # http://eslint.org/docs/rules/eqeqeq
+  eqeqeq: ['error', 'allow-null']
 root: true
 ignorePatterns:
   - rollup.config.mjs
