@@ -37,7 +37,6 @@ const BASELINE_CHIP_WORDS = {
   high: 'Widely available',
 };
 
-
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
   @state()
@@ -88,9 +87,13 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBaselineChip(baselineStatus: string): TemplateResult {
-    var baselineKey: keyof typeof BASELINE_CHIP_CLASSES = 'none';
-    if (baselineStatus === 'low') { baselineKey = 'low'; }
-    if (baselineStatus === 'high') { baselineKey = 'high'; }
+    let baselineKey: keyof typeof BASELINE_CHIP_CLASSES = 'none';
+    if (baselineStatus === 'low') {
+      baselineKey = 'low';
+    }
+    if (baselineStatus === 'high') {
+      baselineKey = 'high';
+    }
     const chipClass = BASELINE_CHIP_CLASSES[baselineKey];
     const chipIcon = BASELINE_CHIP_ICONS[baselineKey];
     const chipWords = BASELINE_CHIP_WORDS[baselineKey];
