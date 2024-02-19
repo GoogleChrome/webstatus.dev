@@ -13,10 +13,30 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {LitElement, type TemplateResult, css, html} from 'lit';
+import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {formatFeaturePageUrl} from '../utils/urls.js';
+
+const BASELINE_CHIP_CLASSES = {
+  none: 'limited',
+  low: 'newly',
+  high: 'widely',
+};
+
+const BASELINE_CHIP_ICONS = {
+  none: 'cross.svg',
+  low: 'cross.svg', // TODO(jrobbins): need dotted check
+  high: 'check.svg',
+};
+
+const BASELINE_CHIP_WORDS = {
+  none: 'Limited',
+  low: 'New',
+  high: 'Widely available',
+};
+
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -25,14 +45,28 @@ export class WebstatusOverviewTable extends LitElement {
 
   location!: {search: string}; // Set by parent.
 
-  static styles = css`
-    .data-table {
-      width: 100%;
-    }
-    th {
-      text-align: left;
-    }
-  `;
+  static get styles(): CSSResultGroup {
+    return [
+      SHARED_STYLES,
+      css`
+        .data-table {
+          margin: var(--content-padding) 0;
+        }
+        .limited {
+          background: var(--chip-background-limited);
+          color: var(--chip-color-limited);
+        }
+        .newly {
+          background: var(--chip-background-newly);
+          color: var(--chip-color-newly);
+        }
+        .widely {
+          background: var(--chip-background-widely);
+          color: var(--chip-color-widely);
+        }
+      `,
+    ];
+  }
 
   render(): TemplateResult {
     return html`
@@ -40,8 +74,10 @@ export class WebstatusOverviewTable extends LitElement {
         <thead>
           <tr>
             <th>Feature Name</th>
-            <th>Baseline Status</th>
-            <th>WPT Scores</th>
+            <th>Baseline</th>
+            <th><img src="/public/img/chrome-dev_24x24.png" /></th>
+            <th><img src="/public/img/firefox-nightly_24x24.png" /></th>
+            <th><img src="/public/img/safari-preview_24x24.png" /></th>
           </tr>
         </thead>
         <tbody>
@@ -51,17 +87,30 @@ export class WebstatusOverviewTable extends LitElement {
     `;
   }
 
+  renderBaselineChip(baselineStatus: string): TemplateResult {
+    var baselineKey: keyof typeof BASELINE_CHIP_CLASSES = 'none';
+    if (baselineStatus === 'low') { baselineKey = 'low'; }
+    if (baselineStatus === 'high') { baselineKey = 'high'; }
+    const chipClass = BASELINE_CHIP_CLASSES[baselineKey];
+    const chipIcon = BASELINE_CHIP_ICONS[baselineKey];
+    const chipWords = BASELINE_CHIP_WORDS[baselineKey];
+    return html`
+      <span class="chip ${chipClass}">
+        <img height="24" src="/public/img/${chipIcon}" />
+        ${chipWords}
+      </span>
+    `;
+  }
+
   renderFeatureRow(feature: components['schemas']['Feature']): TemplateResult {
     const featureUrl = formatFeaturePageUrl(feature, this.location);
     return html`
       <tr>
         <td><a href=${featureUrl}>${feature.name}</a></td>
-        <td><img height="24" src="/public/img/cross.svg" /></td>
-        <td>
-          <img src="/public/img/chrome-dev_24x24.png" /> 100%
-          <img src="/public/img/firefox-nightly_24x24.png" /> 100%
-          <img src="/public/img/safari-preview_24x24.png" /> 100%
-        </td>
+        <td>${this.renderBaselineChip(feature.baseline_status)}</td>
+        <td>100%</td>
+        <td>100%</td>
+        <td>100%</td>
       </tr>
     `;
   }
