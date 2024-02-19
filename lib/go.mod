@@ -1,6 +1,6 @@
 module github.com/GoogleChrome/webstatus.dev/lib
 
-go 1.21.0
+go 1.22.0
 
 require (
 	cloud.google.com/go/datastore v1.15.0
