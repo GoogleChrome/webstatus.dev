@@ -72,7 +72,7 @@ export class WebstatusOverviewTable extends LitElement {
       <table class="data-table">
         <thead>
           <tr>
-            <th>Feature Name</th>
+            <th>Feature</th>
             <th>Baseline</th>
             <th><img src="/public/img/chrome-dev_24x24.png" /></th>
             <th><img src="/public/img/firefox-nightly_24x24.png" /></th>
