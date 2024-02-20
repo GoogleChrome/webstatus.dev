@@ -17,13 +17,51 @@
 import {css} from 'lit';
 
 import {RESET} from './_reset-css.js';
+import {FLEX_BOX} from './flex-box.js';
 
 export const SHARED_STYLES = [
   RESET,
+  FLEX_BOX,
   css`
     :host {
       font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+    }
+
+    h1 {
+      font-weight: 700;
+      font-size: 32px;
+    }
+
+    h2 {
+      font-weight: 700;
+      font-size: 24px;
+    }
+
+    h3,
+    h4 {
+      font-weight: 300;
+    }
+
+    h2,
+    h3,
+    h4 {
+      background: var(--heading-background);
+      color: var(--heading-color);
+    }
+
+    h3 {
+      font-size: 20px;
+    }
+
+    a {
+      text-decoration: none;
+      color: var(--link-color);
+    }
+    a:hover {
+      text-decoration: underline;
+      color: var(--link-hover-color);
+      cursor: pointer;
     }
   `,
 ];

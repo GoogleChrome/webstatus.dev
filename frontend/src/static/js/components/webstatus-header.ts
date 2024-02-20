@@ -61,28 +61,6 @@ export class WebstatusHeader extends LitElement {
           margin-bottom: auto;
         }
 
-        nav {
-          display: flex;
-          align-items: center;
-        }
-
-        .nav-links {
-          display: flex;
-          align-items: center;
-        }
-        nav a {
-          font-size: 16px;
-          color: #1f1f1f;
-          text-decoration: none;
-          margin-left: 20px;
-        }
-
-        nav a.active {
-          font-weight: bold;
-          color: #0b57d0;
-          text-decoration: underline;
-        }
-
         .sign-in {
           margin-top: auto;
           margin-bottom: auto;
@@ -115,16 +93,10 @@ export class WebstatusHeader extends LitElement {
             class="website-logo"
             src="https://fakeimg.pl/400x400?text=LOGO"
           />
-          <div class="website-title">Web Platform Dashboard</div>
+          <h2 class="website-title">Web Platform Dashboard</h2>
         </div>
 
         ${this.renderDrawer()}
-
-        <nav class="nav-links">
-          <a href="/">Features</a>
-          <a href="#">About</a>
-          <a href="#">Stats</a>
-        </nav>
 
         <div class="sign-in">
           <webstatus-login></webstatus-login>
