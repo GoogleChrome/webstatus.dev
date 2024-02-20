@@ -87,9 +87,10 @@ func (c *Client) ListWebFeatureData(ctx context.Context, pageToken *string) ([]b
 	for idx, val := range featureData {
 		// nolint: exhaustruct // TODO revisit once we adjust the ingestion data to incorporate the new fields.
 		ret[idx] = backend.Feature{
-			FeatureId: *val.WebFeatureID,
-			Name:      *val.Name,
-			Spec:      nil,
+			FeatureId:      *val.WebFeatureID,
+			Name:           *val.Name,
+			Spec:           nil,
+			BaselineStatus: backend.None,
 		}
 	}
 
