@@ -61,6 +61,12 @@ export class WebstatusOverviewFilters extends LitElement {
                 name="caret-right"
                 library="phosphor"
               ></sl-icon>
+              <sl-menu slot="submenu">
+                <sl-menu-item value="chrome">Chrome</sl-menu-item>
+                <sl-menu-item value="edge">Edge</sl-menu-item>
+                <sl-menu-item value="firefox">Firefox</sl-menu-item>
+                <sl-menu-item value="safari">Safari</sl-menu-item>
+              </sl-menu>
             </sl-menu-item>
             <sl-menu-item value="not-available-on"
               >Not available on
@@ -124,9 +130,6 @@ export class WebstatusOverviewFilters extends LitElement {
               library="phosphor"
             ></sl-icon>
           </sl-button>
-          <sl-menu-item value="chrome/edge">Chrome/Edge</sl-menu-item>
-          <sl-menu-item value="firefox">Firefox</sl-menu-item>
-          <sl-menu-item value="safari">Safari</sl-menu-item>
         </sl-dropdown>
       </div>
     `;
