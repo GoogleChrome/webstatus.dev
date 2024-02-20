@@ -54,9 +54,7 @@ export class WebstatusPage extends LitElement {
 
         .page-container {
           flex: 2;
-          padding-left: 20px;
-          padding-right: 20px;
-          padding-top: 10px;
+          padding: var(--content-padding);
         }
       `,
     ];
