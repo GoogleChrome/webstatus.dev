@@ -19,22 +19,31 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {formatFeaturePageUrl} from '../utils/urls.js';
 
-const BASELINE_CHIP_CLASSES = {
-  none: 'limited',
-  low: 'newly',
-  high: 'widely',
-};
+interface BaselineChipConfig {
+  cssClass: string;
+  icon: string;
+  word: string;
+}
 
-const BASELINE_CHIP_ICONS = {
-  none: 'cross.svg',
-  low: 'cross.svg', // TODO(jrobbins): need dotted check
-  high: 'check.svg',
-};
-
-const BASELINE_CHIP_WORDS = {
-  none: 'Limited',
-  low: 'New',
-  high: 'Widely available',
+const BASELINE_CHIP_CONFIGS: Record<
+  components['schemas']['Feature']['baseline_status'],
+  BaselineChipConfig
+> = {
+  none: {
+    cssClass: 'limited',
+    icon: 'cross.svg',
+    word: 'Limited',
+  },
+  low: {
+    cssClass: 'newly',
+    icon: 'cross.svg', // TODO(jrobbins): need dotted check
+    word: 'New',
+  },
+  high: {
+    cssClass: 'widely',
+    icon: 'check.svg',
+    word: 'Widely available',
+  },
 };
 
 @customElement('webstatus-overview-table')
@@ -86,21 +95,14 @@ export class WebstatusOverviewTable extends LitElement {
     `;
   }
 
-  renderBaselineChip(baselineStatus: string): TemplateResult {
-    let baselineKey: keyof typeof BASELINE_CHIP_CLASSES = 'none';
-    if (baselineStatus === 'low') {
-      baselineKey = 'low';
-    }
-    if (baselineStatus === 'high') {
-      baselineKey = 'high';
-    }
-    const chipClass = BASELINE_CHIP_CLASSES[baselineKey];
-    const chipIcon = BASELINE_CHIP_ICONS[baselineKey];
-    const chipWords = BASELINE_CHIP_WORDS[baselineKey];
+  renderBaselineChip(
+    baselineStatus: components['schemas']['Feature']['baseline_status']
+  ): TemplateResult {
+    const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
     return html`
-      <span class="chip ${chipClass}">
-        <img height="24" src="/public/img/${chipIcon}" />
-        ${chipWords}
+      <span class="chip ${chipConfig.cssClass}">
+        <img height="24" src="/public/img/${chipConfig.icon}" />
+        ${chipConfig.word}
       </span>
     `;
   }
