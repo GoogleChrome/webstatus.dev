@@ -54,29 +54,63 @@ export class WebstatusOverviewFilters extends LitElement {
             Filter
           </sl-button>
           <sl-menu>
-            <sl-menu-item value="available-on">Available on
-            <sl-icon slot="suffix" name="caret-right" library="phosphor"></sl-icon>
+            <sl-menu-item value="available-on"
+              >Available on
+              <sl-icon
+                slot="suffix"
+                name="caret-right"
+                library="phosphor"
+              ></sl-icon>
             </sl-menu-item>
             <sl-menu-item value="not-available-on"
               >Not available on
-              <sl-icon slot="suffix" name="caret-right" library="phosphor"></sl-icon>
-              </sl-menu-item>
-            <sl-menu-item value="baseline-since">Baseline since
-            <sl-icon slot="suffix" name="calendar-blank" library="phosphor"></sl-icon>
+              <sl-icon
+                slot="suffix"
+                name="caret-right"
+                library="phosphor"
+              ></sl-icon>
             </sl-menu-item>
-            <sl-menu-item value="baseline-status">Baseline status
-            <sl-icon slot="suffix" name="caret-right" library="phosphor"></sl-icon>
+            <sl-menu-item value="baseline-since"
+              >Baseline since
+              <sl-icon
+                slot="suffix"
+                name="calendar-blank"
+                library="phosphor"
+              ></sl-icon>
             </sl-menu-item>
-            <sl-menu-item value="baseline-type">Baseline type
-            <sl-icon slot="suffix" name="caret-right" library="phosphor"></sl-icon>
+            <sl-menu-item value="baseline-status"
+              >Baseline status
+              <sl-icon
+                slot="suffix"
+                name="caret-right"
+                library="phosphor"
+              ></sl-icon>
+            </sl-menu-item>
+            <sl-menu-item value="baseline-type"
+              >Baseline type
+              <sl-icon
+                slot="suffix"
+                name="caret-right"
+                library="phosphor"
+              ></sl-icon>
             </sl-menu-item>
             <sl-menu-item value="standards-track">Standards track</sl-menu-item>
-            <sl-menu-item value="spec-maturity">Spec maturity
-            <sl-icon slot="suffix" name="caret-right" library="phosphor"></sl-icon>
+            <sl-menu-item value="spec-maturity"
+              >Spec maturity
+              <sl-icon
+                slot="suffix"
+                name="caret-right"
+                library="phosphor"
+              ></sl-icon>
             </sl-menu-item>
             <sl-menu-item value="web-platform-test-score">
               Web platform test score
-              <sl-icon slot="suffix" name="caret-right" library="phosphor"></sl-icon></sl-menu-item>
+              <sl-icon
+                slot="suffix"
+                name="caret-right"
+                library="phosphor"
+              ></sl-icon
+            ></sl-menu-item>
             <sl-divider></sl-divider>
             <sl-menu-item value="clear-all">Clear all</sl-menu-item>
           </sl-menu>
