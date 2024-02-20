@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-import {LitElement, type TemplateResult, css, html} from 'lit';
+import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
-import {getSearchQuery} from '../utils/urls.js';
 
+import './webstatus-overview-filters.js';
 import './webstatus-overview-table.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -28,44 +29,58 @@ export class WebstatusOverviewContent extends LitElement {
 
   location!: {search: string}; // Set by parent.
 
-  static styles = css`
-    .stats-summary {
-      color: #6c7381;
-    }
-  `;
+  static get styles(): CSSResultGroup {
+    return [
+      SHARED_STYLES,
+      css`
+        .header-line {
+          gap: 1em;
+        }
+        .stats-summary {
+          color: #6c7381;
+        }
+      `,
+    ];
+  }
 
   render(): TemplateResult {
     const numFeatures = this.features.length;
-    const query = getSearchQuery(this.location);
+    const date = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+
     return html`
       <div class="main">
-        <h2>Features overview</h2>
-        <span class="stats-summary">
-          <sl-icon library="phosphor" name="list-magnifying-glass"></sl-icon>
-          ${numFeatures} features</span
-        >
-
-        <sl-input placeholder="Filter by feature name..." value=${query}>
-          <sl-icon name="search" slot="prefix"></sl-icon>
-        </sl-input>
-        <sl-button
-          ><sl-icon slot="prefix" name="filter"></sl-icon>Filter</sl-button
-        >
-        <sl-button>
-          <sl-icon
-            slot="prefix"
-            name="square-split-horizontal"
-            library="phosphor"
-          ></sl-icon>
-        </sl-button>
-
-        <div class="filters">
-          <select>
-            <option value="all">All</option>
-            <option value="active">Active</option>
-            <option value="inactive">Inactive</option>
-          </select>
+        <div class="hbox space-between header-line">
+          <h1 class="hgrow">Features overview</h1>
+          <sl-button
+            ><sl-icon
+              slot="prefix"
+              name="link-simple"
+              library="phosphor"
+            ></sl-icon
+          ></sl-button>
+          <sl-button
+            ><sl-icon name="bookmark"></sl-icon> Save this view</sl-button
+          >
         </div>
+        <div class="hbox">
+          <span class="stats-summary">
+            <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
+            ${numFeatures} features</span
+          >
+          <span class="stats-summary">
+            <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
+            Updated ${date}</span
+          >
+        </div>
+        <br />
+        <webstatus-overview-filters
+          .location=${this.location}
+        ></webstatus-overview-filters>
+        <br />
 
         <webstatus-overview-table
           .location=${this.location}
