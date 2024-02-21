@@ -19,6 +19,7 @@
   },
   "devDependencies": {
     "@browser-logos/chrome-dev": "^3.0.0",
+    "@browser-logos/edge-dev": "^2.0.3",
     "@browser-logos/firefox-nightly": "^3.0.6",
     "@browser-logos/safari-technology-preview": "^2.0.2",
     "@esm-bundle/chai": "^4.3.4-fix.0",
