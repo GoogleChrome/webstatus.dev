@@ -84,6 +84,7 @@ export class WebstatusOverviewTable extends LitElement {
             <th>Feature</th>
             <th>Baseline</th>
             <th><img src="/public/img/chrome-dev_24x24.png" /></th>
+            <th><img src="/public/img/edge-dev_24x24.png" /></th>
             <th><img src="/public/img/firefox-nightly_24x24.png" /></th>
             <th><img src="/public/img/safari-preview_24x24.png" /></th>
           </tr>
@@ -113,6 +114,7 @@ export class WebstatusOverviewTable extends LitElement {
       <tr>
         <td><a href=${featureUrl}>${feature.name}</a></td>
         <td>${this.renderBaselineChip(feature.baseline_status)}</td>
+        <td>100%</td>
         <td>100%</td>
         <td>100%</td>
         <td>100%</td>
