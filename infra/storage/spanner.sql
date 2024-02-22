@@ -37,5 +37,5 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
 ) PRIMARY KEY (ID, FeatureID)
 ,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
 
--- Used to enforce that only one combination of ExternalRunID and FeatureID can exist
+-- Used to enforce that only one combination of ExternalRunID and FeatureID can exist.
 CREATE UNIQUE NULL_FILTERED INDEX MetricsByExternalRunIDAndFeature ON WPTRunFeatureMetrics (ExternalRunID, FeatureID);

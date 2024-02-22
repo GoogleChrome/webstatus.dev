@@ -63,7 +63,8 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeature
 			SELECT
 				ID, ExternalRunID, FeatureID, TotalTests, TestPass
 			FROM WPTRunFeatureMetrics
-			WHERE ExternalRunID = @externalRunID`)
+			WHERE ExternalRunID = @externalRunID
+			LIMIT 1`)
 		parameters := map[string]interface{}{
 			"externalRunID": metric.RunID,
 		}
@@ -133,7 +134,8 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 		SELECT
 			ExternalRunID, FeatureID, TotalTests, TestPass
 		FROM WPTRunFeatureMetrics
-		WHERE ExternalRunID = @externalRunID AND FeatureID = @featureID`)
+		WHERE ExternalRunID = @externalRunID AND FeatureID = @featureID
+		LIMIT 1`)
 	parameters := map[string]interface{}{
 		"externalRunID": runID,
 		"featureID":     featureID,
