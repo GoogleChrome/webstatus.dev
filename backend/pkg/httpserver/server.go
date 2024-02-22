@@ -36,6 +36,24 @@ type Server struct {
 	metadataStorer WebFeatureMetadataStorer
 }
 
+// ListAggregatedWPTMetrics implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (*Server) ListAggregatedWPTMetrics(
+	ctx context.Context,
+	request backend.ListAggregatedWPTMetricsRequestObject,
+) (backend.ListAggregatedWPTMetricsResponseObject, error) {
+	panic("unimplemented")
+}
+
+// ListFeatureWPTMetrics implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (*Server) ListFeatureWPTMetrics(
+	ctx context.Context,
+	request backend.ListFeatureWPTMetricsRequestObject,
+) (backend.ListFeatureWPTMetricsResponseObject, error) {
+	panic("unimplemented")
+}
+
 // GetV1FeaturesFeatureId implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
 func (s *Server) GetV1FeaturesFeatureId(

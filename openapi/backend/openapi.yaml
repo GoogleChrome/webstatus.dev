@@ -111,9 +111,146 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-
+  /v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/test_counts:
+    parameters:
+      - name: feature_id
+        in: path
+        description: Feature ID
+        required: true
+        schema:
+          type: string
+      - $ref: '#/components/parameters/browserPathParam'
+      - $ref: '#/components/parameters/channelPathParam'
+    get:
+      summary: Retrieve the wpt stats for a particular feature.
+      operationId: listFeatureWPTMetrics
+      parameters:
+        - $ref: '#/components/parameters/startAtParam'
+        - $ref: '#/components/parameters/endAtParam'
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WPTRunMetricsPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts:
+    parameters:
+      - $ref: '#/components/parameters/browserPathParam'
+      - $ref: '#/components/parameters/channelPathParam'
+    get:
+      summary: >
+        Gets aggregated WPT test counts for a specified browser and channel. Optionally filter by feature IDs.
+      operationId: listAggregatedWPTMetrics
+      parameters:
+        - $ref: '#/components/parameters/startAtParam'
+        - $ref: '#/components/parameters/endAtParam'
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+        - in: query
+          name: featureIds
+          description: A comma-separated list of feature IDs to filter results.
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WPTRunMetricsPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
+    browserPathParam:
+      in: path
+      name: browser
+      description: Browser name
+      required: true
+      schema:
+        type: string
+        # List of supported browsers that webstatus.dev currently ingests
+        enum:
+          - chrome
+          - firefox
+          - safari
+    channelPathParam:
+      in: path
+      name: channel
+      description: Browser name
+      required: true
+      schema:
+        type: string
+        # List of supported channels that webstatus.dev currently ingests
+        enum:
+          - stable
+          - experimental
+    startAtParam:
+      in: query
+      name: startAt
+      schema:
+        type: string
+        format: date
+      description: Start date (RFC 3339, section 5.6, for example, 2017-07-21). The date is inclusive.
+      required: true
+    endAtParam:
+      in: query
+      name: endAt
+      schema:
+        type: string
+        format: date
+      description: End date (RFC 3339, section 5.6, for example, 2017-07-21). The date is exclusive.
+      required: true
     paginationTokenParam:
       in: query
       name: page_token
@@ -126,12 +263,38 @@ components:
       name: page_size
       schema:
         type: integer
-        maximum: 25
-        minimum: 0
-        default: 0
+        maximum: 100
+        minimum: 1
+        default: 1
       required: false
       description: Number of results to return
   schemas:
+    WPTRunMetric:
+      type: object
+      properties:
+        run_timestamp:
+          type: string
+          format: date-time
+          description: The start timestamp of the run.
+        total_tests_count:
+          type: number
+          description: Total number of tests
+        test_pass_count:
+          type: number
+          description: Number of passing tests
+      required:
+        - run_timestamp
+    WPTRunMetricsPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/WPTRunMetric'
+      required:
+        - data
     WPTFeatureData:
       type: object
       properties:
