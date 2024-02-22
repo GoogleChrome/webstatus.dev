@@ -41,7 +41,9 @@ func TestFeatureDataOperations(t *testing.T) {
 		t.Errorf("failed to list %s", err.Error())
 	}
 
-	expectedFeatures := []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-1-name"}}
+	expectedFeatures := []backend.Feature{
+		{FeatureId: "id-1", Spec: nil, Name: "version-1-name", BaselineStatus: backend.None},
+	}
 	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
 		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
 	}
@@ -59,7 +61,9 @@ func TestFeatureDataOperations(t *testing.T) {
 		t.Errorf("failed to list %s", err.Error())
 	}
 
-	expectedFeatures = []backend.Feature{{FeatureId: "id-1", Spec: nil, Name: "version-2-name"}}
+	expectedFeatures = []backend.Feature{
+		{FeatureId: "id-1", Spec: nil, Name: "version-2-name", BaselineStatus: backend.None},
+	}
 	if !slices.Equal[[]backend.Feature](features, expectedFeatures) {
 		t.Errorf("slices not equal actual [%v] expected [%v]", features, expectedFeatures)
 	}
