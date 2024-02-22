@@ -73,12 +73,14 @@ export class FeaturePage extends LitElement {
           color: var(--unimportant-text-color);
         }
         .chip.increased {
-          font-size: 60%;
           background: var(--chip-background-increased);
           color: var(--chip-color-increased);
         }
+        .chip.unchanged {
+          background: var(--chip-background-unchanged);
+          color: var(--chip-color-unchanged);
+        }
         .chip.decreased {
-          font-size: 60%;
           background: var(--chip-background-decreased);
           color: var(--chip-color-decreased);
         }
@@ -155,7 +157,7 @@ export class FeaturePage extends LitElement {
         <div>${browser}</div>
         <div class="score">
           99.8%
-          <span class="chip increased">+1.2%</span>
+          <span class="chip small increased">+1.2%</span>
         </div>
         <div class="avail">Available since ...</div>
       </section>

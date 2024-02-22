@@ -75,6 +75,10 @@ export const THEME = css`
     --chip-color-newly: var(--color-blue-fg);
     --chip-background-widely: var(--color-green-bg);
     --chip-color-widely: var(--color-green-fg);
+
+    --chip-small-font-size: 60%;
+    --chip-background-unchanged: var(--color-gray-bg);
+    --chip-color-unchanged: var(--color-gray-fg);
     --chip-background-increased: var(--color-green-bg);
     --chip-color-incresed: var(--color-green-fg);
     --chip-background-decreased: var(--color-red-bg);

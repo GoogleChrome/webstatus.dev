@@ -53,6 +53,10 @@ export const SHARED_STYLES = [
       padding: var(--content-padding-quarter) var(--content-padding-half);
     }
 
+    .chip.small {
+      font-size: var(--chip-small-font-size);
+    }
+
     h1 {
       font-weight: 700;
       font-size: 32px;
