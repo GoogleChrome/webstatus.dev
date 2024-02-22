@@ -31,15 +31,6 @@ export const SHARED_STYLES = [
       color: var(--default-color);
     }
 
-    a {
-      color: var(--link-color);
-      text-decoration: none;
-    }
-    a:hover {
-      color: var(--link-hover-color);
-      text-decoration: underline;
-    }
-
     .data-table {
       width: 100%;
       border: var(--default-border);
@@ -60,6 +51,10 @@ export const SHARED_STYLES = [
       border-radius: var(--chip-radius);
       white-space: nowrap;
       padding: var(--content-padding-quarter) var(--content-padding-half);
+    }
+
+    .chip.small {
+      font-size: var(--chip-small-font-size);
     }
 
     h1 {
@@ -96,6 +91,23 @@ export const SHARED_STYLES = [
       text-decoration: underline;
       color: var(--link-hover-color);
       cursor: pointer;
+    }
+
+    .card {
+      background: var(--card-background);
+      padding: var(--content-padding);
+      border: var(--card-border);
+      border-radius: var(--card-radius);
+    }
+
+    .under-construction {
+      background: repeating-linear-gradient(
+        45deg,
+        var(--sl-color-cyan-50),
+        var(--sl-color-cyan-50) 10px,
+        transparent 10px,
+        transparent 20px
+      );
     }
   `,
 ];
