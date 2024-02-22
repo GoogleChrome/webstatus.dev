@@ -29,3 +29,16 @@ CREATE TABLE IF NOT EXISTS WPTRuns (
 
 -- Used to enforce that only one ExternalRunID from wpt.fyi can exist.
 CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID);
+
+-- WPTRunFeatureMetrics contains metrics for individual features for a given run.
+CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
+    ID STRING(36) NOT NULL,
+    ExternalRunID INT64 NOT NULL, -- ID from WPT
+    FeatureID STRING(64) NOT NULL,
+    TotalTests INT64,
+    TestPass INT64,
+) PRIMARY KEY (ID, FeatureID)
+,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
+
+-- Used to enforce that only one combination of ExternalRunID and FeatureID can exist.
+CREATE UNIQUE NULL_FILTERED INDEX MetricsByExternalRunIDAndFeature ON WPTRunFeatureMetrics (ExternalRunID, FeatureID);
