@@ -25,9 +25,8 @@ CREATE TABLE IF NOT EXISTS WPTRuns (
     FullRevisionHash STRING(40),
 ) PRIMARY KEY (ID);
 
+-- Used to enforce that only one ExternalRunID from wpt.fyi can exist.
 CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID);
-CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunIDAndID ON WPTRuns (ExternalRunID, ID);
-CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunIDAndTimeDesc ON WPTRuns (ExternalRunID, TimeStart DESC);
 
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     ID STRING(36) NOT NULL,
@@ -38,5 +37,5 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
 ) PRIMARY KEY (ID, FeatureID)
 ,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
 
--- CREATE NULL_FILTERED INDEX MetricsByExternalRunID ON WPTRunFeatureMetrics (ExternalRunID);
+-- Used to enforce that only one combination of ExternalRunID and FeatureID can exist
 CREATE UNIQUE NULL_FILTERED INDEX MetricsByExternalRunIDAndFeature ON WPTRunFeatureMetrics (ExternalRunID, FeatureID);

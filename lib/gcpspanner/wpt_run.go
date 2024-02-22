@@ -23,9 +23,12 @@ import (
 )
 
 const wptRunsTable = "WPTRuns"
+const indexRunsByExternalRunID = "RunsByExternalRunID"
 
-// SpannerWPTRun represents the data stored in spanner.
-// To keep the IDs from WPT Runs decoupled from our storage, it has its own ID.
+// SpannerWPTRun is a wrapper for the run data that is actually
+// stored in spanner. This is useful because the spanner id is not useful to
+// return to the end user since it is only used to decouple the primary keys
+// between this system and wpt.fyi.
 type SpannerWPTRun struct {
 	ID string `spanner:"ID"`
 	WPTRun
@@ -45,12 +48,17 @@ type WPTRun struct {
 	FullRevisionHash string    `spanner:"FullRevisionHash"`
 }
 
+// UpsertWPTRun will upsert the given WPT Run.
+// If the run, does not exist, it will insert a new run.
+// If the run exists, it currently does nothing and keeps the existing as-is.
+// The update case should be revisited later on.
+// It uses the RunsByExternalRunID index to quickly look up the row.
 func (c *Client) UpsertWPTRun(ctx context.Context, run WPTRun) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		_, err := txn.ReadRowUsingIndex(
 			ctx,
 			wptRunsTable,
-			"RunsByExternalRunID",
+			indexRunsByExternalRunID,
 			spanner.Key{run.RunID},
 			[]string{
 				"ID",
@@ -80,13 +88,17 @@ func (c *Client) UpsertWPTRun(ctx context.Context, run WPTRun) error {
 	return nil
 }
 
+// GetIDOfWPTRunByRunID is a helper function to help get the spanner ID of the
+// run. This ID then can be used to create WPT Run Metrics. By linking with this
+// ID, we do not have to be coupled with the ID from wpt.fyi.
+// It uses the RunsByExternalRunID index to quickly look up the row.
 func (c *Client) GetIDOfWPTRunByRunID(ctx context.Context, runID int64) (*string, error) {
 	txn := c.Single()
 	defer txn.Close()
 	row, err := txn.ReadRowUsingIndex(
 		ctx,
 		wptRunsTable,
-		"RunsByExternalRunID",
+		indexRunsByExternalRunID,
 		spanner.Key{runID},
 		[]string{
 			"ID",

@@ -26,7 +26,10 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
+// ErrQueryReturnedNoResults indicates no results were returned.
 var ErrQueryReturnedNoResults = errors.New("query returned no results")
+
+// ErrInternalQueryFailure is a catch-all error for now.
 var ErrInternalQueryFailure = errors.New("internal spanner query failure")
 
 // Client is the client for interacting with GCP Spanner.
@@ -58,11 +61,14 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 	return &Client{client}, nil
 }
 
+// Cursor: Represents a point for resuming queries based on the last
+// TimeStart and ExternalRunID.
 type Cursor struct {
 	LastTimeStart time.Time `json:"last_time_start"`
 	LastRunID     int64     `json:"last_run_id"`
 }
 
+// decodeCursor: Decodes a base64-encoded cursor string into a Cursor struct.
 func decodeCursor(cursor string) (Cursor, error) {
 	data, err := base64.RawURLEncoding.DecodeString(cursor)
 	if err != nil {
@@ -74,11 +80,15 @@ func decodeCursor(cursor string) (Cursor, error) {
 	return decoded, err
 }
 
+// encodeCursor: Encodes a Cursor into a base64-encoded string.
+// Returns an empty string if is unable to create a token.
 func encodeCursor(timeStart time.Time, id int64) string {
 	cursor := Cursor{LastTimeStart: timeStart, LastRunID: id}
 	data, err := json.Marshal(cursor)
 	if err != nil {
 		slog.Error("unable to encode cursor", "error", err)
+
+		return ""
 	}
 
 	return base64.RawURLEncoding.EncodeToString(data)

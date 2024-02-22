@@ -26,11 +26,16 @@ import (
 
 const wptRunFeatureMetricTable = "WPTRunFeatureMetrics"
 
+// SpannerWPTRunFeatureMetric is a wrapper for the metric data that is actually
+// stored in spanner. This is useful because the spanner id is not useful to
+// return to the end user since it is used to decouple the primary keys between
+// this system and wpt.fyi.
 type SpannerWPTRunFeatureMetric struct {
 	ID string `spanner:"ID"`
 	WPTRunFeatureMetric
 }
 
+// WPTRunFeatureMetric represents the metrics for a particular feature in a run.
 type WPTRunFeatureMetric struct {
 	RunID      int64  `spanner:"ExternalRunID"`
 	FeatureID  string `spanner:"FeatureID"`
@@ -38,25 +43,33 @@ type WPTRunFeatureMetric struct {
 	TestPass   *int64 `spanner:"TestPass"`
 }
 
+// UpsertWPTRunFeatureMetric will upsert the given WPT Run metric.
+// The RunID must exists in a row in the WPTRuns table.
+// If the metric does not exist, it will insert a new metric.
+// If the metric exists, it will only update the TotalTests and TestPass columns.
 func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeatureMetric) error {
 	id, err := c.GetIDOfWPTRunByRunID(ctx, in.RunID)
 	if err != nil {
 		return err
 	}
+
+	// Create a metric with the retrieved ID
 	metric := SpannerWPTRunFeatureMetric{
 		ID:                  *id,
 		WPTRunFeatureMetric: in,
 	}
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		stmt := spanner.NewStatement(
-			"SELECT " +
-				"ID, ExternalRunID, FeatureID, TotalTests, TestPass " +
-				"FROM WPTRunFeatureMetrics " +
-				"WHERE ExternalRunID = @externalRunID")
+		stmt := spanner.NewStatement(`
+			SELECT
+				ID, ExternalRunID, FeatureID, TotalTests, TestPass
+			FROM WPTRunFeatureMetrics
+			WHERE ExternalRunID = @externalRunID`)
 		parameters := map[string]interface{}{
 			"externalRunID": metric.RunID,
 		}
 		stmt.Params = parameters
+
+		// Attempt to query for the row.
 		it := txn.Query(ctx, stmt)
 		defer it.Stop()
 		var m *spanner.Mutation
@@ -72,9 +85,12 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeature
 					return err
 				}
 			} else {
+				// An unexpected error occurred.
+
 				return err
 			}
 		} else {
+			// Read the existing metric and merge the values.
 			var existingMetric SpannerWPTRunFeatureMetric
 			err = row.ToStruct(&existingMetric)
 			if err != nil {
@@ -89,6 +105,7 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeature
 			}
 		}
 
+		// Buffer the mutation to be committed.
 		err = txn.BufferWrite([]*spanner.Mutation{m})
 		if err != nil {
 			return err
@@ -103,6 +120,8 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeature
 	return nil
 }
 
+// GetMetricByRunIDAndFeatureID attempts to get a metric for the given id from
+// wpt.fyi and web feature id.
 func (c *Client) GetMetricByRunIDAndFeatureID(
 	ctx context.Context,
 	runID int64,
@@ -110,11 +129,11 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 ) (*WPTRunFeatureMetric, error) {
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	stmt := spanner.NewStatement(
-		"SELECT " +
-			"ExternalRunID, FeatureID, TotalTests, TestPass " +
-			"FROM WPTRunFeatureMetrics " +
-			"WHERE ExternalRunID = @externalRunID AND FeatureID = @featureID")
+	stmt := spanner.NewStatement(`
+		SELECT
+			ExternalRunID, FeatureID, TotalTests, TestPass
+		FROM WPTRunFeatureMetrics
+		WHERE ExternalRunID = @externalRunID AND FeatureID = @featureID`)
 	parameters := map[string]interface{}{
 		"externalRunID": runID,
 		"featureID":     featureID,
@@ -143,6 +162,7 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 	return &metric, nil
 }
 
+// WPTRunFeatureMetricWithTime contains metrics for a feature at a given time.
 type WPTRunFeatureMetricWithTime struct {
 	TimeStart  time.Time `spanner:"TimeStart"`
 	RunID      int64     `spanner:"ExternalRunID"`
@@ -150,6 +170,11 @@ type WPTRunFeatureMetricWithTime struct {
 	TestPass   *int64    `spanner:"TestPass"`
 }
 
+// ListMetricsForFeatureIDBrowserAndChannel attempts to return a page of
+// metrics based on a web feature id, browser name and channel. A time window
+// must be specified to analyze the runs according to the TimeStart of the run.
+// If the page size matches the pageSize, a page token is returned. Else,
+// no page token is returned.
 func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 	ctx context.Context,
 	featureID string,
@@ -232,10 +257,22 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 	return featureMetrics, nil, nil
 }
 
+// WPTRunAggregationMetricWithTime contains metrics for a particular aggregation
+// at a given time. For now, it is the same metrics as
+// WPTRunFeatureMetricWithTime.
 type WPTRunAggregationMetricWithTime struct {
 	WPTRunFeatureMetricWithTime
 }
 
+// ListMetricsOverTimeWithAggregatedTotals attempts to return a page of
+// metrics based on browser name and channel. Users can provide a list of web
+// feature ids. If the list is provided, the aggregation will be scoped to those
+// feature ids. If an empty or nil list is provided, the aggregation is applied
+// to all features.
+// A time window must be specified to analyze the runs according to the
+// TimeStart of the run.
+// If the page size matches the pageSize, a page token is returned. Else,
+// no page token is returned.
 func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 	ctx context.Context,
 	featureIDs []string,
@@ -303,6 +340,9 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 
 	return aggregationMetrics, nil, nil
 }
+
+// noPageTokenAllFeatures builds a spanner statement when a page token
+// is not provided and the aggregation applies to all features.
 func noPageTokenAllFeatures(params map[string]interface{}) spanner.Statement {
 	stmt := spanner.NewStatement(`
 		SELECT
@@ -322,6 +362,8 @@ func noPageTokenAllFeatures(params map[string]interface{}) spanner.Statement {
 	return stmt
 }
 
+// noPageTokenFeatureSubset builds a spanner statement when a page token is
+// not provided and the aggregation applies to a particular list of features.
 func noPageTokenFeatureSubset(params map[string]interface{}, featureIDs []string) spanner.Statement {
 	stmt := spanner.NewStatement(`
 	SELECT
@@ -343,6 +385,8 @@ func noPageTokenFeatureSubset(params map[string]interface{}, featureIDs []string
 	return stmt
 }
 
+// withPageTokenAllFeatures builds a spanner statement when a page token is
+// provided and the aggregation applies to all features.
 func withPageTokenAllFeatures(params map[string]interface{}, cursor Cursor) spanner.Statement {
 	stmt := spanner.NewStatement(`
 		SELECT
@@ -366,6 +410,8 @@ func withPageTokenAllFeatures(params map[string]interface{}, cursor Cursor) span
 	return stmt
 }
 
+// withPageTokenFeatureSubset builds a spanner statement when a page token is
+// provided and the aggregation applies to a particular list of features.
 func withPageTokenFeatureSubset(params map[string]interface{}, featureIDs []string, cursor Cursor) spanner.Statement {
 	stmt := spanner.NewStatement(`
 		SELECT
