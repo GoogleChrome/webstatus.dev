@@ -101,14 +101,12 @@ export const SHARED_STYLES = [
     }
 
     .under-construction {
-      padding: var(--content-padding-large);
-      color: darkcyan;
       background: repeating-linear-gradient(
         45deg,
         var(--sl-color-cyan-50),
         var(--sl-color-cyan-50) 10px,
-        var(--sl-color-cyan-100) 10px,
-        var(--sl-color-cyan-100) 20px
+        transparent 10px,
+        transparent 20px
       );
     }
   `,
