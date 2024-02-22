@@ -12,8 +12,20 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- This a placeholder statement for the migration handler to execute.
--- This will be replaced.
-CREATE TABLE Placeholder (
-    ID INT64 NOT NULL
+-- WPTRuns contains metadata from wpt.fyi runs.
+-- More information: https://github.com/web-platform-tests/wpt.fyi/blob/main/api/README.md#apiruns
+CREATE TABLE IF NOT EXISTS WPTRuns (
+    ID STRING(36) NOT NULL DEFAULT (GENERATE_UUID()),
+    ExternalRunID INT64 NOT NULL, -- ID from WPT
+    TimeStart TIMESTAMP NOT NULL,
+    TimeEnd TIMESTAMP NOT NULL,
+    BrowserName STRING(64),
+    BrowserVersion STRING(32),
+    Channel STRING(32),
+    OSName STRING(64),
+    OSVersion STRING(32),
+    FullRevisionHash STRING(40),
 ) PRIMARY KEY (ID);
+
+-- Used to enforce that only one ExternalRunID from wpt.fyi can exist.
+CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID);
