@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+NPROCS := $(shell nproc)
 
 .PHONY: all \
 		clean \
@@ -27,20 +28,22 @@ precommit: license-check lint test
 ################################
 # Local Environment
 ################################
+SKAFFOLD_FLAGS = -p local
+SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false
 start-local: configure-skaffold
-	skaffold dev -p local
+	skaffold dev $(SKAFFOLD_RUN_FLAGS)
 
 debug-local: configure-skaffold
-	skaffold debug -p local
+	skaffold debug $(SKAFFOLD_RUN_FLAGS)
 
 configure-skaffold: minikube-running
 	skaffold config set --kube-context "$${MINIKUBE_PROFILE}" local-cluster true
 
 deploy-local: configure-skaffold
-	skaffold run -p local --status-check=true --port-forward=off
+	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true --port-forward=off
 
 delete-local:
-	skaffold delete -p local || true
+	skaffold delete $(SKAFFOLD_FLAGS) || true
 
 port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
@@ -180,10 +183,10 @@ go-test:
 			echo "********* Testing module: $${GO_MODULE} *********" ; \
 			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
 			mkdir -p $${GO_COVERAGE_DIR} ; \
-			go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..."; \
-			echo "Generating coverage report for $${GO_MODULE}" ; \
-			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out ; \
-			echo -e "\n\n" ; \
+			go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
+			echo "Generating coverage report for $${GO_MODULE}" && \
+			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out && \
+			echo -e "\n\n" || exit 1; \
 		fi \
 	done
 

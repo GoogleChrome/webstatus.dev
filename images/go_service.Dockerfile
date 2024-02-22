@@ -15,24 +15,36 @@
 FROM golang:1.22.0-alpine3.18 as builder
 
 WORKDIR /work
+
+# Cache the layers for the dependencies in the lib module.
+# These layers are common among most Go services so each can re-use them.
 COPY lib/go.mod lib/go.sum lib/
 COPY lib/gen/go.mod lib/gen/go.sum lib/gen/
-ARG service_dir
-COPY ${service_dir}/go.mod ${service_dir}/go.sum ${service_dir}/
 RUN go work init && \
     go work use ./lib && \
-    go work use ./lib/gen && \
-    go work use ${service_dir} ${service_dir}
+    go work use ./lib/gen
+RUN  go mod download
+
+# Create the layers for the specific service in ${service_dir}.
+ARG service_dir
+COPY ${service_dir}/go.mod ${service_dir}/go.sum ${service_dir}/
+RUN  go work use ${service_dir} ${service_dir}
 WORKDIR /work/${service_dir}
 RUN  go mod download
+
+# Copy the source files now that all the dependencies have been installed.
 WORKDIR /work
 COPY lib lib
 COPY ${service_dir} ${service_dir}
+
+# Build the binary
 ARG SKAFFOLD_GO_GCFLAGS
 RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o server ./${service_dir}/cmd/server
 
 FROM alpine:3.18
 
+# Copy only the binary from the previous image
 COPY --from=builder /work/server .
 
+# Assuming that service has a binary called server, make that the command to run when the image starts.
 CMD ./server
