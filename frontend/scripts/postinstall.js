@@ -29,4 +29,13 @@ await cpy(
   {rename: 'safari-preview_24x24.png'}
 );
 
+await cpy(`${BROWSER_LOGO_DIR}/chrome-dev/*_32x32.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/edge-dev/*_32x32.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/firefox-nightly/*_32x32.png`, IMG_DEST);
+await cpy(
+  `${BROWSER_LOGO_DIR}/safari-technology-preview/*_32x32.png`,
+  IMG_DEST,
+  {rename: 'safari-preview_32x32.png'}
+);
+
 console.log(`copied logos to ${IMG_DEST}`);

@@ -33,4 +33,9 @@ export const FLEX_BOX = css`
   .hbox > .hshrink {
     flex-shrink: 2;
   }
+
+  .vbox {
+    display: flex;
+    flex-direction: column;
+  }
 `;

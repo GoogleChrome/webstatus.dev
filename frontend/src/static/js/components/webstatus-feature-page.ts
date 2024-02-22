@@ -16,8 +16,9 @@
 
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
-import {LitElement, type TemplateResult, css, html} from 'lit';
+import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {type APIClient} from '../api/client.js';
@@ -40,14 +41,54 @@ export class FeaturePage extends LitElement {
 
   location!: {params: {featureId: string}; search: string}; // Set by router.
 
-  static styles = css`
-    .crumbs {
-      color: #aaa;
-    }
-    .crumbs a {
-      text-decoration: none;
-    }
-  `;
+  static get styles(): CSSResultGroup {
+    return [
+      SHARED_STYLES,
+      css`
+        .crumbs {
+          color: #aaa;
+        }
+        .crumbs a {
+          text-decoration: none;
+        }
+
+        .hbox,
+        .vbox {
+          gap: var(--content-padding-large);
+        }
+        .hbox section {
+          width: 100%;
+        }
+
+        .wptScore > div + div {
+          margin-top: var(--content-padding-half);
+        }
+        .wptScore .icon {
+          float: right;
+        }
+        .wptScore .score {
+          font-size: 150%;
+        }
+        .wptScore .avail {
+          color: var(--unimportant-text-color);
+        }
+        .chip.increased {
+          font-size: 60%;
+          background: var(--chip-background-increased);
+          color: var(--chip-color-increased);
+        }
+        .chip.decreased {
+          font-size: 60%;
+          background: var(--chip-background-decreased);
+          color: var(--chip-color-decreased);
+        }
+
+        .under-construction {
+          min-height: 12em;
+        }
+      `,
+    ];
+  }
 
   constructor() {
     super();
@@ -89,13 +130,108 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderNameAndOffsiteLinks(): TemplateResult {
+    const mdnLink = '#TODO';
+    const canIUseLink = '#TODO';
+    return html`
+      <div id="nameAndOffsiteLinks" class="hbox">
+        <h1 class="hgrow">${this.feature!.name}</h1>
+        <sl-button variant="default" href=${mdnLink}>
+          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
+          MDN
+        </sl-button>
+        <sl-button variant="default" href=${canIUseLink}>
+          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
+          CanIUse
+        </sl-button>
+      </div>
+    `;
+  }
+
+  renderOneWPTScore(browser: string, icon: string): TemplateResult {
+    return html`
+      <section class="card wptScore">
+        <img height="32" src="/public/img/${icon}" class="icon" />
+        <div>${browser}</div>
+        <div class="score">
+          99.8%
+          <span class="chip increased">+1.2%</span>
+        </div>
+        <div class="avail">Available since ...</div>
+      </section>
+    `;
+  }
+
+  renderWPTScores(): TemplateResult {
+    return html`
+      <section id="wpt-scores">
+        <h3>Web platform test scores</h3>
+        <div class="hbox" style="margin:0">
+          ${this.renderOneWPTScore('Chrome', 'chrome-dev_32x32.png')}
+          ${this.renderOneWPTScore('Edge', 'edge-dev_32x32.png')}
+          ${this.renderOneWPTScore('Firefox', 'firefox-nightly_32x32.png')}
+          ${this.renderOneWPTScore('Safari', 'safari-preview_32x32.png')}
+        </div>
+      </section>
+    `;
+  }
+
+  renderImplentationProgress(): TemplateResult {
+    return html`
+      <section class="card" id="implementation-progress">
+        <h3>Implementation progress</h3>
+        <p class="under-construction">Chart goes here...</p>
+      </section>
+    `;
+  }
+
+  renderCurrentBugs(): TemplateResult {
+    return html`
+      <section class="card" id="current-bugs">
+        <h3>Current bugs</h3>
+        <p class="under-construction">List goes here...</p>
+      </section>
+    `;
+  }
+
+  renderAwarenes(): TemplateResult {
+    return html`
+      <section class="card" id="awarenss">
+        <h3>Awareness</h3>
+        <p class="under-construction">Small chart goes here...</p>
+      </section>
+    `;
+  }
+
+  renderAdoption(): TemplateResult {
+    return html`
+      <section class="card" id="adoption">
+        <h3>Adoption</h3>
+        <p class="under-construction">Small chart goes here...</p>
+      </section>
+    `;
+  }
+
+  renderGeneralInformation(): TemplateResult {
+    return html`
+      <section class="card" id="general-information">
+        <h3>General information</h3>
+        <p class="under-construction">List goes here...</p>
+      </section>
+    `;
+  }
+
   renderWhenComplete(): TemplateResult {
     return html`
-      ${this.renderCrumbs()}
-      <h1>${this.feature!.name}</h1>
-      spec size: ${this.feature!.spec?.length || 0}
-      <br />
-      Specs:
+      <div class="vbox">
+        ${this.renderCrumbs()} ${this.renderNameAndOffsiteLinks()}
+        ${this.renderWPTScores()} ${this.renderImplentationProgress()}
+        ${this.renderCurrentBugs()}
+        <div class="hbox">
+          ${this.renderAwarenes()} ${this.renderAdoption()}
+        </div>
+        ${this.renderGeneralInformation()}
+      </div>
     `;
   }
 

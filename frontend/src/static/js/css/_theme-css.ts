@@ -35,11 +35,13 @@ export const THEME = css`
     --color-green-fg: var(--sl-color-green-600);
     --color-blue-bg: var(--sl-color-blue-100);
     --color-blue-fg: var(--sl-color-blue-600);
+    --color-red-bg: var(--sl-color-red-100);
+    --color-red-fg: var(--sl-color-red-600);
   }
 
   :host {
     --default-color: var(--color-strongest);
-    --unimportant-text-color: var(--color-medium);
+    --unimportant-text-color: var(--color-strong);
 
     --content-padding-large: 24px;
     --content-padding: 16px;
@@ -57,6 +59,7 @@ export const THEME = css`
 
     --card-background: white;
     --card-border: var(--default-border);
+    --card-radius: var(--border-radius);
 
     --table-header-background: var(--color-lightest);
     --table-row-background: var(--color-background);
@@ -72,5 +75,9 @@ export const THEME = css`
     --chip-color-newly: var(--color-blue-fg);
     --chip-background-widely: var(--color-green-bg);
     --chip-color-widely: var(--color-green-fg);
+    --chip-background-increased: var(--color-green-bg);
+    --chip-color-incresed: var(--color-green-fg);
+    --chip-background-decreased: var(--color-red-bg);
+    --chip-color-decresed: var(--color-red-fg);
   }
 `;
