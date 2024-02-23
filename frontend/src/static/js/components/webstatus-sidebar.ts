@@ -14,56 +14,55 @@
  * limitations under the License.
  */
 
-import {LitElement, type TemplateResult, css, html} from 'lit';
+import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 
 import './webstatus-sidebar-menu.js';
 
 @customElement('webstatus-sidebar')
 export class WebstatusSidebar extends LitElement {
-  static readonly styles = css`
-    .sidebar {
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      height: 100%;
-      width: 288px;
-    }
+  static get styles(): CSSResultGroup {
+    return [
+      SHARED_STYLES,
+      css`
+        .sidebar {
+          height: 100%;
+          width: 288px;
+        }
 
-    sl-tree#bottom-menu {
-      margin-top: auto;
-    }
-    #sidebar-bottom {
-      flex-grow: 2;
-      display: flex;
-    }
+        sl-tree#bottom-menu {
+          margin-top: auto;
+        }
 
-    sl-tree#bottom-menu a {
-      color: inherit;
-      text-decoration: none;
-    }
+        sl-tree#bottom-menu a {
+          color: inherit;
+          text-decoration: none;
+        }
 
-    sl-tree-item#theme-selector sl-select::part(combobox) {
-      border: 0;
-    }
+        sl-tree-item#theme-selector sl-select::part(combobox) {
+          border: 0;
+        }
 
-    sl-tree-item#theme-selector::part(expand-button) {
-      width: 0;
-    }
+        sl-tree-item#theme-selector::part(expand-button) {
+          width: 0;
+        }
 
-    #theme-selector > sl-select > sl-icon {
-      margin-inline-end: 8px;
-    }
-  `;
+        #theme-selector > sl-select > sl-icon {
+          margin-inline-end: 8px;
+        }
+      `,
+    ];
+  }
 
   render(): TemplateResult {
     return html`
-      <div class="sidebar">
+      <div class="sidebar vbox">
         <webstatus-sidebar-menu></webstatus-sidebar-menu>
 
         <sl-divider></sl-divider>
 
-        <div id="sidebar-bottom">
+        <div class="valign-stretch-2"></div>
           <sl-tree id="bottom-menu">
             <sl-tree-item>
               <sl-icon name="github"></sl-icon>

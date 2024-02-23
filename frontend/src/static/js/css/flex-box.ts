@@ -17,25 +17,168 @@
 import {css} from 'lit';
 
 export const FLEX_BOX = css`
-  .hbox {
+  .hbox,
+  .vbox {
     display: flex;
+  }
+  .hbox {
     flex-direction: row;
   }
+  .vbox {
+    flex-direction: column;
+  }
+  .hbox.reverse {
+    flex-direction: row-reverse;
+  }
+  .vbox.reverse {
+    flex-direction: column-reverse;
+  }
+
+  .hbox.inline,
+  .vbox.inline {
+    display: inline-flex;
+  }
+
+  .hbox.wrap,
+  .vbox.wrap {
+    flex-wrap: wrap;
+  }
+  .hbox.wrap-reverse,
+  .vbox.wrap-reverse {
+    flex-wrap: wrap-reverse;
+  }
+
+  /* Flexbox alignment */
+
+  /* Alignment in main axis. */
+  .hbox.halign-items-start,
+  .vbox.valign-items-start {
+    justify-content: flex-start;
+  }
+  .hbox.valign-items-start,
+  .vbox.halign-items-start {
+    align-content: flex-start;
+  }
+
+  .hbox.halign-items-center,
+  .vbox.valign-items-center {
+    justify-content: center;
+  }
+
+  .hbox.halign-items-end,
+  .vbox.valign-items-end {
+    justify-content: flex-end;
+  }
+
+  /* Alignment in cross axis. */
+  .hbox.valign-items-start,
+  .vbox.halign-items-start {
+    align-items: flex-start;
+  }
+
+  .hbox.valign-items-center,
+  .vbox.halign-items-center {
+    align-items: center;
+  }
+
+  .hbox.valign-items-end,
+  .vbox.halign-items-end {
+    align-items: flex-end;
+  }
+
+  /* Space distribution */
+
+  .hbox.halign-items-space-around,
+  .vbox.valign-items-space-around {
+    justify-content: space-around;
+  }
+  .hbox.valign-items-space-around,
+  .vbox.halign-items-space-around {
+    align-content: space-around;
+  }
+
+  /* obsolete - use .halign-space-between */
   .hbox.space-between {
     justify-content: space-between;
   }
-  .hbox > * {
-    display: inline-block;
+
+  .hbox.halign-items-space-between,
+  .vbox.valign-items-space-between {
+    justify-content: space-between;
   }
+  .hbox.valign-items-space-between,
+  .vbox.halign-items-space-between {
+    align-content: space-between;
+  }
+
+  .hbox.halign-items-space-evenly,
+  .vbox.valign-items-space-evenly {
+    justify-content: space-evenly;
+  }
+  .hbox.valign-items-space-evenly,
+  .vbox.halign-items-space-evenly {
+    align-content: space-evenly;
+  }
+
+  /* Self/item alignment. */
+  .hbox > .valign-start,
+  .vbox > .halign-start {
+    align-self: flex-start;
+  }
+
+  .hbox > .valign-center,
+  .vbox > .halign-center {
+    align-self: center;
+  }
+
+  .hbox > .valign-end,
+  .vbox > .halign-end {
+    align-self: flex-end;
+  }
+
+  /* Strech "alignment" */
+  .hbox.valign-items-stretch,
+  .vbox.halign-items-stretch {
+    align-items: baseline; /* ??? */
+  }
+
+  /* obsolete - use .halign-stretch */
   .hbox > .hgrow {
     flex-grow: 1;
   }
-  .hbox > .hshrink {
-    flex-shrink: 2;
+
+  .hbox > .halign-stretch {
+    flex-grow: 1;
+  }
+  .hbox > .valign-stretch {
+    align-self: stretch;
+  }
+  .vbox > .halign-stretch {
+    align-self: stretch;
+  }
+  .vbox > .valign-stretch {
+    flex-grow: 1;
   }
 
-  .vbox {
-    display: flex;
-    flex-direction: column;
+  .hbox.halign-items-stretch > *,
+  .vbox.valign-items-stretch > * {
+    flex-grow: 1;
+  }
+
+  /* Non-flexbox positioning helper styles */
+
+  .hbox > .halign-stretch-1,
+  .vbox > .valign-stretch-1 {
+    flex-basis: 0.000000001px; /* ??? */
+  }
+
+  .hbox > .halign-stretch-2,
+  .vbox > .valign-stretch-2 {
+    flex-grow: 2;
+  }
+
+  .hbox > .halign-stretch-3,
+  .vbox > .valign-stretch-3 {
+    flex-grow: 3;
   }
 `;
