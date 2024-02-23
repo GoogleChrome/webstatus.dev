@@ -102,7 +102,7 @@ export class WebstatusOverviewTable extends LitElement {
     const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
     return html`
       <span class="chip ${chipConfig.cssClass}">
-        <img height="24" src="/public/img/${chipConfig.icon}" />
+        <img height="16" src="/public/img/${chipConfig.icon}" />
         ${chipConfig.word}
       </span>
     `;
