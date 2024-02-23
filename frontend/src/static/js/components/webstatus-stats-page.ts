@@ -56,13 +56,17 @@ export class StatsPage extends LitElement {
         <h1 class="hgrow">Statistics</h1>
         <sl-checkbox>Show browser versions</sl-checkbox>
         <sl-button href="#TODO">
-          <sl-icon slot="prefix" name="calendar-blank" library="phosphor"></sl-icon>
+          <sl-icon
+            slot="prefix"
+            name="calendar-blank"
+            library="phosphor"
+          ></sl-icon>
           Select range
         </sl-button>
         <sl-radio-group>
           <sl-radio-button value="WPT">WPT</sl-radio-button>
           <sl-radio-button value="BCD">BCD</sl-radio-button>
-        <sl-radio-group>
+        </sl-radio-group>
       </div>
     `;
   }
