@@ -14,5 +14,23 @@
 
 FROM google/cloud-sdk:464.0.0-emulators
 
+ENV SPANNER_PROJECT_ID=local
+ENV SPANNER_INSTANCE_ID=local
+ENV SPANNER_DATABASE_ID=local
 
-ENTRYPOINT [ "gcloud", "emulators", "spanner", "start", "--host-port=0.0.0.0:9010", "--rest-port=9020", "--project=local", "--log-http", "--verbosity=debug", "--user-output-enabled" ]
+# Install Wrench - https://github.com/cloudspannerecosystem/wrench
+ENV WRENCH_VERSION="1.7.0"
+RUN curl \
+    -L -o wrench.tar.gz \
+    "https://github.com/cloudspannerecosystem/wrench/releases/download/v${WRENCH_VERSION}/wrench-${WRENCH_VERSION}-linux-amd64.tar.gz" && \
+    tar -xf wrench.tar.gz && mv wrench /bin/
+
+RUN gcloud config set auth/disable_credentials true && \
+    gcloud config set project ${SPANNER_PROJECT_ID} && \
+    gcloud config set api_endpoint_overrides/spanner http://localhost:9020/ && \
+    mkdir schemas
+
+COPY ./.dev/spanner/run.sh run.sh
+COPY ./infra/storage/spanner.sql schemas/
+
+ENTRYPOINT [ "./run.sh" ]

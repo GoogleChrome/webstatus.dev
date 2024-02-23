@@ -158,6 +158,7 @@ tf-lint:
 shell-lint:
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
+	shellcheck .dev/**/*.sh
 
 lint-fix: node-install
 	npm run lint-fix -w frontend
