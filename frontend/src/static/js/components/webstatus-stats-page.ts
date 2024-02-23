@@ -26,7 +26,6 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
-
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -107,8 +106,7 @@ export class StatsPage extends LitElement {
   renderWhenComplete(): TemplateResult {
     return html`
       <div class="vbox">
-        ${this.renderTitleAndControls()}
-        ${this.renderGlobalFeatureSupport()}
+        ${this.renderTitleAndControls()} ${this.renderGlobalFeatureSupport()}
         ${this.renderFeaturesLagging()}
         <div class="hbox">
           ${this.renderBaselineFeatures()} ${this.renderTimeToAvailability()}
