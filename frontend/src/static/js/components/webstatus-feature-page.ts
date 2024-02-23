@@ -52,12 +52,13 @@ export class FeaturePage extends LitElement {
           text-decoration: none;
         }
 
+        #nameAndOffsiteLinks {
+          align-items: center;
+        }
+
         .hbox,
         .vbox {
           gap: var(--content-padding-large);
-        }
-        .hbox section {
-          width: 100%;
         }
 
         .wptScore > div + div {
@@ -152,7 +153,7 @@ export class FeaturePage extends LitElement {
 
   renderOneWPTScore(browser: string, icon: string): TemplateResult {
     return html`
-      <section class="card wptScore">
+      <sl-card class="hgrow wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${browser}</div>
         <div class="score">
@@ -160,7 +161,7 @@ export class FeaturePage extends LitElement {
           <span class="chip small increased">+1.2%</span>
         </div>
         <div class="avail">Available since ...</div>
-      </section>
+      </sl-card>
     `;
   }
 
@@ -180,46 +181,46 @@ export class FeaturePage extends LitElement {
 
   renderImplentationProgress(): TemplateResult {
     return html`
-      <section class="card" id="implementation-progress">
-        <h3>Implementation progress</h3>
+      <sl-card id="implementation-progress">
+        <div slot="header">Implementation progress</div>
         <p class="under-construction">Chart goes here...</p>
-      </section>
+      </sl-card>
     `;
   }
 
   renderCurrentBugs(): TemplateResult {
     return html`
-      <section class="card" id="current-bugs">
-        <h3>Current bugs</h3>
+      <sl-details id="current-bugs">
+        <div slot="summary">Current bugs</div>
         <p class="under-construction">List goes here...</p>
-      </section>
+      </sl-details>
     `;
   }
 
   renderAwarenes(): TemplateResult {
     return html`
-      <section class="card" id="awarenss">
-        <h3>Awareness</h3>
+      <sl-card class="hgrow" id="awarenss">
+        <div slot="header">Awareness</div>
         <p class="under-construction">Small chart goes here...</p>
-      </section>
+      </sl-card>
     `;
   }
 
   renderAdoption(): TemplateResult {
     return html`
-      <section class="card" id="adoption">
-        <h3>Adoption</h3>
+      <sl-card class="hgrow" id="adoption">
+        <div slot="header">Adoption</div>
         <p class="under-construction">Small chart goes here...</p>
-      </section>
+      </sl-card>
     `;
   }
 
   renderGeneralInformation(): TemplateResult {
     return html`
-      <section class="card" id="general-information">
-        <h3>General information</h3>
+      <sl-card id="general-information">
+        <div slot="header">General information</div>
         <p class="under-construction">List goes here...</p>
-      </section>
+      </sl-card>
     `;
   }
 

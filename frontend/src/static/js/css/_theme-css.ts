@@ -58,7 +58,8 @@ export const THEME = css`
     --default-border: 1px solid var(--color-light);
 
     --card-background: white;
-    --card-border: var(--default-border);
+    --card-border-width: 1px;
+    --card-border-color: var(--color-light);
     --card-radius: var(--border-radius);
 
     --table-header-background: var(--color-lightest);
