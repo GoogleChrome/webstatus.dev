@@ -93,11 +93,24 @@ export const SHARED_STYLES = [
       cursor: pointer;
     }
 
-    .card {
+    sl-card {
+      --background-color: var(--card-background);
+      --padding: var(--content-padding);
+      --border-color: var(--card-border-color);
+      --border-width: var(--card-border-width);
+      --border-radius: var(--card-radius);
+    }
+
+    sl-details::part(base) {
       background: var(--card-background);
-      padding: var(--content-padding);
-      border: var(--card-border);
+      border-color: var(--card-border-color);
+      border-width: var(--card-border-width);
       border-radius: var(--card-radius);
+    }
+
+    sl-details::part() {
+      border-top: var(--card-border-width) solid var(--card-border-color);
+      padding: var(--content-padding);
     }
 
     .under-construction {
