@@ -17,6 +17,7 @@ FROM google/cloud-sdk:464.0.0-emulators
 ENV SPANNER_PROJECT_ID=local
 ENV SPANNER_INSTANCE_ID=local
 ENV SPANNER_DATABASE_ID=local
+ENV SPANNER_EMULATOR_HOST=0.0.0.0:9010
 
 # Install Wrench - https://github.com/cloudspannerecosystem/wrench
 ENV WRENCH_VERSION="1.7.0"
@@ -31,6 +32,6 @@ RUN gcloud config set auth/disable_credentials true && \
     mkdir schemas
 
 COPY ./.dev/spanner/run.sh run.sh
-COPY ./infra/storage/spanner.sql schemas/
+COPY ./infra/storage/spanner/ schemas/
 
 ENTRYPOINT [ "./run.sh" ]
