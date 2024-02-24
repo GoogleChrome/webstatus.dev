@@ -178,7 +178,9 @@ paths:
           description: A comma-separated list of feature IDs to filter results.
           required: false
           schema:
-            type: string
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: OK
@@ -277,11 +279,13 @@ components:
           format: date-time
           description: The start timestamp of the run.
         total_tests_count:
-          type: number
+          type: integer
           description: Total number of tests
+          format: int64
         test_pass_count:
-          type: number
+          type: integer
           description: Number of passing tests
+          format: int64
       required:
         - run_timestamp
     WPTRunMetricsPage:
