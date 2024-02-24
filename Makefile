@@ -158,6 +158,7 @@ tf-lint:
 shell-lint:
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
+	shellcheck .dev/**/*.sh
 
 lint-fix: node-install
 	npm run lint-fix -w frontend
@@ -205,6 +206,7 @@ COPYRIGHT_NAME := Google LLC
 # frontend/coverage - Generated html files for coverage
 # playwright-report - Generated html files for playwright
 # node_modules - External Node dependencies
+# infra/storage/spanner/schema.sql - Empty base schema. Wrench does not like an empty schema with comments.
 ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
 	-ignore 'lib/gen/**' \
@@ -214,7 +216,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'frontend/node_modules/**' \
 	-ignore 'frontend/coverage/**' \
 	-ignore 'playwright-report/**' \
-	-ignore 'node_modules/**'
+	-ignore 'node_modules/**' \
+	-ignore 'infra/storage/spanner/schema.sql'
 download-addlicense:
 	go install github.com/google/addlicense@latest
 
@@ -263,3 +266,9 @@ dev_workflows: web_feature_local_workflow
 web_feature_local_workflow: FLAGS := -repo_downloader_host=http://localhost:8091 -web_consumer_host=http://localhost:8092
 web_feature_local_workflow:
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+
+################################
+# Spanner Management
+################################
+spanner_new_migration:
+	wrench migrate create --directory infra/storage/spanner

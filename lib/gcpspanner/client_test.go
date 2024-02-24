@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -31,56 +30,23 @@ import (
 )
 
 const testSpannerProject = "local"
-const testSpannerInstance = "local-instance"
-const testSpannerDBName = "test-db"
-const projectFlag = "--project " + testSpannerProject
-const projectAndVerbosityFlag = projectFlag + " --verbosity=debug"
-
-type testMigrationHandler struct {
-	ddlFolderAbsPath string
-	files            []string
-}
-
-func newTestMigrationHandler(ddlFolderAbsPath string) *testMigrationHandler {
-	return &testMigrationHandler{
-		ddlFolderAbsPath: ddlFolderAbsPath,
-		files:            []string{"spanner.sql"},
-	}
-}
-
-func (h testMigrationHandler) ApplyAll(t *testing.T) {
-	for _, file := range h.files {
-		cmdString := fmt.Sprintf(
-			"gcloud spanner databases ddl update %s --ddl-file %s --instance %s %s",
-			testSpannerDBName,
-			filepath.Join(h.ddlFolderAbsPath, file),
-			testSpannerInstance,
-			projectAndVerbosityFlag,
-		)
-		t.Logf("debug database migration for %s cmd %s", file, cmdString)
-		cmd := exec.Command("/bin/bash", "-c", cmdString)
-		cmd.Env = os.Environ()
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			t.Errorf("gcloud command failed: %v, output: %s", err, output)
-		}
-	}
-}
+const testSpannerInstance = "local"
+const testSpannerDBName = "local"
 
 // nolint: exhaustruct,lll // No need to use every option of 3rd party struct.
-func getTestDatabase(t testing.TB) (*Client, *testMigrationHandler) {
+func getTestDatabase(t testing.TB) *Client {
 	ctx := context.Background()
-	spannerFolder, err := filepath.Abs(filepath.Join(".", "..", "..", ".dev", "spanner"))
+	repoRoot, err := filepath.Abs(filepath.Join(".", "..", ".."))
 	if err != nil {
 		t.Error(err)
 	}
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
-			Dockerfile: filepath.Join("Dockerfile"),
-			Context:    spannerFolder,
+			Dockerfile: filepath.Join(".dev", "spanner", "Dockerfile"),
+			Context:    repoRoot,
 		},
-		ExposedPorts: []string{"9010/tcp", "9020/tcp"},
-		WaitingFor:   wait.ForLog("Cloud Spanner emulator running"),
+		ExposedPorts: []string{"9010/tcp"},
+		WaitingFor:   wait.ForLog("Spanner setup for webstatus.dev finished"),
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -91,11 +57,6 @@ func getTestDatabase(t testing.TB) (*Client, *testMigrationHandler) {
 	}
 
 	mappedPort, err := container.MappedPort(ctx, "9010")
-	if err != nil {
-		t.Error(err)
-	}
-
-	mappedPort2, err := container.MappedPort(ctx, "9020")
 	if err != nil {
 		t.Error(err)
 	}
@@ -115,39 +76,6 @@ func getTestDatabase(t testing.TB) (*Client, *testMigrationHandler) {
 		t.Fatalf("failed to create datastore client. %s", err.Error())
 	}
 
-	ddlFilePath, err := filepath.Abs(filepath.Join(".", "..", "..", "infra", "storage"))
-	if err != nil {
-		t.Error(err)
-	}
-
-	cmdString := fmt.Sprintf(`
-		gcloud config configurations create emulator; \
-		gcloud config configurations activate emulator; \
-		gcloud config set disable_prompts true && \
-		gcloud config set auth/disable_credentials true && \
-		gcloud config set api_endpoint_overrides/spanner http://localhost:%s/ && \
-		gcloud spanner instances create %s --config=emulator-config --description='Test Instance' --nodes=1 %s && \
-		gcloud spanner databases create %s --instance %s %s
-	`,
-		// Mapped port for api_endpoint_override
-		mappedPort2.Port(),
-		// Spanner instance name for create
-		testSpannerInstance,
-		projectAndVerbosityFlag,
-		// Spanner database name for create
-		testSpannerDBName,
-		testSpannerInstance,
-		projectAndVerbosityFlag,
-	)
-
-	cmd := exec.Command("/bin/bash", "-c", cmdString)
-	t.Logf("debug database startup cmd %s", cmdString)
-	cmd.Env = os.Environ()
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		t.Errorf("gcloud command failed: %v, output: %s", err, output)
-	}
-
 	t.Cleanup(func() {
 		if unsetErr := os.Unsetenv("SPANNER_EMULATOR_HOST"); unsetErr != nil {
 			t.Errorf("failed to unset env. %s", unsetErr.Error())
@@ -158,17 +86,15 @@ func getTestDatabase(t testing.TB) (*Client, *testMigrationHandler) {
 		}
 	})
 
-	return spannerClient, newTestMigrationHandler(ddlFilePath)
+	return spannerClient
 }
 
 // This also tests the success path of NewSpannerClient.
 func TestGetTestDatabase(t *testing.T) {
-	client, migrationHandler := getTestDatabase(t)
+	client := getTestDatabase(t)
 	if client == nil {
 		t.Error("exepected a client")
 	}
-	// Attempt to apply all the migrations
-	migrationHandler.ApplyAll(t)
 }
 
 func TestNewSpannerClient_Bad(t *testing.T) {

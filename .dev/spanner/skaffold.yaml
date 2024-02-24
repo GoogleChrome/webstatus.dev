@@ -21,7 +21,13 @@ profiles:
     build:
       artifacts:
         - image: spanner
-          context: .
+          context: ../../.
+          docker:
+            dockerfile: ./.dev/spanner/Dockerfile
+          sync:
+            infer:
+              - ./.dev/spanner/run.sh
+              - ./infra/storage/spanner.sql
       local: {}
     manifests:
       rawYaml:

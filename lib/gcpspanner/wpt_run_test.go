@@ -117,8 +117,7 @@ func getSampleRuns() []WPTRun {
 }
 
 func TestInsertWPTRun(t *testing.T) {
-	client, migrationHandler := getTestDatabase(t)
-	migrationHandler.ApplyAll(t)
+	client := getTestDatabase(t)
 	ctx := context.Background()
 	for _, run := range getSampleRuns() {
 		err := client.InsertWPTRun(ctx, run)
