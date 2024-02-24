@@ -134,8 +134,7 @@ func getSampleRunMetrics() []WPTRunFeatureMetric {
 }
 
 func TestUpsertWPTRunFeatureMetric(t *testing.T) {
-	client, migrationHandler := getTestDatabase(t)
-	migrationHandler.ApplyAll(t)
+	client := getTestDatabase(t)
 	ctx := context.Background()
 
 	sampleRunMetrics := getSampleRunMetrics()
@@ -254,8 +253,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
-	client, migrationHandler := getTestDatabase(t)
-	migrationHandler.ApplyAll(t)
+	client := getTestDatabase(t)
 	ctx := context.Background()
 	// Load up runs and metrics
 	// Now, let's insert the runs.
@@ -381,8 +379,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 }
 
 func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
-	client, migrationHandler := getTestDatabase(t)
-	migrationHandler.ApplyAll(t)
+	client := getTestDatabase(t)
 	ctx := context.Background()
 	// Load up runs and metrics
 	// Now, let's insert the runs.

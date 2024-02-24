@@ -5,17 +5,18 @@ any other dependencies that may not be clear.
 
 ## Devcontainer dependencies
 
-| Binary                  | File to update                                          |
-| ----------------------- | ------------------------------------------------------- |
-| gcloud                  | devcontainer [Dockerfile](../.devcontainer/Dockerfile)  |
-| go                      | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| node                    | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| Github CLI              | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| terraform               | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| shellcheck              | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| kubectl, helm, minikube | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| skaffold                | [devcontainer.json](../.devcontainer/devcontainer.json) |
-| oapi-codegen            | [post_create.sh](../.devcontainer/post_create.sh)       |
+| Binary                  | File to update                                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- |
+| gcloud                  | devcontainer [Dockerfile](../.devcontainer/Dockerfile)                                                      |
+| go                      | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| node                    | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| Github CLI              | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| terraform               | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| shellcheck              | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| kubectl, helm, minikube | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| skaffold                | [devcontainer.json](../.devcontainer/devcontainer.json)                                                     |
+| oapi-codegen            | [post_create.sh](../.devcontainer/post_create.sh)                                                           |
+| wrench                  | [post_create.sh](../.devcontainer/post_create.sh) and [.dev/spanner/Dockerfile](../.dev/spanner/Dockerfile) |
 
 ## Dockerfiles Used In Production
 

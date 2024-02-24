@@ -19,6 +19,9 @@ make minikube-delete
 # Install oapi-codegen
 go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.15.0
 
+# Install wrench CLI
+go install github.com/cloudspannerecosystem/wrench@v1.7.0
+
 # Install repo-wide npm tools
 npm i --workspaces=false
 
