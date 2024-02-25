@@ -100,7 +100,7 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeature
 			// Only allow overriding of the test numbers.
 			existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
 			existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
-			m, err = spanner.InsertOrUpdateStruct(wptRunFeatureMetricTable, metric)
+			m, err = spanner.InsertOrUpdateStruct(wptRunFeatureMetricTable, existingMetric)
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
