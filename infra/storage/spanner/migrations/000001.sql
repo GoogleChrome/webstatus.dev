@@ -66,7 +66,6 @@ CREATE TABLE IF NOT EXISTS BrowserReleases (
 -- BrowserFeatureAvailabilities contains information when a browser is available for a feature.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers
 CREATE TABLE IF NOT EXISTS BrowserFeatureAvailabilities (
-    ID STRING(36) NOT NULL DEFAULT (GENERATE_UUID()),
     BrowserName STRING(64), -- From BCD not wpt.fyi.
     BrowserVersion STRING(8) NOT NULL, -- From BCD not wpt.fyi. Only contains major number.
     FeatureID STRING(64) NOT NULL, -- From web features repo.
@@ -74,12 +73,17 @@ CREATE TABLE IF NOT EXISTS BrowserFeatureAvailabilities (
     FOREIGN KEY (BrowserName, BrowserVersion) REFERENCES BrowserReleases(BrowserName, BrowserVersion),
 ) PRIMARY KEY (FeatureID, BrowserName);
 
+-- Used to enforce that only one combination of FeatureID and BrowserName can exist.
+CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (FeatureID, BrowserName);
 
+
+-- FeatureBaselineStatus contains information about the current baseline status of a feature.
 CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
     FeatureID STRING(64) NOT NULL, -- From web features repo.
-    Status STRING(8),
+    Status STRING(16) NOT NULL,
     LowDate TIMESTAMP,
     HighDate TIMESTAMP,
     FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
-    CHECK (Status IN ('unknown', 'none', 'limited', 'low', 'high'))
+    -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
+    CHECK (Status IN ('undefined', 'limited', 'low', 'high'))
 ) PRIMARY KEY (FeatureID);

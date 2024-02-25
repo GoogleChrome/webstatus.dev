@@ -17,47 +17,49 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"time"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/grpc/codes"
 )
 
-const browserReleasesTable = "BrowserReleases"
+const browserFeatureAvailabilitiesTable = "BrowserFeatureAvailabilities"
 
-// SpannerBrowserRelease is a wrapper for the browser release that is actually
-// stored in spanner. For now, it is the same. But we keep this structure to be
-// consistent to the other database models.
-type SpannerBrowserRelease struct {
-	BrowserRelease
+// SpannerBrowserFeatureAvailability is a wrapper for the browser availability
+// information for a feature stored in spanner. For now, it is the same. But we
+// keep this structure to be consistent to the other database models.
+type SpannerBrowserFeatureAvailability struct {
+	BrowserFeatureAvailability
 }
 
-// BrowserRelease contains information regarding a certain browser release.
-type BrowserRelease struct {
-	BrowserName    string    `spanner:"BrowserName"`
-	BrowserVersion string    `spanner:"BrowserVersion"`
-	ReleaseDate    time.Time `spanner:"ReleaseDate"`
+// BrowserFeatureAvailability contains availability information for a particular
+// feature in a browser.
+type BrowserFeatureAvailability struct {
+	BrowserName    string
+	BrowserVersion string
+	FeatureID      string
 }
 
-// InsertBrowserRelease will insert the given browser release.
-// If the release, does not exist, it will insert a new release.
-// If the release exists, it currently does nothing and keeps the existing as-is.
+// InsertBrowserFeatureAvailability will insert the given browser feature availability.
+// If the feature availability, does not exist, it will insert a new feature availability.
+// If the feature availability exists, it currently does nothing and keeps the existing as-is.
 // nolint: dupl // TODO. Will refactor for common patterns.
-func (c *Client) InsertBrowserRelease(ctx context.Context, release BrowserRelease) error {
+func (c *Client) InsertBrowserFeatureAvailability(
+	ctx context.Context,
+	featureAvailability BrowserFeatureAvailability) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		_, err := txn.ReadRow(
 			ctx,
-			browserReleasesTable,
-			spanner.Key{release.BrowserName, release.BrowserVersion},
+			browserFeatureAvailabilitiesTable,
+			spanner.Key{featureAvailability.FeatureID, featureAvailability.BrowserName},
 			[]string{
-				"ReleaseDate",
+				"BrowserVersion",
 			})
 		if err != nil {
 			// Received an error other than not found. Return now.
 			if spanner.ErrCode(err) != codes.NotFound {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-			m, err := spanner.InsertOrUpdateStruct(browserReleasesTable, release)
+			m, err := spanner.InsertOrUpdateStruct(browserFeatureAvailabilitiesTable, featureAvailability)
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}

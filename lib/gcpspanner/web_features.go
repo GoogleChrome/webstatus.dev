@@ -1,3 +1,17 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gcpspanner
 
 import (
@@ -27,9 +41,9 @@ type WebFeature struct {
 	Name      string `spanner:"Name"`
 }
 
-// UpsertWebFeature will insert the given web feature.
+// UpsertWebFeature will upsert the given web feature.
 // If the feature, does not exist, it will insert a new feature.
-// If the run exists, it will at most update the name.
+// If the run exists, it will only update the name.
 func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		stmt := spanner.NewStatement(`
