@@ -21,56 +21,30 @@ export const FLEX_BOX = css`
   .vbox {
     display: flex;
   }
+
   .hbox {
     flex-direction: row;
   }
   .vbox {
     flex-direction: column;
   }
-  .hbox.reverse {
-    flex-direction: row-reverse;
-  }
-  .vbox.reverse {
-    flex-direction: column-reverse;
-  }
-
-  .hbox.inline,
-  .vbox.inline {
-    display: inline-flex;
-  }
-
-  .hbox.wrap,
-  .vbox.wrap {
-    flex-wrap: wrap;
-  }
-  .hbox.wrap-reverse,
-  .vbox.wrap-reverse {
-    flex-wrap: wrap-reverse;
-  }
 
   /* Flexbox alignment */
 
-  /* Alignment in main axis. */
   .hbox.halign-items-start,
   .vbox.valign-items-start {
     justify-content: flex-start;
   }
-  .hbox.valign-items-start,
-  .vbox.halign-items-start {
-    align-content: flex-start;
-  }
-
   .hbox.halign-items-center,
   .vbox.valign-items-center {
     justify-content: center;
   }
-
   .hbox.halign-items-end,
   .vbox.valign-items-end {
     justify-content: flex-end;
   }
 
-  /* Alignment in cross axis. */
+  /* Alignment in cross-axis. */
   .hbox.valign-items-start,
   .vbox.halign-items-start {
     align-items: flex-start;
@@ -86,7 +60,65 @@ export const FLEX_BOX = css`
     align-items: flex-end;
   }
 
+  /* Self/item alignment. */
+
+  .hbox > .valign-start,
+  .vbox > .halign-start,
+  .hbox.valign-items-start > *,
+  .vbox.halign-items-start > * {
+    align-self: flex-start;
+  }
+
+  .hbox > .valign-center,
+  .vbox > .halign-center,
+  .hbox.valign-items-center > *,
+  .vbox.halign-items-center > * {
+    align-self: center;
+  }
+
+  .hbox > .valign-end,
+  .vbox > .halign-end,
+  .hbox.valign-items-end > *,
+  .vbox.halign-items-end > * {
+    align-self: flex-end;
+  }
+
+  /* Stretch "alignment" */
+
+  .hbox > .hgrow,  /* obsolete - use .halign-stretch */
+  .hbox > .halign-stretch,
+  .vbox > .valign-stretch,
+  .hbox.halign-items-stretch > *,
+  .vbox.valign-items-stretch > * {
+    flex-grow: 1;
+  }
+  .hbox > .halign-stretch-2,
+  .vbox > .valign-stretch-2 {
+    flex-grow: 2;
+  }
+  .hbox > .halign-stretch-3,
+  .vbox > .valign-stretch-3 {
+    flex-grow: 3;
+  }
+
+  .hbox.valign-items-stretch,
+  .vbox.halign-items-stretch {
+    align-items: stretch;
+  }
+
+  .hbox > .valign-stretch,
+  .vbox > .halign-stretch,
+  .hbox.valign-items-stretch > *,
+  .vbox.halign-items-stretch > * {
+    align-self: stretch;
+  }
+
   /* Space distribution */
+
+  .hbox.space-between {
+    /* obsolete - use .halign-space-between */
+    justify-content: space-between;
+  }
 
   .hbox.halign-items-space-around,
   .vbox.valign-items-space-around {
@@ -95,11 +127,6 @@ export const FLEX_BOX = css`
   .hbox.valign-items-space-around,
   .vbox.halign-items-space-around {
     align-content: space-around;
-  }
-
-  /* obsolete - use .halign-space-between */
-  .hbox.space-between {
-    justify-content: space-between;
   }
 
   .hbox.halign-items-space-between,
@@ -120,65 +147,21 @@ export const FLEX_BOX = css`
     align-content: space-evenly;
   }
 
-  /* Self/item alignment. */
-  .hbox > .valign-start,
-  .vbox > .halign-start {
-    align-self: flex-start;
-  }
-
-  .hbox > .valign-center,
-  .vbox > .halign-center {
-    align-self: center;
-  }
-
-  .hbox > .valign-end,
-  .vbox > .halign-end {
-    align-self: flex-end;
-  }
-
-  /* Strech "alignment" */
-  .hbox.valign-items-stretch,
-  .vbox.halign-items-stretch {
-    align-items: baseline; /* ??? */
-  }
-
-  /* obsolete - use .halign-stretch */
-  .hbox > .hgrow {
+  .hbox > .spacer,
+  .hbox > .spacer-1,
+  .vbox > .spacer,
+  .vbox > .spacer-1 {
     flex-grow: 1;
+    visibility: hidden;
   }
-
-  .hbox > .halign-stretch {
-    flex-grow: 1;
-  }
-  .hbox > .valign-stretch {
-    align-self: stretch;
-  }
-  .vbox > .halign-stretch {
-    align-self: stretch;
-  }
-  .vbox > .valign-stretch {
-    flex-grow: 1;
-  }
-
-  .hbox.halign-items-stretch > *,
-  .vbox.valign-items-stretch > * {
-    flex-grow: 1;
-  }
-
-  /* Non-flexbox positioning helper styles */
-
-  .hbox > .halign-stretch-1,
-  .vbox > .valign-stretch-1 {
-    flex-basis: 0.000000001px; /* ??? */
-  }
-
-  .hbox > .halign-stretch-2,
-  .vbox > .valign-stretch-2 {
+  .hbox > .spacer-2,
+  .vbox > .spacer-2 {
     flex-grow: 2;
+    visibility: hidden;
   }
-
-  .hbox > .halign-stretch-3,
-  .vbox > .valign-stretch-3 {
+  .hbox > .spacer-3,
+  .vbox > .spacer-3 {
     flex-grow: 3;
+    visibility: hidden;
   }
 `;
