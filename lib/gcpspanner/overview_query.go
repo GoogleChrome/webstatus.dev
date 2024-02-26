@@ -1,17 +1,47 @@
 package gcpspanner
 
-import "text/template"
+import (
+	"cloud.google.com/go/spanner"
+)
 
-type OverviewQuery struct{}
-
-func (q OverviewQuery) Template() {
-	template.New("").Parse(`
-
-`)
+type Filterable interface {
+	Params() map[string]interface{}
+	Clause() string
 }
 
-var overviewResultsQueryTmpl = template.Must(template.New("overviewResultsSQL").Parse(`
-SELECT
+type AvailabileFilter struct {
+	availableBrowsers []string
+}
+
+func (f AvailabileFilter) Clause() string {
+	return "wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities WHERE BrowserName IN UNNEST(@availableBrowsers))"
+}
+
+func (f AvailabileFilter) Params() map[string]interface{} {
+	return map[string]interface{}{
+		"availableBrowsers": f.availableBrowsers,
+	}
+}
+
+type NotAvailabileFilter struct {
+	notAvailableBrowsers []string
+}
+
+func (f NotAvailabileFilter) Clause() string {
+	return "wf.FeatureID NOT IN (SELECT FeatureID FROM BrowserFeatureAvailabilities WHERE BrowserName IN UNNEST(@notAvailableBrowsers))"
+}
+
+func (f NotAvailabileFilter) Params() map[string]interface{} {
+	return map[string]interface{}{
+		"notAvailableBrowsers": f.notAvailableBrowsers,
+	}
+}
+
+type OverviewQueryBuilder struct{}
+
+func (q OverviewQueryBuilder) Base() string {
+	return `
+	SELECT
     wf.ID,
     wf.FeatureID,
     wf.Name,
@@ -31,9 +61,32 @@ LEFT JOIN (
     WHERE r.Channel = 'stable'
     GROUP BY FeatureID, TotalTests, TestPass
 ) wpfm ON wf.FeatureID = wpfm.FeatureID
-WHERE
-{{if .HasAvailabilityFilter}}
-wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities WHERE BrowserName IN UNNEST(@availableBrowsers)) AND
-{{end}}
-ORDER BY wf.Name ASC -- Default sorting
-`))
+`
+}
+
+func (q OverviewQueryBuilder) Order() string {
+	return "ORDER BY wf.Name ASC"
+}
+
+func (q OverviewQueryBuilder) Build(filters ...Filterable) spanner.Statement {
+	filterQuery := ""
+
+	filterParams := make(map[string]interface{})
+	for idx, filter := range filters {
+		filterQuery += filter.Clause() + " "
+		if idx+1 < len(filters) {
+			filterQuery += "AND "
+		}
+		for key, value := range filter.Params() {
+			filterParams[key] = value
+		}
+	}
+	if len(filterQuery) > 0 {
+		filterQuery = "WHERE " + filterQuery
+	}
+	stmt := spanner.NewStatement(q.Base() + " " + filterQuery + " " + q.Order())
+
+	stmt.Params = filterParams
+
+	return stmt
+}
