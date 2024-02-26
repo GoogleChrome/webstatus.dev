@@ -15,6 +15,7 @@
 package httpserver
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
@@ -32,26 +33,48 @@ type WebFeatureMetadataStorer interface {
 	GetWebFeatureData(ctx context.Context, featureID string) (*backend.Feature, error)
 }
 
+type WPTMetricsStorer interface {
+	ListMetricsForFeatureIDBrowserAndChannel(
+		ctx context.Context,
+		featureID string,
+		browser string,
+		channel string,
+		startAt time.Time,
+		endAt time.Time,
+		pageSize int,
+		pageToken *string) ([]backend.WPTRunMetric, *string, error)
+	ListMetricsOverTimeWithAggregatedTotals(
+		ctx context.Context,
+		featureIDs []string,
+		browser string,
+		channel string,
+		startAt, endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) ([]backend.WPTRunMetric, *string, error)
+}
+
 type Server struct {
-	metadataStorer WebFeatureMetadataStorer
+	metadataStorer   WebFeatureMetadataStorer
+	wptMetricsStorer WPTMetricsStorer
 }
 
-// ListAggregatedWPTMetrics implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (*Server) ListAggregatedWPTMetrics(
-	ctx context.Context,
-	request backend.ListAggregatedWPTMetricsRequestObject,
-) (backend.ListAggregatedWPTMetricsResponseObject, error) {
-	panic("unimplemented")
+func getPageSizeOrDefault(pageSize *int) int {
+	// maxPageSize comes from the <repo_root>/openapi/backend/openapi.yaml
+	maxPageSize := 100
+	if pageSize != nil {
+		if *pageSize >= 1 && *pageSize <= maxPageSize {
+			return *pageSize
+		}
+	}
+
+	return maxPageSize
 }
 
-// ListFeatureWPTMetrics implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (*Server) ListFeatureWPTMetrics(
-	ctx context.Context,
-	request backend.ListFeatureWPTMetricsRequestObject,
-) (backend.ListFeatureWPTMetricsResponseObject, error) {
-	panic("unimplemented")
+func getFeatureIDsOrDefault(featureIDs *[]string) []string {
+	var defaultFeatureIDs []string
+
+	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
 // GetV1FeaturesFeatureId implements backend.StrictServerInterface.
@@ -62,6 +85,7 @@ func (s *Server) GetV1FeaturesFeatureId(
 ) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
 	feature, err := s.metadataStorer.GetWebFeatureData(ctx, request.FeatureId)
 	if err != nil {
+		// TODO. Check if the feature exists and return a 404 if it does not.
 		slog.Error("unable to get feature", "error", err)
 
 		return backend.GetV1FeaturesFeatureId500JSONResponse{
@@ -97,7 +121,11 @@ func (s *Server) GetV1Features(
 	}, nil
 }
 
-func NewHTTPServer(port string, metadataStorer WebFeatureMetadataStorer, allowedOrigin string) (*http.Server, error) {
+func NewHTTPServer(
+	port string,
+	metadataStorer WebFeatureMetadataStorer,
+	wptMetricsStorer WPTMetricsStorer,
+	allowedOrigin string) (*http.Server, error) {
 	_, err := backend.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("error loading swagger spec. %w", err)
@@ -105,7 +133,8 @@ func NewHTTPServer(port string, metadataStorer WebFeatureMetadataStorer, allowed
 
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
-		metadataStorer: metadataStorer,
+		metadataStorer:   metadataStorer,
+		wptMetricsStorer: wptMetricsStorer,
 	}
 
 	srvStrictHandler := backend.NewStrictHandler(srv, nil)
