@@ -19,6 +19,8 @@ import (
 	"os"
 
 	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 )
 
@@ -27,16 +29,29 @@ func main() {
 	if value, found := os.LookupEnv("DATASTORE_DATABASE"); found {
 		datastoreDB = &value
 	}
-	fs, err := gds.NewDatastoreClient(os.Getenv("PROJECT_ID"), datastoreDB)
+	projectID := os.Getenv("PROJECT_ID")
+	fs, err := gds.NewDatastoreClient(projectID, datastoreDB)
 	if err != nil {
 		slog.Error("failed to create datastore client", "error", err.Error())
+		os.Exit(1)
+	}
+
+	spannerDB := os.Getenv("SPANNER_DATABASE")
+	spannerInstance := os.Getenv("SPANNER_INSTANCE")
+	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
+	if err != nil {
+		slog.Error("failed to create spanner client", "error", err.Error())
 		os.Exit(1)
 	}
 
 	// Allowed Origin. Can remove after UbP.
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 
-	srv, err := httpserver.NewHTTPServer("8080", fs, allowedOrigin)
+	srv, err := httpserver.NewHTTPServer(
+		"8080",
+		fs,
+		spanneradapters.NewBackend(spannerClient),
+		allowedOrigin)
 	if err != nil {
 		slog.Error("unable to create server", "error", err.Error())
 		os.Exit(1)
