@@ -308,21 +308,21 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		{
 			RunID:      7,
 			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			TotalTests: valuePtr[int64](11),
+			TestPass:   valuePtr[int64](11),
 		},
 		{
 			RunID:      7,
 			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](10),
+			TotalTests: valuePtr[int64](12),
+			TestPass:   valuePtr[int64](12),
 		},
 		// Run 8 metrics - barBrowser - stable
 		{
 			RunID:      8,
 			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			TotalTests: valuePtr[int64](33),
+			TestPass:   valuePtr[int64](33),
 		},
 		{
 			RunID:      8,
@@ -334,14 +334,14 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		{
 			RunID:      9,
 			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			TotalTests: valuePtr[int64](220),
+			TestPass:   valuePtr[int64](220),
 		},
 		{
 			RunID:      9,
 			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](10),
+			TotalTests: valuePtr[int64](120),
+			TestPass:   valuePtr[int64](120),
 		},
 	}
 	for _, metric := range sampleRunMetrics {
@@ -362,7 +362,86 @@ func TestFeaturesSearch(t *testing.T) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 
-	expectedResults := []FeatureResult{}
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*Metric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*Metric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*Metric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*Metric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*Metric{
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](50),
+					TestPass:    valuePtr[int64](35),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
 	if !reflect.DeepEqual(expectedResults, results) {
 		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
 	}

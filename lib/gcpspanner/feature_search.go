@@ -36,8 +36,8 @@ type SpannerFeatureResult struct {
 
 type Metric struct {
 	BrowserName string `json:"BrowserName"`
-	TotalTests  int64  `json:"TotalTests"`
-	TestPass    int64  `json:"TestPass"`
+	TotalTests  *int64 `json:"TotalTests"`
+	TestPass    *int64 `json:"TestPass"`
 }
 
 type FeatureResult struct {
