@@ -35,98 +35,98 @@ func getSampleRunMetrics() []WPTRunFeatureMetric {
 		// Run 0 metrics
 		{
 			RunID:      0,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](10),
 		},
 		{
 			RunID:      0,
-			FeatureID:  "barFeature",
+			FeatureID:  "feature2",
 			TotalTests: valuePtr[int64](5),
 			TestPass:   valuePtr[int64](0),
 		},
 		{
 			RunID:      0,
-			FeatureID:  "bazFeature",
+			FeatureID:  "feature3",
 			TotalTests: valuePtr[int64](50),
 			TestPass:   valuePtr[int64](5),
 		},
 		// Run 1 metrics
 		{
 			RunID:      1,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
 		},
 		// Run 2 metrics
 		{
 			RunID:      2,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](10),
 		},
 		// Run 3 metrics
 		{
 			RunID:      3,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](10),
 		},
 		// Run 6 metrics
 		{
 			RunID:      6,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
 		},
 		{
 			RunID:      6,
-			FeatureID:  "barFeature",
+			FeatureID:  "feature2",
 			TotalTests: valuePtr[int64](10),
 			TestPass:   valuePtr[int64](0),
 		},
 		{
 			RunID:      6,
-			FeatureID:  "bazFeature",
+			FeatureID:  "feature3",
 			TotalTests: valuePtr[int64](50),
 			TestPass:   valuePtr[int64](35),
 		},
 		// Run 7 metrics
 		{
 			RunID:      7,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
 		},
 		{
 			RunID:      7,
-			FeatureID:  "barFeature",
+			FeatureID:  "feature2",
 			TotalTests: valuePtr[int64](10),
 			TestPass:   valuePtr[int64](10),
 		},
 		// Run 8 metrics
 		{
 			RunID:      8,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
 		},
 		{
 			RunID:      8,
-			FeatureID:  "barFeature",
+			FeatureID:  "feature2",
 			TotalTests: valuePtr[int64](10),
 			TestPass:   valuePtr[int64](10),
 		},
 		// Run 9 metrics
 		{
 			RunID:      9,
-			FeatureID:  "fooFeature",
+			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
 		},
 		{
 			RunID:      9,
-			FeatureID:  "barFeature",
+			FeatureID:  "feature2",
 			TotalTests: valuePtr[int64](10),
 			TestPass:   valuePtr[int64](10),
 		},
@@ -163,7 +163,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		}
 	}
 
-	metric, err := client.GetMetricByRunIDAndFeatureID(ctx, 0, "fooFeature")
+	metric, err := client.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -180,7 +180,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	// Upsert the metric
 	updatedMetric1 := WPTRunFeatureMetric{
 		RunID:      0,
-		FeatureID:  "fooFeature",
+		FeatureID:  "feature1",
 		TotalTests: valuePtr[int64](300), // Change this value
 		TestPass:   valuePtr[int64](100), // Change this value
 	}
@@ -191,7 +191,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 
 	// Try to get the metric again and compare with the updated metric.
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 0, "fooFeature")
+	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -207,7 +207,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	// Test 2. Upsert a metric where the run has multiple metrics.
 	updatedMetric2 := WPTRunFeatureMetric{
 		RunID:      9,
-		FeatureID:  "barFeature",
+		FeatureID:  "feature2",
 		TotalTests: valuePtr[int64](300), // Change this value
 		TestPass:   valuePtr[int64](100), // Change this value
 	}
@@ -218,7 +218,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 
 	// Try to get the metric again and compare with the updated metric.
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "barFeature")
+	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "feature2")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -232,7 +232,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 
 	// Get the other metric for that run which should be unaffected
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "fooFeature")
+	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -243,7 +243,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	otherMetric := WPTRunFeatureMetric{
 		RunID:      9,
-		FeatureID:  "fooFeature",
+		FeatureID:  "feature1",
 		TotalTests: valuePtr[int64](20),
 		TestPass:   valuePtr[int64](20),
 	}
@@ -276,7 +276,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// feature combination.
 	metrics, token, err := client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -312,7 +312,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Get page 1
 	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -335,7 +335,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Get page 2.
 	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -358,7 +358,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Get page 3
 	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -525,7 +525,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Test 3. Get aggregation metrics for subset of features.
 	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -565,7 +565,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Get page 1.
 	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -596,7 +596,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Get page 2.
 	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -627,7 +627,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Get page 3.
 	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
