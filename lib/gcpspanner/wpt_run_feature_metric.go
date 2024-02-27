@@ -59,14 +59,17 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, in WPTRunFeature
 		WPTRunFeatureMetric: in,
 	}
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// TODO: Query by primary key instead.
 		stmt := spanner.NewStatement(`
 			SELECT
 				ID, ExternalRunID, FeatureID, TotalTests, TestPass
 			FROM WPTRunFeatureMetrics
-			WHERE ExternalRunID = @externalRunID
+			WHERE ID = @id AND ExternalRunID = @externalRunID AND FeatureID = @featureID
 			LIMIT 1`)
 		parameters := map[string]interface{}{
+			"id":            metric.ID,
 			"externalRunID": metric.RunID,
+			"featureID":     metric.FeatureID,
 		}
 		stmt.Params = parameters
 

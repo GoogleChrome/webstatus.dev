@@ -1,3 +1,17 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gcpspanner
 
 import (
@@ -46,48 +60,68 @@ type FeatureSearchQueryBuilder struct {
 	pageSize int
 }
 
+// Base provides the minimum query to get data for the features search.
+// This query retrieves the latest metrics for each unique BrowserName/FeatureID
+// combination associated with a given feature.
+//
+// It provides these metrics for both "stable" and "experimental" channels.
+// The results are designed to be used for the feature search and filtering.
 func (q FeatureSearchQueryBuilder) Base() string {
 	return `
 SELECT
-    wf.ID,
-    wf.FeatureID,
-    wf.Name,
-    (SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
+	wf.ID,
+	wf.FeatureID,
+	wf.Name,
+	COALESCE(fbs.Status, 'undefined') AS Status,
+
+	-- StableMetrics Calculation
+	(SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
 		FROM (
-		SELECT BrowserName, TotalTests, TestPass
-		FROM WPTRunFeatureMetrics metrics
-		JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID
-		WHERE metrics.FeatureID = wf.FeatureID AND wpr.Channel = 'stable'
-		AND metrics.ID = (
-				SELECT ARRAY_AGG(wpr2.ID)[OFFSET(0)]
-				FROM WPTRunFeatureMetrics wpfm
-				JOIN WPTRuns wpr2 ON wpfm.ExternalRunID = wpr2.ExternalRunID
-				WHERE wpfm.FeatureID = wf.FeatureID
-				AND wpr2.Channel = 'stable'
-       	)
+		SELECT browser_feature_list.BrowserName, TotalTests, TestPass
+		FROM (
+			-- Subquery to get distinct BrowserName, FeatureID combinations and their
+			-- associated maximum TimeStart for the specified FeatureID
+			SELECT DISTINCT BrowserName, FeatureID, MAX(wpr.TimeStart) AS MaxTimeStart
+			FROM WPTRunFeatureMetrics metrics
+			JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID
+			WHERE metrics.FeatureID = wf.FeatureID
+			GROUP BY BrowserName, FeatureID
+		) browser_feature_list
+		-- Join to retrieve metrics, ensuring we get the latest run for each combination
+		JOIN WPTRunFeatureMetrics metrics ON browser_feature_list.FeatureID = metrics.FeatureID
+		JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID AND browser_feature_list.BrowserName = wpr.BrowserName
+		WHERE wpr.Channel = 'stable'
+		AND wpr.TimeStart = browser_feature_list.MaxTimeStart
 	) latest_metric) AS StableMetrics,
-    (SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
-     FROM (
-		SELECT BrowserName, TotalTests, TestPass
-		FROM WPTRunFeatureMetrics metrics
-		JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID
-		WHERE metrics.FeatureID = wf.FeatureID AND wpr.Channel = 'experimental'
-		AND metrics.ID = (
-				SELECT ARRAY_AGG(wpr2.ID)[OFFSET(0)]
-				FROM WPTRunFeatureMetrics wpfm
-				JOIN WPTRuns wpr2 ON wpfm.ExternalRunID = wpr2.ExternalRunID
-				WHERE wpfm.FeatureID = wf.FeatureID
-				AND wpr2.Channel = 'experimental'
-		)
-	) latest_metric) AS ExperimentalMetrics
+
+	-- ExperimentalMetrics Calculation
+	(SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
+		FROM (
+		SELECT browser_feature_list.BrowserName, TotalTests, TestPass
+		FROM (
+			-- Subquery to get distinct BrowserName, FeatureID combinations and their
+			-- associated maximum TimeStart for the specified FeatureID
+			SELECT DISTINCT BrowserName, FeatureID, MAX(wpr.TimeStart) AS MaxTimeStart
+			FROM WPTRunFeatureMetrics metrics
+			JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID
+			WHERE metrics.FeatureID = wf.FeatureID
+			GROUP BY BrowserName, FeatureID
+		) browser_feature_list
+		-- Join to retrieve metrics, ensuring we get the latest run for each combination
+		JOIN WPTRunFeatureMetrics metrics ON browser_feature_list.FeatureID = metrics.FeatureID
+		JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID AND browser_feature_list.BrowserName = wpr.BrowserName
+		WHERE wpr.Channel = 'experimental'
+		AND wpr.TimeStart = browser_feature_list.MaxTimeStart
+	) latest_metric) AS ExperimentalMetrics,
+
 FROM WebFeatures wf
-JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
+LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
 `
 }
 
 func (q FeatureSearchQueryBuilder) Order() string {
 	// Stable sorting
-	return "ORDER BY wf.ID"
+	return "ORDER BY wf.FeatureID"
 }
 
 func (q FeatureSearchQueryBuilder) Build(filters ...Filterable) spanner.Statement {

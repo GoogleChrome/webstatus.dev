@@ -139,7 +139,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	sampleRunMetrics := getSampleRunMetrics()
 
-	// Should fail without the runs being uploaded first
+	// Should fail without the runs and features being uploaded first
 	for _, metric := range sampleRunMetrics {
 		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
 		if spanner.ErrCode(err) != codes.NotFound {
@@ -147,11 +147,18 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		}
 	}
 
-	// Now, let's insert the runs.
+	// Now, let's insert the runs and features.
 	for _, run := range getSampleRuns() {
 		err := client.InsertWPTRun(ctx, run)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
+		}
+	}
+	sampleFeatures := getSampleFeatures()
+	for _, feature := range sampleFeatures {
+		err := client.UpsertWebFeature(ctx, feature)
+		if err != nil {
+			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
 	}
 
