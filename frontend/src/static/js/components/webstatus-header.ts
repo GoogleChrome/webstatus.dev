@@ -34,10 +34,19 @@ export class WebstatusHeader extends LitElement {
       SHARED_STYLES,
       css`
         header {
-          display: flex;
-          justify-content: space-between;
+          flex-grow: 1; /* .hbox > .halign-stretch */
+          align-items: center;
           background: #f2f2f2;
           height: 94px;
+          position: sticky;
+          top: -44px;
+        }
+        .header-inner {
+          flex-grow: 1; /* .hbox > .halign-stretch */
+          align-items: center;
+          height: 50px;
+          position: sticky;
+          top: 0;
         }
         .title {
           display: flex;
@@ -86,20 +95,23 @@ export class WebstatusHeader extends LitElement {
 
   render(): TemplateResult {
     return html`
-      <header>
-        <div class="title">
-          ${this.renderHamburger()}
-          <img
-            class="website-logo"
-            src="https://fakeimg.pl/400x400?text=LOGO"
-          />
-          <h2 class="website-title">Web Platform Dashboard</h2>
-        </div>
+      <header class="hbox">
+        <div class="hbox header-inner">
+          <div class="title">
+            ${this.renderHamburger()}
+            <img
+              class="website-logo"
+              src="https://fakeimg.pl/400x400?text=LOGO"
+            />
+            <h2 class="website-title">Web Platform Dashboard</h2>
+          </div>
 
-        ${this.renderDrawer()}
+          ${this.renderDrawer()}
 
-        <div class="sign-in">
-          <webstatus-login></webstatus-login>
+          <div class="spacer"></div>
+          <div class="sign-in">
+            <webstatus-login></webstatus-login>
+          </div>
         </div>
       </header>
     `;

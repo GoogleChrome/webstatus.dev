@@ -26,43 +26,37 @@ export class WebstatusPage extends LitElement {
       SHARED_STYLES,
       css`
         .container {
-          display: flex;
-          flex-direction: row;
           height: 100%;
           width: 100%;
         }
 
-        @media (max-width: 768px) {
-          .container {
-            flex-direction: column;
-          }
-        }
-
         webstatus-sidebar {
-          flex: 1;
-          align-self: stretch;
+          /* align-self: stretch; */
           max-width: 288px;
           padding-right: 20px;
           padding-top: 10px;
         }
 
         @media (max-width: 768px) {
-          webstatus-sidebar {
+          /* .container {
+            flex-direction: column;
+          } */
+          webstatus-sidebar.vbox {
             display: none;
           }
         }
 
         .page-container {
-          flex: 2;
           padding: var(--content-padding);
         }
       `,
     ];
   }
   protected render(): TemplateResult {
-    return html` <div class="container">
-      <webstatus-sidebar></webstatus-sidebar>
-      <div class="page-container"><slot></slot></div>
+    return html`
+    <div class="container hbox">
+      <webstatus-sidebar class="vbox valign-stretch"></webstatus-sidebar>
+      <div class="page-container vbox halign-stretch"><slot></slot></div>
     </div>`;
   }
 }
