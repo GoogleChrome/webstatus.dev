@@ -232,6 +232,7 @@ components:
           - chrome
           - firefox
           - safari
+          - edge
     channelPathParam:
       in: path
       name: channel
