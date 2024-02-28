@@ -26,19 +26,25 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
-          name: baseline_start_year
+          name: availableOn
+          description: >
+            A comma-separated list of browsers.
+            The returned features are available on these browsers.
+          required: false
           schema:
-            type: integer
-            minimum: 2023
-            maximum: 2023
-          description: Start range (inclusive) for when features became part of baseline
+            type: array
+            items:
+              type: string
         - in: query
-          name: baseline_end_year
+          name: notAvailableOn
+          description: >
+            A comma-separated list of browsers.
+            The returned features are not available on these browsers.
+          required: false
           schema:
-            type: integer
-            minimum: 2023
-            maximum: 2023
-          description: End range (inclusive) for when features became part of baseline
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: OK

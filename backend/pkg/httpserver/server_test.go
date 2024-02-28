@@ -52,10 +52,22 @@ type MockListMetricsOverTimeWithAggregatedTotalsConfig struct {
 	err                error
 }
 
+type MockFeaturesSearchConfig struct {
+	expectedPageToken            *string
+	expectedPageSize             int
+	expectedAvailableBrowsers    []string
+	expectedNotAvailableBrowsers []string
+	data                         []backend.Feature
+	pageToken                    *string
+	err                          error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
+	featuresSearchCfg                                 MockFeaturesSearchConfig
 	t                                                 *testing.T
+	callCountFeaturesSearch                           int
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
 }
@@ -105,6 +117,26 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 	}
 
 	return m.aggregateCfg.data, m.aggregateCfg.pageToken, m.aggregateCfg.err
+}
+
+func (m *MockWPTMetricsStorer) FeaturesSearch(
+	_ context.Context,
+	pageToken *string,
+	pageSize int,
+	availabileBrowsers []string,
+	notAvailabileBrowsers []string,
+) ([]backend.Feature, *string, error) {
+	m.callCountFeaturesSearch++
+
+	if pageToken != m.featuresSearchCfg.expectedPageToken ||
+		pageSize != m.featuresSearchCfg.expectedPageSize ||
+		!slices.Equal(availabileBrowsers, m.featuresSearchCfg.expectedAvailableBrowsers) ||
+		!slices.Equal(notAvailabileBrowsers, m.featuresSearchCfg.expectedNotAvailableBrowsers) {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v %v}",
+			m.featuresSearchCfg, pageSize, pageToken, availabileBrowsers, notAvailabileBrowsers)
+	}
+
+	return m.featuresSearchCfg.data, m.featuresSearchCfg.pageToken, m.featuresSearchCfg.err
 }
 
 func TestGetPageSizeOrDefault(t *testing.T) {
