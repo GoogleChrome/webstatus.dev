@@ -90,5 +90,5 @@ CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
     HighDate TIMESTAMP,
     FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
-    CHECK (Status IN ('undefined', 'limited', 'low', 'high'))
+    CHECK (Status IN ('undefined', 'none', 'low', 'high'))
 ) PRIMARY KEY (FeatureID);

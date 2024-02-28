@@ -21,36 +21,46 @@ import (
 	"google.golang.org/api/iterator"
 )
 
+// SpannerFeatureResult is a wrapper for the feature result that is actually
+// stored in spanner. This is useful because the spanner id is not useful to
+// return to the end user.
 type SpannerFeatureResult struct {
 	ID string `spanner:"ID"`
 	FeatureResult
 }
 
-// type FeatureResult struct {
-// 	FeatureID           string                `spanner:"FeatureID"`
-// 	Name                string                `spanner:"Name"`
-// 	Status              BaselineStatus        `spanner:"Status"`
-// 	StableMetrics       []WPTRunFeatureMetric `spanner:"StableMetrics"`
-// 	ExperimentalMetrics []WPTRunFeatureMetric `spanner:"ExperimentalMetrics"`
-// }
-
-type Metric struct {
+// FeatureResultMetric contains metric information for a feature result query.
+// Very similar to WPTRunFeatureMetric.
+type FeatureResultMetric struct {
 	BrowserName string `json:"BrowserName"`
 	TotalTests  *int64 `json:"TotalTests"`
 	TestPass    *int64 `json:"TestPass"`
 }
 
+// FeatureResult contains information regarding a particular feature.
 type FeatureResult struct {
-	FeatureID           string    `json:"FeatureID"`
-	Name                string    `json:"Name"`
-	Status              string    `json:"Status"`
-	StableMetrics       []*Metric `json:"StableMetrics"`
-	ExperimentalMetrics []*Metric `json:"ExperimentalMetrics"`
+	FeatureID           string                 `json:"FeatureID"`
+	Name                string                 `json:"Name"`
+	Status              string                 `json:"Status"`
+	StableMetrics       []*FeatureResultMetric `json:"StableMetrics"`
+	ExperimentalMetrics []*FeatureResultMetric `json:"ExperimentalMetrics"`
 }
 
-func (c *Client) FeaturesSearch(ctx context.Context, pageToken *string, pageSize int, filterables ...Filterable) ([]FeatureResult, *string, error) {
+func (c *Client) FeaturesSearch(
+	ctx context.Context,
+	pageToken *string,
+	pageSize int,
+	filterables ...Filterable) ([]FeatureResult, *string, error) {
+	var cursor *FeatureResultCursor
+	var err error
+	if pageToken != nil {
+		cursor, err = decodeFeatureResultCursor(*pageToken)
+		if err != nil {
+			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+	}
 	b := FeatureSearchQueryBuilder{
-		cursorID: pageToken,
+		cursor:   cursor,
 		pageSize: pageSize,
 	}
 	stmt := b.Build(filterables...)

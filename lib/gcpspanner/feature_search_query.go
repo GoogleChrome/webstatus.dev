@@ -24,13 +24,18 @@ type Filterable interface {
 	Clause() string
 }
 
+func NewAvailabileFilter(availableBrowsers []string) *AvailabileFilter {
+	return &AvailabileFilter{availableBrowsers: availableBrowsers}
+}
+
 // AvailabileFilter applies a filter to limit the features based on their availability in a list of browsers.
 type AvailabileFilter struct {
 	availableBrowsers []string
 }
 
 func (f AvailabileFilter) Clause() string {
-	return "wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities WHERE BrowserName IN UNNEST(@availableBrowsers))"
+	return `wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+		WHERE BrowserName IN UNNEST(@availableBrowsers))`
 }
 
 func (f AvailabileFilter) Params() map[string]interface{} {
@@ -39,13 +44,18 @@ func (f AvailabileFilter) Params() map[string]interface{} {
 	}
 }
 
+func NewNotAvailabileFilter(notAvailableBrowsers []string) *NotAvailabileFilter {
+	return &NotAvailabileFilter{notAvailableBrowsers: notAvailableBrowsers}
+}
+
 // NotAvailabileFilter applies a filter to limit the features based on their unavailability in a list of browsers.
 type NotAvailabileFilter struct {
 	notAvailableBrowsers []string
 }
 
 func (f NotAvailabileFilter) Clause() string {
-	return "wf.FeatureID NOT IN (SELECT FeatureID FROM BrowserFeatureAvailabilities WHERE BrowserName IN UNNEST(@notAvailableBrowsers))"
+	return `wf.FeatureID NOT IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+		WHERE BrowserName IN UNNEST(@notAvailableBrowsers))`
 }
 
 func (f NotAvailabileFilter) Params() map[string]interface{} {
@@ -54,9 +64,9 @@ func (f NotAvailabileFilter) Params() map[string]interface{} {
 	}
 }
 
-// FeatureSearchQueryBuilder
+// FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
-	cursorID *string
+	cursor   *FeatureResultCursor
 	pageSize int
 }
 
@@ -128,19 +138,18 @@ func (q FeatureSearchQueryBuilder) Build(filters ...Filterable) spanner.Statemen
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
-	if q.cursorID != nil {
-		filterParams["cursorId"] = *q.cursorID
-	} else {
-		filterParams["cursorId"] = nil
+	if q.cursor != nil {
+		filterParams["cursorId"] = q.cursor.LastFeatureID
+		filterQuery += " wf.FeatureID > @cursorId"
 	}
 
 	filterParams["pageSize"] = q.pageSize
 
-	for idx, filter := range filters {
-		filterQuery += filter.Clause() + " "
-		if idx+1 < len(filters) {
+	for _, filter := range filters {
+		if len(filterQuery) > 0 {
 			filterQuery += "AND "
 		}
+		filterQuery += filter.Clause() + " "
 		for key, value := range filter.Params() {
 			filterParams[key] = value
 		}

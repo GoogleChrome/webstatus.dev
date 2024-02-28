@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
@@ -25,6 +26,7 @@ import (
 
 func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	client *Client, t *testing.T) {
+	//nolint: dupl // Okay to duplicate for tests
 	sampleFeatures := []WebFeature{
 		{
 			Name:      "Feature 1",
@@ -50,6 +52,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 	}
 
+	// nolint: dupl // Okay to duplicate for tests
 	sampleReleases := []BrowserRelease{
 		{
 			BrowserName:    "fooBrowser",
@@ -89,6 +92,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 	}
 
+	//nolint: dupl // Okay to duplicate for tests
 	sampleBrowserAvailabilities := []BrowserFeatureAvailability{
 		{
 			BrowserName:    "fooBrowser",
@@ -118,6 +122,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 	}
 
+	//nolint: dupl // Okay to duplicate for tests
 	sampleBaselineStatuses := []FeatureBaselineStatus{
 		{
 			FeatureID: "feature1",
@@ -146,6 +151,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 	}
 
+	// nolint: dupl // Okay to duplicate for tests
 	sampleRuns := []WPTRun{
 		{
 			RunID:            0,
@@ -244,6 +250,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 	}
 
+	// nolint: dupl // Okay to duplicate for tests
 	sampleRunMetrics := []WPTRunFeatureMetric{
 		// Run 0 metrics - fooBrowser - stable
 		{
@@ -352,22 +359,29 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
+func sortMetricsByBrowserName(metrics []*FeatureResultMetric) {
+	sort.Slice(metrics, func(i, j int) bool {
+		return metrics[i].BrowserName < metrics[j].BrowserName
+	})
+}
+func stabilizeFeatureResults(results []FeatureResult) {
+	for _, result := range results {
+		sortMetricsByBrowserName(result.StableMetrics)
+		sortMetricsByBrowserName(result.ExperimentalMetrics)
+	}
+}
+
 func TestFeaturesSearch(t *testing.T) {
 	client := getTestDatabase(t)
 	ctx := context.Background()
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
-
-	results, _, err := client.FeaturesSearch(ctx, nil, 100)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
 
 	expectedResults := []FeatureResult{
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
 			Status:    string(BaselineStatusUndefined),
-			StableMetrics: []*Metric{
+			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					TotalTests:  valuePtr[int64](33),
@@ -379,7 +393,7 @@ func TestFeaturesSearch(t *testing.T) {
 					TestPass:    valuePtr[int64](20),
 				},
 			},
-			ExperimentalMetrics: []*Metric{
+			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					TotalTests:  valuePtr[int64](220),
@@ -396,7 +410,7 @@ func TestFeaturesSearch(t *testing.T) {
 			FeatureID: "feature2",
 			Name:      "Feature 2",
 			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*Metric{
+			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					TotalTests:  valuePtr[int64](10),
@@ -408,7 +422,7 @@ func TestFeaturesSearch(t *testing.T) {
 					TestPass:    valuePtr[int64](0),
 				},
 			},
-			ExperimentalMetrics: []*Metric{
+			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					TotalTests:  valuePtr[int64](120),
@@ -425,7 +439,7 @@ func TestFeaturesSearch(t *testing.T) {
 			FeatureID: "feature3",
 			Name:      "Feature 3",
 			Status:    string(BaselineStatusUndefined),
-			StableMetrics: []*Metric{
+			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
 					TotalTests:  valuePtr[int64](50),
@@ -442,7 +456,116 @@ func TestFeaturesSearch(t *testing.T) {
 			ExperimentalMetrics: nil,
 		},
 	}
+	// Test: Get all the results.
+	results, _, err := client.FeaturesSearch(ctx, nil, 100)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
 	if !reflect.DeepEqual(expectedResults, results) {
 		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
 	}
+
+	// Test: Get all the results with pagination.
+	expectedResultsPageOne := []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+	}
+	results, token, err := client.FeaturesSearch(ctx, nil, 2)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResultsPageOne, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageOne, results)
+	}
+
+	expectedResultsPageTwo := []FeatureResult{
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](50),
+					TestPass:    valuePtr[int64](35),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
+
+	results, _, err = client.FeaturesSearch(ctx, token, 2)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResultsPageTwo, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageTwo, results)
+	}
+
 }

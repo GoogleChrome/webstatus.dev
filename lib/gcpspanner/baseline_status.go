@@ -33,7 +33,7 @@ type BaselineStatus string
 
 const (
 	BaselineStatusUndefined BaselineStatus = "undefined"
-	BaselineStatusLimited   BaselineStatus = "limited"
+	BaselineStatusNone      BaselineStatus = "none"
 	BaselineStatusLow       BaselineStatus = "low"
 	BaselineStatusHigh      BaselineStatus = "high"
 )

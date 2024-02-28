@@ -26,6 +26,7 @@ import (
 )
 
 func getSampleBrowserReleases() []BrowserRelease {
+	// nolint: dupl // Okay to duplicate for tests
 	return []BrowserRelease{
 		{
 			BrowserName:    "fooBrowser",

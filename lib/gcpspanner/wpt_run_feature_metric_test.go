@@ -31,6 +31,7 @@ func valuePtr[T any](in T) *T {
 }
 
 func getSampleRunMetrics() []WPTRunFeatureMetric {
+	// nolint: dupl // Okay to duplicate for tests
 	return []WPTRunFeatureMetric{
 		// Run 0 metrics
 		{
