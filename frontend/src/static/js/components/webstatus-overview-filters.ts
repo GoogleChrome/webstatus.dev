@@ -29,6 +29,9 @@ export class WebstatusOverviewFilters extends LitElement {
     return [
       SHARED_STYLES,
       css`
+        .all-filter-controls {
+          gap: 0.5em;
+        }
         .filter-by-feature-name {
           gap: 1em;
         }
@@ -39,130 +42,155 @@ export class WebstatusOverviewFilters extends LitElement {
   render(): TemplateResult {
     const query = getSearchQuery(this.location);
     return html`
-      <div class="hbox space-between filter-by-feature-name">
-        <sl-input
-          class="hgrow"
-          placeholder="Filter by feature name..."
-          value="${query}"
-        >
-          <sl-icon name="search" slot="prefix"></sl-icon>
-        </sl-input>
+      <div class="vbox all-filter-controls">
+        <div class="hbox halign-items-space-between filter-by-feature-name">
+          <sl-input
+            class="hgrow"
+            placeholder="Filter by feature name..."
+            value="${query}"
+          >
+            <sl-icon name="search" slot="prefix"></sl-icon>
+          </sl-input>
+        </div>
 
-        <sl-dropdown>
-          <sl-button slot="trigger">
-            <sl-icon slot="prefix" name="filter"></sl-icon>
-            Filter
-          </sl-button>
-          <sl-menu>
-            <sl-menu-item value="available-on"
-              >Available on
-              <sl-menu slot="submenu">
-                <sl-menu-item type="checkbox" value="chrome">
-                  Chrome
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-                <sl-menu-item type="checkbox" value="firefox">
-                  Firefox
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="safari">
-                  Safari
-                </sl-menu-item>
-              </sl-menu>
-            </sl-menu-item>
-            <sl-menu-item value="not-available-on">
+        <div class="hbox space-between" id="filter_buttons">
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+              Available on
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="chrome">
+                Chrome
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
+              <sl-menu-item type="checkbox" value="firefox">
+                Firefox
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="safari">
+                Safari
+              </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Not available on
-              <sl-menu slot="submenu">
-                <sl-menu-item type="checkbox" value="chrome">
-                  Chrome
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-                <sl-menu-item type="checkbox" value="firefox">
-                  Firefox
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="safari">
-                  Safari
-                </sl-menu-item>
-                <sl-divider></sl-divider>
-                <sl-menu-item type="checkbox" value="not-in">
-                  Not available in 1 browser
-                </sl-menu-item>
-              </sl-menu>
-            </sl-menu-item>
-            <sl-menu-item value="baseline-since">
-              Baseline since
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="chrome">
+                Chrome
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
+              <sl-menu-item type="checkbox" value="firefox">
+                Firefox
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="safari">
+                Safari
+              </sl-menu-item>
+              <sl-divider></sl-divider>
+              <sl-menu-item type="checkbox" value="not-in">
+                Not available in 1 browser
+              </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+              Baseline status
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="widely">
+                Widely available
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="newly">
+                Newly available
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="limited">
+                Limited availability
+              </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+              Browser type
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="stable-builds">
+                Stable builds
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="dev-builds">
+                Dev builds
+              </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+              Standards track
+            </sl-button>
+            <sl-menu> </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+              Spec maturity
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="unknown">
+                Unknown
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="proposed">
+                Proposed
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="incubation">
+                Incubation
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="working-draft">
+                Working draft
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="living-standard">
+                Living standard
+              </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
+              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+              Web platform test score
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="chrome">
+                Chrome
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
+              <sl-menu-item type="checkbox" value="firefox">
+                Firefox
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="safari">
+                Safari
+              </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+
+          <sl-dropdown stay-open-on-select>
+            <sl-button slot="trigger">
               <sl-icon
-                slot="suffix"
-                name="calendar-blank"
+                slot="prefix"
+                name="square-split-horizontal"
                 library="phosphor"
               ></sl-icon>
-            </sl-menu-item>
-            <sl-menu-item value="baseline-status">
-              Baseline status
-              <sl-menu slot="submenu">
-                <sl-menu-item type="checkbox" value="widely">
-                  Widely available
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="newly">
-                  Newly available
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="limited">
-                  Limited availability
-                </sl-menu-item>
-              </sl-menu>
-            </sl-menu-item>
-            <sl-menu-item value="baseline-type"> Baseline type </sl-menu-item>
-            <sl-menu-item type="checkbox" value="standards-track">
-              Standards track
-            </sl-menu-item>
-            <sl-menu-item type="checkbox" value="spec-maturity">
-              Spec maturity
-              <sl-menu slot="submenu">
-                <sl-menu-item type="checkbox" value="unknown">
-                  Unknown
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="proposed">
-                  Proposed
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="incubation">
-                  Incubation
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="working-draft">
-                  Working draft
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="living-standard">
-                  Living standard
-                </sl-menu-item>
-              </sl-menu>
-            </sl-menu-item>
-            <sl-menu-item value="web-platform-test-score">
-              Web platform test score
-              <sl-menu slot="submenu">
-                <sl-menu-item type="checkbox" value="chrome">
-                  Chrome
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-                <sl-menu-item type="checkbox" value="firefox">
-                  Firefox
-                </sl-menu-item>
-                <sl-menu-item type="checkbox" value="safari">
-                  Safari
-                </sl-menu-item>
-              </sl-menu>
-            </sl-menu-item>
-            <sl-divider></sl-divider>
-            <sl-menu-item value="clear-all"> Clear all </sl-menu-item>
-          </sl-menu>
-        </sl-dropdown>
-
-        <sl-dropdown>
-          <sl-button slot="trigger">
-            <sl-icon
-              slot="prefix"
-              name="square-split-horizontal"
-              library="phosphor"
-            ></sl-icon>
-          </sl-button>
-        </sl-dropdown>
+              Columns
+            </sl-button>
+          </sl-dropdown>
+        </div>
       </div>
     `;
   }
