@@ -141,6 +141,8 @@ func convertBaselineStatusBackendToSpanner(status backend.FeatureBaselineStatus)
 		return gcpspanner.BaselineStatusLow
 	case backend.None:
 		return gcpspanner.BaselineStatusNone
+	case backend.Undefined:
+		fallthrough
 	default:
 		return gcpspanner.BaselineStatusUndefined
 	}
@@ -154,6 +156,8 @@ func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) bac
 		return backend.Low
 	case gcpspanner.BaselineStatusNone:
 		return backend.None
+	case gcpspanner.BaselineStatusUndefined:
+		fallthrough
 	default:
 		return backend.Undefined
 	}
@@ -210,6 +214,8 @@ func (s *Backend) FeaturesSearch(
 				Experimental: &experimentalMetricsMap,
 				Stable:       &stableMetricsMap,
 			},
+			Spec:  nil,
+			Usage: nil,
 		})
 	}
 

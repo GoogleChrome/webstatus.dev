@@ -101,7 +101,7 @@ func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(
 }
 
 func (c mockBackendSpannerClient) FeaturesSearch(
-	ctx context.Context,
+	_ context.Context,
 	pageToken *string,
 	pageSize int,
 	filterables ...gcpspanner.Filterable) ([]gcpspanner.FeatureResult, *string, error) {
@@ -323,7 +323,8 @@ func TestConvertBaselineStatusBackendToSpanner(t *testing.T) {
 		{"High to High", backend.High, gcpspanner.BaselineStatusHigh},
 		{"Low to Low", backend.Low, gcpspanner.BaselineStatusLow},
 		{"None to None", backend.None, gcpspanner.BaselineStatusNone},
-		{"Invalid to Undefined", backend.FeatureBaselineStatus("invalid"), gcpspanner.BaselineStatusUndefined}, // Test default case
+		{"Invalid to Undefined", backend.FeatureBaselineStatus("invalid"),
+			gcpspanner.BaselineStatusUndefined}, // Test default case
 	}
 	for _, tt := range backendToSpannerTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -531,7 +532,7 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 	return true
 }
 
-// compareWPTSnapshots helps compare FeatureWPTSnapshots structs
+// compareWPTSnapshots helps compare FeatureWPTSnapshots structs.
 func compareWPTSnapshots(w1, w2 *backend.FeatureWPTSnapshots) bool {
 	// Handle nil cases
 	if (w1 == nil && w2 != nil) || (w1 != nil && w2 == nil) {
@@ -555,7 +556,7 @@ func compareWPTSnapshots(w1, w2 *backend.FeatureWPTSnapshots) bool {
 	return true
 }
 
-// compareFeatureDataMap helps compare maps of WPTFeatureData
+// compareFeatureDataMap helps compare maps of WPTFeatureData.
 func compareFeatureDataMap(m1, m2 *map[string]backend.WPTFeatureData) bool {
 	// Handle nil cases
 	if (m1 == nil && m2 != nil) || (m1 != nil && m2 == nil) {

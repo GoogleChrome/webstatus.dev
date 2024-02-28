@@ -112,7 +112,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		{
 			BrowserName:    "fooBrowser",
 			BrowserVersion: "1.0.0",
-			FeatureID:      "feature2",
+			FeatureID:      "feature3",
 		},
 	}
 	for _, availability := range sampleBrowserAvailabilities {
@@ -371,11 +371,8 @@ func stabilizeFeatureResults(results []FeatureResult) {
 	}
 }
 
-func TestFeaturesSearch(t *testing.T) {
-	client := getTestDatabase(t)
-	ctx := context.Background()
-	setupRequiredTablesForFeaturesSearch(ctx, client, t)
-
+func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
+	// Simple test to get all the features without filters.
 	expectedResults := []FeatureResult{
 		{
 			FeatureID: "feature1",
@@ -465,8 +462,11 @@ func TestFeaturesSearch(t *testing.T) {
 	if !reflect.DeepEqual(expectedResults, results) {
 		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
 	}
+}
 
+func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Client) {
 	// Test: Get all the results with pagination.
+	// nolint: dupl
 	expectedResultsPageOne := []FeatureResult{
 		{
 			FeatureID: "feature1",
@@ -559,7 +559,7 @@ func TestFeaturesSearch(t *testing.T) {
 		},
 	}
 
-	results, _, err = client.FeaturesSearch(ctx, token, 2)
+	results, token, err = client.FeaturesSearch(ctx, token, 2)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -568,4 +568,286 @@ func TestFeaturesSearch(t *testing.T) {
 		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageTwo, results)
 	}
 
+	// Last page should have no results and should have no token.
+	results, token, err = client.FeaturesSearch(ctx, token, 2)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	if token != nil {
+		t.Error("expected nil token")
+	}
+	var expectedResultsPageThree []FeatureResult
+	if !reflect.DeepEqual(expectedResultsPageThree, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageThree, results)
+	}
+
+}
+
+func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client) {
+	testFeatureAvailableSearchFilters(ctx, t, client)
+	testFeatureNotAvailableSearchFilters(ctx, t, client)
+	testFeatureCommonFilterCombos(ctx, t, client)
+}
+
+func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
+	// Available and not available filters
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+	}
+	availableFilter := NewAvailabileFilter([]string{"barBrowser"})
+	notAvailableFilter := NewNotAvailabileFilter([]string{"fooBrowser"})
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, availableFilter, notAvailableFilter)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+}
+
+func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
+	// Single browser
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
+	notAvailableFilter := NewNotAvailabileFilter([]string{"fooBrowser"})
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, notAvailableFilter)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+}
+func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
+	// Single browser
+	// nolint: dupl
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+	}
+	availableFilter := NewAvailabileFilter([]string{"barBrowser"})
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, availableFilter)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+
+	// Multiple browsers.
+	expectedResults = []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](50),
+					TestPass:    valuePtr[int64](35),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+	}
+	availableFilter = NewAvailabileFilter([]string{"barBrowser", "fooBrowser"})
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, availableFilter)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+}
+
+func TestFeaturesSearch(t *testing.T) {
+	client := getTestDatabase(t)
+	ctx := context.Background()
+	setupRequiredTablesForFeaturesSearch(ctx, client, t)
+
+	testFeatureSearchAll(ctx, t, client)
+	testFeatureSearchPagination(ctx, t, client)
+	testFeatureSearchFilters(ctx, t, client)
 }

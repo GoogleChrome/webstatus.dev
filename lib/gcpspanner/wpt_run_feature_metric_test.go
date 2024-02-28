@@ -263,7 +263,14 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	client := getTestDatabase(t)
 	ctx := context.Background()
-	// Load up runs and metrics
+	// Load up runs, metrics and features.
+	sampleFeatures := getSampleFeatures()
+	for _, feature := range sampleFeatures {
+		err := client.UpsertWebFeature(ctx, feature)
+		if err != nil {
+			t.Errorf("unexpected error during insert of features. %s", err.Error())
+		}
+	}
 	// Now, let's insert the runs.
 	for _, run := range getSampleRuns() {
 		err := client.InsertWPTRun(ctx, run)
@@ -386,26 +393,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	}
 }
 
-func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
-	client := getTestDatabase(t)
-	ctx := context.Background()
-	// Load up runs and metrics
-	// Now, let's insert the runs.
-	for _, run := range getSampleRuns() {
-		err := client.InsertWPTRun(ctx, run)
-		if !errors.Is(err, nil) {
-			t.Errorf("expected no error upon insert. received %s", err.Error())
-		}
-	}
-
-	// Now, let's insert the metrics
-	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
-		if !errors.Is(err, nil) {
-			t.Errorf("expected no error upon insert. received %s", err.Error())
-		}
-	}
-
+func testGetAllAggregatedMetrics(ctx context.Context, client *Client, t *testing.T) {
 	// Test 1. Get aggregation metrics for all features.
 	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
@@ -444,10 +432,11 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetrics, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetrics, metrics)
 	}
-
+}
+func testGetAllAggregatedMetricsPages(ctx context.Context, client *Client, t *testing.T) {
 	// Test 2. Get aggregation metrics for all features with pagination.
 	// Get page 1.
-	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
+	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
 		nil,
 		"fooBrowser",
@@ -529,9 +518,10 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetricsPageThree, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageThree, metrics)
 	}
-
+}
+func testGetSubsetAggregatedMetrics(ctx context.Context, client *Client, t *testing.T) {
 	// Test 3. Get aggregation metrics for subset of features.
-	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
+	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
 		[]string{"feature2", "feature3"},
 		"fooBrowser",
@@ -547,7 +537,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if token != nil {
 		t.Error("expected null token")
 	}
-	expectedMetrics = []WPTRunAggregationMetricWithTime{
+	expectedMetrics := []WPTRunAggregationMetricWithTime{
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
@@ -568,10 +558,11 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetrics, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetrics, metrics)
 	}
-
+}
+func testGetSubsetAggregatedMetricsPages(ctx context.Context, client *Client, t *testing.T) {
 	// Test 4. Get aggregation metrics for subset of features with pagination.
 	// Get page 1.
-	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
+	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
 		[]string{"feature2", "feature3"},
 		"fooBrowser",
@@ -587,7 +578,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if token == nil {
 		t.Error("expected token")
 	}
-	expectedMetricsPageOne = []WPTRunAggregationMetricWithTime{
+	expectedMetricsPageOne := []WPTRunAggregationMetricWithTime{
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
@@ -618,7 +609,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if token == nil {
 		t.Error("expected token")
 	}
-	expectedMetricsPageTwo = []WPTRunAggregationMetricWithTime{
+	expectedMetricsPageTwo := []WPTRunAggregationMetricWithTime{
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -650,7 +641,40 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 		t.Error("expected no token")
 	}
 
+	var expectedMetricsPageThree []WPTRunAggregationMetricWithTime
 	if !reflect.DeepEqual(expectedMetricsPageThree, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageThree, metrics)
 	}
+}
+
+func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
+	client := getTestDatabase(t)
+	ctx := context.Background()
+	// Load up runs, metrics and features.
+	sampleFeatures := getSampleFeatures()
+	for _, feature := range sampleFeatures {
+		err := client.UpsertWebFeature(ctx, feature)
+		if err != nil {
+			t.Errorf("unexpected error during insert of features. %s", err.Error())
+		}
+	}
+	// Now, let's insert the runs.
+	for _, run := range getSampleRuns() {
+		err := client.InsertWPTRun(ctx, run)
+		if !errors.Is(err, nil) {
+			t.Errorf("expected no error upon insert. received %s", err.Error())
+		}
+	}
+
+	// Now, let's insert the metrics
+	for _, metric := range getSampleRunMetrics() {
+		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
+		if !errors.Is(err, nil) {
+			t.Errorf("expected no error upon insert. received %s", err.Error())
+		}
+	}
+	testGetAllAggregatedMetrics(ctx, client, t)
+	testGetAllAggregatedMetricsPages(ctx, client, t)
+	testGetSubsetAggregatedMetrics(ctx, client, t)
+	testGetSubsetAggregatedMetricsPages(ctx, client, t)
 }
