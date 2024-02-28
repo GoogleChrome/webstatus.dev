@@ -34,3 +34,7 @@ profiles:
         - manifests/*
     deploy:
       kubectl: {}
+    portForward:
+      - resourceType: pod
+        resourceName: spanner
+        port: 9010

@@ -266,6 +266,10 @@ dev_workflows: web_feature_local_workflow
 web_feature_local_workflow: FLAGS := -repo_downloader_host=http://localhost:8091 -web_consumer_host=http://localhost:8092
 web_feature_local_workflow:
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+dev_fake_data:
+	kubectl wait --for=condition=ready pod/spanner
+	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
+	go run ./util/cmd/load_fake_data/main.go
 
 ################################
 # Spanner Management
