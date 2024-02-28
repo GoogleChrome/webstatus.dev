@@ -30,10 +30,14 @@ export class WebstatusOverviewFilters extends LitElement {
       SHARED_STYLES,
       css`
         .all-filter-controls {
-          gap: 0.5em;
+          gap: var(--content-padding);
         }
         .filter-by-feature-name {
-          gap: 1em;
+          gap: var(--content-padding);
+        }
+
+        .filter-buttons {
+          gap: var(--content-padding);
         }
       `,
     ];
@@ -43,7 +47,7 @@ export class WebstatusOverviewFilters extends LitElement {
     const query = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
-        <div class="hbox halign-items-space-between filter-by-feature-name">
+        <div class="hbox filter-by-feature-name">
           <sl-input
             class="hgrow"
             placeholder="Filter by feature name..."
@@ -53,7 +57,7 @@ export class WebstatusOverviewFilters extends LitElement {
           </sl-input>
         </div>
 
-        <div class="hbox space-between" id="filter_buttons">
+        <div class="hbox filter-buttons">
           <sl-dropdown stay-open-on-select>
             <sl-button slot="trigger">
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
