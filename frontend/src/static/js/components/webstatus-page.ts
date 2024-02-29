@@ -48,9 +48,9 @@ export class WebstatusPage extends LitElement {
 
         .page-container {
           padding: var(--content-padding);
-          padding-right: 0; /* to allow space for the scrollbar */
-          padding-bottom: 0; /* to allow space for the scrollbar */
-          overflow: scroll;
+          padding-right: 0; /* to allow space for the vertical scrollbar */
+          overflow: overlay;
+          scrollbar-gutter: stable;
         }
       `,
     ];
