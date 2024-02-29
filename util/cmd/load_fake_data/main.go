@@ -36,6 +36,7 @@ const testSpannerInstance = "local"
 const testSpannerDBName = "local"
 
 const releasesPerBrowser = 50
+const runsPerBrowser = 1
 const numberOfFeatures = 200
 
 // Allows us to regenerate the same values between runs.
@@ -54,7 +55,8 @@ var (
 	}
 )
 
-func generateReleases(ctx context.Context, c *gcpspanner.Client) error {
+func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
+	releasesGenerated := 0
 	for _, browser := range browsers {
 		baseDate := startTimeWindow
 		releases := make([]gcpspanner.BrowserRelease, 0, releasesPerBrowser)
@@ -71,12 +73,13 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) error {
 
 			err := c.InsertBrowserRelease(ctx, release)
 			if err != nil {
-				return err
+				return releasesGenerated, err
 			}
+			releasesGenerated++
 		}
 	}
 
-	return nil
+	return releasesGenerated, nil
 }
 
 func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspanner.WebFeature, error) {
@@ -100,30 +103,40 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 }
 
 func generateData(ctx context.Context, client *gcpspanner.Client) error {
-	err := generateReleases(ctx, client)
+	releasesCount, err := generateReleases(ctx, client)
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)
 	}
+	slog.Info("releases generated",
+		"amount of releases created", releasesCount)
 
 	features, err := generateFeatures(ctx, client)
 	if err != nil {
 		return fmt.Errorf("feature generation failed %w", err)
 	}
+	slog.Info("features generated",
+		"amount of features created", len(features))
 
-	err = generateRunsAndMetrics(ctx, client, features)
+	runsCount, metricsCount, err := generateRunsAndMetrics(ctx, client, features)
 	if err != nil {
 		return fmt.Errorf("wpt runs generation failed %w", err)
 	}
+	slog.Info("runs and metrics generated",
+		"amount of runs created", runsCount, "amount of metrics created", metricsCount)
 
-	err = generateBaselineStatus(ctx, client, features)
+	statusCount, err := generateBaselineStatus(ctx, client, features)
 	if err != nil {
 		return fmt.Errorf("baseline status failed %w", err)
 	}
+	slog.Info("statuses generated",
+		"amount of statuses created", statusCount)
 
 	return nil
 }
 
-func generateBaselineStatus(ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) error {
+func generateBaselineStatus(
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) (int, error) {
+	statusesGenerated := 0
 	statuses := []gcpspanner.BaselineStatus{
 		gcpspanner.BaselineStatusUndefined,
 		gcpspanner.BaselineStatusNone,
@@ -155,57 +168,66 @@ func generateBaselineStatus(ctx context.Context, client *gcpspanner.Client, feat
 			HighDate:  highDate,
 		})
 		if err != nil {
-			return err
+			return statusesGenerated, err
 		}
+		statusesGenerated++
 
 		baseDate = baseDate.AddDate(0, 1, r.Intn(90)) // Add 1 month to ~3 months
 
 	}
 
-	return nil
+	return statusesGenerated, nil
 }
 
-func generateRunsAndMetrics(ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) error {
+func generateRunsAndMetrics(
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) (int, int, error) {
 	// For now only generate one run with metrics per browser+channel combination.
 	// TODO. Need to think about the graphs we want to draw.
+	runsGenerated := 0
+	metricsGenerated := 0
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	for _, channel := range channels {
 		for _, browser := range browsers {
-			timeStart := startTimeWindow.AddDate(0, 1, r.Intn(90))
-			timeEnd := timeStart.Add(time.Duration(r.Intn(5)) * time.Hour)
-			runID := r.Int63n(10000)
-			run := gcpspanner.WPTRun{
-				RunID:            runID,
-				TimeStart:        timeStart,
-				TimeEnd:          timeEnd,
-				BrowserName:      browser,
-				BrowserVersion:   "0.0.0",
-				Channel:          channel,
-				OSName:           "os",
-				OSVersion:        "0.0.0",
-				FullRevisionHash: "abcdef0123456789",
-			}
-			err := client.InsertWPTRun(ctx, run)
-			if err != nil {
-				return err
-			}
-			for _, feature := range features {
-				testPass := r.Int63n(1000)
-				testTotal := testPass + r.Int63n(1000)
-				metric := gcpspanner.WPTRunFeatureMetric{
-					FeatureID:  feature.FeatureID,
-					TotalTests: &testTotal,
-					TestPass:   &testPass,
+			baseTime := startTimeWindow
+			for i := 0; i < runsPerBrowser; i++ {
+				timeStart := baseTime.AddDate(0, 1, r.Intn(90))
+				timeEnd := timeStart.Add(time.Duration(r.Intn(5)) * time.Hour)
+				runID := r.Int63n(1000000)
+				run := gcpspanner.WPTRun{
+					RunID:            runID,
+					TimeStart:        timeStart,
+					TimeEnd:          timeEnd,
+					BrowserName:      browser,
+					BrowserVersion:   "0.0.0",
+					Channel:          channel,
+					OSName:           "os",
+					OSVersion:        "0.0.0",
+					FullRevisionHash: "abcdef0123456789",
 				}
-				err := client.UpsertWPTRunFeatureMetric(ctx, run.RunID, metric)
+				err := client.InsertWPTRun(ctx, run)
 				if err != nil {
-					return err
+					return runsGenerated, metricsGenerated, err
+				}
+				runsGenerated++
+				for _, feature := range features {
+					testPass := r.Int63n(1000)
+					testTotal := testPass + r.Int63n(1000)
+					metric := gcpspanner.WPTRunFeatureMetric{
+						FeatureID:  feature.FeatureID,
+						TotalTests: &testTotal,
+						TestPass:   &testPass,
+					}
+					err := client.UpsertWPTRunFeatureMetric(ctx, run.RunID, metric)
+					if err != nil {
+						return runsGenerated, metricsGenerated, err
+					}
+					metricsGenerated++
 				}
 			}
 		}
 	}
 
-	return nil
+	return runsGenerated, metricsGenerated, nil
 }
 
 func main() {

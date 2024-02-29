@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
@@ -127,27 +126,18 @@ func TestInsertWPTRun(t *testing.T) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
 		// TODO: test update if we decide to allow updates in the future.
-		info, err := client.GetFilterableWPTRunInfoByExternalRunID(ctx, run.RunID)
+		id, err := client.GetIDOfWPTRunByRunID(ctx, run.RunID)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
-		if info == nil {
-			t.Error("expected an info")
+		if id == nil {
+			t.Error("expected an id")
 
 			continue
 		}
-		if len(info.ID) != 36 {
+		if len(*id) != 36 {
 			// TODO. Assert it is indeed a uuid. For now, check the length.
-			t.Errorf("expected auto-generated uuid. id is only length %d", len(info.ID))
-		}
-		expectedInfo := WPTRunFilterableInfo{
-			ExternalRunID: run.RunID,
-			TimeStart:     run.TimeStart,
-			BrowserName:   run.BrowserName,
-			Channel:       run.Channel,
-		}
-		if !reflect.DeepEqual(info.WPTRunFilterableInfo, expectedInfo) {
-			t.Error("unequal info structs")
+			t.Errorf("expected auto-generated uuid. id is only length %d", len(*id))
 		}
 	}
 }

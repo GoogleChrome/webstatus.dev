@@ -21,11 +21,54 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/web-platform-tests/wpt.fyi/shared"
+	"google.golang.org/api/iterator"
 )
 
 func valuePtr[T any](in T) *T {
 	return &in
+}
+
+// GetMetricByRunIDAndFeatureID is a helper function that attempts to get a
+// metric for the given id from wpt.fyi and web feature id.
+func (c *Client) GetMetricByRunIDAndFeatureID(
+	ctx context.Context,
+	runID int64,
+	featureID string,
+) (*WPTRunFeatureMetric, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+	stmt := spanner.NewStatement(`
+		SELECT
+			FeatureID, TotalTests, TestPass
+		FROM WPTRuns r
+		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
+		WHERE r.ExternalRunID = @externalRunID AND wpfm.FeatureID = @featureID
+		LIMIT 1`)
+	parameters := map[string]interface{}{
+		"externalRunID": runID,
+		"featureID":     featureID,
+	}
+	stmt.Params = parameters
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	row, err := it.Next()
+	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	var metric WPTRunFeatureMetric
+	if err := row.ToStruct(&metric); err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &metric, nil
 }
 
 func getSampleRunMetrics() []struct {
@@ -482,6 +525,7 @@ func testGetAllAggregatedMetrics(ctx context.Context, client *Client, t *testing
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetrics, metrics)
 	}
 }
+
 func testGetAllAggregatedMetricsPages(ctx context.Context, client *Client, t *testing.T) {
 	// Test 2. Get aggregation metrics for all features with pagination.
 	// Get page 1.
