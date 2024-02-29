@@ -25,6 +25,14 @@ export function getSearchQuery(location: {search: string}): string {
   return getQueryParam(location.search, 'q');
 }
 
+export function getColumnsSpec(location: {search: string}): string {
+  return getQueryParam(location.search, 'columns');
+}
+
+export function getSortSpec(location: {search: string}): string {
+  return getQueryParam(location.search, 'sort');
+}
+
 /* Given the router location object, return a query string with
    parameters that maintain the user's navigational state.
    E.g., if I start searching for 'mouse', then as I navigate
@@ -40,7 +48,15 @@ function getContextualQueryStringParams(
   if (searchQuery) {
     searchParams.set('q', searchQuery);
   }
-  // TODO(jrobbins): Pagination, sorting, columns, etc.
+  const colSpec = getColumnsSpec(location);
+  if (colSpec) {
+    searchParams.set('columns', colSpec);
+  }
+  const sortSpec = getSortSpec(location);
+  if (sortSpec) {
+    searchParams.set('sort', sortSpec);
+  }
+  // TODO(jrobbins): Pagination, etc.
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';
 }

@@ -40,6 +40,40 @@ describe('getSearchQuery', () => {
   });
 });
 
+describe('getColumnsSpec', () => {
+  it('returns empty string when there was no columns= param', () => {
+    const cs = getSearchQuery({search: ''});
+    assert.equal(cs, '');
+  });
+
+  it('returns empty string when the columns= param has no value', () => {
+    const cs = getSearchQuery({search: '?columns='});
+    assert.equal(cs, '');
+  });
+
+  it('returns the string when the columns= param was set', () => {
+    const cs = getSearchQuery({search: '?q=name, baseline_stats '});
+    assert.equal(cs, 'name, baseline_stats ');
+  });
+});
+
+describe('getSortSpec', () => {
+  it('returns empty string when there was no sort= param', () => {
+    const cs = getSearchQuery({search: ''});
+    assert.equal(cs, '');
+  });
+
+  it('returns empty string when the sort= param has no value', () => {
+    const cs = getSearchQuery({search: '?sort='});
+    assert.equal(cs, '');
+  });
+
+  it('returns the string when the sort= param was set', () => {
+    const cs = getSearchQuery({search: '?q=name, baseline_stats '});
+    assert.equal(cs, 'name, baseline_stats ');
+  });
+});
+
 describe('formatOverviewPageUrl', () => {
   it('returns a plain URL when no location is passed', () => {
     const url = formatOverviewPageUrl();

@@ -17,34 +17,15 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
-import {formatFeaturePageUrl} from '../utils/urls.js';
+import {getColumnsSpec} from '../utils/urls.js';
+import {
+  parseColumnsSpec,
+  renderFeatureCell,
+  renderHeaderCell,
+} from './webstatus-overview-cells.js';
 
-interface BaselineChipConfig {
-  cssClass: string;
-  icon: string;
-  word: string;
-}
-
-const BASELINE_CHIP_CONFIGS: Record<
-  components['schemas']['Feature']['baseline_status'],
-  BaselineChipConfig
-> = {
-  none: {
-    cssClass: 'limited',
-    icon: 'cross.svg',
-    word: 'Limited',
-  },
-  low: {
-    cssClass: 'newly',
-    icon: 'cross.svg', // TODO(jrobbins): need dotted check
-    word: 'New',
-  },
-  high: {
-    cssClass: 'widely',
-    icon: 'check.svg',
-    word: 'Widely available',
-  },
-};
+const DEFAULT_COLUMNS_SPEC =
+  'name, baseline_status, wpt_chrome, wpt_edge, wpt_firefox, wpt_safari';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -77,47 +58,34 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   render(): TemplateResult {
+    const columns = parseColumnsSpec(
+      getColumnsSpec(this.location) || DEFAULT_COLUMNS_SPEC
+    );
     return html`
       <table class="data-table">
         <thead>
           <tr>
-            <th>Feature</th>
-            <th>Baseline</th>
-            <th><img src="/public/img/chrome-dev_24x24.png" /></th>
-            <th><img src="/public/img/edge-dev_24x24.png" /></th>
-            <th><img src="/public/img/firefox-nightly_24x24.png" /></th>
-            <th><img src="/public/img/safari-preview_24x24.png" /></th>
+            ${columns.map(col => html` <th>${renderHeaderCell(col)}</th>`)}
           </tr>
         </thead>
         <tbody>
-          ${this.features.map(f => this.renderFeatureRow(f))}
+          ${this.features.map(f => this.renderFeatureRow(f, columns))}
         </tbody>
       </table>
     `;
   }
 
-  renderBaselineChip(
-    baselineStatus: components['schemas']['Feature']['baseline_status']
+  renderFeatureRow(
+    feature: components['schemas']['Feature'],
+    columns: string[]
   ): TemplateResult {
-    const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
-    return html`
-      <span class="chip ${chipConfig.cssClass}">
-        <img height="16" src="/public/img/${chipConfig.icon}" />
-        ${chipConfig.word}
-      </span>
-    `;
-  }
-
-  renderFeatureRow(feature: components['schemas']['Feature']): TemplateResult {
-    const featureUrl = formatFeaturePageUrl(feature, this.location);
     return html`
       <tr>
-        <td><a href=${featureUrl}>${feature.name}</a></td>
-        <td>${this.renderBaselineChip(feature.baseline_status)}</td>
-        <td>100%</td>
-        <td>100%</td>
-        <td>100%</td>
-        <td>100%</td>
+        ${columns.map(
+          col => html`
+            <td>${renderFeatureCell(feature, this.location, col)}</td>
+          `
+        )}
       </tr>
     `;
   }
