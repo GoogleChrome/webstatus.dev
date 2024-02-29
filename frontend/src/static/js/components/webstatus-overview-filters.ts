@@ -44,7 +44,7 @@ export class WebstatusOverviewFilters extends LitElement {
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
           <sl-input
-            class="hgrow"
+            class="halign-stretch"
             placeholder="Filter by feature name..."
             value="${query}"
           >

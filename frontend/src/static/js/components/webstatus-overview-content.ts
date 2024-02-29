@@ -53,8 +53,8 @@ export class WebstatusOverviewContent extends LitElement {
 
     return html`
       <div class="main">
-        <div class="hbox space-between header-line">
-          <h1 class="hgrow">Features overview</h1>
+        <div class="hbox halign-items-space-between header-line">
+          <h1 class="halig-stretch">Features overview</h1>
           <sl-button
             ><sl-icon
               slot="prefix"

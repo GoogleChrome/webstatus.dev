@@ -53,7 +53,7 @@ export class StatsPage extends LitElement {
   renderTitleAndControls(): TemplateResult {
     return html`
       <div id="titleAndControls" class="hbox">
-        <h1 class="hgrow">Statistics</h1>
+        <h1 class="halign-stretch">Statistics</h1>
         <sl-checkbox>Show browser versions</sl-checkbox>
         <sl-button href="#TODO">
           <sl-icon
@@ -91,7 +91,7 @@ export class StatsPage extends LitElement {
 
   renderBaselineFeatures(): TemplateResult {
     return html`
-      <sl-card class="hgrow" id="baseline-features">
+      <sl-card class="halign-stretch" id="baseline-features">
         <div slot="header">Baseline features</div>
         <p class="under-construction">Small chart goes here...</p>
       </sl-card>
@@ -100,7 +100,7 @@ export class StatsPage extends LitElement {
 
   renderTimeToAvailability(): TemplateResult {
     return html`
-      <sl-card class="hgrow" id="time-to-availibility">
+      <sl-card class="halign-stretch" id="time-to-availibility">
         <div slot="header">Time to availablity</div>
         <p class="under-construction">Small chart goes here...</p>
       </sl-card>
