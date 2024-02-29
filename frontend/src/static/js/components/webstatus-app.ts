@@ -62,6 +62,7 @@ export class WebstatusApp extends LitElement {
           position: sticky;
         }
         :host > webstatus-app-settings {
+          flex-grow: 1;
           /* display: flex;
           flex-direction: column;
           flex: 1; */
@@ -94,7 +95,7 @@ export class WebstatusApp extends LitElement {
     return html`
       <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
         <webstatus-header></webstatus-header>
-        <webstatus-page class="hbox valign-items-top">
+        <webstatus-page class="halign-stretch valign-stretch">
           <slot></slot>
         </webstatus-page>
       </webstatus-app-settings>

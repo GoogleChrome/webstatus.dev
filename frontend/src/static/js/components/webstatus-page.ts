@@ -53,8 +53,7 @@ export class WebstatusPage extends LitElement {
     ];
   }
   protected render(): TemplateResult {
-    return html`
-    <div class="container hbox">
+    return html` <div class="container hbox valign-items-top">
       <webstatus-sidebar class="vbox valign-stretch"></webstatus-sidebar>
       <div class="page-container vbox halign-stretch"><slot></slot></div>
     </div>`;

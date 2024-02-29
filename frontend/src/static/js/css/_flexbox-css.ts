@@ -35,6 +35,11 @@ export const FLEX_BOX = css`
     flex-direction: column;
   }
 
+  .hbox.wrap,
+  .vbox.wrap {
+    flex-wrap: wrap;
+  }
+
   /* Flexbox alignment */
 
   .hbox.halign-items-start,
