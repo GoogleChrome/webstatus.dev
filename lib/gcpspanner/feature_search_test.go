@@ -251,108 +251,141 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 
 	// nolint: dupl // Okay to duplicate for tests
-	sampleRunMetrics := []WPTRunFeatureMetric{
+	sampleRunMetrics := []struct {
+		ExternalRunID int64
+		WPTRunFeatureMetric
+	}{
 		// Run 0 metrics - fooBrowser - stable
 		{
-			RunID:      0,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 0,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		{
-			RunID:      0,
-			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](5),
-			TestPass:   valuePtr[int64](0),
+			ExternalRunID: 0,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](5),
+				TestPass:   valuePtr[int64](0),
+			},
 		},
 		{
-			RunID:      0,
-			FeatureID:  "feature3",
-			TotalTests: valuePtr[int64](50),
-			TestPass:   valuePtr[int64](5),
+			ExternalRunID: 0,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature3",
+				TotalTests: valuePtr[int64](50),
+				TestPass:   valuePtr[int64](5),
+			},
 		},
 		// Run 1 metrics - fooBrowser - experimental
 		{
-			RunID:      1,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 1,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		// Run 2 metrics - barBrowser - stable
 		{
-			RunID:      2,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 2,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 3 metrics - barBrowser - experimental
 		{
-			RunID:      3,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 3,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 6 metrics - fooBrowser - stable
 		{
-			RunID:      6,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 6,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		{
-			RunID:      6,
-			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](0),
+			ExternalRunID: 6,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](10),
+				TestPass:   valuePtr[int64](0),
+			},
 		},
 		{
-			RunID:      6,
-			FeatureID:  "feature3",
-			TotalTests: valuePtr[int64](50),
-			TestPass:   valuePtr[int64](35),
+			ExternalRunID: 6,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature3",
+				TotalTests: valuePtr[int64](50),
+				TestPass:   valuePtr[int64](35),
+			},
 		},
 		// Run 7 metrics - fooBrowser - experimental
 		{
-			RunID:      7,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](11),
-			TestPass:   valuePtr[int64](11),
+			ExternalRunID: 7,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](11),
+				TestPass:   valuePtr[int64](11),
+			},
 		},
 		{
-			RunID:      7,
-			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](12),
-			TestPass:   valuePtr[int64](12),
+			ExternalRunID: 7,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](12),
+				TestPass:   valuePtr[int64](12),
+			},
 		},
 		// Run 8 metrics - barBrowser - stable
 		{
-			RunID:      8,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](33),
-			TestPass:   valuePtr[int64](33),
+			ExternalRunID: 8,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](33),
+				TestPass:   valuePtr[int64](33),
+			},
 		},
 		{
-			RunID:      8,
-			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 8,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](10),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 9 metrics - barBrowser - experimental
 		{
-			RunID:      9,
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](220),
-			TestPass:   valuePtr[int64](220),
+			ExternalRunID: 9,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](220),
+				TestPass:   valuePtr[int64](220),
+			},
 		},
 		{
-			RunID:      9,
-			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](120),
-			TestPass:   valuePtr[int64](120),
+			ExternalRunID: 9,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](120),
+				TestPass:   valuePtr[int64](120),
+			},
 		},
 	}
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
+		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
 		if err != nil {
 			t.Errorf("unexpected error during insert of metrics. %s", err.Error())
 		}

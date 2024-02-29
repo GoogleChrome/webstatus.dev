@@ -38,17 +38,20 @@ const testSpannerDBName = "local"
 const releasesPerBrowser = 50
 const numberOfFeatures = 200
 
-// Allows us to regenerate the same values between runs
+// Allows us to regenerate the same values between runs.
 const seedValue = 1024
 
+// nolint: gochecknoglobals
 var (
-	r = rand.New(rand.NewSource(seedValue))
-)
-
-var (
+	// nolint: gosec // not using the random source for security.
+	r               = rand.New(rand.NewSource(seedValue))
 	startTimeWindow = time.Date(2020, time.January, 1, 0, 0, 0, 0, time.UTC)
-	endTimeWindow   = time.Date(2024, time.June, 1, 0, 0, 0, 0, time.UTC)
-	browsers        = []string{string(backend.Chrome), string(backend.Firefox), string(backend.Edge), string(backend.Safari)}
+	browsers        = []string{
+		string(backend.Chrome),
+		string(backend.Firefox),
+		string(backend.Edge),
+		string(backend.Safari),
+	}
 )
 
 func generateReleases(ctx context.Context, c *gcpspanner.Client) error {
@@ -72,6 +75,7 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -91,6 +95,7 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 		}
 		features = append(features, feature)
 	}
+
 	return features, nil
 }
 
@@ -110,15 +115,54 @@ func generateData(ctx context.Context, client *gcpspanner.Client) error {
 		return fmt.Errorf("wpt runs generation failed %w", err)
 	}
 
+	err = generateBaselineStatus(ctx, client, features)
+	if err != nil {
+		return fmt.Errorf("baseline status failed %w", err)
+	}
+
 	return nil
 }
 
-func generateBaselineStatus(ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) {
-	// for _, browser := range browsers {
-	// 	for _, feature := range features {
+func generateBaselineStatus(ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) error {
+	statuses := []gcpspanner.BaselineStatus{
+		gcpspanner.BaselineStatusUndefined,
+		gcpspanner.BaselineStatusNone,
+		gcpspanner.BaselineStatusLow,
+		gcpspanner.BaselineStatusHigh,
+	}
 
-	// 	}
-	// }
+	baseDate := startTimeWindow
+	for _, feature := range features {
+		statusIndex := r.Intn(len(statuses))
+		var highDate *time.Time
+		var lowDate *time.Time
+		switch statuses[statusIndex] {
+		case gcpspanner.BaselineStatusHigh:
+			adjustedTime := baseDate.AddDate(0, 0, r.Intn(30)) // Add up to 1 month
+			lowDate = &adjustedTime
+			highAdjustedTime := adjustedTime.AddDate(0, 0, r.Intn(30)) // Add up to another month
+			highDate = &highAdjustedTime
+		case gcpspanner.BaselineStatusLow:
+			adjustedTime := baseDate.AddDate(0, 0, r.Intn(30)) // Add up to 1 month
+			lowDate = &adjustedTime
+		case gcpspanner.BaselineStatusUndefined, gcpspanner.BaselineStatusNone:
+			// Do nothing.
+		}
+		err := client.UpsertFeatureBaselineStatus(ctx, gcpspanner.FeatureBaselineStatus{
+			FeatureID: feature.FeatureID,
+			Status:    statuses[statusIndex],
+			LowDate:   lowDate,
+			HighDate:  highDate,
+		})
+		if err != nil {
+			return err
+		}
+
+		baseDate = baseDate.AddDate(0, 1, r.Intn(90)) // Add 1 month to ~3 months
+
+	}
+
+	return nil
 }
 
 func generateRunsAndMetrics(ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) error {
@@ -149,18 +193,18 @@ func generateRunsAndMetrics(ctx context.Context, client *gcpspanner.Client, feat
 				testPass := r.Int63n(1000)
 				testTotal := testPass + r.Int63n(1000)
 				metric := gcpspanner.WPTRunFeatureMetric{
-					RunID:      runID,
 					FeatureID:  feature.FeatureID,
 					TotalTests: &testTotal,
 					TestPass:   &testPass,
 				}
-				err := client.UpsertWPTRunFeatureMetric(ctx, metric)
+				err := client.UpsertWPTRunFeatureMetric(ctx, run.RunID, metric)
 				if err != nil {
 					return err
 				}
 			}
 		}
 	}
+
 	return nil
 }
 

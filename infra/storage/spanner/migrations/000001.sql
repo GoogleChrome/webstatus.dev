@@ -44,20 +44,29 @@ CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID)
 CREATE INDEX RunsForFeatureSearch ON WPTRuns (BrowserName, TimeStart DESC);
 
 
+-- This table stores a log of the calculated metrics for each Web Platform Test (WPT) run,
+-- associated with a specific web feature and channel.
+CREATE TABLE IF NOT EXISTS FeatureWPTRunMetricsLogs (
+  RunID STRING(36) NOT NULL,
+  FeatureID STRING(64) NOT NULL,
+  BrowserName STRING(64) NOT NULL,
+  Channel STRING(32) NOT NULL,
+  TimeStart TIMESTAMP NOT NULL,
+  FOREIGN KEY (RunID, BrowserName) REFERENCES WPTRuns(ID, BrowserName),
+  FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID)
+) PRIMARY KEY (RunID, FeatureID, BrowserName, Channel, TimeStart DESC);
+
+CREATE INDEX FeatureMetricsLogByFeatureChannelTime ON FeatureWPTRunMetricsLogs(FeatureID, Channel, TimeStart DESC, BrowserName, RunID);
+
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
-    ID STRING(36) NOT NULL,
-    ExternalRunID INT64 NOT NULL, -- ID from WPT
+    RunID STRING(36) NOT NULL,
     FeatureID STRING(64) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
-    FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
-) PRIMARY KEY (ID, FeatureID)
-,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
-
--- Used to enforce that only one combination of ExternalRunID and FeatureID can exist.
-CREATE UNIQUE NULL_FILTERED INDEX MetricsByExternalRunIDAndFeature ON WPTRunFeatureMetrics (ExternalRunID, FeatureID);
+    PassRate NUMERIC,
+    FOREIGN KEY (RunID, FeatureID) REFERENCES FeatureWPTRunMetricsLogs(RunID, FeatureID)
+) PRIMARY KEY (RunID, FeatureID);
 
 -- BrowserReleases contains information regarding browser releases.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers

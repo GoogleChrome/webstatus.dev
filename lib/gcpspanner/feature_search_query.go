@@ -86,43 +86,35 @@ SELECT
 
 	-- StableMetrics Calculation
 	(SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
-		FROM (
-		SELECT browser_feature_list.BrowserName, TotalTests, TestPass
-		FROM (
-			-- Subquery to get distinct BrowserName, FeatureID combinations and their
-			-- associated maximum TimeStart for the specified FeatureID
-			SELECT DISTINCT BrowserName, FeatureID, MAX(wpr.TimeStart) AS MaxTimeStart
-			FROM WPTRunFeatureMetrics metrics
-			JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID
-			WHERE metrics.FeatureID = wf.FeatureID
-			GROUP BY BrowserName, FeatureID
-		) browser_feature_list
-		-- Join to retrieve metrics, ensuring we get the latest run for each combination
-		JOIN WPTRunFeatureMetrics metrics ON browser_feature_list.FeatureID = metrics.FeatureID
-		JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID AND browser_feature_list.BrowserName = wpr.BrowserName
-		WHERE wpr.Channel = 'stable'
-		AND wpr.TimeStart = browser_feature_list.MaxTimeStart
-	) latest_metric) AS StableMetrics,
+	FROM (
+		SELECT log.BrowserName, metrics.TotalTests, metrics.TestPass
+		FROM FeatureWPTRunMetricsLogs log
+		JOIN WPTRunFeatureMetrics metrics ON log.RunID = metrics.RunID AND log.FeatureID = metrics.FeatureID
+		WHERE log.FeatureID = wf.FeatureID
+		AND log.Channel = 'stable'
+		AND log.TimeStart = (
+			SELECT MAX(TimeStart)
+			FROM FeatureWPTRunMetricsLogs
+			WHERE FeatureID = wf.FeatureID AND BrowserName = log.BrowserName AND Channel = 'stable'
+			)
+	)
+	) AS StableMetrics,
 
 	-- ExperimentalMetrics Calculation
 	(SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
-		FROM (
-		SELECT browser_feature_list.BrowserName, TotalTests, TestPass
-		FROM (
-			-- Subquery to get distinct BrowserName, FeatureID combinations and their
-			-- associated maximum TimeStart for the specified FeatureID
-			SELECT DISTINCT BrowserName, FeatureID, MAX(wpr.TimeStart) AS MaxTimeStart
-			FROM WPTRunFeatureMetrics metrics
-			JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID
-			WHERE metrics.FeatureID = wf.FeatureID
-			GROUP BY BrowserName, FeatureID
-		) browser_feature_list
-		-- Join to retrieve metrics, ensuring we get the latest run for each combination
-		JOIN WPTRunFeatureMetrics metrics ON browser_feature_list.FeatureID = metrics.FeatureID
-		JOIN WPTRuns wpr ON metrics.ExternalRunID = wpr.ExternalRunID AND browser_feature_list.BrowserName = wpr.BrowserName
-		WHERE wpr.Channel = 'experimental'
-		AND wpr.TimeStart = browser_feature_list.MaxTimeStart
-	) latest_metric) AS ExperimentalMetrics,
+	FROM (
+		SELECT log.BrowserName, metrics.TotalTests, metrics.TestPass
+		FROM FeatureWPTRunMetricsLogs log
+		JOIN WPTRunFeatureMetrics metrics ON log.RunID = metrics.RunID AND log.FeatureID = metrics.FeatureID
+		WHERE log.FeatureID = wf.FeatureID
+		AND log.Channel = 'experimental'
+		AND log.TimeStart = (
+			SELECT MAX(TimeStart)
+			FROM FeatureWPTRunMetricsLogs
+			WHERE FeatureID = wf.FeatureID AND BrowserName = log.BrowserName AND Channel = 'experimental'
+			)
+	)
+	) AS ExperimentalMetrics,
 
 FROM WebFeatures wf
 LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
