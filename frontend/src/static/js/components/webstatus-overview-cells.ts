@@ -30,6 +30,23 @@ type ColumnDefinition = {
   cellRenderer: CellRenderer;
 };
 
+export enum ColumnKey {
+  Name = 'name',
+  BaselineStatus = 'baseline_status',
+  WptChrome = 'wpt_chrome',
+  WptEdge = 'wpt_edge',
+  WptFirefox = 'wpt_firefox',
+  WptSafari = 'wpt_safari',
+}
+
+const columnKeyMapping = Object.entries(ColumnKey).reduce(
+  (mapping, [enumKey, enumValue]) => {
+    mapping[enumValue] = ColumnKey[enumKey as keyof typeof ColumnKey];
+    return mapping;
+  },
+  {} as Record<string, ColumnKey>
+);
+
 interface BaselineChipConfig {
   cssClass: string;
   icon: string;
@@ -89,40 +106,40 @@ const renderWPTSafari: CellRenderer = (_feature, _routerLocation) => {
   return html` 100% `;
 };
 
-export const CELL_DEFS: Record<string, ColumnDefinition> = {
-  name: {
+export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
+  [ColumnKey.Name]: {
     nameInDialog: 'Feature name',
     headerHtml: html`Feature`,
     cellRenderer: renderFeatureName,
   },
-  baseline_status: {
-    nameInDialog: 'Feature name',
+  [ColumnKey.BaselineStatus]: {
+    nameInDialog: 'Baseline status',
     headerHtml: html`Baseline`,
     cellRenderer: renderBaselineStatus,
   },
-  wpt_chrome: {
-    nameInDialog: 'Feature name',
+  [ColumnKey.WptChrome]: {
+    nameInDialog: 'WPT score in Chrome',
     headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" />`,
     cellRenderer: renderWPTChrome,
   },
-  wpt_edge: {
-    nameInDialog: 'Feature name',
+  [ColumnKey.WptEdge]: {
+    nameInDialog: 'WPT score in Edge',
     headerHtml: html`<img src="/public/img/edge-dev_24x24.png" />`,
     cellRenderer: renderWPTEdge,
   },
-  wpt_firefox: {
-    nameInDialog: 'Feature name',
+  [ColumnKey.WptFirefox]: {
+    nameInDialog: 'WPT score in Firefox',
     headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
     cellRenderer: renderWPTFirefox,
   },
-  wpt_safari: {
-    nameInDialog: 'Feature name',
+  [ColumnKey.WptSafari]: {
+    nameInDialog: 'WPT score in Safari',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
     cellRenderer: renderWPTSafari,
   },
 };
 
-export function renderHeaderCell(column: string): TemplateResult {
+export function renderHeaderCell(column: ColumnKey): TemplateResult {
   const colDef = CELL_DEFS[column];
   return colDef?.headerHtml || nothing;
 }
@@ -130,7 +147,7 @@ export function renderHeaderCell(column: string): TemplateResult {
 export function renderFeatureCell(
   feature: components['schemas']['Feature'],
   routerLocation: {search: string},
-  column: string
+  column: ColumnKey
 ): TemplateResult | typeof nothing {
   const colDef = CELL_DEFS[column];
   if (colDef?.cellRenderer) {
@@ -140,8 +157,21 @@ export function renderFeatureCell(
   }
 }
 
-export function parseColumnsSpec(colSpec: string) {
-  let cols = colSpec.toLowerCase().split(',');
-  cols = cols.map(s => s.trim()).filter(c => c);
-  return cols;
+export function parseColumnsSpec(
+  colSpec: string,
+  defaults: ColumnKey[]
+): ColumnKey[] {
+  let colStrs = colSpec.toLowerCase().split(',');
+  colStrs = colStrs.map(s => s.trim()).filter(c => c);
+  const colKeys: ColumnKey[] = [];
+  for (const cs of colStrs) {
+    if (columnKeyMapping[cs]) {
+      colKeys.push(columnKeyMapping[cs]);
+    }
+  }
+  if (colKeys.length > 0) {
+    return colKeys;
+  } else {
+    return defaults;
+  }
 }

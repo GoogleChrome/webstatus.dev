@@ -19,13 +19,20 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {getColumnsSpec} from '../utils/urls.js';
 import {
+  ColumnKey,
   parseColumnsSpec,
   renderFeatureCell,
   renderHeaderCell,
 } from './webstatus-overview-cells.js';
 
-const DEFAULT_COLUMNS_SPEC =
-  'name, baseline_status, wpt_chrome, wpt_edge, wpt_firefox, wpt_safari';
+const DEFAULT_COLUMNS = [
+  ColumnKey.Name,
+  ColumnKey.BaselineStatus,
+  ColumnKey.WptChrome,
+  ColumnKey.WptEdge,
+  ColumnKey.WptFirefox,
+  ColumnKey.WptSafari,
+];
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -59,7 +66,8 @@ export class WebstatusOverviewTable extends LitElement {
 
   render(): TemplateResult {
     const columns = parseColumnsSpec(
-      getColumnsSpec(this.location) || DEFAULT_COLUMNS_SPEC
+      getColumnsSpec(this.location),
+      DEFAULT_COLUMNS
     );
     return html`
       <table class="data-table">
@@ -77,7 +85,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderFeatureRow(
     feature: components['schemas']['Feature'],
-    columns: string[]
+    columns: ColumnKey[]
   ): TemplateResult {
     return html`
       <tr>
