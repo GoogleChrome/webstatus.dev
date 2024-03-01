@@ -26,19 +26,25 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
-          name: baseline_start_year
+          name: availableOn
+          description: >
+            A comma-separated list of browsers.
+            The returned features are available on these browsers.
+          required: false
           schema:
-            type: integer
-            minimum: 2023
-            maximum: 2023
-          description: Start range (inclusive) for when features became part of baseline
+            type: array
+            items:
+              type: string
         - in: query
-          name: baseline_end_year
+          name: notAvailableOn
+          description: >
+            A comma-separated list of browsers.
+            The returned features are not available on these browsers.
+          required: false
           schema:
-            type: integer
-            minimum: 2023
-            maximum: 2023
-          description: End range (inclusive) for when features became part of baseline
+            type: array
+            items:
+              type: string
       responses:
         '200':
           description: OK
@@ -226,6 +232,7 @@ components:
           - chrome
           - firefox
           - safari
+          - edge
     channelPathParam:
       in: path
       name: channel
@@ -304,7 +311,7 @@ components:
       properties:
         score:
           type: number
-          format: float
+          format: double
     PageMetadata:
       type: object
       properties:
@@ -321,6 +328,25 @@ components:
             $ref: '#/components/schemas/Feature'
       required:
         - data
+    FeatureWPTSnapshots:
+      type: object
+      properties:
+        stable:
+          type: object
+          description: >
+            Contains snapshot of the stable WPT data. The keys for the
+            object comes from the different cases in
+            https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
+          additionalProperties:
+            $ref: '#/components/schemas/WPTFeatureData'
+        experimental:
+          type: object
+          description: >
+            Contains snapshot of the experimental WPT data. The keys for the
+            object comes from the different cases in
+            https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
+          additionalProperties:
+            $ref: '#/components/schemas/WPTFeatureData'
     Feature:
       type: object
       properties:
@@ -339,6 +365,7 @@ components:
         baseline_status:
           type: string
           enum:
+            - undefined
             - none
             - low
             - high
@@ -350,24 +377,7 @@ components:
           minimum: 0.0
           maximum: 100.0
         wpt:
-          type: object
-          properties:
-            stable:
-              type: object
-              description: >
-                Contains snapshot of the stable WPT data. The keys for the
-                object comes from the different cases in
-                https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
-              additionalProperties:
-                $ref: '#/components/schemas/WPTFeatureData'
-            experimental:
-              type: object
-              description: >
-                Contains snapshot of the experimental WPT data. The keys for the
-                object comes from the different cases in
-                https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
-              additionalProperties:
-                $ref: '#/components/schemas/WPTFeatureData'
+          $ref: '#/components/schemas/FeatureWPTSnapshots'
       required:
         - feature_id
         - name
