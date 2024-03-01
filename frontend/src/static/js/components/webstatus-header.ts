@@ -92,20 +92,28 @@ export class WebstatusHeader extends LitElement {
     this._fireEvent('toggle-menu', {});
   }
 
+  // firstUpdated = (): void => {
+  //   const menuButton = this.shadowRoot?.getElementById('menu-button');
+  //   if (menuButton) {
+  //     menuButton.addEventListener('click', this.handleDrawer.bind(this));
+  //   }
+  // }
+
   render(): TemplateResult {
     return html`
       <header class="hbox">
         <div class="hbox header-inner">
           <div class="title">
-          <sl-icon-button
-          data-testid="menu"
-          variant="text"
-          class="menu"
-          style="font-size: 2.4rem;"
-          @click="${this.handleDrawer}"
-          name="list"
-        >
-        </sl-icon-button>
+            <sl-icon-button
+              id="menu-button"
+              data-testid="menu"
+              variant="text"
+              class="menu"
+              style="font-size: 2.4rem;"
+              @click="${this.handleDrawer}"
+              name="list"
+            >
+            </sl-icon-button>
             <img
               class="website-logo"
               src="https://fakeimg.pl/400x400?text=LOGO"

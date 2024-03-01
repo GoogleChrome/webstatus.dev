@@ -17,7 +17,8 @@
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import { SHARED_STYLES } from '../css/shared-css.js';
-import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
+import { DRAWER_WIDTH_PX, IS_MOBILE } from './utils.js';
+import SlDrawer from '@shoelace-style/shoelace/dist/components/drawer/drawer.js';
 import './webstatus-sidebar.js';
 
 @customElement('webstatus-page')
@@ -27,12 +28,22 @@ export class WebstatusPage extends LitElement {
       SHARED_STYLES,
       css`
         .container {
+          position: relative; /* for the menu drawer */
           height: 100%;
           width: 100%;
         }
 
         #sidebar-drawer {
           --size: ${DRAWER_WIDTH_PX}px;
+          position: relative;
+        }
+
+        #sidebar-drawer::part(base) {
+          position: relative;
+          width: auto;
+        }
+        #sidebar-drawer::part(panel) {
+          position: relative;
         }
 
         webstatus-sidebar {
@@ -53,44 +64,41 @@ export class WebstatusPage extends LitElement {
         .page-container {
           padding: var(--content-padding);
         }
+
       `,
     ];
   }
 
-  toggleDrawer(): void {
-    const drawer = this.shadowRoot?.querySelector('sl-drawer');
-    if (drawer?.open === true) {
-      void drawer.hide();
-    } else {
-      if (drawer !== null && drawer !== undefined) void drawer?.show();
-    }
-  }
 
-  firstUpdated = (): void => {
+  firstUpdated(): void {
     if (!IS_MOBILE) {
       // Hide the sidebar by default
-
-
     }
 
-
-
-      const sidebarDrawer = this.shadowRoot?.querySelector('sl-drawer');
-      sidebarDrawer?.addEventListener('sl-drawer-hide', () => {
-        sidebarDrawer.open = false;
-      });
+    document.addEventListener('toggle-menu', () => {
+      console.info('got toggle-menu event');
+      const sidebarDrawer = this.shadowRoot?.querySelector('#sidebar-drawer') as SlDrawer | null;
+      console.info('sidebarDrawer', sidebarDrawer);
+      if (!sidebarDrawer) {
+        throw new Error('Unable to addEventListener to sidebarDrawer; it is null or undefined.');
+      }
+      if (sidebarDrawer!.open === true) {
+        void sidebarDrawer.hide();
+      } else {
+        if (sidebarDrawer !== null && sidebarDrawer !== undefined) {
+          void sidebarDrawer!.show();
+        }
+      }
+    });
   }
 
   protected render(): TemplateResult {
     return html` <div class="container hbox valign-items-top">
-      <sl-drawer
+      <sl-drawer id="sidebar-drawer"
         label="Menu"
         placement="start"
-        class="drawer-placement-start"
-        style="--size: ${DRAWER_WIDTH_PX}px;"
         contained
-        noHeader
-        @drawer-clicked="${this.toggleDrawer}"
+        no-header
       >
         <webstatus-sidebar></webstatus-sidebar>
       </sl-drawer>
