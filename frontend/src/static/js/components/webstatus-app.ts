@@ -61,14 +61,16 @@ export class WebstatusApp extends LitElement {
           flex-direction: column;
           height: 100vh;
           position: sticky;
+
+          /* padding-right: 0; /* to allow space for the vertical scrollbar
+          overflow: overlay;
+          scrollbar-gutter: stable; */
         }
         webstatus-app-settings {
           flex-grow: 1;
           align-self: stretch;
-          overflow: hidden; /* allow scrolling of the content */
         }
         webstatus-page {
-          overflow: hidden; /* allow scrolling of the content */
         }
         webstatus-header {
           position: sticky;

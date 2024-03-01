@@ -36,7 +36,7 @@ export class StatsPage extends LitElement {
         }
 
         #titleAndControls {
-          align-items: center;
+
         }
 
         .under-construction {
@@ -53,20 +53,23 @@ export class StatsPage extends LitElement {
   renderTitleAndControls(): TemplateResult {
     return html`
       <div id="titleAndControls" class="hbox">
-        <h1 class="halign-stretch">Statistics</h1>
-        <sl-checkbox>Show browser versions</sl-checkbox>
-        <sl-button href="#TODO">
-          <sl-icon
-            slot="prefix"
-            name="calendar-blank"
-            library="phosphor"
-          ></sl-icon>
-          Select range
-        </sl-button>
-        <sl-radio-group>
-          <sl-radio-button value="WPT">WPT</sl-radio-button>
-          <sl-radio-button value="BCD">BCD</sl-radio-button>
-        </sl-radio-group>
+        <h1>Statistics</h1>
+        <div class="spacer"></div>
+        <div class="hbox wrap valign-items-center">
+          <sl-checkbox>Show browser versions</sl-checkbox>
+          <sl-button href="#TODO">
+            <sl-icon
+              slot="prefix"
+              name="calendar-blank"
+              library="phosphor"
+            ></sl-icon>
+            Select range
+          </sl-button>
+          <sl-radio-group>
+            <sl-radio-button value="WPT">WPT</sl-radio-button>
+            <sl-radio-button value="BCD">BCD</sl-radio-button>
+          </sl-radio-group>
+        </div>
       </div>
     `;
   }

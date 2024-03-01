@@ -24,7 +24,6 @@ import {
 import {customElement} from 'lit/decorators.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
 import './webstatus-login.js';
 
 @customElement('webstatus-header')
@@ -90,7 +89,7 @@ export class WebstatusHeader extends LitElement {
   }
 
   handleDrawer(): void {
-    this._fireEvent('drawer-clicked', {});
+    this._fireEvent('toggle-menu', {});
   }
 
   render(): TemplateResult {
@@ -98,15 +97,21 @@ export class WebstatusHeader extends LitElement {
       <header class="hbox">
         <div class="hbox header-inner">
           <div class="title">
-            ${this.renderHamburger()}
+          <sl-icon-button
+          data-testid="menu"
+          variant="text"
+          class="menu"
+          style="font-size: 2.4rem;"
+          @click="${this.handleDrawer}"
+          name="list"
+        >
+        </sl-icon-button>
             <img
               class="website-logo"
               src="https://fakeimg.pl/400x400?text=LOGO"
             />
             <h2 class="website-title">Web Platform Dashboard</h2>
           </div>
-
-          ${this.renderDrawer()}
 
           <div class="spacer"></div>
           <div class="sign-in">
@@ -117,51 +122,4 @@ export class WebstatusHeader extends LitElement {
     `;
   }
 
-  renderDrawer(): TemplateResult {
-    if (IS_MOBILE) {
-      return html`
-        <sl-drawer
-          label="Menu"
-          placement="start"
-          class="drawer-placement-start"
-          style="--size: ${DRAWER_WIDTH_PX}px;"
-          contained
-          noHeader
-          @drawer-clicked="${this.toggleDrawer}"
-        >
-          >
-          <webstatus-sidebar></webstatus-sidebar>
-        </sl-drawer>
-      `;
-    } else {
-      return html``;
-    }
-  }
-
-  renderHamburger(): TemplateResult {
-    if (IS_MOBILE) {
-      return html`
-        <sl-icon-button
-          data-testid="menu"
-          variant="text"
-          class="menu"
-          style="font-size: 2.4rem;"
-          @click="${this.handleDrawer}"
-          name="list"
-        >
-        </sl-icon-button>
-      `;
-    } else {
-      return html``;
-    }
-  }
-
-  toggleDrawer(): void {
-    const drawer = this.shadowRoot?.querySelector('sl-drawer');
-    if (drawer?.open === true) {
-      void drawer.hide();
-    } else {
-      if (drawer !== null && drawer !== undefined) void drawer?.show();
-    }
-  }
 }

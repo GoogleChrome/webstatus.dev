@@ -16,7 +16,8 @@
 
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {SHARED_STYLES} from '../css/shared-css.js';
+import { SHARED_STYLES } from '../css/shared-css.js';
+import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
 import './webstatus-sidebar.js';
 
 @customElement('webstatus-page')
@@ -30,8 +31,11 @@ export class WebstatusPage extends LitElement {
           width: 100%;
         }
 
+        #sidebar-drawer {
+          --size: ${DRAWER_WIDTH_PX}px;
+        }
+
         webstatus-sidebar {
-          /* align-self: stretch; */
           max-width: 288px;
           padding-right: 20px;
           padding-top: 10px;
@@ -48,17 +52,50 @@ export class WebstatusPage extends LitElement {
 
         .page-container {
           padding: var(--content-padding);
-          padding-right: 0; /* to allow space for the vertical scrollbar */
-          overflow: overlay;
-          scrollbar-gutter: stable;
         }
       `,
     ];
   }
+
+  toggleDrawer(): void {
+    const drawer = this.shadowRoot?.querySelector('sl-drawer');
+    if (drawer?.open === true) {
+      void drawer.hide();
+    } else {
+      if (drawer !== null && drawer !== undefined) void drawer?.show();
+    }
+  }
+
+  firstUpdated = (): void => {
+    if (!IS_MOBILE) {
+      // Hide the sidebar by default
+
+
+    }
+
+
+
+      const sidebarDrawer = this.shadowRoot?.querySelector('sl-drawer');
+      sidebarDrawer?.addEventListener('sl-drawer-hide', () => {
+        sidebarDrawer.open = false;
+      });
+  }
+
   protected render(): TemplateResult {
     return html` <div class="container hbox valign-items-top">
-      <webstatus-sidebar class="vbox valign-stretch"></webstatus-sidebar>
+      <sl-drawer
+        label="Menu"
+        placement="start"
+        class="drawer-placement-start"
+        style="--size: ${DRAWER_WIDTH_PX}px;"
+        contained
+        noHeader
+        @drawer-clicked="${this.toggleDrawer}"
+      >
+        <webstatus-sidebar></webstatus-sidebar>
+      </sl-drawer>
       <div class="page-container vbox halign-stretch"><slot></slot></div>
     </div>`;
   }
+
 }
