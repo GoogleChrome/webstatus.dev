@@ -36,7 +36,7 @@ const testSpannerInstance = "local"
 const testSpannerDBName = "local"
 
 const releasesPerBrowser = 50
-const runsPerBrowser = 1
+const runsPerBrowserPerChannel = 1
 const numberOfFeatures = 200
 
 // Allows us to regenerate the same values between runs.
@@ -189,7 +189,7 @@ func generateRunsAndMetrics(
 	for _, channel := range channels {
 		for _, browser := range browsers {
 			baseTime := startTimeWindow
-			for i := 0; i < runsPerBrowser; i++ {
+			for i := 0; i < runsPerBrowserPerChannel; i++ {
 				timeStart := baseTime.AddDate(0, 1, r.Intn(90))
 				timeEnd := timeStart.Add(time.Duration(r.Intn(5)) * time.Hour)
 				runID := r.Int63n(1000000)

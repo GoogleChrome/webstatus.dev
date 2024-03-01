@@ -37,11 +37,12 @@ CREATE TABLE IF NOT EXISTS WPTRuns (
     FullRevisionHash STRING(40),
 ) PRIMARY KEY (ID);
 
+
 -- Used to enforce that only one ExternalRunID from wpt.fyi can exist.
 CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID);
 
 -- Useful index for the runs for feature search query.
-CREATE INDEX RunsForFeatureSearch ON WPTRuns (BrowserName, TimeStart DESC);
+CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns(ExternalRunID, Channel, TimeStart DESC, BrowserName);
 
 
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
@@ -57,6 +58,9 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
 
 -- Used to enforce that only one combination of ID and FeatureID can exist.
 CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, FeatureID);
+
+-- Used to help with metrics aggregation calculations.
+CREATE INDEX MetricFeatureID ON WPTRunFeatureMetrics(FeatureID);
 
 -- BrowserReleases contains information regarding browser releases.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers
