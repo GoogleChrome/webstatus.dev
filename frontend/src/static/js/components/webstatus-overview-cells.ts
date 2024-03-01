@@ -57,6 +57,11 @@ const BASELINE_CHIP_CONFIGS: Record<
   components['schemas']['Feature']['baseline_status'],
   BaselineChipConfig
 > = {
+  undefined: {
+    cssClass: 'limited',
+    icon: 'cross.svg',
+    word: 'Limited',
+  },
   none: {
     cssClass: 'limited',
     icon: 'cross.svg',
