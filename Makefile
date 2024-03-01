@@ -270,7 +270,8 @@ dev_fake_data:
 	kubectl wait --for=condition=ready pod/spanner
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
-	go run ./util/cmd/load_fake_data/main.go
+	go run ./util/cmd/load_fake_data/main.go || true
+	fuser -k 9010/tcp || true
 
 ################################
 # Spanner Management
