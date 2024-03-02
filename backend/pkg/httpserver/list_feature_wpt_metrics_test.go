@@ -37,7 +37,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
-				expectedFeatureID: "fooFeature",
+				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -77,14 +77,14 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				},
 				Browser:   backend.Chrome,
 				Channel:   backend.Experimental,
-				FeatureId: "fooFeature",
+				FeatureId: "feature1",
 			},
 			expectedError: nil,
 		},
 		{
 			name: "Success Case - include optional params",
 			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
-				expectedFeatureID: "fooFeature",
+				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -124,14 +124,14 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				},
 				Browser:   backend.Chrome,
 				Channel:   backend.Experimental,
-				FeatureId: "fooFeature",
+				FeatureId: "feature1",
 			},
 			expectedError: nil,
 		},
 		{
 			name: "500 case",
 			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
-				expectedFeatureID: "fooFeature",
+				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
 				expectedPageToken: nil,
@@ -156,7 +156,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				},
 				Browser:   backend.Chrome,
 				Channel:   backend.Experimental,
-				FeatureId: "fooFeature",
+				FeatureId: "feature1",
 			},
 			expectedError: nil,
 		},

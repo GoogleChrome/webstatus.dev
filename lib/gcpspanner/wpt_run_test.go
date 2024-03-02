@@ -24,6 +24,7 @@ import (
 )
 
 func getSampleRuns() []WPTRun {
+	// nolint: dupl // Okay to duplicate for tests
 	return []WPTRun{
 		{
 			RunID:            0,

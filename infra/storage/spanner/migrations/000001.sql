@@ -48,13 +48,11 @@ CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns(ExternalRunID, Channel, 
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     ID STRING(36) NOT NULL,
-    ExternalRunID INT64 NOT NULL, -- ID from WPT. TODO. Deprecated. Will remove in future PR.
     FeatureID STRING(64) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
-    -- TODO. After removing ExternalRunID, enable the following.
-    -- FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
-    -- FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
+    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
+    FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
 ) PRIMARY KEY (ID, FeatureID)
 ,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
 

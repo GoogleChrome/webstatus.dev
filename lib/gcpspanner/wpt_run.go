@@ -36,7 +36,7 @@ type SpannerWPTRun struct {
 }
 
 // WPTRun contains common metadata for a run.
-// Columns come from the ../../infra/storage/spanner.sql file.
+// Columns come from the ../../infra/storage/spanner/migrations/*.sql files.
 type WPTRun struct {
 	RunID            int64     `spanner:"ExternalRunID"`
 	TimeStart        time.Time `spanner:"TimeStart"`
