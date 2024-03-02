@@ -52,6 +52,13 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) ([]backend.WPTRunMetric, *string, error)
+	FeaturesSearch(
+		ctx context.Context,
+		pageToken *string,
+		pageSize int,
+		availabileBrowsers []string,
+		notAvailabileBrowsers []string,
+	) ([]backend.Feature, *string, error)
 }
 
 type Server struct {
@@ -77,6 +84,12 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
+func getBrowserListOrDefault(browserList *[]string) []string {
+	var defaultBrowserList []string
+
+	return *(cmp.Or[*[]string](browserList, &defaultBrowserList))
+}
+
 // GetV1FeaturesFeatureId implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
 func (s *Server) GetV1FeaturesFeatureId(
@@ -95,30 +108,6 @@ func (s *Server) GetV1FeaturesFeatureId(
 	}
 
 	return backend.GetV1FeaturesFeatureId200JSONResponse(*feature), nil
-}
-
-// GetV1Features implements backend.StrictServerInterface.
-// nolint:ireturn // Expected ireturn for openapi generation.
-func (s *Server) GetV1Features(
-	ctx context.Context,
-	_ backend.GetV1FeaturesRequestObject,
-) (backend.GetV1FeaturesResponseObject, error) {
-	// TODO. Pass next page token.
-	featureData, _, err := s.metadataStorer.ListWebFeatureData(ctx, nil)
-	if err != nil {
-		// TODO check error type
-		slog.Error("unable to get list of features", "error", err)
-
-		return backend.GetV1Features500JSONResponse{
-			Code:    500,
-			Message: "unable to get list of features",
-		}, nil
-	}
-
-	return backend.GetV1Features200JSONResponse{
-		Metadata: nil,
-		Data:     featureData,
-	}, nil
 }
 
 func NewHTTPServer(
