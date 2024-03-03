@@ -48,6 +48,14 @@ type BackendSpannerClient interface {
 		pageToken *string,
 		pageSize int,
 		filterables ...gcpspanner.Filterable) ([]gcpspanner.FeatureResult, *string, error)
+	GetFeature(
+		ctx context.Context,
+		filter gcpspanner.Filterable,
+	) (*gcpspanner.FeatureResult, error)
+	GetIDFromFeatureID(
+		ctx context.Context,
+		filter *gcpspanner.FeatureIDFilter,
+	) (*string, error)
 }
 
 // Backend converts queries to spaner to useable entities for the backend
@@ -163,6 +171,41 @@ func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) bac
 	}
 }
 
+func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
+	experimentalMetricsMap := make(map[string]backend.WPTFeatureData)
+	for _, metric := range featureResult.ExperimentalMetrics {
+		if metric.TestPass == nil || metric.TotalTests == nil || (metric.TotalTests != nil && *metric.TotalTests <= 0) {
+			continue
+		}
+		score, _ := big.NewRat(*metric.TestPass, *metric.TotalTests).Float64()
+		experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
+			Score: &score,
+		}
+	}
+	stableMetricsMap := make(map[string]backend.WPTFeatureData)
+	for _, metric := range featureResult.StableMetrics {
+		if metric.TestPass == nil || metric.TotalTests == nil || (metric.TotalTests != nil && *metric.TotalTests <= 0) {
+			continue
+		}
+		score, _ := big.NewRat(*metric.TestPass, *metric.TotalTests).Float64()
+		stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
+			Score: &score,
+		}
+	}
+
+	return &backend.Feature{
+		FeatureId:      featureResult.FeatureID,
+		Name:           featureResult.Name,
+		BaselineStatus: convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
+		Wpt: &backend.FeatureWPTSnapshots{
+			Experimental: &experimentalMetricsMap,
+			Stable:       &stableMetricsMap,
+		},
+		Spec:  nil,
+		Usage: nil,
+	}
+}
+
 func (s *Backend) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
@@ -185,39 +228,36 @@ func (s *Backend) FeaturesSearch(
 	}
 
 	results := make([]backend.Feature, 0, len(featureResults))
-	for _, featureResult := range featureResults {
-		experimentalMetricsMap := make(map[string]backend.WPTFeatureData)
-		for _, metric := range featureResult.ExperimentalMetrics {
-			if metric.TestPass == nil || metric.TotalTests == nil || (metric.TotalTests != nil && *metric.TotalTests <= 0) {
-				continue
-			}
-			score, _ := big.NewRat(*metric.TestPass, *metric.TotalTests).Float64()
-			experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-				Score: &score,
-			}
-		}
-		stableMetricsMap := make(map[string]backend.WPTFeatureData)
-		for _, metric := range featureResult.StableMetrics {
-			if metric.TestPass == nil || metric.TotalTests == nil || (metric.TotalTests != nil && *metric.TotalTests <= 0) {
-				continue
-			}
-			score, _ := big.NewRat(*metric.TestPass, *metric.TotalTests).Float64()
-			stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-				Score: &score,
-			}
-		}
-		results = append(results, backend.Feature{
-			FeatureId:      featureResult.FeatureID,
-			Name:           featureResult.Name,
-			BaselineStatus: convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
-			Wpt: &backend.FeatureWPTSnapshots{
-				Experimental: &experimentalMetricsMap,
-				Stable:       &stableMetricsMap,
-			},
-			Spec:  nil,
-			Usage: nil,
-		})
+	for idx := range featureResults {
+
+		results = append(results, *s.convertFeatureResult(&featureResults[idx]))
 	}
 
 	return results, token, nil
+}
+
+func (s *Backend) GetFeature(
+	ctx context.Context,
+	featureID string,
+) (*backend.Feature, error) {
+	filter := gcpspanner.NewFeatureIDFilter(featureID)
+	featureResult, err := s.client.GetFeature(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.convertFeatureResult(featureResult), nil
+}
+
+func (s *Backend) GetIDFromFeatureID(
+	ctx context.Context,
+	featureID string,
+) (*string, error) {
+	filter := gcpspanner.NewFeatureIDFilter(featureID)
+	id, err := s.client.GetIDFromFeatureID(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+
+	return id, nil
 }

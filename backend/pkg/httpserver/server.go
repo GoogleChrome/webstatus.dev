@@ -18,7 +18,6 @@ import (
 	"cmp"
 	"context"
 	"fmt"
-	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -59,6 +58,10 @@ type WPTMetricsStorer interface {
 		availabileBrowsers []string,
 		notAvailabileBrowsers []string,
 	) ([]backend.Feature, *string, error)
+	GetFeature(
+		ctx context.Context,
+		featureID string,
+	) (*backend.Feature, error)
 }
 
 type Server struct {
@@ -88,26 +91,6 @@ func getBrowserListOrDefault(browserList *[]string) []string {
 	var defaultBrowserList []string
 
 	return *(cmp.Or[*[]string](browserList, &defaultBrowserList))
-}
-
-// GetV1FeaturesFeatureId implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) GetV1FeaturesFeatureId(
-	ctx context.Context,
-	request backend.GetV1FeaturesFeatureIdRequestObject,
-) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
-	feature, err := s.metadataStorer.GetWebFeatureData(ctx, request.FeatureId)
-	if err != nil {
-		// TODO. Check if the feature exists and return a 404 if it does not.
-		slog.Error("unable to get feature", "error", err)
-
-		return backend.GetV1FeaturesFeatureId500JSONResponse{
-			Code:    500,
-			Message: "unable to get feature",
-		}, nil
-	}
-
-	return backend.GetV1FeaturesFeatureId200JSONResponse(*feature), nil
 }
 
 func NewHTTPServer(
