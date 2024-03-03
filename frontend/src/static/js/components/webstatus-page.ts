@@ -17,7 +17,7 @@
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {IS_MOBILE} from './utils.js';
+import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
 import SlDrawer from '@shoelace-style/shoelace/dist/components/drawer/drawer.js';
 import './webstatus-sidebar.js';
 
@@ -34,6 +34,7 @@ export class WebstatusPage extends LitElement {
 
         #sidebar-drawer::part(base) {
           position: relative;
+          width: ${DRAWER_WIDTH_PX}px;
         }
         #sidebar-drawer::part(body) {
           overflow: hidden;
