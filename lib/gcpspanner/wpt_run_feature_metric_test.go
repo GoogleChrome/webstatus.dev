@@ -23,112 +23,190 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/web-platform-tests/wpt.fyi/shared"
-	"google.golang.org/grpc/codes"
+	"google.golang.org/api/iterator"
 )
 
 func valuePtr[T any](in T) *T {
 	return &in
 }
 
-func getSampleRunMetrics() []WPTRunFeatureMetric {
-	return []WPTRunFeatureMetric{
+// GetMetricByRunIDAndFeatureID is a helper function that attempts to get a
+// metric for the given id from wpt.fyi and web feature id.
+func (c *Client) GetMetricByRunIDAndFeatureID(
+	ctx context.Context,
+	runID int64,
+	featureID string,
+) (*WPTRunFeatureMetric, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+	stmt := spanner.NewStatement(`
+		SELECT
+			FeatureID, TotalTests, TestPass
+		FROM WPTRuns r
+		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
+		WHERE r.ExternalRunID = @externalRunID AND wpfm.FeatureID = @featureID
+		LIMIT 1`)
+	parameters := map[string]interface{}{
+		"externalRunID": runID,
+		"featureID":     featureID,
+	}
+	stmt.Params = parameters
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	row, err := it.Next()
+	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	var metric WPTRunFeatureMetric
+	if err := row.ToStruct(&metric); err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &metric, nil
+}
+
+func getSampleRunMetrics() []struct {
+	ExternalRunID int64
+	WPTRunFeatureMetric
+} {
+	// nolint: dupl // Okay to duplicate for tests
+	return []struct {
+		ExternalRunID int64
+		WPTRunFeatureMetric
+	}{
 		// Run 0 metrics
 		{
-			RunID:      0,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 0,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		{
-			RunID:      0,
-			FeatureID:  "barFeature",
-			TotalTests: valuePtr[int64](5),
-			TestPass:   valuePtr[int64](0),
+			ExternalRunID: 0,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](5),
+				TestPass:   valuePtr[int64](0),
+			},
 		},
 		{
-			RunID:      0,
-			FeatureID:  "bazFeature",
-			TotalTests: valuePtr[int64](50),
-			TestPass:   valuePtr[int64](5),
+			ExternalRunID: 0,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature3",
+				TotalTests: valuePtr[int64](50),
+				TestPass:   valuePtr[int64](5),
+			},
 		},
 		// Run 1 metrics
 		{
-			RunID:      1,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 1,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		// Run 2 metrics
 		{
-			RunID:      2,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 2,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 3 metrics
 		{
-			RunID:      3,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 3,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 6 metrics
 		{
-			RunID:      6,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 6,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		{
-			RunID:      6,
-			FeatureID:  "barFeature",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](0),
+			ExternalRunID: 6,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](10),
+				TestPass:   valuePtr[int64](0),
+			},
 		},
 		{
-			RunID:      6,
-			FeatureID:  "bazFeature",
-			TotalTests: valuePtr[int64](50),
-			TestPass:   valuePtr[int64](35),
+			ExternalRunID: 6,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature3",
+				TotalTests: valuePtr[int64](50),
+				TestPass:   valuePtr[int64](35),
+			},
 		},
 		// Run 7 metrics
 		{
-			RunID:      7,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 7,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		{
-			RunID:      7,
-			FeatureID:  "barFeature",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 7,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](10),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 8 metrics
 		{
-			RunID:      8,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 8,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		{
-			RunID:      8,
-			FeatureID:  "barFeature",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 8,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](10),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 		// Run 9 metrics
 		{
-			RunID:      9,
-			FeatureID:  "fooFeature",
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			ExternalRunID: 9,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature1",
+				TotalTests: valuePtr[int64](20),
+				TestPass:   valuePtr[int64](20),
+			},
 		},
 		{
-			RunID:      9,
-			FeatureID:  "barFeature",
-			TotalTests: valuePtr[int64](10),
-			TestPass:   valuePtr[int64](10),
+			ExternalRunID: 9,
+			WPTRunFeatureMetric: WPTRunFeatureMetric{
+				FeatureID:  "feature2",
+				TotalTests: valuePtr[int64](10),
+				TestPass:   valuePtr[int64](10),
+			},
 		},
 	}
 }
@@ -139,31 +217,38 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	sampleRunMetrics := getSampleRunMetrics()
 
-	// Should fail without the runs being uploaded first
+	// Should fail without the runs and features being uploaded first
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
-		if spanner.ErrCode(err) != codes.NotFound {
-			t.Errorf("expected not found error upon insert. received %s", err.Error())
+		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		if err == nil {
+			t.Errorf("expected error upon insert")
 		}
 	}
 
-	// Now, let's insert the runs.
+	// Now, let's insert the runs and features.
 	for _, run := range getSampleRuns() {
 		err := client.InsertWPTRun(ctx, run)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
 	}
+	sampleFeatures := getSampleFeatures()
+	for _, feature := range sampleFeatures {
+		err := client.UpsertWebFeature(ctx, feature)
+		if err != nil {
+			t.Errorf("unexpected error during insert of features. %s", err.Error())
+		}
+	}
 
 	// Now, let's insert the metrics
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
+		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
 	}
 
-	metric, err := client.GetMetricByRunIDAndFeatureID(ctx, 0, "fooFeature")
+	metric, err := client.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -172,26 +257,31 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	if !reflect.DeepEqual(sampleRunMetrics[0], *metric) {
+	if !reflect.DeepEqual(sampleRunMetrics[0].WPTRunFeatureMetric, *metric) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", sampleRunMetrics[0], *metric)
 	}
 
 	// Test 1. Upsert a metric where the run only has one metric.
 	// Upsert the metric
-	updatedMetric1 := WPTRunFeatureMetric{
-		RunID:      0,
-		FeatureID:  "fooFeature",
-		TotalTests: valuePtr[int64](300), // Change this value
-		TestPass:   valuePtr[int64](100), // Change this value
+	updatedMetric1 := struct {
+		ExternalRunID int64
+		WPTRunFeatureMetric
+	}{
+		ExternalRunID: 0,
+		WPTRunFeatureMetric: WPTRunFeatureMetric{
+			FeatureID:  "feature1",
+			TotalTests: valuePtr[int64](300), // Change this value
+			TestPass:   valuePtr[int64](100), // Change this value
+		},
 	}
 
-	err = client.UpsertWPTRunFeatureMetric(ctx, updatedMetric1)
+	err = client.UpsertWPTRunFeatureMetric(ctx, updatedMetric1.ExternalRunID, updatedMetric1.WPTRunFeatureMetric)
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error upon insert. received %s", err.Error())
 	}
 
 	// Try to get the metric again and compare with the updated metric.
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 0, "fooFeature")
+	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -200,25 +290,30 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	if !reflect.DeepEqual(updatedMetric1, *metric) {
-		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric1, *metric)
+	if !reflect.DeepEqual(updatedMetric1.WPTRunFeatureMetric, *metric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric1.WPTRunFeatureMetric, *metric)
 	}
 
 	// Test 2. Upsert a metric where the run has multiple metrics.
-	updatedMetric2 := WPTRunFeatureMetric{
-		RunID:      9,
-		FeatureID:  "barFeature",
-		TotalTests: valuePtr[int64](300), // Change this value
-		TestPass:   valuePtr[int64](100), // Change this value
+	updatedMetric2 := struct {
+		ExternalRunID int64
+		WPTRunFeatureMetric
+	}{
+		ExternalRunID: 9,
+		WPTRunFeatureMetric: WPTRunFeatureMetric{
+			FeatureID:  "feature2",
+			TotalTests: valuePtr[int64](300), // This value should be changed
+			TestPass:   valuePtr[int64](100), // This value should be changed
+		},
 	}
 	// Upsert the metric
-	err = client.UpsertWPTRunFeatureMetric(ctx, updatedMetric2)
+	err = client.UpsertWPTRunFeatureMetric(ctx, updatedMetric2.ExternalRunID, updatedMetric2.WPTRunFeatureMetric)
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error upon insert. received %s", err.Error())
 	}
 
 	// Try to get the metric again and compare with the updated metric.
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "barFeature")
+	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "feature2")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -227,12 +322,12 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	if !reflect.DeepEqual(updatedMetric2, *metric) {
-		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric2, *metric)
+	if !reflect.DeepEqual(updatedMetric2.WPTRunFeatureMetric, *metric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric2.WPTRunFeatureMetric, *metric)
 	}
 
 	// Get the other metric for that run which should be unaffected
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "fooFeature")
+	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -241,21 +336,33 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	otherMetric := WPTRunFeatureMetric{
-		RunID:      9,
-		FeatureID:  "fooFeature",
-		TotalTests: valuePtr[int64](20),
-		TestPass:   valuePtr[int64](20),
+	otherMetric := struct {
+		WPTRunFeatureMetric
+		ExternalRunID int64
+	}{
+		ExternalRunID: 9,
+		WPTRunFeatureMetric: WPTRunFeatureMetric{
+			FeatureID:  "feature1",
+			TotalTests: valuePtr[int64](20),
+			TestPass:   valuePtr[int64](20),
+		},
 	}
-	if !reflect.DeepEqual(otherMetric, *metric) {
-		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", otherMetric, *metric)
+	if !reflect.DeepEqual(otherMetric.WPTRunFeatureMetric, *metric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", otherMetric.WPTRunFeatureMetric, *metric)
 	}
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	client := getTestDatabase(t)
 	ctx := context.Background()
-	// Load up runs and metrics
+	// Load up runs, metrics and features.
+	sampleFeatures := getSampleFeatures()
+	for _, feature := range sampleFeatures {
+		err := client.UpsertWebFeature(ctx, feature)
+		if err != nil {
+			t.Errorf("unexpected error during insert of features. %s", err.Error())
+		}
+	}
 	// Now, let's insert the runs.
 	for _, run := range getSampleRuns() {
 		err := client.InsertWPTRun(ctx, run)
@@ -266,7 +373,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
+		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -276,7 +383,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// feature combination.
 	metrics, token, err := client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -312,7 +419,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Get page 1
 	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -335,7 +442,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Get page 2.
 	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -358,7 +465,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Get page 3
 	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
-		"fooFeature",
+		"feature1",
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -378,26 +485,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	}
 }
 
-func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
-	client := getTestDatabase(t)
-	ctx := context.Background()
-	// Load up runs and metrics
-	// Now, let's insert the runs.
-	for _, run := range getSampleRuns() {
-		err := client.InsertWPTRun(ctx, run)
-		if !errors.Is(err, nil) {
-			t.Errorf("expected no error upon insert. received %s", err.Error())
-		}
-	}
-
-	// Now, let's insert the metrics
-	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric)
-		if !errors.Is(err, nil) {
-			t.Errorf("expected no error upon insert. received %s", err.Error())
-		}
-	}
-
+func testGetAllAggregatedMetrics(ctx context.Context, client *Client, t *testing.T) {
 	// Test 1. Get aggregation metrics for all features.
 	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
@@ -436,10 +524,12 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetrics, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetrics, metrics)
 	}
+}
 
+func testGetAllAggregatedMetricsPages(ctx context.Context, client *Client, t *testing.T) {
 	// Test 2. Get aggregation metrics for all features with pagination.
 	// Get page 1.
-	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
+	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
 		nil,
 		"fooBrowser",
@@ -521,11 +611,12 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetricsPageThree, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageThree, metrics)
 	}
-
+}
+func testGetSubsetAggregatedMetrics(ctx context.Context, client *Client, t *testing.T) {
 	// Test 3. Get aggregation metrics for subset of features.
-	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
+	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -539,7 +630,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if token != nil {
 		t.Error("expected null token")
 	}
-	expectedMetrics = []WPTRunAggregationMetricWithTime{
+	expectedMetrics := []WPTRunAggregationMetricWithTime{
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
@@ -560,12 +651,13 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if !reflect.DeepEqual(expectedMetrics, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetrics, metrics)
 	}
-
+}
+func testGetSubsetAggregatedMetricsPages(ctx context.Context, client *Client, t *testing.T) {
 	// Test 4. Get aggregation metrics for subset of features with pagination.
 	// Get page 1.
-	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
+	metrics, token, err := client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -579,7 +671,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if token == nil {
 		t.Error("expected token")
 	}
-	expectedMetricsPageOne = []WPTRunAggregationMetricWithTime{
+	expectedMetricsPageOne := []WPTRunAggregationMetricWithTime{
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
@@ -596,7 +688,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Get page 2.
 	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -610,7 +702,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	if token == nil {
 		t.Error("expected token")
 	}
-	expectedMetricsPageTwo = []WPTRunAggregationMetricWithTime{
+	expectedMetricsPageTwo := []WPTRunAggregationMetricWithTime{
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -627,7 +719,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Get page 3.
 	metrics, token, err = client.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		[]string{"barFeature", "bazFeature"},
+		[]string{"feature2", "feature3"},
 		"fooBrowser",
 		shared.StableLabel,
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -642,7 +734,40 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 		t.Error("expected no token")
 	}
 
+	var expectedMetricsPageThree []WPTRunAggregationMetricWithTime
 	if !reflect.DeepEqual(expectedMetricsPageThree, metrics) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageThree, metrics)
 	}
+}
+
+func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
+	client := getTestDatabase(t)
+	ctx := context.Background()
+	// Load up runs, metrics and features.
+	sampleFeatures := getSampleFeatures()
+	for _, feature := range sampleFeatures {
+		err := client.UpsertWebFeature(ctx, feature)
+		if err != nil {
+			t.Errorf("unexpected error during insert of features. %s", err.Error())
+		}
+	}
+	// Now, let's insert the runs.
+	for _, run := range getSampleRuns() {
+		err := client.InsertWPTRun(ctx, run)
+		if !errors.Is(err, nil) {
+			t.Errorf("expected no error upon insert. received %s", err.Error())
+		}
+	}
+
+	// Now, let's insert the metrics
+	for _, metric := range getSampleRunMetrics() {
+		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		if !errors.Is(err, nil) {
+			t.Errorf("expected no error upon insert. received %s", err.Error())
+		}
+	}
+	testGetAllAggregatedMetrics(ctx, client, t)
+	testGetAllAggregatedMetricsPages(ctx, client, t)
+	testGetSubsetAggregatedMetrics(ctx, client, t)
+	testGetSubsetAggregatedMetricsPages(ctx, client, t)
 }
