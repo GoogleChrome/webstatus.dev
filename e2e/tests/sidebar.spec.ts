@@ -19,6 +19,10 @@ import {test, expect} from '@playwright/test';
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
 
+  // Show the sidebar menu
+  const menuButton = page.locator('#menu-button');
+  await menuButton.click();
+
   const sidebar = page.locator('webstatus-sidebar');
   await expect(sidebar).toHaveScreenshot('sidebar.png');
 });
