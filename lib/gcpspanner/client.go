@@ -71,9 +71,20 @@ type WPTRunCursor struct {
 	LastRunID     int64     `json:"last_run_id"`
 }
 
+// FeatureResultCursor: Represents a point for resuming queries based on the last
+// feature ID. Useful for pagination.
+type FeatureResultCursor struct {
+	LastFeatureID string `json:"last_feature_id"`
+}
+
 // decodeWPTRunCursor provides a wrapper around the generic decodeCursor.
 func decodeWPTRunCursor(cursor string) (*WPTRunCursor, error) {
 	return decodeCursor[WPTRunCursor](cursor)
+}
+
+// decodeFeatureResultCursor provides a wrapper around the generic decodeCursor.
+func decodeFeatureResultCursor(cursor string) (*FeatureResultCursor, error) {
+	return decodeCursor[FeatureResultCursor](cursor)
 }
 
 // decodeCursor: Decodes a base64-encoded cursor string into a Cursor struct.
@@ -89,6 +100,11 @@ func decodeCursor[T any](cursor string) (*T, error) {
 	}
 
 	return &decoded, nil
+}
+
+// encodeFeatureResultCursor provides a wrapper around the generic encodeCursor.
+func encodeFeatureResultCursor(id string) string {
+	return encodeCursor[FeatureResultCursor](FeatureResultCursor{LastFeatureID: id})
 }
 
 // encodeWPTRunCursor provides a wrapper around the generic encodeCursor.
