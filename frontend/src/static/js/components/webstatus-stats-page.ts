@@ -36,7 +36,6 @@ export class StatsPage extends LitElement {
         }
 
         #titleAndControls {
-
         }
 
         .under-construction {

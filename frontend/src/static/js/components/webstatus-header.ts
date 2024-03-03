@@ -37,15 +37,6 @@ export class WebstatusHeader extends LitElement {
           align-items: center;
           background: #f2f2f2;
           height: 94px;
-          position: sticky;
-          top: -44px;
-        }
-        .header-inner {
-          flex-grow: 1; /* .hbox > .halign-stretch */
-          align-items: center;
-          height: 50px;
-          position: sticky;
-          top: 0;
         }
         .title {
           display: flex;
@@ -92,42 +83,32 @@ export class WebstatusHeader extends LitElement {
     this._fireEvent('toggle-menu', {});
   }
 
-  // firstUpdated = (): void => {
-  //   const menuButton = this.shadowRoot?.getElementById('menu-button');
-  //   if (menuButton) {
-  //     menuButton.addEventListener('click', this.handleDrawer.bind(this));
-  //   }
-  // }
-
   render(): TemplateResult {
     return html`
       <header class="hbox">
-        <div class="hbox header-inner">
-          <div class="title">
-            <sl-icon-button
-              id="menu-button"
-              data-testid="menu"
-              variant="text"
-              class="menu"
-              style="font-size: 2.4rem;"
-              @click="${this.handleDrawer}"
-              name="list"
-            >
-            </sl-icon-button>
-            <img
-              class="website-logo"
-              src="https://fakeimg.pl/400x400?text=LOGO"
-            />
-            <h2 class="website-title">Web Platform Dashboard</h2>
-          </div>
+        <div class="title">
+          <sl-icon-button
+            id="menu-button"
+            data-testid="menu"
+            variant="text"
+            class="menu"
+            style="font-size: 2.4rem;"
+            @click="${this.handleDrawer}"
+            name="list"
+          >
+          </sl-icon-button>
+          <img
+            class="website-logo"
+            src="https://fakeimg.pl/400x400?text=LOGO"
+          />
+          <h2 class="website-title">Web Platform Dashboard</h2>
+        </div>
 
-          <div class="spacer"></div>
-          <div class="sign-in">
-            <webstatus-login></webstatus-login>
-          </div>
+        <div class="spacer"></div>
+        <div class="sign-in">
+          <webstatus-login></webstatus-login>
         </div>
       </header>
     `;
   }
-
 }
