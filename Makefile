@@ -266,23 +266,15 @@ dev_workflows: web_feature_local_workflow
 web_feature_local_workflow: FLAGS := -repo_downloader_host=http://localhost:8091 -web_consumer_host=http://localhost:8092
 web_feature_local_workflow:
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+dev_fake_data:
+	kubectl wait --for=condition=ready pod/spanner
+	fuser -k 9010/tcp || true
+	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
+	go run ./util/cmd/load_fake_data/main.go || true
+	fuser -k 9010/tcp || true
 
 ################################
 # Spanner Management
 ################################
 spanner_new_migration:
 	wrench migrate create --directory infra/storage/spanner
-
-spanner_port_forward: spanner_port_forward_terminate
-	kubectl wait --for=condition=ready pod/spanner
-	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
-
-spanner_port_forward_terminate:
-	fuser -k 9010/tcp || true
-
-# For now install tbls when we absolutely need it.
-# It is a heavy install.
-spanner_er_diagram: spanner_port_forward
-	go install github.com/k1LoW/tbls@v1.73.2
-	SPANNER_EMULATOR_HOST=localhost:9010 tbls doc --rm-dist
-	make spanner_port_forward_terminate
