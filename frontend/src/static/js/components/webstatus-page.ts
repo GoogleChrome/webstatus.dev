@@ -60,25 +60,26 @@ export class WebstatusPage extends LitElement {
   }
 
   firstUpdated(): void {
+    const sidebarDrawer = this.shadowRoot?.querySelector(
+      '#sidebar-drawer'
+    ) as SlDrawer | null;
+    if (!sidebarDrawer) {
+      throw new Error('Sidebar Drawer is missing');
+    }
+
+    const showSidebarDrawer = () => {
+      void sidebarDrawer!.show();
+    };
+
     if (!IS_MOBILE) {
-      // TODO: Hide the sidebar by default
+      showSidebarDrawer();
     }
 
     document.addEventListener('toggle-menu', () => {
-      console.info('got toggle-menu event');
-      const sidebarDrawer = this.shadowRoot?.querySelector(
-        '#sidebar-drawer'
-      ) as SlDrawer | null;
-      console.info('sidebarDrawer', sidebarDrawer);
-      if (!sidebarDrawer) {
-        throw new Error('Unable to addEventListener');
-      }
-      if (sidebarDrawer!.open === true) {
+      if (sidebarDrawer.open === true) {
         void sidebarDrawer.hide();
       } else {
-        if (sidebarDrawer !== null && sidebarDrawer !== undefined) {
-          void sidebarDrawer!.show();
-        }
+        showSidebarDrawer();
       }
     });
   }

@@ -23,6 +23,17 @@ import {
 } from 'lit';
 import {customElement} from 'lit/decorators.js';
 
+// Map from sl-tree-item id to path.
+const idPathMap: {[id: string]: string} = {
+  'features-item': '/',
+  'statistics-item': '/stats',
+};
+// Map the idPathMap to an inverse map.
+const pathIdMap: {[path: string]: string} = {};
+for (const [id, path] of Object.entries(idPathMap)) {
+  pathIdMap[path] = id;
+}
+
 @customElement('webstatus-sidebar-menu')
 export class WebstatusSidebarMenu extends LitElement {
   static get styles(): CSSResultGroup {
@@ -38,12 +49,35 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   firstUpdated(): void {
-    // Handle click on features-item
-    const featuresItem = this.shadowRoot?.querySelector('#features-item');
-    featuresItem?.addEventListener('click', () => {
-      // Visit Featurs overview page
-      // console.info('clicked on features-item')
-      // window.location.href = '/features'
+    const tree = this.shadowRoot?.querySelector('sl-tree');
+    if (!tree) {
+      throw new Error('No tree found');
+    }
+
+    // Reselect the sl-tree-item corresponding to the current page.
+    const path = window.location.pathname;
+    const id = pathIdMap[path];
+    const item = tree?.querySelector(`#${id}`);
+    if (item) {
+      item.setAttribute('selected', '');
+    }
+
+    tree!.addEventListener('sl-selection-change', () => {
+      const selectedItem = tree!.querySelector('[selected]');
+      const id = selectedItem?.id;
+      if (id) {
+        const path = idPathMap[id];
+        if (path) {
+          // Get current href path component.
+          const href = window.location.href;
+          // Replace the path component.
+          const newHref = href.replace(/\/[^/]*$/, path);
+          // If the href has changed, update the browser's URL.
+          if (href !== newHref) {
+            window.location.href = newHref;
+          }
+        }
+      }
     });
   }
 
@@ -63,7 +97,7 @@ export class WebstatusSidebarMenu extends LitElement {
           </sl-tree-item>
           <sl-tree-item> <sl-icon name="star"></sl-icon> Starred </sl-tree-item>
         </sl-tree-item>
-        <sl-tree-item>
+        <sl-tree-item id="statistics-item">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item>
         <sl-tree-item> <sl-icon name="bell"></sl-icon> Updates </sl-tree-item>
