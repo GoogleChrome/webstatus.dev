@@ -399,9 +399,14 @@ func sortMetricsByBrowserName(metrics []*FeatureResultMetric) {
 }
 func stabilizeFeatureResults(results []FeatureResult) {
 	for _, result := range results {
-		sortMetricsByBrowserName(result.StableMetrics)
-		sortMetricsByBrowserName(result.ExperimentalMetrics)
+		stabilizeFeatureResult(result)
 	}
+}
+
+func stabilizeFeatureResult(result FeatureResult) {
+	sortMetricsByBrowserName(result.StableMetrics)
+	sortMetricsByBrowserName(result.ExperimentalMetrics)
+
 }
 
 func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {

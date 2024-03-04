@@ -60,8 +60,9 @@ func (c *Client) FeaturesSearch(
 		}
 	}
 	b := FeatureSearchQueryBuilder{
-		cursor:   cursor,
-		pageSize: pageSize,
+		baseQuery: FeatureBaseQuery{},
+		cursor:    cursor,
+		pageSize:  pageSize,
 	}
 	stmt := b.Build(filterables...)
 	txn := c.Single()
@@ -80,7 +81,7 @@ func (c *Client) FeaturesSearch(
 		}
 		var result SpannerFeatureResult
 		if err := row.ToStruct(&result); err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 		results = append(results, result.FeatureResult)
 	}

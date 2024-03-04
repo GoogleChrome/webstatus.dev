@@ -44,13 +44,45 @@ type mockFeaturesSearchConfig struct {
 	returnedError       error
 }
 
+type mockGetFeatureConfig struct {
+	expectedFilterable gcpspanner.Filterable
+	result             *gcpspanner.FeatureResult
+	returnedError      error
+}
+
+type mockGetIDByFeaturesIDConfig struct {
+	expectedFilterable gcpspanner.Filterable
+	result             *string
+	returnedError      error
+}
+
 type mockBackendSpannerClient struct {
-	t                     *testing.T
-	aggregationData       []gcpspanner.WPTRunAggregationMetricWithTime
-	featureData           []gcpspanner.WPTRunFeatureMetricWithTime
-	mockFeaturesSearchCfg mockFeaturesSearchConfig
-	pageToken             *string
-	err                   error
+	t                        *testing.T
+	aggregationData          []gcpspanner.WPTRunAggregationMetricWithTime
+	featureData              []gcpspanner.WPTRunFeatureMetricWithTime
+	mockFeaturesSearchCfg    mockFeaturesSearchConfig
+	mockGetFeatureCfg        mockGetFeatureConfig
+	mockGetIDByFeaturesIDCfg mockGetIDByFeaturesIDConfig
+	pageToken                *string
+	err                      error
+}
+
+func (c mockBackendSpannerClient) GetFeature(
+	_ context.Context, filter gcpspanner.Filterable) (*gcpspanner.FeatureResult, error) {
+	if !reflect.DeepEqual(filter, c.mockGetFeatureCfg.expectedFilterable) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockGetFeatureCfg.result, c.mockFeaturesSearchCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) GetIDFromFeatureID(
+	_ context.Context, filter *gcpspanner.FeatureIDFilter) (*string, error) {
+	if !reflect.DeepEqual(filter, c.mockGetIDByFeaturesIDCfg.expectedFilterable) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockGetIDByFeaturesIDCfg.result, c.mockGetIDByFeaturesIDCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
@@ -581,4 +613,81 @@ func compareFeatureDataMap(m1, m2 *map[string]backend.WPTFeatureData) bool {
 	}
 
 	return true
+}
+
+func TestGetFeature(t *testing.T) {
+	testCases := []struct {
+		name            string
+		cfg             mockGetFeatureConfig
+		inputFeatureID  string
+		expectedFeature *backend.Feature
+	}{
+		{
+			name:           "regular",
+			inputFeatureID: "feature1",
+			cfg: mockGetFeatureConfig{
+				expectedFilterable: gcpspanner.NewFeatureIDFilter("feature1"),
+				result: &gcpspanner.FeatureResult{
+					Name:      "feature 1",
+					FeatureID: "feature1",
+					Status:    "low",
+					StableMetrics: []*gcpspanner.FeatureResultMetric{
+						{
+							BrowserName: "browser3",
+							TestPass:    valuePtr[int64](10),
+							TotalTests:  valuePtr[int64](20),
+						},
+					},
+					ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
+						{
+							BrowserName: "browser3",
+							TestPass:    valuePtr[int64](10),
+							TotalTests:  valuePtr[int64](50),
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedFeature: &backend.Feature{
+				BaselineStatus: backend.Low,
+				FeatureId:      "feature1",
+				Name:           "feature 1",
+				Spec:           nil,
+				Usage:          nil,
+				Wpt: &backend.FeatureWPTSnapshots{
+					Experimental: &map[string]backend.WPTFeatureData{
+						"browser3": {
+							Score: valuePtr[float64](0.2),
+						},
+					},
+					Stable: &map[string]backend.WPTFeatureData{
+						"browser3": {
+							Score: valuePtr[float64](0.5),
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                 t,
+				mockGetFeatureCfg: tc.cfg,
+			}
+			bk := NewBackend(mock)
+			feature, err := bk.GetFeature(
+				context.Background(),
+				tc.inputFeatureID)
+			if !errors.Is(err, tc.cfg.returnedError) {
+				t.Error("unexpected error")
+			}
+
+			if !CompareFeatures(*feature, *tc.expectedFeature) {
+				t.Error("unexpected feature")
+			}
+
+		})
+	}
 }

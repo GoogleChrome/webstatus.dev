@@ -62,14 +62,22 @@ type MockFeaturesSearchConfig struct {
 	err                          error
 }
 
+type MockGetFeatureByIDConfig struct {
+	expectedFeatureID string
+	data              *backend.Feature
+	err               error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
 	featuresSearchCfg                                 MockFeaturesSearchConfig
+	getFeatureByIDConfig                              MockGetFeatureByIDConfig
 	t                                                 *testing.T
 	callCountFeaturesSearch                           int
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
+	callCountGetFeature                               int
 }
 
 func (m *MockWPTMetricsStorer) ListMetricsForFeatureIDBrowserAndChannel(_ context.Context,
@@ -137,6 +145,20 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 	}
 
 	return m.featuresSearchCfg.data, m.featuresSearchCfg.pageToken, m.featuresSearchCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetFeature(
+	_ context.Context,
+	featureID string,
+) (*backend.Feature, error) {
+	m.callCountGetFeature++
+
+	if featureID != m.getFeatureByIDConfig.expectedFeatureID {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s }",
+			m.getFeatureByIDConfig, featureID)
+	}
+
+	return m.getFeatureByIDConfig.data, m.getFeatureByIDConfig.err
 }
 
 func TestGetPageSizeOrDefault(t *testing.T) {
