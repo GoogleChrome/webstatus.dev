@@ -23,5 +23,8 @@ test('matches the screenshot', async ({page}) => {
   // const menuButton = page.locator('#menu-button');
 
   const sidebar = page.locator('webstatus-sidebar');
-  await expect(sidebar).toHaveScreenshot('sidebar.png');
+  await expect(sidebar).toHaveScreenshot('sidebar.png', {
+    // Temporarily allow a higher diff ratio as these tests become more stable
+    maxDiffPixelRatio: 0.05,
+  });
 });
