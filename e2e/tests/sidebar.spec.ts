@@ -22,8 +22,10 @@ test('matches the screenshot', async ({page}) => {
   // The sidebar menu should be shown by default.
 
   const sidebar = page.locator('webstatus-sidebar');
+  const sidebarBox = await sidebar.boundingBox();
   await expect(sidebar).toHaveScreenshot('sidebar.png', {
+    clip: sidebarBox,
     // Temporarily allow a higher diff ratio as these tests become more stable
-    maxDiffPixelRatio: 0.9,
+    maxDiffPixelRatio: 0.2,
   });
 });
