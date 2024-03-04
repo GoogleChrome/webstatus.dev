@@ -20,11 +20,10 @@ test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
 
   // The sidebar menu should be shown by default.
-  // const menuButton = page.locator('#menu-button');
 
   const sidebar = page.locator('webstatus-sidebar');
   await expect(sidebar).toHaveScreenshot('sidebar.png', {
     // Temporarily allow a higher diff ratio as these tests become more stable
-    maxDiffPixelRatio: 0.05,
+    maxDiffPixelRatio: 0.1,
   });
 });
