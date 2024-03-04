@@ -17,6 +17,8 @@
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
+import SlDrawer from '@shoelace-style/shoelace/dist/components/drawer/drawer.js';
 import './webstatus-sidebar.js';
 
 @customElement('webstatus-page')
@@ -26,43 +28,73 @@ export class WebstatusPage extends LitElement {
       SHARED_STYLES,
       css`
         .container {
-          display: flex;
-          flex-direction: row;
           height: 100%;
           width: 100%;
         }
 
-        @media (max-width: 768px) {
-          .container {
-            flex-direction: column;
-          }
+        #sidebar-drawer::part(base) {
+          position: relative;
+          width: ${DRAWER_WIDTH_PX}px;
+        }
+        #sidebar-drawer::part(body) {
+          overflow: hidden;
         }
 
         webstatus-sidebar {
-          flex: 1;
-          align-self: stretch;
           max-width: 288px;
           padding-right: 20px;
           padding-top: 10px;
         }
 
         @media (max-width: 768px) {
-          webstatus-sidebar {
+          webstatus-sidebar.vbox {
             display: none;
           }
         }
 
         .page-container {
-          flex: 2;
           padding: var(--content-padding);
         }
       `,
     ];
   }
+
+  firstUpdated(): void {
+    if (!IS_MOBILE) {
+      // TODO: Hide the sidebar by default
+    }
+
+    document.addEventListener('toggle-menu', () => {
+      console.info('got toggle-menu event');
+      const sidebarDrawer = this.shadowRoot?.querySelector(
+        '#sidebar-drawer'
+      ) as SlDrawer | null;
+      console.info('sidebarDrawer', sidebarDrawer);
+      if (!sidebarDrawer) {
+        throw new Error('Unable to addEventListener');
+      }
+      if (sidebarDrawer!.open === true) {
+        void sidebarDrawer.hide();
+      } else {
+        if (sidebarDrawer !== null && sidebarDrawer !== undefined) {
+          void sidebarDrawer!.show();
+        }
+      }
+    });
+  }
+
   protected render(): TemplateResult {
-    return html` <div class="container">
-      <webstatus-sidebar></webstatus-sidebar>
-      <div class="page-container"><slot></slot></div>
+    return html` <div class="container hbox valign-items-top">
+      <sl-drawer
+        id="sidebar-drawer"
+        label="Menu"
+        placement="start"
+        contained
+        no-header
+      >
+        <webstatus-sidebar></webstatus-sidebar>
+      </sl-drawer>
+      <div class="page-container vbox halign-stretch"><slot></slot></div>
     </div>`;
   }
 }

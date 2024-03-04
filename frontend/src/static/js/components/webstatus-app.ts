@@ -50,26 +50,19 @@ export class WebstatusApp extends LitElement {
       css`
         body {
           height: 100%;
+          position: relative;
         }
+        /* We have to specify the vbox style of the :host manually,
+           because the vbox class is not available in index.html.
+           Consequently, we have to specify the vbox item style of
+           webstatus-app-settings manually for the same reason. */
         :host {
           display: flex;
-          flex: 0 0 auto;
           flex-direction: column;
-          height: 100%;
+          height: 100vh;
         }
-        :host > webstatus-app-settings {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-          align-self: stretch;
-        }
-        webstatus-page {
-          flex-grow: 2;
-          display: flex;
-          flex-direction: row;
-        }
-        webstatus-page > * {
-          flex-grow: 3;
+        webstatus-app-settings {
+          flex-grow: 1;
         }
       `,
     ];
@@ -85,9 +78,9 @@ export class WebstatusApp extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <webstatus-app-settings .appSettings="${this.settings}">
+      <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
         <webstatus-header></webstatus-header>
-        <webstatus-page>
+        <webstatus-page class="halign-stretch valign-stretch">
           <slot></slot>
         </webstatus-page>
       </webstatus-app-settings>

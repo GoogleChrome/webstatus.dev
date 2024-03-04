@@ -138,7 +138,7 @@ export class FeaturePage extends LitElement {
     const canIUseLink = '#TODO';
     return html`
       <div id="nameAndOffsiteLinks" class="hbox">
-        <h1 class="hgrow">${this.feature!.name}</h1>
+        <h1 class="halign-stretch">${this.feature!.name}</h1>
         <sl-button variant="default" href=${mdnLink}>
           <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
           MDN
@@ -153,7 +153,7 @@ export class FeaturePage extends LitElement {
 
   renderOneWPTScore(browser: string, icon: string): TemplateResult {
     return html`
-      <sl-card class="hgrow wptScore">
+      <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${browser}</div>
         <div class="score">
@@ -199,7 +199,7 @@ export class FeaturePage extends LitElement {
 
   renderAwarenes(): TemplateResult {
     return html`
-      <sl-card class="hgrow" id="awarenss">
+      <sl-card class="halign-stretch" id="awarenss">
         <div slot="header">Awareness</div>
         <p class="under-construction">Small chart goes here...</p>
       </sl-card>
@@ -208,7 +208,7 @@ export class FeaturePage extends LitElement {
 
   renderAdoption(): TemplateResult {
     return html`
-      <sl-card class="hgrow" id="adoption">
+      <sl-card class="halign-stretch" id="adoption">
         <div slot="header">Adoption</div>
         <p class="under-construction">Small chart goes here...</p>
       </sl-card>

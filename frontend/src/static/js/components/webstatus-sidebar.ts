@@ -61,6 +61,7 @@ export class WebstatusSidebar extends LitElement {
         <webstatus-sidebar-menu></webstatus-sidebar-menu>
 
         <sl-divider></sl-divider>
+        <div class="spacer"></div>
 
         <div class="valign-stretch-2"></div>
           <sl-tree id="bottom-menu">

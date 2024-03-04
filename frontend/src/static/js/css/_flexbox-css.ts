@@ -16,6 +16,12 @@
 
 import {css} from 'lit';
 
+/**
+ * Flexbox layout helper classes.
+ *
+ * This is a simplified version of the flexbox layout helper classes from
+ * https://htmlpreview.github.io/?https://raw.githubusercontent.com/dlaliberte/standards-notes/master/flexbox-classes.html
+ */
 export const FLEX_BOX = css`
   .hbox,
   .vbox {
@@ -27,6 +33,11 @@ export const FLEX_BOX = css`
   }
   .vbox {
     flex-direction: column;
+  }
+
+  .hbox.wrap,
+  .vbox.wrap {
+    flex-wrap: wrap;
   }
 
   /* Flexbox alignment */
@@ -85,7 +96,6 @@ export const FLEX_BOX = css`
 
   /* Stretch "alignment" */
 
-  .hbox > .hgrow,  /* obsolete - use .halign-stretch */
   .hbox > .halign-stretch,
   .vbox > .valign-stretch,
   .hbox.halign-items-stretch > *,
@@ -114,11 +124,6 @@ export const FLEX_BOX = css`
   }
 
   /* Space distribution */
-
-  .hbox.space-between {
-    /* obsolete - use .halign-space-between */
-    justify-content: space-between;
-  }
 
   .hbox.halign-items-space-around,
   .vbox.valign-items-space-around {

@@ -24,7 +24,6 @@ import {
 import {customElement} from 'lit/decorators.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
 import './webstatus-login.js';
 
 @customElement('webstatus-header')
@@ -34,8 +33,8 @@ export class WebstatusHeader extends LitElement {
       SHARED_STYLES,
       css`
         header {
-          display: flex;
-          justify-content: space-between;
+          flex-grow: 1; /* .hbox > .halign-stretch */
+          align-items: center;
           background: #f2f2f2;
           height: 94px;
         }
@@ -81,14 +80,23 @@ export class WebstatusHeader extends LitElement {
   }
 
   handleDrawer(): void {
-    this._fireEvent('drawer-clicked', {});
+    this._fireEvent('toggle-menu', {});
   }
 
   render(): TemplateResult {
     return html`
-      <header>
+      <header class="hbox">
         <div class="title">
-          ${this.renderHamburger()}
+          <sl-icon-button
+            id="menu-button"
+            data-testid="menu"
+            variant="text"
+            class="menu"
+            style="font-size: 2.4rem;"
+            @click="${this.handleDrawer}"
+            name="list"
+          >
+          </sl-icon-button>
           <img
             class="website-logo"
             src="https://fakeimg.pl/400x400?text=LOGO"
@@ -96,60 +104,11 @@ export class WebstatusHeader extends LitElement {
           <h2 class="website-title">Web Platform Dashboard</h2>
         </div>
 
-        ${this.renderDrawer()}
-
+        <div class="spacer"></div>
         <div class="sign-in">
           <webstatus-login></webstatus-login>
         </div>
       </header>
     `;
-  }
-
-  renderDrawer(): TemplateResult {
-    if (IS_MOBILE) {
-      return html`
-        <sl-drawer
-          label="Menu"
-          placement="start"
-          class="drawer-placement-start"
-          style="--size: ${DRAWER_WIDTH_PX}px;"
-          contained
-          noHeader
-          @drawer-clicked="${this.toggleDrawer}"
-        >
-          >
-          <webstatus-sidebar></webstatus-sidebar>
-        </sl-drawer>
-      `;
-    } else {
-      return html``;
-    }
-  }
-
-  renderHamburger(): TemplateResult {
-    if (IS_MOBILE) {
-      return html`
-        <sl-icon-button
-          data-testid="menu"
-          variant="text"
-          class="menu"
-          style="font-size: 2.4rem;"
-          @click="${this.handleDrawer}"
-          name="list"
-        >
-        </sl-icon-button>
-      `;
-    } else {
-      return html``;
-    }
-  }
-
-  toggleDrawer(): void {
-    const drawer = this.shadowRoot?.querySelector('sl-drawer');
-    if (drawer?.open === true) {
-      void drawer.hide();
-    } else {
-      if (drawer !== null && drawer !== undefined) void drawer?.show();
-    }
   }
 }

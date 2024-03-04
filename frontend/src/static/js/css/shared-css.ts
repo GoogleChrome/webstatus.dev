@@ -18,7 +18,7 @@ import {css} from 'lit';
 
 import {RESET} from './_reset-css.js';
 import {THEME} from './_theme-css.js';
-import {FLEX_BOX} from './flex-box.js';
+import {FLEX_BOX} from './_flexbox-css.js';
 
 export const SHARED_STYLES = [
   RESET,
