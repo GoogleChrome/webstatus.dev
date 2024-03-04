@@ -68,13 +68,13 @@ export class WebstatusSidebarMenu extends LitElement {
       if (id) {
         const path = idPathMap[id];
         if (path) {
-          // Get current href path component.
-          const href = window.location.href;
-          // Replace the path component.
-          const newHref = href.replace(/\/[^/]*$/, path);
+          // If the path is different from the current path, update the URL.
+          const currentUrl = new URL(window.location.href);
+          currentUrl.pathname = path; // Update only the path
+
           // If the href has changed, update the browser's URL.
-          if (href !== newHref) {
-            window.location.href = newHref;
+          if (currentUrl.href !== window.location.href) {
+            window.location.href = currentUrl.href;
           }
         }
       }
