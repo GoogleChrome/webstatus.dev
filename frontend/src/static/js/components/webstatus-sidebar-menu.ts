@@ -23,12 +23,11 @@ import {
 } from 'lit';
 import {customElement} from 'lit/decorators.js';
 
-// Map from sl-tree-item id to path.
+// Map from sl-tree-item id to path, and vice versa.
 const idPathMap: {[id: string]: string} = {
   'features-item': '/',
   'statistics-item': '/stats',
 };
-// Map the idPathMap to an inverse map.
 const pathIdMap: {[path: string]: string} = {};
 for (const [id, path] of Object.entries(idPathMap)) {
   pathIdMap[path] = id;
@@ -71,8 +70,6 @@ export class WebstatusSidebarMenu extends LitElement {
           // If the path is different from the current path, update the URL.
           const currentUrl = new URL(window.location.href);
           currentUrl.pathname = path; // Update only the path
-
-          // If the href has changed, update the browser's URL.
           if (currentUrl.href !== window.location.href) {
             window.location.href = currentUrl.href;
           }
