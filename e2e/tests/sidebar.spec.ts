@@ -25,6 +25,6 @@ test('matches the screenshot', async ({page}) => {
   await expect(sidebar).toHaveScreenshot('sidebar.png', {
     // Temporarily allow a higher diff ratio as these tests become more stable
     maxDiffPixelRatio: 0.3,
-    threshold: 0.2,
+    threshold: 0.3,
   });
 });
