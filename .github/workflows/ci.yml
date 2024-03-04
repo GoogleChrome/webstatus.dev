@@ -34,22 +34,7 @@ jobs:
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
-      - name: Install skaffold
-        run: |
-          curl -Lo skaffold https://storage.googleapis.com/skaffold/releases/latest/skaffold-linux-amd64 && \
-          sudo install skaffold /usr/local/bin/
-          echo "Skaffold Version: $(skaffold version)"
-      - name: Start minikube
-        uses: medyagh/setup-minikube@4f680380adb365368edacbb09d9ac531070c53e6
+      - name: Run precommit target for CI
+        uses: devcontainers/ci@v0.3
         with:
-          start-args: '--profile webstatus-dev'
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.22.0' # matches the version in .devcontainer/devcontainer.json
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20 # matches the version in .devcontainer/devcontainer.json
-      - name: Run post_create.sh to finish setting up.
-        run: MINIKUBE_PROFILE=webstatus-dev ./.devcontainer/post_create.sh
-      - name: Run playwright tests
-        run: CI=true MINIKUBE_PROFILE=webstatus-dev make playwright-test
+          runCmd: CI=true make playwright test
