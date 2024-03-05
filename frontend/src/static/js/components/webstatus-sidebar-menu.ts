@@ -53,9 +53,9 @@ export class WebstatusSidebarMenu extends LitElement {
       throw new Error('No tree found');
     }
 
-    // Reselect the sl-tree-item corresponding to the current page.
-    const path = window.location.pathname;
-    const id = pathIdMap[path];
+    // Reselect the sl-tree-item corresponding to the current URL path.
+    const currentPath = new URL(window.location.href).pathname;
+    const id = pathIdMap[currentPath];
     const item = tree?.querySelector(`#${id}`);
     if (item) {
       item.setAttribute('selected', '');
