@@ -103,21 +103,6 @@ export class WebstatusSidebarMenu extends LitElement {
         window.location.href = currentUrl.href;
       }
     });
-
-    tree!.addEventListener('sl-selection-change', () => {
-      const selectedItem = tree!.querySelector('[selected]');
-      const id = selectedItem?.id;
-      if (id) {
-        const path = navigationMap[id as NavigationItemKey].path;
-        if (path) {
-          // If the path is different from the current path, update the URL.
-          currentUrl.pathname = path; // Update only the path
-          if (currentUrl.href !== window.location.href) {
-            window.location.href = currentUrl.href;
-          }
-        }
-      }
-    });
   }
 
   render(): TemplateResult {
