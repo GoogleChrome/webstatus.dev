@@ -39,7 +39,51 @@ export class WebstatusOverviewFilters extends LitElement {
     ];
   }
 
+  parseFilterQueryString(filterQueryString: string): Map<string, string[]> {
+    // Parse the filter query string into a map of filter keys and values.
+    const filterQueryMap = new Map<string, string[]>();
+    const filterQueryItems =
+      filterQueryString.length > 0 ? filterQueryString.split(' ') : [];
+    for (const filterQueryItem of filterQueryItems) {
+      const [key, value] = filterQueryItem.split(':');
+      // Parse each value as a comma separated list of values.
+      const valueArray = value.split(',');
+      filterQueryMap.set(key, valueArray);
+
+      // Populate the menu items with the values from the filter query string.
+      const menu = this.shadowRoot!.getElementById(key) as SlMenu;
+      const menuChildren = menu.children;
+      const menuItemsArray: Array<SlMenuItem> = Array.from(menuChildren).filter(
+        child => child instanceof SlMenuItem
+      ) as Array<SlMenuItem>;
+      for (const menuItem of menuItemsArray) {
+        if (valueArray.includes(menuItem.value)) {
+          menuItem.checked = true;
+        }
+      }
+    }
+    return filterQueryMap;
+  }
+
+  generateFilterQueryString(filterQueryMap: Map<string, string[]>): string {
+    // Generate a filter query string from a map of filter keys and values.
+    const filterQueryStringArray: string[] = [];
+    for (const [key, valueArray] of filterQueryMap.entries()) {
+      const valueString = valueArray.join(',');
+      const filterQueryString = `${key}:${valueString}`;
+      filterQueryStringArray.push(filterQueryString);
+    }
+    const filterQueryString = filterQueryStringArray.join(' ');
+    return filterQueryString;
+  }
+
   firstUpdated(): void {
+    // Get the filter query string from filter-query-input
+    const filterQueryInput = this.shadowRoot!.getElementById(
+      'filter-query-input'
+    ) as SlInput;
+    const filterQueryString = (filterQueryInput.value || '').trim();
+    const filterQueryMap = this.parseFilterQueryString(filterQueryString);
 
     const makeFilterSelectHandler = (id: string): ((event: Event) => void) => {
       return (event: Event) => {
@@ -56,17 +100,14 @@ export class WebstatusOverviewFilters extends LitElement {
           menuItem => menuItem.checked
         );
         const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
-        const filterQueryItems = checkedItemsValues.join(',');
-        const filterQueryWithPrefix = `${id}:${filterQueryItems}`;
+        // const filterQueryClause = `${id}:${checkedItemsValues.join(',')}`;
 
-        // Get the filter-query-input value.
-        const filterQueryInput = this.shadowRoot!.getElementById(
-          'filter-query-input'
-        ) as SlInput;
-
-        // Modify the filterQueryInput to reflect the currently selected items.
-        // For now, just overwrite the entire query string.
-        filterQueryInput.value = filterQueryWithPrefix;
+        // Update the filterQueryMap with the new values.
+        filterQueryMap.set(id, checkedItemsValues);
+        // Update the filterQuery input with the new filter query string.
+        const filterQueryString =
+          this.generateFilterQueryString(filterQueryMap);
+        filterQueryInput.value = filterQueryString;
       };
     };
 
@@ -138,6 +179,12 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
+          <sl-button>
+            <sl-icon name="plus-circle"></sl-icon>
+            Baseline since
+            <sl-icon name="calendar-blank" library="phosphor"></sl-icon>
+          </sl-button>
+
           <sl-dropdown stay-open-on-select>
             <sl-button slot="trigger">
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
@@ -171,13 +218,11 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Standards track
-            </sl-button>
-            <sl-menu> </sl-menu>
-          </sl-dropdown>
+          <sl-button slot="trigger">
+            <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+            Standards track
+            <sl-checkbox> </sl-checkbox>
+          </sl-button>
 
           <sl-dropdown stay-open-on-select>
             <sl-button slot="trigger">
