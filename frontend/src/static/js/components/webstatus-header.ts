@@ -70,7 +70,6 @@ export class WebstatusHeader extends LitElement {
   }
 
   _fireEvent(eventName: string, detail: CustomEventInit | undefined): void {
-    console.info(`Firing event: ${eventName}`);
     const event = new CustomEvent(eventName, {
       bubbles: true,
       composed: true,
