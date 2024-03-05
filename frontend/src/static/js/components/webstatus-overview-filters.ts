@@ -18,6 +18,7 @@ import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {getSearchQuery} from '../utils/urls.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {SlInput, SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 
 import './webstatus-overview-table.js';
 
@@ -38,12 +39,45 @@ export class WebstatusOverviewFilters extends LitElement {
     ];
   }
 
+  firstUpdated(): void {
+    // Add sl-select event handler to all sl-menu elements.
+    const menuElements = this.shadowRoot!.querySelectorAll('sl-menu');
+    for (const menuElement of menuElements) {
+      menuElement.addEventListener('sl-select', this.onFilterSelect);
+    }
+  }
+
+  onFilterSelect(event: Event): void {
+    const menu = event.target as SlMenu;
+    const menuChildren = menu.children;
+
+    // Convert the HTMLCollection to an array
+    const menuItemsArray = Array.from(menuChildren).filter(
+      child => child.tagName === 'SL-MENU-ITEM'
+    );
+
+    // Create a list of the currently checked sl-menu-items.
+    const checkedItems = menuItemsArray.filter(menuItem => menuItem.checked);
+    // Build a query string from the values of checked sl-menu-items.
+    const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
+    const filterQuery = checkedItemsValues.join(',');
+
+    // Get the filter-query-input value.
+    const filterQueryInput = this.shadowRoot!.getElementById(
+      'filter-query-input'
+    ) as SlInput;
+
+    // Modify the filterQueryInput to reflect the currently selected sl-menu-items in the sl-menu.
+    filterQueryInput.value = filterQuery;
+  }
+
   render(): TemplateResult {
     const query = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
           <sl-input
+            id="filter-query-input"
             class="halign-stretch"
             placeholder="Filter by feature name..."
             value="${query}"
@@ -114,83 +148,4 @@ export class WebstatusOverviewFilters extends LitElement {
           </sl-dropdown>
 
           <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Browser type
-            </sl-button>
-            <sl-menu>
-              <sl-menu-item type="checkbox" value="stable-builds">
-                Stable builds
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="dev-builds">
-                Dev builds
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Standards track
-            </sl-button>
-            <sl-menu> </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Spec maturity
-            </sl-button>
-            <sl-menu>
-              <sl-menu-item type="checkbox" value="unknown">
-                Unknown
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="proposed">
-                Proposed
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="incubation">
-                Incubation
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="working-draft">
-                Working draft
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="living-standard">
-                Living standard
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Web platform test score
-            </sl-button>
-            <sl-menu>
-              <sl-menu-item type="checkbox" value="chrome">
-                Chrome
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-              <sl-menu-item type="checkbox" value="firefox">
-                Firefox
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="safari">
-                Safari
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon
-                slot="prefix"
-                name="square-split-horizontal"
-                library="phosphor"
-              ></sl-icon>
-              Columns
-            </sl-button>
-          </sl-dropdown>
-        </div>
-      </div>
-    `;
-  }
-}
+            <sl-button slot="trigger
