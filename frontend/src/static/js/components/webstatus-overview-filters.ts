@@ -62,9 +62,7 @@ export class WebstatusOverviewFilters extends LitElement {
         child => child instanceof SlMenuItem
       ) as Array<SlMenuItem>;
       for (const menuItem of menuItemsArray) {
-        if (valueArray.includes(menuItem.value)) {
-          menuItem.checked = true;
-        }
+        menuItem.checked = valueArray.includes(menuItem.value);
       }
     }
     return filterQueryMap;
@@ -75,8 +73,7 @@ export class WebstatusOverviewFilters extends LitElement {
     const filterQueryStringArray: string[] = [];
     for (const [key, valueArray] of filterQueryMap.entries()) {
       const valueString = valueArray.join(',');
-      const filterQueryString = `${key}:${valueString}`;
-      filterQueryStringArray.push(filterQueryString);
+      filterQueryStringArray.push(`${key}:${valueString}`);
     }
     const filterQueryString = filterQueryStringArray.join(' ');
     return filterQueryString;
@@ -100,12 +97,11 @@ export class WebstatusOverviewFilters extends LitElement {
         ).filter(child => child instanceof SlMenuItem) as Array<SlMenuItem>;
 
         // Create a list of the currently checked sl-menu-items.
-        // Build a query string from the values of those items.
         const checkedItems = menuItemsArray.filter(
           menuItem => menuItem.checked
         );
+        // Build a query string from the values of those items.
         const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
-        // const filterQueryClause = `${id}:${checkedItemsValues.join(',')}`;
 
         // Update the filterQueryMap with the new values.
         filterQueryMap.set(id, checkedItemsValues);
