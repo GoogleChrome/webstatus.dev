@@ -56,3 +56,6 @@ coverage
 
 # Ignore the file per this: https://github.com/golang/go/issues/51941
 go.work.sum
+
+# ANTLR4
+.antlr
