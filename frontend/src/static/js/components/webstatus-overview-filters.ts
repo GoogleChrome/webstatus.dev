@@ -40,35 +40,43 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   firstUpdated(): void {
+
+    const makeFilterSelectHandler = (id: string): ((event: Event) => void) => {
+      return (event: Event) => {
+        const menu = event.target as SlMenu;
+        const menuChildren = menu.children;
+
+        const menuItemsArray: Array<SlMenuItem> = Array.from(
+          menuChildren
+        ).filter(child => child instanceof SlMenuItem) as Array<SlMenuItem>;
+
+        // Create a list of the currently checked sl-menu-items.
+        // Build a query string from the values of those items.
+        const checkedItems = menuItemsArray.filter(
+          menuItem => menuItem.checked
+        );
+        const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
+        const filterQueryItems = checkedItemsValues.join(',');
+        const filterQueryWithPrefix = `${id}:${filterQueryItems}`;
+
+        // Get the filter-query-input value.
+        const filterQueryInput = this.shadowRoot!.getElementById(
+          'filter-query-input'
+        ) as SlInput;
+
+        // Modify the filterQueryInput to reflect the currently selected items.
+        // For now, just overwrite the entire query string.
+        filterQueryInput.value = filterQueryWithPrefix;
+      };
+    };
+
     // Add sl-select event handler to all sl-menu elements.
     const menuElements = Array.from(
       this.shadowRoot!.querySelectorAll('sl-menu')
     );
-    const filterSelectHandler = (event: Event): void => {
-      const menu = event.target as SlMenu;
-      const menuChildren = menu.children;
-
-      // Convert the HTMLCollection to an array
-      const menuItemsArray: Array<SlMenuItem> = Array.from(menuChildren).filter(
-        child => child instanceof SlMenuItem
-      ) as Array<SlMenuItem>;
-
-      // Create a list of the currently checked sl-menu-items.
-      const checkedItems = menuItemsArray.filter(menuItem => menuItem.checked);
-      // Build a query string from the values of checked sl-menu-items.
-      const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
-      const filterQuery = checkedItemsValues.join(',');
-
-      // Get the filter-query-input value.
-      const filterQueryInput = this.shadowRoot!.getElementById(
-        'filter-query-input'
-      ) as SlInput;
-
-      // Modify the filterQueryInput to reflect the currently selected sl-menu-items in the sl-menu.
-      filterQueryInput.value = filterQuery;
-    };
     for (const menuElement of menuElements) {
-      menuElement.addEventListener('sl-select', filterSelectHandler);
+      const id = menuElement.id;
+      menuElement.addEventListener('sl-select', makeFilterSelectHandler(id));
     }
   }
 
@@ -93,7 +101,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Available on
             </sl-button>
-            <sl-menu>
+            <sl-menu id="available_on">
               <sl-menu-item type="checkbox" value="chrome">
                 Chrome
               </sl-menu-item>
@@ -112,7 +120,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Not available on
             </sl-button>
-            <sl-menu>
+            <sl-menu id="not_available_on">
               <sl-menu-item type="checkbox" value="chrome">
                 Chrome
               </sl-menu-item>
@@ -135,7 +143,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Baseline status
             </sl-button>
-            <sl-menu>
+            <sl-menu id="baseline_status">
               <sl-menu-item type="checkbox" value="widely">
                 Widely available
               </sl-menu-item>
@@ -153,7 +161,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Browser type
             </sl-button>
-            <sl-menu>
+            <sl-menu id="browser_type">
               <sl-menu-item type="checkbox" value="stable-builds">
                 Stable builds
               </sl-menu-item>
@@ -176,7 +184,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Spec maturity
             </sl-button>
-            <sl-menu>
+            <sl-menu id="spec_maturity">
               <sl-menu-item type="checkbox" value="unknown">
                 Unknown
               </sl-menu-item>
@@ -200,7 +208,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Web platform test score
             </sl-button>
-            <sl-menu>
+            <sl-menu id="web_platform_test_score">
               <sl-menu-item type="checkbox" value="chrome">
                 Chrome
               </sl-menu-item>
