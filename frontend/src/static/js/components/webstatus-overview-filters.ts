@@ -35,6 +35,11 @@ export class WebstatusOverviewFilters extends LitElement {
         .filter-buttons {
           gap: var(--content-padding);
         }
+
+        #baseline_since_button > sl-icon[name='calendar-blank'],
+        #standards_track_button > sl-checkbox {
+          padding-left: 1rem;
+        }
       `,
     ];
   }
@@ -179,7 +184,7 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
-          <sl-button>
+          <sl-button id="baseline_since_button">
             <sl-icon name="plus-circle"></sl-icon>
             Baseline since
             <sl-icon name="calendar-blank" library="phosphor"></sl-icon>
@@ -218,7 +223,7 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
-          <sl-button slot="trigger">
+          <sl-button id="standards_track_button">
             <sl-icon slot="prefix" name="plus-circle"></sl-icon>
             Standards track
             <sl-checkbox> </sl-checkbox>
