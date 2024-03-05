@@ -22,16 +22,33 @@ import {
   html,
 } from 'lit';
 import {customElement} from 'lit/decorators.js';
+import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
 
-// Map from sl-tree-item id to path, and vice versa.
-const idPathMap: {[id: string]: string} = {
-  'features-item': '/',
-  'statistics-item': '/stats',
-};
-const pathIdMap: {[path: string]: string} = {};
-for (const [id, path] of Object.entries(idPathMap)) {
-  pathIdMap[path] = id;
+// Map from sl-tree-item ids to paths.
+enum NavigationItemKey {
+  FEATURES = 'features-item',
+  STATISTICS = 'statistics-item',
 }
+
+interface NavigationItem {
+  id: string;
+  path: string;
+}
+
+type NavigationMap = {
+  [key in NavigationItemKey]: NavigationItem;
+};
+
+const navigationMap: NavigationMap = {
+  [NavigationItemKey.FEATURES]: {
+    id: NavigationItemKey.FEATURES,
+    path: '/',
+  },
+  [NavigationItemKey.STATISTICS]: {
+    id: NavigationItemKey.STATISTICS,
+    path: '/stats',
+  },
+};
 
 @customElement('webstatus-sidebar-menu')
 export class WebstatusSidebarMenu extends LitElement {
@@ -48,27 +65,52 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   firstUpdated(): void {
-    const tree = this.shadowRoot?.querySelector('sl-tree');
+    const tree = this.shadowRoot!.querySelector('sl-tree') as SlTree;
     if (!tree) {
       throw new Error('No tree found');
     }
 
     // Reselect the sl-tree-item corresponding to the current URL path.
-    const currentPath = new URL(window.location.href).pathname;
-    const id = pathIdMap[currentPath];
-    const item = tree?.querySelector(`#${id}`);
-    if (item) {
-      item.setAttribute('selected', '');
+    const currentUrl = new URL(window.location.href);
+    const currentPath = currentUrl.pathname;
+    const matchingNavItem = Object.values(navigationMap).find(
+      item => item.path === currentPath
+    );
+
+    if (matchingNavItem) {
+      const itemToSelect = tree.querySelector(
+        `#${matchingNavItem.id}`
+      ) as SlTreeItem;
+      if (itemToSelect) {
+        itemToSelect.selected = true;
+      }
     }
+
+    tree!.addEventListener('sl-selection-change', () => {
+      const selectedItems = tree.selectedItems;
+      if (selectedItems.length <= 0) {
+        return;
+      }
+      const selectedItem = selectedItems[0];
+      const navigationItem =
+        navigationMap[selectedItem.id as NavigationItemKey];
+      if (!navigationItem) {
+        return;
+      }
+      currentUrl.pathname = navigationItem.path;
+
+      if (currentUrl.href !== window.location.href) {
+        window.location.href = currentUrl.href;
+      }
+    });
 
     tree!.addEventListener('sl-selection-change', () => {
       const selectedItem = tree!.querySelector('[selected]');
       const id = selectedItem?.id;
       if (id) {
-        const path = idPathMap[id];
+        const path = navigationMap[id as NavigationItemKey].path;
         if (path) {
           // If the path is different from the current path, update the URL.
-          const currentUrl = new URL(window.location.href);
           currentUrl.pathname = path; // Update only the path
           if (currentUrl.href !== window.location.href) {
             window.location.href = currentUrl.href;
@@ -84,7 +126,7 @@ export class WebstatusSidebarMenu extends LitElement {
         <sl-icon name="caret-right-fill" slot="expand-icon"></sl-icon>
         <sl-icon name="caret-right-fill" slot="collapse-icon"></sl-icon>
 
-        <sl-tree-item id="features-item">
+        <sl-tree-item id="${NavigationItemKey.FEATURES}">
           <sl-icon name="menu-button"></sl-icon> Features
           <sl-tree-item>
             <sl-icon name="bookmark"></sl-icon> Baseline 2023
@@ -94,7 +136,7 @@ export class WebstatusSidebarMenu extends LitElement {
           </sl-tree-item>
           <sl-tree-item> <sl-icon name="star"></sl-icon> Starred </sl-tree-item>
         </sl-tree-item>
-        <sl-tree-item id="statistics-item">
+        <sl-tree-item id="${NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item>
         <sl-tree-item> <sl-icon name="bell"></sl-icon> Updates </sl-tree-item>
