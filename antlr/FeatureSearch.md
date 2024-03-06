@@ -1,95 +1,62 @@
-## Feature Search Grammar Documentation
+# Feature Search Query Language
 
-This document provides a comprehensive guide to the Feature Search grammar, explaining its functionalities, rules,
-and usage with examples.
+This query language enables you to construct flexible searches to find features based on various criteria.
 
-### Introduction
+## Key Concepts
 
-The Feature Search grammar enables the construction of queries to search for features based on various criteria,
-including availability on specific browsers, specific feature names, and more. It offers flexibility for future
-expansion with new search fields and functionalities.
+- Terms: The basic building blocks of a search query. Each term has an identifier (available_on, baseline_status, name) followed by a colon (:) and its corresponding value without any spaces.
+- **Value Types:**
+  - browsers (`BROWSER_NAME`)
+    - Accepted Values: `[a-z]+`
+    - Example:
+      - chrome
+  - features (`FEATURE_NAME`)
+    - Accepted Values: `'"' [a-zA-Z][a-zA-Z0-9_-]* [ ]* '"' | [a-zA-Z][a-zA-Z0-9_-]*`
+    - Examples:
+      - Grid
+      - "CSS Grid"
+  - baseline statuses (`BASELINE_STATUS`)
+    - Accepted Values: 'none' | 'low' | 'high'
+    - Examples:
+      - none
+  - browser list (`BROWSER_LIST`)
+    - Accepted Values: `BROWSER_NAME (',' BROWSER_NAME)*`
+    - Examples:
+      - chrome
+      - chrome,safari
+- ## **Terms:**
+  - `available_on`: Indicates whether a feature is available on a specific browser. Expects a browser name (BROWSER_NAME) as its value.
+    - Example: `available_on:chrome`
+  - `baseline_status`: Represents a feature's baseline status. Expects an enum value (BASELINE_STATUS) as its value.
+    - Example: `baseline_status:low`
+  - `name`: Searches for features by their name. Expects a feature name (FEATURE_NAME) as its value.
+    - Examples:
+      - `name:grid`
+      - `name:"CSS Grid"`
+  - `missing_in_one_of`: Searches for features that are almost universally supported, meaning they are available on all
+    browsers **except one**. Expects a browser list (BROWSER_LIST) as its value.
+    - Example:
+      - missing_in_one_of(chrome, edge, firefox)
+        - Explanation: Look at all the features supported among the 4 specified browsers. Find the features that are
+          supported in N-1 browsers.
+- **Negation:** Prepend a term with a minus sign (-) to indicate negation (search for features not matching that criterion).
+- **Keywords:** These are reserved words used in the grammar, such as `AND`, `OR`
+  - `AND`: Combine terms with the AND keyword for explicit logical AND, or use a space between terms for implied AND.
+  - `OR`: Combine terms with OR for logical OR operations.
+- **Standalone Feature Names:** Search by feature name without a 'name:' prefix.
 
-### Grammar Rules
+## Example Queries
 
-The grammar is composed of several key rules:
+### Simple Term Examples
 
-- **Keywords:** These are reserved words used in the grammar, such as `AND`, `OR`, `SORT_BY`, `ASC`, and `DESC`.
-- **Identifiers:** These represent names of browsers (`BROWSER_NAME`) and features (`FEATURE_NAME`).
-- **Search Criteria:** These are the fundamental building blocks of a search query, encompassing various conditions to
-  filter results:
-  - **Availability Information (`availability_information`):** Checks if a feature is available on a specific browser.
-  - **Negation of Availability (`negation_of_availability`):** Checks if a feature is **not** available on a specific
-    browser.
-  - **Specific Feature Name (`specific_feature_name`):** Searches for features with a matching name.
-- **Search Expression (`feature_expr`):** Represents a single search criterion.
-- **Combined Search Criteria (`combined_search_criteria`):** Combines multiple search expressions using `AND` or `OR`
-  operators.
-- **Sorting Specification (`sorting_spec`):** (Optional) Specifies the criteria and direction for sorting the search
-  results.
-- **Search Query (`query`):** The top-level rule that defines a complete search query, consisting of combined search
-  criteria (optionally with sorting).
+- `available_on:chrome` - Find features available on Chrome.
+- `-available_on:firefox` - Find features not available on Firefox.
+- `baseline_status:high` - Find features with a high baseline status.
+- `name:"Dark Mode"` - Find features named "Dark Mode" (including spaces).
 
-### Search Criteria and Examples
+### Complex Queries
 
-Here are examples of basic search queries using different criteria:
-
-**Example 1: Find features available on Chrome:**
-
-```
-available_on: chrome
-```
-
-**Example 2: Find features not available on Chrome:**
-
-```
-NOT available_on: chrome
-```
-
-**Example 3: Find features named "CSS Grid":**
-
-```
-name: CSS Grid
-```
-
-**Combining Criteria:**
-
-You can combine multiple criteria using `AND` or `OR` operators within `combined_search_criteria`:
-
-**Example 4: Find features available on Chrome or Edge and named "CSS Grid":**
-
-```
-(available_on: chrome OR available_on: edge) AND name: CSS Grid
-```
-
-**Example 5: Find features available on Chrome but not on Firefox:**
-
-```
-available_on: chrome AND NOT available_on: firefox
-```
-
-### Almost Universally Supported Features
-
-The grammar allows searching for features that are almost universally supported, meaning they are available on all
-browsers **except one**. This functionality is achieved using the `missing_in_one_of` condition:
-
-**Example 6: Find features almost universally supported (missing in one browser)**
-
-```
-missing_in_one_of(chrome,firefox,edge,safari)
-```
-
-**Explanation:**
-
-- `missing_in_one_of(chrome,firefox,edge,safari)`: Look at all the features supported among the 4 specified browsers.
-  Find the features that are supported in N-1 browsers.
-
-### Sorting
-
-The grammar supports optional sorting of search results by specifying a feature name and direction (ascending or descending) using the `SORT_BY` keyword:
-
-**Example 7: Find features available on Chrome, sorted by name in ascending order:**
-
-```
-available_on: Chrome
-SORT_BY: name ASC
-```
+- `available_on:chrome AND baseline_status:low` - Find features available on Chrome and having a low baseline status.
+- `-available_on:firefox OR name:"CSS Grid"` - Find features either not available on Firefox or named "CSS Grid".
+- `missing_in_one_of(chrome,firefox,safari)` - Find features missing from at least one of the listed browsers.
+- `"CSS Grid" baseline_status:none` - Find features named "CSS Grid" with a baseline status of none (implied AND).
