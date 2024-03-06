@@ -26,7 +26,7 @@ resource "null_resource" "docker_auth_setup" {
   triggers = {
     docker_region = var.docker_repository_region
     # Debug to always force the auth.
-    # always_run    = "${timestamp()}"
+    always_run = "${timestamp()}"
   }
   provisioner "local-exec" {
     command = "gcloud auth configure-docker -q ${self.triggers.docker_region}-docker.pkg.dev"

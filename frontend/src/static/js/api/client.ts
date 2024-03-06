@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import createClient, {type FetchOptions} from 'openapi-fetch';
+import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
 import {type components, type paths} from 'webstatus.dev-backend';
 
 // TODO. Remove once not behind UbP
@@ -22,10 +22,19 @@ const temporaryFetchOptions: FetchOptions<unknown> = {
   credentials: 'include',
 };
 
+// TODO. Remove once not behind UbP
+// https://github.com/drwpow/openapi-typescript/issues/1431
+const temporaryHeaders: HeadersOptions = {
+  'Content-Type': null,
+};
+
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>;
   constructor(baseUrl: string) {
-    this.client = createClient<paths>({baseUrl});
+    this.client = createClient<paths>({
+      baseUrl,
+      headers: temporaryHeaders,
+    });
   }
 
   public async getFeature(

@@ -27,6 +27,11 @@ type FeatureBaseQuery struct{}
 //  5. The latest metrics from WPT.
 //     It provides these metrics for both "stable" and "experimental" channels.
 //     The metrics retrieved are for each unique BrowserName/Channel/FeatureID.
+//
+// Note about the metrics calculations:
+// The metrics columns need to be wrapped in TO_JSON. As a result, the metrics
+// need to be parsed. More details about it in the TODO below.
+// TODO: Fix https://github.com/GoogleChrome/webstatus.dev/issues/77
 func (f FeatureBaseQuery) Query() string {
 	return `
 SELECT
@@ -36,7 +41,7 @@ SELECT
 	COALESCE(fbs.Status, 'undefined') AS Status,
 
 	-- StableMetrics Calculation
-	(SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
+	(SELECT TO_JSON(ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass)))
 		FROM (
 		SELECT browser_feature_list.BrowserName, TotalTests, TestPass
 		FROM (
@@ -56,7 +61,7 @@ SELECT
 	) latest_metric) AS StableMetrics,
 
 	-- ExperimentalMetrics Calculation
-	(SELECT ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass))
+	(SELECT TO_JSON(ARRAY_AGG(STRUCT(BrowserName, TotalTests, TestPass)))
 		FROM (
 		SELECT browser_feature_list.BrowserName, TotalTests, TestPass
 		FROM (
