@@ -18,6 +18,7 @@ import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {getSearchQuery} from '../utils/urls.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {SlInput, SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 
 import './webstatus-overview-table.js';
 
@@ -34,8 +35,91 @@ export class WebstatusOverviewFilters extends LitElement {
         .filter-buttons {
           gap: var(--content-padding);
         }
+
+        #baseline_since_button > sl-icon[name='calendar-blank'],
+        #standards_track_button > sl-checkbox {
+          padding-left: 1rem;
+        }
       `,
     ];
+  }
+
+  parseFilterQueryString(filterQueryString: string): Map<string, string[]> {
+    // Parse the filter query string into a map of filter keys and values.
+    const filterQueryMap = new Map<string, string[]>();
+    const filterQueryItems =
+      filterQueryString.length > 0 ? filterQueryString.split(' ') : [];
+    for (const filterQueryItem of filterQueryItems) {
+      const [key, value] = filterQueryItem.split(':');
+      // Parse each value as a comma separated list of values.
+      const valueArray = value.split(',');
+      filterQueryMap.set(key, valueArray);
+
+      // Populate the menu items with the values from the filter query string.
+      const menu = this.shadowRoot!.getElementById(key) as SlMenu;
+      const menuChildren = menu.children;
+      const menuItemsArray: Array<SlMenuItem> = Array.from(menuChildren).filter(
+        child => child instanceof SlMenuItem
+      ) as Array<SlMenuItem>;
+      for (const menuItem of menuItemsArray) {
+        menuItem.checked = valueArray.includes(menuItem.value);
+      }
+    }
+    return filterQueryMap;
+  }
+
+  generateFilterQueryString(filterQueryMap: Map<string, string[]>): string {
+    // Generate a filter query string from a map of filter keys and values.
+    const filterQueryStringArray: string[] = [];
+    for (const [key, valueArray] of filterQueryMap.entries()) {
+      const valueString = valueArray.join(',');
+      filterQueryStringArray.push(`${key}:${valueString}`);
+    }
+    const filterQueryString = filterQueryStringArray.join(' ');
+    return filterQueryString;
+  }
+
+  firstUpdated(): void {
+    // Get the filter query string from filter-query-input
+    const filterQueryInput = this.shadowRoot!.getElementById(
+      'filter-query-input'
+    ) as SlInput;
+    const filterQueryString = (filterQueryInput.value || '').trim();
+    const filterQueryMap = this.parseFilterQueryString(filterQueryString);
+
+    const makeFilterSelectHandler = (id: string): ((event: Event) => void) => {
+      return (event: Event) => {
+        const menu = event.target as SlMenu;
+        const menuChildren = menu.children;
+
+        const menuItemsArray: Array<SlMenuItem> = Array.from(
+          menuChildren
+        ).filter(child => child instanceof SlMenuItem) as Array<SlMenuItem>;
+
+        // Create a list of the currently checked sl-menu-items.
+        const checkedItems = menuItemsArray.filter(
+          menuItem => menuItem.checked
+        );
+        // Build a query string from the values of those items.
+        const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
+
+        // Update the filterQueryMap with the new values.
+        filterQueryMap.set(id, checkedItemsValues);
+        // Update the filterQuery input with the new filter query string.
+        const filterQueryString =
+          this.generateFilterQueryString(filterQueryMap);
+        filterQueryInput.value = filterQueryString;
+      };
+    };
+
+    // Add sl-select event handler to all sl-menu elements.
+    const menuElements = Array.from(
+      this.shadowRoot!.querySelectorAll('sl-menu')
+    );
+    for (const menuElement of menuElements) {
+      const id = menuElement.id;
+      menuElement.addEventListener('sl-select', makeFilterSelectHandler(id));
+    }
   }
 
   render(): TemplateResult {
@@ -44,6 +128,7 @@ export class WebstatusOverviewFilters extends LitElement {
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
           <sl-input
+            id="filter-query-input"
             class="halign-stretch"
             placeholder="Filter by feature name..."
             value="${query}"
@@ -58,7 +143,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Available on
             </sl-button>
-            <sl-menu>
+            <sl-menu id="available_on">
               <sl-menu-item type="checkbox" value="chrome">
                 Chrome
               </sl-menu-item>
@@ -77,7 +162,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Not available on
             </sl-button>
-            <sl-menu>
+            <sl-menu id="not_available_on">
               <sl-menu-item type="checkbox" value="chrome">
                 Chrome
               </sl-menu-item>
@@ -95,12 +180,18 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
+          <sl-button id="baseline_since_button">
+            <sl-icon name="plus-circle"></sl-icon>
+            Baseline since
+            <sl-icon name="calendar-blank" library="phosphor"></sl-icon>
+          </sl-button>
+
           <sl-dropdown stay-open-on-select>
             <sl-button slot="trigger">
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Baseline status
             </sl-button>
-            <sl-menu>
+            <sl-menu id="baseline_status">
               <sl-menu-item type="checkbox" value="widely">
                 Widely available
               </sl-menu-item>
@@ -118,7 +209,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Browser type
             </sl-button>
-            <sl-menu>
+            <sl-menu id="browser_type">
               <sl-menu-item type="checkbox" value="stable-builds">
                 Stable builds
               </sl-menu-item>
@@ -128,20 +219,18 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Standards track
-            </sl-button>
-            <sl-menu> </sl-menu>
-          </sl-dropdown>
+          <sl-button id="standards_track_button">
+            <sl-icon slot="prefix" name="plus-circle"></sl-icon>
+            Standards track
+            <sl-checkbox> </sl-checkbox>
+          </sl-button>
 
           <sl-dropdown stay-open-on-select>
             <sl-button slot="trigger">
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Spec maturity
             </sl-button>
-            <sl-menu>
+            <sl-menu id="spec_maturity">
               <sl-menu-item type="checkbox" value="unknown">
                 Unknown
               </sl-menu-item>
@@ -165,7 +254,7 @@ export class WebstatusOverviewFilters extends LitElement {
               <sl-icon slot="prefix" name="plus-circle"></sl-icon>
               Web platform test score
             </sl-button>
-            <sl-menu>
+            <sl-menu id="web_platform_test_score">
               <sl-menu-item type="checkbox" value="chrome">
                 Chrome
               </sl-menu-item>
