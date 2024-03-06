@@ -32,16 +32,15 @@ export class WebstatusPage extends LitElement {
           width: 100%;
         }
 
-        #sidebar-drawer::part(base) {
-          position: relative;
-          width: ${DRAWER_WIDTH_PX}px;
+        #sidebar-drawer {
+          max-width: ${DRAWER_WIDTH_PX}px;
         }
-        #sidebar-drawer::part(body) {
-          overflow: hidden;
+        #sidebar-drawer:not([open]),
+        #sidebar-drawer[no-header]::part(header) {
+          display: none;
         }
 
         webstatus-sidebar {
-          max-width: 288px;
           padding-right: 20px;
           padding-top: 10px;
         }
@@ -86,15 +85,9 @@ export class WebstatusPage extends LitElement {
 
   protected render(): TemplateResult {
     return html` <div class="container hbox valign-items-top">
-      <sl-drawer
-        id="sidebar-drawer"
-        label="Menu"
-        placement="start"
-        contained
-        no-header
-      >
+      <sl-details id="sidebar-drawer" class="halign-shrink-0" no-header>
         <webstatus-sidebar></webstatus-sidebar>
-      </sl-drawer>
+      </sl-details>
       <div class="page-container vbox halign-stretch"><slot></slot></div>
     </div>`;
   }
