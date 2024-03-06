@@ -123,6 +123,11 @@ export const FLEX_BOX = css`
     align-self: stretch;
   }
 
+  .hbox > .halign-shrink-0,
+  .vbox > .valign-shrink-0 {
+    flex-shrink: 0;
+  }
+
   /* Space distribution */
 
   .hbox.halign-items-space-around,

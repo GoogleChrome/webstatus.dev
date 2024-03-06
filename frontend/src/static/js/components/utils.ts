@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-export const DRAWER_WIDTH_PX = 390;
+export const DRAWER_WIDTH_PX = 288;
 
 // Determine if the browser looks like the user is on a mobile device.
 // We assume that a small enough window width implies a mobile device.
