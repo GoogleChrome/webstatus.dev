@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -30,10 +31,6 @@ import (
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
-
-const testSpannerProject = "local"
-const testSpannerInstance = "local"
-const testSpannerDBName = "local"
 
 const releasesPerBrowser = 50
 const runsPerBrowserPerChannel = 1
@@ -276,8 +273,20 @@ func generateRunsAndMetrics(
 
 func main() {
 	// Use the grpc port from spanner in .dev/spanner/skaffold.yaml
-	os.Setenv("SPANNER_EMULATOR_HOST", "localhost:9010")
-	client, err := gcpspanner.NewSpannerClient(testSpannerProject, testSpannerInstance, testSpannerDBName)
+	// Describe the command line flags and parse the flags
+	var (
+		spannerProject  = flag.String("spanner_project", "", "Spanner Project")
+		spannerInstance = flag.String("spanner_instance", "", "Spanner Instance")
+		spannerDatabase = flag.String("spanner_database", "", "Spanner Database")
+	)
+	flag.Parse()
+
+	slog.Info("establishing spanner client",
+		"project", *spannerProject,
+		"instance", *spannerInstance,
+		"database", *spannerDatabase)
+
+	client, err := gcpspanner.NewSpannerClient(*spannerProject, *spannerInstance, *spannerDatabase)
 	if err != nil {
 		slog.Error("unable to create spanner client", "error", err)
 		os.Exit(1)

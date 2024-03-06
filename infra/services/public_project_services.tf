@@ -27,3 +27,13 @@ resource "google_project_service" "public_certificate_manager" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+# https://stackoverflow.com/questions/68154414/google-cloud-spanner-requests-enabling-on-a-different-project
+# Public project does not deploy actual instances but it is needed.
+resource "google_project_service" "public_spanner" {
+  provider = google.public_project
+  service  = "spanner.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}

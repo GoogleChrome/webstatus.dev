@@ -103,6 +103,15 @@ resource "google_project_iam_member" "gcp_datastore_user" {
   member   = google_service_account.backend.member
 }
 
+resource "google_spanner_database_iam_member" "gcp_spanner_user" {
+  role     = "roles/spanner.databaseReader"
+  provider = google.internal_project
+  database = var.spanner_datails.database
+  instance = var.spanner_datails.instance
+  project  = var.datastore_info.project_id
+  member   = google_service_account.backend.member
+}
+
 resource "google_cloud_run_service_iam_member" "public" {
   provider = google.public_project
   for_each = google_cloud_run_v2_service.service

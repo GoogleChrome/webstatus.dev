@@ -29,9 +29,9 @@ CREATE TABLE IF NOT EXISTS WPTRuns (
     ExternalRunID INT64 NOT NULL, -- ID from WPT
     TimeStart TIMESTAMP NOT NULL,
     TimeEnd TIMESTAMP NOT NULL,
-    BrowserName STRING(64),
-    BrowserVersion STRING(32), -- From wpt.fyi. Contains major.minor.patch and more.
-    Channel STRING(32),
+    BrowserName STRING(64) NOT NULL,
+    BrowserVersion STRING(32) NOT NULL, -- From wpt.fyi. Contains major.minor.patch and more.
+    Channel STRING(32) NOT NULL,
     OSName STRING(64),
     OSVersion STRING(32),
     FullRevisionHash STRING(40),
@@ -74,7 +74,7 @@ CREATE TABLE IF NOT EXISTS BrowserReleases (
 -- BrowserFeatureAvailabilities contains information when a browser is available for a feature.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers
 CREATE TABLE IF NOT EXISTS BrowserFeatureAvailabilities (
-    BrowserName STRING(64), -- From BCD not wpt.fyi.
+    BrowserName STRING(64) NOT NULL, -- From BCD not wpt.fyi.
     BrowserVersion STRING(8) NOT NULL, -- From BCD not wpt.fyi. Only contains major number.
     FeatureID STRING(64) NOT NULL, -- From web features repo.
     FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
