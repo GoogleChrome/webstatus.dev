@@ -45,12 +45,6 @@ export class WebstatusPage extends LitElement {
           padding-top: 10px;
         }
 
-        @media (max-width: 768px) {
-          webstatus-sidebar.vbox {
-            display: none;
-          }
-        }
-
         .page-container {
           padding: var(--content-padding);
         }
@@ -85,7 +79,11 @@ export class WebstatusPage extends LitElement {
 
   protected render(): TemplateResult {
     return html` <div class="container hbox valign-items-top">
-      <sl-details id="sidebar-drawer" class="halign-shrink-0" no-header>
+      <sl-details
+        id="sidebar-drawer"
+        class="valign-stretch halign-shrink-0"
+        no-header
+      >
         <webstatus-sidebar></webstatus-sidebar>
       </sl-details>
       <div class="page-container vbox halign-stretch"><slot></slot></div>
