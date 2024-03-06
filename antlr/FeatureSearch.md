@@ -24,7 +24,7 @@ This query language enables you to construct flexible searches to find features 
     - Examples:
       - chrome
       - chrome,safari
-- ## **Terms:**
+- **Terms:**
   - `available_on`: Indicates whether a feature is available on a specific browser. Expects a browser name (BROWSER_NAME) as its value.
     - Example: `available_on:chrome`
   - `baseline_status`: Represents a feature's baseline status. Expects an enum value (BASELINE_STATUS) as its value.
@@ -43,7 +43,7 @@ This query language enables you to construct flexible searches to find features 
 - **Keywords:** These are reserved words used in the grammar, such as `AND`, `OR`
   - `AND`: Combine terms with the AND keyword for explicit logical AND, or use a space between terms for implied AND.
   - `OR`: Combine terms with OR for logical OR operations.
-- **Standalone Feature Names:** Search by feature name without a 'name:' prefix.
+- **Standalone Feature Names:** Search by feature name without a `name:` prefix.
 
 ## Example Queries
 
