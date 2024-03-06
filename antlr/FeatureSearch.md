@@ -34,7 +34,7 @@ This query language enables you to construct flexible searches to find features 
       - `name:grid`
       - `name:"CSS Grid"`
   - `missing_in_one_of`: Searches for features that are almost universally supported, meaning they are available on all
-    browsers **except one**. Expects a browser list (BROWSER_LIST) as its value.
+    browsers **except one**. Expects a browser list (BROWSER_LIST) as its value. Not compatible with the `-` negation prefix.
     - Example:
       - missing_in_one_of(chrome, edge, firefox)
         - Explanation: Look at all the features supported among the 4 specified browsers. Find the features that are
