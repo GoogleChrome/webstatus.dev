@@ -2,6 +2,7 @@ SHELL := /bin/bash
 NPROCS := $(shell nproc)
 
 .PHONY: all \
+		antlr-gen \
 		clean \
 		test \
 		gen \
@@ -70,9 +71,9 @@ stop-local:
 ################################
 # Generated Files
 ################################
-gen: openapi jsonschema
+gen: openapi jsonschema antlr-gen
 
-clean-gen: clean-openapi clean-jsonschema
+clean-gen: clean-openapi clean-jsonschema clean-antlr
 
 ################################
 # Generated Files: From OpenAPI
@@ -193,6 +194,15 @@ go-test:
 
 node-test: playwright-install
 	npm run test -ws
+
+################################
+# ANTLR
+################################
+antlr-gen: clean-antlr
+	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser antlr/FeatureSearch.g4
+
+clean-antlr:
+	rm -rf lib/gen/featuresearch/parser
 
 ################################
 # License

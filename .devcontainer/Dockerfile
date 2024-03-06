@@ -30,8 +30,8 @@ ENV ANTLR4_VERSION=4.13.1
 WORKDIR /usr/local/lib
 RUN wget https://www.antlr.org/download/antlr-${ANTLR4_VERSION}-complete.jar
 
-RUN echo "alias antlr4='java -jar /usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar'" >> /etc/bash.bashrc
-RUN echo "alias grun='java org.antlr.v4.gui.TestRig'" >> /etc/bash.bashrc
+RUN echo "alias antlr4='java -jar /usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar'" >> ~/.bashrc
+RUN echo "alias grun='java org.antlr.v4.gui.TestRig'" >> ~/.bashrc
 
 ENV CLASSPATH .:/usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar:$CLASSPATH
 

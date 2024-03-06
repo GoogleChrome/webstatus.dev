@@ -3,26 +3,30 @@ grammar FeatureSearch;
 // Keywords
 AND: 'AND';
 OR: 'OR';
-SORT_BY: 'SORT_BY:';
-ASC: 'ASC';
-DESC: 'DESC';
 
 // Identifiers
 BROWSER_NAME: [a-z]+;
-FEATURE_NAME: [a-zA-Z][a-zA-Z0-9_]*;
+FEATURE_NAME: [a-zA-Z][a-zA-Z0-9_-]*;
+BASELINE_STATUS: 'none' | 'low' | 'high';
 
 // Search criteria (flexible)
 search_criteria:
-	availability_information
-	| negation_of_availability
+	available_on_filter
+	| negate_available_on_filter
 	| specific_feature_name
-	| missing_in_one_of;
+	| missing_in_one_of
+	| baseline_status_filter
+	| negate_baseline_status_filter
+	| specific_feature_name
+	| FEATURE_NAME; // Default to FEATURE_NAME search without "name:" prefix.
 
 // Availability information
-availability_information: 'available_on:' BROWSER_NAME;
+available_on_filter: 'available_on:' BROWSER_NAME;
+negate_available_on_filter: '-' available_on_filter;
 
-// Negation of availability
-negation_of_availability: 'NOT available_on:' BROWSER_NAME;
+// Baseline Status
+baseline_status_filter: 'baseline_status:' BASELINE_STATUS;
+negate_baseline_status_filter: '-' baseline_status_filter;
 
 // Specific feature name
 specific_feature_name: 'name:' FEATURE_NAME;
@@ -34,16 +38,12 @@ missing_in_one_of: 'missing_in_one_of' '(' browser_list ')';
 browser_list:
 	BROWSER_NAME (',' BROWSER_NAME) {0,3}; // 1-4 Browsers
 
-// Feature expression
-feature_expr: search_criteria;
-
 // Combined search criteria
 combined_search_criteria:
-	feature_expr (AND | OR) feature_expr
-	| feature_expr; // Allow single expression
-
-// Sorting specification
-sorting_spec: SORT_BY ':' FEATURE_NAME (ASC | DESC)?;
+	search_criteria (AND search_criteria)* // Explicit AND
+	| search_criteria (' ' search_criteria)* // Implied AND
+	| search_criteria (OR search_criteria)* // Explicit OR
+	| search_criteria; // Allow single expression
 
 // Search query
-query: combined_search_criteria (sorting_spec)? EOF;
+query: combined_search_criteria EOF;
