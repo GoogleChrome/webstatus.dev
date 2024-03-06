@@ -2,6 +2,7 @@ SHELL := /bin/bash
 NPROCS := $(shell nproc)
 
 .PHONY: all \
+		antlr-gen \
 		clean \
 		test \
 		gen \
@@ -70,9 +71,9 @@ stop-local:
 ################################
 # Generated Files
 ################################
-gen: openapi jsonschema
+gen: openapi jsonschema antlr-gen
 
-clean-gen: clean-openapi clean-jsonschema
+clean-gen: clean-openapi clean-jsonschema clean-antlr
 
 ################################
 # Generated Files: From OpenAPI
@@ -195,6 +196,15 @@ node-test: playwright-install
 	npm run test -ws
 
 ################################
+# ANTLR
+################################
+antlr-gen: clean-antlr
+	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser antlr/FeatureSearch.g4
+
+clean-antlr:
+	rm -rf lib/gen/featuresearch/parser
+
+################################
 # License
 ################################
 COPYRIGHT_NAME := Google LLC
@@ -207,6 +217,7 @@ COPYRIGHT_NAME := Google LLC
 # playwright-report - Generated html files for playwright
 # node_modules - External Node dependencies
 # infra/storage/spanner/schema.sql - Empty base schema. Wrench does not like an empty schema with comments.
+# antlr/.antlr - for intermediate antlr files
 ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
 	-ignore 'lib/gen/**' \
@@ -217,7 +228,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'frontend/coverage/**' \
 	-ignore 'playwright-report/**' \
 	-ignore 'node_modules/**' \
-	-ignore 'infra/storage/spanner/schema.sql'
+	-ignore 'infra/storage/spanner/schema.sql' \
+	-ignore 'antlr/.antlr/**'
 download-addlicense:
 	go install github.com/google/addlicense@latest
 

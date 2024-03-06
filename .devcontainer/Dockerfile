@@ -25,6 +25,16 @@ RUN echo -n "alpha beta gke-gcloud-auth-plugin cloud-run-proxy" > /tmp/additiona
 RUN /google-cloud-sdk/install.sh --usage-reporting=false \
     --additional-components `cat /tmp/additional_components` && rm -rf /google-cloud-sdk/.install/.backup
 
+# Install ANTLR
+ENV ANTLR4_VERSION=4.13.1
+WORKDIR /usr/local/lib
+RUN wget https://www.antlr.org/download/antlr-${ANTLR4_VERSION}-complete.jar
+
+RUN echo "alias antlr4='java -jar /usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar'" >> ~/.bashrc
+RUN echo "alias grun='java org.antlr.v4.gui.TestRig'" >> ~/.bashrc
+
+ENV CLASSPATH .:/usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar:$CLASSPATH
+
 # Switch to the default user and append to PATH
 USER vscode
 

@@ -29,7 +29,11 @@
       "version": "v0.9.0"
     },
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
-    "ghcr.io/rio/features/skaffold:2": {}
+    "ghcr.io/rio/features/skaffold:2": {},
+    // Needed for antlr4.
+    "ghcr.io/devcontainers/features/java:1": {
+      "version": "21"
+    }
   },
   "customizations": {
     "vscode": {
@@ -42,7 +46,8 @@
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
         "ms-playwright.playwright",
-        "figma.figma-vscode-extension"
+        "figma.figma-vscode-extension",
+        "mike-lischke.vscode-antlr4"
       ]
     }
   },
