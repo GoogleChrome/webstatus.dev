@@ -17,6 +17,8 @@ import {type TemplateResult, html, nothing} from 'lit';
 import {type components} from 'webstatus.dev-backend';
 import {formatFeaturePageUrl} from '../utils/urls.js';
 
+const MISSING_VALUE = html`---`;
+
 type CellRenderer = {
   (
     feature: components['schemas']['Feature'],
@@ -95,20 +97,35 @@ const renderBaselineStatus: CellRenderer = (feature, _routerLocation) => {
   `;
 };
 
-const renderWPTChrome: CellRenderer = (_feature, _routerLocation) => {
-  return html` 100% `;
+export function renderWPTScore(
+  feature: components['schemas']['Feature'],
+  browser: string
+): TemplateResult {
+  const score: number | undefined =
+    feature.wpt?.stable?.[browser]?.score ||
+    feature.wpt?.experimental?.[browser]?.score;
+  if (score === undefined) {
+    return MISSING_VALUE;
+  } else {
+    const percentage: string = Number(score * 100).toFixed(1);
+    return html`${percentage}%`;
+  }
+}
+
+const renderWPTChrome: CellRenderer = (feature, _routerLocation) => {
+  return renderWPTScore(feature, 'chrome');
 };
 
-const renderWPTEdge: CellRenderer = (_feature, _routerLocation) => {
-  return html` 100% `;
+const renderWPTEdge: CellRenderer = (feature, _routerLocation) => {
+  return renderWPTScore(feature, 'edge');
 };
 
-const renderWPTFirefox: CellRenderer = (_feature, _routerLocation) => {
-  return html` 100% `;
+const renderWPTFirefox: CellRenderer = (feature, _routerLocation) => {
+  return renderWPTScore(feature, 'firefox');
 };
 
-const renderWPTSafari: CellRenderer = (_feature, _routerLocation) => {
-  return html` 100% `;
+const renderWPTSafari: CellRenderer = (feature, _routerLocation) => {
+  return renderWPTScore(feature, 'safari');
 };
 
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {

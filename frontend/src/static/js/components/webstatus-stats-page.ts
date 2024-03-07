@@ -35,9 +35,6 @@ export class StatsPage extends LitElement {
           gap: var(--content-padding-large);
         }
 
-        #titleAndControls {
-        }
-
         .under-construction {
           min-height: 12em;
         }

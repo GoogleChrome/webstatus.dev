@@ -16,7 +16,14 @@
 
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
-import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
+import {
+  LitElement,
+  type TemplateResult,
+  html,
+  CSSResultGroup,
+  css,
+  nothing,
+} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
@@ -24,6 +31,7 @@ import {type components} from 'webstatus.dev-backend';
 import {type APIClient} from '../api/client.js';
 import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
+import {renderWPTScore} from './webstatus-overview-cells.js';
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
@@ -151,13 +159,17 @@ export class FeaturePage extends LitElement {
     `;
   }
 
-  renderOneWPTScore(browser: string, icon: string): TemplateResult {
+  renderOneWPTCard(browser: string, icon: string): TemplateResult {
+    const scorePart = this.feature
+      ? renderWPTScore(this.feature, browser.toLowerCase())
+      : nothing;
+
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${browser}</div>
         <div class="score">
-          99.8%
+          ${scorePart}
           <span class="chip small increased">+1.2%</span>
         </div>
         <div class="avail">Available since ...</div>
@@ -170,10 +182,10 @@ export class FeaturePage extends LitElement {
       <section id="wpt-scores">
         <h3>Web platform test scores</h3>
         <div class="hbox" style="margin:0">
-          ${this.renderOneWPTScore('Chrome', 'chrome-dev_32x32.png')}
-          ${this.renderOneWPTScore('Edge', 'edge-dev_32x32.png')}
-          ${this.renderOneWPTScore('Firefox', 'firefox-nightly_32x32.png')}
-          ${this.renderOneWPTScore('Safari', 'safari-preview_32x32.png')}
+          ${this.renderOneWPTCard('Chrome', 'chrome-dev_32x32.png')}
+          ${this.renderOneWPTCard('Edge', 'edge-dev_32x32.png')}
+          ${this.renderOneWPTCard('Firefox', 'firefox-nightly_32x32.png')}
+          ${this.renderOneWPTCard('Safari', 'safari-preview_32x32.png')}
         </div>
       </section>
     `;
