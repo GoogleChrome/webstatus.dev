@@ -24,9 +24,9 @@ type CellRenderer = {
     feature: components['schemas']['Feature'],
     routerLocation: {search: string},
     options: {
-      browser?: string,
-      channel?: components['parameters']['channelPathParam'],
-  }
+      browser?: string;
+      channel?: components['parameters']['channelPathParam'];
+    }
   ): TemplateResult | typeof nothing;
 };
 
@@ -35,8 +35,8 @@ type ColumnDefinition = {
   headerHtml: TemplateResult;
   cellRenderer: CellRenderer;
   options: {
-      browser?: string,
-      channel?: components['parameters']['channelPathParam'],
+    browser?: string;
+    channel?: components['parameters']['channelPathParam'];
   };
 };
 
@@ -93,14 +93,16 @@ const BASELINE_CHIP_CONFIGS: Record<
   },
 };
 
-const renderFeatureName: CellRenderer = (
-    feature, routerLocation, _options) => {
+const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   const featureUrl = formatFeaturePageUrl(feature, routerLocation);
   return html` <a href=${featureUrl}>${feature.name}</a> `;
 };
 
 const renderBaselineStatus: CellRenderer = (
-    feature, _routerLocation, _options) => {
+  feature,
+  _routerLocation,
+  _options
+) => {
   const baselineStatus = feature.baseline_status;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
   return html`
@@ -112,17 +114,21 @@ const renderBaselineStatus: CellRenderer = (
 };
 
 export const renderWPTScore: CellRenderer = (
-    feature, _routerLocation, {browser, channel}) => {
-  const score: number | undefined = (channel === 'experimental')
-    ? feature.wpt?.experimental?.[browser!]?.score
-    : feature.wpt?.stable?.[browser!]?.score;
+  feature,
+  _routerLocation,
+  {browser, channel}
+) => {
+  const score: number | undefined =
+    channel === 'experimental'
+      ? feature.wpt?.experimental?.[browser!]?.score
+      : feature.wpt?.stable?.[browser!]?.score;
   if (score === undefined) {
     return MISSING_VALUE;
   } else {
     const percentage: string = Number(score * 100).toFixed(1);
     return html`${percentage}%`;
   }
-}
+};
 
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.Name]: {
@@ -163,7 +169,8 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.WptChromeExp]: {
     nameInDialog: 'WPT score in Chrome Export',
-    headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" /> Experimental`,
+    headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" />
+      Experimental`,
     cellRenderer: renderWPTScore,
     options: {browser: 'chrome', channel: 'experimental'},
   },
@@ -175,13 +182,15 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.WptFirefoxExp]: {
     nameInDialog: 'WPT score in Firefox Experimental',
-    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" /> Experimental`,
+    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />
+      Experimental`,
     cellRenderer: renderWPTScore,
     options: {browser: 'firefox', channel: 'experimental'},
   },
   [ColumnKey.WptSafariExp]: {
     nameInDialog: 'WPT score in Safari Experimental',
-    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" /> Experimental`,
+    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
+      Experimental`,
     cellRenderer: renderWPTScore,
     options: {browser: 'safari', channel: 'experimental'},
   },
