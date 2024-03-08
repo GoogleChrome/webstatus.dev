@@ -160,14 +160,11 @@ export class FeaturePage extends LitElement {
   }
 
   renderOneWPTCard(
-      browser: components['parameters']['browserPathParam'],
-      icon: string): TemplateResult {
+    browser: components['parameters']['browserPathParam'],
+    icon: string
+  ): TemplateResult {
     const scorePart = this.feature
-      ? renderWPTScore(
-          this.feature,
-          {search: ''},
-          {browser: browser}
-        )
+      ? renderWPTScore(this.feature, {search: ''}, {browser: browser})
       : nothing;
 
     return html`
