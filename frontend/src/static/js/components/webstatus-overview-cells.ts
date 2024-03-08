@@ -22,7 +22,11 @@ const MISSING_VALUE = html`---`;
 type CellRenderer = {
   (
     feature: components['schemas']['Feature'],
-    routerLocation: {search: string}
+    routerLocation: {search: string},
+    options: {
+      browser?: string,
+      channel?: components['parameters']['channelPathParam'],
+  }
   ): TemplateResult | typeof nothing;
 };
 
@@ -30,6 +34,10 @@ type ColumnDefinition = {
   nameInDialog: string;
   headerHtml: TemplateResult;
   cellRenderer: CellRenderer;
+  options: {
+      browser?: string,
+      channel?: components['parameters']['channelPathParam'],
+  };
 };
 
 export enum ColumnKey {
@@ -39,6 +47,10 @@ export enum ColumnKey {
   WptEdge = 'wpt_edge',
   WptFirefox = 'wpt_firefox',
   WptSafari = 'wpt_safari',
+  WptChromeExp = 'wpt_chrome_exp',
+  WptEdgeExp = 'wpt_edge_exp',
+  WptFirefoxExp = 'wpt_firefox_exp',
+  WptSafariExp = 'wpt_safari_exp',
 }
 
 const columnKeyMapping = Object.entries(ColumnKey).reduce(
@@ -81,12 +93,14 @@ const BASELINE_CHIP_CONFIGS: Record<
   },
 };
 
-const renderFeatureName: CellRenderer = (feature, routerLocation) => {
+const renderFeatureName: CellRenderer = (
+    feature, routerLocation, _options) => {
   const featureUrl = formatFeaturePageUrl(feature, routerLocation);
   return html` <a href=${featureUrl}>${feature.name}</a> `;
 };
 
-const renderBaselineStatus: CellRenderer = (feature, _routerLocation) => {
+const renderBaselineStatus: CellRenderer = (
+    feature, _routerLocation, _options) => {
   const baselineStatus = feature.baseline_status;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
   return html`
@@ -97,13 +111,11 @@ const renderBaselineStatus: CellRenderer = (feature, _routerLocation) => {
   `;
 };
 
-export function renderWPTScore(
-  feature: components['schemas']['Feature'],
-  browser: string
-): TemplateResult {
-  const score: number | undefined =
-    feature.wpt?.stable?.[browser]?.score ||
-    feature.wpt?.experimental?.[browser]?.score;
+export const renderWPTScore: CellRenderer = (
+    feature, _routerLocation, {browser, channel}) => {
+  const score: number | undefined = (channel === 'experimental')
+    ? feature.wpt?.experimental?.[browser!]?.score
+    : feature.wpt?.stable?.[browser!]?.score;
   if (score === undefined) {
     return MISSING_VALUE;
   } else {
@@ -112,52 +124,66 @@ export function renderWPTScore(
   }
 }
 
-const renderWPTChrome: CellRenderer = (feature, _routerLocation) => {
-  return renderWPTScore(feature, 'chrome');
-};
-
-const renderWPTEdge: CellRenderer = (feature, _routerLocation) => {
-  return renderWPTScore(feature, 'edge');
-};
-
-const renderWPTFirefox: CellRenderer = (feature, _routerLocation) => {
-  return renderWPTScore(feature, 'firefox');
-};
-
-const renderWPTSafari: CellRenderer = (feature, _routerLocation) => {
-  return renderWPTScore(feature, 'safari');
-};
-
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.Name]: {
     nameInDialog: 'Feature name',
     headerHtml: html`Feature`,
     cellRenderer: renderFeatureName,
+    options: {},
   },
   [ColumnKey.BaselineStatus]: {
     nameInDialog: 'Baseline status',
     headerHtml: html`Baseline`,
     cellRenderer: renderBaselineStatus,
+    options: {},
   },
   [ColumnKey.WptChrome]: {
     nameInDialog: 'WPT score in Chrome',
     headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" />`,
-    cellRenderer: renderWPTChrome,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'chrome', channel: 'stable'},
   },
   [ColumnKey.WptEdge]: {
     nameInDialog: 'WPT score in Edge',
     headerHtml: html`<img src="/public/img/edge-dev_24x24.png" />`,
-    cellRenderer: renderWPTEdge,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'edge', channel: 'stable'},
   },
   [ColumnKey.WptFirefox]: {
     nameInDialog: 'WPT score in Firefox',
     headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
-    cellRenderer: renderWPTFirefox,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'firefox', channel: 'stable'},
   },
   [ColumnKey.WptSafari]: {
     nameInDialog: 'WPT score in Safari',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
-    cellRenderer: renderWPTSafari,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'safari', channel: 'stable'},
+  },
+  [ColumnKey.WptChromeExp]: {
+    nameInDialog: 'WPT score in Chrome Export',
+    headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" /> Experimental`,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'chrome', channel: 'experimental'},
+  },
+  [ColumnKey.WptEdgeExp]: {
+    nameInDialog: 'WPT score in Edge Experimental',
+    headerHtml: html`<img src="/public/img/edge-dev_24x24.png" /> Experimental`,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'edge', channel: 'experimental'},
+  },
+  [ColumnKey.WptFirefoxExp]: {
+    nameInDialog: 'WPT score in Firefox Experimental',
+    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" /> Experimental`,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'firefox', channel: 'experimental'},
+  },
+  [ColumnKey.WptSafariExp]: {
+    nameInDialog: 'WPT score in Safari Experimental',
+    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" /> Experimental`,
+    cellRenderer: renderWPTScore,
+    options: {browser: 'safari', channel: 'experimental'},
   },
 };
 
@@ -173,7 +199,7 @@ export function renderFeatureCell(
 ): TemplateResult | typeof nothing {
   const colDef = CELL_DEFS[column];
   if (colDef?.cellRenderer) {
-    return colDef.cellRenderer(feature, routerLocation);
+    return colDef.cellRenderer(feature, routerLocation, colDef.options);
   } else {
     return nothing;
   }

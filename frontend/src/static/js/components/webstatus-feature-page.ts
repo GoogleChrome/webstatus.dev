@@ -161,7 +161,8 @@ export class FeaturePage extends LitElement {
 
   renderOneWPTCard(browser: string, icon: string): TemplateResult {
     const scorePart = this.feature
-      ? renderWPTScore(this.feature, browser.toLowerCase())
+          ? renderWPTScore(
+              this.feature, {search: ''}, {browser: browser.toLowerCase()})
       : nothing;
 
     return html`
