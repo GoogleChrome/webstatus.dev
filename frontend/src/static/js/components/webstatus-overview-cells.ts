@@ -24,7 +24,7 @@ type CellRenderer = {
     feature: components['schemas']['Feature'],
     routerLocation: {search: string},
     options: {
-      browser?: string;
+      browser?: components['parameters']['browserPathParam'];
       channel?: components['parameters']['channelPathParam'];
     }
   ): TemplateResult | typeof nothing;
@@ -35,7 +35,7 @@ type ColumnDefinition = {
   headerHtml: TemplateResult;
   cellRenderer: CellRenderer;
   options: {
-    browser?: string;
+    browser?: components['parameters']['browserPathParam'];
     channel?: components['parameters']['channelPathParam'];
   };
 };

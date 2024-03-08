@@ -159,19 +159,21 @@ export class FeaturePage extends LitElement {
     `;
   }
 
-  renderOneWPTCard(browser: string, icon: string): TemplateResult {
+  renderOneWPTCard(
+      browser: components['parameters']['browserPathParam'],
+      icon: string): TemplateResult {
     const scorePart = this.feature
       ? renderWPTScore(
           this.feature,
           {search: ''},
-          {browser: browser.toLowerCase()}
+          {browser: browser}
         )
       : nothing;
 
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
-        <div>${browser}</div>
+        <div>${browser[0].toUpperCase() + browser.slice(1)}</div>
         <div class="score">
           ${scorePart}
           <span class="chip small increased">+1.2%</span>
@@ -186,10 +188,10 @@ export class FeaturePage extends LitElement {
       <section id="wpt-scores">
         <h3>Web platform test scores</h3>
         <div class="hbox" style="margin:0">
-          ${this.renderOneWPTCard('Chrome', 'chrome-dev_32x32.png')}
-          ${this.renderOneWPTCard('Edge', 'edge-dev_32x32.png')}
-          ${this.renderOneWPTCard('Firefox', 'firefox-nightly_32x32.png')}
-          ${this.renderOneWPTCard('Safari', 'safari-preview_32x32.png')}
+          ${this.renderOneWPTCard('chrome', 'chrome-dev_32x32.png')}
+          ${this.renderOneWPTCard('edge', 'edge-dev_32x32.png')}
+          ${this.renderOneWPTCard('firefox', 'firefox-nightly_32x32.png')}
+          ${this.renderOneWPTCard('safari', 'safari-preview_32x32.png')}
         </div>
       </section>
     `;
