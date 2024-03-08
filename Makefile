@@ -199,7 +199,7 @@ node-test: playwright-install
 # ANTLR
 ################################
 antlr-gen: clean-antlr
-	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser antlr/FeatureSearch.g4
+	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
 
 clean-antlr:
 	rm -rf lib/gen/featuresearch/parser

@@ -5,39 +5,59 @@ AND: 'AND';
 OR: 'OR';
 NOT: '-';
 
+COLON: ':';
+
+// Capture Whitespace. This allows for flexibility in how users write their queries, tolerating
+// spaces around operators and keywords.
+WS: [ \t\r\n]+ -> skip;
+
 // Identifiers
-BROWSER_NAME: [a-z]+;
-FEATURE_NAME:
-	'"' [a-zA-Z][a-zA-Z0-9_-]* [ ]* '"'
-	| [a-zA-Z][a-zA-Z0-9_-]*;
-BASELINE_STATUS: 'none' | 'low' | 'high';
+BASELINE_STATUS:
+	'none'
+	| 'low'
+	| 'high'
+	| 'New'
+	| 'Limited'
+	| 'Wide';
+BROWSER_NAME: 'chrome' | 'firefox' | 'edge' | 'safari';
 BROWSER_LIST: BROWSER_NAME (',' BROWSER_NAME)*;
+ANY_VALUE:
+	'"' [a-zA-Z][a-zA-Z0-9_ -]* [ ]* '"' // Allow spaces within quotes
+	| [a-zA-Z][a-zA-Z0-9_-]*; // Single words
 
-// Value Types
-value_type: BROWSER_NAME | BASELINE_STATUS | FEATURE_NAME;
+// Terms
+available_on_term: 'available_on' COLON BROWSER_NAME;
+baseline_status_term: 'baseline_status' COLON BASELINE_STATUS;
+name_term: 'name' COLON ANY_VALUE;
+term: available_on_term | baseline_status_term | name_term;
 
-term:
-	'available_on' // Value Type = BROWSER_NAME
-	| 'baseline_status' // Value Type = BASELINE_STATUS
-	| 'name'; // Value Type = FEATURE_NAME
-
-generic_search_term: (NOT)? term ':' value_type;
+generic_search_term: (NOT)? term;
 
 // Search criteria
 search_criteria:
 	generic_search_term
 	| missing_in_one_of
-	| FEATURE_NAME; // Default to FEATURE_NAME search without "name:" prefix.
+	| ANY_VALUE; // Default to ANY_VALUE search without "name:" prefix.
 
 // Missing in one of
 missing_in_one_of: 'missing_in_one_of' '(' BROWSER_LIST ')';
 
 // Combined search criteria
 combined_search_criteria:
-	search_criteria (AND search_criteria)* // Explicit AND
-	| search_criteria (' ' search_criteria)* // Implied AND
-	| search_criteria (OR search_criteria)* // Explicit OR
-	| search_criteria; // Allow single expression
+	(
+		search_criteria
+		| '(' combined_search_criteria ')'
+	) // Single term or grouped expression
+	(
+		// Optional chaining with implicit AND or explicit operators
+		(operator)? // Optional explicit operator
+		(
+			search_criteria
+			| '(' combined_search_criteria ')'
+		) // Next search term or group
+	)*;
+
+operator: AND | OR;
 
 // Search query
 query: combined_search_criteria EOF;

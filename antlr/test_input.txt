@@ -1,0 +1,1 @@
+available_on:chrome AND baseline_status:high OR "Grid" OR (available_on:chrome AND name:avif)
