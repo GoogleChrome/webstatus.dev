@@ -59,7 +59,7 @@ port-forward-terminate:
 minikube-running:
 		# Check if minikube is running using a shell command
 		@if ! minikube status -p "$${MINIKUBE_PROFILE}" | grep -q "Running"; then \
-				minikube start -p "$${MINIKUBE_PROFILE}"; \
+				minikube start -p "$${MINIKUBE_PROFILE}" --disk-size=10gb; \
 		fi
 minikube-clean-restart: minikube-delete minikube-running
 minikube-delete:
