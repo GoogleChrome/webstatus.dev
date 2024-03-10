@@ -239,6 +239,53 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "available_on:chrome (baseline_status:high OR name:avif) OR name:grid",
+			ExpectedTree: &SearchNode{
+				Operator: OperatorRoot,
+				Term:     nil,
+				Children: []*SearchNode{
+					{
+						Operator: OperatorOR,
+						Term:     nil,
+						Children: []*SearchNode{
+							{
+								Operator: OperatorAND,
+								Term:     nil,
+								Children: []*SearchNode{
+									{
+										Operator: OperatorNone,
+										Children: nil,
+										Term:     &SearchTerm{Identifier: IdentifierAvailableOn, Value: "chrome"},
+									},
+									{
+										Operator: OperatorOR,
+										Term:     nil,
+										Children: []*SearchNode{
+											{
+												Operator: OperatorNone,
+												Children: nil,
+												Term:     &SearchTerm{Identifier: IdentifierBaselineStatus, Value: "high"},
+											},
+											{
+												Operator: OperatorNone,
+												Children: nil,
+												Term:     &SearchTerm{Identifier: IdentifierName, Value: "avif"},
+											},
+										},
+									},
+								},
+							},
+							{
+								Operator: OperatorNone,
+								Children: nil,
+								Term:     &SearchTerm{Identifier: IdentifierName, Value: "grid"},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "name:grid",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
@@ -395,6 +442,10 @@ func TestParseQueryBadInput(t *testing.T) {
 		},
 		{
 			input: "badterm:",
+		},
+		// unbalanced parenthesis.
+		{
+			input: "(name:grid ()",
 		},
 	}
 	for _, tc := range testCases {
