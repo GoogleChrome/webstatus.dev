@@ -22,6 +22,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/cors"
@@ -55,8 +56,7 @@ type WPTMetricsStorer interface {
 		ctx context.Context,
 		pageToken *string,
 		pageSize int,
-		availabileBrowsers []string,
-		notAvailabileBrowsers []string,
+		searchNode *searchtypes.SearchNode,
 	) ([]backend.Feature, *string, error)
 	GetFeature(
 		ctx context.Context,
@@ -85,12 +85,6 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	var defaultFeatureIDs []string
 
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
-}
-
-func getBrowserListOrDefault(browserList *[]string) []string {
-	var defaultBrowserList []string
-
-	return *(cmp.Or[*[]string](browserList, &defaultBrowserList))
 }
 
 func NewHTTPServer(

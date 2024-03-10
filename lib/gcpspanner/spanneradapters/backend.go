@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -47,7 +48,7 @@ type BackendSpannerClient interface {
 		ctx context.Context,
 		pageToken *string,
 		pageSize int,
-		filterables ...gcpspanner.Filterable) ([]gcpspanner.FeatureResult, *string, error)
+		searchNode *searchtypes.SearchNode) ([]gcpspanner.FeatureResult, *string, error)
 	GetFeature(
 		ctx context.Context,
 		filter gcpspanner.Filterable,
@@ -210,19 +211,9 @@ func (s *Backend) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
 	pageSize int,
-	availabileBrowsers []string,
-	notAvailabileBrowsers []string,
+	searchNode *searchtypes.SearchNode,
 ) ([]backend.Feature, *string, error) {
-	var filters []gcpspanner.Filterable
-	if len(availabileBrowsers) > 0 {
-		filters = append(filters, gcpspanner.NewAvailabileFilter(availabileBrowsers))
-	}
-
-	if len(notAvailabileBrowsers) > 0 {
-		filters = append(filters, gcpspanner.NewNotAvailabileFilter(notAvailabileBrowsers))
-	}
-
-	featureResults, token, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, filters...)
+	featureResults, token, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode)
 	if err != nil {
 		return nil, nil, err
 	}

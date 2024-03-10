@@ -17,9 +17,11 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"net/url"
 	"reflect"
 	"testing"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -35,10 +37,9 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:            nil,
-				expectedPageSize:             100,
-				expectedAvailableBrowsers:    []string{},
-				expectedNotAvailableBrowsers: []string{},
+				expectedPageToken:  nil,
+				expectedPageSize:   100,
+				expectedSearchNode: nil,
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -70,10 +71,9 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken:      nil,
-					PageSize:       nil,
-					AvailableOn:    nil,
-					NotAvailableOn: nil,
+					PageToken: nil,
+					PageSize:  nil,
+					Q:         nil,
 				},
 			},
 			expectedError: nil,
@@ -81,10 +81,36 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:            inputPageToken,
-				expectedPageSize:             50,
-				expectedAvailableBrowsers:    []string{"browser1", "browser3"},
-				expectedNotAvailableBrowsers: []string{"browser2", "browser4"},
+				expectedPageToken: inputPageToken,
+				expectedPageSize:  50,
+				expectedSearchNode: &searchtypes.SearchNode{
+					Operator: searchtypes.OperatorRoot,
+					Term:     nil,
+					Children: []*searchtypes.SearchNode{
+						{
+							Operator: searchtypes.OperatorAND,
+							Term:     nil,
+							Children: []*searchtypes.SearchNode{
+								{
+									Children: nil,
+									Term: &searchtypes.SearchTerm{
+										Identifier: searchtypes.IdentifierAvailableOn,
+										Value:      "chrome",
+									},
+									Operator: searchtypes.OperatorNone,
+								},
+								{
+									Children: nil,
+									Term: &searchtypes.SearchTerm{
+										Identifier: searchtypes.IdentifierName,
+										Value:      "grid",
+									},
+									Operator: searchtypes.OperatorNone,
+								},
+							},
+						},
+					},
+				},
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -116,10 +142,9 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken:      inputPageToken,
-					PageSize:       valuePtr[int](50),
-					AvailableOn:    &[]string{"browser1", "browser3"},
-					NotAvailableOn: &[]string{"browser2", "browser4"},
+					PageToken: inputPageToken,
+					PageSize:  valuePtr[int](50),
+					Q:         valuePtr(url.QueryEscape("available_on:chrome AND name:grid")),
 				},
 			},
 			expectedError: nil,
@@ -127,10 +152,9 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "500 case",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:            nil,
-				expectedPageSize:             100,
-				expectedAvailableBrowsers:    []string{},
-				expectedNotAvailableBrowsers: []string{},
+				expectedPageToken:  nil,
+				expectedPageSize:   100,
+				expectedSearchNode: nil,
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -151,10 +175,75 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken:      nil,
-					PageSize:       nil,
-					AvailableOn:    nil,
-					NotAvailableOn: nil,
+					PageToken: nil,
+					PageSize:  nil,
+					Q:         nil,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "400 case - query string does not match grammar",
+			mockConfig: MockFeaturesSearchConfig{
+				expectedPageToken:  nil,
+				expectedPageSize:   100,
+				expectedSearchNode: nil,
+				data: []backend.Feature{
+					{
+						BaselineStatus: backend.High,
+						FeatureId:      "feature1",
+						Name:           "feature 1",
+						Spec:           nil,
+						Usage:          nil,
+						Wpt:            nil,
+					},
+				},
+				pageToken: nil,
+				err:       errTest,
+			},
+			expectedCallCount: 0,
+			expectedResponse: backend.GetV1Features400JSONResponse{
+				Code:    400,
+				Message: "query string does not match expected grammar",
+			},
+			request: backend.GetV1FeaturesRequestObject{
+				Params: backend.GetV1FeaturesParams{
+					PageToken: nil,
+					PageSize:  nil,
+					Q:         valuePtr[string]("badterm:foo"),
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "400 case - query string not safe",
+			mockConfig: MockFeaturesSearchConfig{
+				expectedPageToken:  nil,
+				expectedPageSize:   100,
+				expectedSearchNode: nil,
+				data: []backend.Feature{
+					{
+						BaselineStatus: backend.High,
+						FeatureId:      "feature1",
+						Name:           "feature 1",
+						Spec:           nil,
+						Usage:          nil,
+						Wpt:            nil,
+					},
+				},
+				pageToken: nil,
+				err:       errTest,
+			},
+			expectedCallCount: 0,
+			expectedResponse: backend.GetV1Features400JSONResponse{
+				Code:    400,
+				Message: "query string cannot be decoded",
+			},
+			request: backend.GetV1FeaturesRequestObject{
+				Params: backend.GetV1FeaturesParams{
+					PageToken: nil,
+					PageSize:  nil,
+					Q:         valuePtr[string]("%"),
 				},
 			},
 			expectedError: nil,

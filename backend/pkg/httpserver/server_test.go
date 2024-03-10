@@ -17,10 +17,12 @@ package httpserver
 import (
 	"context"
 	"errors"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -53,13 +55,12 @@ type MockListMetricsOverTimeWithAggregatedTotalsConfig struct {
 }
 
 type MockFeaturesSearchConfig struct {
-	expectedPageToken            *string
-	expectedPageSize             int
-	expectedAvailableBrowsers    []string
-	expectedNotAvailableBrowsers []string
-	data                         []backend.Feature
-	pageToken                    *string
-	err                          error
+	expectedPageToken  *string
+	expectedPageSize   int
+	expectedSearchNode *searchtypes.SearchNode
+	data               []backend.Feature
+	pageToken          *string
+	err                error
 }
 
 type MockGetFeatureByIDConfig struct {
@@ -131,17 +132,15 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 	_ context.Context,
 	pageToken *string,
 	pageSize int,
-	availabileBrowsers []string,
-	notAvailabileBrowsers []string,
+	node *searchtypes.SearchNode,
 ) ([]backend.Feature, *string, error) {
 	m.callCountFeaturesSearch++
 
 	if pageToken != m.featuresSearchCfg.expectedPageToken ||
 		pageSize != m.featuresSearchCfg.expectedPageSize ||
-		!slices.Equal(availabileBrowsers, m.featuresSearchCfg.expectedAvailableBrowsers) ||
-		!slices.Equal(notAvailabileBrowsers, m.featuresSearchCfg.expectedNotAvailableBrowsers) {
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v %v}",
-			m.featuresSearchCfg, pageSize, pageToken, availabileBrowsers, notAvailabileBrowsers)
+		!reflect.DeepEqual(node, m.featuresSearchCfg.expectedSearchNode) {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v }",
+			m.featuresSearchCfg, pageSize, pageToken, node)
 	}
 
 	return m.featuresSearchCfg.data, m.featuresSearchCfg.pageToken, m.featuresSearchCfg.err

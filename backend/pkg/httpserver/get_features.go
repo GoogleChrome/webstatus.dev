@@ -17,7 +17,10 @@ package httpserver
 import (
 	"context"
 	"log/slog"
+	"net/http"
+	"net/url"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -27,12 +30,35 @@ func (s *Server) GetV1Features(
 	ctx context.Context,
 	req backend.GetV1FeaturesRequestObject,
 ) (backend.GetV1FeaturesResponseObject, error) {
+	var node *searchtypes.SearchNode
+	if req.Params.Q != nil {
+		// Try to decode the url.
+		decodedStr, err := url.QueryUnescape(*req.Params.Q)
+		if err != nil {
+			slog.Warn("unable to decode string", "input string", *req.Params.Q, "error", err)
+
+			return backend.GetV1Features400JSONResponse{
+				Code:    http.StatusBadRequest,
+				Message: "query string cannot be decoded",
+			}, nil
+		}
+
+		parser := searchtypes.FeaturesSearchQueryParser{}
+		node, err = parser.Parse(decodedStr)
+		if err != nil {
+			slog.Warn("unable to parse query string", "query", decodedStr, "error", err)
+
+			return backend.GetV1Features400JSONResponse{
+				Code:    http.StatusBadRequest,
+				Message: "query string does not match expected grammar",
+			}, nil
+		}
+	}
 	featureData, nextPageToken, err := s.wptMetricsStorer.FeaturesSearch(
 		ctx,
 		req.Params.PageToken,
 		getPageSizeOrDefault(req.Params.PageSize),
-		getBrowserListOrDefault(req.Params.AvailableOn),
-		getBrowserListOrDefault(req.Params.NotAvailableOn),
+		node,
 	)
 
 	if err != nil {
