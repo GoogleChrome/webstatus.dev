@@ -176,7 +176,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.WptEdgeExp]: {
     nameInDialog: 'WPT score in Edge Experimental',
-    headerHtml: html`<img src="/public/img/edge-canary_24x24.png" />
+    headerHtml: html`<img src="/public/img/edge-dev_24x24.png" />
       Experimental`,
     cellRenderer: renderWPTScore,
     options: {browser: 'edge', channel: 'experimental'},
