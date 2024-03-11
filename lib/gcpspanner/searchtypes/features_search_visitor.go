@@ -60,11 +60,22 @@ func (v *FeaturesSearchVisitor) handleOperator(current *SearchNode, operatorCtx 
 	}
 
 	if current != nil {
-		// Detect implicit AND case.
-		// If current is an implicit AND, we chain the new operator as the second child
+		// Detect implicit AND case and prioritize flat groupings.
+		// This logic handles the optional chaining structure in the grammar, where
+		// terms/groups without explicit operators are implicitly joined using AND.
+		// The implicit AND nodes themselves are created primarily within the 'chainWithImplicitAND' function.
 		if current.Operator == OperatorAND && len(current.Children) == 1 {
 			current.Children = append(current.Children, newNode)
 		} else {
+			// Handle the case where a new explicit operator node is encountered:
+			// 1. The 'newNode' (representing the explicit operator) becomes the root of a new
+			//    operator sub-tree.
+			// 2. The previous 'current' node (term, implicit AND chain, or sub-tree) becomes
+			//    the first child of this new sub-tree. `current`` at this point would be the left operand
+			//    that was already encountered in VisitCombined_search_criteria. That is why it becomes
+			//    the child of the explicit operator, newNode.
+			// 3. The 'current' reference is updated to the 'newNode', making it the focus of
+			//    subsequent parsing within the combined search criteria.
 			newNode.Children = append(newNode.Children, current)
 			current = newNode // Update current to the new operator node
 		}
@@ -73,8 +84,9 @@ func (v *FeaturesSearchVisitor) handleOperator(current *SearchNode, operatorCtx 
 	return current
 }
 
-// chainWithImplicitAND incorporates a new node into a query structure, handling
-// cases to create or extend implicit AND groupings.
+// chainWithImplicitAND incorporates a new node into a query structure. It creates,
+// extends, or prepares implicit AND groupings (originating from optional chaining
+// in the 'combined_search_criteria' grammar rule) for handling by 'aggregateNodesImplicitAND'.
 func (v *FeaturesSearchVisitor) chainWithImplicitAND(current, newNode *SearchNode) *SearchNode {
 	if current == nil {
 		// Case: Starting a new chain.
@@ -90,17 +102,22 @@ func (v *FeaturesSearchVisitor) chainWithImplicitAND(current, newNode *SearchNod
 
 }
 
-// aggregateNodesImplicitAND constructs a single SearchNode representing a group
-// of search criteria, using implicit AND operators to join them.
+// aggregateNodesImplicitAND builds on the structure created by 'handleOperator and 'chainWithImplicitAND'.
+// It constructs a single SearchNode representing an implicit AND group of search criteria
+// (originating from the optional chaining in the 'combined_search_criteria' grammar rule).
 func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *SearchNode {
 	if len(nodes) == 0 {
 		return nil
 	}
 
-	// Create the root node of the implicit AND tree.
+	// Create the root node of the implicit AND tree. This becomes the starting
+	// point for subsequent chaining.
 	rootNode := nodes[0]
+
+	// Iterate through remaining nodes, extending the AND chain.
 	for _, node := range nodes[1:] {
 		// Chain subsequent nodes as children using implicit AND operators.
+		// Relies on 'chainWithImplicitAND' to handle the chaining structure.
 		rootNode = &SearchNode{
 			Term:     nil,
 			Operator: OperatorAND,

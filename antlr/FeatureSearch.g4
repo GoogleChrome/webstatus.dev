@@ -16,7 +16,7 @@ BASELINE_STATUS: 'none' | 'low' | 'high';
 BROWSER_NAME: 'chrome' | 'firefox' | 'edge' | 'safari';
 BROWSER_LIST: BROWSER_NAME (',' BROWSER_NAME)*;
 ANY_VALUE:
-	'"' [a-zA-Z][a-zA-Z0-9_ -]* [ ]* '"' // Allow spaces within quotes
+	'"' [a-zA-Z][a-zA-Z0-9_ -]* '"' // Words with spaces.
 	| [a-zA-Z][a-zA-Z0-9_-]*; // Single words
 
 // Terms
