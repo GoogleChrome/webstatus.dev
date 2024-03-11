@@ -20,8 +20,13 @@ import cpy from 'cpy';
 const BROWSER_LOGO_DIR = '../node_modules/@browser-logos';
 const IMG_DEST = '.postinstall/static/img';
 
-await cpy(`${BROWSER_LOGO_DIR}/chrome-dev/*_24x24.png`, IMG_DEST);
-await cpy(`${BROWSER_LOGO_DIR}/edge-dev/*_24x24.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/chrome/*_24x24.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/edge/*_24x24.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/firefox/*_24x24.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/safari/*_24x24.png`, IMG_DEST);
+
+await cpy(`${BROWSER_LOGO_DIR}/chrome-canary/*_24x24.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/edge-canary/*_24x24.png`, IMG_DEST);
 await cpy(`${BROWSER_LOGO_DIR}/firefox-nightly/*_24x24.png`, IMG_DEST);
 await cpy(
   `${BROWSER_LOGO_DIR}/safari-technology-preview/*_24x24.png`,
@@ -29,8 +34,8 @@ await cpy(
   {rename: 'safari-preview_24x24.png'}
 );
 
-await cpy(`${BROWSER_LOGO_DIR}/chrome-dev/*_32x32.png`, IMG_DEST);
-await cpy(`${BROWSER_LOGO_DIR}/edge-dev/*_32x32.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/chrome-canary/*_32x32.png`, IMG_DEST);
+await cpy(`${BROWSER_LOGO_DIR}/edge-canary/*_32x32.png`, IMG_DEST);
 await cpy(`${BROWSER_LOGO_DIR}/firefox-nightly/*_32x32.png`, IMG_DEST);
 await cpy(
   `${BROWSER_LOGO_DIR}/safari-technology-preview/*_32x32.png`,
