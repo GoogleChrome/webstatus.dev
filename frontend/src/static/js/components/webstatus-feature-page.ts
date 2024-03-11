@@ -185,10 +185,10 @@ export class FeaturePage extends LitElement {
       <section id="wpt-scores">
         <h3>Web platform test scores</h3>
         <div class="hbox" style="margin:0">
-          ${this.renderOneWPTCard('chrome', 'chrome-dev_32x32.png')}
-          ${this.renderOneWPTCard('edge', 'edge-dev_32x32.png')}
-          ${this.renderOneWPTCard('firefox', 'firefox-nightly_32x32.png')}
-          ${this.renderOneWPTCard('safari', 'safari-preview_32x32.png')}
+          ${this.renderOneWPTCard('chrome', 'chrome_32x32.png')}
+          ${this.renderOneWPTCard('edge', 'edge_32x32.png')}
+          ${this.renderOneWPTCard('firefox', 'firefox_32x32.png')}
+          ${this.renderOneWPTCard('safari', 'safari_32x32.png')}
         </div>
       </section>
     `;

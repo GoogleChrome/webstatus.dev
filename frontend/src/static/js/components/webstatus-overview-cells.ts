@@ -145,31 +145,31 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.WptChrome]: {
     nameInDialog: 'WPT score in Chrome',
-    headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
     cellRenderer: renderWPTScore,
     options: {browser: 'chrome', channel: 'stable'},
   },
   [ColumnKey.WptEdge]: {
     nameInDialog: 'WPT score in Edge',
-    headerHtml: html`<img src="/public/img/edge-dev_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/edge_24x24.png" />`,
     cellRenderer: renderWPTScore,
     options: {browser: 'edge', channel: 'stable'},
   },
   [ColumnKey.WptFirefox]: {
     nameInDialog: 'WPT score in Firefox',
-    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
     cellRenderer: renderWPTScore,
     options: {browser: 'firefox', channel: 'stable'},
   },
   [ColumnKey.WptSafari]: {
     nameInDialog: 'WPT score in Safari',
-    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
     cellRenderer: renderWPTScore,
     options: {browser: 'safari', channel: 'stable'},
   },
   [ColumnKey.WptChromeExp]: {
-    nameInDialog: 'WPT score in Chrome Export',
-    headerHtml: html`<img src="/public/img/chrome-dev_24x24.png" />
+    nameInDialog: 'WPT score in Chrome Experimental',
+    headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />
       Experimental`,
     cellRenderer: renderWPTScore,
     options: {browser: 'chrome', channel: 'experimental'},
