@@ -44,12 +44,10 @@ missing_in_one_of: 'missing_in_one_of' '(' BROWSER_LIST ')';
 
 // Combined search criteria
 combined_search_criteria:
+	// Single term or grouped expression
+	(search_criteria | '(' combined_search_criteria ')')
+	// Optional chaining with implicit AND or explicit operators
 	(
-		search_criteria
-		| '(' combined_search_criteria ')'
-	) // Single term or grouped expression
-	(
-		// Optional chaining with implicit AND or explicit operators
 		(operator)? // Optional explicit operator
 		(
 			search_criteria
