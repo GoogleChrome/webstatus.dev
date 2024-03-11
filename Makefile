@@ -59,7 +59,7 @@ port-forward-terminate:
 minikube-running:
 		# Check if minikube is running using a shell command
 		@if ! minikube status -p "$${MINIKUBE_PROFILE}" | grep -q "Running"; then \
-				minikube start -p "$${MINIKUBE_PROFILE}"; \
+				minikube start -p "$${MINIKUBE_PROFILE}" --disk-size=10gb; \
 		fi
 minikube-clean-restart: minikube-delete minikube-running
 minikube-delete:
@@ -199,7 +199,7 @@ node-test: playwright-install
 # ANTLR
 ################################
 antlr-gen: clean-antlr
-	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser antlr/FeatureSearch.g4
+	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
 
 clean-antlr:
 	rm -rf lib/gen/featuresearch/parser
