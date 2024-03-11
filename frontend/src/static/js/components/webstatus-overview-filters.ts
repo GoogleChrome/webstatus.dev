@@ -41,18 +41,28 @@ export class WebstatusOverviewFilters extends LitElement {
           padding-left: 1rem;
         }
 
+        #filter-query-input {
+          --sl-input-spacing-medium: 0.875rem;
+        }
+        #filter-submit-button::part(base) {
+          --sl-spacing-x-small: 0.275rem;
+          --sl-input-height-small: 1.475rem;
+        }
+
         /** Filter query submit button pulses after changes. */
         @keyframes pulseBtn {
           0% {
-            box-shadow: 0px 0px 0px 0px rgba(81, 73, 255, 1);
+            box-shadow: 0px 0px 0px 0px var(--sl-color-success-600);
           }
           100% {
-            box-shadow: 0px 0px 10px 2px rgba(81, 73, 255, 1);
+            box-shadow: 0px 0px 8px 2px var(--sl-color-success-600);
           }
         }
 
-        .glow-btn.changed {
+        .glow-btn {
           border-radius: 4px;
+        }
+        .glow-btn.changed {
           animation-name: pulseBtn;
           animation-duration: 0.9s;
           animation-iteration-count: infinite;
@@ -61,6 +71,31 @@ export class WebstatusOverviewFilters extends LitElement {
         }
       `,
     ];
+  }
+
+  filterQueryInput!: SlInput;
+  filterQueryMap!: Map<string, string[]>;
+
+  initializeFilterQuery(): void {
+    // Initialize the filter query map with the values from the URL.
+    // Get the filter query string from filter-query-input
+    this.filterQueryInput = this.shadowRoot!.getElementById(
+      'filter-query-input'
+    ) as SlInput;
+    const filterQueryString = (this.filterQueryInput.value || '').trim();
+    this.filterQueryMap = this.parseFilterQueryString(filterQueryString);
+
+    // Add sl-select event handler to all sl-menu elements.
+    const menuElements = Array.from(
+      this.shadowRoot!.querySelectorAll('sl-menu')
+    );
+    for (const menuElement of menuElements) {
+      const id = menuElement.id;
+      menuElement.addEventListener(
+        'sl-select',
+        this.makeFilterSelectHandler(id)
+      );
+    }
   }
 
   parseFilterQueryString(filterQueryString: string): Map<string, string[]> {
@@ -98,22 +133,6 @@ export class WebstatusOverviewFilters extends LitElement {
     return filterQueryString;
   }
 
-  filterQueryInput!: SlInput;
-  filterQueryMap!: Map<string, string[]>;
-
-  initializeFilterQueryMap(): Map<string, string[]> {
-    // Initialize the filter query map with the values from the URL.
-    // Get the filter query string from filter-query-input
-    this.filterQueryInput = this.shadowRoot!.getElementById(
-      'filter-query-input'
-    ) as SlInput;
-    const filterQueryString = (this.filterQueryInput.value || '').trim();
-
-    this.filterQueryMap = this.parseFilterQueryString(filterQueryString);
-
-    return this.filterQueryMap;
-  }
-
   makeFilterSelectHandler(id: string): (event: Event) => void {
     return (event: Event) => {
       const menu = event.target as SlMenu;
@@ -145,18 +164,7 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   firstUpdated(): void {
-    this.initializeFilterQueryMap();
-    // Add sl-select event handler to all sl-menu elements.
-    const menuElements = Array.from(
-      this.shadowRoot!.querySelectorAll('sl-menu')
-    );
-    for (const menuElement of menuElements) {
-      const id = menuElement.id;
-      menuElement.addEventListener(
-        'sl-select',
-        this.makeFilterSelectHandler(id)
-      );
-    }
+    this.initializeFilterQuery();
   }
 
   render(): TemplateResult {
