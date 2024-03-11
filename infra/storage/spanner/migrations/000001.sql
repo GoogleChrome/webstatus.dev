@@ -17,10 +17,17 @@ CREATE TABLE IF NOT EXISTS WebFeatures (
     ID STRING(36) NOT NULL DEFAULT (GENERATE_UUID()),
     FeatureID STRING(64) NOT NULL, -- From web features repo.
     Name STRING(64) NOT NULL,
+    -- Additional lowercase columns for case-insensitive search
+    FeatureID_Lowercase STRING(64) AS (LOWER(FeatureID)) STORED,
+    Name_Lowercase STRING(64) AS (LOWER(Name)) STORED,
 ) PRIMARY KEY (ID);
 
 -- Used to enforce that only one FeatureID from web features can exist.
 CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureID);
+
+-- Index on FeatureID and Name for case-insensitive search
+CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures(FeatureID_Lowercase);
+CREATE INDEX IDX_NAME_LOWER ON WebFeatures(Name_Lowercase);
 
 -- WPTRuns contains metadata from wpt.fyi runs.
 -- More information: https://github.com/web-platform-tests/wpt.fyi/blob/main/api/README.md#apiruns
