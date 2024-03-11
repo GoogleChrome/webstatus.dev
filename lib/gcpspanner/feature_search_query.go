@@ -153,46 +153,6 @@ type Filterable interface {
 	Clause() string
 }
 
-func NewAvailabileFilter(availableBrowsers []string) *AvailabileFilter {
-	return &AvailabileFilter{availableBrowsers: availableBrowsers}
-}
-
-// AvailabileFilter applies a filter to limit the features based on their availability in a list of browsers.
-type AvailabileFilter struct {
-	availableBrowsers []string
-}
-
-func (f AvailabileFilter) Clause() string {
-	return `wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-		WHERE BrowserName IN UNNEST(@availableBrowsers))`
-}
-
-func (f AvailabileFilter) Params() map[string]interface{} {
-	return map[string]interface{}{
-		"availableBrowsers": f.availableBrowsers,
-	}
-}
-
-func NewNotAvailabileFilter(notAvailableBrowsers []string) *NotAvailabileFilter {
-	return &NotAvailabileFilter{notAvailableBrowsers: notAvailableBrowsers}
-}
-
-// NotAvailabileFilter applies a filter to limit the features based on their unavailability in a list of browsers.
-type NotAvailabileFilter struct {
-	notAvailableBrowsers []string
-}
-
-func (f NotAvailabileFilter) Clause() string {
-	return `wf.FeatureID NOT IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-		WHERE BrowserName IN UNNEST(@notAvailableBrowsers))`
-}
-
-func (f NotAvailabileFilter) Params() map[string]interface{} {
-	return map[string]interface{}{
-		"notAvailableBrowsers": f.notAvailableBrowsers,
-	}
-}
-
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
 	baseQuery FeatureBaseQuery
@@ -211,7 +171,7 @@ func (q FeatureSearchQueryBuilder) Order() string {
 	return "ORDER BY wf.FeatureID"
 }
 
-func (q FeatureSearchQueryBuilder) Build(filters ...Filterable) spanner.Statement {
+func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter) spanner.Statement {
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
@@ -222,13 +182,10 @@ func (q FeatureSearchQueryBuilder) Build(filters ...Filterable) spanner.Statemen
 
 	filterParams["pageSize"] = q.pageSize
 
-	for _, filter := range filters {
-		if len(filterQuery) > 0 {
-			filterQuery += "AND "
-		}
-		filterQuery += filter.Clause() + " "
-		for key, value := range filter.Params() {
-			filterParams[key] = value
+	if filter != nil {
+		filterQuery = filter.Clause()
+		for param, value := range filter.Params() {
+			filterParams[param] = value
 		}
 	}
 	if len(filterQuery) > 0 {

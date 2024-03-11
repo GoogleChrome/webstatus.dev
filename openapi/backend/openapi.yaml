@@ -26,25 +26,15 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
-          name: availableOn
+          name: q
           description: >
-            A comma-separated list of browsers.
-            The returned features are available on these browsers.
+            A query string to represent the filters to apply the datastore while searching.
+            The query must follow the ANTLR grammar. Please read the query readme at antlr/FeatureSearch.md.
+            The query must be url safe.
           required: false
           schema:
-            type: array
-            items:
-              type: string
-        - in: query
-          name: notAvailableOn
-          description: >
-            A comma-separated list of browsers.
-            The returned features are not available on these browsers.
-          required: false
-          schema:
-            type: array
-            items:
-              type: string
+            type: string
+            minLength: 1
       responses:
         '200':
           description: OK

@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -492,7 +493,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 	// Test: Get all the results.
-	results, _, err := client.FeaturesSearch(ctx, nil, 100)
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, nil)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -565,7 +566,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			},
 		},
 	}
-	results, token, err := client.FeaturesSearch(ctx, nil, 2)
+	results, token, err := client.FeaturesSearch(ctx, nil, 2, nil)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -597,7 +598,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		},
 	}
 
-	results, token, err = client.FeaturesSearch(ctx, token, 2)
+	results, token, err = client.FeaturesSearch(ctx, token, 2, nil)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -607,7 +608,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 	}
 
 	// Last page should have no results and should have no token.
-	results, token, err = client.FeaturesSearch(ctx, token, 2)
+	results, token, err = client.FeaturesSearch(ctx, token, 2, nil)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -660,9 +661,37 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 			},
 		},
 	}
-	availableFilter := NewAvailabileFilter([]string{"barBrowser"})
-	notAvailableFilter := NewNotAvailabileFilter([]string{"fooBrowser"})
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, availableFilter, notAvailableFilter)
+	// available on barBrowser AND not available on fooBrowser
+	node := &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorAND,
+				Term:     nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Children: nil,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierAvailableOn,
+							Value:      "barBrowser",
+						},
+						Operator: searchtypes.OperatorNone,
+					},
+					{
+						Children: nil,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierAvailableOn,
+							Value:      "fooBrowser",
+						},
+						Operator: searchtypes.OperatorNegation,
+					},
+				},
+			},
+		},
+	}
+
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -712,8 +741,22 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 			ExperimentalMetrics: nil,
 		},
 	}
-	notAvailableFilter := NewNotAvailabileFilter([]string{"fooBrowser"})
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, notAvailableFilter)
+	// not available on fooBrowser
+	node := &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierAvailableOn,
+					Value:      "fooBrowser",
+				},
+				Operator: searchtypes.OperatorNegation,
+			},
+		},
+	}
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -785,8 +828,22 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			},
 		},
 	}
-	availableFilter := NewAvailabileFilter([]string{"barBrowser"})
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, availableFilter)
+	// available on barBrowser
+	node := &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierAvailableOn,
+					Value:      "barBrowser",
+				},
+				Operator: searchtypes.OperatorNone,
+			},
+		},
+	}
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -869,8 +926,37 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			ExperimentalMetrics: nil,
 		},
 	}
-	availableFilter = NewAvailabileFilter([]string{"barBrowser", "fooBrowser"})
-	results, _, err = client.FeaturesSearch(ctx, nil, 100, availableFilter)
+	// available on either barBrowser OR fooBrowser
+	node = &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorOR,
+				Term:     nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Children: nil,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierAvailableOn,
+							Value:      "barBrowser",
+						},
+						Operator: searchtypes.OperatorNone,
+					},
+					{
+						Children: nil,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierAvailableOn,
+							Value:      "fooBrowser",
+						},
+						Operator: searchtypes.OperatorNone,
+					},
+				},
+			},
+		},
+	}
+
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}

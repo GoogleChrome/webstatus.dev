@@ -20,6 +20,7 @@ import (
 	"errors"
 
 	"cloud.google.com/go/spanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"google.golang.org/api/iterator"
 )
 
@@ -56,7 +57,11 @@ func (c *Client) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
 	pageSize int,
-	filterables ...Filterable) ([]FeatureResult, *string, error) {
+	searchNode *searchtypes.SearchNode) ([]FeatureResult, *string, error) {
+	// Build filterable
+	filterBuilder := NewFeatureSearchFilterBuilder()
+	filter := filterBuilder.Build(searchNode)
+
 	var cursor *FeatureResultCursor
 	var err error
 	if pageToken != nil {
@@ -65,12 +70,12 @@ func (c *Client) FeaturesSearch(
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 	}
-	b := FeatureSearchQueryBuilder{
+	queryBuilder := FeatureSearchQueryBuilder{
 		baseQuery: FeatureBaseQuery{},
 		cursor:    cursor,
 		pageSize:  pageSize,
 	}
-	stmt := b.Build(filterables...)
+	stmt := queryBuilder.Build(filter)
 	txn := c.Single()
 	defer txn.Close()
 	it := txn.Query(ctx, stmt)

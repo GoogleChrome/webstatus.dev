@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -36,12 +37,12 @@ var (
 )
 
 type mockFeaturesSearchConfig struct {
-	expectedPageToken   *string
-	expectedPageSize    int
-	expectedFilterables []gcpspanner.Filterable
-	result              []gcpspanner.FeatureResult
-	returnedPageToken   *string
-	returnedError       error
+	expectedPageToken *string
+	expectedPageSize  int
+	expectedNode      *searchtypes.SearchNode
+	result            []gcpspanner.FeatureResult
+	returnedPageToken *string
+	returnedError     error
 }
 
 type mockGetFeatureConfig struct {
@@ -136,10 +137,10 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	_ context.Context,
 	pageToken *string,
 	pageSize int,
-	filterables ...gcpspanner.Filterable) ([]gcpspanner.FeatureResult, *string, error) {
+	searchNode *searchtypes.SearchNode) ([]gcpspanner.FeatureResult, *string, error) {
 	if pageToken != c.mockFeaturesSearchCfg.expectedPageToken ||
 		pageSize != c.mockFeaturesSearchCfg.expectedPageSize ||
-		!reflect.DeepEqual(filterables, c.mockFeaturesSearchCfg.expectedFilterables) {
+		!reflect.DeepEqual(searchNode, c.mockFeaturesSearchCfg.expectedNode) {
 		c.t.Error("unexpected input to mock")
 	}
 
@@ -391,20 +392,23 @@ func TestConvertBaselineStatusSpannerToBackend(t *testing.T) {
 
 func TestFeaturesSearch(t *testing.T) {
 	testCases := []struct {
-		name                  string
-		cfg                   mockFeaturesSearchConfig
-		inputPageToken        *string
-		inputPageSize         int
-		availabileBrowsers    []string
-		notAvailabileBrowsers []string
-		expectedFeatures      []backend.Feature
+		name             string
+		cfg              mockFeaturesSearchConfig
+		inputPageToken   *string
+		inputPageSize    int
+		searchNode       *searchtypes.SearchNode
+		expectedFeatures []backend.Feature
 	}{
 		{
 			name: "regular",
 			cfg: mockFeaturesSearchConfig{
-				expectedPageToken:   nonNilInputPageToken,
-				expectedPageSize:    100,
-				expectedFilterables: nil,
+				expectedPageToken: nonNilInputPageToken,
+				expectedPageSize:  100,
+				expectedNode: &searchtypes.SearchNode{
+					Operator: searchtypes.OperatorRoot,
+					Term:     nil,
+					Children: nil,
+				},
 				result: []gcpspanner.FeatureResult{
 					{
 						Name:      "feature 1",
@@ -458,10 +462,13 @@ func TestFeaturesSearch(t *testing.T) {
 				returnedPageToken: nonNilNextPageToken,
 				returnedError:     nil,
 			},
-			inputPageToken:        nonNilInputPageToken,
-			inputPageSize:         100,
-			availabileBrowsers:    nil,
-			notAvailabileBrowsers: nil,
+			inputPageToken: nonNilInputPageToken,
+			inputPageSize:  100,
+			searchNode: &searchtypes.SearchNode{
+				Operator: searchtypes.OperatorRoot,
+				Term:     nil,
+				Children: nil,
+			},
 			expectedFeatures: []backend.Feature{
 				{
 					BaselineStatus: backend.Low,
@@ -522,8 +529,7 @@ func TestFeaturesSearch(t *testing.T) {
 				context.Background(),
 				tc.inputPageToken,
 				tc.inputPageSize,
-				tc.availabileBrowsers,
-				tc.notAvailabileBrowsers)
+				tc.searchNode)
 			if !errors.Is(err, tc.cfg.returnedError) {
 				t.Error("unexpected error")
 			}
