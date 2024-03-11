@@ -40,6 +40,25 @@ export class WebstatusOverviewFilters extends LitElement {
         #standards_track_button > sl-checkbox {
           padding-left: 1rem;
         }
+
+        /** Filter query submit button pulses after changes. */
+        @keyframes pulseBtn {
+          0% {
+            box-shadow: 0px 0px 0px 0px rgba(81, 73, 255, 1);
+          }
+          100% {
+            box-shadow: 0px 0px 10px 2px rgba(81, 73, 255, 1);
+          }
+        }
+
+        .glow-btn.changed {
+          border-radius: 4px;
+          animation-name: pulseBtn;
+          animation-duration: 0.9s;
+          animation-iteration-count: infinite;
+          animation-direction: alternate;
+          animation-timing-function: ease-in-out;
+        }
       `,
     ];
   }
@@ -79,46 +98,64 @@ export class WebstatusOverviewFilters extends LitElement {
     return filterQueryString;
   }
 
-  firstUpdated(): void {
+  filterQueryInput!: SlInput;
+  filterQueryMap!: Map<string, string[]>;
+
+  initializeFilterQueryMap(): Map<string, string[]> {
+    // Initialize the filter query map with the values from the URL.
     // Get the filter query string from filter-query-input
-    const filterQueryInput = this.shadowRoot!.getElementById(
+    this.filterQueryInput = this.shadowRoot!.getElementById(
       'filter-query-input'
     ) as SlInput;
-    const filterQueryString = (filterQueryInput.value || '').trim();
-    const filterQueryMap = this.parseFilterQueryString(filterQueryString);
+    const filterQueryString = (this.filterQueryInput.value || '').trim();
 
-    const makeFilterSelectHandler = (id: string): ((event: Event) => void) => {
-      return (event: Event) => {
-        const menu = event.target as SlMenu;
-        const menuChildren = menu.children;
+    this.filterQueryMap = this.parseFilterQueryString(filterQueryString);
 
-        const menuItemsArray: Array<SlMenuItem> = Array.from(
-          menuChildren
-        ).filter(child => child instanceof SlMenuItem) as Array<SlMenuItem>;
+    return this.filterQueryMap;
+  }
 
-        // Create a list of the currently checked sl-menu-items.
-        const checkedItems = menuItemsArray.filter(
-          menuItem => menuItem.checked
-        );
-        // Build a query string from the values of those items.
-        const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
+  makeFilterSelectHandler(id: string): (event: Event) => void {
+    return (event: Event) => {
+      const menu = event.target as SlMenu;
+      const menuChildren = menu.children;
 
-        // Update the filterQueryMap with the new values.
-        filterQueryMap.set(id, checkedItemsValues);
-        // Update the filterQuery input with the new filter query string.
-        const filterQueryString =
-          this.generateFilterQueryString(filterQueryMap);
-        filterQueryInput.value = filterQueryString;
-      };
+      const menuItemsArray: Array<SlMenuItem> = Array.from(menuChildren).filter(
+        child => child instanceof SlMenuItem
+      ) as Array<SlMenuItem>;
+
+      // Create a list of the currently checked sl-menu-items.
+      const checkedItems = menuItemsArray.filter(menuItem => menuItem.checked);
+      // Build a query string from the values of those items.
+      const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
+
+      // Update the filterQueryMap with the new values.
+      this.filterQueryMap.set(id, checkedItemsValues);
+      // Update the filterQuery input with the new filter query string.
+      const filterQueryString = this.generateFilterQueryString(
+        this.filterQueryMap
+      );
+      this.filterQueryInput.value = filterQueryString;
+
+      // Activate the submit button glowing
+      const submitButton = this.shadowRoot!.getElementById(
+        'filter-submit-button'
+      ) as SlInput;
+      submitButton.classList.add('changed');
     };
+  }
 
+  firstUpdated(): void {
+    this.initializeFilterQueryMap();
     // Add sl-select event handler to all sl-menu elements.
     const menuElements = Array.from(
       this.shadowRoot!.querySelectorAll('sl-menu')
     );
     for (const menuElement of menuElements) {
       const id = menuElement.id;
-      menuElement.addEventListener('sl-select', makeFilterSelectHandler(id));
+      menuElement.addEventListener(
+        'sl-select',
+        this.makeFilterSelectHandler(id)
+      );
     }
   }
 
@@ -130,10 +167,21 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-input
             id="filter-query-input"
             class="halign-stretch"
-            placeholder="Filter by feature name..."
+            placeholder="Filter by ..."
             value="${query}"
           >
-            <sl-icon name="search" slot="prefix"></sl-icon>
+            <sl-button
+              id="filter-submit-button"
+              class="glow-btn"
+              size="small"
+              type="submit"
+              slot="prefix"
+              submit
+              variant="success"
+              outline
+            >
+              <sl-icon slot="prefix" name="search"></sl-icon>
+            </sl-button>
           </sl-input>
         </div>
 
