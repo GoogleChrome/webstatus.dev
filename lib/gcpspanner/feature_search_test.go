@@ -412,6 +412,7 @@ func stabilizeFeatureResult(result FeatureResult) {
 
 func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 	// Simple test to get all the features without filters.
+	//nolint: dupl // Okay to duplicate for tests
 	expectedResults := []FeatureResult{
 		{
 			FeatureID: "feature1",
@@ -626,6 +627,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureAvailableSearchFilters(ctx, t, client)
 	testFeatureNotAvailableSearchFilters(ctx, t, client)
 	testFeatureCommonFilterCombos(ctx, t, client)
+	testFeatureNameFilters(ctx, t, client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
@@ -964,6 +966,174 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 	if !reflect.DeepEqual(expectedResults, results) {
 		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
 	}
+}
+
+func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
+	// All lower case with partial "feature" name. Should return all.
+	//nolint: dupl // Okay to duplicate for tests
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](50),
+					TestPass:    valuePtr[int64](35),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
+	node := &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierName,
+					Value:      "feature",
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+
+	// All upper case with partial "FEATURE" name. Should return same results (all).
+	node = &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierName,
+					Value:      "FEATURE",
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+
+	// Search for name with "4" Should return only feature 4.
+	expectedResults = []FeatureResult{
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
+	node = &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierName,
+					Value:      "4",
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+
 }
 
 func TestFeaturesSearch(t *testing.T) {

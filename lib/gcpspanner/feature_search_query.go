@@ -136,9 +136,19 @@ WHERE BrowserName = @%s)`, paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string) string {
+	// Normalize the string to lower case to use the computed column.
+	featureName = strings.ToLower(featureName)
+	// Safely add the database % wildcards if they do not already exist.
+	if !strings.HasPrefix(featureName, "%") {
+		featureName = "%" + featureName
+	}
+	if !strings.HasSuffix(featureName, "%") {
+		featureName = featureName + "%"
+	}
+
 	paramName := b.addParamGetName(featureName)
 
-	return fmt.Sprintf(`(wf.Name LIKE @%s OR wf.FeatureID LIKE @%s)`, paramName, paramName)
+	return fmt.Sprintf(`(wf.Name_Lowercase LIKE @%s OR wf.FeatureID_Lowercase LIKE @%s)`, paramName, paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string) string {

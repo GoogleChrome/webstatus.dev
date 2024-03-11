@@ -215,16 +215,16 @@ WHERE BrowserName = @param0))`,
 		},
 		{
 			inputTestTree:  simpleNameQuery,
-			expectedClause: `((wf.Name LIKE @param0 OR wf.FeatureID LIKE @param0))`,
+			expectedClause: `((wf.Name_Lowercase LIKE @param0 OR wf.FeatureID_Lowercase LIKE @param0))`,
 			expectedParams: map[string]interface{}{
-				"param0": "CSS Grid",
+				"param0": "%" + "css grid" + "%",
 			},
 		},
 		{
 			inputTestTree:  simpleNameByIDQuery,
-			expectedClause: `((wf.Name LIKE @param0 OR wf.FeatureID LIKE @param0))`,
+			expectedClause: `((wf.Name_Lowercase LIKE @param0 OR wf.FeatureID_Lowercase LIKE @param0))`,
 			expectedParams: map[string]interface{}{
-				"param0": "grid",
+				"param0": "%" + "grid" + "%",
 			},
 		},
 		{
@@ -248,12 +248,12 @@ WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`,
 		{
 			inputTestTree: complexQuery,
 			expectedClause: `(((wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name LIKE @param2 OR wf.FeatureID LIKE @param2)))) OR ((wf.Name LIKE @param3 OR wf.FeatureID LIKE @param3)))`,
+WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase LIKE @param2 OR wf.FeatureID_Lowercase LIKE @param2)))) OR ((wf.Name_Lowercase LIKE @param3 OR wf.FeatureID_Lowercase LIKE @param3)))`,
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
-				"param2": "avif",
-				"param3": "grid",
+				"param2": "%" + "avif" + "%",
+				"param3": "%" + "grid" + "%",
 			},
 		},
 	}
