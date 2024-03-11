@@ -50,7 +50,7 @@ SELECT
 			SELECT DISTINCT BrowserName, FeatureID, MAX(wpr.TimeStart) AS MaxTimeStart
 			FROM WPTRunFeatureMetrics metrics
 			JOIN WPTRuns wpr ON metrics.ID = wpr.ID
-			WHERE metrics.FeatureID = wf.FeatureID
+			WHERE metrics.FeatureID = wf.FeatureID AND wpr.Channel = 'stable'
 			GROUP BY BrowserName, FeatureID
 		) browser_feature_list
 		-- Join to retrieve metrics, ensuring we get the latest run for each combination
@@ -70,7 +70,7 @@ SELECT
 			SELECT DISTINCT BrowserName, FeatureID, MAX(wpr.TimeStart) AS MaxTimeStart
 			FROM WPTRunFeatureMetrics metrics
 			JOIN WPTRuns wpr ON metrics.ID = wpr.ID
-			WHERE metrics.FeatureID = wf.FeatureID
+			WHERE metrics.FeatureID = wf.FeatureID AND wpr.Channel = 'experimental'
 			GROUP BY BrowserName, FeatureID
 		) browser_feature_list
 		-- Join to retrieve metrics, ensuring we get the latest run for each combination
