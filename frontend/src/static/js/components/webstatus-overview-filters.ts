@@ -124,12 +124,14 @@ export class WebstatusOverviewFilters extends LitElement {
 
   generateFilterQueryString(filterQueryMap: Map<string, string[]>): string {
     // Generate a filter query string from a map of filter keys and values.
-    const filterQueryStringArray: string[] = [];
-    for (const [key, valueArray] of filterQueryMap.entries()) {
-      const valueString = valueArray.join(',');
-      filterQueryStringArray.push(`${key}:${valueString}`);
+    const andClauseArray: string[] = [];
+    for (const [key, orClauseArray] of filterQueryMap.entries()) {
+      const orClauseString = orClauseArray
+        .map((value: string) => `${key}:${value}`)
+        .join(' OR ');
+      andClauseArray.push(`(${orClauseString})`);
     }
-    const filterQueryString = filterQueryStringArray.join(' ');
+    const filterQueryString = andClauseArray.join(' AND ');
     return filterQueryString;
   }
 
