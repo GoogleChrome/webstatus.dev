@@ -59,6 +59,7 @@ func (s *Server) GetV1Features(
 		req.Params.PageToken,
 		getPageSizeOrDefault(req.Params.PageSize),
 		node,
+		req.Params.Sort,
 	)
 
 	if err != nil {

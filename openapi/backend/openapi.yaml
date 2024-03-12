@@ -35,6 +35,35 @@ paths:
           schema:
             type: string
             minLength: 1
+        - in: query
+          name: sort
+          description: >
+            Field to sort by, with 'asc' for ascending and 'desc' for descending order.
+            Defaults to sorting by 'name' in ascending order (e.g., 'name_asc').
+          required: false
+          schema:
+            type: string
+            enum:
+              - name_asc
+              - name_desc
+              - baseline_status_asc
+              - baseline_status_desc
+              - wpt_stable_chrome_asc
+              - wpt_stable_chrome_desc
+              - wpt_stable_safari_asc
+              - wpt_stable_safari_desc
+              - wpt_stable_edge_asc
+              - wpt_stable_edge_desc
+              - wpt_stable_firefox_asc
+              - wpt_stable_firefox_desc
+              - wpt_experimental_chrome_asc
+              - wpt_experimental_chrome_desc
+              - wpt_experimental_safari_asc
+              - wpt_experimental_safari_desc
+              - wpt_experimental_edge_asc
+              - wpt_experimental_edge_desc
+              - wpt_experimental_firefox_asc
+              - wpt_experimental_firefox_desc
       responses:
         '200':
           description: OK
