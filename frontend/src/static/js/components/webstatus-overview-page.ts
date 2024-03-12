@@ -26,7 +26,7 @@ import './webstatus-overview-content.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
-  _loadingTask: Task;
+  loadingTask: Task;
 
   @consume({context: apiClientContext})
   apiClient?: APIClient;
@@ -38,7 +38,7 @@ export class OverviewPage extends LitElement {
 
   constructor() {
     super();
-    this._loadingTask = new Task(this, {
+    this.loadingTask = new Task(this, {
       args: () => [this.apiClient],
       task: async ([apiClient]) => {
         if (typeof apiClient === 'object') {
@@ -54,6 +54,7 @@ export class OverviewPage extends LitElement {
       <webstatus-overview-content
         .location=${this.location}
         .features=${this.features}
+        .loadingTask=${this.loadingTask}
       >
       </webstatus-overview-content>
     `;
