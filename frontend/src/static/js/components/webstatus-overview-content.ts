@@ -31,6 +31,7 @@ export class WebstatusOverviewContent extends LitElement {
 
   loadingTask!: Task; // Set by parent.
 
+  @state()
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {

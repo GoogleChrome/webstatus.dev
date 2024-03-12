@@ -18,6 +18,7 @@ import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
+import {formatOverviewPageUrl, getPaginationStart} from '../utils/urls.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
@@ -30,8 +31,9 @@ export class WebstatusPagination extends LitElement {
   features: Array<components['schemas']['Feature']> = [];
 
   @state()
-  currentPage = 0;
+  start = 0;  // Index of first result among total results.
 
+  @state()
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {
@@ -49,21 +51,35 @@ export class WebstatusPagination extends LitElement {
     ];
   }
 
-  getNumPages() {
-    const totalCount = this.features?.length || 0;
-    const numPages = Math.floor(totalCount / ITEMS_PER_PAGE) + 1;
-    return numPages;
+  getTotalCount() {
+    // TODO(jrobbins): Get from JSON response field when available.
+      return this.features?.length || 0;
+  }
+
+  formatUrlForOffset(offset: number): string {
+    return formatOverviewPageUrl(this.location, {start: offset});
+  }
+
+  formatUrlForRelativeOffset(delta: number): string | undefined {
+    const offset = this.start + delta;
+    if (offset <= -ITEMS_PER_PAGE || offset > this.getTotalCount()) {
+      return undefined;
+    }
+    return this.formatUrlForOffset(Math.max(0, offset));
   }
 
   renderPageButtons(): TemplateResult {
+    const currentPage = Math.floor(this.start / ITEMS_PER_PAGE);
+    const numPages = Math.floor(this.getTotalCount() / ITEMS_PER_PAGE) + 1;
+
     return html`
       ${map(
-         range(this.getNumPages()),
+         range(numPages),
          (i) => html`
-          <sl-button
-            variant="text"
-            class="page-button ${i === this.currentPage ? 'active' : ''}"
-            href="#TODO-${i*ITEMS_PER_PAGE}"
+           <sl-button
+             variant="text"
+             class="page-button ${i === currentPage ? 'active' : ''}"
+             href=${this.formatUrlForOffset(i * ITEMS_PER_PAGE)}
            >
              ${i + 1}
            </sl-button>
@@ -73,21 +89,29 @@ export class WebstatusPagination extends LitElement {
   }
 
   render(): TemplateResult {
-    const prevDisabled = this.currentPage === 0;
-    const nextDisabled = this.currentPage === this.getNumPages();
+    if (this.features.length === 0) {
+        return html``;
+    }
+
+    this.start = getPaginationStart(this.location);
+    const prevUrl = this.formatUrlForRelativeOffset(-ITEMS_PER_PAGE);
+    const nextUrl = this.formatUrlForRelativeOffset(ITEMS_PER_PAGE);
+
     return html`
       <div id="main" class="hbox halign-items-space-between">
         <div class="spacer"></div>
         <sl-button
           variant="text" class="stepper"
-          ?disabled=${prevDisabled}
+          href=${prevUrl}
+          ?disabled=${prevUrl === undefined}
         >Previous</sl-button>
 
         ${this.renderPageButtons()}
 
         <sl-button
           variant="text" class="stepper"
-          ?disabled=${nextDisabled}
+          href=${nextUrl}
+          ?disabled=${nextUrl === undefined}
         >Next</sl-button>
         <div class="spacer"></div>
       </div>

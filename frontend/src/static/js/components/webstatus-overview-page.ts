@@ -34,6 +34,7 @@ export class OverviewPage extends LitElement {
   @state()
   features: Array<components['schemas']['Feature']> = [];
 
+  @state()
   location!: {search: string}; // Set by router.
 
   constructor() {

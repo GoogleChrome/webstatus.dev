@@ -68,7 +68,7 @@ export const THEME = css`
     --table-border: var(--default-border);
     --table-radius: var(--border-radius);
 
-    --pagination-active-background: var(--color-lightest);
+    --pagination-active-background: var(--color-light);
 
     --chip-border: none;
     --chip-radius: 9999px;
