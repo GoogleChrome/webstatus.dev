@@ -15,6 +15,7 @@
  */
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
+import {Task, TaskStatus} from '@lit/task';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
@@ -27,6 +28,8 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 export class WebstatusOverviewContent extends LitElement {
   @state()
   features: Array<components['schemas']['Feature']> = [];
+
+  loadingTask!: Task; // Set by parent.
 
   location!: {search: string}; // Set by parent.
 
@@ -44,7 +47,18 @@ export class WebstatusOverviewContent extends LitElement {
     ];
   }
 
-  render(): TemplateResult {
+  renderCount(): TemplateResult {
+    if (this.loadingTask.status === TaskStatus.INITIAL) {
+      return html`About to load features`;
+    }
+    if (this.loadingTask.status === TaskStatus.ERROR) {
+      // TODO(jrobbins): this is never reached.
+      return html`Could not load features`;
+    }
+    if (this.loadingTask.status === TaskStatus.PENDING) {
+      return html`Loading features...`;
+    }
+
     const numFeatures = this.features.length;
     const date = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -52,6 +66,19 @@ export class WebstatusOverviewContent extends LitElement {
       day: 'numeric',
     });
 
+    return html`
+      <span class="stats-summary">
+        <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
+        ${numFeatures} features
+      </span>
+      <span class="stats-summary">
+        <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
+        Updated ${date}
+      </span>
+    `;
+  }
+
+  render(): TemplateResult {
     return html`
       <div class="main">
         <div class="hbox halign-items-space-between header-line">
@@ -67,16 +94,7 @@ export class WebstatusOverviewContent extends LitElement {
             ><sl-icon name="bookmark"></sl-icon> Save this view</sl-button
           >
         </div>
-        <div class="hbox">
-          <span class="stats-summary">
-            <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
-            ${numFeatures} features</span
-          >
-          <span class="stats-summary">
-            <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
-            Updated ${date}</span
-          >
-        </div>
+        <div class="hbox">${this.renderCount()}</div>
         <br />
         <webstatus-overview-filters
           .location=${this.location}
@@ -86,6 +104,7 @@ export class WebstatusOverviewContent extends LitElement {
         <webstatus-overview-table
           .location=${this.location}
           .features=${this.features}
+          .loadingTask=${this.loadingTask}
         >
         </webstatus-overview-table>
         <webstatus-pagination
