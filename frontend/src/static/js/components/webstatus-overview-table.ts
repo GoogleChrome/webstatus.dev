@@ -14,6 +14,9 @@
  * limitations under the License.
  */
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
+import {Task} from '@lit/task';
+import {range} from 'lit/directives/range.js';
+import {map} from 'lit/directives/map.js';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
@@ -39,6 +42,8 @@ export class WebstatusOverviewTable extends LitElement {
   @state()
   features: Array<components['schemas']['Feature']> = [];
 
+  loadingTask!: Task; // Set by parent.
+
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {
@@ -60,12 +65,28 @@ export class WebstatusOverviewTable extends LitElement {
           background: var(--chip-background-widely);
           color: var(--chip-color-widely);
         }
+
+        sl-skeleton {
+          width: 4em;
+        }
+        sl-skeleton.col-name {
+          width: 6em;
+        }
+        tr:nth-of-type(even) sl-skeleton.col-name {
+          width: 9em;
+        }
+        sl-skeleton.col-baseline_status {
+          width: 5em;
+        }
+        tr:nth-of-type(even) sl-skeleton.col-baseline_status {
+          width: 7em;
+        }
       `,
     ];
   }
 
   render(): TemplateResult {
-    const columns = parseColumnsSpec(
+    const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location),
       DEFAULT_COLUMNS
     );
@@ -77,9 +98,68 @@ export class WebstatusOverviewTable extends LitElement {
           </tr>
         </thead>
         <tbody>
-          ${this.features.map(f => this.renderFeatureRow(f, columns))}
+          ${this.renderTableBody(columns)}
         </tbody>
       </table>
+    `;
+  }
+
+  renderTableBody(columns: ColumnKey[]): TemplateResult {
+    return this.loadingTask.render({
+      complete: () => this.renderBodyWhenComplete(columns),
+      error: () => this.renderBodyWhenError(columns),
+      initial: () => this.renderBodyWhenInitial(columns),
+      pending: () => this.renderBodyWhenPending(columns),
+    });
+  }
+
+  renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
+    return html` ${this.features.map(f => this.renderFeatureRow(f, columns))} `;
+  }
+
+  // TODO(jrobbins): This never gets called, even when request fails.
+  renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
+    return html`
+      <tr>
+        <td colspan=${columns.length}>
+          <div>Something went wrong...</div>
+          <div>We had some trouble loading this data.</div>
+          <div>
+            Please refresh the page or
+            <a href="#TODO" target="_blank">report an error</a>.
+          </div>
+        </td>
+      </tr>
+    `;
+  }
+
+  renderBodyWhenInitial(columns: ColumnKey[]): TemplateResult {
+    return html`
+      <tr>
+        <td colspan=${columns.length}>
+          <div>Requesting data...</div>
+        </td>
+      </tr>
+    `;
+  }
+
+  renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
+    const SKELLETON_ROWS = 10;
+    return html`
+      ${map(
+        range(SKELLETON_ROWS),
+        () => html`
+          <tr>
+            ${columns.map(col => html` <td>${this.renderShimmer(col)}</td> `)}
+          </tr>
+        `
+      )}
+    `;
+  }
+
+  renderShimmer(column: ColumnKey) {
+    return html`
+      <sl-skeleton effect="sheen" class="col-${column}"></sl-skeleton>
     `;
   }
 
