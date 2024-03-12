@@ -47,6 +47,17 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   renderCount(): TemplateResult {
+    if (this.loadingTask.status === TaskStatus.INITIAL) {
+      return html`About to load features`;
+    }
+    if (this.loadingTask.status === TaskStatus.ERROR) {
+      // TODO(jrobbins): this is never reached.
+      return html`Could not load features`;
+    }
+    if (this.loadingTask.status === TaskStatus.PENDING) {
+      return html`Loading features...`;
+    }
+
     const numFeatures = this.features.length;
     const date = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
@@ -82,11 +93,7 @@ export class WebstatusOverviewContent extends LitElement {
             ><sl-icon name="bookmark"></sl-icon> Save this view</sl-button
           >
         </div>
-        <div class="hbox">
-          ${this.loadingTask.status !== TaskStatus.COMPLETE
-            ? html`Loading features...`
-            : this.renderCount()}
-        </div>
+        <div class="hbox">${this.renderCount()}</div>
         <br />
         <webstatus-overview-filters
           .location=${this.location}
