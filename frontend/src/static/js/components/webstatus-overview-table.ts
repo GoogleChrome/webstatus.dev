@@ -117,9 +117,9 @@ export class WebstatusOverviewTable extends LitElement {
   renderTableBody(columns: ColumnKey[]): TemplateResult {
     return this.loadingTask.render({
       complete: () => {
-          return this.features.length === 0
-              ? this.renderBodyWhenNoResults(columns)
-              : this.renderBodyWhenComplete(columns)
+        return this.features.length === 0
+          ? this.renderBodyWhenNoResults(columns)
+          : this.renderBodyWhenComplete(columns);
       },
       error: () => this.renderBodyWhenError(columns),
       initial: () => this.renderBodyWhenInitial(columns),

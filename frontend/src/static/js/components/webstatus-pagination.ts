@@ -16,6 +16,7 @@
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
 import {formatOverviewPageUrl, getPaginationStart} from '../utils/urls.js';
@@ -31,7 +32,7 @@ export class WebstatusPagination extends LitElement {
   features: Array<components['schemas']['Feature']> = [];
 
   @state()
-  start = 0;  // Index of first result among total results.
+  start = 0; // Index of first result among total results.
 
   @state()
   location!: {search: string}; // Set by parent.
@@ -47,13 +48,17 @@ export class WebstatusPagination extends LitElement {
         .active {
           background: var(--pagination-active-background);
         }
+
+        sl-button::part(base):hover {
+          background: var(--pagination-hover-background);
+        }
       `,
     ];
   }
 
   getTotalCount() {
     // TODO(jrobbins): Get from JSON response field when available.
-      return this.features?.length || 0;
+    return this.features?.length || 0;
   }
 
   formatUrlForOffset(offset: number): string {
@@ -74,23 +79,23 @@ export class WebstatusPagination extends LitElement {
 
     return html`
       ${map(
-         range(numPages),
-         (i) => html`
-           <sl-button
-             variant="text"
-             class="page-button ${i === currentPage ? 'active' : ''}"
-             href=${this.formatUrlForOffset(i * ITEMS_PER_PAGE)}
-           >
-             ${i + 1}
-           </sl-button>
-         `
+        range(numPages),
+        i => html`
+          <sl-button
+            variant="text"
+            class="page-button ${i === currentPage ? 'active' : ''}"
+            href=${this.formatUrlForOffset(i * ITEMS_PER_PAGE)}
+          >
+            ${i + 1}
+          </sl-button>
+        `
       )}
     `;
   }
 
   render(): TemplateResult {
     if (this.features.length === 0) {
-        return html``;
+      return html``;
     }
 
     this.start = getPaginationStart(this.location);
@@ -101,18 +106,22 @@ export class WebstatusPagination extends LitElement {
       <div id="main" class="hbox halign-items-space-between">
         <div class="spacer"></div>
         <sl-button
-          variant="text" class="stepper"
-          href=${prevUrl}
+          variant="text"
+          class="stepper"
+          href=${ifDefined(prevUrl)}
           ?disabled=${prevUrl === undefined}
-        >Previous</sl-button>
+          >Previous</sl-button
+        >
 
         ${this.renderPageButtons()}
 
         <sl-button
-          variant="text" class="stepper"
-          href=${nextUrl}
+          variant="text"
+          class="stepper"
+          href=${ifDefined(nextUrl)}
           ?disabled=${nextUrl === undefined}
-        >Next</sl-button>
+          >Next</sl-button
+        >
         <div class="spacer"></div>
       </div>
     `;

@@ -61,8 +61,8 @@ function getContextualQueryStringParams(
   if (sortSpec) {
     searchParams.set('sort', sortSpec);
   }
-  const start = ('start' in overrides)
-        ? overrides.start : getPaginationStart(location);
+  const start =
+    'start' in overrides ? overrides.start : getPaginationStart(location);
   if (start) {
     searchParams.set('start', '' + start);
   }
@@ -73,7 +73,7 @@ function getContextualQueryStringParams(
 /* Return a URL for the overview (feature list) page. */
 export function formatOverviewPageUrl(
   location?: {search: string},
-    overrides: {start?: number} = {},
+  overrides: {start?: number} = {}
 ): string {
   const qs = getContextualQueryStringParams(location, overrides);
   return `/${qs}`;
@@ -83,8 +83,8 @@ export function formatOverviewPageUrl(
 export function formatFeaturePageUrl(
   feature: components['schemas']['Feature'],
   location?: {search: string},
-  overrides: {start?: number} = {},
+  overrides: {start?: number} = {}
 ): string {
-    const qs = getContextualQueryStringParams(location, overrides);
+  const qs = getContextualQueryStringParams(location, overrides);
   return `/features/${feature.feature_id}${qs}`;
 }

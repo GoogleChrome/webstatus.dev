@@ -69,6 +69,7 @@ export const THEME = css`
     --table-radius: var(--border-radius);
 
     --pagination-active-background: var(--color-light);
+    --pagination-hover-background: var(--color-blue-bg);
 
     --chip-border: none;
     --chip-radius: 9999px;
