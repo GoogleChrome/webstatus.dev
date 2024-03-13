@@ -176,12 +176,7 @@ func (q FeatureSearchQueryBuilder) Base() string {
 	return q.baseQuery.Query()
 }
 
-func (q FeatureSearchQueryBuilder) Order() string {
-	// Stable sorting
-	return "ORDER BY wf.FeatureID"
-}
-
-func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter) spanner.Statement {
+func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter, sort Sortable) spanner.Statement {
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
@@ -201,9 +196,34 @@ func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter) sp
 	if len(filterQuery) > 0 {
 		filterQuery = "WHERE " + filterQuery
 	}
-	stmt := spanner.NewStatement(q.Base() + " " + filterQuery + " " + q.Order() + " LIMIT @pageSize")
+	stmt := spanner.NewStatement(q.Base() + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
 
 	stmt.Params = filterParams
 
 	return stmt
+}
+
+// Sortable is a basic class that all/most sortables can include.
+type Sortable struct {
+	clause string
+}
+
+func (s Sortable) Clause() string {
+	return s.clause
+}
+
+func buildSortableOrderClause(isAscending bool, column string) string {
+	direction := "ASC"
+	if !isAscending {
+		direction = "DESC"
+	}
+
+	return fmt.Sprintf("%s %s", column, direction)
+}
+
+// NewFeatureNameSort returns a Sortable specifically for the Name column.
+func NewFeatureNameSort(isAscending bool) Sortable {
+	return Sortable{
+		clause: buildSortableOrderClause(isAscending, "wf.Name"),
+	}
 }

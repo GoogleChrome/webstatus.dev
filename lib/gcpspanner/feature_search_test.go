@@ -393,6 +393,10 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
+func defaultSorting() Sortable {
+	return NewFeatureNameSort(true)
+}
+
 func sortMetricsByBrowserName(metrics []*FeatureResultMetric) {
 	sort.Slice(metrics, func(i, j int) bool {
 		return metrics[i].BrowserName < metrics[j].BrowserName
@@ -494,7 +498,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 	// Test: Get all the results.
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, nil)
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, nil, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -567,7 +571,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			},
 		},
 	}
-	results, token, err := client.FeaturesSearch(ctx, nil, 2, nil)
+	results, token, err := client.FeaturesSearch(ctx, nil, 2, nil, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -599,7 +603,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		},
 	}
 
-	results, token, err = client.FeaturesSearch(ctx, token, 2, nil)
+	results, token, err = client.FeaturesSearch(ctx, token, 2, nil, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -609,7 +613,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 	}
 
 	// Last page should have no results and should have no token.
-	results, token, err = client.FeaturesSearch(ctx, token, 2, nil)
+	results, token, err = client.FeaturesSearch(ctx, token, 2, nil, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -693,7 +697,7 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 		},
 	}
 
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -758,7 +762,7 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 			},
 		},
 	}
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -845,7 +849,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			},
 		},
 	}
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -958,7 +962,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		},
 	}
 
-	results, _, err = client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -1066,7 +1070,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
-	results, _, err := client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -1091,7 +1095,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
-	results, _, err = client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -1125,7 +1129,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
-	results, _, err = client.FeaturesSearch(ctx, nil, 100, node)
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
@@ -1136,6 +1140,197 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 
 }
 
+func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
+	testFeatureSearchSortName(ctx, t, client)
+}
+
+func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client) {
+	// Name asc
+	sortByAsc := NewFeatureNameSort(true)
+	//nolint: dupl // Okay to duplicate for tests
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](50),
+					TestPass:    valuePtr[int64](35),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
+	// Test: Get all the results.
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, nil, sortByAsc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+	// Name desc
+	sortByDesc := NewFeatureNameSort(false)
+	//nolint: dupl // Okay to duplicate for tests
+	expectedResults = []FeatureResult{
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](50),
+					TestPass:    valuePtr[int64](35),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](10),
+					TestPass:    valuePtr[int64](0),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](120),
+					TestPass:    valuePtr[int64](120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](12),
+					TestPass:    valuePtr[int64](12),
+				},
+			},
+		},
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusUndefined),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](33),
+					TestPass:    valuePtr[int64](33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](20),
+					TestPass:    valuePtr[int64](20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					TotalTests:  valuePtr[int64](220),
+					TestPass:    valuePtr[int64](220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					TotalTests:  valuePtr[int64](11),
+					TestPass:    valuePtr[int64](11),
+				},
+			},
+		},
+	}
+	// Test: Get all the results.
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, nil, sortByDesc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !reflect.DeepEqual(expectedResults, results) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	}
+}
+
 func TestFeaturesSearch(t *testing.T) {
 	client := getTestDatabase(t)
 	ctx := context.Background()
@@ -1144,4 +1339,5 @@ func TestFeaturesSearch(t *testing.T) {
 	testFeatureSearchAll(ctx, t, client)
 	testFeatureSearchPagination(ctx, t, client)
 	testFeatureSearchFilters(ctx, t, client)
+	testFeatureSearchSort(ctx, t, client)
 }
