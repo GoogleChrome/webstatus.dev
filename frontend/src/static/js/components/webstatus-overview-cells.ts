@@ -15,7 +15,7 @@
  */
 import {type TemplateResult, html, nothing} from 'lit';
 import {type components} from 'webstatus.dev-backend';
-import {formatFeaturePageUrl} from '../utils/urls.js';
+import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
 
 const MISSING_VALUE = html`---`;
 
@@ -196,9 +196,29 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
 };
 
-export function renderHeaderCell(column: ColumnKey): TemplateResult {
+export function renderHeaderCell(
+  routerLocation: {search: string},
+    column: ColumnKey, sortSpec: string): TemplateResult {
+    let sortIndicator = html``;
+    let urlWithSort = formatOverviewPageUrl(routerLocation) + '?sort=' + column + '_asc';
+    if (sortSpec == column + '_asc') {
+        sortIndicator = html`
+         <sl-icon name="arrow-up"></sl-icon>
+        `;
+        urlWithSort = formatOverviewPageUrl(routerLocation) + '?sort=' + column + '_desc';
+    } else if (sortSpec == column + '_desc') {
+        sortIndicator = html`
+         <sl-icon name="arrow-down"></sl-icon>
+        `;
+    }
+
   const colDef = CELL_DEFS[column];
-  return colDef?.headerHtml || nothing;
+    return html`
+        <a href=${urlWithSort}>
+${sortIndicator}
+${colDef?.headerHtml}
+</a>
+`;
 }
 
 export function renderFeatureCell(

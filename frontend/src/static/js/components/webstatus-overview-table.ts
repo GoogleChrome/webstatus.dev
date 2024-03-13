@@ -20,7 +20,7 @@ import {map} from 'lit/directives/map.js';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
-import {getColumnsSpec} from '../utils/urls.js';
+import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
 import {
   ColumnKey,
   parseColumnsSpec,
@@ -90,11 +90,13 @@ export class WebstatusOverviewTable extends LitElement {
       getColumnsSpec(this.location),
       DEFAULT_COLUMNS
     );
+      const sortSpec: string = getSortSpec(this.location);
+
     return html`
       <table class="data-table">
         <thead>
           <tr>
-            ${columns.map(col => html` <th>${renderHeaderCell(col)}</th>`)}
+${columns.map(col => html` <th>${renderHeaderCell(this.location, col, sortSpec)}</th>`)}
           </tr>
         </thead>
         <tbody>
