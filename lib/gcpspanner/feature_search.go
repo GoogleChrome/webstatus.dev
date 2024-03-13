@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -39,9 +40,8 @@ type SpannerFeatureResult struct {
 // FeatureResultMetric contains metric information for a feature result query.
 // Very similar to WPTRunFeatureMetric.
 type FeatureResultMetric struct {
-	BrowserName string `json:"BrowserName"`
-	TotalTests  *int64 `json:"TotalTests"`
-	TestPass    *int64 `json:"TestPass"`
+	BrowserName string  `json:"BrowserName"`
+	PassRate    float64 `json:"PassRate"`
 }
 
 // FeatureResult contains information regarding a particular feature.
@@ -78,6 +78,8 @@ func (c *Client) FeaturesSearch(
 		pageSize:  pageSize,
 	}
 	stmt := queryBuilder.Build(filter, sortOrder)
+
+	slog.Info("statement for search", "search", stmt.SQL, "params", stmt.Params)
 	txn := c.Single()
 	defer txn.Close()
 	it := txn.Query(ctx, stmt)

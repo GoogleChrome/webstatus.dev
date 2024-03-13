@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"math/big"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -33,6 +34,12 @@ const wptRunFeatureMetricTable = "WPTRunFeatureMetrics"
 type SpannerWPTRunFeatureMetric struct {
 	ID string `spanner:"ID"`
 	WPTRunFeatureMetric
+	// Calculated pass rate
+	PassRate big.Rat `spanner:"PassRate"`
+	// Denormalized data from wpt runs.
+	BrowserName string    `spanner:"BrowserName"`
+	Channel     string    `spanner:"Channel"`
+	TimeStart   time.Time `spanner:"TimeStart"`
 }
 
 // WPTRunFeatureMetric represents the metrics for a particular feature in a run.
@@ -42,26 +49,37 @@ type WPTRunFeatureMetric struct {
 	TestPass   *int64 `spanner:"TestPass"`
 }
 
+func getPassRate(testPass, totalTests *int64) big.Rat {
+	if testPass == nil || totalTests == nil || *totalTests == 0 {
+		return big.Rat{}
+	}
+	return *big.NewRat(*testPass, *totalTests)
+}
+
 // UpsertWPTRunFeatureMetric will upsert the given WPT Run metric.
 // The RunID must exists in a row in the WPTRuns table.
 // If the metric does not exist, it will insert a new metric.
 // If the metric exists, it will only update the TotalTests and TestPass columns.
 func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID int64, in WPTRunFeatureMetric) error {
-	id, err := c.GetIDOfWPTRunByRunID(ctx, externalRunID)
+	wptRunData, err := c.GetWPTRunDataByRunIDForMetrics(ctx, externalRunID)
 	if err != nil {
 		return err
 	}
 
 	// Create a metric with the retrieved ID
 	metric := SpannerWPTRunFeatureMetric{
-		ID:                  *id,
+		ID:                  wptRunData.ID,
+		Channel:             wptRunData.Channel,
+		BrowserName:         wptRunData.BrowserName,
+		TimeStart:           wptRunData.TimeStart,
 		WPTRunFeatureMetric: in,
+		PassRate:            getPassRate(in.TestPass, in.TotalTests),
 	}
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// TODO: Query by primary key instead.
 		stmt := spanner.NewStatement(`
 			SELECT
-				ID, FeatureID, TotalTests, TestPass
+				ID, FeatureID, TotalTests, TestPass, PassRate, Channel, BrowserName
 			FROM WPTRunFeatureMetrics
 			WHERE ID = @id AND FeatureID = @featureID
 			LIMIT 1`)

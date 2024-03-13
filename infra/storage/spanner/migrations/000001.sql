@@ -58,6 +58,12 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     FeatureID STRING(64) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
+    PassRate NUMERIC NOT NULL, -- Will default to zero if counters are null or zero.
+    -- Denormalized data from WPTRuns. This helps with aggregations over time.
+    Channel STRING(32) NOT NULL,
+    BrowserName STRING(64) NOT NULL,
+    TimeStart TIMESTAMP NOT NULL,
+    -- End denormalized data.
     FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
     FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
 ) PRIMARY KEY (ID, FeatureID)
@@ -67,7 +73,8 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
 CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, FeatureID);
 
 -- Used to help with metrics aggregation calculations.
-CREATE INDEX MetricFeatureID ON WPTRunFeatureMetrics(FeatureID);
+CREATE INDEX MetricsFeatureChannelBrowserTime ON
+  WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC);
 
 -- BrowserReleases contains information regarding browser releases.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers
