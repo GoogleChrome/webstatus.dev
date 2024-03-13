@@ -50,11 +50,13 @@ export class APIClient {
     return data;
   }
 
-  public async getFeatures(): Promise<
-    components['schemas']['FeaturePage']['data']
-  > {
+  public async getFeatures(
+    sort: string
+  ): Promise<components['schemas']['FeaturePage']['data']> {
     const {data, error} = await this.client.GET('/v1/features', {
-      params: {},
+      params: {
+        query: {sort},
+      },
       ...temporaryFetchOptions,
     });
     if (error !== undefined) {

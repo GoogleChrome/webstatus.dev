@@ -63,6 +63,7 @@ export const THEME = css`
     --card-radius: var(--border-radius);
 
     --table-header-background: var(--color-lightest);
+    --table-header-hover-background: var(--color-blue-bg);
     --table-row-background: var(--color-background);
     --table-divider: var(--default-border);
     --table-border: var(--default-border);

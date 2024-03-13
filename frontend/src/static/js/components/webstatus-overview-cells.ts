@@ -61,6 +61,17 @@ const columnKeyMapping = Object.entries(ColumnKey).reduce(
   {} as Record<string, ColumnKey>
 );
 
+export const DEFAULT_COLUMNS = [
+  ColumnKey.Name,
+  ColumnKey.BaselineStatus,
+  ColumnKey.WptChrome,
+  ColumnKey.WptEdge,
+  ColumnKey.WptFirefox,
+  ColumnKey.WptSafari,
+];
+
+export const DEFAULT_SORT_SPEC = 'name_asc';
+
 interface BaselineChipConfig {
   cssClass: string;
   icon: string;
@@ -198,27 +209,28 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
 
 export function renderHeaderCell(
   routerLocation: {search: string},
-    column: ColumnKey, sortSpec: string): TemplateResult {
-    let sortIndicator = html``;
-    let urlWithSort = formatOverviewPageUrl(routerLocation) + '?sort=' + column + '_asc';
-    if (sortSpec == column + '_asc') {
-        sortIndicator = html`
-         <sl-icon name="arrow-up"></sl-icon>
-        `;
-        urlWithSort = formatOverviewPageUrl(routerLocation) + '?sort=' + column + '_desc';
-    } else if (sortSpec == column + '_desc') {
-        sortIndicator = html`
-         <sl-icon name="arrow-down"></sl-icon>
-        `;
-    }
+  column: ColumnKey,
+  sortSpec: string
+): TemplateResult {
+  let sortIndicator = html``;
+  let urlWithSort = formatOverviewPageUrl(routerLocation, {
+    sort: column + '_asc',
+  });
+  if (sortSpec === column + '_asc') {
+    sortIndicator = html` <sl-icon name="arrow-up"></sl-icon> `;
+    urlWithSort = formatOverviewPageUrl(routerLocation, {
+      sort: column + '_desc',
+    });
+  } else if (sortSpec === column + '_desc') {
+    sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
+  }
 
   const colDef = CELL_DEFS[column];
-    return html`
-        <a href=${urlWithSort}>
-${sortIndicator}
-${colDef?.headerHtml}
-</a>
-`;
+  return html`
+    <th title="Click to sort">
+      <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
+    </th>
+  `;
 }
 
 export function renderFeatureCell(
@@ -234,10 +246,7 @@ export function renderFeatureCell(
   }
 }
 
-export function parseColumnsSpec(
-  colSpec: string,
-  defaults: ColumnKey[]
-): ColumnKey[] {
+export function parseColumnsSpec(colSpec: string): ColumnKey[] {
   let colStrs = colSpec.toLowerCase().split(',');
   colStrs = colStrs.map(s => s.trim()).filter(c => c);
   const colKeys: ColumnKey[] = [];
@@ -249,6 +258,6 @@ export function parseColumnsSpec(
   if (colKeys.length > 0) {
     return colKeys;
   } else {
-    return defaults;
+    return DEFAULT_COLUMNS;
   }
 }

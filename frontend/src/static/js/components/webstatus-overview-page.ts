@@ -20,6 +20,7 @@ import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
+import {getSortSpec} from '../utils/urls.js';
 import {type APIClient} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
@@ -40,14 +41,22 @@ export class OverviewPage extends LitElement {
   constructor() {
     super();
     this.loadingTask = new Task(this, {
-      args: () => [this.apiClient],
-      task: async ([apiClient]) => {
-        if (typeof apiClient === 'object') {
-          this.features = await apiClient.getFeatures();
-        }
+      args: () =>
+        [this.apiClient, this.location] as [APIClient, {search: string}],
+      task: async ([apiClient, routerLocation]) => {
+        await this._fetchFeatures(apiClient, routerLocation);
         return this.features;
       },
     });
+  }
+
+  async _fetchFeatures(
+    apiClient: APIClient | undefined,
+    routerLocation: {search: string}
+  ) {
+    if (typeof apiClient !== 'object') return;
+    const sortSpec = getSortSpec(routerLocation);
+    this.features = await apiClient.getFeatures(sortSpec);
   }
 
   render(): TemplateResult {
