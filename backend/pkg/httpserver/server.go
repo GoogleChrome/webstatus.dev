@@ -57,6 +57,7 @@ type WPTMetricsStorer interface {
 		pageToken *string,
 		pageSize int,
 		searchNode *searchtypes.SearchNode,
+		sortOrder *backend.GetV1FeaturesParamsSort,
 	) ([]backend.Feature, *string, error)
 	GetFeature(
 		ctx context.Context,

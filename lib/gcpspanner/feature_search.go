@@ -57,7 +57,9 @@ func (c *Client) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
 	pageSize int,
-	searchNode *searchtypes.SearchNode) ([]FeatureResult, *string, error) {
+	searchNode *searchtypes.SearchNode,
+	sortOrder Sortable,
+) ([]FeatureResult, *string, error) {
 	// Build filterable
 	filterBuilder := NewFeatureSearchFilterBuilder()
 	filter := filterBuilder.Build(searchNode)
@@ -75,7 +77,7 @@ func (c *Client) FeaturesSearch(
 		cursor:    cursor,
 		pageSize:  pageSize,
 	}
-	stmt := queryBuilder.Build(filter)
+	stmt := queryBuilder.Build(filter, sortOrder)
 	txn := c.Single()
 	defer txn.Close()
 	it := txn.Query(ctx, stmt)

@@ -39,6 +39,7 @@ var (
 type mockFeaturesSearchConfig struct {
 	expectedPageToken *string
 	expectedPageSize  int
+	expectedSortable  gcpspanner.Sortable
 	expectedNode      *searchtypes.SearchNode
 	result            []gcpspanner.FeatureResult
 	returnedPageToken *string
@@ -137,10 +138,12 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	_ context.Context,
 	pageToken *string,
 	pageSize int,
-	searchNode *searchtypes.SearchNode) ([]gcpspanner.FeatureResult, *string, error) {
+	searchNode *searchtypes.SearchNode,
+	sortOrder gcpspanner.Sortable) ([]gcpspanner.FeatureResult, *string, error) {
 	if pageToken != c.mockFeaturesSearchCfg.expectedPageToken ||
 		pageSize != c.mockFeaturesSearchCfg.expectedPageSize ||
-		!reflect.DeepEqual(searchNode, c.mockFeaturesSearchCfg.expectedNode) {
+		!reflect.DeepEqual(searchNode, c.mockFeaturesSearchCfg.expectedNode) ||
+		!reflect.DeepEqual(sortOrder, c.mockFeaturesSearchCfg.expectedSortable) {
 		c.t.Error("unexpected input to mock")
 	}
 
@@ -397,6 +400,7 @@ func TestFeaturesSearch(t *testing.T) {
 		inputPageToken   *string
 		inputPageSize    int
 		searchNode       *searchtypes.SearchNode
+		sortOrder        *backend.GetV1FeaturesParamsSort
 		expectedFeatures []backend.Feature
 	}{
 		{
@@ -409,6 +413,7 @@ func TestFeaturesSearch(t *testing.T) {
 					Term:     nil,
 					Children: nil,
 				},
+				expectedSortable: gcpspanner.NewFeatureNameSort(true),
 				result: []gcpspanner.FeatureResult{
 					{
 						Name:      "feature 1",
@@ -469,6 +474,7 @@ func TestFeaturesSearch(t *testing.T) {
 				Term:     nil,
 				Children: nil,
 			},
+			sortOrder: nil,
 			expectedFeatures: []backend.Feature{
 				{
 					BaselineStatus: backend.Low,
@@ -529,7 +535,8 @@ func TestFeaturesSearch(t *testing.T) {
 				context.Background(),
 				tc.inputPageToken,
 				tc.inputPageSize,
-				tc.searchNode)
+				tc.searchNode,
+				tc.sortOrder)
 			if !errors.Is(err, tc.cfg.returnedError) {
 				t.Error("unexpected error")
 			}
@@ -695,5 +702,31 @@ func TestGetFeature(t *testing.T) {
 			}
 
 		})
+	}
+}
+
+func TestGetFeatureSearchSortOrder(t *testing.T) {
+	sortOrderTests := []struct {
+		input *backend.GetV1FeaturesParamsSort
+		want  gcpspanner.Sortable
+	}{
+		{input: nil, want: gcpspanner.NewFeatureNameSort(true)},
+		{
+			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameAsc),
+			want:  gcpspanner.NewFeatureNameSort(true),
+		},
+		{
+			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
+			want:  gcpspanner.NewFeatureNameSort(false),
+		},
+	}
+
+	for _, tt := range sortOrderTests {
+		got := getFeatureSearchSortOrder(tt.input)
+
+		// Compare 'got' and 'tt.want' (Consider using a deep equality check library)
+		if !reflect.DeepEqual(got, tt.want) {
+			t.Errorf("got: %v, want: %v", got, tt.want)
+		}
 	}
 }

@@ -40,6 +40,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageToken:  nil,
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
+				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -74,6 +75,7 @@ func TestGetV1Features(t *testing.T) {
 					PageToken: nil,
 					PageSize:  nil,
 					Q:         nil,
+					Sort:      nil,
 				},
 			},
 			expectedError: nil,
@@ -111,6 +113,7 @@ func TestGetV1Features(t *testing.T) {
 						},
 					},
 				},
+				expectedSortBy: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -145,6 +148,7 @@ func TestGetV1Features(t *testing.T) {
 					PageToken: inputPageToken,
 					PageSize:  valuePtr[int](50),
 					Q:         valuePtr(url.QueryEscape("available_on:chrome AND name:grid")),
+					Sort:      valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
 				},
 			},
 			expectedError: nil,
@@ -155,6 +159,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageToken:  nil,
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
+				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -178,6 +183,7 @@ func TestGetV1Features(t *testing.T) {
 					PageToken: nil,
 					PageSize:  nil,
 					Q:         nil,
+					Sort:      nil,
 				},
 			},
 			expectedError: nil,
@@ -188,6 +194,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageToken:  nil,
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
+				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -210,6 +217,7 @@ func TestGetV1Features(t *testing.T) {
 				Params: backend.GetV1FeaturesParams{
 					PageToken: nil,
 					PageSize:  nil,
+					Sort:      nil,
 					Q:         valuePtr[string]("badterm:foo"),
 				},
 			},
@@ -221,6 +229,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageToken:  nil,
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
+				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
 						BaselineStatus: backend.High,
@@ -244,6 +253,7 @@ func TestGetV1Features(t *testing.T) {
 					PageToken: nil,
 					PageSize:  nil,
 					Q:         valuePtr[string]("%"),
+					Sort:      nil,
 				},
 			},
 			expectedError: nil,

@@ -16,6 +16,7 @@ package spanneradapters
 
 import (
 	"context"
+	"log/slog"
 	"math/big"
 	"time"
 
@@ -48,7 +49,9 @@ type BackendSpannerClient interface {
 		ctx context.Context,
 		pageToken *string,
 		pageSize int,
-		searchNode *searchtypes.SearchNode) ([]gcpspanner.FeatureResult, *string, error)
+		searchNode *searchtypes.SearchNode,
+		sortOrder gcpspanner.Sortable,
+	) ([]gcpspanner.FeatureResult, *string, error)
 	GetFeature(
 		ctx context.Context,
 		filter gcpspanner.Filterable,
@@ -212,8 +215,10 @@ func (s *Backend) FeaturesSearch(
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
+	sortOrder *backend.GetV1FeaturesParamsSort,
 ) ([]backend.Feature, *string, error) {
-	featureResults, token, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode)
+	spannerSortOrder := getFeatureSearchSortOrder(sortOrder)
+	featureResults, token, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode, spannerSortOrder)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -225,6 +230,25 @@ func (s *Backend) FeaturesSearch(
 	}
 
 	return results, token, nil
+}
+
+func getFeatureSearchSortOrder(
+	sortOrder *backend.GetV1FeaturesParamsSort) gcpspanner.Sortable {
+	if sortOrder == nil {
+		return gcpspanner.NewFeatureNameSort(true)
+	}
+	// nolint: exhaustive // Remove once we support all the cases.
+	switch *sortOrder {
+	case backend.NameAsc:
+		return gcpspanner.NewFeatureNameSort(true)
+	case backend.NameDesc:
+		return gcpspanner.NewFeatureNameSort(false)
+	}
+
+	// Unknown sort order
+	slog.Warn("unsupported sort order", "order", *sortOrder)
+
+	return gcpspanner.NewFeatureNameSort(true)
 }
 
 func (s *Backend) GetFeature(

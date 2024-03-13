@@ -21,6 +21,7 @@ import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-filters.js';
 import './webstatus-overview-table.js';
+import './webstatus-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-overview-content')
@@ -30,6 +31,7 @@ export class WebstatusOverviewContent extends LitElement {
 
   loadingTask!: Task; // Set by parent.
 
+  @state()
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {
@@ -106,7 +108,10 @@ export class WebstatusOverviewContent extends LitElement {
           .loadingTask=${this.loadingTask}
         >
         </webstatus-overview-table>
-        <button>Modify Columns</button>
+        <webstatus-pagination
+          .location=${this.location}
+          .features=${this.features}
+        ></webstatus-pagination>
       </div>
     `;
   }

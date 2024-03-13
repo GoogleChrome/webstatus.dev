@@ -58,6 +58,7 @@ type MockFeaturesSearchConfig struct {
 	expectedPageToken  *string
 	expectedPageSize   int
 	expectedSearchNode *searchtypes.SearchNode
+	expectedSortBy     *backend.GetV1FeaturesParamsSort
 	data               []backend.Feature
 	pageToken          *string
 	err                error
@@ -133,14 +134,16 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 	pageToken *string,
 	pageSize int,
 	node *searchtypes.SearchNode,
+	sortBy *backend.GetV1FeaturesParamsSort,
 ) ([]backend.Feature, *string, error) {
 	m.callCountFeaturesSearch++
 
 	if pageToken != m.featuresSearchCfg.expectedPageToken ||
 		pageSize != m.featuresSearchCfg.expectedPageSize ||
-		!reflect.DeepEqual(node, m.featuresSearchCfg.expectedSearchNode) {
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v }",
-			m.featuresSearchCfg, pageSize, pageToken, node)
+		!reflect.DeepEqual(node, m.featuresSearchCfg.expectedSearchNode) ||
+		!reflect.DeepEqual(sortBy, m.featuresSearchCfg.expectedSortBy) {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v %v }",
+			m.featuresSearchCfg, pageSize, pageToken, node, sortBy)
 	}
 
 	return m.featuresSearchCfg.data, m.featuresSearchCfg.pageToken, m.featuresSearchCfg.err
