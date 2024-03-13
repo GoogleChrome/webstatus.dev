@@ -66,6 +66,16 @@ export class WebstatusOverviewTable extends LitElement {
           color: var(--chip-color-widely);
         }
 
+        td.message {
+          height: 8em;
+          text-align: center;
+        }
+        td.message div:first-child {
+          font-size: 110%;
+          font-weight: bold;
+          padding-bottom: var(--content-padding-half);
+        }
+
         sl-skeleton {
           width: 4em;
         }
@@ -106,7 +116,11 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
     return this.loadingTask.render({
-      complete: () => this.renderBodyWhenComplete(columns),
+      complete: () => {
+        return this.features.length === 0
+          ? this.renderBodyWhenNoResults(columns)
+          : this.renderBodyWhenComplete(columns);
+      },
       error: () => this.renderBodyWhenError(columns),
       initial: () => this.renderBodyWhenInitial(columns),
       pending: () => this.renderBodyWhenPending(columns),
@@ -117,11 +131,22 @@ export class WebstatusOverviewTable extends LitElement {
     return html` ${this.features.map(f => this.renderFeatureRow(f, columns))} `;
   }
 
+  renderBodyWhenNoResults(columns: ColumnKey[]): TemplateResult {
+    return html`
+      <tr>
+        <td class="message" colspan=${columns.length}>
+          <div>This query produced zero results.</div>
+          <div>Try removing some query terms.</div>
+        </td>
+      </tr>
+    `;
+  }
+
   // TODO(jrobbins): This never gets called, even when request fails.
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
     return html`
       <tr>
-        <td colspan=${columns.length}>
+        <td class="message" colspan=${columns.length}>
           <div>Something went wrong...</div>
           <div>We had some trouble loading this data.</div>
           <div>
@@ -136,7 +161,7 @@ export class WebstatusOverviewTable extends LitElement {
   renderBodyWhenInitial(columns: ColumnKey[]): TemplateResult {
     return html`
       <tr>
-        <td colspan=${columns.length}>
+        <td class="message" colspan=${columns.length}>
           <div>Requesting data...</div>
         </td>
       </tr>

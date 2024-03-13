@@ -33,12 +33,17 @@ export function getSortSpec(location: {search: string}): string {
   return getQueryParam(location.search, 'sort');
 }
 
+export function getPaginationStart(location: {search: string}): number {
+  return Number(getQueryParam(location.search, 'start'));
+}
+
 /* Given the router location object, return a query string with
    parameters that maintain the user's navigational state.
    E.g., if I start searching for 'mouse', then as I navigate
    around, I should still be searching for 'mouse'. */
 function getContextualQueryStringParams(
-  location: {search: string} | undefined
+  location: {search: string} | undefined,
+  overrides: {start?: number} = {}
 ): string {
   if (location === undefined) {
     return '';
@@ -56,22 +61,30 @@ function getContextualQueryStringParams(
   if (sortSpec) {
     searchParams.set('sort', sortSpec);
   }
-  // TODO(jrobbins): Pagination, etc.
+  const start =
+    'start' in overrides ? overrides.start : getPaginationStart(location);
+  if (start) {
+    searchParams.set('start', '' + start);
+  }
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';
 }
 
 /* Return a URL for the overview (feature list) page. */
-export function formatOverviewPageUrl(location?: {search: string}): string {
-  const qs = getContextualQueryStringParams(location);
+export function formatOverviewPageUrl(
+  location?: {search: string},
+  overrides: {start?: number} = {}
+): string {
+  const qs = getContextualQueryStringParams(location, overrides);
   return `/${qs}`;
 }
 
 /* Return a URL to the given feature. */
 export function formatFeaturePageUrl(
   feature: components['schemas']['Feature'],
-  location?: {search: string}
+  location?: {search: string},
+  overrides: {start?: number} = {}
 ): string {
-  const qs = getContextualQueryStringParams(location);
+  const qs = getContextualQueryStringParams(location, overrides);
   return `/features/${feature.feature_id}${qs}`;
 }
