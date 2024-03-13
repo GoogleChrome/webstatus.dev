@@ -17,6 +17,10 @@
 import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
 import {type components, type paths} from 'webstatus.dev-backend';
 
+export type FeatureSortOrderType = NonNullable<
+  paths['/v1/features']['get']['parameters']['query']
+>['sort'];
+
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
   credentials: 'include',
@@ -51,7 +55,7 @@ export class APIClient {
   }
 
   public async getFeatures(
-    sort: string
+    sort: FeatureSortOrderType
   ): Promise<components['schemas']['FeaturePage']['data']> {
     const {data, error} = await this.client.GET('/v1/features', {
       params: {
