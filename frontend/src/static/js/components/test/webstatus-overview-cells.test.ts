@@ -16,18 +16,20 @@
 
 import {assert} from '@open-wc/testing';
 
-import {ColumnKey, parseColumnsSpec} from '../webstatus-overview-cells.js';
+import {
+  ColumnKey,
+  parseColumnsSpec,
+  DEFAULT_COLUMNS,
+} from '../webstatus-overview-cells.js';
 
 describe('parseColumnsSpec', () => {
   it('returns default columns when there was no column spec', () => {
-    const cols = parseColumnsSpec('', [ColumnKey.WptChrome]);
-    assert.deepEqual(cols, [ColumnKey.WptChrome]);
+    const cols = parseColumnsSpec('');
+    assert.deepEqual(cols, DEFAULT_COLUMNS);
   });
 
   it('returns an array when given a column spec', () => {
-    const cols = parseColumnsSpec('name, baseline_status ', [
-      ColumnKey.WptChrome,
-    ]);
+    const cols = parseColumnsSpec('name, baseline_status ');
     assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
   });
 });

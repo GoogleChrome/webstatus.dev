@@ -20,22 +20,14 @@ import {map} from 'lit/directives/map.js';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
-import {getColumnsSpec} from '../utils/urls.js';
+import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
 import {
   ColumnKey,
+  DEFAULT_SORT_SPEC,
   parseColumnsSpec,
   renderFeatureCell,
   renderHeaderCell,
 } from './webstatus-overview-cells.js';
-
-const DEFAULT_COLUMNS = [
-  ColumnKey.Name,
-  ColumnKey.BaselineStatus,
-  ColumnKey.WptChrome,
-  ColumnKey.WptEdge,
-  ColumnKey.WptFirefox,
-  ColumnKey.WptSafari,
-];
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -44,6 +36,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   loadingTask!: Task; // Set by parent.
 
+  @state()
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {
@@ -52,6 +45,9 @@ export class WebstatusOverviewTable extends LitElement {
       css`
         .data-table {
           margin: var(--content-padding) 0;
+        }
+        .data-table th:hover {
+          background: var(--table-header-hover-background);
         }
         .limited {
           background: var(--chip-background-limited);
@@ -97,14 +93,17 @@ export class WebstatusOverviewTable extends LitElement {
 
   render(): TemplateResult {
     const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location),
-      DEFAULT_COLUMNS
+      getColumnsSpec(this.location)
     );
+    const sortSpec: string = getSortSpec(this.location) || DEFAULT_SORT_SPEC;
+
     return html`
       <table class="data-table">
         <thead>
           <tr>
-            ${columns.map(col => html` <th>${renderHeaderCell(col)}</th>`)}
+            ${columns.map(
+              col => html`${renderHeaderCell(this.location, col, sortSpec)}`
+            )}
           </tr>
         </thead>
         <tbody>
@@ -169,10 +168,11 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
-    const SKELLETON_ROWS = 10;
+    const DEFAULT_SKELETON_ROWS = 10;
+    const skeleton_rows = this.features?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
-        range(SKELLETON_ROWS),
+        range(skeleton_rows),
         () => html`
           <tr>
             ${columns.map(col => html` <td>${this.renderShimmer(col)}</td> `)}
