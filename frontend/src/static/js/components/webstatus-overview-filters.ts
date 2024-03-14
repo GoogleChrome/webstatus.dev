@@ -96,28 +96,43 @@ export class WebstatusOverviewFilters extends LitElement {
         this.makeFilterSelectHandler(id)
       );
     }
+
+    // Set the sl-menu items based on the filterInputMap.
+    for (const [key, valueArray] of this.filterInputMap.entries()) {
+      const menuElement = this.shadowRoot!.getElementById(key) as SlMenu;
+      for (const value of valueArray) {
+        const menuItem = menuElement.querySelector(
+          `sl-menu-item[value="${value}"]`
+        ) as SlMenuItem;
+        if (menuItem) {
+          menuItem.checked = true;
+        }
+      }
+    }
   }
 
-  parseFilterInputString(_filterInputString: string): Map<string, string[]> {
+  parseFilterInputString(filterInputString: string): Map<string, string[]> {
     // Parse the filter input string into a map of filter keys and values.
     const filterInputMap = new Map<string, string[]>();
-    // if (filterInputString.length > 0) {
-    //   // This parser does the inverse of generateFilterInputString.
-    //   // Top-level is a list of ' OR ' separated clauses.
-    //   const orClauseArray = filterInputString.split(' OR ');
-    //   for (const orClauseString of orClauseArray) {
-    //     // Each OR-clause is a parenthesized list of ' AND ' separated clauses.
-    //     // Ignore the first and last characters to remove the parentheses.
-    //     const andClauseString = orClauseString.slice(1, -1);
-    //     const andClauseArray = andClauseString.split(' AND ');
-    //     // Each AND-clause is a key:value pair.
-    //     for (const andClauseString of andClauseArray) {
-    //       // Each AND clause is a key:value pair.
-    //       const [key, valueArray] = andClauseString.split(':');
-    //       filterInputMap.set(key, valueArray);
-    //     }
-    //   }
-    // }
+    if (filterInputString.length > 0) {
+      // This parser does the inverse of generateFilterInputString.
+      // Top-level is a list of ' AND ' separated clauses.
+      const andClauseArray = filterInputString.split(' AND ');
+      for (const orClausesString of andClauseArray) {
+        // Each OR-clause is a list of parenthesized ' OR '-separated clauses.
+        // Slice (1, -1) removes the parentheses.
+        const orClauseArray = orClausesString.slice(1, -1).split(' OR ');
+        let orKey = '';
+        const valueArray = [];
+        for (const orClauseString of orClauseArray) {
+          // Each OR-clause is a key:value pair for the same key.
+          const [key, value] = orClauseString.split(':');
+          orKey = key;
+          valueArray.push(value);
+        }
+        filterInputMap.set(orKey, valueArray);
+      }
+    }
     return filterInputMap;
   }
 
@@ -163,7 +178,7 @@ export class WebstatusOverviewFilters extends LitElement {
 
       // Update the filterInputMap with the new values.
       this.filterInputMap.set(id, checkedItemsValues);
-      // Update the filterInput input with the new filter input string.
+      // Update the filterInput with the new filter input string.
       const filterInputString = this.generateFilterInputString(
         this.filterInputMap
       );
