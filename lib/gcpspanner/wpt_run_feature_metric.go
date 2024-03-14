@@ -35,7 +35,7 @@ type SpannerWPTRunFeatureMetric struct {
 	ID string `spanner:"ID"`
 	WPTRunFeatureMetric
 	// Calculated pass rate
-	PassRate big.Rat `spanner:"PassRate"`
+	PassRate *big.Rat `spanner:"PassRate"`
 	// Denormalized data from wpt runs.
 	BrowserName string    `spanner:"BrowserName"`
 	Channel     string    `spanner:"Channel"`
@@ -49,11 +49,12 @@ type WPTRunFeatureMetric struct {
 	TestPass   *int64 `spanner:"TestPass"`
 }
 
-func getPassRate(testPass, totalTests *int64) big.Rat {
+func getPassRate(testPass, totalTests *int64) *big.Rat {
 	if testPass == nil || totalTests == nil || *totalTests == 0 {
-		return big.Rat{}
+		return nil
 	}
-	return *big.NewRat(*testPass, *totalTests)
+
+	return big.NewRat(*testPass, *totalTests)
 }
 
 // UpsertWPTRunFeatureMetric will upsert the given WPT Run metric.

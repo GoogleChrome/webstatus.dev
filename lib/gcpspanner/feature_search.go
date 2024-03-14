@@ -19,6 +19,7 @@ import (
 	"errors"
 	"log/slog"
 	"math/big"
+	"slices"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"google.golang.org/api/iterator"
@@ -39,8 +40,8 @@ type SpannerFeatureResult struct {
 // FeatureResultMetric contains metric information for a feature result query.
 // Very similar to WPTRunFeatureMetric.
 type FeatureResultMetric struct {
-	BrowserName string  `json:"BrowserName"`
-	PassRate    big.Rat `json:"PassRate"`
+	BrowserName string   `json:"BrowserName"`
+	PassRate    *big.Rat `json:"PassRate"`
 }
 
 // FeatureResult contains information regarding a particular feature.
@@ -97,6 +98,16 @@ func (c *Client) FeaturesSearch(
 		if err := row.ToStruct(&result); err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
+		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](result.StableMetrics, findDefaultPlaceHolder)
+		if len(result.StableMetrics) == 0 {
+			// If we removed everything, just set it to nil
+			result.StableMetrics = nil
+		}
+		result.ExperimentalMetrics = slices.DeleteFunc[[]*FeatureResultMetric](result.ExperimentalMetrics, findDefaultPlaceHolder)
+		if len(result.ExperimentalMetrics) == 0 {
+			// If we removed everything, just set it to nil
+			result.ExperimentalMetrics = nil
+		}
 		actualResult := FeatureResult{
 			FeatureID:           result.FeatureID,
 			Name:                result.Name,
@@ -115,4 +126,17 @@ func (c *Client) FeaturesSearch(
 	}
 
 	return results, nil, nil
+}
+
+// nolint: gochecknoglobals // needed for findDefaultPlaceHolder.
+var zeroPassRatePlaceholder = big.NewRat(0, 1)
+
+// The base query has a solution that works on both GCP Spanner and Emulator that if it finds
+// a null array, put a placeholder in there. This function exists to find it and remove it before returning.
+func findDefaultPlaceHolder(in *FeatureResultMetric) bool {
+	if in == nil || in.PassRate == nil {
+		return false
+	}
+
+	return in.BrowserName == "" && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0
 }

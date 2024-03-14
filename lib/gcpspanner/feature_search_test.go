@@ -16,9 +16,12 @@ package gcpspanner
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"reflect"
+	"slices"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -426,21 +429,21 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -451,21 +454,21 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -476,7 +479,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(35, 50),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -495,8 +498,10 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -511,21 +516,21 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -536,21 +541,21 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -572,7 +577,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(35, 50),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -627,21 +632,21 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -696,21 +701,21 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -757,21 +762,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -782,21 +787,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -834,21 +839,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -859,21 +864,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -884,7 +889,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(35, 50),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -941,21 +946,21 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -966,21 +971,21 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -991,7 +996,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(35, 50),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1105,21 +1110,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -1130,21 +1135,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -1155,7 +1160,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(35, 50),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1195,7 +1200,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *(big.NewRat(35, 50)),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1207,21 +1212,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(10, 10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(0, 10),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(120, 120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(12, 12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -1232,21 +1237,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(33, 33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(20, 20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					PassRate:    *big.NewRat(220, 220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					PassRate:    *big.NewRat(11, 11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -1271,4 +1276,77 @@ func TestFeaturesSearch(t *testing.T) {
 	testFeatureSearchPagination(ctx, t, client)
 	testFeatureSearchFilters(ctx, t, client)
 	testFeatureSearchSort(ctx, t, client)
+}
+
+func AreFeatureResultsSlicesEqual(a, b []FeatureResult) bool {
+	return slices.EqualFunc[[]FeatureResult](a, b, AreFeatureResultsEqual)
+}
+
+func AreFeatureResultsEqual(a, b FeatureResult) bool {
+	if a.FeatureID != b.FeatureID ||
+		a.Name != b.Name ||
+		a.Status != b.Status ||
+		!AreMetricsEqual(a.StableMetrics, b.StableMetrics) ||
+		!AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) {
+		return false
+	}
+
+	return true
+}
+
+func AreMetricsEqual(a, b []*FeatureResultMetric) bool {
+	return slices.EqualFunc[[]*FeatureResultMetric](a, b, func(a, b *FeatureResultMetric) bool {
+		if (a.PassRate == nil && b.PassRate != nil) || (a.PassRate != nil && b.PassRate == nil) {
+			return false
+		}
+		return a.BrowserName == b.BrowserName &&
+			((a.PassRate == nil && b.PassRate == nil) || (a.PassRate.Cmp(b.PassRate) == 0))
+	})
+}
+
+func PrettyPrintFeatureResult(result FeatureResult) string {
+	var builder strings.Builder
+	fmt.Fprintf(&builder, "FeatureID: %s\n", result.FeatureID)
+	fmt.Fprintf(&builder, "Name: %s\n", result.Name)
+	fmt.Fprintf(&builder, "Status: %s\n", result.Status)
+
+	fmt.Fprintln(&builder, "Stable Metrics:")
+	for _, metric := range result.StableMetrics {
+		fmt.Fprint(&builder, PrettyPrintMetric(metric))
+	}
+
+	fmt.Fprintln(&builder, "Experimental Metrics:")
+	for _, metric := range result.ExperimentalMetrics {
+		fmt.Fprint(&builder, PrettyPrintMetric(metric))
+	}
+	fmt.Fprintln(&builder)
+	return builder.String()
+}
+
+func PrettyPrintMetric(metric *FeatureResultMetric) string {
+	var builder strings.Builder
+	if metric == nil {
+		return "\tNIL\n"
+	}
+	fmt.Fprintf(&builder, "\tBrowserName: %s\n", metric.BrowserName)
+	fmt.Fprintf(&builder, "\tPassRate: %s\n", PrettyPrintPassRate(metric.PassRate))
+	return builder.String()
+}
+
+func PrettyPrintPassRate(passRate *big.Rat) string {
+	if passRate == nil {
+		return "\tNIL\n"
+	}
+
+	return passRate.String()
+}
+
+// PrettyPrintFeatureResults returns a formatted string representation of a slice of FeatureResult structs.
+func PrettyPrintFeatureResults(results []FeatureResult) string {
+	var builder strings.Builder
+	for _, result := range results {
+		fmt.Fprint(&builder, PrettyPrintFeatureResult(result))
+	}
+
+	return builder.String()
 }

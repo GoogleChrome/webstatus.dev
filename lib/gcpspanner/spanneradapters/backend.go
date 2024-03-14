@@ -177,14 +177,16 @@ func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) bac
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
 	experimentalMetricsMap := make(map[string]backend.WPTFeatureData)
 	for _, metric := range featureResult.ExperimentalMetrics {
+		passRate, _ := metric.PassRate.Float64()
 		experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &metric.PassRate,
+			Score: &passRate,
 		}
 	}
 	stableMetricsMap := make(map[string]backend.WPTFeatureData)
 	for _, metric := range featureResult.StableMetrics {
+		passRate, _ := metric.PassRate.Float64()
 		stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &metric.PassRate,
+			Score: &passRate,
 		}
 	}
 

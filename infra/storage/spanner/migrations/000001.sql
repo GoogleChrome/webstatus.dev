@@ -58,7 +58,7 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     FeatureID STRING(64) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
-    PassRate NUMERIC NOT NULL, -- Will default to zero if counters are null or zero.
+    PassRate NUMERIC,
     -- Denormalized data from WPTRuns. This helps with aggregations over time.
     Channel STRING(32) NOT NULL,
     BrowserName STRING(64) NOT NULL,

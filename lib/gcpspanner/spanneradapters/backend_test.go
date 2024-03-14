@@ -17,6 +17,7 @@ package spanneradapters
 import (
 	"context"
 	"errors"
+	"math/big"
 	"reflect"
 	"slices"
 	"testing"
@@ -422,15 +423,13 @@ func TestFeaturesSearch(t *testing.T) {
 						StableMetrics: []*gcpspanner.FeatureResultMetric{
 							{
 								BrowserName: "browser3",
-								TestPass:    valuePtr[int64](10),
-								TotalTests:  valuePtr[int64](20),
+								PassRate:    big.NewRat(10, 20),
 							},
 						},
 						ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
 							{
 								BrowserName: "browser3",
-								TestPass:    valuePtr[int64](10),
-								TotalTests:  valuePtr[int64](50),
+								PassRate:    big.NewRat(10, 50),
 							},
 						},
 					},
@@ -441,25 +440,21 @@ func TestFeaturesSearch(t *testing.T) {
 						StableMetrics: []*gcpspanner.FeatureResultMetric{
 							{
 								BrowserName: "browser1",
-								TestPass:    valuePtr[int64](10),
-								TotalTests:  valuePtr[int64](20),
+								PassRate:    big.NewRat(10, 20),
 							},
 							{
 								BrowserName: "browser2",
-								TestPass:    valuePtr[int64](5),
-								TotalTests:  valuePtr[int64](20),
+								PassRate:    big.NewRat(5, 20),
 							},
 						},
 						ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
 							{
 								BrowserName: "browser1",
-								TestPass:    valuePtr[int64](10),
-								TotalTests:  valuePtr[int64](20),
+								PassRate:    big.NewRat(10, 20),
 							},
 							{
 								BrowserName: "browser2",
-								TestPass:    valuePtr[int64](2),
-								TotalTests:  valuePtr[int64](20),
+								PassRate:    big.NewRat(2, 20),
 							},
 						},
 					},
@@ -647,15 +642,13 @@ func TestGetFeature(t *testing.T) {
 					StableMetrics: []*gcpspanner.FeatureResultMetric{
 						{
 							BrowserName: "browser3",
-							TestPass:    valuePtr[int64](10),
-							TotalTests:  valuePtr[int64](20),
+							PassRate:    big.NewRat(10, 20),
 						},
 					},
 					ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
 						{
 							BrowserName: "browser3",
-							TestPass:    valuePtr[int64](10),
-							TotalTests:  valuePtr[int64](50),
+							PassRate:    big.NewRat(10, 50),
 						},
 					},
 				},

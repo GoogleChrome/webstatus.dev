@@ -51,7 +51,7 @@ type WPTRun struct {
 }
 
 // WPTRunDataForMetrics contains duplicate data from WPTRuns that will be stored
-// in the individual metrics. It will allow for quicker look up of metrics
+// in the individual metrics. It will allow for quicker look up of metrics.
 type WPTRunDataForMetrics struct {
 	ID          string    `spanner:"ID"`
 	BrowserName string    `spanner:"BrowserName"`
