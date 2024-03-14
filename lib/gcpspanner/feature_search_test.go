@@ -18,7 +18,6 @@ import (
 	"context"
 	"fmt"
 	"math/big"
-	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -565,8 +564,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResultsPageOne, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageOne, results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageOne, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageOne),
+			PrettyPrintFeatureResults(results))
 	}
 
 	expectedResultsPageTwo := []FeatureResult{
@@ -596,8 +597,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResultsPageTwo, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResultsPageTwo, results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageTwo, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageTwo),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// Last page should have no results and should have no token.
@@ -609,8 +612,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Error("expected nil token")
 	}
 	var expectedResultsPageThree []FeatureResult
-	if !reflect.DeepEqual(expectedResultsPageThree, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageThree, results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageThree, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageThree),
+			PrettyPrintFeatureResults(results))
 	}
 
 }
@@ -686,8 +691,10 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -747,8 +754,10 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
@@ -826,8 +835,10 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// Multiple browsers.
@@ -930,8 +941,10 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -1029,8 +1042,10 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// All upper case with partial "FEATURE" name. Should return same results (all).
@@ -1054,8 +1069,10 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// Search for name with "4" Should return only feature 4.
@@ -1088,8 +1105,10 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 }
@@ -1179,9 +1198,12 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
+
 	// Name desc
 	sortByDesc := NewFeatureNameSort(false)
 	//nolint: dupl // Okay to duplicate for tests
@@ -1262,8 +1284,10 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -1299,6 +1323,7 @@ func AreMetricsEqual(a, b []*FeatureResultMetric) bool {
 		if (a.PassRate == nil && b.PassRate != nil) || (a.PassRate != nil && b.PassRate == nil) {
 			return false
 		}
+
 		return a.BrowserName == b.BrowserName &&
 			((a.PassRate == nil && b.PassRate == nil) || (a.PassRate.Cmp(b.PassRate) == 0))
 	})
@@ -1320,6 +1345,7 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 		fmt.Fprint(&builder, PrettyPrintMetric(metric))
 	}
 	fmt.Fprintln(&builder)
+
 	return builder.String()
 }
 
@@ -1330,6 +1356,7 @@ func PrettyPrintMetric(metric *FeatureResultMetric) string {
 	}
 	fmt.Fprintf(&builder, "\tBrowserName: %s\n", metric.BrowserName)
 	fmt.Fprintf(&builder, "\tPassRate: %s\n", PrettyPrintPassRate(metric.PassRate))
+
 	return builder.String()
 }
 

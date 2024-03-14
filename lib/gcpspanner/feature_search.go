@@ -98,12 +98,15 @@ func (c *Client) FeaturesSearch(
 		if err := row.ToStruct(&result); err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](result.StableMetrics, findDefaultPlaceHolder)
+		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
+			result.StableMetrics, findDefaultPlaceHolder)
 		if len(result.StableMetrics) == 0 {
 			// If we removed everything, just set it to nil
 			result.StableMetrics = nil
 		}
-		result.ExperimentalMetrics = slices.DeleteFunc[[]*FeatureResultMetric](result.ExperimentalMetrics, findDefaultPlaceHolder)
+
+		result.ExperimentalMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
+			result.ExperimentalMetrics, findDefaultPlaceHolder)
 		if len(result.ExperimentalMetrics) == 0 {
 			// If we removed everything, just set it to nil
 			result.ExperimentalMetrics = nil
