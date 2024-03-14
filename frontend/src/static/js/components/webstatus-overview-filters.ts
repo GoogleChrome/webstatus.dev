@@ -73,16 +73,16 @@ export class WebstatusOverviewFilters extends LitElement {
     ];
   }
 
-  filterInputInput!: SlInput;
+  filterInput!: SlInput;
   filterInputMap!: Map<string, string[]>;
 
+  // Initializes the filter input map with the values from the URL.
+  // Gets the filter input string from filter-input-input
   initializeFilterInput(): void {
-    // Initialize the filter input map with the values from the URL.
-    // Get the filter input string from filter-input-input
-    this.filterInputInput = this.shadowRoot!.getElementById(
+    this.filterInput = this.shadowRoot!.getElementById(
       'filter-input-input'
     ) as SlInput;
-    const filterInputString = (this.filterInputInput.value || '').trim();
+    const filterInputString = (this.filterInput.value || '').trim();
     this.filterInputMap = this.parseFilterInputString(filterInputString);
 
     // Add sl-select event handler to all sl-menu elements.
@@ -111,12 +111,12 @@ export class WebstatusOverviewFilters extends LitElement {
     }
   }
 
-  parseFilterInputString(filterInputString: string): Map<string, string[]> {
-    // Parse the filter input string into a map of filter keys and values.
+    // Parses the filter input string into a map of filter keys and values.
+    parseFilterInputString(filterInputString: string): Map<string, string[]> {
     const filterInputMap = new Map<string, string[]>();
     if (filterInputString.length > 0) {
       // This parser does the inverse of generateFilterInputString.
-      // Top-level is a list of ' AND ' separated clauses.
+      // Top-level is a list of ' AND '-separated clauses.
       const andClauseArray = filterInputString.split(' AND ');
       for (const orClausesString of andClauseArray) {
         // Each OR-clause is a list of parenthesized ' OR '-separated clauses.
@@ -127,6 +127,13 @@ export class WebstatusOverviewFilters extends LitElement {
         for (const orClauseString of orClauseArray) {
           // Each OR-clause is a key:value pair for the same key.
           const [key, value] = orClauseString.split(':');
+          // Check that key matches orKey, if set.
+          if (orKey && key !== orKey) {
+            // This is a current limitation of the parser.
+            throw new Error(
+              `Unexpected key in filter input string: ${key} != ${orKey}`
+            );
+          }
           orKey = key;
           valueArray.push(value);
         }
@@ -136,8 +143,8 @@ export class WebstatusOverviewFilters extends LitElement {
     return filterInputMap;
   }
 
-  generateFilterInputString(filterInputMap: Map<string, string[]>): string {
-    // Generate a filter input string from a map of filter keys and values.
+    // Generates a filter input string from a map of filter keys and values.
+    generateFilterInputString(filterInputMap: Map<string, string[]>): string {
     const andClauseArray: string[] = [];
     for (const [key, orClauseArray] of filterInputMap.entries()) {
       const orClauseString = orClauseArray
@@ -149,9 +156,9 @@ export class WebstatusOverviewFilters extends LitElement {
     return filterInputString;
   }
 
+  // Generates the query string from the filter input.
   generateFilterQueryString(filterInputMap: Map<string, string[]>): string {
     const filterInputString = this.generateFilterInputString(filterInputMap);
-    // URL encode the filter input string.
     const filterInputStringEncoded = encodeURIComponent(filterInputString);
     const filterQueryString = `?q=${filterInputStringEncoded}`;
     return filterQueryString;
@@ -162,6 +169,7 @@ export class WebstatusOverviewFilters extends LitElement {
     window.location.href = filterQueryString;
   }
 
+  // Returns a handler for changes to a filter menu.
   makeFilterSelectHandler(id: string): (event: Event) => void {
     return (event: Event) => {
       const menu = event.target as SlMenu;
@@ -182,7 +190,7 @@ export class WebstatusOverviewFilters extends LitElement {
       const filterInputString = this.generateFilterInputString(
         this.filterInputMap
       );
-      this.filterInputInput.value = filterInputString;
+      this.filterInput.value = filterInputString;
 
       // Activate the submit button glowing
       const submitButton = this.shadowRoot!.getElementById(
