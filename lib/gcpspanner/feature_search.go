@@ -16,11 +16,10 @@ package gcpspanner
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"log/slog"
+	"math/big"
 
-	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"google.golang.org/api/iterator"
 )
@@ -29,19 +28,19 @@ import (
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user.
 type SpannerFeatureResult struct {
-	ID                  string           `spanner:"ID"`
-	FeatureID           string           `spanner:"FeatureID"`
-	Name                string           `spanner:"Name"`
-	Status              string           `spanner:"Status"`
-	StableMetrics       spanner.NullJSON `spanner:"StableMetrics"`
-	ExperimentalMetrics spanner.NullJSON `spanner:"ExperimentalMetrics"`
+	ID                  string                 `spanner:"ID"`
+	FeatureID           string                 `spanner:"FeatureID"`
+	Name                string                 `spanner:"Name"`
+	Status              string                 `spanner:"Status"`
+	StableMetrics       []*FeatureResultMetric `spanner:"StableMetrics"`
+	ExperimentalMetrics []*FeatureResultMetric `spanner:"ExperimentalMetrics"`
 }
 
 // FeatureResultMetric contains metric information for a feature result query.
 // Very similar to WPTRunFeatureMetric.
 type FeatureResultMetric struct {
 	BrowserName string  `json:"BrowserName"`
-	PassRate    float64 `json:"PassRate"`
+	PassRate    big.Rat `json:"PassRate"`
 }
 
 // FeatureResult contains information regarding a particular feature.
@@ -98,20 +97,12 @@ func (c *Client) FeaturesSearch(
 		if err := row.ToStruct(&result); err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var stableMetrics []*FeatureResultMetric
-		if err := json.Unmarshal([]byte(result.StableMetrics.String()), &stableMetrics); err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
-		}
-		var experimentalMetrics []*FeatureResultMetric
-		if err := json.Unmarshal([]byte(result.ExperimentalMetrics.String()), &experimentalMetrics); err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
-		}
 		actualResult := FeatureResult{
 			FeatureID:           result.FeatureID,
 			Name:                result.Name,
 			Status:              result.Status,
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
+			StableMetrics:       result.StableMetrics,
+			ExperimentalMetrics: result.ExperimentalMetrics,
 		}
 		results = append(results, actualResult)
 	}

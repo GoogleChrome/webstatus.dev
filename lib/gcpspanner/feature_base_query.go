@@ -27,11 +27,6 @@ type FeatureBaseQuery struct{}
 //  5. The latest metrics from WPT.
 //     It provides these metrics for both "stable" and "experimental" channels.
 //     The metrics retrieved are for each unique BrowserName/Channel/FeatureID.
-//
-// Note about the metrics calculations:
-// The metrics columns need to be wrapped in TO_JSON. As a result, the metrics
-// need to be parsed. More details about it in the TODO below.
-// TODO: Fix https://github.com/GoogleChrome/webstatus.dev/issues/77
 func (f FeatureBaseQuery) Query() string {
 	return `
 SELECT
@@ -39,35 +34,46 @@ SELECT
 	wf.FeatureID,
 	wf.Name,
 	COALESCE(fbs.Status, 'undefined') AS Status,
-
-    -- StableMetrics Calculation
-    (SELECT TO_JSON(ARRAY_AGG(STRUCT(metrics.BrowserName, CAST(PassRate AS FLOAT64) AS PassRate)))
-        FROM WPTRunFeatureMetrics metrics
-        JOIN (
-              SELECT FeatureID, Channel, BrowserName, MAX(TimeStart) AS MostRecentTimeStart
-              FROM WPTRunFeatureMetrics
-              GROUP BY FeatureID, Channel, BrowserName
-        ) latest_runs ON
-            metrics.FeatureID = latest_runs.FeatureID
-            AND metrics.Channel = latest_runs.Channel
-            AND metrics.BrowserName = latest_runs.BrowserName
-            AND metrics.TimeStart = latest_runs.MostRecentTimeStart
-	WHERE metrics.FeatureID = wf.FeatureID AND metrics.Channel = 'stable') AS StableMetrics,
-
-    -- ExperimentalMetrics Calculation
-    (SELECT TO_JSON(ARRAY_AGG(STRUCT(metrics.BrowserName, CAST(PassRate AS FLOAT64) AS PassRate)))
-        FROM WPTRunFeatureMetrics metrics
-        JOIN (
-              SELECT FeatureID, Channel, BrowserName, MAX(TimeStart) AS MostRecentTimeStart
-              FROM WPTRunFeatureMetrics
-              GROUP BY FeatureID, Channel, BrowserName
-        ) latest_runs ON
-            metrics.FeatureID = latest_runs.FeatureID
-            AND metrics.Channel = latest_runs.Channel
-            AND metrics.BrowserName = latest_runs.BrowserName
-            AND metrics.TimeStart = latest_runs.MostRecentTimeStart
-        WHERE metrics.FeatureID = wf.FeatureID AND metrics.Channel = 'experimental') AS ExperimentalMetrics
-
+	COALESCE((
+		SELECT ARRAY_AGG(STRUCT(
+				BrowserName AS BrowserName,
+				PassRate AS PassRate
+			))
+		FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics
+		WHERE metrics.FeatureID = wf.FeatureID
+		AND metrics.Channel = 'stable'
+		AND metrics.TimeStart IN (
+			SELECT MAX(TimeStart)
+			FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics2
+			WHERE metrics2.FeatureID = wf.FeatureID
+				AND metrics2.Channel = 'stable'
+			GROUP BY BrowserName
+		)
+		-- GCP Spanner could have ARRAY<STRUCT<string, NUMERIC>>[]) as the default.
+		-- but the emulator complains.
+		-- Replace the following line in the future when the emulator supports it.
+		-- ), ARRAY<STRUCT<string, NUMERIC>>[]) AS StableMetrics,
+	), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS StableMetrics,
+	COALESCE((
+		SELECT ARRAY_AGG(STRUCT(
+				BrowserName AS BrowserName,
+				PassRate AS PassRate
+			))
+		FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics
+		WHERE metrics.FeatureID = wf.FeatureID
+		AND metrics.Channel = 'experimental'
+		AND metrics.TimeStart IN (
+			SELECT MAX(TimeStart)
+			FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics2
+			WHERE metrics2.FeatureID = wf.FeatureID
+				AND metrics2.Channel = 'experimental'
+			GROUP BY BrowserName
+		)
+		-- GCP Spanner could have ARRAY<STRUCT<string, NUMERIC>>[]) as the default.
+		-- but the emulator complains.
+		-- Replace the following line in the future when the emulator supports it.
+		-- ), ARRAY<STRUCT<string, NUMERIC>>[]) AS StableMetrics,
+	), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS ExperimentalMetrics
 FROM WebFeatures wf
 LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
 `

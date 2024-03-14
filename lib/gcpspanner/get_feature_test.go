@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"math/big"
 	"reflect"
 	"testing"
 )
@@ -40,25 +41,21 @@ func TestGetFeature(t *testing.T) {
 		StableMetrics: []*FeatureResultMetric{
 			{
 				BrowserName: "barBrowser",
-				TotalTests:  valuePtr[int64](10),
-				TestPass:    valuePtr[int64](10),
+				PassRate:    *big.NewRat(10, 10),
 			},
 			{
 				BrowserName: "fooBrowser",
-				TotalTests:  valuePtr[int64](10),
-				TestPass:    valuePtr[int64](0),
+				PassRate:    *big.NewRat(0, 10),
 			},
 		},
 		ExperimentalMetrics: []*FeatureResultMetric{
 			{
 				BrowserName: "barBrowser",
-				TotalTests:  valuePtr[int64](120),
-				TestPass:    valuePtr[int64](120),
+				PassRate:    *big.NewRat(120, 120),
 			},
 			{
 				BrowserName: "fooBrowser",
-				TotalTests:  valuePtr[int64](12),
-				TestPass:    valuePtr[int64](12),
+				PassRate:    *big.NewRat(12, 12),
 			},
 		},
 	}

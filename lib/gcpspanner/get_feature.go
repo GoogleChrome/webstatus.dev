@@ -16,7 +16,6 @@ package gcpspanner
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 
 	"cloud.google.com/go/spanner"
@@ -50,20 +49,12 @@ func (c *Client) GetFeature(
 	if err := row.ToStruct(&result); err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
-	var stableMetrics []*FeatureResultMetric
-	if err := json.Unmarshal([]byte(result.StableMetrics.String()), &stableMetrics); err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-	var experimentalMetrics []*FeatureResultMetric
-	if err := json.Unmarshal([]byte(result.ExperimentalMetrics.String()), &experimentalMetrics); err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
 	actualResult := FeatureResult{
 		FeatureID:           result.FeatureID,
 		Name:                result.Name,
 		Status:              result.Status,
-		StableMetrics:       stableMetrics,
-		ExperimentalMetrics: experimentalMetrics,
+		StableMetrics:       result.StableMetrics,
+		ExperimentalMetrics: result.ExperimentalMetrics,
 	}
 
 	return &actualResult, nil

@@ -79,7 +79,7 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID in
 		// TODO: Query by primary key instead.
 		stmt := spanner.NewStatement(`
 			SELECT
-				ID, FeatureID, TotalTests, TestPass, PassRate, Channel, BrowserName
+				ID, FeatureID, TotalTests, TestPass, TimeStart, PassRate, Channel, BrowserName
 			FROM WPTRunFeatureMetrics
 			WHERE ID = @id AND FeatureID = @featureID
 			LIMIT 1`)

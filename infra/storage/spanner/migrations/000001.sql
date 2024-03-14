@@ -76,6 +76,9 @@ CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetri
 CREATE INDEX MetricsFeatureChannelBrowserTime ON
   WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC);
 
+CREATE INDEX MetricsFeatureChannelBrowserTimePassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, PassRate);
+
+
 -- BrowserReleases contains information regarding browser releases.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers
 CREATE TABLE IF NOT EXISTS BrowserReleases (
@@ -109,3 +112,7 @@ CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
     CHECK (Status IN ('undefined', 'none', 'low', 'high'))
 ) PRIMARY KEY (FeatureID);
+
+-- Index to accelerate lookups and joins in FeatureBaselineStatus based on FeatureID.
+-- Primarily supports queries involving the WebFeatures table.
+CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus(FeatureID);
