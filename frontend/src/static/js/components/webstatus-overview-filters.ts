@@ -100,6 +100,7 @@ export class WebstatusOverviewFilters extends LitElement {
     // Set the sl-menu items based on the filterInputMap.
     for (const [key, valueArray] of this.filterInputMap.entries()) {
       const menuElement = this.shadowRoot!.getElementById(key) as SlMenu;
+      if (menuElement == null) continue; // Skip for now.
       for (const value of valueArray) {
         const menuItem = menuElement.querySelector(
           `sl-menu-item[value="${value}"]`
@@ -119,9 +120,13 @@ export class WebstatusOverviewFilters extends LitElement {
       // Top-level is a list of ' AND '-separated clauses.
       const andClauseArray = filterInputString.split(' AND ');
       for (const orClausesString of andClauseArray) {
-        // Each OR-clause is a list of parenthesized ' OR '-separated clauses.
-        // Slice (1, -1) removes the parentheses.
-        const orClauseArray = orClausesString.slice(1, -1).split(' OR ');
+        // Each OR-clause is a list of ' OR '-separated clauses.
+        // Strip optional parentheses from the OR-clause.
+        const orClausesStringStripped = orClausesString.replace(
+          /^\((.*)\)$/,
+          '$1'
+        );
+        const orClauseArray = orClausesStringStripped.split(' OR ');
         let orKey = '';
         const valueArray = [];
         for (const orClauseString of orClauseArray) {
@@ -147,10 +152,14 @@ export class WebstatusOverviewFilters extends LitElement {
   generateFilterInputString(filterInputMap: Map<string, string[]>): string {
     const andClauseArray: string[] = [];
     for (const [key, orClauseArray] of filterInputMap.entries()) {
-      const orClauseString = orClauseArray
-        .map((value: string) => `${key}:${value}`)
-        .join(' OR ');
-      andClauseArray.push(`(${orClauseString})`);
+      if (orClauseArray.length > 0) {
+        let orClauseString = orClauseArray
+          .map((value: string) => `${key}:${value}`)
+          .join(' OR ');
+        if (orClauseArray.length > 1)
+          orClauseString = `(${orClauseString})`;
+        andClauseArray.push(orClauseString);
+      }
     }
     const filterInputString = andClauseArray.join(' AND ');
     return filterInputString;
