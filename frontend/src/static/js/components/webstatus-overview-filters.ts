@@ -111,8 +111,8 @@ export class WebstatusOverviewFilters extends LitElement {
     }
   }
 
-    // Parses the filter input string into a map of filter keys and values.
-    parseFilterInputString(filterInputString: string): Map<string, string[]> {
+  // Parses the filter input string into a map of filter keys and values.
+  parseFilterInputString(filterInputString: string): Map<string, string[]> {
     const filterInputMap = new Map<string, string[]>();
     if (filterInputString.length > 0) {
       // This parser does the inverse of generateFilterInputString.
@@ -143,8 +143,8 @@ export class WebstatusOverviewFilters extends LitElement {
     return filterInputMap;
   }
 
-    // Generates a filter input string from a map of filter keys and values.
-    generateFilterInputString(filterInputMap: Map<string, string[]>): string {
+  // Generates a filter input string from a map of filter keys and values.
+  generateFilterInputString(filterInputMap: Map<string, string[]>): string {
     const andClauseArray: string[] = [];
     for (const [key, orClauseArray] of filterInputMap.entries()) {
       const orClauseString = orClauseArray
@@ -165,7 +165,9 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   gotoFilterQueryString(): void {
-    const filterQueryString = this.generateFilterQueryString(this.filterInputMap);
+    const filterQueryString = this.generateFilterQueryString(
+      this.filterInputMap
+    );
     window.location.href = filterQueryString;
   }
 
