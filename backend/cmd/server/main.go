@@ -44,6 +44,11 @@ func main() {
 		os.Exit(1)
 	}
 
+	if _, found := os.LookupEnv("SPANNER_EMULATOR_HOST"); found {
+		slog.Info("setting spanner to local mode")
+		spannerClient.SetIsLocal(true)
+	}
+
 	// Allowed Origin. Can remove after UbP.
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 

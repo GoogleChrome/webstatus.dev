@@ -1296,6 +1296,14 @@ func TestFeaturesSearch(t *testing.T) {
 	ctx := context.Background()
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
 
+	// Try with local mode equal to false
+	testFeatureSearchAll(ctx, t, client)
+	testFeatureSearchPagination(ctx, t, client)
+	testFeatureSearchFilters(ctx, t, client)
+	testFeatureSearchSort(ctx, t, client)
+
+	// Try with local mode equal to true
+	client.SetIsLocal(true)
 	testFeatureSearchAll(ctx, t, client)
 	testFeatureSearchPagination(ctx, t, client)
 	testFeatureSearchFilters(ctx, t, client)

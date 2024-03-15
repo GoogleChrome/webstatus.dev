@@ -27,7 +27,9 @@ func (c *Client) GetFeature(
 	filter Filterable,
 ) (*FeatureResult, error) {
 	b := GetFeatureQueryBuilder{
-		baseQuery: FeatureBaseQuery{},
+		baseQuery: FeatureBaseQuery{
+			useCTE: c.isLocal,
+		},
 	}
 	stmt := b.Build(filter)
 	txn := c.Single()

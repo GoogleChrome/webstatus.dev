@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"math/big"
 	"slices"
 
@@ -73,13 +72,14 @@ func (c *Client) FeaturesSearch(
 		}
 	}
 	queryBuilder := FeatureSearchQueryBuilder{
-		baseQuery: FeatureBaseQuery{},
-		cursor:    cursor,
-		pageSize:  pageSize,
+		baseQuery: FeatureBaseQuery{
+			useCTE: c.isLocal,
+		},
+		cursor:   cursor,
+		pageSize: pageSize,
 	}
 	stmt := queryBuilder.Build(filter, sortOrder)
 
-	slog.Info("statement for search", "search", stmt.SQL, "params", stmt.Params)
 	txn := c.Single()
 	defer txn.Close()
 	it := txn.Query(ctx, stmt)
