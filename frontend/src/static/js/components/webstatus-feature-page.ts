@@ -31,7 +31,10 @@ import {type components} from 'webstatus.dev-backend';
 import {type APIClient} from '../api/client.js';
 import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import {renderWPTScore} from './webstatus-overview-cells.js';
+import {
+  BASELINE_CHIP_CONFIGS,
+  renderWPTScore,
+} from './webstatus-overview-cells.js';
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
@@ -180,6 +183,21 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderBaselineCard(): TemplateResult {
+    if (!this.feature) return html``;
+
+    const chipConfig = BASELINE_CHIP_CONFIGS[this.feature.baseline_status];
+
+    return html`
+      <sl-card class="halign-stretch wptScore">
+        <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
+        <div>Baseline</div>
+        <div class="score">${chipConfig.word}</div>
+        <div class="avail">Baseline since ...</div>
+      </sl-card>
+    `;
+  }
+
   renderWPTScores(): TemplateResult {
     return html`
       <section id="wpt-scores">
@@ -189,6 +207,7 @@ export class FeaturePage extends LitElement {
           ${this.renderOneWPTCard('edge', 'edge_32x32.png')}
           ${this.renderOneWPTCard('firefox', 'firefox_32x32.png')}
           ${this.renderOneWPTCard('safari', 'safari_32x32.png')}
+          ${this.renderBaselineCard()}
         </div>
       </section>
     `;
