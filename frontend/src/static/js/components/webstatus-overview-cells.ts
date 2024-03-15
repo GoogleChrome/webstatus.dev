@@ -78,7 +78,7 @@ interface BaselineChipConfig {
   word: string;
 }
 
-const BASELINE_CHIP_CONFIGS: Record<
+export const BASELINE_CHIP_CONFIGS: Record<
   components['schemas']['Feature']['baseline_status'],
   BaselineChipConfig
 > = {
