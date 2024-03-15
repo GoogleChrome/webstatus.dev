@@ -156,8 +156,7 @@ export class WebstatusOverviewFilters extends LitElement {
         let orClauseString = orClauseArray
           .map((value: string) => `${key}:${value}`)
           .join(' OR ');
-        if (orClauseArray.length > 1)
-          orClauseString = `(${orClauseString})`;
+        if (orClauseArray.length > 1) orClauseString = `(${orClauseString})`;
         andClauseArray.push(orClauseString);
       }
     }
