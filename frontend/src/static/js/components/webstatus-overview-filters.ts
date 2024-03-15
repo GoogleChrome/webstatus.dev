@@ -41,7 +41,7 @@ export class WebstatusOverviewFilters extends LitElement {
           padding-left: 1rem;
         }
 
-        #filter-query-input {
+        #filter-input-input {
           --sl-input-spacing-medium: 0.875rem;
         }
         #filter-submit-button::part(base) {
@@ -49,7 +49,7 @@ export class WebstatusOverviewFilters extends LitElement {
           --sl-input-height-small: 1.475rem;
         }
 
-        /** Filter query submit button pulses after changes. */
+        /** Filter input submit button pulses after changes. */
         @keyframes pulseBtn {
           0% {
             box-shadow: 0px 0px 0px 0px var(--sl-color-success-600);
@@ -73,17 +73,17 @@ export class WebstatusOverviewFilters extends LitElement {
     ];
   }
 
-  filterQueryInput!: SlInput;
-  filterQueryMap!: Map<string, string[]>;
+  filterInput!: SlInput;
+  filterInputMap!: Map<string, string[]>;
 
-  initializeFilterQuery(): void {
-    // Initialize the filter query map with the values from the URL.
-    // Get the filter query string from filter-query-input
-    this.filterQueryInput = this.shadowRoot!.getElementById(
-      'filter-query-input'
+  // Initializes the filter input map with the values from the URL.
+  // Gets the filter input string from filter-input-input
+  initializeFilterInput(): void {
+    this.filterInput = this.shadowRoot!.getElementById(
+      'filter-input-input'
     ) as SlInput;
-    const filterQueryString = (this.filterQueryInput.value || '').trim();
-    this.filterQueryMap = this.parseFilterQueryString(filterQueryString);
+    const filterInputString = (this.filterInput.value || '').trim();
+    this.filterInputMap = this.parseFilterInputString(filterInputString);
 
     // Add sl-select event handler to all sl-menu elements.
     const menuElements = Array.from(
@@ -96,45 +96,90 @@ export class WebstatusOverviewFilters extends LitElement {
         this.makeFilterSelectHandler(id)
       );
     }
-  }
 
-  parseFilterQueryString(filterQueryString: string): Map<string, string[]> {
-    // Parse the filter query string into a map of filter keys and values.
-    const filterQueryMap = new Map<string, string[]>();
-    const filterQueryItems =
-      filterQueryString.length > 0 ? filterQueryString.split(' ') : [];
-    for (const filterQueryItem of filterQueryItems) {
-      const [key, value] = filterQueryItem.split(':');
-      // Parse each value as a comma separated list of values.
-      const valueArray = value.split(',');
-      filterQueryMap.set(key, valueArray);
-
-      // Populate the menu items with the values from the filter query string.
-      const menu = this.shadowRoot!.getElementById(key) as SlMenu;
-      const menuChildren = menu.children;
-      const menuItemsArray: Array<SlMenuItem> = Array.from(menuChildren).filter(
-        child => child instanceof SlMenuItem
-      ) as Array<SlMenuItem>;
-      for (const menuItem of menuItemsArray) {
-        menuItem.checked = valueArray.includes(menuItem.value);
+    // Set the sl-menu items based on the filterInputMap.
+    for (const [key, valueArray] of this.filterInputMap.entries()) {
+      const menuElement = this.shadowRoot!.getElementById(key) as SlMenu;
+      if (menuElement == null) continue; // Skip for now.
+      for (const value of valueArray) {
+        const menuItem = menuElement.querySelector(
+          `sl-menu-item[value="${value}"]`
+        ) as SlMenuItem;
+        if (menuItem) {
+          menuItem.checked = true;
+        }
       }
     }
-    return filterQueryMap;
   }
 
-  generateFilterQueryString(filterQueryMap: Map<string, string[]>): string {
-    // Generate a filter query string from a map of filter keys and values.
-    const andClauseArray: string[] = [];
-    for (const [key, orClauseArray] of filterQueryMap.entries()) {
-      const orClauseString = orClauseArray
-        .map((value: string) => `${key}:${value}`)
-        .join(' OR ');
-      andClauseArray.push(`(${orClauseString})`);
+  // Parses the filter input string into a map of filter keys and values.
+  parseFilterInputString(filterInputString: string): Map<string, string[]> {
+    const filterInputMap = new Map<string, string[]>();
+    if (filterInputString.length > 0) {
+      // This parser does the inverse of generateFilterInputString.
+      // Top-level is a list of ' AND '-separated clauses.
+      const andClauseArray = filterInputString.split(' AND ');
+      for (const orClausesString of andClauseArray) {
+        // Each OR-clause is a list of ' OR '-separated clauses.
+        // Strip optional parentheses from the OR-clause.
+        const orClausesStringStripped = orClausesString.replace(
+          /^\((.*)\)$/,
+          '$1'
+        );
+        const orClauseArray = orClausesStringStripped.split(' OR ');
+        let orKey = '';
+        const valueArray = [];
+        for (const orClauseString of orClauseArray) {
+          // Each OR-clause is a key:value pair for the same key.
+          const [key, value] = orClauseString.split(':');
+          // Check that key matches orKey, if set.
+          if (orKey && key !== orKey) {
+            // This is a current limitation of the parser.
+            throw new Error(
+              `Unexpected key in filter input string: ${key} != ${orKey}`
+            );
+          }
+          orKey = key;
+          valueArray.push(value);
+        }
+        filterInputMap.set(orKey, valueArray);
+      }
     }
-    const filterQueryString = andClauseArray.join(' AND ');
+    return filterInputMap;
+  }
+
+  // Generates a filter input string from a map of filter keys and values.
+  generateFilterInputString(filterInputMap: Map<string, string[]>): string {
+    const andClauseArray: string[] = [];
+    for (const [key, orClauseArray] of filterInputMap.entries()) {
+      if (orClauseArray.length > 0) {
+        let orClauseString = orClauseArray
+          .map((value: string) => `${key}:${value}`)
+          .join(' OR ');
+        if (orClauseArray.length > 1) orClauseString = `(${orClauseString})`;
+        andClauseArray.push(orClauseString);
+      }
+    }
+    const filterInputString = andClauseArray.join(' AND ');
+    return filterInputString;
+  }
+
+  // Generates the query string from the filter input.
+  generateFilterQueryString(filterInputMap: Map<string, string[]>): string {
+    const filterInputString = this.generateFilterInputString(filterInputMap);
+    const filterInputStringEncoded = encodeURIComponent(filterInputString);
+    const filterQueryString = `?q=${filterInputStringEncoded}`;
     return filterQueryString;
   }
 
+  gotoFilterQueryString(): void {
+    const filterQueryString = this.generateFilterQueryString(
+      this.filterInputMap
+    );
+    window.location.href = filterQueryString;
+  }
+
+  // Returns a handler for changes to a filter menu.
   makeFilterSelectHandler(id: string): (event: Event) => void {
     return (event: Event) => {
       const menu = event.target as SlMenu;
@@ -146,16 +191,16 @@ export class WebstatusOverviewFilters extends LitElement {
 
       // Create a list of the currently checked sl-menu-items.
       const checkedItems = menuItemsArray.filter(menuItem => menuItem.checked);
-      // Build a query string from the values of those items.
+      // Build a input string from the values of those items.
       const checkedItemsValues = checkedItems.map(menuItem => menuItem.value);
 
-      // Update the filterQueryMap with the new values.
-      this.filterQueryMap.set(id, checkedItemsValues);
-      // Update the filterQuery input with the new filter query string.
-      const filterQueryString = this.generateFilterQueryString(
-        this.filterQueryMap
+      // Update the filterInputMap with the new values.
+      this.filterInputMap.set(id, checkedItemsValues);
+      // Update the filterInput with the new filter input string.
+      const filterInputString = this.generateFilterInputString(
+        this.filterInputMap
       );
-      this.filterQueryInput.value = filterQueryString;
+      this.filterInput.value = filterInputString;
 
       // Activate the submit button glowing
       const submitButton = this.shadowRoot!.getElementById(
@@ -166,19 +211,19 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   firstUpdated(): void {
-    this.initializeFilterQuery();
+    this.initializeFilterInput();
   }
 
   render(): TemplateResult {
-    const query = getSearchQuery(this.location);
+    const input = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
           <sl-input
-            id="filter-query-input"
+            id="filter-input-input"
             class="halign-stretch"
             placeholder="Filter by ..."
-            value="${query}"
+            value="${input}"
           >
             <sl-button
               id="filter-submit-button"
@@ -189,6 +234,7 @@ export class WebstatusOverviewFilters extends LitElement {
               submit
               variant="success"
               outline
+              @click=${() => this.gotoFilterQueryString()}
             >
               <sl-icon slot="prefix" name="search"></sl-icon>
             </sl-button>
