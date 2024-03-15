@@ -97,6 +97,28 @@ export class FeaturePage extends LitElement {
           color: var(--chip-color-decreased);
         }
 
+        #current-bugs li {
+          list-style: none;
+          margin-bottom: var(--content-padding);
+        }
+
+        #general-information .vbox {
+          gap: var(--content-padding);
+        }
+
+        .info-section-header {
+          font-weight: bold;
+          width: 16em;
+        }
+
+        dt {
+          font-weight: bold;
+        }
+
+        dd {
+          margin-bottom: var(--content-padding-large);
+        }
+
         .under-construction {
           min-height: 12em;
         }
@@ -222,11 +244,26 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderBug(bugId: number): TemplateResult {
+    return html`
+      <li>
+        <a href="#TODO" target="_blank">
+          <img height="16" src="/public/img/chrome_24x24.png" />
+          ${bugId}: Title of issue
+        </a>
+      </li>
+    `;
+  }
+
   renderCurrentBugs(): TemplateResult {
     return html`
       <sl-details id="current-bugs">
         <div slot="summary">Current bugs</div>
-        <p class="under-construction">List goes here...</p>
+        <ul class="under-construction">
+          ${[21830, 123412, 12983712, 1283, 987123, 12982, 1287].map(bugId =>
+            this.renderBug(bugId)
+          )}
+        </ul>
       </sl-details>
     `;
   }
@@ -253,7 +290,60 @@ export class FeaturePage extends LitElement {
     return html`
       <sl-card id="general-information">
         <div slot="header">General information</div>
-        <p class="under-construction">List goes here...</p>
+
+        <div class="vbox under-construction">
+          <div class="hbox">
+            <div class="info-section-header">Project contact</div>
+            <div class="info-details halign-stretch">
+              <dl>
+                <dt>Spec authors</dt>
+                <dd>TODO: values go here</dd>
+
+                <dt>Chromium</dt>
+                <dd>
+                  <div>Status: shipped</div>
+                  <div>TODO: values go here</div>
+                </dd>
+
+                <dt>WebKit</dt>
+                <dd>
+                  <div>Status: shipped</div>
+                  <div>TODO: values go here</div>
+                </dd>
+
+                <dt>Gecko</dt>
+                <dd>
+                  <div>Status: shipped</div>
+                  <div>TODO: values go here</div>
+                </dd>
+              </dl>
+            </div>
+          </div>
+
+          <div class="hbox">
+            <div class="info-section-header">Adoption drivers</div>
+            <div class="info-details halign-stretch">
+              <dl>
+                <dt>Tooling support</dt>
+                <dd>TODO: values go here</dd>
+
+                <dt>Standard maturity</dt>
+                <dd>TODO: values go here</dd>
+
+                <dt>Documentation</dt>
+                <dd>
+                  <a href="#TODO" target="_blank">
+                    MDN
+                    <sl-icon name="box-arrow-up-right"></sl-icon>
+                  </a>
+                </dd>
+
+                <dt>Framework support</dt>
+                <dd>TODO: values go here</dd>
+              </dl>
+            </div>
+          </div>
+        </div>
       </sl-card>
     `;
   }
