@@ -20,8 +20,12 @@ import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
-import {getSortSpec} from '../utils/urls.js';
-import {type APIClient, FeatureSortOrderType} from '../api/client.js';
+import {getSearchQuery, getSortSpec} from '../utils/urls.js';
+import {
+  type APIClient,
+  type FeatureSortOrderType,
+  type FeatureSearchType,
+} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 
@@ -56,7 +60,8 @@ export class OverviewPage extends LitElement {
   ) {
     if (typeof apiClient !== 'object') return;
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
-    this.features = await apiClient.getFeatures(sortSpec);
+    const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
+    this.features = await apiClient.getFeatures(searchQuery, sortSpec);
   }
 
   render(): TemplateResult {

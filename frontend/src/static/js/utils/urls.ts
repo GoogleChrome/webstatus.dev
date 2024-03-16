@@ -38,6 +38,7 @@ export function getPaginationStart(location: {search: string}): number {
 }
 
 type QueryStringOverrides = {
+  q?: string;
   start?: number;
   sort?: string;
 };
@@ -54,7 +55,7 @@ function getContextualQueryStringParams(
     return '';
   }
   const searchParams = new URLSearchParams();
-  const searchQuery = getSearchQuery(location);
+  const searchQuery = 'q' in overrides ? overrides.q : getSearchQuery(location);
   if (searchQuery) {
     searchParams.set('q', searchQuery);
   }
