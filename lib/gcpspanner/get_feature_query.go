@@ -44,13 +44,30 @@ type GetFeatureQueryBuilder struct {
 	baseQuery FeatureBaseQuery
 }
 
-func (q GetFeatureQueryBuilder) Base() string {
-	return q.baseQuery.Query()
-}
+func (q GetFeatureQueryBuilder) Build(
+	latestRunResults LatestRunResultsGroupedByChannel,
+	filter Filterable) spanner.Statement {
+	filterParams := make(map[string]interface{})
 
-func (q GetFeatureQueryBuilder) Build(filter Filterable) spanner.Statement {
-	stmt := spanner.NewStatement(q.Base() + " WHERE " + filter.Clause() + " LIMIT 1")
-	stmt.Params = filter.Params()
+	stableMetricsFilter, stableParams := buildChannelMetricsFilter(
+		"stable", latestRunResults["stable"])
+	experimentalMetricsFilter, experimentalParams := buildChannelMetricsFilter(
+		"experimental", latestRunResults["experimental"])
+	for param, value := range stableParams {
+		filterParams[param] = value
+	}
+	for param, value := range experimentalParams {
+		filterParams[param] = value
+	}
+	if filter != nil {
+		for param, value := range filter.Params() {
+			filterParams[param] = value
+		}
+	}
+	stmt := spanner.NewStatement(
+		q.baseQuery.Query(stableMetricsFilter, experimentalMetricsFilter) +
+			" WHERE " + filter.Clause() + " LIMIT 1")
+	stmt.Params = filterParams
 
 	return stmt
 }

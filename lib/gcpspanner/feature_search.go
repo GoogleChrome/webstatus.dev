@@ -78,10 +78,15 @@ func (c *Client) FeaturesSearch(
 		cursor:   cursor,
 		pageSize: pageSize,
 	}
-	stmt := queryBuilder.Build(filter, sortOrder)
-
-	txn := c.Single()
+	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
+	latestRunResuls, err := c.GetLatestRunResultGroupedByChannel(ctx, txn)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	stmt := queryBuilder.Build(latestRunResuls, filter, sortOrder)
+
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 

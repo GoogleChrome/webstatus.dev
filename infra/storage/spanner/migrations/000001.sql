@@ -51,6 +51,9 @@ CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID)
 -- Useful index for the runs for feature search query.
 CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns(ExternalRunID, Channel, TimeStart DESC, BrowserName);
 
+-- Useful index for feature search. Used to get the latest runs beforehand.
+CREATE INDEX LatestRunsByBrowserChannel ON WPTRuns (BrowserName, Channel, TimeStart DESC);
+
 
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (

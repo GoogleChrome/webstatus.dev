@@ -170,13 +170,10 @@ type FeatureSearchQueryBuilder struct {
 	pageSize  int
 }
 
-// Base provides the minimum query to get data for the features search.
-// The results are designed to be used for the feature search and filtering.
-func (q FeatureSearchQueryBuilder) Base() string {
-	return q.baseQuery.Query()
-}
-
-func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter, sort Sortable) spanner.Statement {
+func (q FeatureSearchQueryBuilder) Build(
+	latestResults LatestRunResultsGroupedByChannel,
+	filter *FeatureSearchCompiledFilter,
+	sort Sortable) spanner.Statement {
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
@@ -196,7 +193,18 @@ func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter, so
 	if len(filterQuery) > 0 {
 		filterQuery = "WHERE " + filterQuery
 	}
-	stmt := spanner.NewStatement(q.Base() + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
+	stableMetricsFilter, stableParams := buildChannelMetricsFilter("stable", latestResults["stable"])
+	experimentalMetricsFilter, experimentalParams := buildChannelMetricsFilter(
+		"experimental", latestResults["experimental"])
+	for param, value := range stableParams {
+		filterParams[param] = value
+	}
+	for param, value := range experimentalParams {
+		filterParams[param] = value
+	}
+	stmt := spanner.NewStatement(
+		q.baseQuery.Query(stableMetricsFilter, experimentalMetricsFilter) +
+			" " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
 
 	stmt.Params = filterParams
 

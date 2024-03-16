@@ -31,9 +31,14 @@ func (c *Client) GetFeature(
 			useCTE: c.isLocal,
 		},
 	}
-	stmt := b.Build(filter)
-	txn := c.Single()
+	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
+	latestRunResuls, err := c.GetLatestRunResultGroupedByChannel(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+	stmt := b.Build(latestRunResuls, filter)
+
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 
