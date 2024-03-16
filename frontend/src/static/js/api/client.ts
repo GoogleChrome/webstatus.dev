@@ -21,6 +21,10 @@ export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
 >['sort'];
 
+export type FeatureSearchType = NonNullable<
+  paths['/v1/features']['get']['parameters']['query']
+>['q'];
+
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
   credentials: 'include',
@@ -55,11 +59,15 @@ export class APIClient {
   }
 
   public async getFeatures(
+    q: FeatureSearchType,
     sort: FeatureSortOrderType
   ): Promise<components['schemas']['FeaturePage']['data']> {
+    const qsParams: {q?: FeatureSearchType; sort?: FeatureSortOrderType} = {};
+    if (q) qsParams.q = q;
+    if (sort) qsParams.sort = sort;
     const {data, error} = await this.client.GET('/v1/features', {
       params: {
-        query: {sort},
+        query: qsParams,
       },
       ...temporaryFetchOptions,
     });

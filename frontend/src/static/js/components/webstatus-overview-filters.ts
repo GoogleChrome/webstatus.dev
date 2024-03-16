@@ -16,7 +16,7 @@
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {getSearchQuery} from '../utils/urls.js';
+import {formatOverviewPageUrl, getSearchQuery} from '../utils/urls.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {SlInput, SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 
@@ -164,19 +164,12 @@ export class WebstatusOverviewFilters extends LitElement {
     return filterInputString;
   }
 
-  // Generates the query string from the filter input.
-  generateFilterQueryString(filterInputMap: Map<string, string[]>): string {
-    const filterInputString = this.generateFilterInputString(filterInputMap);
-    const filterInputStringEncoded = encodeURIComponent(filterInputString);
-    const filterQueryString = `?q=${filterInputStringEncoded}`;
-    return filterQueryString;
-  }
-
   gotoFilterQueryString(): void {
-    const filterQueryString = this.generateFilterQueryString(
-      this.filterInputMap
-    );
-    window.location.href = filterQueryString;
+    const newUrl = formatOverviewPageUrl(this.location, {
+      q: this.filterInput.value,
+      start: 0,
+    });
+    window.location.href = newUrl;
   }
 
   // Returns a handler for changes to a filter menu.
@@ -214,6 +207,12 @@ export class WebstatusOverviewFilters extends LitElement {
     this.initializeFilterInput();
   }
 
+  handleSearchKey(event: KeyboardEvent) {
+    if (event.code === 'Enter') {
+      this.gotoFilterQueryString();
+    }
+  }
+
   render(): TemplateResult {
     const input = getSearchQuery(this.location);
     return html`
@@ -224,6 +223,7 @@ export class WebstatusOverviewFilters extends LitElement {
             class="halign-stretch"
             placeholder="Filter by ..."
             value="${input}"
+            @keyup=${this.handleSearchKey}
           >
             <sl-button
               id="filter-submit-button"
