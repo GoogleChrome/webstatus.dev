@@ -20,7 +20,6 @@ import {ifDefined} from 'lit/directives/if-defined.js';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
 import {formatOverviewPageUrl, getPaginationStart} from '../utils/urls.js';
-import {type components} from 'webstatus.dev-backend';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
 
@@ -29,7 +28,7 @@ const ITEMS_PER_PAGE = 25;
 @customElement('webstatus-pagination')
 export class WebstatusPagination extends LitElement {
   @state()
-  features: Array<components['schemas']['Feature']> = [];
+  totalCount: number | undefined = undefined;
 
   @state()
   start = 0; // Index of first result among total results.
@@ -56,26 +55,28 @@ export class WebstatusPagination extends LitElement {
     ];
   }
 
-  getTotalCount() {
-    // TODO(jrobbins): Get from JSON response field when available.
-    return this.features?.length || 0;
-  }
-
   formatUrlForOffset(offset: number): string {
     return formatOverviewPageUrl(this.location, {start: offset});
   }
 
   formatUrlForRelativeOffset(delta: number): string | undefined {
     const offset = this.start + delta;
-    if (offset <= -ITEMS_PER_PAGE || offset > this.getTotalCount()) {
+    if (
+      this.totalCount === undefined ||
+      offset <= -ITEMS_PER_PAGE ||
+      offset > this.totalCount
+    ) {
       return undefined;
     }
     return this.formatUrlForOffset(Math.max(0, offset));
   }
 
   renderPageButtons(): TemplateResult {
+    if (this.totalCount === undefined || this.totalCount === 0) {
+      return html``;
+    }
     const currentPage = Math.floor(this.start / ITEMS_PER_PAGE);
-    const numPages = Math.floor(this.getTotalCount() / ITEMS_PER_PAGE) + 1;
+    const numPages = Math.floor(this.totalCount / ITEMS_PER_PAGE) + 1;
 
     return html`
       ${map(
@@ -94,7 +95,7 @@ export class WebstatusPagination extends LitElement {
   }
 
   render(): TemplateResult {
-    if (this.features.length === 0) {
+    if (this.totalCount === undefined || this.totalCount === 0) {
       return html``;
     }
 
