@@ -68,6 +68,7 @@ func buildChannelMetricsFilter(channel string, latestRunResults []LatestRunResul
 	filterStr := strings.Join(filters, " OR ")
 
 	filterStr = " AND (" + filterStr + ")"
+
 	return filterStr, params
 }
 
