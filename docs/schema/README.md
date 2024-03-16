@@ -1,15 +1,15 @@
-# projects/local/instances/local/databases/local
+# projects/webstatus-dev-internal-staging/instances/staging-spanner/databases/test-database3
 
 ## Tables
 
 | Name | Columns | Comment | Type |
 | ---- | ------- | ------- | ---- |
-| [WPTRunFeatureMetrics](WPTRunFeatureMetrics.md) | 5 |  | BASIC TABLE |
-| [BrowserReleases](BrowserReleases.md) | 3 |  | BASIC TABLE |
-| [WebFeatures](WebFeatures.md) | 3 |  | BASIC TABLE |
 | [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) | 3 |  | BASIC TABLE |
-| [WPTRuns](WPTRuns.md) | 10 |  | BASIC TABLE |
+| [BrowserReleases](BrowserReleases.md) | 3 |  | BASIC TABLE |
 | [FeatureBaselineStatus](FeatureBaselineStatus.md) | 4 |  | BASIC TABLE |
+| [WebFeatures](WebFeatures.md) | 5 |  | BASIC TABLE |
+| [WPTRunFeatureMetrics](WPTRunFeatureMetrics.md) | 8 |  | BASIC TABLE |
+| [WPTRuns](WPTRuns.md) | 10 |  | BASIC TABLE |
 
 ## Relations
 
