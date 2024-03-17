@@ -10,9 +10,9 @@
 | ExternalRunID | INT64 |  | false |  |  |  |
 | TimeStart | TIMESTAMP |  | false |  |  |  |
 | TimeEnd | TIMESTAMP |  | false |  |  |  |
-| BrowserName | STRING(64) |  | false |  |  |  |
-| BrowserVersion | STRING(32) |  | false |  |  |  |
-| Channel | STRING(32) |  | false |  |  |  |
+| BrowserName | STRING(64) |  | true |  |  |  |
+| BrowserVersion | STRING(32) |  | true |  |  |  |
+| Channel | STRING(32) |  | true |  |  |  |
 | OSName | STRING(64) |  | true |  |  |  |
 | OSVersion | STRING(32) |  | true |  |  |  |
 | FullRevisionHash | STRING(40) |  | true |  |  |  |
@@ -27,8 +27,8 @@
 
 | Name | Definition |
 | ---- | ---------- |
-| RunsForFeatureSearchWithChannel | CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns (ExternalRunID, Channel, TimeStart, BrowserName) |
 | RunsByExternalRunID | CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID) |
+| RunsForFeatureSearchWithChannel | CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns (ExternalRunID, Channel, TimeStart, BrowserName) |
 
 ## Relations
 
