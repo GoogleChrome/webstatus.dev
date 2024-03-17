@@ -12,7 +12,7 @@ COLON: ':';
 WS: [ \t\r\n]+ -> skip;
 
 // Identifiers
-BASELINE_STATUS: 'none' | 'low' | 'high';
+BASELINE_STATUS: 'limited' | 'newly' | 'widely';
 BROWSER_NAME: 'chrome' | 'firefox' | 'edge' | 'safari';
 BROWSER_LIST: BROWSER_NAME (',' BROWSER_NAME)*;
 ANY_VALUE:

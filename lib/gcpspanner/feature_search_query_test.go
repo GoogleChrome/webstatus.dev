@@ -83,7 +83,7 @@ var (
 	}
 
 	availableOnBaselineStatus = TestTree{
-		Query: "available_on:chrome AND baseline_status:high",
+		Query: "available_on:chrome AND baseline_status:widely",
 		InputTree: &searchtypes.SearchNode{
 			Operator: searchtypes.OperatorRoot,
 			Term:     nil,
@@ -104,7 +104,7 @@ var (
 							Children: nil,
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierBaselineStatus,
-								Value:      "high",
+								Value:      "widely",
 							},
 							Operator: searchtypes.OperatorNone,
 						},
@@ -115,7 +115,7 @@ var (
 	}
 
 	availableOnBaselineStatusWithNegation = TestTree{
-		Query: "-available_on:chrome AND baseline_status:high",
+		Query: "-available_on:chrome AND baseline_status:widely",
 		InputTree: &searchtypes.SearchNode{
 			Operator: searchtypes.OperatorRoot,
 			Term:     nil,
@@ -136,7 +136,7 @@ var (
 							Children: nil,
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierBaselineStatus,
-								Value:      "high",
+								Value:      "widely",
 							},
 							Operator: searchtypes.OperatorNone,
 						},
@@ -147,7 +147,7 @@ var (
 	}
 
 	complexQuery = TestTree{
-		Query: "available_on:chrome (baseline_status:high OR name:avif) OR name:grid",
+		Query: "available_on:chrome (baseline_status:widely OR name:avif) OR name:grid",
 		InputTree: &searchtypes.SearchNode{
 			Operator: searchtypes.OperatorRoot,
 			Term:     nil,
@@ -174,7 +174,7 @@ var (
 											Operator: searchtypes.OperatorNone,
 											Children: nil,
 											Term: &searchtypes.SearchTerm{
-												Identifier: searchtypes.IdentifierBaselineStatus, Value: "high"},
+												Identifier: searchtypes.IdentifierBaselineStatus, Value: "widely"},
 										},
 										{
 											Operator: searchtypes.OperatorNone,

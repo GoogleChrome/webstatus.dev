@@ -16,7 +16,7 @@ This query language enables you to construct flexible searches to find features 
       - Grid
       - "CSS Grid"
   - baseline statuses (`BASELINE_STATUS`)
-    - Accepted Values: 'none' | 'low' | 'high'
+    - Accepted Values: 'limited' | 'newly' | 'widely'
     - Examples:
       - none
   - browser list (`BROWSER_LIST`)
@@ -56,7 +56,7 @@ This query language enables you to construct flexible searches to find features 
 
 ### Complex Queries
 
-- `available_on:chrome AND baseline_status:low` - Find features available on Chrome and having a low baseline status.
+- `available_on:chrome AND baseline_status:newly` - Find features available on Chrome and having a newly baseline status.
 - `-available_on:firefox OR name:"CSS Grid"` - Find features either not available on Firefox or named "CSS Grid".
 - `missing_in_one_of(chrome,firefox,safari)` - Find features missing from at least one of the listed browsers.
-- `"CSS Grid" baseline_status:none` - Find features named "CSS Grid" with a baseline status of none (implied AND).
+- `"CSS Grid" baseline_status:limited` - Find features named "CSS Grid" with a baseline status of none (implied AND).

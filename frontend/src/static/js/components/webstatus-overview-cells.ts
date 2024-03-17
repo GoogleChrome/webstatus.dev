@@ -87,17 +87,17 @@ export const BASELINE_CHIP_CONFIGS: Record<
     icon: 'cross.svg',
     word: 'Limited',
   },
-  none: {
+  limited: {
     cssClass: 'limited',
     icon: 'cross.svg',
     word: 'Limited',
   },
-  low: {
+  newly: {
     cssClass: 'newly',
     icon: 'cross.svg', // TODO(jrobbins): need dotted check
     word: 'New',
   },
-  high: {
+  widely: {
     cssClass: 'widely',
     icon: 'check.svg',
     word: 'Widely available',

@@ -357,9 +357,9 @@ func TestConvertBaselineStatusBackendToSpanner(t *testing.T) {
 		input    backend.FeatureBaselineStatus
 		expected gcpspanner.BaselineStatus
 	}{
-		{"High to High", backend.High, gcpspanner.BaselineStatusHigh},
-		{"Low to Low", backend.Low, gcpspanner.BaselineStatusLow},
-		{"None to None", backend.None, gcpspanner.BaselineStatusNone},
+		{"Widely to High", backend.Widely, gcpspanner.BaselineStatusHigh},
+		{"Newly to Low", backend.Newly, gcpspanner.BaselineStatusLow},
+		{"Limited to None", backend.Limited, gcpspanner.BaselineStatusNone},
 		{"Invalid to Undefined", backend.FeatureBaselineStatus("invalid"),
 			gcpspanner.BaselineStatusUndefined}, // Test default case
 	}
@@ -379,9 +379,9 @@ func TestConvertBaselineStatusSpannerToBackend(t *testing.T) {
 		input    gcpspanner.BaselineStatus
 		expected backend.FeatureBaselineStatus
 	}{
-		{"High to High", gcpspanner.BaselineStatusHigh, backend.High},
-		{"Low to Low", gcpspanner.BaselineStatusLow, backend.Low},
-		{"None to None", gcpspanner.BaselineStatusNone, backend.None},
+		{"High to Widely", gcpspanner.BaselineStatusHigh, backend.Widely},
+		{"Low to Newly", gcpspanner.BaselineStatusLow, backend.Newly},
+		{"None to Limited", gcpspanner.BaselineStatusNone, backend.Limited},
 		{"Invalid to Undefined", gcpspanner.BaselineStatus("invalid"), backend.Undefined}, // Test default case
 	}
 	for _, tt := range spannerToBackendTests {
@@ -472,7 +472,7 @@ func TestFeaturesSearch(t *testing.T) {
 			sortOrder: nil,
 			expectedFeatures: []backend.Feature{
 				{
-					BaselineStatus: backend.Low,
+					BaselineStatus: backend.Newly,
 					FeatureId:      "feature1",
 					Name:           "feature 1",
 					Spec:           nil,
@@ -491,7 +491,7 @@ func TestFeaturesSearch(t *testing.T) {
 					},
 				},
 				{
-					BaselineStatus: backend.High,
+					BaselineStatus: backend.Widely,
 					FeatureId:      "feature2",
 					Name:           "feature 2",
 					Spec:           nil,
@@ -655,7 +655,7 @@ func TestGetFeature(t *testing.T) {
 				returnedError: nil,
 			},
 			expectedFeature: &backend.Feature{
-				BaselineStatus: backend.Low,
+				BaselineStatus: backend.Newly,
 				FeatureId:      "feature1",
 				Name:           "feature 1",
 				Spec:           nil,

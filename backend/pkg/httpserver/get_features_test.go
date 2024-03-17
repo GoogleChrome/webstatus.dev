@@ -43,7 +43,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,
@@ -58,7 +58,7 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,
@@ -116,7 +116,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSortBy: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
 				data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,
@@ -131,7 +131,7 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,
@@ -162,7 +162,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,
@@ -197,7 +197,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,
@@ -232,7 +232,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSortBy:     nil,
 				data: []backend.Feature{
 					{
-						BaselineStatus: backend.High,
+						BaselineStatus: backend.Widely,
 						FeatureId:      "feature1",
 						Name:           "feature 1",
 						Spec:           nil,

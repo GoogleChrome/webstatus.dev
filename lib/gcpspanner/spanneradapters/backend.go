@@ -146,11 +146,11 @@ func (s *Backend) ListMetricsForFeatureIDBrowserAndChannel(
 
 func convertBaselineStatusBackendToSpanner(status backend.FeatureBaselineStatus) gcpspanner.BaselineStatus {
 	switch status {
-	case backend.High:
+	case backend.Widely:
 		return gcpspanner.BaselineStatusHigh
-	case backend.Low:
+	case backend.Newly:
 		return gcpspanner.BaselineStatusLow
-	case backend.None:
+	case backend.Limited:
 		return gcpspanner.BaselineStatusNone
 	case backend.Undefined:
 		fallthrough
@@ -162,11 +162,11 @@ func convertBaselineStatusBackendToSpanner(status backend.FeatureBaselineStatus)
 func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) backend.FeatureBaselineStatus {
 	switch status {
 	case gcpspanner.BaselineStatusHigh:
-		return backend.High
+		return backend.Widely
 	case gcpspanner.BaselineStatusLow:
-		return backend.Low
+		return backend.Newly
 	case gcpspanner.BaselineStatusNone:
-		return backend.None
+		return backend.Limited
 	case gcpspanner.BaselineStatusUndefined:
 		fallthrough
 	default:
