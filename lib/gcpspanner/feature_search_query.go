@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
 	"cloud.google.com/go/spanner"
@@ -165,13 +166,13 @@ type Filterable interface {
 
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
-	baseQuery FeatureBaseQuery
+	baseQuery FeatureSearchBaseQuery
 	cursor    *FeatureResultCursor
 	pageSize  int
 }
 
 func (q FeatureSearchQueryBuilder) Build(
-	latestResults LatestRunResultsGroupedByChannel,
+	prefilter FeatureSearchPrefilterResult,
 	filter *FeatureSearchCompiledFilter,
 	sort Sortable) spanner.Statement {
 	filterQuery := ""
@@ -186,25 +187,17 @@ func (q FeatureSearchQueryBuilder) Build(
 
 	if filter != nil {
 		filterQuery = filter.Clause()
-		for param, value := range filter.Params() {
-			filterParams[param] = value
-		}
+		maps.Copy(filterParams, filter.Params())
 	}
 	if len(filterQuery) > 0 {
 		filterQuery = "WHERE " + filterQuery
 	}
-	stableMetricsFilter, stableParams := buildChannelMetricsFilter("stable", latestResults["stable"])
-	experimentalMetricsFilter, experimentalParams := buildChannelMetricsFilter(
-		"experimental", latestResults["experimental"])
-	for param, value := range stableParams {
-		filterParams[param] = value
-	}
-	for param, value := range experimentalParams {
-		filterParams[param] = value
-	}
+
+	sql, params := q.baseQuery.Query(prefilter)
+	maps.Copy(filterParams, params)
+
 	stmt := spanner.NewStatement(
-		q.baseQuery.Query(stableMetricsFilter, experimentalMetricsFilter) +
-			" " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
+		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
 
 	stmt.Params = filterParams
 

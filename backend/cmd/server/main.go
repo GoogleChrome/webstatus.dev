@@ -46,7 +46,7 @@ func main() {
 
 	if _, found := os.LookupEnv("SPANNER_EMULATOR_HOST"); found {
 		slog.Info("setting spanner to local mode")
-		spannerClient.SetIsLocal(true)
+		spannerClient.SetFeatureSearchBaseQuery(gcpspanner.GCPFeatureSearchBaseQuery{})
 	}
 
 	// Allowed Origin. Can remove after UbP.

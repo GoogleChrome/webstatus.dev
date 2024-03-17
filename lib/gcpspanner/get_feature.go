@@ -26,18 +26,16 @@ func (c *Client) GetFeature(
 	ctx context.Context,
 	filter Filterable,
 ) (*FeatureResult, error) {
-	b := GetFeatureQueryBuilder{
-		baseQuery: FeatureBaseQuery{
-			useCTE: c.isLocal,
-		},
-	}
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	latestRunResuls, err := c.GetLatestRunResultGroupedByChannel(ctx, txn)
+	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
 	if err != nil {
-		return nil, err
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
-	stmt := b.Build(latestRunResuls, filter)
+	b := GetFeatureQueryBuilder{
+		baseQuery: c.featureSearchQuery,
+	}
+	stmt := b.Build(prefilterResults, filter)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()

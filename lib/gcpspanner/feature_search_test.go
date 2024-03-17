@@ -1296,14 +1296,14 @@ func TestFeaturesSearch(t *testing.T) {
 	ctx := context.Background()
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
 
-	// Try with local mode equal to false
+	// Try with default GCPSpannerBaseQuery
 	testFeatureSearchAll(ctx, t, client)
 	testFeatureSearchPagination(ctx, t, client)
 	testFeatureSearchFilters(ctx, t, client)
 	testFeatureSearchSort(ctx, t, client)
 
-	// Try with local mode equal to true
-	client.SetIsLocal(true)
+	// Try with LocalFeatureBaseQuery
+	client.SetFeatureSearchBaseQuery(LocalFeatureBaseQuery{})
 	testFeatureSearchAll(ctx, t, client)
 	testFeatureSearchPagination(ctx, t, client)
 	testFeatureSearchFilters(ctx, t, client)

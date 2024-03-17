@@ -44,7 +44,7 @@ var ErrInvalidCursorFormat = errors.New("invalid cursor format")
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
 	*spanner.Client
-	isLocal bool
+	featureSearchQuery FeatureSearchBaseQuery
 }
 
 // NewSpannerClient returns a Client for the Google Spanner service.
@@ -64,12 +64,12 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 
 	return &Client{
 		client,
-		false,
+		GCPFeatureSearchBaseQuery{},
 	}, nil
 }
 
-func (c *Client) SetIsLocal(value bool) {
-	c.isLocal = value
+func (c *Client) SetFeatureSearchBaseQuery(query FeatureSearchBaseQuery) {
+	c.featureSearchQuery = query
 }
 
 // WPTRunCursor: Represents a point for resuming queries based on the last

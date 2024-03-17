@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/brianvoe/gofakeit/v7"

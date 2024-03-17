@@ -71,21 +71,21 @@ func (c *Client) FeaturesSearch(
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 	}
-	queryBuilder := FeatureSearchQueryBuilder{
-		baseQuery: FeatureBaseQuery{
-			useCTE: c.isLocal,
-		},
-		cursor:   cursor,
-		pageSize: pageSize,
-	}
+
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	latestRunResuls, err := c.GetLatestRunResultGroupedByChannel(ctx, txn)
+	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	stmt := queryBuilder.Build(latestRunResuls, filter, sortOrder)
+	queryBuilder := FeatureSearchQueryBuilder{
+		baseQuery: c.featureSearchQuery,
+		cursor:    cursor,
+		pageSize:  pageSize,
+	}
+
+	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
