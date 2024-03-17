@@ -24,7 +24,6 @@ import (
 	"strings"
 	"time"
 
-	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/brianvoe/gofakeit/v7"
@@ -50,10 +49,6 @@ var (
 		string(backend.Firefox),
 		string(backend.Edge),
 		string(backend.Safari),
-	}
-	channels = []string{
-		shared.StableLabel,
-		shared.ExperimentalLabel,
 	}
 )
 
@@ -231,7 +226,7 @@ func generateRunsAndMetrics(
 	// TODO. Need to think about the graphs we want to draw.
 	runsGenerated := 0
 	metricsGenerated := 0
-
+	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	for _, channel := range channels {
 		for _, browser := range browsers {
 			baseTime := startTimeWindow
