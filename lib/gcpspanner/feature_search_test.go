@@ -1268,12 +1268,13 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 
 func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
 	testFeatureSearchSortName(ctx, t, client)
+	testFeatureSearchSortBaselineStatus(ctx, t, client)
 }
 
+// nolint: dupl // Okay to duplicate for tests
 func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client) {
 	// Name asc
 	sortByAsc := NewFeatureNameSort(true)
-	//nolint: dupl // Okay to duplicate for tests
 	expectedResults := []FeatureResult{
 		{
 			FeatureID: "feature1",
@@ -1427,6 +1428,181 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(11, 11),
+				},
+			},
+		},
+	}
+	// Test: Get all the results.
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, nil, sortByDesc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
+	}
+}
+
+// nolint: dupl // Okay to duplicate for tests
+func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, client *Client) {
+	// BaselineStatus asc
+	sortByAsc := NewBaselineStatusSort(true)
+	//nolint: dupl // Okay to duplicate for tests
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(10, 10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(0, 10),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(120, 120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(12, 12),
+				},
+			},
+		},
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusLow),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(33, 33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(20, 20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(220, 220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(11, 11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusNone),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(35, 50),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+	}
+	// Test: Get all the results.
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, nil, sortByAsc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
+	}
+
+	// BaselineStatus desc
+	sortByDesc := NewBaselineStatusSort(false)
+	//nolint: dupl // Okay to duplicate for tests
+	expectedResults = []FeatureResult{
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusNone),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(35, 50),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusLow),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(33, 33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(20, 20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(220, 220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(11, 11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(10, 10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(0, 10),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(120, 120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},

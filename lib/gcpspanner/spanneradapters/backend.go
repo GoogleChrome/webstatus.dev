@@ -242,6 +242,10 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewFeatureNameSort(true)
 	case backend.NameDesc:
 		return gcpspanner.NewFeatureNameSort(false)
+	case backend.BaselineStatusAsc:
+		return gcpspanner.NewBaselineStatusSort(true)
+	case backend.BaselineStatusDesc:
+		return gcpspanner.NewBaselineStatusSort(false)
 	}
 
 	// Unknown sort order

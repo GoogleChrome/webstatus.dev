@@ -241,3 +241,10 @@ func NewFeatureNameSort(isAscending bool) Sortable {
 		clause: buildSortableOrderClause(isAscending, "wf.Name"),
 	}
 }
+
+// NewBaselineStatusSort returns a Sortable specifically for the Status column.
+func NewBaselineStatusSort(isAscending bool) Sortable {
+	return Sortable{
+		clause: buildSortableOrderClause(isAscending, "Status"),
+	}
+}
