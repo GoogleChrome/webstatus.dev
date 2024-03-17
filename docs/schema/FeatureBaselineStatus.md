@@ -17,6 +17,12 @@
 | ---- | ---- | ---------- |
 | PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(FeatureID) |
 
+## Indexes
+
+| Name | Definition |
+| ---- | ---------- |
+| IDX_FBS_FEATUREID | CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus (FeatureID) |
+
 ## Relations
 
 ![er](FeatureBaselineStatus.svg)

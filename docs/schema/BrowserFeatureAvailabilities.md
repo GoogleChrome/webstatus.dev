@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| BrowserName | STRING(64) |  | true |  | [BrowserReleases](BrowserReleases.md) |  |
+| BrowserName | STRING(64) |  | false |  | [BrowserReleases](BrowserReleases.md) |  |
 | BrowserVersion | STRING(8) |  | false |  | [BrowserReleases](BrowserReleases.md) |  |
 | FeatureID | STRING(64) |  | false |  | [WebFeatures](WebFeatures.md) |  |
 
@@ -20,7 +20,7 @@
 
 | Name | Definition |
 | ---- | ---------- |
-| IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_N_4E6A587D003764F5 | CREATE NULL_FILTERED INDEX IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_N_4E6A587D003764F5 ON BrowserFeatureAvailabilities (BrowserName, BrowserVersion) |
+| IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3 | CREATE INDEX IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3 ON BrowserFeatureAvailabilities (BrowserName, BrowserVersion) |
 | UniqueFeatureBrowser | CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (FeatureID, BrowserName) |
 
 ## Relations

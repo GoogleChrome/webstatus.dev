@@ -290,3 +290,17 @@ dev_fake_data:
 ################################
 spanner_new_migration:
 	wrench migrate create --directory infra/storage/spanner
+
+spanner_port_forward: spanner_port_forward_terminate
+	kubectl wait --for=condition=ready pod/spanner
+	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
+
+spanner_port_forward_terminate:
+	fuser -k 9010/tcp || true
+
+# For now install tbls when we absolutely need it.
+# It is a heavy install.
+spanner_er_diagram: spanner_port_forward
+	go install github.com/k1LoW/tbls@v1.73.2
+	SPANNER_EMULATOR_HOST=localhost:9010 tbls doc --rm-dist
+	make spanner_port_forward_terminate
