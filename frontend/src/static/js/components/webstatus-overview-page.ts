@@ -40,6 +40,9 @@ export class OverviewPage extends LitElement {
   features: Array<components['schemas']['Feature']> = [];
 
   @state()
+  totalCount: number | undefined = undefined;
+
+  @state()
   location!: {search: string}; // Set by router.
 
   constructor() {
@@ -61,7 +64,9 @@ export class OverviewPage extends LitElement {
     if (typeof apiClient !== 'object') return;
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
+    this.totalCount = undefined;
     this.features = await apiClient.getFeatures(searchQuery, sortSpec);
+    this.totalCount = this.features.length;
   }
 
   render(): TemplateResult {
@@ -69,6 +74,7 @@ export class OverviewPage extends LitElement {
       <webstatus-overview-content
         .location=${this.location}
         .features=${this.features}
+        .totalCount=${this.totalCount}
         .loadingTask=${this.loadingTask}
       >
       </webstatus-overview-content>

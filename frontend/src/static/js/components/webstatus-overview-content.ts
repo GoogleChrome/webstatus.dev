@@ -15,7 +15,7 @@
  */
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
-import {Task, TaskStatus} from '@lit/task';
+import {type Task} from '@lit/task';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
@@ -28,6 +28,9 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 export class WebstatusOverviewContent extends LitElement {
   @state()
   features: Array<components['schemas']['Feature']> = [];
+
+  @state()
+  totalCount: number | undefined = undefined;
 
   loadingTask!: Task; // Set by parent.
 
@@ -49,18 +52,10 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   renderCount(): TemplateResult {
-    if (this.loadingTask.status === TaskStatus.INITIAL) {
-      return html`About to load features`;
-    }
-    if (this.loadingTask.status === TaskStatus.ERROR) {
-      // TODO(jrobbins): this is never reached.
-      return html`Could not load features`;
-    }
-    if (this.loadingTask.status === TaskStatus.PENDING) {
+    if (this.totalCount === undefined) {
       return html`Loading features...`;
     }
 
-    const numFeatures = this.features.length;
     const date = new Date().toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'long',
@@ -70,7 +65,7 @@ export class WebstatusOverviewContent extends LitElement {
     return html`
       <span class="stats-summary">
         <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
-        ${numFeatures} features
+        ${this.totalCount} features
       </span>
       <span class="stats-summary">
         <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
@@ -110,7 +105,7 @@ export class WebstatusOverviewContent extends LitElement {
         </webstatus-overview-table>
         <webstatus-pagination
           .location=${this.location}
-          .features=${this.features}
+          .totalCount=${this.totalCount}
         ></webstatus-pagination>
       </div>
     `;
