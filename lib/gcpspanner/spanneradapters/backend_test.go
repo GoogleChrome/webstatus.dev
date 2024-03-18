@@ -712,6 +712,14 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
 			want:  gcpspanner.NewFeatureNameSort(false),
 		},
+		{
+			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.BaselineStatusAsc),
+			want:  gcpspanner.NewBaselineStatusSort(true),
+		},
+		{
+			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.BaselineStatusDesc),
+			want:  gcpspanner.NewBaselineStatusSort(false),
+		},
 	}
 
 	for _, tt := range sortOrderTests {
