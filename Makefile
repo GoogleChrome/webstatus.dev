@@ -31,7 +31,7 @@ precommit: license-check lint test
 # Local Environment
 ################################
 SKAFFOLD_FLAGS = -p local
-SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false
+SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false --port-forward=off
 start-local: configure-skaffold
 	skaffold dev $(SKAFFOLD_RUN_FLAGS)
 
@@ -42,7 +42,7 @@ configure-skaffold: minikube-running
 	skaffold config set --kube-context "$${MINIKUBE_PROFILE}" local-cluster true
 
 deploy-local: configure-skaffold
-	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true --port-forward=off
+	skaffold run $(SKAFFOLD_RUN_FLAGS) --status-check=true
 
 delete-local:
 	skaffold delete $(SKAFFOLD_FLAGS) || true
