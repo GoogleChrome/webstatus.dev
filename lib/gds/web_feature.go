@@ -90,7 +90,7 @@ func (c *Client) ListWebFeatureData(ctx context.Context, pageToken *string) ([]b
 			FeatureId:      *val.WebFeatureID,
 			Name:           *val.Name,
 			Spec:           nil,
-			BaselineStatus: backend.None,
+			BaselineStatus: backend.Limited,
 		}
 	}
 

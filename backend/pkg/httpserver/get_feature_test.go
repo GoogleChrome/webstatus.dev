@@ -38,7 +38,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID: "feature1",
 				data: &backend.Feature{
-					BaselineStatus: backend.High,
+					BaselineStatus: backend.Widely,
 					FeatureId:      "feature1",
 					Name:           "feature 1",
 					Spec:           nil,
@@ -49,7 +49,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
-				BaselineStatus: backend.High,
+				BaselineStatus: backend.Widely,
 				FeatureId:      "feature1",
 				Name:           "feature 1",
 				Spec:           nil,

@@ -385,9 +385,9 @@ components:
           type: string
           enum:
             - undefined
-            - none
-            - low
-            - high
+            - limited
+            - newly
+            - widely
         usage:
           type: number
           format: float

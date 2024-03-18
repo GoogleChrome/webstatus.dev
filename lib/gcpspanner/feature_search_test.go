@@ -130,7 +130,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	sampleBaselineStatuses := []FeatureBaselineStatus{
 		{
 			FeatureID: "feature1",
-			Status:    BaselineStatusUndefined,
+			Status:    BaselineStatusLow,
 			LowDate:   nil,
 			HighDate:  nil,
 		},
@@ -142,7 +142,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		},
 		{
 			FeatureID: "feature3",
-			Status:    BaselineStatusUndefined,
+			Status:    BaselineStatusNone,
 			LowDate:   nil,
 			HighDate:  nil,
 		},
@@ -424,7 +424,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -474,7 +474,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 		{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusNone),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -511,7 +511,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -574,7 +574,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusNone),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -625,6 +625,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureNotAvailableSearchFilters(ctx, t, client)
 	testFeatureCommonFilterCombos(ctx, t, client)
 	testFeatureNameFilters(ctx, t, client)
+	testFeatureBaselineStatusFilters(ctx, t, client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
@@ -767,7 +768,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -846,7 +847,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -896,7 +897,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusNone),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -955,7 +956,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -1005,7 +1006,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusNone),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -1110,6 +1111,158 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			PrettyPrintFeatureResults(expectedResults),
 			PrettyPrintFeatureResults(results))
 	}
+}
+
+func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client *Client) {
+	// Baseline status low only
+	//nolint: dupl // Okay to duplicate for tests
+	expectedResults := []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusLow),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(33, 33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(20, 20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(220, 220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(11, 11),
+				},
+			},
+		},
+	}
+	node := &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierBaselineStatus,
+					Value:      "newly",
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	results, _, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
+	}
+
+	// baseline_status high only
+	expectedResults = []FeatureResult{
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(10, 10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(0, 10),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(120, 120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(12, 12),
+				},
+			},
+		},
+	}
+	node = &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierBaselineStatus,
+					Value:      "widely",
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
+	}
+
+	// Baseline none only, should exclude feature 4 which is undefined.
+	expectedResults = []FeatureResult{
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusNone),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(35, 50),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+	}
+	node = &searchtypes.SearchNode{
+		Operator: searchtypes.OperatorRoot,
+		Term:     nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Operator: searchtypes.OperatorNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierBaselineStatus,
+					Value:      "limited",
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	results, _, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
+	}
 
 }
 
@@ -1125,7 +1278,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -1175,7 +1328,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusNone),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -1218,7 +1371,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusNone),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -1255,7 +1408,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusUndefined),
+			Status:    string(BaselineStatusLow),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",

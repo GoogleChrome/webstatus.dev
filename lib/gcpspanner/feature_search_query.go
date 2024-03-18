@@ -153,7 +153,20 @@ func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string) strin
 }
 
 func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string) string {
-	paramName := b.addParamGetName(baselineStatus)
+	var status BaselineStatus
+	// baseline status is limited to the values in antlr/FeatureSearch.g4.
+	switch baselineStatus {
+	case "limited":
+		status = BaselineStatusNone
+	case "newly":
+		status = BaselineStatusLow
+	case "widely":
+		status = BaselineStatusHigh
+	default:
+		// Catch-all returns an empty string which will be thrown away.
+		return ""
+	}
+	paramName := b.addParamGetName(string(status))
 
 	return fmt.Sprintf(`fbs.Status = @%s`, paramName)
 }

@@ -45,7 +45,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "available_on:chrome AND baseline_status:high",
+			InputQuery: "available_on:chrome AND baseline_status:widely",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -66,7 +66,7 @@ func TestParseQuery(t *testing.T) {
 								Children: nil,
 								Term: &SearchTerm{
 									Identifier: IdentifierBaselineStatus,
-									Value:      "high",
+									Value:      "widely",
 								},
 								Operator: OperatorNone,
 							},
@@ -76,7 +76,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "available_on:chrome baseline_status:high",
+			InputQuery: "available_on:chrome baseline_status:widely",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -97,7 +97,7 @@ func TestParseQuery(t *testing.T) {
 								Children: nil,
 								Term: &SearchTerm{
 									Identifier: IdentifierBaselineStatus,
-									Value:      "high",
+									Value:      "widely",
 								},
 								Operator: OperatorNone,
 							},
@@ -107,7 +107,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "available_on:chrome AND baseline_status:high OR name:grid",
+			InputQuery: "available_on:chrome AND baseline_status:widely OR name:grid",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -132,7 +132,7 @@ func TestParseQuery(t *testing.T) {
 										Children: nil,
 										Term: &SearchTerm{
 											Identifier: IdentifierBaselineStatus,
-											Value:      "high",
+											Value:      "widely",
 										},
 										Operator: OperatorNone,
 									},
@@ -151,7 +151,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "(available_on:chrome AND baseline_status:high) OR name:grid",
+			InputQuery: "(available_on:chrome AND baseline_status:widely) OR name:grid",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -173,7 +173,7 @@ func TestParseQuery(t *testing.T) {
 									{
 										Term: &SearchTerm{
 											Identifier: IdentifierBaselineStatus,
-											Value:      "high",
+											Value:      "widely",
 										},
 										Operator: OperatorNone,
 									},
@@ -192,7 +192,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "(available_on:chrome AND baseline_status:high OR name:avif) OR name:grid",
+			InputQuery: "(available_on:chrome AND baseline_status:widely OR name:avif) OR name:grid",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -217,7 +217,7 @@ func TestParseQuery(t *testing.T) {
 											{
 												Operator: OperatorNone,
 												Children: nil,
-												Term:     &SearchTerm{Identifier: IdentifierBaselineStatus, Value: "high"},
+												Term:     &SearchTerm{Identifier: IdentifierBaselineStatus, Value: "widely"},
 											},
 										},
 									},
@@ -239,7 +239,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "available_on:chrome (baseline_status:high OR name:avif) OR name:grid",
+			InputQuery: "available_on:chrome (baseline_status:widely OR name:avif) OR name:grid",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -264,7 +264,7 @@ func TestParseQuery(t *testing.T) {
 											{
 												Operator: OperatorNone,
 												Children: nil,
-												Term:     &SearchTerm{Identifier: IdentifierBaselineStatus, Value: "high"},
+												Term:     &SearchTerm{Identifier: IdentifierBaselineStatus, Value: "widely"},
 											},
 											{
 												Operator: OperatorNone,
@@ -355,7 +355,7 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
-			InputQuery: "-available_on:chrome OR baseline_status:high",
+			InputQuery: "-available_on:chrome OR baseline_status:widely",
 			ExpectedTree: &SearchNode{
 				Operator: OperatorRoot,
 				Term:     nil,
@@ -376,7 +376,7 @@ func TestParseQuery(t *testing.T) {
 								Operator: OperatorNone,
 								Term: &SearchTerm{
 									Identifier: IdentifierBaselineStatus,
-									Value:      "high",
+									Value:      "widely",
 								},
 								Children: nil,
 							},
@@ -446,6 +446,16 @@ func TestParseQueryBadInput(t *testing.T) {
 		// unbalanced parenthesis.
 		{
 			input: "(name:grid ()",
+		},
+		// Old baseline_status phrases will parse with error now.
+		{
+			input: "baseline_status:high",
+		},
+		{
+			input: "baseline_status:low",
+		},
+		{
+			input: "baseline_status:none",
 		},
 	}
 	for _, tc := range testCases {
