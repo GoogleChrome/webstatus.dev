@@ -17,7 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"reflect"
+	"math/big"
 	"testing"
 )
 
@@ -40,33 +40,30 @@ func TestGetFeature(t *testing.T) {
 		StableMetrics: []*FeatureResultMetric{
 			{
 				BrowserName: "barBrowser",
-				TotalTests:  valuePtr[int64](10),
-				TestPass:    valuePtr[int64](10),
+				PassRate:    big.NewRat(10, 10),
 			},
 			{
 				BrowserName: "fooBrowser",
-				TotalTests:  valuePtr[int64](10),
-				TestPass:    valuePtr[int64](0),
+				PassRate:    big.NewRat(0, 10),
 			},
 		},
 		ExperimentalMetrics: []*FeatureResultMetric{
 			{
 				BrowserName: "barBrowser",
-				TotalTests:  valuePtr[int64](120),
-				TestPass:    valuePtr[int64](120),
+				PassRate:    big.NewRat(120, 120),
 			},
 			{
 				BrowserName: "fooBrowser",
-				TotalTests:  valuePtr[int64](12),
-				TestPass:    valuePtr[int64](12),
+				PassRate:    big.NewRat(12, 12),
 			},
 		},
 	}
 
 	stabilizeFeatureResult(*result)
 
-	if !reflect.DeepEqual(*expectedResult, *result) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", *expectedResult, *result)
+	if !AreFeatureResultsEqual(*expectedResult, *result) {
+		t.Errorf("unequal results. expected (%+v) received (%+v) ",
+			PrettyPrintFeatureResult(*expectedResult), PrettyPrintFeatureResult(*result))
 	}
 
 	// Also check the id of the feature.

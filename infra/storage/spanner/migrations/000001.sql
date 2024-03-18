@@ -51,6 +51,9 @@ CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID)
 -- Useful index for the runs for feature search query.
 CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns(ExternalRunID, Channel, TimeStart DESC, BrowserName);
 
+-- Useful index for feature search. Used to get the latest runs beforehand.
+CREATE INDEX LatestRunsByBrowserChannel ON WPTRuns (BrowserName, Channel, TimeStart DESC);
+
 
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
@@ -58,6 +61,12 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     FeatureID STRING(64) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
+    PassRate NUMERIC,
+    -- Denormalized data from WPTRuns. This helps with aggregations over time.
+    Channel STRING(32) NOT NULL,
+    BrowserName STRING(64) NOT NULL,
+    TimeStart TIMESTAMP NOT NULL,
+    -- End denormalized data.
     FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
     FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
 ) PRIMARY KEY (ID, FeatureID)
@@ -67,7 +76,11 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
 CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, FeatureID);
 
 -- Used to help with metrics aggregation calculations.
-CREATE INDEX MetricFeatureID ON WPTRunFeatureMetrics(FeatureID);
+CREATE INDEX MetricsFeatureChannelBrowserTime ON
+  WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC);
+
+CREATE INDEX MetricsFeatureChannelBrowserTimePassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, PassRate);
+
 
 -- BrowserReleases contains information regarding browser releases.
 -- Information from https://github.com/mdn/browser-compat-data/tree/main/browsers
@@ -102,3 +115,7 @@ CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
     CHECK (Status IN ('undefined', 'none', 'low', 'high'))
 ) PRIMARY KEY (FeatureID);
+
+-- Index to accelerate lookups and joins in FeatureBaselineStatus based on FeatureID.
+-- Primarily supports queries involving the WebFeatures table.
+CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus(FeatureID);

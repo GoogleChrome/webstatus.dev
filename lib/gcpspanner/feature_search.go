@@ -16,10 +16,10 @@ package gcpspanner
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
+	"math/big"
+	"slices"
 
-	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"google.golang.org/api/iterator"
 )
@@ -28,20 +28,19 @@ import (
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user.
 type SpannerFeatureResult struct {
-	ID                  string           `spanner:"ID"`
-	FeatureID           string           `spanner:"FeatureID"`
-	Name                string           `spanner:"Name"`
-	Status              string           `spanner:"Status"`
-	StableMetrics       spanner.NullJSON `spanner:"StableMetrics"`
-	ExperimentalMetrics spanner.NullJSON `spanner:"ExperimentalMetrics"`
+	ID                  string                 `spanner:"ID"`
+	FeatureID           string                 `spanner:"FeatureID"`
+	Name                string                 `spanner:"Name"`
+	Status              string                 `spanner:"Status"`
+	StableMetrics       []*FeatureResultMetric `spanner:"StableMetrics"`
+	ExperimentalMetrics []*FeatureResultMetric `spanner:"ExperimentalMetrics"`
 }
 
 // FeatureResultMetric contains metric information for a feature result query.
 // Very similar to WPTRunFeatureMetric.
 type FeatureResultMetric struct {
-	BrowserName string `json:"BrowserName"`
-	TotalTests  *int64 `json:"TotalTests"`
-	TestPass    *int64 `json:"TestPass"`
+	BrowserName string   `json:"BrowserName"`
+	PassRate    *big.Rat `json:"PassRate"`
 }
 
 // FeatureResult contains information regarding a particular feature.
@@ -72,14 +71,22 @@ func (c *Client) FeaturesSearch(
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 	}
+
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
+	if err != nil {
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
 	queryBuilder := FeatureSearchQueryBuilder{
-		baseQuery: FeatureBaseQuery{},
+		baseQuery: c.featureSearchQuery,
 		cursor:    cursor,
 		pageSize:  pageSize,
 	}
-	stmt := queryBuilder.Build(filter, sortOrder)
-	txn := c.Single()
-	defer txn.Close()
+
+	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder)
+
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 
@@ -96,20 +103,25 @@ func (c *Client) FeaturesSearch(
 		if err := row.ToStruct(&result); err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var stableMetrics []*FeatureResultMetric
-		if err := json.Unmarshal([]byte(result.StableMetrics.String()), &stableMetrics); err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
+			result.StableMetrics, findDefaultPlaceHolder)
+		if len(result.StableMetrics) == 0 {
+			// If we removed everything, just set it to nil
+			result.StableMetrics = nil
 		}
-		var experimentalMetrics []*FeatureResultMetric
-		if err := json.Unmarshal([]byte(result.ExperimentalMetrics.String()), &experimentalMetrics); err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+
+		result.ExperimentalMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
+			result.ExperimentalMetrics, findDefaultPlaceHolder)
+		if len(result.ExperimentalMetrics) == 0 {
+			// If we removed everything, just set it to nil
+			result.ExperimentalMetrics = nil
 		}
 		actualResult := FeatureResult{
 			FeatureID:           result.FeatureID,
 			Name:                result.Name,
 			Status:              result.Status,
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
+			StableMetrics:       result.StableMetrics,
+			ExperimentalMetrics: result.ExperimentalMetrics,
 		}
 		results = append(results, actualResult)
 	}
@@ -122,4 +134,17 @@ func (c *Client) FeaturesSearch(
 	}
 
 	return results, nil, nil
+}
+
+// nolint: gochecknoglobals // needed for findDefaultPlaceHolder.
+var zeroPassRatePlaceholder = big.NewRat(0, 1)
+
+// The base query has a solution that works on both GCP Spanner and Emulator that if it finds
+// a null array, put a placeholder in there. This function exists to find it and remove it before returning.
+func findDefaultPlaceHolder(in *FeatureResultMetric) bool {
+	if in == nil || in.PassRate == nil {
+		return false
+	}
+
+	return in.BrowserName == "" && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0
 }

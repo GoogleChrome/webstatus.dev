@@ -16,8 +16,11 @@ package gcpspanner
 
 import (
 	"context"
-	"reflect"
+	"fmt"
+	"math/big"
+	"slices"
 	"sort"
+	"strings"
 	"testing"
 	"time"
 
@@ -425,25 +428,21 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -454,25 +453,21 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -483,8 +478,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](50),
-					TestPass:    valuePtr[int64](35),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -503,8 +497,10 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -519,25 +515,21 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -548,25 +540,21 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -576,8 +564,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResultsPageOne, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageOne, results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageOne, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageOne),
+			PrettyPrintFeatureResults(results))
 	}
 
 	expectedResultsPageTwo := []FeatureResult{
@@ -588,8 +578,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](50),
-					TestPass:    valuePtr[int64](35),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -608,8 +597,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResultsPageTwo, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageTwo, results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageTwo, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageTwo),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// Last page should have no results and should have no token.
@@ -621,8 +612,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Error("expected nil token")
 	}
 	var expectedResultsPageThree []FeatureResult
-	if !reflect.DeepEqual(expectedResultsPageThree, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResultsPageThree, results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageThree, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageThree),
+			PrettyPrintFeatureResults(results))
 	}
 
 }
@@ -644,25 +637,21 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -702,8 +691,10 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -717,25 +708,21 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -767,8 +754,10 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
@@ -782,25 +771,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -811,25 +796,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -854,8 +835,10 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// Multiple browsers.
@@ -867,25 +850,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -896,25 +875,21 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -925,8 +900,7 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](50),
-					TestPass:    valuePtr[int64](35),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -967,8 +941,10 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -983,25 +959,21 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -1012,25 +984,21 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -1041,8 +1009,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](50),
-					TestPass:    valuePtr[int64](35),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1075,8 +1042,10 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// All upper case with partial "FEATURE" name. Should return same results (all).
@@ -1100,8 +1069,10 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 	// Search for name with "4" Should return only feature 4.
@@ -1134,8 +1105,10 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 
 }
@@ -1156,25 +1129,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -1185,25 +1154,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -1214,8 +1179,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](50),
-					TestPass:    valuePtr[int64](35),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1234,9 +1198,12 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
+
 	// Name desc
 	sortByDesc := NewFeatureNameSort(false)
 	//nolint: dupl // Okay to duplicate for tests
@@ -1255,8 +1222,7 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](50),
-					TestPass:    valuePtr[int64](35),
+					PassRate:    big.NewRat(35, 50),
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1268,25 +1234,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](10),
+					PassRate:    big.NewRat(10, 10),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](10),
-					TestPass:    valuePtr[int64](0),
+					PassRate:    big.NewRat(0, 10),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](120),
-					TestPass:    valuePtr[int64](120),
+					PassRate:    big.NewRat(120, 120),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](12),
-					TestPass:    valuePtr[int64](12),
+					PassRate:    big.NewRat(12, 12),
 				},
 			},
 		},
@@ -1297,25 +1259,21 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](33),
-					TestPass:    valuePtr[int64](33),
+					PassRate:    big.NewRat(33, 33),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](20),
-					TestPass:    valuePtr[int64](20),
+					PassRate:    big.NewRat(20, 20),
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
-					TotalTests:  valuePtr[int64](220),
-					TestPass:    valuePtr[int64](220),
+					PassRate:    big.NewRat(220, 220),
 				},
 				{
 					BrowserName: "fooBrowser",
-					TotalTests:  valuePtr[int64](11),
-					TestPass:    valuePtr[int64](11),
+					PassRate:    big.NewRat(11, 11),
 				},
 			},
 		},
@@ -1326,8 +1284,10 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 		t.Errorf("unexpected error during search of features %s", err.Error())
 	}
 	stabilizeFeatureResults(results)
-	if !reflect.DeepEqual(expectedResults, results) {
-		t.Errorf("unequal results. expected (%+v) received (%+v) ", expectedResults, results)
+	if !AreFeatureResultsSlicesEqual(expectedResults, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResults),
+			PrettyPrintFeatureResults(results))
 	}
 }
 
@@ -1336,8 +1296,92 @@ func TestFeaturesSearch(t *testing.T) {
 	ctx := context.Background()
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
 
+	// Try with default GCPSpannerBaseQuery
 	testFeatureSearchAll(ctx, t, client)
 	testFeatureSearchPagination(ctx, t, client)
 	testFeatureSearchFilters(ctx, t, client)
 	testFeatureSearchSort(ctx, t, client)
+
+	// Try with LocalFeatureBaseQuery
+	client.SetFeatureSearchBaseQuery(LocalFeatureBaseQuery{})
+	testFeatureSearchAll(ctx, t, client)
+	testFeatureSearchPagination(ctx, t, client)
+	testFeatureSearchFilters(ctx, t, client)
+	testFeatureSearchSort(ctx, t, client)
+}
+
+func AreFeatureResultsSlicesEqual(a, b []FeatureResult) bool {
+	return slices.EqualFunc[[]FeatureResult](a, b, AreFeatureResultsEqual)
+}
+
+func AreFeatureResultsEqual(a, b FeatureResult) bool {
+	if a.FeatureID != b.FeatureID ||
+		a.Name != b.Name ||
+		a.Status != b.Status ||
+		!AreMetricsEqual(a.StableMetrics, b.StableMetrics) ||
+		!AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) {
+		return false
+	}
+
+	return true
+}
+
+func AreMetricsEqual(a, b []*FeatureResultMetric) bool {
+	return slices.EqualFunc[[]*FeatureResultMetric](a, b, func(a, b *FeatureResultMetric) bool {
+		if (a.PassRate == nil && b.PassRate != nil) || (a.PassRate != nil && b.PassRate == nil) {
+			return false
+		}
+
+		return a.BrowserName == b.BrowserName &&
+			((a.PassRate == nil && b.PassRate == nil) || (a.PassRate.Cmp(b.PassRate) == 0))
+	})
+}
+
+func PrettyPrintFeatureResult(result FeatureResult) string {
+	var builder strings.Builder
+	fmt.Fprintf(&builder, "FeatureID: %s\n", result.FeatureID)
+	fmt.Fprintf(&builder, "Name: %s\n", result.Name)
+	fmt.Fprintf(&builder, "Status: %s\n", result.Status)
+
+	fmt.Fprintln(&builder, "Stable Metrics:")
+	for _, metric := range result.StableMetrics {
+		fmt.Fprint(&builder, PrettyPrintMetric(metric))
+	}
+
+	fmt.Fprintln(&builder, "Experimental Metrics:")
+	for _, metric := range result.ExperimentalMetrics {
+		fmt.Fprint(&builder, PrettyPrintMetric(metric))
+	}
+	fmt.Fprintln(&builder)
+
+	return builder.String()
+}
+
+func PrettyPrintMetric(metric *FeatureResultMetric) string {
+	var builder strings.Builder
+	if metric == nil {
+		return "\tNIL\n"
+	}
+	fmt.Fprintf(&builder, "\tBrowserName: %s\n", metric.BrowserName)
+	fmt.Fprintf(&builder, "\tPassRate: %s\n", PrettyPrintPassRate(metric.PassRate))
+
+	return builder.String()
+}
+
+func PrettyPrintPassRate(passRate *big.Rat) string {
+	if passRate == nil {
+		return "\tNIL\n"
+	}
+
+	return passRate.String()
+}
+
+// PrettyPrintFeatureResults returns a formatted string representation of a slice of FeatureResult structs.
+func PrettyPrintFeatureResults(results []FeatureResult) string {
+	var builder strings.Builder
+	for _, result := range results {
+		fmt.Fprint(&builder, PrettyPrintFeatureResult(result))
+	}
+
+	return builder.String()
 }

@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"fmt"
+	"maps"
 	"strings"
 
 	"cloud.google.com/go/spanner"
@@ -165,18 +166,15 @@ type Filterable interface {
 
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
-	baseQuery FeatureBaseQuery
+	baseQuery FeatureSearchBaseQuery
 	cursor    *FeatureResultCursor
 	pageSize  int
 }
 
-// Base provides the minimum query to get data for the features search.
-// The results are designed to be used for the feature search and filtering.
-func (q FeatureSearchQueryBuilder) Base() string {
-	return q.baseQuery.Query()
-}
-
-func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter, sort Sortable) spanner.Statement {
+func (q FeatureSearchQueryBuilder) Build(
+	prefilter FeatureSearchPrefilterResult,
+	filter *FeatureSearchCompiledFilter,
+	sort Sortable) spanner.Statement {
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
@@ -189,14 +187,17 @@ func (q FeatureSearchQueryBuilder) Build(filter *FeatureSearchCompiledFilter, so
 
 	if filter != nil {
 		filterQuery = filter.Clause()
-		for param, value := range filter.Params() {
-			filterParams[param] = value
-		}
+		maps.Copy(filterParams, filter.Params())
 	}
 	if len(filterQuery) > 0 {
 		filterQuery = "WHERE " + filterQuery
 	}
-	stmt := spanner.NewStatement(q.Base() + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
+
+	sql, params := q.baseQuery.Query(prefilter)
+	maps.Copy(filterParams, params)
+
+	stmt := spanner.NewStatement(
+		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
 
 	stmt.Params = filterParams
 

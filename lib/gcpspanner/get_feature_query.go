@@ -15,6 +15,8 @@
 package gcpspanner
 
 import (
+	"maps"
+
 	"cloud.google.com/go/spanner"
 )
 
@@ -41,16 +43,24 @@ func (f FeatureIDFilter) Params() map[string]interface{} {
 
 // GetFeatureQueryBuilder builds a query to search for one feature.
 type GetFeatureQueryBuilder struct {
-	baseQuery FeatureBaseQuery
+	baseQuery FeatureSearchBaseQuery
 }
 
-func (q GetFeatureQueryBuilder) Base() string {
-	return q.baseQuery.Query()
-}
+func (q GetFeatureQueryBuilder) Build(
+	prefilter FeatureSearchPrefilterResult,
+	filter Filterable) spanner.Statement {
+	filterParams := make(map[string]interface{})
 
-func (q GetFeatureQueryBuilder) Build(filter Filterable) spanner.Statement {
-	stmt := spanner.NewStatement(q.Base() + " WHERE " + filter.Clause() + " LIMIT 1")
-	stmt.Params = filter.Params()
+	if filter != nil {
+		maps.Copy(filterParams, filter.Params())
+	}
+
+	sql, params := q.baseQuery.Query(prefilter)
+	maps.Copy(filterParams, params)
+
+	stmt := spanner.NewStatement(
+		sql + " WHERE " + filter.Clause() + " LIMIT 1")
+	stmt.Params = filterParams
 
 	return stmt
 }

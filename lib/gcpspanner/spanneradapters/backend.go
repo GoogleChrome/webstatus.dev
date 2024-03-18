@@ -17,7 +17,6 @@ package spanneradapters
 import (
 	"context"
 	"log/slog"
-	"math/big"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -178,22 +177,22 @@ func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) bac
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
 	experimentalMetricsMap := make(map[string]backend.WPTFeatureData)
 	for _, metric := range featureResult.ExperimentalMetrics {
-		if metric.TestPass == nil || metric.TotalTests == nil || (metric.TotalTests != nil && *metric.TotalTests <= 0) {
+		if metric.PassRate == nil {
 			continue
 		}
-		score, _ := big.NewRat(*metric.TestPass, *metric.TotalTests).Float64()
+		passRate, _ := metric.PassRate.Float64()
 		experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &score,
+			Score: &passRate,
 		}
 	}
 	stableMetricsMap := make(map[string]backend.WPTFeatureData)
 	for _, metric := range featureResult.StableMetrics {
-		if metric.TestPass == nil || metric.TotalTests == nil || (metric.TotalTests != nil && *metric.TotalTests <= 0) {
+		passRate, _ := metric.PassRate.Float64()
+		if metric.PassRate == nil {
 			continue
 		}
-		score, _ := big.NewRat(*metric.TestPass, *metric.TotalTests).Float64()
 		stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &score,
+			Score: &passRate,
 		}
 	}
 

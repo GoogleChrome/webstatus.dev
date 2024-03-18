@@ -18,13 +18,14 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"math/big"
 	"time"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 )
 
-const wptRunFeatureMetricTable = "WPTRunFeatureMetrics"
+const WPTRunFeatureMetricTable = "WPTRunFeatureMetrics"
 
 // SpannerWPTRunFeatureMetric is a wrapper for the metric data that is actually
 // stored in spanner. This is useful because the spanner id is not useful to
@@ -33,6 +34,12 @@ const wptRunFeatureMetricTable = "WPTRunFeatureMetrics"
 type SpannerWPTRunFeatureMetric struct {
 	ID string `spanner:"ID"`
 	WPTRunFeatureMetric
+	// Calculated pass rate
+	PassRate *big.Rat `spanner:"PassRate"`
+	// Denormalized data from wpt runs.
+	BrowserName string    `spanner:"BrowserName"`
+	Channel     string    `spanner:"Channel"`
+	TimeStart   time.Time `spanner:"TimeStart"`
 }
 
 // WPTRunFeatureMetric represents the metrics for a particular feature in a run.
@@ -42,26 +49,44 @@ type WPTRunFeatureMetric struct {
 	TestPass   *int64 `spanner:"TestPass"`
 }
 
+func getPassRate(testPass, totalTests *int64) *big.Rat {
+	if testPass == nil || totalTests == nil || *totalTests == 0 {
+		return nil
+	}
+
+	return big.NewRat(*testPass, *totalTests)
+}
+
+func (c *Client) CreateSpannerWPTRunFeatureMetric(
+	wptRunData WPTRunDataForMetrics,
+	in WPTRunFeatureMetric) SpannerWPTRunFeatureMetric {
+	return SpannerWPTRunFeatureMetric{
+		ID:                  wptRunData.ID,
+		Channel:             wptRunData.Channel,
+		BrowserName:         wptRunData.BrowserName,
+		TimeStart:           wptRunData.TimeStart,
+		WPTRunFeatureMetric: in,
+		PassRate:            getPassRate(in.TestPass, in.TotalTests),
+	}
+}
+
 // UpsertWPTRunFeatureMetric will upsert the given WPT Run metric.
 // The RunID must exists in a row in the WPTRuns table.
 // If the metric does not exist, it will insert a new metric.
 // If the metric exists, it will only update the TotalTests and TestPass columns.
 func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID int64, in WPTRunFeatureMetric) error {
-	id, err := c.GetIDOfWPTRunByRunID(ctx, externalRunID)
+	wptRunData, err := c.GetWPTRunDataByRunIDForMetrics(ctx, externalRunID)
 	if err != nil {
 		return err
 	}
 
 	// Create a metric with the retrieved ID
-	metric := SpannerWPTRunFeatureMetric{
-		ID:                  *id,
-		WPTRunFeatureMetric: in,
-	}
+	metric := c.CreateSpannerWPTRunFeatureMetric(*wptRunData, in)
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// TODO: Query by primary key instead.
 		stmt := spanner.NewStatement(`
 			SELECT
-				ID, FeatureID, TotalTests, TestPass
+				ID, FeatureID, TotalTests, TestPass, TimeStart, PassRate, Channel, BrowserName
 			FROM WPTRunFeatureMetrics
 			WHERE ID = @id AND FeatureID = @featureID
 			LIMIT 1`)
@@ -82,7 +107,7 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID in
 			if errors.Is(err, iterator.Done) {
 				// No rows returned. Act as if this is an insertion.
 				var err error
-				m, err = spanner.InsertOrUpdateStruct(wptRunFeatureMetricTable, metric)
+				m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, metric)
 				if err != nil {
 					return errors.Join(ErrInternalQueryFailure, err)
 				}
@@ -101,7 +126,7 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID in
 			// Only allow overriding of the test numbers.
 			existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
 			existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
-			m, err = spanner.InsertOrUpdateStruct(wptRunFeatureMetricTable, existingMetric)
+			m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}

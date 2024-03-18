@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/codes"
 )
 
@@ -47,6 +48,15 @@ type WPTRun struct {
 	OSName           string    `spanner:"OSName"`
 	OSVersion        string    `spanner:"OSVersion"`
 	FullRevisionHash string    `spanner:"FullRevisionHash"`
+}
+
+// WPTRunDataForMetrics contains duplicate data from WPTRuns that will be stored
+// in the individual metrics. It will allow for quicker look up of metrics.
+type WPTRunDataForMetrics struct {
+	ID          string    `spanner:"ID"`
+	BrowserName string    `spanner:"BrowserName"`
+	Channel     string    `spanner:"Channel"`
+	TimeStart   time.Time `spanner:"TimeStart"`
 }
 
 // InsertWPTRun will insert the given WPT Run.
@@ -79,6 +89,8 @@ func (c *Client) InsertWPTRun(ctx context.Context, run WPTRun) error {
 			}
 		}
 		// For now, do not overwrite anything for wpt runs.
+		// If this is changed in the future, do not allow changes to the data in
+		// WPTRunDataForMetrics because it is used in the metrics table.
 		return nil
 
 	})
@@ -117,4 +129,46 @@ func (c *Client) GetIDOfWPTRunByRunID(ctx context.Context, runID int64) (*string
 	}
 
 	return &id, nil
+}
+
+// GetIDOfWPTRunByRunID is a helper function to help get the spanner ID of the
+// run. This ID then can be used to create WPT Run Metrics. By linking with this
+// ID, we do not have to be coupled with the ID from wpt.fyi.
+// It uses the RunsByExternalRunID index to quickly look up the row.
+func (c *Client) GetWPTRunDataByRunIDForMetrics(ctx context.Context, runID int64) (*WPTRunDataForMetrics, error) {
+	query := `
+	SELECT
+		ID, BrowserName, Channel, TimeStart
+	FROM WPTRuns
+		WHERE ExternalRunID = @id
+	LIMIT 1
+	`
+	stmt := spanner.NewStatement(query)
+
+	stmt.Params = map[string]interface{}{
+		"id": runID,
+	}
+
+	// Attempt to query for the row.
+	txn := c.Single()
+	defer txn.Close()
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	row, err := it.Next()
+	if err != nil {
+		// No row found
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		// Catch-all for other errors.
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+	var data WPTRunDataForMetrics
+	err = row.ToStruct(&data)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &data, nil
 }
