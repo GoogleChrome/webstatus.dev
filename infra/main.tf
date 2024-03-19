@@ -65,6 +65,7 @@ module "ingestion" {
   buckets                   = module.storage.buckets
   secret_ids                = var.secret_ids
   datastore_info            = module.storage.datastore_info
+  spanner_datails           = module.storage.spanner_info
   projects                  = var.projects
   depends_on                = [module.services]
 }

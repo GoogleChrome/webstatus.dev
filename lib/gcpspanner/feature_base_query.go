@@ -93,9 +93,12 @@ func (f GCPFeatureSearchBaseQuery) buildChannelMetricsFilter(
 		)
 		filters = append(filters, filter)
 	}
-	filterStr := strings.Join(filters, " OR ")
+	var filterStr string
+	if len(filters) > 0 {
+		filterStr = strings.Join(filters, " OR ")
 
-	filterStr = " AND (" + filterStr + ")"
+		filterStr = " AND (" + filterStr + ")"
+	}
 
 	return filterStr, params
 }

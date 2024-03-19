@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
@@ -30,6 +31,8 @@ func (c *Client) GetFeature(
 	defer txn.Close()
 	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
 	if err != nil {
+		slog.Error("unable to generate prefilter for feature search", "error", err)
+
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 	b := GetFeatureQueryBuilder{

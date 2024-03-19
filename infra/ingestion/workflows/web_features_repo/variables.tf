@@ -38,6 +38,14 @@ variable "datastore_info" {
   })
 }
 
+variable "spanner_datails" {
+  type = object({
+    instance   = string
+    database   = string
+    project_id = string
+  })
+}
+
 variable "docker_repository_details" {
   type = object({
     hostname = string

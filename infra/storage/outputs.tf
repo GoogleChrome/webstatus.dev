@@ -14,8 +14,9 @@
 
 output "spanner_info" {
   value = {
-    instance = google_spanner_instance.main.name
-    database = google_spanner_database.database.name
+    instance   = google_spanner_instance.main.name
+    database   = google_spanner_database.database.name
+    project_id = google_spanner_instance.main.project
   }
 }
 

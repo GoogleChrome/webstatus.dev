@@ -23,6 +23,7 @@ module "web_features_repo_workflow" {
   env_id                                       = var.env_id
   repo_downloader_step_region_to_step_info_map = module.repo_downloader_step.region_to_step_info_map
   datastore_info                               = var.datastore_info
+  spanner_datails                              = var.spanner_datails
   repo_bucket                                  = var.buckets.repo_download_bucket
   docker_repository_details                    = var.docker_repository_details
 }

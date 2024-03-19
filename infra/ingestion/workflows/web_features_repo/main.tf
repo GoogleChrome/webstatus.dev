@@ -29,16 +29,6 @@ resource "google_workflows_workflow" "workflow" {
     "${path.root}/../workflows/web-features-repo/workflows.yaml.tftpl",
     {
       web_feature_consume_step_url = google_cloud_run_v2_service.web_feature_service[count.index].uri
-      repo_downloader_step_url     = var.repo_downloader_step_region_to_step_info_map[var.regions[count.index]].url
     }
   )
-}
-
-resource "google_cloud_run_v2_service_iam_member" "repo_downloader_step_invoker" {
-  count    = length(var.regions)
-  provider = google.internal_project
-  location = var.regions[count.index]
-  name     = var.repo_downloader_step_region_to_step_info_map[var.regions[count.index]].name
-  role     = "roles/run.invoker"
-  member   = google_service_account.service_account.member
 }

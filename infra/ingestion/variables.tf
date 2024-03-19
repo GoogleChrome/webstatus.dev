@@ -55,3 +55,11 @@ variable "projects" {
     public   = string
   })
 }
+
+variable "spanner_datails" {
+  type = object({
+    project_id = string
+    instance   = string
+    database   = string
+  })
+}

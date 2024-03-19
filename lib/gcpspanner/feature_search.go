@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"math/big"
 	"slices"
 
@@ -76,6 +77,8 @@ func (c *Client) FeaturesSearch(
 	defer txn.Close()
 	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
 	if err != nil {
+		slog.Error("unable to generate prefilter for FeatureSearch", "error", err)
+
 		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
@@ -97,10 +100,17 @@ func (c *Client) FeaturesSearch(
 			break
 		}
 		if err != nil {
+			slog.Error("failed to query the FeatureSearch result",
+				"error", err,
+				"statement", stmt.SQL,
+				"params", stmt.Params)
+
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 		var result SpannerFeatureResult
 		if err := row.ToStruct(&result); err != nil {
+			slog.Error("failed to convert the FeatureSearch result", "error", err)
+
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](

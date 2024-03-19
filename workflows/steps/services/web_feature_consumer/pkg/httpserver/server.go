@@ -17,80 +17,77 @@ package httpserver
 import (
 	"context"
 	"fmt"
+	"io"
 	"log/slog"
 	"net"
 	"net/http"
-	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/data"
 	"github.com/go-chi/chi/v5"
-	"sigs.k8s.io/yaml"
 )
 
-type ObjectGetter interface {
-	Get(ctx context.Context, filename string) ([]byte, error)
+type AssetGetter interface {
+	DownloadFileFromRelease(
+		ctx context.Context,
+		owner, repo string,
+		httpClient *http.Client,
+		filePattern string) (io.ReadCloser, error)
 }
 
-type WebFeatureMetadataStorer interface {
-	UpsertFeatureData(
+type AssetParser interface {
+	Parse(io.ReadCloser) (map[string]web_platform_dx__web_features.FeatureData, error)
+}
+
+type WebFeatureStorer interface {
+	InsertWebFeatures(
 		ctx context.Context,
-		webFeatureID string,
-		featureData web_platform_dx__web_features.FeatureData) error
+		data map[string]web_platform_dx__web_features.FeatureData) error
 }
 
 type Server struct {
-	objectGetter   ObjectGetter
-	metadataStorer WebFeatureMetadataStorer
-}
-
-func getFilenameBaseWithoutExt(filePath string) string {
-	base := filepath.Base(filePath)
-	ext := filepath.Ext(base)
-
-	return strings.TrimSuffix(base, ext)
+	assetGetter           AssetGetter
+	storer                WebFeatureStorer
+	webFeaturesDataParser AssetParser
+	defaultAssetName      string
+	defaultRepoOwner      string
+	defaultRepoName       string
 }
 
 // PostV1WebFeatures implements web_feature_consumer.StrictServerInterface.
 // nolint:ireturn // Expected ireturn for openapi generation.
 func (s *Server) PostV1WebFeatures(
 	ctx context.Context,
-	request web_feature_consumer.PostV1WebFeaturesRequestObject,
+	_ web_feature_consumer.PostV1WebFeaturesRequestObject,
 ) (web_feature_consumer.PostV1WebFeaturesResponseObject, error) {
-	webFeatureKey := getFilenameBaseWithoutExt(request.Body.Location.Gcs.Object)
-	// TODO allow input to configure the bucket it looks into.
-	yamlBytes, err := s.objectGetter.Get(ctx, request.Body.Location.Gcs.Object)
+	file, err := s.assetGetter.DownloadFileFromRelease(
+		ctx,
+		s.defaultRepoOwner,
+		s.defaultRepoName,
+		http.DefaultClient,
+		s.defaultAssetName)
 	if err != nil {
-		// TODO check error type
-		slog.Error("unable to get file", "file", request.Body.Location.Gcs.Object, "error", err)
-
-		return web_feature_consumer.PostV1WebFeatures404JSONResponse{
-			Code:    404,
-			Message: "unable to get file",
-		}, nil
-	}
-	jsonBytes, err := yaml.YAMLToJSON(yamlBytes)
-	if err != nil {
-		slog.Error("unable to read data", "error", err)
-
-		return web_feature_consumer.PostV1WebFeatures400JSONResponse{
-			Code:    400,
-			Message: "unable to read file as json",
-		}, nil
-	}
-	featureData, err := web_platform_dx__web_features.UnmarshalFeatureData(jsonBytes)
-	if err != nil {
-		slog.Error("unable to convert data", "error", err, "bytes", string(jsonBytes))
+		slog.Error("unable to get asset", "error", err)
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,
-			Message: "unable to convert data to expected format",
+			Message: "unable to get asset",
 		}, nil
 	}
 
-	err = s.metadataStorer.UpsertFeatureData(ctx, webFeatureKey, featureData)
+	data, err := s.webFeaturesDataParser.Parse(file)
+	if err != nil {
+		slog.Error("unable to parse data", "error", err)
+
+		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
+			Code:    500,
+			Message: "unable to parse data",
+		}, nil
+	}
+
+	err = s.storer.InsertWebFeatures(ctx, data)
 	if err != nil {
 		slog.Error("unable to store data", "error", err)
 
@@ -105,8 +102,11 @@ func (s *Server) PostV1WebFeatures(
 
 func NewHTTPServer(
 	port string,
-	objectGetter ObjectGetter,
-	metadataStorer WebFeatureMetadataStorer,
+	assetGetter AssetGetter,
+	storer WebFeatureStorer,
+	defaultAssetName string,
+	defaultRepoOwner string,
+	defaultRepoName string,
 ) (*http.Server, error) {
 	_, err := web_feature_consumer.GetSwagger()
 	if err != nil {
@@ -115,8 +115,12 @@ func NewHTTPServer(
 
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
-		objectGetter:   objectGetter,
-		metadataStorer: metadataStorer,
+		assetGetter:           assetGetter,
+		storer:                storer,
+		webFeaturesDataParser: data.Parser{},
+		defaultAssetName:      defaultAssetName,
+		defaultRepoOwner:      defaultRepoOwner,
+		defaultRepoName:       defaultRepoName,
 	}
 
 	srvStrictHandler := web_feature_consumer.NewStrictHandler(srv, nil)
