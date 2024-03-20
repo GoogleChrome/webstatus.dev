@@ -24,6 +24,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/brianvoe/gofakeit/v7"
@@ -33,7 +34,7 @@ import (
 )
 
 const releasesPerBrowser = 50
-const runsPerBrowserPerChannel = 1
+const runsPerBrowserPerChannel = 100
 const numberOfFeatures = 150
 
 // Allows us to regenerate the same values between runs.
@@ -84,7 +85,7 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 	featureIDMap := make(map[string]interface{})
 
 	for len(featureIDMap) < numberOfFeatures {
-		word := gofakeit.LoremIpsumWord()
+		word := fmt.Sprintf("%s%d", gofakeit.LoremIpsumWord(), len(featureIDMap))
 		featureName := cases.Title(language.English).String(word)
 		featureID := strings.ToLower(featureName)
 		// Check if we already generated this ID.
@@ -231,7 +232,7 @@ func generateRunsAndMetrics(
 		for _, browser := range browsers {
 			baseTime := startTimeWindow
 			for i := 0; i < runsPerBrowserPerChannel; i++ {
-				timeStart := baseTime.AddDate(0, 1, r.Intn(90))
+				timeStart := baseTime.AddDate(0, 0, i)
 				timeEnd := timeStart.Add(time.Duration(r.Intn(5)) * time.Hour)
 				runID := r.Int63n(1000000)
 				run := gcpspanner.WPTRun{
@@ -249,7 +250,14 @@ func generateRunsAndMetrics(
 				if err != nil {
 					return runsGenerated, metricsGenerated, err
 				}
+
 				runsGenerated++
+
+				wptRunData, err := client.GetWPTRunDataByRunIDForMetrics(ctx, runID)
+				if err != nil {
+					return runsGenerated, metricsGenerated, err
+				}
+				var mutations []*spanner.Mutation
 				for _, feature := range features {
 					testPass := r.Int63n(1000)
 					testTotal := testPass + r.Int63n(1000)
@@ -258,12 +266,22 @@ func generateRunsAndMetrics(
 						TotalTests: &testTotal,
 						TestPass:   &testPass,
 					}
-					err := client.UpsertWPTRunFeatureMetric(ctx, run.RunID, metric)
+					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(*wptRunData, metric)
+					m, err := spanner.InsertOrUpdateStruct(gcpspanner.WPTRunFeatureMetricTable, spannerMetric)
 					if err != nil {
 						return runsGenerated, metricsGenerated, err
 					}
-					metricsGenerated++
+					mutations = append(mutations, m)
 				}
+				// BatchWrite is not implemented in the emulator.
+				// https://github.com/GoogleCloudPlatform/cloud-spanner-emulator/issues/154
+				// Instead, do Apply which does multiple statements atomically.
+				// Revisit this once the emulator supports BatchWrite.
+				_, err = client.Apply(ctx, mutations)
+				if err != nil {
+					return runsGenerated, metricsGenerated, err
+				}
+				metricsGenerated += len(mutations)
 			}
 		}
 	}
