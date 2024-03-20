@@ -19,13 +19,13 @@
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
-//import {type components} from 'webstatus.dev-backend';
+import {type components} from 'webstatus.dev-backend';
 
 //import {type APIClient} from '../api/client.js';
 //import {apiClientContext} from '../contexts/api-client-context.js';
 
 // Should be able to do this instead:
-import {google} from '@types/google.visualization';
+// import {google} from '@types/google.visualization';
 
 // From gviz.d.ts
 export interface LoadOptions {
@@ -89,40 +89,40 @@ declare namespace google {
   }
 }
 
-const chromeStatsSample = {
-  data: [
-    {
-      run_timestamp: '2020-04-30T00:00:00Z',
-      test_pass_count: 987329,
-      total_tests_count: 2004705,
-    },
-    // ...
-  ],
-  metadata: {
-    next_page_token:
-      'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTMwVDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjoyOTAwMH0',
-  },
-};
+// const chromeStatsSample = {
+//   data: [
+//     {
+//       run_timestamp: '2020-04-30T00:00:00Z',
+//       test_pass_count: 987329,
+//       total_tests_count: 2004705,
+//     },
+//     // ...
+//   ],
+//   metadata: {
+//     next_page_token:
+//       'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTMwVDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjoyOTAwMH0',
+//   },
+// };
 
-const firefoxStatsSample = {
-  data: [
-    {
-      run_timestamp: '2020-04-30T00:00:00Z',
-      test_pass_count: 1019559,
-      total_tests_count: 2031833,
-    },
-    // ...
-  ],
-  metadata: {
-    next_page_token:
-      'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTI5VDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjo5NTA4NDB9',
-  },
-};
+// const firefoxStatsSample = {
+//   data: [
+//     {
+//       run_timestamp: '2020-04-30T00:00:00Z',
+//       test_pass_count: 1019559,
+//       total_tests_count: 2031833,
+//     },
+//     // ...
+//   ],
+//   metadata: {
+//     next_page_token:
+//       'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTI5VDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjo5NTA4NDB9',
+//   },
+// };
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
   @state()
-  globalFeatureSupport?: google.visualization.DataTable;
+  globalFeatureSupport: Array<components['schemas']['WPTRunMetric']> = [];
 
   static get styles(): CSSResultGroup {
     return [
@@ -157,27 +157,26 @@ export class StatsPage extends LitElement {
 
   // Create data table rows from sample data
   createGlobalFeatureSupportData(): google.visualization.DataTable {
+    const testData = this.globalFeatureSupport;
+
     const data = new google.visualization.DataTable();
     data.addColumn('date', 'Date');
-    data.addColumn('number', 'Chrome');
-    data.addColumn('number', 'Firefox');
+    // addColumn for each browser in testData
+
     data.addColumn('number', 'Total');
 
-    const chromeData = chromeStatsSample.data;
-    const firefoxData = firefoxStatsSample.data;
-    // Iterate through chromeData and firefoxData
-    // to create a row for each day.
-    // Ignore the run_timestamp, and compute date instead
-    const startDate = new Date(2020, 0, 1);
-    for (let i = 0; i < chromeData.length; i++) {
-      const chromeRow = chromeData[i];
-      const firefoxRow = firefoxData[i];
-      const date = new Date(startDate.getTime() + i * 86400000);
-      const chromeTotal = chromeRow.total_tests_count;
-      const firefoxTotal = firefoxRow.total_tests_count;
-      const total = chromeTotal + firefoxTotal;
-      data.addRow([date, chromeTotal, firefoxTotal, total]);
-    }
+    // Iterate through testData to create a row for each day.
+    const rows = testData.map(dataRow => {
+      const date = dataRow.run_timestamp;
+      // Get passes for each browser ...
+      const total = dataRow.total_tests_count;
+      return [
+        date,
+        // browsers data
+        total,
+      ];
+    });
+    data.addRows(rows);
     return data;
   }
 
@@ -249,8 +248,7 @@ export class StatsPage extends LitElement {
   }
 
   createGlobalFeatureSupportChart(): void {
-    this.createRandomGlobalFeatureSupportData();
-    const data = this.globalFeatureSupport!;
+    const data = this.createRandomGlobalFeatureSupportData();
 
     const options = {
       hAxis: {title: 'Feature', titleTextStyle: {color: '#333'}},
