@@ -54,7 +54,15 @@ resource "google_project_iam_member" "gcp_datastore_user" {
   role     = "roles/datastore.user"
   project  = var.datastore_info.project_id
   member   = google_service_account.web_feature_consumer_service_account.member
+}
 
+resource "google_spanner_database_iam_member" "gcp_spanner_user" {
+  role     = "roles/spanner.databaseUser"
+  provider = google.internal_project
+  database = var.spanner_datails.database
+  instance = var.spanner_datails.instance
+  project  = var.spanner_datails.project_id
+  member   = google_service_account.web_feature_consumer_service_account.member
 }
 
 resource "google_cloud_run_v2_service" "web_feature_service" {
@@ -77,6 +85,14 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
       env {
         name  = "DATASTORE_DATABASE"
         value = var.datastore_info.database_name
+      }
+      env {
+        name  = "SPANNER_DATABASE"
+        value = var.spanner_datails.database
+      }
+      env {
+        name  = "SPANNER_INSTANCE"
+        value = var.spanner_datails.instance
       }
     }
     service_account = google_service_account.web_feature_consumer_service_account.email

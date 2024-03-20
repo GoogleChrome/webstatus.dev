@@ -151,8 +151,7 @@ cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-staging --no-browser
 ENV_ID="staging"
-# SAVE THAT ENV_ID
-terraform select new $ENV_ID
+terraform workspace select $ENV_ID
 terraform init --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
 terraform plan \
     -var-file=".envs/staging.tfvars" \
