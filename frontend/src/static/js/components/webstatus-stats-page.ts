@@ -24,6 +24,9 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 //import {type APIClient} from '../api/client.js';
 //import {apiClientContext} from '../contexts/api-client-context.js';
 
+// Should be able to do this instead:
+import {google} from '@types/google.visualization';
+
 // From gviz.d.ts
 export interface LoadOptions {
   packages?: string | string[];
@@ -69,6 +72,7 @@ declare namespace google {
     class DataInterface {}
     class DataTable implements DataInterface {
       addColumn(type: string, label?: string | null, id?: string): number;
+      addRow(cellArray?: any[]): number;
       addRows(rows: any[][]): number;
     }
 
@@ -85,10 +89,40 @@ declare namespace google {
   }
 }
 
+const chromeStatsSample = {
+  data: [
+    {
+      run_timestamp: '2020-04-30T00:00:00Z',
+      test_pass_count: 987329,
+      total_tests_count: 2004705,
+    },
+    // ...
+  ],
+  metadata: {
+    next_page_token:
+      'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTMwVDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjoyOTAwMH0',
+  },
+};
+
+const firefoxStatsSample = {
+  data: [
+    {
+      run_timestamp: '2020-04-30T00:00:00Z',
+      test_pass_count: 1019559,
+      total_tests_count: 2031833,
+    },
+    // ...
+  ],
+  metadata: {
+    next_page_token:
+      'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTI5VDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjo5NTA4NDB9',
+  },
+};
+
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
   @state()
-  globalFeatureSupport: Array<Array<google.visualization.DataValue>> = [];
+  globalFeatureSupport?: google.visualization.DataTable;
 
   static get styles(): CSSResultGroup {
     return [
@@ -101,6 +135,10 @@ export class StatsPage extends LitElement {
 
         .under-construction {
           min-height: 12em;
+        }
+
+        #global-feature-support-chart {
+          min-height: 20em;
         }
       `,
     ];
@@ -117,15 +155,49 @@ export class StatsPage extends LitElement {
     });
   }
 
+  // Create data table rows from sample data
+  createGlobalFeatureSupportData(): google.visualization.DataTable {
+    const data = new google.visualization.DataTable();
+    data.addColumn('date', 'Date');
+    data.addColumn('number', 'Chrome');
+    data.addColumn('number', 'Firefox');
+    data.addColumn('number', 'Total');
+
+    const chromeData = chromeStatsSample.data;
+    const firefoxData = firefoxStatsSample.data;
+    // Iterate through chromeData and firefoxData
+    // to create a row for each day.
+    // Ignore the run_timestamp, and compute date instead
+    const startDate = new Date(2020, 0, 1);
+    for (let i = 0; i < chromeData.length; i++) {
+      const chromeRow = chromeData[i];
+      const firefoxRow = firefoxData[i];
+      const date = new Date(startDate.getTime() + i * 86400000);
+      const chromeTotal = chromeRow.total_tests_count;
+      const firefoxTotal = firefoxRow.total_tests_count;
+      const total = chromeTotal + firefoxTotal;
+      data.addRow([date, chromeTotal, firefoxTotal, total]);
+    }
+    return data;
+  }
+
   // Create random data for globalFeatureSupport,
-  // with first column being a date from Jan 2020 to now,
+  // with first column being a date, ranging from Jan 2020 to now,
   // and the rest of the columns being for each browser and total,
-  // with values, rangeing from 5000 to 60000,
+  // with values, ranging from 5000 to 60000,
   // incrementing from previous values on random dates.
   // This is just to test the chart rendering.
-  createRandomGlobalFeatureSupportData(): void {
+  createRandomGlobalFeatureSupportData(): google.visualization.DataTable {
+    const dataTable = new google.visualization.DataTable();
+    dataTable.addColumn('date', 'Date');
+    for (const browser of ['Chrome', 'Firefox', 'Safari', 'Edge']) {
+      dataTable.addColumn('number', browser);
+    }
+    dataTable.addColumn('number', 'Total');
+
     const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 1);
+    const startDate = new Date(2020, 0, 1);
+    const start = new Date(startDate.getFullYear(), 0, 1);
     const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     const dateRange = end.getTime() - start.getTime();
     const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
@@ -133,7 +205,7 @@ export class StatsPage extends LitElement {
     const browsers = ['Chrome', 'Firefox', 'Safari', 'Edge'];
     const columns = ['Date', 'Chrome', 'Firefox', 'Safari', 'Edge', 'Total'];
 
-    const data = [];
+    const dataRows = [];
 
     // Compute random starting value for each browser and total.
     const browserValues = [];
@@ -143,7 +215,7 @@ export class StatsPage extends LitElement {
       total += browserValues[browserValues.length - 1];
     }
 
-    data.push([start, ...browserValues, total]);
+    dataRows.push([start, ...browserValues, total]);
 
     for (let i = 1; i < numDays; i++) {
       // row is a date followed by numbers for each browser and total.
@@ -156,7 +228,9 @@ export class StatsPage extends LitElement {
 
       for (const _browser of browsers) {
         // Get previous value
-        const previousValue = Number(data[i - 1][columns.indexOf(_browser)]);
+        const previousValue = Number(
+          dataRows[i - 1][columns.indexOf(_browser)]
+        );
         // Decide whether to increment value from the previous value.
         const increment = Math.random() < 0.05;
         const value = increment
@@ -167,29 +241,25 @@ export class StatsPage extends LitElement {
         total += value;
       }
       row.push(total);
-      data.push(row);
+      dataRows.push(row);
     }
-    this.globalFeatureSupport = data;
+    dataTable.addRows(dataRows);
+
+    return dataTable;
   }
 
   createGlobalFeatureSupportChart(): void {
     this.createRandomGlobalFeatureSupportData();
-    const data = new google.visualization.DataTable();
-    data.addColumn('date', 'Date');
-    for (const browser of ['Chrome', 'Firefox', 'Safari', 'Edge']) {
-      data.addColumn('number', browser);
-    }
-    data.addColumn('number', 'Total');
-    data.addRows(this.globalFeatureSupport);
+    const data = this.globalFeatureSupport!;
 
     const options = {
-      title: 'Global feature support',
       hAxis: {title: 'Feature', titleTextStyle: {color: '#333'}},
       vAxis: {minValue: 0},
+      legend: {position: 'top'},
     };
 
     const chart = new google.visualization.LineChart(
-      this.shadowRoot!.getElementById('global-feature-support')!
+      this.shadowRoot!.getElementById('global-feature-support-chart')!
     );
     chart.draw(data, options);
   }
@@ -225,8 +295,20 @@ export class StatsPage extends LitElement {
   renderGlobalFeatureSupport(): TemplateResult {
     return html`
       <sl-card id="global-feature-support">
-        <div slot="header">Global feature support</div>
-        <p class="under-construction">Chart goes here...</p>
+        <div slot="header" class="hbox">
+          Global feature support
+          <div class="spacer"></div>
+          <sl-select>
+            <sl-option>All features</sl-option>
+            <sl-option>how to select?</sl-option>
+          </sl-select>
+          <sl-select>
+            <sl-option>All browsers</sl-option>
+            <sl-option>Chrome</sl-option>
+            <sl-option>Firefox</sl-option>
+          </sl-select>
+        </div>
+        <div id="global-feature-support-chart">Chart goes here...</div>
       </sl-card>
     `;
   }
@@ -234,8 +316,22 @@ export class StatsPage extends LitElement {
   renderFeaturesLagging(): TemplateResult {
     return html`
       <sl-card id="features-lagging">
-        <div slot="header">Features missing in only 1 browser</div>
-        <p class="under-construction">Chart goes here...</p>
+        <div slot="header" class="hbox">
+          Features missing in only 1 browser
+          <div class="spacer"></div>
+          <sl-select>
+            <sl-option>All features</sl-option>
+            <sl-option>how to select?</sl-option>
+          </sl-select>
+          <sl-select>
+            <sl-option>All browsers</sl-option>
+            <sl-option>Chrome</sl-option>
+            <sl-option>Firefox</sl-option>
+          </sl-select>
+        </div>
+        <div class="under-construction" id="features-lagging-chart">
+          Chart goes here...
+        </div>
       </sl-card>
     `;
   }
