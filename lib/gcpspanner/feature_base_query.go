@@ -93,11 +93,15 @@ func (f GCPFeatureSearchBaseQuery) buildChannelMetricsFilter(
 		)
 		filters = append(filters, filter)
 	}
-	filterStr := strings.Join(filters, " OR ")
+	var filterStr string
+	var retParams map[string]interface{}
+	if len(filters) > 0 {
+		filterStr = strings.Join(filters, " OR ")
+		filterStr = " AND (" + filterStr + ")"
+		retParams = params
+	}
 
-	filterStr = " AND (" + filterStr + ")"
-
-	return filterStr, params
+	return filterStr, retParams
 }
 
 // LatestRunResult contains the information for when a given BrowserName & Channel combination last ran.
