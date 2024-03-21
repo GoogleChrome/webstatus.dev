@@ -32,6 +32,11 @@ jobs:
   playwright:
     runs-on: ubuntu-latest
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a6
+        with:
+          # Keep all the defaults except docker caching removal
+          remove-docker-images: false
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
       - name: Run playwright-test target for CI
