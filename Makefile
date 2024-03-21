@@ -275,7 +275,7 @@ clean-node:
 # Local Data / Workflows
 ################################
 dev_workflows: web_feature_local_workflow
-web_feature_local_workflow: FLAGS := -repo_downloader_host=http://localhost:8091 -web_consumer_host=http://localhost:8092
+web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
 web_feature_local_workflow:
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
 dev_fake_data:
