@@ -10,6 +10,7 @@ NPROCS := $(shell nproc)
 		jsonschema \
 		lint \
 		test \
+		is_local_migration_ready \
 		dev_workflows \
 		precommit \
 		minikube-delete \
@@ -59,7 +60,7 @@ port-forward-terminate:
 minikube-running:
 		# Check if minikube is running using a shell command
 		@if ! minikube status -p "$${MINIKUBE_PROFILE}" | grep -q "Running"; then \
-				minikube start -p "$${MINIKUBE_PROFILE}" --disk-size=10gb --cpus=4; \
+				minikube start -p "$${MINIKUBE_PROFILE}" --disk-size=10gb --cpus=2 --memory=4096m; \
 		fi
 minikube-clean-restart: minikube-delete minikube-running
 minikube-delete:
@@ -242,7 +243,7 @@ license-fix: download-addlicense
 ################################
 # Playwright
 ################################
-fresh-env-for-playwright: playwright-install delete-local deploy-local port-forward-manual
+fresh-env-for-playwright: playwright-install delete-local deploy-local dev_fake_data port-forward-manual
 
 playwright-update-snapshots: fresh-env-for-playwright
 	npx playwright test --update-snapshots
@@ -278,12 +279,19 @@ dev_workflows: web_feature_local_workflow
 web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
 web_feature_local_workflow:
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
-dev_fake_data:
-	kubectl wait --for=condition=ready pod/spanner
+dev_fake_data: is_local_migration_ready
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
-	SPANNER_EMULATOR_HOST=localhost:9010 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local || true
+	SPANNER_EMULATOR_HOST=localhost:9010 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local
 	fuser -k 9010/tcp || true
+is_local_migration_ready:
+	kubectl wait --for=condition=ready --timeout=300s pod/spanner
+	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \
+    for (( i=0; i < $$MAX_RETRIES; i++ )); do \
+		[[ $$(kubectl exec pods/spanner -- wrench migrate version) -eq 1 ]] && break; \
+		echo "Migration not ready (attempt $$i). Retrying in $$SLEEP_INTERVAL seconds..."; sleep $$SLEEP_INTERVAL ; \
+    done
+
 
 ################################
 # Spanner Management

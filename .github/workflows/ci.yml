@@ -32,6 +32,17 @@ jobs:
   playwright:
     runs-on: ubuntu-latest
     steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
+        with:
+          build-mount-path: /var/lib/docker/
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+      - name: Restart docker
+        run: sudo service docker restart
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
       - name: Run playwright-test target for CI
