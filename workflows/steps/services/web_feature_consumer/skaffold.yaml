@@ -18,7 +18,7 @@ metadata:
   name: web-feature-consumer-config
 requires:
   - path: ../../../../.dev/datastore
-  - path: ../../../../.dev/gcs
+  - path: ../../../../.dev/spanner
 profiles:
   - name: local
     build:

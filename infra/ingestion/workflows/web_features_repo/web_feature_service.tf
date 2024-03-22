@@ -75,10 +75,6 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
     containers {
       image = "${docker_image.web_feature_consumer_image.name}@${docker_registry_image.web_feature_consumer_remote_image.sha256_digest}"
       env {
-        name  = "BUCKET"
-        value = var.repo_bucket
-      }
-      env {
         name  = "PROJECT_ID"
         value = var.datastore_info.project_id
       }

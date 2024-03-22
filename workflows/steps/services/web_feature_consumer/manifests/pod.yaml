@@ -26,10 +26,6 @@ spec:
         - containerPort: 8080
           name: http-svc
       env:
-        - name: BUCKET
-          value: 'testbucket'
-        - name: STORAGE_EMULATOR_HOST
-          value: 'http://gcs:4443'
         - name: PROJECT_ID
           value: local
         - name: DATASTORE_DATABASE
