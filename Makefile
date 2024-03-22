@@ -285,7 +285,7 @@ dev_fake_data: is_local_migration_ready
 	SPANNER_EMULATOR_HOST=localhost:9010 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local
 	fuser -k 9010/tcp || true
 is_local_migration_ready:
-	kubectl wait --for=condition=ready pod/spanner
+	kubectl wait --for=condition=ready --timeout=90s pod/spanner
 	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \
     for (( i=0; i < $$MAX_RETRIES; i++ )); do \
 		[[ $$(kubectl exec pods/spanner -- wrench migrate version) -eq 1 ]] && break; \
