@@ -24,6 +24,7 @@ import {
 import {customElement} from 'lit/decorators.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
+import './webstatus-login.js';
 
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
@@ -103,7 +104,9 @@ export class WebstatusHeader extends LitElement {
         </div>
 
         <div class="spacer"></div>
-        <div class="sign-in"></div>
+        <div class="sign-in">
+          <webstatus-login></webstatus-login>
+        </div>
       </header>
     `;
   }

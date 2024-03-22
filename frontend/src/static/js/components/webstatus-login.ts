@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+/// <reference types="@types/google.accounts" />
+
 import {consume} from '@lit/context';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
@@ -31,7 +33,7 @@ export class WebstatusLogin extends LitElement {
 
   @query('#login-container')
   @state()
-  protected container?: HTMLElement | null;
+  protected container?: HTMLElement;
 
   protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED;
 
@@ -63,15 +65,14 @@ export class WebstatusLogin extends LitElement {
     if (
       this.libraryLoaded === LoadingState.COMPLETE ||
       this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
-      this.appSettings === null ||
-      this.container === null
+      this.appSettings === undefined ||
+      this.container === undefined ||
+      this.appSettings?.gsiClientId === undefined
     ) {
       return;
     }
 
-    // @ts-expect-error TODO: figure out how to import nested namespace
     google.accounts.id.initialize({
-      // @ts-expect-error TODO: figure out how to import nested namespace
       callback: (response: google.accounts.id.CredentialResponse) => {
         this._signin(response.credential).then(
           () => {
@@ -85,13 +86,9 @@ export class WebstatusLogin extends LitElement {
       client_id: this.appSettings?.gsiClientId,
     });
 
-    // @ts-expect-error TODO: figure out how to import nested namespace
-    google.accounts.id.renderButton(
-      this.container,
-      {size: 'large', theme: 'outline', type: 'standard'} // customization attributes
-    );
-    // @ts-expect-error TODO: figure out how to import nested namespace
-    google.accounts.id.prompt(); // also display the One Tap dialog
+    google.accounts.id.renderButton(this.container, {type: 'standard'});
+    // TODO: Revisit this for playwright tests.
+    // google.accounts.id.prompt();
 
     this.libraryLoaded = LoadingState.COMPLETE;
   }
