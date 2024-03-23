@@ -14,5 +14,21 @@
 
 package workflow
 
-// Workflow contains all the steps for the workflow to consume wpt data.
-type Workflow struct{}
+import (
+	"context"
+
+	"github.com/web-platform-tests/wpt.fyi/shared"
+)
+
+func NewGitHubWebFeaturesDataGetter(client *shared.GitHubWebFeaturesClient) *GitHubWebFeaturesDataGetter {
+	return &GitHubWebFeaturesDataGetter{client: client}
+}
+
+type GitHubWebFeaturesDataGetter struct {
+	client *shared.GitHubWebFeaturesClient
+}
+
+func (g GitHubWebFeaturesDataGetter) GetWebFeaturesData(ctx context.Context) (shared.WebFeaturesData, error) {
+	// TODO. cache the result
+	return g.client.Get(ctx)
+}
