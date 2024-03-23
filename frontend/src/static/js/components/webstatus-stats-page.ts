@@ -24,6 +24,149 @@ import {type components} from 'webstatus.dev-backend';
 //import {type APIClient} from '../api/client.js';
 //import {apiClientContext} from '../contexts/api-client-context.js';
 
+/** Map from browser-channel to global feature support. */
+const browserChannelDataMap = new Map<
+  string,
+  Array<components['schemas']['WPTRunMetric']>
+>();
+
+/** Map from browser-channel to features missing in only one browser. */
+// const featuresLaggingDataMap = new Map<
+//   string,
+//   Array<components['schemas']['WPTRunMetric']>
+//   >();
+
+
+const ALL_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'];
+
+
+/** Make random data for browserChannelDataMap */
+function makeRandomDataForBrowserChannelCombo(
+  totalTestsPerDay: Array<number>,
+  start: Date,
+  browser: string,
+  channel: string
+) {
+  const data: Array<components['schemas']['WPTRunMetric']> = [];
+  const numDays = totalTestsPerDay.length;
+
+  // Compute random rate for this browser between 0 and 1.
+  const rate = Math.random();
+
+  let testPassCount = totalTestsPerDay[0] * rate;
+  for (let i = 0; i < numDays; i++) {
+    // Vary the rate randomly a small amount
+    // rate = Math.min(1, Math.max(0.000001, rate * (0.95 + Math.random())));
+    // newTestsPass is a small random fraction of the totalTestsPerDay not yet passed.
+    const unpassedTests = Math.abs(totalTestsPerDay[i] - testPassCount);
+    let newTestsPass = Math.floor(
+      ((Math.random() * unpassedTests) / 1000) * rate
+    );
+    if (Math.random() < 0.01) {
+      newTestsPass +=
+        Math.floor(((Math.random() * unpassedTests) / 10) * rate) +
+        Math.floor(
+          ((Math.random() * unpassedTests) / 500) *
+            rate *
+            Math.floor((Math.random() * unpassedTests * rate) / 500)
+        );
+    }
+
+    // testPassCount is previous testPassCount + newTestsPass
+    testPassCount = testPassCount + newTestsPass;
+    // Can never be more than 90% of the total.
+    testPassCount = Math.min(totalTestsPerDay[i] * 0.9, testPassCount);
+
+    data.push({
+      run_timestamp: new Date(
+        start.getTime() + i * (1000 * 60 * 60 * 24)
+      ).toISOString(),
+      test_pass_count: testPassCount,
+      total_tests_count: totalTestsPerDay[i],
+    });
+  }
+  browserChannelDataMap.set(`${browser}-${channel}`, data);
+}
+
+// /** Make random data for featuresLaggingDataMap.
+//  */
+// function makeRandomDataForFeaturesLagging(
+//  ) {
+//   const data: Array<components['schemas']['WPTRunMetric']> = [];
+//   // data is computed from browserChannelDataMap.
+//   const browsers = ALL_BROWSERS;
+
+//   const numDays = browserChannelDataMap.values().next().value.length;
+//   for (let i = 0; i < numDays; i++) {
+//     // For each browser...
+//     const dayData = browsers.map(
+//       browser => browserChannelDataMap.get(`${browser}-stable`)![i]
+//     );
+//     // For each day, first compute the number of missing tests for each browser,
+//     // which is the total minus the tests that passed.
+//     const missingTests = dayData.map(
+//       data => data.total_tests_count - data.test_pass_count
+//     );
+
+//     // Then guess if the missing tests for each browser are for the same feature
+//     // as for other browsers.  For simplicity, guess that the number of
+//     // tests that are missing only for each browser is a small fraction of all
+//     // the missing tests for that browser.
+
+
+
+
+//   // The number of tests missing for only one browser
+//   // is less than the number missing for each browser.
+
+
+
+//   }
+//   featuresLaggingDataMap.set('all', data);
+
+// }
+
+// Generate data for all browser/channel combos
+function makeRandomDataForAllBrowserChannelCombos() {
+  let rate = 0.5;
+  const start = new Date(2021, 1, 1);
+  const end = new Date(2024, 3, 31);
+  const dateRange = end.getTime() - start.getTime();
+  const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
+
+  const totalTestsPerDay: Array<number> = [];
+
+  // Create random totalTestsPerDay
+  for (let i = 0; i < numDays; i++) {
+    // Vary the rate randomly a small amount
+    rate = Math.min(1, Math.max(0.000001, rate * (0.95 + Math.random() / 10)));
+    let newTests = 1;
+    // Occasionally add a random number of tests.
+    if (Math.random() < 0.01) {
+      newTests +=
+        Math.floor(Math.random() * 20000 * rate) +
+        Math.floor(Math.random() * 100 * (1 - rate)) *
+          Math.floor(Math.random() * 100 * (1 - rate));
+    }
+
+    totalTestsPerDay[i] = totalTestsPerDay[i - 1] || 5000;
+    totalTestsPerDay[i] += newTests;
+  }
+
+  for (const browser of ALL_BROWSERS) {
+    for (const channel of ['stable']) {
+      makeRandomDataForBrowserChannelCombo(
+        totalTestsPerDay,
+        start,
+        browser,
+        channel
+      );
+    }
+  }
+}
+
+makeRandomDataForAllBrowserChannelCombos();
+
 // Should be able to do this instead:
 // import {google} from '@types/google.visualization';
 
@@ -89,7 +232,7 @@ declare namespace google {
   }
 }
 
-// const chromeStatsSample = {
+// const chromeStable = {
 //   data: [
 //     {
 //       run_timestamp: '2020-04-30T00:00:00Z',
@@ -101,21 +244,6 @@ declare namespace google {
 //   metadata: {
 //     next_page_token:
 //       'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTMwVDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjoyOTAwMH0',
-//   },
-// };
-
-// const firefoxStatsSample = {
-//   data: [
-//     {
-//       run_timestamp: '2020-04-30T00:00:00Z',
-//       test_pass_count: 1019559,
-//       total_tests_count: 2031833,
-//     },
-//     // ...
-//   ],
-//   metadata: {
-//     next_page_token:
-//       'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTI5VDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjo5NTA4NDB9',
 //   },
 // };
 
@@ -155,105 +283,65 @@ export class StatsPage extends LitElement {
     });
   }
 
-  // Create data table rows from sample data
-  createGlobalFeatureSupportData(): google.visualization.DataTable {
-    const testData = this.globalFeatureSupport;
+  // Make a DataTable from the data in browserChannelDataMap
+  createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
+    // Get the list of browsers from browserChannelDataMap
+    const browsers = ALL_BROWSERS;
+    const channel = 'stable';
 
-    const data = new google.visualization.DataTable();
-    data.addColumn('date', 'Date');
-    // addColumn for each browser in testData
-
-    data.addColumn('number', 'Total');
-
-    // Iterate through testData to create a row for each day.
-    const rows = testData.map(dataRow => {
-      const date = dataRow.run_timestamp;
-      // Get passes for each browser ...
-      const total = dataRow.total_tests_count;
-      return [
-        date,
-        // browsers data
-        total,
-      ];
-    });
-    data.addRows(rows);
-    return data;
-  }
-
-  // Create random data for globalFeatureSupport,
-  // with first column being a date, ranging from Jan 2020 to now,
-  // and the rest of the columns being for each browser and total,
-  // with values, ranging from 5000 to 60000,
-  // incrementing from previous values on random dates.
-  // This is just to test the chart rendering.
-  createRandomGlobalFeatureSupportData(): google.visualization.DataTable {
     const dataTable = new google.visualization.DataTable();
     dataTable.addColumn('date', 'Date');
-    for (const browser of ['Chrome', 'Firefox', 'Safari', 'Edge']) {
+    for (const browser of browsers) {
       dataTable.addColumn('number', browser);
     }
     dataTable.addColumn('number', 'Total');
 
-    const now = new Date();
-    const startDate = new Date(2020, 0, 1);
-    const start = new Date(startDate.getFullYear(), 0, 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dateRange = end.getTime() - start.getTime();
-    const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
+    // Map from date to array of counts for each browser
+    const dateToBrowserDataMap = new Map<number, Array<number>>();
+    // Map from date to array of total_tests_count, the same for all browsers.
+    const dateToTotalTestsCountMap = new Map<number, number>();
 
-    const browsers = ['Chrome', 'Firefox', 'Safari', 'Edge'];
-    const columns = ['Date', 'Chrome', 'Firefox', 'Safari', 'Edge', 'Total'];
-
-    const dataRows = [];
-
-    // Compute random starting value for each browser and total.
-    const browserValues = [];
-    let total = 0;
-    for (const _browser of browsers) {
-      browserValues.push(Math.floor(Math.random() * 10000));
-      total += browserValues[browserValues.length - 1];
-    }
-
-    dataRows.push([start, ...browserValues, total]);
-
-    for (let i = 1; i < numDays; i++) {
-      // row is a date followed by numbers for each browser and total.
-      const row: Array<google.visualization.DataValue> = [
-        new Date(start.getTime() + i * (1000 * 60 * 60 * 24)),
-      ];
-
-      // Reset totoal for next row.
-      total = 0;
-
-      for (const _browser of browsers) {
-        // Get previous value
-        const previousValue = Number(
-          dataRows[i - 1][columns.indexOf(_browser)]
-        );
-        // Decide whether to increment value from the previous value.
-        const increment = Math.random() < 0.05;
-        const value = increment
-          ? previousValue + Math.floor(Math.random() * 1000)
-          : previousValue;
-
-        row.push(value);
-        total += value;
+    // Merge data across all browsers into one array of rows.
+    for (const browser of browsers) {
+      const data = browserChannelDataMap.get(`${browser}-${channel}`);
+      if (!data) continue;
+      for (const row of data) {
+        if (!row) continue;
+        const dateSeconds = new Date(row.run_timestamp).getTime();
+        const testPassCount = row.test_pass_count!;
+        if (!dateToBrowserDataMap.has(dateSeconds)) {
+          dateToBrowserDataMap.set(dateSeconds, [testPassCount]);
+          dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
+        } else {
+          dateToBrowserDataMap.get(dateSeconds)!.push(testPassCount);
+        }
       }
-      row.push(total);
-      dataRows.push(row);
     }
-    dataTable.addRows(dataRows);
 
+    // Sort the dateToBrowserDataMap by dateSeconds
+    const data = Array.from(dateToBrowserDataMap.entries()).sort(
+      ([d1], [d2]) => d1 - d2
+    );
+
+    // For each date, add a row to the dataTable
+    for (const row of data) {
+      const dateSeconds = row[0];
+      const date = new Date(dateSeconds);
+      const browserCounts = row[1];
+      const total = dateToTotalTestsCountMap.get(dateSeconds)!;
+      dataTable.addRow([date, ...browserCounts, total]);
+    }
     return dataTable;
   }
 
   createGlobalFeatureSupportChart(): void {
-    const data = this.createRandomGlobalFeatureSupportData();
+    const data = this.createGlobalFeatureSupportDataTableFromMap();
 
     const options = {
       hAxis: {title: 'Feature', titleTextStyle: {color: '#333'}},
       vAxis: {minValue: 0},
       legend: {position: 'top'},
+      chartArea: {left: 60, right: 16},
     };
 
     const chart = new google.visualization.LineChart(
