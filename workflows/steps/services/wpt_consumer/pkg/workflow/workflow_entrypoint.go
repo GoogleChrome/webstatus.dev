@@ -45,7 +45,6 @@ func (w Entrypoint) Start(ctx context.Context, from time.Time) []error {
 	for i := 0; i < w.NumWorkers; i++ {
 		go w.Starter.Start(ctx, i, &wg, jobsChan, errChan)
 	}
-	// wg.Add(len(browsers) * len(channels))
 	for _, browser := range browsers {
 		for _, channel := range channels {
 			jobsChan <- workflowArguments{
