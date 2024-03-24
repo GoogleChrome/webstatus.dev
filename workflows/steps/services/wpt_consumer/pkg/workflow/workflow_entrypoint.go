@@ -16,7 +16,6 @@ package workflow
 
 import (
 	"context"
-	"errors"
 	"log/slog"
 	"sync"
 	"time"
@@ -33,7 +32,7 @@ type WorkerStarter interface {
 	Start(ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan workflowArguments, errChan chan<- error)
 }
 
-func (w Entrypoint) Start(ctx context.Context, from time.Time) error {
+func (w Entrypoint) Start(ctx context.Context, from time.Time) []error {
 	browsers := shared.GetDefaultBrowserNames()
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	wg := sync.WaitGroup{}
@@ -42,11 +41,11 @@ func (w Entrypoint) Start(ctx context.Context, from time.Time) error {
 	errChan := make(chan error, numberOfJobs)
 
 	// Start the workers
+	wg.Add(w.NumWorkers)
 	for i := 0; i < w.NumWorkers; i++ {
-		wg.Add(1)
 		go w.Starter.Start(ctx, i, &wg, jobsChan, errChan)
 	}
-	wg.Add(len(browsers) * len(channels))
+	// wg.Add(len(browsers) * len(channels))
 	for _, browser := range browsers {
 		for _, channel := range channels {
 			jobsChan <- workflowArguments{
@@ -61,29 +60,27 @@ func (w Entrypoint) Start(ctx context.Context, from time.Time) error {
 	// Wait for workers and handle errors
 	go func() {
 		wg.Wait()
+		slog.Info("finished waiting")
+		doneChan <- struct{}{}
 		close(errChan)
 	}()
 
 	var allErrors []error
-	errWg := sync.WaitGroup{}
-	errWg.Add(1)
+
 	for {
 		select {
 		case err, ok := <-errChan:
 			if !ok {
 				// Handle collected errors
-				if len(allErrors) > 0 {
-					return errors.Join(allErrors...)
-				}
+				return allErrors
 
-				break
 			}
 			allErrors = append(allErrors, err)
 		case <-doneChan:
 			// Channel closed, proceed
 			slog.Info("Finished processing", "error count", len(allErrors))
 
-			return nil
+			return allErrors
 		}
 
 	}

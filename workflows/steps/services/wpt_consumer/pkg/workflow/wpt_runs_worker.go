@@ -66,23 +66,31 @@ type ConsumedRunTracker interface {
 		consumeDate time.Time) error
 }
 
-func (w WptRunsWorker) Start(
+type Worker interface {
+	processWorkflow(ctx context.Context, job workflowArguments) error
+}
+
+type RunsWorkerManager struct{}
+
+func (w RunsWorkerManager) Start(
 	ctx context.Context,
 	id int,
 	wg *sync.WaitGroup,
 	jobs <-chan workflowArguments,
-	errChan chan<- error) {
+	errChan chan<- error,
+	worker Worker) {
 	slog.Info("starting worker", "worker id", id)
 	defer wg.Done()
 	for job := range jobs {
-		err := w.startWorkflowForBrowserAndChannel(ctx, job)
+		err := worker.processWorkflow(ctx, job)
 		if err != nil {
 			errChan <- err
 		}
 	}
+	close(errChan)
 }
 
-func (w WptRunsWorker) startWorkflowForBrowserAndChannel(
+func (w WptRunsWorker) processWorkflow(
 	ctx context.Context,
 	job workflowArguments) error {
 	runs, err := w.runsGetter.GetRuns(ctx, job.from, shared.MaxCountMaxValue, job.browser, job.channel)

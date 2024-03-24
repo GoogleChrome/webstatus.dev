@@ -16,19 +16,80 @@ package workflow
 
 import (
 	"context"
+	"errors"
+	"sync"
 
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
-func NewGitHubWebFeaturesDataGetter(client *shared.GitHubWebFeaturesClient) *GitHubWebFeaturesDataGetter {
+type DataCacher[T any] interface {
+	Cache(
+		context.Context,
+		string,
+		*T,
+	) error
+	Get(
+		context.Context,
+		string,
+	) (*T, error)
+}
+
+type LocalDataCache[T any] struct {
+	mu   sync.RWMutex
+	data map[string]*T
+}
+
+func (c *LocalDataCache[T]) Cache(
+	ctx context.Context,
+	key string,
+	in *T,
+) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.data[key] = in
+
+	return nil
+}
+
+var ErrCachedDataNotFound = errors.New("cached data not found for key")
+
+func (c *LocalDataCache[T]) Get(
+	ctx context.Context,
+	key string,
+) (*T, error) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	if data, found := c.data[key]; found {
+		return data, nil
+	}
+
+	return nil, ErrCachedDataNotFound
+}
+
+func NewGitHubWebFeaturesDataGetter(
+	client *shared.GitHubWebFeaturesClient) *GitHubWebFeaturesDataGetter {
 	return &GitHubWebFeaturesDataGetter{client: client}
 }
 
 type GitHubWebFeaturesDataGetter struct {
 	client *shared.GitHubWebFeaturesClient
+	cache  DataCacher[shared.WebFeaturesData]
 }
 
-func (g GitHubWebFeaturesDataGetter) GetWebFeaturesData(ctx context.Context) (shared.WebFeaturesData, error) {
-	// TODO. cache the result
-	return g.client.Get(ctx)
+const (
+	cacheKeyLatest = "latest-web-features"
+)
+
+func (g GitHubWebFeaturesDataGetter) GetWebFeaturesData(ctx context.Context) (*shared.WebFeaturesData, error) {
+	cachedData, err := g.cache.Get(ctx, cacheKeyLatest)
+	if !errors.Is(err, ErrCachedDataNotFound) {
+		return cachedData, nil
+	}
+	data, err := g.client.Get(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return &data, nil
 }
