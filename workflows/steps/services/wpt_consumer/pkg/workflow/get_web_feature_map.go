@@ -17,8 +17,9 @@ package workflow
 import (
 	"context"
 	"errors"
-	"sync"
+	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -34,46 +35,17 @@ type DataCacher[T any] interface {
 	) (*T, error)
 }
 
-type LocalDataCache[T any] struct {
-	mu   sync.RWMutex
-	data map[string]*T
-}
-
-func (c *LocalDataCache[T]) Cache(
-	ctx context.Context,
-	key string,
-	in *T,
-) error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	c.data[key] = in
-
-	return nil
-}
-
-var ErrCachedDataNotFound = errors.New("cached data not found for key")
-
-func (c *LocalDataCache[T]) Get(
-	ctx context.Context,
-	key string,
-) (*T, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-
-	if data, found := c.data[key]; found {
-		return data, nil
+func NewCacheableWebFeaturesDataGetter(
+	client WebFeatureDataGetter,
+	cache DataCacher[shared.WebFeaturesData]) *CacheableWebFeaturesDataGetter {
+	return &CacheableWebFeaturesDataGetter{
+		client: client,
+		cache:  cache,
 	}
-
-	return nil, ErrCachedDataNotFound
 }
 
-func NewGitHubWebFeaturesDataGetter(
-	client *shared.GitHubWebFeaturesClient) *GitHubWebFeaturesDataGetter {
-	return &GitHubWebFeaturesDataGetter{client: client}
-}
-
-type GitHubWebFeaturesDataGetter struct {
-	client *shared.GitHubWebFeaturesClient
+type CacheableWebFeaturesDataGetter struct {
+	client WebFeatureDataGetter
 	cache  DataCacher[shared.WebFeaturesData]
 }
 
@@ -81,14 +53,25 @@ const (
 	cacheKeyLatest = "latest-web-features"
 )
 
-func (g GitHubWebFeaturesDataGetter) GetWebFeaturesData(ctx context.Context) (*shared.WebFeaturesData, error) {
+type WebFeatureDataGetter interface {
+	Get(context.Context) (shared.WebFeaturesData, error)
+}
+
+func (g *CacheableWebFeaturesDataGetter) GetWebFeaturesData(
+	ctx context.Context, _ string) (*shared.WebFeaturesData, error) {
 	cachedData, err := g.cache.Get(ctx, cacheKeyLatest)
-	if !errors.Is(err, ErrCachedDataNotFound) {
+	if err == nil {
 		return cachedData, nil
+	} else if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
+		slog.Warn("unexpected error when trying to get cache data", "err", err)
 	}
 	data, err := g.client.Get(ctx)
 	if err != nil {
 		return nil, err
+	}
+
+	if err := g.cache.Cache(ctx, cacheKeyLatest, &data); err != nil {
+		slog.Warn("unable to cache web features data", "err", err)
 	}
 
 	return &data, nil

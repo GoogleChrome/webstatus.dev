@@ -83,7 +83,6 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID in
 	// Create a metric with the retrieved ID
 	metric := c.CreateSpannerWPTRunFeatureMetric(*wptRunData, in)
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		// TODO: Query by primary key instead.
 		stmt := spanner.NewStatement(`
 			SELECT
 				ID, FeatureID, TotalTests, TestPass, TimeStart, PassRate, Channel, BrowserName
@@ -126,6 +125,7 @@ func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID in
 			// Only allow overriding of the test numbers.
 			existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
 			existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
+			existingMetric.PassRate = getPassRate(existingMetric.TestPass, existingMetric.TotalTests)
 			m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)

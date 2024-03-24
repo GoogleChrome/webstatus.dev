@@ -54,32 +54,43 @@ type ResultsDownloader interface {
 }
 
 type WebFeaturesDataGetter interface {
-	GetWebFeaturesData(context.Context) (shared.WebFeaturesData, error)
+	// Get the web features metadata for the particular commit sha.
+	GetWebFeaturesData(context.Context, string) (*shared.WebFeaturesData, error)
 }
 
 type WebFeatureWPTScorer interface {
-	Score(context.Context, ResultsSummaryFile, shared.WebFeaturesData) map[string]WPTFeatureMetric
+	Score(context.Context, ResultsSummaryFile, *shared.WebFeaturesData) map[string]WPTFeatureMetric
 }
 
 type WPTRun struct {
-	ID             int64
-	BrowserName    string
-	BrowserVersion string
-	TimeStart      time.Time
+	ID               int64
+	BrowserName      string
+	BrowserVersion   string
+	TimeStart        time.Time
+	TimeEnd          time.Time
+	Channel          string
+	OSName           string
+	OSVersion        string
+	FullRevisionHash string
 }
 
 func NewWPTRun(testRun shared.TestRun) WPTRun {
 	return WPTRun{
-		ID:             testRun.ID,
-		BrowserName:    testRun.BrowserName,
-		BrowserVersion: testRun.BrowserVersion,
-		TimeStart:      testRun.TimeStart,
+		ID:               testRun.ID,
+		BrowserName:      testRun.BrowserName,
+		BrowserVersion:   testRun.BrowserVersion,
+		TimeStart:        testRun.TimeStart,
+		TimeEnd:          testRun.TimeEnd,
+		Channel:          testRun.Channel(),
+		OSName:           testRun.OSName,
+		OSVersion:        testRun.OSVersion,
+		FullRevisionHash: testRun.FullRevisionHash,
 	}
 }
 
 type WebFeatureWPTScoreStorer interface {
-	StoreWPTRun(context.Context, int64, WPTRun) error
-	StoreWPTRunMetricsForFeatures(
+	InsertWPTRun(context.Context, WPTRun) error
+	UpsertWPTRunFeatureMetric(
 		context.Context,
 		int64,
 		map[string]WPTFeatureMetric) error
@@ -95,20 +106,18 @@ func (w WPTRunProcessor) ProcessRun(
 	}
 
 	// Get the web features data.
-	// TODO: in the future, get the matching metadata if it exist. Then default to
-	//      the latest if it doesn't exist.
-	webFeaturesData, err := w.webFeaturesDataGetter.GetWebFeaturesData(ctx)
+	webFeaturesData, err := w.webFeaturesDataGetter.GetWebFeaturesData(ctx, run.FullRevisionHash)
 	if err != nil {
 		return err
 	}
 	metricsPerFeature := w.scorer.Score(ctx, resultsSummaryFile, webFeaturesData)
 
-	err = w.scoreStorer.StoreWPTRun(ctx, run.ID, NewWPTRun(run))
+	err = w.scoreStorer.InsertWPTRun(ctx, NewWPTRun(run))
 	if err != nil {
 		return err
 	}
 
-	err = w.scoreStorer.StoreWPTRunMetricsForFeatures(ctx, run.ID, metricsPerFeature)
+	err = w.scoreStorer.UpsertWPTRunFeatureMetric(ctx, run.ID, metricsPerFeature)
 	if err != nil {
 		return err
 	}

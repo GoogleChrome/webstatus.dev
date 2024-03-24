@@ -108,8 +108,8 @@ func TestScore(t *testing.T) {
 			summary:           getSimpleSummary(),
 			expectedOutput: map[string]WPTFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr(1),
-					TestPass:   valuePtr(1),
+					TotalTests: valuePtr[int64](1),
+					TestPass:   valuePtr[int64](1),
 				},
 			},
 		},
@@ -119,35 +119,35 @@ func TestScore(t *testing.T) {
 			summary:           getComplexSummary(),
 			expectedOutput: map[string]WPTFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr(2),
-					TestPass:   valuePtr(2),
+					TotalTests: valuePtr[int64](2),
+					TestPass:   valuePtr[int64](2),
 				},
 				"feature2": {
-					TotalTests: valuePtr(3),
-					TestPass:   valuePtr(2),
+					TotalTests: valuePtr[int64](3),
+					TestPass:   valuePtr[int64](2),
 				},
 				"feature3": {
-					TotalTests: valuePtr(2),
-					TestPass:   valuePtr(1),
+					TotalTests: valuePtr[int64](2),
+					TestPass:   valuePtr[int64](1),
 				},
 				"feature4": {
-					TotalTests: valuePtr(1),
-					TestPass:   valuePtr(0),
+					TotalTests: valuePtr[int64](1),
+					TestPass:   valuePtr[int64](0),
 				},
 				"feature5": {
-					TotalTests: valuePtr(1),
-					TestPass:   valuePtr(1),
+					TotalTests: valuePtr[int64](1),
+					TestPass:   valuePtr[int64](1),
 				},
 			},
 		},
 	}
-	for _, tc := range testCases {
+	for idx, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			scorer := WPTScorerForWebFeatures{}
 			output := scorer.Score(
 				context.Background(),
 				tc.summary,
-				tc.testToWebFeatures,
+				&testCases[idx].testToWebFeatures,
 			)
 			if !reflect.DeepEqual(tc.expectedOutput, output) {
 				t.Errorf("unexpected score\nexpected %v\nreceived %v", tc.expectedOutput, output)

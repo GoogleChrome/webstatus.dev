@@ -166,8 +166,8 @@ func TestStart(t *testing.T) {
 }
 
 var (
-	errGetRuns    = errors.New("Mock RunsGetter error")
-	errProcesRuns = errors.New("Mock RunsProcessor error")
+	errGetRuns     = errors.New("Mock RunsGetter error")
+	errProcessRuns = errors.New("Mock RunsProcessor error")
 )
 
 type mockGetRunsConfig struct {
@@ -202,7 +202,7 @@ type MockRunsProcessor struct {
 
 func (m *MockRunsProcessor) ProcessRuns(_ context.Context, _ shared.TestRuns) error {
 	if m.mockProcessRunsCfg.shouldFail {
-		return errProcesRuns
+		return errProcessRuns
 	}
 
 	return nil
@@ -279,7 +279,7 @@ func TestProcessWorkflow(t *testing.T) {
 			mockProcessRunsCfg: mockProcessRunsConfig{
 				shouldFail: true,
 			},
-			expectedErr: errProcesRuns,
+			expectedErr: errProcessRuns,
 		},
 	}
 	for _, tc := range testCases {

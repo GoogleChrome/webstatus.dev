@@ -38,8 +38,8 @@ const (
 )
 
 type WPTFeatureMetric struct {
-	TotalTests *int
-	TestPass   *int
+	TotalTests *int64
+	TestPass   *int64
 }
 
 type WPTScorerForWebFeatures struct{}
@@ -47,7 +47,7 @@ type WPTScorerForWebFeatures struct{}
 func (s WPTScorerForWebFeatures) Score(
 	ctx context.Context,
 	summary ResultsSummaryFile,
-	testToWebFeatures shared.WebFeaturesData) map[string]WPTFeatureMetric {
+	testToWebFeatures *shared.WebFeaturesData) map[string]WPTFeatureMetric {
 	scoreMap := make(map[string]WPTFeatureMetric)
 	for test, testSummary := range summary {
 		if len(testSummary.Counts) < 2 {
@@ -64,21 +64,21 @@ func (s WPTScorerForWebFeatures) scoreTest(
 	_ context.Context,
 	test string,
 	webFeatureScoreMap map[string]WPTFeatureMetric,
-	testToWebFeatures shared.WebFeaturesData,
+	testToWebFeatures *shared.WebFeaturesData,
 	numberOfSubtestPassing int,
 	numberofSubtests int,
 ) {
 	var webFeatures map[string]interface{}
 	var found bool
-	if webFeatures, found = testToWebFeatures[test]; !found {
+	if webFeatures, found = (*testToWebFeatures)[test]; !found {
 		// There are no web features associated with this test. Skip
 		return
 	}
 	// Calculate the value early so we can re-use for multiple web features.
 	countsAsPassing := numberOfSubtestPassing == numberofSubtests
 	for webFeature := range webFeatures {
-		initialTotal := new(int)
-		initialPass := new(int)
+		initialTotal := new(int64)
+		initialPass := new(int64)
 		*initialTotal = 0
 		*initialPass = 0
 		webFeatureScore := cmp.Or(
