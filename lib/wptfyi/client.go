@@ -31,8 +31,7 @@ func NewHTTPClient(hostname string) HTTPClient {
 	return HTTPClient{
 		hostname: hostname,
 		// Request the max every time
-		// pageLimit: shared.MaxCountMaxValue,
-		pageLimit: 5,
+		pageLimit: shared.MaxCountMaxValue,
 	}
 }
 

@@ -94,7 +94,8 @@ func (w RunsWorkerManager) Start(
 			errChan <- err
 		}
 	}
-	close(errChan)
+	// Do not close the shared error channel here.
+	// It will prevent others from returning their errors.
 }
 
 func (w WptRunsWorker) processWorkflow(
