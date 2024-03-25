@@ -42,8 +42,5 @@ test('Bad URL redirection to 404 page', async ({page}) => {
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/bad_url');
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot('not-found-error-page.png', {
-    // Temporarily allow a higher diff ratio as these tests become more stable
-    maxDiffPixelRatio: 0.02,
-  });
+  await expect(pageContainer).toHaveScreenshot('not-found-error-page.png');
 });

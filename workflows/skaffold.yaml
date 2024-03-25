@@ -17,5 +17,4 @@ kind: Config
 metadata:
   name: workflows
 requires:
-  - path: ./steps/services/common/repo_downloader
   - path: ./steps/services/web_feature_consumer

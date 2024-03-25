@@ -17,6 +17,45 @@ everything pre-installed.
 make start-local
 ```
 
+Everything will start up without port forwarding enabled. (Sometimes skaffold
+thinks a port is occcupied and will assign a different port so we disabled it
+that logic.) As you make changes, the service will recompile and deploy automatically.
+
+Once everything comes up, open a second terminal.
+
+```sh
+# Terminal 2
+make port-forward-manual
+```
+
+The output should match this:
+
+```sh
+$ make port-forward-manual
+pkill kubectl -9 || true
+kubectl wait --for=condition=ready pod/frontend
+pod/frontend condition met
+kubectl wait --for=condition=ready pod/backend
+pod/backend condition met
+kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
+kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
+```
+
+_Note_: Ignore the WARN statements that are printed in terminal 1 as a result of this
+command. However, if the WARN statements appear later on and you did not run
+this command or the `make port-forward-terminate` command, something may be wrong.
+
+If you terminate everything in terminal 1, run this to clean up:
+
+```sh
+# Terminal 2
+make port-forward-terminate
+```
+
+_Note_: Ignore the WARN statements that are printed in terminal 1 as a result of this
+command. However, if the WARN statements appear later on and you did not run
+this command or the `make port-forward-manual` command, something may be wrong.
+
 ### Locally Deployed Resources
 
 The above skaffold command deploys multiple resources:

@@ -16,13 +16,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/common/repo_downloader"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
 )
 
@@ -30,18 +28,12 @@ func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	// Describe the command line flags and parse the flags
 	var (
-		repoDownloaderHost     = flag.String("repo_downloader_host", "", "Repo Downloader host")
 		webFeatureConsumerHost = flag.String("web_consumer_host", "", "Web Feature Consumer host")
 		githubOrg              = flag.String("github_org", "web-platform-dx", "Github Org")
 		githubRepo             = flag.String("github_repo", "web-features", "Github Repo")
 	)
 	flag.Parse()
 
-	// Setup the clients
-	repoDownloaderClient, err := repo_downloader.NewClientWithResponses(*repoDownloaderHost)
-	if err != nil {
-		log.Fatalf("failed to construct repo downloader client: %s\n", err.Error())
-	}
 	webFeatureConsumerClient, err := web_feature_consumer.NewClientWithResponses(*webFeatureConsumerHost)
 	if err != nil {
 		log.Fatalf("failed to construct repo downloader client: %s\n", err.Error())
@@ -49,7 +41,6 @@ func main() {
 
 	// Run the workflow
 	err = newWebFeatureWorkflow(
-		repoDownloaderClient,
 		webFeatureConsumerClient,
 		*githubOrg,
 		*githubRepo,
@@ -66,80 +57,32 @@ func main() {
 // The only difference is that the calls to the web feature consumer happen
 // serially.
 type WebFeatureWorkflow struct {
-	repoDownloaderClient repo_downloader.ClientWithResponsesInterface
-	webFeatureClient     web_feature_consumer.ClientWithResponsesInterface
-	githubOrg            string
-	githubRepo           string
+	webFeatureClient web_feature_consumer.ClientWithResponsesInterface
+	githubOrg        string
+	githubRepo       string
 }
 
 // newWebFeatureWorkflow creates a new WebFeatureWorkflow.
 func newWebFeatureWorkflow(
-	repoDownloaderClient repo_downloader.ClientWithResponsesInterface,
 	webFeatureClient web_feature_consumer.ClientWithResponsesInterface,
 	githubOrg string,
 	githubRepo string) WebFeatureWorkflow {
+
 	return WebFeatureWorkflow{
-		repoDownloaderClient: repoDownloaderClient,
-		webFeatureClient:     webFeatureClient,
-		githubOrg:            githubOrg,
-		githubRepo:           githubRepo,
+		webFeatureClient: webFeatureClient,
+		githubOrg:        githubOrg,
+		githubRepo:       githubRepo,
 	}
 }
 
 // Run executes the workflow.
 func (w WebFeatureWorkflow) Run(ctx context.Context) error {
-	// Common settings for repo downloader
-	var (
-		featureFilenamePrefix = "feature-group-definitions"
-		featureFilenameSuffix = ".yml"
-		fileFilters           = []repo_downloader.FileFilter{
-			{
-				Prefix: &featureFilenamePrefix,
-				Suffix: &featureFilenameSuffix,
-			},
-		}
-		tarStripComponents = 1
-	)
-	repoDownloaderResp, err := w.repoDownloaderClient.PostV1GithubComOwnerNameWithResponse(ctx,
-		w.githubOrg,
-		w.githubRepo,
-		repo_downloader.PostV1GithubComOwnerNameJSONRequestBody{
-			Archive: repo_downloader.TarInput{
-				Type:               repo_downloader.TAR,
-				TarStripComponents: &tarStripComponents,
-			},
-			FileFilters: &fileFilters,
-		})
-
+	webFeatureResp, err := w.webFeatureClient.PostV1WebFeaturesWithResponse(ctx)
 	if err != nil {
-		return fmt.Errorf("repo downloader client call failed: %w", err)
+		return fmt.Errorf("web feature client call failed: %w", err)
 	}
-
-	if repoDownloaderResp.StatusCode() != http.StatusOK {
-		return errors.New("failed to download repo")
-	}
-
-	objectPrefix := repoDownloaderResp.JSON200.Destination.Gcs.RepoPrefix
-	bucket := repoDownloaderResp.JSON200.Destination.Gcs.Bucket
-	for _, filename := range *repoDownloaderResp.JSON200.Destination.Gcs.Filenames {
-		object := fmt.Sprintf("%s/%s", objectPrefix, filename)
-		webFeatureResp, err := w.webFeatureClient.PostV1WebFeaturesWithResponse(
-			ctx,
-			web_feature_consumer.PostV1WebFeaturesJSONRequestBody{
-				Location: web_feature_consumer.ObjectLocation{
-					Gcs: &web_feature_consumer.GCSObjectLocation{
-						Bucket: bucket,
-						Object: fmt.Sprintf("%s/%s", objectPrefix, filename),
-					},
-				},
-			})
-		if err != nil {
-			return fmt.Errorf("web feature client call failed: %w", err)
-		}
-
-		if webFeatureResp.StatusCode() != http.StatusOK {
-			return fmt.Errorf("failed to consume web feature from repo. object: %s bucket: %s", object, bucket)
-		}
+	if webFeatureResp.StatusCode() != http.StatusOK {
+		return fmt.Errorf("failed to consume web features from repo. status %d", webFeatureResp.StatusCode())
 	}
 
 	return nil

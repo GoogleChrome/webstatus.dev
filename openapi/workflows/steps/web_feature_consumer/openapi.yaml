@@ -21,17 +21,7 @@ servers:
 paths:
   /v1/web-features:
     post:
-      summary: Consumes the specified web feature
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              required:
-                - location
-              properties:
-                location:
-                  $ref: '#/components/schemas/ObjectLocation'
+      summary: Consumes the web-features repository from the latest GitHub Release.
 
       responses:
         '200':

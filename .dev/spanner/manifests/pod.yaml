@@ -29,5 +29,8 @@ spec:
           name: rest-port
       resources:
         limits:
-          cpu: '4'
+          cpu: '2'
           memory: '1.5Gi'
+        requests:
+          cpu: '300m'
+          memory: '256Mi'
