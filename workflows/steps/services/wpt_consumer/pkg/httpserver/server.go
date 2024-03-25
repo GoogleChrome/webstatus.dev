@@ -26,7 +26,7 @@ import (
 )
 
 type WorkflowStarter interface {
-	Start(ctx context.Context, from time.Time) error
+	Start(ctx context.Context, from time.Time) []error
 }
 
 type Server struct {

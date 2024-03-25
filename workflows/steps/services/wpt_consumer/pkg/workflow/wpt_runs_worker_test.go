@@ -106,8 +106,6 @@ func TestStart(t *testing.T) {
 			testErrChan := make(chan error)
 			testWg := &sync.WaitGroup{}
 
-			manager := RunsWorkerManager{}
-
 			ctx, cancelFunc := context.WithCancel(context.Background()) // For potential cancellation tests
 			defer cancelFunc()                                          // Ensure cleanup
 
@@ -116,7 +114,11 @@ func TestStart(t *testing.T) {
 				processJobs:            []workflowArguments{},
 				mockProcessWorkflowCfg: tc.mockProcessWorkflowCfg,
 			}
-			go manager.Start(ctx, 1, testWg, testJobs, testErrChan, &worker)
+			manager := RunsWorkerManager{
+				worker: &worker,
+			}
+
+			go manager.Start(ctx, 1, testWg, testJobs, testErrChan)
 
 			// Send jobs
 			for _, job := range tc.jobs {

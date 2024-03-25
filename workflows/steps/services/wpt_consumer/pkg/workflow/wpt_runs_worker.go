@@ -70,19 +70,26 @@ type Worker interface {
 	processWorkflow(ctx context.Context, job workflowArguments) error
 }
 
-type RunsWorkerManager struct{}
+type RunsWorkerManager struct {
+	worker Worker
+}
+
+func NewRunsWorkerManager(in Worker) *RunsWorkerManager {
+	return &RunsWorkerManager{
+		worker: in,
+	}
+}
 
 func (w RunsWorkerManager) Start(
 	ctx context.Context,
 	id int,
 	wg *sync.WaitGroup,
 	jobs <-chan workflowArguments,
-	errChan chan<- error,
-	worker Worker) {
+	errChan chan<- error) {
 	slog.Info("starting worker", "worker id", id)
 	defer wg.Done()
 	for job := range jobs {
-		err := worker.processWorkflow(ctx, job)
+		err := w.worker.processWorkflow(ctx, job)
 		if err != nil {
 			errChan <- err
 		}

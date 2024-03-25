@@ -21,6 +21,11 @@ import (
 	wptWorkflow "github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
 )
 
+// NewWPTWorkflowConsumer constructs an adapter for the wpt consumer service.
+func NewWPTWorkflowConsumer(client WPTWorkflowSpannerClient) *WPTConsumer {
+	return &WPTConsumer{client: client}
+}
+
 // WPTWorkflowSpannerClient expects a subset of the functionality from lib/gcpspanner that
 // only apply to inserting WPT data.
 type WPTWorkflowSpannerClient interface {

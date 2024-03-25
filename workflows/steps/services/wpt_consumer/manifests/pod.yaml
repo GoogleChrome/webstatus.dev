@@ -36,6 +36,11 @@ spec:
           value: ''
         - name: DATASTORE_EMULATOR_HOST
           value: 'datastore:8085'
+        - name: SPANNER_DATABASE
+          value: 'local'
+        - name: SPANNER_INSTANCE
+          value: 'local'
+        - name: SPANNER_EMULATOR_HOST
       resources:
         limits:
           cpu: 250m

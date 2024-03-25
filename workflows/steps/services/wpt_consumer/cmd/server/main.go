@@ -20,10 +20,15 @@ import (
 	"os"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
+	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
+	"github.com/GoogleChrome/webstatus.dev/lib/wptfyi"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/httpserver"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
 	"github.com/google/go-github/v47/github"
+	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
 func main() {
@@ -32,34 +37,47 @@ func main() {
 	if value, found := os.LookupEnv("DATASTORE_DATABASE"); found {
 		datastoreDB = &value
 	}
-	dsClient, err := gds.NewDatastoreClient(os.Getenv("PROJECT_ID"), datastoreDB)
+	projectID := os.Getenv("PROJECT_ID")
+	dsClient, err := gds.NewDatastoreClient(projectID, datastoreDB)
 	if err != nil {
 		slog.Error("failed to create datastore client", "error", err.Error())
 		os.Exit(1)
 	}
+	_ = dsClient
+
+	spannerDB := os.Getenv("SPANNER_DATABASE")
+	spannerInstance := os.Getenv("SPANNER_INSTANCE")
+	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
+	if err != nil {
+		slog.Error("failed to create spanner client", "error", err.Error())
+		os.Exit(1)
+	}
 
 	ghClient := github.NewClient(nil)
-	// workflow := workflow.Entrypoint{
-	// 	Starter: workflow.NewWptRunsWorker(
-	// 		wptfyi.NewHTTPClient(wptFyiHostname),
-	// 		workflow.NewWPTRunsProcessor(workflow.NewWPTRunProcessor(
-	// 			workflow.NewHTTPResultsGetter(),
-	// 			workflow.NewGitHubWebFeaturesDataGetter(
-	// 				shared.NewGitHubWebFeaturesClient(ghClient),
-	// 			),
-	// 			workflow.WPTScorerForWebFeatures{},
-	// 			dsClient,
-	// 		)),
-	// 	),
-	// 	NumWorkers: 1,
-	// }
+
 	w := workflow.Entrypoint{
-		Starter: workflow.NewWptRunsWorker(nil, nil),
+		Starter: workflow.NewRunsWorkerManager(
+			workflow.NewWptRunsWorker(
+				wptfyi.NewHTTPClient(wptFyiHostname),
+				workflow.NewWPTRunsProcessor(
+					workflow.NewWPTRunProcessor(
+						workflow.NewHTTPResultsGetter(),
+						workflow.NewCacheableWebFeaturesDataGetter(
+							shared.NewGitHubWebFeaturesClient(ghClient),
+							localcache.NewLocalDataCache[shared.WebFeaturesData](),
+						),
+						workflow.WPTScorerForWebFeatures{},
+						spanneradapters.NewWPTWorkflowConsumer(spannerClient),
+					),
+				),
+			),
+		),
+		NumWorkers: 1,
 	}
 
 	srv, err := httpserver.NewHTTPServer(
 		"8080",
-		workflow,
+		w,
 		// For now only go a year back by default.
 		time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC),
 	)
