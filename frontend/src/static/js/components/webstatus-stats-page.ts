@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+// See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
+/// <reference types="@types/google.visualization" />
 
 //import {consume} from '@lit/context';
 //import {Task} from '@lit/task';
@@ -158,68 +160,6 @@ makeRandomDataForAllBrowserChannelCombos();
 
 // From google.visualization types, copied from gviz.d.ts
 // Should be able to do this instead:
-// import {google} from '@types/google.visualization';
-
-export interface LoadOptions {
-  packages?: string | string[];
-  language?: string;
-  callback?: Function;
-  mapsApiKey?: string;
-  safeMode?: boolean;
-  /** not documented */
-  debug?: boolean;
-  /** not documented */
-  pseudo?: boolean;
-  /** not documented, looks for charts-version in url query params */
-  enableUrlSettings?: boolean;
-}
-
-declare namespace google {
-  namespace charts {
-    /** Loads with `safeMode` enabled. */
-    function safeLoad(options: LoadOptions): Promise<void>;
-    function load(options: LoadOptions): Promise<void>;
-    function load(
-      version: string | number,
-      options: LoadOptions
-    ): Promise<void>;
-    /** Legacy https://developers.google.com/chart/interactive/docs/basic_load_libs#updateloader */
-    function load(
-      visualization: 'visualization',
-      version: string | number,
-      options: LoadOptions
-    ): Promise<void>;
-
-    function setOnLoadCallback(handler: Function): void;
-  }
-
-  namespace visualization {
-    /**
-     * Value of a Cell.
-     *
-     * Note that undefined is not allowed and not all types use it yet.
-     */
-    type DataValue = number | string | boolean | Date | number[] | null;
-
-    class DataInterface {}
-    class DataTable implements DataInterface {
-      addColumn(type: string, label?: string | null, id?: string): number;
-      addRow(cellArray?: any[]): number;
-      addRows(rows: any[][]): number;
-    }
-
-    function arrayToDataTable(data: any[], firstRowIsData?: boolean): DataTable;
-
-    abstract class CoreChart {
-      constructor(container: Element);
-      // getChartLayoutInterface(): ChartLayoutInterface;
-      getContainer(): Element;
-      computeDiff(oldData: any, newData: any): any;
-      draw(data: DataTable, opt_options?: any, opt_state?: any): void;
-    }
-    class LineChart extends CoreChart {}
-  }
-}
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
@@ -316,7 +256,7 @@ export class StatsPage extends LitElement {
       vAxis: {minValue: 0},
       legend: {position: 'top'},
       chartArea: {left: 60, right: 16},
-    };
+    } as google.visualization.LineChartOptions;
 
     const chart = new google.visualization.LineChart(
       this.shadowRoot!.getElementById('global-feature-support-chart')!
@@ -344,7 +284,7 @@ export class StatsPage extends LitElement {
             Select range
           </sl-button>
           <sl-radio-group>
-            <sl-radio-button value="WPT">WPT</sl-radio-button>
+            <sl-radio-button value="WPT" checked>WPT</sl-radio-button>
             <sl-radio-button value="BCD">BCD</sl-radio-button>
           </sl-radio-group>
         </div>
@@ -398,7 +338,11 @@ export class StatsPage extends LitElement {
 
   renderBaselineFeatures(): TemplateResult {
     return html`
-      <sl-card class="halign-stretch" id="baseline-features">
+      <sl-card
+        class="halign-stretch"
+        id="baseline-features"
+        style="display:none"
+      >
         <div slot="header">Baseline features</div>
         <p class="under-construction">Small chart goes here...</p>
       </sl-card>
