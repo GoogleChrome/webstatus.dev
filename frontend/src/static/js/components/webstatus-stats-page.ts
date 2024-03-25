@@ -121,6 +121,7 @@ function makeRandomDataForAllBrowserChannelCombos() {
 
 makeRandomDataForAllBrowserChannelCombos();
 
+// Mocking data for the featuresLagging chart.
 /** Map from browser-channel to features missing in only one browser. */
 // const featuresLaggingDataMap = new Map<
 //   string,
@@ -155,10 +156,10 @@ makeRandomDataForAllBrowserChannelCombos();
 //   featuresLaggingDataMap.set('all', data);
 // }
 
+// From google.visualization types, copied from gviz.d.ts
 // Should be able to do this instead:
 // import {google} from '@types/google.visualization';
 
-// From gviz.d.ts
 export interface LoadOptions {
   packages?: string | string[];
   language?: string;
@@ -219,21 +220,6 @@ declare namespace google {
     class LineChart extends CoreChart {}
   }
 }
-
-// const chromeStable = {
-//   data: [
-//     {
-//       run_timestamp: '2020-04-30T00:00:00Z',
-//       test_pass_count: 987329,
-//       total_tests_count: 2004705,
-//     },
-//     // ...
-//   ],
-//   metadata: {
-//     next_page_token:
-//       'eyJsYXN0X3RpbWVfc3RhcnQiOiIyMDIwLTA0LTMwVDAwOjAwOjAwWiIsImxhc3RfcnVuX2lkIjoyOTAwMH0',
-//   },
-// };
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
