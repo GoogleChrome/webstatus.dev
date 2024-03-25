@@ -30,15 +30,7 @@ const browserChannelDataMap = new Map<
   Array<components['schemas']['WPTRunMetric']>
 >();
 
-/** Map from browser-channel to features missing in only one browser. */
-// const featuresLaggingDataMap = new Map<
-//   string,
-//   Array<components['schemas']['WPTRunMetric']>
-//   >();
-
-
 const ALL_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'];
-
 
 /** Make random data for browserChannelDataMap */
 function makeRandomDataForBrowserChannelCombo(
@@ -88,44 +80,6 @@ function makeRandomDataForBrowserChannelCombo(
   browserChannelDataMap.set(`${browser}-${channel}`, data);
 }
 
-// /** Make random data for featuresLaggingDataMap.
-//  */
-// function makeRandomDataForFeaturesLagging(
-//  ) {
-//   const data: Array<components['schemas']['WPTRunMetric']> = [];
-//   // data is computed from browserChannelDataMap.
-//   const browsers = ALL_BROWSERS;
-
-//   const numDays = browserChannelDataMap.values().next().value.length;
-//   for (let i = 0; i < numDays; i++) {
-//     // For each browser...
-//     const dayData = browsers.map(
-//       browser => browserChannelDataMap.get(`${browser}-stable`)![i]
-//     );
-//     // For each day, first compute the number of missing tests for each browser,
-//     // which is the total minus the tests that passed.
-//     const missingTests = dayData.map(
-//       data => data.total_tests_count - data.test_pass_count
-//     );
-
-//     // Then guess if the missing tests for each browser are for the same feature
-//     // as for other browsers.  For simplicity, guess that the number of
-//     // tests that are missing only for each browser is a small fraction of all
-//     // the missing tests for that browser.
-
-
-
-
-//   // The number of tests missing for only one browser
-//   // is less than the number missing for each browser.
-
-
-
-//   }
-//   featuresLaggingDataMap.set('all', data);
-
-// }
-
 // Generate data for all browser/channel combos
 function makeRandomDataForAllBrowserChannelCombos() {
   let rate = 0.5;
@@ -166,6 +120,40 @@ function makeRandomDataForAllBrowserChannelCombos() {
 }
 
 makeRandomDataForAllBrowserChannelCombos();
+
+/** Map from browser-channel to features missing in only one browser. */
+// const featuresLaggingDataMap = new Map<
+//   string,
+//   Array<components['schemas']['WPTRunMetric']>
+//   >();
+
+// /** Make random data for featuresLaggingDataMap.
+//  */
+// function makeRandomDataForFeaturesLagging(
+//  ) {
+//   const data: Array<components['schemas']['WPTRunMetric']> = [];
+//   // data is computed from browserChannelDataMap.
+//   const browsers = ALL_BROWSERS;
+
+//   const numDays = browserChannelDataMap.values().next().value.length;
+//   for (let i = 0; i < numDays; i++) {
+//     // For each browser...
+//     const dayData = browsers.map(
+//       browser => browserChannelDataMap.get(`${browser}-stable`)![i]
+//     );
+//     // For each day, first compute the number of missing tests for each browser,
+//     // which is the total minus the tests that passed.
+//     const missingTests = dayData.map(
+//       data => data.total_tests_count - data.test_pass_count
+//     );
+
+//     // Then guess if the missing tests for each browser are for the same feature
+//     // as for other browsers.  For simplicity, guess that the number of
+//     // tests that are missing only for each browser is a small fraction of all
+//     // the missing tests for that browser.
+//   }
+//   featuresLaggingDataMap.set('all', data);
+// }
 
 // Should be able to do this instead:
 // import {google} from '@types/google.visualization';
@@ -433,7 +421,11 @@ export class StatsPage extends LitElement {
 
   renderTimeToAvailability(): TemplateResult {
     return html`
-      <sl-card class="halign-stretch" id="time-to-availibility">
+      <sl-card
+        class="halign-stretch"
+        id="time-to-availibility"
+        style="display:none"
+      >
         <div slot="header">Time to availablity</div>
         <p class="under-construction">Small chart goes here...</p>
       </sl-card>
