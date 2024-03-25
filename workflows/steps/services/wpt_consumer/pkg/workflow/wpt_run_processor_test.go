@@ -101,13 +101,13 @@ func (m *MockWebFeatureWPTScoreStorer) InsertWPTRun(
 	return m.insertRunCfg.err
 }
 
-func (m *MockWebFeatureWPTScoreStorer) UpsertWPTRunFeatureMetric(
+func (m *MockWebFeatureWPTScoreStorer) UpsertWPTRunFeatureMetrics(
 	_ context.Context,
 	runID int64,
 	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric) error {
 	if !reflect.DeepEqual(metricsPerFeature, m.upsertMetricCfg.metricsPerFeature) ||
 		runID != m.upsertMetricCfg.runID {
-		m.t.Error("unexpected input to UpsertWPTRunFeatureMetric")
+		m.t.Error("unexpected input to UpsertWPTRunFeatureMetrics")
 	}
 
 	return m.upsertMetricCfg.err

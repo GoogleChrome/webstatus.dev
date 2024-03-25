@@ -78,7 +78,7 @@ func NewWPTRun(testRun shared.TestRun) wptconsumertypes.WPTRun {
 
 type WebFeatureWPTScoreStorer interface {
 	InsertWPTRun(context.Context, wptconsumertypes.WPTRun) error
-	UpsertWPTRunFeatureMetric(
+	UpsertWPTRunFeatureMetrics(
 		context.Context,
 		int64,
 		map[string]wptconsumertypes.WPTFeatureMetric) error
@@ -105,7 +105,7 @@ func (w WPTRunProcessor) ProcessRun(
 		return err
 	}
 
-	err = w.scoreStorer.UpsertWPTRunFeatureMetric(ctx, run.ID, metricsPerFeature)
+	err = w.scoreStorer.UpsertWPTRunFeatureMetrics(ctx, run.ID, metricsPerFeature)
 	if err != nil {
 		return err
 	}

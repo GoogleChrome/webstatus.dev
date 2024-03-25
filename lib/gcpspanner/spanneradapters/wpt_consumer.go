@@ -30,7 +30,7 @@ func NewWPTWorkflowConsumer(client WPTWorkflowSpannerClient) *WPTConsumer {
 // only apply to inserting WPT data.
 type WPTWorkflowSpannerClient interface {
 	InsertWPTRun(ctx context.Context, run gcpspanner.WPTRun) error
-	UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID int64, in gcpspanner.WPTRunFeatureMetric) error
+	UpsertWPTRunFeatureMetrics(ctx context.Context, externalRunID int64, in []gcpspanner.WPTRunFeatureMetric) error
 }
 
 type WPTConsumer struct {
@@ -55,17 +55,21 @@ func (w *WPTConsumer) InsertWPTRun(ctx context.Context, in wptconsumertypes.WPTR
 	return w.client.InsertWPTRun(ctx, run)
 }
 
-func (w *WPTConsumer) UpsertWPTRunFeatureMetric(
+func (w *WPTConsumer) UpsertWPTRunFeatureMetrics(
 	ctx context.Context,
 	runID int64,
 	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric) error {
+	metrics := make([]gcpspanner.WPTRunFeatureMetric, 0, len(metricsPerFeature))
 	for featureID, consumerMetric := range metricsPerFeature {
-		metric := gcpspanner.WPTRunFeatureMetric{
+		metrics = append(metrics, gcpspanner.WPTRunFeatureMetric{
 			FeatureID:  featureID,
 			TotalTests: consumerMetric.TotalTests,
 			TestPass:   consumerMetric.TestPass,
-		}
-		err := w.client.UpsertWPTRunFeatureMetric(ctx, runID, metric)
+		})
+
+	}
+	if len(metrics) > 0 {
+		err := w.client.UpsertWPTRunFeatureMetrics(ctx, runID, metrics)
 		if err != nil {
 			return err
 		}

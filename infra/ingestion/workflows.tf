@@ -35,9 +35,9 @@ module "wpt_workflow" {
     google.public_project   = google.public_project
   }
 
-  regions                                      = var.regions
-  env_id                                       = var.env_id
-  datastore_info                               = var.datastore_info
-  spanner_datails                              = var.spanner_datails
-  docker_repository_details                    = var.docker_repository_details
+  regions                   = var.regions
+  env_id                    = var.env_id
+  datastore_info            = var.datastore_info
+  spanner_datails           = var.spanner_datails
+  docker_repository_details = var.docker_repository_details
 }
