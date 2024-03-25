@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
@@ -58,24 +59,24 @@ func (m *MockWebFeaturesDataGetter) GetWebFeaturesData(
 }
 
 type MockWebFeatureWPTScorer struct {
-	metricsPerFeature map[string]WPTFeatureMetric
+	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric
 }
 
 func (m *MockWebFeatureWPTScorer) Score(
 	_ context.Context,
 	_ ResultsSummaryFile,
-	_ *shared.WebFeaturesData) map[string]WPTFeatureMetric {
+	_ *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric {
 	return m.metricsPerFeature
 }
 
 type insertRunConfig struct {
-	run WPTRun
+	run wptconsumertypes.WPTRun
 	err error
 }
 
 type upsertMetricConfig struct {
 	runID             int64
-	metricsPerFeature map[string]WPTFeatureMetric
+	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric
 	err               error
 }
 
@@ -92,7 +93,7 @@ var (
 
 func (m *MockWebFeatureWPTScoreStorer) InsertWPTRun(
 	_ context.Context,
-	run WPTRun) error {
+	run wptconsumertypes.WPTRun) error {
 	if !reflect.DeepEqual(run, m.insertRunCfg.run) {
 		m.t.Error("unexpected input to InsertWPTRun")
 	}
@@ -103,7 +104,7 @@ func (m *MockWebFeatureWPTScoreStorer) InsertWPTRun(
 func (m *MockWebFeatureWPTScoreStorer) UpsertWPTRunFeatureMetric(
 	_ context.Context,
 	runID int64,
-	metricsPerFeature map[string]WPTFeatureMetric) error {
+	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric) error {
 	if !reflect.DeepEqual(metricsPerFeature, m.upsertMetricCfg.metricsPerFeature) ||
 		runID != m.upsertMetricCfg.runID {
 		m.t.Error("unexpected input to UpsertWPTRunFeatureMetric")
@@ -145,7 +146,7 @@ func TestProcessRun(t *testing.T) {
 				},
 			},
 			insertRunConfig: &insertRunConfig{
-				run: WPTRun{
+				run: wptconsumertypes.WPTRun{
 					ID:               123,
 					BrowserName:      "browser",
 					BrowserVersion:   "browserverion",
@@ -160,7 +161,7 @@ func TestProcessRun(t *testing.T) {
 			},
 			upsertMetricConfig: &upsertMetricConfig{
 				runID: 123,
-				metricsPerFeature: map[string]WPTFeatureMetric{
+				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
 				},
 				err: nil,
@@ -177,7 +178,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail:      false,
 			},
 			mockWebFeatureWPTScorer: &MockWebFeatureWPTScorer{
-				metricsPerFeature: map[string]WPTFeatureMetric{
+				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
 				},
 			},
@@ -267,7 +268,7 @@ func TestProcessRun(t *testing.T) {
 				},
 			},
 			insertRunConfig: &insertRunConfig{
-				run: WPTRun{
+				run: wptconsumertypes.WPTRun{
 					ID:               123,
 					BrowserName:      "browser",
 					BrowserVersion:   "browserverion",
@@ -293,7 +294,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail:      false,
 			},
 			mockWebFeatureWPTScorer: &MockWebFeatureWPTScorer{
-				metricsPerFeature: map[string]WPTFeatureMetric{
+				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
 				},
 			},
@@ -319,7 +320,7 @@ func TestProcessRun(t *testing.T) {
 				},
 			},
 			insertRunConfig: &insertRunConfig{
-				run: WPTRun{
+				run: wptconsumertypes.WPTRun{
 					ID:               123,
 					BrowserName:      "browser",
 					BrowserVersion:   "browserverion",
@@ -334,7 +335,7 @@ func TestProcessRun(t *testing.T) {
 			},
 			upsertMetricConfig: &upsertMetricConfig{
 				runID: 123,
-				metricsPerFeature: map[string]WPTFeatureMetric{
+				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
 				},
 				err: errUpsertWPTMetric,
@@ -351,7 +352,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail:      false,
 			},
 			mockWebFeatureWPTScorer: &MockWebFeatureWPTScorer{
-				metricsPerFeature: map[string]WPTFeatureMetric{
+				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
 				},
 			},

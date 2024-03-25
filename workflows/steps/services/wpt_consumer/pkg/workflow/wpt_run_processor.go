@@ -16,8 +16,8 @@ package workflow
 
 import (
 	"context"
-	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
@@ -59,23 +59,11 @@ type WebFeaturesDataGetter interface {
 }
 
 type WebFeatureWPTScorer interface {
-	Score(context.Context, ResultsSummaryFile, *shared.WebFeaturesData) map[string]WPTFeatureMetric
+	Score(context.Context, ResultsSummaryFile, *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric
 }
 
-type WPTRun struct {
-	ID               int64
-	BrowserName      string
-	BrowserVersion   string
-	TimeStart        time.Time
-	TimeEnd          time.Time
-	Channel          string
-	OSName           string
-	OSVersion        string
-	FullRevisionHash string
-}
-
-func NewWPTRun(testRun shared.TestRun) WPTRun {
-	return WPTRun{
+func NewWPTRun(testRun shared.TestRun) wptconsumertypes.WPTRun {
+	return wptconsumertypes.WPTRun{
 		ID:               testRun.ID,
 		BrowserName:      testRun.BrowserName,
 		BrowserVersion:   testRun.BrowserVersion,
@@ -89,11 +77,11 @@ func NewWPTRun(testRun shared.TestRun) WPTRun {
 }
 
 type WebFeatureWPTScoreStorer interface {
-	InsertWPTRun(context.Context, WPTRun) error
+	InsertWPTRun(context.Context, wptconsumertypes.WPTRun) error
 	UpsertWPTRunFeatureMetric(
 		context.Context,
 		int64,
-		map[string]WPTFeatureMetric) error
+		map[string]wptconsumertypes.WPTFeatureMetric) error
 }
 
 func (w WPTRunProcessor) ProcessRun(

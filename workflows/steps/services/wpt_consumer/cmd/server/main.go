@@ -72,7 +72,7 @@ func main() {
 				),
 			),
 		),
-		NumWorkers: 1,
+		NumWorkers: 8,
 	}
 
 	srv, err := httpserver.NewHTTPServer(

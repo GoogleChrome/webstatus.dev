@@ -41,6 +41,7 @@ spec:
         - name: SPANNER_INSTANCE
           value: 'local'
         - name: SPANNER_EMULATOR_HOST
+          value: 'spanner:9010'
       resources:
         limits:
           cpu: 250m

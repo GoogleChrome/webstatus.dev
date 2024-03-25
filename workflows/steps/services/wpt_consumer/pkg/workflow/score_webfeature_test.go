@@ -19,6 +19,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
@@ -100,13 +101,13 @@ func TestScore(t *testing.T) {
 		name              string
 		summary           ResultsSummaryFile
 		testToWebFeatures shared.WebFeaturesData
-		expectedOutput    map[string]WPTFeatureMetric
+		expectedOutput    map[string]wptconsumertypes.WPTFeatureMetric
 	}{
 		{
 			name:              "simple",
 			testToWebFeatures: getSimpleWebFeaturesData(),
 			summary:           getSimpleSummary(),
-			expectedOutput: map[string]WPTFeatureMetric{
+			expectedOutput: map[string]wptconsumertypes.WPTFeatureMetric{
 				"feature1": {
 					TotalTests: valuePtr[int64](1),
 					TestPass:   valuePtr[int64](1),
@@ -117,7 +118,7 @@ func TestScore(t *testing.T) {
 			name:              "complex",
 			testToWebFeatures: getComplexWebFeaturesData(),
 			summary:           getComplexSummary(),
-			expectedOutput: map[string]WPTFeatureMetric{
+			expectedOutput: map[string]wptconsumertypes.WPTFeatureMetric{
 				"feature1": {
 					TotalTests: valuePtr[int64](2),
 					TestPass:   valuePtr[int64](2),

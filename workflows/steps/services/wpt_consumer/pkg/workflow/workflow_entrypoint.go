@@ -61,7 +61,6 @@ func (w Entrypoint) Start(ctx context.Context, from time.Time) []error {
 		wg.Wait()
 		slog.Info("finished waiting")
 		doneChan <- struct{}{}
-		close(errChan)
 	}()
 
 	var allErrors []error

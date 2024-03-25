@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -37,18 +38,13 @@ const (
 	WPTStatusPreconditionFailed WPTStatusAbbreviation = "PF"
 )
 
-type WPTFeatureMetric struct {
-	TotalTests *int64
-	TestPass   *int64
-}
-
 type WPTScorerForWebFeatures struct{}
 
 func (s WPTScorerForWebFeatures) Score(
 	ctx context.Context,
 	summary ResultsSummaryFile,
-	testToWebFeatures *shared.WebFeaturesData) map[string]WPTFeatureMetric {
-	scoreMap := make(map[string]WPTFeatureMetric)
+	testToWebFeatures *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric {
+	scoreMap := make(map[string]wptconsumertypes.WPTFeatureMetric)
 	for test, testSummary := range summary {
 		if len(testSummary.Counts) < 2 {
 			// Need at least the number of subtests passes and the number of subtests
@@ -63,7 +59,7 @@ func (s WPTScorerForWebFeatures) Score(
 func (s WPTScorerForWebFeatures) scoreTest(
 	_ context.Context,
 	test string,
-	webFeatureScoreMap map[string]WPTFeatureMetric,
+	webFeatureScoreMap map[string]wptconsumertypes.WPTFeatureMetric,
 	testToWebFeatures *shared.WebFeaturesData,
 	numberOfSubtestPassing int,
 	numberofSubtests int,
@@ -83,7 +79,7 @@ func (s WPTScorerForWebFeatures) scoreTest(
 		*initialPass = 0
 		webFeatureScore := cmp.Or(
 			webFeatureScoreMap[webFeature],
-			WPTFeatureMetric{TotalTests: initialTotal, TestPass: initialPass})
+			wptconsumertypes.WPTFeatureMetric{TotalTests: initialTotal, TestPass: initialPass})
 		*webFeatureScore.TotalTests++
 		// If all of the sub tests passed, only count it.
 		if countsAsPassing {

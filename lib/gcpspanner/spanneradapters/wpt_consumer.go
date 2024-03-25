@@ -18,7 +18,7 @@ import (
 	"context"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	wptWorkflow "github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 )
 
 // NewWPTWorkflowConsumer constructs an adapter for the wpt consumer service.
@@ -37,7 +37,7 @@ type WPTConsumer struct {
 	client WPTWorkflowSpannerClient
 }
 
-func (w *WPTConsumer) InsertWPTRun(ctx context.Context, in wptWorkflow.WPTRun) error {
+func (w *WPTConsumer) InsertWPTRun(ctx context.Context, in wptconsumertypes.WPTRun) error {
 	// TODO. Add input validation before trying to insert to make sure it has the appropriate values.
 	// Example: making sure channel == 'stable' or 'experimental'
 	run := gcpspanner.WPTRun{
@@ -58,7 +58,7 @@ func (w *WPTConsumer) InsertWPTRun(ctx context.Context, in wptWorkflow.WPTRun) e
 func (w *WPTConsumer) UpsertWPTRunFeatureMetric(
 	ctx context.Context,
 	runID int64,
-	metricsPerFeature map[string]wptWorkflow.WPTFeatureMetric) error {
+	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric) error {
 	for featureID, consumerMetric := range metricsPerFeature {
 		metric := gcpspanner.WPTRunFeatureMetric{
 			FeatureID:  featureID,
