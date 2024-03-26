@@ -32,7 +32,7 @@ const browserChannelDataMap = new Map<
   Array<components['schemas']['WPTRunMetric']>
 >();
 
-const ALL_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'];
+const ALL_BROWSERS = ['Chrome', 'Firefox', 'Safari', 'Edge'];
 
 /** Make random data for browserChannelDataMap */
 function makeRandomDataForBrowserChannelCombo(
@@ -83,10 +83,8 @@ function makeRandomDataForBrowserChannelCombo(
 }
 
 // Generate data for all browser/channel combos
-function makeRandomDataForAllBrowserChannelCombos() {
+function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
   let rate = 0.5;
-  const start = new Date(2021, 1, 1);
-  const end = new Date(2024, 3, 31);
   const dateRange = end.getTime() - start.getTime();
   const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
 
@@ -120,8 +118,6 @@ function makeRandomDataForAllBrowserChannelCombos() {
     }
   }
 }
-
-makeRandomDataForAllBrowserChannelCombos();
 
 // Mocking data for the featuresLagging chart.
 /** Map from browser-channel to features missing in only one browser. */
@@ -164,6 +160,15 @@ makeRandomDataForAllBrowserChannelCombos();
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
   @state()
+  globalFeatureSupportBrowsers: string[] = ALL_BROWSERS;
+
+  @state()
+  startDate: Date = new Date(2021, 1, 1);
+
+  @state()
+  endDate: Date = new Date(2024, 4, 1);
+
+  @state()
   globalFeatureSupport: Array<components['schemas']['WPTRunMetric']> = [];
 
   static get styles(): CSSResultGroup {
@@ -186,8 +191,44 @@ export class StatsPage extends LitElement {
     ];
   }
 
-  async firstUpdated(): Promise<void> {
-    // We can probably do this earlier, but this is a good place to start.
+  setupGlobalFeatureSupportBrowsersHandler() {
+    // Get the global feature support data browser selector.
+    // const browserSelector = this.shadowRoot!.querySelector(
+    //   '#global-feature-support-browser-selector'
+    // ) as HTMLSelectElement;
+    // browserSelector.addEventListener('sl-change', event => {
+    //   this.globalFeatureSupportBrowsers =
+    //     (event.target as HTMLSelectElement).value as unknown as string[];
+    //   console.info(`globalFeatureSupportBrowsers: ${this.globalFeatureSupportBrowsers}`);
+    // });
+  }
+
+  setupDateRangeHandler() {
+    const startDateInput = this.shadowRoot!.querySelector(
+      '#start-date'
+    ) as HTMLInputElement;
+    startDateInput.addEventListener('sl-blur', event => {
+      const currentStartDate = this.startDate;
+      this.startDate = new Date((event.target as HTMLInputElement).value);
+      if (this.startDate.getTime() === currentStartDate.getTime()) return;
+      // Regenerate data and redraw.  We should instead just filter it.
+      this.setupGlobalFeatureSupportChart();
+    });
+    const endDateInput = this.shadowRoot!.querySelector(
+      '#end-date'
+    ) as HTMLInputElement;
+    endDateInput.addEventListener('sl-blur', event => {
+      const currentEndDate = this.endDate;
+      this.endDate = new Date((event.target as HTMLInputElement).value);
+      if (this.endDate.getTime() === currentEndDate.getTime()) return;
+      // Regenerate data and redraw.  We should instead just filter it.
+      this.setupGlobalFeatureSupportChart();
+    });
+  }
+
+  setupGlobalFeatureSupportChart() {
+    makeRandomDataForAllBrowserChannelCombos(this.startDate, this.endDate);
+
     google.charts.load('current', {
       packages: ['corechart'],
     });
@@ -197,10 +238,16 @@ export class StatsPage extends LitElement {
     });
   }
 
+  async firstUpdated(): Promise<void> {
+    this.setupGlobalFeatureSupportBrowsersHandler();
+    this.setupDateRangeHandler();
+    this.setupGlobalFeatureSupportChart();
+  }
+
   // Make a DataTable from the data in browserChannelDataMap
   createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
     // Get the list of browsers from browserChannelDataMap
-    const browsers = ALL_BROWSERS;
+    const browsers = this.globalFeatureSupportBrowsers;
     const channel = 'stable';
 
     const dataTable = new google.visualization.DataTable();
@@ -275,17 +322,15 @@ export class StatsPage extends LitElement {
         <div class="spacer"></div>
         <div class="hbox wrap valign-items-center">
           <sl-checkbox>Show browser versions</sl-checkbox>
-          <sl-button href="#TODO">
-            <sl-icon
-              slot="prefix"
-              name="calendar-blank"
-              library="phosphor"
-            ></sl-icon>
-            Select range
-          </sl-button>
-          <sl-radio-group>
-            <sl-radio-button value="WPT" checked>WPT</sl-radio-button>
-            <sl-radio-button value="BCD">BCD</sl-radio-button>
+          <label>Start date
+            <sl-input id="start-date" type="date" .valueAsDate="${this.startDate}"></sl-input>
+          </label>
+          <label>End date
+            <sl-input id="end-date" type="date" .valueAsDate="${this.endDate}"></sl-input>
+          </label>
+          <sl-radio-group value="WPT">
+            <sl-radio-button value="WPT">WPT</sl-radio-button>
+            <sl-radio-button value="BCD" disabled>BCD</sl-radio-button>
           </sl-radio-group>
         </div>
       </div>
@@ -302,13 +347,23 @@ export class StatsPage extends LitElement {
             <sl-option>All features</sl-option>
             <sl-option>how to select?</sl-option>
           </sl-select>
-          <sl-select>
-            <sl-option>All browsers</sl-option>
-            <sl-option>Chrome</sl-option>
-            <sl-option>Firefox</sl-option>
-          </sl-select>
+          <div  style="flex: 0 0 auto;">
+          <sl-select
+            id="global-feature-support-browser-selector"
+            multiple
+            .value="${this.globalFeatureSupportBrowsers.join(' ')}">
+            <!-- <sl-button slot="trigger">
+              <sl-icon slot="suffix" name="chevron-down"></sl-icon>
+              Browsers
+            </sl-button> -->
+              <sl-option type="checkbox" value="Chrome">Chrome</sl-option>
+              <sl-option type="checkbox" value="Edge">Edge</sl-option>
+              <sl-option type="checkbox" value="Firefox">Firefox</sl-option>
+              <sl-option type="checkbox" value="Safari">Safari</sl-option>
+          </sl-selext>
+          </div>
         </div>
-        <div id="global-feature-support-chart">Chart goes here...</div>
+        <div id="global-feature-support-chart">Loading chart...</div>
       </sl-card>
     `;
   }
@@ -323,11 +378,12 @@ export class StatsPage extends LitElement {
             <sl-option>All features</sl-option>
             <sl-option>how to select?</sl-option>
           </sl-select>
-          <sl-select>
-            <sl-option>All browsers</sl-option>
+          <sl-dropdown multiple value="Chrome Edge Firefox Safari">
             <sl-option>Chrome</sl-option>
+            <sl-option>Edge</sl-option>
             <sl-option>Firefox</sl-option>
-          </sl-select>
+            <sl-option>Safari</sl-option>
+          </sl-dropdown>
         </div>
         <div class="under-construction" id="features-lagging-chart">
           Chart goes here...
