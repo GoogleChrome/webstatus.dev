@@ -74,7 +74,9 @@ func (w Entrypoint) Start(ctx context.Context, from time.Time) []error {
 				return allErrors
 
 			}
-			allErrors = append(allErrors, err)
+			if err != nil {
+				allErrors = append(allErrors, err)
+			}
 		case <-doneChan:
 			// Channel closed, proceed
 			slog.Info("Finished processing", "error count", len(allErrors))

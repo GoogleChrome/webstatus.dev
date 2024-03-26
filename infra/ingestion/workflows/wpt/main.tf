@@ -28,8 +28,9 @@ resource "google_workflows_workflow" "workflow" {
   source_contents = templatefile(
     "${path.root}/../workflows/wpt/workflows.yaml.tftpl",
     {
-      wpt_consume_step_url = google_cloud_run_v2_service.wpt_service[count.index].uri
+      project_id   = google_cloud_run_v2_job.wpt[count.index].project
+      job_name     = google_cloud_run_v2_job.wpt[count.index].name
+      job_location = google_cloud_run_v2_job.wpt[count.index].location
     }
   )
 }
-

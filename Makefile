@@ -51,21 +51,17 @@ port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
 	kubectl wait --for=condition=ready pod/web-feature-consumer
-	kubectl wait --for=condition=ready pod/wpt-consumer
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/web-feature-consumer 8092:8080 2>&1 >/dev/null &
-	kubectl port-forward --address 127.0.0.1 pod/wpt-consumer 8093:8080 2>&1 >/dev/null &
 	curl -s -o /dev/null -m 5 http://localhost:8080 || true
 	curl -s -o /dev/null -m 5 http://localhost:5555 || true
 	curl -s -o /dev/null -m 5 http://localhost:8092 || true
-	curl -s -o /dev/null -m 5 http://localhost:8093 || true
 
 port-forward-terminate:
 	fuser -k 5555/tcp || true
 	fuser -k 8080/tcp || true
 	fuser -k 8092/tcp || true
-	fuser -k 8093/tcp || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:
@@ -116,9 +112,6 @@ go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/wpt_consumer/client.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/wpt_consumer/types.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/wpt_consumer/server.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
@@ -290,9 +283,11 @@ clean-node:
 # Local Data / Workflows
 ################################
 dev_workflows: web_feature_local_workflow
-web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092 -wpt_consumer_host=http://localhost:8093
-web_feature_local_workflow:
+web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
+web_feature_local_workflow: port-forward-manual
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+	./util/run_job.sh wpt-consumer images/go_service.Dockerfile workflows/steps/services/wpt_consumer \
+		workflows/steps/services/wpt_consumer/manifests/job.yaml wpt-consumer
 dev_fake_data: is_local_migration_ready
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &

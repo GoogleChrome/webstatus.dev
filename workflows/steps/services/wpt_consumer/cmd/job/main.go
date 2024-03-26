@@ -1,21 +1,8 @@
-// Copyright 2024 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package main
 
 import (
 	"cmp"
+	"context"
 	"log/slog"
 	"os"
 	"strconv"
@@ -26,7 +13,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/wptfyi"
-	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/httpserver"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
 	"github.com/google/go-github/v47/github"
 	"github.com/web-platform-tests/wpt.fyi/shared"
@@ -66,7 +52,7 @@ func main() {
 	}
 
 	ghClient := github.NewClient(nil)
-
+	numWorkers := 8
 	w := workflow.Entrypoint{
 		Starter: workflow.NewRunsWorkerManager(
 			workflow.NewWptRunsWorker(
@@ -84,22 +70,26 @@ func main() {
 				),
 			),
 		),
-		NumWorkers: 8,
+		NumWorkers: numWorkers,
 	}
+	ctx := context.Background()
+	// For now only go a year back by default.
 
-	srv, err := httpserver.NewHTTPServer(
-		"8080",
-		w,
-		// For now only go a year back by default.
-		time.Date(2023, time.January, 1, 0, 0, 0, 0, time.UTC),
-	)
+	dataWindowDuration := os.Getenv("DATA_WINDOW_DURATION")
+	duration, err := time.ParseDuration(dataWindowDuration)
 	if err != nil {
-		slog.Error("unable to create server", "error", err.Error())
+		slog.Error("unable to parse DATA_WINDOW_DURATION duration", "input value", dataWindowDuration)
 		os.Exit(1)
 	}
-	err = srv.ListenAndServe()
-	if err != nil {
-		slog.Error("unable to start server", "error", err.Error())
+	startAt := time.Now().UTC().Add(-duration)
+	slog.Info("starting wpt workflow",
+		"time window", startAt.String(),
+		"workers", numWorkers,
+		"wpt.fyi hostname", wptFyiHostname,
+		"wpt page limit", wptPageLimit)
+	errs := w.Start(ctx, startAt)
+	if len(errs) > 0 {
+		slog.Error("workflow returned errors", "error", errs)
 		os.Exit(1)
 	}
 }

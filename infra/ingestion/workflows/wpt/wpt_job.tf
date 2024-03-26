@@ -21,6 +21,7 @@ resource "docker_image" "wpt_consumer_image" {
     context = "${path.cwd}/.."
     build_args = {
       service_dir : local.service_dir
+      MAIN_BINARY : "job"
     }
     dockerfile = "images/go_service.Dockerfile"
   }
@@ -49,51 +50,65 @@ resource "google_project_iam_member" "gcp_datastore_user" {
   member   = google_service_account.wpt_consumer_service_account.member
 }
 
-resource "google_spanner_database_iam_member" "gcp_spanner_user" {
-  role     = "roles/spanner.databaseUser"
+resource "google_project_iam_member" "gcp_spanner_user" {
   provider = google.internal_project
-  database = var.spanner_datails.database
-  instance = var.spanner_datails.instance
+  role     = "roles/spanner.databaseUser"
   project  = var.spanner_datails.project_id
   member   = google_service_account.wpt_consumer_service_account.member
 }
 
-resource "google_cloud_run_v2_service" "wpt_service" {
+
+resource "google_cloud_run_v2_job" "wpt" {
   provider = google.internal_project
   count    = length(var.regions)
-  name     = "${var.env_id}-${var.regions[count.index]}-wpt-consumer-srv"
+  name     = "${var.env_id}-${var.regions[count.index]}-wpt-consumer"
   location = var.regions[count.index]
 
   template {
-    timeout = "3600s"
-    containers {
-      image = "${docker_image.wpt_consumer_image.name}@${docker_registry_image.wpt_consumer_remote_image.sha256_digest}"
-      env {
-        name  = "PROJECT_ID"
-        value = var.datastore_info.project_id
+    template {
+      timeout = format("%ds", var.timeout_seconds)
+      containers {
+        image = "${docker_image.wpt_consumer_image.name}@${docker_registry_image.wpt_consumer_remote_image.sha256_digest}"
+        env {
+          name  = "PROJECT_ID"
+          value = var.datastore_info.project_id
+        }
+        env {
+          name  = "DATASTORE_DATABASE"
+          value = var.datastore_info.database_name
+        }
+        env {
+          name  = "SPANNER_DATABASE"
+          value = var.spanner_datails.database
+        }
+        env {
+          name  = "SPANNER_INSTANCE"
+          value = var.spanner_datails.instance
+        }
+        env {
+          name  = "DATA_WINDOW_DURATION"
+          value = var.data_window_duration
+        }
       }
-      env {
-        name  = "DATASTORE_DATABASE"
-        value = var.datastore_info.database_name
-      }
-      env {
-        name  = "SPANNER_DATABASE"
-        value = var.spanner_datails.database
-      }
-      env {
-        name  = "SPANNER_INSTANCE"
-        value = var.spanner_datails.instance
-      }
+      service_account = google_service_account.wpt_consumer_service_account.email
     }
-    service_account = google_service_account.wpt_consumer_service_account.email
   }
 }
 
-resource "google_cloud_run_v2_service_iam_member" "wpt_step_invoker" {
+resource "google_cloud_run_v2_job_iam_member" "wpt_step_invoker" {
   count    = length(var.regions)
   provider = google.internal_project
   location = var.regions[count.index]
-  name     = google_cloud_run_v2_service.wpt_service[count.index].name
+  name     = google_cloud_run_v2_job.wpt[count.index].name
   role     = "roles/run.invoker"
+  member   = google_service_account.service_account.member
+}
+
+resource "google_cloud_run_v2_job_iam_member" "wpt_step_status" {
+  count    = length(var.regions)
+  provider = google.internal_project
+  location = var.regions[count.index]
+  name     = google_cloud_run_v2_job.wpt[count.index].name
+  role     = "roles/run.viewer"
   member   = google_service_account.service_account.member
 }

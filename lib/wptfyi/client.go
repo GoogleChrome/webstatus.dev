@@ -27,11 +27,10 @@ type HTTPClient struct {
 	pageLimit int
 }
 
-func NewHTTPClient(hostname string) HTTPClient {
+func NewHTTPClient(hostname string, pageLimit int) HTTPClient {
 	return HTTPClient{
-		hostname: hostname,
-		// Request the max every time
-		pageLimit: shared.MaxCountMaxValue,
+		hostname:  hostname,
+		pageLimit: pageLimit,
 	}
 }
 

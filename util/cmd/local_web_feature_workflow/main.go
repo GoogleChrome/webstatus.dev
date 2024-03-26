@@ -23,7 +23,6 @@ import (
 	"net/http"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/wpt_consumer"
 )
 
 func main() {
@@ -31,7 +30,6 @@ func main() {
 	// Describe the command line flags and parse the flags
 	var (
 		webFeatureConsumerHost = flag.String("web_consumer_host", "", "Web Feature Consumer host")
-		wptConsumerHost        = flag.String("wpt_consumer_host", "", "WPT Consumer host")
 	)
 	flag.Parse()
 
@@ -40,15 +38,9 @@ func main() {
 		log.Fatalf("failed to construct repo downloader client: %s\n", err.Error())
 	}
 
-	wptConsumerClient, err := wpt_consumer.NewClientWithResponses(*wptConsumerHost)
-	if err != nil {
-		log.Fatalf("failed to construct repo downloader client: %s\n", err.Error())
-	}
-
 	// Run the workflow
 	err = newWebFeatureWorkflow(
 		webFeatureConsumerClient,
-		wptConsumerClient,
 	).Run(context.Background())
 	if err != nil {
 		log.Fatalf("failed to run web feature workflow: %s\n", err.Error())
@@ -62,19 +54,16 @@ func main() {
 // The only difference is that the calls to the web feature consumer happen
 // serially.
 type WebFeatureWorkflow struct {
-	webFeatureClient  web_feature_consumer.ClientWithResponsesInterface
-	wptConsumerClient wpt_consumer.ClientWithResponsesInterface
+	webFeatureClient web_feature_consumer.ClientWithResponsesInterface
 }
 
 // newWebFeatureWorkflow creates a new WebFeatureWorkflow.
 func newWebFeatureWorkflow(
 	webFeatureClient web_feature_consumer.ClientWithResponsesInterface,
-	wptConsumerClient wpt_consumer.ClientWithResponsesInterface,
 ) WebFeatureWorkflow {
 
 	return WebFeatureWorkflow{
-		webFeatureClient:  webFeatureClient,
-		wptConsumerClient: wptConsumerClient,
+		webFeatureClient: webFeatureClient,
 	}
 }
 
@@ -87,16 +76,6 @@ func (w WebFeatureWorkflow) Run(ctx context.Context) error {
 	}
 	if webFeatureResp.StatusCode() != http.StatusOK {
 		return fmt.Errorf("failed to consume web features. status %d", webFeatureResp.StatusCode())
-	}
-
-	slog.Info("starting wpt workflow")
-
-	wptResp, err := w.wptConsumerClient.PostV1WptWithResponse(ctx)
-	if err != nil {
-		return fmt.Errorf("wpt client call failed: %w", err)
-	}
-	if wptResp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("failed to consume wpt. status %d", wptResp.StatusCode())
 	}
 
 	return nil

@@ -1,13 +1,10 @@
 main:
-  params: [input]
   steps:
-    - consumeWPT:
-        call: http.post
+    - run_job:
+        call: googleapis.run.v1.namespaces.jobs.run
         args:
-          url: ${wpt_consume_step_url}/v1/wpt
-          timeout: 1800
-          auth:
-            type: OIDC
-          headers:
-            Content-Type: "application/json"
-        result: consumeResponse
+            name: namespaces/${project_id}/jobs/${job_name}
+            location: ${job_location}
+        result: job_execution
+    - finish:
+        return: $${job_execution}

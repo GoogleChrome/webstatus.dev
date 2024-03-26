@@ -44,3 +44,14 @@ variable "docker_repository_details" {
     name     = string
   })
 }
+
+variable "data_window_duration" {
+  description = "How far back in time do we want to go. Units come from https://pkg.go.dev/time#ParseDuration"
+  default     = "17520h" # 2 years
+}
+
+variable "timeout_seconds" {
+  description = "Timeout for the WPT step."
+  type        = number
+  default     = "3600" # An hour
+}
