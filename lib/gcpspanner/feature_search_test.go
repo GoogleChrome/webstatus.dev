@@ -389,7 +389,10 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		},
 	}
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		err := client.UpsertWPTRunFeatureMetrics(
+			ctx, metric.ExternalRunID,
+			// Insert them individually because sampleRunMetrics has metrics from different runs.
+			[]WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
 		if err != nil {
 			t.Errorf("unexpected error during insert of metrics. %s", err.Error())
 		}
