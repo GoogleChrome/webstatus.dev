@@ -219,7 +219,10 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	// Should fail without the runs and features being uploaded first
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		err := client.UpsertWPTRunFeatureMetrics(
+			ctx, metric.ExternalRunID,
+			// Insert them individually because sampleRunMetrics has metrics from different runs.
+			[]WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
 		if err == nil {
 			t.Errorf("expected error upon insert")
 		}
@@ -242,7 +245,10 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		err := client.UpsertWPTRunFeatureMetrics(
+			ctx, metric.ExternalRunID,
+			// Insert them individually because sampleRunMetrics has metrics from different runs.
+			[]WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -275,7 +281,9 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		},
 	}
 
-	err = client.UpsertWPTRunFeatureMetric(ctx, updatedMetric1.ExternalRunID, updatedMetric1.WPTRunFeatureMetric)
+	err = client.UpsertWPTRunFeatureMetrics(
+		ctx,
+		updatedMetric1.ExternalRunID, []WPTRunFeatureMetric{updatedMetric1.WPTRunFeatureMetric})
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error upon insert. received %s", err.Error())
 	}
@@ -307,7 +315,9 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		},
 	}
 	// Upsert the metric
-	err = client.UpsertWPTRunFeatureMetric(ctx, updatedMetric2.ExternalRunID, updatedMetric2.WPTRunFeatureMetric)
+	err = client.UpsertWPTRunFeatureMetrics(
+		ctx,
+		updatedMetric2.ExternalRunID, []WPTRunFeatureMetric{updatedMetric2.WPTRunFeatureMetric})
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error upon insert. received %s", err.Error())
 	}
@@ -373,7 +383,9 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		err := client.UpsertWPTRunFeatureMetrics(
+			ctx,
+			metric.ExternalRunID, []WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -761,7 +773,8 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetric(ctx, metric.ExternalRunID, metric.WPTRunFeatureMetric)
+		err := client.UpsertWPTRunFeatureMetrics(
+			ctx, metric.ExternalRunID, []WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
