@@ -70,70 +70,77 @@ func (c *Client) CreateSpannerWPTRunFeatureMetric(
 	}
 }
 
-// UpsertWPTRunFeatureMetric will upsert the given WPT Run metric.
-// The RunID must exists in a row in the WPTRuns table.
-// If the metric does not exist, it will insert a new metric.
-// If the metric exists, it will only update the TotalTests and TestPass columns.
-func (c *Client) UpsertWPTRunFeatureMetric(ctx context.Context, externalRunID int64, in WPTRunFeatureMetric) error {
+// UpsertWPTRunFeatureMetrics will upsert WPT Run metrics for a given WPT Run ID.
+// The RunID must exist in a row in the WPTRuns table.
+// If a metric does not exist, it will insert a new metric.
+// If a metric exists, it will only update the TotalTests, TestPass and PassRate columns.
+func (c *Client) UpsertWPTRunFeatureMetrics(
+	ctx context.Context,
+	externalRunID int64,
+	inputMetrics []WPTRunFeatureMetric) error {
 	wptRunData, err := c.GetWPTRunDataByRunIDForMetrics(ctx, externalRunID)
 	if err != nil {
 		return err
 	}
 
-	// Create a metric with the retrieved ID
-	metric := c.CreateSpannerWPTRunFeatureMetric(*wptRunData, in)
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		// TODO: Query by primary key instead.
-		stmt := spanner.NewStatement(`
+		mutations := []*spanner.Mutation{}
+		for _, inputMetric := range inputMetrics {
+			// Create a metric with the retrieved ID
+			metric := c.CreateSpannerWPTRunFeatureMetric(*wptRunData, inputMetric)
+			stmt := spanner.NewStatement(`
 			SELECT
 				ID, FeatureID, TotalTests, TestPass, TimeStart, PassRate, Channel, BrowserName
 			FROM WPTRunFeatureMetrics
 			WHERE ID = @id AND FeatureID = @featureID
 			LIMIT 1`)
-		parameters := map[string]interface{}{
-			"id":        metric.ID,
-			"featureID": metric.FeatureID,
-		}
-		stmt.Params = parameters
+			parameters := map[string]interface{}{
+				"id":        metric.ID,
+				"featureID": metric.FeatureID,
+			}
+			stmt.Params = parameters
 
-		// Attempt to query for the row.
-		it := txn.Query(ctx, stmt)
-		defer it.Stop()
-		var m *spanner.Mutation
-		row, err := it.Next()
+			// Attempt to query for the row.
+			it := txn.Query(ctx, stmt)
+			defer it.Stop()
+			var m *spanner.Mutation
+			row, err := it.Next()
 
-		// nolint: nestif // TODO: fix in the future.
-		if err != nil {
-			if errors.Is(err, iterator.Done) {
-				// No rows returned. Act as if this is an insertion.
-				var err error
-				m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, metric)
-				if err != nil {
+			// nolint: nestif // TODO: fix in the future.
+			if err != nil {
+				if errors.Is(err, iterator.Done) {
+					// No rows returned. Act as if this is an insertion.
+					var err error
+					m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, metric)
+					if err != nil {
+						return errors.Join(ErrInternalQueryFailure, err)
+					}
+				} else {
+					// An unexpected error occurred.
+
 					return errors.Join(ErrInternalQueryFailure, err)
 				}
 			} else {
-				// An unexpected error occurred.
-
-				return errors.Join(ErrInternalQueryFailure, err)
+				// Read the existing metric and merge the values.
+				var existingMetric SpannerWPTRunFeatureMetric
+				err = row.ToStruct(&existingMetric)
+				if err != nil {
+					return errors.Join(ErrInternalQueryFailure, err)
+				}
+				// Only allow overriding of the test numbers.
+				existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
+				existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
+				existingMetric.PassRate = getPassRate(existingMetric.TestPass, existingMetric.TotalTests)
+				m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
+				if err != nil {
+					return errors.Join(ErrInternalQueryFailure, err)
+				}
 			}
-		} else {
-			// Read the existing metric and merge the values.
-			var existingMetric SpannerWPTRunFeatureMetric
-			err = row.ToStruct(&existingMetric)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-			// Only allow overriding of the test numbers.
-			existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
-			existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
-			m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
+			mutations = append(mutations, m)
 		}
 
 		// Buffer the mutation to be committed.
-		err = txn.BufferWrite([]*spanner.Mutation{m})
+		err = txn.BufferWrite(mutations)
 		if err != nil {
 			return errors.Join(ErrInternalQueryFailure, err)
 		}
