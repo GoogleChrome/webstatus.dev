@@ -21,7 +21,8 @@
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {type components} from 'webstatus.dev-backend';
+import { type components } from 'webstatus.dev-backend';
+import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 //import {type APIClient} from '../api/client.js';
 //import {apiClientContext} from '../contexts/api-client-context.js';
@@ -193,14 +194,25 @@ export class StatsPage extends LitElement {
 
   setupGlobalFeatureSupportBrowsersHandler() {
     // Get the global feature support data browser selector.
-    // const browserSelector = this.shadowRoot!.querySelector(
-    //   '#global-feature-support-browser-selector'
-    // ) as HTMLSelectElement;
-    // browserSelector.addEventListener('sl-change', event => {
-    //   this.globalFeatureSupportBrowsers =
-    //     (event.target as HTMLSelectElement).value as unknown as string[];
-    //   console.info(`globalFeatureSupportBrowsers: ${this.globalFeatureSupportBrowsers}`);
-    // });
+    const browserSelectorMenu = this.shadowRoot!.querySelector(
+      '#global-feature-support-browser-selector sl-menu'
+    ) as SlMenu;
+    // Add a listener to the browserSelectorMenu to update the list of
+    // browsers in globalFeatureSupportBrowsers.
+    browserSelectorMenu.addEventListener('sl-select', event => {
+      const menu = event.target as SlMenu;
+      const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
+        child => child instanceof SlMenuItem
+      ) as Array<SlMenuItem>;
+
+      // Build the list of values of checked menu-items.
+      this.globalFeatureSupportBrowsers =
+        menuItemsArray.filter(menuItem => menuItem.checked)
+          .map(menuItem => menuItem.value);
+      // console.info(`globalFeatureSupportBrowsers: ${this.globalFeatureSupportBrowsers}`);
+      // Regenerate data and redraw.  We should instead just filter it.
+      this.setupGlobalFeatureSupportChart();
+    });
   }
 
   setupDateRangeHandler() {
@@ -247,7 +259,7 @@ export class StatsPage extends LitElement {
   // Make a DataTable from the data in browserChannelDataMap
   createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
     // Get the list of browsers from browserChannelDataMap
-    const browsers = this.globalFeatureSupportBrowsers;
+    const browsers =this.globalFeatureSupportBrowsers;
     const channel = 'stable';
 
     const dataTable = new google.visualization.DataTable();
@@ -299,10 +311,10 @@ export class StatsPage extends LitElement {
     const data = this.createGlobalFeatureSupportDataTableFromMap();
 
     const options = {
-      hAxis: {title: 'Feature', titleTextStyle: {color: '#333'}},
+      // hAxis: {title: 'Feature', titleTextStyle: {color: '#333'}},
       vAxis: {minValue: 0},
       legend: {position: 'top'},
-      chartArea: {left: 60, right: 16},
+      chartArea: {left: 60, right: 30, width: '80%'},
     } as google.visualization.LineChartOptions;
 
     const chart = new google.visualization.LineChart(
@@ -347,23 +359,28 @@ export class StatsPage extends LitElement {
             <sl-option>All features</sl-option>
             <sl-option>how to select?</sl-option>
           </sl-select>
-          <div  style="flex: 0 0 auto;">
-          <sl-select
-            id="global-feature-support-browser-selector"
-            multiple
-            .value="${this.globalFeatureSupportBrowsers.join(' ')}">
-            <!-- <sl-button slot="trigger">
-              <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-              Browsers
-            </sl-button> -->
-              <sl-option type="checkbox" value="Chrome">Chrome</sl-option>
-              <sl-option type="checkbox" value="Edge">Edge</sl-option>
-              <sl-option type="checkbox" value="Firefox">Firefox</sl-option>
-              <sl-option type="checkbox" value="Safari">Safari</sl-option>
-          </sl-selext>
+          <sl-dropdown
+              id="global-feature-support-browser-selector"
+              multiple
+              stay-open-on-select
+              .value="${this.globalFeatureSupportBrowsers.join(' ')}">
+              <sl-button slot="trigger">
+                <sl-icon slot="suffix" name="chevron-down"></sl-icon>
+                Browsers
+              </sl-button>
+              <sl-menu>
+                <sl-menu-item type="checkbox" value="Chrome">Chrome</sl-menu-item>
+                <sl-menu-item type="checkbox" value="Edge">Edge</sl-menu-item>
+                <sl-menu-item type="checkbox" value="Firefox">Firefox</sl-menu-item>
+                <sl-menu-item type="checkbox" value="Safari">Safari</sl-menu-item>
+              </sl-menu>
+            </sl-dropdown>
+        </div>
+        <div>
+          <div id="global-feature-support-chart" style="padding: 0; margin: 0; border: 0">
+            Loading chart...
           </div>
         </div>
-        <div id="global-feature-support-chart">Loading chart...</div>
       </sl-card>
     `;
   }
