@@ -185,6 +185,15 @@ export class StatsPage extends LitElement {
           min-height: 12em;
         }
 
+        #global-feature-support-browser-selector > sl-button > sl-icon {
+          rotate: 0deg;
+          transition: var(--sl-transition-medium) rotate ease;
+        }
+        #global-feature-support-browser-selector[open] > sl-button > sl-icon {
+          rotate: -180deg;
+          transition: var(--sl-transition-medium) rotate ease;
+        }
+
         #global-feature-support-chart {
           min-height: 20em;
         }
@@ -246,6 +255,11 @@ export class StatsPage extends LitElement {
     });
     google.charts.setOnLoadCallback(() => {
       // Let's render a chart...
+      this.createGlobalFeatureSupportChart();
+    });
+
+    // Add window resize event handler to redraw the chart.
+    window.addEventListener('resize', () => {
       this.createGlobalFeatureSupportChart();
     });
   }
@@ -310,11 +324,16 @@ export class StatsPage extends LitElement {
   createGlobalFeatureSupportChart(): void {
     const data = this.createGlobalFeatureSupportDataTableFromMap();
 
+    // Add 2 weeks to this.endDate.
+    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
-      // hAxis: {title: 'Feature', titleTextStyle: {color: '#333'}},
+      hAxis: {
+        title: '', titleTextStyle: { color: '#333' },
+        viewWindow: {min: this.startDate, max: endDate},
+      },
       vAxis: {minValue: 0},
       legend: {position: 'top'},
-      chartArea: {left: 60, right: 30, width: '80%'},
+      chartArea: {left: 60, right: 16, top: 40, bottom: 40},
     } as google.visualization.LineChartOptions;
 
     const chart = new google.visualization.LineChart(
