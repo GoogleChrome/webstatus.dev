@@ -21,19 +21,19 @@
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import { type components } from 'webstatus.dev-backend';
+import {type components} from 'webstatus.dev-backend';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 //import {type APIClient} from '../api/client.js';
 //import {apiClientContext} from '../contexts/api-client-context.js';
+
+const ALL_BROWSERS = ['Chrome', 'Firefox', 'Safari', 'Edge'];
 
 /** Map from browser-channel to global feature support. */
 const browserChannelDataMap = new Map<
   string,
   Array<components['schemas']['WPTRunMetric']>
 >();
-
-const ALL_BROWSERS = ['Chrome', 'Firefox', 'Safari', 'Edge'];
 
 /** Make random data for browserChannelDataMap */
 function makeRandomDataForBrowserChannelCombo(
@@ -120,44 +120,6 @@ function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
   }
 }
 
-// Mocking data for the featuresLagging chart.
-/** Map from browser-channel to features missing in only one browser. */
-// const featuresLaggingDataMap = new Map<
-//   string,
-//   Array<components['schemas']['WPTRunMetric']>
-//   >();
-
-// /** Make random data for featuresLaggingDataMap.
-//  */
-// function makeRandomDataForFeaturesLagging(
-//  ) {
-//   const data: Array<components['schemas']['WPTRunMetric']> = [];
-//   // data is computed from browserChannelDataMap.
-//   const browsers = ALL_BROWSERS;
-
-//   const numDays = browserChannelDataMap.values().next().value.length;
-//   for (let i = 0; i < numDays; i++) {
-//     // For each browser...
-//     const dayData = browsers.map(
-//       browser => browserChannelDataMap.get(`${browser}-stable`)![i]
-//     );
-//     // For each day, first compute the number of missing tests for each browser,
-//     // which is the total minus the tests that passed.
-//     const missingTests = dayData.map(
-//       data => data.total_tests_count - data.test_pass_count
-//     );
-
-//     // Then guess if the missing tests for each browser are for the same feature
-//     // as for other browsers.  For simplicity, guess that the number of
-//     // tests that are missing only for each browser is a small fraction of all
-//     // the missing tests for that browser.
-//   }
-//   featuresLaggingDataMap.set('all', data);
-// }
-
-// From google.visualization types, copied from gviz.d.ts
-// Should be able to do this instead:
-
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
   @state()
@@ -210,14 +172,14 @@ export class StatsPage extends LitElement {
     // browsers in globalFeatureSupportBrowsers.
     browserSelectorMenu.addEventListener('sl-select', event => {
       const menu = event.target as SlMenu;
-      const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
-        child => child instanceof SlMenuItem
-      ) as Array<SlMenuItem>;
+      const menuItemsArray: Array<SlMenuItem> = Array.from(
+        menu.children
+      ).filter(child => child instanceof SlMenuItem) as Array<SlMenuItem>;
 
       // Build the list of values of checked menu-items.
-      this.globalFeatureSupportBrowsers =
-        menuItemsArray.filter(menuItem => menuItem.checked)
-          .map(menuItem => menuItem.value);
+      this.globalFeatureSupportBrowsers = menuItemsArray
+        .filter(menuItem => menuItem.checked)
+        .map(menuItem => menuItem.value);
       // console.info(`globalFeatureSupportBrowsers: ${this.globalFeatureSupportBrowsers}`);
       // Regenerate data and redraw.  We should instead just filter it.
       this.setupGlobalFeatureSupportChart();
@@ -273,7 +235,7 @@ export class StatsPage extends LitElement {
   // Make a DataTable from the data in browserChannelDataMap
   createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
     // Get the list of browsers from browserChannelDataMap
-    const browsers =this.globalFeatureSupportBrowsers;
+    const browsers = this.globalFeatureSupportBrowsers;
     const channel = 'stable';
 
     const dataTable = new google.visualization.DataTable();
@@ -328,7 +290,8 @@ export class StatsPage extends LitElement {
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
       hAxis: {
-        title: '', titleTextStyle: { color: '#333' },
+        title: '',
+        titleTextStyle: {color: '#333'},
         viewWindow: {min: this.startDate, max: endDate},
       },
       vAxis: {minValue: 0},
@@ -353,11 +316,21 @@ export class StatsPage extends LitElement {
         <div class="spacer"></div>
         <div class="hbox wrap valign-items-center">
           <sl-checkbox>Show browser versions</sl-checkbox>
-          <label>Start date
-            <sl-input id="start-date" type="date" .valueAsDate="${this.startDate}"></sl-input>
+          <label
+            >Start date
+            <sl-input
+              id="start-date"
+              type="date"
+              .valueAsDate="${this.startDate}"
+            ></sl-input>
           </label>
-          <label>End date
-            <sl-input id="end-date" type="date" .valueAsDate="${this.endDate}"></sl-input>
+          <label
+            >End date
+            <sl-input
+              id="end-date"
+              type="date"
+              .valueAsDate="${this.endDate}"
+            ></sl-input>
           </label>
           <sl-radio-group value="WPT">
             <sl-radio-button value="WPT">WPT</sl-radio-button>
@@ -379,24 +352,30 @@ export class StatsPage extends LitElement {
             <sl-option>how to select?</sl-option>
           </sl-select>
           <sl-dropdown
-              id="global-feature-support-browser-selector"
-              multiple
-              stay-open-on-select
-              .value="${this.globalFeatureSupportBrowsers.join(' ')}">
-              <sl-button slot="trigger">
-                <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-                Browsers
-              </sl-button>
-              <sl-menu>
-                <sl-menu-item type="checkbox" value="Chrome">Chrome</sl-menu-item>
-                <sl-menu-item type="checkbox" value="Edge">Edge</sl-menu-item>
-                <sl-menu-item type="checkbox" value="Firefox">Firefox</sl-menu-item>
-                <sl-menu-item type="checkbox" value="Safari">Safari</sl-menu-item>
-              </sl-menu>
-            </sl-dropdown>
+            id="global-feature-support-browser-selector"
+            multiple
+            stay-open-on-select
+            .value="${this.globalFeatureSupportBrowsers.join(' ')}"
+          >
+            <sl-button slot="trigger">
+              <sl-icon slot="suffix" name="chevron-down"></sl-icon>
+              Browsers
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="Chrome">Chrome</sl-menu-item>
+              <sl-menu-item type="checkbox" value="Edge">Edge</sl-menu-item>
+              <sl-menu-item type="checkbox" value="Firefox"
+                >Firefox</sl-menu-item
+              >
+              <sl-menu-item type="checkbox" value="Safari">Safari</sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
         </div>
         <div>
-          <div id="global-feature-support-chart" style="padding: 0; margin: 0; border: 0">
+          <div
+            id="global-feature-support-chart"
+            style="padding: 0; margin: 0; border: 0"
+          >
             Loading chart...
           </div>
         </div>
