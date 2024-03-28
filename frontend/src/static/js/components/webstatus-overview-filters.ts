@@ -17,6 +17,7 @@
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {formatOverviewPageUrl, getSearchQuery} from '../utils/urls.js';
+import {openColumnsDialog} from './webstatus-columns-dialog.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {SlInput, SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 
@@ -372,16 +373,17 @@ export class WebstatusOverviewFilters extends LitElement {
             </sl-menu>
           </sl-dropdown>
 
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon
-                slot="prefix"
-                name="square-split-horizontal"
-                library="phosphor"
-              ></sl-icon>
-              Columns
-            </sl-button>
-          </sl-dropdown>
+          <sl-button
+            slot="trigger"
+            @click=${() => openColumnsDialog(this.location)}
+          >
+            <sl-icon
+              slot="prefix"
+              name="square-split-horizontal"
+              library="phosphor"
+            ></sl-icon>
+            Columns
+          </sl-button>
         </div>
       </div>
     `;
