@@ -16,6 +16,7 @@
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+
 import {formatOverviewPageUrl, getColumnsSpec} from '../utils/urls.js';
 import {
   ColumnKey,
@@ -47,12 +48,12 @@ export class WebstatusColumnsDialog extends LitElement {
   openWithContext(location: {search: string}) {
     this.location = location;
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
-    if (dialog) dialog.show();
+    if (dialog?.show) dialog.show();
   }
 
   hide() {
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
-    if (dialog) dialog.hide();
+    if (dialog?.hide) dialog.hide();
   }
 
   handleSave() {
@@ -113,8 +114,7 @@ let columnsDialogEl: WebstatusColumnsDialog | null = null;
 
 export async function openColumnsDialog(location: {
   search: string;
-}): Promise<void> {
-  console.log({location});
+}): Promise<WebstatusColumnsDialog> {
   if (!columnsDialogEl) {
     columnsDialogEl = document.createElement(
       'webstatus-columns-dialog'
@@ -123,4 +123,5 @@ export async function openColumnsDialog(location: {
     await columnsDialogEl.updateComplete;
   }
   columnsDialogEl.openWithContext(location);
+  return columnsDialogEl;
 }
