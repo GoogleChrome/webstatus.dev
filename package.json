@@ -19,8 +19,5 @@
     "quicktype": "23.0.81",
     "stylelint": "^16.2.1",
     "stylelint-config-standard": "^36.0.0"
-  },
-  "dependencies": {
-    "@types/google.visualization": "^0.0.74"
   }
 }

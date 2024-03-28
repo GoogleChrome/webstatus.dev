@@ -28,6 +28,7 @@ import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 //import {apiClientContext} from '../contexts/api-client-context.js';
 
 const ALL_BROWSERS = ['Chrome', 'Firefox', 'Safari', 'Edge'];
+const ALL_FEATURES = ['stable'];
 
 /** Map from browser-channel to global feature support. */
 const browserChannelDataMap = new Map<
@@ -50,8 +51,6 @@ function makeRandomDataForBrowserChannelCombo(
 
   let testPassCount = totalTestsPerDay[0] * rate;
   for (let i = 0; i < numDays; i++) {
-    // Vary the rate randomly a small amount
-    // rate = Math.min(1, Math.max(0.000001, rate * (0.95 + Math.random())));
     // newTestsPass is a small random fraction of the totalTestsPerDay not yet passed.
     const unpassedTests = Math.abs(totalTestsPerDay[i] - testPassCount);
     let newTestsPass = Math.floor(
@@ -109,7 +108,7 @@ function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
   }
 
   for (const browser of ALL_BROWSERS) {
-    for (const channel of ['stable']) {
+    for (const channel of ALL_FEATURES) {
       makeRandomDataForBrowserChannelCombo(
         totalTestsPerDay,
         start,
@@ -147,11 +146,13 @@ export class StatsPage extends LitElement {
           min-height: 12em;
         }
 
-        #global-feature-support-browser-selector > sl-button > sl-icon {
+        /*  Make the dropdown menu button icon rotate when the menu is open,
+            so it looks like sl-select. */
+        sl-dropdown > sl-button > sl-icon {
           rotate: 0deg;
           transition: var(--sl-transition-medium) rotate ease;
         }
-        #global-feature-support-browser-selector[open] > sl-button > sl-icon {
+        sl-dropdown[open] > sl-button > sl-icon {
           rotate: -180deg;
           transition: var(--sl-transition-medium) rotate ease;
         }
