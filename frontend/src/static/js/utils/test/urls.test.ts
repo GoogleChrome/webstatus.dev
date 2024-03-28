@@ -89,6 +89,40 @@ describe('formatOverviewPageUrl', () => {
     const url = formatOverviewPageUrl({search: '?q=css'});
     assert.equal(url, '/?q=css');
   });
+
+  it('returns a URL with overrideparameters set', () => {
+    const url = formatOverviewPageUrl({search: ''}, {q: 'memory'});
+    assert.equal(url, '/?q=memory');
+  });
+
+  it('returns a URL with existing parameters overridden', () => {
+    const url = formatOverviewPageUrl({search: '?q=css'}, {q: 'memory'});
+    assert.equal(url, '/?q=memory');
+  });
+
+  it('can add the column spec parameter', () => {
+    const url = formatOverviewPageUrl(
+      {search: '?q=css'},
+      {columns: ['name', 'baseline_stats']}
+    );
+    assert.equal(url, '/?q=css&columns=name%2Cbaseline_stats');
+  });
+
+  it('can override and existing column spec parameter', () => {
+    const url = formatOverviewPageUrl(
+      {search: '?q=css&columns=name'},
+      {columns: ['name', 'baseline_stats']}
+    );
+    assert.equal(url, '/?q=css&columns=name%2Cbaseline_stats');
+  });
+
+  it('can clear the column spec parameter', () => {
+    const url = formatOverviewPageUrl(
+      {search: '?q=css&columns=name'},
+      {columns: []}
+    );
+    assert.equal(url, '/?q=css');
+  });
 });
 
 describe('formatFeaturePageUrl', () => {

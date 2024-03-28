@@ -41,6 +41,7 @@ type QueryStringOverrides = {
   q?: string;
   start?: number;
   sort?: string;
+  columns?: string[];
 };
 
 /* Given the router location object, return a query string with
@@ -59,7 +60,10 @@ function getContextualQueryStringParams(
   if (searchQuery) {
     searchParams.set('q', searchQuery);
   }
-  const colSpec = getColumnsSpec(location);
+  const colSpec =
+    'columns' in overrides
+      ? overrides.columns!.join(',')
+      : getColumnsSpec(location);
   if (colSpec) {
     searchParams.set('columns', colSpec);
   }
