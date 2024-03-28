@@ -33,7 +33,12 @@ type ChannelsParameter = components['parameters']['channelPathParam'];
 
 // No way to get the values from the parameter types, so we have to
 // redundantly specify them, with casting to unknown.
-const ALL_BROWSERS = ['chrome', 'firefox', 'safari', 'edge'] as unknown as BrowsersParameter;
+const ALL_BROWSERS = [
+  'chrome',
+  'firefox',
+  'safari',
+  'edge',
+] as unknown as BrowsersParameter;
 const ALL_FEATURES = ['stable'] as unknown as ChannelsParameter;
 
 /** Map from browser-channel to global feature support.
@@ -47,7 +52,8 @@ const browserChannelDataMap = new Map<
 /** Generate a key for browserChannelDataMap. */
 function browserChannelDataMapKey(
   browser: BrowsersParameter,
-  channel?: ChannelsParameter): string {
+  channel?: ChannelsParameter
+): string {
   return `${browser}-${channel}`;
 }
 
@@ -269,7 +275,9 @@ export class StatsPage extends LitElement {
 
     // Merge data across all browsers into one array of rows.
     for (const browser of browsers) {
-      const data = browserChannelDataMap.get(browserChannelDataMapKey(browser, channel));
+      const data = browserChannelDataMap.get(
+        browserChannelDataMapKey(browser, channel)
+      );
       if (!data) continue;
       for (const row of data) {
         if (!row) continue;
