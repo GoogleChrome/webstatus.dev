@@ -50,6 +50,7 @@ func NewWPTRunProcessor(
 // The url to download the results comes from the API to get runs.
 type ResultsDownloader interface {
 	// Returns a small interface ResultsSummaryFile that is later used to generate metrics for each feature.
+	// TODO. once we start parsing multiple file types, we can revisit not returning an interface.
 	DownloadResults(context.Context, string) (ResultsSummaryFile, error)
 }
 
