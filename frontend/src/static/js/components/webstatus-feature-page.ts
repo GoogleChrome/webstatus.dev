@@ -268,98 +268,16 @@ export class FeaturePage extends LitElement {
     `;
   }
 
-  renderAwarenes(): TemplateResult {
-    return html`
-      <sl-card class="halign-stretch" id="awarenss">
-        <div slot="header">Awareness</div>
-        <p class="under-construction">Small chart goes here...</p>
-      </sl-card>
-    `;
-  }
-
-  renderAdoption(): TemplateResult {
-    return html`
-      <sl-card class="halign-stretch" id="adoption">
-        <div slot="header">Adoption</div>
-        <p class="under-construction">Small chart goes here...</p>
-      </sl-card>
-    `;
-  }
-
-  renderGeneralInformation(): TemplateResult {
-    return html`
-      <sl-card id="general-information">
-        <div slot="header">General information</div>
-
-        <div class="vbox under-construction">
-          <div class="hbox">
-            <div class="info-section-header">Project contact</div>
-            <div class="info-details halign-stretch">
-              <dl>
-                <dt>Spec authors</dt>
-                <dd>TODO: values go here</dd>
-
-                <dt>Chromium</dt>
-                <dd>
-                  <div>Status: shipped</div>
-                  <div>TODO: values go here</div>
-                </dd>
-
-                <dt>WebKit</dt>
-                <dd>
-                  <div>Status: shipped</div>
-                  <div>TODO: values go here</div>
-                </dd>
-
-                <dt>Gecko</dt>
-                <dd>
-                  <div>Status: shipped</div>
-                  <div>TODO: values go here</div>
-                </dd>
-              </dl>
-            </div>
-          </div>
-
-          <div class="hbox">
-            <div class="info-section-header">Adoption drivers</div>
-            <div class="info-details halign-stretch">
-              <dl>
-                <dt>Tooling support</dt>
-                <dd>TODO: values go here</dd>
-
-                <dt>Standard maturity</dt>
-                <dd>TODO: values go here</dd>
-
-                <dt>Documentation</dt>
-                <dd>
-                  <a href="#TODO" target="_blank">
-                    MDN
-                    <sl-icon name="box-arrow-up-right"></sl-icon>
-                  </a>
-                </dd>
-
-                <dt>Framework support</dt>
-                <dd>TODO: values go here</dd>
-              </dl>
-            </div>
-          </div>
-        </div>
-      </sl-card>
-    `;
-  }
-
   renderWhenComplete(): TemplateResult {
     return html`
       <div class="vbox">
         ${this.renderCrumbs()} ${this.renderNameAndOffsiteLinks()}
         ${this.renderWPTScores()} ${this.renderImplentationProgress()}
-        ${this.renderCurrentBugs()}
-        <div class="hbox">
-          ${this.renderAwarenes()} ${this.renderAdoption()}
-        </div>
-        ${this.renderGeneralInformation()}
       </div>
     `;
+
+    // TODO: Fetch and display current bugs.
+    //   ${this.renderCurrentBugs()}
   }
 
   renderWhenError(): TemplateResult {
