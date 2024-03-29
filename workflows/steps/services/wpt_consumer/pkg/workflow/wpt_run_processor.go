@@ -18,21 +18,19 @@ import (
 	"context"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
-	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
-// A copy of summary from wpt.fyi
-// https://github.com/web-platform-tests/wpt.fyi/blob/05ddddc52a6b95469131eac5e439af39cbd1200a/api/query/query.go#L30
-// TODO export Summary in wpt.fyi and use it here instead.
-type ResultsSummaryFile map[string]query.SummaryResult
+// ResultsSummaryFile contains the results of a given file format.
+type ResultsSummaryFile interface {
+	Score(context.Context, *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric
+}
 
 // WPTRunProcessor contains all the steps for the workflow to consume wpt data
 // of a particular WPT Run.
 type WPTRunProcessor struct {
 	resultsDownloader     ResultsDownloader
 	webFeaturesDataGetter WebFeaturesDataGetter
-	scorer                WebFeatureWPTScorer
 	scoreStorer           WebFeatureWPTScoreStorer
 }
 
@@ -40,12 +38,10 @@ type WPTRunProcessor struct {
 func NewWPTRunProcessor(
 	resultsDownloader ResultsDownloader,
 	webFeaturesDataGetter WebFeaturesDataGetter,
-	scorer WebFeatureWPTScorer,
 	scoreStorer WebFeatureWPTScoreStorer) *WPTRunProcessor {
 	return &WPTRunProcessor{
 		resultsDownloader:     resultsDownloader,
 		webFeaturesDataGetter: webFeaturesDataGetter,
-		scorer:                scorer,
 		scoreStorer:           scoreStorer,
 	}
 }
@@ -53,6 +49,7 @@ func NewWPTRunProcessor(
 // ResultsDownloader will download the results for a given run.
 // The url to download the results comes from the API to get runs.
 type ResultsDownloader interface {
+	// Returns a small interface ResultsSummaryFile that is later used to generate metrics for each feature.
 	DownloadResults(context.Context, string) (ResultsSummaryFile, error)
 }
 
@@ -60,11 +57,6 @@ type ResultsDownloader interface {
 type WebFeaturesDataGetter interface {
 	// Get the web features metadata for the particular commit sha.
 	GetWebFeaturesData(context.Context, string) (*shared.WebFeaturesData, error)
-}
-
-// WebFeatureWPTScorer describes an interface that will score the run with the given features data.
-type WebFeatureWPTScorer interface {
-	Score(context.Context, ResultsSummaryFile, *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric
 }
 
 // WebFeatureWPTScoreStorer describes the interface to store run data and metrics data.
@@ -90,7 +82,8 @@ func (w WPTRunProcessor) ProcessRun(
 	if err != nil {
 		return err
 	}
-	metricsPerFeature := w.scorer.Score(ctx, resultsSummaryFile, webFeaturesData)
+
+	metricsPerFeature := resultsSummaryFile.Score(ctx, webFeaturesData)
 
 	// Insert the data.
 

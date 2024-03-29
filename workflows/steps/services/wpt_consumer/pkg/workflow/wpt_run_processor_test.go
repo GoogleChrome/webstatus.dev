@@ -22,7 +22,6 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
-	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -35,6 +34,7 @@ type MockResultsDownloader struct {
 
 var errDownloadResults = errors.New("download results error")
 
+// nolint: ireturn
 func (m *MockResultsDownloader) DownloadResults(_ context.Context, _ string) (ResultsSummaryFile, error) {
 	if m.shouldFail {
 		return nil, errDownloadResults
@@ -60,13 +60,12 @@ func (m *MockWebFeaturesDataGetter) GetWebFeaturesData(
 	return m.webFeaturesData, nil
 }
 
-type MockWebFeatureWPTScorer struct {
+type MockResultsFile struct {
 	metricsPerFeature map[string]wptconsumertypes.WPTFeatureMetric
 }
 
-func (m *MockWebFeatureWPTScorer) Score(
+func (m MockResultsFile) Score(
 	_ context.Context,
-	_ ResultsSummaryFile,
 	_ *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric {
 	return m.metricsPerFeature
 }
@@ -120,7 +119,6 @@ type processRunTest struct {
 	inputRun                  shared.TestRun
 	mockResultsDownloader     *MockResultsDownloader
 	mockWebFeaturesDataGetter *MockWebFeaturesDataGetter
-	mockWebFeatureWPTScorer   *MockWebFeatureWPTScorer
 	insertRunConfig           *insertRunConfig
 	upsertMetricConfig        *upsertMetricConfig
 	expectedErr               error
@@ -174,20 +172,16 @@ func TestProcessRun(t *testing.T) {
 				err: nil,
 			},
 			mockResultsDownloader: &MockResultsDownloader{
-				resultsSummary: ResultsSummaryFile{"test1": query.SummaryResult{
-					Status: "O",
-					Counts: []int{0, 0},
-				}},
+				resultsSummary: MockResultsFile{
+					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
+						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+					},
+				},
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
 				webFeaturesData: &shared.WebFeaturesData{},
 				shouldFail:      false,
-			},
-			mockWebFeatureWPTScorer: &MockWebFeatureWPTScorer{
-				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
-				},
 			},
 			expectedErr: nil,
 		},
@@ -219,8 +213,7 @@ func TestProcessRun(t *testing.T) {
 				webFeaturesData: nil,
 				shouldFail:      false,
 			},
-			mockWebFeatureWPTScorer: nil,
-			expectedErr:             errDownloadResults,
+			expectedErr: errDownloadResults,
 		},
 		{
 			name: "Fail to get data",
@@ -243,18 +236,18 @@ func TestProcessRun(t *testing.T) {
 			insertRunConfig:    nil,
 			upsertMetricConfig: nil,
 			mockResultsDownloader: &MockResultsDownloader{
-				resultsSummary: ResultsSummaryFile{"test1": query.SummaryResult{
-					Status: "O",
-					Counts: []int{0, 0},
-				}},
+				resultsSummary: MockResultsFile{
+					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
+						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+					},
+				},
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
 				webFeaturesData: nil,
 				shouldFail:      true,
 			},
-			mockWebFeatureWPTScorer: nil,
-			expectedErr:             errGetWebFeaturesData,
+			expectedErr: errGetWebFeaturesData,
 		},
 		{
 			name: "Fail to insert run",
@@ -295,20 +288,16 @@ func TestProcessRun(t *testing.T) {
 			},
 			upsertMetricConfig: nil,
 			mockResultsDownloader: &MockResultsDownloader{
-				resultsSummary: ResultsSummaryFile{"test1": query.SummaryResult{
-					Status: "O",
-					Counts: []int{0, 0},
-				}},
+				resultsSummary: MockResultsFile{
+					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
+						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+					},
+				},
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
 				webFeaturesData: &shared.WebFeaturesData{},
 				shouldFail:      false,
-			},
-			mockWebFeatureWPTScorer: &MockWebFeatureWPTScorer{
-				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
-				},
 			},
 			expectedErr: errInsertWPTRun,
 		},
@@ -358,20 +347,16 @@ func TestProcessRun(t *testing.T) {
 				err: errUpsertWPTMetric,
 			},
 			mockResultsDownloader: &MockResultsDownloader{
-				resultsSummary: ResultsSummaryFile{"test1": query.SummaryResult{
-					Status: "O",
-					Counts: []int{0, 0},
-				}},
+				resultsSummary: MockResultsFile{
+					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
+						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+					},
+				},
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
 				webFeaturesData: &shared.WebFeaturesData{},
 				shouldFail:      false,
-			},
-			mockWebFeatureWPTScorer: &MockWebFeatureWPTScorer{
-				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
-				},
 			},
 			expectedErr: errUpsertWPTMetric,
 		},
@@ -381,7 +366,6 @@ func TestProcessRun(t *testing.T) {
 			processor := NewWPTRunProcessor(
 				tt.mockResultsDownloader,
 				tt.mockWebFeaturesDataGetter,
-				tt.mockWebFeatureWPTScorer,
 				&MockWebFeatureWPTScoreStorer{
 					insertRunCfg:    tt.insertRunConfig,
 					upsertMetricCfg: tt.upsertMetricConfig,
