@@ -55,50 +55,50 @@ function browserChannelDataMapKey(
 }
 
 /** Make random data for browserChannelDataMap */
-function makeRandomDataForBrowserChannelCombo(
-  totalTestsPerDay: Array<number>,
-  start: Date,
-  browser: BrowsersParameter,
-  channel: ChannelsParameter
-) {
-  const data: Array<WPTRunMetric> = [];
-  const numDays = totalTestsPerDay.length;
+// function makeRandomDataForBrowserChannelCombo(
+//   totalTestsPerDay: Array<number>,
+//   start: Date,
+//   browser: BrowsersParameter,
+//   channel: ChannelsParameter
+// ) {
+//   const data: Array<WPTRunMetric> = [];
+//   const numDays = totalTestsPerDay.length;
 
-  // Compute random rate for this browser between 0 and 1.
-  const rate = Math.random();
+//   // Compute random rate for this browser between 0 and 1.
+//   const rate = Math.random();
 
-  let testPassCount = totalTestsPerDay[0] * rate;
-  for (let i = 0; i < numDays; i++) {
-    // newTestsPass is a small random fraction of the totalTestsPerDay not yet passed.
-    const unpassedTests = Math.abs(totalTestsPerDay[i] - testPassCount);
-    let newTestsPass = Math.floor(
-      ((Math.random() * unpassedTests) / 1000) * rate
-    );
-    if (Math.random() < 0.01) {
-      newTestsPass +=
-        Math.floor(((Math.random() * unpassedTests) / 10) * rate) +
-        Math.floor(
-          ((Math.random() * unpassedTests) / 500) *
-            rate *
-            Math.floor((Math.random() * unpassedTests * rate) / 500)
-        );
-    }
+//   let testPassCount = totalTestsPerDay[0] * rate;
+//   for (let i = 0; i < numDays; i++) {
+//     // newTestsPass is a small random fraction of the totalTestsPerDay not yet passed.
+//     const unpassedTests = Math.abs(totalTestsPerDay[i] - testPassCount);
+//     let newTestsPass = Math.floor(
+//       ((Math.random() * unpassedTests) / 1000) * rate
+//     );
+//     if (Math.random() < 0.01) {
+//       newTestsPass +=
+//         Math.floor(((Math.random() * unpassedTests) / 10) * rate) +
+//         Math.floor(
+//           ((Math.random() * unpassedTests) / 500) *
+//             rate *
+//             Math.floor((Math.random() * unpassedTests * rate) / 500)
+//         );
+//     }
 
-    // testPassCount is previous testPassCount + newTestsPass
-    testPassCount = testPassCount + newTestsPass;
-    // Can never be more than 90% of the total.
-    testPassCount = Math.min(totalTestsPerDay[i] * 0.9, testPassCount);
+//     // testPassCount is previous testPassCount + newTestsPass
+//     testPassCount = testPassCount + newTestsPass;
+//     // Can never be more than 90% of the total.
+//     testPassCount = Math.min(totalTestsPerDay[i] * 0.9, testPassCount);
 
-    data.push({
-      run_timestamp: new Date(
-        start.getTime() + i * (1000 * 60 * 60 * 24)
-      ).toISOString(),
-      test_pass_count: testPassCount,
-      total_tests_count: totalTestsPerDay[i],
-    });
-  }
-  browserChannelDataMap.set(browserChannelDataMapKey(browser, channel), data);
-}
+//     data.push({
+//       run_timestamp: new Date(
+//         start.getTime() + i * (1000 * 60 * 60 * 24)
+//       ).toISOString(),
+//       test_pass_count: testPassCount,
+//       total_tests_count: totalTestsPerDay[i],
+//     });
+//   }
+//   browserChannelDataMap.set(browserChannelDataMapKey(browser, channel), data);
+// }
 
 // Generate data for all browser/channel combos
 // function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
@@ -233,12 +233,13 @@ export class StatsPage extends LitElement {
     });
   }
 
-  _fetchGlobalFeatureSupportData(apiClient, startDate, endDate) {
+   async  _fetchGlobalFeatureSupportData(
+      apiClient: APIClient, startDate: Date, endDate: Date) {
     if (typeof apiClient !== 'object') return;
     for (const browser of ALL_BROWSERS) {
       for (const channel of ALL_FEATURES) {
           const wptRuns = await apiClient.getStatsByBrowserAndChannel(
-              browser, channel);
+              browser, channel, startDate, endDate);
           browserChannelDataMap.set(
               browserChannelDataMapKey(browser, channel), wptRuns);
       }
@@ -265,8 +266,8 @@ export class StatsPage extends LitElement {
   constructor() {
     super();
     this.loadingTask = new Task(this, {
-      args: () => [this.apiClient, this.startDate, this.endDate],
-      task: async ([apiClient, startDate, endDate]) => {
+      args: () => [this.apiClient, this.startDate, this.endDate] as [APIClient, Date, Date],
+        task: async ([apiClient, startDate, endDate]: [APIClient, Date, Date]) => {
           await this._fetchGlobalFeatureSupportData(apiClient, startDate, endDate);
         return this.globalFeatureSupport;
       },
