@@ -19,6 +19,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
@@ -29,8 +30,6 @@ func main() {
 	// Describe the command line flags and parse the flags
 	var (
 		webFeatureConsumerHost = flag.String("web_consumer_host", "", "Web Feature Consumer host")
-		githubOrg              = flag.String("github_org", "web-platform-dx", "Github Org")
-		githubRepo             = flag.String("github_repo", "web-features", "Github Repo")
 	)
 	flag.Parse()
 
@@ -42,8 +41,6 @@ func main() {
 	// Run the workflow
 	err = newWebFeatureWorkflow(
 		webFeatureConsumerClient,
-		*githubOrg,
-		*githubRepo,
 	).Run(context.Background())
 	if err != nil {
 		log.Fatalf("failed to run web feature workflow: %s\n", err.Error())
@@ -58,31 +55,27 @@ func main() {
 // serially.
 type WebFeatureWorkflow struct {
 	webFeatureClient web_feature_consumer.ClientWithResponsesInterface
-	githubOrg        string
-	githubRepo       string
 }
 
 // newWebFeatureWorkflow creates a new WebFeatureWorkflow.
 func newWebFeatureWorkflow(
 	webFeatureClient web_feature_consumer.ClientWithResponsesInterface,
-	githubOrg string,
-	githubRepo string) WebFeatureWorkflow {
+) WebFeatureWorkflow {
 
 	return WebFeatureWorkflow{
 		webFeatureClient: webFeatureClient,
-		githubOrg:        githubOrg,
-		githubRepo:       githubRepo,
 	}
 }
 
 // Run executes the workflow.
 func (w WebFeatureWorkflow) Run(ctx context.Context) error {
+	slog.Info("starting web features workflow")
 	webFeatureResp, err := w.webFeatureClient.PostV1WebFeaturesWithResponse(ctx)
 	if err != nil {
 		return fmt.Errorf("web feature client call failed: %w", err)
 	}
 	if webFeatureResp.StatusCode() != http.StatusOK {
-		return fmt.Errorf("failed to consume web features from repo. status %d", webFeatureResp.StatusCode())
+		return fmt.Errorf("failed to consume web features. status %d", webFeatureResp.StatusCode())
 	}
 
 	return nil

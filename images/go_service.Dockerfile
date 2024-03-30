@@ -39,12 +39,13 @@ COPY ${service_dir} ${service_dir}
 
 # Build the binary
 ARG SKAFFOLD_GO_GCFLAGS
-RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o server ./${service_dir}/cmd/server
+ARG MAIN_BINARY=server
+RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o program ./${service_dir}/cmd/${MAIN_BINARY}
 
 FROM alpine:3.18
 
 # Copy only the binary from the previous image
-COPY --from=builder /work/server .
+COPY --from=builder /work/program .
 
 # Assuming that service has a binary called server, make that the command to run when the image starts.
-CMD ./server
+CMD ./program

@@ -168,6 +168,7 @@ shell-lint:
 	shellcheck .devcontainer/*.sh
 	shellcheck infra/**/*.sh
 	shellcheck .dev/**/*.sh
+	shellcheck util/*.sh
 
 lint-fix: node-install
 	npm run lint-fix -w frontend

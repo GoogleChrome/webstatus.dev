@@ -16,20 +16,31 @@ package workflow
 
 import (
 	"context"
-	"time"
 
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
-// Workflow contains all the steps for the workflow to consume wpt data.
-type Workflow struct{}
+func NewWPTRunsProcessor(runProcessor RunProcessor) *WPTRunsProcessor {
+	return &WPTRunsProcessor{runProcessor: runProcessor}
+}
 
-// RunsGetter represents the behavior to get all the runs up until the given
-// date.
-type RunsGetter interface {
-	GetRuns(
-		ctx context.Context,
-		stopAt time.Time,
-		runsPerPage int,
-	) (shared.TestRuns, error)
+// WPTRunsProcessor contains all the steps for the workflow to process wpt data
+// of multiple WPT runs.
+type WPTRunsProcessor struct {
+	runProcessor RunProcessor
+}
+
+type RunProcessor interface {
+	ProcessRun(context.Context, shared.TestRun) error
+}
+
+func (r WPTRunsProcessor) ProcessRuns(ctx context.Context, runs shared.TestRuns) error {
+	for _, run := range runs {
+		err := r.runProcessor.ProcessRun(ctx, run)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
