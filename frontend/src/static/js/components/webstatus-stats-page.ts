@@ -17,19 +17,16 @@
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
 /// <reference types="@types/google.visualization" />
 
-//import {consume} from '@lit/context';
-//import {Task} from '@lit/task';
+import {consume} from '@lit/context';
+import {Task} from '@lit/task';
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {type components} from 'webstatus.dev-backend';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
-//import {type APIClient} from '../api/client.js';
-//import {apiClientContext} from '../contexts/api-client-context.js';
+import {type APIClient, type BrowsersParameter, type ChannelsParameter, type WPTRunMetric} from '../api/client.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
 
-type BrowsersParameter = components['parameters']['browserPathParam'];
-type ChannelsParameter = components['parameters']['channelPathParam'];
 
 // No way to get the values from the parameter types, so we have to
 // redundantly specify them.
@@ -46,7 +43,7 @@ const ALL_FEATURES: ChannelsParameter[] = ['stable'];
  */
 const browserChannelDataMap = new Map<
   string,
-  Array<components['schemas']['WPTRunMetric']>
+  Array<WPTRunMetric>
 >();
 
 /** Generate a key for browserChannelDataMap. */
@@ -64,7 +61,7 @@ function makeRandomDataForBrowserChannelCombo(
   browser: BrowsersParameter,
   channel: ChannelsParameter
 ) {
-  const data: Array<components['schemas']['WPTRunMetric']> = [];
+  const data: Array<WPTRunMetric> = [];
   const numDays = totalTestsPerDay.length;
 
   // Compute random rate for this browser between 0 and 1.
@@ -104,44 +101,49 @@ function makeRandomDataForBrowserChannelCombo(
 }
 
 // Generate data for all browser/channel combos
-function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
-  let rate = 0.5;
-  const dateRange = end.getTime() - start.getTime();
-  const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
+// function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
+//   let rate = 0.5;
+//   const dateRange = end.getTime() - start.getTime();
+//   const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
 
-  const totalTestsPerDay: Array<number> = [];
+//   const totalTestsPerDay: Array<number> = [];
 
-  // Create random totalTestsPerDay
-  for (let i = 0; i < numDays; i++) {
-    // Vary the rate randomly a small amount
-    rate = Math.min(1, Math.max(0.000001, rate * (0.95 + Math.random() / 10)));
-    let newTests = 1;
-    // Occasionally add a random number of tests.
-    if (Math.random() < 0.01) {
-      newTests +=
-        Math.floor(Math.random() * 20000 * rate) +
-        Math.floor(Math.random() * 100 * (1 - rate)) *
-          Math.floor(Math.random() * 100 * (1 - rate));
-    }
+//   // Create random totalTestsPerDay
+//   for (let i = 0; i < numDays; i++) {
+//     // Vary the rate randomly a small amount
+//     rate = Math.min(1, Math.max(0.000001, rate * (0.95 + Math.random() / 10)));
+//     let newTests = 1;
+//     // Occasionally add a random number of tests.
+//     if (Math.random() < 0.01) {
+//       newTests +=
+//         Math.floor(Math.random() * 20000 * rate) +
+//         Math.floor(Math.random() * 100 * (1 - rate)) *
+//           Math.floor(Math.random() * 100 * (1 - rate));
+//     }
 
-    totalTestsPerDay[i] = totalTestsPerDay[i - 1] || 5000;
-    totalTestsPerDay[i] += newTests;
-  }
+//     totalTestsPerDay[i] = totalTestsPerDay[i - 1] || 5000;
+//     totalTestsPerDay[i] += newTests;
+//   }
 
-  for (const browser of ALL_BROWSERS) {
-    for (const channel of ALL_FEATURES) {
-      makeRandomDataForBrowserChannelCombo(
-        totalTestsPerDay,
-        start,
-        browser as BrowsersParameter,
-        channel as ChannelsParameter
-      );
-    }
-  }
-}
+//   for (const browser of ALL_BROWSERS) {
+//     for (const channel of ALL_FEATURES) {
+//       makeRandomDataForBrowserChannelCombo(
+//         totalTestsPerDay,
+//         start,
+//         browser as BrowsersParameter,
+//         channel as ChannelsParameter
+//       );
+//     }
+//   }
+//}
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
+  loadingTask: Task;
+
+  @consume({context: apiClientContext})
+  apiClient!: APIClient;
+
   @state()
   globalFeatureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
 
@@ -152,7 +154,7 @@ export class StatsPage extends LitElement {
   endDate: Date = new Date(2024, 4, 1);
 
   @state()
-  globalFeatureSupport: Array<components['schemas']['WPTRunMetric']> = [];
+  globalFeatureSupport: Array<WPTRunMetric> = [];
 
   static get styles(): CSSResultGroup {
     return [
@@ -231,8 +233,20 @@ export class StatsPage extends LitElement {
     });
   }
 
+  _fetchGlobalFeatureSupportData(apiClient, startDate, endDate) {
+    if (typeof apiClient !== 'object') return;
+    for (const browser of ALL_BROWSERS) {
+      for (const channel of ALL_FEATURES) {
+          const wptRuns = await apiClient.getStatsByBrowserAndChannel(
+              browser, channel);
+          browserChannelDataMap.set(
+              browserChannelDataMapKey(browser, channel), wptRuns);
+      }
+    }
+  }
+
   setupGlobalFeatureSupportChart() {
-    makeRandomDataForAllBrowserChannelCombos(this.startDate, this.endDate);
+    // @@@ makeRandomDataForAllBrowserChannelCombos(this.startDate, this.endDate);
 
     google.charts.load('current', {
       packages: ['corechart'],
@@ -245,6 +259,17 @@ export class StatsPage extends LitElement {
     // Add window resize event handler to redraw the chart.
     window.addEventListener('resize', () => {
       this.createGlobalFeatureSupportChart();
+    });
+  }
+
+  constructor() {
+    super();
+    this.loadingTask = new Task(this, {
+      args: () => [this.apiClient, this.startDate, this.endDate],
+      task: async ([apiClient, startDate, endDate]) => {
+          await this._fetchGlobalFeatureSupportData(apiClient, startDate, endDate);
+        return this.globalFeatureSupport;
+      },
     });
   }
 

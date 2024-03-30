@@ -25,6 +25,10 @@ export type FeatureSearchType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
 >['q'];
 
+export type BrowsersParameter = components['parameters']['browserPathParam'];
+export type ChannelsParameter = components['parameters']['channelPathParam'];
+export type WPTRunMetric = components['schemas']['WPTRunMetric'];
+
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
   credentials: 'include',
@@ -76,4 +80,27 @@ export class APIClient {
     }
     return data?.data;
   }
+
+  public async getStatsByBrowserAndChannel(
+    browser: BrowsersParameter,
+    channel: ChannelsParameter,
+    startAtDate: Date,
+    endAtDate: Date
+  ): Promise<WPTRunMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    const {data, error} = await this.client.GET(
+        '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts', {
+        params: {
+            query: {startAt, oendAt} as {startAt: string, endAt: string},
+            path: {browser, channel},
+        },
+        ...temporaryFetchOptions,
+    });
+    if (error !== undefined) {
+      throw new Error(error?.message);
+    }
+    return data?.data;
+  }
+
 }
