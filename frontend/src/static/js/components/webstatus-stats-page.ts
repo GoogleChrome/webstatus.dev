@@ -54,88 +54,6 @@ function browserChannelDataMapKey(
   return `${browser}-${channel}`;
 }
 
-/** Make random data for browserChannelDataMap */
-// function makeRandomDataForBrowserChannelCombo(
-//   totalTestsPerDay: Array<number>,
-//   start: Date,
-//   browser: BrowsersParameter,
-//   channel: ChannelsParameter
-// ) {
-//   const data: Array<WPTRunMetric> = [];
-//   const numDays = totalTestsPerDay.length;
-
-//   // Compute random rate for this browser between 0 and 1.
-//   const rate = Math.random();
-
-//   let testPassCount = totalTestsPerDay[0] * rate;
-//   for (let i = 0; i < numDays; i++) {
-//     // newTestsPass is a small random fraction of the totalTestsPerDay not yet passed.
-//     const unpassedTests = Math.abs(totalTestsPerDay[i] - testPassCount);
-//     let newTestsPass = Math.floor(
-//       ((Math.random() * unpassedTests) / 1000) * rate
-//     );
-//     if (Math.random() < 0.01) {
-//       newTestsPass +=
-//         Math.floor(((Math.random() * unpassedTests) / 10) * rate) +
-//         Math.floor(
-//           ((Math.random() * unpassedTests) / 500) *
-//             rate *
-//             Math.floor((Math.random() * unpassedTests * rate) / 500)
-//         );
-//     }
-
-//     // testPassCount is previous testPassCount + newTestsPass
-//     testPassCount = testPassCount + newTestsPass;
-//     // Can never be more than 90% of the total.
-//     testPassCount = Math.min(totalTestsPerDay[i] * 0.9, testPassCount);
-
-//     data.push({
-//       run_timestamp: new Date(
-//         start.getTime() + i * (1000 * 60 * 60 * 24)
-//       ).toISOString(),
-//       test_pass_count: testPassCount,
-//       total_tests_count: totalTestsPerDay[i],
-//     });
-//   }
-//   browserChannelDataMap.set(browserChannelDataMapKey(browser, channel), data);
-// }
-
-// Generate data for all browser/channel combos
-// function makeRandomDataForAllBrowserChannelCombos(start: Date, end: Date) {
-//   let rate = 0.5;
-//   const dateRange = end.getTime() - start.getTime();
-//   const numDays = Math.ceil(dateRange / (1000 * 60 * 60 * 24));
-
-//   const totalTestsPerDay: Array<number> = [];
-
-//   // Create random totalTestsPerDay
-//   for (let i = 0; i < numDays; i++) {
-//     // Vary the rate randomly a small amount
-//     rate = Math.min(1, Math.max(0.000001, rate * (0.95 + Math.random() / 10)));
-//     let newTests = 1;
-//     // Occasionally add a random number of tests.
-//     if (Math.random() < 0.01) {
-//       newTests +=
-//         Math.floor(Math.random() * 20000 * rate) +
-//         Math.floor(Math.random() * 100 * (1 - rate)) *
-//           Math.floor(Math.random() * 100 * (1 - rate));
-//     }
-
-//     totalTestsPerDay[i] = totalTestsPerDay[i - 1] || 5000;
-//     totalTestsPerDay[i] += newTests;
-//   }
-
-//   for (const browser of ALL_BROWSERS) {
-//     for (const channel of ALL_FEATURES) {
-//       makeRandomDataForBrowserChannelCombo(
-//         totalTestsPerDay,
-//         start,
-//         browser as BrowsersParameter,
-//         channel as ChannelsParameter
-//       );
-//     }
-//   }
-//}
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
@@ -148,10 +66,10 @@ export class StatsPage extends LitElement {
   globalFeatureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
 
   @state()
-  startDate: Date = new Date(2021, 1, 1);
+  startDate: Date = new Date(2020, 0, 1); // Jan 1, 2020.
 
   @state()
-  endDate: Date = new Date(2024, 4, 1);
+    endDate: Date = new Date(); // Today
 
   @state()
   globalFeatureSupport: Array<WPTRunMetric> = [];
@@ -247,8 +165,6 @@ export class StatsPage extends LitElement {
   }
 
   setupGlobalFeatureSupportChart() {
-    // @@@ makeRandomDataForAllBrowserChannelCombos(this.startDate, this.endDate);
-
     google.charts.load('current', {
       packages: ['corechart'],
     });
