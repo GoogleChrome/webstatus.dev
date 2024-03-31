@@ -15,7 +15,11 @@
  */
 
 import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
-import {type components, type paths, type operations} from 'webstatus.dev-backend';
+import {
+  type components,
+  type paths,
+  type operations,
+} from 'webstatus.dev-backend';
 
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
@@ -99,12 +103,11 @@ export class APIClient {
     const options = Object.assign(parameters, temporaryFetchOptions);
     const {data, error} = await this.client.GET(
       '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
-        {params: options},
+      {params: options}
     );
     if (error !== undefined) {
       throw new Error(error?.message);
     }
     return data?.data;
   }
-
 }
