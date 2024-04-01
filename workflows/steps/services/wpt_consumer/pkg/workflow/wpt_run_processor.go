@@ -57,7 +57,7 @@ type ResultsDownloader interface {
 // WebFeaturesDataGetter describes an interface that will get the web features data.
 type WebFeaturesDataGetter interface {
 	// Get the web features metadata for the particular commit sha.
-	GetWebFeaturesData(context.Context, string) (*shared.WebFeaturesData, error)
+	GetWebFeaturesData(context.Context, string) (shared.WebFeaturesData, error)
 }
 
 // WebFeatureWPTScoreStorer describes the interface to store run data and metrics data.
@@ -84,7 +84,7 @@ func (w WPTRunProcessor) ProcessRun(
 		return err
 	}
 
-	metricsPerFeature := resultsSummaryFile.Score(ctx, webFeaturesData)
+	metricsPerFeature := resultsSummaryFile.Score(ctx, &webFeaturesData)
 
 	// Insert the data.
 

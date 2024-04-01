@@ -59,3 +59,11 @@ resource "google_project_service" "internal_workflows" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+resource "google_project_service" "internal_scheduler" {
+  provider = google.internal_project
+  service  = "cloudscheduler.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
