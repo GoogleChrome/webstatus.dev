@@ -45,14 +45,14 @@ func (m *MockResultsDownloader) DownloadResults(_ context.Context, _ string) (Re
 
 type MockWebFeaturesDataGetter struct {
 	shouldFail      bool
-	webFeaturesData *shared.WebFeaturesData
+	webFeaturesData shared.WebFeaturesData
 }
 
 var errGetWebFeaturesData = errors.New("web features test error")
 
 func (m *MockWebFeaturesDataGetter) GetWebFeaturesData(
 	_ context.Context,
-	_ string) (*shared.WebFeaturesData, error) {
+	_ string) (shared.WebFeaturesData, error) {
 	if m.shouldFail {
 		return nil, errGetWebFeaturesData
 	}
@@ -180,8 +180,12 @@ func TestProcessRun(t *testing.T) {
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
-				webFeaturesData: &shared.WebFeaturesData{},
-				shouldFail:      false,
+				webFeaturesData: shared.WebFeaturesData{
+					"test1.html": {
+						"feature1": nil,
+					},
+				},
+				shouldFail: false,
 			},
 			expectedErr: nil,
 		},
@@ -210,7 +214,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail:     true,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
-				webFeaturesData: nil,
+				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
 			},
 			expectedErr: errDownloadResults,
@@ -244,7 +248,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
-				webFeaturesData: nil,
+				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      true,
 			},
 			expectedErr: errGetWebFeaturesData,
@@ -296,7 +300,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
-				webFeaturesData: &shared.WebFeaturesData{},
+				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
 			},
 			expectedErr: errInsertWPTRun,
@@ -355,7 +359,7 @@ func TestProcessRun(t *testing.T) {
 				shouldFail: false,
 			},
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
-				webFeaturesData: &shared.WebFeaturesData{},
+				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
 			},
 			expectedErr: errUpsertWPTMetric,
