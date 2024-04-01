@@ -57,6 +57,7 @@ function browserChannelDataMapKey(
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
+  @state()
   loadingTask: Task;
 
   @consume({context: apiClientContext})

@@ -15,11 +15,7 @@
  */
 
 import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
-import {
-  type components,
-  type paths,
-  type operations,
-} from 'webstatus.dev-backend';
+import {type components, type paths} from 'webstatus.dev-backend';
 
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
@@ -74,10 +70,10 @@ export class APIClient {
     if (q) qsParams.q = q;
     if (sort) qsParams.sort = sort;
     const {data, error} = await this.client.GET('/v1/features', {
+      ...temporaryFetchOptions,
       params: {
         query: qsParams,
       },
-      ...temporaryFetchOptions,
     });
     if (error !== undefined) {
       throw new Error(error?.message);
@@ -93,21 +89,20 @@ export class APIClient {
   ): Promise<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
-    const parameters: operations['listAggregatedWPTMetrics']['parameters'] = {
-      query: {startAt, endAt},
-      path: {browser, channel},
-    };
-    // Mystery: This seems to hide temporaryFetchOptions inside the params.
-    // But isn't it needed at the top level of the dict passed to GET?
-    // Why the type error when passed in tope level dict?
-    const options = Object.assign(parameters, temporaryFetchOptions);
     const {data, error} = await this.client.GET(
       '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
-      {params: options}
+      {
+        ...temporaryFetchOptions,
+        params: {
+          query: {startAt, endAt},
+          path: {browser, channel},
+        },
+      }
     );
     if (error !== undefined) {
       throw new Error(error?.message);
     }
+    console.log(data);
     return data?.data;
   }
 }
