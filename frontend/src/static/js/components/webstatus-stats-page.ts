@@ -58,7 +58,10 @@ function browserChannelDataMapKey(
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
   @state()
-  loadingTask: Task;
+  _loadingGFSTask: Task;
+
+  @state()
+  _gchartsLibraryLoaded: boolean;
 
   @consume({context: apiClientContext})
   apiClient!: APIClient;
@@ -106,50 +109,35 @@ export class StatsPage extends LitElement {
     ];
   }
 
-  setupGlobalFeatureSupportBrowsersHandler() {
-    // Get the global feature support data browser selector.
-    const browserSelectorMenu = this.shadowRoot!.querySelector(
-      '#global-feature-support-browser-selector sl-menu'
-    ) as SlMenu;
-    // Add a listener to the browserSelectorMenu to update the list of
-    // browsers in globalFeatureSupportBrowsers.
-    browserSelectorMenu.addEventListener('sl-select', event => {
-      const menu = event.target as SlMenu;
-      const menuItemsArray: Array<SlMenuItem> = Array.from(
-        menu.children
-      ).filter(child => child instanceof SlMenuItem) as Array<SlMenuItem>;
+  handleBrowserSelection(event: Event) {
+    const menu = event.target as SlMenu;
+    const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
+      child => child instanceof SlMenuItem
+    ) as Array<SlMenuItem>;
 
-      // Build the list of values of checked menu-items.
-      this.globalFeatureSupportBrowsers = menuItemsArray
-        .filter(menuItem => menuItem.checked)
-        .map(menuItem => menuItem.value) as BrowsersParameter[];
-      // console.info(`globalFeatureSupportBrowsers: ${this.globalFeatureSupportBrowsers}`);
-      // Regenerate data and redraw.  We should instead just filter it.
-      this.setupGlobalFeatureSupportChart();
-    });
+    // Build the list of values of checked menu-items.
+    this.globalFeatureSupportBrowsers = menuItemsArray
+      .filter(menuItem => menuItem.checked)
+      .map(menuItem => menuItem.value) as BrowsersParameter[];
+    // console.info(`globalFeatureSupportBrowsers: ${this.globalFeatureSupportBrowsers}`);
+    // Regenerate data and redraw.  We should instead just filter it.
+    this.setupGlobalFeatureSupportChart();
   }
 
-  setupDateRangeHandler() {
-    const startDateInput = this.shadowRoot!.querySelector(
-      '#start-date'
-    ) as HTMLInputElement;
-    startDateInput.addEventListener('sl-blur', event => {
-      const currentStartDate = this.startDate;
-      this.startDate = new Date((event.target as HTMLInputElement).value);
-      if (this.startDate.getTime() === currentStartDate.getTime()) return;
-      // Regenerate data and redraw.  We should instead just filter it.
-      this.setupGlobalFeatureSupportChart();
-    });
-    const endDateInput = this.shadowRoot!.querySelector(
-      '#end-date'
-    ) as HTMLInputElement;
-    endDateInput.addEventListener('sl-blur', event => {
-      const currentEndDate = this.endDate;
-      this.endDate = new Date((event.target as HTMLInputElement).value);
-      if (this.endDate.getTime() === currentEndDate.getTime()) return;
-      // Regenerate data and redraw.  We should instead just filter it.
-      this.setupGlobalFeatureSupportChart();
-    });
+  handleStartDateChange(event: Event) {
+    const currentStartDate = this.startDate;
+    this.startDate = new Date((event.target as HTMLInputElement).value);
+    if (this.startDate.getTime() === currentStartDate.getTime()) return;
+    // Regenerate data and redraw.  We should instead just filter it.
+    this.setupGlobalFeatureSupportChart();
+  }
+
+  handleEndDateChange(event: Event) {
+    const currentEndDate = this.endDate;
+    this.endDate = new Date((event.target as HTMLInputElement).value);
+    if (this.endDate.getTime() === currentEndDate.getTime()) return;
+    // Regenerate data and redraw.  We should instead just filter it.
+    this.setupGlobalFeatureSupportChart();
   }
 
   async _fetchGlobalFeatureSupportData(
@@ -180,7 +168,7 @@ export class StatsPage extends LitElement {
     });
     google.charts.setOnLoadCallback(() => {
       // Let's render a chart...
-      this.createGlobalFeatureSupportChart();
+      this._gchartsLibraryLoaded = true;
     });
 
     // Add window resize event handler to redraw the chart.
@@ -191,32 +179,44 @@ export class StatsPage extends LitElement {
 
   constructor() {
     super();
-    this.loadingTask = new Task(this, {
+    this._gchartsLibraryLoaded = false;
+    this._loadingGFSTask = new Task(this, {
       args: () =>
-        [this.apiClient, this.startDate, this.endDate] as [
-          APIClient,
-          Date,
-          Date,
-        ],
-      task: async ([apiClient, startDate, endDate]: [
+        [
+          this.apiClient,
+          this.startDate,
+          this.endDate,
+          this._gchartsLibraryLoaded,
+        ] as [APIClient, Date, Date, boolean],
+      task: async ([apiClient, startDate, endDate, gcLoaded]: [
         APIClient,
         Date,
         Date,
+        boolean,
       ]) => {
-        await this._fetchGlobalFeatureSupportData(
-          apiClient,
-          startDate,
-          endDate
-        );
+        if (gcLoaded) {
+          await this._fetchGlobalFeatureSupportData(
+            apiClient,
+            startDate,
+            endDate
+          );
+        }
         return this.globalFeatureSupport;
       },
     });
   }
 
   async firstUpdated(): Promise<void> {
-    this.setupGlobalFeatureSupportBrowsersHandler();
-    this.setupDateRangeHandler();
     this.setupGlobalFeatureSupportChart();
+  }
+
+  updated() {
+    const gfsChartElement = this.shadowRoot!.getElementById(
+      'global-feature-support-chart'
+    );
+    if (this._gchartsLibraryLoaded && gfsChartElement) {
+      this.createGlobalFeatureSupportChart();
+    }
   }
 
   // Make a DataTable from the data in browserChannelDataMap
@@ -294,10 +294,6 @@ export class StatsPage extends LitElement {
     chart.draw(data, options);
   }
 
-  render(): TemplateResult | undefined {
-    return this.renderWhenComplete();
-  }
-
   renderTitleAndControls(): TemplateResult {
     return html`
       <div id="titleAndControls" class="hbox">
@@ -309,6 +305,7 @@ export class StatsPage extends LitElement {
             >Start date
             <sl-input
               id="start-date"
+              @sl-blur=${this.handleStartDateChange}
               type="date"
               .valueAsDate="${this.startDate}"
             ></sl-input>
@@ -317,6 +314,7 @@ export class StatsPage extends LitElement {
             >End date
             <sl-input
               id="end-date"
+              @sl-blur=${this.handleEndDateChange}
               type="date"
               .valueAsDate="${this.endDate}"
             ></sl-input>
@@ -328,6 +326,27 @@ export class StatsPage extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  renderGlobalFeatureSupportChartWhenComplete(): TemplateResult {
+    return html`
+      <div
+        id="global-feature-support-chart"
+        style="padding: 0; margin: 0; border: 0"
+      >
+        Loading chart...
+      </div>
+    `;
+  }
+
+  renderGlobalFeatureSupportChart(): TemplateResult | undefined {
+    if (!this._gchartsLibraryLoaded) return html`Loading chart library.`;
+    return this._loadingGFSTask.render({
+      complete: () => this.renderGlobalFeatureSupportChartWhenComplete(),
+      error: () => this.renderChartWhenError(),
+      initial: () => this.renderChartWhenInitial(),
+      pending: () => this.renderChartWhenPending(),
+    });
   }
 
   renderGlobalFeatureSupport(): TemplateResult {
@@ -350,7 +369,7 @@ export class StatsPage extends LitElement {
               <sl-icon slot="suffix" name="chevron-down"></sl-icon>
               Browsers
             </sl-button>
-            <sl-menu>
+            <sl-menu @sl-select=${this.handleBrowserSelection}>
               <sl-menu-item type="checkbox" value="Chrome">Chrome</sl-menu-item>
               <sl-menu-item type="checkbox" value="Edge">Edge</sl-menu-item>
               <sl-menu-item type="checkbox" value="Firefox"
@@ -360,14 +379,7 @@ export class StatsPage extends LitElement {
             </sl-menu>
           </sl-dropdown>
         </div>
-        <div>
-          <div
-            id="global-feature-support-chart"
-            style="padding: 0; margin: 0; border: 0"
-          >
-            Loading chart...
-          </div>
-        </div>
+        <div>${this.renderGlobalFeatureSupportChart()}</div>
       </sl-card>
     `;
   }
@@ -422,7 +434,7 @@ export class StatsPage extends LitElement {
     `;
   }
 
-  renderWhenComplete(): TemplateResult {
+  render(): TemplateResult {
     return html`
       <div class="vbox">
         ${this.renderTitleAndControls()} ${this.renderGlobalFeatureSupport()}
@@ -432,5 +444,17 @@ export class StatsPage extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  renderChartWhenError(): TemplateResult {
+    return html`Error when loading stats.`;
+  }
+
+  renderChartWhenInitial(): TemplateResult {
+    return html`Preparing request for stats.`;
+  }
+
+  renderChartWhenPending(): TemplateResult {
+    return html`Loading stats.`;
   }
 }
