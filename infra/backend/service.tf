@@ -103,11 +103,9 @@ resource "google_project_iam_member" "gcp_datastore_user" {
   member   = google_service_account.backend.member
 }
 
-resource "google_spanner_database_iam_member" "gcp_spanner_user" {
+resource "google_project_iam_member" "gcp_spanner_user" {
   role     = "roles/spanner.databaseReader"
   provider = google.internal_project
-  database = var.spanner_datails.database
-  instance = var.spanner_datails.instance
   project  = var.datastore_info.project_id
   member   = google_service_account.backend.member
 }

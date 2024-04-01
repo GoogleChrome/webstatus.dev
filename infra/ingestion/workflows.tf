@@ -27,3 +27,17 @@ module "web_features_repo_workflow" {
   repo_bucket                                  = var.buckets.repo_download_bucket
   docker_repository_details                    = var.docker_repository_details
 }
+
+module "wpt_workflow" {
+  source = "./workflows/wpt"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+
+  regions                   = var.regions
+  env_id                    = var.env_id
+  datastore_info            = var.datastore_info
+  spanner_datails           = var.spanner_datails
+  docker_repository_details = var.docker_repository_details
+}
