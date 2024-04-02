@@ -25,6 +25,10 @@ export type FeatureSearchType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
 >['q'];
 
+export type BrowsersParameter = components['parameters']['browserPathParam'];
+export type ChannelsParameter = components['parameters']['channelPathParam'];
+export type WPTRunMetric = components['schemas']['WPTRunMetric'];
+
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
   credentials: 'include',
@@ -66,11 +70,35 @@ export class APIClient {
     if (q) qsParams.q = q;
     if (sort) qsParams.sort = sort;
     const {data, error} = await this.client.GET('/v1/features', {
+      ...temporaryFetchOptions,
       params: {
         query: qsParams,
       },
-      ...temporaryFetchOptions,
     });
+    if (error !== undefined) {
+      throw new Error(error?.message);
+    }
+    return data?.data;
+  }
+
+  public async getStatsByBrowserAndChannel(
+    browser: BrowsersParameter,
+    channel: ChannelsParameter,
+    startAtDate: Date,
+    endAtDate: Date
+  ): Promise<WPTRunMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    const {data, error} = await this.client.GET(
+      '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
+      {
+        ...temporaryFetchOptions,
+        params: {
+          query: {startAt, endAt},
+          path: {browser, channel},
+        },
+      }
+    );
     if (error !== undefined) {
       throw new Error(error?.message);
     }
