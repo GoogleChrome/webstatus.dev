@@ -102,7 +102,6 @@ export class APIClient {
     if (error !== undefined) {
       throw new Error(error?.message);
     }
-    console.log(data);
     return data?.data;
   }
 }
