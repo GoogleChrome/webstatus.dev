@@ -42,6 +42,7 @@ import {
   ALL_BROWSERS,
   browserChannelDataMap,
   browserChannelDataMapKey,
+  ChannelsParameter,
 } from './random-data.js';
 import { SlMenu, SlMenuItem } from '@shoelace-style/shoelace';
 
@@ -155,7 +156,7 @@ export class FeaturePage extends LitElement {
           transition: var(--sl-transition-medium) rotate ease;
         }
 
-        #global-feature-support-chart {
+        #implementation-progress-chart {
           min-height: 20em;
         }
       `,
@@ -175,10 +176,10 @@ export class FeaturePage extends LitElement {
     });
   }
 
-  setupGlobalFeatureSupportBrowsersHandler() {
-    // Get the global feature support data browser selector.
+  setupImplementationProgressBrowsersHandler() {
+  // Get the implementation progress data browser selector.
     const browserSelectorMenu = this.shadowRoot!.querySelector(
-      '#global-feature-support-browser-selector sl-menu'
+      '#implementation-progress-browser-selector sl-menu'
     ) as SlMenu;
     // Add a listener to the browserSelectorMenu to update the list of
     // browsers in implementationProgressBrowsers.
@@ -193,7 +194,7 @@ export class FeaturePage extends LitElement {
         .filter(menuItem => menuItem.checked)
         .map(menuItem => menuItem.value) as BrowsersParameter[];
       // Regenerate data and redraw. We should instead just filter it.
-      this.setupGlobalFeatureSupportChart();
+      this.setupImplementationProgressChart();
     });
   }
 
@@ -206,7 +207,7 @@ export class FeaturePage extends LitElement {
       this.startDate = new Date((event.target as HTMLInputElement).value);
       if (this.startDate.getTime() === currentStartDate.getTime()) return;
       // Regenerate data and redraw. We should instead just filter it.
-      this.setupGlobalFeatureSupportChart();
+      this.setupImplementationProgressChart();
     });
     const endDateInput = this.shadowRoot!.querySelector(
       '#end-date'
@@ -216,11 +217,11 @@ export class FeaturePage extends LitElement {
       this.endDate = new Date((event.target as HTMLInputElement).value);
       if (this.endDate.getTime() === currentEndDate.getTime()) return;
       // Regenerate data and redraw. We should instead just filter it.
-      this.setupGlobalFeatureSupportChart();
+      this.setupImplementationProgressChart();
     });
   }
 
-  setupGlobalFeatureSupportChart() {
+  setupImplementationProgressChart() {
     makeRandomDataForAllBrowserChannelCombos(this.startDate, this.endDate);
 
     google.charts.load('current', {
@@ -228,12 +229,12 @@ export class FeaturePage extends LitElement {
     });
     google.charts.setOnLoadCallback(() => {
       // Let's render a chart...
-      this.createGlobalFeatureSupportChart();
+      this.createImplementationProgressChart();
     });
 
     // Add window resize event handler to redraw the chart.
     window.addEventListener('resize', () => {
-      this.createGlobalFeatureSupportChart();
+      this.createImplementationProgressChart();
     });
   }
 
@@ -242,16 +243,16 @@ export class FeaturePage extends LitElement {
     // nested components could also access the router.
     this.featureId = this.location.params.featureId;
 
-    this.setupGlobalFeatureSupportBrowsersHandler();
+    // This is too soon now, since the elements it depends on are not rendered yet.
+    this.setupImplementationProgressBrowsersHandler();
     this.setupDateRangeHandler();
-    this.setupGlobalFeatureSupportChart();
+    this.setupImplementationProgressChart();
   }
 
   // Make a DataTable from the data in browserChannelDataMap
-  createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
-    // Get the list of browsers from browserChannelDataMap
-    const browsers = this.implementationProgressBrowsers;
-    const channel = 'stable';
+  createImplementationProgressDataTableFromMap(
+    browsers: BrowsersParameter[], channel: ChannelsParameter):
+    google.visualization.DataTable {
 
     const dataTable = new google.visualization.DataTable();
     dataTable.addColumn('date', 'Date');
@@ -300,8 +301,9 @@ export class FeaturePage extends LitElement {
     return dataTable;
   }
 
-  createGlobalFeatureSupportChart(): void {
-    const data = this.createGlobalFeatureSupportDataTableFromMap();
+  createImplementationProgressChart(): void {
+    const data = this.createImplementationProgressDataTableFromMap(
+      this.implementationProgressBrowsers, 'stable');
 
     // Add 2 weeks to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
@@ -317,7 +319,7 @@ export class FeaturePage extends LitElement {
     } as google.visualization.LineChartOptions;
 
     const chart = new google.visualization.LineChart(
-      this.shadowRoot!.getElementById('global-feature-support-chart')!
+      this.shadowRoot!.getElementById('implementation-progress-chart')!
     );
     chart.draw(data, options);
   }
@@ -415,40 +417,31 @@ export class FeaturePage extends LitElement {
   renderImplentationProgress(): TemplateResult {
     return html`
       <sl-card id="implementation-progress">
-        <div slot="header" class="hbox" > Implementation progress </div>
-
-          <div class="spacer" > </div>
-            <sl-select >
-            <sl-option > All features </sl-option>
-              <sl-option > how to select ? </sl-option>
-                </sl-select>
-                <sl-dropdown
-              id="global-feature-support-browser-selector"
-              multiple
-              stay-open-on-select
-                .value="${this.implementationProgressBrowsers.join(' ')}"
-                  >
-                  <sl-button slot = "trigger" >
-                    <sl-icon slot = "suffix" name = "chevron-down" > </sl-icon>;
-                    Browsers
-                  </sl-button>
-                <sl-menu >
-                <sl-menu-item type = "checkbox" value = "Chrome" > Chrome </sl-menu-item>
-                  <sl-menu-item type = "checkbox" value = "Edge" > Edge </sl-menu-item>
-              <sl-menu-item type = "checkbox" value = "Firefox"
-                > Firefox </sl-menu-item
-                >
-                <sl-menu-item type = "checkbox" value = "Safari" > Safari </sl-menu-item>
-                  </sl-menu>
-                  </sl-dropdown>
-                </div>
-                <div >
-                <div
-            id="global-feature-support-chart"
-      style = "padding: 0; margin: 0; border: 0"
-        >
-        Loading chart...
-      </div>
+        <div slot="header" class="hbox"> Implementation progress
+          <div class="spacer"></div>
+          <sl-select>
+            <sl-option> All features </sl-option>
+            <sl-option> how to select ? </sl-option>
+          </sl-select>
+          <sl-dropdown id="implementation-progress-browser-selector" multiple stay-open-on-select
+            .value="${this.implementationProgressBrowsers.join(' ')}">
+            <sl-button slot="trigger">
+              <sl-icon slot="suffix" name="chevron-down"> </sl-icon>
+              Browsers
+            </sl-button>
+            <sl-menu>
+              <sl-menu-item type="checkbox" value="Chrome"> Chrome </sl-menu-item>
+              <sl-menu-item type="checkbox" value="Edge"> Edge </sl-menu-item>
+              <sl-menu-item type="checkbox" value="Firefox"> Firefox </sl-menu-item>
+              <sl-menu-item type="checkbox" value="Safari"> Safari </sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+        </div>
+        <webstatus-chart id="implementation-progress-chart">
+        <div id="implementation-progress-chart" style="padding: 0; margin: 0; border: 0">
+            Loading chart...
+        </div>
+        </webstatus-chart>
       </sl-card>
     `;
   }
