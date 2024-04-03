@@ -595,6 +595,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		},
 	}
 
+	// With regular token
 	results, token, err = client.FeaturesSearch(ctx, token, 2, nil, defaultSorting())
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())
@@ -604,6 +605,23 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
 			PrettyPrintFeatureResults(expectedResultsPageTwo),
 			PrettyPrintFeatureResults(results))
+	}
+
+	// With offset token
+	offsetToken := encodeFeatureResultCursorByOffset(2)
+	results, nextTokenFromOffset, err := client.FeaturesSearch(ctx, &offsetToken, 2, nil, defaultSorting())
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResults(results)
+	if !AreFeatureResultsSlicesEqual(expectedResultsPageTwo, results) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResults(expectedResultsPageTwo),
+			PrettyPrintFeatureResults(results))
+	}
+
+	if *nextTokenFromOffset != *token {
+		t.Error("pagination from last id and offset should generate the same next token")
 	}
 
 	// Last page should have no results and should have no token.
@@ -1716,4 +1734,12 @@ func PrettyPrintFeatureResults(results []FeatureResult) string {
 	}
 
 	return builder.String()
+}
+
+// encodeFeatureResultCursorByOffset provides a wrapper around the generic encodeCursor.
+func encodeFeatureResultCursorByOffset(offset int) string {
+	return encodeCursor[FeatureResultCursor](FeatureResultCursor{
+		LastFeatureID: nil,
+		Offset:        &offset,
+	})
 }

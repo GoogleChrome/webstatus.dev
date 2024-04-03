@@ -44,6 +44,9 @@ type FeatureSearchBaseQuery interface {
 	//     It provides these metrics for both "stable" and "experimental" channels.
 	//     The metrics retrieved are for each unique BrowserName/Channel/FeatureID.
 	Query(prefilter FeatureSearchPrefilterResult) (string, map[string]interface{})
+
+	// CountQuery generates the base query to return only the count of items.
+	CountQuery() string
 }
 
 type FeatureSearchPrefilterResult struct {
@@ -161,6 +164,16 @@ func (f GCPFeatureSearchBaseQuery) getLatestRunResultGroupedByChannel(
 	return ret, nil
 }
 
+func (f GCPFeatureSearchBaseQuery) buildBaseQueryFragment() string {
+	return `
+FROM WebFeatures wf
+LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID`
+}
+
+func (f GCPFeatureSearchBaseQuery) CountQuery() string {
+	return fmt.Sprintf("SELECT COUNT(*) %s", f.buildBaseQueryFragment())
+}
+
 // Query uses the latest browsername/channel/timestart mapping to build a query from the prefilter query.
 // This prevents an extra join to figure out the latest run for a particular.
 // The one thing to note about to this implementation: If the latest run ever deprecates a feature,
@@ -205,9 +218,8 @@ SELECT
 		-- Replace the following line in the future when the emulator supports it.
 		-- ), ARRAY<STRUCT<string, NUMERIC>>[]) AS StableMetrics,
 	), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS ExperimentalMetrics
-FROM WebFeatures wf
-LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
-`, prefilter.stableClause, prefilter.experimentalClause), params
+%s
+`, prefilter.stableClause, prefilter.experimentalClause, f.buildBaseQueryFragment()), params
 }
 
 // LocalFeatureBaseQuery is a version of the base query that works well on the local emulator.
@@ -231,11 +243,21 @@ func (f LocalFeatureBaseQuery) Prefilter(
 	}, nil
 }
 
+func (f LocalFeatureBaseQuery) buildBaseQueryFragment() string {
+	return `
+FROM WebFeatures wf
+LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID`
+}
+
+func (f LocalFeatureBaseQuery) CountQuery() string {
+	return fmt.Sprintf("SELECT COUNT(*) %s", f.buildBaseQueryFragment())
+}
+
 // Query is a version of the base query that works on the local emulator.
 // It leverages a common table expression CTE to help query the metrics.
 func (f LocalFeatureBaseQuery) Query(_ FeatureSearchPrefilterResult) (string, map[string]interface{}) {
 	// nolint: lll // For now, keep it.
-	return `
+	return fmt.Sprintf(`
 WITH
 	LatestMetrics AS (
 		SELECT
@@ -266,7 +288,6 @@ SELECT
 	COALESCE(fbs.Status, 'undefined') AS Status,
 	COALESCE((SELECT ARRAY_AGG(STRUCT(BrowserName, PassRate)) FROM MetricsAggregation WHERE FeatureID = wf.FeatureID AND Channel = 'stable'), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS StableMetrics,
 	COALESCE((SELECT ARRAY_AGG(STRUCT(BrowserName, PassRate)) FROM MetricsAggregation WHERE FeatureID = wf.FeatureID AND Channel = 'experimental'), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS ExperimentalMetrics
-FROM WebFeatures wf
-LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
-`, nil
+%s
+`, f.buildBaseQueryFragment()), nil
 }
