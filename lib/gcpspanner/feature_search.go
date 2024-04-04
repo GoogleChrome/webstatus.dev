@@ -66,7 +66,7 @@ func (c *Client) FeaturesSearch(
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder Sortable,
-) ([]FeatureResult, *string, error) {
+) (*FeatureResultPage, error) {
 	// Build filterable
 	filterBuilder := NewFeatureSearchFilterBuilder()
 	filter := filterBuilder.Build(searchNode)
@@ -76,7 +76,7 @@ func (c *Client) FeaturesSearch(
 	if pageToken != nil {
 		cursor, err = decodeFeatureResultCursor(*pageToken)
 		if err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 	}
 
@@ -84,7 +84,7 @@ func (c *Client) FeaturesSearch(
 	defer txn.Close()
 	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
 	if err != nil {
-		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
 	queryBuilder := FeatureSearchQueryBuilder{
@@ -94,9 +94,8 @@ func (c *Client) FeaturesSearch(
 	// Get the total
 	total, err := c.getTotalFeatureCount(ctx, queryBuilder, filter, txn)
 	if err != nil {
-		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
-	_ = total
 
 	// Get the results
 	results, err := c.getFeatureResult(
@@ -109,17 +108,24 @@ func (c *Client) FeaturesSearch(
 		cursor,
 		txn)
 	if err != nil {
-		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	page := FeatureResultPage{
+		Features:      results,
+		Total:         total,
+		NextPageToken: nil,
 	}
 
 	if len(results) == pageSize {
 		lastResult := results[len(results)-1]
 		newCursor := encodeFeatureResultCursor(lastResult.FeatureID)
+		page.NextPageToken = &newCursor
 
-		return results, &newCursor, nil
+		return &page, nil
 	}
 
-	return results, nil, nil
+	return &page, nil
 }
 
 func (c *Client) getTotalFeatureCount(
