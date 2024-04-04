@@ -63,6 +63,20 @@ export class FeaturePage extends LitElement {
   @state()
   implementationProgressBrowsers: BrowsersParameter[] = ALL_BROWSERS;
 
+  // @state()
+  // implementationProgressChannels: ChannelsParameter[] = ALL_FEATURES;
+
+  @state()
+  implementationProgressChartOptions: google.visualization.LineChartOptions = {
+    title: 'Implementation Progress',
+    hAxis: { title: 'Date' },
+    vAxis: { title: 'Percent' },
+    series: {
+      0: { color: '#3367d6' },
+      1: { color: '#d63367' },
+    },
+  };
+
   @state()
   startDate: Date = new Date(2021, 1, 1);
 
@@ -437,10 +451,12 @@ export class FeaturePage extends LitElement {
             </sl-menu>
           </sl-dropdown>
         </div>
-        <webstatus-chart id="implementation-progress-chart">
-        <div id="implementation-progress-chart" style="padding: 0; margin: 0; border: 0">
+        <webstatus-chart id="implementation-progress-chart"
+          .data="${this.createImplementationProgressDataTableFromMap(
+            this.implementationProgressBrowsers, 'stable')}"
+          .options="${this.implementationProgressChartOptions}"
+            >
             Loading chart...
-        </div>
         </webstatus-chart>
       </sl-card>
     `;

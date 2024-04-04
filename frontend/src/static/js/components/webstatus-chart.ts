@@ -14,36 +14,41 @@
  * limitations under the License.
  */
 
-import { consume } from '@lit/context';
+// See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
+/// <reference types="@types/google.visualization" />
+
+// import { consume } from '@lit/context';
 import { Task } from '@lit/task';
 import {
   LitElement,
-  type TemplateResult,
+  // type TemplateResult,
   html,
   CSSResultGroup,
   css,
-  nothing,
 } from 'lit';
 import { customElement, state } from 'lit/decorators.js';
 import { SHARED_STYLES } from '../css/shared-css.js';
-import { type components } from 'webstatus.dev-backend';
-
-
-import { type APIClient } from '../api/client.js';
-import { apiClientContext } from '../contexts/api-client-context.js';
+// import { type components } from 'webstatus.dev-backend';
 
 
 @customElement('webstatus-feature-page')
 export class Chart extends LitElement {
-  _loadingTask: Task;
-
-  @consume({ context: apiClientContext })
   @state()
-  apiClient!: APIClient;
+  loadingGCharts: Task;
+
+  @state()
+  gchartsPackagesLoaded: boolean;
 
   // @consume({ context: googleChartsContext })
   @state()
-  googviz!: google.visualization.ChartWrapper;
+  chartWrapper!: google.visualization.ChartWrapper;
+
+  @state()
+  data?: google.visualization.DataTable;
+
+  @state()
+  specs?: google.visualization.ChartSpecs;
+
 
   static get styles(): CSSResultGroup {
     return [
@@ -57,16 +62,32 @@ export class Chart extends LitElement {
   `];
   }
 
+  loadGoogleCharts() {
+    google.charts.load('current', {
+      packages: ['corechart'],
+    });
+    google.charts.setOnLoadCallback(() => {
+      this.gchartsPackagesLoaded = true;
+    });
+  }
+
+
   constructor() {
     super();
-    this._loadingTask = new Task(this, {
-      args: () => [this.apiClient, this.googviz],
-      task: async ([apiClient, googviz]) => {
-        if (typeof apiClient === 'object') {
-          // this.feature = await apiClient.getFeature(featureId);
+    this.gchartsPackagesLoaded = false;
+    this.loadingGCharts = new Task(this, {
+      args: () =>
+        [
+          this.gchartsPackagesLoaded,
+        ] as [boolean],
+      task: async ([gcLoaded]: [
+        boolean,
+      ]) => {
+        if (gcLoaded) {
+          this.chartWrapper = new google.visualization.ChartWrapper(this.specs);
+          this.chartWrapper.draw();
         }
-        return; // this.feature;
-      },
+      }
     });
   }
 
