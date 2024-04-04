@@ -357,6 +357,7 @@ components:
             $ref: '#/components/schemas/Feature'
       required:
         - data
+        - metadata
     FeatureWPTSnapshots:
       type: object
       properties:

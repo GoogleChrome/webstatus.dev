@@ -229,7 +229,7 @@ func (s *Backend) FeaturesSearch(
 	}
 
 	ret := &backend.FeaturePage{
-		Metadata: &backend.PageMetadataWithTotal{
+		Metadata: backend.PageMetadataWithTotal{
 			NextPageToken: page.NextPageToken,
 			Total:         page.Total,
 		},

@@ -472,7 +472,7 @@ func TestFeaturesSearch(t *testing.T) {
 			},
 			sortOrder: nil,
 			expectedPage: &backend.FeaturePage{
-				Metadata: &backend.PageMetadataWithTotal{
+				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nonNilNextPageToken,
 					Total:         100,
 				},

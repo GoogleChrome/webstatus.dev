@@ -42,7 +42,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSearchNode: nil,
 				expectedSortBy:     nil,
 				page: &backend.FeaturePage{
-					Metadata: &backend.PageMetadataWithTotal{
+					Metadata: backend.PageMetadataWithTotal{
 						NextPageToken: nil,
 						Total:         100,
 					},
@@ -71,7 +71,7 @@ func TestGetV1Features(t *testing.T) {
 						Wpt:            nil,
 					},
 				},
-				Metadata: &backend.PageMetadataWithTotal{
+				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nil,
 					Total:         100,
 				},
@@ -121,7 +121,7 @@ func TestGetV1Features(t *testing.T) {
 				},
 				expectedSortBy: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
 				page: &backend.FeaturePage{
-					Metadata: &backend.PageMetadataWithTotal{
+					Metadata: backend.PageMetadataWithTotal{
 						NextPageToken: nextPageToken,
 						Total:         100,
 					},
@@ -150,7 +150,7 @@ func TestGetV1Features(t *testing.T) {
 						Wpt:            nil,
 					},
 				},
-				Metadata: &backend.PageMetadataWithTotal{
+				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nextPageToken,
 					Total:         100,
 				},
