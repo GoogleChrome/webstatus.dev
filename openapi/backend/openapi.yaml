@@ -336,11 +336,21 @@ components:
       properties:
         next_page_token:
           type: string
+    PageMetadataWithTotal:
+      type: object
+      properties:
+        next_page_token:
+          type: string
+        total:
+          type: integer
+          format: int64 # Currently, 'count(*)' from spanner comes as int64 https://cloud.google.com/spanner/docs/reference/standard-sql/data-types
+      required:
+        - total
     FeaturePage:
       type: object
       properties:
         metadata:
-          $ref: '#/components/schemas/PageMetadata'
+          $ref: '#/components/schemas/PageMetadataWithTotal'
         data:
           type: array
           items:
