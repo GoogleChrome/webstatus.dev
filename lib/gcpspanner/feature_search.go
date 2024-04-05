@@ -71,10 +71,11 @@ func (c *Client) FeaturesSearch(
 	filterBuilder := NewFeatureSearchFilterBuilder()
 	filter := filterBuilder.Build(searchNode)
 
-	var cursor *FeatureResultCursor
+	var offsetCursor *FeatureResultOffsetCursor
+	var featureCursor *FeatureResultCursor
 	var err error
 	if pageToken != nil {
-		cursor, err = decodeFeatureResultCursor(*pageToken)
+		offsetCursor, featureCursor, err = decodeInputFeatureResultCursor(*pageToken, sortOrder)
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
@@ -88,7 +89,9 @@ func (c *Client) FeaturesSearch(
 	}
 
 	queryBuilder := FeatureSearchQueryBuilder{
-		baseQuery: c.featureSearchQuery,
+		baseQuery:     c.featureSearchQuery,
+		featureCursor: featureCursor,
+		offsetCursor:  offsetCursor,
 	}
 
 	// Get the total
@@ -105,7 +108,6 @@ func (c *Client) FeaturesSearch(
 		filter,
 		sortOrder,
 		pageSize,
-		cursor,
 		txn)
 	if err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
@@ -119,7 +121,7 @@ func (c *Client) FeaturesSearch(
 
 	if len(results) == pageSize {
 		lastResult := results[len(results)-1]
-		newCursor := encodeFeatureResultCursor(lastResult.FeatureID)
+		newCursor := encodeFeatureResultCursor(sortOrder, lastResult)
 		page.NextPageToken = &newCursor
 
 		return &page, nil
@@ -157,9 +159,8 @@ func (c *Client) getFeatureResult(
 	filter *FeatureSearchCompiledFilter,
 	sortOrder Sortable,
 	pageSize int,
-	cursor *FeatureResultCursor,
 	txn *spanner.ReadOnlyTransaction) ([]FeatureResult, error) {
-	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder, pageSize, cursor)
+	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder, pageSize)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
