@@ -16,7 +16,4 @@
 
 import { createContext } from '@lit/context';
 
-import type { APIClient } from '../api/client.js';
-export type { APIClient } from '../api/client.js';
-
-export const apiClientContext = createContext<APIClient>('gcharts');
+export const gchartsContext = createContext<boolean>('gcharts');

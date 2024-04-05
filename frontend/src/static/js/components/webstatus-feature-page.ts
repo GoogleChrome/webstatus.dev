@@ -256,11 +256,6 @@ export class FeaturePage extends LitElement {
     // TODO(jrobbins): Use routerContext instead of this.location so that
     // nested components could also access the router.
     this.featureId = this.location.params.featureId;
-
-    // This is too soon now, since the elements it depends on are not rendered yet.
-    this.setupImplementationProgressBrowsersHandler();
-    this.setupDateRangeHandler();
-    this.setupImplementationProgressChart();
   }
 
   // Make a DataTable from the data in browserChannelDataMap
@@ -337,6 +332,14 @@ export class FeaturePage extends LitElement {
     );
     chart.draw(data, options);
   }
+
+
+  afterRenderWhenComplete() {
+    this.setupImplementationProgressBrowsersHandler();
+    this.setupDateRangeHandler();
+    this.setupImplementationProgressChart();
+  }
+
 
   render(): TemplateResult | undefined {
     return this._loadingTask.render({
