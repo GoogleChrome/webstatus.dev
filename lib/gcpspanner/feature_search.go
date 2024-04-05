@@ -136,13 +136,14 @@ func (c *Client) getTotalFeatureCount(
 	stmt := queryBuilder.CountQueryBuild(filter)
 
 	var count int64
-	if err := txn.Query(ctx, stmt).Do(func(row *spanner.Row) error {
+	err := txn.Query(ctx, stmt).Do(func(row *spanner.Row) error {
 		if err := row.Column(0, &count); err != nil {
 			return err
 		}
 
 		return nil
-	}); err != nil {
+	})
+	if err != nil {
 		return 0, err
 	}
 
