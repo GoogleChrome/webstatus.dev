@@ -50,7 +50,7 @@ type BackendSpannerClient interface {
 		pageSize int,
 		searchNode *searchtypes.SearchNode,
 		sortOrder gcpspanner.Sortable,
-	) ([]gcpspanner.FeatureResult, *string, error)
+	) (*gcpspanner.FeatureResultPage, error)
 	GetFeature(
 		ctx context.Context,
 		filter gcpspanner.Filterable,
@@ -215,20 +215,27 @@ func (s *Backend) FeaturesSearch(
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder *backend.GetV1FeaturesParamsSort,
-) ([]backend.Feature, *string, error) {
+) (*backend.FeaturePage, error) {
 	spannerSortOrder := getFeatureSearchSortOrder(sortOrder)
-	featureResults, token, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode, spannerSortOrder)
+	page, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode, spannerSortOrder)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	results := make([]backend.Feature, 0, len(featureResults))
-	for idx := range featureResults {
+	results := make([]backend.Feature, 0, len(page.Features))
+	for idx := range page.Features {
 
-		results = append(results, *s.convertFeatureResult(&featureResults[idx]))
+		results = append(results, *s.convertFeatureResult(&page.Features[idx]))
 	}
 
-	return results, token, nil
+	ret := &backend.FeaturePage{
+		Metadata: &backend.PageMetadata{
+			NextPageToken: page.NextPageToken,
+		},
+		Data: results,
+	}
+
+	return ret, nil
 }
 
 func getFeatureSearchSortOrder(

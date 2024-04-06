@@ -42,8 +42,7 @@ type mockFeaturesSearchConfig struct {
 	expectedPageSize  int
 	expectedSortable  gcpspanner.Sortable
 	expectedNode      *searchtypes.SearchNode
-	result            []gcpspanner.FeatureResult
-	returnedPageToken *string
+	result            *gcpspanner.FeatureResultPage
 	returnedError     error
 }
 
@@ -140,7 +139,7 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
-	sortOrder gcpspanner.Sortable) ([]gcpspanner.FeatureResult, *string, error) {
+	sortOrder gcpspanner.Sortable) (*gcpspanner.FeatureResultPage, error) {
 	if pageToken != c.mockFeaturesSearchCfg.expectedPageToken ||
 		pageSize != c.mockFeaturesSearchCfg.expectedPageSize ||
 		!reflect.DeepEqual(searchNode, c.mockFeaturesSearchCfg.expectedNode) ||
@@ -149,7 +148,6 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	}
 
 	return c.mockFeaturesSearchCfg.result,
-		c.mockFeaturesSearchCfg.returnedPageToken,
 		c.mockFeaturesSearchCfg.returnedError
 }
 
@@ -396,13 +394,13 @@ func TestConvertBaselineStatusSpannerToBackend(t *testing.T) {
 
 func TestFeaturesSearch(t *testing.T) {
 	testCases := []struct {
-		name             string
-		cfg              mockFeaturesSearchConfig
-		inputPageToken   *string
-		inputPageSize    int
-		searchNode       *searchtypes.SearchNode
-		sortOrder        *backend.GetV1FeaturesParamsSort
-		expectedFeatures []backend.Feature
+		name           string
+		cfg            mockFeaturesSearchConfig
+		inputPageToken *string
+		inputPageSize  int
+		searchNode     *searchtypes.SearchNode
+		sortOrder      *backend.GetV1FeaturesParamsSort
+		expectedPage   *backend.FeaturePage
 	}{
 		{
 			name: "regular",
@@ -415,52 +413,55 @@ func TestFeaturesSearch(t *testing.T) {
 					Children: nil,
 				},
 				expectedSortable: gcpspanner.NewFeatureNameSort(true),
-				result: []gcpspanner.FeatureResult{
-					{
-						Name:      "feature 1",
-						FeatureID: "feature1",
-						Status:    "low",
-						StableMetrics: []*gcpspanner.FeatureResultMetric{
-							{
-								BrowserName: "browser3",
-								PassRate:    big.NewRat(10, 20),
+				result: &gcpspanner.FeatureResultPage{
+					Total:         100,
+					NextPageToken: nonNilNextPageToken,
+					Features: []gcpspanner.FeatureResult{
+						{
+							Name:      "feature 1",
+							FeatureID: "feature1",
+							Status:    "low",
+							StableMetrics: []*gcpspanner.FeatureResultMetric{
+								{
+									BrowserName: "browser3",
+									PassRate:    big.NewRat(10, 20),
+								},
+							},
+							ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
+								{
+									BrowserName: "browser3",
+									PassRate:    big.NewRat(10, 50),
+								},
 							},
 						},
-						ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
-							{
-								BrowserName: "browser3",
-								PassRate:    big.NewRat(10, 50),
+						{
+							Name:      "feature 2",
+							FeatureID: "feature2",
+							Status:    "high",
+							StableMetrics: []*gcpspanner.FeatureResultMetric{
+								{
+									BrowserName: "browser1",
+									PassRate:    big.NewRat(10, 20),
+								},
+								{
+									BrowserName: "browser2",
+									PassRate:    big.NewRat(5, 20),
+								},
 							},
-						},
-					},
-					{
-						Name:      "feature 2",
-						FeatureID: "feature2",
-						Status:    "high",
-						StableMetrics: []*gcpspanner.FeatureResultMetric{
-							{
-								BrowserName: "browser1",
-								PassRate:    big.NewRat(10, 20),
-							},
-							{
-								BrowserName: "browser2",
-								PassRate:    big.NewRat(5, 20),
-							},
-						},
-						ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
-							{
-								BrowserName: "browser1",
-								PassRate:    big.NewRat(10, 20),
-							},
-							{
-								BrowserName: "browser2",
-								PassRate:    big.NewRat(2, 20),
+							ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
+								{
+									BrowserName: "browser1",
+									PassRate:    big.NewRat(10, 20),
+								},
+								{
+									BrowserName: "browser2",
+									PassRate:    big.NewRat(2, 20),
+								},
 							},
 						},
 					},
 				},
-				returnedPageToken: nonNilNextPageToken,
-				returnedError:     nil,
+				returnedError: nil,
 			},
 			inputPageToken: nonNilInputPageToken,
 			inputPageSize:  100,
@@ -470,47 +471,52 @@ func TestFeaturesSearch(t *testing.T) {
 				Children: nil,
 			},
 			sortOrder: nil,
-			expectedFeatures: []backend.Feature{
-				{
-					BaselineStatus: backend.Newly,
-					FeatureId:      "feature1",
-					Name:           "feature 1",
-					Spec:           nil,
-					Usage:          nil,
-					Wpt: &backend.FeatureWPTSnapshots{
-						Experimental: &map[string]backend.WPTFeatureData{
-							"browser3": {
-								Score: valuePtr[float64](0.2),
+			expectedPage: &backend.FeaturePage{
+				Metadata: &backend.PageMetadata{
+					NextPageToken: nonNilNextPageToken,
+				},
+				Data: []backend.Feature{
+					{
+						BaselineStatus: backend.Newly,
+						FeatureId:      "feature1",
+						Name:           "feature 1",
+						Spec:           nil,
+						Usage:          nil,
+						Wpt: &backend.FeatureWPTSnapshots{
+							Experimental: &map[string]backend.WPTFeatureData{
+								"browser3": {
+									Score: valuePtr[float64](0.2),
+								},
 							},
-						},
-						Stable: &map[string]backend.WPTFeatureData{
-							"browser3": {
-								Score: valuePtr[float64](0.5),
+							Stable: &map[string]backend.WPTFeatureData{
+								"browser3": {
+									Score: valuePtr[float64](0.5),
+								},
 							},
 						},
 					},
-				},
-				{
-					BaselineStatus: backend.Widely,
-					FeatureId:      "feature2",
-					Name:           "feature 2",
-					Spec:           nil,
-					Usage:          nil,
-					Wpt: &backend.FeatureWPTSnapshots{
-						Experimental: &map[string]backend.WPTFeatureData{
-							"browser1": {
-								Score: valuePtr[float64](0.5),
+					{
+						BaselineStatus: backend.Widely,
+						FeatureId:      "feature2",
+						Name:           "feature 2",
+						Spec:           nil,
+						Usage:          nil,
+						Wpt: &backend.FeatureWPTSnapshots{
+							Experimental: &map[string]backend.WPTFeatureData{
+								"browser1": {
+									Score: valuePtr[float64](0.5),
+								},
+								"browser2": {
+									Score: valuePtr[float64](0.1),
+								},
 							},
-							"browser2": {
-								Score: valuePtr[float64](0.1),
-							},
-						},
-						Stable: &map[string]backend.WPTFeatureData{
-							"browser1": {
-								Score: valuePtr[float64](0.5),
-							},
-							"browser2": {
-								Score: valuePtr[float64](0.25),
+							Stable: &map[string]backend.WPTFeatureData{
+								"browser1": {
+									Score: valuePtr[float64](0.5),
+								},
+								"browser2": {
+									Score: valuePtr[float64](0.25),
+								},
 							},
 						},
 					},
@@ -526,7 +532,7 @@ func TestFeaturesSearch(t *testing.T) {
 				mockFeaturesSearchCfg: tc.cfg,
 			}
 			bk := NewBackend(mock)
-			features, pageToken, err := bk.FeaturesSearch(
+			page, err := bk.FeaturesSearch(
 				context.Background(),
 				tc.inputPageToken,
 				tc.inputPageSize,
@@ -536,12 +542,8 @@ func TestFeaturesSearch(t *testing.T) {
 				t.Error("unexpected error")
 			}
 
-			if pageToken != tc.cfg.returnedPageToken {
-				t.Error("unexpected page token")
-			}
-
-			if !slices.EqualFunc[[]backend.Feature](features, tc.expectedFeatures, CompareFeatures) {
-				t.Error("unexpected features")
+			if !reflect.DeepEqual(page, tc.expectedPage) {
+				t.Error("unexpected page")
 			}
 
 		})

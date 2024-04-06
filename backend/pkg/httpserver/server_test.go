@@ -59,8 +59,7 @@ type MockFeaturesSearchConfig struct {
 	expectedPageSize   int
 	expectedSearchNode *searchtypes.SearchNode
 	expectedSortBy     *backend.GetV1FeaturesParamsSort
-	data               []backend.Feature
-	pageToken          *string
+	page               *backend.FeaturePage
 	err                error
 }
 
@@ -135,7 +134,7 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 	pageSize int,
 	node *searchtypes.SearchNode,
 	sortBy *backend.GetV1FeaturesParamsSort,
-) ([]backend.Feature, *string, error) {
+) (*backend.FeaturePage, error) {
 	m.callCountFeaturesSearch++
 
 	if pageToken != m.featuresSearchCfg.expectedPageToken ||
@@ -146,7 +145,7 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 			m.featuresSearchCfg, pageSize, pageToken, node, sortBy)
 	}
 
-	return m.featuresSearchCfg.data, m.featuresSearchCfg.pageToken, m.featuresSearchCfg.err
+	return m.featuresSearchCfg.page, m.featuresSearchCfg.err
 }
 
 func (m *MockWPTMetricsStorer) GetFeature(

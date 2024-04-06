@@ -180,37 +180,64 @@ type Filterable interface {
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
 	baseQuery FeatureSearchBaseQuery
-	cursor    *FeatureResultCursor
-	pageSize  int
+}
+
+const whereOpPrefix = "WHERE "
+
+func (q FeatureSearchQueryBuilder) CountQueryBuild(
+	filter *FeatureSearchCompiledFilter) spanner.Statement {
+	filterQuery := ""
+	filterParams := make(map[string]interface{})
+	if filter != nil {
+		filterQuery = filter.Clause()
+		maps.Copy(filterParams, filter.Params())
+	}
+	if len(filterQuery) > 0 {
+		filterQuery = whereOpPrefix + filterQuery
+	}
+	sql := q.baseQuery.CountQuery()
+
+	stmt := spanner.NewStatement(sql + " " + filterQuery)
+	stmt.Params = filterParams
+
+	return stmt
 }
 
 func (q FeatureSearchQueryBuilder) Build(
 	prefilter FeatureSearchPrefilterResult,
 	filter *FeatureSearchCompiledFilter,
-	sort Sortable) spanner.Statement {
+	sort Sortable,
+	pageSize int,
+	cursor *FeatureResultCursor) spanner.Statement {
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
-	if q.cursor != nil {
-		filterParams["cursorId"] = q.cursor.LastFeatureID
-		filterQuery += " wf.FeatureID > @cursorId"
+	offsetFilter := ""
+	if cursor != nil {
+		if cursor.LastFeatureID != nil {
+			filterParams["cursorId"] = *cursor.LastFeatureID
+			filterQuery += " wf.FeatureID > @cursorId"
+		} else if cursor.Offset != nil {
+			filterParams["offset"] = *cursor.Offset
+			offsetFilter = " OFFSET @offset"
+		}
 	}
 
-	filterParams["pageSize"] = q.pageSize
+	filterParams["pageSize"] = pageSize
 
 	if filter != nil {
 		filterQuery = filter.Clause()
 		maps.Copy(filterParams, filter.Params())
 	}
 	if len(filterQuery) > 0 {
-		filterQuery = "WHERE " + filterQuery
+		filterQuery = whereOpPrefix + filterQuery
 	}
 
 	sql, params := q.baseQuery.Query(prefilter)
 	maps.Copy(filterParams, params)
 
 	stmt := spanner.NewStatement(
-		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
+		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize" + offsetFilter)
 
 	stmt.Params = filterParams
 
