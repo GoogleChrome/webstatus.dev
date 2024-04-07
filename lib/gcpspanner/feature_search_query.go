@@ -220,7 +220,8 @@ func (q FeatureSearchQueryBuilder) Build(
 		sortColumn := q.featureCursor.getLastSortColumn()
 		q.featureCursor.addLastSortValueParam(filterParams, "cursorSortColumn")
 		filterQuery += " ("
-		filterQuery += fmt.Sprintf("%s > @cursorSortColumn OR ", sortColumn.ToFilterColumn())
+		filterQuery += fmt.Sprintf("%s %s @cursorSortColumn OR ",
+			sortColumn.ToFilterColumn(), q.featureCursor.SortOrderOperator)
 		filterQuery += fmt.Sprintf("(%s = @cursorSortColumn AND wf.FeatureID > @cursorId)", sortColumn.ToFilterColumn())
 		filterQuery += ")"
 	} else if q.offsetCursor != nil {
@@ -251,8 +252,9 @@ func (q FeatureSearchQueryBuilder) Build(
 
 // Sortable is a basic class that all/most sortables can include.
 type Sortable struct {
-	clause     string
-	sortColumn FeatureSearchColumn
+	clause         string
+	sortColumn     FeatureSearchColumn
+	ascendingOrder bool
 }
 
 func (s Sortable) Clause() string {
@@ -309,15 +311,17 @@ const (
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
 func NewFeatureNameSort(isAscending bool) Sortable {
 	return Sortable{
-		clause:     buildFullClause(buildSortableOrderClause(isAscending, "wf.Name")),
-		sortColumn: featureSearchFeatureNameColumn,
+		clause:         buildFullClause(buildSortableOrderClause(isAscending, "wf.Name")),
+		sortColumn:     featureSearchFeatureNameColumn,
+		ascendingOrder: isAscending,
 	}
 }
 
 // NewBaselineStatusSort returns a Sortable specifically for the Status column.
 func NewBaselineStatusSort(isAscending bool) Sortable {
 	return Sortable{
-		clause:     buildFullClause(buildSortableOrderClause(isAscending, "Status")),
-		sortColumn: featureSearchStatusColumn,
+		clause:         buildFullClause(buildSortableOrderClause(isAscending, "Status")),
+		sortColumn:     featureSearchStatusColumn,
+		ascendingOrder: isAscending,
 	}
 }

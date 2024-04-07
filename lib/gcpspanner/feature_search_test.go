@@ -1504,6 +1504,141 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			PrettyPrintFeatureResultPage(&expectedOffsetPageTwo),
 			PrettyPrintFeatureResultPage(page))
 	}
+
+	// BaselineStatus desc
+	sortByDesc := NewBaselineStatusSort(false)
+	//nolint: dupl // Okay to duplicate for tests
+	expectedPageOneResults = []FeatureResult{
+		{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		},
+		{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusNone),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(35, 50),
+				},
+			},
+			ExperimentalMetrics: nil,
+		},
+	}
+	expectedToken = encodeFeatureResultCursor(
+		sortByDesc,
+		expectedPageOneResults[len(expectedPageOneResults)-1])
+	expectedPageOne = FeatureResultPage{
+		Total:         4,
+		NextPageToken: &expectedToken,
+		Features:      expectedPageOneResults,
+	}
+	// Test: Get the first page of results.
+	page, err = client.FeaturesSearch(ctx, nil, 2, nil, sortByDesc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResultPage(page)
+	if !AreFeatureResultPagesEqual(&expectedPageOne, page) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResultPage(&expectedPageOne),
+			PrettyPrintFeatureResultPage(page))
+	}
+
+	// Page 2
+	expectedPageTwoResults = []FeatureResult{
+		{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusLow),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(33, 33),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(20, 20),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(220, 220),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(11, 11),
+				},
+			},
+		},
+		{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(10, 10),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(0, 10),
+				},
+			},
+			ExperimentalMetrics: []*FeatureResultMetric{
+				{
+					BrowserName: "barBrowser",
+					PassRate:    big.NewRat(120, 120),
+				},
+				{
+					BrowserName: "fooBrowser",
+					PassRate:    big.NewRat(12, 12),
+				},
+			},
+		},
+	}
+	expectedToken = encodeFeatureResultCursor(
+		sortByDesc,
+		expectedPageTwoResults[len(expectedPageTwoResults)-1])
+	expectedPageTwo = FeatureResultPage{
+		Total:         4,
+		NextPageToken: &expectedToken,
+		Features:      expectedPageTwoResults,
+	}
+	// Get the page 2 of results using the cursor token
+	page, err = client.FeaturesSearch(ctx, page.NextPageToken, 2, nil, sortByDesc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResultPage(page)
+	if !AreFeatureResultPagesEqual(&expectedPageTwo, page) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResultPage(&expectedPageTwo),
+			PrettyPrintFeatureResultPage(page))
+	}
+
+	// Get the page 2 of results using the offset
+	expectedOffsetPageTwo = FeatureResultPage{
+		Total:         4,
+		Features:      expectedPageTwoResults,
+		NextPageToken: &expectedToken,
+	}
+	offsetToken = encodeFeatureResultOffsetCursor(2)
+	offsetPage, err = client.FeaturesSearch(ctx, &offsetToken, 2, nil, sortByDesc)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResultPage(offsetPage)
+	if !AreFeatureResultPagesEqual(&expectedOffsetPageTwo, offsetPage) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResultPage(&expectedOffsetPageTwo),
+			PrettyPrintFeatureResultPage(page))
+	}
 }
 
 func testFeatureSearchComplexQueries(ctx context.Context, t *testing.T, client *Client) {
