@@ -24,7 +24,7 @@ import {customElement, state} from 'lit/decorators.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
 
 @customElement('webstatus-gcharts-loader')
-export class WebstatusAppSettings extends LitElement {
+export class WebstatusGChartsLoader extends LitElement {
   @state()
   gchartsLibraryLoaded = false;
 
