@@ -132,6 +132,8 @@ JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 download-schemas:
 	wget -O jsonschema/web-platform-dx_web-features/defs.schema.json \
 		https://raw.githubusercontent.com/web-platform-dx/feature-set/main/schemas/defs.schema.json
+	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
+		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 
 jsonschema:
 	npx quicktype \
@@ -142,6 +144,17 @@ jsonschema:
 		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
+
+	npx quicktype \
+		--src jsonschema/mdn_browser-compat-data/browsers.schema.json \
+		--src-lang schema \
+		--lang go \
+		--top-level BrowserData \
+		--out $(JSONSCHEMA_OUT_DIR)/mdn__browser_compat_data/browser_data.go \
+		--package mdn__browser_compat_data \
+		--field-tags json
+
+
 
 clean-jsonschema:
 	rm -rf $(JSONSCHEMA_OUT_DIR)/**/*.go
