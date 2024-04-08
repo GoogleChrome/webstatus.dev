@@ -6,4 +6,5 @@ lib/gen
 jsonschema/mdn_browser-compat-data
 jsonschema/web-platform-dx_web-features
 docs/schema
+workflows/steps/services/bcd_consumer/pkg/data/testdata/data.json
 workflows/steps/services/web_feature_consumer/pkg/data/testdata/data.json

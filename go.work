@@ -5,6 +5,7 @@ use (
 	./lib
 	./lib/gen
 	./util
+	./workflows/steps/services/bcd_consumer
 	./workflows/steps/services/common/repo_downloader
 	./workflows/steps/services/web_feature_consumer
 	./workflows/steps/services/wpt_consumer
