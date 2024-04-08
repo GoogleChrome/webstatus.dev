@@ -36,14 +36,12 @@ export class WebstatusAppSettings extends LitElement {
 
   constructor() {
     super();
-    this.loadGoogleCharts();
   }
 
   loadGoogleCharts() {
     google.charts.load('current', {
       packages: ['corechart'],
-    });
-    google.charts.setOnLoadCallback(() => {
+    }).then(() => {
       this.gchartsLibraryLoaded = true;
       this.gchartsProvider.setValue(this.gchartsLibraryLoaded);
     });
@@ -51,6 +49,7 @@ export class WebstatusAppSettings extends LitElement {
 
   // Render conditional on the loading state of the task.
   render(): TemplateResult {
+    this.loadGoogleCharts();
     return html`<slot></slot>`;
   }
 }

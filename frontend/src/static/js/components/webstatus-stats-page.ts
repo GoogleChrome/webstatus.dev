@@ -20,7 +20,7 @@
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import { customElement, state } from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
@@ -56,8 +56,8 @@ export class StatsPage extends LitElement {
   @state()
   _loadingGFSTask: Task;
 
+  @consume({ context: gchartsContext, subscribe: true })
   @state()
-  @consume({ context: gchartsContext })
   gchartsLibraryLoaded = false;
 
   @consume({context: apiClientContext})
@@ -176,7 +176,7 @@ export class StatsPage extends LitElement {
 
   constructor() {
     super();
-    this.gchartsLibraryLoaded = false;
+
     this._loadingGFSTask = new Task(this, {
       args: () =>
         [
@@ -199,7 +199,7 @@ export class StatsPage extends LitElement {
           );
           this.drawGlobalFeatureSupportChart();
         }
-        return this.globalFeatureSupportMap;
+        return this.browserChannelDataMap;
       },
     });
   }
@@ -208,10 +208,8 @@ export class StatsPage extends LitElement {
   }
 
   updated() {
-    const gfsChartElement = this.shadowRoot!.getElementById(
-      'global-feature-support-chart'
-    );
-    if (this.gchartsLibraryLoaded && gfsChartElement) {
+
+    if (this.gchartsLibraryLoaded) {
       this.drawGlobalFeatureSupportChart();
     }
   }
@@ -270,6 +268,10 @@ export class StatsPage extends LitElement {
   }
 
   drawGlobalFeatureSupportChart(): void {
+    const gfsChartElement = this.shadowRoot!.getElementById(
+      'global-feature-support-chart'
+    );
+    if (!gfsChartElement) return;
     const datatable = this.createGlobalFeatureSupportDataTableFromMap();
 
     // Add 2 weeks to this.endDate.
@@ -286,7 +288,7 @@ export class StatsPage extends LitElement {
     } as google.visualization.LineChartOptions;
 
     const chart = new google.visualization.LineChart(
-      this.shadowRoot!.getElementById('global-feature-support-chart')!
+      gfsChartElement
     );
     chart.draw(datatable, options);
   }
