@@ -60,6 +60,7 @@ func (b *FeatureSearchFilterBuilder) addParamGetName(param interface{}) string {
 	return name
 }
 
+// Build constructs a Spanner query for the FeaturesSearch function.
 func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *FeatureSearchCompiledFilter {
 	// Ensure it is not nil
 	if node == nil ||
@@ -179,38 +180,70 @@ type Filterable interface {
 
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
-	baseQuery FeatureSearchBaseQuery
-	cursor    *FeatureResultCursor
-	pageSize  int
+	baseQuery     FeatureSearchBaseQuery
+	featureCursor *FeatureResultCursor
+	offsetCursor  *FeatureResultOffsetCursor
+}
+
+const whereOpPrefix = "WHERE "
+
+func (q FeatureSearchQueryBuilder) CountQueryBuild(
+	filter *FeatureSearchCompiledFilter) spanner.Statement {
+	filterQuery := ""
+	filterParams := make(map[string]interface{})
+	if filter != nil {
+		filterQuery = filter.Clause()
+		maps.Copy(filterParams, filter.Params())
+	}
+	if len(filterQuery) > 0 {
+		filterQuery = whereOpPrefix + filterQuery
+	}
+	sql := q.baseQuery.CountQuery()
+
+	stmt := spanner.NewStatement(sql + " " + filterQuery)
+	stmt.Params = filterParams
+
+	return stmt
 }
 
 func (q FeatureSearchQueryBuilder) Build(
 	prefilter FeatureSearchPrefilterResult,
 	filter *FeatureSearchCompiledFilter,
-	sort Sortable) spanner.Statement {
+	sort Sortable,
+	pageSize int) spanner.Statement {
 	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
-	if q.cursor != nil {
-		filterParams["cursorId"] = q.cursor.LastFeatureID
-		filterQuery += " wf.FeatureID > @cursorId"
+	offsetFilter := ""
+	if q.featureCursor != nil {
+		filterParams["cursorId"] = q.featureCursor.LastFeatureID
+		sortColumn := q.featureCursor.getLastSortColumn()
+		q.featureCursor.addLastSortValueParam(filterParams, "cursorSortColumn")
+		filterQuery += " ("
+		filterQuery += fmt.Sprintf("%s %s @cursorSortColumn OR ",
+			sortColumn.ToFilterColumn(), q.featureCursor.SortOrderOperator)
+		filterQuery += fmt.Sprintf("(%s = @cursorSortColumn AND wf.FeatureID > @cursorId)", sortColumn.ToFilterColumn())
+		filterQuery += ")"
+	} else if q.offsetCursor != nil {
+		filterParams["offset"] = q.offsetCursor.Offset
+		offsetFilter = " OFFSET @offset"
 	}
 
-	filterParams["pageSize"] = q.pageSize
+	filterParams["pageSize"] = pageSize
 
 	if filter != nil {
 		filterQuery = filter.Clause()
 		maps.Copy(filterParams, filter.Params())
 	}
 	if len(filterQuery) > 0 {
-		filterQuery = "WHERE " + filterQuery
+		filterQuery = whereOpPrefix + filterQuery
 	}
 
 	sql, params := q.baseQuery.Query(prefilter)
 	maps.Copy(filterParams, params)
 
 	stmt := spanner.NewStatement(
-		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize")
+		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize" + offsetFilter)
 
 	stmt.Params = filterParams
 
@@ -219,11 +252,24 @@ func (q FeatureSearchQueryBuilder) Build(
 
 // Sortable is a basic class that all/most sortables can include.
 type Sortable struct {
-	clause string
+	clause         string
+	sortColumn     FeatureSearchColumn
+	ascendingOrder bool
 }
 
 func (s Sortable) Clause() string {
 	return s.clause
+}
+
+func (s Sortable) SortColumn() FeatureSearchColumn {
+	return s.sortColumn
+}
+
+// buildFullClause generates a sorting clause appropriate for Spanner pagination.
+// It includes the primary sorting column and the 'FeatureID' column as a tiebreaker
+// to ensure deterministic page ordering.
+func buildFullClause(sortableClause string) string {
+	return sortableClause + ", " + string(featureSearchFeatureIDColumn)
 }
 
 func buildSortableOrderClause(isAscending bool, column string) string {
@@ -235,16 +281,47 @@ func buildSortableOrderClause(isAscending bool, column string) string {
 	return fmt.Sprintf("%s %s", column, direction)
 }
 
+// FeatureSearchColumn is the high level column returned in the FeatureSearch Query from spanner.
+type FeatureSearchColumn string
+
+func (f FeatureSearchColumn) ToFilterColumn() string {
+	switch f {
+	case featureSearchFeatureIDColumn,
+		featureSearchFeatureNameColumn,
+		featureSearchNone:
+		return string(f)
+	case featureSearchStatusColumn:
+		// To facilitate correct pagination behavior, particularly when handling null values in the
+		// 'Status' column, we apply COALESCE here. This provides a consistent non-null value
+		// ('undefined' in this case) for the purposes of comparisons used in pagination.
+		return "COALESCE(fbs.Status, 'undefined')"
+	}
+
+	return ""
+}
+
+const (
+	featureSearchFeatureIDColumn   FeatureSearchColumn = "wf.FeatureID"
+	featureSearchFeatureNameColumn FeatureSearchColumn = "wf.Name"
+	featureSearchStatusColumn      FeatureSearchColumn = "Status"
+	// Placeholder column for all non-matching columns.
+	featureSearchNone FeatureSearchColumn = ""
+)
+
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
 func NewFeatureNameSort(isAscending bool) Sortable {
 	return Sortable{
-		clause: buildSortableOrderClause(isAscending, "wf.Name"),
+		clause:         buildFullClause(buildSortableOrderClause(isAscending, "wf.Name")),
+		sortColumn:     featureSearchFeatureNameColumn,
+		ascendingOrder: isAscending,
 	}
 }
 
 // NewBaselineStatusSort returns a Sortable specifically for the Status column.
 func NewBaselineStatusSort(isAscending bool) Sortable {
 	return Sortable{
-		clause: buildSortableOrderClause(isAscending, "Status"),
+		clause:         buildFullClause(buildSortableOrderClause(isAscending, "Status")),
+		sortColumn:     featureSearchStatusColumn,
+		ascendingOrder: isAscending,
 	}
 }

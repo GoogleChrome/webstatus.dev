@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"slices"
 
+	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"google.golang.org/api/iterator"
 )
@@ -52,23 +53,31 @@ type FeatureResult struct {
 	ExperimentalMetrics []*FeatureResultMetric `spanner:"ExperimentalMetrics"`
 }
 
+// FeatureResultPage contains the details for the feature search request.
+type FeatureResultPage struct {
+	Total         int64
+	NextPageToken *string
+	Features      []FeatureResult
+}
+
 func (c *Client) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder Sortable,
-) ([]FeatureResult, *string, error) {
+) (*FeatureResultPage, error) {
 	// Build filterable
 	filterBuilder := NewFeatureSearchFilterBuilder()
 	filter := filterBuilder.Build(searchNode)
 
-	var cursor *FeatureResultCursor
+	var offsetCursor *FeatureResultOffsetCursor
+	var featureCursor *FeatureResultCursor
 	var err error
 	if pageToken != nil {
-		cursor, err = decodeFeatureResultCursor(*pageToken)
+		offsetCursor, featureCursor, err = decodeInputFeatureResultCursor(*pageToken, sortOrder)
 		if err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 	}
 
@@ -76,16 +85,82 @@ func (c *Client) FeaturesSearch(
 	defer txn.Close()
 	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
 	if err != nil {
-		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
 	queryBuilder := FeatureSearchQueryBuilder{
-		baseQuery: c.featureSearchQuery,
-		cursor:    cursor,
-		pageSize:  pageSize,
+		baseQuery:     c.featureSearchQuery,
+		featureCursor: featureCursor,
+		offsetCursor:  offsetCursor,
 	}
 
-	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder)
+	// Get the total
+	total, err := c.getTotalFeatureCount(ctx, queryBuilder, filter, txn)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	// Get the results
+	results, err := c.getFeatureResult(
+		ctx,
+		queryBuilder,
+		prefilterResults,
+		filter,
+		sortOrder,
+		pageSize,
+		txn)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	page := FeatureResultPage{
+		Features:      results,
+		Total:         total,
+		NextPageToken: nil,
+	}
+
+	if len(results) == pageSize {
+		lastResult := results[len(results)-1]
+		newCursor := encodeFeatureResultCursor(sortOrder, lastResult)
+		page.NextPageToken = &newCursor
+
+		return &page, nil
+	}
+
+	return &page, nil
+}
+
+func (c *Client) getTotalFeatureCount(
+	ctx context.Context,
+	queryBuilder FeatureSearchQueryBuilder,
+	filter *FeatureSearchCompiledFilter,
+	txn *spanner.ReadOnlyTransaction) (int64, error) {
+	stmt := queryBuilder.CountQueryBuild(filter)
+
+	var count int64
+	err := txn.Query(ctx, stmt).Do(func(row *spanner.Row) error {
+		if err := row.Column(0, &count); err != nil {
+			return err
+		}
+
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (c *Client) getFeatureResult(
+	ctx context.Context,
+	queryBuilder FeatureSearchQueryBuilder,
+	prefilterResults FeatureSearchPrefilterResult,
+	filter *FeatureSearchCompiledFilter,
+	sortOrder Sortable,
+	pageSize int,
+	txn *spanner.ReadOnlyTransaction) ([]FeatureResult, error) {
+	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder, pageSize)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
@@ -97,11 +172,11 @@ func (c *Client) FeaturesSearch(
 			break
 		}
 		if err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+			return nil, err
 		}
 		var result SpannerFeatureResult
 		if err := row.ToStruct(&result); err != nil {
-			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+			return nil, err
 		}
 		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
 			result.StableMetrics, findDefaultPlaceHolder)
@@ -126,14 +201,7 @@ func (c *Client) FeaturesSearch(
 		results = append(results, actualResult)
 	}
 
-	if len(results) == pageSize {
-		lastResult := results[len(results)-1]
-		newCursor := encodeFeatureResultCursor(lastResult.FeatureID)
-
-		return results, &newCursor, nil
-	}
-
-	return results, nil, nil
+	return results, nil
 }
 
 // nolint: gochecknoglobals // needed for findDefaultPlaceHolder.

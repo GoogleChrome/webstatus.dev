@@ -41,18 +41,23 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
 				expectedSortBy:     nil,
-				data: []backend.Feature{
-					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
+				page: &backend.FeaturePage{
+					Metadata: backend.PageMetadataWithTotal{
+						NextPageToken: nil,
+						Total:         100,
+					},
+					Data: []backend.Feature{
+						{
+							BaselineStatus: backend.Widely,
+							FeatureId:      "feature1",
+							Name:           "feature 1",
+							Spec:           nil,
+							Usage:          nil,
+							Wpt:            nil,
+						},
 					},
 				},
-				pageToken: nil,
-				err:       nil,
+				err: nil,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1Features200JSONResponse{
@@ -66,8 +71,9 @@ func TestGetV1Features(t *testing.T) {
 						Wpt:            nil,
 					},
 				},
-				Metadata: &backend.PageMetadata{
+				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nil,
+					Total:         100,
 				},
 			},
 			request: backend.GetV1FeaturesRequestObject{
@@ -114,18 +120,23 @@ func TestGetV1Features(t *testing.T) {
 					},
 				},
 				expectedSortBy: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
-				data: []backend.Feature{
-					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
+				page: &backend.FeaturePage{
+					Metadata: backend.PageMetadataWithTotal{
+						NextPageToken: nextPageToken,
+						Total:         100,
+					},
+					Data: []backend.Feature{
+						{
+							BaselineStatus: backend.Widely,
+							FeatureId:      "feature1",
+							Name:           "feature 1",
+							Spec:           nil,
+							Usage:          nil,
+							Wpt:            nil,
+						},
 					},
 				},
-				pageToken: nextPageToken,
-				err:       nil,
+				err: nil,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1Features200JSONResponse{
@@ -139,8 +150,9 @@ func TestGetV1Features(t *testing.T) {
 						Wpt:            nil,
 					},
 				},
-				Metadata: &backend.PageMetadata{
+				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nextPageToken,
+					Total:         100,
 				},
 			},
 			request: backend.GetV1FeaturesRequestObject{
@@ -160,18 +172,8 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
 				expectedSortBy:     nil,
-				data: []backend.Feature{
-					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
-					},
-				},
-				pageToken: nil,
-				err:       errTest,
+				page:               nil,
+				err:                errTest,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1Features500JSONResponse{
@@ -195,18 +197,8 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
 				expectedSortBy:     nil,
-				data: []backend.Feature{
-					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
-					},
-				},
-				pageToken: nil,
-				err:       errTest,
+				page:               nil,
+				err:                errTest,
 			},
 			expectedCallCount: 0,
 			expectedResponse: backend.GetV1Features400JSONResponse{
@@ -230,18 +222,8 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
 				expectedSortBy:     nil,
-				data: []backend.Feature{
-					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
-					},
-				},
-				pageToken: nil,
-				err:       errTest,
+				page:               nil,
+				err:                errTest,
 			},
 			expectedCallCount: 0,
 			expectedResponse: backend.GetV1Features400JSONResponse{

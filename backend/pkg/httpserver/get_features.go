@@ -54,7 +54,7 @@ func (s *Server) GetV1Features(
 			}, nil
 		}
 	}
-	featureData, nextPageToken, err := s.wptMetricsStorer.FeaturesSearch(
+	featurePage, err := s.wptMetricsStorer.FeaturesSearch(
 		ctx,
 		req.Params.PageToken,
 		getPageSizeOrDefault(req.Params.PageSize),
@@ -73,9 +73,7 @@ func (s *Server) GetV1Features(
 	}
 
 	return backend.GetV1Features200JSONResponse{
-		Metadata: &backend.PageMetadata{
-			NextPageToken: nextPageToken,
-		},
-		Data: featureData,
+		Metadata: featurePage.Metadata,
+		Data:     featurePage.Data,
 	}, nil
 }
