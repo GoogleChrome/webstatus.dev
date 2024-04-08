@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { consume } from '@lit/context';
-import { Task } from '@lit/task';
+import {consume} from '@lit/context';
+import {Task} from '@lit/task';
 import {
   LitElement,
   type TemplateResult,
@@ -24,13 +24,13 @@ import {
   css,
   nothing,
 } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { SHARED_STYLES } from '../css/shared-css.js';
-import { type components } from 'webstatus.dev-backend';
+import {customElement, state} from 'lit/decorators.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
+import {type components} from 'webstatus.dev-backend';
 
-import { type APIClient } from '../api/client.js';
-import { formatFeaturePageUrl, formatOverviewPageUrl } from '../utils/urls.js';
-import { apiClientContext } from '../contexts/api-client-context.js';
+import {type APIClient} from '../api/client.js';
+import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
 import {
   BASELINE_CHIP_CONFIGS,
   renderWPTScore,
@@ -44,13 +44,13 @@ import {
   browserChannelDataMapKey,
   ChannelsParameter,
 } from './random-data.js';
-import { SlMenu, SlMenuItem } from '@shoelace-style/shoelace';
+import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
   _loadingTask: Task;
 
-  @consume({ context: apiClientContext })
+  @consume({context: apiClientContext})
   @state()
   apiClient!: APIClient;
 
@@ -69,11 +69,11 @@ export class FeaturePage extends LitElement {
   @state()
   implementationProgressChartOptions: google.visualization.LineChartOptions = {
     title: 'Implementation Progress',
-    hAxis: { title: 'Date' },
-    vAxis: { title: 'Percent' },
+    hAxis: {title: 'Date'},
+    vAxis: {title: 'Percent'},
     series: {
-      0: { color: '#3367d6' },
-      1: { color: '#d63367' },
+      0: {color: '#3367d6'},
+      1: {color: '#d63367'},
     },
   };
 
@@ -86,7 +86,7 @@ export class FeaturePage extends LitElement {
   @state()
   implementationProgress: Array<components['schemas']['WPTRunMetric']> = [];
 
-  location!: { params: { featureId: string; }; search: string; }; // Set by router.
+  location!: {params: {featureId: string}; search: string}; // Set by router.
 
   static get styles(): CSSResultGroup {
     return [
@@ -191,7 +191,7 @@ export class FeaturePage extends LitElement {
   }
 
   setupImplementationProgressBrowsersHandler() {
-  // Get the implementation progress data browser selector.
+    // Get the implementation progress data browser selector.
     const browserSelectorMenu = this.shadowRoot!.querySelector(
       '#implementation-progress-browser-selector sl-menu'
     ) as SlMenu;
@@ -260,9 +260,9 @@ export class FeaturePage extends LitElement {
 
   // Make a DataTable from the data in browserChannelDataMap
   createImplementationProgressDataTableFromMap(
-    browsers: BrowsersParameter[], channel: ChannelsParameter):
-    google.visualization.DataTable {
-
+    browsers: BrowsersParameter[],
+    channel: ChannelsParameter
+  ): google.visualization.DataTable {
     const dataTable = new google.visualization.DataTable();
     dataTable.addColumn('date', 'Date');
     for (const browser of browsers) {
@@ -312,19 +312,21 @@ export class FeaturePage extends LitElement {
 
   createImplementationProgressChart(): void {
     const data = this.createImplementationProgressDataTableFromMap(
-      this.implementationProgressBrowsers, 'stable');
+      this.implementationProgressBrowsers,
+      'stable'
+    );
 
     // Add 2 weeks to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
       hAxis: {
         title: '',
-        titleTextStyle: { color: '#333' },
-        viewWindow: { min: this.startDate, max: endDate },
+        titleTextStyle: {color: '#333'},
+        viewWindow: {min: this.startDate, max: endDate},
       },
-      vAxis: { minValue: 0 },
-      legend: { position: 'top' },
-      chartArea: { left: 60, right: 16, top: 40, bottom: 40 },
+      vAxis: {minValue: 0},
+      legend: {position: 'top'},
+      chartArea: {left: 60, right: 16, top: 40, bottom: 40},
     } as google.visualization.LineChartOptions;
 
     const chart = new google.visualization.LineChart(
@@ -333,13 +335,11 @@ export class FeaturePage extends LitElement {
     chart.draw(data, options);
   }
 
-
   afterRenderWhenComplete() {
     this.setupImplementationProgressBrowsersHandler();
     this.setupDateRangeHandler();
     this.setupImplementationProgressChart();
   }
-
 
   render(): TemplateResult | undefined {
     return this._loadingTask.render({
@@ -385,7 +385,7 @@ export class FeaturePage extends LitElement {
     icon: string
   ): TemplateResult {
     const scorePart = this.feature
-      ? renderWPTScore(this.feature, { search: '' }, { browser: browser })
+      ? renderWPTScore(this.feature, {search: ''}, {browser: browser})
       : nothing;
 
     return html`
@@ -434,32 +434,46 @@ export class FeaturePage extends LitElement {
   renderImplentationProgress(): TemplateResult {
     return html`
       <sl-card id="implementation-progress">
-        <div slot="header" class="hbox"> Implementation progress
+        <div slot="header" class="hbox">
+          Implementation progress
           <div class="spacer"></div>
           <sl-select>
             <sl-option> All features </sl-option>
             <sl-option> how to select ? </sl-option>
           </sl-select>
-          <sl-dropdown id="implementation-progress-browser-selector" multiple stay-open-on-select
-            .value="${this.implementationProgressBrowsers.join(' ')}">
+          <sl-dropdown
+            id="implementation-progress-browser-selector"
+            multiple
+            stay-open-on-select
+            .value="${this.implementationProgressBrowsers.join(' ')}"
+          >
             <sl-button slot="trigger">
               <sl-icon slot="suffix" name="chevron-down"> </sl-icon>
               Browsers
             </sl-button>
             <sl-menu>
-              <sl-menu-item type="checkbox" value="Chrome"> Chrome </sl-menu-item>
+              <sl-menu-item type="checkbox" value="Chrome">
+                Chrome
+              </sl-menu-item>
               <sl-menu-item type="checkbox" value="Edge"> Edge </sl-menu-item>
-              <sl-menu-item type="checkbox" value="Firefox"> Firefox </sl-menu-item>
-              <sl-menu-item type="checkbox" value="Safari"> Safari </sl-menu-item>
+              <sl-menu-item type="checkbox" value="Firefox">
+                Firefox
+              </sl-menu-item>
+              <sl-menu-item type="checkbox" value="Safari">
+                Safari
+              </sl-menu-item>
             </sl-menu>
           </sl-dropdown>
         </div>
-        <webstatus-chart id="implementation-progress-chart"
+        <webstatus-chart
+          id="implementation-progress-chart"
           .data="${this.createImplementationProgressDataTableFromMap(
-            this.implementationProgressBrowsers, 'stable')}"
+            this.implementationProgressBrowsers,
+            'stable'
+          )}"
           .options="${this.implementationProgressChartOptions}"
-            >
-            Loading chart...
+        >
+          Loading chart...
         </webstatus-chart>
       </sl-card>
     `;

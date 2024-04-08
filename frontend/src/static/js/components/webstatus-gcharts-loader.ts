@@ -17,15 +17,14 @@
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
 /// <reference types="@types/google.visualization" />
 
-import { ContextProvider } from '@lit/context';
-import { LitElement, type TemplateResult, html } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
+import {ContextProvider} from '@lit/context';
+import {LitElement, type TemplateResult, html} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
 
-import { gchartsContext } from '../contexts/gcharts-context.js';
+import {gchartsContext} from '../contexts/gcharts-context.js';
 
 @customElement('webstatus-gcharts-loader')
 export class WebstatusAppSettings extends LitElement {
-
   @state()
   gchartsLibraryLoaded = false;
 
@@ -39,12 +38,14 @@ export class WebstatusAppSettings extends LitElement {
   }
 
   loadGoogleCharts() {
-    google.charts.load('current', {
-      packages: ['corechart'],
-    }).then(() => {
-      this.gchartsLibraryLoaded = true;
-      this.gchartsProvider.setValue(this.gchartsLibraryLoaded);
-    });
+    google.charts
+      .load('current', {
+        packages: ['corechart'],
+      })
+      .then(() => {
+        this.gchartsLibraryLoaded = true;
+        this.gchartsProvider.setValue(this.gchartsLibraryLoaded);
+      });
   }
 
   // Render conditional on the loading state of the task.

@@ -79,13 +79,13 @@ export class WebstatusApp extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-    <webstatus-gcharts-loader>
-      <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
-        <webstatus-header></webstatus-header>
-        <webstatus-page class="halign-stretch valign-stretch">
-          <slot></slot>
-        </webstatus-page>
-      </webstatus-app-settings>
+      <webstatus-gcharts-loader>
+        <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
+          <webstatus-header></webstatus-header>
+          <webstatus-page class="halign-stretch valign-stretch">
+            <slot></slot>
+          </webstatus-page>
+        </webstatus-app-settings>
       </webstatus-gcharts-loader>
     `;
   }

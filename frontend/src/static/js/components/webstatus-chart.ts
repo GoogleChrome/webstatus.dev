@@ -18,7 +18,7 @@
 /// <reference types="@types/google.visualization" />
 
 // import { consume } from '@lit/context';
-import { Task } from '@lit/task';
+import {Task} from '@lit/task';
 import {
   LitElement,
   // type TemplateResult,
@@ -26,10 +26,9 @@ import {
   CSSResultGroup,
   css,
 } from 'lit';
-import { customElement, state } from 'lit/decorators.js';
-import { SHARED_STYLES } from '../css/shared-css.js';
+import {customElement, state} from 'lit/decorators.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 // import { type components } from 'webstatus.dev-backend';
-
 
 @customElement('webstatus-feature-page')
 export class Chart extends LitElement {
@@ -49,17 +48,17 @@ export class Chart extends LitElement {
   @state()
   specs?: google.visualization.ChartSpecs;
 
-
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
       css`
-      :host {
-        padding: 0;
-        margin: 0;
-        border: 0;
-      }
-  `];
+        :host {
+          padding: 0;
+          margin: 0;
+          border: 0;
+        }
+      `,
+    ];
   }
 
   loadGoogleCharts() {
@@ -71,31 +70,21 @@ export class Chart extends LitElement {
     });
   }
 
-
   constructor() {
     super();
     this.gchartsPackagesLoaded = false;
     this.loadingGCharts = new Task(this, {
-      args: () =>
-        [
-          this.gchartsPackagesLoaded,
-        ] as [boolean],
-      task: async ([gcLoaded]: [
-        boolean,
-      ]) => {
+      args: () => [this.gchartsPackagesLoaded] as [boolean],
+      task: async ([gcLoaded]: [boolean]) => {
         if (gcLoaded) {
           this.chartWrapper = new google.visualization.ChartWrapper(this.specs);
           this.chartWrapper.draw();
         }
-      }
+      },
     });
   }
 
   render() {
-    return html`
-      <div class="container">
-      </div>
-      `;
+    return html` <div class="container"></div> `;
   }
-
 }

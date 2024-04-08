@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 
-import { createContext } from '@lit/context';
+import {createContext} from '@lit/context';
 
 export const gchartsContext = createContext<boolean>('gcharts');
