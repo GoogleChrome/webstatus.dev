@@ -20,6 +20,7 @@ import {
   type TemplateResult,
   css,
   html,
+  nothing,
 } from 'lit';
 import {customElement} from 'lit/decorators.js';
 
@@ -59,12 +60,6 @@ export class WebstatusHeader extends LitElement {
           margin-top: auto;
           margin-bottom: auto;
         }
-
-        .sign-in {
-          margin-top: auto;
-          margin-bottom: auto;
-          margin-right: 1em;
-        }
       `,
     ];
   }
@@ -83,6 +78,8 @@ export class WebstatusHeader extends LitElement {
   }
 
   render(): TemplateResult {
+    const signInButton = nothing; // TODO: See issue #147
+
     return html`
       <header class="hbox">
         <div class="title">
@@ -96,17 +93,11 @@ export class WebstatusHeader extends LitElement {
             name="list"
           >
           </sl-icon-button>
-          <img
-            class="website-logo"
-            src="https://fakeimg.pl/400x400?text=LOGO"
-          />
           <h2 class="website-title">Web Platform Dashboard</h2>
         </div>
 
         <div class="spacer"></div>
-        <div class="sign-in">
-          <webstatus-login></webstatus-login>
-        </div>
+        ${signInButton}
       </header>
     `;
   }

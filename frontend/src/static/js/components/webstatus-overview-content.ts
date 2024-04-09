@@ -45,7 +45,8 @@ export class WebstatusOverviewContent extends LitElement {
           gap: 1em;
         }
         .stats-summary {
-          color: #6c7381;
+          color: var(--unimportant-text-color);
+          margin-right: var(--content-padding);
         }
       `,
     ];
@@ -63,10 +64,7 @@ export class WebstatusOverviewContent extends LitElement {
     });
 
     return html`
-      <span class="stats-summary">
-        <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
-        ${this.totalCount} features
-      </span>
+      <span class="stats-summary"> ${this.totalCount} features </span>
       <span class="stats-summary">
         <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
         Updated ${date}
@@ -79,16 +77,6 @@ export class WebstatusOverviewContent extends LitElement {
       <div class="main">
         <div class="hbox halign-items-space-between header-line">
           <h1 class="halign-stretch">Features overview</h1>
-          <sl-button
-            ><sl-icon
-              slot="prefix"
-              name="link-simple"
-              library="phosphor"
-            ></sl-icon
-          ></sl-button>
-          <sl-button
-            ><sl-icon name="bookmark"></sl-icon> Save this view</sl-button
-          >
         </div>
         <div class="hbox">${this.renderCount()}</div>
         <br />

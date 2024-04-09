@@ -116,17 +116,9 @@ export class WebstatusSidebarMenu extends LitElement {
           <sl-tree-item>
             <sl-icon name="bookmark"></sl-icon> Baseline 2023
           </sl-tree-item>
-          <sl-tree-item>
-            <sl-icon name="bookmark"></sl-icon> Top Developer Needs
-          </sl-tree-item>
-          <sl-tree-item> <sl-icon name="star"></sl-icon> Starred </sl-tree-item>
         </sl-tree-item>
         <sl-tree-item id="${NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
-        </sl-tree-item>
-        <sl-tree-item> <sl-icon name="bell"></sl-icon> Updates </sl-tree-item>
-        <sl-tree-item>
-          <sl-icon name="info-circle"></sl-icon> About
         </sl-tree-item>
       </sl-tree>
     `;

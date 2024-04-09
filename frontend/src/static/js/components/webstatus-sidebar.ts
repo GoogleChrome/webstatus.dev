@@ -71,23 +71,6 @@ export class WebstatusSidebar extends LitElement {
                 >Report an issue</a
               >
             </sl-tree-item>
-            <sl-tree-item id="theme-selector">
-              <sl-select value="light">
-                <sl-icon name="brightness-high" slot="prefix"></sl-icon>
-                <sl-option value="light">
-                  <sl-icon name="brightness-high" slot="prefix"></sl-icon>
-                  Light theme</sl-option
-                >
-                <sl-option value="dark">
-                  <sl-icon
-                    name="brightness-high-fill"
-                    style="color: black"
-                    slot="prefix"
-                  ></sl-icon>
-                  Dark theme</sl-option
-                >
-              </sl-select>
-            </sl-tree-item>
           </sl-tree>
         </div>
       </div>
