@@ -30,7 +30,7 @@ describe('webstatus-gcharts-loader', () => {
     assert.equal(component.gchartsLibraryLoaded, true);
   });
 
-  it('can have child components which are provided the settings via context', async () => {
+  it('can have child components which are provided the load state via context', async () => {
     @customElement('fake-child-element')
     class FakeChildElement extends LitElement {
       @consume({context: gchartsContext, subscribe: true})
