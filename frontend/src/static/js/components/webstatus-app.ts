@@ -32,6 +32,7 @@ import {initRouter} from '../utils/app-router.js';
 import './webstatus-app-settings.js';
 import './webstatus-header.js';
 import './webstatus-page.js';
+import './webstatus-gcharts-loader.js';
 
 @customElement('webstatus-app')
 export class WebstatusApp extends LitElement {
@@ -78,12 +79,14 @@ export class WebstatusApp extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
-        <webstatus-header></webstatus-header>
-        <webstatus-page class="halign-stretch valign-stretch">
-          <slot></slot>
-        </webstatus-page>
-      </webstatus-app-settings>
+      <webstatus-gcharts-loader>
+        <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
+          <webstatus-header></webstatus-header>
+          <webstatus-page class="halign-stretch valign-stretch">
+            <slot></slot>
+          </webstatus-page>
+        </webstatus-app-settings>
+      </webstatus-gcharts-loader>
     `;
   }
 }
