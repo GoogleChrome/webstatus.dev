@@ -19,7 +19,19 @@ import "time"
 // BrowserRelease is the representation of the metric that comes from the BCD Consumer
 // This is located in the shared lib package so that it can be used in the adapter and the workflow.
 type BrowserRelease struct {
-	BrowserName    string
+	BrowserName    BrowserName
 	BrowserVersion string
 	ReleaseDate    time.Time
 }
+
+// BrowserName is an enumeration of the high-level keys found in the data.json
+// for the browsers. The json schema itself does not list these names explicitly
+// so we maintain our own subset here.
+type BrowserName string
+
+const (
+	Chrome  BrowserName = "chrome"
+	Edge    BrowserName = "edge"
+	Firefox BrowserName = "firefox"
+	Safari  BrowserName = "safari"
+)

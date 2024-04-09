@@ -6,4 +6,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib => ../../../../lib
 
 replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 
-require github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
+require (
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-00010101000000-000000000000
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
+)
