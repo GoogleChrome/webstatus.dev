@@ -14,7 +14,10 @@
 
 package bcdconsumertypes
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 // BrowserRelease is the representation of the metric that comes from the BCD Consumer
 // This is located in the shared lib package so that it can be used in the adapter and the workflow.
@@ -35,3 +38,7 @@ const (
 	Firefox BrowserName = "firefox"
 	Safari  BrowserName = "safari"
 )
+
+// ErrUnableToStoreBrowserRelease indicates that the storage layer was unable to save
+// the browser release.
+var ErrUnableToStoreBrowserRelease = errors.New("unable to store browser release")
