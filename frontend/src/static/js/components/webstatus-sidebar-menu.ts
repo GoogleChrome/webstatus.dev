@@ -122,15 +122,5 @@ export class WebstatusSidebarMenu extends LitElement {
         </sl-tree-item>
       </sl-tree>
     `;
-
-    // <sl-tree-item>
-    //   <sl-icon name="bookmark"></sl-icon> Top Developer Needs
-    // </sl-tree-item>
-    // <sl-tree-item> <sl-icon name="star"></sl-icon> Starred </sl-tree-item>
-
-    // <sl-tree-item> <sl-icon name="bell"></sl-icon> Updates </sl-tree-item>
-    // <sl-tree-item>
-    //   <sl-icon name="info-circle"></sl-icon> About
-    // </sl-tree-item>
   }
 }

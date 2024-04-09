@@ -97,14 +97,5 @@ export class WebstatusOverviewContent extends LitElement {
         ></webstatus-pagination>
       </div>
     `;
-    // <sl-button
-    //   ><sl-icon
-    //     slot="prefix"
-    //     name="link-simple"
-    //     library="phosphor"
-    //   ></sl-icon
-    // ></sl-button>
-    // <sl-button
-    //   ><sl-icon name="bookmark"></sl-icon> Save this view</sl-button>
   }
 }

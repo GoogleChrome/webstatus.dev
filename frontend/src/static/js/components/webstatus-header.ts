@@ -78,10 +78,7 @@ export class WebstatusHeader extends LitElement {
   }
 
   render(): TemplateResult {
-    const signInButton = nothing;
-    // <div class="sign-in">
-    //   <webstatus-login></webstatus-login>
-    // </div>
+    const signInButton = nothing;  // TODO: See issue #147
 
     return html`
       <header class="hbox">
