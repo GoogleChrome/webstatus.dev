@@ -19,10 +19,7 @@ import {assert, fixture, html} from '@open-wc/testing';
 import {LitElement, render} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
-import {
-  gchartsContext,
-} from '../../contexts/gcharts-context.js';
-
+import {gchartsContext} from '../../contexts/gcharts-context.js';
 
 describe('webstatus-gcharts-loader', () => {
   it('can be added to the page', async () => {
@@ -36,8 +33,8 @@ describe('webstatus-gcharts-loader', () => {
   it('can have child components which are provided the settings via context', async () => {
     @customElement('fake-child-element')
     class FakeChildElement extends LitElement {
-      @consume({ context: gchartsContext, subscribe: true })
-      @property({ attribute: false })
+      @consume({context: gchartsContext, subscribe: true})
+      @property({attribute: false})
       gchartsLibraryLoaded!: boolean;
     }
 
