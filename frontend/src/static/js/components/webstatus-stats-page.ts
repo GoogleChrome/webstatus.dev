@@ -297,7 +297,7 @@ export class StatsPage extends LitElement {
             >Start date
             <sl-input
               id="start-date"
-              @sl-blur=${this.handleStartDateChange}
+              @sl-change=${this.handleStartDateChange}
               type="date"
               .valueAsDate="${this.startDate}"
             ></sl-input>
@@ -306,7 +306,7 @@ export class StatsPage extends LitElement {
             >End date
             <sl-input
               id="end-date"
-              @sl-blur=${this.handleEndDateChange}
+              @sl-change=${this.handleEndDateChange}
               type="date"
               .valueAsDate="${this.endDate}"
             ></sl-input>
