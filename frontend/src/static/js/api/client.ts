@@ -105,13 +105,15 @@ export class APIClient {
         }
       );
       const data: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
+      // Assign the nextPageToken before continuing if data == null,
+      // so that the while loop will terminate.
+      nextPageToken = data?.metadata?.next_page_token;
+      if (data == null) continue;
       const error = response.error;
-      if (data == null || error !== undefined) {
+      if (error !== undefined) {
         throw new Error(error?.message);
       }
       allData.push(...data.data);
-      // Check if there is another page.
-      nextPageToken = data.metadata?.next_page_token;
     } while (nextPageToken !== undefined);
 
     return allData;
