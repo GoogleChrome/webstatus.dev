@@ -109,9 +109,9 @@ export class APIClient {
         throw new Error(error?.message);
       }
       const data: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
+      nextPageToken = data?.metadata?.next_page_token;
       if (data != null) {
         allData.push(...data.data);
-        nextPageToken = data.metadata?.next_page_token;
       }
     } while (nextPageToken !== undefined);
 
