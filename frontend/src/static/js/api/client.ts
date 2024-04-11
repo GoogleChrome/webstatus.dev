@@ -99,8 +99,8 @@ export class APIClient {
         {
           ...temporaryFetchOptions,
           params: {
-            query: { startAt, endAt, page_token: nextPageToken },
-            path: { browser, channel },
+            query: {startAt, endAt, page_token: nextPageToken},
+            path: {browser, channel},
           },
         }
       );
@@ -111,7 +111,7 @@ export class APIClient {
       }
       allData.push(...data.data);
       // Check if there is another page.
-      nextPageToken = data.metadata?.next_page_token
+      nextPageToken = data.metadata?.next_page_token;
     } while (nextPageToken !== undefined);
 
     return allData;
