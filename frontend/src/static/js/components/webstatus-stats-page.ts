@@ -141,8 +141,8 @@ export class StatsPage extends LitElement {
   globalFeatureSupportResizeObserver: ResizeObserver | null = null;
 
   setupResizeObsercer() {
-      // Set up ResizeObserver one time to redraw chart when container resizes.
-      if (!this.globalFeatureSupportResizeObserver) {
+    // Set up ResizeObserver one time to redraw chart when container resizes.
+    if (!this.globalFeatureSupportResizeObserver) {
       const gfsChartElement = this.shadowRoot!.getElementById(
         'global-feature-support-chart'
       );
