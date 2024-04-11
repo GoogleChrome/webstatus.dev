@@ -217,8 +217,8 @@ export class StatsPage extends LitElement {
     }
     dataTable.addColumn('number', 'Total');
 
-    // Map from date to array of counts for each browser
-    const dateToBrowserDataMap = new Map<number, Array<number>>();
+    // Map from date to an object with counts for each browser
+    const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
     // Map from date to array of total_tests_count, the same for all browsers.
     const dateToTotalTestsCountMap = new Map<number, number>();
 
@@ -233,26 +233,31 @@ export class StatsPage extends LitElement {
         const dateSeconds = new Date(row.run_timestamp).getTime();
         const testPassCount = row.test_pass_count!;
         if (!dateToBrowserDataMap.has(dateSeconds)) {
-          dateToBrowserDataMap.set(dateSeconds, [testPassCount]);
+          dateToBrowserDataMap.set(dateSeconds, {});
           dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
-        } else {
-          dateToBrowserDataMap.get(dateSeconds)!.push(testPassCount);
         }
+        const browserCounts = dateToBrowserDataMap.get(dateSeconds)!;
+        browserCounts[browser] = testPassCount;
       }
     }
 
-    // Sort the dateToBrowserDataMap by dateSeconds
+    // Create array of dateToBrowserDataMap entries and sort by dateSeconds
     const data = Array.from(dateToBrowserDataMap.entries()).sort(
       ([d1], [d2]) => d1 - d2
     );
 
     // For each date, add a row to the dataTable
-    for (const row of data) {
-      const dateSeconds = row[0];
+    for (const datum of data) {
+      const dateSeconds = datum[0];
       const date = new Date(dateSeconds);
-      const browserCounts = row[1];
+      const browserCounts = datum[1];
+      // Make an array of browser counts, in the order of browsers.
+      // If the browser is not in the browserCounts, add null.
+      const browserCountArray = browsers.map(browser => {
+        return browserCounts[browser] || null;
+      });
       const total = dateToTotalTestsCountMap.get(dateSeconds)!;
-      dataTable.addRow([date, ...browserCounts, total]);
+      dataTable.addRow([date, ...browserCountArray, total]);
     }
     return dataTable;
   }

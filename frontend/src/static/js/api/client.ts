@@ -28,6 +28,7 @@ export type FeatureSearchType = NonNullable<
 export type BrowsersParameter = components['parameters']['browserPathParam'];
 export type ChannelsParameter = components['parameters']['channelPathParam'];
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
+export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
@@ -89,19 +90,30 @@ export class APIClient {
   ): Promise<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
-    const {data, error} = await this.client.GET(
-      '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
-      {
-        ...temporaryFetchOptions,
-        params: {
-          query: {startAt, endAt},
-          path: {browser, channel},
-        },
+
+    let nextPageToken;
+    const allData: WPTRunMetric[] = [];
+    do {
+      const response = await this.client.GET(
+        '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: { startAt, endAt, page_token: nextPageToken },
+            path: { browser, channel },
+          },
+        }
+      );
+      const data: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
+      const error = response.error;
+      if (data == null || error !== undefined) {
+        throw new Error(error?.message);
       }
-    );
-    if (error !== undefined) {
-      throw new Error(error?.message);
-    }
-    return data?.data;
+      allData.push(...data.data);
+      // Check if there is another page.
+      nextPageToken = data.metadata?.next_page_token
+    } while (nextPageToken !== undefined);
+
+    return allData;
   }
 }
