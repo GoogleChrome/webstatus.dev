@@ -249,6 +249,30 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 	return ""
 }
 
+// BrowserFeatureCountCursor: Represents a point for resuming feature count queries. Designed for efficient pagination
+// by storing the following:
+//   - LastReleaseDate: The release date of the last result from the previous page, used to continue fetching from the
+//     correct point.
+//   - LastCumulativeCount: The cumulative count of features up to (and including) the 'LastReleaseDate'.
+//     This eliminates the need to recalculate the count for prior pages.
+type BrowserFeatureCountCursor struct {
+	LastReleaseDate     time.Time `json:"last_release_date"`
+	LastCumulativeCount int64     `json:"last_cumulative_count"`
+}
+
+// decodeBrowserFeatureCountCursor provides a wrapper around the generic decodeCursor.
+func decodeBrowserFeatureCountCursor(cursor string) (*BrowserFeatureCountCursor, error) {
+	return decodeCursor[BrowserFeatureCountCursor](cursor)
+}
+
+// encodeBrowserFeatureCountCursor provides a wrapper around the generic encodeCursor.
+func encodeBrowserFeatureCountCursor(releaseDate time.Time, lastCount int64) string {
+	return encodeCursor[BrowserFeatureCountCursor](BrowserFeatureCountCursor{
+		LastReleaseDate:     releaseDate,
+		LastCumulativeCount: lastCount,
+	})
+}
+
 // encodeWPTRunCursor provides a wrapper around the generic encodeCursor.
 func encodeWPTRunCursor(timeStart time.Time, id int64) string {
 	return encodeCursor[WPTRunCursor](WPTRunCursor{LastTimeStart: timeStart, LastRunID: id})
