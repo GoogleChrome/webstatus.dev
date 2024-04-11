@@ -104,16 +104,15 @@ export class APIClient {
           },
         }
       );
-      const data: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
-      // Assign the nextPageToken before continuing if data == null,
-      // so that the while loop will terminate.
-      nextPageToken = data?.metadata?.next_page_token;
-      if (data == null) continue;
       const error = response.error;
       if (error !== undefined) {
         throw new Error(error?.message);
       }
-      allData.push(...data.data);
+      const data: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
+      if (data != null) {
+        allData.push(...data.data);
+        nextPageToken = data.metadata?.next_page_token;
+      }
     } while (nextPageToken !== undefined);
 
     return allData;
