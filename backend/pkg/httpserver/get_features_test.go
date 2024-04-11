@@ -48,12 +48,13 @@ func TestGetV1Features(t *testing.T) {
 					},
 					Data: []backend.Feature{
 						{
-							BaselineStatus: backend.Widely,
-							FeatureId:      "feature1",
-							Name:           "feature 1",
-							Spec:           nil,
-							Usage:          nil,
-							Wpt:            nil,
+							BaselineStatus:         backend.Widely,
+							FeatureId:              "feature1",
+							Name:                   "feature 1",
+							BrowserImplementations: nil,
+							Spec:                   nil,
+							Usage:                  nil,
+							Wpt:                    nil,
 						},
 					},
 				},
@@ -63,12 +64,13 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
+						BaselineStatus:         backend.Widely,
+						BrowserImplementations: nil,
+						FeatureId:              "feature1",
+						Name:                   "feature 1",
+						Spec:                   nil,
+						Usage:                  nil,
+						Wpt:                    nil,
 					},
 				},
 				Metadata: backend.PageMetadataWithTotal{
@@ -127,12 +129,13 @@ func TestGetV1Features(t *testing.T) {
 					},
 					Data: []backend.Feature{
 						{
-							BaselineStatus: backend.Widely,
-							FeatureId:      "feature1",
-							Name:           "feature 1",
-							Spec:           nil,
-							Usage:          nil,
-							Wpt:            nil,
+							BaselineStatus:         backend.Widely,
+							BrowserImplementations: nil,
+							FeatureId:              "feature1",
+							Name:                   "feature 1",
+							Spec:                   nil,
+							Usage:                  nil,
+							Wpt:                    nil,
 						},
 					},
 				},
@@ -142,12 +145,13 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
+						BaselineStatus:         backend.Widely,
+						BrowserImplementations: nil,
+						FeatureId:              "feature1",
+						Name:                   "feature 1",
+						Spec:                   nil,
+						Usage:                  nil,
+						Wpt:                    nil,
 					},
 				},
 				Metadata: backend.PageMetadataWithTotal{

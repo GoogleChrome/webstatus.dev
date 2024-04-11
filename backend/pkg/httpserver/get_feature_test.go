@@ -39,22 +39,32 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				expectedFeatureID: "feature1",
 				data: &backend.Feature{
 					BaselineStatus: backend.Widely,
-					FeatureId:      "feature1",
-					Name:           "feature 1",
-					Spec:           nil,
-					Usage:          nil,
-					Wpt:            nil,
+					BrowserImplementations: &map[string]backend.BrowserImplementation{
+						"chrome": {
+							Status: valuePtr(backend.FullyImplemented),
+						},
+					},
+					FeatureId: "feature1",
+					Name:      "feature 1",
+					Spec:      nil,
+					Usage:     nil,
+					Wpt:       nil,
 				},
 				err: nil,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
 				BaselineStatus: backend.Widely,
-				FeatureId:      "feature1",
-				Name:           "feature 1",
-				Spec:           nil,
-				Usage:          nil,
-				Wpt:            nil,
+				BrowserImplementations: &map[string]backend.BrowserImplementation{
+					"chrome": {
+						Status: valuePtr(backend.FullyImplemented),
+					},
+				},
+				FeatureId: "feature1",
+				Name:      "feature 1",
+				Spec:      nil,
+				Usage:     nil,
+				Wpt:       nil,
 			},
 			request: backend.GetV1FeaturesFeatureIdRequestObject{
 				FeatureId: "feature1",

@@ -464,6 +464,20 @@ components:
         score:
           type: number
           format: double
+    BrowserImplementation:
+      type: object
+      properties:
+        status:
+          type: string
+          enum:
+            - unknown
+            - not
+            - fully
+          # Go enum names
+          x-enum-varnames:
+            - Unknown
+            - NotAvailable
+            - FullyImplemented
     PageMetadata:
       type: object
       properties:
@@ -525,6 +539,13 @@ components:
           type: array
           items:
             type: string
+        browser_implementations:
+          type: object
+          description: >
+            Describes the implementation status of the feature. The keys for the object come
+            from https://github.com/web-platform-dx/web-features/blob/8ab08d00b9bdb505af37c435204eb6fe819dfaab/schemas/defs.schema.json#L102-L122
+          additionalProperties:
+            $ref: '#/components/schemas/BrowserImplementation'
         baseline_status:
           type: string
           enum:
