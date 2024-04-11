@@ -140,7 +140,7 @@ export class StatsPage extends LitElement {
 
   globalFeatureSupportResizeObserver: ResizeObserver | null = null;
 
-  setupResizeObsercer() {
+  setupResizeObserver() {
     // Set up ResizeObserver one time to redraw chart when container resizes.
     if (!this.globalFeatureSupportResizeObserver) {
       const gfsChartElement = this.shadowRoot!.getElementById(
@@ -274,7 +274,7 @@ export class StatsPage extends LitElement {
       'global-feature-support-chart'
     );
     if (!gfsChartElement) return;
-    this.setupResizeObsercer();
+    this.setupResizeObserver();
 
     const datatable = this.createGlobalFeatureSupportDataTableFromMap();
 
