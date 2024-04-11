@@ -249,8 +249,12 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 	return ""
 }
 
-// BrowserFeatureCountCursor: Represents a point for resuming queries based on the last
-// Release Date and cumulative count. Useful for pagination.
+// BrowserFeatureCountCursor: Represents a point for resuming feature count queries. Designed for efficient pagination
+// by storing the following:
+//   - LastReleaseDate: The release date of the last result from the previous page, used to continue fetching from the
+//     correct point.
+//   - LastCumulativeCount: The cumulative count of features up to (and including) the 'LastReleaseDate'.
+//     This eliminates the need to recalculate the count for prior pages.
 type BrowserFeatureCountCursor struct {
 	LastReleaseDate     time.Time `json:"last_release_date"`
 	LastCumulativeCount int64     `json:"last_cumulative_count"`

@@ -151,39 +151,33 @@ func createListBrowserFeatureCountMetricStatement(
 		"endAt":       endAt,
 		"pageSize":    pageSize,
 	}
-	innerQueryPrefix := `
-	SELECT
-		BrowserReleases.ReleaseDate AS ReleaseDate,
-		COUNT(DISTINCT FeatureID) AS available_feature_count
-	FROM BrowserFeatureAvailabilities bfa
-	JOIN BrowserReleases
-	ON bfa.BrowserName = BrowserReleases.BrowserName
-	AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
-	WHERE
-		bfa.BrowserName = @browserName`
-	var innerQueryFilter string
+	var pageFilter string
 	if pageToken != nil {
-		innerQueryFilter = `
+		// Add filter for pagination if a page token is provided
+		pageFilter = `
 		AND BrowserReleases.ReleaseDate > @lastReleaseDate`
 		params["lastReleaseDate"] = pageToken.LastReleaseDate
 	}
-	innerQuerySuffix := `
-		AND BrowserReleases.ReleaseDate >= @startAt
-   		AND BrowserReleases.ReleaseDate < @endAt
-	GROUP BY ReleaseDate`
 
+	// Construct the query
+	// This query selects the 'ReleaseDate' and the feature counts for each release date.
 	query := fmt.Sprintf(`
 SELECT
-	ReleaseDate,
-	available_feature_count AS FeatureCount
-FROM (
+    BrowserReleases.ReleaseDate AS ReleaseDate,
+    COUNT(DISTINCT FeatureID) AS FeatureCount
+FROM BrowserFeatureAvailabilities bfa
+JOIN BrowserReleases
+ON bfa.BrowserName = BrowserReleases.BrowserName
+AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
+WHERE
+    bfa.BrowserName = @browserName
+    AND BrowserReleases.ReleaseDate >= @startAt
+    AND BrowserReleases.ReleaseDate < @endAt
 	%s
-	%s
-	%s
-)
+GROUP BY ReleaseDate
 ORDER BY ReleaseDate ASC
 LIMIT @pageSize
-`, innerQueryPrefix, innerQueryFilter, innerQuerySuffix)
+`, pageFilter)
 
 	stmt := spanner.NewStatement(query)
 	stmt.Params = params
