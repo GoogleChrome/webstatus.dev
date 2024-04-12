@@ -58,15 +58,21 @@ type mockGetIDByFeaturesIDConfig struct {
 	returnedError      error
 }
 
+type mockListBrowserFeatureCountMetricConfig struct {
+	result        *gcpspanner.BrowserFeatureCountResultPage
+	returnedError error
+}
+
 type mockBackendSpannerClient struct {
-	t                        *testing.T
-	aggregationData          []gcpspanner.WPTRunAggregationMetricWithTime
-	featureData              []gcpspanner.WPTRunFeatureMetricWithTime
-	mockFeaturesSearchCfg    mockFeaturesSearchConfig
-	mockGetFeatureCfg        mockGetFeatureConfig
-	mockGetIDByFeaturesIDCfg mockGetIDByFeaturesIDConfig
-	pageToken                *string
-	err                      error
+	t                                    *testing.T
+	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
+	featureData                          []gcpspanner.WPTRunFeatureMetricWithTime
+	mockFeaturesSearchCfg                mockFeaturesSearchConfig
+	mockGetFeatureCfg                    mockGetFeatureConfig
+	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
+	mockListBrowserFeatureCountMetricCfg mockListBrowserFeatureCountMetricConfig
+	pageToken                            *string
+	err                                  error
 }
 
 func (c mockBackendSpannerClient) GetFeature(
@@ -85,6 +91,26 @@ func (c mockBackendSpannerClient) GetIDFromFeatureID(
 	}
 
 	return c.mockGetIDByFeaturesIDCfg.result, c.mockGetIDByFeaturesIDCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) ListBrowserFeatureCountMetric(
+	ctx context.Context,
+	browser string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*gcpspanner.BrowserFeatureCountResultPage, error) {
+	if ctx != context.Background() ||
+		browser != "mybrowser" ||
+		!startAt.Equal(testStart) ||
+		!endAt.Equal(testEnd) ||
+		pageSize != 100 ||
+		pageToken != nonNilInputPageToken {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListBrowserFeatureCountMetricCfg.result, c.mockListBrowserFeatureCountMetricCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
@@ -238,6 +264,84 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(metrics, tc.expectedOutput) {
+				t.Error("unexpected metrics")
+			}
+		})
+	}
+}
+
+func TestListBrowserFeatureCountMetric(t *testing.T) {
+	testCases := []struct {
+		name         string
+		cfg          mockListBrowserFeatureCountMetricConfig
+		expectedPage *backend.BrowserReleaseFeatureMetricsPage
+		expectedErr  error
+	}{
+		{
+			name: "success",
+			cfg: mockListBrowserFeatureCountMetricConfig{
+				result: &gcpspanner.BrowserFeatureCountResultPage{
+					NextPageToken: nonNilNextPageToken,
+					Metrics: []gcpspanner.BrowserFeatureCountMetric{
+						{
+							ReleaseDate:  time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+							FeatureCount: 10,
+						},
+						{
+							ReleaseDate:  time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
+							FeatureCount: 9,
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedPage: &backend.BrowserReleaseFeatureMetricsPage{
+				Metadata: &backend.PageMetadata{
+					NextPageToken: nonNilNextPageToken,
+				},
+				Data: []backend.BrowserReleaseFeatureMetric{
+					{
+						Count:     valuePtr[int64](10),
+						Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+					},
+					{
+						Count:     valuePtr[int64](9),
+						Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "failure",
+			cfg: mockListBrowserFeatureCountMetricConfig{
+				result:        nil,
+				returnedError: errTest,
+			},
+			expectedPage: nil,
+			expectedErr:  errTest,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                                    t,
+				mockListBrowserFeatureCountMetricCfg: tc.cfg,
+			}
+			backend := NewBackend(mock)
+			page, err := backend.ListBrowserFeatureCountMetric(
+				context.Background(),
+				"mybrowser",
+				testStart,
+				testEnd,
+				100,
+				nonNilInputPageToken)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(page, tc.expectedPage) {
 				t.Error("unexpected metrics")
 			}
 		})
