@@ -206,6 +206,8 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		},
 		Spec:  nil,
 		Usage: nil,
+		// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+		BrowserImplementations: nil,
 	}
 }
 

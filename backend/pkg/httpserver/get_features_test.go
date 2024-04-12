@@ -54,6 +54,8 @@ func TestGetV1Features(t *testing.T) {
 							Spec:           nil,
 							Usage:          nil,
 							Wpt:            nil,
+							// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+							BrowserImplementations: nil,
 						},
 					},
 				},
@@ -69,6 +71,8 @@ func TestGetV1Features(t *testing.T) {
 						Spec:           nil,
 						Usage:          nil,
 						Wpt:            nil,
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+						BrowserImplementations: nil,
 					},
 				},
 				Metadata: backend.PageMetadataWithTotal{
@@ -133,6 +137,8 @@ func TestGetV1Features(t *testing.T) {
 							Spec:           nil,
 							Usage:          nil,
 							Wpt:            nil,
+							// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+							BrowserImplementations: nil,
 						},
 					},
 				},
@@ -148,6 +154,8 @@ func TestGetV1Features(t *testing.T) {
 						Spec:           nil,
 						Usage:          nil,
 						Wpt:            nil,
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+						BrowserImplementations: nil,
 					},
 				},
 				Metadata: backend.PageMetadataWithTotal{

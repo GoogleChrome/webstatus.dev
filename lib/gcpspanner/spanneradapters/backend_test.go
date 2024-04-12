@@ -495,6 +495,8 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+						BrowserImplementations: nil,
 					},
 					{
 						BaselineStatus: backend.Widely,
@@ -520,6 +522,8 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+						BrowserImplementations: nil,
 					},
 				},
 			},
@@ -675,6 +679,8 @@ func TestGetFeature(t *testing.T) {
 						},
 					},
 				},
+				// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+				BrowserImplementations: nil,
 			},
 		},
 	}
