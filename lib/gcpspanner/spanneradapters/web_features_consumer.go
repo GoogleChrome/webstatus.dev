@@ -27,6 +27,9 @@ import (
 type WebFeatureSpannerClient interface {
 	UpsertWebFeature(ctx context.Context, feature gcpspanner.WebFeature) error
 	UpsertFeatureBaselineStatus(ctx context.Context, status gcpspanner.FeatureBaselineStatus) error
+	InsertBrowserFeatureAvailability(
+		ctx context.Context,
+		featureAvailability gcpspanner.BrowserFeatureAvailability) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -69,9 +72,62 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		if err != nil {
 			return err
 		}
+
+		// Read the browser support data.
+		fba := extractBrowserAvailability(featureID, featureData)
+		for _, browserAvailability := range fba {
+			err := c.client.InsertBrowserFeatureAvailability(ctx, browserAvailability)
+			if err != nil {
+				slog.Error("unable to insert BrowserFeatureAvailability",
+					"browserName", browserAvailability.BrowserName,
+					"browserVersion", browserAvailability.BrowserVersion,
+					"featureID", browserAvailability.FeatureID,
+				)
+
+				return err
+			}
+		}
 	}
 
 	return nil
+}
+
+func extractBrowserAvailability(featureID string,
+	featureData web_platform_dx__web_features.FeatureData) []gcpspanner.BrowserFeatureAvailability {
+	var fba []gcpspanner.BrowserFeatureAvailability
+	if featureData.Status != nil && featureData.Status.Support != nil {
+		support := featureData.Status.Support
+		if support.Chrome != nil {
+			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+				BrowserName:    "chrome",
+				BrowserVersion: *support.Chrome,
+				FeatureID:      featureID,
+			})
+		}
+		if support.Edge != nil {
+			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+				BrowserName:    "edge",
+				BrowserVersion: *support.Edge,
+				FeatureID:      featureID,
+			})
+		}
+		if support.Firefox != nil {
+			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+				BrowserName:    "firefox",
+				BrowserVersion: *support.Firefox,
+				FeatureID:      featureID,
+			})
+		}
+		if support.Safari != nil {
+			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+				BrowserName:    "safari",
+				BrowserVersion: *support.Safari,
+				FeatureID:      featureID,
+			})
+		}
+	}
+
+	return fba
 }
 
 // convertStringToDate converts a date string (in DateOnly format) to a time.Time pointer.

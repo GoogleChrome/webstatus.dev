@@ -296,12 +296,14 @@ clean-node:
 ################################
 # Local Data / Workflows
 ################################
-dev_workflows: web_feature_local_workflow
+dev_workflows: bcd_workflow web_feature_local_workflow wpt_workflow
 web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
 web_feature_local_workflow: port-forward-manual
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+wpt_workflow:
 	./util/run_job.sh wpt-consumer images/go_service.Dockerfile workflows/steps/services/wpt_consumer \
 		workflows/steps/services/wpt_consumer/manifests/job.yaml wpt-consumer
+bcd_workflow:
 	./util/run_job.sh bcd-consumer images/go_service.Dockerfile workflows/steps/services/bcd_consumer \
 		workflows/steps/services/bcd_consumer/manifests/job.yaml bcd-consumer
 dev_fake_data: is_local_migration_ready

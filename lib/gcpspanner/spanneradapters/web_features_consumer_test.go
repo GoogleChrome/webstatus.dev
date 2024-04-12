@@ -146,12 +146,20 @@ type mockUpsertFeatureBaselineStatusConfig struct {
 	expectedCount  int
 }
 
+type mockInsertBrowserFeatureAvailabilityConfig struct {
+	expectedInputs          map[string][]gcpspanner.BrowserFeatureAvailability
+	outputs                 map[string][]error
+	expectedCountPerFeature map[string]int
+}
+
 type mockWebFeatureSpannerClient struct {
-	t                                  *testing.T
-	upsertWebFeatureCount              int
-	mockUpsertWebFeatureCfg            mockUpsertWebFeatureConfig
-	upsertFeatureBaselineStatusCount   int
-	mockUpsertFeatureBaselineStatusCfg mockUpsertFeatureBaselineStatusConfig
+	t                                               *testing.T
+	upsertWebFeatureCount                           int
+	mockUpsertWebFeatureCfg                         mockUpsertWebFeatureConfig
+	upsertFeatureBaselineStatusCount                int
+	mockUpsertFeatureBaselineStatusCfg              mockUpsertFeatureBaselineStatusConfig
+	insertBrowserFeatureAvailabilityCountPerFeature map[string]int
+	mockInsertBrowserFeatureAvailabilityCfg         mockInsertBrowserFeatureAvailabilityConfig
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
@@ -194,30 +202,64 @@ func (c *mockWebFeatureSpannerClient) UpsertFeatureBaselineStatus(
 	return c.mockUpsertFeatureBaselineStatusCfg.outputs[status.FeatureID]
 }
 
+func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
+	_ context.Context, featureAvailability gcpspanner.BrowserFeatureAvailability) error {
+	expectedCountForFeature := c.insertBrowserFeatureAvailabilityCountPerFeature[featureAvailability.FeatureID]
+	if len(c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureAvailability.FeatureID]) <=
+		expectedCountForFeature {
+		c.t.Fatal("no more expected input for InsertBrowserFeatureAvailability")
+	}
+	if len(c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureAvailability.FeatureID]) <=
+		expectedCountForFeature {
+		c.t.Fatal("no more configured outputs for InsertBrowserFeatureAvailability")
+	}
+
+	idx := expectedCountForFeature
+
+	expectedInputs, found := c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureAvailability.FeatureID]
+	if !found {
+		c.t.Errorf("unexpected input %v", featureAvailability)
+	}
+
+	expectedInput := expectedInputs[idx]
+
+	if !reflect.DeepEqual(expectedInput, featureAvailability) {
+		c.t.Errorf("unexpected input expected %s received %s", expectedInput, featureAvailability)
+	}
+	c.insertBrowserFeatureAvailabilityCountPerFeature[featureAvailability.FeatureID]++
+
+	return c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureAvailability.FeatureID][idx]
+}
+
 func newMockmockWebFeatureSpannerClient(
 	t *testing.T,
 	mockUpsertWebFeatureCfg mockUpsertWebFeatureConfig,
 	mockUpsertFeatureBaselineStatusCfg mockUpsertFeatureBaselineStatusConfig,
+	mockInsertBrowserFeatureAvailabilityCfg mockInsertBrowserFeatureAvailabilityConfig,
 ) *mockWebFeatureSpannerClient {
 	return &mockWebFeatureSpannerClient{
-		t:                                  t,
-		mockUpsertWebFeatureCfg:            mockUpsertWebFeatureCfg,
-		mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusCfg,
-		upsertWebFeatureCount:              0,
-		upsertFeatureBaselineStatusCount:   0,
+		t:                                       t,
+		mockUpsertWebFeatureCfg:                 mockUpsertWebFeatureCfg,
+		mockUpsertFeatureBaselineStatusCfg:      mockUpsertFeatureBaselineStatusCfg,
+		mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityCfg,
+		upsertWebFeatureCount:                   0,
+		upsertFeatureBaselineStatusCount:        0,
+		insertBrowserFeatureAvailabilityCountPerFeature: map[string]int{},
 	}
 }
 
 var ErrWebFeatureTest = errors.New("web feature test error")
 var ErrBaselineStatusTest = errors.New("baseline status test error")
+var ErrBrowserFeatureAvailabilityTest = errors.New("browse feature availability test error")
 
 func TestInsertWebFeatures(t *testing.T) {
 	testCases := []struct {
-		name                               string
-		mockUpsertWebFeatureCfg            mockUpsertWebFeatureConfig
-		mockUpsertFeatureBaselineStatusCfg mockUpsertFeatureBaselineStatusConfig
-		input                              map[string]web_platform_dx__web_features.FeatureData
-		expectedError                      error // Expected error from InsertWebFeatures
+		name                                    string
+		mockUpsertWebFeatureCfg                 mockUpsertWebFeatureConfig
+		mockUpsertFeatureBaselineStatusCfg      mockUpsertFeatureBaselineStatusConfig
+		mockInsertBrowserFeatureAvailabilityCfg mockInsertBrowserFeatureAvailabilityConfig
+		input                                   map[string]web_platform_dx__web_features.FeatureData
+		expectedError                           error // Expected error from InsertWebFeatures
 	}{
 		{
 			name: "success",
@@ -259,6 +301,52 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
+			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
+					"feature1": {
+						{
+							BrowserName:    "chrome",
+							BrowserVersion: "100",
+							FeatureID:      "feature1",
+						},
+						{
+							BrowserName:    "edge",
+							BrowserVersion: "101",
+							FeatureID:      "feature1",
+						},
+						{
+							BrowserName:    "firefox",
+							BrowserVersion: "102",
+							FeatureID:      "feature1",
+						},
+						{
+							BrowserName:    "safari",
+							BrowserVersion: "103",
+							FeatureID:      "feature1",
+						},
+					},
+					"feature2": {
+						{
+							BrowserName:    "firefox",
+							BrowserVersion: "202",
+							FeatureID:      "feature2",
+						},
+						{
+							BrowserName:    "safari",
+							BrowserVersion: "203",
+							FeatureID:      "feature2",
+						},
+					},
+				},
+				outputs: map[string][]error{
+					"feature1": {nil, nil, nil, nil},
+					"feature2": {nil, nil},
+				},
+				expectedCountPerFeature: map[string]int{
+					"feature1": 4,
+					"feature2": 2,
+				},
+			},
 			input: map[string]web_platform_dx__web_features.FeatureData{
 				"feature1": {
 					Name:           "Feature 1",
@@ -269,7 +357,15 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: &web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support:          nil,
+						Support: &web_platform_dx__web_features.Support{
+							Chrome:         valuePtr("100"),
+							ChromeAndroid:  nil,
+							Edge:           valuePtr("101"),
+							Firefox:        valuePtr("102"),
+							FirefoxAndroid: nil,
+							Safari:         valuePtr("103"),
+							SafariIos:      nil,
+						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.High),
 							Bool: nil,
@@ -286,7 +382,15 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: &web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support:          nil,
+						Support: &web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        valuePtr("202"),
+							FirefoxAndroid: nil,
+							Safari:         valuePtr("203"),
+							SafariIos:      nil,
+						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.Low),
 							Bool: nil,
@@ -315,6 +419,11 @@ func TestInsertWebFeatures(t *testing.T) {
 				expectedInputs: nil,
 				outputs:        nil,
 				expectedCount:  0,
+			},
+			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+				expectedInputs:          map[string][]gcpspanner.BrowserFeatureAvailability{},
+				outputs:                 map[string][]error{},
+				expectedCountPerFeature: map[string]int{},
 			},
 			input: map[string]web_platform_dx__web_features.FeatureData{
 				"feature1": {
@@ -365,6 +474,11 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
+			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+				expectedInputs:          map[string][]gcpspanner.BrowserFeatureAvailability{},
+				outputs:                 map[string][]error{},
+				expectedCountPerFeature: map[string]int{},
+			},
 			input: map[string]web_platform_dx__web_features.FeatureData{
 				"feature1": {
 					Name:           "Feature 1",
@@ -386,6 +500,80 @@ func TestInsertWebFeatures(t *testing.T) {
 			},
 			expectedError: ErrBaselineStatusTest,
 		},
+		{
+			name: "InsertBrowserFeatureAvailability error",
+			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
+				expectedInputs: map[string]gcpspanner.WebFeature{
+					"feature1": {
+						FeatureID: "feature1",
+						Name:      "Feature 1",
+					},
+				},
+				outputs: map[string]error{
+					"feature1": nil,
+				},
+				expectedCount: 1,
+			},
+			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
+				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
+					"feature1": {
+						FeatureID: "feature1",
+						Status:    gcpspanner.BaselineStatusHigh,
+						HighDate:  nil,
+						LowDate:   nil,
+					},
+				},
+				outputs: map[string]error{
+					"feature1": nil,
+				},
+				expectedCount: 1,
+			},
+			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
+					"feature1": {
+						{
+							BrowserName:    "chrome",
+							BrowserVersion: "100",
+							FeatureID:      "feature1",
+						},
+					},
+				},
+				outputs: map[string][]error{
+					"feature1": {ErrBrowserFeatureAvailabilityTest},
+				},
+				expectedCountPerFeature: map[string]int{
+					"feature1": 1,
+				},
+			},
+			input: map[string]web_platform_dx__web_features.FeatureData{
+				"feature1": {
+					Name:           "Feature 1",
+					Alias:          nil,
+					Caniuse:        nil,
+					CompatFeatures: nil,
+					Spec:           nil,
+					Status: &web_platform_dx__web_features.Status{
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						Support: &web_platform_dx__web_features.Support{
+							Chrome:         valuePtr("100"),
+							ChromeAndroid:  nil,
+							Edge:           valuePtr("101"),
+							Firefox:        valuePtr("102"),
+							FirefoxAndroid: nil,
+							Safari:         valuePtr("103"),
+							SafariIos:      nil,
+						},
+						Baseline: &web_platform_dx__web_features.BaselineUnion{
+							Enum: valuePtr(web_platform_dx__web_features.High),
+							Bool: nil,
+						},
+					},
+					UsageStats: nil,
+				},
+			},
+			expectedError: ErrBrowserFeatureAvailabilityTest,
+		},
 	}
 
 	for _, tc := range testCases {
@@ -394,6 +582,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				t,
 				tc.mockUpsertWebFeatureCfg,
 				tc.mockUpsertFeatureBaselineStatusCfg,
+				tc.mockInsertBrowserFeatureAvailabilityCfg,
 			)
 			consumer := NewWebFeaturesConsumer(mockClient)
 
@@ -414,6 +603,13 @@ func TestInsertWebFeatures(t *testing.T) {
 				t.Errorf("expected %d calls to UpsertFeatureBaselineStatus, got %d",
 					mockClient.mockUpsertWebFeatureCfg.expectedCount,
 					mockClient.upsertFeatureBaselineStatusCount)
+			}
+
+			if !reflect.DeepEqual(mockClient.insertBrowserFeatureAvailabilityCountPerFeature,
+				tc.mockInsertBrowserFeatureAvailabilityCfg.expectedCountPerFeature) {
+				t.Errorf("Unexpected call counts for InsertBrowserFeatureAvailability. Expected: %v, Got: %v",
+					tc.mockInsertBrowserFeatureAvailabilityCfg.expectedCountPerFeature,
+					mockClient.insertBrowserFeatureAvailabilityCountPerFeature)
 			}
 		})
 	}
