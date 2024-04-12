@@ -185,6 +185,106 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/stats/features/browsers/{browser}/feature_counts:
+    parameters:
+      - $ref: '#/components/parameters/browserPathParam'
+    get:
+      summary: >
+        Returns the count of features supported for a specified browser over time.
+        The timestamps for the individual metrics represent the releases of the
+        specified browser.
+      operationId: listAggregatedFeatureSupport
+      parameters:
+        - $ref: '#/components/parameters/startAtParam'
+        - $ref: '#/components/parameters/endAtParam'
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrowserReleaseFeatureMetricsPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/stats/features/browsers/{browser}/feature_lag_counts:
+    parameters:
+      - $ref: '#/components/parameters/browserPathParam'
+    get:
+      summary: >
+        Returns the count of features where the specified browser has a feature
+        lag compared to other browsers at a given time. The timestamps represent
+        releases of the specified browser or one of the comparison browsers.
+      operationId: listFeatureLagMetrics
+      parameters:
+        - $ref: '#/components/parameters/startAtParam'
+        - $ref: '#/components/parameters/endAtParam'
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+        - in: query
+          name: browsers
+          description: >
+            A comma-separated list of browsers to check if {browser} is lagging
+            behind on features.
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BrowserReleaseFeatureMetricsPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
@@ -297,6 +397,39 @@ components:
       required: false
       description: Number of results to return
   schemas:
+    BrowserReleaseFeatureMetric:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: >
+            The timestamp that correlates to an event that may influence the
+            count of features for a browser. This may be the release of the
+            browser itself (when a browser may support a new set of features),
+            or the release of another browser (when another browser supports
+            a feature but our specified browser is now lagging behind with a new
+            feature). Refer to the individual endpoint for more context on the
+            use of this component.
+        count:
+          type: integer
+          description: Total count of features.
+          format: int64
+      required:
+        # For now, only require timestamp in case the definition
+        # of the metric needs to change. Similar to WPTRunMetric.
+        - timestamp
+    BrowserReleaseFeatureMetricsPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BrowserReleaseFeatureMetric'
+      required:
+        - data
     WPTRunMetric:
       type: object
       properties:
