@@ -138,6 +138,22 @@ export class StatsPage extends LitElement {
     this.drawGlobalFeatureSupportChart();
   }
 
+  globalFeatureSupportResizeObserver: ResizeObserver | null = null;
+
+  setupResizeObserver() {
+    // Set up ResizeObserver one time to redraw chart when container resizes.
+    if (!this.globalFeatureSupportResizeObserver) {
+      const gfsChartElement = this.shadowRoot!.getElementById(
+        'global-feature-support-chart'
+      );
+      if (!gfsChartElement) return;
+      this.globalFeatureSupportResizeObserver = new ResizeObserver(() => {
+        this.drawGlobalFeatureSupportChart();
+      });
+      this.globalFeatureSupportResizeObserver.observe(gfsChartElement);
+    }
+  }
+
   async _fetchGlobalFeatureSupportData(
     apiClient: APIClient,
     startDate: Date,
@@ -158,13 +174,6 @@ export class StatsPage extends LitElement {
         );
       }
     }
-  }
-
-  setupGlobalFeatureSupportChart() {
-    // Add window resize event handler to redraw the chart.
-    window.addEventListener('resize', () => {
-      this.drawGlobalFeatureSupportChart();
-    });
   }
 
   constructor() {
@@ -196,12 +205,8 @@ export class StatsPage extends LitElement {
     });
   }
 
-  async firstUpdated(): Promise<void> {}
-
   updated() {
-    if (this.gchartsLibraryLoaded) {
-      this.drawGlobalFeatureSupportChart();
-    }
+    this.drawGlobalFeatureSupportChart();
   }
 
   // Make a DataTable from the data in globalFeatureSupport
@@ -263,10 +268,14 @@ export class StatsPage extends LitElement {
   }
 
   drawGlobalFeatureSupportChart(): void {
+    if (!this.gchartsLibraryLoaded) return;
+
     const gfsChartElement = this.shadowRoot!.getElementById(
       'global-feature-support-chart'
     );
     if (!gfsChartElement) return;
+    this.setupResizeObserver();
+
     const datatable = this.createGlobalFeatureSupportDataTableFromMap();
 
     // Add 2 weeks to this.endDate.
@@ -297,7 +306,7 @@ export class StatsPage extends LitElement {
             >Start date
             <sl-input
               id="start-date"
-              @sl-blur=${this.handleStartDateChange}
+              @sl-change=${this.handleStartDateChange}
               type="date"
               .valueAsDate="${this.startDate}"
             ></sl-input>
@@ -306,7 +315,7 @@ export class StatsPage extends LitElement {
             >End date
             <sl-input
               id="end-date"
-              @sl-blur=${this.handleEndDateChange}
+              @sl-change=${this.handleEndDateChange}
               type="date"
               .valueAsDate="${this.endDate}"
             ></sl-input>
