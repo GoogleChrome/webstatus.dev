@@ -69,12 +69,25 @@ type MockGetFeatureByIDConfig struct {
 	err               error
 }
 
+type MockListBrowserFeatureCountMetricConfig struct {
+	expectedBrowser   string
+	expectedStartAt   time.Time
+	expectedEndAt     time.Time
+	expectedPageSize  int
+	expectedPageToken *string
+	pageToken         *string
+	page              *backend.BrowserReleaseFeatureMetricsPage
+	err               error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
 	featuresSearchCfg                                 MockFeaturesSearchConfig
+	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
 	getFeatureByIDConfig                              MockGetFeatureByIDConfig
 	t                                                 *testing.T
+	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
@@ -160,6 +173,29 @@ func (m *MockWPTMetricsStorer) GetFeature(
 	}
 
 	return m.getFeatureByIDConfig.data, m.getFeatureByIDConfig.err
+}
+
+func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
+	_ context.Context,
+	browser string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.BrowserReleaseFeatureMetricsPage, error) {
+	m.callCountListBrowserFeatureCountMetric++
+
+	if browser != m.listBrowserFeatureCountMetricCfg.expectedBrowser ||
+		!startAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedStartAt) ||
+		!endAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedEndAt) ||
+		pageSize != m.listBrowserFeatureCountMetricCfg.expectedPageSize ||
+		pageToken != m.listBrowserFeatureCountMetricCfg.expectedPageToken {
+
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %d %v }",
+			m.listBrowserFeatureCountMetricCfg, browser, startAt, endAt, pageSize, pageToken)
+	}
+
+	return m.listBrowserFeatureCountMetricCfg.page, m.listBrowserFeatureCountMetricCfg.err
 }
 
 func TestGetPageSizeOrDefault(t *testing.T) {
