@@ -59,6 +59,14 @@ type BackendSpannerClient interface {
 		ctx context.Context,
 		filter *gcpspanner.FeatureIDFilter,
 	) (*string, error)
+	ListBrowserFeatureCountMetric(
+		ctx context.Context,
+		browser string,
+		startAt time.Time,
+		endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*gcpspanner.BrowserFeatureCountResultPage, error)
 }
 
 // Backend converts queries to spaner to useable entities for the backend
@@ -70,6 +78,42 @@ type Backend struct {
 // NewBackend constructs an adapter for the backend service.
 func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
+}
+
+func (s *Backend) ListBrowserFeatureCountMetric(
+	ctx context.Context,
+	browser string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.BrowserReleaseFeatureMetricsPage, error) {
+	page, err := s.client.ListBrowserFeatureCountMetric(
+		ctx,
+		browser,
+		startAt,
+		endAt,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	results := make([]backend.BrowserReleaseFeatureMetric, 0, len(page.Metrics))
+	for idx := range page.Metrics {
+		results = append(results, backend.BrowserReleaseFeatureMetric{
+			Timestamp: page.Metrics[idx].ReleaseDate,
+			Count:     &(page.Metrics[idx].FeatureCount),
+		})
+	}
+
+	return &backend.BrowserReleaseFeatureMetricsPage{
+		Metadata: &backend.PageMetadata{
+			NextPageToken: page.NextPageToken,
+		},
+		Data: results,
+	}, nil
 }
 
 func (s *Backend) ListMetricsOverTimeWithAggregatedTotals(
