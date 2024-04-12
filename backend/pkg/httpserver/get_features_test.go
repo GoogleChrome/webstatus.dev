@@ -48,13 +48,14 @@ func TestGetV1Features(t *testing.T) {
 					},
 					Data: []backend.Feature{
 						{
-							BaselineStatus:         backend.Widely,
-							FeatureId:              "feature1",
-							Name:                   "feature 1",
+							BaselineStatus: backend.Widely,
+							FeatureId:      "feature1",
+							Name:           "feature 1",
+							Spec:           nil,
+							Usage:          nil,
+							Wpt:            nil,
+							// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
 							BrowserImplementations: nil,
-							Spec:                   nil,
-							Usage:                  nil,
-							Wpt:                    nil,
 						},
 					},
 				},
@@ -64,13 +65,14 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus:         backend.Widely,
+						BaselineStatus: backend.Widely,
+						FeatureId:      "feature1",
+						Name:           "feature 1",
+						Spec:           nil,
+						Usage:          nil,
+						Wpt:            nil,
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
 						BrowserImplementations: nil,
-						FeatureId:              "feature1",
-						Name:                   "feature 1",
-						Spec:                   nil,
-						Usage:                  nil,
-						Wpt:                    nil,
 					},
 				},
 				Metadata: backend.PageMetadataWithTotal{
@@ -129,13 +131,14 @@ func TestGetV1Features(t *testing.T) {
 					},
 					Data: []backend.Feature{
 						{
-							BaselineStatus:         backend.Widely,
+							BaselineStatus: backend.Widely,
+							FeatureId:      "feature1",
+							Name:           "feature 1",
+							Spec:           nil,
+							Usage:          nil,
+							Wpt:            nil,
+							// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
 							BrowserImplementations: nil,
-							FeatureId:              "feature1",
-							Name:                   "feature 1",
-							Spec:                   nil,
-							Usage:                  nil,
-							Wpt:                    nil,
 						},
 					},
 				},
@@ -145,13 +148,14 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus:         backend.Widely,
+						BaselineStatus: backend.Widely,
+						FeatureId:      "feature1",
+						Name:           "feature 1",
+						Spec:           nil,
+						Usage:          nil,
+						Wpt:            nil,
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
 						BrowserImplementations: nil,
-						FeatureId:              "feature1",
-						Name:                   "feature 1",
-						Spec:                   nil,
-						Usage:                  nil,
-						Wpt:                    nil,
 					},
 				},
 				Metadata: backend.PageMetadataWithTotal{

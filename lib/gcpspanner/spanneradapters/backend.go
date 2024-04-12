@@ -197,16 +197,17 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 	}
 
 	return &backend.Feature{
-		FeatureId:              featureResult.FeatureID,
-		Name:                   featureResult.Name,
-		BrowserImplementations: nil,
-		BaselineStatus:         convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
+		FeatureId:      featureResult.FeatureID,
+		Name:           featureResult.Name,
+		BaselineStatus: convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
 		Wpt: &backend.FeatureWPTSnapshots{
 			Experimental: &experimentalMetricsMap,
 			Stable:       &stableMetricsMap,
 		},
 		Spec:  nil,
 		Usage: nil,
+		// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+		BrowserImplementations: nil,
 	}
 }
 

@@ -478,12 +478,11 @@ func TestFeaturesSearch(t *testing.T) {
 				},
 				Data: []backend.Feature{
 					{
-						BaselineStatus:         backend.Newly,
-						BrowserImplementations: nil,
-						FeatureId:              "feature1",
-						Name:                   "feature 1",
-						Spec:                   nil,
-						Usage:                  nil,
+						BaselineStatus: backend.Newly,
+						FeatureId:      "feature1",
+						Name:           "feature 1",
+						Spec:           nil,
+						Usage:          nil,
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser3": {
@@ -496,14 +495,15 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+						BrowserImplementations: nil,
 					},
 					{
-						BaselineStatus:         backend.Widely,
-						BrowserImplementations: nil,
-						FeatureId:              "feature2",
-						Name:                   "feature 2",
-						Spec:                   nil,
-						Usage:                  nil,
+						BaselineStatus: backend.Widely,
+						FeatureId:      "feature2",
+						Name:           "feature 2",
+						Spec:           nil,
+						Usage:          nil,
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser1": {
@@ -522,6 +522,8 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
+						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+						BrowserImplementations: nil,
 					},
 				},
 			},
@@ -660,12 +662,11 @@ func TestGetFeature(t *testing.T) {
 				returnedError: nil,
 			},
 			expectedFeature: &backend.Feature{
-				BaselineStatus:         backend.Newly,
-				BrowserImplementations: nil,
-				FeatureId:              "feature1",
-				Name:                   "feature 1",
-				Spec:                   nil,
-				Usage:                  nil,
+				BaselineStatus: backend.Newly,
+				FeatureId:      "feature1",
+				Name:           "feature 1",
+				Spec:           nil,
+				Usage:          nil,
 				Wpt: &backend.FeatureWPTSnapshots{
 					Experimental: &map[string]backend.WPTFeatureData{
 						"browser3": {
@@ -678,6 +679,8 @@ func TestGetFeature(t *testing.T) {
 						},
 					},
 				},
+				// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
+				BrowserImplementations: nil,
 			},
 		},
 	}
