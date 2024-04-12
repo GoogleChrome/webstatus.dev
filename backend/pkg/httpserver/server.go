@@ -63,6 +63,14 @@ type WPTMetricsStorer interface {
 		ctx context.Context,
 		featureID string,
 	) (*backend.Feature, error)
+	ListBrowserFeatureCountMetric(
+		ctx context.Context,
+		browser string,
+		startAt time.Time,
+		endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*backend.BrowserReleaseFeatureMetricsPage, error)
 }
 
 type Server struct {

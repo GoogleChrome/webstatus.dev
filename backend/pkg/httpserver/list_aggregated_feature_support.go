@@ -16,6 +16,7 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -23,7 +24,29 @@ import (
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Signature generated from openapi
 func (s *Server) ListAggregatedFeatureSupport(
-	_ context.Context,
-	_ backend.ListAggregatedFeatureSupportRequestObject) (backend.ListAggregatedFeatureSupportResponseObject, error) {
-	panic("unimplemented")
+	ctx context.Context,
+	request backend.ListAggregatedFeatureSupportRequestObject) (
+	backend.ListAggregatedFeatureSupportResponseObject, error) {
+	page, err := s.wptMetricsStorer.ListBrowserFeatureCountMetric(
+		ctx,
+		string(request.Browser),
+		request.Params.StartAt.Time,
+		request.Params.EndAt.Time,
+		getPageSizeOrDefault(request.Params.PageSize),
+		request.Params.PageToken,
+	)
+	if err != nil {
+		// TODO check error type
+		slog.Error("unable to get list of features", "error", err)
+
+		return backend.ListAggregatedFeatureSupport500JSONResponse{
+			Code:    500,
+			Message: "unable to get feature support metrics",
+		}, nil
+	}
+
+	return backend.ListAggregatedFeatureSupport200JSONResponse{
+		Metadata: page.Metadata,
+		Data:     page.Data,
+	}, nil
 }
