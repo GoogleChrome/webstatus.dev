@@ -71,11 +71,11 @@ export class APIClient {
     return data;
   }
 
-  // Internal client detail that how to construct the FeatureResultOffsetCursor from the Go backend.
-  // Typically, users of getFeatures can used the provided pagination token. However, to facilitate
-  // the desired UI where we have pages at the bottom, a secondary token is provided.
-  // Disclaimer: Outside readers of this code should know that this token can change at any moment and should not rely
-  // on it.
+  // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.
+  // Typically, users of the /v1/features endpoint should use the provided pagination token.
+  // However, this token can be used to facilitate a UI with where we have selectable page numbers.
+  // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
+  // treated as a stable interface. Instead, external users should rely on the returned pagination token long term.
   private createOffsetPaginationTokenForGetFeatures(offset: number): string {
     return base64urlEncode(JSON.stringify({offset: offset}));
   }
