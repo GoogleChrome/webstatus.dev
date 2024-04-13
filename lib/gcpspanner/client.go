@@ -87,6 +87,8 @@ type FeatureCursorLastSortValueType interface {
 
 // FeatureResultOffsetCursor: A numerical offset from the start of the result set. Enables the construction of
 // human-friendly URLs specifying an exact page offset.
+// Disclaimer: Outside readers of this code should know that this token can change at any moment and should not rely
+// on it. Instead, outside readers should rely on the returned pagination token long term.
 type FeatureResultOffsetCursor struct {
 	Offset int `json:"offset"`
 }

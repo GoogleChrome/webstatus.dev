@@ -41,6 +41,14 @@ const temporaryHeaders: HeadersOptions = {
   'Content-Type': null,
 };
 
+// Create a base64 string that is URL safe.
+function base64urlEncode(str: string): string {
+  return btoa(str)
+    .replace(/\+/g, '-') // Replace '+' with '-'
+    .replace(/\//g, '_') // Replace '/' with '_'
+    .replace(/=+$/, ''); // Remove trailing '='
+}
+
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>;
   constructor(baseUrl: string) {
@@ -63,13 +71,26 @@ export class APIClient {
     return data;
   }
 
+  // Internal client detail that how to construct the FeatureResultOffsetCursor from the Go backend.
+  // Typically, users of getFeatures can used the provided pagination token. However, to facilitate
+  // the desired UI where we have pages at the bottom, a secondary token is provided.
+  // Disclaimer: Outside readers of this code should know that this token can change at any moment and should not rely
+  // on it.
+  private createOffsetPaginationTokenForGetFeatures(offset: number): string {
+    return base64urlEncode(JSON.stringify({offset: offset}));
+  }
+
   public async getFeatures(
     q: FeatureSearchType,
-    sort: FeatureSortOrderType
+    sort: FeatureSortOrderType,
+    offset?: number
   ): Promise<components['schemas']['FeaturePage']['data']> {
-    const qsParams: {q?: FeatureSearchType; sort?: FeatureSortOrderType} = {};
+    const qsParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) qsParams.q = q;
     if (sort) qsParams.sort = sort;
+    if (offset)
+      qsParams.page_token =
+        this.createOffsetPaginationTokenForGetFeatures(offset);
     const {data, error} = await this.client.GET('/v1/features', {
       ...temporaryFetchOptions,
       params: {
