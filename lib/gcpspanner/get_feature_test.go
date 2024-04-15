@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"math/big"
 	"testing"
 )
 
@@ -33,31 +32,7 @@ func TestGetFeature(t *testing.T) {
 		t.Errorf("unexpected error. %s", err.Error())
 	}
 
-	expectedResult := &FeatureResult{
-		FeatureID: "feature2",
-		Name:      "Feature 2",
-		Status:    string(BaselineStatusHigh),
-		StableMetrics: []*FeatureResultMetric{
-			{
-				BrowserName: "barBrowser",
-				PassRate:    big.NewRat(10, 10),
-			},
-			{
-				BrowserName: "fooBrowser",
-				PassRate:    big.NewRat(0, 10),
-			},
-		},
-		ExperimentalMetrics: []*FeatureResultMetric{
-			{
-				BrowserName: "barBrowser",
-				PassRate:    big.NewRat(120, 120),
-			},
-			{
-				BrowserName: "fooBrowser",
-				PassRate:    big.NewRat(12, 12),
-			},
-		},
-	}
+	expectedResult := valuePtr(getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric))
 
 	stabilizeFeatureResult(*result)
 

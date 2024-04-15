@@ -425,15 +425,83 @@ func stabilizeFeatureResult(result FeatureResult) {
 
 }
 
-func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
-	// Simple test to get all the features without filters.
-	//nolint: dupl // Okay to duplicate for tests
-	expectedResults := []FeatureResult{
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
+type FeatureSearchTestFeatureID int
+
+const (
+	FeatureSearchTestFeature1 FeatureSearchTestFeatureID = 1
+	FeatureSearchTestFeature2 FeatureSearchTestFeatureID = 2
+	FeatureSearchTestFeature3 FeatureSearchTestFeatureID = 3
+	FeatureSearchTestFeature4 FeatureSearchTestFeatureID = 4
+)
+
+// WPTMetricType describes the type of metric that is stored.
+// TODO: This will be moved out of the test package to the
+// main package when the code is changed to support storing
+// different metric types.
+type WPTMetricType string
+
+const (
+	TestViewMetric WPTMetricType = "test"
+	// TODO: Will enable this sort of metric soon. Leaving to help explain the usage.
+	// SubtestViewMetric WPTMetricType = "subtest".
+)
+
+// nolint: unparam // In the future, we will have multiple test types.
+func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID, metricType WPTMetricType) FeatureResult {
+	var ret FeatureResult
+	stableMetrics, experimentalMetrics := getMetrics(testFeatureID, metricType)
+	switch testFeatureID {
+	case FeatureSearchTestFeature1:
+		ret = FeatureResult{
+			FeatureID:           "feature1",
+			Name:                "Feature 1",
+			Status:              string(BaselineStatusLow),
+			StableMetrics:       stableMetrics,
+			ExperimentalMetrics: experimentalMetrics,
+		}
+	case FeatureSearchTestFeature2:
+		ret = FeatureResult{
+			FeatureID:           "feature2",
+			Name:                "Feature 2",
+			Status:              string(BaselineStatusHigh),
+			StableMetrics:       stableMetrics,
+			ExperimentalMetrics: experimentalMetrics,
+		}
+	case FeatureSearchTestFeature3:
+		ret = FeatureResult{
+			FeatureID:           "feature3",
+			Name:                "Feature 3",
+			Status:              string(BaselineStatusNone),
+			StableMetrics:       stableMetrics,
+			ExperimentalMetrics: experimentalMetrics,
+		}
+	case FeatureSearchTestFeature4:
+		ret = FeatureResult{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       stableMetrics,
+			ExperimentalMetrics: experimentalMetrics,
+		}
+	}
+
+	return ret
+}
+
+func getMetrics(testFeatureID FeatureSearchTestFeatureID, metricType WPTMetricType) (
+	[]*FeatureResultMetric, []*FeatureResultMetric) {
+	switch metricType {
+	case TestViewMetric:
+		return getTestViewMetrics(testFeatureID)
+
+	}
+	panic("should not hit here looking for metrics")
+}
+
+func getTestViewMetrics(testFeatureID FeatureSearchTestFeatureID) ([]*FeatureResultMetric, []*FeatureResultMetric) {
+	switch testFeatureID {
+	case FeatureSearchTestFeature1:
+		return []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(33, 33),
@@ -443,7 +511,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 					PassRate:    big.NewRat(20, 20),
 				},
 			},
-			ExperimentalMetrics: []*FeatureResultMetric{
+			[]*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(220, 220),
@@ -452,13 +520,9 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(11, 11),
 				},
-			},
-		},
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
+			}
+	case FeatureSearchTestFeature2:
+		return []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(10, 10),
@@ -468,7 +532,7 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 					PassRate:    big.NewRat(0, 10),
 				},
 			},
-			ExperimentalMetrics: []*FeatureResultMetric{
+			[]*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(120, 120),
@@ -477,30 +541,30 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(12, 12),
 				},
-			},
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
+			}
+	case FeatureSearchTestFeature3:
+		return []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(35, 50),
 				},
 			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
+			nil
+	case FeatureSearchTestFeature4:
+		return nil, nil
 	}
+	panic("should not hit here looking for test view metrics")
+}
+
+func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
+	// Simple test to get all the features without filters.
 	expectedPage := FeatureResultPage{
-		Features:      expectedResults,
+		Features: []FeatureResult{
+			getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+			getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+			getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+			getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+		},
 		Total:         4,
 		NextPageToken: nil,
 	}
@@ -518,162 +582,81 @@ func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 }
 
 func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Client) {
-	// Test: Get all the results with pagination.
-	// nolint: dupl
-	expectedResultsPageOne := []FeatureResult{
+	type PaginationTestCase struct {
+		name         string
+		pageSize     int
+		pageToken    *string // Optional
+		expectedPage *FeatureResultPage
+	}
+	testCases := []PaginationTestCase{
 		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
+			name:      "page one",
+			pageSize:  2,
+			pageToken: nil, // First page does not need a page token.
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					defaultSorting(),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+				)),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
 				},
 			},
 		},
 		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			name:     "page two",
+			pageSize: 2,
+			// The token should be made from the token of the previous page's last item
+			pageToken: valuePtr(encodeFeatureResultCursor(
+				defaultSorting(),
+				getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+			)),
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					defaultSorting(),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+				)),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 				},
 			},
-		},
-	}
-	expectedToken := encodeFeatureResultCursor(
-		defaultSorting(),
-		expectedResultsPageOne[len(expectedResultsPageOne)-1])
-	expectedPage := FeatureResultPage{
-		Total:         4,
-		NextPageToken: &expectedToken,
-		Features:      expectedResultsPageOne,
-	}
-	page, err := client.FeaturesSearch(ctx, nil, 2, nil, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	expectedResultsPageTwo := []FeatureResult{
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
 		},
 		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
+			name:      "page two with offset token",
+			pageSize:  2,
+			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				// Should have the same token as page two with the regular token.
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					defaultSorting(),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+				)),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+				},
+			},
 		},
 	}
-
-	expectedToken = encodeFeatureResultCursor(
-		defaultSorting(),
-		expectedResultsPageTwo[len(expectedResultsPageTwo)-1])
-	expectedPageTwo := FeatureResultPage{
-		Total:         4,
-		Features:      expectedResultsPageTwo,
-		NextPageToken: &expectedToken,
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, tc.pageToken, tc.pageSize, nil, defaultSorting())
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
-
-	// With regular token
-	page, err = client.FeaturesSearch(ctx, page.NextPageToken, 2, nil, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPageTwo, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPageTwo),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// With offset token
-	expectedOffsetPageTwo := FeatureResultPage{
-		Total:         4,
-		Features:      expectedResultsPageTwo,
-		NextPageToken: &expectedToken,
-	}
-	offsetToken := encodeFeatureResultOffsetCursor(2)
-	offsetPage, err := client.FeaturesSearch(ctx, &offsetToken, 2, nil, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(offsetPage)
-	if !AreFeatureResultPagesEqual(&expectedOffsetPageTwo, offsetPage) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedOffsetPageTwo),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	if *offsetPage.NextPageToken != *page.NextPageToken {
-		t.Error("pagination from last id and offset should generate the same next token")
-	}
-
-	// Last page should have no results and should have no token.
-	var expectedResultsPageThree []FeatureResult
-	expectedPageThree := FeatureResultPage{
-		Total:         4,
-		NextPageToken: nil,
-		Features:      expectedResultsPageThree,
-	}
-	page, err = client.FeaturesSearch(ctx, page.NextPageToken, 2, nil, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-
-	if !AreFeatureResultPagesEqual(&expectedPageThree, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPageThree),
-			PrettyPrintFeatureResultPage(page))
-	}
-
 }
 
 func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client) {
@@ -685,56 +668,81 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
-	// Available and not available filters
-	expectedResults := []FeatureResult{
+	type FilterComboTestCase struct {
+		name         string
+		searchNode   *searchtypes.SearchNode
+		expectedPage *FeatureResultPage
+	}
+	testCases := []FilterComboTestCase{
 		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
+			name: "Available and not available filters",
+			// available on barBrowser AND not available on fooBrowser
+			searchNode: &searchtypes.SearchNode{
+				Operator: searchtypes.OperatorRoot,
+				Term:     nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Operator: searchtypes.OperatorAND,
+						Term:     nil,
+						Children: []*searchtypes.SearchNode{
+							{
+								Children: nil,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "barBrowser",
+								},
+								Operator: searchtypes.OperatorNone,
+							},
+							{
+								Children: nil,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "fooBrowser",
+								},
+								Operator: searchtypes.OperatorNegation,
+							},
+						},
+					},
 				},
 			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			expectedPage: &FeatureResultPage{
+				Total:         1,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
 				},
 			},
 		},
 	}
-	expectedPage := FeatureResultPage{
-		Total:         1,
-		NextPageToken: nil,
-		Features:      expectedResults,
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, nil, 100, tc.searchNode, defaultSorting())
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
-	// available on barBrowser AND not available on fooBrowser
-	node := &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
-		Children: []*searchtypes.SearchNode{
-			{
-				Operator: searchtypes.OperatorAND,
+}
+
+func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
+	type NotAvailableFilterTestCase struct {
+		name         string
+		searchNode   *searchtypes.SearchNode
+		expectedPage *FeatureResultPage
+	}
+	testCases := []NotAvailableFilterTestCase{
+		{
+			name: "single browser: not available on fooBrowser",
+			searchNode: &searchtypes.SearchNode{
+				Operator: searchtypes.OperatorRoot,
 				Term:     nil,
 				Children: []*searchtypes.SearchNode{
-					{
-						Children: nil,
-						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableOn,
-							Value:      "barBrowser",
-						},
-						Operator: searchtypes.OperatorNone,
-					},
 					{
 						Children: nil,
 						Term: &searchtypes.SearchTerm{
@@ -745,246 +753,43 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 					},
 				},
 			},
-		},
-	}
-
-	page, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
-}
-
-func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
-	// Single browser
-	expectedResults := []FeatureResult{
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			expectedPage: &FeatureResultPage{
+				Total:         2,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 				},
 			},
 		},
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
 	}
-	expectedPage := FeatureResultPage{
-		Total:         2,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	// not available on fooBrowser
-	node := &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
-		Children: []*searchtypes.SearchNode{
-			{
-				Children: nil,
-				Term: &searchtypes.SearchTerm{
-					Identifier: searchtypes.IdentifierAvailableOn,
-					Value:      "fooBrowser",
-				},
-				Operator: searchtypes.OperatorNegation,
-			},
-		},
-	}
-	page, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, nil, 100, tc.searchNode, defaultSorting())
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
 }
 func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client *Client) {
-	// Single browser
-	// nolint: dupl
-	expectedResults := []FeatureResult{
+	type AvailableFilterTestCase struct {
+		name         string
+		searchNode   *searchtypes.SearchNode
+		expectedPage *FeatureResultPage
+	}
+	testCases := []AvailableFilterTestCase{
 		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
-				},
-			},
-		},
-	}
-	expectedPage := FeatureResultPage{
-		Total:         2,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	// available on barBrowser
-	node := &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
-		Children: []*searchtypes.SearchNode{
-			{
-				Children: nil,
-				Term: &searchtypes.SearchTerm{
-					Identifier: searchtypes.IdentifierAvailableOn,
-					Value:      "barBrowser",
-				},
-				Operator: searchtypes.OperatorNone,
-			},
-		},
-	}
-	page, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// Multiple browsers.
-	expectedResults = []FeatureResult{
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
-				},
-			},
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-	}
-	// available on either barBrowser OR fooBrowser
-	node = &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
-		Children: []*searchtypes.SearchNode{
-			{
-				Operator: searchtypes.OperatorOR,
+			name: "single browser: available on barBrowser",
+			// available on barBrowser
+			searchNode: &searchtypes.SearchNode{
+				Operator: searchtypes.OperatorRoot,
 				Term:     nil,
 				Children: []*searchtypes.SearchNode{
 					{
@@ -995,110 +800,82 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 						},
 						Operator: searchtypes.OperatorNone,
 					},
+				},
+			},
+			expectedPage: &FeatureResultPage{
+				Total:         2,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+				},
+			},
+		},
+		{
+			name: "multiple browsers: available on either barBrowser OR fooBrowser",
+			// available on either barBrowser OR fooBrowser
+			searchNode: &searchtypes.SearchNode{
+				Operator: searchtypes.OperatorRoot,
+				Term:     nil,
+				Children: []*searchtypes.SearchNode{
 					{
-						Children: nil,
-						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableOn,
-							Value:      "fooBrowser",
+						Operator: searchtypes.OperatorOR,
+						Term:     nil,
+						Children: []*searchtypes.SearchNode{
+							{
+								Children: nil,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "barBrowser",
+								},
+								Operator: searchtypes.OperatorNone,
+							},
+							{
+								Children: nil,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "fooBrowser",
+								},
+								Operator: searchtypes.OperatorNone,
+							},
 						},
-						Operator: searchtypes.OperatorNone,
 					},
+				},
+			},
+			expectedPage: &FeatureResultPage{
+				Total:         3,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
 				},
 			},
 		},
 	}
-
-	expectedPage = FeatureResultPage{
-		Total:         3,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-
-	page, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, nil, 100, tc.searchNode, defaultSorting())
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
 }
 
 func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 	// All lower case with partial "feature" name. Should return all.
-	//nolint: dupl // Okay to duplicate for tests
 	expectedResults := []FeatureResult{
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
-				},
-			},
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
+		getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 	}
 	node := &searchtypes.SearchNode{
 		Operator: searchtypes.OperatorRoot,
@@ -1161,13 +938,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 
 	// Search for name with "4" Should return only feature 4.
 	expectedResults = []FeatureResult{
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
+		getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 	}
 	expectedPage = FeatureResultPage{
 		Total:         1,
@@ -1203,33 +974,8 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 
 func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client *Client) {
 	// Baseline status low only
-	//nolint: dupl // Okay to duplicate for tests
 	expectedResults := []FeatureResult{
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
+		getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
 	}
 	expectedPage := FeatureResultPage{
 		Total:         1,
@@ -1264,31 +1010,7 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 
 	// baseline_status high only
 	expectedResults = []FeatureResult{
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
-				},
-			},
-		},
+		getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
 	}
 	expectedPage = FeatureResultPage{
 		Total:         1,
@@ -1323,18 +1045,7 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 
 	// Baseline none only, should exclude feature 4 which is undefined.
 	expectedResults = []FeatureResult{
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
+		getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
 	}
 	expectedPage = FeatureResultPage{
 		Total:         1,
@@ -1370,274 +1081,123 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 }
 
 func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, client *Client) {
-	// BaselineStatus asc
-	sortByAsc := NewBaselineStatusSort(true)
-	//nolint: dupl // Okay to duplicate for tests
-	expectedPageOneResults := []FeatureResult{
+	type SortAndPaginationTestCase struct {
+		name         string
+		sortable     Sortable
+		pageToken    *string
+		expectedPage *FeatureResultPage
+	}
+	testCases := []SortAndPaginationTestCase{
 		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			name:      "BaselineStatus asc - page 1",
+			sortable:  NewBaselineStatusSort(true),
+			pageToken: nil,
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					NewBaselineStatusSort(true),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric))),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
 				},
 			},
 		},
 		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
-	}
-	expectedToken := encodeFeatureResultCursor(
-		sortByAsc,
-		expectedPageOneResults[len(expectedPageOneResults)-1])
-	expectedPageOne := FeatureResultPage{
-		Total:         4,
-		NextPageToken: &expectedToken,
-		Features:      expectedPageOneResults,
-	}
-	// Test: Get the first page of results.
-	page, err := client.FeaturesSearch(ctx, nil, 2, nil, sortByAsc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPageOne, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPageOne),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// Page 2
-	expectedPageTwoResults := []FeatureResult{
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
-	}
-	expectedToken = encodeFeatureResultCursor(
-		sortByAsc,
-		expectedPageTwoResults[len(expectedPageTwoResults)-1])
-	expectedPageTwo := FeatureResultPage{
-		Total:         4,
-		NextPageToken: &expectedToken,
-		Features:      expectedPageTwoResults,
-	}
-	// Get the page 2 of results using the cursor token
-	page, err = client.FeaturesSearch(ctx, page.NextPageToken, 2, nil, sortByAsc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPageTwo, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPageTwo),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// Get the page 2 of results using the offset
-	expectedOffsetPageTwo := FeatureResultPage{
-		Total:         4,
-		Features:      expectedPageTwoResults,
-		NextPageToken: &expectedToken,
-	}
-	offsetToken := encodeFeatureResultOffsetCursor(2)
-	offsetPage, err := client.FeaturesSearch(ctx, &offsetToken, 2, nil, sortByAsc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(offsetPage)
-	if !AreFeatureResultPagesEqual(&expectedOffsetPageTwo, offsetPage) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedOffsetPageTwo),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// BaselineStatus desc
-	sortByDesc := NewBaselineStatusSort(false)
-	//nolint: dupl // Okay to duplicate for tests
-	expectedPageOneResults = []FeatureResult{
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-	}
-	expectedToken = encodeFeatureResultCursor(
-		sortByDesc,
-		expectedPageOneResults[len(expectedPageOneResults)-1])
-	expectedPageOne = FeatureResultPage{
-		Total:         4,
-		NextPageToken: &expectedToken,
-		Features:      expectedPageOneResults,
-	}
-	// Test: Get the first page of results.
-	page, err = client.FeaturesSearch(ctx, nil, 2, nil, sortByDesc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPageOne, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPageOne),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// Page 2
-	expectedPageTwoResults = []FeatureResult{
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
+			name:     "BaselineStatus asc - page 2",
+			sortable: NewBaselineStatusSort(true),
+			// Same page token as the next page token from the previous page.
+			pageToken: valuePtr(encodeFeatureResultCursor(
+				NewBaselineStatusSort(true),
+				getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric))),
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					NewBaselineStatusSort(true),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric))),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 				},
 			},
 		},
 		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
+			name:      "BaselineStatus asc - page 2 using offset token",
+			sortable:  NewBaselineStatusSort(true),
+			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					NewBaselineStatusSort(true),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric))),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 				},
 			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
+		},
+		{
+			name:      "BaselineStatus desc - page 1",
+			sortable:  NewBaselineStatusSort(false),
+			pageToken: nil,
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					NewBaselineStatusSort(false),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric))),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
 				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			},
+		},
+		{
+			name:     "BaselineStatus desc - page 2",
+			sortable: NewBaselineStatusSort(false),
+			// Same page token as the next page token from the previous page.
+			pageToken: valuePtr(encodeFeatureResultCursor(
+				NewBaselineStatusSort(false),
+				getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric))),
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					NewBaselineStatusSort(false),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric))),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+				},
+			},
+		},
+		{
+			name:      "BaselineStatus desc - page 2 using offset token",
+			sortable:  NewBaselineStatusSort(false),
+			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+			expectedPage: &FeatureResultPage{
+				Total: 4,
+				NextPageToken: valuePtr(encodeFeatureResultCursor(
+					NewBaselineStatusSort(false),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric))),
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
 				},
 			},
 		},
 	}
-	expectedToken = encodeFeatureResultCursor(
-		sortByDesc,
-		expectedPageTwoResults[len(expectedPageTwoResults)-1])
-	expectedPageTwo = FeatureResultPage{
-		Total:         4,
-		NextPageToken: &expectedToken,
-		Features:      expectedPageTwoResults,
-	}
-	// Get the page 2 of results using the cursor token
-	page, err = client.FeaturesSearch(ctx, page.NextPageToken, 2, nil, sortByDesc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPageTwo, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPageTwo),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// Get the page 2 of results using the offset
-	expectedOffsetPageTwo = FeatureResultPage{
-		Total:         4,
-		Features:      expectedPageTwoResults,
-		NextPageToken: &expectedToken,
-	}
-	offsetToken = encodeFeatureResultOffsetCursor(2)
-	offsetPage, err = client.FeaturesSearch(ctx, &offsetToken, 2, nil, sortByDesc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(offsetPage)
-	if !AreFeatureResultPagesEqual(&expectedOffsetPageTwo, offsetPage) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedOffsetPageTwo),
-			PrettyPrintFeatureResultPage(page))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, tc.pageToken, 2, nil, tc.sortable)
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
 }
 
@@ -1650,372 +1210,109 @@ func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
 	testFeatureSearchSortBaselineStatus(ctx, t, client)
 }
 
-// nolint: dupl // Okay to duplicate for tests
+// nolint: dupl // WONTFIX. Only duplicated because the feature filter test yields similar results.
 func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client) {
-	// Name asc
-	sortByAsc := NewFeatureNameSort(true)
-	expectedResults := []FeatureResult{
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
-				},
-			},
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
+	type NameSortTestCase struct {
+		name         string
+		sortable     Sortable
+		expectedPage *FeatureResultPage
 	}
-	expectedPage := FeatureResultPage{
-		Total:         4,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	// Test: Get all the results.
-	page, err := client.FeaturesSearch(ctx, nil, 100, nil, sortByAsc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// Name desc
-	sortByDesc := NewFeatureNameSort(false)
-	//nolint: dupl // Okay to duplicate for tests
-	expectedResults = []FeatureResult{
+	testCases := []NameSortTestCase{
 		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			name:     "Name asc",
+			sortable: NewFeatureNameSort(true),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 				},
 			},
 		},
 		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
+			name:     "Name desc",
+			sortable: NewFeatureNameSort(false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
 				},
 			},
 		},
 	}
-	expectedPage = FeatureResultPage{
-		Total:         4,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	// Test: Get all the results.
-	page, err = client.FeaturesSearch(ctx, nil, 100, nil, sortByDesc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, nil, 100, nil, tc.sortable)
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
 }
 
 // nolint: dupl // Okay to duplicate for tests
 func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, client *Client) {
-	// BaselineStatus asc
-	sortByAsc := NewBaselineStatusSort(true)
-	//nolint: dupl // Okay to duplicate for tests
-	expectedResults := []FeatureResult{
-		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
-				},
-			},
-		},
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
-				},
-			},
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
+	type BaselineStatusSortCase struct {
+		name         string
+		sortable     Sortable
+		expectedPage *FeatureResultPage
 	}
-	expectedPage := FeatureResultPage{
-		Total:         4,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	// Test: Get all the results.
-	page, err := client.FeaturesSearch(ctx, nil, 100, nil, sortByAsc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
-
-	// BaselineStatus desc
-	sortByDesc := NewBaselineStatusSort(false)
-	//nolint: dupl // Okay to duplicate for tests
-	expectedResults = []FeatureResult{
+	testCases := []BaselineStatusSortCase{
 		{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(35, 50),
-				},
-			},
-			ExperimentalMetrics: nil,
-		},
-		{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(33, 33),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(20, 20),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(11, 11),
+			name:     "BaselineStatus asc",
+			sortable: NewBaselineStatusSort(true),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
 				},
 			},
 		},
 		{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
-			StableMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(10, 10),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(0, 10),
-				},
-			},
-			ExperimentalMetrics: []*FeatureResultMetric{
-				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(120, 120),
-				},
-				{
-					BrowserName: "fooBrowser",
-					PassRate:    big.NewRat(12, 12),
+			name:     "BaselineStatus desc",
+			sortable: NewBaselineStatusSort(false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
 				},
 			},
 		},
 	}
-	expectedPage = FeatureResultPage{
-		Total:         4,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	// Test: Get all the results.
-	page, err = client.FeaturesSearch(ctx, nil, 100, nil, sortByDesc)
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			page, err := client.FeaturesSearch(ctx, nil, 100, nil, tc.sortable)
+			if err != nil {
+				t.Errorf("unexpected error during search of features %s", err.Error())
+			}
+			stabilizeFeatureResultPage(page)
+			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
+				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+					PrettyPrintFeatureResultPage(tc.expectedPage),
+					PrettyPrintFeatureResultPage(page))
+			}
+		})
 	}
 }
 
@@ -2025,19 +1322,23 @@ func TestFeaturesSearch(t *testing.T) {
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
 
 	// Try with default GCPSpannerBaseQuery
-	testFeatureSearchAll(ctx, t, client)
-	testFeatureSearchPagination(ctx, t, client)
-	testFeatureSearchFilters(ctx, t, client)
-	testFeatureSearchSort(ctx, t, client)
-	testFeatureSearchComplexQueries(ctx, t, client)
+	t.Run("gcp spanner queries", func(t *testing.T) {
+		testFeatureSearchAll(ctx, t, client)
+		testFeatureSearchPagination(ctx, t, client)
+		testFeatureSearchFilters(ctx, t, client)
+		testFeatureSearchSort(ctx, t, client)
+		testFeatureSearchComplexQueries(ctx, t, client)
+	})
 
 	// Try with LocalFeatureBaseQuery
-	client.SetFeatureSearchBaseQuery(LocalFeatureBaseQuery{})
-	testFeatureSearchAll(ctx, t, client)
-	testFeatureSearchPagination(ctx, t, client)
-	testFeatureSearchFilters(ctx, t, client)
-	testFeatureSearchSort(ctx, t, client)
-	testFeatureSearchComplexQueries(ctx, t, client)
+	t.Run("local spanner queries", func(t *testing.T) {
+		client.SetFeatureSearchBaseQuery(LocalFeatureBaseQuery{})
+		testFeatureSearchAll(ctx, t, client)
+		testFeatureSearchPagination(ctx, t, client)
+		testFeatureSearchFilters(ctx, t, client)
+		testFeatureSearchSort(ctx, t, client)
+		testFeatureSearchComplexQueries(ctx, t, client)
+	})
 }
 
 func AreFeatureResultPagesEqual(a, b *FeatureResultPage) bool {
