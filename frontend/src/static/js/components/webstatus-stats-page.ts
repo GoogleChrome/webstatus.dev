@@ -77,6 +77,9 @@ export class StatsPage extends LitElement {
   @state()
   globalFeatureSupport = new Map<string, Array<WPTRunMetric>>();
 
+  @state()
+  globalFeatureSupportChartOptions = {};
+
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -268,6 +271,7 @@ export class StatsPage extends LitElement {
   }
 
   drawGlobalFeatureSupportChart(): void {
+    console.log('drawGlobalFeatureSupportChart loaded:', this.gchartsLibraryLoaded);
     if (!this.gchartsLibraryLoaded) return;
 
     const gfsChartElement = this.shadowRoot!.getElementById(
@@ -290,6 +294,8 @@ export class StatsPage extends LitElement {
       legend: {position: 'top'},
       chartArea: {left: 60, right: 16, top: 40, bottom: 40},
     } as google.visualization.LineChartOptions;
+
+    this.globalFeatureSupportChartOptions = options;
 
     const chart = new google.visualization.LineChart(gfsChartElement);
     chart.draw(datatable, options);
@@ -331,12 +337,14 @@ export class StatsPage extends LitElement {
 
   renderGlobalFeatureSupportChartWhenComplete(): TemplateResult {
     return html`
-      <div
-        id="global-feature-support-chart"
-        style="padding: 0; margin: 0; border: 0"
+      <webstatus-gchart id="global-feature-support-chart"
+        containerId="global-feature-support-chart-container"
+        chartType="LineChart"
+        .dataTable="${this.createGlobalFeatureSupportDataTableFromMap()}"
+        .options="${this.globalFeatureSupportChartOptions}"
       >
         Loading chart...
-      </div>
+      </webstatus-gchart>
     `;
   }
 
