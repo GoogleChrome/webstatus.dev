@@ -125,8 +125,9 @@ const renderBaselineStatus: CellRenderer = (
 };
 
 const BROWSER_IMPL_ICONS: Record<
-NonNullable<components['schemas']['BrowserImplementation']['status']>,
-string> = {
+  NonNullable<components['schemas']['BrowserImplementation']['status']>,
+  string
+> = {
   unknown: 'check-partial-circle',
   not: 'minus-circle',
   fully: 'check-circle',
@@ -137,8 +138,7 @@ export const renderBrowserQuality: CellRenderer = (
   _routerLocation,
   {browser}
 ) => {
-  const score: number | undefined =
-      feature.wpt?.stable?.[browser!]?.score;
+  const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
   let percentage = MISSING_VALUE;
   const browserImpl =
     feature.browser_implementations?.[browser!].status || 'unknown';
@@ -160,14 +160,12 @@ export const renderBrowserQualityExp: CellRenderer = (
   {browser}
 ) => {
   const score: number | undefined =
-        feature.wpt?.experimental?.[browser!]?.score;
+    feature.wpt?.experimental?.[browser!]?.score;
   let percentage = MISSING_VALUE;
   if (score !== undefined) {
     percentage = html`${Number(score * 100).toFixed(1)}%`;
   }
-  return html`
-    <span class="percent">${percentage}</span>
-  `;
+  return html` <span class="percent">${percentage}</span> `;
 };
 
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
