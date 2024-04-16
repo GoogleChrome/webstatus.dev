@@ -76,7 +76,7 @@ export class WebstatusPagination extends LitElement {
       return html``;
     }
     const currentPage = Math.floor(this.start / ITEMS_PER_PAGE);
-    const numPages = Math.floor(this.totalCount / ITEMS_PER_PAGE) + 1;
+    const numPages = Math.ceil(this.totalCount / ITEMS_PER_PAGE);
 
     return html`
       ${map(

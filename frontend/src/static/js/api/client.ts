@@ -84,7 +84,7 @@ export class APIClient {
     q: FeatureSearchType,
     sort: FeatureSortOrderType,
     offset?: number
-  ): Promise<components['schemas']['FeaturePage']['data']> {
+  ): Promise<components['schemas']['FeaturePage']> {
     const qsParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) qsParams.q = q;
     if (sort) qsParams.sort = sort;
@@ -100,7 +100,7 @@ export class APIClient {
     if (error !== undefined) {
       throw new Error(error?.message);
     }
-    return data?.data;
+    return data;
   }
 
   public async getStatsByBrowserAndChannel(
