@@ -21,6 +21,7 @@ import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {
+  getPageSize,
   getPaginationStart,
   getSearchQuery,
   getSortSpec,
@@ -69,8 +70,10 @@ export class OverviewPage extends LitElement {
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
     const offset = getPaginationStart(routerLocation);
+    const pageSize = getPageSize(routerLocation);
     this.totalCount = undefined;
-    const respJson = await apiClient.getFeatures(searchQuery, sortSpec, offset);
+    const respJson = await apiClient.getFeatures(
+      searchQuery, sortSpec, offset, pageSize);
     this.features = respJson.data;
     this.totalCount = respJson.metadata.total;
   }
