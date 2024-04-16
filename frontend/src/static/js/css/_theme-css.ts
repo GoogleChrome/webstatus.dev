@@ -37,6 +37,7 @@ export const THEME = css`
     --color-blue-fg: var(--sl-color-blue-600);
     --color-red-bg: var(--sl-color-red-100);
     --color-red-fg: var(--sl-color-red-600);
+    --color-yellow-fg: var(--sl-color-yellow-800);
   }
 
   :host {
@@ -80,6 +81,9 @@ export const THEME = css`
     --chip-color-newly: var(--color-blue-fg);
     --chip-background-widely: var(--color-green-bg);
     --chip-color-widely: var(--color-green-fg);
+
+    --icon-color-avail-unknown: var(--color-yellow-fg);
+    --icon-color-avail-not: var(--color-red-fg);
 
     --chip-small-font-size: 60%;
     --chip-background-unchanged: var(--color-gray-bg);

@@ -124,6 +124,13 @@ const renderBaselineStatus: CellRenderer = (
   `;
 };
 
+const BROWSER_IMPL_ICONS = {
+    unknown: 'check-partial-circle',
+    not: 'minus-circle',
+    fully: 'check-circle',
+}
+
+
 export const renderWPTScore: CellRenderer = (
   feature,
   _routerLocation,
@@ -133,12 +140,18 @@ export const renderWPTScore: CellRenderer = (
     channel === 'experimental'
       ? feature.wpt?.experimental?.[browser!]?.score
       : feature.wpt?.stable?.[browser!]?.score;
-  if (score === undefined) {
-    return MISSING_VALUE;
-  } else {
-    const percentage: string = Number(score * 100).toFixed(1);
-    return html`${percentage}%`;
+  let percentage = MISSING_VALUE;
+  const browserImpl = feature.browser_implementations?.status.status || 'unknown';
+  if (score !== undefined && browserImpl !== 'not') {
+      percentage = html`${Number(score * 100).toFixed(1)}%`;
   }
+  const iconName = BROWSER_IMPL_ICONS[browserImpl];
+  return html`
+    <div class="browser-impl-${browserImpl}">
+      <sl-icon name="${iconName}" library="custom"></sl-icon>
+      <span class="percent">${percentage}</span>
+    </div>
+  `;
 };
 
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
