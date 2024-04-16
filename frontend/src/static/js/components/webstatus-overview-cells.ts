@@ -124,7 +124,9 @@ const renderBaselineStatus: CellRenderer = (
   `;
 };
 
-const BROWSER_IMPL_ICONS = {
+const BROWSER_IMPL_ICONS: Record<
+NonNullable<components['schemas']['BrowserImplementation']['status']>,
+string> = {
   unknown: 'check-partial-circle',
   not: 'minus-circle',
   fully: 'check-circle',
@@ -141,7 +143,7 @@ export const renderWPTScore: CellRenderer = (
       : feature.wpt?.stable?.[browser!]?.score;
   let percentage = MISSING_VALUE;
   const browserImpl =
-    feature.browser_implementations?.status.status || 'unknown';
+    feature.browser_implementations?.[browser!].status || 'unknown';
   if (score !== undefined && browserImpl !== 'not') {
     percentage = html`${Number(score * 100).toFixed(1)}%`;
   }
