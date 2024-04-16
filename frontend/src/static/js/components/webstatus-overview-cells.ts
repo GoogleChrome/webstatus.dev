@@ -125,11 +125,10 @@ const renderBaselineStatus: CellRenderer = (
 };
 
 const BROWSER_IMPL_ICONS = {
-    unknown: 'check-partial-circle',
-    not: 'minus-circle',
-    fully: 'check-circle',
-}
-
+  unknown: 'check-partial-circle',
+  not: 'minus-circle',
+  fully: 'check-circle',
+};
 
 export const renderWPTScore: CellRenderer = (
   feature,
@@ -141,9 +140,10 @@ export const renderWPTScore: CellRenderer = (
       ? feature.wpt?.experimental?.[browser!]?.score
       : feature.wpt?.stable?.[browser!]?.score;
   let percentage = MISSING_VALUE;
-  const browserImpl = feature.browser_implementations?.status.status || 'unknown';
+  const browserImpl =
+    feature.browser_implementations?.status.status || 'unknown';
   if (score !== undefined && browserImpl !== 'not') {
-      percentage = html`${Number(score * 100).toFixed(1)}%`;
+    percentage = html`${Number(score * 100).toFixed(1)}%`;
   }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
