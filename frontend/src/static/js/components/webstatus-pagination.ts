@@ -23,7 +23,7 @@ import {formatOverviewPageUrl, getPaginationStart} from '../utils/urls.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
 
-const ITEMS_PER_PAGE = 25;
+const ITEMS_PER_PAGE = 100;
 
 @customElement('webstatus-pagination')
 export class WebstatusPagination extends LitElement {
