@@ -124,21 +124,48 @@ const renderBaselineStatus: CellRenderer = (
   `;
 };
 
-export const renderWPTScore: CellRenderer = (
+const BROWSER_IMPL_ICONS: Record<
+  NonNullable<components['schemas']['BrowserImplementation']['status']>,
+  string
+> = {
+  unknown: 'check-partial-circle',
+  not: 'minus-circle',
+  fully: 'check-circle',
+};
+
+export const renderBrowserQuality: CellRenderer = (
   feature,
   _routerLocation,
-  {browser, channel}
+  {browser}
+) => {
+  const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
+  let percentage = MISSING_VALUE;
+  const browserImpl =
+    feature.browser_implementations?.[browser!].status || 'unknown';
+  if (score !== undefined && browserImpl !== 'not') {
+    percentage = html`${Number(score * 100).toFixed(1)}%`;
+  }
+  const iconName = BROWSER_IMPL_ICONS[browserImpl];
+  return html`
+    <div class="browser-impl-${browserImpl}">
+      <sl-icon name="${iconName}" library="custom"></sl-icon>
+      <span class="percent">${percentage}</span>
+    </div>
+  `;
+};
+
+export const renderBrowserQualityExp: CellRenderer = (
+  feature,
+  _routerLocation,
+  {browser}
 ) => {
   const score: number | undefined =
-    channel === 'experimental'
-      ? feature.wpt?.experimental?.[browser!]?.score
-      : feature.wpt?.stable?.[browser!]?.score;
-  if (score === undefined) {
-    return MISSING_VALUE;
-  } else {
-    const percentage: string = Number(score * 100).toFixed(1);
-    return html`${percentage}%`;
+    feature.wpt?.experimental?.[browser!]?.score;
+  let percentage = MISSING_VALUE;
+  if (score !== undefined) {
+    percentage = html`${Number(score * 100).toFixed(1)}%`;
   }
+  return html` <span class="percent">${percentage}</span> `;
 };
 
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
@@ -157,53 +184,53 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.WptChrome]: {
     nameInDialog: 'WPT score in Chrome',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'chrome', channel: 'stable'},
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'chrome'},
   },
   [ColumnKey.WptEdge]: {
     nameInDialog: 'WPT score in Edge',
     headerHtml: html`<img src="/public/img/edge_24x24.png" />`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'edge', channel: 'stable'},
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'edge'},
   },
   [ColumnKey.WptFirefox]: {
     nameInDialog: 'WPT score in Firefox',
     headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'firefox', channel: 'stable'},
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'firefox'},
   },
   [ColumnKey.WptSafari]: {
     nameInDialog: 'WPT score in Safari',
     headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'safari', channel: 'stable'},
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'safari'},
   },
   [ColumnKey.WptChromeExp]: {
     nameInDialog: 'WPT score in Chrome Experimental',
     headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />
       Experimental`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'chrome', channel: 'experimental'},
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'chrome'},
   },
   [ColumnKey.WptEdgeExp]: {
     nameInDialog: 'WPT score in Edge Experimental',
     headerHtml: html`<img src="/public/img/edge-dev_24x24.png" /> Experimental`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'edge', channel: 'experimental'},
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'edge'},
   },
   [ColumnKey.WptFirefoxExp]: {
     nameInDialog: 'WPT score in Firefox Experimental',
     headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />
       Experimental`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'firefox', channel: 'experimental'},
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'firefox'},
   },
   [ColumnKey.WptSafariExp]: {
     nameInDialog: 'WPT score in Safari Experimental',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
       Experimental`,
-    cellRenderer: renderWPTScore,
-    options: {browser: 'safari', channel: 'experimental'},
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'safari'},
   },
 };
 
