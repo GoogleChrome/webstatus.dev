@@ -242,11 +242,13 @@ export function renderHeaderCell(
   let sortIndicator = html``;
   let urlWithSort = formatOverviewPageUrl(routerLocation, {
     sort: column + '_asc',
+    start: 0,
   });
   if (sortSpec === column + '_asc') {
     sortIndicator = html` <sl-icon name="arrow-up"></sl-icon> `;
     urlWithSort = formatOverviewPageUrl(routerLocation, {
       sort: column + '_desc',
+      start: 0,
     });
   } else if (sortSpec === column + '_desc') {
     sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
