@@ -425,83 +425,28 @@ func stabilizeFeatureResult(result FeatureResult) {
 
 }
 
+// FeatureSearchTestFeatureID represents a unique identifier for a feature
+// within the following files:
+//   - lib/gcpspanner/feature_search_test.go
+//   - lib/gcpspanner/get_feature_test.go
 type FeatureSearchTestFeatureID int
 
 const (
-	FeatureSearchTestFeature1 FeatureSearchTestFeatureID = 1
-	FeatureSearchTestFeature2 FeatureSearchTestFeatureID = 2
-	FeatureSearchTestFeature3 FeatureSearchTestFeatureID = 3
-	FeatureSearchTestFeature4 FeatureSearchTestFeatureID = 4
+	FeatureSearchTestFId1 FeatureSearchTestFeatureID = 1
+	FeatureSearchTestFId2 FeatureSearchTestFeatureID = 2
+	FeatureSearchTestFId3 FeatureSearchTestFeatureID = 3
+	FeatureSearchTestFId4 FeatureSearchTestFeatureID = 4
 )
 
-// WPTMetricType describes the type of metric that is stored.
-// TODO: This will be moved out of the test package to the
-// main package when the code is changed to support storing
-// different metric types.
-type WPTMetricType string
-
-const (
-	TestViewMetric WPTMetricType = "test"
-	// TODO: Will enable this sort of metric soon. Leaving to help explain the usage.
-	// SubtestViewMetric WPTMetricType = "subtest".
-)
-
-// nolint: unparam // In the future, we will have multiple test types.
-func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID, metricType WPTMetricType) FeatureResult {
+func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) FeatureResult {
 	var ret FeatureResult
-	stableMetrics, experimentalMetrics := getMetrics(testFeatureID, metricType)
 	switch testFeatureID {
-	case FeatureSearchTestFeature1:
+	case FeatureSearchTestFId1:
 		ret = FeatureResult{
-			FeatureID:           "feature1",
-			Name:                "Feature 1",
-			Status:              string(BaselineStatusLow),
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
-		}
-	case FeatureSearchTestFeature2:
-		ret = FeatureResult{
-			FeatureID:           "feature2",
-			Name:                "Feature 2",
-			Status:              string(BaselineStatusHigh),
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
-		}
-	case FeatureSearchTestFeature3:
-		ret = FeatureResult{
-			FeatureID:           "feature3",
-			Name:                "Feature 3",
-			Status:              string(BaselineStatusNone),
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
-		}
-	case FeatureSearchTestFeature4:
-		ret = FeatureResult{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
-		}
-	}
-
-	return ret
-}
-
-func getMetrics(testFeatureID FeatureSearchTestFeatureID, metricType WPTMetricType) (
-	[]*FeatureResultMetric, []*FeatureResultMetric) {
-	switch metricType {
-	case TestViewMetric:
-		return getTestViewMetrics(testFeatureID)
-
-	}
-	panic("should not hit here looking for metrics")
-}
-
-func getTestViewMetrics(testFeatureID FeatureSearchTestFeatureID) ([]*FeatureResultMetric, []*FeatureResultMetric) {
-	switch testFeatureID {
-	case FeatureSearchTestFeature1:
-		return []*FeatureResultMetric{
+			FeatureID: "feature1",
+			Name:      "Feature 1",
+			Status:    string(BaselineStatusLow),
+			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(33, 33),
@@ -511,7 +456,7 @@ func getTestViewMetrics(testFeatureID FeatureSearchTestFeatureID) ([]*FeatureRes
 					PassRate:    big.NewRat(20, 20),
 				},
 			},
-			[]*FeatureResultMetric{
+			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(220, 220),
@@ -520,9 +465,14 @@ func getTestViewMetrics(testFeatureID FeatureSearchTestFeatureID) ([]*FeatureRes
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(11, 11),
 				},
-			}
-	case FeatureSearchTestFeature2:
-		return []*FeatureResultMetric{
+			},
+		}
+	case FeatureSearchTestFId2:
+		ret = FeatureResult{
+			FeatureID: "feature2",
+			Name:      "Feature 2",
+			Status:    string(BaselineStatusHigh),
+			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(10, 10),
@@ -532,7 +482,7 @@ func getTestViewMetrics(testFeatureID FeatureSearchTestFeatureID) ([]*FeatureRes
 					PassRate:    big.NewRat(0, 10),
 				},
 			},
-			[]*FeatureResultMetric{
+			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(120, 120),
@@ -541,44 +491,56 @@ func getTestViewMetrics(testFeatureID FeatureSearchTestFeatureID) ([]*FeatureRes
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(12, 12),
 				},
-			}
-	case FeatureSearchTestFeature3:
-		return []*FeatureResultMetric{
+			},
+		}
+	case FeatureSearchTestFId3:
+		ret = FeatureResult{
+			FeatureID: "feature3",
+			Name:      "Feature 3",
+			Status:    string(BaselineStatusNone),
+			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(35, 50),
 				},
 			},
-			nil
-	case FeatureSearchTestFeature4:
-		return nil, nil
+			ExperimentalMetrics: nil,
+		}
+	case FeatureSearchTestFId4:
+		ret = FeatureResult{
+			FeatureID:           "feature4",
+			Name:                "Feature 4",
+			Status:              string(BaselineStatusUndefined),
+			StableMetrics:       nil,
+			ExperimentalMetrics: nil,
+		}
 	}
-	panic("should not hit here looking for test view metrics")
+
+	return ret
 }
 
 func testFeatureSearchAll(ctx context.Context, t *testing.T, client *Client) {
 	// Simple test to get all the features without filters.
 	expectedPage := FeatureResultPage{
 		Features: []FeatureResult{
-			getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-			getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-			getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-			getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+			getFeatureSearchTestFeature(FeatureSearchTestFId1),
+			getFeatureSearchTestFeature(FeatureSearchTestFId2),
+			getFeatureSearchTestFeature(FeatureSearchTestFId3),
+			getFeatureSearchTestFeature(FeatureSearchTestFId4),
 		},
 		Total:         4,
 		NextPageToken: nil,
 	}
 	// Test: Get all the results.
-	page, err := client.FeaturesSearch(ctx, nil, 100, nil, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      nil,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 }
 
 func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Client) {
@@ -597,11 +559,11 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
@@ -611,17 +573,17 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			// The token should be made from the token of the previous page's last item
 			pageToken: valuePtr(encodeFeatureResultCursor(
 				defaultSorting(),
-				getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+				getFeatureSearchTestFeature(FeatureSearchTestFId2),
 			)),
 			expectedPage: &FeatureResultPage{
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -634,27 +596,26 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 				// Should have the same token as page two with the regular token.
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, tc.pageToken, tc.pageSize, nil, defaultSorting())
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: tc.pageToken,
+					pageSize:  tc.pageSize,
+					node:      nil,
+					sort:      defaultSorting(),
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -709,23 +670,22 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 				Total:         1,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, nil, 100, tc.searchNode, defaultSorting())
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      tc.searchNode,
+					sort:      defaultSorting(),
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -757,24 +717,23 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 				Total:         2,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, nil, 100, tc.searchNode, defaultSorting())
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      tc.searchNode,
+					sort:      defaultSorting(),
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -806,8 +765,8 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 				Total:         2,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
@@ -846,25 +805,24 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 				Total:         3,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, nil, 100, tc.searchNode, defaultSorting())
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      tc.searchNode,
+					sort:      defaultSorting(),
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -872,10 +830,10 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 	// All lower case with partial "feature" name. Should return all.
 	expectedResults := []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-		getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-		getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-		getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
+		getFeatureSearchTestFeature(FeatureSearchTestFId3),
+		getFeatureSearchTestFeature(FeatureSearchTestFId4),
 	}
 	node := &searchtypes.SearchNode{
 		Operator: searchtypes.OperatorRoot,
@@ -898,16 +856,15 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		Features:      expectedResults,
 	}
 
-	page, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 
 	// All upper case with partial "FEATURE" name. Should return same results (all).
 	node = &searchtypes.SearchNode{
@@ -925,20 +882,19 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
-	page, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 
 	// Search for name with "4" Should return only feature 4.
 	expectedResults = []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFId4),
 	}
 	expectedPage = FeatureResultPage{
 		Total:         1,
@@ -960,22 +916,21 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
-	page, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 }
 
 func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client *Client) {
 	// Baseline status low only
 	expectedResults := []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
 	}
 	expectedPage := FeatureResultPage{
 		Total:         1,
@@ -997,20 +952,19 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		},
 	}
 
-	page, err := client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 
 	// baseline_status high only
 	expectedResults = []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
 	}
 	expectedPage = FeatureResultPage{
 		Total:         1,
@@ -1032,20 +986,19 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		},
 	}
 
-	page, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 
 	// Baseline none only, should exclude feature 4 which is undefined.
 	expectedResults = []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+		getFeatureSearchTestFeature(FeatureSearchTestFId3),
 	}
 	expectedPage = FeatureResultPage{
 		Total:         1,
@@ -1067,17 +1020,15 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		},
 	}
 
-	page, err = client.FeaturesSearch(ctx, nil, 100, node, defaultSorting())
-	if err != nil {
-		t.Errorf("unexpected error during search of features %s", err.Error())
-	}
-	stabilizeFeatureResultPage(page)
-	if !AreFeatureResultPagesEqual(&expectedPage, page) {
-		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-			PrettyPrintFeatureResultPage(&expectedPage),
-			PrettyPrintFeatureResultPage(page))
-	}
-
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
 }
 
 func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, client *Client) {
@@ -1096,10 +1047,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric))),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1))),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 				},
 			},
 		},
@@ -1109,15 +1060,15 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			// Same page token as the next page token from the previous page.
 			pageToken: valuePtr(encodeFeatureResultCursor(
 				NewBaselineStatusSort(true),
-				getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric))),
+				getFeatureSearchTestFeature(FeatureSearchTestFId1))),
 			expectedPage: &FeatureResultPage{
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric))),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4))),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -1129,10 +1080,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric))),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4))),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -1144,10 +1095,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric))),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3))),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 				},
 			},
 		},
@@ -1157,15 +1108,15 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			// Same page token as the next page token from the previous page.
 			pageToken: valuePtr(encodeFeatureResultCursor(
 				NewBaselineStatusSort(false),
-				getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric))),
+				getFeatureSearchTestFeature(FeatureSearchTestFId3))),
 			expectedPage: &FeatureResultPage{
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric))),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2))),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
@@ -1177,26 +1128,25 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total: 4,
 				NextPageToken: valuePtr(encodeFeatureResultCursor(
 					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric))),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2))),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, tc.pageToken, 2, nil, tc.sortable)
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: tc.pageToken,
+					pageSize:  2,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -1225,10 +1175,10 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 				Total:         4,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -1239,26 +1189,25 @@ func testFeatureSearchSortName(ctx context.Context, t *testing.T, client *Client
 				Total:         4,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, nil, 100, nil, tc.sortable)
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -1278,10 +1227,10 @@ func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, clie
 				Total:         4,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -1292,26 +1241,25 @@ func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, clie
 				Total:         4,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFeature4, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature3, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature1, TestViewMetric),
-					getFeatureSearchTestFeature(FeatureSearchTestFeature2, TestViewMetric),
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, err := client.FeaturesSearch(ctx, nil, 100, nil, tc.sortable)
-			if err != nil {
-				t.Errorf("unexpected error during search of features %s", err.Error())
-			}
-			stabilizeFeatureResultPage(page)
-			if !AreFeatureResultPagesEqual(tc.expectedPage, page) {
-				t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
-					PrettyPrintFeatureResultPage(tc.expectedPage),
-					PrettyPrintFeatureResultPage(page))
-			}
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
 		})
 	}
 }
@@ -1339,6 +1287,37 @@ func TestFeaturesSearch(t *testing.T) {
 		testFeatureSearchSort(ctx, t, client)
 		testFeatureSearchComplexQueries(ctx, t, client)
 	})
+}
+
+type featureSearchArgs struct {
+	pageToken *string
+	pageSize  int
+	node      *searchtypes.SearchNode
+	sort      Sortable
+}
+
+func assertFeatureSearch(
+	ctx context.Context,
+	t *testing.T,
+	client *Client,
+	args featureSearchArgs,
+	expectedPage *FeatureResultPage) {
+	page, err := client.FeaturesSearch(
+		ctx,
+		args.pageToken,
+		args.pageSize,
+		args.node,
+		args.sort,
+	)
+	if err != nil {
+		t.Errorf("unexpected error during search of features %s", err.Error())
+	}
+	stabilizeFeatureResultPage(page)
+	if !AreFeatureResultPagesEqual(expectedPage, page) {
+		t.Errorf("unequal results.\nexpected (%+v)\nreceived (%+v) ",
+			PrettyPrintFeatureResultPage(expectedPage),
+			PrettyPrintFeatureResultPage(page))
+	}
 }
 
 func AreFeatureResultPagesEqual(a, b *FeatureResultPage) bool {
