@@ -73,7 +73,11 @@ export class OverviewPage extends LitElement {
     const pageSize = getPageSize(routerLocation);
     this.totalCount = undefined;
     const respJson = await apiClient.getFeatures(
-      searchQuery, sortSpec, offset, pageSize);
+      searchQuery,
+      sortSpec,
+      offset,
+      pageSize
+    );
     this.features = respJson.data;
     this.totalCount = respJson.metadata.total;
   }

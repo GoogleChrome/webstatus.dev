@@ -19,10 +19,14 @@ import {customElement, state} from 'lit/decorators.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {DEFAULT_ITEMS_PER_PAGE, formatOverviewPageUrl, getPageSize, getPaginationStart} from '../utils/urls.js';
+import {
+  DEFAULT_ITEMS_PER_PAGE,
+  formatOverviewPageUrl,
+  getPageSize,
+  getPaginationStart,
+} from '../utils/urls.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
-
 
 @customElement('webstatus-pagination')
 export class WebstatusPagination extends LitElement {
