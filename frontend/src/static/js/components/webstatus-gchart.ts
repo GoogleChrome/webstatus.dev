@@ -11,10 +11,10 @@ export class WebstatusGChart extends LitElement {
   containerId: string | undefined;
 
   @property({type: String, attribute: 'chartType'})
-  chartType = 'ComboChart';
+  chartType = 'LineChart';
 
   @property({type: Object, attribute: 'options'})
-  options: Object | undefined;
+  options: google.visualization.LineChartOptions | undefined;
 
   @property({type: Object, attribute: 'dataTable'})
   dataTable:

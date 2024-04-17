@@ -205,10 +205,6 @@ export class StatsPage extends LitElement {
     });
   }
 
-  updated() {
-    this.setupResizeObserver();
-  }
-
   // Make a DataTable from the data in globalFeatureSupport
   createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
     // Get the list of browsers from globalFeatureSupport
