@@ -95,7 +95,7 @@ func (t *BaseQueryTemplate) Execute(data any) string {
 	return buf.String()
 }
 
-type CommonmFSSelectTemplateData struct {
+type CommonFSSelectTemplateData struct {
 	BaseQueryFragment   string
 	StableMetrics       string
 	ExperimentalMetrics string
@@ -103,12 +103,12 @@ type CommonmFSSelectTemplateData struct {
 
 // GCPFSSelectTemplateData contains the template for gcpFSSelectQueryTemplate.
 type GCPFSSelectTemplateData struct {
-	CommonmFSSelectTemplateData
+	CommonFSSelectTemplateData
 }
 
 // LocalFSSelectTemplateData contains the template for localFSSelectQueryTemplate.
 type LocalFSSelectTemplateData struct {
-	CommonmFSSelectTemplateData
+	CommonFSSelectTemplateData
 }
 
 // GCPFSMetricsTemplateData contains the template for gcpFSMetricsSubQueryTemplate.
@@ -427,7 +427,7 @@ func (f GCPFeatureSearchBaseQuery) Query(prefilter FeatureSearchPrefilterResult)
 	})
 
 	return gcpFSSelectQueryTemplate.Execute(GCPFSSelectTemplateData{
-		CommonmFSSelectTemplateData: CommonmFSSelectTemplateData{
+		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
 			BaseQueryFragment:   f.buildBaseQueryFragment(),
 			StableMetrics:       stableMetrics,
 			ExperimentalMetrics: experimentalMetrics,
@@ -490,7 +490,7 @@ func (f LocalFeatureBaseQuery) Query(_ FeatureSearchPrefilterResult) (string, ma
 	})
 
 	return localFSSelectQueryTemplate.Execute(LocalFSSelectTemplateData{
-		CommonmFSSelectTemplateData: CommonmFSSelectTemplateData{
+		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
 			BaseQueryFragment:   f.buildBaseQueryFragment(),
 			StableMetrics:       stableMetrics,
 			ExperimentalMetrics: experimentalMetrics,
