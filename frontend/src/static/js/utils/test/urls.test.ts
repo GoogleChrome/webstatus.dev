@@ -21,6 +21,7 @@ import {
   getSearchQuery,
   formatOverviewPageUrl,
   formatFeaturePageUrl,
+  getWPTMetricView,
 } from '../urls.js';
 
 describe('getSearchQuery', () => {
@@ -74,6 +75,23 @@ describe('getSortSpec', () => {
   });
 });
 
+describe('getWPTMetricView', () => {
+  it('returns empty string when there was no wpt_metric_view= param', () => {
+    const cs = getWPTMetricView({search: ''});
+    assert.equal(cs, '');
+  });
+
+  it('returns empty string when the wpt_metric_view= param has no value', () => {
+    const cs = getWPTMetricView({search: '?wpt_metric_view='});
+    assert.equal(cs, '');
+  });
+
+  it('returns the string when the wpt_metric_view= param was set', () => {
+    const cs = getWPTMetricView({search: '?wpt_metric_view=subtest_counts'});
+    assert.equal(cs, 'subtest_counts');
+  });
+});
+
 describe('formatOverviewPageUrl', () => {
   it('returns a plain URL when no location is passed', () => {
     const url = formatOverviewPageUrl();
@@ -88,6 +106,13 @@ describe('formatOverviewPageUrl', () => {
   it('returns a URL with navigational params when they are set', () => {
     const url = formatOverviewPageUrl({search: '?q=css'});
     assert.equal(url, '/?q=css');
+  });
+
+  it('returns a URL with navigational params when wpt_metric_view param is set', () => {
+    const url = formatOverviewPageUrl({
+      search: '?wpt_metric_view=subtest_counts',
+    });
+    assert.equal(url, '/?wpt_metric_view=subtest_counts');
   });
 
   it('returns a URL with overrideparameters set', () => {
@@ -144,5 +169,12 @@ describe('formatFeaturePageUrl', () => {
   it('returns a URL with navigational params when they are set', () => {
     const url = formatFeaturePageUrl(feature, {search: '?q=css'});
     assert.equal(url, '/features/grid?q=css');
+  });
+
+  it('returns a URL with navigational params when wpt_metric_view param is set', () => {
+    const url = formatFeaturePageUrl(feature, {
+      search: '?wpt_metric_view=subtest_counts',
+    });
+    assert.equal(url, '/features/grid?wpt_metric_view=subtest_counts');
   });
 });

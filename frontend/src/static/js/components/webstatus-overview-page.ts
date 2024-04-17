@@ -25,11 +25,13 @@ import {
   getPaginationStart,
   getSearchQuery,
   getSortSpec,
+  getWPTMetricView,
 } from '../utils/urls.js';
 import {
   type APIClient,
   type FeatureSortOrderType,
   type FeatureSearchType,
+  FeatureWPTMetricViewType,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
@@ -72,9 +74,13 @@ export class OverviewPage extends LitElement {
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
     this.totalCount = undefined;
+    const wptMetricView = getWPTMetricView(
+      routerLocation
+    ) as FeatureWPTMetricViewType;
     const respJson = await apiClient.getFeatures(
       searchQuery,
       sortSpec,
+      wptMetricView,
       offset,
       pageSize
     );

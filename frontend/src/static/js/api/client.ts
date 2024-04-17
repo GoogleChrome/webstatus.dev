@@ -25,6 +25,10 @@ export type FeatureSearchType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
 >['q'];
 
+export type FeatureWPTMetricViewType = NonNullable<
+  paths['/v1/features']['get']['parameters']['query']
+>['wpt_metric_view'];
+
 export type BrowsersParameter = components['parameters']['browserPathParam'];
 export type ChannelsParameter = components['parameters']['channelPathParam'];
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
@@ -59,11 +63,18 @@ export class APIClient {
   }
 
   public async getFeature(
-    featureId: string
+    featureId: string,
+    wptMetricView: FeatureWPTMetricViewType
   ): Promise<components['schemas']['Feature']> {
+    const qsParams: paths['/v1/features/{feature_id}']['get']['parameters']['query'] =
+      {};
+    if (wptMetricView) qsParams.wpt_metric_view = wptMetricView;
     const {data, error} = await this.client.GET('/v1/features/{feature_id}', {
       ...temporaryFetchOptions,
-      params: {path: {feature_id: featureId}},
+      params: {
+        path: {feature_id: featureId},
+        query: qsParams,
+      },
     });
     if (error !== undefined) {
       throw new Error(error?.message);
@@ -83,6 +94,7 @@ export class APIClient {
   public async getFeatures(
     q: FeatureSearchType,
     sort: FeatureSortOrderType,
+    wptMetricView?: FeatureWPTMetricViewType,
     offset?: number,
     pageSize?: number
   ): Promise<components['schemas']['FeaturePage']> {
@@ -93,6 +105,7 @@ export class APIClient {
       qsParams.page_token =
         this.createOffsetPaginationTokenForGetFeatures(offset);
     if (pageSize) qsParams.page_size = pageSize;
+    if (wptMetricView) qsParams.wpt_metric_view = wptMetricView;
     const {data, error} = await this.client.GET('/v1/features', {
       ...temporaryFetchOptions,
       params: {
