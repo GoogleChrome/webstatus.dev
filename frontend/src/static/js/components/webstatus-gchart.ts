@@ -64,7 +64,7 @@ export class WebstatusGChart extends LitElement {
   render(): TemplateResult {
     return html`
       <div
-        id="${this.containerId}"
+        id="${this.containerId!}"
         class="chart_div"
         style="padding: 0; margin: 0; border: 0"
       ></div>
