@@ -51,3 +51,9 @@ registerIconLibrary('phosphor', {
   },
   resolver: name => `/public/img/phosphor/assets/icons/${name}.svg`,
 });
+registerIconLibrary('custom', {
+  mutator: svg => {
+    svg.setAttribute('fill', 'currentColor');
+  },
+  resolver: name => `/public/img/custom/${name}.svg`,
+});

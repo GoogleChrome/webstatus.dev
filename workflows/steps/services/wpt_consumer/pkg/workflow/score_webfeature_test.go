@@ -26,7 +26,13 @@ import (
 
 func getSimpleWebFeaturesData() shared.WebFeaturesData {
 	return shared.WebFeaturesData{
-		"test1.html": {
+		"passing-all-subtests": {
+			"feature1": nil,
+		},
+		"passing-no-subtests.html": {
+			"feature1": nil,
+		},
+		"no-passing-no-subtests.html": {
 			"feature1": nil,
 		},
 	}
@@ -34,9 +40,17 @@ func getSimpleWebFeaturesData() shared.WebFeaturesData {
 
 func getSimpleSummary() ResultsSummaryFileV2 {
 	return ResultsSummaryFileV2{
-		"test1.html": query.SummaryResult{
+		"passing-all-subtests": query.SummaryResult{
 			Status: string(WPTStatusPass),
-			Counts: []int{1, 1},
+			Counts: []int{10, 10},
+		},
+		"passing-no-subtests.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{0, 0},
+		},
+		"no-passing-no-subtests.html": query.SummaryResult{
+			Status: string(WPTStatusError),
+			Counts: []int{0, 0},
 		},
 	}
 }
@@ -107,8 +121,10 @@ func TestScore(t *testing.T) {
 			summary:           getSimpleSummary(),
 			expectedOutput: map[string]wptconsumertypes.WPTFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](1),
-					TestPass:   valuePtr[int64](1),
+					TotalTests:    valuePtr[int64](3),
+					TestPass:      valuePtr[int64](2),
+					TotalSubtests: valuePtr[int64](12),
+					SubtestPass:   valuePtr[int64](11),
 				},
 			},
 		},
@@ -118,24 +134,34 @@ func TestScore(t *testing.T) {
 			summary:           getComplexSummary(),
 			expectedOutput: map[string]wptconsumertypes.WPTFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](2),
-					TestPass:   valuePtr[int64](2),
+					TotalTests:    valuePtr[int64](2),
+					TestPass:      valuePtr[int64](2),
+					TotalSubtests: valuePtr[int64](101),
+					SubtestPass:   valuePtr[int64](101),
 				},
 				"feature2": {
-					TotalTests: valuePtr[int64](3),
-					TestPass:   valuePtr[int64](2),
+					TotalTests:    valuePtr[int64](3),
+					TestPass:      valuePtr[int64](2),
+					TotalSubtests: valuePtr[int64](112),
+					SubtestPass:   valuePtr[int64](102),
 				},
 				"feature3": {
-					TotalTests: valuePtr[int64](2),
-					TestPass:   valuePtr[int64](1),
+					TotalTests:    valuePtr[int64](2),
+					TestPass:      valuePtr[int64](1),
+					TotalSubtests: valuePtr[int64](111),
+					SubtestPass:   valuePtr[int64](101),
 				},
 				"feature4": {
-					TotalTests: valuePtr[int64](1),
-					TestPass:   valuePtr[int64](0),
+					TotalTests:    valuePtr[int64](1),
+					TestPass:      valuePtr[int64](0),
+					TotalSubtests: valuePtr[int64](11),
+					SubtestPass:   valuePtr[int64](1),
 				},
 				"feature5": {
-					TotalTests: valuePtr[int64](1),
-					TestPass:   valuePtr[int64](1),
+					TotalTests:    valuePtr[int64](1),
+					TestPass:      valuePtr[int64](1),
+					TotalSubtests: valuePtr[int64](100),
+					SubtestPass:   valuePtr[int64](100),
 				},
 			},
 		},

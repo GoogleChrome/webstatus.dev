@@ -58,10 +58,12 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		searchNode *searchtypes.SearchNode,
 		sortOrder *backend.GetV1FeaturesParamsSort,
+		wptMetricType backend.WPTMetricView,
 	) (*backend.FeaturePage, error)
 	GetFeature(
 		ctx context.Context,
 		featureID string,
+		wptMetricType backend.WPTMetricView,
 	) (*backend.Feature, error)
 	ListBrowserFeatureCountMetric(
 		ctx context.Context,

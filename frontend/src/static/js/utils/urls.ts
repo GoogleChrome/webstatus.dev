@@ -37,9 +37,18 @@ export function getPaginationStart(location: {search: string}): number {
   return Number(getQueryParam(location.search, 'start'));
 }
 
+export const DEFAULT_ITEMS_PER_PAGE = 25;
+export function getPageSize(location: {search: string}): number {
+  const num = Number(
+    getQueryParam(location.search, 'num') || DEFAULT_ITEMS_PER_PAGE
+  );
+  return Math.min(100, Math.max(num, 1));
+}
+
 type QueryStringOverrides = {
   q?: string;
   start?: number;
+  num?: number;
   sort?: string;
   columns?: string[];
 };
@@ -75,6 +84,11 @@ function getContextualQueryStringParams(
     'start' in overrides ? overrides.start : getPaginationStart(location);
   if (start) {
     searchParams.set('start', '' + start);
+  }
+
+  const num = 'num' in overrides ? overrides.num : getPageSize(location);
+  if (num !== DEFAULT_ITEMS_PER_PAGE) {
+    searchParams.set('num', '' + num);
   }
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';

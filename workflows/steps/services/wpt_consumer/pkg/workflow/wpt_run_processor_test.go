@@ -167,14 +167,24 @@ func TestProcessRun(t *testing.T) {
 			upsertMetricConfig: &upsertMetricConfig{
 				runID: 123,
 				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+					"feature1": {
+						TotalTests:    valuePtr[int64](10),
+						TestPass:      valuePtr[int64](10),
+						TotalSubtests: valuePtr[int64](100),
+						SubtestPass:   valuePtr[int64](100),
+					},
 				},
 				err: nil,
 			},
 			mockResultsDownloader: &MockResultsDownloader{
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+						"feature1": {
+							TotalTests:    valuePtr[int64](10),
+							TestPass:      valuePtr[int64](10),
+							TotalSubtests: valuePtr[int64](100),
+							SubtestPass:   valuePtr[int64](100),
+						},
 					},
 				},
 				shouldFail: false,
@@ -242,7 +252,12 @@ func TestProcessRun(t *testing.T) {
 			mockResultsDownloader: &MockResultsDownloader{
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+						"feature1": {
+							TotalTests:    valuePtr[int64](10),
+							TestPass:      valuePtr[int64](10),
+							TotalSubtests: valuePtr[int64](100),
+							SubtestPass:   valuePtr[int64](100),
+						},
 					},
 				},
 				shouldFail: false,
@@ -294,7 +309,12 @@ func TestProcessRun(t *testing.T) {
 			mockResultsDownloader: &MockResultsDownloader{
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+						"feature1": {
+							TotalTests:    valuePtr[int64](10),
+							TestPass:      valuePtr[int64](10),
+							TotalSubtests: valuePtr[int64](100),
+							SubtestPass:   valuePtr[int64](100),
+						},
 					},
 				},
 				shouldFail: false,
@@ -346,14 +366,24 @@ func TestProcessRun(t *testing.T) {
 			upsertMetricConfig: &upsertMetricConfig{
 				runID: 123,
 				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-					"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+					"feature1": {
+						TotalTests:    valuePtr[int64](10),
+						TestPass:      valuePtr[int64](10),
+						TotalSubtests: valuePtr[int64](100),
+						SubtestPass:   valuePtr[int64](100),
+					},
 				},
 				err: errUpsertWPTMetric,
 			},
 			mockResultsDownloader: &MockResultsDownloader{
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
-						"feature1": {TotalTests: valuePtr[int64](10), TestPass: valuePtr[int64](10)},
+						"feature1": {
+							TotalTests:    valuePtr[int64](10),
+							TestPass:      valuePtr[int64](10),
+							TotalSubtests: valuePtr[int64](100),
+							SubtestPass:   valuePtr[int64](100),
+						},
 					},
 				},
 				shouldFail: false,

@@ -19,11 +19,14 @@ import {customElement, state} from 'lit/decorators.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {formatOverviewPageUrl, getPaginationStart} from '../utils/urls.js';
+import {
+  DEFAULT_ITEMS_PER_PAGE,
+  formatOverviewPageUrl,
+  getPageSize,
+  getPaginationStart,
+} from '../utils/urls.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
-
-const ITEMS_PER_PAGE = 25;
 
 @customElement('webstatus-pagination')
 export class WebstatusPagination extends LitElement {
@@ -32,6 +35,9 @@ export class WebstatusPagination extends LitElement {
 
   @state()
   start = 0; // Index of first result among total results.
+
+  @state()
+  pageSize = DEFAULT_ITEMS_PER_PAGE; // Number of items to display per page
 
   @state()
   location!: {search: string}; // Set by parent.
@@ -63,7 +69,7 @@ export class WebstatusPagination extends LitElement {
     const offset = this.start + delta;
     if (
       this.totalCount === undefined ||
-      offset <= -ITEMS_PER_PAGE ||
+      offset <= -this.pageSize ||
       offset > this.totalCount
     ) {
       return undefined;
@@ -75,8 +81,8 @@ export class WebstatusPagination extends LitElement {
     if (this.totalCount === undefined || this.totalCount === 0) {
       return html``;
     }
-    const currentPage = Math.floor(this.start / ITEMS_PER_PAGE);
-    const numPages = Math.floor(this.totalCount / ITEMS_PER_PAGE) + 1;
+    const currentPage = Math.floor(this.start / this.pageSize);
+    const numPages = Math.ceil(this.totalCount / this.pageSize);
 
     return html`
       ${map(
@@ -85,7 +91,7 @@ export class WebstatusPagination extends LitElement {
           <sl-button
             variant="text"
             class="page-button ${i === currentPage ? 'active' : ''}"
-            href=${this.formatUrlForOffset(i * ITEMS_PER_PAGE)}
+            href=${this.formatUrlForOffset(i * this.pageSize)}
           >
             ${i + 1}
           </sl-button>
@@ -100,8 +106,9 @@ export class WebstatusPagination extends LitElement {
     }
 
     this.start = getPaginationStart(this.location);
-    const prevUrl = this.formatUrlForRelativeOffset(-ITEMS_PER_PAGE);
-    const nextUrl = this.formatUrlForRelativeOffset(ITEMS_PER_PAGE);
+    this.pageSize = getPageSize(this.location);
+    const prevUrl = this.formatUrlForRelativeOffset(-this.pageSize);
+    const nextUrl = this.formatUrlForRelativeOffset(this.pageSize);
 
     return html`
       <div id="main" class="hbox halign-items-space-between">

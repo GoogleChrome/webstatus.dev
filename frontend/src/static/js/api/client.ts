@@ -83,14 +83,16 @@ export class APIClient {
   public async getFeatures(
     q: FeatureSearchType,
     sort: FeatureSortOrderType,
-    offset?: number
-  ): Promise<components['schemas']['FeaturePage']['data']> {
+    offset?: number,
+    pageSize?: number
+  ): Promise<components['schemas']['FeaturePage']> {
     const qsParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) qsParams.q = q;
     if (sort) qsParams.sort = sort;
     if (offset)
       qsParams.page_token =
         this.createOffsetPaginationTokenForGetFeatures(offset);
+    if (pageSize) qsParams.page_size = pageSize;
     const {data, error} = await this.client.GET('/v1/features', {
       ...temporaryFetchOptions,
       params: {
@@ -100,7 +102,7 @@ export class APIClient {
     if (error !== undefined) {
       throw new Error(error?.message);
     }
-    return data?.data;
+    return data;
   }
 
   public async getStatsByBrowserAndChannel(

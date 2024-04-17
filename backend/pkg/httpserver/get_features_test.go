@@ -37,10 +37,11 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:  nil,
-				expectedPageSize:   100,
-				expectedSearchNode: nil,
-				expectedSortBy:     nil,
+				expectedPageToken:     nil,
+				expectedPageSize:      100,
+				expectedSearchNode:    nil,
+				expectedSortBy:        nil,
+				expectedWPTMetricView: backend.SubtestCounts,
 				page: &backend.FeaturePage{
 					Metadata: backend.PageMetadataWithTotal{
 						NextPageToken: nil,
@@ -82,10 +83,11 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken: nil,
-					PageSize:  nil,
-					Q:         nil,
-					Sort:      nil,
+					PageToken:     nil,
+					PageSize:      nil,
+					Q:             nil,
+					Sort:          nil,
+					WptMetricView: nil,
 				},
 			},
 			expectedError: nil,
@@ -93,8 +95,9 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken: inputPageToken,
-				expectedPageSize:  50,
+				expectedPageToken:     inputPageToken,
+				expectedPageSize:      50,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedSearchNode: &searchtypes.SearchNode{
 					Operator: searchtypes.OperatorRoot,
 					Term:     nil,
@@ -165,10 +168,11 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken: inputPageToken,
-					PageSize:  valuePtr[int](50),
-					Q:         valuePtr(url.QueryEscape("available_on:chrome AND name:grid")),
-					Sort:      valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
+					PageToken:     inputPageToken,
+					PageSize:      valuePtr[int](50),
+					Q:             valuePtr(url.QueryEscape("available_on:chrome AND name:grid")),
+					Sort:          valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
+					WptMetricView: valuePtr(backend.TestCounts),
 				},
 			},
 			expectedError: nil,
@@ -176,12 +180,13 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "500 case",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:  nil,
-				expectedPageSize:   100,
-				expectedSearchNode: nil,
-				expectedSortBy:     nil,
-				page:               nil,
-				err:                errTest,
+				expectedPageToken:     nil,
+				expectedPageSize:      100,
+				expectedSearchNode:    nil,
+				expectedSortBy:        nil,
+				expectedWPTMetricView: backend.SubtestCounts,
+				page:                  nil,
+				err:                   errTest,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1Features500JSONResponse{
@@ -190,10 +195,11 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken: nil,
-					PageSize:  nil,
-					Q:         nil,
-					Sort:      nil,
+					PageToken:     nil,
+					PageSize:      nil,
+					Q:             nil,
+					Sort:          nil,
+					WptMetricView: nil,
 				},
 			},
 			expectedError: nil,
@@ -201,12 +207,13 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "400 case - query string does not match grammar",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:  nil,
-				expectedPageSize:   100,
-				expectedSearchNode: nil,
-				expectedSortBy:     nil,
-				page:               nil,
-				err:                errTest,
+				expectedPageToken:     nil,
+				expectedPageSize:      100,
+				expectedSearchNode:    nil,
+				expectedSortBy:        nil,
+				expectedWPTMetricView: backend.SubtestCounts,
+				page:                  nil,
+				err:                   errTest,
 			},
 			expectedCallCount: 0,
 			expectedResponse: backend.GetV1Features400JSONResponse{
@@ -215,10 +222,11 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken: nil,
-					PageSize:  nil,
-					Sort:      nil,
-					Q:         valuePtr[string]("badterm:foo"),
+					PageToken:     nil,
+					PageSize:      nil,
+					Sort:          nil,
+					Q:             valuePtr[string]("badterm:foo"),
+					WptMetricView: nil,
 				},
 			},
 			expectedError: nil,
@@ -226,12 +234,13 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "400 case - query string not safe",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:  nil,
-				expectedPageSize:   100,
-				expectedSearchNode: nil,
-				expectedSortBy:     nil,
-				page:               nil,
-				err:                errTest,
+				expectedPageToken:     nil,
+				expectedPageSize:      100,
+				expectedSearchNode:    nil,
+				expectedSortBy:        nil,
+				expectedWPTMetricView: backend.SubtestCounts,
+				page:                  nil,
+				err:                   errTest,
 			},
 			expectedCallCount: 0,
 			expectedResponse: backend.GetV1Features400JSONResponse{
@@ -240,10 +249,11 @@ func TestGetV1Features(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesRequestObject{
 				Params: backend.GetV1FeaturesParams{
-					PageToken: nil,
-					PageSize:  nil,
-					Q:         valuePtr[string]("%"),
-					Sort:      nil,
+					PageToken:     nil,
+					PageSize:      nil,
+					Q:             valuePtr[string]("%"),
+					Sort:          nil,
+					WptMetricView: nil,
 				},
 			},
 			expectedError: nil,

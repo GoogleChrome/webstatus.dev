@@ -33,7 +33,7 @@ import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {
   BASELINE_CHIP_CONFIGS,
-  renderWPTScore,
+  renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
 @customElement('webstatus-feature-page')
@@ -189,7 +189,7 @@ export class FeaturePage extends LitElement {
     icon: string
   ): TemplateResult {
     const scorePart = this.feature
-      ? renderWPTScore(this.feature, {search: ''}, {browser: browser})
+      ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
       : nothing;
 
     return html`

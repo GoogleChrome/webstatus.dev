@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"math/big"
 	"testing"
 )
 
@@ -28,36 +27,12 @@ func TestGetFeature(t *testing.T) {
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
 
 	// Test for present feature
-	result, err := client.GetFeature(ctx, NewFeatureIDFilter("feature2"))
+	result, err := client.GetFeature(ctx, NewFeatureIDFilter("feature2"), defaultWPTMetricView())
 	if err != nil {
 		t.Errorf("unexpected error. %s", err.Error())
 	}
 
-	expectedResult := &FeatureResult{
-		FeatureID: "feature2",
-		Name:      "Feature 2",
-		Status:    string(BaselineStatusHigh),
-		StableMetrics: []*FeatureResultMetric{
-			{
-				BrowserName: "barBrowser",
-				PassRate:    big.NewRat(10, 10),
-			},
-			{
-				BrowserName: "fooBrowser",
-				PassRate:    big.NewRat(0, 10),
-			},
-		},
-		ExperimentalMetrics: []*FeatureResultMetric{
-			{
-				BrowserName: "barBrowser",
-				PassRate:    big.NewRat(120, 120),
-			},
-			{
-				BrowserName: "fooBrowser",
-				PassRate:    big.NewRat(12, 12),
-			},
-		},
-	}
+	expectedResult := valuePtr(getFeatureSearchTestFeature(FeatureSearchTestFId2))
 
 	stabilizeFeatureResult(*result)
 
@@ -79,7 +54,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Test for non existent feature
-	result, err = client.GetFeature(ctx, NewFeatureIDFilter("nopefeature2"))
+	result, err = client.GetFeature(ctx, NewFeatureIDFilter("nopefeature2"), defaultWPTMetricView())
 	if !errors.Is(err, ErrQueryReturnedNoResults) {
 		t.Errorf("unexpected error. %s", err)
 	}

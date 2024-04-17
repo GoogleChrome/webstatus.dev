@@ -31,7 +31,9 @@ func (s *Server) GetV1FeaturesFeatureId(
 	ctx context.Context,
 	request backend.GetV1FeaturesFeatureIdRequestObject,
 ) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
-	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId)
+	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
+		getWPTMetricViewOrDefault(request.Params.WptMetricView),
+	)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
 			return backend.GetV1FeaturesFeatureId404JSONResponse{
