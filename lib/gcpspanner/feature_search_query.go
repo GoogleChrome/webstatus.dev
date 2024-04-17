@@ -183,6 +183,7 @@ type FeatureSearchQueryBuilder struct {
 	baseQuery     FeatureSearchBaseQuery
 	featureCursor *FeatureResultCursor
 	offsetCursor  *FeatureResultOffsetCursor
+	wptMetricView WPTMetricView
 }
 
 const whereOpPrefix = "WHERE "
@@ -239,7 +240,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		filterQuery = whereOpPrefix + filterQuery
 	}
 
-	sql, params := q.baseQuery.Query(prefilter)
+	sql, params := q.baseQuery.Query(prefilter, q.wptMetricView)
 	maps.Copy(filterParams, params)
 
 	stmt := spanner.NewStatement(

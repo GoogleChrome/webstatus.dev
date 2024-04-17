@@ -20,7 +20,12 @@ import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
-import {getSearchQuery, getSortSpec} from '../utils/urls.js';
+import {
+  getPageSize,
+  getPaginationStart,
+  getSearchQuery,
+  getSortSpec,
+} from '../utils/urls.js';
 import {
   type APIClient,
   type FeatureSortOrderType,
@@ -64,9 +69,17 @@ export class OverviewPage extends LitElement {
     if (typeof apiClient !== 'object') return;
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
+    const offset = getPaginationStart(routerLocation);
+    const pageSize = getPageSize(routerLocation);
     this.totalCount = undefined;
-    this.features = await apiClient.getFeatures(searchQuery, sortSpec);
-    this.totalCount = this.features.length;
+    const respJson = await apiClient.getFeatures(
+      searchQuery,
+      sortSpec,
+      offset,
+      pageSize
+    );
+    this.features = respJson.data;
+    this.totalCount = respJson.metadata.total;
   }
 
   render(): TemplateResult {

@@ -26,6 +26,10 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
+          name: wpt_metric_view
+          schema:
+            $ref: '#/components/schemas/WPTMetricView'
+        - in: query
           name: q
           description: >
             A query string to represent the filters to apply the datastore while searching.
@@ -103,6 +107,10 @@ paths:
         required: true
         schema:
           type: string
+      - in: query
+        name: wpt_metric_view
+        schema:
+          $ref: '#/components/schemas/WPTMetricView'
     get:
       summary: Get Feature
       responses:
@@ -397,6 +405,12 @@ components:
       required: false
       description: Number of results to return
   schemas:
+    WPTMetricView:
+      type: string
+      description: The desired view of the WPT Data
+      enum:
+        - test_counts
+        - subtest_counts
     BrowserReleaseFeatureMetric:
       type: object
       properties:

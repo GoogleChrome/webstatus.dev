@@ -50,10 +50,61 @@ func (s ResultsSummaryFileV2) Score(
 			// Need at least the number of subtests passes and the number of subtests
 			continue
 		}
-		s.scoreTest(ctx, test, scoreMap, testToWebFeatures, testSummary.Counts[0], testSummary.Counts[1])
+		s.scoreTest(ctx, test, scoreMap, testToWebFeatures,
+			testSummary.Counts[0], testSummary.Counts[1], testSummary.Status)
+		s.scoreSubtests(
+			ctx, test, scoreMap, testToWebFeatures,
+			testSummary.Counts[0], testSummary.Counts[1], testSummary.Status)
 	}
 
 	return scoreMap
+}
+
+// scoreSubtests calculates the metrics for a test using the "default/subtests" methodology.
+func (s ResultsSummaryFileV2) scoreSubtests(
+	_ context.Context,
+	test string,
+	webFeatureScoreMap map[string]wptconsumertypes.WPTFeatureMetric,
+	testToWebFeatures *shared.WebFeaturesData,
+	numberOfSubtestPassing int,
+	numberofSubtests int,
+	testStatus string,
+) {
+	var webFeatures map[string]interface{}
+	var found bool
+	if webFeatures, found = (*testToWebFeatures)[test]; !found {
+		return
+	}
+	if numberofSubtests == 0 {
+		numberofSubtests = 1
+		// Determine the appropriate logic based on the status, as done in JavaScript
+		if WPTStatusAbbreviation(testStatus) == WPTStatusOK || WPTStatusAbbreviation(testStatus) == WPTStatusPass {
+			numberOfSubtestPassing = 1 // Treat as passing single subtest if status is OK or Pass
+		}
+	}
+
+	for webFeature := range webFeatures {
+		webFeatureScore := getScoreForFeature(webFeature, webFeatureScoreMap)
+		*webFeatureScore.TotalSubtests += int64(numberofSubtests)
+		*webFeatureScore.SubtestPass += int64(numberOfSubtestPassing)
+		webFeatureScoreMap[webFeature] = webFeatureScore
+	}
+}
+
+func getScoreForFeature(
+	webFeature string,
+	webFeatureScoreMap map[string]wptconsumertypes.WPTFeatureMetric) wptconsumertypes.WPTFeatureMetric {
+	var initialTestTotal, initialTestPass, initialSubtestTotal, initialSubtestPass int64 = 0, 0, 0, 0
+	webFeatureScore := cmp.Or(
+		webFeatureScoreMap[webFeature],
+		wptconsumertypes.WPTFeatureMetric{
+			TotalTests:    &initialTestTotal,
+			TestPass:      &initialTestPass,
+			TotalSubtests: &initialSubtestTotal,
+			SubtestPass:   &initialSubtestPass,
+		})
+
+	return webFeatureScore
 }
 
 // scoreTest updates web feature metrics for a single test
@@ -65,6 +116,7 @@ func (s ResultsSummaryFileV2) scoreTest(
 	testToWebFeatures *shared.WebFeaturesData,
 	numberOfSubtestPassing int,
 	numberofSubtests int,
+	testStatus string,
 ) {
 	var webFeatures map[string]interface{}
 	var found bool
@@ -73,15 +125,18 @@ func (s ResultsSummaryFileV2) scoreTest(
 		return
 	}
 	// Calculate the value early so we can re-use for multiple web features.
-	countsAsPassing := numberOfSubtestPassing == numberofSubtests
+	// Logic for zero subtests
+	var countsAsPassing bool
+	if numberofSubtests == 0 {
+		// Determine the appropriate logic based on the status, as done in JavaScript
+		if WPTStatusAbbreviation(testStatus) == WPTStatusOK || WPTStatusAbbreviation(testStatus) == WPTStatusPass {
+			countsAsPassing = true // Treat as passing if status is OK or Pass
+		}
+	} else {
+		countsAsPassing = numberOfSubtestPassing == numberofSubtests
+	}
 	for webFeature := range webFeatures {
-		initialTotal := new(int64)
-		initialPass := new(int64)
-		*initialTotal = 0
-		*initialPass = 0
-		webFeatureScore := cmp.Or(
-			webFeatureScoreMap[webFeature],
-			wptconsumertypes.WPTFeatureMetric{TotalTests: initialTotal, TestPass: initialPass})
+		webFeatureScore := getScoreForFeature(webFeature, webFeatureScoreMap)
 		*webFeatureScore.TotalTests++
 		// If all of the sub tests passed, only count it.
 		if countsAsPassing {

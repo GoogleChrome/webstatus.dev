@@ -265,6 +265,9 @@ func generateRunsAndMetrics(
 						FeatureID:  feature.FeatureID,
 						TotalTests: &testTotal,
 						TestPass:   &testPass,
+						// TODO: Put value when asserting subtest metrics
+						TotalSubtests: nil,
+						SubtestPass:   nil,
 					}
 					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(*wptRunData, metric)
 					m, err := spanner.InsertOrUpdateStruct(gcpspanner.WPTRunFeatureMetricTable, spannerMetric)

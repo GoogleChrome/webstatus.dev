@@ -66,6 +66,7 @@ func (c *Client) FeaturesSearch(
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder Sortable,
+	wptMetricView WPTMetricView,
 ) (*FeatureResultPage, error) {
 	// Build filterable
 	filterBuilder := NewFeatureSearchFilterBuilder()
@@ -92,6 +93,7 @@ func (c *Client) FeaturesSearch(
 		baseQuery:     c.featureSearchQuery,
 		featureCursor: featureCursor,
 		offsetCursor:  offsetCursor,
+		wptMetricView: wptMetricView,
 	}
 
 	// Get the total
