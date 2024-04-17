@@ -18,13 +18,134 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"strings"
+	"text/template"
 	"time"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 )
+
+// nolint: gochecknoglobals // WONTFIX: thread safe globals.
+// Have to make sure not to reassign them.
+// These templates are compiled once at startup so that query building is fast per request.
+var (
+	// gcpFSMetricsSubQueryTemplate is the compiled version of gcpFSMetricsSubQueryRawTemplate.
+	gcpFSMetricsSubQueryTemplate BaseQueryTemplate
+	// gcpFSCountQueryTemplate is the compiled version of gcpFSCountQueryRawTemplate.
+	gcpFSCountQueryTemplate BaseQueryTemplate
+	// gcpFSSelectQueryTemplate is the compiled version of gcpFSSelectQueryRawTemplate.
+	gcpFSSelectQueryTemplate BaseQueryTemplate
+
+	// localFSMetricsSubQueryTemplate is the compiled version of localFSMetricsSubQueryRawTemplate.
+	localFSMetricsSubQueryTemplate BaseQueryTemplate
+	// localFSCountQueryTemplate is the compiled version of localFSCountQueryRawTemplate.
+	localFSCountQueryTemplate BaseQueryTemplate
+	// localFSSelectQueryTemplate is the compiled version of localFSSelectQueryRawTemplate.
+	localFSSelectQueryTemplate BaseQueryTemplate
+)
+
+const (
+	latestRunsByChannelAndBrowserQuery = `
+SELECT
+  Channel,
+  BrowserName,
+  MAX(TimeStart) AS TimeStart
+FROM WPTRuns
+GROUP BY BrowserName, Channel;
+`
+)
+
+func init() {
+	gcpFSMetricsSubQueryTemplate = NewQueryTemplate(gcpFSMetricsSubQueryRawTemplate)
+	gcpFSCountQueryTemplate = NewQueryTemplate(gcpFSCountQueryRawTemplate)
+	gcpFSSelectQueryTemplate = NewQueryTemplate(gcpFSSelectQueryRawTemplate)
+
+	localFSMetricsSubQueryTemplate = NewQueryTemplate(localFSMetricsSubQueryRawTemplate)
+	localFSCountQueryTemplate = NewQueryTemplate(localFSCountQueryRawTemplate)
+	localFSSelectQueryTemplate = NewQueryTemplate(localFSSelectQueryRawTemplate)
+}
+
+type BaseQueryTemplate struct {
+	tmpl *template.Template
+}
+
+func NewQueryTemplate(in string) BaseQueryTemplate {
+	tmpl, err := template.New("").Parse(in)
+	if err != nil {
+		panic(err)
+	}
+
+	return BaseQueryTemplate{
+		tmpl: tmpl,
+	}
+}
+
+func (t *BaseQueryTemplate) Execute(data any) string {
+	var buf strings.Builder
+	err := t.tmpl.Execute(&buf, data)
+	if err != nil {
+		slog.Error("unable to execute template", "error", err)
+
+		return ""
+	}
+
+	return buf.String()
+}
+
+type CommonFSSelectTemplateData struct {
+	BaseQueryFragment   string
+	StableMetrics       string
+	ExperimentalMetrics string
+}
+
+// GCPFSSelectTemplateData contains the template for gcpFSSelectQueryTemplate.
+type GCPFSSelectTemplateData struct {
+	CommonFSSelectTemplateData
+}
+
+// LocalFSSelectTemplateData contains the template for localFSSelectQueryTemplate.
+type LocalFSSelectTemplateData struct {
+	CommonFSSelectTemplateData
+}
+
+// GCPFSMetricsTemplateData contains the template for gcpFSMetricsSubQueryTemplate.
+type GCPFSMetricsTemplateData struct {
+	Channel        string
+	Clause         string
+	PassRateColumn string
+	ChannelParam   string
+}
+
+// LocalFSMetricsTemplateData contains the template for localFSMetricsSubQueryTemplate.
+type LocalFSMetricsTemplateData struct {
+	Channel        string
+	PassRateColumn string
+	ChannelParam   string
+}
+
+// CommonFSCountTemplateData contains the template for commonCountQueryTemplate.
+type CommonFSCountTemplateData struct {
+	BaseQueryFragment string
+}
+
+// GCPFSCountTemplateData contains the template for gcpFSCountQueryTemplate.
+type GCPFSCountTemplateData struct {
+	CommonFSCountTemplateData
+}
+
+// LocalFSCountTemplateData contains the template for localFSCountQueryTemplate.
+type LocalFSCountTemplateData struct {
+	CommonFSCountTemplateData
+}
+
+// Helper function to determine the correct PassRate column name
+// In the future, we will change based on the the type of requested data.
+func metricsPassRateColumn() string {
+	return "PassRate"
+}
 
 // FeatureSearchBaseQuery contains the base query for all feature search
 // related queries.
@@ -118,15 +239,6 @@ type LatestRunResult struct {
 // Useful for building the filter per channel in the Query method of GCPFeatureSearchBaseQuery.
 type LatestRunResultsGroupedByChannel map[string][]LatestRunResult
 
-const latestRunsByChannelAndBrowserQuery = `
-SELECT
-    Channel,
-    BrowserName,
-    MAX(TimeStart) AS TimeStart
-FROM WPTRuns
-GROUP BY BrowserName, Channel;
-`
-
 // getLatestRunResultGroupedByChannel creates the needed information for the Query filter.
 // It queries for the last start time for a given BrowserName & Channel.
 func (f GCPFeatureSearchBaseQuery) getLatestRunResultGroupedByChannel(
@@ -164,15 +276,127 @@ func (f GCPFeatureSearchBaseQuery) getLatestRunResultGroupedByChannel(
 	return ret, nil
 }
 
-func (f GCPFeatureSearchBaseQuery) buildBaseQueryFragment() string {
-	return `
-FROM WebFeatures wf
-LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID`
-}
+func (f GCPFeatureSearchBaseQuery) buildBaseQueryFragment() string { return gcpFSBaseQueryTemplate }
 
 func (f GCPFeatureSearchBaseQuery) CountQuery() string {
-	return fmt.Sprintf("SELECT COUNT(*) %s", f.buildBaseQueryFragment())
+	return gcpFSCountQueryTemplate.Execute(GCPFSCountTemplateData{
+		CommonFSCountTemplateData: CommonFSCountTemplateData{
+			BaseQueryFragment: f.buildBaseQueryFragment(),
+		},
+	})
 }
+
+const (
+	// commonFSBaseQueryTemplate provides the core of a Spanner query, joining
+	// the WebFeatures table with FeatureBaselineStatus for status information.
+	commonFSBaseQueryTemplate = `
+FROM WebFeatures wf
+LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
+`
+	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
+	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
+
+	// commonCountQueryRawTemplate returns the count of items, using the base query fragment
+	// for consistency.
+	commonCountQueryRawTemplate = `
+SELECT COUNT(*) {{ .BaseQueryFragment }}
+`
+	gcpFSCountQueryRawTemplate   = commonCountQueryRawTemplate
+	localFSCountQueryRawTemplate = commonCountQueryRawTemplate
+
+	// gcpFSSelectQueryRawTemplate builds the core SELECT query. It retrieves feature
+	// information, baseline status, and aggregated metrics.
+	gcpFSSelectQueryRawTemplate = `
+	SELECT
+		wf.ID,
+		wf.FeatureID,
+		wf.Name,
+		COALESCE(fbs.Status, 'undefined') AS Status,
+		{{ .StableMetrics }},
+		{{ .ExperimentalMetrics }}
+	{{ .BaseQueryFragment }}
+`
+	localFSSelectQueryRawTemplate = `
+	WITH
+	LatestMetrics AS (
+		SELECT
+			FeatureID,
+			Channel,
+			BrowserName,
+			MAX(TimeStart) AS LatestTimeStart
+		FROM WPTRunFeatureMetrics
+		GROUP BY FeatureID, Channel, BrowserName
+	),
+	MetricsAggregation AS (
+		SELECT
+			lm.FeatureID,
+			lm.Channel,
+			lm.BrowserName,
+			m.PassRate
+		FROM LatestMetrics lm
+		JOIN WPTRunFeatureMetrics m ON
+			lm.FeatureID = m.FeatureID AND
+			lm.Channel = m.Channel AND
+			lm.BrowserName = m.BrowserName AND
+			lm.LatestTimeStart = m.TimeStart
+	)
+SELECT
+	wf.ID,
+	wf.FeatureID,
+	wf.Name,
+	COALESCE(fbs.Status, 'undefined') AS Status,
+	{{ .StableMetrics }},
+	{{ .ExperimentalMetrics }}
+{{ .BaseQueryFragment }}
+`
+
+	// gcpFSMetricsSubQueryRawTemplate generates a nested query that aggregates metrics by browser and
+	// channel. It uses COALESCE to handle cases with no matching metrics.
+	gcpFSMetricsSubQueryRawTemplate = `
+COALESCE(
+	(
+		SELECT ARRAY_AGG(STRUCT(
+				BrowserName AS BrowserName,
+				PassRate AS {{ .PassRateColumn }}
+			))
+		FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics
+		WHERE metrics.FeatureID = wf.FeatureID
+		AND metrics.Channel = @{{ .ChannelParam }}
+    	{{ .Clause }}
+	),
+	(
+		SELECT ARRAY(
+			SELECT AS STRUCT
+			'' BrowserName,
+			CAST(0.0 AS NUMERIC) PassRate
+		)
+	)
+) AS {{ .Channel }}Metrics
+`
+
+	// localFSMetricsSubQueryRawTemplate generates a nested query that aggregates metrics by browser and
+	// channel. It uses COALESCE to handle cases with no matching metrics.
+	localFSMetricsSubQueryRawTemplate = `
+COALESCE(
+	(
+		SELECT ARRAY_AGG(
+			STRUCT(
+				BrowserName,
+				PassRate
+			)
+		)
+		FROM MetricsAggregation WHERE FeatureID = wf.FeatureID AND Channel = @{{ .ChannelParam }}
+	),
+	(
+		SELECT ARRAY(
+			SELECT AS STRUCT
+				'' BrowserName,
+				CAST(0.0 AS NUMERIC) PassRate
+		)
+	)
+) AS {{ .Channel }}Metrics
+`
+)
 
 // Query uses the latest browsername/channel/timestart mapping to build a query from the prefilter query.
 // This prevents an extra join to figure out the latest run for a particular.
@@ -183,43 +407,32 @@ func (f GCPFeatureSearchBaseQuery) Query(prefilter FeatureSearchPrefilterResult)
 	params := make(map[string]interface{}, len(prefilter.stableParams)+len(prefilter.experimentalParams))
 	maps.Copy(params, prefilter.stableParams)
 	maps.Copy(params, prefilter.experimentalParams)
+	stableParamName := "stableChannelParam"
+	params[stableParamName] = "stable"
+	experimentalParamName := "experimentalChannelParam"
+	params[experimentalParamName] = "experimental"
 
-	return fmt.Sprintf(`
-SELECT
-	wf.ID,
-	wf.FeatureID,
-	wf.Name,
-	COALESCE(fbs.Status, 'undefined') AS Status,
-	COALESCE((
-		SELECT ARRAY_AGG(STRUCT(
-				BrowserName AS BrowserName,
-				PassRate AS PassRate
-			))
-		FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics
-		WHERE metrics.FeatureID = wf.FeatureID
-		AND metrics.Channel = 'stable'
-		%s
-		-- GCP Spanner could have ARRAY<STRUCT<string, NUMERIC>>[]) as the default.
-		-- but the emulator complains.
-		-- Replace the following line in the future when the emulator supports it.
-		-- ), ARRAY<STRUCT<string, NUMERIC>>[]) AS StableMetrics,
-	), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS StableMetrics,
-	COALESCE((
-		SELECT ARRAY_AGG(STRUCT(
-				BrowserName AS BrowserName,
-				PassRate AS PassRate
-			))
-		FROM WPTRunFeatureMetrics @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate} metrics
-		WHERE metrics.FeatureID = wf.FeatureID
-		AND metrics.Channel = 'experimental'
-		%s
-		-- GCP Spanner could have ARRAY<STRUCT<string, NUMERIC>>[]) as the default.
-		-- but the emulator complains.
-		-- Replace the following line in the future when the emulator supports it.
-		-- ), ARRAY<STRUCT<string, NUMERIC>>[]) AS StableMetrics,
-	), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS ExperimentalMetrics
-%s
-`, prefilter.stableClause, prefilter.experimentalClause, f.buildBaseQueryFragment()), params
+	stableMetrics := gcpFSMetricsSubQueryTemplate.Execute(GCPFSMetricsTemplateData{
+		Channel:        "Stable",
+		Clause:         prefilter.stableClause,
+		PassRateColumn: metricsPassRateColumn(),
+		ChannelParam:   stableParamName,
+	})
+
+	experimentalMetrics := gcpFSMetricsSubQueryTemplate.Execute(GCPFSMetricsTemplateData{
+		Channel:        "Experimental",
+		Clause:         prefilter.experimentalClause,
+		PassRateColumn: metricsPassRateColumn(),
+		ChannelParam:   experimentalParamName,
+	})
+
+	return gcpFSSelectQueryTemplate.Execute(GCPFSSelectTemplateData{
+		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
+			BaseQueryFragment:   f.buildBaseQueryFragment(),
+			StableMetrics:       stableMetrics,
+			ExperimentalMetrics: experimentalMetrics,
+		},
+	}), params
 }
 
 // LocalFeatureBaseQuery is a version of the base query that works well on the local emulator.
@@ -243,51 +456,44 @@ func (f LocalFeatureBaseQuery) Prefilter(
 	}, nil
 }
 
-func (f LocalFeatureBaseQuery) buildBaseQueryFragment() string {
-	return `
-FROM WebFeatures wf
-LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID`
-}
+func (f LocalFeatureBaseQuery) buildBaseQueryFragment() string { return localFSBaseQueryTemplate }
 
 func (f LocalFeatureBaseQuery) CountQuery() string {
-	return fmt.Sprintf("SELECT COUNT(*) %s", f.buildBaseQueryFragment())
+	return localFSCountQueryTemplate.Execute(LocalFSCountTemplateData{
+		CommonFSCountTemplateData: CommonFSCountTemplateData{
+			BaseQueryFragment: f.buildBaseQueryFragment(),
+		},
+	})
 }
 
 // Query is a version of the base query that works on the local emulator.
 // It leverages a common table expression CTE to help query the metrics.
 func (f LocalFeatureBaseQuery) Query(_ FeatureSearchPrefilterResult) (string, map[string]interface{}) {
-	// nolint: lll // For now, keep it.
-	return fmt.Sprintf(`
-WITH
-	LatestMetrics AS (
-		SELECT
-			FeatureID,
-			Channel,
-			BrowserName,
-			MAX(TimeStart) AS LatestTimeStart
-		FROM WPTRunFeatureMetrics  @{FORCE_INDEX=MetricsFeatureChannelBrowserTimePassRate}
-		GROUP BY FeatureID, Channel, BrowserName
-	),
-	MetricsAggregation AS (
-		SELECT
-			lm.FeatureID,
-			lm.Channel,
-			lm.BrowserName,
-			m.PassRate
-		FROM LatestMetrics lm
-		JOIN WPTRunFeatureMetrics m ON
-			lm.FeatureID = m.FeatureID AND
-			lm.Channel = m.Channel AND
-			lm.BrowserName = m.BrowserName AND
-			lm.LatestTimeStart = m.TimeStart
-	)
-SELECT
-	wf.ID,
-	wf.FeatureID,
-	wf.Name,
-	COALESCE(fbs.Status, 'undefined') AS Status,
-	COALESCE((SELECT ARRAY_AGG(STRUCT(BrowserName, PassRate)) FROM MetricsAggregation WHERE FeatureID = wf.FeatureID AND Channel = 'stable'), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS StableMetrics,
-	COALESCE((SELECT ARRAY_AGG(STRUCT(BrowserName, PassRate)) FROM MetricsAggregation WHERE FeatureID = wf.FeatureID AND Channel = 'experimental'), (SELECT ARRAY(SELECT AS STRUCT '' BrowserName, CAST(0.0 AS NUMERIC) PassRate))) AS ExperimentalMetrics
-%s
-`, f.buildBaseQueryFragment()), nil
+	stableParamName := "stableChannelParam"
+	experimentalParamName := "experimentalChannelParam"
+
+	params := map[string]interface{}{
+		stableParamName:       "stable",
+		experimentalParamName: "experimental",
+	}
+
+	stableMetrics := localFSMetricsSubQueryTemplate.Execute(LocalFSMetricsTemplateData{
+		Channel:        "Stable",
+		PassRateColumn: metricsPassRateColumn(),
+		ChannelParam:   stableParamName,
+	})
+
+	experimentalMetrics := localFSMetricsSubQueryTemplate.Execute(LocalFSMetricsTemplateData{
+		Channel:        "Experimental",
+		PassRateColumn: metricsPassRateColumn(),
+		ChannelParam:   experimentalParamName,
+	})
+
+	return localFSSelectQueryTemplate.Execute(LocalFSSelectTemplateData{
+		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
+			BaseQueryFragment:   f.buildBaseQueryFragment(),
+			StableMetrics:       stableMetrics,
+			ExperimentalMetrics: experimentalMetrics,
+		},
+	}), params
 }
