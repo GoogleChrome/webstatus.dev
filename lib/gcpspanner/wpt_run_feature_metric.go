@@ -35,7 +35,8 @@ type SpannerWPTRunFeatureMetric struct {
 	ID string `spanner:"ID"`
 	WPTRunFeatureMetric
 	// Calculated pass rate
-	PassRate *big.Rat `spanner:"PassRate"`
+	TestPassRate    *big.Rat `spanner:"TestPassRate"`
+	SubtestPassRate *big.Rat `spanner:"SubtestPassRate"`
 	// Denormalized data from wpt runs.
 	BrowserName string    `spanner:"BrowserName"`
 	Channel     string    `spanner:"Channel"`
@@ -44,9 +45,11 @@ type SpannerWPTRunFeatureMetric struct {
 
 // WPTRunFeatureMetric represents the metrics for a particular feature in a run.
 type WPTRunFeatureMetric struct {
-	FeatureID  string `spanner:"FeatureID"`
-	TotalTests *int64 `spanner:"TotalTests"`
-	TestPass   *int64 `spanner:"TestPass"`
+	FeatureID     string `spanner:"FeatureID"`
+	TotalTests    *int64 `spanner:"TotalTests"`
+	TestPass      *int64 `spanner:"TestPass"`
+	TotalSubtests *int64 `spanner:"TotalSubtests"`
+	SubtestPass   *int64 `spanner:"SubtestPass"`
 }
 
 func getPassRate(testPass, totalTests *int64) *big.Rat {
@@ -66,14 +69,21 @@ func (c *Client) CreateSpannerWPTRunFeatureMetric(
 		BrowserName:         wptRunData.BrowserName,
 		TimeStart:           wptRunData.TimeStart,
 		WPTRunFeatureMetric: in,
-		PassRate:            getPassRate(in.TestPass, in.TotalTests),
+		TestPassRate:        getPassRate(in.TestPass, in.TotalTests),
+		SubtestPassRate:     getPassRate(in.SubtestPass, in.TotalSubtests),
 	}
 }
 
 // UpsertWPTRunFeatureMetrics will upsert WPT Run metrics for a given WPT Run ID.
 // The RunID must exist in a row in the WPTRuns table.
 // If a metric does not exist, it will insert a new metric.
-// If a metric exists, it will only update the TotalTests, TestPass and PassRate columns.
+// If a metric exists, it will only update the following columns:
+//  1. TotalTests
+//  2. TestPass
+//  3. TestPassRate
+//  4. TotalSubtests
+//  5. SubtestPass
+//  6. SubtestPassRate
 func (c *Client) UpsertWPTRunFeatureMetrics(
 	ctx context.Context,
 	externalRunID int64,
@@ -90,7 +100,17 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 			metric := c.CreateSpannerWPTRunFeatureMetric(*wptRunData, inputMetric)
 			stmt := spanner.NewStatement(`
 			SELECT
-				ID, FeatureID, TotalTests, TestPass, TimeStart, PassRate, Channel, BrowserName
+				ID,
+				FeatureID,
+				TotalTests,
+				TestPass,
+				TestPassRate,
+				TotalSubtests,
+				SubtestPass,
+				SubtestPassRate,
+				TimeStart,
+				Channel,
+				BrowserName
 			FROM WPTRunFeatureMetrics
 			WHERE ID = @id AND FeatureID = @featureID
 			LIMIT 1`)
@@ -130,7 +150,10 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 				// Only allow overriding of the test numbers.
 				existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
 				existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
-				existingMetric.PassRate = getPassRate(existingMetric.TestPass, existingMetric.TotalTests)
+				existingMetric.TestPassRate = getPassRate(existingMetric.TestPass, existingMetric.TotalTests)
+				existingMetric.SubtestPass = cmp.Or[*int64](metric.SubtestPass, existingMetric.SubtestPass, nil)
+				existingMetric.TotalSubtests = cmp.Or[*int64](metric.TotalSubtests, existingMetric.TotalSubtests, nil)
+				existingMetric.SubtestPassRate = getPassRate(existingMetric.SubtestPass, existingMetric.TotalSubtests)
 				m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
 				if err != nil {
 					return errors.Join(ErrInternalQueryFailure, err)
@@ -160,6 +183,9 @@ type WPTRunFeatureMetricWithTime struct {
 	RunID      int64     `spanner:"ExternalRunID"`
 	TotalTests *int64    `spanner:"TotalTests"`
 	TestPass   *int64    `spanner:"TestPass"`
+	// TODO enable metrics over time endpoints soon.
+	// TotalSubtests *int64    `spanner:"TotalSubtests"`
+	// SubtestPass   *int64    `spanner:"SubtestPass"`
 }
 
 // ListMetricsForFeatureIDBrowserAndChannel attempts to return a page of

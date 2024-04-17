@@ -25,6 +25,7 @@ import (
 func (c *Client) GetFeature(
 	ctx context.Context,
 	filter Filterable,
+	wptMetricView WPTMetricView,
 ) (*FeatureResult, error) {
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
@@ -33,7 +34,8 @@ func (c *Client) GetFeature(
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 	b := GetFeatureQueryBuilder{
-		baseQuery: c.featureSearchQuery,
+		baseQuery:     c.featureSearchQuery,
+		wptMetricView: wptMetricView,
 	}
 	stmt := b.Build(prefilterResults, filter)
 

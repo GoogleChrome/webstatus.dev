@@ -38,18 +38,20 @@ var (
 )
 
 type mockFeaturesSearchConfig struct {
-	expectedPageToken *string
-	expectedPageSize  int
-	expectedSortable  gcpspanner.Sortable
-	expectedNode      *searchtypes.SearchNode
-	result            *gcpspanner.FeatureResultPage
-	returnedError     error
+	expectedPageToken     *string
+	expectedPageSize      int
+	expectedSortable      gcpspanner.Sortable
+	expectedNode          *searchtypes.SearchNode
+	expectedWPTMetricView gcpspanner.WPTMetricView
+	result                *gcpspanner.FeatureResultPage
+	returnedError         error
 }
 
 type mockGetFeatureConfig struct {
-	expectedFilterable gcpspanner.Filterable
-	result             *gcpspanner.FeatureResult
-	returnedError      error
+	expectedFilterable    gcpspanner.Filterable
+	expectedWPTMetricView gcpspanner.WPTMetricView
+	result                *gcpspanner.FeatureResult
+	returnedError         error
 }
 
 type mockGetIDByFeaturesIDConfig struct {
@@ -76,8 +78,11 @@ type mockBackendSpannerClient struct {
 }
 
 func (c mockBackendSpannerClient) GetFeature(
-	_ context.Context, filter gcpspanner.Filterable) (*gcpspanner.FeatureResult, error) {
-	if !reflect.DeepEqual(filter, c.mockGetFeatureCfg.expectedFilterable) {
+	_ context.Context,
+	filter gcpspanner.Filterable,
+	view gcpspanner.WPTMetricView) (*gcpspanner.FeatureResult, error) {
+	if !reflect.DeepEqual(filter, c.mockGetFeatureCfg.expectedFilterable) ||
+		view != c.mockGetFeatureCfg.expectedWPTMetricView {
 		c.t.Error("unexpected input to mock")
 	}
 
@@ -165,11 +170,13 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
-	sortOrder gcpspanner.Sortable) (*gcpspanner.FeatureResultPage, error) {
+	sortOrder gcpspanner.Sortable,
+	wptMetricView gcpspanner.WPTMetricView) (*gcpspanner.FeatureResultPage, error) {
 	if pageToken != c.mockFeaturesSearchCfg.expectedPageToken ||
 		pageSize != c.mockFeaturesSearchCfg.expectedPageSize ||
 		!reflect.DeepEqual(searchNode, c.mockFeaturesSearchCfg.expectedNode) ||
-		!reflect.DeepEqual(sortOrder, c.mockFeaturesSearchCfg.expectedSortable) {
+		!reflect.DeepEqual(sortOrder, c.mockFeaturesSearchCfg.expectedSortable) ||
+		wptMetricView != c.mockFeaturesSearchCfg.expectedWPTMetricView {
 		c.t.Error("unexpected input to mock")
 	}
 
@@ -498,13 +505,14 @@ func TestConvertBaselineStatusSpannerToBackend(t *testing.T) {
 
 func TestFeaturesSearch(t *testing.T) {
 	testCases := []struct {
-		name           string
-		cfg            mockFeaturesSearchConfig
-		inputPageToken *string
-		inputPageSize  int
-		searchNode     *searchtypes.SearchNode
-		sortOrder      *backend.GetV1FeaturesParamsSort
-		expectedPage   *backend.FeaturePage
+		name               string
+		cfg                mockFeaturesSearchConfig
+		inputPageToken     *string
+		inputPageSize      int
+		inputWPTMetricView backend.WPTMetricView
+		searchNode         *searchtypes.SearchNode
+		sortOrder          *backend.GetV1FeaturesParamsSort
+		expectedPage       *backend.FeaturePage
 	}{
 		{
 			name: "regular",
@@ -516,7 +524,8 @@ func TestFeaturesSearch(t *testing.T) {
 					Term:     nil,
 					Children: nil,
 				},
-				expectedSortable: gcpspanner.NewFeatureNameSort(true),
+				expectedWPTMetricView: gcpspanner.WPTSubtestView,
+				expectedSortable:      gcpspanner.NewFeatureNameSort(true),
 				result: &gcpspanner.FeatureResultPage{
 					Total:         100,
 					NextPageToken: nonNilNextPageToken,
@@ -574,7 +583,8 @@ func TestFeaturesSearch(t *testing.T) {
 				Term:     nil,
 				Children: nil,
 			},
-			sortOrder: nil,
+			sortOrder:          nil,
+			inputWPTMetricView: backend.SubtestCounts,
 			expectedPage: &backend.FeaturePage{
 				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nonNilNextPageToken,
@@ -646,7 +656,8 @@ func TestFeaturesSearch(t *testing.T) {
 				tc.inputPageToken,
 				tc.inputPageSize,
 				tc.searchNode,
-				tc.sortOrder)
+				tc.sortOrder,
+				tc.inputWPTMetricView)
 			if !errors.Is(err, tc.cfg.returnedError) {
 				t.Error("unexpected error")
 			}
@@ -736,16 +747,19 @@ func compareFeatureDataMap(m1, m2 *map[string]backend.WPTFeatureData) bool {
 
 func TestGetFeature(t *testing.T) {
 	testCases := []struct {
-		name            string
-		cfg             mockGetFeatureConfig
-		inputFeatureID  string
-		expectedFeature *backend.Feature
+		name               string
+		cfg                mockGetFeatureConfig
+		inputFeatureID     string
+		inputWPTMetricView backend.WPTMetricView
+		expectedFeature    *backend.Feature
 	}{
 		{
-			name:           "regular",
-			inputFeatureID: "feature1",
+			name:               "regular",
+			inputFeatureID:     "feature1",
+			inputWPTMetricView: backend.SubtestCounts,
 			cfg: mockGetFeatureConfig{
-				expectedFilterable: gcpspanner.NewFeatureIDFilter("feature1"),
+				expectedFilterable:    gcpspanner.NewFeatureIDFilter("feature1"),
+				expectedWPTMetricView: gcpspanner.WPTSubtestView,
 				result: &gcpspanner.FeatureResult{
 					Name:      "feature 1",
 					FeatureID: "feature1",
@@ -798,7 +812,7 @@ func TestGetFeature(t *testing.T) {
 			bk := NewBackend(mock)
 			feature, err := bk.GetFeature(
 				context.Background(),
-				tc.inputFeatureID)
+				tc.inputFeatureID, tc.inputWPTMetricView)
 			if !errors.Is(err, tc.cfg.returnedError) {
 				t.Error("unexpected error")
 			}

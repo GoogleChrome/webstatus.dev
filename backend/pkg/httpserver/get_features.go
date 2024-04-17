@@ -60,6 +60,7 @@ func (s *Server) GetV1Features(
 		getPageSizeOrDefault(req.Params.PageSize),
 		node,
 		req.Params.Sort,
+		getWPTMetricViewOrDefault(req.Params.WptMetricView),
 	)
 
 	if err != nil {
@@ -76,4 +77,16 @@ func (s *Server) GetV1Features(
 		Metadata: featurePage.Metadata,
 		Data:     featurePage.Data,
 	}, nil
+}
+
+func getWPTMetricViewOrDefault(in *backend.WPTMetricView) backend.WPTMetricView {
+	if in != nil {
+		switch *in {
+		case backend.SubtestCounts, backend.TestCounts:
+			return *in
+		}
+	}
+
+	// Default to subtest count if not specified or invalid metric view.
+	return backend.SubtestCounts
 }

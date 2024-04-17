@@ -61,7 +61,10 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     FeatureID STRING(64) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
-    PassRate NUMERIC,
+    TestPassRate NUMERIC,
+    TotalSubtests INT64,
+    SubtestPass INT64,
+    SubtestPassRate NUMERIC,
     -- Denormalized data from WPTRuns. This helps with aggregations over time.
     Channel STRING(32) NOT NULL,
     BrowserName STRING(64) NOT NULL,
@@ -79,7 +82,8 @@ CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetri
 CREATE INDEX MetricsFeatureChannelBrowserTime ON
   WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC);
 
-CREATE INDEX MetricsFeatureChannelBrowserTimePassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, PassRate);
+CREATE INDEX MetricsFeatureChannelBrowserTimeTestPassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, TestPassRate);
+CREATE INDEX MetricsFeatureChannelBrowserTimeSubtestPassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, SubtestPassRate);
 
 
 -- BrowserReleases contains information regarding browser releases.
