@@ -43,7 +43,8 @@ func (f FeatureIDFilter) Params() map[string]interface{} {
 
 // GetFeatureQueryBuilder builds a query to search for one feature.
 type GetFeatureQueryBuilder struct {
-	baseQuery FeatureSearchBaseQuery
+	baseQuery     FeatureSearchBaseQuery
+	wptMetricView WPTMetricView
 }
 
 func (q GetFeatureQueryBuilder) Build(
@@ -55,7 +56,7 @@ func (q GetFeatureQueryBuilder) Build(
 		maps.Copy(filterParams, filter.Params())
 	}
 
-	sql, params := q.baseQuery.Query(prefilter)
+	sql, params := q.baseQuery.Query(prefilter, q.wptMetricView)
 	maps.Copy(filterParams, params)
 
 	stmt := spanner.NewStatement(

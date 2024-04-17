@@ -50,10 +50,12 @@ type BackendSpannerClient interface {
 		pageSize int,
 		searchNode *searchtypes.SearchNode,
 		sortOrder gcpspanner.Sortable,
+		wptMetricView gcpspanner.WPTMetricView,
 	) (*gcpspanner.FeatureResultPage, error)
 	GetFeature(
 		ctx context.Context,
 		filter gcpspanner.Filterable,
+		wptMetricView gcpspanner.WPTMetricView,
 	) (*gcpspanner.FeatureResult, error)
 	GetIDFromFeatureID(
 		ctx context.Context,
@@ -255,15 +257,29 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 	}
 }
 
+func getSpannerWPTMetricView(wptMetricView backend.WPTMetricView) gcpspanner.WPTMetricView {
+	switch wptMetricView {
+	case backend.SubtestCounts:
+		return gcpspanner.WPTSubtestView
+	case backend.TestCounts:
+		return gcpspanner.WPTTestView
+	}
+
+	// Default to subtest view for unknown
+	return gcpspanner.WPTSubtestView
+}
+
 func (s *Backend) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder *backend.GetV1FeaturesParamsSort,
+	wptMetricView backend.WPTMetricView,
 ) (*backend.FeaturePage, error) {
 	spannerSortOrder := getFeatureSearchSortOrder(sortOrder)
-	page, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode, spannerSortOrder)
+	page, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode,
+		spannerSortOrder, getSpannerWPTMetricView(wptMetricView))
 	if err != nil {
 		return nil, err
 	}
@@ -311,9 +327,10 @@ func getFeatureSearchSortOrder(
 func (s *Backend) GetFeature(
 	ctx context.Context,
 	featureID string,
+	wptMetricView backend.WPTMetricView,
 ) (*backend.Feature, error) {
 	filter := gcpspanner.NewFeatureIDFilter(featureID)
-	featureResult, err := s.client.GetFeature(ctx, filter)
+	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView))
 	if err != nil {
 		return nil, err
 	}

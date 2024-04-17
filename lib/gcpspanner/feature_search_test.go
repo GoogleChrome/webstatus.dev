@@ -263,128 +263,158 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		{
 			ExternalRunID: 0,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](10),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](20),
+				TestPass:      valuePtr[int64](10),
+				TotalSubtests: valuePtr[int64](220),
+				SubtestPass:   valuePtr[int64](110),
 			},
 		},
 		{
 			ExternalRunID: 0,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](5),
-				TestPass:   valuePtr[int64](0),
+				FeatureID:     "feature2",
+				TotalTests:    valuePtr[int64](5),
+				TestPass:      valuePtr[int64](0),
+				TotalSubtests: valuePtr[int64](55),
+				SubtestPass:   valuePtr[int64](11),
 			},
 		},
 		{
 			ExternalRunID: 0,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature3",
-				TotalTests: valuePtr[int64](50),
-				TestPass:   valuePtr[int64](5),
+				FeatureID:     "feature3",
+				TotalTests:    valuePtr[int64](50),
+				TestPass:      valuePtr[int64](5),
+				TotalSubtests: valuePtr[int64](5000),
+				SubtestPass:   valuePtr[int64](150),
 			},
 		},
 		// Run 1 metrics - fooBrowser - experimental
 		{
 			ExternalRunID: 1,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](20),
+				TestPass:      valuePtr[int64](20),
+				TotalSubtests: valuePtr[int64](200),
+				SubtestPass:   valuePtr[int64](200),
 			},
 		},
 		// Run 2 metrics - barBrowser - stable
 		{
 			ExternalRunID: 2,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](10),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](20),
+				TestPass:      valuePtr[int64](10),
+				TotalSubtests: valuePtr[int64](200),
+				SubtestPass:   valuePtr[int64](15),
 			},
 		},
 		// Run 3 metrics - barBrowser - experimental
 		{
 			ExternalRunID: 3,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](10),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](20),
+				TestPass:      valuePtr[int64](10),
+				TotalSubtests: valuePtr[int64](700),
+				SubtestPass:   valuePtr[int64](250),
 			},
 		},
 		// Run 6 metrics - fooBrowser - stable
 		{
 			ExternalRunID: 6,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](20),
+				TestPass:      valuePtr[int64](20),
+				TotalSubtests: valuePtr[int64](1000),
+				SubtestPass:   valuePtr[int64](1000),
 			},
 		},
 		{
 			ExternalRunID: 6,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](10),
-				TestPass:   valuePtr[int64](0),
+				FeatureID:     "feature2",
+				TotalTests:    valuePtr[int64](10),
+				TestPass:      valuePtr[int64](0),
+				TotalSubtests: valuePtr[int64](100),
+				SubtestPass:   valuePtr[int64](15),
 			},
 		},
 		{
 			ExternalRunID: 6,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature3",
-				TotalTests: valuePtr[int64](50),
-				TestPass:   valuePtr[int64](35),
+				FeatureID:     "feature3",
+				TotalTests:    valuePtr[int64](50),
+				TestPass:      valuePtr[int64](35),
+				TotalSubtests: valuePtr[int64](9000),
+				SubtestPass:   valuePtr[int64](4000),
 			},
 		},
 		// Run 7 metrics - fooBrowser - experimental
 		{
 			ExternalRunID: 7,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](11),
-				TestPass:   valuePtr[int64](11),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](11),
+				TestPass:      valuePtr[int64](11),
+				TotalSubtests: valuePtr[int64](11),
+				SubtestPass:   valuePtr[int64](11),
 			},
 		},
 		{
 			ExternalRunID: 7,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](12),
-				TestPass:   valuePtr[int64](12),
+				FeatureID:     "feature2",
+				TotalTests:    valuePtr[int64](12),
+				TestPass:      valuePtr[int64](12),
+				TotalSubtests: valuePtr[int64](12),
+				SubtestPass:   valuePtr[int64](12),
 			},
 		},
 		// Run 8 metrics - barBrowser - stable
 		{
 			ExternalRunID: 8,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](33),
-				TestPass:   valuePtr[int64](33),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](33),
+				TestPass:      valuePtr[int64](33),
+				TotalSubtests: valuePtr[int64](333),
+				SubtestPass:   valuePtr[int64](333),
 			},
 		},
 		{
 			ExternalRunID: 8,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](10),
-				TestPass:   valuePtr[int64](10),
+				FeatureID:     "feature2",
+				TotalTests:    valuePtr[int64](10),
+				TestPass:      valuePtr[int64](10),
+				TotalSubtests: valuePtr[int64](100),
+				SubtestPass:   valuePtr[int64](100),
 			},
 		},
 		// Run 9 metrics - barBrowser - experimental
 		{
 			ExternalRunID: 9,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](220),
-				TestPass:   valuePtr[int64](220),
+				FeatureID:     "feature1",
+				TotalTests:    valuePtr[int64](220),
+				TestPass:      valuePtr[int64](220),
+				TotalSubtests: valuePtr[int64](2220),
+				SubtestPass:   valuePtr[int64](2220),
 			},
 		},
 		{
 			ExternalRunID: 9,
 			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](120),
-				TestPass:   valuePtr[int64](120),
+				FeatureID:     "feature2",
+				TotalTests:    valuePtr[int64](120),
+				TestPass:      valuePtr[int64](120),
+				TotalSubtests: valuePtr[int64](1220),
+				SubtestPass:   valuePtr[int64](1220),
 			},
 		},
 	}
@@ -401,6 +431,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 
 func defaultSorting() Sortable {
 	return NewFeatureNameSort(true)
+}
+
+func defaultWPTMetricView() WPTMetricView {
+	// TODO. For now, default to the view mode. Switch to the subtest later.
+	return WPTTestView
 }
 
 func sortMetricsByBrowserName(metrics []*FeatureResultMetric) {
@@ -1308,6 +1343,9 @@ func assertFeatureSearch(
 		args.pageSize,
 		args.node,
 		args.sort,
+		// TODO. When the tests assert both views, remove this and allow the test
+		// to pass this.
+		defaultWPTMetricView(),
 	)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())

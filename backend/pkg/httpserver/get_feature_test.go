@@ -36,7 +36,8 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID: "feature1",
+				expectedFeatureID:     "feature1",
+				expectedWPTMetricView: backend.SubtestCounts,
 				data: &backend.Feature{
 					BaselineStatus: backend.Widely,
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
@@ -68,15 +69,61 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesFeatureIdRequestObject{
 				FeatureId: "feature1",
+				Params: backend.GetV1FeaturesFeatureIdParams{
+					WptMetricView: nil,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Success Case - with optional params",
+			mockConfig: MockGetFeatureByIDConfig{
+				expectedFeatureID:     "feature1",
+				expectedWPTMetricView: backend.TestCounts,
+				data: &backend.Feature{
+					BaselineStatus: backend.Widely,
+					BrowserImplementations: &map[string]backend.BrowserImplementation{
+						"chrome": {
+							Status: valuePtr(backend.FullyImplemented),
+						},
+					},
+					FeatureId: "feature1",
+					Name:      "feature 1",
+					Spec:      nil,
+					Usage:     nil,
+					Wpt:       nil,
+				},
+				err: nil,
+			},
+			expectedCallCount: 1,
+			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
+				BaselineStatus: backend.Widely,
+				BrowserImplementations: &map[string]backend.BrowserImplementation{
+					"chrome": {
+						Status: valuePtr(backend.FullyImplemented),
+					},
+				},
+				FeatureId: "feature1",
+				Name:      "feature 1",
+				Spec:      nil,
+				Usage:     nil,
+				Wpt:       nil,
+			},
+			request: backend.GetV1FeaturesFeatureIdRequestObject{
+				FeatureId: "feature1",
+				Params: backend.GetV1FeaturesFeatureIdParams{
+					WptMetricView: valuePtr(backend.TestCounts),
+				},
 			},
 			expectedError: nil,
 		},
 		{
 			name: "404",
 			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID: "feature1",
-				data:              nil,
-				err:               gcpspanner.ErrQueryReturnedNoResults,
+				expectedFeatureID:     "feature1",
+				expectedWPTMetricView: backend.SubtestCounts,
+				data:                  nil,
+				err:                   gcpspanner.ErrQueryReturnedNoResults,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId404JSONResponse{
@@ -85,15 +132,19 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesFeatureIdRequestObject{
 				FeatureId: "feature1",
+				Params: backend.GetV1FeaturesFeatureIdParams{
+					WptMetricView: nil,
+				},
 			},
 			expectedError: nil,
 		},
 		{
 			name: "500",
 			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID: "feature1",
-				data:              nil,
-				err:               errTest,
+				expectedFeatureID:     "feature1",
+				expectedWPTMetricView: backend.SubtestCounts,
+				data:                  nil,
+				err:                   errTest,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId500JSONResponse{
@@ -102,6 +153,9 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			},
 			request: backend.GetV1FeaturesFeatureIdRequestObject{
 				FeatureId: "feature1",
+				Params: backend.GetV1FeaturesFeatureIdParams{
+					WptMetricView: nil,
+				},
 			},
 			expectedError: nil,
 		},
