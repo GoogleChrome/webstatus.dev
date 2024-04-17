@@ -438,6 +438,12 @@ func defaultWPTMetricView() WPTMetricView {
 	return WPTTestView
 }
 
+func sortImplementationStatusesByBrowserName(statuses []*ImplementationStatus) {
+	sort.Slice(statuses, func(i, j int) bool {
+		return statuses[i].BrowserName < statuses[j].BrowserName
+	})
+}
+
 func sortMetricsByBrowserName(metrics []*FeatureResultMetric) {
 	sort.Slice(metrics, func(i, j int) bool {
 		return metrics[i].BrowserName < metrics[j].BrowserName
@@ -457,6 +463,7 @@ func stabilizeFeatureResults(results []FeatureResult) {
 func stabilizeFeatureResult(result FeatureResult) {
 	sortMetricsByBrowserName(result.StableMetrics)
 	sortMetricsByBrowserName(result.ExperimentalMetrics)
+	sortImplementationStatusesByBrowserName(result.ImplementationStatuses)
 
 }
 
@@ -501,6 +508,16 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					PassRate:    big.NewRat(11, 11),
 				},
 			},
+			ImplementationStatuses: []*ImplementationStatus{
+				{
+					BrowserName:          "barBrowser",
+					ImplementationStatus: Available,
+				},
+				{
+					BrowserName:          "fooBrowser",
+					ImplementationStatus: Available,
+				},
+			},
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -527,6 +544,12 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					PassRate:    big.NewRat(12, 12),
 				},
 			},
+			ImplementationStatuses: []*ImplementationStatus{
+				{
+					BrowserName:          "barBrowser",
+					ImplementationStatus: Available,
+				},
+			},
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -540,14 +563,21 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				},
 			},
 			ExperimentalMetrics: nil,
+			ImplementationStatuses: []*ImplementationStatus{
+				{
+					BrowserName:          "fooBrowser",
+					ImplementationStatus: Available,
+				},
+			},
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
-			FeatureID:           "feature4",
-			Name:                "Feature 4",
-			Status:              string(BaselineStatusUndefined),
-			StableMetrics:       nil,
-			ExperimentalMetrics: nil,
+			FeatureID:              "feature4",
+			Name:                   "Feature 4",
+			Status:                 string(BaselineStatusUndefined),
+			StableMetrics:          nil,
+			ExperimentalMetrics:    nil,
+			ImplementationStatuses: nil,
 		}
 	}
 
@@ -1374,11 +1404,19 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		a.Name != b.Name ||
 		a.Status != b.Status ||
 		!AreMetricsEqual(a.StableMetrics, b.StableMetrics) ||
-		!AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) {
+		!AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) ||
+		!AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) {
 		return false
 	}
 
 	return true
+}
+
+func AreImplementationStatusesEqual(a, b []*ImplementationStatus) bool {
+	return slices.EqualFunc[[]*ImplementationStatus](a, b, func(a, b *ImplementationStatus) bool {
+		return a.BrowserName == b.BrowserName &&
+			(a.ImplementationStatus == b.ImplementationStatus)
+	})
 }
 
 func AreMetricsEqual(a, b []*FeatureResultMetric) bool {
@@ -1407,7 +1445,22 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	for _, metric := range result.ExperimentalMetrics {
 		fmt.Fprint(&builder, PrettyPrintMetric(metric))
 	}
+	fmt.Fprintln(&builder, "\tImplementation Statuses:")
+	for _, status := range result.ImplementationStatuses {
+		fmt.Fprint(&builder, PrettyPrintImplementationStatus(status))
+	}
 	fmt.Fprintln(&builder)
+
+	return builder.String()
+}
+
+func PrettyPrintImplementationStatus(status *ImplementationStatus) string {
+	var builder strings.Builder
+	if status == nil {
+		return "\t\tNIL STATUS\n"
+	}
+	fmt.Fprintf(&builder, "\t\tBrowserName: %s\n", status.BrowserName)
+	fmt.Fprintf(&builder, "\t\tStatus: %s\n", status.ImplementationStatus)
 
 	return builder.String()
 }

@@ -61,18 +61,15 @@ export class WebstatusOverviewTable extends LitElement {
           background: var(--chip-background-widely);
           color: var(--chip-color-widely);
         }
-        .browser-impl-not {
-          color: var(--icon-color-avail-not);
-        }
-        .browser-impl-unknown {
-          color: var(--icon-color-avail-unknown);
+        .browser-impl-unavailable {
+          color: var(--icon-color-avail-unavailable);
         }
         .percent {
           display: inline-block;
           width: 6ex;
           text-align: right;
         }
-        .browser-impl-not .percent {
+        .browser-impl-unavailable .percent {
           text-align: left;
         }
 

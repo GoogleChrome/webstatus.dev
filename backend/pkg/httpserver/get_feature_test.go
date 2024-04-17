@@ -42,7 +42,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 					BaselineStatus: backend.Widely,
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
-							Status: valuePtr(backend.FullyImplemented),
+							Status: valuePtr(backend.Available),
 						},
 					},
 					FeatureId: "feature1",
@@ -58,7 +58,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				BaselineStatus: backend.Widely,
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
 					"chrome": {
-						Status: valuePtr(backend.FullyImplemented),
+						Status: valuePtr(backend.Available),
 					},
 				},
 				FeatureId: "feature1",
@@ -84,7 +84,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 					BaselineStatus: backend.Widely,
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
-							Status: valuePtr(backend.FullyImplemented),
+							Status: valuePtr(backend.Available),
 						},
 					},
 					FeatureId: "feature1",
@@ -100,7 +100,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				BaselineStatus: backend.Widely,
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
 					"chrome": {
-						Status: valuePtr(backend.FullyImplemented),
+						Status: valuePtr(backend.Available),
 					},
 				},
 				FeatureId: "feature1",

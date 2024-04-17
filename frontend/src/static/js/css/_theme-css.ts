@@ -82,8 +82,7 @@ export const THEME = css`
     --chip-background-widely: var(--color-green-bg);
     --chip-color-widely: var(--color-green-fg);
 
-    --icon-color-avail-unknown: var(--color-yellow-fg);
-    --icon-color-avail-not: var(--color-red-fg);
+    --icon-color-avail-unavailable: var(--color-red-fg);
 
     --chip-small-font-size: 60%;
     --chip-background-unchanged: var(--color-gray-bg);
