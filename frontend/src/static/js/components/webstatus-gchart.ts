@@ -43,17 +43,12 @@ export class WebstatusGChart extends LitElement {
 
   constructor() {
     super();
-    this.chartWrapper = new google.visualization.ChartWrapper({
-      containerId: this.containerId,
-      chartType: this.chartType,
-      options: this.options,
-      dataTable: this.dataTable,
-    });
+    this.chartWrapper = new google.visualization.ChartWrapper();
 
     // Since ChartWrapper wants to look up the container element by id,
-    // which would fail to find it in the shadowDom, we have to replace the
+    // but it would fail to find it in the shadowDom, we have to replace the
     // chartWrapper.getContainer method with a function that returns the div
-    // corresponding to this.containerId
+    // corresponding to this.containerId, which we know how to find.
     (
       this.chartWrapper as unknown as {getContainer: () => Element}
     ).getContainer = () => {
