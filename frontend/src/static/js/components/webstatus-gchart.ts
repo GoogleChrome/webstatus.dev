@@ -18,7 +18,11 @@
 /// <reference types="@types/google.visualization" />
 
 import {consume} from '@lit/context';
-import {LitElement, type TemplateResult, html, PropertyValues} from 'lit';
+import {
+  LitElement,
+  type TemplateResult,
+  type CSSResultGroup,
+  css, html, PropertyValues} from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
 
@@ -59,6 +63,23 @@ export class WebstatusGChart extends LitElement {
   @state()
   chartWrapper: google.visualization.ChartWrapper | undefined;
 
+
+  static get styles(): CSSResultGroup {
+    return [
+      css`
+      :host {
+        display: block;
+      }
+      #chart_div {
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        border: 0;
+      }
+    `];
+  }
+
   // Convert the WebStatusDataObj to a DataTable.
   convertWebStatusDataObjToDataTable(dataObj: WebStatusDataObj):
     google.visualization.DataTable {
@@ -78,7 +99,6 @@ export class WebstatusGChart extends LitElement {
       <div
         id="${this.containerId!}"
         class="chart_div"
-        style="padding: 0; margin: 0; border: 0"
       >
       Loading chart library.
     </div>
