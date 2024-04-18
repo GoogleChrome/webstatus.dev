@@ -28,8 +28,12 @@ import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 
-import {type APIClient} from '../api/client.js';
-import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
+import {FeatureWPTMetricViewType, type APIClient} from '../api/client.js';
+import {
+  formatFeaturePageUrl,
+  formatOverviewPageUrl,
+  getWPTMetricView,
+} from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {
   BASELINE_CHIP_CONFIGS,
@@ -132,7 +136,10 @@ export class FeaturePage extends LitElement {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
-          this.feature = await apiClient.getFeature(featureId);
+          const wptMetricView = getWPTMetricView(
+            location
+          ) as FeatureWPTMetricViewType;
+          this.feature = await apiClient.getFeature(featureId, wptMetricView);
         }
         return this.feature;
       },

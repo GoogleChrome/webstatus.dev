@@ -37,6 +37,10 @@ export function getPaginationStart(location: {search: string}): number {
   return Number(getQueryParam(location.search, 'start'));
 }
 
+export function getWPTMetricView(location: {search: string}): string {
+  return getQueryParam(location.search, 'wpt_metric_view');
+}
+
 export const DEFAULT_ITEMS_PER_PAGE = 25;
 export function getPageSize(location: {search: string}): number {
   const num = Number(
@@ -51,6 +55,7 @@ type QueryStringOverrides = {
   num?: number;
   sort?: string;
   columns?: string[];
+  wpt_metric_view?: string;
 };
 
 /* Given the router location object, return a query string with
@@ -89,6 +94,14 @@ function getContextualQueryStringParams(
   const num = 'num' in overrides ? overrides.num : getPageSize(location);
   if (num !== DEFAULT_ITEMS_PER_PAGE) {
     searchParams.set('num', '' + num);
+  }
+
+  const wptMetricView =
+    'wpt_metric_view' in overrides
+      ? overrides.wpt_metric_view
+      : getWPTMetricView(location);
+  if (wptMetricView) {
+    searchParams.set('wpt_metric_view', wptMetricView);
   }
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';
