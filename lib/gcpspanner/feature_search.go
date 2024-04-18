@@ -29,12 +29,27 @@ import (
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user.
 type SpannerFeatureResult struct {
-	ID                  string                 `spanner:"ID"`
-	FeatureID           string                 `spanner:"FeatureID"`
-	Name                string                 `spanner:"Name"`
-	Status              string                 `spanner:"Status"`
-	StableMetrics       []*FeatureResultMetric `spanner:"StableMetrics"`
-	ExperimentalMetrics []*FeatureResultMetric `spanner:"ExperimentalMetrics"`
+	ID                     string                  `spanner:"ID"`
+	FeatureID              string                  `spanner:"FeatureID"`
+	Name                   string                  `spanner:"Name"`
+	Status                 string                  `spanner:"Status"`
+	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
+	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
+	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
+}
+
+// BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
+type BrowserImplementationStatus string
+
+const (
+	Available   BrowserImplementationStatus = "available"
+	Unavailable BrowserImplementationStatus = "unavailable"
+)
+
+// ImplementationStatus contains the implementation status information for a given browser.
+type ImplementationStatus struct {
+	BrowserName          string                      `spanner:"BrowserName"`
+	ImplementationStatus BrowserImplementationStatus `spanner:"ImplementationStatus"`
 }
 
 // FeatureResultMetric contains metric information for a feature result query.
@@ -46,11 +61,12 @@ type FeatureResultMetric struct {
 
 // FeatureResult contains information regarding a particular feature.
 type FeatureResult struct {
-	FeatureID           string                 `spanner:"FeatureID"`
-	Name                string                 `spanner:"Name"`
-	Status              string                 `spanner:"Status"`
-	StableMetrics       []*FeatureResultMetric `spanner:"StableMetrics"`
-	ExperimentalMetrics []*FeatureResultMetric `spanner:"ExperimentalMetrics"`
+	FeatureID              string                  `spanner:"FeatureID"`
+	Name                   string                  `spanner:"Name"`
+	Status                 string                  `spanner:"Status"`
+	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
+	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
+	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
 }
 
 // FeatureResultPage contains the details for the feature search request.
@@ -193,12 +209,21 @@ func (c *Client) getFeatureResult(
 			// If we removed everything, just set it to nil
 			result.ExperimentalMetrics = nil
 		}
+
+		result.ImplementationStatuses = slices.DeleteFunc[[]*ImplementationStatus](
+			result.ImplementationStatuses, findImplementationStatusDefaultPlaceHolder)
+		if len(result.ImplementationStatuses) == 0 {
+			// If we removed everything, just set it to nil
+			result.ImplementationStatuses = nil
+		}
+
 		actualResult := FeatureResult{
-			FeatureID:           result.FeatureID,
-			Name:                result.Name,
-			Status:              result.Status,
-			StableMetrics:       result.StableMetrics,
-			ExperimentalMetrics: result.ExperimentalMetrics,
+			FeatureID:              result.FeatureID,
+			Name:                   result.Name,
+			Status:                 result.Status,
+			StableMetrics:          result.StableMetrics,
+			ExperimentalMetrics:    result.ExperimentalMetrics,
+			ImplementationStatuses: result.ImplementationStatuses,
 		}
 		results = append(results, actualResult)
 	}
@@ -217,4 +242,14 @@ func findDefaultPlaceHolder(in *FeatureResultMetric) bool {
 	}
 
 	return in.BrowserName == "" && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0
+}
+
+// The base query has a solution that works on both GCP Spanner and Emulator that if it finds
+// a null array, put a placeholder in there. This function exists to find it and remove it before returning.
+func findImplementationStatusDefaultPlaceHolder(in *ImplementationStatus) bool {
+	if in == nil {
+		return false
+	}
+
+	return in.BrowserName == "" && in.ImplementationStatus == Unavailable
 }

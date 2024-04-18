@@ -103,9 +103,10 @@ func (t *BaseQueryTemplate) Execute(data any) string {
 }
 
 type CommonFSSelectTemplateData struct {
-	BaseQueryFragment   string
-	StableMetrics       string
-	ExperimentalMetrics string
+	BaseQueryFragment    string
+	StableMetrics        string
+	ExperimentalMetrics  string
+	ImplementationStatus string
 }
 
 // GCPFSSelectTemplateData contains the template for gcpFSSelectQueryTemplate.
@@ -323,6 +324,30 @@ LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
 
+	// commonFSImplementationStatusRawTemplate returns an array of structs that represent the implementation status.
+	commonFSImplementationStatusRawTemplate = `
+COALESCE(
+	(
+		SELECT ARRAY_AGG(
+			STRUCT(
+				BrowserName,
+				CASE WHEN bfa.FeatureID IS NOT NULL THEN 'available' ELSE 'unavailable' END AS ImplementationStatus)
+		)
+		FROM BrowserFeatureAvailabilities bfa
+		WHERE bfa.FeatureID = wf.FeatureID
+	),
+	(
+		SELECT ARRAY(
+	   		SELECT AS STRUCT
+				'' BrowserName,
+				'unavailable' AS ImplementationStatus
+		)
+	)
+) AS ImplementationStatuses
+`
+	gcpFSImplementationStatusRawTemplate   = commonFSImplementationStatusRawTemplate
+	localFSImplementationStatusRawTemplate = commonFSImplementationStatusRawTemplate
+
 	// commonCountQueryRawTemplate returns the count of items, using the base query fragment
 	// for consistency.
 	commonCountQueryRawTemplate = `
@@ -340,7 +365,8 @@ SELECT COUNT(*) {{ .BaseQueryFragment }}
 		wf.Name,
 		COALESCE(fbs.Status, 'undefined') AS Status,
 		{{ .StableMetrics }},
-		{{ .ExperimentalMetrics }}
+		{{ .ExperimentalMetrics }},
+		{{ .ImplementationStatus }}
 	{{ .BaseQueryFragment }}
 `
 	localFSSelectQueryRawTemplate = `
@@ -373,7 +399,8 @@ SELECT
 	wf.Name,
 	COALESCE(fbs.Status, 'undefined') AS Status,
 	{{ .StableMetrics }},
-	{{ .ExperimentalMetrics }}
+	{{ .ExperimentalMetrics }},
+	{{ .ImplementationStatus }}
 {{ .BaseQueryFragment }}
 `
 
@@ -458,9 +485,10 @@ func (f GCPFeatureSearchBaseQuery) Query(prefilter FeatureSearchPrefilterResult,
 
 	return gcpFSSelectQueryTemplate.Execute(GCPFSSelectTemplateData{
 		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
-			BaseQueryFragment:   f.buildBaseQueryFragment(),
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
+			BaseQueryFragment:    f.buildBaseQueryFragment(),
+			StableMetrics:        stableMetrics,
+			ExperimentalMetrics:  experimentalMetrics,
+			ImplementationStatus: gcpFSImplementationStatusRawTemplate,
 		},
 	}), params
 }
@@ -523,9 +551,10 @@ func (f LocalFeatureBaseQuery) Query(_ FeatureSearchPrefilterResult, metricView 
 	return localFSSelectQueryTemplate.Execute(LocalFSSelectTemplateData{
 		PassRateColumn: metricsPassRateColumn(metricView),
 		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
-			BaseQueryFragment:   f.buildBaseQueryFragment(),
-			StableMetrics:       stableMetrics,
-			ExperimentalMetrics: experimentalMetrics,
+			BaseQueryFragment:    f.buildBaseQueryFragment(),
+			StableMetrics:        stableMetrics,
+			ExperimentalMetrics:  experimentalMetrics,
+			ImplementationStatus: localFSImplementationStatusRawTemplate,
 		},
 	}), params
 }
