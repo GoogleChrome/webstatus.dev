@@ -33,6 +33,8 @@ import {
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
 
+import './webstatus-gchart.js';
+
 // No way to get the values from the parameter types, so we have to
 // redundantly specify them.
 const ALL_BROWSERS: BrowsersParameter[] = [
@@ -77,6 +79,9 @@ export class StatsPage extends LitElement {
   @state()
   globalFeatureSupport = new Map<string, Array<WPTRunMetric>>();
 
+  @state()
+  globalFeatureSupportChartOptions = {};
+
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -119,23 +124,18 @@ export class StatsPage extends LitElement {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
-    this.drawGlobalFeatureSupportChart();
   }
 
   handleStartDateChange(event: Event) {
     const currentStartDate = this.startDate;
     this.startDate = new Date((event.target as HTMLInputElement).value);
     if (this.startDate.getTime() === currentStartDate.getTime()) return;
-    // Regenerate data and redraw.  We should instead just filter it.
-    this.drawGlobalFeatureSupportChart();
   }
 
   handleEndDateChange(event: Event) {
     const currentEndDate = this.endDate;
     this.endDate = new Date((event.target as HTMLInputElement).value);
     if (this.endDate.getTime() === currentEndDate.getTime()) return;
-    // Regenerate data and redraw.  We should instead just filter it.
-    this.drawGlobalFeatureSupportChart();
   }
 
   globalFeatureSupportResizeObserver: ResizeObserver | null = null;
@@ -148,7 +148,7 @@ export class StatsPage extends LitElement {
       );
       if (!gfsChartElement) return;
       this.globalFeatureSupportResizeObserver = new ResizeObserver(() => {
-        this.drawGlobalFeatureSupportChart();
+        // TODO: trigger update based on resize.
       });
       this.globalFeatureSupportResizeObserver.observe(gfsChartElement);
     }
@@ -203,10 +203,6 @@ export class StatsPage extends LitElement {
         return this.globalFeatureSupport;
       },
     });
-  }
-
-  updated() {
-    this.drawGlobalFeatureSupportChart();
   }
 
   // Make a DataTable from the data in globalFeatureSupport
@@ -267,17 +263,7 @@ export class StatsPage extends LitElement {
     return dataTable;
   }
 
-  drawGlobalFeatureSupportChart(): void {
-    if (!this.gchartsLibraryLoaded) return;
-
-    const gfsChartElement = this.shadowRoot!.getElementById(
-      'global-feature-support-chart'
-    );
-    if (!gfsChartElement) return;
-    this.setupResizeObserver();
-
-    const datatable = this.createGlobalFeatureSupportDataTableFromMap();
-
+  generateGlobalFeatureSupportChartOptions(): google.visualization.LineChartOptions {
     // Add 2 weeks to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
@@ -288,11 +274,11 @@ export class StatsPage extends LitElement {
       },
       vAxis: {minValue: 0},
       legend: {position: 'top'},
-      chartArea: {left: 60, right: 16, top: 40, bottom: 40},
+      chartArea: {left: 100, right: 16, top: 40, bottom: 40},
     } as google.visualization.LineChartOptions;
 
-    const chart = new google.visualization.LineChart(gfsChartElement);
-    chart.draw(datatable, options);
+    this.globalFeatureSupportChartOptions = options;
+    return options;
   }
 
   renderTitleAndControls(): TemplateResult {
@@ -331,12 +317,15 @@ export class StatsPage extends LitElement {
 
   renderGlobalFeatureSupportChartWhenComplete(): TemplateResult {
     return html`
-      <div
+      <webstatus-gchart
         id="global-feature-support-chart"
-        style="padding: 0; margin: 0; border: 0"
+        .containerId="${'global-feature-support-chart-container'}"
+        .chartType="${'LineChart'}"
+        .dataTable="${this.createGlobalFeatureSupportDataTableFromMap()}"
+        .options="${this.generateGlobalFeatureSupportChartOptions()}"
       >
         Loading chart...
-      </div>
+      </webstatus-gchart>
     `;
   }
 
