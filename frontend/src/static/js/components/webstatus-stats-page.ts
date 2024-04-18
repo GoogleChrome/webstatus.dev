@@ -14,9 +14,6 @@
  * limitations under the License.
  */
 
-// See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
-/// <reference types="@types/google.visualization" />
-
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
@@ -31,9 +28,9 @@ import {
   type WPTRunMetric,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import {gchartsContext} from '../contexts/gcharts-context.js';
 
-import './webstatus-gchart.js';
+import './webstatus-gchart';
+import { WebStatusDataObj } from './webstatus-gchart.js';
 
 // No way to get the values from the parameter types, so we have to
 // redundantly specify them.
@@ -53,14 +50,11 @@ function globalFeatureSupportKey(
   return `${browser}-${channel}`;
 }
 
+
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
   @state()
   _loadingGFSTask: Task;
-
-  @consume({context: gchartsContext, subscribe: true})
-  @state()
-  gchartsLibraryLoaded = false;
 
   @consume({context: apiClientContext})
   apiClient!: APIClient;
@@ -81,6 +75,9 @@ export class StatsPage extends LitElement {
 
   @state()
   globalFeatureSupportChartOptions = {};
+
+  @state()
+    globalFeatureSupportChartDataObj: WebStatusDataObj | undefined;
 
   static get styles(): CSSResultGroup {
     return [
@@ -174,6 +171,7 @@ export class StatsPage extends LitElement {
         );
       }
     }
+    this.globalFeatureSupportChartDataObj = this.createGlobalFeatureSupportDataFromMap();
   }
 
   constructor() {
@@ -185,38 +183,34 @@ export class StatsPage extends LitElement {
           this.apiClient,
           this.startDate,
           this.endDate,
-          this.gchartsLibraryLoaded,
-        ] as [APIClient, Date, Date, boolean],
-      task: async ([apiClient, startDate, endDate, gcLoaded]: [
+        ] as [APIClient, Date, Date],
+      task: async ([apiClient, startDate, endDate]: [
         APIClient,
         Date,
         Date,
-        boolean,
       ]) => {
-        if (gcLoaded) {
-          await this._fetchGlobalFeatureSupportData(
-            apiClient,
-            startDate,
-            endDate
-          );
-        }
+        await this._fetchGlobalFeatureSupportData(
+          apiClient,
+          startDate,
+          endDate
+        );
         return this.globalFeatureSupport;
       },
     });
   }
 
   // Make a DataTable from the data in globalFeatureSupport
-  createGlobalFeatureSupportDataTableFromMap(): google.visualization.DataTable {
+  createGlobalFeatureSupportDataFromMap(): WebStatusDataObj {
     // Get the list of browsers from globalFeatureSupport
     const browsers = this.globalFeatureSupportBrowsers;
     const channel = 'stable';
 
-    const dataTable = new google.visualization.DataTable();
-    dataTable.addColumn('date', 'Date');
+    const dataObj: WebStatusDataObj = { cols: [], rows: [] };
+    dataObj.cols.push({ type: 'date', label: 'Date' });
     for (const browser of browsers) {
-      dataTable.addColumn('number', browser);
+      dataObj.cols.push({type: 'number', label: browser });
     }
-    dataTable.addColumn('number', 'Total');
+    dataObj.cols.push({ type: 'number', label: 'Total' });
 
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
@@ -258,15 +252,16 @@ export class StatsPage extends LitElement {
         return browserCounts[browser] || null;
       });
       const total = dateToTotalTestsCountMap.get(dateSeconds)!;
-      dataTable.addRow([date, ...browserCountArray, total]);
+      dataObj.rows.push([date, ...browserCountArray, total]);
     }
-    return dataTable;
+    return dataObj;
   }
 
   generateGlobalFeatureSupportChartOptions(): google.visualization.LineChartOptions {
     // Add 2 weeks to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
+      height: 300,
       hAxis: {
         title: '',
         titleTextStyle: {color: '#333'},
@@ -321,7 +316,7 @@ export class StatsPage extends LitElement {
         id="global-feature-support-chart"
         .containerId="${'global-feature-support-chart-container'}"
         .chartType="${'LineChart'}"
-        .dataTable="${this.createGlobalFeatureSupportDataTableFromMap()}"
+        .dataObj="${this.globalFeatureSupportChartDataObj}"
         .options="${this.generateGlobalFeatureSupportChartOptions()}"
       >
         Loading chart...
@@ -330,7 +325,6 @@ export class StatsPage extends LitElement {
   }
 
   renderGlobalFeatureSupportChart(): TemplateResult | undefined {
-    if (!this.gchartsLibraryLoaded) return html`Loading chart library.`;
     return this._loadingGFSTask.render({
       complete: () => this.renderGlobalFeatureSupportChartWhenComplete(),
       error: () => this.renderChartWhenError(),
