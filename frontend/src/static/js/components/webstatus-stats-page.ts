@@ -261,8 +261,8 @@ export class StatsPage extends LitElement {
     // Add 2 weeks to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
-      height: 300,
       hAxis: {
+        height: 300,
         title: '',
         titleTextStyle: {color: '#333'},
         viewWindow: {min: this.startDate, max: endDate},
