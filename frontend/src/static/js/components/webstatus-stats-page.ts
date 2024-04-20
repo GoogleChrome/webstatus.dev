@@ -30,7 +30,7 @@ import {
 import {apiClientContext} from '../contexts/api-client-context.js';
 
 import './webstatus-gchart';
-import { WebStatusDataObj } from './webstatus-gchart.js';
+import {WebStatusDataObj} from './webstatus-gchart.js';
 
 // No way to get the values from the parameter types, so we have to
 // redundantly specify them.
@@ -49,7 +49,6 @@ function globalFeatureSupportKey(
 ): string {
   return `${browser}-${channel}`;
 }
-
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends LitElement {
@@ -77,7 +76,7 @@ export class StatsPage extends LitElement {
   globalFeatureSupportChartOptions = {};
 
   @state()
-    globalFeatureSupportChartDataObj: WebStatusDataObj | undefined;
+  globalFeatureSupportChartDataObj: WebStatusDataObj | undefined;
 
   static get styles(): CSSResultGroup {
     return [
@@ -103,9 +102,9 @@ export class StatsPage extends LitElement {
           transition: var(--sl-transition-medium) rotate ease;
         }
 
-        #global-feature-support-chart {
+        /* #global-feature-support-chart {
           min-height: 20em;
-        }
+        } */
       `,
     ];
   }
@@ -171,7 +170,8 @@ export class StatsPage extends LitElement {
         );
       }
     }
-    this.globalFeatureSupportChartDataObj = this.createGlobalFeatureSupportDataFromMap();
+    this.globalFeatureSupportChartDataObj =
+      this.createGlobalFeatureSupportDataFromMap();
   }
 
   constructor() {
@@ -179,11 +179,11 @@ export class StatsPage extends LitElement {
 
     this._loadingGFSTask = new Task(this, {
       args: () =>
-        [
-          this.apiClient,
-          this.startDate,
-          this.endDate,
-        ] as [APIClient, Date, Date],
+        [this.apiClient, this.startDate, this.endDate] as [
+          APIClient,
+          Date,
+          Date,
+        ],
       task: async ([apiClient, startDate, endDate]: [
         APIClient,
         Date,
@@ -205,12 +205,12 @@ export class StatsPage extends LitElement {
     const browsers = this.globalFeatureSupportBrowsers;
     const channel = 'stable';
 
-    const dataObj: WebStatusDataObj = { cols: [], rows: [] };
-    dataObj.cols.push({ type: 'date', label: 'Date' });
+    const dataObj: WebStatusDataObj = {cols: [], rows: []};
+    dataObj.cols.push({type: 'date', label: 'Date'});
     for (const browser of browsers) {
-      dataObj.cols.push({type: 'number', label: browser });
+      dataObj.cols.push({type: 'number', label: browser});
     }
-    dataObj.cols.push({ type: 'number', label: 'Total' });
+    dataObj.cols.push({type: 'number', label: 'Total'});
 
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
@@ -254,6 +254,7 @@ export class StatsPage extends LitElement {
       const total = dateToTotalTestsCountMap.get(dateSeconds)!;
       dataObj.rows.push([date, ...browserCountArray, total]);
     }
+    // console.log('Done creating dataObj from globalFeatureSupport', dataObj);
     return dataObj;
   }
 
@@ -261,8 +262,8 @@ export class StatsPage extends LitElement {
     // Add 2 weeks to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
     const options = {
+      height: 300, // This is necessary to avoid shrinking to 0 or 18px.
       hAxis: {
-        height: 300,
         title: '',
         titleTextStyle: {color: '#333'},
         viewWindow: {min: this.startDate, max: endDate},
