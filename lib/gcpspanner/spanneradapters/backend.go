@@ -220,25 +220,55 @@ func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) bac
 	}
 }
 
+func convertImplementationStatusToBackend(
+	status gcpspanner.BrowserImplementationStatus) backend.BrowserImplementationStatus {
+	switch status {
+	case gcpspanner.Available:
+		return backend.Available
+	case gcpspanner.Unavailable:
+		return backend.Unavailable
+	}
+
+	return backend.Unavailable
+}
+
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
-	experimentalMetricsMap := make(map[string]backend.WPTFeatureData)
-	for _, metric := range featureResult.ExperimentalMetrics {
-		if metric.PassRate == nil {
-			continue
-		}
-		passRate, _ := metric.PassRate.Float64()
-		experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &passRate,
+	var experimentalMetricsMap map[string]backend.WPTFeatureData
+	var stableMetricsMap map[string]backend.WPTFeatureData
+	var implementationMap map[string]backend.BrowserImplementation
+	if len(featureResult.ExperimentalMetrics) > 0 {
+		experimentalMetricsMap = make(map[string]backend.WPTFeatureData, len(featureResult.ExperimentalMetrics))
+		for _, metric := range featureResult.ExperimentalMetrics {
+			if metric.PassRate == nil {
+				continue
+			}
+			passRate, _ := metric.PassRate.Float64()
+			experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
+				Score: &passRate,
+			}
 		}
 	}
-	stableMetricsMap := make(map[string]backend.WPTFeatureData)
-	for _, metric := range featureResult.StableMetrics {
-		passRate, _ := metric.PassRate.Float64()
-		if metric.PassRate == nil {
-			continue
+
+	if len(featureResult.StableMetrics) > 0 {
+		stableMetricsMap = make(map[string]backend.WPTFeatureData, len(featureResult.StableMetrics))
+		for _, metric := range featureResult.StableMetrics {
+			passRate, _ := metric.PassRate.Float64()
+			if metric.PassRate == nil {
+				continue
+			}
+			stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
+				Score: &passRate,
+			}
 		}
-		stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &passRate,
+	}
+
+	if len(featureResult.ImplementationStatuses) > 0 {
+		implementationMap = make(map[string]backend.BrowserImplementation, len(featureResult.ImplementationStatuses))
+		for _, status := range featureResult.ImplementationStatuses {
+			backendStatus := convertImplementationStatusToBackend(status.ImplementationStatus)
+			implementationMap[status.BrowserName] = backend.BrowserImplementation{
+				Status: &backendStatus,
+			}
 		}
 	}
 
@@ -250,10 +280,9 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			Experimental: &experimentalMetricsMap,
 			Stable:       &stableMetricsMap,
 		},
-		Spec:  nil,
-		Usage: nil,
-		// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
-		BrowserImplementations: nil,
+		Spec:                   nil,
+		Usage:                  nil,
+		BrowserImplementations: &implementationMap,
 	}
 }
 
