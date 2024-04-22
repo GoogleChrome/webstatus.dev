@@ -896,3 +896,53 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 		}
 	}
 }
+
+func TestConvertFeatureResult(t *testing.T) {
+	testCases := []struct {
+		name            string
+		featureResult   *gcpspanner.FeatureResult
+		expectedFeature *backend.Feature
+	}{
+		{
+			name: "nil PassRate edge case",
+			featureResult: &gcpspanner.FeatureResult{
+				Name:      "feature 1",
+				FeatureID: "feature1",
+				Status:    "low",
+				StableMetrics: []*gcpspanner.FeatureResultMetric{
+					{
+						BrowserName: "browser3",
+						PassRate:    nil,
+					},
+				},
+				ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
+					{
+						BrowserName: "browser3",
+						PassRate:    nil,
+					},
+				},
+				ImplementationStatuses: nil,
+			},
+
+			expectedFeature: &backend.Feature{
+				BaselineStatus:         backend.Newly,
+				FeatureId:              "feature1",
+				Name:                   "feature 1",
+				Spec:                   nil,
+				Usage:                  nil,
+				Wpt:                    nil,
+				BrowserImplementations: nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := Backend{client: nil}
+			feature := b.convertFeatureResult(tc.featureResult)
+			if !CompareFeatures(*tc.expectedFeature, *feature) {
+				t.Errorf("unexpected feature %v", *feature)
+			}
+		})
+	}
+}
