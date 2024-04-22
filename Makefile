@@ -32,10 +32,10 @@ precommit: license-check lint test
 ################################
 SKAFFOLD_FLAGS = -p local
 SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false --port-forward=off
-start-local: configure-skaffold
+start-local: configure-skaffold gen
 	skaffold dev $(SKAFFOLD_RUN_FLAGS)
 
-debug-local: configure-skaffold
+debug-local: configure-skaffold gen
 	skaffold debug $(SKAFFOLD_RUN_FLAGS)
 
 configure-skaffold: minikube-running
