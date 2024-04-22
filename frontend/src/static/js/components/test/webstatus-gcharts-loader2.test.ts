@@ -73,7 +73,6 @@ describe('webstatus-gcharts-loader2', () => {
 // // import { LitElement } from 'lit';
 // // import { gchartsContext } from '../../contexts/gcharts-context.js';
 
-
 // describe('webstatus-gchart', () => {
 //   it('loader can be added to the page', async () => {
 //     const component = await fixture<WebstatusGChartsLoader>(
