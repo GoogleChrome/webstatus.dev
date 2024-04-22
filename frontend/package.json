@@ -8,14 +8,15 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "tsc && npx rollup -c",
+    "build": "npm run tsc-clean && tsc && npx rollup -c",
     "clean": "rm -rf build && rm -rf static && rm -rf dist && rm -rf node_modules && rm -rf .postinstall",
     "lint": "cd .. && prettier frontend/ --check && cd frontend && eslint \"**/*.{js,ts}\" && lit-analyzer \"src/**/*.{js,ts}\" && tsc --noEmit",
     "lint-fix": "cd .. && prettier frontend/ --write && cd frontend && eslint \"**/*.{js,ts}\" --fix",
     "local": "npm run build && TODO",
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
-    "test": "tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit"
+    "test": "npm run tsc-clean && tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
+    "tsc-clean": "tsc --build --clean"
   },
   "devDependencies": {
     "@browser-logos/chrome": "^2.0.0",
