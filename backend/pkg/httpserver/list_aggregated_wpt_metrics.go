@@ -27,8 +27,6 @@ func (s *Server) ListAggregatedWPTMetrics(
 	ctx context.Context,
 	request backend.ListAggregatedWPTMetricsRequestObject,
 ) (backend.ListAggregatedWPTMetricsResponseObject, error) {
-	slog.Info("parameters", "feature", getFeatureIDsOrDefault(request.Params.FeatureIds))
-
 	metrics, nextPageToken, err := s.wptMetricsStorer.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
 		getFeatureIDsOrDefault(request.Params.FeatureIds),
