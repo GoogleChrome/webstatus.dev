@@ -128,9 +128,8 @@ const BROWSER_IMPL_ICONS: Record<
   NonNullable<components['schemas']['BrowserImplementation']['status']>,
   string
 > = {
-  unknown: 'check-partial-circle',
-  not: 'minus-circle',
-  fully: 'check-circle',
+  unavailable: 'minus-circle',
+  available: 'check-circle',
 };
 
 export const renderBrowserQuality: CellRenderer = (
@@ -141,8 +140,8 @@ export const renderBrowserQuality: CellRenderer = (
   const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
   let percentage = MISSING_VALUE;
   const browserImpl =
-    feature.browser_implementations?.[browser!].status || 'unknown';
-  if (score !== undefined && browserImpl !== 'not') {
+    feature.browser_implementations?.[browser!]?.status || 'unavailable';
+  if (score !== undefined && browserImpl !== 'unavailable') {
     percentage = html`${Number(score * 100).toFixed(1)}%`;
   }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];

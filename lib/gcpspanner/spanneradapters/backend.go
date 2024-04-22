@@ -15,6 +15,7 @@
 package spanneradapters
 
 import (
+	"cmp"
 	"context"
 	"log/slog"
 	"time"
@@ -220,41 +221,97 @@ func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) bac
 	}
 }
 
-func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
-	experimentalMetricsMap := make(map[string]backend.WPTFeatureData)
-	for _, metric := range featureResult.ExperimentalMetrics {
-		if metric.PassRate == nil {
-			continue
-		}
-		passRate, _ := metric.PassRate.Float64()
-		experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &passRate,
-		}
+func convertImplementationStatusToBackend(
+	status gcpspanner.BrowserImplementationStatus) backend.BrowserImplementationStatus {
+	switch status {
+	case gcpspanner.Available:
+		return backend.Available
+	case gcpspanner.Unavailable:
+		return backend.Unavailable
 	}
-	stableMetricsMap := make(map[string]backend.WPTFeatureData)
-	for _, metric := range featureResult.StableMetrics {
-		passRate, _ := metric.PassRate.Float64()
-		if metric.PassRate == nil {
-			continue
+
+	return backend.Unavailable
+}
+
+func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
+	// Initialize the returned feature with the default values.
+	// The logic below will fill in nullable fields.
+	ret := &backend.Feature{
+		FeatureId:              featureResult.FeatureID,
+		Name:                   featureResult.Name,
+		BaselineStatus:         convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
+		Wpt:                    nil,
+		Spec:                   nil,
+		Usage:                  nil,
+		BrowserImplementations: nil,
+	}
+
+	if len(featureResult.ExperimentalMetrics) > 0 {
+		experimentalMetricsMap := make(map[string]backend.WPTFeatureData, len(featureResult.ExperimentalMetrics))
+		for _, metric := range featureResult.ExperimentalMetrics {
+			if metric.PassRate == nil {
+				continue
+			}
+			passRate, _ := metric.PassRate.Float64()
+			experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
+				Score: &passRate,
+			}
 		}
-		stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-			Score: &passRate,
+
+		// The database implementation should only return metrics that have PassRate.
+		// The logic below is only proactive in case something changes where we return
+		// a BrowserName without a PassRate. This will prevent the code from returning
+		// an initialized, but empty map by only overriding the default map when it actually
+		// has a value.
+		if len(experimentalMetricsMap) > 0 {
+			wpt := cmp.Or(ret.Wpt, &backend.FeatureWPTSnapshots{
+				Stable:       nil,
+				Experimental: nil,
+			})
+			wpt.Experimental = &experimentalMetricsMap
+			ret.Wpt = wpt
 		}
 	}
 
-	return &backend.Feature{
-		FeatureId:      featureResult.FeatureID,
-		Name:           featureResult.Name,
-		BaselineStatus: convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
-		Wpt: &backend.FeatureWPTSnapshots{
-			Experimental: &experimentalMetricsMap,
-			Stable:       &stableMetricsMap,
-		},
-		Spec:  nil,
-		Usage: nil,
-		// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
-		BrowserImplementations: nil,
+	if len(featureResult.StableMetrics) > 0 {
+		stableMetricsMap := make(map[string]backend.WPTFeatureData, len(featureResult.StableMetrics))
+		for _, metric := range featureResult.StableMetrics {
+			if metric.PassRate == nil {
+				continue
+			}
+			passRate, _ := metric.PassRate.Float64()
+			stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
+				Score: &passRate,
+			}
+		}
+
+		// The database implementation should only return metrics that have PassRate.
+		// The logic below is only proactive in case something changes where we return
+		// a BrowserName without a PassRate. This will prevent the code from returning
+		// an initialized, but empty map by only overriding the default map when it actually
+		// has a value.
+		if len(stableMetricsMap) > 0 {
+			wpt := cmp.Or(ret.Wpt, &backend.FeatureWPTSnapshots{
+				Stable:       nil,
+				Experimental: nil,
+			})
+			wpt.Stable = &stableMetricsMap
+			ret.Wpt = wpt
+		}
 	}
+
+	if len(featureResult.ImplementationStatuses) > 0 {
+		implementationMap := make(map[string]backend.BrowserImplementation, len(featureResult.ImplementationStatuses))
+		for _, status := range featureResult.ImplementationStatuses {
+			backendStatus := convertImplementationStatusToBackend(status.ImplementationStatus)
+			implementationMap[status.BrowserName] = backend.BrowserImplementation{
+				Status: &backendStatus,
+			}
+		}
+		ret.BrowserImplementations = &implementationMap
+	}
+
+	return ret
 }
 
 func getSpannerWPTMetricView(wptMetricView backend.WPTMetricView) gcpspanner.WPTMetricView {

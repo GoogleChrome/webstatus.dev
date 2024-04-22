@@ -484,14 +484,12 @@ components:
         status:
           type: string
           enum:
-            - unknown
-            - not
-            - fully
+            - unavailable
+            - available
           # Go enum names
           x-enum-varnames:
-            - Unknown
-            - NotAvailable
-            - FullyImplemented
+            - Unavailable
+            - Available
     PageMetadata:
       type: object
       properties:

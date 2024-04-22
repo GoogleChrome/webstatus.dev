@@ -546,6 +546,12 @@ func TestFeaturesSearch(t *testing.T) {
 									PassRate:    big.NewRat(10, 50),
 								},
 							},
+							ImplementationStatuses: []*gcpspanner.ImplementationStatus{
+								{
+									BrowserName:          "browser3",
+									ImplementationStatus: gcpspanner.Available,
+								},
+							},
 						},
 						{
 							Name:      "feature 2",
@@ -569,6 +575,16 @@ func TestFeaturesSearch(t *testing.T) {
 								{
 									BrowserName: "browser2",
 									PassRate:    big.NewRat(2, 20),
+								},
+							},
+							ImplementationStatuses: []*gcpspanner.ImplementationStatus{
+								{
+									BrowserName:          "browser1",
+									ImplementationStatus: gcpspanner.Available,
+								},
+								{
+									BrowserName:          "browser2",
+									ImplementationStatus: gcpspanner.Available,
 								},
 							},
 						},
@@ -609,8 +625,11 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
-						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
-						BrowserImplementations: nil,
+						BrowserImplementations: &map[string]backend.BrowserImplementation{
+							"browser3": {
+								Status: valuePtr(backend.Available),
+							},
+						},
 					},
 					{
 						BaselineStatus: backend.Widely,
@@ -636,8 +655,14 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
-						// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
-						BrowserImplementations: nil,
+						BrowserImplementations: &map[string]backend.BrowserImplementation{
+							"browser1": {
+								Status: valuePtr(backend.Available),
+							},
+							"browser2": {
+								Status: valuePtr(backend.Available),
+							},
+						},
 					},
 				},
 			},
@@ -690,8 +715,16 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 		return false
 	}
 
+	if !compareImplementationStatus(f1.BrowserImplementations, f1.BrowserImplementations) {
+		return false
+	}
+
 	// All fields match
 	return true
+}
+
+func compareImplementationStatus(s1, s2 *map[string]backend.BrowserImplementation) bool {
+	return reflect.DeepEqual(s1, s2)
 }
 
 // compareWPTSnapshots helps compare FeatureWPTSnapshots structs.
@@ -776,6 +809,12 @@ func TestGetFeature(t *testing.T) {
 							PassRate:    big.NewRat(10, 50),
 						},
 					},
+					ImplementationStatuses: []*gcpspanner.ImplementationStatus{
+						{
+							BrowserName:          "browser3",
+							ImplementationStatus: gcpspanner.Available,
+						},
+					},
 				},
 				returnedError: nil,
 			},
@@ -797,7 +836,6 @@ func TestGetFeature(t *testing.T) {
 						},
 					},
 				},
-				// TODO(https://github.com/GoogleChrome/webstatus.dev/issues/160)
 				BrowserImplementations: nil,
 			},
 		},
@@ -856,5 +894,55 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 		if !reflect.DeepEqual(got, tt.want) {
 			t.Errorf("got: %v, want: %v", got, tt.want)
 		}
+	}
+}
+
+func TestConvertFeatureResult(t *testing.T) {
+	testCases := []struct {
+		name            string
+		featureResult   *gcpspanner.FeatureResult
+		expectedFeature *backend.Feature
+	}{
+		{
+			name: "nil PassRate edge case",
+			featureResult: &gcpspanner.FeatureResult{
+				Name:      "feature 1",
+				FeatureID: "feature1",
+				Status:    "low",
+				StableMetrics: []*gcpspanner.FeatureResultMetric{
+					{
+						BrowserName: "browser3",
+						PassRate:    nil,
+					},
+				},
+				ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
+					{
+						BrowserName: "browser3",
+						PassRate:    nil,
+					},
+				},
+				ImplementationStatuses: nil,
+			},
+
+			expectedFeature: &backend.Feature{
+				BaselineStatus:         backend.Newly,
+				FeatureId:              "feature1",
+				Name:                   "feature 1",
+				Spec:                   nil,
+				Usage:                  nil,
+				Wpt:                    nil,
+				BrowserImplementations: nil,
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			b := Backend{client: nil}
+			feature := b.convertFeatureResult(tc.featureResult)
+			if !CompareFeatures(*tc.expectedFeature, *feature) {
+				t.Errorf("unexpected feature %v", *feature)
+			}
+		})
 	}
 }
