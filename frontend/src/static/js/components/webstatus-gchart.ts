@@ -29,6 +29,10 @@ import {
 import {customElement, property, state} from 'lit/decorators.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
 
+// The dataObj is a subset of the possible data that can be used to
+// generate a google.visualization.DataTable.
+// It assumes the rows are sorted by the 'datetime' in the first column.
+// The subsequent columns are all numbers or nulls.
 export type WebStatusDataObj = {
   cols: Array<{type: string; label: string}>;
   rows: Array<[Date, ...Array<number | null>]>;
@@ -81,7 +85,7 @@ export class WebstatusGChart extends LitElement {
   convertWebStatusDataObjToDataTable(
     dataObj: WebStatusDataObj
   ): google.visualization.DataTable {
-    console.log('convertWebStatusDataObjToDataTable', dataObj);
+    // console.log('convertWebStatusDataObjToDataTable', dataObj);
     const dataTable = new google.visualization.DataTable();
     dataObj.cols.forEach(col => {
       dataTable.addColumn(col.type, col.label);
