@@ -52,15 +52,24 @@ func (q GetFeatureQueryBuilder) Build(
 	filter Filterable) spanner.Statement {
 	filterParams := make(map[string]interface{})
 
+	queryArgs := FeatureSearchQueryArgs{
+		MetricView:  q.wptMetricView,
+		Filters:     nil,
+		PageFilters: nil,
+		Offset:      0,
+		PageSize:    1,
+		Prefilter:   prefilter,
+		SortClause:  "",
+	}
 	if filter != nil {
+		queryArgs.Filters = []string{filter.Clause()}
 		maps.Copy(filterParams, filter.Params())
 	}
 
-	sql, params := q.baseQuery.Query(prefilter, q.wptMetricView)
+	sql, params := q.baseQuery.Query(queryArgs)
 	maps.Copy(filterParams, params)
 
-	stmt := spanner.NewStatement(
-		sql + " WHERE " + filter.Clause() + " LIMIT 1")
+	stmt := spanner.NewStatement(sql)
 	stmt.Params = filterParams
 
 	return stmt
