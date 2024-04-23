@@ -174,11 +174,22 @@ export class FeaturePage extends LitElement {
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
+    const wptLink =
+      'https://wpt.fyi/results' +
+      '?label=master&label=stable&aligned' +
+      '&q=feature%3A' +
+      this.feature!.feature_id;
+    const wptLogo =
+      'https://raw.githubusercontent.com/web-platform-tests/wpt.fyi' +
+      '/main/webapp/static/logo.svg';
     const mdnLink = '#TODO';
     const canIUseLink = '#TODO';
     return html`
       <div id="nameAndOffsiteLinks" class="hbox">
         <h1 class="halign-stretch">${this.feature!.name}</h1>
+        <a href=${wptLink}>
+          <img src=${wptLogo} alt="WPT default view" width="37" height="37" />
+        </a>
         <sl-button variant="default" href=${mdnLink}>
           <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
           MDN
