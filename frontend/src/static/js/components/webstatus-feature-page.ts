@@ -88,6 +88,10 @@ export class FeaturePage extends LitElement {
         .wptScore .avail {
           color: var(--unimportant-text-color);
         }
+        .logo-button {
+          gap: var(--content-padding-half);
+          align-items: center;
+        }
         .chip.increased {
           background: var(--chip-background-increased);
           color: var(--chip-color-increased);
@@ -179,17 +183,19 @@ export class FeaturePage extends LitElement {
       '?label=master&label=stable&aligned' +
       '&q=feature%3A' +
       this.feature!.feature_id;
-    const wptLogo =
-      'https://raw.githubusercontent.com/web-platform-tests/wpt.fyi' +
-      '/main/webapp/static/logo.svg';
+    const wptLogo = '/public/img/wpt-logo.svg';
     const mdnLink = '#TODO';
     const canIUseLink = '#TODO';
     return html`
       <div id="nameAndOffsiteLinks" class="hbox">
         <h1 class="halign-stretch">${this.feature!.name}</h1>
-        <a href=${wptLink}>
-          <img src=${wptLogo} alt="WPT default view" width="37" height="37" />
-        </a>
+        <sl-button variant="default" href=${wptLink}>
+          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
+          <div class="hbox logo-button">
+            <img src=${wptLogo} alt="WPT default view" width="24" height="24" />
+            WPT.fyi
+          </div>
+        </sl-button>
         <sl-button variant="default" href=${mdnLink}>
           <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
           MDN
