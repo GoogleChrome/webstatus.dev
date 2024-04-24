@@ -85,7 +85,6 @@ export class WebstatusGChart extends LitElement {
   convertWebStatusDataObjToDataTable(
     dataObj: WebStatusDataObj
   ): google.visualization.DataTable {
-    // console.log('convertWebStatusDataObjToDataTable', dataObj);
     const dataTable = new google.visualization.DataTable();
     dataObj.cols.forEach(col => {
       dataTable.addColumn(col.type, col.label);
@@ -97,7 +96,6 @@ export class WebstatusGChart extends LitElement {
   }
 
   willUpdate(changedProperties: PropertyValues<this>) {
-    // console.log('willUpdate', changedProperties);
     if (this.gchartsLibraryLoaded) {
       // If dataObj is provided, and it is changed, then (re)generate the dataTable.
       if (this.dataObj && changedProperties.has('dataObj')) {
