@@ -16,7 +16,7 @@
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
     "test": "npm run tsc-clean && tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
-    "tsc-clean": "tsc --build --clean"
+    "tsc-clean": "tsc --build --clean",
     "test:watch": "tsc && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage --node-resolve --playwright --browsers chromium firefox webkit\" "
   },
   "devDependencies": {
