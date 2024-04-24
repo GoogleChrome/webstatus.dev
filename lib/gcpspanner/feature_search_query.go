@@ -255,7 +255,7 @@ func (q FeatureSearchQueryBuilder) Build(
 
 	stmt := spanner.NewStatement(sql)
 
-	slog.Info("stmt", "sql", sql)
+	slog.Info("stmt", "sql", sql, "params", filterParams)
 
 	stmt.Params = filterParams
 

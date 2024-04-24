@@ -226,6 +226,7 @@ func decodeInputFeatureResultCursor(
 	case IDSort, StatusSort, NameSort, StableImplSort, ExperimentalImplSort:
 		break
 	default:
+		slog.Error("unable to use sort target", "target", sortTarget)
 		return nil, nil, ErrInvalidCursorFormat
 	}
 
@@ -243,11 +244,25 @@ func decodeInputFeatureResultCursor(
 				return nil, nil, ErrInvalidCursorFormat
 			}
 		case featureSearcBrowserMetricColumn:
-			_, ok := lastValueInfo.LastSortValue.(*big.Rat)
+			// If its null, go ahead and break now.
+			if lastValueInfo.LastSortValue == nil {
+				break
+			}
+			rat := &big.Rat{}
+			strVal, ok := lastValueInfo.LastSortValue.(string)
 			if !ok {
+				slog.Error("unable to convert", "big rat", lastValueInfo.LastSortValue)
 				// Type check the value
 				return nil, nil, ErrInvalidCursorFormat
 			}
+			rat, ok = rat.SetString(strVal)
+			if !ok {
+				slog.Error("unable to convert2", "big rat", lastValueInfo.LastSortValue)
+				// Type check the value
+				return nil, nil, ErrInvalidCursorFormat
+			}
+			lastValueInfo.LastSortValue = rat
+
 		}
 		lastValues[col] = FeatureResultCursorLastValue{
 			Value:     lastValueInfo.LastSortValue,
@@ -323,6 +338,8 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 	case StableImplSort:
 		lastMetric := findPassRateForBrowser(lastResult.StableMetrics, sortOrder.browserTarget)
 		lastImplStatus := findImplStatusForBrowser(lastResult.ImplementationStatuses, sortOrder.browserTarget)
+
+		slog.Info("generating cursor", "last result", lastResult, "last metric", lastMetric, "last status", lastImplStatus, "browser", *sortOrder.browserTarget)
 
 		return encodeCursor(RawFeatureResultCursor{
 			LastFeatureID: lastResult.FeatureID,
