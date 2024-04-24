@@ -22,15 +22,29 @@ import {type WebstatusGChart} from '../webstatus-gchart.js';
 import {render} from 'lit';
 
 describe('webstatus-gchart', () => {
-  it('can be added to the page', async () => {
-    const component = await fixture<WebstatusGChart>(
-      html`<webstatus-gchart></webstatus-gchart>`
+  it('can receive loaded state via loader context', async () => {
+    const component = await fixture<WebstatusGChartsLoader>(
+      html`<webstatus-gcharts-loader>
+        <webstatus-gchart></webstatus-gchart>
+      </webstatus-gcharts-loader>`
     );
+
     assert.exists(component);
-    assert.equal(component.gchartsLibraryLoaded, undefined);
+    await component.updateComplete;
+    await component.waitForGChartsLibraryLoaded();
+
+    const childComponent = component.querySelector(
+      'webstatus-gchart'
+    ) as WebstatusGChart;
+    assert.exists(childComponent);
+    await childComponent.updateComplete;
+
+    assert.equal(component.gchartsLibraryLoaded, true);
+    assert.equal(childComponent.gchartsLibraryLoaded, true);
   });
 
-  it('can be subscribe to the parent gchart loader', async () => {
+  it('can subscribe to the parent gchart loader', async () => {
+    // This also tests adding components via lit render.
     const root = document.createElement('div');
     document.body.appendChild(root);
     render(
@@ -46,9 +60,9 @@ describe('webstatus-gchart', () => {
     ) as WebstatusGChartsLoader;
     assert.exists(loader);
     await loader.updateComplete;
+    await loader.waitForGChartsLibraryLoaded();
 
     const gchart = root.querySelector('webstatus-gchart') as WebstatusGChart;
-
     await gchart.updateComplete;
 
     // Wait for both loader and gchart to have the library loaded
@@ -63,12 +77,5 @@ describe('webstatus-gchart', () => {
 
     assert.equal(loader.gchartsLibraryLoaded, true);
     assert.equal(gchart.gchartsLibraryLoaded, true);
-
-    // // Find the webstatus-gchart in the shadowRoot.
-    // const gchartComponent = loader.shadowRoot!.querySelector(
-    //   'webstatus-gchart'
-    // ) as WebstatusGChart;
-    // assert.exists(gchartComponent);
-    // assert.equal(gchartComponent.containerId, 'testing');
   });
 });

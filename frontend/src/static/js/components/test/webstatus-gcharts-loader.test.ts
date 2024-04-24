@@ -26,7 +26,6 @@ import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
 import {gchartsContext} from '../../contexts/gcharts-context.js';
 
 describe('webstatus-gcharts-loader', () => {
-
   it('can be added to the page via fixture', async () => {
     // console.log('1 does console.log work?');
     const component = await fixture<WebstatusGChartsLoader>(
@@ -34,14 +33,10 @@ describe('webstatus-gcharts-loader', () => {
     );
     assert.exists(component);
     await component.updateComplete;
+    await component.waitForGChartsLibraryLoaded();
 
-    await component.loadGoogleChartsLoaderAndPackages();
-    console.log('loadGoogleChartsLoaderAndPackages called and resolved');
-
-    //.then(() => {
-      assert.exists(component.gchartsLibraryLoaded);
-      assert.equal(component.gchartsLibraryLoaded, true);
-    //})
+    assert.exists(component.gchartsLibraryLoaded);
+    assert.equal(component.gchartsLibraryLoaded, true);
   });
 
   it('can provide child components the loaded state via context', async () => {
@@ -60,6 +55,7 @@ describe('webstatus-gcharts-loader', () => {
 
     assert.exists(component);
     await component.updateComplete;
+    await component.waitForGChartsLibraryLoaded();
 
     const childComponent = component.querySelector(
       'fake-child-element'
