@@ -101,10 +101,6 @@ export class StatsPage extends LitElement {
           rotate: -180deg;
           transition: var(--sl-transition-medium) rotate ease;
         }
-
-        /* #global-feature-support-chart {
-          min-height: 20em;
-        } */
       `,
     ];
   }
