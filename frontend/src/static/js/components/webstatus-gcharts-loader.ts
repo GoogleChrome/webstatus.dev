@@ -58,18 +58,35 @@ export class WebstatusGChartsLoader extends LitElement {
 
     const loaderPromise = new Promise<void>(resolve => {
       script.addEventListener('load', () => {
-        resolve();
+        // resolve();
+        google.charts
+        .load('current', {
+          packages: ['corechart'],
+        })
+        .then(() => {
+          this.gchartsLibraryLoaded = true;
+          resolve();
+        });
       });
     });
 
-    // After the loader script is loaded, we can load packages.
-    await loaderPromise.then(() => {
-      this.loadGoogleChartsPackages();
-    });
+    return loaderPromise;
+
+    // // After the loader script is loaded, we can load packages.
+    // await loaderPromise.then(async () => {
+    //   // this.loadGoogleChartsPackages();
+    //   return google.charts
+    //   .load('current', {
+    //     packages: ['corechart'],
+    //   })
+    //   .then(() => {
+    //     this.gchartsLibraryLoaded = true;
+    //   });
+    // });
   }
 
-  loadGoogleChartsPackages() {
-    google.charts
+  async loadGoogleChartsPackages(): Promise<void> {
+   return google.charts
       .load('current', {
         packages: ['corechart'],
       })
