@@ -49,15 +49,15 @@ export class WebstatusGChartsLoader extends LitElement {
   async loadGoogleChartsLoaderAndPackages(): Promise<void> {
     console.log('WebstatusGChartsLoader loadGoogleChartsLoaderAndPackages');
     if (this.scriptInserted) {
+      console.log('WebstatusGChartsLoader loadGoogleChartsLoaderAndPackages already loaded');
       return;
     }
+    this.scriptInserted = true;
 
     // Insert script to load the loader.
     const script = document.createElement('script');
     script.src = 'https://www.gstatic.com/charts/loader.js';
     document.head.appendChild(script);
-
-    this.scriptInserted = true;
 
     const loaderPromise = new Promise<void>(resolve => {
       script.addEventListener('load', () => {

@@ -35,10 +35,13 @@ describe('webstatus-gcharts-loader', () => {
     assert.exists(component);
     await component.updateComplete;
 
-    await component.loadGoogleChartsLoaderAndPackages().then(() => {
+    await component.loadGoogleChartsLoaderAndPackages();
+    console.log('loadGoogleChartsLoaderAndPackages called and resolved');
+
+    //.then(() => {
       assert.exists(component.gchartsLibraryLoaded);
       assert.equal(component.gchartsLibraryLoaded, true);
-    })
+    //})
   });
 
   it('can provide child components the loaded state via context', async () => {
