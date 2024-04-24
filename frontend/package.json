@@ -15,7 +15,8 @@
     "local": "npm run build && TODO",
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
-    "test": "tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit"
+    "test": "tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
+    "test:watch": "concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage --node-resolve --playwright --browsers chromium firefox webkit\" "
   },
   "devDependencies": {
     "@browser-logos/chrome": "^2.0.0",

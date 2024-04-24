@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {esbuildPlugin} from '@web/dev-server-esbuild';
+// import {esbuildPlugin} from '@web/dev-server-esbuild';
 
 const filteredLogs = ['Running in dev mode', 'Lit is in dev mode'];
 
@@ -24,14 +24,27 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   nodeResolve: {
     exportConditions: ['browser', 'development'],
   },
-  // in a monorepo you need to set set the root dir to resolve modules
+
+  // in a monorepo you need to set the root dir to resolve modules
   rootDir: '../../',
-  plugins: [esbuildPlugin({ts: true})],
+  // plugins: [esbuildPlugin({ ts: true })],
+
+  testRunnerHtml: (testFramework) =>
+  `<html>
+    <head>
+     <script src="https://www.gstatic.com/charts/loader.js"></script>
+    </head>
+    <body>
+     <script type="module" src="${testFramework}"></script>
+    </body>
+  </html>`,
+
   files: [
     // Have to compile tests
     // Taken from https://github.com/open-wc/create/blob/master/src/generators/testing-wtr-ts/templates/static/web-test-runner.config.mjs
     'build/**/test/*.test.js',
   ],
+
   /** Filter out lit dev mode logs */
   filterBrowserLogs(log) {
     for (const arg of log.args) {
