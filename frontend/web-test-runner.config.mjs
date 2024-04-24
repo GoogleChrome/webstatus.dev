@@ -14,7 +14,8 @@
  * limitations under the License.
  */
 
-import {esbuildPlugin} from '@web/dev-server-esbuild';
+// import { fileURLToPath } from 'url';
+// import {esbuildPlugin} from '@web/dev-server-esbuild';
 
 const filteredLogs = ['Running in dev mode', 'Lit is in dev mode'];
 
@@ -27,7 +28,10 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
 
   // in a monorepo you need to set the root dir to resolve modules
   rootDir: '../../',
-  plugins: [esbuildPlugin({ts: true})],
+  // plugins: [esbuildPlugin({
+  //   ts: true,
+  //   tsconfig: fileURLToPath(new URL('./tsconfig.json', import.meta.url)),
+  // })],
 
   files: [
     // Have to compile tests

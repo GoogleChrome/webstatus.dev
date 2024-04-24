@@ -19,67 +19,46 @@
 
 import {consume} from '@lit/context';
 import {assert, fixture, html} from '@open-wc/testing';
-import {LitElement, render} from 'lit';
+import {LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import '../webstatus-gcharts-loader.js';
 import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
 import {gchartsContext} from '../../contexts/gcharts-context.js';
 
 describe('webstatus-gcharts-loader', () => {
-  @customElement('fake-child-element')
-  class FakeChildElement extends LitElement {
-    @consume({context: gchartsContext, subscribe: true})
-    @property({attribute: false})
-    gchartsLibraryLoaded!: boolean;
-  }
 
   it('can be added to the page via fixture', async () => {
-    console.log('1 does console.log work?');
+    // console.log('1 does console.log work?');
     const component = await fixture<WebstatusGChartsLoader>(
       html`<webstatus-gcharts-loader> </webstatus-gcharts-loader>`
     );
     assert.exists(component);
-    assert.exists(component.gchartsLibraryLoaded);
-  });
-
-  it('can be added to the page', async () => {
-    console.log('2 does console.log work?');
-    const root = document.createElement('div');
-    document.body.appendChild(root);
-    render(html` <webstatus-gcharts-loader> </webstatus-gcharts-loader>`, root);
-
-    alert('alert works?');
-
-    const component = root.querySelector(
-      'webstatus-gcharts-loader'
-    ) as WebstatusGChartsLoader;
-
-    assert.exists(component);
     await component.updateComplete;
 
-    assert.exists(google);
-    assert.exists(google.charts);
-
-    assert.equal(component.gchartsLibraryLoaded, true);
+    await component.loadScript().then(() => {
+      assert.exists(component.gchartsLibraryLoaded);
+      assert.equal(component.gchartsLibraryLoaded, true);
+    })
   });
 
   it('can provide child components the loaded state via context', async () => {
-    const root = document.createElement('div');
-    document.body.appendChild(root);
-    render(
-      html` <webstatus-gcharts-loader>
+    @customElement('fake-child-element')
+    class FakeChildElement extends LitElement {
+      @consume({context: gchartsContext, subscribe: true})
+      @property({attribute: false})
+      gchartsLibraryLoaded!: boolean;
+    }
+
+    const component = await fixture<WebstatusGChartsLoader>(
+      html`<webstatus-gcharts-loader>
         <fake-child-element></fake-child-element>
-      </webstatus-gcharts-loader>`,
-      root
+      </webstatus-gcharts-loader>`
     );
 
-    const component = root.querySelector(
-      'webstatus-gcharts-loader'
-    ) as WebstatusGChartsLoader;
     assert.exists(component);
     await component.updateComplete;
 
-    const childComponent = root.querySelector(
+    const childComponent = component.querySelector(
       'fake-child-element'
     ) as FakeChildElement;
     assert.exists(childComponent);

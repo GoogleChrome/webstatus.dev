@@ -38,8 +38,8 @@ export class WebstatusGChartsLoader extends LitElement {
     this.loadScript().then(
       // TODO. Success case
       () => {},
-      // TODO. Failure case
-      // Could progagate an event or signal that will render a useful message to the user to reload the page.
+      // TODO. Failure case.  We could progagate an event or signal
+      // that will render a useful message to the user to reload the page.
       () => {}
     );
   }
@@ -56,19 +56,19 @@ export class WebstatusGChartsLoader extends LitElement {
 
     this.scriptInserted = true;
 
-    const promise = new Promise<void>(resolve => {
+    const loaderPromise = new Promise<void>(resolve => {
       script.addEventListener('load', () => {
         resolve();
       });
     });
 
-    // After the script is loaded, initialize it by calling loadGoogleCharts.
-    await promise.then(() => {
-      this.loadGoogleCharts();
+    // After the loader script is loaded, we can load packages.
+    await loaderPromise.then(() => {
+      this.loadGoogleChartsPackages();
     });
   }
 
-  loadGoogleCharts() {
+  loadGoogleChartsPackages() {
     google.charts
       .load('current', {
         packages: ['corechart'],
