@@ -57,7 +57,6 @@ export class WebstatusGChartsLoader extends LitElement {
 
     const loaderPromise = new Promise<void>(resolve => {
       script.addEventListener('load', () => {
-        // resolve();
         google.charts
           .load('current', {
             packages: ['corechart'],
@@ -80,7 +79,6 @@ export class WebstatusGChartsLoader extends LitElement {
     return new Promise((resolve, reject) => {
       const loaderLoop = () => {
         if (this.gchartsLibraryLoaded) {
-          // console.log('waitForGChartsLibraryLoaded finished after', delay);
           resolve();
         } else if (Date.now() < endTime) {
           delay *= 2;

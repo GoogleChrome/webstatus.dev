@@ -124,14 +124,12 @@ export class APIClient {
     startAtDate: Date,
     endAtDate: Date
   ): Promise<WPTRunMetric[]> {
-    // console.log('getStatsByBrowserAndChannel', browser, channel, startAtDate, endAtDate);
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
 
     let nextPageToken;
     const allData: WPTRunMetric[] = [];
     do {
-      // console.log('getStatsByBrowserAndChannel nextPageToken', nextPageToken);
       const response = await this.client.GET(
         '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
         {
@@ -142,7 +140,6 @@ export class APIClient {
           },
         }
       );
-      // console.log('getStatsByBrowserAndChannel response', response);
       const error = response.error;
       if (error !== undefined) {
         throw new Error(error?.message);
@@ -154,7 +151,6 @@ export class APIClient {
       }
     } while (nextPageToken !== undefined);
 
-    // console.log('getStatsByBrowserAndChannel allData', allData);
     return allData;
   }
 }

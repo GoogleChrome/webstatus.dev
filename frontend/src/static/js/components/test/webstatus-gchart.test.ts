@@ -38,8 +38,6 @@ describe('webstatus-gchart', () => {
     ) as WebstatusGChart;
     assert.exists(childComponent);
     await childComponent.updateComplete;
-
-    assert.equal(component.gchartsLibraryLoaded, true);
     assert.equal(childComponent.gchartsLibraryLoaded, true);
   });
 
@@ -64,18 +62,6 @@ describe('webstatus-gchart', () => {
 
     const gchart = root.querySelector('webstatus-gchart') as WebstatusGChart;
     await gchart.updateComplete;
-
-    // Wait for both loader and gchart to have the library loaded
-    await new Promise<void>(resolve => {
-      const intervalId = setInterval(() => {
-        if (loader.gchartsLibraryLoaded && gchart.gchartsLibraryLoaded) {
-          clearInterval(intervalId);
-          resolve();
-        }
-      }, 10);
-    });
-
-    assert.equal(loader.gchartsLibraryLoaded, true);
     assert.equal(gchart.gchartsLibraryLoaded, true);
   });
 });

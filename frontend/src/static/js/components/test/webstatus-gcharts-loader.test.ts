@@ -26,8 +26,7 @@ import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
 import {gchartsContext} from '../../contexts/gcharts-context.js';
 
 describe('webstatus-gcharts-loader', () => {
-  it('can be added to the page via fixture', async () => {
-    // console.log('1 does console.log work?');
+  it('can be added to the page', async () => {
     const component = await fixture<WebstatusGChartsLoader>(
       html`<webstatus-gcharts-loader> </webstatus-gcharts-loader>`
     );

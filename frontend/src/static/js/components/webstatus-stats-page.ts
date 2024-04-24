@@ -254,7 +254,6 @@ export class StatsPage extends LitElement {
       const total = dateToTotalTestsCountMap.get(dateSeconds)!;
       dataObj.rows.push([date, ...browserCountArray, total]);
     }
-    // console.log('Done creating dataObj from globalFeatureSupport', dataObj);
     return dataObj;
   }
 
