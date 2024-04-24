@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"fmt"
+	"log/slog"
 	"maps"
 	"strings"
 
@@ -210,6 +211,21 @@ func (q FeatureSearchQueryBuilder) Build(
 	sort Sortable,
 	pageSize int) spanner.Statement {
 
+	var stableBrowserImplDetails, expBrowserImplDetails *SortByBrowserImplDetails
+
+	switch sort.SortTarget() {
+	case StableImplSort:
+		stableBrowserImplDetails = &SortByBrowserImplDetails{
+			BrowserName: sort.BrowserTarget(),
+		}
+	case ExperimentalImplSort:
+		expBrowserImplDetails = &SortByBrowserImplDetails{
+			BrowserName: sort.BrowserTarget(),
+		}
+	case IDSort, NameSort, StatusSort:
+		break // do nothing.
+	}
+
 	filterParams := make(map[string]interface{})
 	queryArgs := FeatureSearchQueryArgs{
 		MetricView:  q.wptMetricView,
@@ -219,7 +235,11 @@ func (q FeatureSearchQueryBuilder) Build(
 		PageSize:    pageSize,
 		Prefilter:   prefilter,
 		SortClause:  sort.Clause(),
+		// Special Sort Targets.
+		SortByStableBrowserImpl: stableBrowserImplDetails,
+		SortByExpBrowserImpl:    expBrowserImplDetails,
 	}
+
 	if q.featureCursor != nil {
 		queryArgs.PageFilters = q.featureCursor.buildPageFilters(filterParams)
 	} else if q.offsetCursor != nil {
@@ -235,6 +255,8 @@ func (q FeatureSearchQueryBuilder) Build(
 
 	stmt := spanner.NewStatement(sql)
 
+	slog.Info("stmt", "sql", sql)
+
 	stmt.Params = filterParams
 
 	return stmt
@@ -245,6 +267,15 @@ type Sortable struct {
 	clause         string
 	sortTarget     FeaturesSearchSortTarget
 	ascendingOrder bool
+	browserTarget  *string
+}
+
+func (s Sortable) BrowserTarget() string {
+	if s.browserTarget == nil {
+		return ""
+	}
+
+	return *s.browserTarget
 }
 
 func (s Sortable) Clause() string {
@@ -258,11 +289,11 @@ func (s Sortable) SortTarget() FeaturesSearchSortTarget {
 // buildFullClause generates a sorting clause appropriate for Spanner pagination.
 // It includes the primary sorting column and the 'FeatureID' column as a tiebreaker
 // to ensure deterministic page ordering.
-func buildFullClause(sortableClause string) string {
-	return sortableClause + ", " + string(featureSearchFeatureIDColumn)
+func buildFullClause(sortableClauses []string, tieBreakerColumn FeatureSearchColumn) string {
+	return strings.Join(append(sortableClauses, string(tieBreakerColumn)), ", ")
 }
 
-func buildSortableOrderClause(isAscending bool, column string) string {
+func buildSortableOrderClause(isAscending bool, column FeatureSearchColumn) string {
 	direction := "ASC"
 	if !isAscending {
 		direction = "DESC"
@@ -277,7 +308,9 @@ type FeatureSearchColumn string
 func (f FeatureSearchColumn) ToFilterColumn() string {
 	switch f {
 	case featureSearchFeatureIDColumn,
-		featureSearchFeatureNameColumn:
+		featureSearchFeatureNameColumn,
+		featureSearcBrowserMetricColumn,
+		featureSearcBrowserImplColumn:
 		return string(f)
 	case featureSearchStatusColumn:
 		// To facilitate correct pagination behavior, particularly when handling null values in the
@@ -294,31 +327,62 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 type FeaturesSearchSortTarget string
 
 const (
-	IDSort     FeaturesSearchSortTarget = "id"
-	NameSort   FeaturesSearchSortTarget = "name"
-	StatusSort FeaturesSearchSortTarget = "status"
+	IDSort               FeaturesSearchSortTarget = "id"
+	NameSort             FeaturesSearchSortTarget = "name"
+	StatusSort           FeaturesSearchSortTarget = "status"
+	StableImplSort       FeaturesSearchSortTarget = "stable_browser_impl"
+	ExperimentalImplSort FeaturesSearchSortTarget = "experimental_browser_impl"
 )
 
 const (
-	featureSearchFeatureIDColumn   FeatureSearchColumn = "wf.FeatureID"
-	featureSearchFeatureNameColumn FeatureSearchColumn = "wf.Name"
-	featureSearchStatusColumn      FeatureSearchColumn = "Status"
+	featureSearchFeatureIDColumn    FeatureSearchColumn = "wf.FeatureID"
+	featureSearchFeatureNameColumn  FeatureSearchColumn = "wf.Name"
+	featureSearchStatusColumn       FeatureSearchColumn = "Status"
+	featureSearcBrowserMetricColumn FeatureSearchColumn = "SortMetric"
+	featureSearcBrowserImplColumn   FeatureSearchColumn = "SortImplStatus"
 )
 
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
 func NewFeatureNameSort(isAscending bool) Sortable {
 	return Sortable{
-		clause:         buildFullClause(buildSortableOrderClause(isAscending, "wf.Name")),
+		clause: buildFullClause(
+			[]string{buildSortableOrderClause(isAscending, featureSearchFeatureNameColumn)},
+			featureSearchFeatureIDColumn),
 		ascendingOrder: isAscending,
 		sortTarget:     NameSort,
+		browserTarget:  nil,
 	}
 }
 
 // NewBaselineStatusSort returns a Sortable specifically for the Status column.
 func NewBaselineStatusSort(isAscending bool) Sortable {
 	return Sortable{
-		clause:         buildFullClause(buildSortableOrderClause(isAscending, "Status")),
+		clause: buildFullClause(
+			[]string{buildSortableOrderClause(isAscending, featureSearchStatusColumn)},
+			featureSearchFeatureIDColumn,
+		),
 		ascendingOrder: isAscending,
 		sortTarget:     StatusSort,
+		browserTarget:  nil,
+	}
+}
+
+func NewBrowserImplSort(isAscending bool, browserName string, isStable bool) Sortable {
+	sortTarget := StableImplSort
+	if !isStable {
+		sortTarget = ExperimentalImplSort
+	}
+
+	return Sortable{
+		clause: buildFullClause(
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearcBrowserMetricColumn),
+				buildSortableOrderClause(isAscending, featureSearcBrowserImplColumn),
+			},
+			featureSearchFeatureIDColumn,
+		),
+		browserTarget:  &browserName,
+		ascendingOrder: isAscending,
+		sortTarget:     sortTarget,
 	}
 }

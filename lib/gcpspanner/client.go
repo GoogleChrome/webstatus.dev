@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"math/big"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -221,7 +223,7 @@ func decodeInputFeatureResultCursor(
 
 	sortTarget := FeaturesSearchSortTarget(decodedCursor.SortTarget)
 	switch sortTarget {
-	case IDSort, StatusSort, NameSort:
+	case IDSort, StatusSort, NameSort, StableImplSort, ExperimentalImplSort:
 		break
 	default:
 		return nil, nil, ErrInvalidCursorFormat
@@ -231,16 +233,25 @@ func decodeInputFeatureResultCursor(
 	for column, lastValueInfo := range decodedCursor.ColumnToLastValueMap {
 		col := FeatureSearchColumn(column)
 		switch col {
-		case featureSearchFeatureIDColumn, featureSearchFeatureNameColumn, featureSearchStatusColumn:
+		case featureSearchFeatureIDColumn,
+			featureSearchFeatureNameColumn,
+			featureSearchStatusColumn,
+			featureSearcBrowserImplColumn:
 			_, ok := lastValueInfo.LastSortValue.(string)
 			if !ok {
 				// Type check the value
 				return nil, nil, ErrInvalidCursorFormat
 			}
-			lastValues[col] = FeatureResultCursorLastValue{
-				Value:     lastValueInfo.LastSortValue,
-				SortOrder: lastValueInfo.SortOrderOperator,
+		case featureSearcBrowserMetricColumn:
+			_, ok := lastValueInfo.LastSortValue.(*big.Rat)
+			if !ok {
+				// Type check the value
+				return nil, nil, ErrInvalidCursorFormat
 			}
+		}
+		lastValues[col] = FeatureResultCursorLastValue{
+			Value:     lastValueInfo.LastSortValue,
+			SortOrder: lastValueInfo.SortOrderOperator,
 		}
 	}
 
@@ -309,10 +320,78 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 				},
 			},
 		})
+	case StableImplSort:
+		lastMetric := findPassRateForBrowser(lastResult.StableMetrics, sortOrder.browserTarget)
+		lastImplStatus := findImplStatusForBrowser(lastResult.ImplementationStatuses, sortOrder.browserTarget)
+
+		return encodeCursor(RawFeatureResultCursor{
+			LastFeatureID: lastResult.FeatureID,
+			SortTarget:    string(StableImplSort),
+			ColumnToLastValueMap: map[string]LastValueInfo{
+				string(featureSearcBrowserMetricColumn): {
+					SortOrderOperator: sortOrderOperator,
+					LastSortValue:     lastMetric,
+				},
+				string(featureSearcBrowserImplColumn): {
+					SortOrderOperator: sortOrderOperator,
+					LastSortValue:     lastImplStatus,
+				},
+			},
+		})
+	case ExperimentalImplSort:
+		lastMetric := findPassRateForBrowser(lastResult.ExperimentalMetrics, sortOrder.browserTarget)
+		lastImplStatus := findImplStatusForBrowser(lastResult.ImplementationStatuses, sortOrder.browserTarget)
+
+		return encodeCursor(RawFeatureResultCursor{
+			LastFeatureID: lastResult.FeatureID,
+			SortTarget:    string(ExperimentalImplSort),
+			ColumnToLastValueMap: map[string]LastValueInfo{
+				string(featureSearcBrowserMetricColumn): {
+					SortOrderOperator: sortOrderOperator,
+					LastSortValue:     lastMetric,
+				},
+				string(featureSearcBrowserImplColumn): {
+					SortOrderOperator: sortOrderOperator,
+					LastSortValue:     lastImplStatus,
+				},
+			},
+		})
 	}
 
 	// Should be not reached. Linting should catch all the cases as more are added.
 	return ""
+}
+
+func findPassRateForBrowser(metrics []*FeatureResultMetric, browserName *string) *big.Rat {
+	var passRate *big.Rat
+	if browserName == nil {
+		return passRate
+	}
+	for _, metric := range metrics {
+		if strings.EqualFold(metric.BrowserName, *browserName) {
+			passRate = metric.PassRate
+
+			continue
+		}
+	}
+
+	return passRate
+}
+
+func findImplStatusForBrowser(statuses []*ImplementationStatus, browserName *string) BrowserImplementationStatus {
+	var ret BrowserImplementationStatus
+	if browserName == nil {
+		return ret
+	}
+	for _, status := range statuses {
+		if strings.EqualFold(status.BrowserName, *browserName) {
+			ret = status.ImplementationStatus
+
+			continue
+		}
+	}
+
+	return ret
 }
 
 // BrowserFeatureCountCursor: Represents a point for resuming feature count queries. Designed for efficient pagination

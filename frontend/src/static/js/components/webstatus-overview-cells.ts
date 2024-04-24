@@ -43,14 +43,14 @@ type ColumnDefinition = {
 export enum ColumnKey {
   Name = 'name',
   BaselineStatus = 'baseline_status',
-  WptChrome = 'wpt_chrome',
-  WptEdge = 'wpt_edge',
-  WptFirefox = 'wpt_firefox',
-  WptSafari = 'wpt_safari',
-  WptChromeExp = 'wpt_chrome_exp',
-  WptEdgeExp = 'wpt_edge_exp',
-  WptFirefoxExp = 'wpt_firefox_exp',
-  WptSafariExp = 'wpt_safari_exp',
+  StableChrome = 'stable_chrome',
+  StableEdge = 'stable_edge',
+  StableFirefox = 'stable_firefox',
+  StableSafari = 'stable_safari',
+  ExpChrome = 'experimental_chrome',
+  ExpEdge = 'experimental_edge',
+  ExpFirefox = 'experimental_firefox',
+  ExpSafari = 'experimental_safari',
 }
 
 const columnKeyMapping = Object.entries(ColumnKey).reduce(
@@ -64,10 +64,10 @@ const columnKeyMapping = Object.entries(ColumnKey).reduce(
 export const DEFAULT_COLUMNS = [
   ColumnKey.Name,
   ColumnKey.BaselineStatus,
-  ColumnKey.WptChrome,
-  ColumnKey.WptEdge,
-  ColumnKey.WptFirefox,
-  ColumnKey.WptSafari,
+  ColumnKey.StableChrome,
+  ColumnKey.StableEdge,
+  ColumnKey.StableFirefox,
+  ColumnKey.StableSafari,
 ];
 
 export const DEFAULT_SORT_SPEC = 'name_asc';
@@ -180,52 +180,52 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellRenderer: renderBaselineStatus,
     options: {},
   },
-  [ColumnKey.WptChrome]: {
-    nameInDialog: 'WPT score in Chrome',
+  [ColumnKey.StableChrome]: {
+    nameInDialog: 'Browser Implementation in Chrome',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'chrome'},
   },
-  [ColumnKey.WptEdge]: {
-    nameInDialog: 'WPT score in Edge',
+  [ColumnKey.StableEdge]: {
+    nameInDialog: 'Browser Implementation in Edge',
     headerHtml: html`<img src="/public/img/edge_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'edge'},
   },
-  [ColumnKey.WptFirefox]: {
-    nameInDialog: 'WPT score in Firefox',
+  [ColumnKey.StableFirefox]: {
+    nameInDialog: 'Browser Implementation in Firefox',
     headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'firefox'},
   },
-  [ColumnKey.WptSafari]: {
-    nameInDialog: 'WPT score in Safari',
+  [ColumnKey.StableSafari]: {
+    nameInDialog: 'Browser Implementation in Safari',
     headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'safari'},
   },
-  [ColumnKey.WptChromeExp]: {
-    nameInDialog: 'WPT score in Chrome Experimental',
+  [ColumnKey.ExpChrome]: {
+    nameInDialog: 'Browser Implementation in Chrome Experimental',
     headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'chrome'},
   },
-  [ColumnKey.WptEdgeExp]: {
-    nameInDialog: 'WPT score in Edge Experimental',
+  [ColumnKey.ExpEdge]: {
+    nameInDialog: 'Browser Implementation in Edge Experimental',
     headerHtml: html`<img src="/public/img/edge-dev_24x24.png" /> Experimental`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'edge'},
   },
-  [ColumnKey.WptFirefoxExp]: {
-    nameInDialog: 'WPT score in Firefox Experimental',
+  [ColumnKey.ExpFirefox]: {
+    nameInDialog: 'Browser Implementation in Firefox Experimental',
     headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'firefox'},
   },
-  [ColumnKey.WptSafariExp]: {
-    nameInDialog: 'WPT score in Safari Experimental',
+  [ColumnKey.ExpSafari]: {
+    nameInDialog: 'Browser Implementation in Safari Experimental',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
