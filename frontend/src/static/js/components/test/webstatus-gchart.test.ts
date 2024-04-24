@@ -14,57 +14,61 @@
  * limitations under the License.
  */
 
-
-// import {consume} from '@lit/context';
 import {assert, fixture, html} from '@open-wc/testing';
-import {WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
-// import {WebstatusGChart} from '../webstatus-gchart.js';
-// import { customElement, property } from 'lit/decorators.js';
-// import { LitElement } from 'lit';
-// import { gchartsContext } from '../../contexts/gcharts-context.js';
+import '../webstatus-gcharts-loader.js';
+import '../webstatus-gchart.js';
+import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
+import {type WebstatusGChart} from '../webstatus-gchart.js';
+import {render} from 'lit';
 
 describe('webstatus-gchart', () => {
-  it('loader can be added to the page', async () => {
-    const component = await fixture<WebstatusGChartsLoader>(
-      html`<webstatus-gcharts-loader></webstatus-gcharts-loader>`
+  it('can be added to the page', async () => {
+    const component = await fixture<WebstatusGChart>(
+      html`<webstatus-gchart></webstatus-gchart>`
     );
     assert.exists(component);
-    assert.equal(component.gchartsLibraryLoaded, true);
+    assert.equal(component.gchartsLibraryLoaded, undefined);
   });
 
-  // it('can be added to the page', async () => {
-  //   @customElement('fake-child-element')
-  //   class FakeChildElement extends LitElement {
-  //     @consume({context: gchartsContext, subscribe: true})
-  //     @property({attribute: false})
-  //     gchartsLibraryLoaded!: boolean;
-  //   }
+  it('can be subscribe to the parent gchart loader', async () => {
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(
+      html`
+        <webstatus-gcharts-loader>
+          <webstatus-gchart></webstatus-gchart>
+        </webstatus-gcharts-loader>
+      `,
+      root
+    );
+    const loader = root.querySelector(
+      'webstatus-gcharts-loader'
+    ) as WebstatusGChartsLoader;
+    assert.exists(loader);
+    await loader.updateComplete;
 
-  //   const loader = await fixture<WebstatusGChartsLoader>(
-  //     html`
-  //     <webstatus-gcharts-loader>
-  //       <fake-child-element>
-  //         <webstatus-gchart containerId="testing"></webstatus-gchart>
-  //       </fake-child-element>
-  //     </webstatus-gcharts-loader>
-  //     `
-  //   );
-  //   assert.exists(loader);
-  //   await loader.updateComplete;
+    const gchart = root.querySelector('webstatus-gchart') as WebstatusGChart;
 
-  //   const childComponent = loader.shadowRoot!.querySelector(
-  //     'fake-child-element'
-  //   ) as FakeChildElement;
+    await gchart.updateComplete;
 
-  //   await childComponent.updateComplete;
-  //   assert.equal(loader.gchartsLibraryLoaded, true);
+    // Wait for both loader and gchart to have the library loaded
+    await new Promise<void>(resolve => {
+      const intervalId = setInterval(() => {
+        if (loader.gchartsLibraryLoaded && gchart.gchartsLibraryLoaded) {
+          clearInterval(intervalId);
+          resolve();
+        }
+      }, 10);
+    });
 
-  //   // Find the webstatus-gchart in the shadowRoot.
-  //   const gchartComponent = loader.shadowRoot!.querySelector(
-  //     'webstatus-gchart'
-  //   ) as WebstatusGChart;
-  //   assert.exists(gchartComponent);
-  //   assert.equal(gchartComponent.containerId, 'testing');
-  // });
+    assert.equal(loader.gchartsLibraryLoaded, true);
+    assert.equal(gchart.gchartsLibraryLoaded, true);
 
+    // // Find the webstatus-gchart in the shadowRoot.
+    // const gchartComponent = loader.shadowRoot!.querySelector(
+    //   'webstatus-gchart'
+    // ) as WebstatusGChart;
+    // assert.exists(gchartComponent);
+    // assert.equal(gchartComponent.containerId, 'testing');
+  });
 });

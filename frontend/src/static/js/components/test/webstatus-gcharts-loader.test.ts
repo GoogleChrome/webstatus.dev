@@ -20,7 +20,7 @@
 import {consume} from '@lit/context';
 import {assert, fixture, html} from '@open-wc/testing';
 import {LitElement, render} from 'lit';
-import { customElement, property } from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import '../webstatus-gcharts-loader.js';
 import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
 import {gchartsContext} from '../../contexts/gcharts-context.js';
@@ -33,26 +33,20 @@ describe('webstatus-gcharts-loader', () => {
     gchartsLibraryLoaded!: boolean;
   }
 
-  it.only('can be added to the page via fixture', async () => {
-    console.log('1 does console.log work?')
+  it('can be added to the page via fixture', async () => {
+    console.log('1 does console.log work?');
     const component = await fixture<WebstatusGChartsLoader>(
-      html`<webstatus-gcharts-loader>
-      </webstatus-gcharts-loader>`
+      html`<webstatus-gcharts-loader> </webstatus-gcharts-loader>`
     );
     assert.exists(component);
-    assert.exists(component.gchartsLibraryLoaded)
+    assert.exists(component.gchartsLibraryLoaded);
   });
 
-
   it('can be added to the page', async () => {
-    console.log('2 does console.log work?')
+    console.log('2 does console.log work?');
     const root = document.createElement('div');
     document.body.appendChild(root);
-    render(
-      html` <webstatus-gcharts-loader>
-      </webstatus-gcharts-loader>`,
-      root
-    );
+    render(html` <webstatus-gcharts-loader> </webstatus-gcharts-loader>`, root);
 
     alert('alert works?');
 
@@ -70,14 +64,6 @@ describe('webstatus-gcharts-loader', () => {
   });
 
   it('can provide child components the loaded state via context', async () => {
-    console.log('3 does console.log work?')
-    // @customElement('fake-child-element')
-    // class FakeChildElement extends LitElement {
-    //   @consume({context: gchartsContext, subscribe: true})
-    //   @property({attribute: false})
-    //   gchartsLibraryLoaded!: boolean;
-    // }
-
     const root = document.createElement('div');
     document.body.appendChild(root);
     render(

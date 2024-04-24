@@ -41,8 +41,8 @@ export type WebStatusDataObj = {
 @customElement('webstatus-gchart')
 export class WebstatusGChart extends LitElement {
   @consume({context: gchartsContext, subscribe: true})
-  @state()
-  gchartsLibraryLoaded = false;
+  @property({attribute: false})
+  gchartsLibraryLoaded?: boolean;
 
   // Properties for chartwrapper spec fields.
   @property({type: String, attribute: 'containerId'})
@@ -60,7 +60,7 @@ export class WebstatusGChart extends LitElement {
   })
   dataObj: WebStatusDataObj | undefined;
 
-  @property({state: true})
+  @property({state: true, type: Object})
   dataTable:
     | google.visualization.DataTable
     | google.visualization.DataView

@@ -17,24 +17,55 @@
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
 /// <reference types="@types/google.visualization" />
 
-import {ContextProvider} from '@lit/context';
+import {provide} from '@lit/context';
 import {LitElement, type TemplateResult, html} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 
 import {gchartsContext} from '../contexts/gcharts-context.js';
 
 @customElement('webstatus-gcharts-loader')
 export class WebstatusGChartsLoader extends LitElement {
-  @state()
+  @provide({context: gchartsContext})
   gchartsLibraryLoaded = false;
 
-  @state()
-  gchartsProvider = new ContextProvider(this, {
-    context: gchartsContext,
-  });
+  scriptInserted: boolean = false;
 
   constructor() {
     super();
+  }
+
+  firstUpdated(): void {
+    this.loadScript().then(
+      // TODO. Success case
+      () => {},
+      // TODO. Failure case
+      // Could progagate an event or signal that will render a useful message to the user to reload the page.
+      () => {}
+    );
+  }
+
+  async loadScript(): Promise<void> {
+    if (this.scriptInserted) {
+      return;
+    }
+
+    // Load the script.
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/charts/loader.js';
+    document.head.appendChild(script);
+
+    this.scriptInserted = true;
+
+    const promise = new Promise<void>(resolve => {
+      script.addEventListener('load', () => {
+        resolve();
+      });
+    });
+
+    // After the script is loaded, initialize it by calling loadGoogleCharts.
+    await promise.then(() => {
+      this.loadGoogleCharts();
+    });
   }
 
   loadGoogleCharts() {
@@ -44,13 +75,10 @@ export class WebstatusGChartsLoader extends LitElement {
       })
       .then(() => {
         this.gchartsLibraryLoaded = true;
-        this.gchartsProvider.setValue(this.gchartsLibraryLoaded);
       });
   }
 
-  // Render conditional on the loading state of the task.
   render(): TemplateResult {
-    this.loadGoogleCharts();
-    return html`<slot></slot>`;
+    return html` <slot></slot> `;
   }
 }

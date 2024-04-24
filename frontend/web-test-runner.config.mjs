@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-// import {esbuildPlugin} from '@web/dev-server-esbuild';
+import {esbuildPlugin} from '@web/dev-server-esbuild';
 
 const filteredLogs = ['Running in dev mode', 'Lit is in dev mode'];
 
@@ -27,17 +27,7 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
 
   // in a monorepo you need to set the root dir to resolve modules
   rootDir: '../../',
-  // plugins: [esbuildPlugin({ ts: true })],
-
-  testRunnerHtml: (testFramework) =>
-  `<html>
-    <head>
-     <script src="https://www.gstatic.com/charts/loader.js"></script>
-    </head>
-    <body>
-     <script type="module" src="${testFramework}"></script>
-    </body>
-  </html>`,
+  plugins: [esbuildPlugin({ts: true})],
 
   files: [
     // Have to compile tests
