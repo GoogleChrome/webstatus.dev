@@ -32,10 +32,12 @@ export class WebstatusGChartsLoader extends LitElement {
 
   constructor() {
     super();
+    console.log('WebstatusGChartsLoader constructor');
   }
 
   firstUpdated(): void {
-    this.loadScript().then(
+    console.log('WebstatusGChartsLoader firstUpdated');
+    this.loadGoogleChartsLoaderAndPackages().then(
       // TODO. Success case
       () => {},
       // TODO. Failure case.  We could progagate an event or signal
@@ -44,12 +46,13 @@ export class WebstatusGChartsLoader extends LitElement {
     );
   }
 
-  async loadScript(): Promise<void> {
+  async loadGoogleChartsLoaderAndPackages(): Promise<void> {
+    console.log('WebstatusGChartsLoader loadGoogleChartsLoaderAndPackages');
     if (this.scriptInserted) {
       return;
     }
 
-    // Load the script.
+    // Insert script to load the loader.
     const script = document.createElement('script');
     script.src = 'https://www.gstatic.com/charts/loader.js';
     document.head.appendChild(script);
@@ -65,6 +68,7 @@ export class WebstatusGChartsLoader extends LitElement {
         })
         .then(() => {
           this.gchartsLibraryLoaded = true;
+          console.log('WebstatusGChartsLoader loadGoogleChartsLoaderAndPackages resolved');
           resolve();
         });
       });
@@ -75,27 +79,21 @@ export class WebstatusGChartsLoader extends LitElement {
     // // After the loader script is loaded, we can load packages.
     // await loaderPromise.then(async () => {
     //   // this.loadGoogleChartsPackages();
-    //   return google.charts
-    //   .load('current', {
-    //     packages: ['corechart'],
-    //   })
-    //   .then(() => {
-    //     this.gchartsLibraryLoaded = true;
-    //   });
     // });
   }
 
-  async loadGoogleChartsPackages(): Promise<void> {
-   return google.charts
-      .load('current', {
-        packages: ['corechart'],
-      })
-      .then(() => {
-        this.gchartsLibraryLoaded = true;
-      });
-  }
+  // async loadGoogleChartsPackages(): Promise<void> {
+  //  return google.charts
+  //     .load('current', {
+  //       packages: ['corechart'],
+  //     })
+  //     .then(() => {
+  //       this.gchartsLibraryLoaded = true;
+  //     });
+  // }
 
   render(): TemplateResult {
+    console.log('WebstatusGChartsLoader render');
     return html` <slot></slot> `;
   }
 }

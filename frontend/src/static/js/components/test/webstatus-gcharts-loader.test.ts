@@ -35,7 +35,7 @@ describe('webstatus-gcharts-loader', () => {
     assert.exists(component);
     await component.updateComplete;
 
-    await component.loadScript().then(() => {
+    await component.loadGoogleChartsLoaderAndPackages().then(() => {
       assert.exists(component.gchartsLibraryLoaded);
       assert.equal(component.gchartsLibraryLoaded, true);
     })
