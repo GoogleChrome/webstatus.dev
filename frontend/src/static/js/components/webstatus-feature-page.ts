@@ -88,6 +88,10 @@ export class FeaturePage extends LitElement {
         .wptScore .avail {
           color: var(--unimportant-text-color);
         }
+        .logo-button {
+          gap: var(--content-padding-half);
+          align-items: center;
+        }
         .chip.increased {
           background: var(--chip-background-increased);
           color: var(--chip-color-increased);
@@ -174,11 +178,24 @@ export class FeaturePage extends LitElement {
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
+    const wptLink =
+      'https://wpt.fyi/results' +
+      '?label=master&label=stable&aligned' +
+      '&q=feature%3A' +
+      this.feature!.feature_id;
+    const wptLogo = '/public/img/wpt-logo.svg';
     const mdnLink = '#TODO';
     const canIUseLink = '#TODO';
     return html`
       <div id="nameAndOffsiteLinks" class="hbox">
         <h1 class="halign-stretch">${this.feature!.name}</h1>
+        <sl-button variant="default" href=${wptLink}>
+          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
+          <div class="hbox logo-button">
+            <img src=${wptLogo} alt="WPT default view" width="24" height="24" />
+            WPT.fyi
+          </div>
+        </sl-button>
         <sl-button variant="default" href=${mdnLink}>
           <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
           MDN
