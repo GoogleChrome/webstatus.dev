@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import {esbuildPlugin} from '@web/dev-server-esbuild';
-
 const filteredLogs = ['Running in dev mode', 'Lit is in dev mode'];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
@@ -24,14 +22,16 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   nodeResolve: {
     exportConditions: ['browser', 'development'],
   },
-  // in a monorepo you need to set set the root dir to resolve modules
+
+  // in a monorepo you need to set the root dir to resolve modules
   rootDir: '../../',
-  plugins: [esbuildPlugin({ts: true})],
+
   files: [
     // Have to compile tests
     // Taken from https://github.com/open-wc/create/blob/master/src/generators/testing-wtr-ts/templates/static/web-test-runner.config.mjs
     'build/**/test/*.test.js',
   ],
+
   /** Filter out lit dev mode logs */
   filterBrowserLogs(log) {
     for (const arg of log.args) {
@@ -41,4 +41,9 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
     }
     return true;
   },
+
+  // How long a test file can take to finish.
+  testsFinishTimeout: 1000 * 60 * 1, // (1 min)
+  // mocha config https://mochajs.org/api/mocha
+  testFramework: {config: {timeout: 30000}},
 });

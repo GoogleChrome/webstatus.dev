@@ -14,23 +14,31 @@
  * limitations under the License.
  */
 
+// See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
+/// <reference types="@types/google.visualization" />
+
 import {consume} from '@lit/context';
 import {assert, fixture, html} from '@open-wc/testing';
-import {LitElement, render} from 'lit';
+import {LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
-import {WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
+import '../webstatus-gcharts-loader.js';
+import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
 import {gchartsContext} from '../../contexts/gcharts-context.js';
 
 describe('webstatus-gcharts-loader', () => {
   it('can be added to the page', async () => {
     const component = await fixture<WebstatusGChartsLoader>(
-      html`<webstatus-gcharts-loader></webstatus-gcharts-loader>`
+      html`<webstatus-gcharts-loader> </webstatus-gcharts-loader>`
     );
     assert.exists(component);
+    await component.updateComplete;
+    await component.waitForGChartsLibraryLoaded();
+
+    assert.exists(component.gchartsLibraryLoaded);
     assert.equal(component.gchartsLibraryLoaded, true);
   });
 
-  it('can have child components which are provided the load state via context', async () => {
+  it('can provide child components the loaded state via context', async () => {
     @customElement('fake-child-element')
     class FakeChildElement extends LitElement {
       @consume({context: gchartsContext, subscribe: true})
@@ -38,29 +46,23 @@ describe('webstatus-gcharts-loader', () => {
       gchartsLibraryLoaded!: boolean;
     }
 
-    const root = document.createElement('div');
-    document.body.appendChild(root);
-    render(
-      html` <webstatus-gcharts-loader>
+    const component = await fixture<WebstatusGChartsLoader>(
+      html`<webstatus-gcharts-loader>
         <fake-child-element></fake-child-element>
-      </webstatus-gcharts-loader>`,
-      root
+      </webstatus-gcharts-loader>`
     );
 
-    const component = root.querySelector(
-      'webstatus-gcharts-loader'
-    ) as WebstatusGChartsLoader;
-    const childComponent = root.querySelector(
+    assert.exists(component);
+    await component.updateComplete;
+    await component.waitForGChartsLibraryLoaded();
+
+    const childComponent = component.querySelector(
       'fake-child-element'
     ) as FakeChildElement;
-
-    await component.updateComplete;
+    assert.exists(childComponent);
     await childComponent.updateComplete;
 
-    assert.exists(component);
     assert.equal(component.gchartsLibraryLoaded, true);
-
-    assert.exists(childComponent);
     assert.equal(childComponent.gchartsLibraryLoaded, true);
   });
 });

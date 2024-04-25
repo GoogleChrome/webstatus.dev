@@ -17,40 +17,81 @@
 // See https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/types/google.visualization/index.d.ts
 /// <reference types="@types/google.visualization" />
 
-import {ContextProvider} from '@lit/context';
+import {provide} from '@lit/context';
 import {LitElement, type TemplateResult, html} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 
 import {gchartsContext} from '../contexts/gcharts-context.js';
 
 @customElement('webstatus-gcharts-loader')
 export class WebstatusGChartsLoader extends LitElement {
-  @state()
+  @provide({context: gchartsContext})
   gchartsLibraryLoaded = false;
 
-  @state()
-  gchartsProvider = new ContextProvider(this, {
-    context: gchartsContext,
-  });
+  scriptInserted: boolean = false;
 
   constructor() {
     super();
   }
 
-  loadGoogleCharts() {
-    google.charts
-      .load('current', {
-        packages: ['corechart'],
-      })
-      .then(() => {
-        this.gchartsLibraryLoaded = true;
-        this.gchartsProvider.setValue(this.gchartsLibraryLoaded);
-      });
+  firstUpdated(): void {
+    this.loadGoogleChartsLoaderAndPackages().then(
+      // TODO. Success case
+      () => {},
+      // TODO. Failure case.  We could progagate an event or signal
+      // that will render a useful message to the user to reload the page.
+      () => {}
+    );
   }
 
-  // Render conditional on the loading state of the task.
+  async loadGoogleChartsLoaderAndPackages(): Promise<void> {
+    if (this.scriptInserted) {
+      return;
+    }
+    this.scriptInserted = true;
+
+    // Insert script to load the loader.
+    const script = document.createElement('script');
+    script.src = 'https://www.gstatic.com/charts/loader.js';
+    document.head.appendChild(script);
+
+    const loaderPromise = new Promise<void>(resolve => {
+      script.addEventListener('load', () => {
+        google.charts
+          .load('current', {
+            packages: ['corechart'],
+          })
+          .then(() => {
+            this.gchartsLibraryLoaded = true;
+            resolve();
+          });
+      });
+    });
+
+    return loaderPromise;
+  }
+
+  // This is a test helper method and should not be used by live code.
+  async waitForGChartsLibraryLoaded(timeoutMs = 5000): Promise<void> {
+    const endTime = Date.now() + timeoutMs;
+    let delay = 10;
+
+    return new Promise((resolve, reject) => {
+      const loaderLoop = () => {
+        if (this.gchartsLibraryLoaded) {
+          resolve();
+        } else if (Date.now() < endTime) {
+          delay *= 2;
+          setTimeout(loaderLoop, delay);
+        } else {
+          reject('Timeout waiting for Google Charts to load');
+        }
+      };
+      setTimeout(loaderLoop, delay);
+    });
+  }
+
   render(): TemplateResult {
-    this.loadGoogleCharts();
-    return html`<slot></slot>`;
+    return html` <slot></slot> `;
   }
 }
