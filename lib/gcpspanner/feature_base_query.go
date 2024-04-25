@@ -107,6 +107,11 @@ type CommonFSSelectTemplateData struct {
 	StableMetrics        string
 	ExperimentalMetrics  string
 	ImplementationStatus string
+	PageFilters          []string
+	Filters              []string
+	SortClause           string
+	Offset               int
+	PageSize             int
 }
 
 // GCPFSSelectTemplateData contains the template for gcpFSSelectQueryTemplate.
@@ -139,6 +144,7 @@ type LocalFSMetricsTemplateData struct {
 // CommonFSCountTemplateData contains the template for commonCountQueryTemplate.
 type CommonFSCountTemplateData struct {
 	BaseQueryFragment string
+	Filters           []string
 }
 
 // GCPFSCountTemplateData contains the template for gcpFSCountQueryTemplate.
@@ -175,6 +181,20 @@ func metricsPassRateIndex(metricView WPTMetricView) string {
 	return "MetricsFeatureChannelBrowserTimeSubtestPassRate"
 }
 
+type FeatureSearchCountArgs struct {
+	Filters []string
+}
+
+type FeatureSearchQueryArgs struct {
+	MetricView  WPTMetricView
+	Filters     []string
+	PageFilters []string
+	PageSize    int
+	Offset      int
+	Prefilter   FeatureSearchPrefilterResult
+	SortClause  string
+}
+
 // FeatureSearchBaseQuery contains the base query for all feature search
 // related queries.
 type FeatureSearchBaseQuery interface {
@@ -192,10 +212,10 @@ type FeatureSearchBaseQuery interface {
 	//  5. The latest metrics from WPT.
 	//     It provides these metrics for both "stable" and "experimental" channels.
 	//     The metrics retrieved are for each unique BrowserName/Channel/FeatureID.
-	Query(prefilter FeatureSearchPrefilterResult, metricView WPTMetricView) (string, map[string]interface{})
+	Query(args FeatureSearchQueryArgs) (string, map[string]interface{})
 
 	// CountQuery generates the base query to return only the count of items.
-	CountQuery() string
+	CountQuery(args FeatureSearchCountArgs) string
 }
 
 type FeatureSearchPrefilterResult struct {
@@ -306,10 +326,11 @@ func (f GCPFeatureSearchBaseQuery) getLatestRunResultGroupedByChannel(
 
 func (f GCPFeatureSearchBaseQuery) buildBaseQueryFragment() string { return gcpFSBaseQueryTemplate }
 
-func (f GCPFeatureSearchBaseQuery) CountQuery() string {
+func (f GCPFeatureSearchBaseQuery) CountQuery(args FeatureSearchCountArgs) string {
 	return gcpFSCountQueryTemplate.Execute(GCPFSCountTemplateData{
 		CommonFSCountTemplateData: CommonFSCountTemplateData{
 			BaseQueryFragment: f.buildBaseQueryFragment(),
+			Filters:           args.Filters,
 		},
 	})
 }
@@ -351,7 +372,12 @@ COALESCE(
 	// commonCountQueryRawTemplate returns the count of items, using the base query fragment
 	// for consistency.
 	commonCountQueryRawTemplate = `
-SELECT COUNT(*) {{ .BaseQueryFragment }}
+SELECT COUNT(*)
+{{ .BaseQueryFragment }}
+WHERE 1=1
+{{ range .Filters }}
+	AND {{ . }}
+{{ end }}
 `
 	gcpFSCountQueryRawTemplate   = commonCountQueryRawTemplate
 	localFSCountQueryRawTemplate = commonCountQueryRawTemplate
@@ -359,15 +385,29 @@ SELECT COUNT(*) {{ .BaseQueryFragment }}
 	// gcpFSSelectQueryRawTemplate builds the core SELECT query. It retrieves feature
 	// information, baseline status, and aggregated metrics.
 	gcpFSSelectQueryRawTemplate = `
-	SELECT
-		wf.ID,
-		wf.FeatureID,
-		wf.Name,
-		COALESCE(fbs.Status, 'undefined') AS Status,
-		{{ .StableMetrics }},
-		{{ .ExperimentalMetrics }},
-		{{ .ImplementationStatus }}
-	{{ .BaseQueryFragment }}
+SELECT
+	wf.ID,
+	wf.FeatureID,
+	wf.Name,
+	COALESCE(fbs.Status, 'undefined') AS Status,
+	{{ .StableMetrics }},
+	{{ .ExperimentalMetrics }},
+	{{ .ImplementationStatus }}
+{{ .BaseQueryFragment }}
+WHERE 1=1 -- This ensures valid syntax even with no filters
+{{ range .PageFilters }}
+	AND {{ . }}
+{{ end }}
+{{ range .Filters }}
+	AND {{ . }}
+{{ end }}
+{{ if .SortClause }}
+ORDER BY {{ .SortClause }}
+{{ end }}
+LIMIT {{ .PageSize }}
+{{ if .Offset }}
+OFFSET {{ .Offset }}
+{{ end }}
 `
 	localFSSelectQueryRawTemplate = `
 	WITH
@@ -402,6 +442,20 @@ SELECT
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
 {{ .BaseQueryFragment }}
+WHERE 1=1 -- This ensures valid syntax even with no filters
+{{ range .PageFilters }}
+	AND {{ . }}
+{{ end }}
+{{ range .Filters }}
+	AND {{ . }}
+{{ end }}
+{{ if .SortClause }}
+ORDER BY {{ .SortClause }}
+{{ end }}
+LIMIT {{ .PageSize }}
+{{ if .Offset }}
+OFFSET {{ .Offset }}
+{{ end }}
 `
 
 	// gcpFSMetricsSubQueryRawTemplate generates a nested query that aggregates metrics by browser and
@@ -457,11 +511,11 @@ COALESCE(
 // The one thing to note about to this implementation: If the latest run ever deprecates a feature,
 // it will not be included in the query. However, a feature can only be deprecated by a bigger change in the ecosystem
 // and is not a common thing and will have bigger changes outside of this repository than just here.
-func (f GCPFeatureSearchBaseQuery) Query(prefilter FeatureSearchPrefilterResult, metricView WPTMetricView) (
+func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 	string, map[string]interface{}) {
-	params := make(map[string]interface{}, len(prefilter.stableParams)+len(prefilter.experimentalParams))
-	maps.Copy(params, prefilter.stableParams)
-	maps.Copy(params, prefilter.experimentalParams)
+	params := make(map[string]interface{}, len(args.Prefilter.stableParams)+len(args.Prefilter.experimentalParams))
+	maps.Copy(params, args.Prefilter.stableParams)
+	maps.Copy(params, args.Prefilter.experimentalParams)
 	stableParamName := "stableChannelParam"
 	params[stableParamName] = "stable"
 	experimentalParamName := "experimentalChannelParam"
@@ -469,17 +523,17 @@ func (f GCPFeatureSearchBaseQuery) Query(prefilter FeatureSearchPrefilterResult,
 
 	stableMetrics := gcpFSMetricsSubQueryTemplate.Execute(GCPFSMetricsTemplateData{
 		Channel:        "Stable",
-		Clause:         prefilter.stableClause,
-		PassRateColumn: metricsPassRateColumn(metricView),
-		MetricIndex:    metricsPassRateIndex(metricView),
+		Clause:         args.Prefilter.stableClause,
+		PassRateColumn: metricsPassRateColumn(args.MetricView),
+		MetricIndex:    metricsPassRateIndex(args.MetricView),
 		ChannelParam:   stableParamName,
 	})
 
 	experimentalMetrics := gcpFSMetricsSubQueryTemplate.Execute(GCPFSMetricsTemplateData{
 		Channel:        "Experimental",
-		Clause:         prefilter.experimentalClause,
-		PassRateColumn: metricsPassRateColumn(metricView),
-		MetricIndex:    metricsPassRateIndex(metricView),
+		Clause:         args.Prefilter.experimentalClause,
+		PassRateColumn: metricsPassRateColumn(args.MetricView),
+		MetricIndex:    metricsPassRateIndex(args.MetricView),
 		ChannelParam:   experimentalParamName,
 	})
 
@@ -489,6 +543,11 @@ func (f GCPFeatureSearchBaseQuery) Query(prefilter FeatureSearchPrefilterResult,
 			StableMetrics:        stableMetrics,
 			ExperimentalMetrics:  experimentalMetrics,
 			ImplementationStatus: gcpFSImplementationStatusRawTemplate,
+			Filters:              args.Filters,
+			PageFilters:          args.PageFilters,
+			Offset:               args.Offset,
+			SortClause:           args.SortClause,
+			PageSize:             args.PageSize,
 		},
 	}), params
 }
@@ -516,17 +575,18 @@ func (f LocalFeatureBaseQuery) Prefilter(
 
 func (f LocalFeatureBaseQuery) buildBaseQueryFragment() string { return localFSBaseQueryTemplate }
 
-func (f LocalFeatureBaseQuery) CountQuery() string {
+func (f LocalFeatureBaseQuery) CountQuery(args FeatureSearchCountArgs) string {
 	return localFSCountQueryTemplate.Execute(LocalFSCountTemplateData{
 		CommonFSCountTemplateData: CommonFSCountTemplateData{
 			BaseQueryFragment: f.buildBaseQueryFragment(),
+			Filters:           args.Filters,
 		},
 	})
 }
 
 // Query is a version of the base query that works on the local emulator.
 // It leverages a common table expression CTE to help query the metrics.
-func (f LocalFeatureBaseQuery) Query(_ FeatureSearchPrefilterResult, metricView WPTMetricView) (
+func (f LocalFeatureBaseQuery) Query(args FeatureSearchQueryArgs) (
 	string, map[string]interface{}) {
 	stableParamName := "stableChannelParam"
 	experimentalParamName := "experimentalChannelParam"
@@ -538,23 +598,28 @@ func (f LocalFeatureBaseQuery) Query(_ FeatureSearchPrefilterResult, metricView 
 
 	stableMetrics := localFSMetricsSubQueryTemplate.Execute(LocalFSMetricsTemplateData{
 		Channel:        "Stable",
-		PassRateColumn: metricsPassRateColumn(metricView),
+		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		ChannelParam:   stableParamName,
 	})
 
 	experimentalMetrics := localFSMetricsSubQueryTemplate.Execute(LocalFSMetricsTemplateData{
 		Channel:        "Experimental",
-		PassRateColumn: metricsPassRateColumn(metricView),
+		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		ChannelParam:   experimentalParamName,
 	})
 
 	return localFSSelectQueryTemplate.Execute(LocalFSSelectTemplateData{
-		PassRateColumn: metricsPassRateColumn(metricView),
+		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
 			BaseQueryFragment:    f.buildBaseQueryFragment(),
 			StableMetrics:        stableMetrics,
 			ExperimentalMetrics:  experimentalMetrics,
 			ImplementationStatus: localFSImplementationStatusRawTemplate,
+			PageFilters:          args.PageFilters,
+			Filters:              args.Filters,
+			SortClause:           args.SortClause,
+			Offset:               args.Offset,
+			PageSize:             args.PageSize,
 		},
 	}), params
 }

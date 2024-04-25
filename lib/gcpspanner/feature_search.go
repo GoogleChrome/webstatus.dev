@@ -92,7 +92,7 @@ func (c *Client) FeaturesSearch(
 	var featureCursor *FeatureResultCursor
 	var err error
 	if pageToken != nil {
-		offsetCursor, featureCursor, err = decodeInputFeatureResultCursor(*pageToken, sortOrder)
+		offsetCursor, featureCursor, err = decodeInputFeatureResultCursor(*pageToken)
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}

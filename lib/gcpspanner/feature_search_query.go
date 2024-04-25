@@ -36,16 +36,16 @@ func NewFeatureSearchFilterBuilder() *FeatureSearchFilterBuilder {
 }
 
 type FeatureSearchCompiledFilter struct {
-	params map[string]interface{}
-	clause string
+	params  map[string]interface{}
+	filters []string
 }
 
 func (f FeatureSearchCompiledFilter) Params() map[string]interface{} {
 	return f.params
 }
 
-func (f FeatureSearchCompiledFilter) Clause() string {
-	return f.clause
+func (f FeatureSearchCompiledFilter) Filters() []string {
+	return f.filters
 }
 
 // addParamGetName adds a parameter to the map that will be used in the spanner params map.
@@ -77,11 +77,10 @@ func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *Featur
 	b.paramCounter = 0
 
 	generatedFilters := b.traverseAndGenerateFilters(node.Children[0])
-	filterClause := strings.Join(generatedFilters, " AND ")
 
 	return &FeatureSearchCompiledFilter{
-		params: b.params,
-		clause: filterClause,
+		params:  b.params,
+		filters: generatedFilters,
 	}
 }
 
@@ -186,22 +185,20 @@ type FeatureSearchQueryBuilder struct {
 	wptMetricView WPTMetricView
 }
 
-const whereOpPrefix = "WHERE "
-
 func (q FeatureSearchQueryBuilder) CountQueryBuild(
 	filter *FeatureSearchCompiledFilter) spanner.Statement {
-	filterQuery := ""
 	filterParams := make(map[string]interface{})
+	args := FeatureSearchCountArgs{
+		Filters: nil,
+	}
 	if filter != nil {
-		filterQuery = filter.Clause()
+		args.Filters = filter.filters
 		maps.Copy(filterParams, filter.Params())
 	}
-	if len(filterQuery) > 0 {
-		filterQuery = whereOpPrefix + filterQuery
-	}
-	sql := q.baseQuery.CountQuery()
 
-	stmt := spanner.NewStatement(sql + " " + filterQuery)
+	sql := q.baseQuery.CountQuery(args)
+
+	stmt := spanner.NewStatement(sql)
 	stmt.Params = filterParams
 
 	return stmt
@@ -212,39 +209,31 @@ func (q FeatureSearchQueryBuilder) Build(
 	filter *FeatureSearchCompiledFilter,
 	sort Sortable,
 	pageSize int) spanner.Statement {
-	filterQuery := ""
 
 	filterParams := make(map[string]interface{})
-	offsetFilter := ""
-	if q.featureCursor != nil {
-		filterParams["cursorId"] = q.featureCursor.LastFeatureID
-		sortColumn := q.featureCursor.getLastSortColumn()
-		q.featureCursor.addLastSortValueParam(filterParams, "cursorSortColumn")
-		filterQuery += " ("
-		filterQuery += fmt.Sprintf("%s %s @cursorSortColumn OR ",
-			sortColumn.ToFilterColumn(), q.featureCursor.SortOrderOperator)
-		filterQuery += fmt.Sprintf("(%s = @cursorSortColumn AND wf.FeatureID > @cursorId)", sortColumn.ToFilterColumn())
-		filterQuery += ")"
-	} else if q.offsetCursor != nil {
-		filterParams["offset"] = q.offsetCursor.Offset
-		offsetFilter = " OFFSET @offset"
+	queryArgs := FeatureSearchQueryArgs{
+		MetricView:  q.wptMetricView,
+		Filters:     nil,
+		PageFilters: nil,
+		Offset:      0,
+		PageSize:    pageSize,
+		Prefilter:   prefilter,
+		SortClause:  sort.Clause(),
 	}
-
-	filterParams["pageSize"] = pageSize
-
+	if q.featureCursor != nil {
+		queryArgs.PageFilters = q.featureCursor.buildPageFilters(filterParams)
+	} else if q.offsetCursor != nil {
+		queryArgs.Offset = q.offsetCursor.Offset
+	}
 	if filter != nil {
-		filterQuery = filter.Clause()
+		queryArgs.Filters = filter.filters
 		maps.Copy(filterParams, filter.Params())
 	}
-	if len(filterQuery) > 0 {
-		filterQuery = whereOpPrefix + filterQuery
-	}
 
-	sql, params := q.baseQuery.Query(prefilter, q.wptMetricView)
+	sql, params := q.baseQuery.Query(queryArgs)
 	maps.Copy(filterParams, params)
 
-	stmt := spanner.NewStatement(
-		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize" + offsetFilter)
+	stmt := spanner.NewStatement(sql)
 
 	stmt.Params = filterParams
 
@@ -254,7 +243,7 @@ func (q FeatureSearchQueryBuilder) Build(
 // Sortable is a basic class that all/most sortables can include.
 type Sortable struct {
 	clause         string
-	sortColumn     FeatureSearchColumn
+	sortTarget     FeaturesSearchSortTarget
 	ascendingOrder bool
 }
 
@@ -262,8 +251,8 @@ func (s Sortable) Clause() string {
 	return s.clause
 }
 
-func (s Sortable) SortColumn() FeatureSearchColumn {
-	return s.sortColumn
+func (s Sortable) SortTarget() FeaturesSearchSortTarget {
+	return s.sortTarget
 }
 
 // buildFullClause generates a sorting clause appropriate for Spanner pagination.
@@ -288,8 +277,7 @@ type FeatureSearchColumn string
 func (f FeatureSearchColumn) ToFilterColumn() string {
 	switch f {
 	case featureSearchFeatureIDColumn,
-		featureSearchFeatureNameColumn,
-		featureSearchNone:
+		featureSearchFeatureNameColumn:
 		return string(f)
 	case featureSearchStatusColumn:
 		// To facilitate correct pagination behavior, particularly when handling null values in the
@@ -301,20 +289,28 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 	return ""
 }
 
+// FeaturesSearchSortTarget is an enumeration of the data that is being targeted for the sort operation.
+// This is used to know which column(s) to encode and decode in the pagination token.
+type FeaturesSearchSortTarget string
+
+const (
+	IDSort     FeaturesSearchSortTarget = "id"
+	NameSort   FeaturesSearchSortTarget = "name"
+	StatusSort FeaturesSearchSortTarget = "status"
+)
+
 const (
 	featureSearchFeatureIDColumn   FeatureSearchColumn = "wf.FeatureID"
 	featureSearchFeatureNameColumn FeatureSearchColumn = "wf.Name"
 	featureSearchStatusColumn      FeatureSearchColumn = "Status"
-	// Placeholder column for all non-matching columns.
-	featureSearchNone FeatureSearchColumn = ""
 )
 
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
 func NewFeatureNameSort(isAscending bool) Sortable {
 	return Sortable{
 		clause:         buildFullClause(buildSortableOrderClause(isAscending, "wf.Name")),
-		sortColumn:     featureSearchFeatureNameColumn,
 		ascendingOrder: isAscending,
+		sortTarget:     NameSort,
 	}
 }
 
@@ -322,7 +318,7 @@ func NewFeatureNameSort(isAscending bool) Sortable {
 func NewBaselineStatusSort(isAscending bool) Sortable {
 	return Sortable{
 		clause:         buildFullClause(buildSortableOrderClause(isAscending, "Status")),
-		sortColumn:     featureSearchStatusColumn,
 		ascendingOrder: isAscending,
+		sortTarget:     StatusSort,
 	}
 }
