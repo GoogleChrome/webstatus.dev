@@ -147,11 +147,14 @@ func (c FeatureResultCursor) buildPageFilters(existingParams map[string]interfac
 		existingParams[columnValueParam] = lastValue.Value
 		currentParamCount++
 
-		sortColumns = append(sortColumns, FeatureSearchSortColumn{
+		sortColumn := FeatureSearchSortColumn{
 			Column:           lastValue.Column.ToFilterColumn(),
 			SortOrder:        lastValue.SortOrder,
 			ColumnValueParam: columnValueParam,
-		})
+		}
+
+		sortColumns = append(sortColumns, sortColumn)
+		slog.Info("sort stuff", "column", sortColumn, "value", lastValue.Value)
 	}
 	tieBreakerValueParam := fmt.Sprintf("cursor%d", currentParamCount)
 	existingParams[tieBreakerValueParam] = c.LastFeatureID
