@@ -67,22 +67,43 @@ const (
 	// queries when using one sort column.
 	featuresSearchPageCursorFilterOneColRawTemplate = `
 (
-	{{ .Column1 }} {{ .Column1Operator }} @{{ .Column1ValueParam }} OR
-	({{ .Column1 }} = @{{ .Column1ValueParam }} AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }})
+	{{ .Column1 }} IS NULL AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}) OR
+	({{ .Column1 }} IS NOT NULL AND (
+		{{ .Column1 }} {{ .Column1Operator }} @{{ .Column1ValueParam }} OR
+		{{ .Column1 }} = @{{ .Column1ValueParam }} AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
+	)
 )
 `
 	// featuresSearchPageCursorFilterTwoColRawTemplate is the template for resuming features search / get feature
 	// queries when using two sort columns.
 	featuresSearchPageCursorFilterTwoColRawTemplate = `
 (
-	{{ .Column1 }} {{ .Column1Operator }} @{{ .Column1ValueParam }} OR
 	(
-		{{ .Column1 }} = @{{ .Column1ValueParam }} AND
-		{{ .Column2 }} {{ .Column2Operator }} @{{ .Column2ValueParam }}
+		{{ .Column1 }} IS NOT NULL AND
+		{{ .Column1 }} < @{{ .Column1ValueParam }}
 	) OR
 	(
+		{{ .Column1 }} IS NOT NULL AND
+		{{ .Column1 }} = @{{ .Column1ValueParam }} AND
+		(
+			{{ .Column2 }} IS NULL OR
+			{{ .Column2 }} {{ .Column2Operator }} @{{ .Column2ValueParam }}
+		)
+	) OR
+	(
+		{{ .Column1 }} IS NOT NULL AND
 		{{ .Column1 }} = @{{ .Column1ValueParam }} AND
 		{{ .Column2 }} = @{{ .Column2ValueParam }} AND
+		{{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
+	) OR
+	(
+		{{ .Column1 }} IS NULL AND
+		{{ .Column2 }} IS NULL AND
+		{{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
+	) OR
+	(
+		{{ .Column1 }} IS NULL AND
+		{{ .Column2 }} IS NOT NULL AND
 		{{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
 	)
 )
@@ -440,15 +461,11 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 func addImplSortValuesToSlice(lastMetric *big.Rat,
 	lastImplStatus BrowserImplementationStatus, sortOrderOperator string) []LastValueInfo {
 	ret := []LastValueInfo{}
-	// Check for nil metric. If it is nil, do not encode because the database will not
-	// find a nil value in the tables to check.
-	if lastMetric != nil {
-		ret = append(ret, LastValueInfo{
-			SortOrderOperator: sortOrderOperator,
-			LastSortValue:     lastMetric,
-			Column:            featureSearcBrowserMetricColumn,
-		})
-	}
+	ret = append(ret, LastValueInfo{
+		SortOrderOperator: sortOrderOperator,
+		LastSortValue:     lastMetric,
+		Column:            featureSearcBrowserMetricColumn,
+	})
 
 	// Check for empty impl string. If it is empty, do not encode because the database will not
 	// find a empty value in the tables to check.
