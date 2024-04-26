@@ -54,8 +54,12 @@ var featuresSearchPageCursorFilterTemplate BaseQueryTemplate
 // featuresSearchPageCursorFilterRawTemplate is the template for resuming features search / get feature queries.
 const featuresSearchPageCursorFilterRawTemplate = `
 (
-	{{ .Column }} {{ .ColumnOperator }} @{{ .ColumnValueParam }} OR
-	({{ .Column }} = @{{ .ColumnValueParam }} AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }})
+     {{- range $index, $column := .SortColumns -}}
+        {{- if $index }} AND {{ end }}
+        ({{ $column.Column }} = @{{ $column.ColumnValueParam }} OR
+         {{ $column.Column }} {{ $column.SortOrder }} @{{ $column.ColumnValueParam }})
+     {{- end }}
+     AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
 )
 `
 
@@ -116,66 +120,57 @@ type FeatureResultOffsetCursor struct {
 // RawFeatureResultCursor is a generic representation of a feature-based cursor, used primarily for encoding and
 // initial decoding to preserve exact value types for 'LastSortValue'.
 type RawFeatureResultCursor struct {
-	LastFeatureID        string                   `json:"last_feature_id"`
-	SortTarget           string                   `json:"sort_operation"`
-	ColumnToLastValueMap map[string]LastValueInfo `json:"last_values"`
+	LastFeatureID string          `json:"last_feature_id"`
+	SortTarget    string          `json:"sort_operation"`
+	Columns       []LastValueInfo `json:"last_values"`
 }
 
 type LastValueInfo struct {
-	SortOrderOperator string `json:"sort_order_operator"`
-	LastSortValue     any    `json:"last_sort_value"`
+	SortOrderOperator string              `json:"sort_order_operator"`
+	LastSortValue     any                 `json:"last_sort_value"`
+	Column            FeatureSearchColumn `json:"column"`
 }
 
 // FeatureResultCursor provides a non-generic representation of a feature-based cursor, simplifying its use in
 // subsequent query building logic.
 type FeatureResultCursor struct {
-	LastFeatureID        string
-	SortTarget           FeaturesSearchSortTarget
-	ColumnToLastValueMap map[FeatureSearchColumn]FeatureResultCursorLastValue
+	LastFeatureID string
+	SortTarget    FeaturesSearchSortTarget
+	Columns       []FeatureResultCursorLastValue
 }
 
-func (c FeatureResultCursor) buildPageFilters(existingParams map[string]interface{}) []string {
-	filters := make([]string, 0, len(c.ColumnToLastValueMap))
-	paramCount := 0
-	for column, lastValue := range c.ColumnToLastValueMap {
-		filters = append(filters, buildPageFilter(
-			paramCount,
-			existingParams,
-			column,
-			c.LastFeatureID,
-			lastValue,
-		))
-		paramCount++
+func (c FeatureResultCursor) buildPageFilters(existingParams map[string]interface{}) string {
+	sortColumns := make([]FeatureSearchSortColumn, 0, len(c.Columns))
+	currentParamCount := 0
+	for _, lastValue := range c.Columns {
+		columnValueParam := fmt.Sprintf("cursorSortColumn%d", currentParamCount)
+		existingParams[columnValueParam] = lastValue.Value
+		currentParamCount++
+
+		sortColumns = append(sortColumns, FeatureSearchSortColumn{
+			Column:           lastValue.Column.ToFilterColumn(),
+			SortOrder:        lastValue.SortOrder,
+			ColumnValueParam: columnValueParam,
+		})
 	}
-
-	return filters
-}
-
-func buildPageFilter(
-	currentParamCount int,
-	existingParams map[string]interface{},
-	col FeatureSearchColumn,
-	lastFeatureID string,
-	lastValue FeatureResultCursorLastValue,
-) string {
-	columnValueParam := fmt.Sprintf("cursorSortColumn%d", currentParamCount)
-	existingParams[columnValueParam] = lastValue.Value
 	tieBreakerValueParam := fmt.Sprintf("cursor%d", currentParamCount)
-	existingParams[tieBreakerValueParam] = lastFeatureID
+	existingParams[tieBreakerValueParam] = c.LastFeatureID
 
 	return featuresSearchPageCursorFilterTemplate.Execute(struct {
-		Column               string
-		ColumnOperator       string
-		ColumnValueParam     string
+		SortColumns          []FeatureSearchSortColumn
 		TieBreakerColumn     string
 		TieBreakerValueParam string
 	}{
-		Column:               col.ToFilterColumn(),
-		ColumnOperator:       lastValue.SortOrder,
-		ColumnValueParam:     columnValueParam,
+		SortColumns:          sortColumns,
 		TieBreakerColumn:     string(featureSearchFeatureIDColumn),
 		TieBreakerValueParam: tieBreakerValueParam,
 	})
+}
+
+type FeatureSearchSortColumn struct {
+	Column           string
+	SortOrder        string
+	ColumnValueParam interface{}
 }
 
 // FeatureResultCursorLastValue holds the various representations of the 'LastSortValue,' allowing flexibility without
@@ -183,6 +178,7 @@ func buildPageFilter(
 type FeatureResultCursorLastValue struct {
 	Value     any
 	SortOrder string
+	Column    FeatureSearchColumn
 }
 
 // decodeWPTRunCursor provides a wrapper around the generic decodeCursor.
@@ -214,7 +210,7 @@ func decodeInputFeatureResultCursor(
 	}
 
 	// Sanitize the sort order by the only operators we want.
-	for _, value := range decodedCursor.ColumnToLastValueMap {
+	for _, value := range decodedCursor.Columns {
 		if value.SortOrderOperator != sortOrderASCPaginationOperator &&
 			value.SortOrderOperator != sortOrderDESCPaginationOperator {
 			return nil, nil, ErrInvalidCursorFormat
@@ -230,14 +226,24 @@ func decodeInputFeatureResultCursor(
 		return nil, nil, ErrInvalidCursorFormat
 	}
 
-	lastValues := make(map[FeatureSearchColumn]FeatureResultCursorLastValue, len(decodedCursor.ColumnToLastValueMap))
-	for column, lastValueInfo := range decodedCursor.ColumnToLastValueMap {
-		col := FeatureSearchColumn(column)
+	lastValues := make([]FeatureResultCursorLastValue, 0, len(decodedCursor.Columns))
+	for _, lastValueInfo := range decodedCursor.Columns {
+		col := FeatureSearchColumn(lastValueInfo.Column)
 		switch col {
 		case featureSearchFeatureIDColumn,
 			featureSearchFeatureNameColumn,
-			featureSearchStatusColumn,
-			featureSearcBrowserImplColumn:
+			featureSearchStatusColumn:
+			_, ok := lastValueInfo.LastSortValue.(string)
+			if !ok {
+				// Type check the value
+				return nil, nil, ErrInvalidCursorFormat
+			}
+		case featureSearcBrowserImplColumn:
+			// featureSearcBrowserImplColumn is a nullable string
+			if lastValueInfo.LastSortValue == nil {
+				break
+			}
+			// If not null, try to set to string
 			_, ok := lastValueInfo.LastSortValue.(string)
 			if !ok {
 				// Type check the value
@@ -264,16 +270,17 @@ func decodeInputFeatureResultCursor(
 			lastValueInfo.LastSortValue = rat
 
 		}
-		lastValues[col] = FeatureResultCursorLastValue{
+		lastValues = append(lastValues, FeatureResultCursorLastValue{
 			Value:     lastValueInfo.LastSortValue,
 			SortOrder: lastValueInfo.SortOrderOperator,
-		}
+			Column:    col,
+		})
 	}
 
 	return nil, &FeatureResultCursor{
-		LastFeatureID:        decodedCursor.LastFeatureID,
-		SortTarget:           sortTarget,
-		ColumnToLastValueMap: lastValues,
+		LastFeatureID: decodedCursor.LastFeatureID,
+		SortTarget:    sortTarget,
+		Columns:       lastValues,
 	}, nil
 }
 
@@ -306,10 +313,11 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 		return encodeCursor(RawFeatureResultCursor{
 			LastFeatureID: lastResult.FeatureID,
 			SortTarget:    string(NameSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearchFeatureNameColumn): {
+			Columns: []LastValueInfo{
+				{
 					SortOrderOperator: sortOrderOperator,
 					LastSortValue:     lastResult.Name,
+					Column:            featureSearchFeatureNameColumn,
 				},
 			},
 		})
@@ -317,10 +325,11 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 		return encodeCursor(RawFeatureResultCursor{
 			LastFeatureID: lastResult.FeatureID,
 			SortTarget:    string(StatusSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearchStatusColumn): {
+			Columns: []LastValueInfo{
+				{
 					SortOrderOperator: sortOrderOperator,
 					LastSortValue:     lastResult.Status,
+					Column:            featureSearchStatusColumn,
 				},
 			},
 		})
@@ -328,10 +337,11 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 		return encodeCursor(RawFeatureResultCursor{
 			LastFeatureID: lastResult.FeatureID,
 			SortTarget:    string(IDSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearchStatusColumn): {
+			Columns: []LastValueInfo{
+				{
 					SortOrderOperator: sortOrderOperator,
 					LastSortValue:     lastResult.FeatureID,
+					Column:            featureSearchFeatureIDColumn,
 				},
 			},
 		})
@@ -339,44 +349,62 @@ func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) str
 		lastMetric := findPassRateForBrowser(lastResult.StableMetrics, sortOrder.browserTarget)
 		lastImplStatus := findImplStatusForBrowser(lastResult.ImplementationStatuses, sortOrder.browserTarget)
 
-		slog.Info("generating cursor", "last result", lastResult, "last metric", lastMetric, "last status", lastImplStatus, "browser", *sortOrder.browserTarget)
+		cols := addImplSortValuesToSlice(lastMetric, lastImplStatus, sortOrderOperator)
 
-		return encodeCursor(RawFeatureResultCursor{
+		cursorData := RawFeatureResultCursor{
 			LastFeatureID: lastResult.FeatureID,
 			SortTarget:    string(StableImplSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearcBrowserMetricColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastMetric,
-				},
-				string(featureSearcBrowserImplColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastImplStatus,
-				},
-			},
-		})
+			Columns:       cols,
+		}
+
+		return encodeCursor(cursorData)
 	case ExperimentalImplSort:
 		lastMetric := findPassRateForBrowser(lastResult.ExperimentalMetrics, sortOrder.browserTarget)
 		lastImplStatus := findImplStatusForBrowser(lastResult.ImplementationStatuses, sortOrder.browserTarget)
 
-		return encodeCursor(RawFeatureResultCursor{
+		cols := addImplSortValuesToSlice(lastMetric, lastImplStatus, sortOrderOperator)
+
+		cursorData := RawFeatureResultCursor{
 			LastFeatureID: lastResult.FeatureID,
-			SortTarget:    string(ExperimentalImplSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearcBrowserMetricColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastMetric,
-				},
-				string(featureSearcBrowserImplColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastImplStatus,
-				},
-			},
-		})
+			SortTarget:    string(StableImplSort),
+			Columns:       cols,
+		}
+
+		return encodeCursor(cursorData)
 	}
 
 	// Should be not reached. Linting should catch all the cases as more are added.
 	return ""
+}
+
+func addImplSortValuesToSlice(lastMetric *big.Rat,
+	lastImplStatus BrowserImplementationStatus, sortOrderOperator string) []LastValueInfo {
+	ret := []LastValueInfo{}
+	// Check for nil metric. If it is nil, do not encode because the database will not
+	// find a nil value in the tables to check.
+	if lastMetric != nil {
+		ret = append(ret, LastValueInfo{
+			SortOrderOperator: sortOrderOperator,
+			LastSortValue:     lastMetric,
+			Column:            featureSearcBrowserMetricColumn,
+		})
+	}
+
+	// Check for empty impl string. If it is empty, do not encode because the database will not
+	// find a empty value in the tables to check.
+	var lastImplValue any
+	if lastImplStatus != "" {
+		lastImplValue = lastImplStatus
+	} else {
+		lastImplValue = nil
+	}
+	ret = append(ret, LastValueInfo{
+		SortOrderOperator: sortOrderOperator,
+		LastSortValue:     lastImplValue,
+		Column:            featureSearcBrowserImplColumn,
+	})
+
+	return ret
 }
 
 func findPassRateForBrowser(metrics []*FeatureResultMetric, browserName *string) *big.Rat {

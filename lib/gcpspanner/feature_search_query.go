@@ -241,7 +241,7 @@ func (q FeatureSearchQueryBuilder) Build(
 	}
 
 	if q.featureCursor != nil {
-		queryArgs.PageFilters = q.featureCursor.buildPageFilters(filterParams)
+		queryArgs.PageFilters = []string{q.featureCursor.buildPageFilters(filterParams)}
 	} else if q.offsetCursor != nil {
 		queryArgs.Offset = q.offsetCursor.Offset
 	}
@@ -338,8 +338,13 @@ const (
 	featureSearchFeatureIDColumn    FeatureSearchColumn = "wf.FeatureID"
 	featureSearchFeatureNameColumn  FeatureSearchColumn = "wf.Name"
 	featureSearchStatusColumn       FeatureSearchColumn = "Status"
-	featureSearcBrowserMetricColumn FeatureSearchColumn = "SortMetric"
-	featureSearcBrowserImplColumn   FeatureSearchColumn = "SortImplStatus"
+	featureSearcBrowserMetricColumn FeatureSearchColumn = "sort_metric_calcs.SortMetric"
+	featureSearcBrowserImplColumn   FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
+)
+
+const (
+	derviedTableSortMetrics = "sort_metric_calcs"
+	derviedTableSortImpl    = "sort_impl_calcs"
 )
 
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
