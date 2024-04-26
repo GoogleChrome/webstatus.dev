@@ -621,11 +621,8 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			pageSize:  2,
 			pageToken: nil, // First page does not need a page token.
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
-				)),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
@@ -636,33 +633,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			name:     "page two",
 			pageSize: 2,
 			// The token should be made from the token of the previous page's last item
-			pageToken: valuePtr(encodeFeatureResultCursor(
-				defaultSorting(),
-				getFeatureSearchTestFeature(FeatureSearchTestFId2),
-			)),
-			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				)),
-				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				},
-			},
-		},
-		{
-			name:      "page two with offset token",
-			pageSize:  2,
 			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				// Should have the same token as page two with the regular token.
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				)),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
@@ -1109,10 +1083,8 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			sortable:  NewBaselineStatusSort(true),
 			pageToken: nil,
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFId1))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
@@ -1123,29 +1095,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			name:     "BaselineStatus asc - page 2",
 			sortable: NewBaselineStatusSort(true),
 			// Same page token as the next page token from the previous page.
-			pageToken: valuePtr(encodeFeatureResultCursor(
-				NewBaselineStatusSort(true),
-				getFeatureSearchTestFeature(FeatureSearchTestFId1))),
-			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4))),
-				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				},
-			},
-		},
-		{
-			name:      "BaselineStatus asc - page 2 using offset token",
-			sortable:  NewBaselineStatusSort(true),
 			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
@@ -1157,10 +1110,8 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			sortable:  NewBaselineStatusSort(false),
 			pageToken: nil,
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFId3))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
@@ -1171,29 +1122,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			name:     "BaselineStatus desc - page 2",
 			sortable: NewBaselineStatusSort(false),
 			// Same page token as the next page token from the previous page.
-			pageToken: valuePtr(encodeFeatureResultCursor(
-				NewBaselineStatusSort(false),
-				getFeatureSearchTestFeature(FeatureSearchTestFId3))),
-			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2))),
-				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId1),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
-				},
-			},
-		},
-		{
-			name:      "BaselineStatus desc - page 2 using offset token",
-			sortable:  NewBaselineStatusSort(false),
 			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
@@ -1512,11 +1444,4 @@ func PrettyPrintFeatureResults(results []FeatureResult) string {
 	}
 
 	return builder.String()
-}
-
-// encodeFeatureResultOffsetCursor provides a wrapper around the generic encodeCursor.
-func encodeFeatureResultOffsetCursor(offset int) string {
-	return encodeCursor(FeatureResultOffsetCursor{
-		Offset: offset,
-	})
 }

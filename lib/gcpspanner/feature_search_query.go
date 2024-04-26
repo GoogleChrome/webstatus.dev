@@ -181,7 +181,6 @@ type Filterable interface {
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
 	baseQuery     FeatureSearchBaseQuery
-	featureCursor *FeatureResultCursor
 	offsetCursor  *FeatureResultOffsetCursor
 	wptMetricView WPTMetricView
 }
@@ -240,9 +239,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		SortByExpBrowserImpl:    expBrowserImplDetails,
 	}
 
-	if q.featureCursor != nil {
-		queryArgs.PageFilters = []string{q.featureCursor.buildPageFilters(filterParams)}
-	} else if q.offsetCursor != nil {
+	if q.offsetCursor != nil {
 		queryArgs.Offset = q.offsetCursor.Offset
 	}
 	if filter != nil {

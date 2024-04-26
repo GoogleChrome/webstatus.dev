@@ -91,10 +91,9 @@ func (c *Client) FeaturesSearch(
 	filter := filterBuilder.Build(searchNode)
 
 	var offsetCursor *FeatureResultOffsetCursor
-	var featureCursor *FeatureResultCursor
 	var err error
 	if pageToken != nil {
-		offsetCursor, featureCursor, err = decodeInputFeatureResultCursor(*pageToken)
+		offsetCursor, err = decodeInputFeatureResultCursor(*pageToken)
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
@@ -109,7 +108,6 @@ func (c *Client) FeaturesSearch(
 
 	queryBuilder := FeatureSearchQueryBuilder{
 		baseQuery:     c.featureSearchQuery,
-		featureCursor: featureCursor,
 		offsetCursor:  offsetCursor,
 		wptMetricView: wptMetricView,
 	}
@@ -140,9 +138,12 @@ func (c *Client) FeaturesSearch(
 	}
 
 	if len(results) == pageSize {
-		lastResult := results[len(results)-1]
-		newCursor := encodeFeatureResultCursor(sortOrder, lastResult)
-		page.NextPageToken = &newCursor
+		previousOffset := 0
+		if offsetCursor != nil {
+			previousOffset = offsetCursor.Offset
+		}
+		token := encodeFeatureResultOffsetCursor(previousOffset + pageSize)
+		page.NextPageToken = &token
 
 		return &page, nil
 	}
