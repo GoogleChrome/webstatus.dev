@@ -118,6 +118,43 @@ export class APIClient {
     return data;
   }
 
+  public async getFeatureStatsByBrowserAndChannel(
+    featureId: string,
+    browser: BrowsersParameter,
+    channel: ChannelsParameter,
+    startAtDate: Date,
+    endAtDate: Date
+  ): Promise<WPTRunMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+
+    let nextPageToken;
+    const allData: WPTRunMetric[] = [];
+    do {
+      const response = await this.client.GET(
+        '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {startAt, endAt, page_token: nextPageToken},
+            path: {feature_id: featureId, browser, channel},
+          },
+        }
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw new Error(error?.message);
+      }
+      const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      if (page != null) {
+        allData.push(...page.data);
+      }
+    } while (nextPageToken !== undefined);
+
+    return allData;
+  }
+
   public async getStatsByBrowserAndChannel(
     browser: BrowsersParameter,
     channel: ChannelsParameter,
