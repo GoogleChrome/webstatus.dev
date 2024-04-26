@@ -29,7 +29,8 @@ import (
 )
 
 func init() {
-	featuresSearchPageCursorFilterTemplate = NewQueryTemplate(featuresSearchPageCursorFilterRawTemplate)
+	featuresSearchPageCursorFilterOneColTemplate = NewQueryTemplate(featuresSearchPageCursorFilterOneColRawTemplate)
+	featuresSearchPageCursorFilterTwoColTemplate = NewQueryTemplate(featuresSearchPageCursorFilterTwoColRawTemplate)
 }
 
 // ErrQueryReturnedNoResults indicates no results were returned.
@@ -47,21 +48,46 @@ var ErrFailedToEstablishClient = errors.New("failed to establish spanner client"
 // ErrInvalidCursorFormat indicates the cursor is not the correct format.
 var ErrInvalidCursorFormat = errors.New("invalid cursor format")
 
-// nolint: gochecknoglobals // WONTFIX: thread safe globals.
-// featuresSearchPageCursorFilterTemplate is the compiled version of featuresSearchPageCursorFilterRawTemplate.
-var featuresSearchPageCursorFilterTemplate BaseQueryTemplate
+// nolint: gochecknoglobals // WONTFIX. Caution: Do not override these outside of init()
+var (
+	// featuresSearchPageCursorFilterOneColTemplate is the compiled version of
+	// featuresSearchPageCursorFilterOneColRawTemplate.
+	featuresSearchPageCursorFilterOneColTemplate BaseQueryTemplate
+	// featuresSearchPageCursorFilterTwoColTemplate is the compiled version of
+	// featuresSearchPageCursorFilterTwoColRawTemplate.
+	featuresSearchPageCursorFilterTwoColTemplate BaseQueryTemplate
+)
 
-// featuresSearchPageCursorFilterRawTemplate is the template for resuming features search / get feature queries.
-const featuresSearchPageCursorFilterRawTemplate = `
+// PageFilter templates. For now, we have an explicit template each combination
+// of possible sort columns.
+// As of now, we can have between 1 or 2 sort columns at a given time.
+// TODO: If the number grows, we may want to invest in solving it for N sort columns.
+const (
+	// featuresSearchPageCursorFilterOneColRawTemplate is the template for resuming features search / get feature
+	// queries when using one sort column.
+	featuresSearchPageCursorFilterOneColRawTemplate = `
 (
-     {{- range $index, $column := .SortColumns -}}
-        {{- if $index }} AND {{ end }}
-        ({{ $column.Column }} = @{{ $column.ColumnValueParam }} OR
-         {{ $column.Column }} {{ $column.SortOrder }} @{{ $column.ColumnValueParam }})
-     {{- end }}
-     AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
+	{{ .Column1 }} {{ .Column1Operator }} @{{ .Column1ValueParam }} OR
+	({{ .Column1 }} = @{{ .Column1ValueParam }} AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }})
 )
 `
+	// featuresSearchPageCursorFilterTwoColRawTemplate is the template for resuming features search / get feature
+	// queries when using two sort columns.
+	featuresSearchPageCursorFilterTwoColRawTemplate = `
+(
+	{{ .Column1 }} {{ .Column1Operator }} @{{ .Column1ValueParam }} OR
+	(
+		{{ .Column1 }} = @{{ .Column1ValueParam }} AND
+		{{ .Column2 }} {{ .Column2Operator }} @{{ .Column2ValueParam }}
+	) OR
+	(
+		{{ .Column1 }} = @{{ .Column1ValueParam }} AND
+		{{ .Column2 }} = @{{ .Column2ValueParam }} AND
+		{{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }}
+	)
+)
+`
+)
 
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
@@ -159,21 +185,51 @@ func (c FeatureResultCursor) buildPageFilters(existingParams map[string]interfac
 	tieBreakerValueParam := fmt.Sprintf("cursor%d", currentParamCount)
 	existingParams[tieBreakerValueParam] = c.LastFeatureID
 
-	return featuresSearchPageCursorFilterTemplate.Execute(struct {
-		SortColumns          []FeatureSearchSortColumn
-		TieBreakerColumn     string
-		TieBreakerValueParam string
-	}{
-		SortColumns:          sortColumns,
-		TieBreakerColumn:     string(featureSearchFeatureIDColumn),
-		TieBreakerValueParam: tieBreakerValueParam,
-	})
+	switch len(sortColumns) {
+	case 1:
+		return featuresSearchPageCursorFilterOneColTemplate.Execute(struct {
+			Column1              string
+			Column1Operator      string
+			Column1ValueParam    string
+			TieBreakerColumn     string
+			TieBreakerValueParam string
+		}{
+			Column1:              sortColumns[0].Column,
+			Column1Operator:      sortColumns[0].SortOrder,
+			Column1ValueParam:    sortColumns[0].ColumnValueParam,
+			TieBreakerColumn:     string(featureSearchFeatureIDColumn),
+			TieBreakerValueParam: tieBreakerValueParam,
+		})
+	case 2:
+		return featuresSearchPageCursorFilterTwoColTemplate.Execute(struct {
+			Column1              string
+			Column1Operator      string
+			Column1ValueParam    string
+			Column2              string
+			Column2Operator      string
+			Column2ValueParam    string
+			TieBreakerColumn     string
+			TieBreakerValueParam string
+		}{
+			Column1:              sortColumns[0].Column,
+			Column1Operator:      sortColumns[0].SortOrder,
+			Column1ValueParam:    sortColumns[0].ColumnValueParam,
+			Column2:              sortColumns[1].Column,
+			Column2Operator:      sortColumns[1].SortOrder,
+			Column2ValueParam:    sortColumns[1].ColumnValueParam,
+			TieBreakerColumn:     string(featureSearchFeatureIDColumn),
+			TieBreakerValueParam: tieBreakerValueParam,
+		})
+	}
+
+	// Default
+	return ""
 }
 
 type FeatureSearchSortColumn struct {
 	Column           string
 	SortOrder        string
-	ColumnValueParam interface{}
+	ColumnValueParam string
 }
 
 // FeatureResultCursorLastValue holds the various representations of the 'LastSortValue,' allowing flexibility without
@@ -225,7 +281,8 @@ func decodeInputFeatureResultCursor(
 	case IDSort, StatusSort, NameSort, StableImplSort, ExperimentalImplSort:
 		break
 	default:
-		slog.Error("unable to use sort target", "target", sortTarget)
+		slog.Warn("unable to use sort target", "target", sortTarget)
+
 		return nil, nil, ErrInvalidCursorFormat
 	}
 
