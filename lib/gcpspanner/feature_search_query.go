@@ -16,7 +16,6 @@ package gcpspanner
 
 import (
 	"fmt"
-	"log/slog"
 	"maps"
 	"strings"
 
@@ -252,8 +251,6 @@ func (q FeatureSearchQueryBuilder) Build(
 
 	stmt := spanner.NewStatement(sql)
 
-	slog.Info("stmt", "sql", sql, "params", filterParams)
-
 	stmt.Params = filterParams
 
 	return stmt
@@ -369,6 +366,16 @@ func NewBaselineStatusSort(isAscending bool) Sortable {
 	}
 }
 
+// NewBrowserImplSort creates a Sortable configuration for ordering Web Features.
+// The primary sorting criterion is the pass rate of stable or experimental WPT (Web Platform Tests) metrics
+// for the specified browser.
+// The secondary sorting criterion is the implementation status ("available" or "unavailable") of the feature
+// in the specified browser.
+//
+// Arguments:
+//   - isAscending: Whether the sorting should be ascending (true) or descending (false).
+//   - browserName: The name of the browser ("chrome", "firefox", etc.).
+//   - isStable: Whether to use stable (true) or experimental (false) WPT metrics.
 func NewBrowserImplSort(isAscending bool, browserName string, isStable bool) Sortable {
 	sortTarget := StableImplSort
 	if !isStable {

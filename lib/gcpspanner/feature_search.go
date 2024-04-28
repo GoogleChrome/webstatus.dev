@@ -36,8 +36,6 @@ type SpannerFeatureResult struct {
 	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
 	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
 	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
-	SortMetric             *big.Rat                `spanner:"SortMetric"`
-	SortImplStatus         *string                 `spanner:"SortImplStatus"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.

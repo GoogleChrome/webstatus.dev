@@ -127,6 +127,7 @@ type CommonFSSelectTemplateData struct {
 	OptionalJoins        []JoinData
 }
 
+// JoinData contains template data for the optional joins.
 type JoinData struct {
 	Alias    string
 	Template string
@@ -225,6 +226,7 @@ type FeatureSearchCountArgs struct {
 	Filters []string
 }
 
+// SortByBrowserImplDetails contains parameter data for the Implementation Status templates.
 type SortByBrowserImplDetails struct {
 	BrowserName string
 }
