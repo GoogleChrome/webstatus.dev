@@ -79,26 +79,12 @@ type WPTRunCursor struct {
 	LastRunID     int64     `json:"last_run_id"`
 }
 
-// FeatureCursorLastSortValueType defines the valid types for the 'LastSortValue' field in a FeatureResultCursor.
-// As more are added, also add to FeatureResultCursorLastValue.
-type FeatureCursorLastSortValueType interface {
-	string // Currently only supports 'string'
-}
-
 // FeatureResultOffsetCursor: A numerical offset from the start of the result set. Enables the construction of
 // human-friendly URLs specifying an exact page offset.
 // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
 // treated as a stable interface. Instead, external users should rely on the returned pagination token long term.
 type FeatureResultOffsetCursor struct {
 	Offset int `json:"offset"`
-}
-
-// FeatureResultCursorLastValue holds the various representations of the 'LastSortValue,' allowing flexibility without
-// the need for generics in the main 'FeatureResultCursor'.
-type FeatureResultCursorLastValue struct {
-	Value     any
-	SortOrder string
-	Column    FeatureSearchColumn
 }
 
 // decodeWPTRunCursor provides a wrapper around the generic decodeCursor.
