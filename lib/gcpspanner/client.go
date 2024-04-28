@@ -93,22 +93,6 @@ type FeatureResultOffsetCursor struct {
 	Offset int `json:"offset"`
 }
 
-// RawFeatureResultCursor: Represents a point for resuming queries based on the last feature ID to enable efficient
-// pagination within Spanner.
-// RawFeatureResultCursor is a generic representation of a feature-based cursor, used primarily for encoding and
-// initial decoding to preserve exact value types for 'LastSortValue'.
-type RawFeatureResultCursor struct {
-	LastFeatureID string          `json:"last_feature_id"`
-	SortTarget    string          `json:"sort_operation"`
-	Columns       []LastValueInfo `json:"last_values"`
-}
-
-type LastValueInfo struct {
-	SortOrderOperator string              `json:"sort_order_operator"`
-	LastSortValue     any                 `json:"last_sort_value"`
-	Column            FeatureSearchColumn `json:"column"`
-}
-
 // FeatureResultCursorLastValue holds the various representations of the 'LastSortValue,' allowing flexibility without
 // the need for generics in the main 'FeatureResultCursor'.
 type FeatureResultCursorLastValue struct {
