@@ -6,8 +6,8 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| ID | STRING(36) |  | false |  |  |  |
-| FeatureID | STRING(64) |  | false | [WPTRunFeatureMetrics](WPTRunFeatureMetrics.md) [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) [FeatureBaselineStatus](FeatureBaselineStatus.md) |  |  |
+| ID | STRING(36) |  | false | [WPTRunFeatureMetrics](WPTRunFeatureMetrics.md) [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) [FeatureBaselineStatus](FeatureBaselineStatus.md) |  |  |
+| FeatureID | STRING(64) |  | false |  |  |  |
 | Name | STRING(64) |  | false |  |  |  |
 | FeatureID_Lowercase | STRING(64) |  | true |  |  |  |
 | Name_Lowercase | STRING(64) |  | true |  |  |  |
@@ -22,10 +22,9 @@
 
 | Name | Definition |
 | ---- | ---------- |
-| IDX_WebFeatures_FeatureID_U_784458D34C82F74F | CREATE UNIQUE INDEX IDX_WebFeatures_FeatureID_U_784458D34C82F74F ON WebFeatures (FeatureID) |
+| WebFeaturesByFeatureID | CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureID) |
 | IDX_NAME_LOWER | CREATE INDEX IDX_NAME_LOWER ON WebFeatures (Name_Lowercase) |
 | IDX_FEATUREID_LOWER | CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures (FeatureID_Lowercase) |
-| WebFeaturesByFeatureID | CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureID) |
 
 ## Relations
 

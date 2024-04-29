@@ -6,8 +6,8 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| FeatureID | STRING(64) |  | false |  | [WebFeatures](WebFeatures.md) |  |
-| Status | STRING(16) |  | false |  |  |  |
+| FeatureID | STRING(36) |  | false |  | [WebFeatures](WebFeatures.md) |  |
+| Status | STRING(16) |  | true |  |  |  |
 | LowDate | TIMESTAMP |  | true |  |  |  |
 | HighDate | TIMESTAMP |  | true |  |  |  |
 

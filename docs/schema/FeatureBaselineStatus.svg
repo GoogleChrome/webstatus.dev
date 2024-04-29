@@ -19,7 +19,7 @@
 <text text-anchor="start" x="269.1174" y="-485.3" font-family="Arial" font-size="14.00" fill="#666666">[BASIC TABLE]</text>
 <polygon fill="none" stroke="#000000" points="46,-442.5 46,-472.5 374,-472.5 374,-442.5 46,-442.5"/>
 <text text-anchor="start" x="53" y="-453.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureID </text>
-<text text-anchor="start" x="119.122" y="-453.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(64)]</text>
+<text text-anchor="start" x="119.122" y="-453.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 <polygon fill="none" stroke="#000000" points="46,-412.5 46,-442.5 374,-442.5 374,-412.5 46,-412.5"/>
 <text text-anchor="start" x="53" y="-423.9" font-family="Arial" font-size="14.00" fill="#000000">Status </text>
 <text text-anchor="start" x="96.5736" y="-423.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(16)]</text>
@@ -57,8 +57,8 @@
 </g>
 <!-- FeatureBaselineStatus&#45;&gt;WebFeatures -->
 <g id="edge1" class="edge">
-<title>FeatureBaselineStatus:FeatureID&#45;&gt;WebFeatures:FeatureID</title>
-<path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M35.8171,-456.6234C-18.3616,-446.6635 4.0464,-354.3079 46,-307 134.8084,-206.8575 256.1916,-371.1425 345,-271 381.4187,-229.9334 399.8889,-147.5 345,-147.5"/>
+<title>FeatureBaselineStatus:FeatureID&#45;&gt;WebFeatures:ID</title>
+<path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M35.8171,-456.6234C-18.3616,-446.6635 4.0464,-354.3079 46,-307 134.8084,-206.8575 256.1916,-371.1425 345,-271 372.5721,-239.9091 386.5556,-177.5 345,-177.5"/>
 <polygon fill="#000000" stroke="#000000" points="36.0369,-456.6422 45.614,-461.9834 41.0184,-457.0711 46,-457.5 46,-457.5 46,-457.5 41.0184,-457.0711 46.386,-453.0166 36.0369,-456.6422 36.0369,-456.6422"/>
 </g>
 </g>

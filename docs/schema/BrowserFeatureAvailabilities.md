@@ -8,7 +8,7 @@
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
 | BrowserName | STRING(64) |  | false |  | [BrowserReleases](BrowserReleases.md) |  |
 | BrowserVersion | STRING(8) |  | false |  | [BrowserReleases](BrowserReleases.md) |  |
-| FeatureID | STRING(64) |  | false |  | [WebFeatures](WebFeatures.md) |  |
+| FeatureID | STRING(36) |  | false |  | [WebFeatures](WebFeatures.md) |  |
 
 ## Constraints
 

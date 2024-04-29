@@ -31,13 +31,13 @@ relations:
       - FeatureID
     parentTable: WebFeatures
     parentColumns:
-      - FeatureID
+      - ID
   - table: BrowserFeatureAvailabilities
     columns:
       - FeatureID
     parentTable: WebFeatures
     parentColumns:
-      - FeatureID
+      - ID
   - table: BrowserFeatureAvailabilities
     columns:
       - BrowserName
@@ -51,4 +51,4 @@ relations:
       - FeatureID
     parentTable: WebFeatures
     parentColumns:
-      - FeatureID
+      - ID

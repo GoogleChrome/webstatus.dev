@@ -7,10 +7,13 @@
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
 | ID | STRING(36) |  | false |  | [WPTRuns](WPTRuns.md) |  |
-| FeatureID | STRING(64) |  | false |  | [WPTRuns](WPTRuns.md) [WebFeatures](WebFeatures.md) |  |
+| FeatureID | STRING(36) |  | false |  | [WPTRuns](WPTRuns.md) [WebFeatures](WebFeatures.md) |  |
 | TotalTests | INT64 |  | true |  |  |  |
 | TestPass | INT64 |  | true |  |  |  |
-| PassRate | NUMERIC |  | true |  |  |  |
+| TestPassRate | NUMERIC |  | true |  |  |  |
+| TotalSubtests | INT64 |  | true |  |  |  |
+| SubtestPass | INT64 |  | true |  |  |  |
+| SubtestPassRate | NUMERIC |  | true |  |  |  |
 | Channel | STRING(32) |  | false |  |  |  |
 | BrowserName | STRING(64) |  | false |  |  |  |
 | TimeStart | TIMESTAMP |  | false |  |  |  |
@@ -26,10 +29,11 @@
 
 | Name | Definition |
 | ---- | ---------- |
-| MetricsFeatureChannelBrowserTimePassRate | CREATE INDEX MetricsFeatureChannelBrowserTimePassRate ON WPTRunFeatureMetrics (FeatureID, Channel, BrowserName, TimeStart, PassRate) |
-| MetricsFeatureChannelBrowserTime | CREATE INDEX MetricsFeatureChannelBrowserTime ON WPTRunFeatureMetrics (FeatureID, Channel, BrowserName, TimeStart) |
-| MetricsByRunIDAndFeature | CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, FeatureID) |
+| MetricsFeatureChannelBrowserTimeSubtestPassRate | CREATE INDEX MetricsFeatureChannelBrowserTimeSubtestPassRate ON WPTRunFeatureMetrics (FeatureID, Channel, BrowserName, TimeStart, SubtestPassRate) |
 | IDX_WPTRunFeatureMetrics_FeatureID_648C5C9695C4049C | CREATE INDEX IDX_WPTRunFeatureMetrics_FeatureID_648C5C9695C4049C ON WPTRunFeatureMetrics (FeatureID) |
+| MetricsFeatureChannelBrowserTimeTestPassRate | CREATE INDEX MetricsFeatureChannelBrowserTimeTestPassRate ON WPTRunFeatureMetrics (FeatureID, Channel, BrowserName, TimeStart, TestPassRate) |
+| MetricsByRunIDAndFeature | CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, FeatureID) |
+| MetricsFeatureChannelBrowserTime | CREATE INDEX MetricsFeatureChannelBrowserTime ON WPTRunFeatureMetrics (FeatureID, Channel, BrowserName, TimeStart) |
 
 ## Relations
 
