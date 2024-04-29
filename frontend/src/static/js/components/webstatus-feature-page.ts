@@ -30,6 +30,7 @@ import {type components} from 'webstatus.dev-backend';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 import {
+  ALL_BROWSERS, ALL_CHANNELS,
   FeatureWPTMetricViewType,
   type APIClient,
   type BrowsersParameter,
@@ -49,16 +50,6 @@ import {
 
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
-
-// No way to get the values from the parameter types, so we have to
-// redundantly specify them.
-const ALL_BROWSERS: BrowsersParameter[] = [
-  'chrome',
-  'firefox',
-  'safari',
-  'edge',
-];
-const ALL_FEATURES: ChannelsParameter[] = ['stable'];
 
 /** Generate a key for featureSupport. */
 function featureSupportKey(
@@ -214,6 +205,12 @@ export class FeaturePage extends LitElement {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
+    this._fetchFeatureSupportData(
+      this.apiClient,
+      this.startDate,
+      this.endDate
+    );
+    this.generateFeatureSupportChartOptions();
   }
 
   handleStartDateChange(event: Event) {
@@ -285,8 +282,8 @@ export class FeaturePage extends LitElement {
   }
 
   generateFeatureSupportChartOptions(): google.visualization.LineChartOptions {
-    // Add 2 weeks to this.endDate.
-    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
+    // Add one day to this.endDate.
+    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
       hAxis: {
@@ -310,7 +307,7 @@ export class FeaturePage extends LitElement {
   ) {
     if (typeof apiClient !== 'object') return;
     for (const browser of ALL_BROWSERS) {
-      for (const channel of ALL_FEATURES) {
+      for (const channel of ALL_CHANNELS) {
         const wptRuns = await apiClient.getFeatureStatsByBrowserAndChannel(
           this.featureId,
           browser,
@@ -362,37 +359,6 @@ export class FeaturePage extends LitElement {
     });
   }
 
-  // Maybe need the browser selector from this:
-  // renderFeatureSupport(): TemplateResult {
-  //   return html`
-  //     <sl-card id="feature-support">
-  //       <div slot="header" class="hbox">
-  //         <div class="spacer"></div>
-  //         <sl-dropdown
-  //           id="feature-support-browser-selector"
-  //           multiple
-  //           stay-open-on-select
-  //           .value="${this.featureSupportBrowsers.join(' ')}"
-  //         >
-  //           <sl-button slot="trigger">
-  //             <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-  //             Browsers
-  //           </sl-button>
-  //           <sl-menu @sl-select=${this.handleBrowserSelection}>
-  //             <sl-menu-item type="checkbox" value="chrome">Chrome</sl-menu-item>
-  //             <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
-  //             <sl-menu-item type="checkbox" value="firefox"
-  //               >Firefox</sl-menu-item
-  //             >
-  //             <sl-menu-item type="checkbox" value="safari">Safari</sl-menu-item>
-  //           </sl-menu>
-  //         </sl-dropdown>
-  //       </div>
-  //       <div>${this.renderFeatureSupportChart()}</div>
-  //     </sl-card>
-  //   `;
-  // }
-
   renderCrumbs(): TemplateResult {
     const overviewUrl = formatOverviewPageUrl(this.location);
     const canonicalFeatureUrl = formatFeaturePageUrl(this.feature!);
@@ -415,8 +381,27 @@ export class FeaturePage extends LitElement {
     const mdnLink = '#TODO';
     const canIUseLink = '#TODO';
     return html`
-      <div id="nameAndOffsiteLinks" class="hbox">
-        <h1 class="halign-stretch">${this.feature!.name}</h1>
+      <div id="nameAndOffsiteLinks" class="hbox valign-items-end">
+        <h1>${this.feature!.name}</h1>
+        <div class="spacer"></div>
+        <label
+          >Start date
+          <sl-input
+            id="start-date"
+            @sl-change=${this.handleStartDateChange}
+            type="date"
+            .valueAsDate="${this.startDate}"
+          ></sl-input>
+        </label>
+        <label
+          >End date
+          <sl-input
+            id="end-date"
+            @sl-change=${this.handleEndDateChange}
+            type="date"
+            .valueAsDate="${this.endDate}"
+          ></sl-input>
+        </label>
         <sl-button variant="default" href=${wptLink}>
           <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
           <div class="hbox logo-button">
@@ -493,25 +478,26 @@ export class FeaturePage extends LitElement {
         <div class="hbox">
           <div slot="header">Implementation progress</div>
           <div class="spacer"></div>
-          <div class="hbox wrap valign-items-center">
-            <label
-              >Start date
-              <sl-input
-                id="start-date"
-                @sl-change=${this.handleStartDateChange}
-                type="date"
-                .valueAsDate="${this.startDate}"
-              ></sl-input>
-            </label>
-            <label
-              >End date
-              <sl-input
-                id="end-date"
-                @sl-change=${this.handleEndDateChange}
-                type="date"
-                .valueAsDate="${this.endDate}"
-              ></sl-input>
-            </label>
+          <div class="hbox wrap valign-items-end">
+            <sl-dropdown style="display:none"
+              id="feature-support-browser-selector"
+              multiple
+              stay-open-on-select
+              .value="${this.featureSupportBrowsers.join(' ')}"
+            >
+              <sl-button slot="trigger">
+                <sl-icon slot="suffix" name="chevron-down"></sl-icon>
+                Browsers
+              </sl-button>
+              <sl-menu @sl-select=${this.handleBrowserSelection}>
+                <sl-menu-item type="checkbox" value="chrome">Chrome</sl-menu-item>
+                <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
+                <sl-menu-item type="checkbox" value="firefox"
+                  >Firefox</sl-menu-item
+                >
+                <sl-menu-item type="checkbox" value="safari">Safari</sl-menu-item>
+              </sl-menu>
+            </sl-dropdown>
           </div>
         </div>
 

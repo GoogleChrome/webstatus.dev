@@ -30,9 +30,34 @@ export type FeatureWPTMetricViewType = NonNullable<
 >['wpt_metric_view'];
 
 export type BrowsersParameter = components['parameters']['browserPathParam'];
+
+/**
+ * Iterable list of browsers we have data for.
+ * This is the same as the items in the BrowsersParameter enum,
+ * but there is no way to get the values from the parameter types,
+ * so we have to redundantly specify them here.
+ */
+export const ALL_BROWSERS: BrowsersParameter[] = [
+  'chrome',
+  'firefox',
+  'safari',
+  'edge',
+];
+
 export type ChannelsParameter = components['parameters']['channelPathParam'];
+
+export const STABLE_CHANNEL: ChannelsParameter = 'stable';
+export const EXPERIMENTAL_CHANNEL: ChannelsParameter = 'experimental'
+
+/**
+ * Iterable list of all channels.
+ */
+export const ALL_CHANNELS: ChannelsParameter[] = [
+  STABLE_CHANNEL, EXPERIMENTAL_CHANNEL];
+
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
+
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
