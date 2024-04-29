@@ -30,7 +30,33 @@ export type FeatureWPTMetricViewType = NonNullable<
 >['wpt_metric_view'];
 
 export type BrowsersParameter = components['parameters']['browserPathParam'];
+
+/**
+ * Iterable list of browsers we have data for.
+ * This is the same as the items in the BrowsersParameter enum,
+ * but there is no way to get the values from the parameter types,
+ * so we have to redundantly specify them here.
+ */
+export const ALL_BROWSERS: BrowsersParameter[] = [
+  'chrome',
+  'firefox',
+  'safari',
+  'edge',
+];
+
 export type ChannelsParameter = components['parameters']['channelPathParam'];
+
+export const STABLE_CHANNEL: ChannelsParameter = 'stable';
+export const EXPERIMENTAL_CHANNEL: ChannelsParameter = 'experimental';
+
+/**
+ * Iterable list of all channels.
+ */
+export const ALL_CHANNELS: ChannelsParameter[] = [
+  STABLE_CHANNEL,
+  EXPERIMENTAL_CHANNEL,
+];
+
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
 
@@ -116,6 +142,43 @@ export class APIClient {
       throw new Error(error?.message);
     }
     return data;
+  }
+
+  public async getFeatureStatsByBrowserAndChannel(
+    featureId: string,
+    browser: BrowsersParameter,
+    channel: ChannelsParameter,
+    startAtDate: Date,
+    endAtDate: Date
+  ): Promise<WPTRunMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+
+    let nextPageToken;
+    const allData: WPTRunMetric[] = [];
+    do {
+      const response = await this.client.GET(
+        '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {startAt, endAt, page_token: nextPageToken},
+            path: {feature_id: featureId, browser, channel},
+          },
+        }
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw new Error(error?.message);
+      }
+      const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      if (page != null) {
+        allData.push(...page.data);
+      }
+    } while (nextPageToken !== undefined);
+
+    return allData;
   }
 
   public async getStatsByBrowserAndChannel(
