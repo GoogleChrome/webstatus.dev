@@ -30,7 +30,8 @@ import {type components} from 'webstatus.dev-backend';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 import {
-  ALL_BROWSERS, ALL_CHANNELS,
+  ALL_BROWSERS,
+  ALL_CHANNELS,
   FeatureWPTMetricViewType,
   type APIClient,
   type BrowsersParameter,
@@ -205,11 +206,7 @@ export class FeaturePage extends LitElement {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
-    this._fetchFeatureSupportData(
-      this.apiClient,
-      this.startDate,
-      this.endDate
-    );
+    this._fetchFeatureSupportData(this.apiClient, this.startDate, this.endDate);
     this.generateFeatureSupportChartOptions();
   }
 
@@ -479,7 +476,8 @@ export class FeaturePage extends LitElement {
           <div slot="header">Implementation progress</div>
           <div class="spacer"></div>
           <div class="hbox wrap valign-items-end">
-            <sl-dropdown style="display:none"
+            <sl-dropdown
+              style="display:none"
               id="feature-support-browser-selector"
               multiple
               stay-open-on-select
@@ -490,12 +488,16 @@ export class FeaturePage extends LitElement {
                 Browsers
               </sl-button>
               <sl-menu @sl-select=${this.handleBrowserSelection}>
-                <sl-menu-item type="checkbox" value="chrome">Chrome</sl-menu-item>
+                <sl-menu-item type="checkbox" value="chrome"
+                  >Chrome</sl-menu-item
+                >
                 <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
                 <sl-menu-item type="checkbox" value="firefox"
                   >Firefox</sl-menu-item
                 >
-                <sl-menu-item type="checkbox" value="safari">Safari</sl-menu-item>
+                <sl-menu-item type="checkbox" value="safari"
+                  >Safari</sl-menu-item
+                >
               </sl-menu>
             </sl-dropdown>
           </div>

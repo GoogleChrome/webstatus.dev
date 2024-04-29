@@ -47,17 +47,18 @@ export const ALL_BROWSERS: BrowsersParameter[] = [
 export type ChannelsParameter = components['parameters']['channelPathParam'];
 
 export const STABLE_CHANNEL: ChannelsParameter = 'stable';
-export const EXPERIMENTAL_CHANNEL: ChannelsParameter = 'experimental'
+export const EXPERIMENTAL_CHANNEL: ChannelsParameter = 'experimental';
 
 /**
  * Iterable list of all channels.
  */
 export const ALL_CHANNELS: ChannelsParameter[] = [
-  STABLE_CHANNEL, EXPERIMENTAL_CHANNEL];
+  STABLE_CHANNEL,
+  EXPERIMENTAL_CHANNEL,
+];
 
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
-
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
