@@ -25,9 +25,9 @@ import (
 const browserFeatureAvailabilitiesTable = "BrowserFeatureAvailabilities"
 
 // SpannerBrowserFeatureAvailability is a wrapper for the browser availability
-// information for a feature stored in spanner. For now, it is the same. But we
-// keep this structure to be consistent to the other database models.
+// information for a feature stored in spanner.
 type SpannerBrowserFeatureAvailability struct {
+	FeatureID string
 	BrowserFeatureAvailability
 }
 
@@ -36,7 +36,6 @@ type SpannerBrowserFeatureAvailability struct {
 type BrowserFeatureAvailability struct {
 	BrowserName    string
 	BrowserVersion string
-	FeatureID      string
 }
 
 // InsertBrowserFeatureAvailability will insert the given browser feature availability.
@@ -45,12 +44,20 @@ type BrowserFeatureAvailability struct {
 // nolint: dupl // TODO. Will refactor for common patterns.
 func (c *Client) InsertBrowserFeatureAvailability(
 	ctx context.Context,
-	featureAvailability BrowserFeatureAvailability) error {
-	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+	featureID string,
+	input BrowserFeatureAvailability) error {
+	id, err := c.GetIDFromFeatureID(ctx, NewFeatureIDFilter(featureID))
+	if err != nil {
+		return err
+	}
+	if id == nil {
+		return ErrInternalQueryFailure
+	}
+	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		_, err := txn.ReadRow(
 			ctx,
 			browserFeatureAvailabilitiesTable,
-			spanner.Key{featureAvailability.FeatureID, featureAvailability.BrowserName},
+			spanner.Key{*id, input.BrowserName},
 			[]string{
 				"BrowserVersion",
 			})
@@ -58,6 +65,10 @@ func (c *Client) InsertBrowserFeatureAvailability(
 			// Received an error other than not found. Return now.
 			if spanner.ErrCode(err) != codes.NotFound {
 				return errors.Join(ErrInternalQueryFailure, err)
+			}
+			featureAvailability := SpannerBrowserFeatureAvailability{
+				FeatureID:                  *id,
+				BrowserFeatureAvailability: input,
 			}
 			m, err := spanner.InsertOrUpdateStruct(browserFeatureAvailabilitiesTable, featureAvailability)
 			if err != nil {

@@ -203,20 +203,20 @@ func (c *mockWebFeatureSpannerClient) UpsertFeatureBaselineStatus(
 }
 
 func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
-	_ context.Context, featureAvailability gcpspanner.BrowserFeatureAvailability) error {
-	expectedCountForFeature := c.insertBrowserFeatureAvailabilityCountPerFeature[featureAvailability.FeatureID]
-	if len(c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureAvailability.FeatureID]) <=
+	_ context.Context, featureID string, featureAvailability gcpspanner.BrowserFeatureAvailability) error {
+	expectedCountForFeature := c.insertBrowserFeatureAvailabilityCountPerFeature[featureID]
+	if len(c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureID]) <=
 		expectedCountForFeature {
 		c.t.Fatal("no more expected input for InsertBrowserFeatureAvailability")
 	}
-	if len(c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureAvailability.FeatureID]) <=
+	if len(c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureID]) <=
 		expectedCountForFeature {
 		c.t.Fatal("no more configured outputs for InsertBrowserFeatureAvailability")
 	}
 
 	idx := expectedCountForFeature
 
-	expectedInputs, found := c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureAvailability.FeatureID]
+	expectedInputs, found := c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureID]
 	if !found {
 		c.t.Errorf("unexpected input %v", featureAvailability)
 	}
@@ -226,9 +226,9 @@ func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
 	if !reflect.DeepEqual(expectedInput, featureAvailability) {
 		c.t.Errorf("unexpected input expected %s received %s", expectedInput, featureAvailability)
 	}
-	c.insertBrowserFeatureAvailabilityCountPerFeature[featureAvailability.FeatureID]++
+	c.insertBrowserFeatureAvailabilityCountPerFeature[featureID]++
 
-	return c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureAvailability.FeatureID][idx]
+	return c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureID][idx]
 }
 
 func newMockmockWebFeatureSpannerClient(
@@ -305,34 +305,28 @@ func TestInsertWebFeatures(t *testing.T) {
 						{
 							BrowserName:    "chrome",
 							BrowserVersion: "100",
-							FeatureID:      "feature1",
 						},
 						{
 							BrowserName:    "edge",
 							BrowserVersion: "101",
-							FeatureID:      "feature1",
 						},
 						{
 							BrowserName:    "firefox",
 							BrowserVersion: "102",
-							FeatureID:      "feature1",
 						},
 						{
 							BrowserName:    "safari",
 							BrowserVersion: "103",
-							FeatureID:      "feature1",
 						},
 					},
 					"feature2": {
 						{
 							BrowserName:    "firefox",
 							BrowserVersion: "202",
-							FeatureID:      "feature2",
 						},
 						{
 							BrowserName:    "safari",
 							BrowserVersion: "203",
-							FeatureID:      "feature2",
 						},
 					},
 				},
@@ -530,7 +524,6 @@ func TestInsertWebFeatures(t *testing.T) {
 						{
 							BrowserName:    "chrome",
 							BrowserVersion: "100",
-							FeatureID:      "feature1",
 						},
 					},
 				},

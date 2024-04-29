@@ -41,10 +41,11 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 	defer txn.Close()
 	stmt := spanner.NewStatement(`
 		SELECT
-			FeatureID, TotalTests, TestPass
+			TotalTests, TestPass, TotalSubtests, SubtestPass
 		FROM WPTRuns r
 		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-		WHERE r.ExternalRunID = @externalRunID AND wpfm.FeatureID = @featureID
+		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.FeatureID
+		WHERE r.ExternalRunID = @externalRunID AND wf.FeatureID = @featureID
 		LIMIT 1`)
 	parameters := map[string]interface{}{
 		"externalRunID": runID,
@@ -73,184 +74,164 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 
 func getSampleRunMetrics() []struct {
 	ExternalRunID int64
-	WPTRunFeatureMetric
+	Metrics       map[string]WPTRunFeatureMetric
 } {
 	// nolint: dupl // Okay to duplicate for tests
 	return []struct {
 		ExternalRunID int64
-		WPTRunFeatureMetric
+		Metrics       map[string]WPTRunFeatureMetric
 	}{
 		// Run 0 metrics
 		{
 			ExternalRunID: 0,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](10),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 0,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](5),
-				TestPass:   valuePtr[int64](0),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 0,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature3",
-				TotalTests: valuePtr[int64](50),
-				TestPass:   valuePtr[int64](5),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](10),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature2": {
+					TotalTests: valuePtr[int64](5),
+					TestPass:   valuePtr[int64](0),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature3": {
+					TotalTests: valuePtr[int64](50),
+					TestPass:   valuePtr[int64](5),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 1 metrics
 		{
 			ExternalRunID: 1,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](20),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 2 metrics
 		{
 			ExternalRunID: 2,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](10),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](10),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 3 metrics
 		{
 			ExternalRunID: 3,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](10),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](10),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 6 metrics
 		{
 			ExternalRunID: 6,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 6,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](10),
-				TestPass:   valuePtr[int64](0),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 6,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature3",
-				TotalTests: valuePtr[int64](50),
-				TestPass:   valuePtr[int64](35),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](20),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature2": {
+					TotalTests: valuePtr[int64](10),
+					TestPass:   valuePtr[int64](0),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature3": {
+					TotalTests: valuePtr[int64](50),
+					TestPass:   valuePtr[int64](35),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 7 metrics
 		{
 			ExternalRunID: 7,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 7,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](10),
-				TestPass:   valuePtr[int64](10),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](20),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature2": {
+					TotalTests: valuePtr[int64](10),
+					TestPass:   valuePtr[int64](10),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 8 metrics
 		{
 			ExternalRunID: 8,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 8,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](10),
-				TestPass:   valuePtr[int64](10),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](20),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature2": {
+					TotalTests: valuePtr[int64](10),
+					TestPass:   valuePtr[int64](10),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 		// Run 9 metrics
 		{
 			ExternalRunID: 9,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature1",
-				TotalTests: valuePtr[int64](20),
-				TestPass:   valuePtr[int64](20),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
-			},
-		},
-		{
-			ExternalRunID: 9,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:  "feature2",
-				TotalTests: valuePtr[int64](10),
-				TestPass:   valuePtr[int64](10),
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests: valuePtr[int64](20),
+					TestPass:   valuePtr[int64](20),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature2": {
+					TotalTests: valuePtr[int64](10),
+					TestPass:   valuePtr[int64](10),
+					// TODO: Put value when asserting subtest metrics
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
 			},
 		},
 	}
@@ -265,9 +246,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	// Should fail without the runs and features being uploaded first
 	for _, metric := range sampleRunMetrics {
 		err := client.UpsertWPTRunFeatureMetrics(
-			ctx, metric.ExternalRunID,
-			// Insert them individually because sampleRunMetrics has metrics from different runs.
-			[]WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
+			ctx, metric.ExternalRunID, metric.Metrics)
 		if err == nil {
 			t.Errorf("expected error upon insert")
 		}
@@ -292,8 +271,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	for _, metric := range sampleRunMetrics {
 		err := client.UpsertWPTRunFeatureMetrics(
 			ctx, metric.ExternalRunID,
-			// Insert them individually because sampleRunMetrics has metrics from different runs.
-			[]WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
+			metric.Metrics)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -308,30 +286,31 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	if !reflect.DeepEqual(sampleRunMetrics[0].WPTRunFeatureMetric, *metric) {
-		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", sampleRunMetrics[0], *metric)
+	if !reflect.DeepEqual(sampleRunMetrics[0].Metrics["feature1"], *metric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", sampleRunMetrics[0].Metrics["feature1"], *metric)
 	}
 
 	// Test 1. Upsert a metric where the run only has one metric.
 	// Upsert the metric
 	updatedMetric1 := struct {
 		ExternalRunID int64
-		WPTRunFeatureMetric
+		Metrics       map[string]WPTRunFeatureMetric
 	}{
 		ExternalRunID: 0,
-		WPTRunFeatureMetric: WPTRunFeatureMetric{
-			FeatureID:  "feature1",
-			TotalTests: valuePtr[int64](300), // Change this value
-			TestPass:   valuePtr[int64](100), // Change this value
-			// TODO: Put value when asserting subtest metrics
-			TotalSubtests: nil,
-			SubtestPass:   nil,
+		Metrics: map[string]WPTRunFeatureMetric{
+			"feature1": {
+				TotalTests: valuePtr[int64](300), // Change this value
+				TestPass:   valuePtr[int64](100), // Change this value
+				// TODO: Put value when asserting subtest metrics
+				TotalSubtests: nil,
+				SubtestPass:   nil,
+			},
 		},
 	}
 
 	err = client.UpsertWPTRunFeatureMetrics(
 		ctx,
-		updatedMetric1.ExternalRunID, []WPTRunFeatureMetric{updatedMetric1.WPTRunFeatureMetric})
+		updatedMetric1.ExternalRunID, updatedMetric1.Metrics)
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error upon insert. received %s", err.Error())
 	}
@@ -346,29 +325,30 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	if !reflect.DeepEqual(updatedMetric1.WPTRunFeatureMetric, *metric) {
-		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric1.WPTRunFeatureMetric, *metric)
+	if !reflect.DeepEqual(updatedMetric1.Metrics["feature1"], *metric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric1.Metrics["feature1"], *metric)
 	}
 
 	// Test 2. Upsert a metric where the run has multiple metrics.
 	updatedMetric2 := struct {
 		ExternalRunID int64
-		WPTRunFeatureMetric
+		Metrics       map[string]WPTRunFeatureMetric
 	}{
 		ExternalRunID: 9,
-		WPTRunFeatureMetric: WPTRunFeatureMetric{
-			FeatureID:  "feature2",
-			TotalTests: valuePtr[int64](300), // This value should be changed
-			TestPass:   valuePtr[int64](100), // This value should be changed
-			// TODO: Put value when asserting subtest metrics
-			TotalSubtests: nil,
-			SubtestPass:   nil,
+		Metrics: map[string]WPTRunFeatureMetric{
+			"feature2": {
+				TotalTests: valuePtr[int64](300), // This value should be changed
+				TestPass:   valuePtr[int64](100), // This value should be changed
+				// TODO: Put value when asserting subtest metrics
+				TotalSubtests: nil,
+				SubtestPass:   nil,
+			},
 		},
 	}
 	// Upsert the metric
 	err = client.UpsertWPTRunFeatureMetrics(
 		ctx,
-		updatedMetric2.ExternalRunID, []WPTRunFeatureMetric{updatedMetric2.WPTRunFeatureMetric})
+		updatedMetric2.ExternalRunID, updatedMetric2.Metrics)
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error upon insert. received %s", err.Error())
 	}
@@ -383,8 +363,8 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		t.Fatal("expected non null metric")
 	}
 
-	if !reflect.DeepEqual(updatedMetric2.WPTRunFeatureMetric, *metric) {
-		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric2.WPTRunFeatureMetric, *metric)
+	if !reflect.DeepEqual(updatedMetric2.Metrics["feature2"], *metric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", updatedMetric2.Metrics["feature2"], *metric)
 	}
 
 	// Get the other metric for that run which should be unaffected
@@ -399,11 +379,12 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	otherMetric := struct {
 		WPTRunFeatureMetric
+		FeatureID     string
 		ExternalRunID int64
 	}{
 		ExternalRunID: 9,
+		FeatureID:     "feature1",
 		WPTRunFeatureMetric: WPTRunFeatureMetric{
-			FeatureID:  "feature1",
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
 			// TODO: Put value when asserting subtest metrics
@@ -439,7 +420,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	for _, metric := range getSampleRunMetrics() {
 		err := client.UpsertWPTRunFeatureMetrics(
 			ctx,
-			metric.ExternalRunID, []WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
+			metric.ExternalRunID, metric.Metrics)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -828,7 +809,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Now, let's insert the metrics
 	for _, metric := range getSampleRunMetrics() {
 		err := client.UpsertWPTRunFeatureMetrics(
-			ctx, metric.ExternalRunID, []WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
+			ctx, metric.ExternalRunID, metric.Metrics)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}

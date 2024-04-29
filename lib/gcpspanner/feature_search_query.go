@@ -132,7 +132,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 func (b *FeatureSearchFilterBuilder) availabilityFilter(browser string) string {
 	paramName := b.addParamGetName(browser)
 
-	return fmt.Sprintf(`wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+	return fmt.Sprintf(`wf.ID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @%s)`, paramName)
 }
 
@@ -306,13 +306,9 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 		featureSearcBrowserMetricColumn,
 		featureSearchLowDateColumn,
 		featureSearchHighDateColumn,
-		featureSearcBrowserImplColumn:
+		featureSearcBrowserImplColumn,
+		featureSearchStatusColumn:
 		return string(f)
-	case featureSearchStatusColumn:
-		// To facilitate correct pagination behavior, particularly when handling null values in the
-		// 'Status' column, we apply COALESCE here. This provides a consistent non-null value
-		// ('undefined' in this case) for the purposes of comparisons used in pagination.
-		return "COALESCE(fbs.Status, 'undefined')"
 	}
 
 	return ""

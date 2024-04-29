@@ -29,6 +29,7 @@ type WebFeatureSpannerClient interface {
 	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
 	InsertBrowserFeatureAvailability(
 		ctx context.Context,
+		featureID string,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
 }
 
@@ -73,14 +74,14 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 
 		// Read the browser support data.
-		fba := extractBrowserAvailability(featureID, featureData)
+		fba := extractBrowserAvailability(featureData)
 		for _, browserAvailability := range fba {
-			err := c.client.InsertBrowserFeatureAvailability(ctx, browserAvailability)
+			err := c.client.InsertBrowserFeatureAvailability(ctx, featureID, browserAvailability)
 			if err != nil {
 				slog.Error("unable to insert BrowserFeatureAvailability",
 					"browserName", browserAvailability.BrowserName,
 					"browserVersion", browserAvailability.BrowserVersion,
-					"featureID", browserAvailability.FeatureID,
+					"featureID", featureID,
 				)
 
 				return err
@@ -91,7 +92,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 	return nil
 }
 
-func extractBrowserAvailability(featureID string,
+func extractBrowserAvailability(
 	featureData web_platform_dx__web_features.FeatureData) []gcpspanner.BrowserFeatureAvailability {
 	var fba []gcpspanner.BrowserFeatureAvailability
 	if featureData.Status != nil && featureData.Status.Support != nil {
@@ -100,28 +101,24 @@ func extractBrowserAvailability(featureID string,
 			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
 				BrowserName:    "chrome",
 				BrowserVersion: *support.Chrome,
-				FeatureID:      featureID,
 			})
 		}
 		if support.Edge != nil {
 			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
 				BrowserName:    "edge",
 				BrowserVersion: *support.Edge,
-				FeatureID:      featureID,
 			})
 		}
 		if support.Firefox != nil {
 			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
 				BrowserName:    "firefox",
 				BrowserVersion: *support.Firefox,
-				FeatureID:      featureID,
 			})
 		}
 		if support.Safari != nil {
 			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
 				BrowserName:    "safari",
 				BrowserVersion: *support.Safari,
-				FeatureID:      featureID,
 			})
 		}
 	}

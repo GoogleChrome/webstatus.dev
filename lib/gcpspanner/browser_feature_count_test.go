@@ -52,18 +52,37 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		}
 	}
 
-	browserFeatureAvailabilities := []BrowserFeatureAvailability{
+	browserFeatureAvailabilities := []struct {
+		FeatureID string
+		BrowserFeatureAvailability
+	}{
 		// fooBrowser Availabilities
-		{BrowserName: "fooBrowser", BrowserVersion: "100", FeatureID: "FeatureX"}, // Available from fooBrowser 100
-		{BrowserName: "fooBrowser", BrowserVersion: "100", FeatureID: "FeatureY"},
-		{BrowserName: "fooBrowser", BrowserVersion: "101", FeatureID: "FeatureZ"}, // Available from fooBrowser 101
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "100"},
+			FeatureID:                  "FeatureX",
+		}, // Available from fooBrowser 100
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "100"},
+			FeatureID:                  "FeatureY",
+		},
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "101"},
+			FeatureID:                  "FeatureZ",
+		}, // Available from fooBrowser 101
 
 		// barBrowser Availabilities
-		{BrowserName: "barBrowser", BrowserVersion: "80", FeatureID: "FeatureY"}, // Available from barBrowser 80
-		{BrowserName: "barBrowser", BrowserVersion: "81", FeatureID: "FeatureW"}, // Available from barBrowser 81
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "80"},
+			FeatureID:                  "FeatureY",
+		}, // Available from barBrowser 80
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "81"},
+			FeatureID:                  "FeatureW",
+		}, // Available from barBrowser 81
 	}
 	for _, availability := range browserFeatureAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx, availability)
+		err := client.InsertBrowserFeatureAvailability(ctx,
+			availability.FeatureID, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}

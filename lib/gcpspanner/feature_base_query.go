@@ -404,7 +404,7 @@ COALESCE(
 					(
 						SELECT 'available'
 						FROM BrowserFeatureAvailabilities bfa
-						WHERE bfa.FeatureID = wf.FeatureID
+						WHERE bfa.FeatureID = wf.ID
 							AND BrowserName = bfa.BrowserName
 						LIMIT 1
 					),
@@ -413,7 +413,7 @@ COALESCE(
 			)
 		)
 		FROM BrowserFeatureAvailabilities bfa
-		WHERE bfa.FeatureID = wf.FeatureID
+		WHERE bfa.FeatureID = wf.ID
 	),
 	(
 		SELECT ARRAY(
@@ -434,7 +434,7 @@ COALESCE(
 	SELECT COALESCE(
 		(SELECT 'available'
 			FROM BrowserFeatureAvailabilities bfa
-			WHERE bfa.FeatureID = wf.FeatureID
+			WHERE bfa.FeatureID = wf.ID
 				AND BrowserName = @{{ .BrowserNameParam }}
 			LIMIT 1),
 		'unavailable' -- Default if no match
@@ -475,10 +475,10 @@ SELECT
 	{{ range $index, $join := .OptionalJoins }}
 LEFT OUTER JOIN (
     SELECT
-        wf.FeatureID,
+        wf.ID,
 		{{ $join.Template }}
    FROM WebFeatures wf
-) {{ $join.Alias }} ON wf.FeatureID = {{ $join.Alias }}.FeatureID
+) {{ $join.Alias }} ON wf.ID = {{ $join.Alias }}.ID
 	{{ end }}
 {{ end }}
 WHERE 1=1 -- This ensures valid syntax even with no filters
@@ -535,10 +535,10 @@ SELECT
 	{{ range $index, $join := .OptionalJoins }}
 LEFT OUTER JOIN (
     SELECT
-        wf.FeatureID,
+        wf.ID,
 		{{ $join.Template }}
    FROM WebFeatures wf
-) {{ $join.Alias }} ON wf.FeatureID = {{ $join.Alias }}.FeatureID
+) {{ $join.Alias }} ON wf.ID = {{ $join.Alias }}.ID
 	{{ end }}
 {{ end }}
 WHERE 1=1 -- This ensures valid syntax even with no filters
@@ -563,7 +563,7 @@ OFFSET {{ .Offset }}
 (
 	SELECT {{ .PassRateColumn }} AS PassRate
 		FROM WPTRunFeatureMetrics @{FORCE_INDEX={{ .MetricIndex }}} metrics
-		WHERE metrics.FeatureID = wf.FeatureID
+		WHERE metrics.FeatureID = wf.ID
 			AND metrics.Channel = @{{ .ChannelParam }}
 			AND metrics.BrowserName = @{{ .BrowserNameParam }}
 			{{ .Clause }}
@@ -581,7 +581,7 @@ COALESCE(
 				{{ .PassRateColumn }} AS PassRate
 			))
 		FROM WPTRunFeatureMetrics @{FORCE_INDEX={{ .MetricIndex }}} metrics
-		WHERE metrics.FeatureID = wf.FeatureID
+		WHERE metrics.FeatureID = wf.ID
 		AND metrics.Channel = @{{ .ChannelParam }}
     	{{ .Clause }}
 	),
@@ -606,7 +606,7 @@ COALESCE(
 				{{ .PassRateColumn }} AS PassRate
 			)
 		)
-		FROM MetricsAggregation WHERE FeatureID = wf.FeatureID AND Channel = @{{ .ChannelParam }}
+		FROM MetricsAggregation WHERE FeatureID = wf.ID AND Channel = @{{ .ChannelParam }}
 	),
 	(
 		SELECT ARRAY(
@@ -625,7 +625,7 @@ COALESCE(
 (
 	SELECT {{ .PassRateColumn }} AS PassRate
 		FROM MetricsAggregation
-		WHERE FeatureID = wf.FeatureID
+		WHERE FeatureID = wf.ID
 			AND Channel = @{{ .ChannelParam }}
 			AND BrowserName = @{{ .BrowserNameParam }}
 		LIMIT 1

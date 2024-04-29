@@ -58,7 +58,7 @@ CREATE INDEX LatestRunsByBrowserChannel ON WPTRuns (BrowserName, Channel, TimeSt
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     ID STRING(36) NOT NULL,
-    FeatureID STRING(64) NOT NULL,
+    FeatureID STRING(36) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
     TestPassRate NUMERIC,
@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     BrowserName STRING(64) NOT NULL,
     TimeStart TIMESTAMP NOT NULL,
     -- End denormalized data.
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
+    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
     FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
 ) PRIMARY KEY (ID, FeatureID)
 ,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
@@ -100,8 +100,8 @@ CREATE TABLE IF NOT EXISTS BrowserReleases (
 CREATE TABLE IF NOT EXISTS BrowserFeatureAvailabilities (
     BrowserName STRING(64) NOT NULL, -- From BCD not wpt.fyi.
     BrowserVersion STRING(8) NOT NULL, -- From BCD not wpt.fyi. Only contains major number.
-    FeatureID STRING(64) NOT NULL, -- From web features repo.
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
+    FeatureID STRING(36) NOT NULL, -- From web features table.
+    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
     FOREIGN KEY (BrowserName, BrowserVersion) REFERENCES BrowserReleases(BrowserName, BrowserVersion),
 ) PRIMARY KEY (FeatureID, BrowserName);
 
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
     HighDate TIMESTAMP,
     FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
-    CHECK (Status IN ('undefined', 'none', 'low', 'high'))
+    CHECK (Status IN ('none', 'low', 'high'))
 ) PRIMARY KEY (FeatureID);
 
 -- Index to accelerate lookups and joins in FeatureBaselineStatus based on FeatureID.

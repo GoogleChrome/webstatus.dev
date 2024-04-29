@@ -120,10 +120,10 @@ func generateFeatureAvailability(
 			if releaseVersion <= releasesPerBrowser {
 				err := client.InsertBrowserFeatureAvailability(
 					ctx,
+					feature.FeatureID,
 					gcpspanner.BrowserFeatureAvailability{
 						BrowserName:    browser,
 						BrowserVersion: fmt.Sprintf("%d", releaseVersion),
-						FeatureID:      feature.FeatureID,
 					},
 				)
 				if err != nil {
@@ -264,14 +264,13 @@ func generateRunsAndMetrics(
 					testPass := r.Int63n(1000)
 					testTotal := testPass + r.Int63n(1000)
 					metric := gcpspanner.WPTRunFeatureMetric{
-						FeatureID:  feature.FeatureID,
 						TotalTests: &testTotal,
 						TestPass:   &testPass,
 						// TODO: Put value when asserting subtest metrics
 						TotalSubtests: nil,
 						SubtestPass:   nil,
 					}
-					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(*wptRunData, metric)
+					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(feature.FeatureID, *wptRunData, metric)
 					m, err := spanner.InsertOrUpdateStruct(gcpspanner.WPTRunFeatureMetricTable, spannerMetric)
 					if err != nil {
 						return runsGenerated, metricsGenerated, err

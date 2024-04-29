@@ -24,33 +24,50 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func getSampleBrowserAvailabilities() []BrowserFeatureAvailability {
-	return []BrowserFeatureAvailability{
+func getSampleBrowserAvailabilities() []struct {
+	FeatureID string
+	BrowserFeatureAvailability
+} {
+	return []struct {
+		FeatureID string
+		BrowserFeatureAvailability
+	}{
 		{
-			BrowserName:    "fooBrowser",
-			BrowserVersion: "0.0.0",
-			FeatureID:      "feature1",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "0.0.0",
+			},
+			FeatureID: "feature1",
 		},
 		{
-			BrowserName:    "barBrowser",
-			BrowserVersion: "1.0.0",
-			FeatureID:      "feature1",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "barBrowser",
+				BrowserVersion: "1.0.0",
+			},
+			FeatureID: "feature1",
 		},
 		{
-			BrowserName:    "barBrowser",
-			BrowserVersion: "2.0.0",
-			FeatureID:      "feature2",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "barBrowser",
+				BrowserVersion: "2.0.0",
+			},
+			FeatureID: "feature2",
 		},
 		{
-			BrowserName:    "fooBrowser",
-			BrowserVersion: "1.0.0",
-			FeatureID:      "feature2",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "1.0.0",
+			},
+
+			FeatureID: "feature2",
 		},
 		// Should not actually insert this one due to UniqueFeatureBrowser index
 		{
-			BrowserName:    "barBrowser",
-			BrowserVersion: "2.0.0",
-			FeatureID:      "feature1",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "barBrowser",
+				BrowserVersion: "2.0.0",
+			},
+			FeatureID: "feature1",
 		},
 	}
 }
@@ -75,9 +92,9 @@ func setupRequiredTablesForBrowserFeatureAvailability(
 }
 
 // Helper method to get all the Availabilities in a stable order.
-// nolint: lll
 func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]BrowserFeatureAvailability, error) {
-	stmt := spanner.NewStatement("SELECT * FROM BrowserFeatureAvailabilities ORDER BY BrowserVersion ASC, BrowserName ASC, FeatureID ASC")
+	stmt := spanner.NewStatement(
+		"SELECT * FROM BrowserFeatureAvailabilities ORDER BY BrowserVersion ASC, BrowserName ASC")
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -106,7 +123,8 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 	setupRequiredTablesForBrowserFeatureAvailability(ctx, client, t)
 	sampleAvailabilities := getSampleBrowserAvailabilities()
 	for _, availability := range sampleAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx, availability)
+		err := client.InsertBrowserFeatureAvailability(
+			ctx, availability.FeatureID, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
@@ -116,22 +134,18 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 		{
 			BrowserName:    "fooBrowser",
 			BrowserVersion: "0.0.0",
-			FeatureID:      "feature1",
 		},
 		{
 			BrowserName:    "barBrowser",
 			BrowserVersion: "1.0.0",
-			FeatureID:      "feature1",
 		},
 		{
 			BrowserName:    "fooBrowser",
 			BrowserVersion: "1.0.0",
-			FeatureID:      "feature2",
 		},
 		{
 			BrowserName:    "barBrowser",
 			BrowserVersion: "2.0.0",
-			FeatureID:      "feature2",
 		},
 	}
 
@@ -140,6 +154,6 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
 	if !slices.Equal[[]BrowserFeatureAvailability](expectedPage, availabilities) {
-		t.Errorf("unequal availabilities. expected %+v actual %+v", expectedPage, availabilities)
+		t.Errorf("unequal availabilities.\nexpected %+v\nreceived %+v", expectedPage, availabilities)
 	}
 }
