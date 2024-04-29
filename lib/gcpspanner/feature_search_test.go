@@ -621,11 +621,8 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			pageSize:  2,
 			pageToken: nil, // First page does not need a page token.
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
-				)),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
@@ -636,33 +633,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			name:     "page two",
 			pageSize: 2,
 			// The token should be made from the token of the previous page's last item
-			pageToken: valuePtr(encodeFeatureResultCursor(
-				defaultSorting(),
-				getFeatureSearchTestFeature(FeatureSearchTestFId2),
-			)),
-			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				)),
-				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				},
-			},
-		},
-		{
-			name:      "page two with offset token",
-			pageSize:  2,
 			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				// Should have the same token as page two with the regular token.
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					defaultSorting(),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				)),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
@@ -1109,10 +1083,8 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			sortable:  NewBaselineStatusSort(true),
 			pageToken: nil,
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFId1))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
@@ -1123,29 +1095,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			name:     "BaselineStatus asc - page 2",
 			sortable: NewBaselineStatusSort(true),
 			// Same page token as the next page token from the previous page.
-			pageToken: valuePtr(encodeFeatureResultCursor(
-				NewBaselineStatusSort(true),
-				getFeatureSearchTestFeature(FeatureSearchTestFId1))),
-			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4))),
-				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-				},
-			},
-		},
-		{
-			name:      "BaselineStatus asc - page 2 using offset token",
-			sortable:  NewBaselineStatusSort(true),
 			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(true),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
@@ -1157,10 +1110,8 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			sortable:  NewBaselineStatusSort(false),
 			pageToken: nil,
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFId3))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
@@ -1171,29 +1122,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			name:     "BaselineStatus desc - page 2",
 			sortable: NewBaselineStatusSort(false),
 			// Same page token as the next page token from the previous page.
-			pageToken: valuePtr(encodeFeatureResultCursor(
-				NewBaselineStatusSort(false),
-				getFeatureSearchTestFeature(FeatureSearchTestFId3))),
-			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2))),
-				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId1),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
-				},
-			},
-		},
-		{
-			name:      "BaselineStatus desc - page 2 using offset token",
-			sortable:  NewBaselineStatusSort(false),
 			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
-				Total: 4,
-				NextPageToken: valuePtr(encodeFeatureResultCursor(
-					NewBaselineStatusSort(false),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2))),
+				Total:         4,
+				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
@@ -1223,6 +1155,7 @@ func testFeatureSearchComplexQueries(ctx context.Context, t *testing.T, client *
 func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
 	testFeatureSearchSortName(ctx, t, client)
 	testFeatureSearchSortBaselineStatus(ctx, t, client)
+	testFeatureSearchSortBrowserImpl(ctx, t, client)
 }
 
 // nolint: dupl // WONTFIX. Only duplicated because the feature filter test yields similar results.
@@ -1310,6 +1243,101 @@ func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, clie
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
+		})
+	}
+}
+
+func testFeatureSearchSortBrowserImpl(ctx context.Context, t *testing.T, client *Client) {
+	type BaselineStatusSortCase struct {
+		name         string
+		sortable     Sortable
+		expectedPage *FeatureResultPage
+	}
+	testCases := []BaselineStatusSortCase{
+		{
+			name:     "BrowserImpl fooBrowser Stable asc",
+			sortable: NewBrowserImplSort(true, "fooBrowser", true),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// null metric, null status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// 0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// 0.7 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// 1.0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+				},
+			},
+		},
+		{
+			name:     "BrowserImpl fooBrowser Stable desc",
+			sortable: NewBrowserImplSort(false, "fooBrowser", true),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// 1.0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// 0.7 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// 0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// null metric, null status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+				},
+			},
+		},
+		{
+			name:     "BrowserImpl fooBrowser Experimental asc",
+			sortable: NewBrowserImplSort(true, "fooBrowser", false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// null metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// null metric, null status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// 1.0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// 1.0 metric, null status
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+				},
+			},
+		},
+		{
+			name:     "BrowserImpl fooBrowser Experimental desc",
+			sortable: NewBrowserImplSort(false, "fooBrowser", false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// 1.0 metric, null status
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// 1.0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// null metric, null status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// null metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 				},
 			},
 		},
@@ -1512,11 +1540,4 @@ func PrettyPrintFeatureResults(results []FeatureResult) string {
 	}
 
 	return builder.String()
-}
-
-// encodeFeatureResultOffsetCursor provides a wrapper around the generic encodeCursor.
-func encodeFeatureResultOffsetCursor(offset int) string {
-	return encodeCursor(FeatureResultOffsetCursor{
-		Offset: offset,
-	})
 }

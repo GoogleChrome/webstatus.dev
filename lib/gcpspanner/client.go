@@ -26,10 +26,6 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-func init() {
-	featuresSearchPageCursorFilterTemplate = NewQueryTemplate(featuresSearchPageCursorFilterRawTemplate)
-}
-
 // ErrQueryReturnedNoResults indicates no results were returned.
 var ErrQueryReturnedNoResults = errors.New("query returned no results")
 
@@ -44,18 +40,6 @@ var ErrFailedToEstablishClient = errors.New("failed to establish spanner client"
 
 // ErrInvalidCursorFormat indicates the cursor is not the correct format.
 var ErrInvalidCursorFormat = errors.New("invalid cursor format")
-
-// nolint: gochecknoglobals // WONTFIX: thread safe globals.
-// featuresSearchPageCursorFilterTemplate is the compiled version of featuresSearchPageCursorFilterRawTemplate.
-var featuresSearchPageCursorFilterTemplate BaseQueryTemplate
-
-// featuresSearchPageCursorFilterRawTemplate is the template for resuming features search / get feature queries.
-const featuresSearchPageCursorFilterRawTemplate = `
-(
-	{{ .Column }} {{ .ColumnOperator }} @{{ .ColumnValueParam }} OR
-	({{ .Column }} = @{{ .ColumnValueParam }} AND {{ .TieBreakerColumn }} > @{{ .TieBreakerValueParam }})
-)
-`
 
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
@@ -95,12 +79,6 @@ type WPTRunCursor struct {
 	LastRunID     int64     `json:"last_run_id"`
 }
 
-// FeatureCursorLastSortValueType defines the valid types for the 'LastSortValue' field in a FeatureResultCursor.
-// As more are added, also add to FeatureResultCursorLastValue.
-type FeatureCursorLastSortValueType interface {
-	string // Currently only supports 'string'
-}
-
 // FeatureResultOffsetCursor: A numerical offset from the start of the result set. Enables the construction of
 // human-friendly URLs specifying an exact page offset.
 // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
@@ -109,146 +87,25 @@ type FeatureResultOffsetCursor struct {
 	Offset int `json:"offset"`
 }
 
-// RawFeatureResultCursor: Represents a point for resuming queries based on the last feature ID to enable efficient
-// pagination within Spanner.
-// RawFeatureResultCursor is a generic representation of a feature-based cursor, used primarily for encoding and
-// initial decoding to preserve exact value types for 'LastSortValue'.
-type RawFeatureResultCursor struct {
-	LastFeatureID        string                   `json:"last_feature_id"`
-	SortTarget           string                   `json:"sort_operation"`
-	ColumnToLastValueMap map[string]LastValueInfo `json:"last_values"`
-}
-
-type LastValueInfo struct {
-	SortOrderOperator string `json:"sort_order_operator"`
-	LastSortValue     any    `json:"last_sort_value"`
-}
-
-// FeatureResultCursor provides a non-generic representation of a feature-based cursor, simplifying its use in
-// subsequent query building logic.
-type FeatureResultCursor struct {
-	LastFeatureID        string
-	SortTarget           FeaturesSearchSortTarget
-	ColumnToLastValueMap map[FeatureSearchColumn]FeatureResultCursorLastValue
-}
-
-func (c FeatureResultCursor) buildPageFilters(existingParams map[string]interface{}) []string {
-	filters := make([]string, 0, len(c.ColumnToLastValueMap))
-	paramCount := 0
-	for column, lastValue := range c.ColumnToLastValueMap {
-		filters = append(filters, buildPageFilter(
-			paramCount,
-			existingParams,
-			column,
-			c.LastFeatureID,
-			lastValue,
-		))
-		paramCount++
-	}
-
-	return filters
-}
-
-func buildPageFilter(
-	currentParamCount int,
-	existingParams map[string]interface{},
-	col FeatureSearchColumn,
-	lastFeatureID string,
-	lastValue FeatureResultCursorLastValue,
-) string {
-	columnValueParam := fmt.Sprintf("cursorSortColumn%d", currentParamCount)
-	existingParams[columnValueParam] = lastValue.Value
-	tieBreakerValueParam := fmt.Sprintf("cursor%d", currentParamCount)
-	existingParams[tieBreakerValueParam] = lastFeatureID
-
-	return featuresSearchPageCursorFilterTemplate.Execute(struct {
-		Column               string
-		ColumnOperator       string
-		ColumnValueParam     string
-		TieBreakerColumn     string
-		TieBreakerValueParam string
-	}{
-		Column:               col.ToFilterColumn(),
-		ColumnOperator:       lastValue.SortOrder,
-		ColumnValueParam:     columnValueParam,
-		TieBreakerColumn:     string(featureSearchFeatureIDColumn),
-		TieBreakerValueParam: tieBreakerValueParam,
-	})
-}
-
-// FeatureResultCursorLastValue holds the various representations of the 'LastSortValue,' allowing flexibility without
-// the need for generics in the main 'FeatureResultCursor'.
-type FeatureResultCursorLastValue struct {
-	Value     any
-	SortOrder string
-}
-
 // decodeWPTRunCursor provides a wrapper around the generic decodeCursor.
 func decodeWPTRunCursor(cursor string) (*WPTRunCursor, error) {
 	return decodeCursor[WPTRunCursor](cursor)
 }
 
-const (
-	sortOrderASCPaginationOperator  = ">"
-	sortOrderDESCPaginationOperator = "<"
-)
-
 // decodeInputFeatureResultCursor provides a wrapper around the generic decodeCursor.
 func decodeInputFeatureResultCursor(
-	cursor string) (*FeatureResultOffsetCursor, *FeatureResultCursor, error) {
+	cursor string) (*FeatureResultOffsetCursor, error) {
 	// Try for the offset based cursor
 	offsetCursor, err := decodeCursor[FeatureResultOffsetCursor](cursor)
 	if err != nil {
-		return nil, nil, err
-	}
-	// If we found something, return early
-	if offsetCursor.Offset > 0 {
-		return offsetCursor, nil, nil
+		return nil, err
 	}
 
-	decodedCursor, err := decodeCursor[RawFeatureResultCursor](cursor)
-	if err != nil {
-		return nil, nil, err
+	if offsetCursor == nil || offsetCursor.Offset < 0 {
+		return nil, ErrInvalidCursorFormat
 	}
 
-	// Sanitize the sort order by the only operators we want.
-	for _, value := range decodedCursor.ColumnToLastValueMap {
-		if value.SortOrderOperator != sortOrderASCPaginationOperator &&
-			value.SortOrderOperator != sortOrderDESCPaginationOperator {
-			return nil, nil, ErrInvalidCursorFormat
-		}
-	}
-
-	sortTarget := FeaturesSearchSortTarget(decodedCursor.SortTarget)
-	switch sortTarget {
-	case IDSort, StatusSort, NameSort:
-		break
-	default:
-		return nil, nil, ErrInvalidCursorFormat
-	}
-
-	lastValues := make(map[FeatureSearchColumn]FeatureResultCursorLastValue, len(decodedCursor.ColumnToLastValueMap))
-	for column, lastValueInfo := range decodedCursor.ColumnToLastValueMap {
-		col := FeatureSearchColumn(column)
-		switch col {
-		case featureSearchFeatureIDColumn, featureSearchFeatureNameColumn, featureSearchStatusColumn:
-			_, ok := lastValueInfo.LastSortValue.(string)
-			if !ok {
-				// Type check the value
-				return nil, nil, ErrInvalidCursorFormat
-			}
-			lastValues[col] = FeatureResultCursorLastValue{
-				Value:     lastValueInfo.LastSortValue,
-				SortOrder: lastValueInfo.SortOrderOperator,
-			}
-		}
-	}
-
-	return nil, &FeatureResultCursor{
-		LastFeatureID:        decodedCursor.LastFeatureID,
-		SortTarget:           sortTarget,
-		ColumnToLastValueMap: lastValues,
-	}, nil
+	return offsetCursor, nil
 }
 
 // decodeCursor: Decodes a base64-encoded cursor string into a Cursor struct.
@@ -264,55 +121,6 @@ func decodeCursor[T any](cursor string) (*T, error) {
 	}
 
 	return &decoded, nil
-}
-
-// encodeFeatureResultCursor encodes a feature-based cursor, selecting the appropriate
-// field in 'RawFeatureResultCursor' to use as 'LastSortValue' based on the sortOrder.
-func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) string {
-	var sortOrderOperator string
-	if sortOrder.ascendingOrder {
-		sortOrderOperator = sortOrderASCPaginationOperator
-	} else {
-		sortOrderOperator = sortOrderDESCPaginationOperator
-	}
-	switch sortOrder.SortTarget() {
-	case NameSort:
-		return encodeCursor(RawFeatureResultCursor{
-			LastFeatureID: lastResult.FeatureID,
-			SortTarget:    string(NameSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearchFeatureNameColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastResult.Name,
-				},
-			},
-		})
-	case StatusSort:
-		return encodeCursor(RawFeatureResultCursor{
-			LastFeatureID: lastResult.FeatureID,
-			SortTarget:    string(StatusSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearchStatusColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastResult.Status,
-				},
-			},
-		})
-	case IDSort:
-		return encodeCursor(RawFeatureResultCursor{
-			LastFeatureID: lastResult.FeatureID,
-			SortTarget:    string(IDSort),
-			ColumnToLastValueMap: map[string]LastValueInfo{
-				string(featureSearchStatusColumn): {
-					SortOrderOperator: sortOrderOperator,
-					LastSortValue:     lastResult.FeatureID,
-				},
-			},
-		})
-	}
-
-	// Should be not reached. Linting should catch all the cases as more are added.
-	return ""
 }
 
 // BrowserFeatureCountCursor: Represents a point for resuming feature count queries. Designed for efficient pagination
@@ -355,4 +163,11 @@ func encodeCursor[T any](in T) string {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(data)
+}
+
+// encodeFeatureResultOffsetCursor provides a wrapper around the generic encodeCursor.
+func encodeFeatureResultOffsetCursor(offset int) string {
+	return encodeCursor(FeatureResultOffsetCursor{
+		Offset: offset,
+	})
 }

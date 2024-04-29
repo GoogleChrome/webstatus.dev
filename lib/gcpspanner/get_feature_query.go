@@ -53,13 +53,15 @@ func (q GetFeatureQueryBuilder) Build(
 	filterParams := make(map[string]interface{})
 
 	queryArgs := FeatureSearchQueryArgs{
-		MetricView:  q.wptMetricView,
-		Filters:     nil,
-		PageFilters: nil,
-		Offset:      0,
-		PageSize:    1,
-		Prefilter:   prefilter,
-		SortClause:  "",
+		MetricView:              q.wptMetricView,
+		Filters:                 nil,
+		PageFilters:             nil,
+		Offset:                  0,
+		PageSize:                1,
+		Prefilter:               prefilter,
+		SortClause:              "",
+		SortByStableBrowserImpl: nil,
+		SortByExpBrowserImpl:    nil,
 	}
 	if filter != nil {
 		queryArgs.Filters = []string{filter.Clause()}

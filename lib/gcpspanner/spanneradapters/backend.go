@@ -373,6 +373,38 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBaselineStatusSort(true)
 	case backend.BaselineStatusDesc:
 		return gcpspanner.NewBaselineStatusSort(false)
+	case backend.ExperimentalChromeAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Chrome), false)
+	case backend.ExperimentalChromeDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Chrome), false)
+	case backend.ExperimentalEdgeAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Edge), false)
+	case backend.ExperimentalEdgeDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Edge), false)
+	case backend.ExperimentalFirefoxAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Firefox), false)
+	case backend.ExperimentalFirefoxDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Firefox), false)
+	case backend.ExperimentalSafariAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), false)
+	case backend.ExperimentalSafariDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), false)
+	case backend.StableChromeAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Chrome), true)
+	case backend.StableChromeDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Chrome), true)
+	case backend.StableEdgeAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Edge), true)
+	case backend.StableEdgeDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Edge), true)
+	case backend.StableFirefoxAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Firefox), true)
+	case backend.StableFirefoxDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Firefox), true)
+	case backend.StableSafariAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), true)
+	case backend.StableSafariDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), true)
 	}
 
 	// Unknown sort order

@@ -885,6 +885,70 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.BaselineStatusDesc),
 			want:  gcpspanner.NewBaselineStatusSort(false),
 		},
+		{
+			input: valuePtr(backend.ExperimentalChromeAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "chrome", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalChromeDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "chrome", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalEdgeAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "edge", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalEdgeDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "edge", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalFirefoxAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "firefox", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalFirefoxDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "firefox", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalSafariAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "safari", false),
+		},
+		{
+			input: valuePtr(backend.ExperimentalSafariDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "safari", false),
+		},
+		{
+			input: valuePtr(backend.StableChromeAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "chrome", true),
+		},
+		{
+			input: valuePtr(backend.StableChromeDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "chrome", true),
+		},
+		{
+			input: valuePtr(backend.StableEdgeAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "edge", true),
+		},
+		{
+			input: valuePtr(backend.StableEdgeDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "edge", true),
+		},
+		{
+			input: valuePtr(backend.StableFirefoxAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "firefox", true),
+		},
+		{
+			input: valuePtr(backend.StableFirefoxDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "firefox", true),
+		},
+		{
+			input: valuePtr(backend.StableSafariAsc),
+			want:  gcpspanner.NewBrowserImplSort(true, "safari", true),
+		},
+		{
+			input: valuePtr(backend.StableSafariDesc),
+			want:  gcpspanner.NewBrowserImplSort(false, "safari", true),
+		},
 	}
 
 	for _, tt := range sortOrderTests {

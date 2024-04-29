@@ -45,6 +45,10 @@ var (
 	gcpFSCountQueryTemplate BaseQueryTemplate
 	// gcpFSSelectQueryTemplate is the compiled version of gcpFSSelectQueryRawTemplate.
 	gcpFSSelectQueryTemplate BaseQueryTemplate
+	// gcpFSPassRateForBrowserTemplate is the compiled version of gcpFSPassRateForBrowserRawTemplate.
+	gcpFSPassRateForBrowserTemplate BaseQueryTemplate
+	// gcpFSBrowserImplementationStatusTemplate is the compiled version of gcpFSBrowserImplementationStatusRawTemplate.
+	gcpFSBrowserImplementationStatusTemplate BaseQueryTemplate
 
 	// localFSMetricsSubQueryTemplate is the compiled version of localFSMetricsSubQueryRawTemplate.
 	localFSMetricsSubQueryTemplate BaseQueryTemplate
@@ -52,6 +56,10 @@ var (
 	localFSCountQueryTemplate BaseQueryTemplate
 	// localFSSelectQueryTemplate is the compiled version of localFSSelectQueryRawTemplate.
 	localFSSelectQueryTemplate BaseQueryTemplate
+	// localFSPassRateForBrowserTemplate is the compiled version of localFSPassRateForBrowserRawTemplate.
+	localFSPassRateForBrowserTemplate BaseQueryTemplate
+	// localFSBrowserImplementationStatusTemplate is the compiled version of localFSBrowserImplementationStatusRawTemplate.
+	localFSBrowserImplementationStatusTemplate BaseQueryTemplate
 )
 
 const (
@@ -69,10 +77,14 @@ func init() {
 	gcpFSMetricsSubQueryTemplate = NewQueryTemplate(gcpFSMetricsSubQueryRawTemplate)
 	gcpFSCountQueryTemplate = NewQueryTemplate(gcpFSCountQueryRawTemplate)
 	gcpFSSelectQueryTemplate = NewQueryTemplate(gcpFSSelectQueryRawTemplate)
+	gcpFSPassRateForBrowserTemplate = NewQueryTemplate(gcpFSPassRateForBrowserRawTemplate)
+	gcpFSBrowserImplementationStatusTemplate = NewQueryTemplate(gcpFSBrowserImplementationStatusRawTemplate)
 
 	localFSMetricsSubQueryTemplate = NewQueryTemplate(localFSMetricsSubQueryRawTemplate)
 	localFSCountQueryTemplate = NewQueryTemplate(localFSCountQueryRawTemplate)
 	localFSSelectQueryTemplate = NewQueryTemplate(localFSSelectQueryRawTemplate)
+	localFSPassRateForBrowserTemplate = NewQueryTemplate(localFSPassRateForBrowserRawTemplate)
+	localFSBrowserImplementationStatusTemplate = NewQueryTemplate(localFSBrowserImplementationStatusRawTemplate)
 }
 
 type BaseQueryTemplate struct {
@@ -112,20 +124,49 @@ type CommonFSSelectTemplateData struct {
 	SortClause           string
 	Offset               int
 	PageSize             int
+	OptionalJoins        []JoinData
 }
 
-// GCPFSSelectTemplateData contains the template for gcpFSSelectQueryTemplate.
+// JoinData contains template data for the optional joins.
+type JoinData struct {
+	Alias    string
+	Template string
+}
+
+// GCPFSSelectTemplateData contains the template data for gcpFSSelectQueryTemplate.
 type GCPFSSelectTemplateData struct {
 	CommonFSSelectTemplateData
 }
 
-// LocalFSSelectTemplateData contains the template for localFSSelectQueryTemplate.
+// LocalFSSelectTemplateData contains the template data for localFSSelectQueryTemplate.
 type LocalFSSelectTemplateData struct {
 	CommonFSSelectTemplateData
 	PassRateColumn string
 }
 
-// GCPFSMetricsTemplateData contains the template for gcpFSMetricsSubQueryTemplate.
+// GCPFSBrowserMetricTemplateData contains the template data for gcpFSPassRateForBrowserTemplate.
+type GCPFSBrowserMetricTemplateData struct {
+	BrowserNameParam string
+	GCPFSMetricsTemplateData
+}
+
+// LocalFSBrowserMetricTemplateData contains the template data for localFSPassRateForBrowserTemplate.
+type LocalFSBrowserMetricTemplateData struct {
+	BrowserNameParam string
+	LocalFSMetricsTemplateData
+}
+
+// GCPFSBrowserImplStatusTemplateData contains the template data for gcpFSBrowserImplementationStatusTemplate.
+type GCPFSBrowserImplStatusTemplateData struct {
+	BrowserNameParam string
+}
+
+// LocalFSBrowserImplStatusTemplateData contains the template data for localFSBrowserImplementationStatusTemplate.
+type LocalFSBrowserImplStatusTemplateData struct {
+	BrowserNameParam string
+}
+
+// GCPFSMetricsTemplateData contains the template data for gcpFSMetricsSubQueryTemplate.
 type GCPFSMetricsTemplateData struct {
 	Channel        string
 	Clause         string
@@ -185,14 +226,21 @@ type FeatureSearchCountArgs struct {
 	Filters []string
 }
 
+// SortByBrowserImplDetails contains parameter data for the Implementation Status templates.
+type SortByBrowserImplDetails struct {
+	BrowserName string
+}
+
 type FeatureSearchQueryArgs struct {
-	MetricView  WPTMetricView
-	Filters     []string
-	PageFilters []string
-	PageSize    int
-	Offset      int
-	Prefilter   FeatureSearchPrefilterResult
-	SortClause  string
+	MetricView              WPTMetricView
+	Filters                 []string
+	PageFilters             []string
+	PageSize                int
+	Offset                  int
+	Prefilter               FeatureSearchPrefilterResult
+	SortClause              string
+	SortByStableBrowserImpl *SortByBrowserImplDetails
+	SortByExpBrowserImpl    *SortByBrowserImplDetails
 }
 
 // FeatureSearchBaseQuery contains the base query for all feature search
@@ -352,7 +400,17 @@ COALESCE(
 		SELECT ARRAY_AGG(
 			STRUCT(
 				BrowserName,
-				CASE WHEN bfa.FeatureID IS NOT NULL THEN 'available' ELSE 'unavailable' END AS ImplementationStatus)
+				COALESCE(
+					(
+						SELECT 'available'
+						FROM BrowserFeatureAvailabilities bfa
+						WHERE bfa.FeatureID = wf.FeatureID
+							AND BrowserName = bfa.BrowserName
+						LIMIT 1
+					),
+					'unavailable' -- Default if no match
+				) AS ImplementationStatus
+			)
 		)
 		FROM BrowserFeatureAvailabilities bfa
 		WHERE bfa.FeatureID = wf.FeatureID
@@ -368,6 +426,23 @@ COALESCE(
 `
 	gcpFSImplementationStatusRawTemplate   = commonFSImplementationStatusRawTemplate
 	localFSImplementationStatusRawTemplate = commonFSImplementationStatusRawTemplate
+
+	// commonFSBrowserImplementationStatusRawTemplate returns the implementation status for the feature of a given
+	// browser.
+	commonFSBrowserImplementationStatusRawTemplate = `
+(
+	SELECT COALESCE(
+		(SELECT 'available'
+			FROM BrowserFeatureAvailabilities bfa
+			WHERE bfa.FeatureID = wf.FeatureID
+				AND BrowserName = @{{ .BrowserNameParam }}
+			LIMIT 1),
+		'unavailable' -- Default if no match
+	) AS ImplementationStatus
+) AS SortImplStatus
+	`
+	gcpFSBrowserImplementationStatusRawTemplate   = commonFSBrowserImplementationStatusRawTemplate
+	localFSBrowserImplementationStatusRawTemplate = commonFSBrowserImplementationStatusRawTemplate
 
 	// commonCountQueryRawTemplate returns the count of items, using the base query fragment
 	// for consistency.
@@ -394,6 +469,16 @@ SELECT
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
 {{ .BaseQueryFragment }}
+{{ if .OptionalJoins }}
+	{{ range $index, $join := .OptionalJoins }}
+LEFT OUTER JOIN (
+    SELECT
+        wf.FeatureID,
+		{{ $join.Template }}
+   FROM WebFeatures wf
+) {{ $join.Alias }} ON wf.FeatureID = {{ $join.Alias }}.FeatureID
+	{{ end }}
+{{ end }}
 WHERE 1=1 -- This ensures valid syntax even with no filters
 {{ range .PageFilters }}
 	AND {{ . }}
@@ -410,7 +495,7 @@ OFFSET {{ .Offset }}
 {{ end }}
 `
 	localFSSelectQueryRawTemplate = `
-	WITH
+WITH
 	LatestMetrics AS (
 		SELECT
 			FeatureID,
@@ -442,6 +527,16 @@ SELECT
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
 {{ .BaseQueryFragment }}
+{{ if .OptionalJoins }}
+	{{ range $index, $join := .OptionalJoins }}
+LEFT OUTER JOIN (
+    SELECT
+        wf.FeatureID,
+		{{ $join.Template }}
+   FROM WebFeatures wf
+) {{ $join.Alias }} ON wf.FeatureID = {{ $join.Alias }}.FeatureID
+	{{ end }}
+{{ end }}
 WHERE 1=1 -- This ensures valid syntax even with no filters
 {{ range .PageFilters }}
 	AND {{ . }}
@@ -456,6 +551,20 @@ LIMIT {{ .PageSize }}
 {{ if .Offset }}
 OFFSET {{ .Offset }}
 {{ end }}
+`
+	// gcpFSPassRateForBrowserRawTemplate generates a nested query that gets the pass rate for a particular
+	// browser for the examined feature.
+	// nolint: gosec // WONTFIX: false positive.
+	gcpFSPassRateForBrowserRawTemplate = `
+(
+	SELECT {{ .PassRateColumn }} AS PassRate
+		FROM WPTRunFeatureMetrics @{FORCE_INDEX={{ .MetricIndex }}} metrics
+		WHERE metrics.FeatureID = wf.FeatureID
+			AND metrics.Channel = @{{ .ChannelParam }}
+			AND metrics.BrowserName = @{{ .BrowserNameParam }}
+			{{ .Clause }}
+		LIMIT 1
+) AS SortMetric
 `
 
 	// gcpFSMetricsSubQueryRawTemplate generates a nested query that aggregates metrics by browser and
@@ -504,6 +613,20 @@ COALESCE(
 	)
 ) AS {{ .Channel }}Metrics
 `
+
+	// localFSPassRateForBrowserRawTemplate generates a nested query that gets the pass rate for a particular
+	// browser for the examined feature.
+	// nolint: gosec // WONTFIX: false positive.
+	localFSPassRateForBrowserRawTemplate = `
+(
+	SELECT {{ .PassRateColumn }} AS PassRate
+		FROM MetricsAggregation
+		WHERE FeatureID = wf.FeatureID
+			AND Channel = @{{ .ChannelParam }}
+			AND BrowserName = @{{ .BrowserNameParam }}
+		LIMIT 1
+) AS SortMetric
+`
 )
 
 // Query uses the latest browsername/channel/timestart mapping to build a query from the prefilter query.
@@ -521,21 +644,62 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 	experimentalParamName := "experimentalChannelParam"
 	params[experimentalParamName] = "experimental"
 
-	stableMetrics := gcpFSMetricsSubQueryTemplate.Execute(GCPFSMetricsTemplateData{
+	stableMetricsData := GCPFSMetricsTemplateData{
 		Channel:        "Stable",
 		Clause:         args.Prefilter.stableClause,
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		MetricIndex:    metricsPassRateIndex(args.MetricView),
 		ChannelParam:   stableParamName,
-	})
+	}
+	stableMetrics := gcpFSMetricsSubQueryTemplate.Execute(stableMetricsData)
 
-	experimentalMetrics := gcpFSMetricsSubQueryTemplate.Execute(GCPFSMetricsTemplateData{
+	experimentalMetricsData := GCPFSMetricsTemplateData{
 		Channel:        "Experimental",
 		Clause:         args.Prefilter.experimentalClause,
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		MetricIndex:    metricsPassRateIndex(args.MetricView),
 		ChannelParam:   experimentalParamName,
-	})
+	}
+	experimentalMetrics := gcpFSMetricsSubQueryTemplate.Execute(experimentalMetricsData)
+
+	var optionalJoins []JoinData
+	if args.SortByStableBrowserImpl != nil {
+		browserNameParamName := "sortStableBrowserNameMetricParam"
+		params[browserNameParamName] = args.SortByStableBrowserImpl.BrowserName
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: gcpFSPassRateForBrowserTemplate.Execute(
+				GCPFSBrowserMetricTemplateData{
+					BrowserNameParam:         browserNameParamName,
+					GCPFSMetricsTemplateData: stableMetricsData,
+				}),
+			Alias: derviedTableSortMetrics,
+		})
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: gcpFSBrowserImplementationStatusTemplate.Execute(
+				GCPFSBrowserImplStatusTemplateData{
+					BrowserNameParam: browserNameParamName,
+				}),
+			Alias: derviedTableSortImpl,
+		})
+	} else if args.SortByExpBrowserImpl != nil {
+		browserNameParamName := "sortExpBrowserNameMetricParam"
+		params[browserNameParamName] = args.SortByExpBrowserImpl.BrowserName
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: gcpFSPassRateForBrowserTemplate.Execute(
+				GCPFSBrowserMetricTemplateData{
+					BrowserNameParam:         browserNameParamName,
+					GCPFSMetricsTemplateData: experimentalMetricsData,
+				}),
+			Alias: derviedTableSortMetrics,
+		})
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: gcpFSBrowserImplementationStatusTemplate.Execute(
+				GCPFSBrowserImplStatusTemplateData{
+					BrowserNameParam: browserNameParamName,
+				}),
+			Alias: derviedTableSortImpl,
+		})
+	}
 
 	return gcpFSSelectQueryTemplate.Execute(GCPFSSelectTemplateData{
 		CommonFSSelectTemplateData: CommonFSSelectTemplateData{
@@ -548,6 +712,7 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 			Offset:               args.Offset,
 			SortClause:           args.SortClause,
 			PageSize:             args.PageSize,
+			OptionalJoins:        optionalJoins,
 		},
 	}), params
 }
@@ -596,17 +761,58 @@ func (f LocalFeatureBaseQuery) Query(args FeatureSearchQueryArgs) (
 		experimentalParamName: "experimental",
 	}
 
-	stableMetrics := localFSMetricsSubQueryTemplate.Execute(LocalFSMetricsTemplateData{
+	stableMetricsData := LocalFSMetricsTemplateData{
 		Channel:        "Stable",
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		ChannelParam:   stableParamName,
-	})
+	}
+	stableMetrics := localFSMetricsSubQueryTemplate.Execute(stableMetricsData)
 
-	experimentalMetrics := localFSMetricsSubQueryTemplate.Execute(LocalFSMetricsTemplateData{
+	experimentalMetricsData := LocalFSMetricsTemplateData{
 		Channel:        "Experimental",
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		ChannelParam:   experimentalParamName,
-	})
+	}
+	experimentalMetrics := localFSMetricsSubQueryTemplate.Execute(experimentalMetricsData)
+
+	var optionalJoins []JoinData
+	if args.SortByStableBrowserImpl != nil {
+		browserNameParamName := "sortStableBrowserNameMetricParam"
+		params[browserNameParamName] = args.SortByStableBrowserImpl.BrowserName
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: localFSPassRateForBrowserTemplate.Execute(
+				LocalFSBrowserMetricTemplateData{
+					BrowserNameParam:           browserNameParamName,
+					LocalFSMetricsTemplateData: stableMetricsData,
+				}),
+			Alias: derviedTableSortMetrics,
+		})
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: localFSBrowserImplementationStatusTemplate.Execute(
+				LocalFSBrowserImplStatusTemplateData{
+					BrowserNameParam: browserNameParamName,
+				}),
+			Alias: derviedTableSortImpl,
+		})
+	} else if args.SortByExpBrowserImpl != nil {
+		browserNameParamName := "sortExpBrowserNameMetricParam"
+		params[browserNameParamName] = args.SortByExpBrowserImpl.BrowserName
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: localFSPassRateForBrowserTemplate.Execute(
+				LocalFSBrowserMetricTemplateData{
+					BrowserNameParam:           browserNameParamName,
+					LocalFSMetricsTemplateData: experimentalMetricsData,
+				}),
+			Alias: derviedTableSortMetrics,
+		})
+		optionalJoins = append(optionalJoins, JoinData{
+			Template: localFSBrowserImplementationStatusTemplate.Execute(
+				LocalFSBrowserImplStatusTemplateData{
+					BrowserNameParam: browserNameParamName,
+				}),
+			Alias: derviedTableSortImpl,
+		})
+	}
 
 	return localFSSelectQueryTemplate.Execute(LocalFSSelectTemplateData{
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
@@ -620,6 +826,7 @@ func (f LocalFeatureBaseQuery) Query(args FeatureSearchQueryArgs) (
 			SortClause:           args.SortClause,
 			Offset:               args.Offset,
 			PageSize:             args.PageSize,
+			OptionalJoins:        optionalJoins,
 		},
 	}), params
 }
