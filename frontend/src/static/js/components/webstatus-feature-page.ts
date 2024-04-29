@@ -31,7 +31,7 @@ import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 import {
   ALL_BROWSERS,
-  ALL_CHANNELS,
+  STABLE_CHANNEL,
   FeatureWPTMetricViewType,
   type APIClient,
   type BrowsersParameter,
@@ -304,16 +304,15 @@ export class FeaturePage extends LitElement {
   ) {
     if (typeof apiClient !== 'object') return;
     for (const browser of ALL_BROWSERS) {
-      for (const channel of ALL_CHANNELS) {
-        const wptRuns = await apiClient.getFeatureStatsByBrowserAndChannel(
-          this.featureId,
-          browser,
-          channel,
-          startDate,
-          endDate
-        );
-        this.featureSupport.set(featureSupportKey(browser, channel), wptRuns);
-      }
+      const channel = STABLE_CHANNEL;
+      const wptRuns = await apiClient.getFeatureStatsByBrowserAndChannel(
+        this.featureId,
+        browser,
+        channel,
+        startDate,
+        endDate
+      );
+      this.featureSupport.set(featureSupportKey(browser, channel), wptRuns);
     }
     this.featureSupportChartDataObj = this.createFeatureSupportDataFromMap();
   }
