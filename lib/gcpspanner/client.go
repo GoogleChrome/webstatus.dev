@@ -79,12 +79,6 @@ type WPTRunCursor struct {
 	LastRunID     int64     `json:"last_run_id"`
 }
 
-// FeatureCursorLastSortValueType defines the valid types for the 'LastSortValue' field in a FeatureResultCursor.
-// As more are added, also add to FeatureResultCursorLastValue.
-type FeatureCursorLastSortValueType interface {
-	string // Currently only supports 'string'
-}
-
 // FeatureResultOffsetCursor: A numerical offset from the start of the result set. Enables the construction of
 // human-friendly URLs specifying an exact page offset.
 // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
@@ -93,108 +87,25 @@ type FeatureResultOffsetCursor struct {
 	Offset int `json:"offset"`
 }
 
-// RawFeatureResultCursor: Represents a point for resuming queries based on the last feature ID to enable efficient
-// pagination within Spanner.
-// RawFeatureResultCursor is a generic representation of a feature-based cursor, used primarily for encoding and
-// initial decoding to preserve exact value types for 'LastSortValue'.
-type RawFeatureResultCursor[T FeatureCursorLastSortValueType] struct {
-	LastFeatureID     string `json:"last_feature_id"`
-	SortColumn        string `json:"sort_column"`
-	SortOrderOperator string `json:"sort_order_operator"`
-	LastSortValue     T      `json:"last_sort_value"`
-}
-
-// FeatureResultCursor provides a non-generic representation of a feature-based cursor, simplifying its use in
-// subsequent query building logic.
-type FeatureResultCursor struct {
-	LastFeatureID     string
-	SortColumn        string
-	SortOrderOperator string
-	FeatureResultCursorLastValue
-}
-
-func (c FeatureResultCursor) addLastSortValueParam(params map[string]interface{}, paramName string) {
-	switch FeatureSearchColumn(c.SortColumn) {
-	case featureSearchFeatureIDColumn, featureSearchFeatureNameColumn, featureSearchStatusColumn:
-		if c.FeatureResultCursorLastValue.StringValue != nil {
-			params[paramName] = *c.FeatureResultCursorLastValue.StringValue
-		}
-	case featureSearchNone:
-		return
-	}
-}
-
-// getLastSortColumn checks against the allowed list of values of the last sort columns and returns it.
-// If spanner ever allows parameterization of the actual column names in queries, we should use that.
-// In the meantime, we need to sanitize the input and make sure we only allow columns that we explicitly support.
-func (c FeatureResultCursor) getLastSortColumn() FeatureSearchColumn {
-	in := FeatureSearchColumn(c.SortColumn)
-	switch in {
-	case featureSearchFeatureIDColumn,
-		featureSearchFeatureNameColumn,
-		featureSearchStatusColumn:
-		return in
-	case featureSearchNone:
-		return featureSearchNone
-	}
-
-	return featureSearchNone
-}
-
-// FeatureResultCursorLastValue holds the various representations of the 'LastSortValue,' allowing flexibility without
-// the need for generics in the main 'FeatureResultCursor'.
-type FeatureResultCursorLastValue struct {
-	StringValue *string
-}
-
 // decodeWPTRunCursor provides a wrapper around the generic decodeCursor.
 func decodeWPTRunCursor(cursor string) (*WPTRunCursor, error) {
 	return decodeCursor[WPTRunCursor](cursor)
 }
 
-const (
-	sortOrderASCPaginationOperator  = ">"
-	sortOrderDESCPaginationOperator = "<"
-)
-
 // decodeInputFeatureResultCursor provides a wrapper around the generic decodeCursor.
 func decodeInputFeatureResultCursor(
-	cursor string, sortOrder Sortable) (*FeatureResultOffsetCursor, *FeatureResultCursor, error) {
+	cursor string) (*FeatureResultOffsetCursor, error) {
 	// Try for the offset based cursor
 	offsetCursor, err := decodeCursor[FeatureResultOffsetCursor](cursor)
 	if err != nil {
-		return nil, nil, err
-	}
-	// If we found something, return early
-	if offsetCursor.Offset > 0 {
-		return offsetCursor, nil, nil
-	}
-	switch sortOrder.SortColumn() {
-	case featureSearchFeatureIDColumn, featureSearchFeatureNameColumn, featureSearchStatusColumn:
-		cursor, err := decodeCursor[RawFeatureResultCursor[string]](cursor)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		// Sanitize the sort order by the only operators we want.
-		if cursor.SortOrderOperator != sortOrderASCPaginationOperator &&
-			cursor.SortOrderOperator != sortOrderDESCPaginationOperator {
-			return nil, nil, ErrInvalidCursorFormat
-		}
-
-		return nil, &FeatureResultCursor{
-			LastFeatureID:     cursor.LastFeatureID,
-			SortColumn:        cursor.SortColumn,
-			SortOrderOperator: cursor.SortOrderOperator,
-			FeatureResultCursorLastValue: FeatureResultCursorLastValue{
-				StringValue: &cursor.LastSortValue,
-			},
-		}, nil
-	case featureSearchNone:
-		return nil, nil, ErrInvalidCursorFormat
+		return nil, err
 	}
 
-	return nil, nil, ErrInvalidCursorFormat
+	if offsetCursor == nil || offsetCursor.Offset < 0 {
+		return nil, ErrInvalidCursorFormat
+	}
+
+	return offsetCursor, nil
 }
 
 // decodeCursor: Decodes a base64-encoded cursor string into a Cursor struct.
@@ -210,45 +121,6 @@ func decodeCursor[T any](cursor string) (*T, error) {
 	}
 
 	return &decoded, nil
-}
-
-// encodeFeatureResultCursor encodes a feature-based cursor, selecting the appropriate
-// field in 'RawFeatureResultCursor' to use as 'LastSortValue' based on the sortOrder.
-func encodeFeatureResultCursor(sortOrder Sortable, lastResult FeatureResult) string {
-	var sortOrderOperator string
-	if sortOrder.ascendingOrder {
-		sortOrderOperator = sortOrderASCPaginationOperator
-	} else {
-		sortOrderOperator = sortOrderDESCPaginationOperator
-	}
-	switch sortOrder.SortColumn() {
-	case featureSearchFeatureNameColumn:
-		return encodeCursor(RawFeatureResultCursor[string]{
-			LastFeatureID:     lastResult.FeatureID,
-			SortColumn:        string(sortOrder.SortColumn()),
-			SortOrderOperator: sortOrderOperator,
-			LastSortValue:     lastResult.Name,
-		})
-	case featureSearchStatusColumn:
-		return encodeCursor(RawFeatureResultCursor[string]{
-			LastFeatureID:     lastResult.FeatureID,
-			SortColumn:        string(sortOrder.SortColumn()),
-			SortOrderOperator: sortOrderOperator,
-			LastSortValue:     lastResult.Status,
-		})
-	case featureSearchFeatureIDColumn:
-		return encodeCursor(RawFeatureResultCursor[string]{
-			LastFeatureID:     lastResult.FeatureID,
-			SortColumn:        string(sortOrder.SortColumn()),
-			SortOrderOperator: sortOrderOperator,
-			LastSortValue:     lastResult.FeatureID,
-		})
-	case featureSearchNone:
-		return ""
-	}
-
-	// Should be not reached. Linting should catch all the cases as more are added.
-	return ""
 }
 
 // BrowserFeatureCountCursor: Represents a point for resuming feature count queries. Designed for efficient pagination
@@ -291,4 +163,11 @@ func encodeCursor[T any](in T) string {
 	}
 
 	return base64.RawURLEncoding.EncodeToString(data)
+}
+
+// encodeFeatureResultOffsetCursor provides a wrapper around the generic encodeCursor.
+func encodeFeatureResultOffsetCursor(offset int) string {
+	return encodeCursor(FeatureResultOffsetCursor{
+		Offset: offset,
+	})
 }

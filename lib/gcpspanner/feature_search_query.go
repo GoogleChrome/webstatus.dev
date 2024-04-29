@@ -36,16 +36,16 @@ func NewFeatureSearchFilterBuilder() *FeatureSearchFilterBuilder {
 }
 
 type FeatureSearchCompiledFilter struct {
-	params map[string]interface{}
-	clause string
+	params  map[string]interface{}
+	filters []string
 }
 
 func (f FeatureSearchCompiledFilter) Params() map[string]interface{} {
 	return f.params
 }
 
-func (f FeatureSearchCompiledFilter) Clause() string {
-	return f.clause
+func (f FeatureSearchCompiledFilter) Filters() []string {
+	return f.filters
 }
 
 // addParamGetName adds a parameter to the map that will be used in the spanner params map.
@@ -77,11 +77,10 @@ func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *Featur
 	b.paramCounter = 0
 
 	generatedFilters := b.traverseAndGenerateFilters(node.Children[0])
-	filterClause := strings.Join(generatedFilters, " AND ")
 
 	return &FeatureSearchCompiledFilter{
-		params: b.params,
-		clause: filterClause,
+		params:  b.params,
+		filters: generatedFilters,
 	}
 }
 
@@ -181,27 +180,24 @@ type Filterable interface {
 // FeatureSearchQueryBuilder builds a query to search for features.
 type FeatureSearchQueryBuilder struct {
 	baseQuery     FeatureSearchBaseQuery
-	featureCursor *FeatureResultCursor
 	offsetCursor  *FeatureResultOffsetCursor
 	wptMetricView WPTMetricView
 }
 
-const whereOpPrefix = "WHERE "
-
 func (q FeatureSearchQueryBuilder) CountQueryBuild(
 	filter *FeatureSearchCompiledFilter) spanner.Statement {
-	filterQuery := ""
 	filterParams := make(map[string]interface{})
+	args := FeatureSearchCountArgs{
+		Filters: nil,
+	}
 	if filter != nil {
-		filterQuery = filter.Clause()
+		args.Filters = filter.filters
 		maps.Copy(filterParams, filter.Params())
 	}
-	if len(filterQuery) > 0 {
-		filterQuery = whereOpPrefix + filterQuery
-	}
-	sql := q.baseQuery.CountQuery()
 
-	stmt := spanner.NewStatement(sql + " " + filterQuery)
+	sql := q.baseQuery.CountQuery(args)
+
+	stmt := spanner.NewStatement(sql)
 	stmt.Params = filterParams
 
 	return stmt
@@ -212,39 +208,48 @@ func (q FeatureSearchQueryBuilder) Build(
 	filter *FeatureSearchCompiledFilter,
 	sort Sortable,
 	pageSize int) spanner.Statement {
-	filterQuery := ""
+
+	var stableBrowserImplDetails, expBrowserImplDetails *SortByBrowserImplDetails
+
+	switch sort.SortTarget() {
+	case StableImplSort:
+		stableBrowserImplDetails = &SortByBrowserImplDetails{
+			BrowserName: sort.BrowserTarget(),
+		}
+	case ExperimentalImplSort:
+		expBrowserImplDetails = &SortByBrowserImplDetails{
+			BrowserName: sort.BrowserTarget(),
+		}
+	case IDSort, NameSort, StatusSort:
+		break // do nothing.
+	}
 
 	filterParams := make(map[string]interface{})
-	offsetFilter := ""
-	if q.featureCursor != nil {
-		filterParams["cursorId"] = q.featureCursor.LastFeatureID
-		sortColumn := q.featureCursor.getLastSortColumn()
-		q.featureCursor.addLastSortValueParam(filterParams, "cursorSortColumn")
-		filterQuery += " ("
-		filterQuery += fmt.Sprintf("%s %s @cursorSortColumn OR ",
-			sortColumn.ToFilterColumn(), q.featureCursor.SortOrderOperator)
-		filterQuery += fmt.Sprintf("(%s = @cursorSortColumn AND wf.FeatureID > @cursorId)", sortColumn.ToFilterColumn())
-		filterQuery += ")"
-	} else if q.offsetCursor != nil {
-		filterParams["offset"] = q.offsetCursor.Offset
-		offsetFilter = " OFFSET @offset"
+	queryArgs := FeatureSearchQueryArgs{
+		MetricView:  q.wptMetricView,
+		Filters:     nil,
+		PageFilters: nil,
+		Offset:      0,
+		PageSize:    pageSize,
+		Prefilter:   prefilter,
+		SortClause:  sort.Clause(),
+		// Special Sort Targets.
+		SortByStableBrowserImpl: stableBrowserImplDetails,
+		SortByExpBrowserImpl:    expBrowserImplDetails,
 	}
 
-	filterParams["pageSize"] = pageSize
-
+	if q.offsetCursor != nil {
+		queryArgs.Offset = q.offsetCursor.Offset
+	}
 	if filter != nil {
-		filterQuery = filter.Clause()
+		queryArgs.Filters = filter.filters
 		maps.Copy(filterParams, filter.Params())
 	}
-	if len(filterQuery) > 0 {
-		filterQuery = whereOpPrefix + filterQuery
-	}
 
-	sql, params := q.baseQuery.Query(prefilter, q.wptMetricView)
+	sql, params := q.baseQuery.Query(queryArgs)
 	maps.Copy(filterParams, params)
 
-	stmt := spanner.NewStatement(
-		sql + " " + filterQuery + " ORDER BY " + sort.Clause() + " LIMIT @pageSize" + offsetFilter)
+	stmt := spanner.NewStatement(sql)
 
 	stmt.Params = filterParams
 
@@ -254,26 +259,35 @@ func (q FeatureSearchQueryBuilder) Build(
 // Sortable is a basic class that all/most sortables can include.
 type Sortable struct {
 	clause         string
-	sortColumn     FeatureSearchColumn
+	sortTarget     FeaturesSearchSortTarget
 	ascendingOrder bool
+	browserTarget  *string
+}
+
+func (s Sortable) BrowserTarget() string {
+	if s.browserTarget == nil {
+		return ""
+	}
+
+	return *s.browserTarget
 }
 
 func (s Sortable) Clause() string {
 	return s.clause
 }
 
-func (s Sortable) SortColumn() FeatureSearchColumn {
-	return s.sortColumn
+func (s Sortable) SortTarget() FeaturesSearchSortTarget {
+	return s.sortTarget
 }
 
 // buildFullClause generates a sorting clause appropriate for Spanner pagination.
 // It includes the primary sorting column and the 'FeatureID' column as a tiebreaker
 // to ensure deterministic page ordering.
-func buildFullClause(sortableClause string) string {
-	return sortableClause + ", " + string(featureSearchFeatureIDColumn)
+func buildFullClause(sortableClauses []string, tieBreakerColumn FeatureSearchColumn) string {
+	return strings.Join(append(sortableClauses, string(tieBreakerColumn)), ", ")
 }
 
-func buildSortableOrderClause(isAscending bool, column string) string {
+func buildSortableOrderClause(isAscending bool, column FeatureSearchColumn) string {
 	direction := "ASC"
 	if !isAscending {
 		direction = "DESC"
@@ -289,7 +303,8 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 	switch f {
 	case featureSearchFeatureIDColumn,
 		featureSearchFeatureNameColumn,
-		featureSearchNone:
+		featureSearcBrowserMetricColumn,
+		featureSearcBrowserImplColumn:
 		return string(f)
 	case featureSearchStatusColumn:
 		// To facilitate correct pagination behavior, particularly when handling null values in the
@@ -301,28 +316,82 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 	return ""
 }
 
+// FeaturesSearchSortTarget is an enumeration of the data that is being targeted for the sort operation.
+// This is used to know which column(s) to encode and decode in the pagination token.
+type FeaturesSearchSortTarget string
+
 const (
-	featureSearchFeatureIDColumn   FeatureSearchColumn = "wf.FeatureID"
-	featureSearchFeatureNameColumn FeatureSearchColumn = "wf.Name"
-	featureSearchStatusColumn      FeatureSearchColumn = "Status"
-	// Placeholder column for all non-matching columns.
-	featureSearchNone FeatureSearchColumn = ""
+	IDSort               FeaturesSearchSortTarget = "id"
+	NameSort             FeaturesSearchSortTarget = "name"
+	StatusSort           FeaturesSearchSortTarget = "status"
+	StableImplSort       FeaturesSearchSortTarget = "stable_browser_impl"
+	ExperimentalImplSort FeaturesSearchSortTarget = "experimental_browser_impl"
+)
+
+const (
+	featureSearchFeatureIDColumn    FeatureSearchColumn = "wf.FeatureID"
+	featureSearchFeatureNameColumn  FeatureSearchColumn = "wf.Name"
+	featureSearchStatusColumn       FeatureSearchColumn = "Status"
+	featureSearcBrowserMetricColumn FeatureSearchColumn = "sort_metric_calcs.SortMetric"
+	featureSearcBrowserImplColumn   FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
+)
+
+const (
+	derviedTableSortMetrics = "sort_metric_calcs"
+	derviedTableSortImpl    = "sort_impl_calcs"
 )
 
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
 func NewFeatureNameSort(isAscending bool) Sortable {
 	return Sortable{
-		clause:         buildFullClause(buildSortableOrderClause(isAscending, "wf.Name")),
-		sortColumn:     featureSearchFeatureNameColumn,
+		clause: buildFullClause(
+			[]string{buildSortableOrderClause(isAscending, featureSearchFeatureNameColumn)},
+			featureSearchFeatureIDColumn),
 		ascendingOrder: isAscending,
+		sortTarget:     NameSort,
+		browserTarget:  nil,
 	}
 }
 
 // NewBaselineStatusSort returns a Sortable specifically for the Status column.
 func NewBaselineStatusSort(isAscending bool) Sortable {
 	return Sortable{
-		clause:         buildFullClause(buildSortableOrderClause(isAscending, "Status")),
-		sortColumn:     featureSearchStatusColumn,
+		clause: buildFullClause(
+			[]string{buildSortableOrderClause(isAscending, featureSearchStatusColumn)},
+			featureSearchFeatureIDColumn,
+		),
 		ascendingOrder: isAscending,
+		sortTarget:     StatusSort,
+		browserTarget:  nil,
+	}
+}
+
+// NewBrowserImplSort creates a Sortable configuration for ordering Web Features.
+// The primary sorting criterion is the pass rate of stable or experimental WPT (Web Platform Tests) metrics
+// for the specified browser.
+// The secondary sorting criterion is the implementation status ("available" or "unavailable") of the feature
+// in the specified browser.
+//
+// Arguments:
+//   - isAscending: Whether the sorting should be ascending (true) or descending (false).
+//   - browserName: The name of the browser ("chrome", "firefox", etc.).
+//   - isStable: Whether to use stable (true) or experimental (false) WPT metrics.
+func NewBrowserImplSort(isAscending bool, browserName string, isStable bool) Sortable {
+	sortTarget := StableImplSort
+	if !isStable {
+		sortTarget = ExperimentalImplSort
+	}
+
+	return Sortable{
+		clause: buildFullClause(
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearcBrowserMetricColumn),
+				buildSortableOrderClause(isAscending, featureSearcBrowserImplColumn),
+			},
+			featureSearchFeatureIDColumn,
+		),
+		browserTarget:  &browserName,
+		ascendingOrder: isAscending,
+		sortTarget:     sortTarget,
 	}
 }

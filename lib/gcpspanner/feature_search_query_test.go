@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"reflect"
+	"slices"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -201,36 +202,36 @@ var (
 // nolint:lll // Some queries will be long lines.
 func TestBuild(t *testing.T) {
 	testCases := []struct {
-		inputTestTree  TestTree
-		expectedClause string
-		expectedParams map[string]interface{}
+		inputTestTree   TestTree
+		expectedClauses []string
+		expectedParams  map[string]interface{}
 	}{
 		{
 			inputTestTree: simpleAvailableOnQuery,
-			expectedClause: `(wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0))`,
+			expectedClauses: []string{`(wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 			},
 		},
 		{
-			inputTestTree:  simpleNameQuery,
-			expectedClause: `((wf.Name_Lowercase LIKE @param0 OR wf.FeatureID_Lowercase LIKE @param0))`,
+			inputTestTree:   simpleNameQuery,
+			expectedClauses: []string{`((wf.Name_Lowercase LIKE @param0 OR wf.FeatureID_Lowercase LIKE @param0))`},
 			expectedParams: map[string]interface{}{
 				"param0": "%" + "css grid" + "%",
 			},
 		},
 		{
-			inputTestTree:  simpleNameByIDQuery,
-			expectedClause: `((wf.Name_Lowercase LIKE @param0 OR wf.FeatureID_Lowercase LIKE @param0))`,
+			inputTestTree:   simpleNameByIDQuery,
+			expectedClauses: []string{`((wf.Name_Lowercase LIKE @param0 OR wf.FeatureID_Lowercase LIKE @param0))`},
 			expectedParams: map[string]interface{}{
 				"param0": "%" + "grid" + "%",
 			},
 		},
 		{
 			inputTestTree: availableOnBaselineStatus,
-			expectedClause: `((wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`,
+			expectedClauses: []string{`((wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -238,8 +239,8 @@ WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`,
 		},
 		{
 			inputTestTree: availableOnBaselineStatusWithNegation,
-			expectedClause: `((NOT (wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`,
+			expectedClauses: []string{`((NOT (wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -247,8 +248,8 @@ WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`,
 		},
 		{
 			inputTestTree: complexQuery,
-			expectedClause: `(((wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase LIKE @param2 OR wf.FeatureID_Lowercase LIKE @param2)))) OR ((wf.Name_Lowercase LIKE @param3 OR wf.FeatureID_Lowercase LIKE @param3)))`,
+			expectedClauses: []string{`(((wf.FeatureID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase LIKE @param2 OR wf.FeatureID_Lowercase LIKE @param2)))) OR ((wf.Name_Lowercase LIKE @param3 OR wf.FeatureID_Lowercase LIKE @param3)))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -261,8 +262,8 @@ WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase
 		t.Run(tc.inputTestTree.Query, func(t *testing.T) {
 			b := NewFeatureSearchFilterBuilder()
 			filter := b.Build(tc.inputTestTree.InputTree)
-			if filter.Clause() != tc.expectedClause {
-				t.Errorf("\nexpected clause [%s]\n  actual clause [%s]", tc.expectedClause, filter.Clause())
+			if !slices.Equal[[]string](filter.Filters(), tc.expectedClauses) {
+				t.Errorf("\nexpected clause [%s]\n  actual clause [%s]", tc.expectedClauses, filter.Filters())
 			}
 			if !reflect.DeepEqual(tc.expectedParams, filter.Params()) {
 				t.Errorf("expected params (%+v) actual params (%+v)", tc.expectedParams, filter.Params())

@@ -52,22 +52,22 @@ paths:
               - name_desc
               - baseline_status_asc
               - baseline_status_desc
-              - wpt_stable_chrome_asc
-              - wpt_stable_chrome_desc
-              - wpt_stable_safari_asc
-              - wpt_stable_safari_desc
-              - wpt_stable_edge_asc
-              - wpt_stable_edge_desc
-              - wpt_stable_firefox_asc
-              - wpt_stable_firefox_desc
-              - wpt_experimental_chrome_asc
-              - wpt_experimental_chrome_desc
-              - wpt_experimental_safari_asc
-              - wpt_experimental_safari_desc
-              - wpt_experimental_edge_asc
-              - wpt_experimental_edge_desc
-              - wpt_experimental_firefox_asc
-              - wpt_experimental_firefox_desc
+              - stable_chrome_asc
+              - stable_chrome_desc
+              - stable_safari_asc
+              - stable_safari_desc
+              - stable_edge_asc
+              - stable_edge_desc
+              - stable_firefox_asc
+              - stable_firefox_desc
+              - experimental_chrome_asc
+              - experimental_chrome_desc
+              - experimental_safari_asc
+              - experimental_safari_desc
+              - experimental_edge_asc
+              - experimental_edge_desc
+              - experimental_firefox_asc
+              - experimental_firefox_desc
       responses:
         '200':
           description: OK
