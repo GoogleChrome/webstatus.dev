@@ -16,6 +16,7 @@
 import {type TemplateResult, html, nothing} from 'lit';
 import {type components} from 'webstatus.dev-backend';
 import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
+import {FeatureSortOrderType} from '../api/client.js';
 
 const MISSING_VALUE = html`---`;
 
@@ -70,7 +71,7 @@ export const DEFAULT_COLUMNS = [
   ColumnKey.StableSafari,
 ];
 
-export const DEFAULT_SORT_SPEC = 'name_asc';
+export const DEFAULT_SORT_SPEC: FeatureSortOrderType = 'baseline_status_desc';
 
 interface BaselineChipConfig {
   cssClass: string;
@@ -79,14 +80,9 @@ interface BaselineChipConfig {
 }
 
 export const BASELINE_CHIP_CONFIGS: Record<
-  components['schemas']['Feature']['baseline_status'],
+  NonNullable<components['schemas']['BaselineInfo']['status']>,
   BaselineChipConfig
 > = {
-  undefined: {
-    cssClass: 'limited',
-    icon: 'cross.svg',
-    word: 'Limited availability',
-  },
   limited: {
     cssClass: 'limited',
     icon: 'cross.svg',
@@ -114,7 +110,10 @@ const renderBaselineStatus: CellRenderer = (
   _routerLocation,
   _options
 ) => {
-  const baselineStatus = feature.baseline_status;
+  const baselineStatus = feature.baseline?.status;
+
+  if (baselineStatus === undefined) return html``;
+
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
   return html`
     <span class="chip ${chipConfig.cssClass}">

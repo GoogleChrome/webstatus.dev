@@ -32,33 +32,40 @@ const featureBaselineStatusTable = "FeatureBaselineStatus"
 type BaselineStatus string
 
 const (
-	BaselineStatusUndefined BaselineStatus = "undefined"
-	BaselineStatusNone      BaselineStatus = "none"
-	BaselineStatusLow       BaselineStatus = "low"
-	BaselineStatusHigh      BaselineStatus = "high"
+	BaselineStatusNone BaselineStatus = "none"
+	BaselineStatusLow  BaselineStatus = "low"
+	BaselineStatusHigh BaselineStatus = "high"
 )
 
 // SpannerFeatureBaselineStatus is a wrapper for the baseline status that is actually
-// stored in spanner. For now, it is the same. But we keep this structure to be
-// consistent to the other database models.
+// stored in spanner.
 type SpannerFeatureBaselineStatus struct {
+	FeatureID      string  `spanner:"FeatureID"`
+	InternalStatus *string `spanner:"Status"`
 	FeatureBaselineStatus
 }
 
 // FeatureBaselineStatus contains information about the current baseline status
 // of a feature.
 type FeatureBaselineStatus struct {
-	FeatureID string         `spanner:"FeatureID"`
-	Status    BaselineStatus `spanner:"Status"`
-	LowDate   *time.Time     `spanner:"LowDate"`
-	HighDate  *time.Time     `spanner:"HighDate"`
+	Status   *BaselineStatus `spanner:"-"` // Spanner can not handle pointer to custom type. So ignore it.
+	LowDate  *time.Time      `spanner:"LowDate"`
+	HighDate *time.Time      `spanner:"HighDate"`
 }
 
 // UpsertWebFeature will update the given baseline status.
 // If the status, does not exist, it will insert a new status.
 // If the status exists, it will allow updates to the status, low date and high date.
-func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context, status FeatureBaselineStatus) error {
-	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context,
+	featureID string, input FeatureBaselineStatus) error {
+	id, err := c.GetIDFromFeatureID(ctx, NewFeatureIDFilter(featureID))
+	if err != nil {
+		return err
+	}
+	if id == nil {
+		return ErrInternalQueryFailure
+	}
+	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		stmt := spanner.NewStatement(`
 		SELECT
 			FeatureID, Status, LowDate, HighDate
@@ -66,9 +73,16 @@ func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context, status Feature
 		WHERE FeatureID = @featureID
 		LIMIT 1`)
 		parameters := map[string]interface{}{
-			"featureID": status.FeatureID,
+			"featureID": *id,
 		}
 		stmt.Params = parameters
+
+		// Create status based on the table model.
+		status := SpannerFeatureBaselineStatus{
+			FeatureID:             *id,
+			InternalStatus:        (*string)(input.Status),
+			FeatureBaselineStatus: input,
+		}
 
 		// Attempt to query for the row.
 		it := txn.Query(ctx, stmt)
@@ -98,7 +112,7 @@ func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context, status Feature
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
 			// Only allow overriding of the status, low date and high date.
-			existingStatus.Status = cmp.Or[BaselineStatus](status.Status, existingStatus.Status)
+			existingStatus.InternalStatus = cmp.Or[*string](status.InternalStatus, existingStatus.InternalStatus)
 			existingStatus.LowDate = cmp.Or[*time.Time](status.LowDate, existingStatus.LowDate)
 			existingStatus.HighDate = cmp.Or[*time.Time](status.HighDate, existingStatus.HighDate)
 			m, err = spanner.InsertOrUpdateStruct(featureBaselineStatusTable, existingStatus)

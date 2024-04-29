@@ -86,6 +86,8 @@ func (c *Client) GetFeature(
 		StableMetrics:          result.StableMetrics,
 		ExperimentalMetrics:    result.ExperimentalMetrics,
 		ImplementationStatuses: result.ImplementationStatuses,
+		LowDate:                result.LowDate,
+		HighDate:               result.HighDate,
 	}
 
 	return &actualResult, nil

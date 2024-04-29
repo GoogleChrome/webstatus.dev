@@ -441,7 +441,11 @@ export class FeaturePage extends LitElement {
   renderBaselineCard(): TemplateResult {
     if (!this.feature) return html``;
 
-    const chipConfig = BASELINE_CHIP_CONFIGS[this.feature.baseline_status];
+    const status = this.feature.baseline?.status;
+
+    if (status === undefined) return html``;
+
+    const chipConfig = BASELINE_CHIP_CONFIGS[status];
 
     return html`
       <sl-card class="halign-stretch wptScore">

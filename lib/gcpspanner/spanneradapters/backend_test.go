@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 // nolint: gochecknoglobals
@@ -183,8 +184,6 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	return c.mockFeaturesSearchCfg.result,
 		c.mockFeaturesSearchCfg.returnedError
 }
-
-func valuePtr[T any](in T) *T { return &in }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	testCases := []struct {
@@ -463,14 +462,14 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 func TestConvertBaselineStatusBackendToSpanner(t *testing.T) {
 	var backendToSpannerTests = []struct {
 		name     string
-		input    backend.FeatureBaselineStatus
+		input    backend.BaselineInfoStatus
 		expected gcpspanner.BaselineStatus
 	}{
 		{"Widely to High", backend.Widely, gcpspanner.BaselineStatusHigh},
 		{"Newly to Low", backend.Newly, gcpspanner.BaselineStatusLow},
 		{"Limited to None", backend.Limited, gcpspanner.BaselineStatusNone},
-		{"Invalid to Undefined", backend.FeatureBaselineStatus("invalid"),
-			gcpspanner.BaselineStatusUndefined}, // Test default case
+		{"Invalid to Undefined", backend.BaselineInfoStatus("invalid"),
+			""}, // Test default case
 	}
 	for _, tt := range backendToSpannerTests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -484,20 +483,81 @@ func TestConvertBaselineStatusBackendToSpanner(t *testing.T) {
 
 func TestConvertBaselineStatusSpannerToBackend(t *testing.T) {
 	var spannerToBackendTests = []struct {
-		name     string
-		input    gcpspanner.BaselineStatus
-		expected backend.FeatureBaselineStatus
+		name          string
+		inputStatus   *string
+		inputLowDate  *time.Time
+		inputHighDate *time.Time
+		expected      *backend.BaselineInfo
 	}{
-		{"High to Widely", gcpspanner.BaselineStatusHigh, backend.Widely},
-		{"Low to Newly", gcpspanner.BaselineStatusLow, backend.Newly},
-		{"None to Limited", gcpspanner.BaselineStatusNone, backend.Limited},
-		{"Invalid to Undefined", gcpspanner.BaselineStatus("invalid"), backend.Undefined}, // Test default case
+		{
+			name:          "High Status to Widely",
+			inputStatus:   valuePtr("high"),
+			inputLowDate:  nil,
+			inputHighDate: nil,
+			expected: &backend.BaselineInfo{
+				Status:   valuePtr(backend.Widely),
+				LowDate:  nil,
+				HighDate: nil,
+			},
+		},
+		{
+			name:          "Low Status to Newly",
+			inputStatus:   valuePtr("low"),
+			inputLowDate:  nil,
+			inputHighDate: nil,
+			expected: &backend.BaselineInfo{
+				Status:   valuePtr(backend.Newly),
+				LowDate:  nil,
+				HighDate: nil,
+			},
+		},
+		{
+			name:          "None Status to Limited",
+			inputStatus:   valuePtr("none"),
+			inputLowDate:  nil,
+			inputHighDate: nil,
+			expected: &backend.BaselineInfo{
+				Status:   valuePtr(backend.Limited),
+				LowDate:  nil,
+				HighDate: nil,
+			},
+		},
+		{
+			name:          "Status with Low Date",
+			inputStatus:   valuePtr("none"),
+			inputLowDate:  valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			inputHighDate: nil,
+			expected: &backend.BaselineInfo{
+				Status:   valuePtr(backend.Limited),
+				LowDate:  &openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+				HighDate: nil,
+			},
+		},
+		{
+			name:          "Status with Low Date & High Date",
+			inputStatus:   valuePtr("none"),
+			inputLowDate:  valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			inputHighDate: valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			expected: &backend.BaselineInfo{
+				Status:   valuePtr(backend.Limited),
+				LowDate:  &openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+				HighDate: &openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+			},
+		},
+		{
+			name:          "Invalid Status to nil",
+			inputStatus:   valuePtr("invalid"),
+			inputLowDate:  nil,
+			inputHighDate: nil,
+			expected:      nil,
+		}, // Test default case
 	}
 	for _, tt := range spannerToBackendTests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := convertBaselineStatusSpannerToBackend(tt.input)
-			if result != tt.expected {
-				t.Errorf("convertBaselineStatusSpannerToBackend(%v): got %v, want %v", tt.input, result, tt.expected)
+			result := convertBaselineSpannerToBackend(tt.inputStatus, tt.inputLowDate, tt.inputHighDate)
+			if !reflect.DeepEqual(result, tt.expected) {
+				t.Errorf("convertBaselineSpannerToBackend(%v %v %v): got %v, want %v", tt.inputStatus, tt.inputLowDate,
+					tt.inputHighDate, result, tt.expected)
 			}
 		})
 	}
@@ -525,7 +585,7 @@ func TestFeaturesSearch(t *testing.T) {
 					Children: nil,
 				},
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
-				expectedSortable:      gcpspanner.NewFeatureNameSort(true),
+				expectedSortable:      gcpspanner.NewBaselineStatusSort(false),
 				result: &gcpspanner.FeatureResultPage{
 					Total:         100,
 					NextPageToken: nonNilNextPageToken,
@@ -533,7 +593,9 @@ func TestFeaturesSearch(t *testing.T) {
 						{
 							Name:      "feature 1",
 							FeatureID: "feature1",
-							Status:    "low",
+							Status:    valuePtr("low"),
+							LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							HighDate:  nil,
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
 									BrowserName: "browser3",
@@ -556,7 +618,9 @@ func TestFeaturesSearch(t *testing.T) {
 						{
 							Name:      "feature 2",
 							FeatureID: "feature2",
-							Status:    "high",
+							Status:    valuePtr("high"),
+							LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							HighDate:  valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
 									BrowserName: "browser1",
@@ -608,11 +672,17 @@ func TestFeaturesSearch(t *testing.T) {
 				},
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.Newly,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
+						Baseline: &backend.BaselineInfo{
+							Status: valuePtr(backend.Newly),
+							LowDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+							HighDate: nil,
+						},
+						FeatureId: "feature1",
+						Name:      "feature 1",
+						Spec:      nil,
+						Usage:     nil,
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser3": {
@@ -632,11 +702,19 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 					},
 					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature2",
-						Name:           "feature 2",
-						Spec:           nil,
-						Usage:          nil,
+						Baseline: &backend.BaselineInfo{
+							Status: valuePtr(backend.Widely),
+							LowDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+							HighDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+						},
+						FeatureId: "feature2",
+						Name:      "feature 2",
+						Spec:      nil,
+						Usage:     nil,
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser1": {
@@ -698,8 +776,7 @@ func TestFeaturesSearch(t *testing.T) {
 // CompareFeatures checks if two backend.Feature structs are deeply equal.
 func CompareFeatures(f1, f2 backend.Feature) bool {
 	// 1. Basic Equality Checks
-	if f1.BaselineStatus != f2.BaselineStatus ||
-		f1.FeatureId != f2.FeatureId ||
+	if f1.FeatureId != f2.FeatureId ||
 		f1.Name != f2.Name ||
 		f1.Usage != f2.Usage {
 		return false
@@ -716,6 +793,11 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 	}
 
 	if !compareImplementationStatus(f1.BrowserImplementations, f1.BrowserImplementations) {
+		return false
+	}
+
+	// 4. Compare Baseline Objects
+	if !reflect.DeepEqual(f1.Baseline, f2.Baseline) {
 		return false
 	}
 
@@ -796,7 +878,9 @@ func TestGetFeature(t *testing.T) {
 				result: &gcpspanner.FeatureResult{
 					Name:      "feature 1",
 					FeatureID: "feature1",
-					Status:    "low",
+					Status:    valuePtr("low"),
+					LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					HighDate:  nil,
 					StableMetrics: []*gcpspanner.FeatureResultMetric{
 						{
 							BrowserName: "browser3",
@@ -819,11 +903,17 @@ func TestGetFeature(t *testing.T) {
 				returnedError: nil,
 			},
 			expectedFeature: &backend.Feature{
-				BaselineStatus: backend.Newly,
-				FeatureId:      "feature1",
-				Name:           "feature 1",
-				Spec:           nil,
-				Usage:          nil,
+				Baseline: &backend.BaselineInfo{
+					Status: valuePtr(backend.Newly),
+					LowDate: valuePtr(
+						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					),
+					HighDate: nil,
+				},
+				FeatureId: "feature1",
+				Name:      "feature 1",
+				Spec:      nil,
+				Usage:     nil,
 				Wpt: &backend.FeatureWPTSnapshots{
 					Experimental: &map[string]backend.WPTFeatureData{
 						"browser3": {
@@ -868,7 +958,7 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 		input *backend.GetV1FeaturesParamsSort
 		want  gcpspanner.Sortable
 	}{
-		{input: nil, want: gcpspanner.NewFeatureNameSort(true)},
+		{input: nil, want: gcpspanner.NewBaselineStatusSort(false)},
 		{
 			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameAsc),
 			want:  gcpspanner.NewFeatureNameSort(true),
@@ -972,7 +1062,9 @@ func TestConvertFeatureResult(t *testing.T) {
 			featureResult: &gcpspanner.FeatureResult{
 				Name:      "feature 1",
 				FeatureID: "feature1",
-				Status:    "low",
+				Status:    valuePtr("low"),
+				LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				HighDate:  nil,
 				StableMetrics: []*gcpspanner.FeatureResultMetric{
 					{
 						BrowserName: "browser3",
@@ -989,7 +1081,13 @@ func TestConvertFeatureResult(t *testing.T) {
 			},
 
 			expectedFeature: &backend.Feature{
-				BaselineStatus:         backend.Newly,
+				Baseline: &backend.BaselineInfo{
+					Status: valuePtr(backend.Newly),
+					LowDate: valuePtr(
+						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					),
+					HighDate: nil,
+				},
 				FeatureId:              "feature1",
 				Name:                   "feature 1",
 				Spec:                   nil,

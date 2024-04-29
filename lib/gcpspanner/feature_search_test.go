@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"reflect"
 	"slices"
 	"sort"
 	"strings"
@@ -127,29 +128,38 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 
 	//nolint: dupl // Okay to duplicate for tests
-	sampleBaselineStatuses := []FeatureBaselineStatus{
+	sampleBaselineStatuses := []struct {
+		featureID string
+		status    FeatureBaselineStatus
+	}{
 		{
-			FeatureID: "feature1",
-			Status:    BaselineStatusLow,
-			LowDate:   nil,
-			HighDate:  nil,
+			featureID: "feature1",
+			status: FeatureBaselineStatus{
+				Status:   valuePtr(BaselineStatusLow),
+				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
+				HighDate: nil,
+			},
 		},
 		{
-			FeatureID: "feature2",
-			Status:    BaselineStatusHigh,
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate:  valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			featureID: "feature2",
+			status: FeatureBaselineStatus{
+				Status:   valuePtr(BaselineStatusHigh),
+				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
+				HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			},
 		},
 		{
-			FeatureID: "feature3",
-			Status:    BaselineStatusNone,
-			LowDate:   nil,
-			HighDate:  nil,
+			featureID: "feature3",
+			status: FeatureBaselineStatus{
+				Status:   valuePtr(BaselineStatusNone),
+				LowDate:  nil,
+				HighDate: nil,
+			},
 		},
-		// feature4 will default to undefined.
+		// feature4 will default to nil.
 	}
 	for _, status := range sampleBaselineStatuses {
-		err := client.UpsertFeatureBaselineStatus(ctx, status)
+		err := client.UpsertFeatureBaselineStatus(ctx, status.featureID, status.status)
 		if err != nil {
 			t.Errorf("unexpected error during insert of statuses. %s", err.Error())
 		}
@@ -487,7 +497,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		ret = FeatureResult{
 			FeatureID: "feature1",
 			Name:      "Feature 1",
-			Status:    string(BaselineStatusLow),
+			Status:    valuePtr(string(BaselineStatusLow)),
+			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
+			HighDate:  nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -523,7 +535,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		ret = FeatureResult{
 			FeatureID: "feature2",
 			Name:      "Feature 2",
-			Status:    string(BaselineStatusHigh),
+			Status:    valuePtr(string(BaselineStatusHigh)),
+			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
+			HighDate:  valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -555,7 +569,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		ret = FeatureResult{
 			FeatureID: "feature3",
 			Name:      "Feature 3",
-			Status:    string(BaselineStatusNone),
+			Status:    valuePtr(string(BaselineStatusNone)),
+			LowDate:   nil,
+			HighDate:  nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -574,7 +590,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		ret = FeatureResult{
 			FeatureID:              "feature4",
 			Name:                   "Feature 4",
-			Status:                 string(BaselineStatusUndefined),
+			Status:                 nil,
+			LowDate:                nil,
+			HighDate:               nil,
 			StableMetrics:          nil,
 			ExperimentalMetrics:    nil,
 			ImplementationStatuses: nil,
@@ -1035,7 +1053,7 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		&expectedPage,
 	)
 
-	// Baseline none only, should exclude feature 4 which is undefined.
+	// Baseline none only, should exclude feature 4 which is nil.
 	expectedResults = []FeatureResult{
 		getFeatureSearchTestFeature(FeatureSearchTestFId3),
 	}
@@ -1086,8 +1104,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total:         4,
 				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
-					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// nil status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// none status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 				},
 			},
 		},
@@ -1100,8 +1120,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total:         4,
 				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// high status low date 2000-01-04 high date 2000-01-31
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// low status low date 2000-01-05
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 				},
 			},
 		},
@@ -1113,8 +1135,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total:         4,
 				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// low status low date 2000-01-05
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// high status low date 2000-01-04 high date 2000-01-31
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
@@ -1127,8 +1151,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 				Total:         4,
 				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId1),
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// none status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// nil status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -1225,10 +1251,14 @@ func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, clie
 				Total:         4,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId2),
-					getFeatureSearchTestFeature(FeatureSearchTestFId1),
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// nil status
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// none status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// high status low date 2000-01-04 high date 2000-01-31
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// low status low date 2000-01-05
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 				},
 			},
 		},
@@ -1239,10 +1269,14 @@ func testFeatureSearchSortBaselineStatus(ctx context.Context, t *testing.T, clie
 				Total:         4,
 				NextPageToken: nil,
 				Features: []FeatureResult{
-					getFeatureSearchTestFeature(FeatureSearchTestFId4),
-					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// low status low date 2000-01-05
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// high status low date 2000-01-04 high date 2000-01-31
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// none status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// nil status
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 				},
 			},
 		},
@@ -1430,7 +1464,9 @@ func AreFeatureResultsSlicesEqual(a, b []FeatureResult) bool {
 func AreFeatureResultsEqual(a, b FeatureResult) bool {
 	if a.FeatureID != b.FeatureID ||
 		a.Name != b.Name ||
-		a.Status != b.Status ||
+		!reflect.DeepEqual(a.Status, b.Status) ||
+		!reflect.DeepEqual(a.LowDate, b.LowDate) ||
+		!reflect.DeepEqual(a.HighDate, b.HighDate) ||
 		!AreMetricsEqual(a.StableMetrics, b.StableMetrics) ||
 		!AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) ||
 		!AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) {
@@ -1458,11 +1494,22 @@ func AreMetricsEqual(a, b []*FeatureResultMetric) bool {
 	})
 }
 
+func PrintNullableField[T any](in *T) string {
+	if in == nil {
+		return "NIL"
+	}
+
+	return fmt.Sprintf("%v", *in)
+}
+
 func PrettyPrintFeatureResult(result FeatureResult) string {
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "\tFeatureID: %s\n", result.FeatureID)
 	fmt.Fprintf(&builder, "\tName: %s\n", result.Name)
-	fmt.Fprintf(&builder, "\tStatus: %s\n", result.Status)
+
+	fmt.Fprintf(&builder, "\tStatus: %s\n", PrintNullableField(result.Status))
+	fmt.Fprintf(&builder, "\tLowDate: %s\n", PrintNullableField(result.LowDate))
+	fmt.Fprintf(&builder, "\tHighDate: %s\n", PrintNullableField(result.HighDate))
 
 	fmt.Fprintln(&builder, "\tStable Metrics:")
 	for _, metric := range result.StableMetrics {

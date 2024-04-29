@@ -54,12 +54,12 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 	testCases := []struct {
 		name     string
 		input    *web_platform_dx__web_features.Status
-		expected gcpspanner.BaselineStatus
+		expected *gcpspanner.BaselineStatus
 	}{
 		{
 			name:     "undefined status",
 			input:    nil,
-			expected: gcpspanner.BaselineStatusUndefined,
+			expected: nil,
 		},
 		{
 			name: "undefined baseline",
@@ -69,7 +69,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 				Support:          nil,
 				Baseline:         nil,
 			},
-			expected: gcpspanner.BaselineStatusUndefined,
+			expected: nil,
 		},
 		{
 			name: "enum: High",
@@ -82,7 +82,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Bool: nil,
 				},
 			},
-			expected: gcpspanner.BaselineStatusHigh,
+			expected: valuePtr(gcpspanner.BaselineStatusHigh),
 		},
 		{
 			name: "enum: Low",
@@ -95,7 +95,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Bool: nil,
 				},
 			},
-			expected: gcpspanner.BaselineStatusLow,
+			expected: valuePtr(gcpspanner.BaselineStatusLow),
 		},
 		{
 			name: "bool: False",
@@ -108,7 +108,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Enum: nil,
 				},
 			},
-			expected: gcpspanner.BaselineStatusNone,
+			expected: valuePtr(gcpspanner.BaselineStatusNone),
 		},
 		{
 			name: "bool: True (should never happen)",
@@ -121,13 +121,13 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Enum: nil,
 				},
 			},
-			expected: gcpspanner.BaselineStatusUndefined,
+			expected: nil,
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			output := getBaselineStatusEnum(tc.input)
-			if tc.expected != output {
+			if !reflect.DeepEqual(tc.expected, output) {
 				t.Errorf("unexpected output enum expected %v received %v", tc.expected, output)
 			}
 		})
@@ -183,23 +183,23 @@ func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertFeatureBaselineStatus(
-	_ context.Context, status gcpspanner.FeatureBaselineStatus) error {
+	_ context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error {
 	if len(c.mockUpsertFeatureBaselineStatusCfg.expectedInputs) <= c.upsertFeatureBaselineStatusCount {
 		c.t.Fatal("no more expected input for UpsertFeatureBaselineStatus")
 	}
 	if len(c.mockUpsertFeatureBaselineStatusCfg.outputs) <= c.upsertFeatureBaselineStatusCount {
 		c.t.Fatal("no more configured outputs for UpsertFeatureBaselineStatus")
 	}
-	expectedInput, found := c.mockUpsertFeatureBaselineStatusCfg.expectedInputs[status.FeatureID]
+	expectedInput, found := c.mockUpsertFeatureBaselineStatusCfg.expectedInputs[featureID]
 	if !found {
-		c.t.Errorf("unexpected input %s", status)
+		c.t.Errorf("unexpected input %v", status)
 	}
 	if !reflect.DeepEqual(expectedInput, status) {
-		c.t.Errorf("unexpected input expected %s received %s", expectedInput, status)
+		c.t.Errorf("unexpected input expected %v received %v", expectedInput, status)
 	}
 	c.upsertFeatureBaselineStatusCount++
 
-	return c.mockUpsertFeatureBaselineStatusCfg.outputs[status.FeatureID]
+	return c.mockUpsertFeatureBaselineStatusCfg.outputs[featureID]
 }
 
 func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
@@ -283,16 +283,14 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						FeatureID: "feature1",
-						Status:    gcpspanner.BaselineStatusHigh,
-						HighDate:  nil,
-						LowDate:   nil,
+						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						HighDate: nil,
+						LowDate:  nil,
 					},
 					"feature2": {
-						FeatureID: "feature2",
-						Status:    gcpspanner.BaselineStatusLow,
-						HighDate:  nil,
-						LowDate:   nil,
+						Status:   valuePtr(gcpspanner.BaselineStatusLow),
+						HighDate: nil,
+						LowDate:  nil,
 					},
 				},
 				outputs: map[string]error{
@@ -463,10 +461,9 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						FeatureID: "feature1",
-						Status:    gcpspanner.BaselineStatusHigh,
-						HighDate:  nil,
-						LowDate:   nil,
+						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						HighDate: nil,
+						LowDate:  nil,
 					},
 				},
 				outputs: map[string]error{
@@ -517,10 +514,9 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						FeatureID: "feature1",
-						Status:    gcpspanner.BaselineStatusHigh,
-						HighDate:  nil,
-						LowDate:   nil,
+						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						HighDate: nil,
+						LowDate:  nil,
 					},
 				},
 				outputs: map[string]error{

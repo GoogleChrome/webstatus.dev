@@ -19,6 +19,7 @@ import (
 	"errors"
 	"math/big"
 	"slices"
+	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -32,10 +33,12 @@ type SpannerFeatureResult struct {
 	ID                     string                  `spanner:"ID"`
 	FeatureID              string                  `spanner:"FeatureID"`
 	Name                   string                  `spanner:"Name"`
-	Status                 string                  `spanner:"Status"`
+	Status                 *string                 `spanner:"Status"`
 	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
 	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
 	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
+	LowDate                *time.Time              `spanner:"LowDate"`
+	HighDate               *time.Time              `spanner:"HighDate"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
@@ -63,10 +66,12 @@ type FeatureResultMetric struct {
 type FeatureResult struct {
 	FeatureID              string                  `spanner:"FeatureID"`
 	Name                   string                  `spanner:"Name"`
-	Status                 string                  `spanner:"Status"`
+	Status                 *string                 `spanner:"Status"`
 	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
 	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
 	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
+	LowDate                *time.Time              `spanner:"LowDate"`
+	HighDate               *time.Time              `spanner:"HighDate"`
 }
 
 // FeatureResultPage contains the details for the feature search request.
@@ -225,6 +230,8 @@ func (c *Client) getFeatureResult(
 			StableMetrics:          result.StableMetrics,
 			ExperimentalMetrics:    result.ExperimentalMetrics,
 			ImplementationStatuses: result.ImplementationStatuses,
+			LowDate:                result.LowDate,
+			HighDate:               result.HighDate,
 		}
 		results = append(results, actualResult)
 	}
