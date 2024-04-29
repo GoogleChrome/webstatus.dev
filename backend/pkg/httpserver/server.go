@@ -28,10 +28,7 @@ import (
 	"github.com/go-chi/cors"
 )
 
-type WebFeatureMetadataStorer interface {
-	ListWebFeatureData(ctx context.Context, nextPageToken *string) ([]backend.Feature, *string, error)
-	GetWebFeatureData(ctx context.Context, featureID string) (*backend.Feature, error)
-}
+type WebFeatureMetadataStorer interface{}
 
 type WPTMetricsStorer interface {
 	ListMetricsForFeatureIDBrowserAndChannel(

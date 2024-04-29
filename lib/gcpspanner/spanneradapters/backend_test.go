@@ -585,7 +585,7 @@ func TestFeaturesSearch(t *testing.T) {
 					Children: nil,
 				},
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
-				expectedSortable:      gcpspanner.NewFeatureNameSort(true),
+				expectedSortable:      gcpspanner.NewBaselineStatusSort(false),
 				result: &gcpspanner.FeatureResultPage{
 					Total:         100,
 					NextPageToken: nonNilNextPageToken,
