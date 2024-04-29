@@ -304,6 +304,8 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 	case featureSearchFeatureIDColumn,
 		featureSearchFeatureNameColumn,
 		featureSearcBrowserMetricColumn,
+		featureSearchLowDateColumn,
+		featureSearchHighDateColumn,
 		featureSearcBrowserImplColumn:
 		return string(f)
 	case featureSearchStatusColumn:
@@ -332,6 +334,8 @@ const (
 	featureSearchFeatureIDColumn    FeatureSearchColumn = "wf.FeatureID"
 	featureSearchFeatureNameColumn  FeatureSearchColumn = "wf.Name"
 	featureSearchStatusColumn       FeatureSearchColumn = "Status"
+	featureSearchLowDateColumn      FeatureSearchColumn = "LowDate"
+	featureSearchHighDateColumn     FeatureSearchColumn = "HighDate"
 	featureSearcBrowserMetricColumn FeatureSearchColumn = "sort_metric_calcs.SortMetric"
 	featureSearcBrowserImplColumn   FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
 )
@@ -357,7 +361,11 @@ func NewFeatureNameSort(isAscending bool) Sortable {
 func NewBaselineStatusSort(isAscending bool) Sortable {
 	return Sortable{
 		clause: buildFullClause(
-			[]string{buildSortableOrderClause(isAscending, featureSearchStatusColumn)},
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearchLowDateColumn),
+				buildSortableOrderClause(isAscending, featureSearchHighDateColumn),
+				buildSortableOrderClause(isAscending, featureSearchStatusColumn),
+			},
 			featureSearchFeatureIDColumn,
 		),
 		ascendingOrder: isAscending,

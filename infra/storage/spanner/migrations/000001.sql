@@ -111,11 +111,11 @@ CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (Featur
 
 -- FeatureBaselineStatus contains information about the current baseline status of a feature.
 CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
-    FeatureID STRING(64) NOT NULL, -- From web features repo.
-    Status STRING(16) NOT NULL,
+    FeatureID STRING(36) NOT NULL, -- From web features table.
+    Status STRING(16),
     LowDate TIMESTAMP,
     HighDate TIMESTAMP,
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(FeatureID),
+    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
     CHECK (Status IN ('undefined', 'none', 'low', 'high'))
 ) PRIMARY KEY (FeatureID);

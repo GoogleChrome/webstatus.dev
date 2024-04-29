@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"reflect"
 	"slices"
 	"testing"
 	"time"
@@ -25,19 +26,29 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func getSampleBaselineStatuses() []FeatureBaselineStatus {
-	return []FeatureBaselineStatus{
+func getSampleBaselineStatuses() []struct {
+	featureID string
+	status    FeatureBaselineStatus
+} {
+	return []struct {
+		featureID string
+		status    FeatureBaselineStatus
+	}{
 		{
-			FeatureID: "feature1",
-			Status:    BaselineStatusUndefined,
-			LowDate:   nil,
-			HighDate:  nil,
+			featureID: "feature1",
+			status: FeatureBaselineStatus{
+				Status:   nil,
+				LowDate:  nil,
+				HighDate: nil,
+			},
 		},
 		{
-			FeatureID: "feature2",
-			Status:    BaselineStatusHigh,
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate:  valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			featureID: "feature2",
+			status: FeatureBaselineStatus{
+				Status:   valuePtr(BaselineStatusHigh),
+				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			},
 		},
 	}
 }
@@ -55,7 +66,7 @@ func setupRequiredTablesForBaselineStatus(ctx context.Context,
 
 // Helper method to get all the statuses in a stable order.
 func (c *Client) ReadAllBaselineStatuses(ctx context.Context, _ *testing.T) ([]FeatureBaselineStatus, error) {
-	stmt := spanner.NewStatement("SELECT * FROM FeatureBaselineStatus ORDER BY FeatureID ASC")
+	stmt := spanner.NewStatement("SELECT * FROM FeatureBaselineStatus ORDER BY HighDate ASC")
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -72,14 +83,15 @@ func (c *Client) ReadAllBaselineStatuses(ctx context.Context, _ *testing.T) ([]F
 		if err := row.ToStruct(&status); err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
+
+		status.Status = (*BaselineStatus)(status.InternalStatus)
 		ret = append(ret, status.FeatureBaselineStatus)
 	}
 
 	return ret, nil
 }
 func statusEquality(left, right FeatureBaselineStatus) bool {
-	return left.FeatureID == right.FeatureID &&
-		left.Status == right.Status &&
+	return reflect.DeepEqual(left.Status, right.Status) &&
 		((left.LowDate != nil && right.LowDate != nil && left.LowDate.Equal(*right.LowDate)) ||
 			left.LowDate == right.LowDate) &&
 		((left.HighDate != nil && right.HighDate != nil && left.HighDate.Equal(*right.HighDate)) ||
@@ -92,8 +104,10 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 	setupRequiredTablesForBaselineStatus(ctx, client, t)
 	sampleStatuses := getSampleBaselineStatuses()
 
+	expectedStatuses := make([]FeatureBaselineStatus, 0, len(sampleStatuses))
 	for _, status := range sampleStatuses {
-		err := client.UpsertFeatureBaselineStatus(ctx, status)
+		expectedStatuses = append(expectedStatuses, status.status)
+		err := client.UpsertFeatureBaselineStatus(ctx, status.featureID, status.status)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
@@ -104,16 +118,15 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
 	if !slices.EqualFunc[[]FeatureBaselineStatus](
-		sampleStatuses,
+		expectedStatuses,
 		statuses, statusEquality) {
-		t.Errorf("unequal status. expected %+v actual %+v", sampleStatuses, statuses)
+		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedStatuses, statuses)
 	}
 
-	err = client.UpsertFeatureBaselineStatus(ctx, FeatureBaselineStatus{
-		FeatureID: "feature1",
-		Status:    BaselineStatusHigh,
-		LowDate:   valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
-		HighDate:  valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
+	err = client.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
+		Status:   valuePtr(BaselineStatusHigh),
+		LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
+		HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
 	})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
@@ -121,16 +134,14 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 
 	expectedPageAfterUpdate := []FeatureBaselineStatus{
 		{
-			FeatureID: "feature1",
-			Status:    BaselineStatusHigh,
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate:  valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
+			Status:   valuePtr(BaselineStatusHigh),
+			LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
+			HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 		},
 		{
-			FeatureID: "feature2",
-			Status:    BaselineStatusHigh,
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate:  valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			Status:   valuePtr(BaselineStatusHigh),
+			LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
+			HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
 		},
 	}
 
@@ -141,6 +152,6 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 	if !slices.EqualFunc[[]FeatureBaselineStatus](
 		expectedPageAfterUpdate,
 		statuses, statusEquality) {
-		t.Errorf("unequal status. expected %+v actual %+v", expectedPageAfterUpdate, statuses)
+		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedPageAfterUpdate, statuses)
 	}
 }

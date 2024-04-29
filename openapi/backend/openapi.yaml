@@ -536,6 +536,22 @@ components:
             https://github.com/web-platform-tests/wpt.fyi/blob/fb5bae7c6d04563864ef1c28a263a0a8d6637c4e/shared/product_spec.go#L71-L104
           additionalProperties:
             $ref: '#/components/schemas/WPTFeatureData'
+    BaselineInfo:
+      type: object
+      description: Contains baseline information for a feature.
+      properties:
+        status:
+          type: string
+          enum:
+            - limited
+            - newly
+            - widely
+        low_date:
+          type: string
+          format: date
+        high_date:
+          type: string
+          format: date
     Feature:
       type: object
       properties:
@@ -558,13 +574,8 @@ components:
             from https://github.com/web-platform-dx/web-features/blob/8ab08d00b9bdb505af37c435204eb6fe819dfaab/schemas/defs.schema.json#L102-L122
           additionalProperties:
             $ref: '#/components/schemas/BrowserImplementation'
-        baseline_status:
-          type: string
-          enum:
-            - undefined
-            - limited
-            - newly
-            - widely
+        baseline:
+          $ref: '#/components/schemas/BaselineInfo'
         usage:
           type: number
           format: float

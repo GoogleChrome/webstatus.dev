@@ -26,7 +26,7 @@ import (
 // WebFeatureSpannerClient expects a subset of the functionality from lib/gcpspanner that only apply to WebFeatures.
 type WebFeatureSpannerClient interface {
 	UpsertWebFeature(ctx context.Context, feature gcpspanner.WebFeature) error
-	UpsertFeatureBaselineStatus(ctx context.Context, status gcpspanner.FeatureBaselineStatus) error
+	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
 	InsertBrowserFeatureAvailability(
 		ctx context.Context,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
@@ -58,17 +58,16 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 
 		featureBaselineStatus := gcpspanner.FeatureBaselineStatus{
-			FeatureID: featureID,
-			Status:    getBaselineStatusEnum(featureData.Status),
-			LowDate:   nil,
-			HighDate:  nil,
+			Status:   getBaselineStatusEnum(featureData.Status),
+			LowDate:  nil,
+			HighDate: nil,
 		}
 		if featureData.Status != nil {
 			featureBaselineStatus.LowDate = convertStringToDate(featureData.Status.BaselineLowDate)
 			featureBaselineStatus.HighDate = convertStringToDate(featureData.Status.BaselineHighDate)
 		}
 
-		err = c.client.UpsertFeatureBaselineStatus(ctx, featureBaselineStatus)
+		err = c.client.UpsertFeatureBaselineStatus(ctx, featureID, featureBaselineStatus)
 		if err != nil {
 			return err
 		}
@@ -148,20 +147,20 @@ func convertStringToDate(in *string) *time.Time {
 }
 
 // getBaselineStatusEnum converts the web feature status to the Spanner-compatible BaselineStatus type.
-func getBaselineStatusEnum(status *web_platform_dx__web_features.Status) gcpspanner.BaselineStatus {
+func getBaselineStatusEnum(status *web_platform_dx__web_features.Status) *gcpspanner.BaselineStatus {
 	if status == nil || status.Baseline == nil {
-		return gcpspanner.BaselineStatusUndefined
+		return nil
 	}
 	if status.Baseline.Enum != nil {
 		switch *status.Baseline.Enum {
 		case web_platform_dx__web_features.High:
-			return gcpspanner.BaselineStatusHigh
+			return valuePtr(gcpspanner.BaselineStatusHigh)
 		case web_platform_dx__web_features.Low:
-			return gcpspanner.BaselineStatusLow
+			return valuePtr(gcpspanner.BaselineStatusLow)
 		}
 	} else if status.Baseline.Bool != nil && !*status.Baseline.Bool {
-		return gcpspanner.BaselineStatusNone
+		return valuePtr(gcpspanner.BaselineStatusNone)
 	}
 
-	return gcpspanner.BaselineStatusUndefined
+	return nil
 }

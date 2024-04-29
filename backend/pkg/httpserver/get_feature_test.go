@@ -19,9 +19,11 @@ import (
 	"errors"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func TestGetV1FeaturesFeatureId(t *testing.T) {
@@ -39,7 +41,15 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
 				data: &backend.Feature{
-					BaselineStatus: backend.Widely,
+					Baseline: &backend.BaselineInfo{
+						Status: valuePtr(backend.Widely),
+						LowDate: valuePtr(
+							openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+						),
+						HighDate: valuePtr(
+							openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+						),
+					},
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status: valuePtr(backend.Available),
@@ -55,7 +65,15 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
-				BaselineStatus: backend.Widely,
+				Baseline: &backend.BaselineInfo{
+					Status: valuePtr(backend.Widely),
+					LowDate: valuePtr(
+						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					),
+					HighDate: valuePtr(
+						openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					),
+				},
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
 					"chrome": {
 						Status: valuePtr(backend.Available),
@@ -81,7 +99,15 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
 				data: &backend.Feature{
-					BaselineStatus: backend.Widely,
+					Baseline: &backend.BaselineInfo{
+						Status: valuePtr(backend.Widely),
+						LowDate: valuePtr(
+							openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+						),
+						HighDate: valuePtr(
+							openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+						),
+					},
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status: valuePtr(backend.Available),
@@ -97,7 +123,15 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
-				BaselineStatus: backend.Widely,
+				Baseline: &backend.BaselineInfo{
+					Status: valuePtr(backend.Widely),
+					LowDate: valuePtr(
+						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					),
+					HighDate: valuePtr(
+						openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					),
+				},
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
 					"chrome": {
 						Status: valuePtr(backend.Available),

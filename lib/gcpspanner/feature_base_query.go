@@ -388,7 +388,7 @@ const (
 	// the WebFeatures table with FeatureBaselineStatus for status information.
 	commonFSBaseQueryTemplate = `
 FROM WebFeatures wf
-LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.FeatureID = fbs.FeatureID
+LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.ID = fbs.FeatureID
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
@@ -464,7 +464,9 @@ SELECT
 	wf.ID,
 	wf.FeatureID,
 	wf.Name,
-	COALESCE(fbs.Status, 'undefined') AS Status,
+	fbs.Status,
+	fbs.LowDate,
+	fbs.HighDate,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
@@ -522,7 +524,9 @@ SELECT
 	wf.ID,
 	wf.FeatureID,
 	wf.Name,
-	COALESCE(fbs.Status, 'undefined') AS Status,
+	fbs.Status,
+	fbs.LowDate,
+	fbs.HighDate,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}

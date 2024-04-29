@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 type BackendSpannerClient interface {
@@ -191,7 +192,7 @@ func (s *Backend) ListMetricsForFeatureIDBrowserAndChannel(
 	return backendMetrics, nextPageToken, nil
 }
 
-func convertBaselineStatusBackendToSpanner(status backend.FeatureBaselineStatus) gcpspanner.BaselineStatus {
+func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gcpspanner.BaselineStatus {
 	switch status {
 	case backend.Widely:
 		return gcpspanner.BaselineStatusHigh
@@ -199,26 +200,48 @@ func convertBaselineStatusBackendToSpanner(status backend.FeatureBaselineStatus)
 		return gcpspanner.BaselineStatusLow
 	case backend.Limited:
 		return gcpspanner.BaselineStatusNone
-	case backend.Undefined:
-		fallthrough
-	default:
-		return gcpspanner.BaselineStatusUndefined
 	}
+
+	return ""
 }
 
-func convertBaselineStatusSpannerToBackend(status gcpspanner.BaselineStatus) backend.FeatureBaselineStatus {
+func valuePtr[T any](in T) *T { return &in }
+
+func convertBaselineSpannerToBackend(strStatus *string,
+	lowDate, highDate *time.Time) *backend.BaselineInfo {
+	var ret *backend.BaselineInfo
+
+	var status gcpspanner.BaselineStatus
+	if strStatus != nil {
+		status = gcpspanner.BaselineStatus(*strStatus)
+	}
+	var backendStatus *backend.BaselineInfoStatus
 	switch status {
 	case gcpspanner.BaselineStatusHigh:
-		return backend.Widely
+		backendStatus = valuePtr(backend.Widely)
 	case gcpspanner.BaselineStatusLow:
-		return backend.Newly
+		backendStatus = valuePtr(backend.Newly)
 	case gcpspanner.BaselineStatusNone:
-		return backend.Limited
-	case gcpspanner.BaselineStatusUndefined:
-		fallthrough
-	default:
-		return backend.Undefined
+		backendStatus = valuePtr(backend.Limited)
 	}
+	var retLowDate, retHighDate *openapi_types.Date
+	if lowDate != nil {
+		retLowDate = &openapi_types.Date{Time: *lowDate}
+	}
+
+	if highDate != nil {
+		retHighDate = &openapi_types.Date{Time: *highDate}
+	}
+
+	if backendStatus != nil || retLowDate != nil || retHighDate != nil {
+		ret = &backend.BaselineInfo{
+			Status:   backendStatus,
+			LowDate:  retLowDate,
+			HighDate: retHighDate,
+		}
+	}
+
+	return ret
 }
 
 func convertImplementationStatusToBackend(
@@ -237,9 +260,13 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 	// Initialize the returned feature with the default values.
 	// The logic below will fill in nullable fields.
 	ret := &backend.Feature{
-		FeatureId:              featureResult.FeatureID,
-		Name:                   featureResult.Name,
-		BaselineStatus:         convertBaselineStatusSpannerToBackend(gcpspanner.BaselineStatus(featureResult.Status)),
+		FeatureId: featureResult.FeatureID,
+		Name:      featureResult.Name,
+		Baseline: convertBaselineSpannerToBackend(
+			featureResult.Status,
+			featureResult.LowDate,
+			featureResult.HighDate,
+		),
 		Wpt:                    nil,
 		Spec:                   nil,
 		Usage:                  nil,
@@ -361,7 +388,7 @@ func (s *Backend) FeaturesSearch(
 func getFeatureSearchSortOrder(
 	sortOrder *backend.GetV1FeaturesParamsSort) gcpspanner.Sortable {
 	if sortOrder == nil {
-		return gcpspanner.NewFeatureNameSort(true)
+		return gcpspanner.NewBaselineStatusSort(false)
 	}
 	// nolint: exhaustive // Remove once we support all the cases.
 	switch *sortOrder {
@@ -410,7 +437,7 @@ func getFeatureSearchSortOrder(
 	// Unknown sort order
 	slog.Warn("unsupported sort order", "order", *sortOrder)
 
-	return gcpspanner.NewFeatureNameSort(true)
+	return gcpspanner.NewBaselineStatusSort(false)
 }
 
 func (s *Backend) GetFeature(

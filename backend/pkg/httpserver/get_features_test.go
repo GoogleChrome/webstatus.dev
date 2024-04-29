@@ -20,9 +20,11 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func TestGetV1Features(t *testing.T) {
@@ -49,12 +51,20 @@ func TestGetV1Features(t *testing.T) {
 					},
 					Data: []backend.Feature{
 						{
-							BaselineStatus: backend.Widely,
-							FeatureId:      "feature1",
-							Name:           "feature 1",
-							Spec:           nil,
-							Usage:          nil,
-							Wpt:            nil,
+							Baseline: &backend.BaselineInfo{
+								Status: valuePtr(backend.Widely),
+								LowDate: valuePtr(
+									openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								),
+								HighDate: valuePtr(
+									openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								),
+							},
+							FeatureId: "feature1",
+							Name:      "feature 1",
+							Spec:      nil,
+							Usage:     nil,
+							Wpt:       nil,
 							BrowserImplementations: &map[string]backend.BrowserImplementation{
 								"browser1": {
 									Status: valuePtr(backend.Available),
@@ -69,12 +79,20 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
+						Baseline: &backend.BaselineInfo{
+							Status: valuePtr(backend.Widely),
+							LowDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+							HighDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+						},
+						FeatureId: "feature1",
+						Name:      "feature 1",
+						Spec:      nil,
+						Usage:     nil,
+						Wpt:       nil,
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser1": {
 								Status: valuePtr(backend.Available),
@@ -140,12 +158,20 @@ func TestGetV1Features(t *testing.T) {
 					},
 					Data: []backend.Feature{
 						{
-							BaselineStatus: backend.Widely,
-							FeatureId:      "feature1",
-							Name:           "feature 1",
-							Spec:           nil,
-							Usage:          nil,
-							Wpt:            nil,
+							Baseline: &backend.BaselineInfo{
+								Status: valuePtr(backend.Widely),
+								LowDate: valuePtr(
+									openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								),
+								HighDate: valuePtr(
+									openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								),
+							},
+							FeatureId: "feature1",
+							Name:      "feature 1",
+							Spec:      nil,
+							Usage:     nil,
+							Wpt:       nil,
 							BrowserImplementations: &map[string]backend.BrowserImplementation{
 								"chrome": {
 									Status: valuePtr(backend.Available),
@@ -160,12 +186,20 @@ func TestGetV1Features(t *testing.T) {
 			expectedResponse: backend.GetV1Features200JSONResponse{
 				Data: []backend.Feature{
 					{
-						BaselineStatus: backend.Widely,
-						FeatureId:      "feature1",
-						Name:           "feature 1",
-						Spec:           nil,
-						Usage:          nil,
-						Wpt:            nil,
+						Baseline: &backend.BaselineInfo{
+							Status: valuePtr(backend.Widely),
+							LowDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+							HighDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+						},
+						FeatureId: "feature1",
+						Name:      "feature 1",
+						Spec:      nil,
+						Usage:     nil,
+						Wpt:       nil,
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"chrome": {
 								Status: valuePtr(backend.Available),

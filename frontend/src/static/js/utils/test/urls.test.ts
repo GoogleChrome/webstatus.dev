@@ -154,7 +154,9 @@ describe('formatFeaturePageUrl', () => {
   const feature: components['schemas']['Feature'] = {
     feature_id: 'grid',
     name: 'test feature',
-    baseline_status: 'limited',
+    baseline: {
+      status: 'limited',
+    },
   };
   it('returns a plain URL when no location is passed', () => {
     const url = formatFeaturePageUrl(feature);

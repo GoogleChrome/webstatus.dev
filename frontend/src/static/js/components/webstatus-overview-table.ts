@@ -106,7 +106,8 @@ export class WebstatusOverviewTable extends LitElement {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location)
     );
-    const sortSpec: string = getSortSpec(this.location) || DEFAULT_SORT_SPEC;
+    const sortSpec: string =
+      getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
 
     return html`
       <table class="data-table">

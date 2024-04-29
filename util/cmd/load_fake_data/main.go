@@ -179,11 +179,14 @@ func generateData(ctx context.Context, client *gcpspanner.Client) error {
 func generateBaselineStatus(
 	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) (int, error) {
 	statusesGenerated := 0
-	statuses := []gcpspanner.BaselineStatus{
-		gcpspanner.BaselineStatusUndefined,
-		gcpspanner.BaselineStatusNone,
-		gcpspanner.BaselineStatusLow,
-		gcpspanner.BaselineStatusHigh,
+	noneValue := gcpspanner.BaselineStatusNone
+	lowValue := gcpspanner.BaselineStatusLow
+	highValue := gcpspanner.BaselineStatusHigh
+	statuses := []*gcpspanner.BaselineStatus{
+		nil,
+		&noneValue,
+		&lowValue,
+		&highValue,
 	}
 
 	baseDate := startTimeWindow
@@ -192,22 +195,21 @@ func generateBaselineStatus(
 		var highDate *time.Time
 		var lowDate *time.Time
 		switch statuses[statusIndex] {
-		case gcpspanner.BaselineStatusHigh:
+		case &highValue:
 			adjustedTime := baseDate.AddDate(0, 0, r.Intn(30)) // Add up to 1 month
 			lowDate = &adjustedTime
 			highAdjustedTime := adjustedTime.AddDate(0, 0, r.Intn(30)) // Add up to another month
 			highDate = &highAdjustedTime
-		case gcpspanner.BaselineStatusLow:
+		case &lowValue:
 			adjustedTime := baseDate.AddDate(0, 0, r.Intn(30)) // Add up to 1 month
 			lowDate = &adjustedTime
-		case gcpspanner.BaselineStatusUndefined, gcpspanner.BaselineStatusNone:
+		case nil, &noneValue:
 			// Do nothing.
 		}
-		err := client.UpsertFeatureBaselineStatus(ctx, gcpspanner.FeatureBaselineStatus{
-			FeatureID: feature.FeatureID,
-			Status:    statuses[statusIndex],
-			LowDate:   lowDate,
-			HighDate:  highDate,
+		err := client.UpsertFeatureBaselineStatus(ctx, feature.FeatureID, gcpspanner.FeatureBaselineStatus{
+			Status:   statuses[statusIndex],
+			LowDate:  lowDate,
+			HighDate: highDate,
 		})
 		if err != nil {
 			return statusesGenerated, err
