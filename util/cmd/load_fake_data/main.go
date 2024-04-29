@@ -80,8 +80,8 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
 	return releasesGenerated, nil
 }
 
-func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspanner.WebFeature, error) {
-	features := make([]gcpspanner.WebFeature, 0, numberOfFeatures)
+func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspanner.SpannerWebFeature, error) {
+	features := make([]gcpspanner.SpannerWebFeature, 0, numberOfFeatures)
 	featureIDMap := make(map[string]interface{})
 
 	for len(featureIDMap) < numberOfFeatures {
@@ -102,7 +102,14 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 		if err != nil {
 			return nil, err
 		}
-		features = append(features, feature)
+		id, err := client.GetIDFromFeatureID(ctx, gcpspanner.NewFeatureIDFilter(featureID))
+		if err != nil {
+			return nil, err
+		}
+		features = append(features, gcpspanner.SpannerWebFeature{
+			WebFeature: feature,
+			ID:         *id,
+		})
 	}
 
 	return features, nil
@@ -111,7 +118,7 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 func generateFeatureAvailability(
 	ctx context.Context,
 	client *gcpspanner.Client,
-	features []gcpspanner.WebFeature) (int, error) {
+	features []gcpspanner.SpannerWebFeature) (int, error) {
 	availabilitiesInserted := 0
 	for _, browser := range browsers {
 		for _, feature := range features {
@@ -177,7 +184,7 @@ func generateData(ctx context.Context, client *gcpspanner.Client) error {
 }
 
 func generateBaselineStatus(
-	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) (int, error) {
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
 	statusesGenerated := 0
 	noneValue := gcpspanner.BaselineStatusNone
 	lowValue := gcpspanner.BaselineStatusLow
@@ -224,7 +231,7 @@ func generateBaselineStatus(
 }
 
 func generateRunsAndMetrics(
-	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.WebFeature) (int, int, error) {
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, int, error) {
 	// For now only generate one run with metrics per browser+channel combination.
 	// TODO. Need to think about the graphs we want to draw.
 	runsGenerated := 0
@@ -259,6 +266,7 @@ func generateRunsAndMetrics(
 				if err != nil {
 					return runsGenerated, metricsGenerated, err
 				}
+
 				var mutations []*spanner.Mutation
 				for _, feature := range features {
 					testPass := r.Int63n(1000)
@@ -270,7 +278,7 @@ func generateRunsAndMetrics(
 						TotalSubtests: nil,
 						SubtestPass:   nil,
 					}
-					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(feature.FeatureID, *wptRunData, metric)
+					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(feature.ID, *wptRunData, metric)
 					m, err := spanner.InsertOrUpdateStruct(gcpspanner.WPTRunFeatureMetricTable, spannerMetric)
 					if err != nil {
 						return runsGenerated, metricsGenerated, err
