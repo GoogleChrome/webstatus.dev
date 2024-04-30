@@ -28,13 +28,13 @@ er:
 relations:
   - table: WPTRunFeatureMetrics
     columns:
-      - FeatureID
+      - WebFeatureID
     parentTable: WebFeatures
     parentColumns:
       - ID
   - table: BrowserFeatureAvailabilities
     columns:
-      - FeatureID
+      - WebFeatureID
     parentTable: WebFeatures
     parentColumns:
       - ID
@@ -48,7 +48,7 @@ relations:
       - BrowserVersion
   - table: FeatureBaselineStatus
     columns:
-      - FeatureID
+      - WebFeatureID
     parentTable: WebFeatures
     parentColumns:
       - ID

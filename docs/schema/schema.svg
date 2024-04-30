@@ -21,8 +21,8 @@
 <text text-anchor="start" x="50.5" y="-810.9" font-family="Arial" font-size="14.00" fill="#000000">ID    </text>
 <text text-anchor="start" x="98.702" y="-810.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 <polygon fill="none" stroke="#000000" points="43.5,-769.5 43.5,-799.5 382.5,-799.5 382.5,-769.5 43.5,-769.5"/>
-<text text-anchor="start" x="50.5" y="-780.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureID    </text>
-<text text-anchor="start" x="146.9362" y="-780.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
+<text text-anchor="start" x="50.5" y="-780.9" font-family="Arial" font-size="14.00" fill="#000000">WebFeatureID    </text>
+<text text-anchor="start" x="175.716" y="-780.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 <polygon fill="none" stroke="#000000" points="43.5,-739.5 43.5,-769.5 382.5,-769.5 382.5,-739.5 43.5,-739.5"/>
 <text text-anchor="start" x="50.5" y="-750.9" font-family="Arial" font-size="14.00" fill="#000000">TotalTests    </text>
 <text text-anchor="start" x="150.0456" y="-750.9" font-family="Arial" font-size="14.00" fill="#666666">[INT64]</text>
@@ -63,8 +63,8 @@
 <text text-anchor="start" x="521.5" y="-248.9" font-family="Arial" font-size="14.00" fill="#000000">ID    </text>
 <text text-anchor="start" x="569.702" y="-248.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 <polygon fill="none" stroke="#000000" points="514.5,-207.5 514.5,-237.5 785.5,-237.5 785.5,-207.5 514.5,-207.5"/>
-<text text-anchor="start" x="521.5" y="-218.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureID    </text>
-<text text-anchor="start" x="617.9362" y="-218.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(64)]</text>
+<text text-anchor="start" x="521.5" y="-218.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureKey    </text>
+<text text-anchor="start" x="628.0582" y="-218.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(64)]</text>
 <polygon fill="none" stroke="#000000" points="514.5,-177.5 514.5,-207.5 785.5,-207.5 785.5,-177.5 514.5,-177.5"/>
 <text text-anchor="start" x="521.5" y="-188.9" font-family="Arial" font-size="14.00" fill="#000000">Name    </text>
 <text text-anchor="start" x="593.0372" y="-188.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(64)]</text>
@@ -77,7 +77,7 @@
 </g>
 <!-- WPTRunFeatureMetrics&#45;&gt;WebFeatures -->
 <g id="edge2" class="edge">
-<title>WPTRunFeatureMetrics:FeatureID&#45;&gt;WebFeatures:ID</title>
+<title>WPTRunFeatureMetrics:WebFeatureID&#45;&gt;WebFeatures:ID</title>
 <path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M392.4944,-782.7176C452.3291,-759.904 416.1303,-524.6413 434.5,-457 460.0782,-362.8154 416.904,-252.5 514.5,-252.5"/>
 <polygon fill="#000000" stroke="#000000" points="392.3447,-782.7442 381.7099,-780.0699 387.4223,-783.6221 382.5,-784.5 382.5,-784.5 382.5,-784.5 387.4223,-783.6221 383.2901,-788.9301 392.3447,-782.7442 392.3447,-782.7442"/>
 </g>
@@ -159,8 +159,8 @@
 <text text-anchor="start" x="926.5" y="-660.9" font-family="Arial" font-size="14.00" fill="#000000">BrowserVersion    </text>
 <text text-anchor="start" x="1059.486" y="-660.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(8)]</text>
 <polygon fill="none" stroke="#000000" points="919.5,-619.5 919.5,-649.5 1292.5,-649.5 1292.5,-619.5 919.5,-619.5"/>
-<text text-anchor="start" x="926.5" y="-630.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureID    </text>
-<text text-anchor="start" x="1022.9362" y="-630.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
+<text text-anchor="start" x="926.5" y="-630.9" font-family="Arial" font-size="14.00" fill="#000000">WebFeatureID    </text>
+<text text-anchor="start" x="1051.716" y="-630.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 </g>
 <!-- BrowserFeatureAvailabilities&#45;&gt;BrowserReleases -->
 <g id="edge4" class="edge">
@@ -170,7 +170,7 @@
 </g>
 <!-- BrowserFeatureAvailabilities&#45;&gt;WebFeatures -->
 <g id="edge3" class="edge">
-<title>BrowserFeatureAvailabilities:FeatureID&#45;&gt;WebFeatures:ID</title>
+<title>BrowserFeatureAvailabilities:WebFeatureID&#45;&gt;WebFeatures:ID</title>
 <path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M909.2238,-633.9074C842.059,-625.5859 892.2513,-531.2959 866.5,-457 834.4849,-364.6321 883.2588,-252.5 785.5,-252.5"/>
 <polygon fill="#000000" stroke="#000000" points="909.5166,-633.9242 919.2409,-638.9925 914.5083,-634.2121 919.5,-634.5 919.5,-634.5 919.5,-634.5 914.5083,-634.2121 919.7591,-630.0075 909.5166,-633.9242 909.5166,-633.9242"/>
 </g>
@@ -183,8 +183,8 @@
 <text text-anchor="start" x="675.4126" y="-737.3" font-family="Arial" font-size="14.00" fill="#000000">    </text>
 <text text-anchor="start" x="709.6174" y="-737.3" font-family="Arial" font-size="14.00" fill="#666666">[BASIC TABLE]</text>
 <polygon fill="none" stroke="#000000" points="486.5,-694.5 486.5,-724.5 814.5,-724.5 814.5,-694.5 486.5,-694.5"/>
-<text text-anchor="start" x="493.5" y="-705.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureID    </text>
-<text text-anchor="start" x="589.9362" y="-705.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
+<text text-anchor="start" x="493.5" y="-705.9" font-family="Arial" font-size="14.00" fill="#000000">WebFeatureID    </text>
+<text text-anchor="start" x="618.716" y="-705.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 <polygon fill="none" stroke="#000000" points="486.5,-664.5 486.5,-694.5 814.5,-694.5 814.5,-664.5 486.5,-664.5"/>
 <text text-anchor="start" x="493.5" y="-675.9" font-family="Arial" font-size="14.00" fill="#000000">Status    </text>
 <text text-anchor="start" x="567.3878" y="-675.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(16)]</text>
@@ -197,7 +197,7 @@
 </g>
 <!-- FeatureBaselineStatus&#45;&gt;WebFeatures -->
 <g id="edge5" class="edge">
-<title>FeatureBaselineStatus:FeatureID&#45;&gt;WebFeatures:ID</title>
+<title>FeatureBaselineStatus:WebFeatureID&#45;&gt;WebFeatures:ID</title>
 <path fill="none" stroke="#000000" stroke-dasharray="5,2" d="M476.3159,-708.664C424.9714,-699.5019 458.3494,-617.0639 486.5,-562 561.124,-416.0318 710.876,-491.9682 785.5,-346 804.416,-308.9993 827.0556,-252.5 785.5,-252.5"/>
 <polygon fill="#000000" stroke="#000000" points="476.5335,-708.6817 486.1318,-713.9849 481.5168,-709.0909 486.5,-709.5 486.5,-709.5 486.5,-709.5 481.5168,-709.0909 486.8682,-705.0151 476.5335,-708.6817 476.5335,-708.6817"/>
 </g>

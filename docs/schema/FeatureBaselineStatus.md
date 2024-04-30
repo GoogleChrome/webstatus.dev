@@ -6,7 +6,7 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| FeatureID | STRING(36) |  | false |  | [WebFeatures](WebFeatures.md) |  |
+| WebFeatureID | STRING(36) |  | false |  | [WebFeatures](WebFeatures.md) |  |
 | Status | STRING(16) |  | true |  |  |  |
 | LowDate | TIMESTAMP |  | true |  |  |  |
 | HighDate | TIMESTAMP |  | true |  |  |  |
@@ -15,13 +15,13 @@
 
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
-| PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(FeatureID) |
+| PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(WebFeatureID) |
 
 ## Indexes
 
 | Name | Definition |
 | ---- | ---------- |
-| IDX_FBS_FEATUREID | CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus (FeatureID) |
+| IDX_FBS_FEATUREID | CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus (WebFeatureID) |
 
 ## Relations
 

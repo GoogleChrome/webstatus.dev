@@ -8,20 +8,20 @@
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
 | BrowserName | STRING(64) |  | false |  | [BrowserReleases](BrowserReleases.md) |  |
 | BrowserVersion | STRING(8) |  | false |  | [BrowserReleases](BrowserReleases.md) |  |
-| FeatureID | STRING(36) |  | false |  | [WebFeatures](WebFeatures.md) |  |
+| WebFeatureID | STRING(36) |  | false |  | [WebFeatures](WebFeatures.md) |  |
 
 ## Constraints
 
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
-| PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(FeatureID, BrowserName) |
+| PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(WebFeatureID, BrowserName) |
 
 ## Indexes
 
 | Name | Definition |
 | ---- | ---------- |
 | IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3 | CREATE INDEX IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3 ON BrowserFeatureAvailabilities (BrowserName, BrowserVersion) |
-| UniqueFeatureBrowser | CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (FeatureID, BrowserName) |
+| UniqueFeatureBrowser | CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (WebFeatureID, BrowserName) |
 
 ## Relations
 
