@@ -43,8 +43,8 @@
 <text text-anchor="start" x="73.3887" y="-336.9" font-family="Arial" font-size="14.00" fill="#000000">BrowserVersion    </text>
 <text text-anchor="start" x="206.3747" y="-336.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(8)]</text>
 <polygon fill="none" stroke="#000000" points="66.3887,-295.5 66.3887,-325.5 439.3887,-325.5 439.3887,-295.5 66.3887,-295.5"/>
-<text text-anchor="start" x="73.3887" y="-306.9" font-family="Arial" font-size="14.00" fill="#000000">FeatureID    </text>
-<text text-anchor="start" x="169.8249" y="-306.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(64)]</text>
+<text text-anchor="start" x="73.3887" y="-306.9" font-family="Arial" font-size="14.00" fill="#000000">WebFeatureID    </text>
+<text text-anchor="start" x="198.6047" y="-306.9" font-family="Arial" font-size="14.00" fill="#666666">[STRING(36)]</text>
 </g>
 <!-- BrowserFeatureAvailabilities&#45;&gt;BrowserReleases -->
 <g id="edge1" class="edge">

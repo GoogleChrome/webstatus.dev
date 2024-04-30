@@ -149,7 +149,7 @@ func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string) strin
 
 	paramName := b.addParamGetName(featureName)
 
-	return fmt.Sprintf(`(wf.Name_Lowercase LIKE @%s OR wf.FeatureID_Lowercase LIKE @%s)`, paramName, paramName)
+	return fmt.Sprintf(`(wf.Name_Lowercase LIKE @%s OR wf.FeatureKey_Lowercase LIKE @%s)`, paramName, paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string) string {
