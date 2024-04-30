@@ -208,7 +208,7 @@ func TestBuild(t *testing.T) {
 	}{
 		{
 			inputTestTree: simpleAvailableOnQuery,
-			expectedClauses: []string{`(wf.ID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+			expectedClauses: []string{`(wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
@@ -230,7 +230,7 @@ WHERE BrowserName = @param0))`},
 		},
 		{
 			inputTestTree: availableOnBaselineStatus,
-			expectedClauses: []string{`((wf.ID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+			expectedClauses: []string{`((wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
@@ -239,7 +239,7 @@ WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 		},
 		{
 			inputTestTree: availableOnBaselineStatusWithNegation,
-			expectedClauses: []string{`((NOT (wf.ID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+			expectedClauses: []string{`((NOT (wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
@@ -248,7 +248,7 @@ WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`},
 		},
 		{
 			inputTestTree: complexQuery,
-			expectedClauses: []string{`(((wf.ID IN (SELECT FeatureID FROM BrowserFeatureAvailabilities
+			expectedClauses: []string{`(((wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase LIKE @param2 OR wf.FeatureID_Lowercase LIKE @param2)))) OR ((wf.Name_Lowercase LIKE @param3 OR wf.FeatureID_Lowercase LIKE @param3)))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",

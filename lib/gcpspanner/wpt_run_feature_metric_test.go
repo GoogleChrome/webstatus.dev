@@ -31,11 +31,11 @@ func valuePtr[T any](in T) *T {
 }
 
 // GetMetricByRunIDAndFeatureID is a helper function that attempts to get a
-// metric for the given id from wpt.fyi and web feature id.
+// metric for the given id from wpt.fyi and feature key.
 func (c *Client) GetMetricByRunIDAndFeatureID(
 	ctx context.Context,
 	runID int64,
-	featureID string,
+	featureKey string,
 ) (*WPTRunFeatureMetric, error) {
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
@@ -44,12 +44,12 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 			TotalTests, TestPass, TotalSubtests, SubtestPass
 		FROM WPTRuns r
 		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.FeatureID
-		WHERE r.ExternalRunID = @externalRunID AND wf.FeatureID = @featureID
+		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+		WHERE r.ExternalRunID = @externalRunID AND wf.FeatureKey = @featureKey
 		LIMIT 1`)
 	parameters := map[string]interface{}{
 		"externalRunID": runID,
-		"featureID":     featureID,
+		"featureKey":    featureKey,
 	}
 	stmt.Params = parameters
 	it := txn.Query(ctx, stmt)
@@ -379,11 +379,11 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	otherMetric := struct {
 		WPTRunFeatureMetric
-		FeatureID     string
+		FeatureKey    string
 		ExternalRunID int64
 	}{
 		ExternalRunID: 9,
-		FeatureID:     "feature1",
+		FeatureKey:    "feature1",
 		WPTRunFeatureMetric: WPTRunFeatureMetric{
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),

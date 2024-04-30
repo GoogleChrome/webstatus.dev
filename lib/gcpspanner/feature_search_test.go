@@ -34,20 +34,20 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	//nolint: dupl // Okay to duplicate for tests
 	sampleFeatures := []WebFeature{
 		{
-			Name:      "Feature 1",
-			FeatureID: "feature1",
+			Name:       "Feature 1",
+			FeatureKey: "feature1",
 		},
 		{
-			Name:      "Feature 2",
-			FeatureID: "feature2",
+			Name:       "Feature 2",
+			FeatureKey: "feature2",
 		},
 		{
-			Name:      "Feature 3",
-			FeatureID: "feature3",
+			Name:       "Feature 3",
+			FeatureKey: "feature3",
 		},
 		{
-			Name:      "Feature 4",
-			FeatureID: "feature4",
+			Name:       "Feature 4",
+			FeatureKey: "feature4",
 		},
 	}
 	for _, feature := range sampleFeatures {
@@ -100,39 +100,39 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	//nolint: dupl // Okay to duplicate for tests
 	sampleBrowserAvailabilities := []struct {
 		BrowserFeatureAvailability
-		FeatureID string
+		FeatureKey string
 	}{
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "0.0.0",
 			},
-			FeatureID: "feature1",
+			FeatureKey: "feature1",
 		},
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "1.0.0",
 			},
-			FeatureID: "feature1",
+			FeatureKey: "feature1",
 		},
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "2.0.0",
 			},
-			FeatureID: "feature2",
+			FeatureKey: "feature2",
 		},
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "1.0.0",
 			},
-			FeatureID: "feature3",
+			FeatureKey: "feature3",
 		},
 	}
 	for _, availability := range sampleBrowserAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx, availability.FeatureID, availability.BrowserFeatureAvailability)
+		err := client.InsertBrowserFeatureAvailability(ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
 		}
@@ -140,11 +140,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 
 	//nolint: dupl // Okay to duplicate for tests
 	sampleBaselineStatuses := []struct {
-		featureID string
-		status    FeatureBaselineStatus
+		featureKey string
+		status     FeatureBaselineStatus
 	}{
 		{
-			featureID: "feature1",
+			featureKey: "feature1",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusLow),
 				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
@@ -152,7 +152,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			},
 		},
 		{
-			featureID: "feature2",
+			featureKey: "feature2",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusHigh),
 				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
@@ -160,7 +160,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			},
 		},
 		{
-			featureID: "feature3",
+			featureKey: "feature3",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusNone),
 				LowDate:  nil,
@@ -170,7 +170,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		// feature4 will default to nil.
 	}
 	for _, status := range sampleBaselineStatuses {
-		err := client.UpsertFeatureBaselineStatus(ctx, status.featureID, status.status)
+		err := client.UpsertFeatureBaselineStatus(ctx, status.featureKey, status.status)
 		if err != nil {
 			t.Errorf("unexpected error during insert of statuses. %s", err.Error())
 		}
@@ -484,11 +484,11 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 	switch testFeatureID {
 	case FeatureSearchTestFId1:
 		ret = FeatureResult{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    valuePtr(string(BaselineStatusLow)),
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
-			HighDate:  nil,
+			FeatureKey: "feature1",
+			Name:       "Feature 1",
+			Status:     valuePtr(string(BaselineStatusLow)),
+			LowDate:    valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
+			HighDate:   nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -522,11 +522,11 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    valuePtr(string(BaselineStatusHigh)),
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
-			HighDate:  valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			FeatureKey: "feature2",
+			Name:       "Feature 2",
+			Status:     valuePtr(string(BaselineStatusHigh)),
+			LowDate:    valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
+			HighDate:   valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -556,11 +556,11 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    valuePtr(string(BaselineStatusNone)),
-			LowDate:   nil,
-			HighDate:  nil,
+			FeatureKey: "feature3",
+			Name:       "Feature 3",
+			Status:     valuePtr(string(BaselineStatusNone)),
+			LowDate:    nil,
+			HighDate:   nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -577,7 +577,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
-			FeatureID:              "feature4",
+			FeatureKey:             "feature4",
 			Name:                   "Feature 4",
 			Status:                 nil,
 			LowDate:                nil,
@@ -1451,7 +1451,7 @@ func AreFeatureResultsSlicesEqual(a, b []FeatureResult) bool {
 }
 
 func AreFeatureResultsEqual(a, b FeatureResult) bool {
-	if a.FeatureID != b.FeatureID ||
+	if a.FeatureKey != b.FeatureKey ||
 		a.Name != b.Name ||
 		!reflect.DeepEqual(a.Status, b.Status) ||
 		!reflect.DeepEqual(a.LowDate, b.LowDate) ||
@@ -1493,7 +1493,7 @@ func PrintNullableField[T any](in *T) string {
 
 func PrettyPrintFeatureResult(result FeatureResult) string {
 	var builder strings.Builder
-	fmt.Fprintf(&builder, "\tFeatureID: %s\n", result.FeatureID)
+	fmt.Fprintf(&builder, "\tFeatureID: %s\n", result.FeatureKey)
 	fmt.Fprintf(&builder, "\tName: %s\n", result.Name)
 
 	fmt.Fprintf(&builder, "\tStatus: %s\n", PrintNullableField(result.Status))

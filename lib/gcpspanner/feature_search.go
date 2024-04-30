@@ -31,7 +31,7 @@ import (
 // return to the end user.
 type SpannerFeatureResult struct {
 	ID                     string                  `spanner:"ID"`
-	FeatureID              string                  `spanner:"FeatureID"`
+	FeatureKey             string                  `spanner:"FeatureKey"`
 	Name                   string                  `spanner:"Name"`
 	Status                 *string                 `spanner:"Status"`
 	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
@@ -64,7 +64,7 @@ type FeatureResultMetric struct {
 
 // FeatureResult contains information regarding a particular feature.
 type FeatureResult struct {
-	FeatureID              string                  `spanner:"FeatureID"`
+	FeatureKey             string                  `spanner:"FeatureKey"`
 	Name                   string                  `spanner:"Name"`
 	Status                 *string                 `spanner:"Status"`
 	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
@@ -224,7 +224,7 @@ func (c *Client) getFeatureResult(
 		}
 
 		actualResult := FeatureResult{
-			FeatureID:              result.FeatureID,
+			FeatureKey:             result.FeatureKey,
 			Name:                   result.Name,
 			Status:                 result.Status,
 			StableMetrics:          result.StableMetrics,

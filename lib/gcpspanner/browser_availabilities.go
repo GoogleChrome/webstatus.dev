@@ -27,7 +27,7 @@ const browserFeatureAvailabilitiesTable = "BrowserFeatureAvailabilities"
 // SpannerBrowserFeatureAvailability is a wrapper for the browser availability
 // information for a feature stored in spanner.
 type SpannerBrowserFeatureAvailability struct {
-	FeatureID string
+	WebFeatureID string
 	BrowserFeatureAvailability
 }
 
@@ -44,9 +44,9 @@ type BrowserFeatureAvailability struct {
 // nolint: dupl // TODO. Will refactor for common patterns.
 func (c *Client) InsertBrowserFeatureAvailability(
 	ctx context.Context,
-	featureID string,
+	webFeatureID string,
 	input BrowserFeatureAvailability) error {
-	id, err := c.GetIDFromFeatureID(ctx, NewFeatureIDFilter(featureID))
+	id, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(webFeatureID))
 	if err != nil {
 		return err
 	}
@@ -67,7 +67,7 @@ func (c *Client) InsertBrowserFeatureAvailability(
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
 			featureAvailability := SpannerBrowserFeatureAvailability{
-				FeatureID:                  *id,
+				WebFeatureID:               *id,
 				BrowserFeatureAvailability: input,
 			}
 			m, err := spanner.InsertOrUpdateStruct(browserFeatureAvailabilitiesTable, featureAvailability)

@@ -119,7 +119,7 @@ func (c *Client) getInitialBrowserFeatureCount(
 	err := txn.Query(ctx, spanner.Statement{
 		SQL: `SELECT COALESCE(SUM(daily_feature_count), 0)
 					FROM (
-						SELECT COUNT(DISTINCT FeatureID) AS daily_feature_count
+						SELECT COUNT(DISTINCT WebFeatureID) AS daily_feature_count
 						FROM BrowserFeatureAvailabilities bfa
 						JOIN BrowserReleases
 						ON bfa.BrowserName = BrowserReleases.BrowserName
@@ -164,7 +164,7 @@ func createListBrowserFeatureCountMetricStatement(
 	query := fmt.Sprintf(`
 SELECT
     BrowserReleases.ReleaseDate AS ReleaseDate,
-    COUNT(DISTINCT FeatureID) AS FeatureCount
+    COUNT(DISTINCT WebFeatureID) AS FeatureCount
 FROM BrowserFeatureAvailabilities bfa
 JOIN BrowserReleases
 ON bfa.BrowserName = BrowserReleases.BrowserName

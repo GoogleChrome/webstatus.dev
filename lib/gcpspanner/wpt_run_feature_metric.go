@@ -32,8 +32,8 @@ const WPTRunFeatureMetricTable = "WPTRunFeatureMetrics"
 // return to the end user since it is used to decouple the primary keys between
 // this system and wpt.fyi.
 type SpannerWPTRunFeatureMetric struct {
-	ID        string `spanner:"ID"`
-	FeatureID string `spanner:"FeatureID"`
+	ID           string `spanner:"ID"`
+	WebFeatureID string `spanner:"WebFeatureID"`
 	WPTRunFeatureMetric
 	// Calculated pass rate
 	TestPassRate    *big.Rat `spanner:"TestPassRate"`
@@ -61,12 +61,12 @@ func getPassRate(testPass, totalTests *int64) *big.Rat {
 }
 
 func (c *Client) CreateSpannerWPTRunFeatureMetric(
-	featureID string,
+	webFeatureID string,
 	wptRunData WPTRunDataForMetrics,
 	in WPTRunFeatureMetric) SpannerWPTRunFeatureMetric {
 	return SpannerWPTRunFeatureMetric{
 		ID:                  wptRunData.ID,
-		FeatureID:           featureID,
+		WebFeatureID:        webFeatureID,
 		Channel:             wptRunData.Channel,
 		BrowserName:         wptRunData.BrowserName,
 		TimeStart:           wptRunData.TimeStart,
@@ -81,7 +81,7 @@ func (c *Client) convertExternalMetricsToSpannerMetrics(ctx context.Context,
 	inputMetrics map[string]WPTRunFeatureMetric) ([]SpannerWPTRunFeatureMetric, error) {
 	spannerMetrics := make([]SpannerWPTRunFeatureMetric, 0, len(inputMetrics))
 	for externalFeatureID, inputMetric := range inputMetrics {
-		featureID, err := c.GetIDFromFeatureID(ctx, NewFeatureIDFilter(externalFeatureID))
+		featureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(externalFeatureID))
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 			stmt := spanner.NewStatement(`
 			SELECT
 				ID,
-				FeatureID,
+				WebFeatureID,
 				TotalTests,
 				TestPass,
 				TestPassRate,
@@ -138,11 +138,11 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 				Channel,
 				BrowserName
 			FROM WPTRunFeatureMetrics
-			WHERE ID = @id AND FeatureID = @featureID
+			WHERE ID = @id AND WebFeatureID = @webFeatureID
 			LIMIT 1`)
 			parameters := map[string]interface{}{
-				"id":        metric.ID,
-				"featureID": metric.FeatureID,
+				"id":           metric.ID,
+				"webFeatureID": metric.WebFeatureID,
 			}
 			stmt.Params = parameters
 
@@ -215,13 +215,13 @@ type WPTRunFeatureMetricWithTime struct {
 }
 
 // ListMetricsForFeatureIDBrowserAndChannel attempts to return a page of
-// metrics based on a web feature id, browser name and channel. A time window
+// metrics based on a web feature key, browser name and channel. A time window
 // must be specified to analyze the runs according to the TimeStart of the run.
 // If the page size matches the pageSize, a page token is returned. Else,
 // no page token is returned.
 func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 	ctx context.Context,
-	featureID string,
+	featureKey string,
 	browser string,
 	channel string,
 	startAt time.Time,
@@ -231,7 +231,7 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 ) ([]WPTRunFeatureMetricWithTime, *string, error) {
 	var stmt spanner.Statement
 	params := map[string]interface{}{
-		"featureID":   featureID,
+		"featureKey":  featureKey,
 		"browserName": browser,
 		"channel":     channel,
 		"startAt":     startAt,
@@ -244,8 +244,8 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 			`SELECT r.ExternalRunID, r.TimeStart, wpfm.TotalTests, wpfm.TestPass
 				FROM WPTRuns r
 				JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-				LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.FeatureID
-				WHERE wf.FeatureID = @featureID
+				LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+				WHERE wf.FeatureKey = @featureKey
 					AND r.BrowserName = @browserName
 					AND r.Channel = @channel
 		  			AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
@@ -259,8 +259,8 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 			`SELECT r.ExternalRunID, r.TimeStart, wpfm.TotalTests, wpfm.TestPass
                 FROM WPTRuns r
                 JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-				LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.FeatureID
-                WHERE wf.FeatureID = @featureID
+				LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+                WHERE wf.FeatureKey = @featureKey
 					AND r.BrowserName = @browserName
 					AND r.Channel = @channel
                    	AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
@@ -312,8 +312,8 @@ type WPTRunAggregationMetricWithTime struct {
 
 // ListMetricsOverTimeWithAggregatedTotals attempts to return a page of
 // metrics based on browser name and channel. Users can provide a list of web
-// feature ids. If the list is provided, the aggregation will be scoped to those
-// feature ids. If an empty or nil list is provided, the aggregation is applied
+// feature keys. If the list is provided, the aggregation will be scoped to those
+// feature keys. If an empty or nil list is provided, the aggregation is applied
 // to all features.
 // A time window must be specified to analyze the runs according to the
 // TimeStart of the run.
@@ -321,7 +321,7 @@ type WPTRunAggregationMetricWithTime struct {
 // no page token is returned.
 func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 	ctx context.Context,
-	featureIDs []string,
+	featureKeys []string,
 	browser string,
 	channel string,
 	startAt, endAt time.Time,
@@ -339,20 +339,20 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 	var stmt spanner.Statement
 	// nolint: nestif // TODO: fix in the future.
 	if pageToken == nil {
-		if len(featureIDs) == 0 {
+		if len(featureKeys) == 0 {
 			stmt = noPageTokenAllFeatures(params)
 		} else {
-			stmt = noPageTokenFeatureSubset(params, featureIDs)
+			stmt = noPageTokenFeatureSubset(params, featureKeys)
 		}
 	} else {
 		cursor, err := decodeWPTRunCursor(*pageToken)
 		if err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		if len(featureIDs) == 0 {
+		if len(featureKeys) == 0 {
 			stmt = withPageTokenAllFeatures(params, *cursor)
 		} else {
-			stmt = withPageTokenFeatureSubset(params, featureIDs, *cursor)
+			stmt = withPageTokenFeatureSubset(params, featureKeys, *cursor)
 		}
 	}
 
@@ -410,7 +410,7 @@ func noPageTokenAllFeatures(params map[string]interface{}) spanner.Statement {
 
 // noPageTokenFeatureSubset builds a spanner statement when a page token is
 // not provided and the aggregation applies to a particular list of features.
-func noPageTokenFeatureSubset(params map[string]interface{}, featureIDs []string) spanner.Statement {
+func noPageTokenFeatureSubset(params map[string]interface{}, featureKeys []string) spanner.Statement {
 	stmt := spanner.NewStatement(`
 	SELECT
 		r.ExternalRunID,
@@ -419,14 +419,14 @@ func noPageTokenFeatureSubset(params map[string]interface{}, featureIDs []string
 		SUM(wpfm.TestPass) AS TestPass
 	FROM WPTRuns r
 	JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-	LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.FeatureID
-	WHERE wf.FeatureID IN UNNEST(@featureIDs)
+	LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+	WHERE wf.FeatureKey IN UNNEST(@featureKeys)
 	AND r.BrowserName = @browserName
 	AND r.Channel = @channel
 	AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
 	GROUP BY r.ExternalRunID, r.TimeStart
 	ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
-	params["featureIDs"] = featureIDs
+	params["featureKeys"] = featureKeys
 	stmt.Params = params
 
 	return stmt
@@ -461,7 +461,7 @@ func withPageTokenAllFeatures(params map[string]interface{}, cursor WPTRunCursor
 // provided and the aggregation applies to a particular list of features.
 func withPageTokenFeatureSubset(
 	params map[string]interface{},
-	featureIDs []string,
+	featureKeys []string,
 	cursor WPTRunCursor) spanner.Statement {
 	stmt := spanner.NewStatement(`
 		SELECT
@@ -471,8 +471,8 @@ func withPageTokenFeatureSubset(
 			SUM(wpfm.TestPass) AS TestPass
 		FROM WPTRuns r
 		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.FeatureID
-		WHERE wf.FeatureID IN UNNEST(@featureIDs)
+		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+		WHERE wf.FeatureKey IN UNNEST(@featureKeys)
 		AND r.BrowserName = @browserName
 		AND r.Channel = @channel
 		AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
@@ -480,7 +480,7 @@ func withPageTokenFeatureSubset(
 			 r.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)
 		GROUP BY r.ExternalRunID, r.TimeStart
 		ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
-	params["featureIDs"] = featureIDs
+	params["featureKeys"] = featureKeys
 	params["lastTimestamp"] = cursor.LastTimeStart
 	params["lastRunID"] = cursor.LastRunID
 	stmt.Params = params

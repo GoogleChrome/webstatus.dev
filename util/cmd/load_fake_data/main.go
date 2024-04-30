@@ -95,14 +95,14 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 		// Add it to the map.
 		featureIDMap[word] = nil
 		feature := gcpspanner.WebFeature{
-			Name:      featureName,
-			FeatureID: featureID,
+			Name:       featureName,
+			FeatureKey: featureID,
 		}
 		err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			return nil, err
 		}
-		id, err := client.GetIDFromFeatureID(ctx, gcpspanner.NewFeatureIDFilter(featureID))
+		id, err := client.GetIDFromFeatureKey(ctx, gcpspanner.NewFeatureKeyFilter(featureID))
 		if err != nil {
 			return nil, err
 		}
@@ -127,7 +127,7 @@ func generateFeatureAvailability(
 			if releaseVersion <= releasesPerBrowser {
 				err := client.InsertBrowserFeatureAvailability(
 					ctx,
-					feature.FeatureID,
+					feature.FeatureKey,
 					gcpspanner.BrowserFeatureAvailability{
 						BrowserName:    browser,
 						BrowserVersion: fmt.Sprintf("%d", releaseVersion),
@@ -213,7 +213,7 @@ func generateBaselineStatus(
 		case nil, &noneValue:
 			// Do nothing.
 		}
-		err := client.UpsertFeatureBaselineStatus(ctx, feature.FeatureID, gcpspanner.FeatureBaselineStatus{
+		err := client.UpsertFeatureBaselineStatus(ctx, feature.FeatureKey, gcpspanner.FeatureBaselineStatus{
 			Status:   statuses[statusIndex],
 			LowDate:  lowDate,
 			HighDate: highDate,

@@ -170,7 +170,7 @@ func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
 	if len(c.mockUpsertWebFeatureCfg.outputs) <= c.upsertWebFeatureCount {
 		c.t.Fatal("no more configured outputs for UpsertWebFeature")
 	}
-	expectedInput, found := c.mockUpsertWebFeatureCfg.expectedInputs[feature.FeatureID]
+	expectedInput, found := c.mockUpsertWebFeatureCfg.expectedInputs[feature.FeatureKey]
 	if !found {
 		c.t.Errorf("unexpected input %v", feature)
 	}
@@ -179,7 +179,7 @@ func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
 	}
 	c.upsertWebFeatureCount++
 
-	return c.mockUpsertWebFeatureCfg.outputs[feature.FeatureID]
+	return c.mockUpsertWebFeatureCfg.outputs[feature.FeatureKey]
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertFeatureBaselineStatus(
@@ -266,12 +266,12 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureID: "feature1",
-						Name:      "Feature 1",
+						FeatureKey: "feature1",
+						Name:       "Feature 1",
 					},
 					"feature2": {
-						FeatureID: "feature2",
-						Name:      "Feature 2",
+						FeatureKey: "feature2",
+						Name:       "Feature 2",
 					},
 				},
 				outputs: map[string]error{
@@ -398,8 +398,8 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureID: "feature1",
-						Name:      "Feature 1",
+						FeatureKey: "feature1",
+						Name:       "Feature 1",
 					},
 				},
 				outputs: map[string]error{
@@ -443,8 +443,8 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureID: "feature1",
-						Name:      "Feature 1",
+						FeatureKey: "feature1",
+						Name:       "Feature 1",
 					},
 				},
 				outputs: map[string]error{
@@ -496,8 +496,8 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureID: "feature1",
-						Name:      "Feature 1",
+						FeatureKey: "feature1",
+						Name:       "Feature 1",
 					},
 				},
 				outputs: map[string]error{

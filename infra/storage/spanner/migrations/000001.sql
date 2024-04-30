@@ -15,17 +15,17 @@
 -- WebFeatures contains basic metadata about web features
 CREATE TABLE IF NOT EXISTS WebFeatures (
     ID STRING(36) NOT NULL DEFAULT (GENERATE_UUID()),
-    FeatureID STRING(64) NOT NULL, -- From web features repo.
+    FeatureKey STRING(64) NOT NULL, -- From web features repo.
     Name STRING(64) NOT NULL,
     -- Additional lowercase columns for case-insensitive search
-    FeatureID_Lowercase STRING(64) AS (LOWER(FeatureID)) STORED,
+    FeatureID_Lowercase STRING(64) AS (LOWER(FeatureKey)) STORED,
     Name_Lowercase STRING(64) AS (LOWER(Name)) STORED,
 ) PRIMARY KEY (ID);
 
--- Used to enforce that only one FeatureID from web features can exist.
-CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureID);
+-- Used to enforce that only one FeatureKey from web features can exist.
+CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureKey);
 
--- Index on FeatureID and Name for case-insensitive search
+-- Index on FeatureKey and Name for case-insensitive search
 CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures(FeatureID_Lowercase);
 CREATE INDEX IDX_NAME_LOWER ON WebFeatures(Name_Lowercase);
 
@@ -58,7 +58,7 @@ CREATE INDEX LatestRunsByBrowserChannel ON WPTRuns (BrowserName, Channel, TimeSt
 -- WPTRunFeatureMetrics contains metrics for individual features for a given run.
 CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     ID STRING(36) NOT NULL,
-    FeatureID STRING(36) NOT NULL,
+    WebFeatureID STRING(36) NOT NULL,
     TotalTests INT64,
     TestPass INT64,
     TestPassRate NUMERIC,
@@ -70,20 +70,20 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     BrowserName STRING(64) NOT NULL,
     TimeStart TIMESTAMP NOT NULL,
     -- End denormalized data.
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
+    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
     FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
-) PRIMARY KEY (ID, FeatureID)
+) PRIMARY KEY (ID, WebFeatureID)
 ,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
 
--- Used to enforce that only one combination of ID and FeatureID can exist.
-CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, FeatureID);
+-- Used to enforce that only one combination of ID and WebFeatureID can exist.
+CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, WebFeatureID);
 
 -- Used to help with metrics aggregation calculations.
 CREATE INDEX MetricsFeatureChannelBrowserTime ON
-  WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC);
+  WPTRunFeatureMetrics(WebFeatureID, Channel, BrowserName, TimeStart DESC);
 
-CREATE INDEX MetricsFeatureChannelBrowserTimeTestPassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, TestPassRate);
-CREATE INDEX MetricsFeatureChannelBrowserTimeSubtestPassRate ON WPTRunFeatureMetrics(FeatureID, Channel, BrowserName, TimeStart DESC, SubtestPassRate);
+CREATE INDEX MetricsFeatureChannelBrowserTimeTestPassRate ON WPTRunFeatureMetrics(WebFeatureID, Channel, BrowserName, TimeStart DESC, TestPassRate);
+CREATE INDEX MetricsFeatureChannelBrowserTimeSubtestPassRate ON WPTRunFeatureMetrics(WebFeatureID, Channel, BrowserName, TimeStart DESC, SubtestPassRate);
 
 
 -- BrowserReleases contains information regarding browser releases.
@@ -100,26 +100,26 @@ CREATE TABLE IF NOT EXISTS BrowserReleases (
 CREATE TABLE IF NOT EXISTS BrowserFeatureAvailabilities (
     BrowserName STRING(64) NOT NULL, -- From BCD not wpt.fyi.
     BrowserVersion STRING(8) NOT NULL, -- From BCD not wpt.fyi. Only contains major number.
-    FeatureID STRING(36) NOT NULL, -- From web features table.
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
+    WebFeatureID STRING(36) NOT NULL, -- From web features table.
+    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
     FOREIGN KEY (BrowserName, BrowserVersion) REFERENCES BrowserReleases(BrowserName, BrowserVersion),
-) PRIMARY KEY (FeatureID, BrowserName);
+) PRIMARY KEY (WebFeatureID, BrowserName);
 
--- Used to enforce that only one combination of FeatureID and BrowserName can exist.
-CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (FeatureID, BrowserName);
+-- Used to enforce that only one combination of WebFeatureID and BrowserName can exist.
+CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (WebFeatureID, BrowserName);
 
 
 -- FeatureBaselineStatus contains information about the current baseline status of a feature.
 CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
-    FeatureID STRING(36) NOT NULL, -- From web features table.
+    WebFeatureID STRING(36) NOT NULL, -- From web features table.
     Status STRING(16),
     LowDate TIMESTAMP,
     HighDate TIMESTAMP,
-    FOREIGN KEY (FeatureID) REFERENCES WebFeatures(ID),
+    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
     CHECK (Status IN ('none', 'low', 'high'))
-) PRIMARY KEY (FeatureID);
+) PRIMARY KEY (WebFeatureID);
 
--- Index to accelerate lookups and joins in FeatureBaselineStatus based on FeatureID.
+-- Index to accelerate lookups and joins in FeatureBaselineStatus based on WebFeatureID.
 -- Primarily supports queries involving the WebFeatures table.
-CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus(FeatureID);
+CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus(WebFeatureID);

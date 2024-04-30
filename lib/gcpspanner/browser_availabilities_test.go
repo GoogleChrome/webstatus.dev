@@ -25,11 +25,11 @@ import (
 )
 
 func getSampleBrowserAvailabilities() []struct {
-	FeatureID string
+	FeatureKey string
 	BrowserFeatureAvailability
 } {
 	return []struct {
-		FeatureID string
+		FeatureKey string
 		BrowserFeatureAvailability
 	}{
 		{
@@ -37,21 +37,21 @@ func getSampleBrowserAvailabilities() []struct {
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "0.0.0",
 			},
-			FeatureID: "feature1",
+			FeatureKey: "feature1",
 		},
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "1.0.0",
 			},
-			FeatureID: "feature1",
+			FeatureKey: "feature1",
 		},
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "2.0.0",
 			},
-			FeatureID: "feature2",
+			FeatureKey: "feature2",
 		},
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
@@ -59,7 +59,7 @@ func getSampleBrowserAvailabilities() []struct {
 				BrowserVersion: "1.0.0",
 			},
 
-			FeatureID: "feature2",
+			FeatureKey: "feature2",
 		},
 		// Should not actually insert this one due to UniqueFeatureBrowser index
 		{
@@ -67,7 +67,7 @@ func getSampleBrowserAvailabilities() []struct {
 				BrowserName:    "barBrowser",
 				BrowserVersion: "2.0.0",
 			},
-			FeatureID: "feature1",
+			FeatureKey: "feature1",
 		},
 	}
 }
@@ -124,7 +124,7 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 	sampleAvailabilities := getSampleBrowserAvailabilities()
 	for _, availability := range sampleAvailabilities {
 		err := client.InsertBrowserFeatureAvailability(
-			ctx, availability.FeatureID, availability.BrowserFeatureAvailability)
+			ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}

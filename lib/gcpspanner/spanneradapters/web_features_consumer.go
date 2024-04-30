@@ -49,8 +49,8 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 	data map[string]web_platform_dx__web_features.FeatureData) error {
 	for featureID, featureData := range data {
 		webFeature := gcpspanner.WebFeature{
-			FeatureID: featureID,
-			Name:      featureData.Name,
+			FeatureKey: featureID,
+			Name:       featureData.Name,
 		}
 
 		err := c.client.UpsertWebFeature(ctx, webFeature)

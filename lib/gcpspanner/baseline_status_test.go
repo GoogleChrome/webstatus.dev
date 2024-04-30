@@ -27,15 +27,15 @@ import (
 )
 
 func getSampleBaselineStatuses() []struct {
-	featureID string
-	status    FeatureBaselineStatus
+	featureKey string
+	status     FeatureBaselineStatus
 } {
 	return []struct {
-		featureID string
-		status    FeatureBaselineStatus
+		featureKey string
+		status     FeatureBaselineStatus
 	}{
 		{
-			featureID: "feature1",
+			featureKey: "feature1",
 			status: FeatureBaselineStatus{
 				Status:   nil,
 				LowDate:  nil,
@@ -43,7 +43,7 @@ func getSampleBaselineStatuses() []struct {
 			},
 		},
 		{
-			featureID: "feature2",
+			featureKey: "feature2",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusHigh),
 				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
@@ -107,7 +107,7 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 	expectedStatuses := make([]FeatureBaselineStatus, 0, len(sampleStatuses))
 	for _, status := range sampleStatuses {
 		expectedStatuses = append(expectedStatuses, status.status)
-		err := client.UpsertFeatureBaselineStatus(ctx, status.featureID, status.status)
+		err := client.UpsertFeatureBaselineStatus(ctx, status.featureKey, status.status)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}

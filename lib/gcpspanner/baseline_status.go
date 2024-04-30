@@ -40,7 +40,7 @@ const (
 // SpannerFeatureBaselineStatus is a wrapper for the baseline status that is actually
 // stored in spanner.
 type SpannerFeatureBaselineStatus struct {
-	FeatureID      string  `spanner:"FeatureID"`
+	WebFeatureID   string  `spanner:"WebFeatureID"`
 	InternalStatus *string `spanner:"Status"`
 	FeatureBaselineStatus
 }
@@ -57,8 +57,8 @@ type FeatureBaselineStatus struct {
 // If the status, does not exist, it will insert a new status.
 // If the status exists, it will allow updates to the status, low date and high date.
 func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context,
-	featureID string, input FeatureBaselineStatus) error {
-	id, err := c.GetIDFromFeatureID(ctx, NewFeatureIDFilter(featureID))
+	featureKey string, input FeatureBaselineStatus) error {
+	id, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(featureKey))
 	if err != nil {
 		return err
 	}
@@ -68,18 +68,18 @@ func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context,
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		stmt := spanner.NewStatement(`
 		SELECT
-			FeatureID, Status, LowDate, HighDate
+			WebFeatureID, Status, LowDate, HighDate
 		FROM FeatureBaselineStatus
-		WHERE FeatureID = @featureID
+		WHERE WebFeatureID = @webFeatureID
 		LIMIT 1`)
 		parameters := map[string]interface{}{
-			"featureID": *id,
+			"webFeatureID": *id,
 		}
 		stmt.Params = parameters
 
 		// Create status based on the table model.
 		status := SpannerFeatureBaselineStatus{
-			FeatureID:             *id,
+			WebFeatureID:          *id,
 			InternalStatus:        (*string)(input.Status),
 			FeatureBaselineStatus: input,
 		}

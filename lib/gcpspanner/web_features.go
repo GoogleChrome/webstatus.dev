@@ -37,8 +37,8 @@ type SpannerWebFeature struct {
 // WebFeature contains common metadata for a Web Feature.
 // Columns come from the ../../infra/storage/spanner/migrations/*.sql files.
 type WebFeature struct {
-	FeatureID string `spanner:"FeatureID"`
-	Name      string `spanner:"Name"`
+	FeatureKey string `spanner:"FeatureKey"`
+	Name       string `spanner:"Name"`
 }
 
 // UpsertWebFeature will upsert the given web feature.
@@ -48,12 +48,12 @@ func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) error
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		stmt := spanner.NewStatement(`
 		SELECT
-			ID, FeatureID, Name
+			ID, FeatureKey, Name
 		FROM WebFeatures
-		WHERE FeatureID = @featureID
+		WHERE FeatureKey = @featureKey
 		LIMIT 1`)
 		parameters := map[string]interface{}{
-			"featureID": feature.FeatureID,
+			"featureKey": feature.FeatureKey,
 		}
 		stmt.Params = parameters
 

@@ -27,7 +27,7 @@ func TestGetFeature(t *testing.T) {
 	setupRequiredTablesForFeaturesSearch(ctx, client, t)
 
 	// Test for present feature
-	result, err := client.GetFeature(ctx, NewFeatureIDFilter("feature2"), defaultWPTMetricView())
+	result, err := client.GetFeature(ctx, NewFeatureKeyFilter("feature2"), defaultWPTMetricView())
 	if err != nil {
 		t.Errorf("unexpected error. %s", err.Error())
 	}
@@ -42,7 +42,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Also check the id of the feature.
-	id, err := client.GetIDFromFeatureID(ctx, NewFeatureIDFilter("feature2"))
+	id, err := client.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("feature2"))
 	if err != nil {
 		t.Errorf("unexpected error. %s", err.Error())
 	}
@@ -54,7 +54,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Test for non existent feature
-	result, err = client.GetFeature(ctx, NewFeatureIDFilter("nopefeature2"), defaultWPTMetricView())
+	result, err = client.GetFeature(ctx, NewFeatureKeyFilter("nopefeature2"), defaultWPTMetricView())
 	if !errors.Is(err, ErrQueryReturnedNoResults) {
 		t.Errorf("unexpected error. %s", err)
 	}
@@ -63,7 +63,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Also check the id of the feature does not exist
-	id, err = client.GetIDFromFeatureID(ctx, NewFeatureIDFilter("nopefeature2"))
+	id, err = client.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("nopefeature2"))
 	if !errors.Is(err, ErrQueryReturnedNoResults) {
 		t.Errorf("unexpected error. %s", err)
 	}
