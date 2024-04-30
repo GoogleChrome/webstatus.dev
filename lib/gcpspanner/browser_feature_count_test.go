@@ -23,10 +23,10 @@ import (
 
 func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T, client *Client) {
 	webFeatures := []WebFeature{
-		{FeatureID: "FeatureX", Name: "Cool API"},
-		{FeatureID: "FeatureY", Name: "Super API"},
-		{FeatureID: "FeatureZ", Name: "Neat API"},
-		{FeatureID: "FeatureW", Name: "Amazing API"},
+		{FeatureKey: "FeatureX", Name: "Cool API"},
+		{FeatureKey: "FeatureY", Name: "Super API"},
+		{FeatureKey: "FeatureZ", Name: "Neat API"},
+		{FeatureKey: "FeatureW", Name: "Amazing API"},
 	}
 	for _, feature := range webFeatures {
 		err := client.UpsertWebFeature(ctx, feature)
@@ -52,18 +52,37 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		}
 	}
 
-	browserFeatureAvailabilities := []BrowserFeatureAvailability{
+	browserFeatureAvailabilities := []struct {
+		FeatureKey string
+		BrowserFeatureAvailability
+	}{
 		// fooBrowser Availabilities
-		{BrowserName: "fooBrowser", BrowserVersion: "100", FeatureID: "FeatureX"}, // Available from fooBrowser 100
-		{BrowserName: "fooBrowser", BrowserVersion: "100", FeatureID: "FeatureY"},
-		{BrowserName: "fooBrowser", BrowserVersion: "101", FeatureID: "FeatureZ"}, // Available from fooBrowser 101
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "100"},
+			FeatureKey:                 "FeatureX",
+		}, // Available from fooBrowser 100
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "100"},
+			FeatureKey:                 "FeatureY",
+		},
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "101"},
+			FeatureKey:                 "FeatureZ",
+		}, // Available from fooBrowser 101
 
 		// barBrowser Availabilities
-		{BrowserName: "barBrowser", BrowserVersion: "80", FeatureID: "FeatureY"}, // Available from barBrowser 80
-		{BrowserName: "barBrowser", BrowserVersion: "81", FeatureID: "FeatureW"}, // Available from barBrowser 81
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "80"},
+			FeatureKey:                 "FeatureY",
+		}, // Available from barBrowser 80
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "81"},
+			FeatureKey:                 "FeatureW",
+		}, // Available from barBrowser 81
 	}
 	for _, availability := range browserFeatureAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx, availability)
+		err := client.InsertBrowserFeatureAvailability(ctx,
+			availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}

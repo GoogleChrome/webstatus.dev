@@ -80,7 +80,7 @@ func (c *Client) GetFeature(
 	}
 
 	actualResult := FeatureResult{
-		FeatureID:              result.FeatureID,
+		FeatureKey:             result.FeatureKey,
 		Name:                   result.Name,
 		Status:                 result.Status,
 		StableMetrics:          result.StableMetrics,
@@ -93,7 +93,7 @@ func (c *Client) GetFeature(
 	return &actualResult, nil
 }
 
-func (c *Client) GetIDFromFeatureID(ctx context.Context, filter *FeatureIDFilter) (*string, error) {
+func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilter) (*string, error) {
 	query := `
 	SELECT
 		ID

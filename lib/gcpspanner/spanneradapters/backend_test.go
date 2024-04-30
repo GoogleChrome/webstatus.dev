@@ -90,7 +90,7 @@ func (c mockBackendSpannerClient) GetFeature(
 	return c.mockGetFeatureCfg.result, c.mockFeaturesSearchCfg.returnedError
 }
 
-func (c mockBackendSpannerClient) GetIDFromFeatureID(
+func (c mockBackendSpannerClient) GetIDFromFeatureKey(
 	_ context.Context, filter *gcpspanner.FeatureIDFilter) (*string, error) {
 	if !reflect.DeepEqual(filter, c.mockGetIDByFeaturesIDCfg.expectedFilterable) {
 		c.t.Error("unexpected input to mock")
@@ -591,11 +591,11 @@ func TestFeaturesSearch(t *testing.T) {
 					NextPageToken: nonNilNextPageToken,
 					Features: []gcpspanner.FeatureResult{
 						{
-							Name:      "feature 1",
-							FeatureID: "feature1",
-							Status:    valuePtr("low"),
-							LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-							HighDate:  nil,
+							Name:       "feature 1",
+							FeatureKey: "feature1",
+							Status:     valuePtr("low"),
+							LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							HighDate:   nil,
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
 									BrowserName: "browser3",
@@ -616,11 +616,11 @@ func TestFeaturesSearch(t *testing.T) {
 							},
 						},
 						{
-							Name:      "feature 2",
-							FeatureID: "feature2",
-							Status:    valuePtr("high"),
-							LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-							HighDate:  valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							Name:       "feature 2",
+							FeatureKey: "feature2",
+							Status:     valuePtr("high"),
+							LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							HighDate:   valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
 									BrowserName: "browser1",
@@ -873,14 +873,14 @@ func TestGetFeature(t *testing.T) {
 			inputFeatureID:     "feature1",
 			inputWPTMetricView: backend.SubtestCounts,
 			cfg: mockGetFeatureConfig{
-				expectedFilterable:    gcpspanner.NewFeatureIDFilter("feature1"),
+				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
 				result: &gcpspanner.FeatureResult{
-					Name:      "feature 1",
-					FeatureID: "feature1",
-					Status:    valuePtr("low"),
-					LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-					HighDate:  nil,
+					Name:       "feature 1",
+					FeatureKey: "feature1",
+					Status:     valuePtr("low"),
+					LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					HighDate:   nil,
 					StableMetrics: []*gcpspanner.FeatureResultMetric{
 						{
 							BrowserName: "browser3",
@@ -1060,11 +1060,11 @@ func TestConvertFeatureResult(t *testing.T) {
 		{
 			name: "nil PassRate edge case",
 			featureResult: &gcpspanner.FeatureResult{
-				Name:      "feature 1",
-				FeatureID: "feature1",
-				Status:    valuePtr("low"),
-				LowDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-				HighDate:  nil,
+				Name:       "feature 1",
+				FeatureKey: "feature1",
+				Status:     valuePtr("low"),
+				LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				HighDate:   nil,
 				StableMetrics: []*gcpspanner.FeatureResultMetric{
 					{
 						BrowserName: "browser3",

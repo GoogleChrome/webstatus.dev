@@ -27,27 +27,27 @@ import (
 func getSampleFeatures() []WebFeature {
 	return []WebFeature{
 		{
-			Name:      "Feature 1",
-			FeatureID: "feature1",
+			Name:       "Feature 1",
+			FeatureKey: "feature1",
 		},
 		{
-			Name:      "Feature 2",
-			FeatureID: "feature2",
+			Name:       "Feature 2",
+			FeatureKey: "feature2",
 		},
 		{
-			Name:      "Feature 3",
-			FeatureID: "feature3",
+			Name:       "Feature 3",
+			FeatureKey: "feature3",
 		},
 		{
-			Name:      "Feature 4",
-			FeatureID: "feature4",
+			Name:       "Feature 4",
+			FeatureKey: "feature4",
 		},
 	}
 }
 
 // Helper method to get all the features in a stable order.
 func (c *Client) ReadAllWebFeatures(ctx context.Context, t *testing.T) ([]WebFeature, error) {
-	stmt := spanner.NewStatement("SELECT ID, FeatureID, Name FROM WebFeatures ORDER BY FeatureID ASC")
+	stmt := spanner.NewStatement("SELECT ID, FeatureKey, Name FROM WebFeatures ORDER BY FeatureKey ASC")
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -92,8 +92,8 @@ func TestUpsertWebFeature(t *testing.T) {
 	}
 
 	err = client.UpsertWebFeature(ctx, WebFeature{
-		Name:      "Feature 1!!",
-		FeatureID: "feature1",
+		Name:       "Feature 1!!",
+		FeatureKey: "feature1",
 	})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
@@ -106,20 +106,20 @@ func TestUpsertWebFeature(t *testing.T) {
 
 	expectedPageAfterUpdate := []WebFeature{
 		{
-			Name:      "Feature 1!!", // Updated field
-			FeatureID: "feature1",
+			Name:       "Feature 1!!", // Updated field
+			FeatureKey: "feature1",
 		},
 		{
-			Name:      "Feature 2",
-			FeatureID: "feature2",
+			Name:       "Feature 2",
+			FeatureKey: "feature2",
 		},
 		{
-			Name:      "Feature 3",
-			FeatureID: "feature3",
+			Name:       "Feature 3",
+			FeatureKey: "feature3",
 		},
 		{
-			Name:      "Feature 4",
-			FeatureID: "feature4",
+			Name:       "Feature 4",
+			FeatureKey: "feature4",
 		},
 	}
 	if !slices.Equal[[]WebFeature](expectedPageAfterUpdate, features) {

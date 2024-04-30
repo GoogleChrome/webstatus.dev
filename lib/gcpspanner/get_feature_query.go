@@ -20,24 +20,24 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-func NewFeatureIDFilter(featureID string) *FeatureIDFilter {
-	return &FeatureIDFilter{featureID: featureID}
+func NewFeatureKeyFilter(featureKey string) *FeatureIDFilter {
+	return &FeatureIDFilter{featureKey: featureKey}
 }
 
 // FeatureIDFilter will limit the search to a particular feature ID.
 type FeatureIDFilter struct {
-	featureID string
+	featureKey string
 }
 
 func (f FeatureIDFilter) Clause() string {
 	return `
-wf.FeatureID = @featureID
+wf.FeatureKey = @featureKey
 `
 }
 
 func (f FeatureIDFilter) Params() map[string]interface{} {
 	return map[string]interface{}{
-		"featureID": f.featureID,
+		"featureKey": f.featureKey,
 	}
 }
 

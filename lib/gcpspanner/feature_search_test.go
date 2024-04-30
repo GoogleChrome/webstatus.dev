@@ -34,20 +34,20 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	//nolint: dupl // Okay to duplicate for tests
 	sampleFeatures := []WebFeature{
 		{
-			Name:      "Feature 1",
-			FeatureID: "feature1",
+			Name:       "Feature 1",
+			FeatureKey: "feature1",
 		},
 		{
-			Name:      "Feature 2",
-			FeatureID: "feature2",
+			Name:       "Feature 2",
+			FeatureKey: "feature2",
 		},
 		{
-			Name:      "Feature 3",
-			FeatureID: "feature3",
+			Name:       "Feature 3",
+			FeatureKey: "feature3",
 		},
 		{
-			Name:      "Feature 4",
-			FeatureID: "feature4",
+			Name:       "Feature 4",
+			FeatureKey: "feature4",
 		},
 	}
 	for _, feature := range sampleFeatures {
@@ -98,30 +98,41 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 
 	//nolint: dupl // Okay to duplicate for tests
-	sampleBrowserAvailabilities := []BrowserFeatureAvailability{
+	sampleBrowserAvailabilities := []struct {
+		BrowserFeatureAvailability
+		FeatureKey string
+	}{
 		{
-			BrowserName:    "fooBrowser",
-			BrowserVersion: "0.0.0",
-			FeatureID:      "feature1",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "0.0.0",
+			},
+			FeatureKey: "feature1",
 		},
 		{
-			BrowserName:    "barBrowser",
-			BrowserVersion: "1.0.0",
-			FeatureID:      "feature1",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "barBrowser",
+				BrowserVersion: "1.0.0",
+			},
+			FeatureKey: "feature1",
 		},
 		{
-			BrowserName:    "barBrowser",
-			BrowserVersion: "2.0.0",
-			FeatureID:      "feature2",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "barBrowser",
+				BrowserVersion: "2.0.0",
+			},
+			FeatureKey: "feature2",
 		},
 		{
-			BrowserName:    "fooBrowser",
-			BrowserVersion: "1.0.0",
-			FeatureID:      "feature3",
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "fooBrowser",
+				BrowserVersion: "1.0.0",
+			},
+			FeatureKey: "feature3",
 		},
 	}
 	for _, availability := range sampleBrowserAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx, availability)
+		err := client.InsertBrowserFeatureAvailability(ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
 		}
@@ -129,11 +140,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 
 	//nolint: dupl // Okay to duplicate for tests
 	sampleBaselineStatuses := []struct {
-		featureID string
-		status    FeatureBaselineStatus
+		featureKey string
+		status     FeatureBaselineStatus
 	}{
 		{
-			featureID: "feature1",
+			featureKey: "feature1",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusLow),
 				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
@@ -141,7 +152,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			},
 		},
 		{
-			featureID: "feature2",
+			featureKey: "feature2",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusHigh),
 				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
@@ -149,7 +160,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			},
 		},
 		{
-			featureID: "feature3",
+			featureKey: "feature3",
 			status: FeatureBaselineStatus{
 				Status:   valuePtr(BaselineStatusNone),
 				LowDate:  nil,
@@ -159,7 +170,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		// feature4 will default to nil.
 	}
 	for _, status := range sampleBaselineStatuses {
-		err := client.UpsertFeatureBaselineStatus(ctx, status.featureID, status.status)
+		err := client.UpsertFeatureBaselineStatus(ctx, status.featureKey, status.status)
 		if err != nil {
 			t.Errorf("unexpected error during insert of statuses. %s", err.Error())
 		}
@@ -267,172 +278,150 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	// nolint: dupl // Okay to duplicate for tests
 	sampleRunMetrics := []struct {
 		ExternalRunID int64
-		WPTRunFeatureMetric
+		Metrics       map[string]WPTRunFeatureMetric
 	}{
 		// Run 0 metrics - fooBrowser - stable
 		{
 			ExternalRunID: 0,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](20),
-				TestPass:      valuePtr[int64](10),
-				TotalSubtests: valuePtr[int64](220),
-				SubtestPass:   valuePtr[int64](110),
-			},
-		},
-		{
-			ExternalRunID: 0,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature2",
-				TotalTests:    valuePtr[int64](5),
-				TestPass:      valuePtr[int64](0),
-				TotalSubtests: valuePtr[int64](55),
-				SubtestPass:   valuePtr[int64](11),
-			},
-		},
-		{
-			ExternalRunID: 0,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature3",
-				TotalTests:    valuePtr[int64](50),
-				TestPass:      valuePtr[int64](5),
-				TotalSubtests: valuePtr[int64](5000),
-				SubtestPass:   valuePtr[int64](150),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](20),
+					TestPass:      valuePtr[int64](10),
+					TotalSubtests: valuePtr[int64](220),
+					SubtestPass:   valuePtr[int64](110),
+				},
+				"feature2": {
+					TotalTests:    valuePtr[int64](5),
+					TestPass:      valuePtr[int64](0),
+					TotalSubtests: valuePtr[int64](55),
+					SubtestPass:   valuePtr[int64](11),
+				},
+				"feature3": {
+					TotalTests:    valuePtr[int64](50),
+					TestPass:      valuePtr[int64](5),
+					TotalSubtests: valuePtr[int64](5000),
+					SubtestPass:   valuePtr[int64](150),
+				},
 			},
 		},
 		// Run 1 metrics - fooBrowser - experimental
 		{
 			ExternalRunID: 1,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](20),
-				TestPass:      valuePtr[int64](20),
-				TotalSubtests: valuePtr[int64](200),
-				SubtestPass:   valuePtr[int64](200),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](20),
+					TestPass:      valuePtr[int64](20),
+					TotalSubtests: valuePtr[int64](200),
+					SubtestPass:   valuePtr[int64](200),
+				},
 			},
 		},
 		// Run 2 metrics - barBrowser - stable
 		{
 			ExternalRunID: 2,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](20),
-				TestPass:      valuePtr[int64](10),
-				TotalSubtests: valuePtr[int64](200),
-				SubtestPass:   valuePtr[int64](15),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](20),
+					TestPass:      valuePtr[int64](10),
+					TotalSubtests: valuePtr[int64](200),
+					SubtestPass:   valuePtr[int64](15),
+				},
 			},
 		},
 		// Run 3 metrics - barBrowser - experimental
 		{
 			ExternalRunID: 3,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](20),
-				TestPass:      valuePtr[int64](10),
-				TotalSubtests: valuePtr[int64](700),
-				SubtestPass:   valuePtr[int64](250),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](20),
+					TestPass:      valuePtr[int64](10),
+					TotalSubtests: valuePtr[int64](700),
+					SubtestPass:   valuePtr[int64](250),
+				},
 			},
 		},
 		// Run 6 metrics - fooBrowser - stable
 		{
 			ExternalRunID: 6,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](20),
-				TestPass:      valuePtr[int64](20),
-				TotalSubtests: valuePtr[int64](1000),
-				SubtestPass:   valuePtr[int64](1000),
-			},
-		},
-		{
-			ExternalRunID: 6,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature2",
-				TotalTests:    valuePtr[int64](10),
-				TestPass:      valuePtr[int64](0),
-				TotalSubtests: valuePtr[int64](100),
-				SubtestPass:   valuePtr[int64](15),
-			},
-		},
-		{
-			ExternalRunID: 6,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature3",
-				TotalTests:    valuePtr[int64](50),
-				TestPass:      valuePtr[int64](35),
-				TotalSubtests: valuePtr[int64](9000),
-				SubtestPass:   valuePtr[int64](4000),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](20),
+					TestPass:      valuePtr[int64](20),
+					TotalSubtests: valuePtr[int64](1000),
+					SubtestPass:   valuePtr[int64](1000),
+				},
+				"feature2": {
+					TotalTests:    valuePtr[int64](10),
+					TestPass:      valuePtr[int64](0),
+					TotalSubtests: valuePtr[int64](100),
+					SubtestPass:   valuePtr[int64](15),
+				},
+				"feature3": {
+					TotalTests:    valuePtr[int64](50),
+					TestPass:      valuePtr[int64](35),
+					TotalSubtests: valuePtr[int64](9000),
+					SubtestPass:   valuePtr[int64](4000),
+				},
 			},
 		},
 		// Run 7 metrics - fooBrowser - experimental
 		{
 			ExternalRunID: 7,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](11),
-				TestPass:      valuePtr[int64](11),
-				TotalSubtests: valuePtr[int64](11),
-				SubtestPass:   valuePtr[int64](11),
-			},
-		},
-		{
-			ExternalRunID: 7,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature2",
-				TotalTests:    valuePtr[int64](12),
-				TestPass:      valuePtr[int64](12),
-				TotalSubtests: valuePtr[int64](12),
-				SubtestPass:   valuePtr[int64](12),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](11),
+					TestPass:      valuePtr[int64](11),
+					TotalSubtests: valuePtr[int64](11),
+					SubtestPass:   valuePtr[int64](11),
+				},
+				"feature2": {
+					TotalTests:    valuePtr[int64](12),
+					TestPass:      valuePtr[int64](12),
+					TotalSubtests: valuePtr[int64](12),
+					SubtestPass:   valuePtr[int64](12),
+				},
 			},
 		},
 		// Run 8 metrics - barBrowser - stable
 		{
 			ExternalRunID: 8,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](33),
-				TestPass:      valuePtr[int64](33),
-				TotalSubtests: valuePtr[int64](333),
-				SubtestPass:   valuePtr[int64](333),
-			},
-		},
-		{
-			ExternalRunID: 8,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature2",
-				TotalTests:    valuePtr[int64](10),
-				TestPass:      valuePtr[int64](10),
-				TotalSubtests: valuePtr[int64](100),
-				SubtestPass:   valuePtr[int64](100),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](33),
+					TestPass:      valuePtr[int64](33),
+					TotalSubtests: valuePtr[int64](333),
+					SubtestPass:   valuePtr[int64](333),
+				},
+				"feature2": {
+					TotalTests:    valuePtr[int64](10),
+					TestPass:      valuePtr[int64](10),
+					TotalSubtests: valuePtr[int64](100),
+					SubtestPass:   valuePtr[int64](100),
+				},
 			},
 		},
 		// Run 9 metrics - barBrowser - experimental
 		{
 			ExternalRunID: 9,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature1",
-				TotalTests:    valuePtr[int64](220),
-				TestPass:      valuePtr[int64](220),
-				TotalSubtests: valuePtr[int64](2220),
-				SubtestPass:   valuePtr[int64](2220),
-			},
-		},
-		{
-			ExternalRunID: 9,
-			WPTRunFeatureMetric: WPTRunFeatureMetric{
-				FeatureID:     "feature2",
-				TotalTests:    valuePtr[int64](120),
-				TestPass:      valuePtr[int64](120),
-				TotalSubtests: valuePtr[int64](1220),
-				SubtestPass:   valuePtr[int64](1220),
+			Metrics: map[string]WPTRunFeatureMetric{
+				"feature1": {
+					TotalTests:    valuePtr[int64](220),
+					TestPass:      valuePtr[int64](220),
+					TotalSubtests: valuePtr[int64](2220),
+					SubtestPass:   valuePtr[int64](2220),
+				},
+				"feature2": {
+					TotalTests:    valuePtr[int64](120),
+					TestPass:      valuePtr[int64](120),
+					TotalSubtests: valuePtr[int64](1220),
+					SubtestPass:   valuePtr[int64](1220),
+				},
 			},
 		},
 	}
 	for _, metric := range sampleRunMetrics {
 		err := client.UpsertWPTRunFeatureMetrics(
-			ctx, metric.ExternalRunID,
-			// Insert them individually because sampleRunMetrics has metrics from different runs.
-			[]WPTRunFeatureMetric{metric.WPTRunFeatureMetric})
+			ctx, metric.ExternalRunID, metric.Metrics)
 		if err != nil {
 			t.Errorf("unexpected error during insert of metrics. %s", err.Error())
 		}
@@ -495,11 +484,11 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 	switch testFeatureID {
 	case FeatureSearchTestFId1:
 		ret = FeatureResult{
-			FeatureID: "feature1",
-			Name:      "Feature 1",
-			Status:    valuePtr(string(BaselineStatusLow)),
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
-			HighDate:  nil,
+			FeatureKey: "feature1",
+			Name:       "Feature 1",
+			Status:     valuePtr(string(BaselineStatusLow)),
+			LowDate:    valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
+			HighDate:   nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -533,11 +522,11 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
-			FeatureID: "feature2",
-			Name:      "Feature 2",
-			Status:    valuePtr(string(BaselineStatusHigh)),
-			LowDate:   valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
-			HighDate:  valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			FeatureKey: "feature2",
+			Name:       "Feature 2",
+			Status:     valuePtr(string(BaselineStatusHigh)),
+			LowDate:    valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
+			HighDate:   valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
@@ -567,11 +556,11 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
-			FeatureID: "feature3",
-			Name:      "Feature 3",
-			Status:    valuePtr(string(BaselineStatusNone)),
-			LowDate:   nil,
-			HighDate:  nil,
+			FeatureKey: "feature3",
+			Name:       "Feature 3",
+			Status:     valuePtr(string(BaselineStatusNone)),
+			LowDate:    nil,
+			HighDate:   nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
@@ -588,7 +577,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
-			FeatureID:              "feature4",
+			FeatureKey:             "feature4",
 			Name:                   "Feature 4",
 			Status:                 nil,
 			LowDate:                nil,
@@ -1462,7 +1451,7 @@ func AreFeatureResultsSlicesEqual(a, b []FeatureResult) bool {
 }
 
 func AreFeatureResultsEqual(a, b FeatureResult) bool {
-	if a.FeatureID != b.FeatureID ||
+	if a.FeatureKey != b.FeatureKey ||
 		a.Name != b.Name ||
 		!reflect.DeepEqual(a.Status, b.Status) ||
 		!reflect.DeepEqual(a.LowDate, b.LowDate) ||
@@ -1504,7 +1493,7 @@ func PrintNullableField[T any](in *T) string {
 
 func PrettyPrintFeatureResult(result FeatureResult) string {
 	var builder strings.Builder
-	fmt.Fprintf(&builder, "\tFeatureID: %s\n", result.FeatureID)
+	fmt.Fprintf(&builder, "\tFeatureID: %s\n", result.FeatureKey)
 	fmt.Fprintf(&builder, "\tName: %s\n", result.Name)
 
 	fmt.Fprintf(&builder, "\tStatus: %s\n", PrintNullableField(result.Status))

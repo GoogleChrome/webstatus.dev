@@ -59,7 +59,7 @@ type BackendSpannerClient interface {
 		filter gcpspanner.Filterable,
 		wptMetricView gcpspanner.WPTMetricView,
 	) (*gcpspanner.FeatureResult, error)
-	GetIDFromFeatureID(
+	GetIDFromFeatureKey(
 		ctx context.Context,
 		filter *gcpspanner.FeatureIDFilter,
 	) (*string, error)
@@ -260,7 +260,7 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 	// Initialize the returned feature with the default values.
 	// The logic below will fill in nullable fields.
 	ret := &backend.Feature{
-		FeatureId: featureResult.FeatureID,
+		FeatureId: featureResult.FeatureKey,
 		Name:      featureResult.Name,
 		Baseline: convertBaselineSpannerToBackend(
 			featureResult.Status,
@@ -445,7 +445,7 @@ func (s *Backend) GetFeature(
 	featureID string,
 	wptMetricView backend.WPTMetricView,
 ) (*backend.Feature, error) {
-	filter := gcpspanner.NewFeatureIDFilter(featureID)
+	filter := gcpspanner.NewFeatureKeyFilter(featureID)
 	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView))
 	if err != nil {
 		return nil, err
@@ -454,12 +454,12 @@ func (s *Backend) GetFeature(
 	return s.convertFeatureResult(featureResult), nil
 }
 
-func (s *Backend) GetIDFromFeatureID(
+func (s *Backend) GetIDFromFeatureKey(
 	ctx context.Context,
 	featureID string,
 ) (*string, error) {
-	filter := gcpspanner.NewFeatureIDFilter(featureID)
-	id, err := s.client.GetIDFromFeatureID(ctx, filter)
+	filter := gcpspanner.NewFeatureKeyFilter(featureID)
+	id, err := s.client.GetIDFromFeatureKey(ctx, filter)
 	if err != nil {
 		return nil, err
 	}

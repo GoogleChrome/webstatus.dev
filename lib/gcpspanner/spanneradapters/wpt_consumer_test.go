@@ -15,11 +15,9 @@
 package spanneradapters
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"reflect"
-	"slices"
 	"testing"
 	"time"
 
@@ -41,7 +39,7 @@ type InsertWPTRunConfig struct {
 
 type UpsertWPTRunFeatureMetricsConfig struct {
 	inputID      int64
-	inputMetrics []gcpspanner.WPTRunFeatureMetric
+	inputMetrics map[string]gcpspanner.WPTRunFeatureMetric
 
 	err error
 }
@@ -56,11 +54,7 @@ func (m *MockWPTWorkflowSpannerClient) InsertWPTRun(_ context.Context, run gcpsp
 }
 
 func (m *MockWPTWorkflowSpannerClient) UpsertWPTRunFeatureMetrics(
-	_ context.Context, externalRunID int64, in []gcpspanner.WPTRunFeatureMetric) error {
-	// Sort the input to make it stable given the input is originally built from an unordered map.
-	slices.SortFunc(in, func(a, b gcpspanner.WPTRunFeatureMetric) int {
-		return cmp.Compare(a.FeatureID, b.FeatureID)
-	})
+	_ context.Context, externalRunID int64, in map[string]gcpspanner.WPTRunFeatureMetric) error {
 	if externalRunID != m.UpsertWPTRunFeatureMetricsConfig.inputID ||
 		!reflect.DeepEqual(in, m.UpsertWPTRunFeatureMetricsConfig.inputMetrics) {
 		m.t.Error("unexpected input to UpsertWPTRunFeatureMetrics")
@@ -188,16 +182,14 @@ func TestWPTConsumer_UpsertWPTRunFeatureMetrics(t *testing.T) {
 			name: "Success",
 			mockConfig: UpsertWPTRunFeatureMetricsConfig{
 				inputID: 123,
-				inputMetrics: []gcpspanner.WPTRunFeatureMetric{
-					{
-						FeatureID:     "feature1",
+				inputMetrics: map[string]gcpspanner.WPTRunFeatureMetric{
+					"feature1": {
 						TotalTests:    valuePtr[int64](1),
 						TestPass:      valuePtr[int64](0),
 						TotalSubtests: valuePtr[int64](10),
 						SubtestPass:   valuePtr[int64](0),
 					},
-					{
-						FeatureID:     "feature2",
+					"feature2": {
 						TotalTests:    valuePtr[int64](11),
 						TestPass:      valuePtr[int64](10),
 						TotalSubtests: valuePtr[int64](100),
@@ -227,16 +219,14 @@ func TestWPTConsumer_UpsertWPTRunFeatureMetrics(t *testing.T) {
 			name: "Database error",
 			mockConfig: UpsertWPTRunFeatureMetricsConfig{
 				inputID: 123,
-				inputMetrics: []gcpspanner.WPTRunFeatureMetric{
-					{
-						FeatureID:     "feature1",
+				inputMetrics: map[string]gcpspanner.WPTRunFeatureMetric{
+					"feature1": {
 						TotalTests:    valuePtr[int64](1),
 						TestPass:      valuePtr[int64](0),
 						TotalSubtests: valuePtr[int64](10),
 						SubtestPass:   valuePtr[int64](0),
 					},
-					{
-						FeatureID:     "feature2",
+					"feature2": {
 						TotalTests:    valuePtr[int64](11),
 						TestPass:      valuePtr[int64](10),
 						TotalSubtests: valuePtr[int64](100),
