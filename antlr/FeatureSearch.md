@@ -33,6 +33,8 @@ This query language enables you to construct flexible searches to find features 
     - Examples:
       - `name:grid`
       - `name:"CSS Grid"`
+  - `baseline_date`: Represents the date a feature reached baseline.
+    - Option 1: Searches for an inclusive date range (DATE..DATE) where features reached baseline.
   - `missing_in_one_of`: Searches for features that are almost universally supported, meaning they are available on all
     browsers **except one**. Expects a browser list (BROWSER_LIST) as its value. Not compatible with the `-` negation prefix.
     - Example:
@@ -53,6 +55,7 @@ This query language enables you to construct flexible searches to find features 
 - `-available_on:firefox` - Find features not available on Firefox.
 - `baseline_status:high` - Find features with a high baseline status.
 - `name:"Dark Mode"` - Find features named "Dark Mode" (including spaces).
+- `baseline_date:2023-01-01..2023-12-31` - Searches for all features that reached baseline in 2023.
 
 ### Complex Queries
 

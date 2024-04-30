@@ -15,6 +15,7 @@ WS: [ \t\r\n]+ -> skip;
 BASELINE_STATUS: 'limited' | 'newly' | 'widely';
 BROWSER_NAME: 'chrome' | 'firefox' | 'edge' | 'safari';
 BROWSER_LIST: BROWSER_NAME (',' BROWSER_NAME)*;
+DATE: [2][0-9][0-9][0-9]'-'[01][0-9]'-'[0-3][0-9]; // YYYY-MM-DD (starting from 2000)
 ANY_VALUE:
 	'"' [a-zA-Z][a-zA-Z0-9_ -]* '"' // Words with spaces.
 	| [a-zA-Z][a-zA-Z0-9_-]*; // Single words
@@ -22,8 +23,12 @@ ANY_VALUE:
 // Terms
 available_on_term: 'available_on' COLON BROWSER_NAME;
 baseline_status_term: 'baseline_status' COLON BASELINE_STATUS;
+// In the future support other operators by doing something like (date_operator_query | date_range_query)
+baseline_date_term: 'baseline_date' COLON (date_range_query);
 name_term: 'name' COLON ANY_VALUE;
-term: available_on_term | baseline_status_term | name_term;
+term: available_on_term | baseline_status_term | baseline_date_term | name_term;
+
+date_range_query: startDate=DATE '..' endDate=DATE;
 
 generic_search_term: (NOT)? term;
 

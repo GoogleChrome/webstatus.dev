@@ -14,28 +14,69 @@
 
 package searchtypes
 
+type SearchKeyword string
+
+const (
+	KeywordAND  SearchKeyword = "AND"
+	KeywordOR   SearchKeyword = "OR"
+	KeywordRoot SearchKeyword = "ROOT"
+	// Placeholder for nil.
+	KeywordNone SearchKeyword = "NONE"
+)
+
+func (k *SearchKeyword) Invert() {
+	switch *k {
+	case KeywordAND:
+		*k = KeywordOR
+	case KeywordOR:
+		*k = KeywordAND
+	case KeywordRoot, KeywordNone:
+		// Do nothing
+		return
+	}
+}
+
 type SearchOperator string
 
 const (
-	OperatorNone     SearchOperator = "NONE"
-	OperatorAND      SearchOperator = "AND"
-	OperatorOR       SearchOperator = "OR"
-	OperatorNegation SearchOperator = "NEGATION"
-	OperatorRoot     SearchOperator = "ROOT"
+	OperatorGtEq SearchOperator = "GT_EQ"
+	OperatorGt   SearchOperator = "GT"
+	OperatorLtEq SearchOperator = "LT_EQ"
+	OperatorLt   SearchOperator = "LT"
+	OperatorEq   SearchOperator = "EQ"
+	OperatorNeq  SearchOperator = "NEQ"
 )
 
+func (o *SearchOperator) Invert() {
+	switch *o {
+	case OperatorEq:
+		*o = OperatorNeq
+	case OperatorGt:
+		*o = OperatorLtEq
+	case OperatorGtEq:
+		*o = OperatorLt
+	case OperatorLt:
+		*o = OperatorGtEq
+	case OperatorLtEq:
+		*o = OperatorGt
+	case OperatorNeq:
+		*o = OperatorEq
+	}
+}
+
 type SearchNode struct {
-	Operator SearchOperator
+	Keyword  SearchKeyword
 	Term     *SearchTerm
 	Children []*SearchNode
 }
 
-func (n SearchNode) IsOperator() bool {
-	return n.Operator == OperatorAND || n.Operator == OperatorOR
+func (n SearchNode) IsKeyword() bool {
+	return n.Keyword == KeywordAND || n.Keyword == KeywordOR
 }
 
 type SearchTerm struct {
 	Identifier SearchIdentifier
+	Operator   SearchOperator
 	Value      string
 }
 
@@ -43,6 +84,7 @@ type SearchIdentifier string
 
 const (
 	IdentifierAvailableOn    SearchIdentifier = "available_on"
+	IdentifierBaselineDate   SearchIdentifier = "baseline_date"
 	IdentifierBaselineStatus SearchIdentifier = "baseline_status"
 	IdentifierName           SearchIdentifier = "name"
 )
