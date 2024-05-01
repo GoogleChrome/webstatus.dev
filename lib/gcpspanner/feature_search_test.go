@@ -672,6 +672,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureCommonFilterCombos(ctx, t, client)
 	testFeatureNameFilters(ctx, t, client)
 	testFeatureBaselineStatusFilters(ctx, t, client)
+	testFeatureBaselineStatusDateFilters(ctx, t, client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
@@ -685,28 +686,30 @@ func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Cl
 			name: "Available and not available filters",
 			// available on barBrowser AND not available on fooBrowser
 			searchNode: &searchtypes.SearchNode{
-				Operator: searchtypes.OperatorRoot,
-				Term:     nil,
+				Keyword: searchtypes.KeywordRoot,
+				Term:    nil,
 				Children: []*searchtypes.SearchNode{
 					{
-						Operator: searchtypes.OperatorAND,
-						Term:     nil,
+						Keyword: searchtypes.KeywordAND,
+						Term:    nil,
 						Children: []*searchtypes.SearchNode{
 							{
 								Children: nil,
 								Term: &searchtypes.SearchTerm{
 									Identifier: searchtypes.IdentifierAvailableOn,
 									Value:      "barBrowser",
+									Operator:   searchtypes.OperatorEq,
 								},
-								Operator: searchtypes.OperatorNone,
+								Keyword: searchtypes.KeywordNone,
 							},
 							{
 								Children: nil,
 								Term: &searchtypes.SearchTerm{
 									Identifier: searchtypes.IdentifierAvailableOn,
 									Value:      "fooBrowser",
+									Operator:   searchtypes.OperatorNeq,
 								},
-								Operator: searchtypes.OperatorNegation,
+								Keyword: searchtypes.KeywordNone,
 							},
 						},
 					},
@@ -746,16 +749,17 @@ func testFeatureNotAvailableSearchFilters(ctx context.Context, t *testing.T, cli
 		{
 			name: "single browser: not available on fooBrowser",
 			searchNode: &searchtypes.SearchNode{
-				Operator: searchtypes.OperatorRoot,
-				Term:     nil,
+				Keyword: searchtypes.KeywordRoot,
+				Term:    nil,
 				Children: []*searchtypes.SearchNode{
 					{
 						Children: nil,
 						Term: &searchtypes.SearchTerm{
 							Identifier: searchtypes.IdentifierAvailableOn,
 							Value:      "fooBrowser",
+							Operator:   searchtypes.OperatorNeq,
 						},
-						Operator: searchtypes.OperatorNegation,
+						Keyword: searchtypes.KeywordNone,
 					},
 				},
 			},
@@ -794,16 +798,17 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			name: "single browser: available on barBrowser",
 			// available on barBrowser
 			searchNode: &searchtypes.SearchNode{
-				Operator: searchtypes.OperatorRoot,
-				Term:     nil,
+				Keyword: searchtypes.KeywordRoot,
+				Term:    nil,
 				Children: []*searchtypes.SearchNode{
 					{
 						Children: nil,
 						Term: &searchtypes.SearchTerm{
 							Identifier: searchtypes.IdentifierAvailableOn,
 							Value:      "barBrowser",
+							Operator:   searchtypes.OperatorEq,
 						},
-						Operator: searchtypes.OperatorNone,
+						Keyword: searchtypes.KeywordNone,
 					},
 				},
 			},
@@ -820,28 +825,30 @@ func testFeatureAvailableSearchFilters(ctx context.Context, t *testing.T, client
 			name: "multiple browsers: available on either barBrowser OR fooBrowser",
 			// available on either barBrowser OR fooBrowser
 			searchNode: &searchtypes.SearchNode{
-				Operator: searchtypes.OperatorRoot,
-				Term:     nil,
+				Keyword: searchtypes.KeywordRoot,
+				Term:    nil,
 				Children: []*searchtypes.SearchNode{
 					{
-						Operator: searchtypes.OperatorOR,
-						Term:     nil,
+						Keyword: searchtypes.KeywordOR,
+						Term:    nil,
 						Children: []*searchtypes.SearchNode{
 							{
 								Children: nil,
 								Term: &searchtypes.SearchTerm{
 									Identifier: searchtypes.IdentifierAvailableOn,
 									Value:      "barBrowser",
+									Operator:   searchtypes.OperatorEq,
 								},
-								Operator: searchtypes.OperatorNone,
+								Keyword: searchtypes.KeywordNone,
 							},
 							{
 								Children: nil,
 								Term: &searchtypes.SearchTerm{
 									Identifier: searchtypes.IdentifierAvailableOn,
 									Value:      "fooBrowser",
+									Operator:   searchtypes.OperatorEq,
 								},
-								Operator: searchtypes.OperatorNone,
+								Keyword: searchtypes.KeywordNone,
 							},
 						},
 					},
@@ -882,14 +889,15 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		getFeatureSearchTestFeature(FeatureSearchTestFId4),
 	}
 	node := &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
 		Children: []*searchtypes.SearchNode{
 			{
-				Operator: searchtypes.OperatorNone,
+				Keyword: searchtypes.KeywordNone,
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "feature",
+					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,
 			},
@@ -914,14 +922,15 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 
 	// All upper case with partial "FEATURE" name. Should return same results (all).
 	node = &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
 		Children: []*searchtypes.SearchNode{
 			{
-				Operator: searchtypes.OperatorNone,
+				Keyword: searchtypes.KeywordNone,
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "FEATURE",
+					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,
 			},
@@ -948,16 +957,120 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		Features:      expectedResults,
 	}
 	node = &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
 		Children: []*searchtypes.SearchNode{
 			{
-				Operator: searchtypes.OperatorNone,
+				Keyword: searchtypes.KeywordNone,
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "4",
+					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,
+			},
+		},
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+}
+
+func testFeatureBaselineStatusDateFilters(ctx context.Context, t *testing.T, client *Client) {
+	// Baseline Date 2000-01-04..2000-01-05
+	expectedResults := []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
+	}
+	expectedPage := FeatureResultPage{
+		Total:         2,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node := &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordAND,
+				Term:    nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Keyword: searchtypes.KeywordNone,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierBaselineDate,
+							Value:      "2000-01-04",
+							Operator:   searchtypes.OperatorGtEq,
+						},
+						Children: nil,
+					},
+					{
+						Keyword: searchtypes.KeywordNone,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierBaselineDate,
+							Value:      "2000-01-05",
+							Operator:   searchtypes.OperatorLtEq,
+						},
+						Children: nil,
+					},
+				},
+			},
+		},
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+
+	// Baseline Date 2000-01-01..2000-01-04
+	expectedResults = []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
+	}
+	expectedPage = FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordAND,
+				Term:    nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Keyword: searchtypes.KeywordNone,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierBaselineDate,
+							Value:      "2000-01-01",
+							Operator:   searchtypes.OperatorGtEq,
+						},
+						Children: nil,
+					},
+					{
+						Keyword: searchtypes.KeywordNone,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierBaselineDate,
+							Value:      "2000-01-04",
+							Operator:   searchtypes.OperatorLtEq,
+						},
+						Children: nil,
+					},
+				},
 			},
 		},
 	}
@@ -984,14 +1097,15 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		Features:      expectedResults,
 	}
 	node := &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
 		Children: []*searchtypes.SearchNode{
 			{
-				Operator: searchtypes.OperatorNone,
+				Keyword: searchtypes.KeywordNone,
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierBaselineStatus,
 					Value:      "newly",
+					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,
 			},
@@ -1018,14 +1132,15 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		Features:      expectedResults,
 	}
 	node = &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
 		Children: []*searchtypes.SearchNode{
 			{
-				Operator: searchtypes.OperatorNone,
+				Keyword: searchtypes.KeywordNone,
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierBaselineStatus,
 					Value:      "widely",
+					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,
 			},
@@ -1052,14 +1167,15 @@ func testFeatureBaselineStatusFilters(ctx context.Context, t *testing.T, client 
 		Features:      expectedResults,
 	}
 	node = &searchtypes.SearchNode{
-		Operator: searchtypes.OperatorRoot,
-		Term:     nil,
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
 		Children: []*searchtypes.SearchNode{
 			{
-				Operator: searchtypes.OperatorNone,
+				Keyword: searchtypes.KeywordNone,
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierBaselineStatus,
 					Value:      "limited",
+					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,
 			},

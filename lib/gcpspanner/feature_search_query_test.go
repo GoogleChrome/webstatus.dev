@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 )
@@ -32,16 +33,17 @@ var (
 	simpleAvailableOnQuery = TestTree{
 		Query: "available_on:chrome",
 		InputTree: &searchtypes.SearchNode{
-			Operator: searchtypes.OperatorRoot,
-			Term:     nil,
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
 			Children: []*searchtypes.SearchNode{
 				{
 					Term: &searchtypes.SearchTerm{
 						Identifier: searchtypes.IdentifierAvailableOn,
+						Operator:   searchtypes.OperatorEq,
 						Value:      "chrome",
 					},
 					Children: nil,
-					Operator: searchtypes.OperatorNone,
+					Keyword:  searchtypes.KeywordNone,
 				},
 			},
 		},
@@ -50,16 +52,17 @@ var (
 	simpleNameQuery = TestTree{
 		Query: `name:"CSS Grid"`,
 		InputTree: &searchtypes.SearchNode{
-			Operator: searchtypes.OperatorRoot,
-			Term:     nil,
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
 			Children: []*searchtypes.SearchNode{
 				{
 					Children: nil,
 					Term: &searchtypes.SearchTerm{
 						Identifier: searchtypes.IdentifierName,
 						Value:      "CSS Grid",
+						Operator:   searchtypes.OperatorEq,
 					},
-					Operator: searchtypes.OperatorNone,
+					Keyword: searchtypes.KeywordNone,
 				},
 			},
 		},
@@ -68,16 +71,17 @@ var (
 	simpleNameByIDQuery = TestTree{
 		Query: `name:grid`,
 		InputTree: &searchtypes.SearchNode{
-			Operator: searchtypes.OperatorRoot,
-			Term:     nil,
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
 			Children: []*searchtypes.SearchNode{
 				{
 					Children: nil,
 					Term: &searchtypes.SearchTerm{
 						Identifier: searchtypes.IdentifierName,
 						Value:      "grid",
+						Operator:   searchtypes.OperatorEq,
 					},
-					Operator: searchtypes.OperatorNone,
+					Keyword: searchtypes.KeywordNone,
 				},
 			},
 		},
@@ -86,28 +90,30 @@ var (
 	availableOnBaselineStatus = TestTree{
 		Query: "available_on:chrome AND baseline_status:widely",
 		InputTree: &searchtypes.SearchNode{
-			Operator: searchtypes.OperatorRoot,
-			Term:     nil,
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
 			Children: []*searchtypes.SearchNode{
 				{
-					Operator: searchtypes.OperatorAND,
-					Term:     nil,
+					Keyword: searchtypes.KeywordAND,
+					Term:    nil,
 					Children: []*searchtypes.SearchNode{
 						{
 							Children: nil,
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierAvailableOn,
 								Value:      "chrome",
+								Operator:   searchtypes.OperatorEq,
 							},
-							Operator: searchtypes.OperatorNone,
+							Keyword: searchtypes.KeywordNone,
 						},
 						{
 							Children: nil,
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierBaselineStatus,
 								Value:      "widely",
+								Operator:   searchtypes.OperatorEq,
 							},
-							Operator: searchtypes.OperatorNone,
+							Keyword: searchtypes.KeywordNone,
 						},
 					},
 				},
@@ -118,28 +124,98 @@ var (
 	availableOnBaselineStatusWithNegation = TestTree{
 		Query: "-available_on:chrome AND baseline_status:widely",
 		InputTree: &searchtypes.SearchNode{
-			Operator: searchtypes.OperatorRoot,
-			Term:     nil,
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
 			Children: []*searchtypes.SearchNode{
 				{
-					Operator: searchtypes.OperatorAND,
-					Term:     nil,
+					Keyword: searchtypes.KeywordAND,
+					Term:    nil,
 					Children: []*searchtypes.SearchNode{
 						{
 							Children: nil,
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierAvailableOn,
 								Value:      "chrome",
+								Operator:   searchtypes.OperatorNeq,
 							},
-							Operator: searchtypes.OperatorNegation,
+							Keyword: searchtypes.KeywordNone,
 						},
 						{
 							Children: nil,
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierBaselineStatus,
 								Value:      "widely",
+								Operator:   searchtypes.OperatorEq,
 							},
-							Operator: searchtypes.OperatorNone,
+							Keyword: searchtypes.KeywordNone,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	baselineDateRange = TestTree{
+		Query: "baseline_date:2000-01-01..2000-12-31",
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Keyword: searchtypes.KeywordAND,
+					Term:    nil,
+					Children: []*searchtypes.SearchNode{
+						{
+							Keyword: searchtypes.KeywordNone,
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierBaselineDate,
+								Value:      "2000-01-01",
+								Operator:   searchtypes.OperatorGtEq,
+							},
+							Children: nil,
+						},
+						{
+							Keyword: searchtypes.KeywordNone,
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierBaselineDate,
+								Value:      "2000-12-31",
+								Operator:   searchtypes.OperatorLtEq,
+							},
+							Children: nil,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	baselineDateRangeNegation = TestTree{
+		Query: "-baseline_date:2000-01-01..2000-12-31",
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Keyword: searchtypes.KeywordOR,
+					Term:    nil,
+					Children: []*searchtypes.SearchNode{
+						{
+							Keyword: searchtypes.KeywordNone,
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierBaselineDate,
+								Value:      "2000-01-01",
+								Operator:   searchtypes.OperatorLt,
+							},
+							Children: nil,
+						},
+						{
+							Keyword: searchtypes.KeywordNone,
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierBaselineDate,
+								Value:      "2000-12-31",
+								Operator:   searchtypes.OperatorGt,
+							},
+							Children: nil,
 						},
 					},
 				},
@@ -150,47 +226,51 @@ var (
 	complexQuery = TestTree{
 		Query: "available_on:chrome (baseline_status:widely OR name:avif) OR name:grid",
 		InputTree: &searchtypes.SearchNode{
-			Operator: searchtypes.OperatorRoot,
-			Term:     nil,
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
 			Children: []*searchtypes.SearchNode{
 				{
-					Operator: searchtypes.OperatorOR,
-					Term:     nil,
+					Keyword: searchtypes.KeywordOR,
+					Term:    nil,
 					Children: []*searchtypes.SearchNode{
 						{
-							Operator: searchtypes.OperatorAND,
-							Term:     nil,
+							Keyword: searchtypes.KeywordAND,
+							Term:    nil,
 							Children: []*searchtypes.SearchNode{
 								{
-									Operator: searchtypes.OperatorNone,
+									Keyword:  searchtypes.KeywordNone,
 									Children: nil,
 									Term: &searchtypes.SearchTerm{
-										Identifier: searchtypes.IdentifierAvailableOn, Value: "chrome"},
+										Identifier: searchtypes.IdentifierAvailableOn, Value: "chrome", Operator: searchtypes.OperatorEq},
 								},
 								{
-									Operator: searchtypes.OperatorOR,
-									Term:     nil,
+									Keyword: searchtypes.KeywordOR,
+									Term:    nil,
 									Children: []*searchtypes.SearchNode{
 										{
-											Operator: searchtypes.OperatorNone,
+											Keyword:  searchtypes.KeywordNone,
 											Children: nil,
 											Term: &searchtypes.SearchTerm{
-												Identifier: searchtypes.IdentifierBaselineStatus, Value: "widely"},
+												Identifier: searchtypes.IdentifierBaselineStatus, Value: "widely", Operator: searchtypes.OperatorEq},
 										},
 										{
-											Operator: searchtypes.OperatorNone,
+											Keyword:  searchtypes.KeywordNone,
 											Children: nil,
 											Term: &searchtypes.SearchTerm{
-												Identifier: searchtypes.IdentifierName, Value: "avif"},
+												Identifier: searchtypes.IdentifierName, Value: "avif", Operator: searchtypes.OperatorEq},
 										},
 									},
 								},
 							},
 						},
 						{
-							Operator: searchtypes.OperatorNone,
+							Keyword:  searchtypes.KeywordNone,
 							Children: nil,
-							Term:     &searchtypes.SearchTerm{Identifier: searchtypes.IdentifierName, Value: "grid"},
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierName,
+								Value:      "grid",
+								Operator:   searchtypes.OperatorEq,
+							},
 						},
 					},
 				},
@@ -239,8 +319,8 @@ WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 		},
 		{
 			inputTestTree: availableOnBaselineStatusWithNegation,
-			expectedClauses: []string{`((NOT (wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0))) AND (fbs.Status = @param1))`},
+			expectedClauses: []string{`((wf.ID NOT IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -255,6 +335,26 @@ WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase
 				"param1": "high",
 				"param2": "%" + "avif" + "%",
 				"param3": "%" + "grid" + "%",
+			},
+		},
+		{
+			inputTestTree: baselineDateRange,
+			expectedClauses: []string{
+				`((LowDate >= @param0) AND (LowDate <= @param1))`,
+			},
+			expectedParams: map[string]interface{}{
+				"param0": time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+				"param1": time.Date(2000, 12, 31, 0, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			inputTestTree: baselineDateRangeNegation,
+			expectedClauses: []string{
+				`((LowDate < @param0) OR (LowDate > @param1))`,
+			},
+			expectedParams: map[string]interface{}{
+				"param0": time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+				"param1": time.Date(2000, 12, 31, 0, 0, 0, 0, time.UTC),
 			},
 		},
 	}

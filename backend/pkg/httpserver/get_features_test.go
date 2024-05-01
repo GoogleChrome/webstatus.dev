@@ -123,28 +123,30 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageSize:      50,
 				expectedWPTMetricView: backend.TestCounts,
 				expectedSearchNode: &searchtypes.SearchNode{
-					Operator: searchtypes.OperatorRoot,
-					Term:     nil,
+					Keyword: searchtypes.KeywordRoot,
+					Term:    nil,
 					Children: []*searchtypes.SearchNode{
 						{
-							Operator: searchtypes.OperatorAND,
-							Term:     nil,
+							Keyword: searchtypes.KeywordAND,
+							Term:    nil,
 							Children: []*searchtypes.SearchNode{
 								{
 									Children: nil,
 									Term: &searchtypes.SearchTerm{
 										Identifier: searchtypes.IdentifierAvailableOn,
 										Value:      "chrome",
+										Operator:   searchtypes.OperatorEq,
 									},
-									Operator: searchtypes.OperatorNone,
+									Keyword: searchtypes.KeywordNone,
 								},
 								{
 									Children: nil,
 									Term: &searchtypes.SearchTerm{
 										Identifier: searchtypes.IdentifierName,
 										Value:      "grid",
+										Operator:   searchtypes.OperatorEq,
 									},
-									Operator: searchtypes.OperatorNone,
+									Keyword: searchtypes.KeywordNone,
 								},
 							},
 						},

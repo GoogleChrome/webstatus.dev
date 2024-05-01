@@ -580,7 +580,7 @@ func TestFeaturesSearch(t *testing.T) {
 				expectedPageToken: nonNilInputPageToken,
 				expectedPageSize:  100,
 				expectedNode: &searchtypes.SearchNode{
-					Operator: searchtypes.OperatorRoot,
+					Keyword:  searchtypes.KeywordRoot,
 					Term:     nil,
 					Children: nil,
 				},
@@ -659,7 +659,7 @@ func TestFeaturesSearch(t *testing.T) {
 			inputPageToken: nonNilInputPageToken,
 			inputPageSize:  100,
 			searchNode: &searchtypes.SearchNode{
-				Operator: searchtypes.OperatorRoot,
+				Keyword:  searchtypes.KeywordRoot,
 				Term:     nil,
 				Children: nil,
 			},

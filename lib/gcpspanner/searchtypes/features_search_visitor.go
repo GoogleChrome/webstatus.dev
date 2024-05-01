@@ -30,15 +30,15 @@ type FeaturesSearchVisitor struct {
 	parser.BaseFeatureSearchVisitor
 }
 
-func getOperatorType(text string) SearchOperator {
+func getOperatorType(text string) SearchKeyword {
 	switch text {
 	case "AND":
-		return OperatorAND
+		return KeywordAND
 	case "OR":
-		return OperatorOR
+		return KeywordOR
 	}
 
-	return OperatorNone
+	return KeywordNone
 }
 
 func (v *FeaturesSearchVisitor) addError(err error) {
@@ -54,7 +54,7 @@ func (v *FeaturesSearchVisitor) handleOperator(current *SearchNode, operatorCtx 
 	operator := getOperatorType(operatorCtx.GetText())
 
 	newNode := &SearchNode{
-		Operator: operator,
+		Keyword:  operator,
 		Term:     nil,
 		Children: nil,
 	}
@@ -64,7 +64,7 @@ func (v *FeaturesSearchVisitor) handleOperator(current *SearchNode, operatorCtx 
 		// This logic handles the optional chaining structure in the grammar, where
 		// terms/groups without explicit operators are implicitly joined using AND.
 		// The implicit AND nodes themselves are created primarily within the 'chainWithImplicitAND' function.
-		if current.Operator == OperatorAND && len(current.Children) == 1 {
+		if current.Keyword == KeywordAND && len(current.Children) == 1 {
 			current.Children = append(current.Children, newNode)
 		} else {
 			// Handle the case where a new explicit operator node is encountered:
@@ -91,9 +91,9 @@ func (v *FeaturesSearchVisitor) chainWithImplicitAND(current, newNode *SearchNod
 	if current == nil {
 		// Case: Starting a new chain.
 		return newNode
-	} else if !current.IsOperator() {
+	} else if !current.IsKeyword() {
 		// Case: Chaining onto a term node, create an implicit AND.
-		return &SearchNode{Term: nil, Operator: OperatorAND, Children: []*SearchNode{current, newNode}}
+		return &SearchNode{Term: nil, Keyword: KeywordAND, Children: []*SearchNode{current, newNode}}
 	}
 	// Case: Continue an existing AND chain.
 	current.Children = append(current.Children, newNode)
@@ -120,7 +120,7 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 		// Relies on 'chainWithImplicitAND' to handle the chaining structure.
 		rootNode = &SearchNode{
 			Term:     nil,
-			Operator: OperatorAND,
+			Keyword:  KeywordAND,
 			Children: []*SearchNode{rootNode, node},
 		}
 	}
@@ -132,11 +132,12 @@ func (v *FeaturesSearchVisitor) createNameNode(name string) *SearchNode {
 	name = strings.Trim(name, `"`)
 
 	return &SearchNode{
-		Operator: OperatorNone,
+		Keyword:  KeywordNone,
 		Children: nil,
 		Term: &SearchTerm{
 			Identifier: IdentifierName,
 			Value:      name,
+			Operator:   OperatorEq,
 		},
 	}
 }
@@ -147,7 +148,7 @@ The below section implements the generated BaseFeatureSearchVisitor methods.
 
 func (v *FeaturesSearchVisitor) VisitQuery(ctx *parser.QueryContext) interface{} {
 	// Create root node.
-	root := &SearchNode{Operator: OperatorRoot, Term: nil, Children: nil}
+	root := &SearchNode{Keyword: KeywordRoot, Term: nil, Children: nil}
 	childResult, ok := v.VisitChildren(ctx).(*SearchNode)
 	if !ok {
 		v.addError(fmt.Errorf("VisitQuery did not receive a SearchNode"))
@@ -163,10 +164,11 @@ func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_
 	browserName := ctx.BROWSER_NAME().GetText()
 
 	return &SearchNode{
-		Operator: OperatorNone,
+		Keyword: KeywordNone,
 		Term: &SearchTerm{
 			Identifier: IdentifierAvailableOn,
 			Value:      browserName,
+			Operator:   OperatorEq,
 		},
 		Children: nil,
 	}
@@ -177,12 +179,49 @@ func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_s
 	baselineStatus := ctx.BASELINE_STATUS().GetText()
 
 	return &SearchNode{
-		Operator: OperatorNone,
+		Keyword: KeywordNone,
 		Term: &SearchTerm{
 			Identifier: IdentifierBaselineStatus,
 			Value:      baselineStatus,
+			Operator:   OperatorEq,
 		},
 		Children: nil,
+	}
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_date_termContext) interface{} {
+	return v.VisitChildren(ctx)
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitDate_range_query(ctx *parser.Date_range_queryContext) interface{} {
+	startDate := ctx.GetStartDate().GetText()
+	endDate := ctx.GetEndDate().GetText()
+
+	return &SearchNode{
+		Keyword: KeywordAND,
+		Term:    nil,
+		Children: []*SearchNode{
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierBaselineDate,
+					Value:      startDate,
+					Operator:   OperatorGtEq,
+				},
+				Children: nil,
+			},
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierBaselineDate,
+					Value:      endDate,
+					Operator:   OperatorLtEq,
+				},
+				Children: nil,
+			},
+		},
 	}
 }
 
@@ -227,8 +266,12 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 		return v.VisitAvailable_on_term(tree)
 	case *parser.Baseline_status_termContext:
 		return v.VisitBaseline_status_term(tree)
+	case *parser.Baseline_date_termContext:
+		return v.VisitBaseline_date_term(tree)
 	case *parser.Combined_search_criteriaContext:
 		return v.VisitCombined_search_criteria(tree)
+	case *parser.Date_range_queryContext:
+		return v.VisitDate_range_query(tree)
 	case *parser.Generic_search_termContext:
 		return v.VisitGeneric_search_term(tree)
 	case *parser.Missing_in_one_ofContext:
@@ -299,11 +342,21 @@ func (v *FeaturesSearchVisitor) VisitTerm(ctx *parser.TermContext) interface{} {
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_search_termContext) interface{} {
-	// Should only be a single item.
-	// Add the negation if ndeeded.
 	node := v.VisitChildren(ctx).(*SearchNode)
+	// Add the negation if needed as we come back up from the children.
 	if ctx.NOT() != nil {
-		node.Operator = OperatorNegation
+		node.Keyword.Invert()
+		if len(node.Children) == 0 {
+			node.Term.Operator.Invert()
+		} else {
+			// The grammar currently does not allow negation on the combined search term so we do not need to
+			// invert beyond the first level of children.
+			for idx := range node.Children {
+				if node.Children[idx].Term != nil {
+					node.Children[idx].Term.Operator.Invert()
+				}
+			}
+		}
 	}
 
 	return node

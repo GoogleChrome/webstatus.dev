@@ -18,6 +18,7 @@ import (
 	"fmt"
 	"maps"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -65,7 +66,7 @@ func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *Featur
 	// Ensure it is not nil
 	if node == nil ||
 		// Check for our root node.
-		node.Operator != searchtypes.OperatorRoot ||
+		node.Keyword != searchtypes.KeywordRoot ||
 		// Currently root should only have at most one child.
 		// lib/gcpspanner/searchtypes/features_search_visitor.go
 		len(node.Children) != 1 {
@@ -88,7 +89,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 	var filters []string
 
 	switch {
-	case node.IsOperator(): // Handle AND/OR operators
+	case node.IsKeyword(): // Handle AND/OR keyword
 		var childFilters []string // Collect child filters first
 		for _, child := range node.Children {
 			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
@@ -97,7 +98,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 		// Join child filters using the current node's operator
 		if len(childFilters) > 0 {
 			joiner := " AND "
-			if node.Operator == searchtypes.OperatorOR {
+			if node.Keyword == searchtypes.KeywordOR {
 				joiner = " OR "
 			}
 			filterString := strings.Join(childFilters, joiner)
@@ -108,20 +109,19 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 
 		}
 
-	case node.Term != nil && (node.Operator == searchtypes.OperatorNone || node.Operator == searchtypes.OperatorNegation):
+	case node.Term != nil && (node.Keyword == searchtypes.KeywordNone):
 		var filter string
 		switch node.Term.Identifier {
 		case searchtypes.IdentifierAvailableOn:
-			filter = b.availabilityFilter(node.Term.Value)
+			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
-			filter = b.featureNameFilter(node.Term.Value)
+			filter = b.featureNameFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierBaselineStatus:
-			filter = b.baselineStatusFilter(node.Term.Value)
+			filter = b.baselineStatusFilter(node.Term.Value, node.Term.Operator)
+		case searchtypes.IdentifierBaselineDate:
+			filter = b.baselineDateFilter(node.Term.Value, node.Term.Operator)
 		}
 		if filter != "" {
-			if node.Operator == searchtypes.OperatorNegation {
-				filter = "NOT (" + filter + ")"
-			}
 			filters = append(filters, "("+filter+")")
 		}
 	}
@@ -129,14 +129,64 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 	return filters
 }
 
-func (b *FeatureSearchFilterBuilder) availabilityFilter(browser string) string {
-	paramName := b.addParamGetName(browser)
-
-	return fmt.Sprintf(`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @%s)`, paramName)
+func searchOperatorToSpannerBinaryOperator(in searchtypes.SearchOperator) string {
+	switch in {
+	case searchtypes.OperatorGt:
+		return ">"
+	case searchtypes.OperatorGtEq:
+		return ">="
+	case searchtypes.OperatorLt:
+		return "<"
+	case searchtypes.OperatorLtEq:
+		return "<="
+	case searchtypes.OperatorEq:
+		return "="
+	case searchtypes.OperatorNeq:
+		return "!="
+	default:
+		// If caller tries to pass a string that actually is not an operator, default to =
+		return "="
+	}
 }
 
-func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string) string {
+func searchOperatorToSpannerListOperator(in searchtypes.SearchOperator) string {
+	switch in {
+	case searchtypes.OperatorEq:
+		return "IN"
+	case searchtypes.OperatorNeq:
+		return "NOT IN"
+	case searchtypes.OperatorGt, searchtypes.OperatorGtEq, searchtypes.OperatorLt, searchtypes.OperatorLtEq:
+		fallthrough
+	default:
+		// Default to "IN". Callers should know the filter is applying to a list and the searchNode should have
+		// either Eq or Neq. Return "IN" to produce correct sql syntax.
+		return "IN"
+	}
+}
+
+func searchOperatorToSpannerStringPatternOperator(in searchtypes.SearchOperator) string {
+	switch in {
+	case searchtypes.OperatorEq:
+		return "LIKE"
+	case searchtypes.OperatorNeq:
+		return "NOT LIKE"
+	case searchtypes.OperatorGt, searchtypes.OperatorGtEq, searchtypes.OperatorLt, searchtypes.OperatorLtEq:
+		fallthrough
+	default:
+		// Default to "NOT LIKE". Callers should know the filter is applying to a string pattern and the
+		// searchNode should have either Eq or Neq. Return "LIKE" to produce correct sql syntax.
+		return "LIKE"
+	}
+}
+
+func (b *FeatureSearchFilterBuilder) availabilityFilter(browser string, op searchtypes.SearchOperator) string {
+	paramName := b.addParamGetName(browser)
+
+	return fmt.Sprintf(`wf.ID %s (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @%s)`, searchOperatorToSpannerListOperator(op), paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op searchtypes.SearchOperator) string {
 	// Normalize the string to lower case to use the computed column.
 	featureName = strings.ToLower(featureName)
 	// Safely add the database % wildcards if they do not already exist.
@@ -149,10 +199,13 @@ func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string) strin
 
 	paramName := b.addParamGetName(featureName)
 
-	return fmt.Sprintf(`(wf.Name_Lowercase LIKE @%s OR wf.FeatureKey_Lowercase LIKE @%s)`, paramName, paramName)
+	opStr := searchOperatorToSpannerStringPatternOperator(op)
+
+	return fmt.Sprintf(`(wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`, opStr, paramName,
+		opStr, paramName)
 }
 
-func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string) string {
+func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string, op searchtypes.SearchOperator) string {
 	var status BaselineStatus
 	// baseline status is limited to the values in antlr/FeatureSearch.g4.
 	switch baselineStatus {
@@ -168,7 +221,19 @@ func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string)
 	}
 	paramName := b.addParamGetName(string(status))
 
-	return fmt.Sprintf(`fbs.Status = @%s`, paramName)
+	return fmt.Sprintf(`fbs.Status %s @%s`, searchOperatorToSpannerBinaryOperator(op), paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) baselineDateFilter(rawDate string, op searchtypes.SearchOperator) string {
+	date, err := time.Parse(time.DateOnly, rawDate)
+	if err != nil {
+		// an empty string which will be thrown away by the filter builder
+		return ""
+	}
+
+	paramName := b.addParamGetName(date)
+
+	return fmt.Sprintf(`LowDate %s @%s`, searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 // Filterable modifies a query with a given filter.
