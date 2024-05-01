@@ -372,7 +372,7 @@ export class FeaturePage extends LitElement {
           return html``;
       }
       return html`
-        <sl-button variant="default" href=${link}>
+        <sl-button variant="default" href=${link} target="_blank">
           <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
           <div class="hbox logo-button">
 ${logo ? html`<img src=${logo} alt="${logoAlt}" width="24" height="24" />` : nothing}
