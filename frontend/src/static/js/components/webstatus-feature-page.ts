@@ -367,19 +367,26 @@ export class FeaturePage extends LitElement {
     `;
   }
 
-    renderOffsiteLink(label: string, link: string | null, logo?: string, logoAlt?: string): TemplateResult {
-      if (!link) {
-          return html``;
-      }
-      return html`
-        <sl-button variant="default" href=${link} target="_blank">
-          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
-          <div class="hbox logo-button">
-${logo ? html`<img src=${logo} alt="${logoAlt}" width="24" height="24" />` : nothing}
-            ${label}
-          </div>
-        </sl-button>
-        `;
+  renderOffsiteLink(
+    label: string,
+    link: string | null,
+    logo?: string,
+    logoAlt?: string
+  ): TemplateResult {
+    if (!link) {
+      return html``;
+    }
+    return html`
+      <sl-button variant="default" href=${link} target="_blank">
+        <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
+        <div class="hbox logo-button">
+          ${logo
+            ? html`<img src=${logo} alt="${logoAlt}" width="24" height="24" />`
+            : nothing}
+          ${label}
+        </div>
+      </sl-button>
+    `;
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
@@ -412,9 +419,14 @@ ${logo ? html`<img src=${logo} alt="${logoAlt}" width="24" height="24" />` : not
             .valueAsDate="${this.endDate}"
           ></sl-input>
         </label>
-${this.renderOffsiteLink('WPT.fyi', wptLink, wptLogo, 'WPT default view')}
-${this.renderOffsiteLink('MDN', null)}
-${this.renderOffsiteLink('CanIUse', null)}
+        ${this.renderOffsiteLink(
+          'WPT.fyi',
+          wptLink,
+          wptLogo,
+          'WPT default view'
+        )}
+        ${this.renderOffsiteLink('MDN', null)}
+        ${this.renderOffsiteLink('CanIUse', null)}
       </div>
     `;
   }
