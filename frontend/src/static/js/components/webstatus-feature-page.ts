@@ -25,6 +25,7 @@ import {
   nothing,
 } from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
@@ -367,6 +368,33 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderOffsiteLink(
+    label: string,
+    link: string | null,
+    logo?: string,
+    logoAlt?: string
+  ): TemplateResult {
+    if (!link) {
+      return html``;
+    }
+    return html`
+      <sl-button variant="default" href=${link} target="_blank">
+        <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
+        <div class="hbox logo-button">
+          ${logo
+            ? html`<img
+                src=${logo}
+                alt="${ifDefined(logoAlt)}"
+                width="24"
+                height="24"
+              />`
+            : nothing}
+          ${label}
+        </div>
+      </sl-button>
+    `;
+  }
+
   renderNameAndOffsiteLinks(): TemplateResult {
     const wptLink =
       'https://wpt.fyi/results' +
@@ -374,8 +402,7 @@ export class FeaturePage extends LitElement {
       '&q=feature%3A' +
       this.feature!.feature_id;
     const wptLogo = '/public/img/wpt-logo.svg';
-    const mdnLink = '#TODO';
-    const canIUseLink = '#TODO';
+
     return html`
       <div id="nameAndOffsiteLinks" class="hbox valign-items-end">
         <h1>${this.feature!.name}</h1>
@@ -398,21 +425,14 @@ export class FeaturePage extends LitElement {
             .valueAsDate="${this.endDate}"
           ></sl-input>
         </label>
-        <sl-button variant="default" href=${wptLink}>
-          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
-          <div class="hbox logo-button">
-            <img src=${wptLogo} alt="WPT default view" width="24" height="24" />
-            WPT.fyi
-          </div>
-        </sl-button>
-        <sl-button variant="default" href=${mdnLink}>
-          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
-          MDN
-        </sl-button>
-        <sl-button variant="default" href=${canIUseLink}>
-          <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
-          CanIUse
-        </sl-button>
+        ${this.renderOffsiteLink(
+          'WPT.fyi',
+          wptLink,
+          wptLogo,
+          'WPT default view'
+        )}
+        ${this.renderOffsiteLink('MDN', null)}
+        ${this.renderOffsiteLink('CanIUse', null)}
       </div>
     `;
   }
