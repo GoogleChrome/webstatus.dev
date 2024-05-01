@@ -25,6 +25,7 @@ import {
   nothing,
 } from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
@@ -381,7 +382,12 @@ export class FeaturePage extends LitElement {
         <sl-icon slot="suffix" name="box-arrow-up-right"></sl-icon>
         <div class="hbox logo-button">
           ${logo
-            ? html`<img src=${logo} alt="${logoAlt}" width="24" height="24" />`
+            ? html`<img
+                src=${logo}
+                alt="${ifDefined(logoAlt)}"
+                width="24"
+                height="24"
+              />`
             : nothing}
           ${label}
         </div>
