@@ -43,3 +43,16 @@ export const initRouter = async (element: HTMLElement): Promise<Router> => {
   ]);
   return router;
 };
+
+export interface AppLocation {
+  search: string;
+  href: string;
+}
+
+export const navigateToUrl = (url: string) => {
+  window.location.href = url;
+};
+
+export const getCurrentLocation = (): AppLocation => {
+  return window.location;
+};
