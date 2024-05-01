@@ -32,6 +32,7 @@ func (s *Server) ListAggregatedWPTMetrics(
 		getFeatureIDsOrDefault(request.Params.FeatureIds),
 		string(request.Browser),
 		string(request.Channel),
+		request.MetricView,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,
 		getPageSizeOrDefault(request.Params.PageSize),

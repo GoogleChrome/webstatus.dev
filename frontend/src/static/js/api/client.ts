@@ -57,6 +57,9 @@ export const ALL_CHANNELS: ChannelsParameter[] = [
   EXPERIMENTAL_CHANNEL,
 ];
 
+const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
+  'subtest_counts';
+
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
 
@@ -158,12 +161,17 @@ export class APIClient {
     const allData: WPTRunMetric[] = [];
     do {
       const response = await this.client.GET(
-        '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
+        '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}',
         {
           ...temporaryFetchOptions,
           params: {
             query: {startAt, endAt, page_token: nextPageToken},
-            path: {feature_id: featureId, browser, channel},
+            path: {
+              feature_id: featureId,
+              browser,
+              channel,
+              metric_view: DEFAULT_TEST_VIEW,
+            },
           },
         }
       );
@@ -194,12 +202,12 @@ export class APIClient {
     const allData: WPTRunMetric[] = [];
     do {
       const response = await this.client.GET(
-        '/v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts',
+        '/v1/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}',
         {
           ...temporaryFetchOptions,
           params: {
             query: {startAt, endAt, page_token: nextPageToken},
-            path: {browser, channel},
+            path: {browser, channel, metric_view: DEFAULT_TEST_VIEW},
           },
         }
       );

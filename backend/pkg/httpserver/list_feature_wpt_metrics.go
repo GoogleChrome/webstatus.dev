@@ -33,6 +33,7 @@ func (s *Server) ListFeatureWPTMetrics(
 		request.FeatureId,
 		string(request.Browser),
 		string(request.Channel),
+		request.MetricView,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,
 		getPageSizeOrDefault(request.Params.PageSize),

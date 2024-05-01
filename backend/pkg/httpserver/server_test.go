@@ -32,6 +32,7 @@ type MockListMetricsForFeatureIDBrowserAndChannelConfig struct {
 	expectedFeatureID string
 	expectedBrowser   string
 	expectedChannel   string
+	expectedMetric    backend.WPTMetricView
 	expectedStartAt   time.Time
 	expectedEndAt     time.Time
 	expectedPageSize  int
@@ -45,6 +46,7 @@ type MockListMetricsOverTimeWithAggregatedTotalsConfig struct {
 	expectedFeatureIDs []string
 	expectedBrowser    string
 	expectedChannel    string
+	expectedMetric     backend.WPTMetricView
 	expectedStartAt    time.Time
 	expectedEndAt      time.Time
 	expectedPageSize   int
@@ -98,6 +100,7 @@ type MockWPTMetricsStorer struct {
 
 func (m *MockWPTMetricsStorer) ListMetricsForFeatureIDBrowserAndChannel(_ context.Context,
 	featureID string, browser string, channel string,
+	metric backend.WPTMetricView,
 	startAt time.Time, endAt time.Time,
 	pageSize int, pageToken *string) ([]backend.WPTRunMetric, *string, error) {
 	m.callCountListMetricsForFeatureIDBrowserAndChannel++
@@ -105,13 +108,14 @@ func (m *MockWPTMetricsStorer) ListMetricsForFeatureIDBrowserAndChannel(_ contex
 	if featureID != m.featureCfg.expectedFeatureID ||
 		browser != m.featureCfg.expectedBrowser ||
 		channel != m.featureCfg.expectedChannel ||
+		metric != m.featureCfg.expectedMetric ||
 		!startAt.Equal(m.featureCfg.expectedStartAt) ||
 		!endAt.Equal(m.featureCfg.expectedEndAt) ||
 		pageSize != m.featureCfg.expectedPageSize ||
 		pageToken != m.featureCfg.expectedPageToken {
 
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %s, %s, %s, %d %v }",
-			m.featureCfg, featureID, browser, channel, startAt, endAt, pageSize, pageToken)
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %s, %s, %s, %s, %d %v }",
+			m.featureCfg, featureID, browser, channel, metric, startAt, endAt, pageSize, pageToken)
 	}
 
 	return m.featureCfg.data, m.featureCfg.pageToken, m.featureCfg.err
@@ -122,6 +126,7 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 	featureIDs []string,
 	browser string,
 	channel string,
+	metric backend.WPTMetricView,
 	startAt, endAt time.Time,
 	pageSize int,
 	pageToken *string,
@@ -131,13 +136,14 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 	if !slices.Equal(featureIDs, m.aggregateCfg.expectedFeatureIDs) ||
 		browser != m.aggregateCfg.expectedBrowser ||
 		channel != m.aggregateCfg.expectedChannel ||
+		metric != m.aggregateCfg.expectedMetric ||
 		!startAt.Equal(m.aggregateCfg.expectedStartAt) ||
 		!endAt.Equal(m.aggregateCfg.expectedEndAt) ||
 		pageSize != m.aggregateCfg.expectedPageSize ||
 		pageToken != m.aggregateCfg.expectedPageToken {
 
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %s, %d %v }",
-			m.aggregateCfg, featureIDs, browser, channel, startAt, endAt, pageSize, pageToken)
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %s, %s, %d %v }",
+			m.aggregateCfg, featureIDs, browser, channel, metric, startAt, endAt, pageSize, pageToken)
 	}
 
 	return m.aggregateCfg.data, m.aggregateCfg.pageToken, m.aggregateCfg.err

@@ -124,6 +124,7 @@ func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
 	featureID string,
 	browser string,
 	channel string,
+	metric gcpspanner.WPTMetricView,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -133,6 +134,7 @@ func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
 		featureID != "feature" ||
 		browser != "browser" ||
 		channel != "channel" ||
+		metric != gcpspanner.WPTSubtestView ||
 		!startAt.Equal(testStart) ||
 		!endAt.Equal(testEnd) ||
 		pageSize != 100 ||
@@ -148,6 +150,7 @@ func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(
 	featureIDs []string,
 	browser string,
 	channel string,
+	metric gcpspanner.WPTMetricView,
 	startAt, endAt time.Time,
 	pageSize int,
 	pageToken *string,
@@ -156,6 +159,7 @@ func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(
 		!slices.Equal[[]string](featureIDs, []string{"feature1", "feature2"}) ||
 		browser != "browser" ||
 		channel != "channel" ||
+		metric != gcpspanner.WPTSubtestView ||
 		!startAt.Equal(testStart) ||
 		!endAt.Equal(testEnd) ||
 		pageSize != 100 ||
@@ -258,9 +262,10 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 				pageToken:   tc.pageToken,
 				err:         tc.err,
 			}
-			backend := NewBackend(mock)
-			metrics, pageToken, err := backend.ListMetricsForFeatureIDBrowserAndChannel(
-				context.Background(), "feature", "browser", "channel", testStart, testEnd, 100, nonNilInputPageToken)
+			b := NewBackend(mock)
+			metrics, pageToken, err := b.ListMetricsForFeatureIDBrowserAndChannel(
+				context.Background(), "feature", "browser", "channel", backend.SubtestCounts,
+				testStart, testEnd, 100, nonNilInputPageToken)
 			if !errors.Is(err, tc.expectedErr) {
 				t.Error("unexpected error")
 			}
@@ -434,12 +439,13 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 				pageToken:       tc.pageToken,
 				err:             tc.err,
 			}
-			backend := NewBackend(mock)
-			metrics, pageToken, err := backend.ListMetricsOverTimeWithAggregatedTotals(
+			b := NewBackend(mock)
+			metrics, pageToken, err := b.ListMetricsOverTimeWithAggregatedTotals(
 				context.Background(),
 				[]string{"feature1", "feature2"},
 				"browser",
 				"channel",
+				backend.SubtestCounts,
 				testStart,
 				testEnd,
 				100,

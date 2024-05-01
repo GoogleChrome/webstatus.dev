@@ -27,6 +27,62 @@ import (
 
 const WPTRunFeatureMetricTable = "WPTRunFeatureMetrics"
 
+func init() {
+	getFeatureMetricBaseTemplate = NewQueryTemplate(getFeatureMetricBaseRawTemplate)
+}
+
+// nolint: gochecknoglobals // WONTFIX. Compile the template once at startup. Startup fails if invalid.
+var (
+	// getFeatureMetricBaseTemplate is the compiled version of getFeatureMetricBaseRawTemplate.
+	getFeatureMetricBaseTemplate BaseQueryTemplate
+)
+
+const (
+	getFeatureMetricBaseRawTemplate = `
+	SELECT
+		r.ExternalRunID,
+		r.TimeStart,
+{{ if .IsSingleFeature }}
+		{{ .TotalColumn }} AS TotalTests,
+		{{ .PassColumn }} AS TestPass
+{{ else }}
+		SUM(wpfm.{{ .TotalColumn }}) AS TotalTests,
+		SUM(wpfm.{{ .PassColumn }}) AS TestPass
+{{ end }}
+	FROM WPTRuns r
+	JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
+	LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+	WHERE r.BrowserName = @browserName
+{{ if .FeatureKeyFilter }}
+		{{ .FeatureKeyFilter }}
+{{ end }}
+		AND r.Channel = @channel
+		AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
+{{ if .PageFilter }}
+		{{ .PageFilter }}
+{{ end }}
+{{ if not .IsSingleFeature }}
+	GROUP BY r.ExternalRunID, r.TimeStart
+{{ end }}
+	ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`
+
+	commonFeatureMetricPaginationRawTemplate = `
+		AND (r.TimeStart < @lastTimestamp OR
+			r.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)`
+
+	singleFeatureMetricSubsetRawTemplate    = `AND wf.FeatureKey = @featureKey`
+	multipleFeaturesMetricSubsetRawTemplate = `AND wf.FeatureKey IN UNNEST(@featureKeys)`
+)
+
+// FeatureMetricsTemplateData contains the variables for getFeatureMetricBaseRawTemplate.
+type FeatureMetricsTemplateData struct {
+	TotalColumn      string
+	PassColumn       string
+	PageFilter       string
+	FeatureKeyFilter string
+	IsSingleFeature  bool
+}
+
 // SpannerWPTRunFeatureMetric is a wrapper for the metric data that is actually
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user since it is used to decouple the primary keys between
@@ -203,15 +259,36 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 	return nil
 }
 
+// Helper function to determine the correct TestPass column name.
+func metricsTestPassColumn(metricView WPTMetricView) string {
+	switch metricView {
+	case WPTSubtestView:
+		return "SubtestPass"
+	case WPTTestView:
+		return "TestPass"
+	}
+
+	return "SubtestPass"
+}
+
+// Helper function to determine the correct PassRate column name.
+func metricsTotalTestColumn(metricView WPTMetricView) string {
+	switch metricView {
+	case WPTSubtestView:
+		return "TotalSubtests"
+	case WPTTestView:
+		return "TotalTests"
+	}
+
+	return "TotalSubtests"
+}
+
 // WPTRunFeatureMetricWithTime contains metrics for a feature at a given time.
 type WPTRunFeatureMetricWithTime struct {
 	TimeStart  time.Time `spanner:"TimeStart"`
 	RunID      int64     `spanner:"ExternalRunID"`
 	TotalTests *int64    `spanner:"TotalTests"`
 	TestPass   *int64    `spanner:"TestPass"`
-	// TODO enable metrics over time endpoints soon.
-	// TotalSubtests *int64    `spanner:"TotalSubtests"`
-	// SubtestPass   *int64    `spanner:"SubtestPass"`
 }
 
 // ListMetricsForFeatureIDBrowserAndChannel attempts to return a page of
@@ -224,12 +301,12 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 	featureKey string,
 	browser string,
 	channel string,
+	metric WPTMetricView,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
 ) ([]WPTRunFeatureMetricWithTime, *string, error) {
-	var stmt spanner.Statement
 	params := map[string]interface{}{
 		"featureKey":  featureKey,
 		"browserName": browser,
@@ -239,37 +316,25 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 		"pageSize":    pageSize,
 	}
 
-	if pageToken == nil {
-		stmt = spanner.NewStatement(
-			`SELECT r.ExternalRunID, r.TimeStart, wpfm.TotalTests, wpfm.TestPass
-				FROM WPTRuns r
-				JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-				LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
-				WHERE wf.FeatureKey = @featureKey
-					AND r.BrowserName = @browserName
-					AND r.Channel = @channel
-		  			AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
-				ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
-	} else {
+	tmplData := FeatureMetricsTemplateData{
+		TotalColumn:      metricsTotalTestColumn(metric),
+		PassColumn:       metricsTestPassColumn(metric),
+		PageFilter:       "",
+		FeatureKeyFilter: singleFeatureMetricSubsetRawTemplate,
+		IsSingleFeature:  true,
+	}
+
+	if pageToken != nil {
 		cursor, err := decodeWPTRunCursor(*pageToken)
 		if err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		stmt = spanner.NewStatement(
-			`SELECT r.ExternalRunID, r.TimeStart, wpfm.TotalTests, wpfm.TestPass
-                FROM WPTRuns r
-                JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-				LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
-                WHERE wf.FeatureKey = @featureKey
-					AND r.BrowserName = @browserName
-					AND r.Channel = @channel
-                   	AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
-                   	AND (r.TimeStart < @lastTimestamp OR
-                    	r.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)
-                ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
 		params["lastTimestamp"] = cursor.LastTimeStart
 		params["lastRunID"] = cursor.LastRunID
+		tmplData.PageFilter = commonFeatureMetricPaginationRawTemplate
 	}
+	tmpl := getFeatureMetricBaseTemplate.Execute(tmplData)
+	stmt := spanner.NewStatement(tmpl)
 	stmt.Params = params
 
 	txn := c.Single()
@@ -324,6 +389,7 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 	featureKeys []string,
 	browser string,
 	channel string,
+	metric WPTMetricView,
 	startAt, endAt time.Time,
 	pageSize int,
 	pageToken *string,
@@ -336,13 +402,18 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 		"pageSize":    pageSize,
 	}
 
-	var stmt spanner.Statement
+	tmplData := FeatureMetricsTemplateData{
+		TotalColumn:      metricsTotalTestColumn(metric),
+		PassColumn:       metricsTestPassColumn(metric),
+		PageFilter:       "",
+		FeatureKeyFilter: "",
+		IsSingleFeature:  false,
+	}
+
 	// nolint: nestif // TODO: fix in the future.
 	if pageToken == nil {
-		if len(featureKeys) == 0 {
-			stmt = noPageTokenAllFeatures(params)
-		} else {
-			stmt = noPageTokenFeatureSubset(params, featureKeys)
+		if len(featureKeys) > 0 {
+			noPageTokenFeatureSubset(params, featureKeys, &tmplData)
 		}
 	} else {
 		cursor, err := decodeWPTRunCursor(*pageToken)
@@ -350,11 +421,15 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 		if len(featureKeys) == 0 {
-			stmt = withPageTokenAllFeatures(params, *cursor)
+			withPageTokenAllFeatures(params, *cursor, &tmplData)
 		} else {
-			stmt = withPageTokenFeatureSubset(params, featureKeys, *cursor)
+			withPageTokenFeatureSubset(params, featureKeys, *cursor, &tmplData)
 		}
 	}
+
+	tmpl := getFeatureMetricBaseTemplate.Execute(tmplData)
+	stmt := spanner.NewStatement(tmpl)
+	stmt.Params = params
 
 	txn := c.Single()
 	defer txn.Close()
@@ -387,103 +462,33 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 	return aggregationMetrics, nil, nil
 }
 
-// noPageTokenAllFeatures builds a spanner statement when a page token
-// is not provided and the aggregation applies to all features.
-func noPageTokenAllFeatures(params map[string]interface{}) spanner.Statement {
-	stmt := spanner.NewStatement(`
-		SELECT
-			r.ExternalRunID,
-			r.TimeStart,
-			SUM(wpfm.TotalTests) AS TotalTests,
-			SUM(wpfm.TestPass) AS TestPass
-		FROM WPTRuns r
-		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-		WHERE r.BrowserName = @browserName
-		AND r.Channel = @channel
-		AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
-		GROUP BY r.ExternalRunID, r.TimeStart
-		ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
-	stmt.Params = params
-
-	return stmt
-}
-
-// noPageTokenFeatureSubset builds a spanner statement when a page token is
+// noPageTokenFeatureSubset adjusts the template data and parameters when a page token is
 // not provided and the aggregation applies to a particular list of features.
-func noPageTokenFeatureSubset(params map[string]interface{}, featureKeys []string) spanner.Statement {
-	stmt := spanner.NewStatement(`
-	SELECT
-		r.ExternalRunID,
-		r.TimeStart,
-		SUM(wpfm.TotalTests) AS TotalTests,
-		SUM(wpfm.TestPass) AS TestPass
-	FROM WPTRuns r
-	JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-	LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
-	WHERE wf.FeatureKey IN UNNEST(@featureKeys)
-	AND r.BrowserName = @browserName
-	AND r.Channel = @channel
-	AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
-	GROUP BY r.ExternalRunID, r.TimeStart
-	ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
+func noPageTokenFeatureSubset(params map[string]interface{}, featureKeys []string,
+	tmplData *FeatureMetricsTemplateData) {
 	params["featureKeys"] = featureKeys
-	stmt.Params = params
-
-	return stmt
+	tmplData.FeatureKeyFilter = multipleFeaturesMetricSubsetRawTemplate
 }
 
-// withPageTokenAllFeatures builds a spanner statement when a page token is
+// withPageTokenAllFeatures adjusts the template data and parameters when a page token is
 // provided and the aggregation applies to all features.
-func withPageTokenAllFeatures(params map[string]interface{}, cursor WPTRunCursor) spanner.Statement {
-	stmt := spanner.NewStatement(`
-		SELECT
-			r.ExternalRunID,
-			r.TimeStart,
-			SUM(wpfm.TotalTests) AS TotalTests,
-			SUM(wpfm.TestPass) AS TestPass
-		FROM WPTRuns r
-		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-		WHERE r.BrowserName = @browserName
-		AND r.Channel = @channel
-		AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
-		AND (r.TimeStart < @lastTimestamp OR
-			 r.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)
-		GROUP BY r.ExternalRunID, r.TimeStart
-		ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
+func withPageTokenAllFeatures(params map[string]interface{}, cursor WPTRunCursor,
+	tmplData *FeatureMetricsTemplateData) {
+	tmplData.PageFilter = commonFeatureMetricPaginationRawTemplate
 	params["lastTimestamp"] = cursor.LastTimeStart
 	params["lastRunID"] = cursor.LastRunID
-	stmt.Params = params
-
-	return stmt
 }
 
-// withPageTokenFeatureSubset builds a spanner statement when a page token is
+// withPageTokenFeatureSubset adjusts the template data and parameters when a page token is
 // provided and the aggregation applies to a particular list of features.
 func withPageTokenFeatureSubset(
 	params map[string]interface{},
 	featureKeys []string,
-	cursor WPTRunCursor) spanner.Statement {
-	stmt := spanner.NewStatement(`
-		SELECT
-			r.ExternalRunID,
-			r.TimeStart,
-			SUM(wpfm.TotalTests) AS TotalTests,
-			SUM(wpfm.TestPass) AS TestPass
-		FROM WPTRuns r
-		JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
-		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
-		WHERE wf.FeatureKey IN UNNEST(@featureKeys)
-		AND r.BrowserName = @browserName
-		AND r.Channel = @channel
-		AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
-		AND (r.TimeStart < @lastTimestamp OR
-			 r.TimeStart = @lastTimestamp AND r.ExternalRunID < @lastRunID)
-		GROUP BY r.ExternalRunID, r.TimeStart
-		ORDER BY r.TimeStart DESC, r.ExternalRunID DESC LIMIT @pageSize`)
+	cursor WPTRunCursor,
+	tmplData *FeatureMetricsTemplateData) {
+	tmplData.PageFilter = commonFeatureMetricPaginationRawTemplate
+	tmplData.FeatureKeyFilter = multipleFeaturesMetricSubsetRawTemplate
 	params["featureKeys"] = featureKeys
 	params["lastTimestamp"] = cursor.LastTimeStart
 	params["lastRunID"] = cursor.LastRunID
-	stmt.Params = params
-
-	return stmt
 }
