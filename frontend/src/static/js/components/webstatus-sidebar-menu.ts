@@ -68,10 +68,10 @@ interface GetLocationFunction {
 }
 
 interface NavigateToUrlFunction {
-  (url: string): void;
+  (url: string, event?: MouseEvent): void;
 }
 
-const defaultBookmarks: Bookmark[] = [
+const DEFAULT_BOOKMARKS: Bookmark[] = [
   {name: 'Baseline 2023', query: 'baseline_date:2023-01-01..2023-12-31'},
 ];
 
@@ -85,6 +85,10 @@ export class WebstatusSidebarMenu extends LitElement {
           font-size: 24px;
           vertical-align: middle;
         }
+        .bookmark-link {
+          color: inherit;
+          text-decoration: none;
+        }
       `,
     ];
   }
@@ -96,6 +100,16 @@ export class WebstatusSidebarMenu extends LitElement {
     super.connectedCallback();
     this.downloadBookmarks();
     this.updateActiveStatus();
+    this.addEventListener('popstate', this.handlePopState);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('popstate', this.handlePopState);
+  }
+
+  private handlePopState() {
+    this.updateActiveStatus();
   }
 
   @state()
@@ -105,24 +119,36 @@ export class WebstatusSidebarMenu extends LitElement {
   private activeBookmarkQuery: string | null = null;
 
   updateActiveStatus(): void {
+    this.highlightNavigationItem(this.getNavTree());
     const location = this.getLocation();
     const queryParams = new URLSearchParams(location.search);
     const currentQuery = queryParams.get('q');
 
-    this.activeBookmarkQuery =
+    // Check if activeBookmarkQuery needs to be updated
+    const newActiveBookmarkQuery =
       this.bookmarks.find(bookmark => bookmark.query === currentQuery)?.query ||
       null;
+
+    // Only request an update if activeBookmarkQuery has changed
+    if (newActiveBookmarkQuery !== this.activeBookmarkQuery) {
+      this.activeBookmarkQuery = newActiveBookmarkQuery;
+    }
   }
 
   getActiveBookmarkQuery(): string | null {
     return this.activeBookmarkQuery;
   }
 
+  getNavTree(): SlTree | undefined {
+    return this.shadowRoot!.querySelector('sl-tree') as SlTree;
+  }
+
   downloadBookmarks() {
     // If we did not set any bookmarks, "download" (future) and add the default bookmarks.
+    // The future downloaded bookmarks would be saved bookmarks for an individual user.
     if (this.bookmarks.length === 0) {
       // In the future, we can get more bookmarks from the backend and combine with the default list here.
-      this.setBookmarks(defaultBookmarks);
+      this.setBookmarks(DEFAULT_BOOKMARKS);
     }
   }
 
@@ -130,22 +156,25 @@ export class WebstatusSidebarMenu extends LitElement {
     this.bookmarks = newBookmarks;
   }
 
-  private handleBookmarkClick(bookmark: Bookmark) {
+  private handleBookmarkClick(event: MouseEvent, bookmark: Bookmark) {
+    event.preventDefault();
     const newUrl = formatOverviewPageUrl(this.getLocation(), {
       q: bookmark.query,
+      start: 0,
     });
 
-    this.navigate(newUrl);
+    this.navigate(newUrl, event);
 
-    this.updateActiveStatus();
+    // Update active state only if it has changed
+    if (this.activeBookmarkQuery !== bookmark.query) {
+      this.activeBookmarkQuery = bookmark.query;
+    }
   }
 
-  firstUpdated(): void {
-    const tree = this.shadowRoot!.querySelector('sl-tree') as SlTree;
+  private highlightNavigationItem(tree: SlTree | undefined) {
     if (!tree) {
-      throw new Error('No tree found');
+      return;
     }
-
     // Reselect the sl-tree-item corresponding to the current URL path.
     const currentUrl = new URL(this.getLocation().href);
     const currentPath = currentUrl.pathname;
@@ -161,6 +190,15 @@ export class WebstatusSidebarMenu extends LitElement {
         itemToSelect.selected = true;
       }
     }
+  }
+
+  firstUpdated(): void {
+    const tree = this.getNavTree();
+    if (!tree) {
+      throw new Error('No tree found');
+    }
+
+    this.highlightNavigationItem(tree);
 
     tree!.addEventListener('sl-selection-change', () => {
       const selectedItems = tree.selectedItems;
@@ -173,6 +211,7 @@ export class WebstatusSidebarMenu extends LitElement {
       if (!navigationItem) {
         return;
       }
+      const currentUrl = new URL(this.getLocation().href);
       currentUrl.pathname = navigationItem.path;
 
       if (currentUrl.href !== this.getLocation().href) {
@@ -182,16 +221,31 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   renderBookmark(bookmark: Bookmark, index: number): TemplateResult {
-    const isQueryActive = this.activeBookmarkQuery === bookmark.query;
-    const bookmarkIcon = isQueryActive ? 'bookmark-star' : 'bookmark';
     const bookmarkId = `bookmark${index}`;
+    const currentLocation = this.getLocation();
+    const currentURL = new URL(currentLocation.href);
+    const bookmarkUrl = formatOverviewPageUrl(currentURL, {
+      q: bookmark.query,
+      start: 0,
+    });
+    // The bookmark should only be active when the path is the FEATURES path
+    // and the query is set to the active query.
+    const isQueryActive =
+      currentURL.pathname === navigationMap[NavigationItemKey.FEATURES].path &&
+      new URLSearchParams(currentLocation.search).get('q') ===
+        this.activeBookmarkQuery &&
+      bookmark.query === this.activeBookmarkQuery;
+    const bookmarkIcon = isQueryActive ? 'bookmark-star' : 'bookmark';
+
     return html`
-      <sl-tree-item
-        id=${bookmarkId}
-        ?selected=${isQueryActive}
-        @click=${() => this.handleBookmarkClick(bookmark)}
-      >
-        <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}
+      <sl-tree-item id=${bookmarkId} ?selected=${isQueryActive}>
+        <a
+          class="bookmark-link"
+          href="${bookmarkUrl}"
+          @click=${(e: MouseEvent) => this.handleBookmarkClick(e, bookmark)}
+        >
+          <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}</a
+        >
       </sl-tree-item>
     `;
   }

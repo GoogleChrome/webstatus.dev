@@ -15,7 +15,7 @@
  */
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
-import {customElement} from 'lit/decorators.js';
+import {customElement, state} from 'lit/decorators.js';
 import {formatOverviewPageUrl, getSearchQuery} from '../utils/urls.js';
 import {openColumnsDialog} from './webstatus-columns-dialog.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
@@ -25,6 +25,7 @@ import './webstatus-overview-table.js';
 
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
+  @state()
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {
@@ -76,6 +77,22 @@ export class WebstatusOverviewFilters extends LitElement {
 
   filterInput!: SlInput;
   filterInputMap!: Map<string, string[]>;
+
+  connectedCallback() {
+    super.connectedCallback();
+
+    this.addEventListener('popstate', this.handlePopState.bind(this));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('popstate', this.handlePopState);
+  }
+
+  private handlePopState() {
+    this.location = window.location;
+    this.initializeFilterInput();
+  }
 
   // Initializes the filter input map with the values from the URL.
   // Gets the filter input string from filter-input-input

@@ -51,7 +51,7 @@ describe('webstatus-sidebar-menu', () => {
   });
 
   it('renders the correct structure with features and statistics sections', async () => {
-    expect(el).shadowDom.to.be.accessible();
+    await expect(el).shadowDom.to.be.accessible();
 
     const tree = el.shadowRoot?.querySelector('sl-tree');
     const featuresItem = tree?.querySelector('#features-item');
@@ -84,7 +84,7 @@ describe('webstatus-sidebar-menu', () => {
 
     el.updateActiveStatus();
     await el.updateComplete;
-    expect((el.getLocation as sinon.SinonStub).calledOnce).to.be.true;
+    expect(el.getLocation as sinon.SinonStub).to.be.called;
     expect(el.getActiveBookmarkQuery()).to.equal(el.bookmarks[1].query);
   });
 
@@ -94,7 +94,7 @@ describe('webstatus-sidebar-menu', () => {
       ?.querySelector('#features-item');
     expect(featuresItem).to.exist;
     const bookmarkItem = featuresItem!.querySelector(
-      '#bookmark0'
+      '#bookmark0 a'
     ) as SlTreeItem;
     expect(bookmarkItem).to.exist;
     expect(el.getActiveBookmarkQuery()).to.be.null;
@@ -111,7 +111,8 @@ describe('webstatus-sidebar-menu', () => {
     });
     await el.updateComplete;
 
-    expect(el.navigate).to.have.been.calledWith(expectedUrl);
+    expect((el.navigate as sinon.SinonStub).callCount).to.eq(1);
+    expect(el.navigate).to.have.been.calledWith(expectedUrl, sinon.match.any);
     expect(el.getActiveBookmarkQuery()).to.equal(el.bookmarks[0].query);
 
     const bookmarkItems = el.shadowRoot
