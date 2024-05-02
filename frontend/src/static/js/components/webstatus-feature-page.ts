@@ -294,7 +294,7 @@ export class FeaturePage extends LitElement {
       vAxis: {
         minValue: 0,
         title: 'Number of subtests passed',
-        format: "#,###",
+        format: '#,###',
       },
       legend: {position: 'top'},
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},

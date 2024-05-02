@@ -46,10 +46,10 @@ export const ALL_BROWSERS: BrowsersParameter[] = [
 
 /** Map from browser id to label */
 export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
-'chrome': 'Chrome',
-'firefox': 'Firefox',
-'safari': 'Safari',
-'edge': 'Edge'
+  chrome: 'Chrome',
+  firefox: 'Firefox',
+  safari: 'Safari',
+  edge: 'Edge',
 };
 
 export type ChannelsParameter = components['parameters']['channelPathParam'];
