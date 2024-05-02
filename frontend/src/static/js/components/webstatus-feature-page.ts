@@ -32,6 +32,7 @@ import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 import {
   ALL_BROWSERS,
+  BROWSER_ID_TO_LABEL,
   STABLE_CHANNEL,
   FeatureWPTMetricViewType,
   type APIClient,
@@ -232,9 +233,9 @@ export class FeaturePage extends LitElement {
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
     dataObj.cols.push({type: 'date', label: 'Date'});
     for (const browser of browsers) {
-      dataObj.cols.push({type: 'number', label: browser});
+      dataObj.cols.push({type: 'number', label: BROWSER_ID_TO_LABEL[browser]});
     }
-    dataObj.cols.push({type: 'number', label: 'Total'});
+    dataObj.cols.push({type: 'number', label: 'Total number of subtests'});
 
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
@@ -284,12 +285,17 @@ export class FeaturePage extends LitElement {
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
+      interpolateNulls: true,
       hAxis: {
         title: '',
         titleTextStyle: {color: '#333'},
         viewWindow: {min: this.startDate, max: endDate},
       },
-      vAxis: {minValue: 0},
+      vAxis: {
+        minValue: 0,
+        title: 'Number of subtests passed',
+        format: "#,###",
+      },
       legend: {position: 'top'},
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
     } as google.visualization.LineChartOptions;
