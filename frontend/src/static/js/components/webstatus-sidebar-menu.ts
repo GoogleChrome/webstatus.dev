@@ -21,8 +21,14 @@ import {
   css,
   html,
 } from 'lit';
-import {customElement} from 'lit/decorators.js';
+import {customElement, state} from 'lit/decorators.js';
 import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
+import {formatOverviewPageUrl} from '../utils/urls.js';
+import {
+  AppLocation,
+  getCurrentLocation,
+  navigateToUrl,
+} from '../utils/app-router.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
@@ -50,6 +56,25 @@ const navigationMap: NavigationMap = {
   },
 };
 
+export interface Bookmark {
+  // Display name
+  name: string;
+  // Query for filtering
+  query: string;
+}
+
+interface GetLocationFunction {
+  (): AppLocation;
+}
+
+interface NavigateToUrlFunction {
+  (url: string, event?: MouseEvent): void;
+}
+
+const DEFAULT_BOOKMARKS: Bookmark[] = [
+  {name: 'Baseline 2023', query: 'baseline_date:2023-01-01..2023-12-31'},
+];
+
 @customElement('webstatus-sidebar-menu')
 export class WebstatusSidebarMenu extends LitElement {
   static get styles(): CSSResultGroup {
@@ -60,18 +85,84 @@ export class WebstatusSidebarMenu extends LitElement {
           font-size: 24px;
           vertical-align: middle;
         }
+        .bookmark-link {
+          color: inherit;
+          text-decoration: none;
+        }
       `,
     ];
   }
 
-  firstUpdated(): void {
-    const tree = this.shadowRoot!.querySelector('sl-tree') as SlTree;
-    if (!tree) {
-      throw new Error('No tree found');
-    }
+  getLocation: GetLocationFunction = getCurrentLocation;
+  navigate: NavigateToUrlFunction = navigateToUrl;
 
+  constructor() {
+    super();
+    window.addEventListener('popstate', this.handlePopState.bind(this));
+  }
+
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.downloadBookmarks();
+    this.updateActiveStatus();
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+  }
+
+  private handlePopState() {
+    this.updateActiveStatus();
+  }
+
+  @state()
+  bookmarks: Bookmark[] = [];
+
+  @state()
+  private activeBookmarkQuery: string | null = null;
+
+  updateActiveStatus(): void {
+    this.highlightNavigationItem(this.getNavTree());
+    const location = this.getLocation();
+    const queryParams = new URLSearchParams(location.search);
+    const currentQuery = queryParams.get('q');
+
+    // Check if activeBookmarkQuery needs to be updated
+    const newActiveBookmarkQuery =
+      this.bookmarks.find(bookmark => bookmark.query === currentQuery)?.query ||
+      null;
+
+    this.activeBookmarkQuery = newActiveBookmarkQuery;
+    this.requestUpdate();
+  }
+
+  getActiveBookmarkQuery(): string | null {
+    return this.activeBookmarkQuery;
+  }
+
+  getNavTree(): SlTree | undefined {
+    return this.shadowRoot!.querySelector('sl-tree') as SlTree;
+  }
+
+  downloadBookmarks() {
+    // If we did not set any bookmarks, "download" (future) and add the default bookmarks.
+    // The future downloaded bookmarks would be saved bookmarks for an individual user.
+    if (this.bookmarks.length === 0) {
+      // In the future, we can get more bookmarks from the backend and combine with the default list here.
+      this.setBookmarks(DEFAULT_BOOKMARKS);
+    }
+  }
+
+  setBookmarks(newBookmarks: Bookmark[]) {
+    this.bookmarks = newBookmarks;
+  }
+
+  private highlightNavigationItem(tree: SlTree | undefined) {
+    if (!tree) {
+      return;
+    }
     // Reselect the sl-tree-item corresponding to the current URL path.
-    const currentUrl = new URL(window.location.href);
+    const currentUrl = new URL(this.getLocation().href);
     const currentPath = currentUrl.pathname;
     const matchingNavItem = Object.values(navigationMap).find(
       item => item.path === currentPath
@@ -85,6 +176,15 @@ export class WebstatusSidebarMenu extends LitElement {
         itemToSelect.selected = true;
       }
     }
+  }
+
+  firstUpdated(): void {
+    const tree = this.getNavTree();
+    if (!tree) {
+      throw new Error('No tree found');
+    }
+
+    this.highlightNavigationItem(tree);
 
     tree!.addEventListener('sl-selection-change', () => {
       const selectedItems = tree.selectedItems;
@@ -97,12 +197,39 @@ export class WebstatusSidebarMenu extends LitElement {
       if (!navigationItem) {
         return;
       }
+      const currentUrl = new URL(this.getLocation().href);
       currentUrl.pathname = navigationItem.path;
 
-      if (currentUrl.href !== window.location.href) {
-        window.location.href = currentUrl.href;
+      if (currentUrl.href !== this.getLocation().href) {
+        this.navigate(currentUrl.href);
       }
     });
+  }
+
+  renderBookmark(bookmark: Bookmark, index: number): TemplateResult {
+    const bookmarkId = `bookmark${index}`;
+    const currentLocation = this.getLocation();
+    const currentURL = new URL(currentLocation.href);
+    const bookmarkUrl = formatOverviewPageUrl(currentURL, {
+      q: bookmark.query,
+      start: 0,
+    });
+    // The bookmark should only be active when the path is the FEATURES path
+    // and the query is set to the active query.
+    const isQueryActive =
+      currentURL.pathname === navigationMap[NavigationItemKey.FEATURES].path &&
+      new URLSearchParams(currentLocation.search).get('q') ===
+        this.activeBookmarkQuery &&
+      bookmark.query === this.activeBookmarkQuery;
+    const bookmarkIcon = isQueryActive ? 'bookmark-star' : 'bookmark';
+
+    return html`
+      <sl-tree-item id=${bookmarkId} ?selected=${isQueryActive}>
+        <a class="bookmark-link" href="${bookmarkUrl}">
+          <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}
+        </a>
+      </sl-tree-item>
+    `;
   }
 
   render(): TemplateResult {
@@ -113,9 +240,9 @@ export class WebstatusSidebarMenu extends LitElement {
 
         <sl-tree-item id="${NavigationItemKey.FEATURES}">
           <sl-icon name="menu-button"></sl-icon> Features
-          <sl-tree-item>
-            <sl-icon name="bookmark"></sl-icon> Baseline 2023
-          </sl-tree-item>
+          ${this.bookmarks.map((bookmark, index) =>
+            this.renderBookmark(bookmark, index)
+          )}
         </sl-tree-item>
         <sl-tree-item id="${NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics

@@ -43,3 +43,22 @@ export const initRouter = async (element: HTMLElement): Promise<Router> => {
   ]);
   return router;
 };
+
+export interface AppLocation {
+  search: string;
+  href: string;
+}
+
+export const navigateToUrl = (url: string, event?: MouseEvent) => {
+  if ((event !== undefined && event.ctrlKey) || event?.metaKey) {
+    window.open(url, '_blank');
+    return;
+  }
+
+  // TODO. We should use the vaadin router and use the navigate method there.
+  window.location.href = url;
+};
+
+export const getCurrentLocation = (): AppLocation => {
+  return window.location;
+};
