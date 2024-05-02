@@ -96,16 +96,19 @@ export class WebstatusSidebarMenu extends LitElement {
   getLocation: GetLocationFunction = getCurrentLocation;
   navigate: NavigateToUrlFunction = navigateToUrl;
 
+  constructor() {
+    super();
+    window.addEventListener('popstate', this.handlePopState.bind(this));
+  }
+
   connectedCallback(): void {
     super.connectedCallback();
     this.downloadBookmarks();
     this.updateActiveStatus();
-    this.addEventListener('popstate', this.handlePopState);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
-    this.removeEventListener('popstate', this.handlePopState);
   }
 
   private handlePopState() {
@@ -154,21 +157,6 @@ export class WebstatusSidebarMenu extends LitElement {
 
   setBookmarks(newBookmarks: Bookmark[]) {
     this.bookmarks = newBookmarks;
-  }
-
-  private handleBookmarkClick(event: MouseEvent, bookmark: Bookmark) {
-    event.preventDefault();
-    const newUrl = formatOverviewPageUrl(this.getLocation(), {
-      q: bookmark.query,
-      start: 0,
-    });
-
-    this.navigate(newUrl, event);
-
-    // Update active state only if it has changed
-    if (this.activeBookmarkQuery !== bookmark.query) {
-      this.activeBookmarkQuery = bookmark.query;
-    }
   }
 
   private highlightNavigationItem(tree: SlTree | undefined) {
@@ -239,13 +227,9 @@ export class WebstatusSidebarMenu extends LitElement {
 
     return html`
       <sl-tree-item id=${bookmarkId} ?selected=${isQueryActive}>
-        <a
-          class="bookmark-link"
-          href="${bookmarkUrl}"
-          @click=${(e: MouseEvent) => this.handleBookmarkClick(e, bookmark)}
-        >
-          <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}</a
-        >
+        <a class="bookmark-link" href="${bookmarkUrl}">
+          <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}
+        </a>
       </sl-tree-item>
     `;
   }

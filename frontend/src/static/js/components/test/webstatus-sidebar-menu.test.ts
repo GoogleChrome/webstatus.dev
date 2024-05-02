@@ -17,7 +17,6 @@
 import {expect, fixture, html} from '@open-wc/testing';
 import sinon from 'sinon';
 import {Bookmark, WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
-import {formatOverviewPageUrl} from '../../utils/urls.js';
 import {SlTreeItem} from '@shoelace-style/shoelace';
 import '../webstatus-sidebar-menu.js';
 
@@ -89,30 +88,39 @@ describe('webstatus-sidebar-menu', () => {
   });
 
   it('correctly handles bookmark clicks', async () => {
-    const featuresItem = el.shadowRoot
-      ?.querySelector('sl-tree')
-      ?.querySelector('#features-item');
-    expect(featuresItem).to.exist;
-    const bookmarkItem = featuresItem!.querySelector(
-      '#bookmark0 a'
+    // Get the whole tree item
+    const bookmarkItem = el.shadowRoot?.querySelector(
+      'sl-tree-item[id="bookmark0"]'
     ) as SlTreeItem;
     expect(bookmarkItem).to.exist;
+
+    // Get the anchor element within the tree item
+    const bookmarkAnchor = bookmarkItem.querySelector('a') as HTMLAnchorElement;
+    expect(bookmarkAnchor).to.exist;
+
     expect(el.getActiveBookmarkQuery()).to.be.null;
 
-    // Set mock location to match a test bookmark
     (el.getLocation as sinon.SinonStub).returns({
       search: `?q=${el.bookmarks[0].query}`,
       href: `http://localhost/?q=${el.bookmarks[0].query}`,
     });
 
-    bookmarkItem!.click();
-    const expectedUrl = formatOverviewPageUrl(new URL('http://localhost/'), {
-      q: el.bookmarks[0].query,
-    });
+    // Stub the click method to prevent default behavior
+    const clickStub = sinon.stub(bookmarkAnchor, 'click');
+
+    // Click the anchor
+    bookmarkAnchor.click();
     await el.updateComplete;
 
-    expect((el.navigate as sinon.SinonStub).callCount).to.eq(1);
-    expect(el.navigate).to.have.been.calledWith(expectedUrl, sinon.match.any);
+    // Simulate popstate event.
+    const popStateEvent = new PopStateEvent('popstate', {
+      state: {},
+    });
+    window.dispatchEvent(popStateEvent);
+    await el.updateComplete;
+
+    // Assertions
+    expect(clickStub.calledOnce).to.be.true;
     expect(el.getActiveBookmarkQuery()).to.equal(el.bookmarks[0].query);
 
     const bookmarkItems = el.shadowRoot
@@ -130,6 +138,9 @@ describe('webstatus-sidebar-menu', () => {
     expect(bookmarkItems[1].querySelector('sl-icon')?.name).to.equal(
       'bookmark'
     );
+
+    // Restore
+    clickStub.restore();
   });
 
   it('marks the active bookmark item as selected on first load', async () => {
