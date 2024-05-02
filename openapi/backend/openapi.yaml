@@ -144,7 +144,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/test_counts:
+  /v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}:
     parameters:
       - name: feature_id
         in: path
@@ -154,6 +154,7 @@ paths:
           type: string
       - $ref: '#/components/parameters/browserPathParam'
       - $ref: '#/components/parameters/channelPathParam'
+      - $ref: '#/components/parameters/metricViewPathParam'
     get:
       summary: Retrieve the wpt stats for a particular feature.
       operationId: listFeatureWPTMetrics
@@ -293,10 +294,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/stats/wpt/browsers/{browser}/channels/{channel}/test_counts:
+  /v1/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
       - $ref: '#/components/parameters/channelPathParam'
+      - $ref: '#/components/parameters/metricViewPathParam'
     get:
       summary: >
         Gets aggregated WPT test counts for a specified browser and channel. Optionally filter by feature IDs.
@@ -371,6 +373,13 @@ components:
         enum:
           - stable
           - experimental
+    metricViewPathParam:
+      in: path
+      name: metric_view
+      description: Specified metric view of the WPT data.
+      required: true
+      schema:
+        $ref: '#/components/schemas/WPTMetricView'
     startAtParam:
       in: query
       name: startAt
