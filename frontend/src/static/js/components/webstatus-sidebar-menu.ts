@@ -121,6 +121,10 @@ export class WebstatusSidebarMenu extends LitElement {
   @state()
   private activeBookmarkQuery: string | null = null;
 
+  // For now, unconditionally open the features dropdown.
+  @state()
+  private isFeaturesDropdownExpanded: boolean = true;
+
   updateActiveStatus(): void {
     this.highlightNavigationItem(this.getNavTree());
     const location = this.getLocation();
@@ -238,7 +242,10 @@ export class WebstatusSidebarMenu extends LitElement {
         <sl-icon name="caret-right-fill" slot="expand-icon"></sl-icon>
         <sl-icon name="caret-right-fill" slot="collapse-icon"></sl-icon>
 
-        <sl-tree-item id="${NavigationItemKey.FEATURES}">
+        <sl-tree-item
+          id="${NavigationItemKey.FEATURES}"
+          expanded=${this.isFeaturesDropdownExpanded}
+        >
           <sl-icon name="menu-button"></sl-icon> Features
           ${this.bookmarks.map((bookmark, index) =>
             this.renderBookmark(bookmark, index)
