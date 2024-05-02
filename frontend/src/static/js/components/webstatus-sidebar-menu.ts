@@ -132,10 +132,8 @@ export class WebstatusSidebarMenu extends LitElement {
       this.bookmarks.find(bookmark => bookmark.query === currentQuery)?.query ||
       null;
 
-    // Only request an update if activeBookmarkQuery has changed
-    if (newActiveBookmarkQuery !== this.activeBookmarkQuery) {
-      this.activeBookmarkQuery = newActiveBookmarkQuery;
-    }
+    this.activeBookmarkQuery = newActiveBookmarkQuery;
+    this.requestUpdate();
   }
 
   getActiveBookmarkQuery(): string | null {

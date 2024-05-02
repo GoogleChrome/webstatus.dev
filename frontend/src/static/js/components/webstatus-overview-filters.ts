@@ -78,22 +78,6 @@ export class WebstatusOverviewFilters extends LitElement {
   filterInput!: SlInput;
   filterInputMap!: Map<string, string[]>;
 
-  connectedCallback() {
-    super.connectedCallback();
-
-    this.addEventListener('popstate', this.handlePopState.bind(this));
-  }
-
-  disconnectedCallback() {
-    super.disconnectedCallback();
-    this.removeEventListener('popstate', this.handlePopState);
-  }
-
-  private handlePopState() {
-    this.location = window.location;
-    this.initializeFilterInput();
-  }
-
   // Initializes the filter input map with the values from the URL.
   // Gets the filter input string from filter-input-input
   initializeFilterInput(): void {
