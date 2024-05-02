@@ -44,6 +44,14 @@ export const ALL_BROWSERS: BrowsersParameter[] = [
   'edge',
 ];
 
+/** Map from browser id to label */
+export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
+  chrome: 'Chrome',
+  firefox: 'Firefox',
+  safari: 'Safari',
+  edge: 'Edge',
+};
+
 export type ChannelsParameter = components['parameters']['channelPathParam'];
 
 export const STABLE_CHANNEL: ChannelsParameter = 'stable';
