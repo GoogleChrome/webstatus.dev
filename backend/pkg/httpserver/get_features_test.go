@@ -68,6 +68,7 @@ func TestGetV1Features(t *testing.T) {
 							BrowserImplementations: &map[string]backend.BrowserImplementation{
 								"browser1": {
 									Status: valuePtr(backend.Available),
+									Date:   nil,
 								},
 							},
 						},
@@ -96,6 +97,7 @@ func TestGetV1Features(t *testing.T) {
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser1": {
 								Status: valuePtr(backend.Available),
+								Date:   nil,
 							},
 						},
 					},
@@ -177,6 +179,8 @@ func TestGetV1Features(t *testing.T) {
 							BrowserImplementations: &map[string]backend.BrowserImplementation{
 								"chrome": {
 									Status: valuePtr(backend.Available),
+									Date: &openapi_types.Date{
+										Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 								},
 							},
 						},
@@ -205,6 +209,8 @@ func TestGetV1Features(t *testing.T) {
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"chrome": {
 								Status: valuePtr(backend.Available),
+								Date: &openapi_types.Date{
+									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							},
 						},
 					},

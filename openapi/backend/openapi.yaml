@@ -499,6 +499,10 @@ components:
           x-enum-varnames:
             - Unavailable
             - Available
+        date:
+          type: string
+          format: date
+          description: The date on which the feature was implemented in a browser. (RFC 3339, section 5.6, for example, 2017-07-21)
     PageMetadata:
       type: object
       properties:

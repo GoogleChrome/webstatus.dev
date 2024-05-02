@@ -399,27 +399,31 @@ COALESCE(
 	(
 		SELECT ARRAY_AGG(
 			STRUCT(
-				BrowserName,
+				bfa.BrowserName AS BrowserName,
 				COALESCE(
 					(
 						SELECT 'available'
-						FROM BrowserFeatureAvailabilities bfa
+						FROM BrowserFeatureAvailabilities bfa1
 						WHERE bfa.WebFeatureID = wf.ID
-							AND BrowserName = bfa.BrowserName
+							AND bfa1.BrowserName = bfa.BrowserName
 						LIMIT 1
 					),
 					'unavailable' -- Default if no match
-				) AS ImplementationStatus
+				) AS ImplementationStatus,
+				COALESCE(br.ReleaseDate, CAST(NULL AS TIMESTAMP)) AS ImplementationDate
 			)
 		)
 		FROM BrowserFeatureAvailabilities bfa
+		LEFT JOIN BrowserReleases br
+			ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
 		WHERE bfa.WebFeatureID = wf.ID
 	),
 	(
 		SELECT ARRAY(
 	   		SELECT AS STRUCT
 				'' BrowserName,
-				'unavailable' AS ImplementationStatus
+				'unavailable' AS ImplementationStatus,
+				CAST(NULL AS TIMESTAMP) AS ImplementationDate
 		)
 	)
 ) AS ImplementationStatuses

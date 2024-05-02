@@ -53,6 +53,7 @@ const (
 type ImplementationStatus struct {
 	BrowserName          string                      `spanner:"BrowserName"`
 	ImplementationStatus BrowserImplementationStatus `spanner:"ImplementationStatus"`
+	ImplementationDate   *time.Time                  `spanner:"ImplementationDate"`
 }
 
 // FeatureResultMetric contains metric information for a feature result query.
@@ -259,5 +260,5 @@ func findImplementationStatusDefaultPlaceHolder(in *ImplementationStatus) bool {
 		return false
 	}
 
-	return in.BrowserName == "" && in.ImplementationStatus == Unavailable
+	return in.BrowserName == "" && in.ImplementationStatus == Unavailable && in.ImplementationDate == nil
 }

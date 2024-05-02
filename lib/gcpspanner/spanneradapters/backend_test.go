@@ -618,6 +618,8 @@ func TestFeaturesSearch(t *testing.T) {
 								{
 									BrowserName:          "browser3",
 									ImplementationStatus: gcpspanner.Available,
+									ImplementationDate: valuePtr(
+										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
 								},
 							},
 						},
@@ -651,10 +653,14 @@ func TestFeaturesSearch(t *testing.T) {
 								{
 									BrowserName:          "browser1",
 									ImplementationStatus: gcpspanner.Available,
+									ImplementationDate: valuePtr(
+										time.Date(1998, time.January, 1, 0, 0, 0, 0, time.UTC)),
 								},
 								{
 									BrowserName:          "browser2",
 									ImplementationStatus: gcpspanner.Available,
+									ImplementationDate: valuePtr(
+										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
 								},
 							},
 						},
@@ -704,6 +710,8 @@ func TestFeaturesSearch(t *testing.T) {
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser3": {
 								Status: valuePtr(backend.Available),
+								Date: &openapi_types.Date{
+									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							},
 						},
 					},
@@ -742,9 +750,13 @@ func TestFeaturesSearch(t *testing.T) {
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser1": {
 								Status: valuePtr(backend.Available),
+								Date: &openapi_types.Date{
+									Time: time.Date(1998, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							},
 							"browser2": {
 								Status: valuePtr(backend.Available),
+								Date: &openapi_types.Date{
+									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							},
 						},
 					},
