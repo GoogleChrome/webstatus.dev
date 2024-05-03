@@ -132,6 +132,7 @@ export class FeaturePage extends LitElement {
         }
         .wptScore .avail {
           color: var(--unimportant-text-color);
+          font-size: 90%;
         }
         .logo-button {
           gap: var(--content-padding-half);
@@ -520,13 +521,16 @@ export class FeaturePage extends LitElement {
     if (status === undefined) return html``;
 
     const chipConfig = BASELINE_CHIP_CONFIGS[status];
-
+    const sinceDate =
+      this.feature.baseline?.high_date || this.feature.baseline?.low_date;
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
         <div>Baseline</div>
         <div class="score">${chipConfig.word}</div>
-        <div class="avail">Baseline since ...</div>
+        ${sinceDate
+          ? html`<div class="avail">Baseline since ${sinceDate}</div>`
+          : nothing}
       </sl-card>
     `;
   }
