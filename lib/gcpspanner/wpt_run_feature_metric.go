@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"errors"
+	"log/slog"
 	"math/big"
 	"time"
 
@@ -139,7 +140,15 @@ func (c *Client) convertExternalMetricsToSpannerMetrics(ctx context.Context,
 	for externalFeatureID, inputMetric := range inputMetrics {
 		featureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(externalFeatureID))
 		if err != nil {
-			return nil, err
+			if errors.Is(err, ErrQueryReturnedNoResults) {
+				slog.Warn(
+					"unable to find internal webfeatureID for key. will skip", "key",
+					externalFeatureID)
+
+				continue
+			}
+
+			return nil, errors.Join(err, ErrInternalQueryFailure)
 		}
 		if featureID == nil {
 			return nil, ErrInternalQueryFailure

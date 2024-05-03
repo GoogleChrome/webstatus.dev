@@ -22,7 +22,7 @@ variable "data_window_duration" {
 variable "timeout_seconds" {
   description = "Timeout for the WPT job. Details here: https://cloud.google.com/run/docs/configuring/request-timeout#terraform"
   type        = number
-  default     = "3600" # An hour
+  default     = "86400" # 24 hours
 }
 
 # Variables from parent modules.
