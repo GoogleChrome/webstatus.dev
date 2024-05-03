@@ -389,6 +389,7 @@ const (
 	commonFSBaseQueryTemplate = `
 FROM WebFeatures wf
 LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.ID = fbs.WebFeatureID
+LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate

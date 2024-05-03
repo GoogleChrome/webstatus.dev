@@ -53,9 +53,13 @@ const (
 	FROM WPTRuns r
 	JOIN WPTRunFeatureMetrics wpfm ON r.ID = wpfm.ID
 	LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
+	LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
 	WHERE r.BrowserName = @browserName
 {{ if .FeatureKeyFilter }}
 		{{ .FeatureKeyFilter }}
+{{ end }}
+{{ if .ExtraFilter }}
+		{{ .ExtraFilter }}
 {{ end }}
 		AND r.Channel = @channel
 		AND r.TimeStart >= @startAt AND r.TimeStart < @endAt
@@ -81,6 +85,7 @@ type FeatureMetricsTemplateData struct {
 	PassColumn       string
 	PageFilter       string
 	FeatureKeyFilter string
+	ExtraFilter      string
 	IsSingleFeature  bool
 }
 
@@ -330,6 +335,7 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 		PassColumn:       metricsTestPassColumn(metric),
 		PageFilter:       "",
 		FeatureKeyFilter: singleFeatureMetricSubsetRawTemplate,
+		ExtraFilter:      removeExcludedKeyFilterAND,
 		IsSingleFeature:  true,
 	}
 
@@ -416,6 +422,7 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 		PassColumn:       metricsTestPassColumn(metric),
 		PageFilter:       "",
 		FeatureKeyFilter: "",
+		ExtraFilter:      removeExcludedKeyFilterAND,
 		IsSingleFeature:  false,
 	}
 
