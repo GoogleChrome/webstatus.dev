@@ -90,7 +90,7 @@ export const BASELINE_CHIP_CONFIGS: Record<
   },
   newly: {
     cssClass: 'newly',
-    icon: 'cross.svg', // TODO(jrobbins): need dotted check
+    icon: 'newly.svg',
     word: 'Newly available',
   },
   widely: {
