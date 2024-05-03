@@ -291,7 +291,11 @@ export class FeaturePage extends LitElement {
       },
       vAxis: {minValue: 0},
       legend: {position: 'top'},
-      chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+      chartArea: { left: 100, right: 16, top: 40, bottom: 40 },
+      tooltip: { trigger: 'selection' },
+      // Uncomment to allow multiple selection of points,
+      // and all selected points will be summarized in one tooltip.
+      // selectionMode: 'multiple',
     } as google.visualization.LineChartOptions;
 
     this.featureSupportChartOptions = options;
