@@ -131,23 +131,34 @@ const BROWSER_IMPL_ICONS: Record<
   available: 'check-circle',
 };
 
+function renderPercentage(score?: number): TemplateResult {
+  if (score === undefined) {
+    return MISSING_VALUE;
+  }
+  let percent = Number(score * 100).toFixed(1);
+  if (percent === '100.0') {
+    percent = '100';
+  }
+  return html` <span class="percent">${percent}%</span> `;
+}
+
 export const renderBrowserQuality: CellRenderer = (
   feature,
   _routerLocation,
   {browser}
 ) => {
   const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
-  let percentage = MISSING_VALUE;
+  let percentage = renderPercentage(score);
   const browserImpl =
     feature.browser_implementations?.[browser!]?.status || 'unavailable';
-  if (score !== undefined && browserImpl !== 'unavailable') {
-    percentage = html`${Number(score * 100).toFixed(1)}%`;
+  if (browserImpl === 'unavailable') {
+    percentage = MISSING_VALUE;
   }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
     <div class="browser-impl-${browserImpl}">
       <sl-icon name="${iconName}" library="custom"></sl-icon>
-      <span class="percent">${percentage}</span>
+      ${percentage}
     </div>
   `;
 };
@@ -159,11 +170,7 @@ export const renderBrowserQualityExp: CellRenderer = (
 ) => {
   const score: number | undefined =
     feature.wpt?.experimental?.[browser!]?.score;
-  let percentage = MISSING_VALUE;
-  if (score !== undefined) {
-    percentage = html`${Number(score * 100).toFixed(1)}%`;
-  }
-  return html` <span class="percent">${percentage}</span> `;
+  return renderPercentage(score);
 };
 
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
