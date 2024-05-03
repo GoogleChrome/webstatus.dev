@@ -215,176 +215,54 @@ export class WebstatusOverviewFilters extends LitElement {
     }
   }
 
+  renderColumnButton(): TemplateResult {
+    return html`
+      <sl-button
+        slot="trigger"
+        @click=${() => openColumnsDialog(this.location)}
+      >
+        <sl-icon
+          slot="prefix"
+          name="square-split-horizontal"
+          library="phosphor"
+        ></sl-icon>
+        Columns
+      </sl-button>
+    `;
+  }
+
+  renderFilterInputBox(input: string): TemplateResult {
+    return html`
+      <sl-input
+        id="filter-input-input"
+        class="halign-stretch"
+        placeholder="Filter by ..."
+        value="${input}"
+        @keyup=${this.handleSearchKey}
+      >
+        <sl-button
+          id="filter-submit-button"
+          class="glow-btn"
+          size="small"
+          type="submit"
+          slot="prefix"
+          submit
+          variant="success"
+          outline
+          @click=${() => this.gotoFilterQueryString()}
+        >
+          <sl-icon slot="prefix" name="search"></sl-icon>
+        </sl-button>
+      </sl-input>
+    `;
+  }
+
   render(): TemplateResult {
     const input = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          <sl-input
-            id="filter-input-input"
-            class="halign-stretch"
-            placeholder="Filter by ..."
-            value="${input}"
-            @keyup=${this.handleSearchKey}
-          >
-            <sl-button
-              id="filter-submit-button"
-              class="glow-btn"
-              size="small"
-              type="submit"
-              slot="prefix"
-              submit
-              variant="success"
-              outline
-              @click=${() => this.gotoFilterQueryString()}
-            >
-              <sl-icon slot="prefix" name="search"></sl-icon>
-            </sl-button>
-          </sl-input>
-        </div>
-
-        <div class="hbox wrap filter-buttons">
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Available on
-            </sl-button>
-            <sl-menu id="available_on">
-              <sl-menu-item type="checkbox" value="chrome">
-                Chrome
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-              <sl-menu-item type="checkbox" value="firefox">
-                Firefox
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="safari">
-                Safari
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Not available on
-            </sl-button>
-            <sl-menu id="not_available_on">
-              <sl-menu-item type="checkbox" value="chrome">
-                Chrome
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-              <sl-menu-item type="checkbox" value="firefox">
-                Firefox
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="safari">
-                Safari
-              </sl-menu-item>
-              <sl-divider></sl-divider>
-              <sl-menu-item type="checkbox" value="not-in">
-                Not available in 1 browser
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-button id="baseline_since_button">
-            <sl-icon name="plus-circle"></sl-icon>
-            Baseline since
-            <sl-icon name="calendar-blank" library="phosphor"></sl-icon>
-          </sl-button>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Baseline status
-            </sl-button>
-            <sl-menu id="baseline_status">
-              <sl-menu-item type="checkbox" value="widely">
-                Widely available
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="newly">
-                Newly available
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="limited">
-                Limited availability
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Browser type
-            </sl-button>
-            <sl-menu id="browser_type">
-              <sl-menu-item type="checkbox" value="stable-builds">
-                Stable builds
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="dev-builds">
-                Dev builds
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-button id="standards_track_button">
-            <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-            Standards track
-            <sl-checkbox> </sl-checkbox>
-          </sl-button>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Spec maturity
-            </sl-button>
-            <sl-menu id="spec_maturity">
-              <sl-menu-item type="checkbox" value="unknown">
-                Unknown
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="proposed">
-                Proposed
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="incubation">
-                Incubation
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="working-draft">
-                Working draft
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="living-standard">
-                Living standard
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-dropdown stay-open-on-select>
-            <sl-button slot="trigger">
-              <sl-icon slot="prefix" name="plus-circle"></sl-icon>
-              Web platform test score
-            </sl-button>
-            <sl-menu id="web_platform_test_score">
-              <sl-menu-item type="checkbox" value="chrome">
-                Chrome
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="edge"> Edge </sl-menu-item>
-              <sl-menu-item type="checkbox" value="firefox">
-                Firefox
-              </sl-menu-item>
-              <sl-menu-item type="checkbox" value="safari">
-                Safari
-              </sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-
-          <sl-button
-            slot="trigger"
-            @click=${() => openColumnsDialog(this.location)}
-          >
-            <sl-icon
-              slot="prefix"
-              name="square-split-horizontal"
-              library="phosphor"
-            ></sl-icon>
-            Columns
-          </sl-button>
+          ${this.renderFilterInputBox(input)} ${this.renderColumnButton()}
         </div>
       </div>
     `;
