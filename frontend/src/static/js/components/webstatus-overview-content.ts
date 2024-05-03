@@ -57,18 +57,8 @@ export class WebstatusOverviewContent extends LitElement {
       return html`Loading features...`;
     }
 
-    const date = new Date().toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-    });
-
     return html`
       <span class="stats-summary"> ${this.totalCount} features </span>
-      <span class="stats-summary">
-        <sl-icon library="phosphor" name="clock-clockwise"></sl-icon>
-        Updated ${date}
-      </span>
     `;
   }
 
