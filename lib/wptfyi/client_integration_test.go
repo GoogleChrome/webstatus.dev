@@ -22,12 +22,16 @@ import (
 
 func TestGetRunsIntegration(t *testing.T) {
 	client := NewHTTPClient("wpt.fyi")
-	pageSize := 5
+	pageSize := 100
 	runs, err := client.GetRuns(context.TODO(), time.Now().AddDate(0, 0, -365).UTC(), pageSize, "chrome", "stable")
 	if err != nil {
 		t.Errorf("unexpected error getting runs: %s\n", err.Error())
 	}
-	if len(runs) != pageSize {
-		t.Errorf("unexpected page size. %d", len(runs))
+	// Looking back a year, we should have more than 100 runs given there is a one run per day
+	// This test is only to make sure we get more than the pageSize of results because currently
+	// the external client will fetch the first pageSize of results but there may be actually more.
+	// Our code ensures we get all the pages, not just the first page.
+	if len(runs) <= pageSize {
+		t.Errorf("unexpected page size %d. expected more than %d runs", len(runs), pageSize)
 	}
 }
