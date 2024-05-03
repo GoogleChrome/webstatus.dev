@@ -236,6 +236,16 @@ func (b *FeatureSearchFilterBuilder) baselineDateFilter(rawDate string, op searc
 	return fmt.Sprintf(`LowDate %s @%s`, searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
+// Exclude all that do not have an entry in ExcludedFeatureKeys.
+const removeExcludedKeyFilter = "efk.FeatureKey IS NULL"
+const removeExcludedKeyFilterAND = "AND " + removeExcludedKeyFilter
+
+func defaultFeatureSearchFilters() []string {
+	return []string{
+		removeExcludedKeyFilter,
+	}
+}
+
 // Filterable modifies a query with a given filter.
 type Filterable interface {
 	Params() map[string]interface{}
@@ -255,8 +265,9 @@ func (q FeatureSearchQueryBuilder) CountQueryBuild(
 	args := FeatureSearchCountArgs{
 		Filters: nil,
 	}
+	args.Filters = defaultFeatureSearchFilters()
 	if filter != nil {
-		args.Filters = filter.filters
+		args.Filters = append(args.Filters, filter.filters...)
 		maps.Copy(filterParams, filter.Params())
 	}
 
@@ -306,8 +317,9 @@ func (q FeatureSearchQueryBuilder) Build(
 	if q.offsetCursor != nil {
 		queryArgs.Offset = q.offsetCursor.Offset
 	}
+	queryArgs.Filters = defaultFeatureSearchFilters()
 	if filter != nil {
-		queryArgs.Filters = filter.filters
+		queryArgs.Filters = append(queryArgs.Filters, filter.filters...)
 		maps.Copy(filterParams, filter.Params())
 	}
 
