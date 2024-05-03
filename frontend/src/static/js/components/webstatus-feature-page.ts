@@ -461,7 +461,7 @@ export class FeaturePage extends LitElement {
   ): TemplateResult {
     const channel = 'stable';
     const runs = this.featureSupport.get(featureSupportKey(browser, channel));
-    if (runs === undefined) {
+    if (runs === undefined || runs.length === 0) {
       return html` <span class="chip small unchanged"></span> `;
     }
 
