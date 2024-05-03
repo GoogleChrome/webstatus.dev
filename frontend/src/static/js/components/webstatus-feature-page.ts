@@ -465,6 +465,12 @@ export class FeaturePage extends LitElement {
     const scorePart = this.feature
       ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
       : nothing;
+    const sinceDate: string | undefined =
+      this.feature?.browser_implementations?.[browser]?.date;
+    const sincePhrase =
+      sinceDate && this.endDate > new Date(sinceDate)
+        ? 'Available since'
+        : 'Became available on';
 
     return html`
       <sl-card class="halign-stretch wptScore">
@@ -474,7 +480,9 @@ export class FeaturePage extends LitElement {
           ${scorePart}
           <span class="chip small increased">+1.2%</span>
         </div>
-        <div class="avail">Available since ...</div>
+        ${sinceDate
+          ? html`<div class="avail">${sincePhrase} ${sinceDate}</div>`
+          : nothing}
       </sl-card>
     `;
   }
