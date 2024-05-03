@@ -105,12 +105,14 @@ func (w WPTJobProcessor) Process(
 	job JobArguments) error {
 
 	// 1. Fetch runs using the provided job arguments
+	slog.Info("fetching runs", "browser", job.browser, "channel", job.channel)
 	runs, err := w.runsGetter.GetRuns(ctx, job.from, job.pageSize, job.browser, job.channel)
 	if err != nil {
 		return err
 	}
 
 	// 2. Process fetched runs
+	slog.Info("processing runs", "browser", job.browser, "channel", job.channel, "run_count", len(runs))
 	err = w.runsProcessor.ProcessRuns(ctx, runs)
 	if err != nil {
 		return err

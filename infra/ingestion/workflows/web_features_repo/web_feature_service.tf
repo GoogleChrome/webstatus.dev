@@ -91,6 +91,7 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
         value = var.spanner_datails.instance
       }
     }
+    timeout         = format("%ds", var.timeout_seconds)
     service_account = google_service_account.web_feature_consumer_service_account.email
   }
   depends_on = [

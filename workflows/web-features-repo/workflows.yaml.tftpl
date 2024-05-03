@@ -5,6 +5,7 @@ main:
         call: http.post
         args:
           url: ${web_feature_consume_step_url}/v1/web-features
+          timeout: ${timeout}
           auth:
             type: OIDC
           headers:

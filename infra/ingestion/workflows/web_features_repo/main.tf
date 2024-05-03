@@ -30,6 +30,7 @@ resource "google_workflows_workflow" "workflow" {
     {
       web_feature_consume_step_url = google_cloud_run_v2_service.web_feature_service[count.index].uri
       repo_downloader_step_url     = var.repo_downloader_step_region_to_step_info_map[var.regions[count.index]].url
+      timeout                      = var.timeout_seconds
     }
   )
 }

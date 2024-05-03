@@ -31,6 +31,7 @@ resource "google_workflows_workflow" "workflow" {
       project_id   = google_cloud_run_v2_job.wpt[count.index].project
       job_name     = google_cloud_run_v2_job.wpt[count.index].name
       job_location = google_cloud_run_v2_job.wpt[count.index].location
+      timeout      = var.timeout_seconds
     }
   )
 }

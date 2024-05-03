@@ -48,12 +48,39 @@ func (w HTTPClient) GetRuns(
 		MaxCount: &pageSize,
 		Labels:   mapset.NewSetWith(browserName, channelName),
 	}
+
 	allRuns := shared.TestRuns{}
-	runs, err := shared.FetchRuns(w.hostname, apiOptions)
-	if err != nil {
-		return nil, err
+	var to *time.Time
+	var finalIDOfLastPage *int64
+	for {
+		if to != nil {
+			apiOptions.To = to
+		}
+		runs, err := shared.FetchRuns(w.hostname, apiOptions)
+		if err != nil {
+			return nil, err
+		}
+
+		lastRunOfPage := runs[len(runs)-1]
+		// Edge case:
+		// We are unable to get a page token back to start the next page. So
+		// there is a possibility that as we manually shift the "to" variable,
+		// we get the previous page. This can happen if the number of items per
+		// page equals "pageSize" exactly on every call. To mitigate, we track
+		// the last ID of the last page. If we see it again, we can stop.
+		if finalIDOfLastPage != nil && *finalIDOfLastPage == lastRunOfPage.ID {
+			break
+		}
+
+		allRuns = append(allRuns, runs...)
+
+		if len(runs) < pageSize {
+			break
+		}
+
+		to = &lastRunOfPage.CreatedAt
+		finalIDOfLastPage = &lastRunOfPage.ID
 	}
-	allRuns = append(allRuns, runs...)
 
 	return allRuns, nil
 }

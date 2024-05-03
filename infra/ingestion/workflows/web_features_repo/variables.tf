@@ -27,6 +27,12 @@ variable "repo_downloader_step_region_to_step_info_map" {
   }))
 }
 
+variable "timeout_seconds" {
+  description = "Timeout for the web features job. Details here: https://cloud.google.com/run/docs/configuring/request-timeout#terraform"
+  type        = number
+  default     = "600" # 10 minutes
+}
+
 variable "repo_bucket" {
   type = string
 }
