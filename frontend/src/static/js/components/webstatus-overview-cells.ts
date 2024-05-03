@@ -131,16 +131,15 @@ const BROWSER_IMPL_ICONS: Record<
   available: 'check-circle',
 };
 
-
 function renderPercentage(score?: number): TemplateResult {
-    if (score === undefined) {
-	return MISSING_VALUE;
-    }
-    let percent = Number(score * 100).toFixed(1);
-    if (percent === '100.0') {
-	percent = '100';
-    }
-    return html` <span class="percent">${percent}%</span> `;
+  if (score === undefined) {
+    return MISSING_VALUE;
+  }
+  let percent = Number(score * 100).toFixed(1);
+  if (percent === '100.0') {
+    percent = '100';
+  }
+  return html` <span class="percent">${percent}%</span> `;
 }
 
 export const renderBrowserQuality: CellRenderer = (
