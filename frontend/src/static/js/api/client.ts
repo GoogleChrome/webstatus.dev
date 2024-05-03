@@ -57,7 +57,7 @@ export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter|"total", string> = {
   firefox: '#F48400',
   safari: '#4285F4',
   edge: '#0F9D58',
-  total: '#0B0B0B',
+  total: '#888888',
 };
 
 export type ChannelsParameter = components['parameters']['channelPathParam'];
