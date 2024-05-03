@@ -33,6 +33,7 @@ import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 import {
   ALL_BROWSERS,
   BROWSER_ID_TO_LABEL,
+  BROWSER_ID_TO_COLOR,
   STABLE_CHANNEL,
   FeatureWPTMetricViewType,
   type APIClient,
@@ -281,6 +282,13 @@ export class FeaturePage extends LitElement {
   }
 
   generateFeatureSupportChartOptions(): google.visualization.LineChartOptions {
+    // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
+    const selectedBrowsers = this.featureSupportBrowsers;
+    const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
+      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
+      return BROWSER_ID_TO_COLOR[browserKey];
+    });
+
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options = {
@@ -297,7 +305,12 @@ export class FeaturePage extends LitElement {
         format: '#,###',
       },
       legend: {position: 'top'},
+      colors: seriesColors,
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+      tooltip: {trigger: 'selection'},
+      // Uncomment to allow multiple selection of points,
+      // and all selected points will be summarized in one tooltip.
+      // selectionMode: 'multiple',
     } as google.visualization.LineChartOptions;
 
     this.featureSupportChartOptions = options;

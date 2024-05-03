@@ -52,6 +52,15 @@ export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
   edge: 'Edge',
 };
 
+export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
+  {
+    chrome: '#FF0000',
+    firefox: '#F48400',
+    safari: '#4285F4',
+    edge: '#0F9D58',
+    total: '#888888',
+  };
+
 export type ChannelsParameter = components['parameters']['channelPathParam'];
 
 export const STABLE_CHANNEL: ChannelsParameter = 'stable';
