@@ -14,7 +14,43 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
+import {test, expect, Page} from '@playwright/test';
+
+async function setupFakeNow(page: Page): Promise<void> {
+  // Get fakeNow from UTC to extract the timeZone offset used in the test
+  const fakeNowDateTime = 'May 1 2020 12:34:56';
+  const fakeNowFromUTC = new Date(fakeNowDateTime);
+  const offset = fakeNowFromUTC.getTimezoneOffset();
+  const offsetSign = offset < 0 ? '-' : '+';
+  const offsetHours = `${Math.abs(Math.floor(offset / 60))}`.padStart(2, '0');
+  const offsetMinutes = `${Math.abs(offset % 60)}`.padStart(2, '0');
+  const offsetText = `${offsetSign}${offsetHours}:${offsetMinutes}`;
+
+  // Get fakeNow from the test timeZone
+  const fakeNow = new Date(`${fakeNowDateTime}Z${offsetText}`).valueOf();
+
+  // Update the Date accordingly in your test pages
+  await page.addInitScript(`{
+    // Extend Date constructor to default to fakeNow
+    Date = class extends Date {
+      constructor(...args) {
+        if (args.length === 0) {
+          super(${fakeNow});
+        } else {
+          super(...args);
+        }
+      }
+    }
+    // Override Date.now() to start from fakeNow
+    const __DateNowOffset = ${fakeNow} - Date.now();
+    const __DateNow = Date.now;
+    Date.now = () => __DateNow() + __DateNowOffset;
+  }`);
+}
+
+test.beforeEach(async ({page}) => {
+  await setupFakeNow(page);
+});
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/features/a117');
@@ -23,5 +59,6 @@ test('matches the screenshot', async ({page}) => {
   await page.waitForSelector('#feature-support-chart-container');
   await page.waitForTimeout(1000);
 
-  await expect(page).toHaveScreenshot();
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
 });
