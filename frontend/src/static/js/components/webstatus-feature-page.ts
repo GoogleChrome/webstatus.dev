@@ -304,10 +304,10 @@ export class FeaturePage extends LitElement {
         title: 'Number of subtests passed',
         format: '#,###',
       },
-      legend: { position: 'top' },
+      legend: {position: 'top'},
       colors: seriesColors,
-      chartArea: { left: 100, right: 16, top: 40, bottom: 40 },
-      tooltip: { trigger: 'selection' },
+      chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+      tooltip: {trigger: 'selection'},
       // Uncomment to allow multiple selection of points,
       // and all selected points will be summarized in one tooltip.
       // selectionMode: 'multiple',
