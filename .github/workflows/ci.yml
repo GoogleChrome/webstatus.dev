@@ -15,6 +15,7 @@
 name: 'build'
 on: # rebuild any PRs and main branch changes
   pull_request:
+  merge_group:
   push:
     branches:
       - main
