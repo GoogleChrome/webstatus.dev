@@ -457,36 +457,31 @@ export class FeaturePage extends LitElement {
   }
 
   renderDeltaChip(
-      browser: components['parameters']['browserPathParam']
+    browser: components['parameters']['browserPathParam']
   ): TemplateResult {
-      const channel = 'stable';
-      const runs = this.featureSupport.get(featureSupportKey(browser, channel));
-      if (runs === undefined) {
-    return html`
-<span class="chip small unchanged"></span>
-`;
-      }
+    const channel = 'stable';
+    const runs = this.featureSupport.get(featureSupportKey(browser, channel));
+    if (runs === undefined) {
+      return html` <span class="chip small unchanged"></span> `;
+    }
 
-      const firstRun = runs[0];
-      const lastRun = runs[runs.length - 1];
-      const firstPercent =
-          firstRun.test_pass_count! / firstRun.total_tests_count!;
-      const lastPercent =
-          lastRun.test_pass_count! / lastRun.total_tests_count!;
-      const delta = lastPercent - firstPercent;
-      let deltaStr = Number(delta).toFixed(1) + '%';
-      let deltaClass = 'unchanged';
-      if (delta > 0) {
-          deltaStr = '+' + deltaStr;
-          deltaClass = 'increased';
-      } else if (delta < 0) {
-          deltaClass = 'decreased';
-      } else {
-          deltaClass = 'unchanged';
-      }
-    return html`
-<span class="chip small ${deltaClass} ${browser}">${deltaStr}</span>
-`;
+    const firstRun = runs[0];
+    const lastRun = runs[runs.length - 1];
+    const firstPercent =
+      firstRun.test_pass_count! / firstRun.total_tests_count!;
+    const lastPercent = lastRun.test_pass_count! / lastRun.total_tests_count!;
+    const delta = lastPercent - firstPercent;
+    let deltaStr = Number(delta).toFixed(1) + '%';
+    let deltaClass = 'unchanged';
+    if (delta > 0) {
+      deltaStr = '+' + deltaStr;
+      deltaClass = 'increased';
+    } else if (delta < 0) {
+      deltaClass = 'decreased';
+    } else {
+      deltaClass = 'unchanged';
+    }
+    return html` <span class="chip small ${deltaClass}">${deltaStr}</span> `;
   }
 
   renderOneWPTCard(
@@ -501,10 +496,7 @@ export class FeaturePage extends LitElement {
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${browser[0].toUpperCase() + browser.slice(1)}</div>
-        <div class="score">
-          ${scorePart}
-          ${this.renderDeltaChip(browser)}
-        </div>
+        <div class="score">${scorePart} ${this.renderDeltaChip(browser)}</div>
         <div class="avail">Available since ...</div>
       </sl-card>
     `;
