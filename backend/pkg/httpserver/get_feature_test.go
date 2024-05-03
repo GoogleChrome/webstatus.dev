@@ -53,6 +53,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status: valuePtr(backend.Available),
+							Date:   &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 						},
 					},
 					FeatureId: "feature1",
@@ -77,6 +78,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
 					"chrome": {
 						Status: valuePtr(backend.Available),
+						Date:   &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 					},
 				},
 				FeatureId: "feature1",
@@ -111,6 +113,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status: valuePtr(backend.Available),
+							Date:   &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 						},
 					},
 					FeatureId: "feature1",
@@ -135,6 +138,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
 					"chrome": {
 						Status: valuePtr(backend.Available),
+						Date:   &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
 					},
 				},
 				FeatureId: "feature1",

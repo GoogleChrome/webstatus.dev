@@ -513,10 +513,12 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName:          "barBrowser",
 					ImplementationStatus: Available,
+					ImplementationDate:   valuePtr(time.Date(2000, time.February, 2, 0, 0, 0, 0, time.UTC)),
 				},
 				{
 					BrowserName:          "fooBrowser",
 					ImplementationStatus: Available,
+					ImplementationDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				},
 			},
 		}
@@ -551,6 +553,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName:          "barBrowser",
 					ImplementationStatus: Available,
+					ImplementationDate:   valuePtr(time.Date(2000, time.March, 2, 0, 0, 0, 0, time.UTC)),
 				},
 			},
 		}
@@ -572,6 +575,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName:          "fooBrowser",
 					ImplementationStatus: Available,
+					ImplementationDate:   valuePtr(time.Date(2000, time.February, 1, 0, 0, 0, 0, time.UTC)),
 				},
 			},
 		}
@@ -1567,24 +1571,25 @@ func AreFeatureResultsSlicesEqual(a, b []FeatureResult) bool {
 }
 
 func AreFeatureResultsEqual(a, b FeatureResult) bool {
-	if a.FeatureKey != b.FeatureKey ||
-		a.Name != b.Name ||
-		!reflect.DeepEqual(a.Status, b.Status) ||
-		!reflect.DeepEqual(a.LowDate, b.LowDate) ||
-		!reflect.DeepEqual(a.HighDate, b.HighDate) ||
-		!AreMetricsEqual(a.StableMetrics, b.StableMetrics) ||
-		!AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) ||
-		!AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) {
-		return false
-	}
-
-	return true
+	return a.FeatureKey == b.FeatureKey &&
+		a.Name == b.Name &&
+		reflect.DeepEqual(a.Status, b.Status) &&
+		reflect.DeepEqual(a.LowDate, b.LowDate) &&
+		reflect.DeepEqual(a.HighDate, b.HighDate) &&
+		AreMetricsEqual(a.StableMetrics, b.StableMetrics) &&
+		AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) &&
+		AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses)
 }
 
 func AreImplementationStatusesEqual(a, b []*ImplementationStatus) bool {
 	return slices.EqualFunc[[]*ImplementationStatus](a, b, func(a, b *ImplementationStatus) bool {
 		return a.BrowserName == b.BrowserName &&
-			(a.ImplementationStatus == b.ImplementationStatus)
+			(a.ImplementationStatus == b.ImplementationStatus) &&
+			((a.ImplementationDate == nil &&
+				b.ImplementationDate == nil) ||
+				(a.ImplementationDate != nil &&
+					b.ImplementationDate != nil &&
+					(*a.ImplementationDate).Equal(*b.ImplementationDate)))
 	})
 }
 
@@ -1641,6 +1646,7 @@ func PrettyPrintImplementationStatus(status *ImplementationStatus) string {
 	}
 	fmt.Fprintf(&builder, "\t\tBrowserName: %s\n", status.BrowserName)
 	fmt.Fprintf(&builder, "\t\tStatus: %s\n", status.ImplementationStatus)
+	fmt.Fprintf(&builder, "\t\tStatus: %s\n", status.ImplementationDate)
 
 	return builder.String()
 }

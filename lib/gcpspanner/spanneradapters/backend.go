@@ -337,8 +337,13 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		implementationMap := make(map[string]backend.BrowserImplementation, len(featureResult.ImplementationStatuses))
 		for _, status := range featureResult.ImplementationStatuses {
 			backendStatus := convertImplementationStatusToBackend(status.ImplementationStatus)
+			var date *openapi_types.Date
+			if status.ImplementationDate != nil {
+				date = &openapi_types.Date{Time: *status.ImplementationDate}
+			}
 			implementationMap[status.BrowserName] = backend.BrowserImplementation{
 				Status: &backendStatus,
+				Date:   date,
 			}
 		}
 		ret.BrowserImplementations = &implementationMap
