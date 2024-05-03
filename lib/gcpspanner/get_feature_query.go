@@ -63,8 +63,9 @@ func (q GetFeatureQueryBuilder) Build(
 		SortByStableBrowserImpl: nil,
 		SortByExpBrowserImpl:    nil,
 	}
+	queryArgs.Filters = defaultFeatureSearchFilters()
 	if filter != nil {
-		queryArgs.Filters = []string{filter.Clause()}
+		queryArgs.Filters = append(queryArgs.Filters, filter.Clause())
 		maps.Copy(filterParams, filter.Params())
 	}
 

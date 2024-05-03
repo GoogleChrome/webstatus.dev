@@ -25,6 +25,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
@@ -49,12 +50,22 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			Name:       "Feature 4",
 			FeatureKey: "feature4",
 		},
+		{
+			Name:       "Feature 5",
+			FeatureKey: "feature5",
+		},
 	}
 	for _, feature := range sampleFeatures {
 		err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
+	}
+
+	// Insert excluded feature 5
+	err := client.InsertExcludedFeatureKey(ctx, "feature5")
+	if err != nil {
+		t.Errorf("unexpected error during insert of excluded keys. %s", err.Error())
 	}
 
 	// nolint: dupl // Okay to duplicate for tests
@@ -1698,4 +1709,19 @@ func PrettyPrintFeatureResults(results []FeatureResult) string {
 	}
 
 	return builder.String()
+}
+
+// Test helper to populate ExcludedFeatureKeys table.
+func (c *Client) InsertExcludedFeatureKey(ctx context.Context, featureKey string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+		m := spanner.InsertOrUpdateMap(
+			"ExcludedFeatureKeys",
+			map[string]interface{}{
+				"FeatureKey": featureKey,
+			})
+
+		return txn.BufferWrite([]*spanner.Mutation{m})
+	})
+
+	return err
 }
