@@ -521,8 +521,7 @@ export class FeaturePage extends LitElement {
     if (status === undefined) return html``;
 
     const chipConfig = BASELINE_CHIP_CONFIGS[status];
-    const sinceDate =
-      this.feature.baseline?.high_date || this.feature.baseline?.low_date;
+    const sinceDate = this.feature.baseline?.low_date;
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
