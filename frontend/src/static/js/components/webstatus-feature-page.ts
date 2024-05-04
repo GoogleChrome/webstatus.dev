@@ -132,6 +132,7 @@ export class FeaturePage extends LitElement {
         }
         .wptScore .avail {
           color: var(--unimportant-text-color);
+          font-size: 90%;
         }
         .logo-button {
           gap: var(--content-padding-half);
@@ -493,13 +494,21 @@ export class FeaturePage extends LitElement {
     const scorePart = this.feature
       ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
       : nothing;
+    const sinceDate: string | undefined =
+      this.feature?.browser_implementations?.[browser]?.date;
+    const sincePhrase =
+      sinceDate && this.endDate > new Date(sinceDate)
+        ? 'Available since'
+        : 'Became available on';
 
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${browser[0].toUpperCase() + browser.slice(1)}</div>
         <div class="score">${scorePart} ${this.renderDeltaChip(browser)}</div>
-        <div class="avail">Available since ...</div>
+        ${sinceDate
+          ? html`<div class="avail">${sincePhrase} ${sinceDate}</div>`
+          : nothing}
       </sl-card>
     `;
   }
@@ -512,13 +521,16 @@ export class FeaturePage extends LitElement {
     if (status === undefined) return html``;
 
     const chipConfig = BASELINE_CHIP_CONFIGS[status];
-
+    const sinceDate =
+      this.feature.baseline?.high_date || this.feature.baseline?.low_date;
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
         <div>Baseline</div>
         <div class="score">${chipConfig.word}</div>
-        <div class="avail">Baseline since ...</div>
+        ${sinceDate
+          ? html`<div class="avail">Baseline since ${sinceDate}</div>`
+          : nothing}
       </sl-card>
     `;
   }
