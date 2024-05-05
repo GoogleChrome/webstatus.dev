@@ -37,9 +37,16 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
+			// nolint:dupl // WONTFIX - being explicit for short list of tests.
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
 				data: &backend.Feature{
 					Baseline: &backend.BaselineInfo{
 						Status: valuePtr(backend.Widely),
@@ -97,9 +104,16 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 		},
 		{
 			name: "Success Case - with optional params",
+			// nolint:dupl // WONTFIX - being explicit for short list of tests.
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
 				data: &backend.Feature{
 					Baseline: &backend.BaselineInfo{
 						Status: valuePtr(backend.Widely),
@@ -160,8 +174,14 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
-				data:                  nil,
-				err:                   gcpspanner.ErrQueryReturnedNoResults,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
+				data: nil,
+				err:  gcpspanner.ErrQueryReturnedNoResults,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId404JSONResponse{
@@ -181,8 +201,14 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
-				data:                  nil,
-				err:                   errTest,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
+				data: nil,
+				err:  errTest,
 			},
 			expectedCallCount: 1,
 			expectedResponse: backend.GetV1FeaturesFeatureId500JSONResponse{

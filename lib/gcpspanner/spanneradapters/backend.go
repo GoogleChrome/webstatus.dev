@@ -55,11 +55,13 @@ type BackendSpannerClient interface {
 		searchNode *searchtypes.SearchNode,
 		sortOrder gcpspanner.Sortable,
 		wptMetricView gcpspanner.WPTMetricView,
+		browsers []string,
 	) (*gcpspanner.FeatureResultPage, error)
 	GetFeature(
 		ctx context.Context,
 		filter gcpspanner.Filterable,
 		wptMetricView gcpspanner.WPTMetricView,
+		browsers []string,
 	) (*gcpspanner.FeatureResult, error)
 	GetIDFromFeatureKey(
 		ctx context.Context,
@@ -364,6 +366,20 @@ func getSpannerWPTMetricView(wptMetricView backend.WPTMetricView) gcpspanner.WPT
 	return gcpspanner.WPTSubtestView
 }
 
+type BrowserList []backend.BrowserPathParam
+
+func (b BrowserList) ToStringList() []string {
+	if len(b) == 0 {
+		return nil
+	}
+	ret := make([]string, 0, len(b))
+	for _, browser := range b {
+		ret = append(ret, string(browser))
+	}
+
+	return ret
+}
+
 func (s *Backend) FeaturesSearch(
 	ctx context.Context,
 	pageToken *string,
@@ -371,10 +387,12 @@ func (s *Backend) FeaturesSearch(
 	searchNode *searchtypes.SearchNode,
 	sortOrder *backend.GetV1FeaturesParamsSort,
 	wptMetricView backend.WPTMetricView,
+	browsers []backend.BrowserPathParam,
 ) (*backend.FeaturePage, error) {
 	spannerSortOrder := getFeatureSearchSortOrder(sortOrder)
 	page, err := s.client.FeaturesSearch(ctx, pageToken, pageSize, searchNode,
-		spannerSortOrder, getSpannerWPTMetricView(wptMetricView))
+		spannerSortOrder, getSpannerWPTMetricView(wptMetricView),
+		BrowserList(browsers).ToStringList())
 	if err != nil {
 		return nil, err
 	}
@@ -455,9 +473,11 @@ func (s *Backend) GetFeature(
 	ctx context.Context,
 	featureID string,
 	wptMetricView backend.WPTMetricView,
+	browsers []backend.BrowserPathParam,
 ) (*backend.Feature, error) {
 	filter := gcpspanner.NewFeatureKeyFilter(featureID)
-	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView))
+	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView),
+		BrowserList(browsers).ToStringList())
 	if err != nil {
 		return nil, err
 	}

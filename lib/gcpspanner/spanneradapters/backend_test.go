@@ -44,6 +44,7 @@ type mockFeaturesSearchConfig struct {
 	expectedSortable      gcpspanner.Sortable
 	expectedNode          *searchtypes.SearchNode
 	expectedWPTMetricView gcpspanner.WPTMetricView
+	expectedBrowsers      []string
 	result                *gcpspanner.FeatureResultPage
 	returnedError         error
 }
@@ -51,6 +52,7 @@ type mockFeaturesSearchConfig struct {
 type mockGetFeatureConfig struct {
 	expectedFilterable    gcpspanner.Filterable
 	expectedWPTMetricView gcpspanner.WPTMetricView
+	expectedBrowsers      []string
 	result                *gcpspanner.FeatureResult
 	returnedError         error
 }
@@ -81,9 +83,11 @@ type mockBackendSpannerClient struct {
 func (c mockBackendSpannerClient) GetFeature(
 	_ context.Context,
 	filter gcpspanner.Filterable,
-	view gcpspanner.WPTMetricView) (*gcpspanner.FeatureResult, error) {
+	view gcpspanner.WPTMetricView,
+	browsers []string) (*gcpspanner.FeatureResult, error) {
 	if !reflect.DeepEqual(filter, c.mockGetFeatureCfg.expectedFilterable) ||
-		view != c.mockGetFeatureCfg.expectedWPTMetricView {
+		view != c.mockGetFeatureCfg.expectedWPTMetricView ||
+		!slices.Equal(browsers, c.mockGetFeatureCfg.expectedBrowsers) {
 		c.t.Error("unexpected input to mock")
 	}
 
@@ -176,12 +180,14 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
 	sortOrder gcpspanner.Sortable,
-	wptMetricView gcpspanner.WPTMetricView) (*gcpspanner.FeatureResultPage, error) {
+	wptMetricView gcpspanner.WPTMetricView,
+	browsers []string) (*gcpspanner.FeatureResultPage, error) {
 	if pageToken != c.mockFeaturesSearchCfg.expectedPageToken ||
 		pageSize != c.mockFeaturesSearchCfg.expectedPageSize ||
 		!reflect.DeepEqual(searchNode, c.mockFeaturesSearchCfg.expectedNode) ||
 		!reflect.DeepEqual(sortOrder, c.mockFeaturesSearchCfg.expectedSortable) ||
-		wptMetricView != c.mockFeaturesSearchCfg.expectedWPTMetricView {
+		wptMetricView != c.mockFeaturesSearchCfg.expectedWPTMetricView ||
+		!slices.Equal(browsers, c.mockFeaturesSearchCfg.expectedBrowsers) {
 		c.t.Error("unexpected input to mock")
 	}
 
@@ -576,6 +582,7 @@ func TestFeaturesSearch(t *testing.T) {
 		inputPageToken     *string
 		inputPageSize      int
 		inputWPTMetricView backend.WPTMetricView
+		inputBrowsers      BrowserList
 		searchNode         *searchtypes.SearchNode
 		sortOrder          *backend.GetV1FeaturesParamsSort
 		expectedPage       *backend.FeaturePage
@@ -592,6 +599,11 @@ func TestFeaturesSearch(t *testing.T) {
 				},
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
 				expectedSortable:      gcpspanner.NewBaselineStatusSort(false),
+				expectedBrowsers: []string{
+					"browser1",
+					"browser2",
+					"browser3",
+				},
 				result: &gcpspanner.FeatureResultPage{
 					Total:         100,
 					NextPageToken: nonNilNextPageToken,
@@ -677,6 +689,11 @@ func TestFeaturesSearch(t *testing.T) {
 			},
 			sortOrder:          nil,
 			inputWPTMetricView: backend.SubtestCounts,
+			inputBrowsers: []backend.BrowserPathParam{
+				"browser1",
+				"browser2",
+				"browser3",
+			},
 			expectedPage: &backend.FeaturePage{
 				Metadata: backend.PageMetadataWithTotal{
 					NextPageToken: nonNilNextPageToken,
@@ -778,7 +795,8 @@ func TestFeaturesSearch(t *testing.T) {
 				tc.inputPageSize,
 				tc.searchNode,
 				tc.sortOrder,
-				tc.inputWPTMetricView)
+				tc.inputWPTMetricView,
+				tc.inputBrowsers)
 			if !errors.Is(err, tc.cfg.returnedError) {
 				t.Error("unexpected error")
 			}
@@ -884,15 +902,26 @@ func TestGetFeature(t *testing.T) {
 		cfg                mockGetFeatureConfig
 		inputFeatureID     string
 		inputWPTMetricView backend.WPTMetricView
+		inputBrowsers      BrowserList
 		expectedFeature    *backend.Feature
 	}{
 		{
 			name:               "regular",
 			inputFeatureID:     "feature1",
 			inputWPTMetricView: backend.SubtestCounts,
+			inputBrowsers: []backend.BrowserPathParam{
+				"browser1",
+				"browser2",
+				"browser3",
+			},
 			cfg: mockGetFeatureConfig{
 				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
+				expectedBrowsers: []string{
+					"browser1",
+					"browser2",
+					"browser3",
+				},
 				result: &gcpspanner.FeatureResult{
 					Name:       "feature 1",
 					FeatureKey: "feature1",
@@ -958,7 +987,7 @@ func TestGetFeature(t *testing.T) {
 			bk := NewBackend(mock)
 			feature, err := bk.GetFeature(
 				context.Background(),
-				tc.inputFeatureID, tc.inputWPTMetricView)
+				tc.inputFeatureID, tc.inputWPTMetricView, tc.inputBrowsers)
 			if !errors.Is(err, tc.cfg.returnedError) {
 				t.Error("unexpected error")
 			}

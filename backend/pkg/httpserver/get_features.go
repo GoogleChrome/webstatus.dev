@@ -61,6 +61,7 @@ func (s *Server) GetV1Features(
 		node,
 		req.Params.Sort,
 		getWPTMetricViewOrDefault(req.Params.WptMetricView),
+		defaultBrowsers(),
 	)
 
 	if err != nil {

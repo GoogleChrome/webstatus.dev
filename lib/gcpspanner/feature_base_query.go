@@ -15,17 +15,11 @@
 package gcpspanner
 
 import (
-	"context"
-	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 	"strings"
 	"text/template"
 	"time"
-
-	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
 )
 
 type WPTMetricView string
@@ -60,17 +54,6 @@ var (
 	localFSPassRateForBrowserTemplate BaseQueryTemplate
 	// localFSBrowserImplementationStatusTemplate is the compiled version of localFSBrowserImplementationStatusRawTemplate.
 	localFSBrowserImplementationStatusTemplate BaseQueryTemplate
-)
-
-const (
-	latestRunsByChannelAndBrowserQuery = `
-SELECT
-  Channel,
-  BrowserName,
-  MAX(TimeStart) AS TimeStart
-FROM WPTRuns
-GROUP BY BrowserName, Channel;
-`
 )
 
 func init() {
@@ -169,7 +152,7 @@ type LocalFSBrowserImplStatusTemplateData struct {
 // GCPFSMetricsTemplateData contains the template data for gcpFSMetricsSubQueryTemplate.
 type GCPFSMetricsTemplateData struct {
 	Channel        string
-	Clause         string
+	BrowserList    []string
 	PassRateColumn string
 	ChannelParam   string
 	MetricIndex    string
@@ -237,20 +220,15 @@ type FeatureSearchQueryArgs struct {
 	PageFilters             []string
 	PageSize                int
 	Offset                  int
-	Prefilter               FeatureSearchPrefilterResult
 	SortClause              string
 	SortByStableBrowserImpl *SortByBrowserImplDetails
 	SortByExpBrowserImpl    *SortByBrowserImplDetails
+	Browsers                []string
 }
 
 // FeatureSearchBaseQuery contains the base query for all feature search
 // related queries.
 type FeatureSearchBaseQuery interface {
-	// Prefilter does any necessary queries to generate useful information for
-	// the query to help expedite it.
-	Prefilter(
-		ctx context.Context,
-		txn *spanner.ReadOnlyTransaction) (FeatureSearchPrefilterResult, error)
 	// Query generates a query to return rows about the features in the system.
 	// Each row includes:
 	//  1. The Internal ID of the feature
@@ -266,34 +244,9 @@ type FeatureSearchBaseQuery interface {
 	CountQuery(args FeatureSearchCountArgs) string
 }
 
-type FeatureSearchPrefilterResult struct {
-	stableParams       map[string]interface{}
-	stableClause       string
-	experimentalParams map[string]interface{}
-	experimentalClause string
-}
-
 // GCPFeatureSearchBaseQuery provides a base query that is optimal for GCP Spanner to retrieve the information
 // described in the FeatureBaseQuery interface.
 type GCPFeatureSearchBaseQuery struct{}
-
-func (f GCPFeatureSearchBaseQuery) Prefilter(
-	ctx context.Context,
-	txn *spanner.ReadOnlyTransaction) (FeatureSearchPrefilterResult, error) {
-	results, err := f.getLatestRunResultGroupedByChannel(ctx, txn)
-	if err != nil {
-		return FeatureSearchPrefilterResult{}, err
-	}
-	stableClause, stableParams := f.buildChannelMetricsFilter("stable", results["stable"])
-	experimentalClause, experimentalParams := f.buildChannelMetricsFilter("experimental", results["experimental"])
-
-	return FeatureSearchPrefilterResult{
-		stableParams:       stableParams,
-		stableClause:       stableClause,
-		experimentalParams: experimentalParams,
-		experimentalClause: experimentalClause,
-	}, nil
-}
 
 func (f GCPFeatureSearchBaseQuery) buildChannelMetricsFilter(
 	channel string, latestRunResults []LatestRunResult) (string, map[string]interface{}) {
@@ -334,43 +287,6 @@ type LatestRunResult struct {
 // LatestRunResultsGroupedByChannel is a mapping of channel to list LatestRunResult.
 // Useful for building the filter per channel in the Query method of GCPFeatureSearchBaseQuery.
 type LatestRunResultsGroupedByChannel map[string][]LatestRunResult
-
-// getLatestRunResultGroupedByChannel creates the needed information for the Query filter.
-// It queries for the last start time for a given BrowserName & Channel.
-func (f GCPFeatureSearchBaseQuery) getLatestRunResultGroupedByChannel(
-	ctx context.Context,
-	txn *spanner.ReadOnlyTransaction,
-) (LatestRunResultsGroupedByChannel, error) {
-	stmt := spanner.NewStatement(latestRunsByChannelAndBrowserQuery)
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-
-	ret := make(LatestRunResultsGroupedByChannel)
-	for {
-		row, err := it.Next()
-		if err != nil {
-			if errors.Is(err, iterator.Done) {
-				break
-			}
-			// Catch-all for other errors.
-			return nil, err
-		}
-		var latestRunResult LatestRunResult
-		if err := row.ToStruct(&latestRunResult); err != nil {
-			return nil, err
-		}
-
-		var value []LatestRunResult
-		var found bool
-		if value, found = ret[latestRunResult.Channel]; !found {
-			value = []LatestRunResult{}
-		}
-		value = append(value, latestRunResult)
-		ret[latestRunResult.Channel] = value
-	}
-
-	return ret, nil
-}
 
 func (f GCPFeatureSearchBaseQuery) buildBaseQueryFragment() string { return gcpFSBaseQueryTemplate }
 
@@ -571,8 +487,13 @@ OFFSET {{ .Offset }}
 		WHERE metrics.WebFeatureID = wf.ID
 			AND metrics.Channel = @{{ .ChannelParam }}
 			AND metrics.BrowserName = @{{ .BrowserNameParam }}
-			{{ .Clause }}
-		LIMIT 1
+			AND metrics.TimeStart = (
+				SELECT MAX(TimeStart)
+				FROM WPTRunFeatureMetrics metrics2
+				WHERE metrics2.WebFeatureID = wf.ID
+					AND metrics2.Channel = @{{ .ChannelParam }}
+					AND metrics2.BrowserName = @{{ .BrowserNameParam }}
+			)
 ) AS SortMetric
 `
 
@@ -581,14 +502,35 @@ OFFSET {{ .Offset }}
 	gcpFSMetricsSubQueryRawTemplate = `
 COALESCE(
 	(
-		SELECT ARRAY_AGG(STRUCT(
-				BrowserName AS BrowserName,
-				{{ .PassRateColumn }} AS PassRate
-			))
-		FROM WPTRunFeatureMetrics @{FORCE_INDEX={{ .MetricIndex }}} metrics
-		WHERE metrics.WebFeatureID = wf.ID
-		AND metrics.Channel = @{{ .ChannelParam }}
-    	{{ .Clause }}
+		SELECT ARRAY_AGG(metric_struct)
+		FROM (
+		{{- range $index, $browser := .BrowserList }}
+			{{ if $index -}}
+			UNION ALL
+			{{ end }}
+			SELECT AS STRUCT
+				"{{ $browser }}" AS BrowserName,
+				(
+					SELECT
+						IF(
+							ARRAY_LENGTH(ARRAY_AGG({{ $.PassRateColumn }})) > 0,
+							ARRAY_AGG({{ $.PassRateColumn }})[OFFSET(0)],
+							NULL
+						) AS PassRate
+					FROM WPTRunFeatureMetrics metrics
+					WHERE metrics.WebFeatureID = wf.ID
+						AND metrics.Channel = @{{ $.ChannelParam }}
+						AND metrics.BrowserName = "{{ $browser }}"
+						AND metrics.TimeStart = (
+							SELECT MAX(TimeStart)
+							FROM WPTRunFeatureMetrics metrics2
+							WHERE metrics2.WebFeatureID = wf.ID
+								AND metrics2.Channel = @{{ $.ChannelParam }}
+								AND metrics2.BrowserName = "{{ $browser }}"
+						)
+				) AS PassRate
+			{{- end }}
+		) metric_struct
 	),
 	(
 		SELECT ARRAY(
@@ -597,7 +539,7 @@ COALESCE(
 			CAST(0.0 AS NUMERIC) PassRate
 		)
 	)
-) AS {{ .Channel }}Metrics
+) AS {{ $.Channel }}Metrics
 `
 
 	// localFSMetricsSubQueryRawTemplate generates a nested query that aggregates metrics by browser and
@@ -638,16 +580,10 @@ COALESCE(
 `
 )
 
-// Query uses the latest browsername/channel/timestart mapping to build a query from the prefilter query.
-// This prevents an extra join to figure out the latest run for a particular.
-// The one thing to note about to this implementation: If the latest run ever deprecates a feature,
-// it will not be included in the query. However, a feature can only be deprecated by a bigger change in the ecosystem
-// and is not a common thing and will have bigger changes outside of this repository than just here.
+// Query uses the latest browsername/channel/timestart mapping to build a query.
 func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 	string, map[string]interface{}) {
-	params := make(map[string]interface{}, len(args.Prefilter.stableParams)+len(args.Prefilter.experimentalParams))
-	maps.Copy(params, args.Prefilter.stableParams)
-	maps.Copy(params, args.Prefilter.experimentalParams)
+	params := make(map[string]interface{})
 	stableParamName := "stableChannelParam"
 	params[stableParamName] = "stable"
 	experimentalParamName := "experimentalChannelParam"
@@ -655,7 +591,7 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 
 	stableMetricsData := GCPFSMetricsTemplateData{
 		Channel:        "Stable",
-		Clause:         args.Prefilter.stableClause,
+		BrowserList:    args.Browsers,
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		MetricIndex:    metricsPassRateIndex(args.MetricView),
 		ChannelParam:   stableParamName,
@@ -664,7 +600,7 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 
 	experimentalMetricsData := GCPFSMetricsTemplateData{
 		Channel:        "Experimental",
-		Clause:         args.Prefilter.experimentalClause,
+		BrowserList:    args.Browsers,
 		PassRateColumn: metricsPassRateColumn(args.MetricView),
 		MetricIndex:    metricsPassRateIndex(args.MetricView),
 		ChannelParam:   experimentalParamName,
@@ -734,18 +670,6 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 // which is good for the volume of data locally.
 // TODO. Consolidate to using either LocalFeatureBaseQuery to reduce the maintenance burden.
 type LocalFeatureBaseQuery struct{}
-
-// Prefilter not used in LocalFeatureBaseQuery.
-func (f LocalFeatureBaseQuery) Prefilter(
-	_ context.Context,
-	_ *spanner.ReadOnlyTransaction) (FeatureSearchPrefilterResult, error) {
-	return FeatureSearchPrefilterResult{
-		stableParams:       nil,
-		stableClause:       "",
-		experimentalParams: nil,
-		experimentalClause: "",
-	}, nil
-}
 
 func (f LocalFeatureBaseQuery) buildBaseQueryFragment() string { return localFSBaseQueryTemplate }
 
