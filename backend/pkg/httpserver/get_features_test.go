@@ -44,6 +44,12 @@ func TestGetV1Features(t *testing.T) {
 				expectedSearchNode:    nil,
 				expectedSortBy:        nil,
 				expectedWPTMetricView: backend.SubtestCounts,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
 				page: &backend.FeaturePage{
 					Metadata: backend.PageMetadataWithTotal{
 						NextPageToken: nil,
@@ -124,6 +130,12 @@ func TestGetV1Features(t *testing.T) {
 				expectedPageToken:     inputPageToken,
 				expectedPageSize:      50,
 				expectedWPTMetricView: backend.TestCounts,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
 				expectedSearchNode: &searchtypes.SearchNode{
 					Keyword: searchtypes.KeywordRoot,
 					Term:    nil,
@@ -234,10 +246,16 @@ func TestGetV1Features(t *testing.T) {
 		{
 			name: "500 case",
 			mockConfig: MockFeaturesSearchConfig{
-				expectedPageToken:     nil,
-				expectedPageSize:      100,
-				expectedSearchNode:    nil,
-				expectedSortBy:        nil,
+				expectedPageToken:  nil,
+				expectedPageSize:   100,
+				expectedSearchNode: nil,
+				expectedSortBy:     nil,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
 				expectedWPTMetricView: backend.SubtestCounts,
 				page:                  nil,
 				err:                   errTest,
@@ -266,6 +284,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSearchNode:    nil,
 				expectedSortBy:        nil,
 				expectedWPTMetricView: backend.SubtestCounts,
+				expectedBrowsers:      nil,
 				page:                  nil,
 				err:                   errTest,
 			},
@@ -293,6 +312,7 @@ func TestGetV1Features(t *testing.T) {
 				expectedSearchNode:    nil,
 				expectedSortBy:        nil,
 				expectedWPTMetricView: backend.SubtestCounts,
+				expectedBrowsers:      nil,
 				page:                  nil,
 				err:                   errTest,
 			},

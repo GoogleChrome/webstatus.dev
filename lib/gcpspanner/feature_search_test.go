@@ -30,6 +30,13 @@ import (
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
+func getDefaultTestBrowserList() []string {
+	return []string{
+		"fooBrowser",
+		"barBrowser",
+	}
+}
+
 func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	client *Client, t *testing.T) {
 	//nolint: dupl // Okay to duplicate for tests
@@ -1558,6 +1565,7 @@ func assertFeatureSearch(
 		// TODO. When the tests assert both views, remove this and allow the test
 		// to pass this.
 		defaultWPTMetricView(),
+		getDefaultTestBrowserList(),
 	)
 	if err != nil {
 		t.Errorf("unexpected error during search of features %s", err.Error())

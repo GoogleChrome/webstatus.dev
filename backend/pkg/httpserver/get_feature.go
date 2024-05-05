@@ -33,6 +33,7 @@ func (s *Server) GetV1FeaturesFeatureId(
 ) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
 	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
 		getWPTMetricViewOrDefault(request.Params.WptMetricView),
+		defaultBrowsers(),
 	)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {

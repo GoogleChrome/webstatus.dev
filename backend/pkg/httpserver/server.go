@@ -58,11 +58,13 @@ type WPTMetricsStorer interface {
 		searchNode *searchtypes.SearchNode,
 		sortOrder *backend.GetV1FeaturesParamsSort,
 		wptMetricType backend.WPTMetricView,
+		browsers []backend.BrowserPathParam,
 	) (*backend.FeaturePage, error)
 	GetFeature(
 		ctx context.Context,
 		featureID string,
 		wptMetricType backend.WPTMetricView,
+		browsers []backend.BrowserPathParam,
 	) (*backend.Feature, error)
 	ListBrowserFeatureCountMetric(
 		ctx context.Context,
@@ -77,6 +79,15 @@ type WPTMetricsStorer interface {
 type Server struct {
 	metadataStorer   WebFeatureMetadataStorer
 	wptMetricsStorer WPTMetricsStorer
+}
+
+func defaultBrowsers() []backend.BrowserPathParam {
+	return []backend.BrowserPathParam{
+		backend.Chrome,
+		backend.Edge,
+		backend.Firefox,
+		backend.Safari,
+	}
 }
 
 func getPageSizeOrDefault(pageSize *int) int {

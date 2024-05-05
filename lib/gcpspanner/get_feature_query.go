@@ -45,10 +45,10 @@ func (f FeatureIDFilter) Params() map[string]interface{} {
 type GetFeatureQueryBuilder struct {
 	baseQuery     FeatureSearchBaseQuery
 	wptMetricView WPTMetricView
+	browsers      []string
 }
 
 func (q GetFeatureQueryBuilder) Build(
-	prefilter FeatureSearchPrefilterResult,
 	filter Filterable) spanner.Statement {
 	filterParams := make(map[string]interface{})
 
@@ -58,7 +58,7 @@ func (q GetFeatureQueryBuilder) Build(
 		PageFilters:             nil,
 		Offset:                  0,
 		PageSize:                1,
-		Prefilter:               prefilter,
+		Browsers:                q.browsers,
 		SortClause:              "",
 		SortByStableBrowserImpl: nil,
 		SortByExpBrowserImpl:    nil,

@@ -89,6 +89,7 @@ func (c *Client) FeaturesSearch(
 	searchNode *searchtypes.SearchNode,
 	sortOrder Sortable,
 	wptMetricView WPTMetricView,
+	browsers []string,
 ) (*FeatureResultPage, error) {
 	// Build filterable
 	filterBuilder := NewFeatureSearchFilterBuilder()
@@ -105,15 +106,12 @@ func (c *Client) FeaturesSearch(
 
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
 
 	queryBuilder := FeatureSearchQueryBuilder{
 		baseQuery:     c.featureSearchQuery,
 		offsetCursor:  offsetCursor,
 		wptMetricView: wptMetricView,
+		browsers:      browsers,
 	}
 
 	// Get the total
@@ -126,7 +124,6 @@ func (c *Client) FeaturesSearch(
 	results, err := c.getFeatureResult(
 		ctx,
 		queryBuilder,
-		prefilterResults,
 		filter,
 		sortOrder,
 		pageSize,
@@ -180,12 +177,11 @@ func (c *Client) getTotalFeatureCount(
 func (c *Client) getFeatureResult(
 	ctx context.Context,
 	queryBuilder FeatureSearchQueryBuilder,
-	prefilterResults FeatureSearchPrefilterResult,
 	filter *FeatureSearchCompiledFilter,
 	sortOrder Sortable,
 	pageSize int,
 	txn *spanner.ReadOnlyTransaction) ([]FeatureResult, error) {
-	stmt := queryBuilder.Build(prefilterResults, filter, sortOrder, pageSize)
+	stmt := queryBuilder.Build(filter, sortOrder, pageSize)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
@@ -246,11 +242,11 @@ var zeroPassRatePlaceholder = big.NewRat(0, 1)
 // The base query has a solution that works on both GCP Spanner and Emulator that if it finds
 // a null array, put a placeholder in there. This function exists to find it and remove it before returning.
 func findDefaultPlaceHolder(in *FeatureResultMetric) bool {
-	if in == nil || in.PassRate == nil {
+	if in == nil {
 		return false
 	}
 
-	return in.BrowserName == "" && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0
+	return in.PassRate == nil || in.BrowserName == "" && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0
 }
 
 // The base query has a solution that works on both GCP Spanner and Emulator that if it finds

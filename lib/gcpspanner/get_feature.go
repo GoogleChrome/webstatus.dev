@@ -27,18 +27,17 @@ func (c *Client) GetFeature(
 	ctx context.Context,
 	filter Filterable,
 	wptMetricView WPTMetricView,
+	browsers []string,
 ) (*FeatureResult, error) {
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	prefilterResults, err := c.featureSearchQuery.Prefilter(ctx, txn)
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
+
 	b := GetFeatureQueryBuilder{
 		baseQuery:     c.featureSearchQuery,
 		wptMetricView: wptMetricView,
+		browsers:      browsers,
 	}
-	stmt := b.Build(prefilterResults, filter)
+	stmt := b.Build(filter)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()

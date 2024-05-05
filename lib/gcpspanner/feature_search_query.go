@@ -257,6 +257,7 @@ type FeatureSearchQueryBuilder struct {
 	baseQuery     FeatureSearchBaseQuery
 	offsetCursor  *FeatureResultOffsetCursor
 	wptMetricView WPTMetricView
+	browsers      []string
 }
 
 func (q FeatureSearchQueryBuilder) CountQueryBuild(
@@ -280,7 +281,6 @@ func (q FeatureSearchQueryBuilder) CountQueryBuild(
 }
 
 func (q FeatureSearchQueryBuilder) Build(
-	prefilter FeatureSearchPrefilterResult,
 	filter *FeatureSearchCompiledFilter,
 	sort Sortable,
 	pageSize int) spanner.Statement {
@@ -307,7 +307,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		PageFilters: nil,
 		Offset:      0,
 		PageSize:    pageSize,
-		Prefilter:   prefilter,
+		Browsers:    q.browsers,
 		SortClause:  sort.Clause(),
 		// Special Sort Targets.
 		SortByStableBrowserImpl: stableBrowserImplDetails,

@@ -62,6 +62,7 @@ type MockFeaturesSearchConfig struct {
 	expectedSearchNode    *searchtypes.SearchNode
 	expectedSortBy        *backend.GetV1FeaturesParamsSort
 	expectedWPTMetricView backend.WPTMetricView
+	expectedBrowsers      []backend.BrowserPathParam
 	page                  *backend.FeaturePage
 	err                   error
 }
@@ -69,6 +70,7 @@ type MockFeaturesSearchConfig struct {
 type MockGetFeatureByIDConfig struct {
 	expectedFeatureID     string
 	expectedWPTMetricView backend.WPTMetricView
+	expectedBrowsers      []backend.BrowserPathParam
 	data                  *backend.Feature
 	err                   error
 }
@@ -156,6 +158,7 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 	node *searchtypes.SearchNode,
 	sortBy *backend.GetV1FeaturesParamsSort,
 	view backend.WPTMetricView,
+	browsers []backend.BrowserPathParam,
 ) (*backend.FeaturePage, error) {
 	m.callCountFeaturesSearch++
 
@@ -163,9 +166,10 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 		pageSize != m.featuresSearchCfg.expectedPageSize ||
 		!reflect.DeepEqual(node, m.featuresSearchCfg.expectedSearchNode) ||
 		!reflect.DeepEqual(sortBy, m.featuresSearchCfg.expectedSortBy) ||
-		view != m.featuresSearchCfg.expectedWPTMetricView {
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v %v %v }",
-			m.featuresSearchCfg, pageSize, pageToken, node, sortBy, view)
+		view != m.featuresSearchCfg.expectedWPTMetricView ||
+		!slices.Equal(browsers, m.featuresSearchCfg.expectedBrowsers) {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %d %v %v %v %v }",
+			m.featuresSearchCfg, pageSize, pageToken, node, sortBy, view, browsers)
 	}
 
 	return m.featuresSearchCfg.page, m.featuresSearchCfg.err
@@ -175,13 +179,15 @@ func (m *MockWPTMetricsStorer) GetFeature(
 	_ context.Context,
 	featureID string,
 	view backend.WPTMetricView,
+	browsers []backend.BrowserPathParam,
 ) (*backend.Feature, error) {
 	m.callCountGetFeature++
 
 	if featureID != m.getFeatureByIDConfig.expectedFeatureID ||
-		view != m.getFeatureByIDConfig.expectedWPTMetricView {
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s %v }",
-			m.getFeatureByIDConfig, featureID, view)
+		view != m.getFeatureByIDConfig.expectedWPTMetricView ||
+		!slices.Equal(browsers, m.getFeatureByIDConfig.expectedBrowsers) {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s %v %v }",
+			m.getFeatureByIDConfig, featureID, view, browsers)
 	}
 
 	return m.getFeatureByIDConfig.data, m.getFeatureByIDConfig.err
