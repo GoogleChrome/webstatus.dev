@@ -63,7 +63,7 @@ function featureSupportKey(
   return `${browser}-${channel}`;
 }
 
-function isValidDate(d: Date):boolean {
+function isValidDate(d: Date): boolean {
   return !isNaN(d.getTime());
 }
 
@@ -223,20 +223,32 @@ export class FeaturePage extends LitElement {
   handleStartDateChange(event: Event) {
     const currentStartDate = this.startDate;
     const newStartDate = new Date((event.target as HTMLInputElement).value);
-    if (isValidDate(newStartDate) &&
-      newStartDate.getTime() !== currentStartDate.getTime()) {
+    if (
+      isValidDate(newStartDate) &&
+      newStartDate.getTime() !== currentStartDate.getTime()
+    ) {
       this.startDate = newStartDate;
-      this._fetchFeatureSupportData(this.apiClient, this.startDate, this.endDate);
+      this._fetchFeatureSupportData(
+        this.apiClient,
+        this.startDate,
+        this.endDate
+      );
     }
   }
 
   handleEndDateChange(event: Event) {
     const currentEndDate = this.endDate;
     const newEndDate = new Date((event.target as HTMLInputElement).value);
-    if (isValidDate(newEndDate) &&
-      newEndDate.getTime() !== currentEndDate.getTime()) {
+    if (
+      isValidDate(newEndDate) &&
+      newEndDate.getTime() !== currentEndDate.getTime()
+    ) {
       this.endDate = newEndDate;
-      this._fetchFeatureSupportData(this.apiClient, this.startDate, this.endDate);
+      this._fetchFeatureSupportData(
+        this.apiClient,
+        this.startDate,
+        this.endDate
+      );
     }
   }
 
