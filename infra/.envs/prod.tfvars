@@ -1,9 +1,9 @@
 projects = {
-  host     = "web-compass-staging"
-  internal = "webstatus-dev-internal-staging"
-  public   = "webstatus-dev-public-staging"
+  host     = "web-compass-prod"
+  internal = "webstatus-dev-internal-prod"
+  public   = "webstatus-dev-public-prod"
 }
-project_name             = "web-compass-staging"
+project_name             = "web-compass-prod"
 spanner_processing_units = 400
 deletion_protection      = true
 secret_ids = {
@@ -32,13 +32,11 @@ region_information = {
     }
   },
 }
-backend_api_url = "https://api-webstatus-dev.corp.goog"
+backend_api_url = "https://api.webstatus.dev"
 gsi_client_id   = "367048339992-5os99v0p6chosv28dpo9863h9sjeno36.apps.googleusercontent.com"
 
-frontend_docker_build_target = "static"
+frontend_docker_build_target = "placeholder"
 
-backend_domains_for_gcp_managed_certificates  = []
-frontend_domains_for_gcp_managed_certificates = []
-
-# Temporary for UB.
-ssl_certificates = ["ub-self-sign"]
+backend_domains_for_gcp_managed_certificates  = ["api.webstataus.dev"]
+frontend_domains_for_gcp_managed_certificates = ["webstatus.dev", "www.webstatus.dev"]
+ssl_certificates                              = []

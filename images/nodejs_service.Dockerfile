@@ -44,6 +44,13 @@ RUN ln -s /work/node_modules /work/${service_dir}/node_modules
 COPY --from=builder /work/${service_dir}/dist /work/${service_dir}/dist
 CMD npm run start
 
+FROM nginx:alpine3.18-slim as placeholder
+
+ARG service_dir
+COPY --from=builder /work/${service_dir}/nginx.conf /etc/nginx/nginx.conf
+COPY --from=builder /work/${service_dir}/placeholder/static /usr/share/nginx/html
+COPY --from=builder /work/${service_dir}/scripts/setup_server.sh /docker-entrypoint.d/setup_server.sh
+
 FROM nginx:alpine3.18-slim as static
 
 ARG service_dir

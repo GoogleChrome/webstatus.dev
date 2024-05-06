@@ -50,3 +50,19 @@ variable "docker_repository_details" {
     name     = string
   })
 }
+
+variable "ssl_certificates" {
+  type = list(string)
+}
+
+variable "domains_for_gcp_managed_certificates" {
+  type = list(string)
+}
+
+variable "projects" {
+  type = object({
+    host     = string
+    internal = string
+    public   = string
+  })
+}
