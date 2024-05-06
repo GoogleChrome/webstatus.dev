@@ -131,15 +131,19 @@ const BROWSER_IMPL_ICONS: Record<
   available: 'check-circle',
 };
 
+function renderMissingPercentage(): TemplateResult {
+  return html`<span class="missing percent">${MISSING_VALUE}</span>`;
+}
+
 function renderPercentage(score?: number): TemplateResult {
   if (score === undefined) {
-    return MISSING_VALUE;
+    return renderMissingPercentage();
   }
   let percent = Number(score * 100).toFixed(1);
   if (percent === '100.0') {
     percent = '100';
   }
-  return html` <span class="percent">${percent}%</span> `;
+  return html`<span class="percent">${percent}%</span>`;
 }
 
 export const renderBrowserQuality: CellRenderer = (
@@ -152,7 +156,7 @@ export const renderBrowserQuality: CellRenderer = (
   const browserImpl =
     feature.browser_implementations?.[browser!]?.status || 'unavailable';
   if (browserImpl === 'unavailable') {
-    percentage = MISSING_VALUE;
+    percentage = renderMissingPercentage();
   }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
