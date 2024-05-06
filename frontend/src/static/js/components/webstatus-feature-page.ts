@@ -63,6 +63,10 @@ function featureSupportKey(
   return `${browser}-${channel}`;
 }
 
+function isValidDate(d: Date): boolean {
+  return !isNaN(d.getTime());
+}
+
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
   _loadingTask: Task;
@@ -218,14 +222,34 @@ export class FeaturePage extends LitElement {
 
   handleStartDateChange(event: Event) {
     const currentStartDate = this.startDate;
-    this.startDate = new Date((event.target as HTMLInputElement).value);
-    if (this.startDate.getTime() === currentStartDate.getTime()) return;
+    const newStartDate = new Date((event.target as HTMLInputElement).value);
+    if (
+      isValidDate(newStartDate) &&
+      newStartDate.getTime() !== currentStartDate.getTime()
+    ) {
+      this.startDate = newStartDate;
+      this._fetchFeatureSupportData(
+        this.apiClient,
+        this.startDate,
+        this.endDate
+      );
+    }
   }
 
   handleEndDateChange(event: Event) {
     const currentEndDate = this.endDate;
-    this.endDate = new Date((event.target as HTMLInputElement).value);
-    if (this.endDate.getTime() === currentEndDate.getTime()) return;
+    const newEndDate = new Date((event.target as HTMLInputElement).value);
+    if (
+      isValidDate(newEndDate) &&
+      newEndDate.getTime() !== currentEndDate.getTime()
+    ) {
+      this.endDate = newEndDate;
+      this._fetchFeatureSupportData(
+        this.apiClient,
+        this.startDate,
+        this.endDate
+      );
+    }
   }
 
   // Make a DataTable from the data in featureSupport

@@ -123,7 +123,7 @@ export class APIClient {
       },
     });
     if (error !== undefined) {
-      throw new Error(error?.message);
+      throw new Error(error?.message || error?.toString());
     }
     return data;
   }
@@ -194,7 +194,7 @@ export class APIClient {
       );
       const error = response.error;
       if (error !== undefined) {
-        throw new Error(error?.message);
+        throw new Error(error?.message || error?.toString());
       }
       const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
       nextPageToken = page?.metadata?.next_page_token;
