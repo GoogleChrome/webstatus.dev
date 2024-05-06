@@ -350,7 +350,7 @@ export class FeaturePage extends LitElement {
     endDate: Date
   ) {
     if (typeof apiClient !== 'object') return;
-    for (const browser of ALL_BROWSERS) {
+    const fetchPromises = ALL_BROWSERS.map(async browser => {
       const channel = STABLE_CHANNEL;
       const wptRuns = await apiClient.getFeatureStatsByBrowserAndChannel(
         this.featureId,
@@ -359,8 +359,15 @@ export class FeaturePage extends LitElement {
         startDate,
         endDate
       );
+      return {browser, channel, wptRuns};
+    });
+
+    // Wait for all promises to resolve sequentially
+    for (const promise of fetchPromises) {
+      const {browser, channel, wptRuns} = await promise;
       this.featureSupport.set(featureSupportKey(browser, channel), wptRuns);
     }
+
     this.featureSupportChartDataObj = this.createFeatureSupportDataFromMap();
   }
 
