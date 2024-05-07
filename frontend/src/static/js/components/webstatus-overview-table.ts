@@ -69,6 +69,9 @@ export class WebstatusOverviewTable extends LitElement {
           width: 6ex;
           text-align: right;
         }
+        .missing.percent {
+          text-align: center;
+        }
 
         td.message {
           height: 8em;
