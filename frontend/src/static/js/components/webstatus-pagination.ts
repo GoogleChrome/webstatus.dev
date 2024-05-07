@@ -70,7 +70,7 @@ export class WebstatusPagination extends LitElement {
     if (
       this.totalCount === undefined ||
       offset <= -this.pageSize ||
-      offset > this.totalCount
+      offset >= this.totalCount
     ) {
       return undefined;
     }
