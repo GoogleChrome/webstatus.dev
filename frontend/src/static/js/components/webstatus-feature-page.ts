@@ -216,7 +216,6 @@ export class FeaturePage extends LitElement {
             location
           ) as FeatureWPTMetricViewType;
           this.feature = await apiClient.getFeature(featureId, wptMetricView);
-          this.updateUrl();
           await this._fetchFeatureSupportData(
             apiClient,
             this.startDate,
@@ -257,6 +256,7 @@ export class FeaturePage extends LitElement {
       newStartDate.getTime() !== currentStartDate.getTime()
     ) {
       this.startDate = newStartDate;
+      this.updateUrl();
       this._fetchFeatureSupportData(
         this.apiClient,
         this.startDate,
@@ -273,6 +273,7 @@ export class FeaturePage extends LitElement {
       newEndDate.getTime() !== currentEndDate.getTime()
     ) {
       this.endDate = newEndDate;
+      this.updateUrl();
       this._fetchFeatureSupportData(
         this.apiClient,
         this.startDate,
