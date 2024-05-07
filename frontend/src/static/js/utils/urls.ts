@@ -47,7 +47,7 @@ export interface DateRange {
 }
 
 // getDate is used to get the date range specified in the URL.
-export function getDateRange(location: { search: string; }): DateRange {
+export function getDateRange(location: {search: string}): DateRange {
   const start = getQueryParam(location.search, 'startDate');
   const end = getQueryParam(location.search, 'endDate');
 

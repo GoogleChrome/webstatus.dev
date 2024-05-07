@@ -203,7 +203,7 @@ export class FeaturePage extends LitElement {
   constructor() {
     super();
     // Get date range from query parameters.
-    const dateRange = getDateRange({ search: location.search });
+    const dateRange = getDateRange({search: location.search});
     if (dateRange) {
       this.startDate = dateRange.start || this.startDate;
       this.endDate = dateRange.end || this.endDate;
