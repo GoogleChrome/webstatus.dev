@@ -40,3 +40,5 @@ frontend_docker_build_target = "placeholder"
 backend_domains_for_gcp_managed_certificates  = ["api.webstatus.dev"]
 frontend_domains_for_gcp_managed_certificates = ["webstatus.dev", "www.webstatus.dev"]
 ssl_certificates                              = []
+
+spanner_region_override = "nam-eur-asia1"
