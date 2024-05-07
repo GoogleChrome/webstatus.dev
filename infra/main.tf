@@ -77,12 +77,15 @@ module "backend" {
     google.public_project   = google.public_project
   }
 
-  region_to_subnet_info_map = module.network.region_to_subnet_info_map
-  env_id                    = var.env_id
-  spanner_datails           = module.storage.spanner_info
-  docker_repository_details = module.storage.docker_repository_details
-  datastore_info            = module.storage.datastore_info
-  vpc_name                  = module.network.vpc_name
+  region_to_subnet_info_map            = module.network.region_to_subnet_info_map
+  env_id                               = var.env_id
+  spanner_datails                      = module.storage.spanner_info
+  docker_repository_details            = module.storage.docker_repository_details
+  datastore_info                       = module.storage.datastore_info
+  vpc_name                             = module.network.vpc_name
+  ssl_certificates                     = var.ssl_certificates
+  domains_for_gcp_managed_certificates = var.backend_domains_for_gcp_managed_certificates
+  projects                             = var.projects
 }
 
 module "frontend" {
@@ -92,10 +95,14 @@ module "frontend" {
     google.public_project   = google.public_project
   }
 
-  env_id                    = var.env_id
-  docker_repository_details = module.storage.docker_repository_details
-  backend_api_host          = var.backend_api_url
-  gsi_client_id             = var.gsi_client_id
-  region_to_subnet_info_map = module.network.region_to_subnet_info_map
-  vpc_name                  = module.network.vpc_name
+  env_id                               = var.env_id
+  docker_repository_details            = module.storage.docker_repository_details
+  backend_api_host                     = var.backend_api_url
+  gsi_client_id                        = var.gsi_client_id
+  region_to_subnet_info_map            = module.network.region_to_subnet_info_map
+  vpc_name                             = module.network.vpc_name
+  docker_build_target                  = var.frontend_docker_build_target
+  ssl_certificates                     = var.ssl_certificates
+  domains_for_gcp_managed_certificates = var.frontend_domains_for_gcp_managed_certificates
+  projects                             = var.projects
 }
