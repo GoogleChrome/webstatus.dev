@@ -138,6 +138,16 @@ export class FeaturePage extends LitElement {
           color: var(--unimportant-text-color);
           font-size: 90%;
         }
+        sl-skeleton {
+          width: 4em;
+        }
+        sl-skeleton.icon {
+          height: 2em;
+          width: 2em;
+        }
+        .avail sl-skeleton {
+          width: 8em;
+        }
         .logo-button {
           gap: var(--content-padding-half);
           align-items: center;
@@ -158,6 +168,10 @@ export class FeaturePage extends LitElement {
         #current-bugs li {
           list-style: none;
           margin-bottom: var(--content-padding);
+        }
+
+        #implementation-progress::part(base) {
+          min-height: 350px;
         }
 
         #general-information .vbox {
@@ -411,12 +425,14 @@ export class FeaturePage extends LitElement {
 
   renderCrumbs(): TemplateResult {
     const overviewUrl = formatOverviewPageUrl(this.location);
-    const canonicalFeatureUrl = formatFeaturePageUrl(this.feature!);
+    const canonicalFeatureUrl = this.feature
+          ? formatFeaturePageUrl(this.feature!)
+          : this.location;
     return html`
       <div class="crumbs">
         <a href=${overviewUrl}>Feature overview</a>
         &rsaquo;
-        <a href=${canonicalFeatureUrl}>${this.feature!.name}</a>
+        <a href=${canonicalFeatureUrl}>${this.feature?.name || this.featureId}</a>
       </div>
     `;
   }
@@ -449,16 +465,17 @@ export class FeaturePage extends LitElement {
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
+      const featureId = this.feature?.feature_id || this.featureId;
     const wptLink =
       'https://wpt.fyi/results' +
       '?label=master&label=stable&aligned' +
       '&q=feature%3A' +
-      this.feature!.feature_id;
+      featureId;
     const wptLogo = '/public/img/wpt-logo.svg';
 
     return html`
       <div id="nameAndOffsiteLinks" class="hbox valign-items-end">
-        <h1>${this.feature!.name}</h1>
+        <h1>${this.feature?.name || this.featureId}</h1>
         <div class="spacer"></div>
         <label
           >Start date
@@ -524,7 +541,7 @@ export class FeaturePage extends LitElement {
   ): TemplateResult {
     const scorePart = this.feature
       ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
-      : nothing;
+      : html`<sl-skeleton effect="sheen"></sl-skeleton>`;
     const sinceDate: string | undefined =
       this.feature?.browser_implementations?.[browser]?.date;
     const sincePhrase =
@@ -544,15 +561,24 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderBaselineCardWhenPending(): TemplateResult {
+    return html`
+      <sl-card class="halign-stretch wptScore">
+        <sl-skeleton effect="sheen" class="icon"></sl-skeleton>
+        <div>Baseline</div>
+        <div class="score"><sl-skeleton effect="sheen"></sl-skeleton></div>
+        <div class="avail"><sl-skeleton effect="sheen"></sl-skeleton></div>
+      </sl-card>
+    `;
+  }
+
   renderBaselineCard(): TemplateResult {
-    if (!this.feature) return html``;
-
-    const status = this.feature.baseline?.status;
-
+    if (this.feature === undefined) return this.renderBaselineCardWhenPending();
+    const status = this.feature?.baseline?.status;
     if (status === undefined) return html``;
 
     const chipConfig = BASELINE_CHIP_CONFIGS[status];
-    const sinceDate = this.feature.baseline?.low_date;
+    const sinceDate = this.feature?.baseline?.low_date;
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
@@ -672,6 +698,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderWhenPending(): TemplateResult {
-    return html`Loading ${this.featureId}.`;
+    // Lower-level render functions check for missing this.feature.
+    return this.renderWhenComplete();
   }
 }
