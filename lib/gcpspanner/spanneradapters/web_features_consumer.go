@@ -31,6 +31,7 @@ type WebFeatureSpannerClient interface {
 		ctx context.Context,
 		featureID string,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
+	UpsertFeatureSpec(ctx context.Context, webFeatureID string, input gcpspanner.FeatureSpec) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -87,9 +88,51 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 				return err
 			}
 		}
+
+		// Read the spec information
+		err = consumeFeatureSpecInformation(ctx, c.client, featureID, featureData)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
+}
+
+func consumeFeatureSpecInformation(ctx context.Context,
+	client WebFeatureSpannerClient,
+	featureID string,
+	featureData web_platform_dx__web_features.FeatureData) error {
+	if featureData.Spec == nil {
+		return nil
+	}
+
+	var links []string
+	if featureData.Spec.String != nil {
+		links = []string{*featureData.Spec.String}
+	} else if len(featureData.Spec.StringArray) > 0 {
+		links = featureData.Spec.StringArray
+	}
+
+	if len(links) > 0 {
+		spec := gcpspanner.FeatureSpec{
+			Links: links,
+		}
+		err := client.UpsertFeatureSpec(ctx, featureID, spec)
+		if err != nil {
+			slog.Error("unable to insert FeatureSpec",
+				"links", spec.Links,
+				"featureID", featureID,
+				"error", err,
+			)
+
+			return err
+		}
+	}
+
+	return nil
+
 }
 
 func extractBrowserAvailability(
