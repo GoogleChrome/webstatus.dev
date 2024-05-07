@@ -306,6 +306,7 @@ const (
 FROM WebFeatures wf
 LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.ID = fbs.WebFeatureID
 LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
+LEFT OUTER JOIN FeatureSpecs fs ON wf.ID = fs.WebFeatureID
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
@@ -388,6 +389,7 @@ SELECT
 	fbs.Status,
 	fbs.LowDate,
 	fbs.HighDate,
+	fs.Links AS SpecLinks,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
@@ -448,6 +450,7 @@ SELECT
 	fbs.Status,
 	fbs.LowDate,
 	fbs.HighDate,
+	fs.Links AS SpecLinks,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}

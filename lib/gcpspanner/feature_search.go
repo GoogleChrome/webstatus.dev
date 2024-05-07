@@ -39,6 +39,7 @@ type SpannerFeatureResult struct {
 	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
 	LowDate                *time.Time              `spanner:"LowDate"`
 	HighDate               *time.Time              `spanner:"HighDate"`
+	SpecLinks              []string                `spanner:"SpecLinks"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
@@ -73,6 +74,7 @@ type FeatureResult struct {
 	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
 	LowDate                *time.Time              `spanner:"LowDate"`
 	HighDate               *time.Time              `spanner:"HighDate"`
+	SpecLinks              []string                `spanner:"SpecLinks"`
 }
 
 // FeatureResultPage contains the details for the feature search request.
@@ -220,6 +222,10 @@ func (c *Client) getFeatureResult(
 			result.ImplementationStatuses = nil
 		}
 
+		if len(result.SpecLinks) == 0 {
+			result.SpecLinks = nil
+		}
+
 		actualResult := FeatureResult{
 			FeatureKey:             result.FeatureKey,
 			Name:                   result.Name,
@@ -229,6 +235,7 @@ func (c *Client) getFeatureResult(
 			ImplementationStatuses: result.ImplementationStatuses,
 			LowDate:                result.LowDate,
 			HighDate:               result.HighDate,
+			SpecLinks:              result.SpecLinks,
 		}
 		results = append(results, actualResult)
 	}

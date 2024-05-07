@@ -444,6 +444,37 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			t.Errorf("unexpected error during insert of metrics. %s", err.Error())
 		}
 	}
+
+	sampleSpecs := []struct {
+		featureKey string
+		spec       FeatureSpec
+	}{
+		{
+			featureKey: "feature1",
+			spec: FeatureSpec{
+				Links: []string{
+					"http://example1.com",
+					"http://example2.com",
+				},
+			},
+		},
+		{
+			featureKey: "feature3",
+			spec: FeatureSpec{
+				Links: []string{
+					"http://example3.com",
+					"http://example4.com",
+				},
+			},
+		},
+	}
+	for _, spec := range sampleSpecs {
+		err := client.UpsertFeatureSpec(
+			ctx, spec.featureKey, spec.spec)
+		if err != nil {
+			t.Errorf("unexpected error during insert of spec. %s", err.Error())
+		}
+	}
 }
 
 func defaultSorting() Sortable {
@@ -539,6 +570,10 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					ImplementationDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				},
 			},
+			SpecLinks: []string{
+				"http://example1.com",
+				"http://example2.com",
+			},
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -574,6 +609,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					ImplementationDate:   valuePtr(time.Date(2000, time.March, 2, 0, 0, 0, 0, time.UTC)),
 				},
 			},
+			SpecLinks: nil,
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -596,6 +632,10 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					ImplementationDate:   valuePtr(time.Date(2000, time.February, 1, 0, 0, 0, 0, time.UTC)),
 				},
 			},
+			SpecLinks: []string{
+				"http://example3.com",
+				"http://example4.com",
+			},
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -607,6 +647,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			StableMetrics:          nil,
 			ExperimentalMetrics:    nil,
 			ImplementationStatuses: nil,
+			SpecLinks:              nil,
 		}
 	}
 
@@ -1597,7 +1638,12 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		reflect.DeepEqual(a.HighDate, b.HighDate) &&
 		AreMetricsEqual(a.StableMetrics, b.StableMetrics) &&
 		AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) &&
-		AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses)
+		AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) &&
+		AreSpecLinksEqual(a.SpecLinks, b.SpecLinks)
+}
+
+func AreSpecLinksEqual(a, b []string) bool {
+	return slices.Equal(a, b)
 }
 
 func AreImplementationStatusesEqual(a, b []*ImplementationStatus) bool {
@@ -1639,6 +1685,7 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	fmt.Fprintf(&builder, "\tStatus: %s\n", PrintNullableField(result.Status))
 	fmt.Fprintf(&builder, "\tLowDate: %s\n", PrintNullableField(result.LowDate))
 	fmt.Fprintf(&builder, "\tHighDate: %s\n", PrintNullableField(result.HighDate))
+	fmt.Fprintf(&builder, "\tSpecLinks: %s\n", result.SpecLinks)
 
 	fmt.Fprintln(&builder, "\tStable Metrics:")
 	for _, metric := range result.StableMetrics {
