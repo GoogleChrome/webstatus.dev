@@ -426,13 +426,15 @@ export class FeaturePage extends LitElement {
   renderCrumbs(): TemplateResult {
     const overviewUrl = formatOverviewPageUrl(this.location);
     const canonicalFeatureUrl = this.feature
-          ? formatFeaturePageUrl(this.feature!)
-          : this.location;
+      ? formatFeaturePageUrl(this.feature!)
+      : this.location;
     return html`
       <div class="crumbs">
         <a href=${overviewUrl}>Feature overview</a>
         &rsaquo;
-        <a href=${canonicalFeatureUrl}>${this.feature?.name || this.featureId}</a>
+        <a href=${canonicalFeatureUrl}
+          >${this.feature?.name || this.featureId}</a
+        >
       </div>
     `;
   }
@@ -465,7 +467,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
-      const featureId = this.feature?.feature_id || this.featureId;
+    const featureId = this.feature?.feature_id || this.featureId;
     const wptLink =
       'https://wpt.fyi/results' +
       '?label=master&label=stable&aligned' +
