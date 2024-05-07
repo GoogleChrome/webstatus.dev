@@ -236,6 +236,7 @@ COPYRIGHT_NAME := Google LLC
 # frontend/{dist|static|build} - built files, not source files that are checked in
 # frontend/node_modules - External Node dependencies
 # frontend/coverage - Generated html files for coverage
+# frontend/placeholder/static/index.html - Temporary placeholder
 # playwright-report - Generated html files for playwright
 # node_modules - External Node dependencies
 # infra/storage/spanner/schema.sql - Empty base schema. Wrench does not like an empty schema with comments.
@@ -245,6 +246,7 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'lib/gen/**' \
 	-ignore '**/.terraform.lock.hcl' \
 	-ignore 'frontend/dist/**' \
+	-ignore 'frontend/placeholder/static/index.html' \
 	-ignore 'frontend/static/**' \
 	-ignore 'frontend/node_modules/**' \
 	-ignore 'frontend/coverage/**' \

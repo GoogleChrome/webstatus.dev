@@ -23,7 +23,7 @@ resource "docker_image" "frontend" {
     build_args = {
       service_dir : local.service_dir
     }
-    target     = "static"
+    target     = var.docker_build_target
     dockerfile = "images/nodejs_service.Dockerfile"
   }
   triggers = {
@@ -149,11 +149,36 @@ resource "google_compute_global_address" "ub_ip_address" {
   name     = "${var.env_id}-frontend-ip"
 }
 
-resource "google_compute_target_https_proxy" "lb_https_proxy" {
+resource "google_compute_global_forwarding_rule" "main" {
+  provider    = google.public_project
+  name        = "${var.env_id}-frontend-main-https-rule"
+  ip_protocol = "TCP"
+  port_range  = "443"
+  ip_address  = google_compute_global_address.main_ip_address.id
+  target      = google_compute_target_https_proxy.lb_https_proxy.id
+}
+
+resource "google_compute_global_address" "main_ip_address" {
   provider = google.public_project
-  name     = "${var.env_id}-frontend-https-proxy"
-  url_map  = google_compute_url_map.url_map.id
-  ssl_certificates = [
-    "ub-self-sign" # Temporary for UB
+  name     = "${var.env_id}-frontend-main-ip"
+}
+
+resource "google_compute_target_https_proxy" "lb_https_proxy" {
+  provider         = google.public_project
+  name             = "${var.env_id}-frontend-https-proxy"
+  url_map          = google_compute_url_map.url_map.id
+  ssl_certificates = length(google_compute_managed_ssl_certificate.lb_default) > 0 ? [google_compute_managed_ssl_certificate.lb_default[0].id] : var.ssl_certificates
+  depends_on = [
+    google_compute_managed_ssl_certificate.lb_default
   ]
+}
+
+resource "google_compute_managed_ssl_certificate" "lb_default" {
+  provider = google.public_project
+  name     = "${var.env_id}-frontend-ssl-cert"
+  count    = length(var.domains_for_gcp_managed_certificates) > 0 ? 1 : 0
+  project  = var.projects.public
+  managed {
+    domains = var.domains_for_gcp_managed_certificates
+  }
 }
