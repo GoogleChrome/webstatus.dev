@@ -45,6 +45,7 @@ func (s ResultsSummaryFileV2) Score(
 	ctx context.Context,
 	testToWebFeatures *shared.WebFeaturesData) map[string]wptconsumertypes.WPTFeatureMetric {
 	scoreMap := make(map[string]wptconsumertypes.WPTFeatureMetric)
+	featuresToExcludeSubtests := make(map[string]any)
 	for test, testSummary := range s {
 		if len(testSummary.Counts) < 2 {
 			// Need at least the number of subtests passes and the number of subtests
@@ -53,7 +54,7 @@ func (s ResultsSummaryFileV2) Score(
 		s.scoreTest(ctx, test, scoreMap, testToWebFeatures,
 			testSummary.Counts[0], testSummary.Counts[1], testSummary.Status)
 		s.scoreSubtests(
-			ctx, test, scoreMap, testToWebFeatures,
+			ctx, test, scoreMap, featuresToExcludeSubtests, testToWebFeatures,
 			testSummary.Counts[0], testSummary.Counts[1], testSummary.Status)
 	}
 
@@ -65,6 +66,7 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 	_ context.Context,
 	test string,
 	webFeatureScoreMap map[string]wptconsumertypes.WPTFeatureMetric,
+	featuresToExcludeSubtests map[string]any,
 	testToWebFeatures *shared.WebFeaturesData,
 	numberOfSubtestPassing int,
 	numberofSubtests int,
@@ -73,6 +75,21 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 	var webFeatures map[string]interface{}
 	var found bool
 	if webFeatures, found = (*testToWebFeatures)[test]; !found {
+		return
+	}
+	// In the event of a crash, wpt records the incorrect number of subtests (but not tests).
+	// Ignore subtest metrics for now. And mark the web feature as a whole as one to not update the subtest metrics
+	if WPTStatusAbbreviation(testStatus) == WPTStatusCrash {
+		for webFeature := range webFeatures {
+			score := getScoreForFeature(webFeature, webFeatureScoreMap)
+			// Reset the sub test metrics to nil.
+			score.SubtestPass = nil
+			score.TotalSubtests = nil
+			webFeatureScoreMap[webFeature] = score
+			// Skip the feature for future sub tests calculations.
+			featuresToExcludeSubtests[webFeature] = nil
+		}
+
 		return
 	}
 	if numberofSubtests == 0 {
@@ -84,6 +101,10 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 	}
 
 	for webFeature := range webFeatures {
+		if _, found := featuresToExcludeSubtests[webFeature]; found {
+			// If this web feature is marked to be excluded, skip it.
+			continue
+		}
 		webFeatureScore := getScoreForFeature(webFeature, webFeatureScoreMap)
 		*webFeatureScore.TotalSubtests += int64(numberofSubtests)
 		*webFeatureScore.SubtestPass += int64(numberOfSubtestPassing)
