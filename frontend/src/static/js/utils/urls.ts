@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import {type components} from 'webstatus.dev-backend';
-
 function getQueryParam(qs: string, paramName: string): string {
   const params = new URLSearchParams(qs);
   return params.get(paramName) || '';
@@ -41,6 +39,22 @@ export function getWPTMetricView(location: {search: string}): string {
   return getQueryParam(location.search, 'wpt_metric_view');
 }
 
+export interface DateRange {
+  start?: Date;
+  end?: Date;
+}
+
+// getDate is used to get the date range specified in the URL.
+export function getDateRange(location: {search: string}): DateRange {
+  const start = getQueryParam(location.search, 'startDate');
+  const end = getQueryParam(location.search, 'endDate');
+
+  return {
+    start: start ? new Date(start) : undefined,
+    end: end ? new Date(end) : undefined,
+  };
+}
+
 export const DEFAULT_ITEMS_PER_PAGE = 25;
 export function getPageSize(location: {search: string}): number {
   const num = Number(
@@ -56,6 +70,7 @@ type QueryStringOverrides = {
   sort?: string;
   columns?: string[];
   wpt_metric_view?: string;
+  dateRange?: DateRange;
 };
 
 /* Given the router location object, return a query string with
@@ -104,6 +119,19 @@ function getContextualQueryStringParams(
     searchParams.set('wpt_metric_view', wptMetricView);
   }
 
+  const dateRange =
+    'dateRange' in overrides ? overrides.dateRange : getDateRange(location);
+  if (dateRange?.start) {
+    // format startDate as yyyy-mm-dd
+    const startDate = dateRange.start.toISOString().split('T')[0];
+    searchParams.set('startDate', startDate);
+  }
+  if (dateRange?.end) {
+    // format endDate as yyyy-mm-dd
+    const endDate = dateRange.end.toISOString().split('T')[0];
+    searchParams.set('endDate', endDate);
+  }
+
   return searchParams.toString() ? '?' + searchParams.toString() : '';
 }
 
@@ -116,12 +144,27 @@ export function formatOverviewPageUrl(
   return `/${qs}`;
 }
 
+// No need to export this interface.
+interface FeatureURLDetails {
+  feature_id: string;
+}
+
 /* Return a URL to the given feature. */
 export function formatFeaturePageUrl(
-  feature: components['schemas']['Feature'],
+  feature: FeatureURLDetails,
   location?: {search: string},
   overrides: QueryStringOverrides = {}
 ): string {
   const qs = getContextualQueryStringParams(location, overrides);
   return `/features/${feature.feature_id}${qs}`;
+}
+
+/* Update URL for the feature page */
+export function updateFeaturePageUrl(
+  feature: FeatureURLDetails,
+  location: {search: string},
+  overrides: QueryStringOverrides = {}
+): void {
+  const url = formatFeaturePageUrl(feature, location, overrides);
+  window.history.replaceState({}, '', url);
 }

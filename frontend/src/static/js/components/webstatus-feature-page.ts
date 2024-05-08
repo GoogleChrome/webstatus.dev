@@ -45,6 +45,8 @@ import {
   formatFeaturePageUrl,
   formatOverviewPageUrl,
   getWPTMetricView,
+  getDateRange,
+  updateFeaturePageUrl,
 } from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {
@@ -200,6 +202,12 @@ export class FeaturePage extends LitElement {
 
   constructor() {
     super();
+    // Get date range from query parameters.
+    const dateRange = getDateRange({search: location.search});
+    if (dateRange) {
+      this.startDate = dateRange.start || this.startDate;
+      this.endDate = dateRange.end || this.endDate;
+    }
     this._loadingTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
@@ -217,6 +225,12 @@ export class FeaturePage extends LitElement {
         return this.feature;
       },
     });
+  }
+
+  updateUrl() {
+    // Update the URL to include the current date range.
+    const overrides = {dateRange: {start: this.startDate, end: this.endDate}};
+    updateFeaturePageUrl({feature_id: this.featureId}, location, overrides);
   }
 
   handleBrowserSelection(event: Event) {
@@ -242,6 +256,7 @@ export class FeaturePage extends LitElement {
       newStartDate.getTime() !== currentStartDate.getTime()
     ) {
       this.startDate = newStartDate;
+      this.updateUrl();
       this._fetchFeatureSupportData(
         this.apiClient,
         this.startDate,
@@ -258,6 +273,7 @@ export class FeaturePage extends LitElement {
       newEndDate.getTime() !== currentEndDate.getTime()
     ) {
       this.endDate = newEndDate;
+      this.updateUrl();
       this._fetchFeatureSupportData(
         this.apiClient,
         this.startDate,
