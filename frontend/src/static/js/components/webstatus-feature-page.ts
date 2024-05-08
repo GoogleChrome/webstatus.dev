@@ -368,6 +368,20 @@ export class FeaturePage extends LitElement {
       // Uncomment to allow multiple selection of points,
       // and all selected points will be summarized in one tooltip.
       // selectionMode: 'multiple',
+
+      // Enable explorer mode
+      explorer: {
+        actions: ['dragToZoom', 'rightClickToReset'],
+        axis: 'horizontal',
+        keepInBounds: true,
+        maxZoomIn: 4,
+        maxZoomOut: 4,
+        minZoomIn: 1,
+        minZoomOut: 1,
+        keepInBoundsX: true,
+        keepInBoundsY: true,
+        zoomDelta: 0.01,
+      },
     } as google.visualization.LineChartOptions;
 
     this.featureSupportChartOptions = options;
