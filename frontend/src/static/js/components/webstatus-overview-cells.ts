@@ -158,6 +158,9 @@ export const renderBrowserQuality: CellRenderer = (
   if (browserImpl === 'unavailable') {
     percentage = renderMissingPercentage();
   }
+  if (isJavaScriptFeature(feature)) {
+    percentage = renderJavaScriptFeatureValue();
+  }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
     <div class="browser-impl-${browserImpl}">
@@ -298,4 +301,30 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
   } else {
     return DEFAULT_COLUMNS;
   }
+}
+
+// JavaScript features will not have WPT scores for now. Instead of presenting MISSING_VALUE,
+// these features can present an informative message describing the absence of the
+// WPT score.
+const JS_FEATURE_LINK_PREFIX = 'https://tc39.es/ecma262/';
+
+function isJavaScriptFeature(
+  feature: components['schemas']['Feature']
+): boolean {
+  return (
+    feature.spec?.links?.some(
+      linkObj => linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX)
+    ) ?? false
+  );
+}
+
+function renderJavaScriptFeatureValue(): TemplateResult {
+  return html` <sl-tooltip
+    content="WPT metrics are not applicable to test262 features."
+  >
+    <sl-icon-button
+      name="info-circle"
+      label="test262 feature detected"
+    ></sl-icon-button>
+  </sl-tooltip>`;
 }
