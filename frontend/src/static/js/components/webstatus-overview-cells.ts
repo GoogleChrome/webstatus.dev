@@ -158,7 +158,7 @@ export const renderBrowserQuality: CellRenderer = (
   if (browserImpl === 'unavailable') {
     percentage = renderMissingPercentage();
   }
-  if (isJavaScriptFeature(feature)) {
+  if (feature.spec && isJavaScriptFeature(feature.spec)) {
     percentage = renderJavaScriptFeatureValue();
   }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
@@ -308,11 +308,17 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
 // WPT score.
 const JS_FEATURE_LINK_PREFIX = 'https://tc39.es/';
 
-function isJavaScriptFeature(
-  feature: components['schemas']['Feature']
-): boolean {
+// FeatureSpecInfo represents the specification information for a feature,
+// particularly the links that might indicate it's a JavaScript feature.
+interface FeatureSpecInfo {
+  links?: {
+    link?: string;
+  }[]; // Array of objects potentially containing a 'link' property
+}
+
+export function isJavaScriptFeature(featureSpecInfo: FeatureSpecInfo): boolean {
   return (
-    feature.spec?.links?.some(
+    featureSpecInfo?.links?.some(
       linkObj => linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX)
     ) ?? false
   );
@@ -322,9 +328,6 @@ function renderJavaScriptFeatureValue(): TemplateResult {
   return html` <sl-tooltip
     content="WPT metrics are not applicable to TC39 features."
   >
-    <sl-icon-button
-      name="info-circle"
-      label="TC39 feature"
-    ></sl-icon-button>
+    <sl-icon-button name="info-circle" label="TC39 feature"></sl-icon-button>
   </sl-tooltip>`;
 }
