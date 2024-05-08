@@ -381,7 +381,7 @@ export class FeaturePage extends LitElement {
         keepInBoundsX: true,
         keepInBoundsY: true,
         zoomDelta: 0.01,
-      }
+      },
     } as google.visualization.LineChartOptions;
 
     this.featureSupportChartOptions = options;
