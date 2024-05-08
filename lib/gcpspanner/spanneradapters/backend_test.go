@@ -634,6 +634,7 @@ func TestFeaturesSearch(t *testing.T) {
 										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
 								},
 							},
+							SpecLinks: nil,
 						},
 						{
 							Name:       "feature 2",
@@ -674,6 +675,10 @@ func TestFeaturesSearch(t *testing.T) {
 									ImplementationDate: valuePtr(
 										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
 								},
+							},
+							SpecLinks: []string{
+								"link1",
+								"link2",
 							},
 						},
 					},
@@ -744,8 +749,17 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						FeatureId: "feature2",
 						Name:      "feature 2",
-						Spec:      nil,
-						Usage:     nil,
+						Spec: &backend.FeatureSpecInfo{
+							Links: &[]backend.SpecLink{
+								{
+									Link: valuePtr("link1"),
+								},
+								{
+									Link: valuePtr("link2"),
+								},
+							},
+						},
+						Usage: nil,
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser1": {
@@ -946,6 +960,10 @@ func TestGetFeature(t *testing.T) {
 							ImplementationStatus: gcpspanner.Available,
 						},
 					},
+					SpecLinks: []string{
+						"link1",
+						"link2",
+					},
 				},
 				returnedError: nil,
 			},
@@ -959,8 +977,17 @@ func TestGetFeature(t *testing.T) {
 				},
 				FeatureId: "feature1",
 				Name:      "feature 1",
-				Spec:      nil,
-				Usage:     nil,
+				Spec: &backend.FeatureSpecInfo{
+					Links: &[]backend.SpecLink{
+						{
+							Link: valuePtr("link1"),
+						},
+						{
+							Link: valuePtr("link2"),
+						},
+					},
+				},
+				Usage: nil,
 				Wpt: &backend.FeatureWPTSnapshots{
 					Experimental: &map[string]backend.WPTFeatureData{
 						"browser3": {
@@ -1125,6 +1152,7 @@ func TestConvertFeatureResult(t *testing.T) {
 					},
 				},
 				ImplementationStatuses: nil,
+				SpecLinks:              nil,
 			},
 
 			expectedFeature: &backend.Feature{

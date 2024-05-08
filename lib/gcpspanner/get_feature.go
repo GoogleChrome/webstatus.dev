@@ -78,6 +78,10 @@ func (c *Client) GetFeature(
 		result.ImplementationStatuses = nil
 	}
 
+	if len(result.SpecLinks) == 0 {
+		result.SpecLinks = nil
+	}
+
 	actualResult := FeatureResult{
 		FeatureKey:             result.FeatureKey,
 		Name:                   result.Name,
@@ -87,6 +91,7 @@ func (c *Client) GetFeature(
 		ImplementationStatuses: result.ImplementationStatuses,
 		LowDate:                result.LowDate,
 		HighDate:               result.HighDate,
+		SpecLinks:              result.SpecLinks,
 	}
 
 	return &actualResult, nil
