@@ -75,6 +75,24 @@ func getComplexWebFeaturesData() shared.WebFeaturesData {
 		"malformed-counts-test.html": {
 			"feature5": nil,
 		},
+		"test4.html": {
+			"feature6": nil,
+			"feature7": nil,
+		},
+		"test5-not-passing.html": {
+			"feature6": nil,
+			"feature7": nil,
+		},
+		"test6-crash.html": {
+			"feature6": nil,
+		},
+		"test7.html": {
+			"feature6": nil,
+			"feature7": nil,
+		},
+		"test8-crash.html": {
+			"feature6": nil,
+		},
 	}
 }
 
@@ -104,6 +122,27 @@ func getComplexSummary() ResultsSummaryFileV2 {
 		"passing-but-test-not-mapped-in-webfeatures-test.html": query.SummaryResult{
 			Status: string(WPTStatusPass),
 			Counts: []int{10, 10},
+		},
+		// Skippable feature due to one crash
+		"test4.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{1, 1},
+		},
+		"test5-not-passing.html": query.SummaryResult{
+			Status: string(WPTStatusFail),
+			Counts: []int{1, 11},
+		},
+		"test6-crash.html": query.SummaryResult{
+			Status: string(WPTStatusCrash),
+			Counts: []int{100, 100},
+		},
+		"test7.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{100, 100},
+		},
+		"test8-crash.html": query.SummaryResult{
+			Status: string(WPTStatusCrash),
+			Counts: []int{100, 100},
 		},
 	}
 }
@@ -162,6 +201,18 @@ func TestScore(t *testing.T) {
 					TestPass:      valuePtr[int64](1),
 					TotalSubtests: valuePtr[int64](100),
 					SubtestPass:   valuePtr[int64](100),
+				},
+				"feature6": {
+					TotalTests:    valuePtr[int64](5),
+					TestPass:      valuePtr[int64](4),
+					TotalSubtests: nil,
+					SubtestPass:   nil,
+				},
+				"feature7": {
+					TotalTests:    valuePtr[int64](3),
+					TestPass:      valuePtr[int64](2),
+					TotalSubtests: valuePtr[int64](112),
+					SubtestPass:   valuePtr[int64](102),
 				},
 			},
 		},
