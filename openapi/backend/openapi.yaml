@@ -565,6 +565,18 @@ components:
         high_date:
           type: string
           format: date
+    FeatureSpecInfo:
+      type: object
+      properties:
+        links:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpecLink'
+    SpecLink:
+      type: object
+      properties:
+        link:
+          type: string
     Feature:
       type: object
       properties:
@@ -577,9 +589,7 @@ components:
             Comes from FeatureData's 'name' field in
             https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
         spec:
-          type: array
-          items:
-            type: string
+          $ref: '#/components/schemas/FeatureSpecInfo'
         browser_implementations:
           type: object
           description: >
