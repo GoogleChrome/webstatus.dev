@@ -306,7 +306,7 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
 // JavaScript features will not have WPT scores for now. Instead of presenting MISSING_VALUE,
 // these features can present an informative message describing the absence of the
 // WPT score.
-const JS_FEATURE_LINK_PREFIX = 'https://tc39.es/ecma262/';
+const JS_FEATURE_LINK_PREFIX = 'https://tc39.es/';
 
 function isJavaScriptFeature(
   feature: components['schemas']['Feature']
@@ -320,11 +320,11 @@ function isJavaScriptFeature(
 
 function renderJavaScriptFeatureValue(): TemplateResult {
   return html` <sl-tooltip
-    content="WPT metrics are not applicable to test262 features."
+    content="WPT metrics are not applicable to TC39 features."
   >
     <sl-icon-button
       name="info-circle"
-      label="test262 feature detected"
+      label="TC39 feature"
     ></sl-icon-button>
   </sl-tooltip>`;
 }
