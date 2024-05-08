@@ -207,7 +207,7 @@ go-test:
 			echo "********* Testing module: $${GO_MODULE} *********" ; \
 			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
 			mkdir -p $${GO_COVERAGE_DIR} ; \
-			go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
+			TESTCONTAINERS_RYUK_DISABLED=true go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
 			echo "Generating coverage report for $${GO_MODULE}" && \
 			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out && \
 			echo -e "\n\n" || exit 1; \
