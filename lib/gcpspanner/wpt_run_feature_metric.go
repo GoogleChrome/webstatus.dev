@@ -55,6 +55,8 @@ const (
 	LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
 	LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
 	WHERE r.BrowserName = @browserName
+		AND wpfm.{{ .TotalColumn }} IS NOT NULL
+		AND wpfm.{{ .PassColumn }} IS NOT NULL
 {{ if .FeatureKeyFilter }}
 		{{ .FeatureKeyFilter }}
 {{ end }}
@@ -247,8 +249,9 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 				existingMetric.TestPass = cmp.Or[*int64](metric.TestPass, existingMetric.TestPass, nil)
 				existingMetric.TotalTests = cmp.Or[*int64](metric.TotalTests, existingMetric.TotalTests, nil)
 				existingMetric.TestPassRate = getPassRate(existingMetric.TestPass, existingMetric.TotalTests)
-				existingMetric.SubtestPass = cmp.Or[*int64](metric.SubtestPass, existingMetric.SubtestPass, nil)
-				existingMetric.TotalSubtests = cmp.Or[*int64](metric.TotalSubtests, existingMetric.TotalSubtests, nil)
+				// Allow subtest metrics to be reset to nil.
+				existingMetric.SubtestPass = metric.SubtestPass
+				existingMetric.TotalSubtests = metric.TotalSubtests
 				existingMetric.SubtestPassRate = getPassRate(existingMetric.SubtestPass, existingMetric.TotalSubtests)
 				m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
 				if err != nil {
