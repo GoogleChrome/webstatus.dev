@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import {type components} from 'webstatus.dev-backend';
-
 function getQueryParam(qs: string, paramName: string): string {
   const params = new URLSearchParams(qs);
   return params.get(paramName) || '';
@@ -146,9 +144,14 @@ export function formatOverviewPageUrl(
   return `/${qs}`;
 }
 
+// No need to export this interface.
+interface FeatureURLDetails {
+  feature_id: string;
+}
+
 /* Return a URL to the given feature. */
 export function formatFeaturePageUrl(
-  feature: components['schemas']['Feature'],
+  feature: FeatureURLDetails,
   location?: {search: string},
   overrides: QueryStringOverrides = {}
 ): string {
@@ -158,7 +161,7 @@ export function formatFeaturePageUrl(
 
 /* Update URL for the feature page */
 export function updateFeaturePageUrl(
-  feature: components['schemas']['Feature'],
+  feature: FeatureURLDetails,
   location: {search: string},
   overrides: QueryStringOverrides = {}
 ): void {

@@ -228,9 +228,9 @@ export class FeaturePage extends LitElement {
   }
 
   updateUrl() {
-    // Update the URL to use the current date range.
+    // Update the URL to include the current date range.
     const overrides = {dateRange: {start: this.startDate, end: this.endDate}};
-    updateFeaturePageUrl(this.feature!, location, overrides);
+    updateFeaturePageUrl({feature_id: this.featureId}, location, overrides);
   }
 
   handleBrowserSelection(event: Event) {
