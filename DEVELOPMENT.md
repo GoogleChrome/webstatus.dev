@@ -149,8 +149,8 @@ gcloud auth application-default login --project=web-compass-staging --no-browser
 # Something 6 characters long. Could use "openssl rand -hex 3"
 ENV_ID="some-unique-string-here"
 # SAVE THAT ENV_ID
+terraform init -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
 terraform workspace new $ENV_ID
-terraform init --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
 terraform plan \
     -var-file=".envs/staging.tfvars" \
     -var "env_id=${ENV_ID}" \
@@ -190,8 +190,8 @@ cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-staging --no-browser
 ENV_ID="staging"
+terraform init -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
 terraform workspace select $ENV_ID
-terraform init --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
 terraform plan \
     -var-file=".envs/staging.tfvars" \
     -var "env_id=${ENV_ID}"
@@ -214,4 +214,35 @@ wrench migrate up --directory ./storage/spanner/
 
 # In root directory
 go run ./util/cmd/load_fake_data/main.go -spanner_project=${SPANNER_PROJECT_ID} -spanner_instance=${SPANNER_INSTANCE_ID} -spanner_database=${SPANNER_DATABASE_ID}
+```
+
+## Deploying prod
+
+```sh
+cd infra
+gcloud auth login
+gcloud auth application-default login --project=web-compass-prod --no-browser
+ENV_ID="prod"
+terraform init -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars
+terraform workspace select $ENV_ID
+
+terraform plan \
+    -var-file=".envs/prod.tfvars" \
+    -var "env_id=${ENV_ID}"
+```
+
+That will print the plan to create everything. Once it looks okay, run:
+
+```sh
+terraform apply \
+    -var-file=".envs/prod.tfvars" \
+    -var "env_id=${ENV_ID}"
+```
+
+```sh
+export SPANNER_PROJECT_ID=webstatus-dev-internal-prod
+gcloud auth application-default login --project=${SPANNER_PROJECT_ID} --no-browser
+export SPANNER_DATABASE_ID=${ENV_ID}-database
+export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
+wrench migrate up --directory ./storage/spanner/
 ```

@@ -42,3 +42,23 @@ variable "backend_api_host" {
 variable "gsi_client_id" {
   type = string
 }
+
+variable "ssl_certificates" {
+  type = list(string)
+}
+
+variable "docker_build_target" {
+  type = string
+}
+
+variable "domains_for_gcp_managed_certificates" {
+  type = list(string)
+}
+
+variable "projects" {
+  type = object({
+    host     = string
+    internal = string
+    public   = string
+  })
+}

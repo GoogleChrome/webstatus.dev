@@ -91,3 +91,24 @@ variable "backend_api_url" {
 variable "gsi_client_id" {
   type = string
 }
+
+variable "frontend_docker_build_target" {
+  type        = string
+  description = "Dockerfile target for the frontend image"
+}
+
+variable "ssl_certificates" {
+  type        = list(string)
+  description = "List of custom SSL certs"
+}
+
+
+variable "frontend_domains_for_gcp_managed_certificates" {
+  type        = list(string)
+  description = "List of domains for the frontend that GCP should manage certs for."
+}
+
+variable "backend_domains_for_gcp_managed_certificates" {
+  type        = list(string)
+  description = "List of domains for the backend that GCP should manage certs for."
+}
