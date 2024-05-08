@@ -351,6 +351,18 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		ret.BrowserImplementations = &implementationMap
 	}
 
+	if len(featureResult.SpecLinks) > 0 {
+		links := make([]backend.SpecLink, 0, len(featureResult.SpecLinks))
+		for idx := range featureResult.SpecLinks {
+			links = append(links, backend.SpecLink{
+				Link: &featureResult.SpecLinks[idx],
+			})
+		}
+		ret.Spec = &backend.FeatureSpecInfo{
+			Links: &links,
+		}
+	}
+
 	return ret
 }
 
