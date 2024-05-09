@@ -203,7 +203,7 @@ describe('webstatus-typeahead-item', () => {
     `);
     const div = component.shadowRoot!.querySelector('div') as Element;
 
-      assert(div.classList.contains('active'));
+    assert(div.classList.contains('active'));
   });
 
   it('renders with the prefix in bold', async () => {
