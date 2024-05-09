@@ -93,6 +93,12 @@ func getComplexWebFeaturesData() shared.WebFeaturesData {
 		"test8-crash.html": {
 			"feature6": nil,
 		},
+		"test9.tentative.html": {
+			"feature1": nil,
+		},
+		"dir/tentative/test10.html": {
+			"feature1": nil,
+		},
 	}
 }
 
@@ -143,6 +149,15 @@ func getComplexSummary() ResultsSummaryFileV2 {
 		"test8-crash.html": query.SummaryResult{
 			Status: string(WPTStatusCrash),
 			Counts: []int{100, 100},
+		},
+		// Tentative tests should not count
+		"test9.tentative.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{222, 222},
+		},
+		"dir/tentative/test10.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{111, 111},
 		},
 	}
 }

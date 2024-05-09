@@ -76,3 +76,20 @@ resource "google_project_iam_member" "internal_network_user" {
   role    = "roles/compute.networkUser"
   member  = "serviceAccount:service-${data.google_project.internal.number}@serverless-robot-prod.iam.gserviceaccount.com"
 }
+
+# Allocate address space for Google Managed Services (e.g. Redis) to use and communicate
+# to our resources in our project.
+resource "google_compute_global_address" "private_ip_address" {
+  name          = "${var.env_id}-private-service-access-ip"
+  purpose       = "VPC_PEERING"
+  address_type  = "INTERNAL"
+  prefix_length = 16
+  network       = google_compute_network.shared_vpc.id
+}
+
+resource "google_service_networking_connection" "private_service_connection" {
+  provider                = google.internal_project
+  network                 = google_compute_network.shared_vpc.id
+  service                 = "servicenetworking.googleapis.com"
+  reserved_peering_ranges = [google_compute_global_address.private_ip_address.name]
+}

@@ -17,6 +17,8 @@ package workflow
 import (
 	"cmp"
 	"context"
+	"slices"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
@@ -51,6 +53,9 @@ func (s ResultsSummaryFileV2) Score(
 			// Need at least the number of subtests passes and the number of subtests
 			continue
 		}
+		if isTestTentative(test) {
+			continue
+		}
 		s.scoreTest(ctx, test, scoreMap, testToWebFeatures,
 			testSummary.Counts[0], testSummary.Counts[1], testSummary.Status)
 		s.scoreSubtests(
@@ -59,6 +64,15 @@ func (s ResultsSummaryFileV2) Score(
 	}
 
 	return scoreMap
+}
+
+func isTestTentative(test string) bool {
+	// More info: https://web-platform-tests.org/writing-tests/file-names.html
+	return strings.Contains(test, ".tentative") ||
+		// nolint:lll // WONTFIX: comment contains long line for pinned functionality.
+		// The results file uses "/" as the path separator.
+		// Example: https://storage.googleapis.com/wptd/536297144c737f84096d1f448e790de0fb654956/chrome-124.0.6367.91-linux-20.04-ed25fd18da-summary_v2.json.gz
+		slices.Contains(strings.Split(test, "/"), "tentative")
 }
 
 // scoreSubtests calculates the metrics for a test using the "default/subtests" methodology.
