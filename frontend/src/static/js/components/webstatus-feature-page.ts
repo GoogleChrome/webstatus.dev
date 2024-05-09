@@ -70,9 +70,18 @@ function isValidDate(d: Date): boolean {
   return !isNaN(d.getTime());
 }
 
+// CanIUseData is a slimmed down interface of the data returned from the API.
+interface CanIUseData {
+  items?: {
+    id?: string;
+  }[];
+}
+
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
   _loadingTask: Task;
+
+  _loadingMetadataTask: Task;
 
   @consume({context: apiClientContext})
   @state()
@@ -102,6 +111,9 @@ export class FeaturePage extends LitElement {
 
   @state()
   feature?: components['schemas']['Feature'] | undefined;
+
+  @state()
+  featureMetadata?: components['schemas']['FeatureMetadata'] | undefined;
 
   @state()
   featureId!: string;
@@ -224,6 +236,15 @@ export class FeaturePage extends LitElement {
           );
         }
         return this.feature;
+      },
+    });
+    this._loadingMetadataTask = new Task(this, {
+      args: () => [this.apiClient, this.featureId],
+      task: async ([apiClient, featureId]) => {
+        if (typeof apiClient === 'object' && typeof featureId === 'string') {
+          this.featureMetadata = await apiClient.getFeatureMetadata(featureId);
+        }
+        return this.featureMetadata;
       },
     });
   }
@@ -516,10 +537,22 @@ export class FeaturePage extends LitElement {
     return wptLinkURL.toString();
   }
 
+  findCanIUseLink(data?: CanIUseData): string | null {
+    // For now, only return a link if there is exactly one item.
+    // For null or more than 1 item, return null.
+    // TODO. Discuss what should happen if we have more than one id.
+    if (!data || !data.items || data.items.length !== 1) {
+      return null;
+    }
+
+    return `https://caniuse.com/${data.items[0].id}`;
+  }
+
   renderNameAndOffsiteLinks(): TemplateResult {
     const featureId = this.feature?.feature_id || this.featureId;
     const wptLink = this.buildWPTLink(featureId);
     const wptLogo = '/public/img/wpt-logo.svg';
+    const canIUseLink = this.findCanIUseLink(this.featureMetadata?.can_i_use);
 
     return html`
       <div id="nameAndOffsiteLinks" class="hbox valign-items-end">
@@ -550,7 +583,7 @@ export class FeaturePage extends LitElement {
           'WPT default view'
         )}
         ${this.renderOffsiteLink('MDN', null)}
-        ${this.renderOffsiteLink('CanIUse', null)}
+        ${this.renderOffsiteLink('CanIUse', canIUseLink)}
       </div>
     `;
   }
