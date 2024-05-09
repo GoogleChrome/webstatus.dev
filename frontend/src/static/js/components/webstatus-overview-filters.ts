@@ -26,12 +26,20 @@ import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
 
 const VOCABULARY = [
-    {name: 'available_on:', doc: 'Available on a specific browser. E.g., available:chrome'},
-    {name: 'baseline_date:', doc: 'Date the feature reached baseline: YYYY-MM-DD..YYYY-MM-DD'},
-    {name: 'baseline_status:', doc: "Feature's baseline status: limited, newly, or widely"},
-    {name: 'name:', doc: 'Find by name. E.g. name:grid. E.g., name:"CSS Grid"'},
+  {
+    name: 'available_on:',
+    doc: 'Available on a specific browser. E.g., available:chrome',
+  },
+  {
+    name: 'baseline_date:',
+    doc: 'Date the feature reached baseline: YYYY-MM-DD..YYYY-MM-DD',
+  },
+  {
+    name: 'baseline_status:',
+    doc: "Feature's baseline status: limited, newly, or widely",
+  },
+  {name: 'name:', doc: 'Find by name. E.g. name:grid. E.g., name:"CSS Grid"'},
 ];
-
 
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
@@ -87,7 +95,7 @@ export class WebstatusOverviewFilters extends LitElement {
     ];
   }
 
-    gotoFilterQueryString(): void {
+  gotoFilterQueryString(): void {
     const newUrl = formatOverviewPageUrl(this.location, {
       q: (this.typeaheadRef.value as WebstatusTypeahead).value,
       start: 0,
@@ -119,7 +127,7 @@ export class WebstatusOverviewFilters extends LitElement {
         class="halign-stretch"
         placeholder="Filter by ..."
         value="${input}"
-        .vocabulary = ${VOCABULARY}
+        .vocabulary=${VOCABULARY}
         @sl-change=${() => this.gotoFilterQueryString()}
       >
         <sl-button

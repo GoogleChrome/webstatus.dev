@@ -26,7 +26,12 @@ import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {ref, createRef} from 'lit/directives/ref.js';
 import {live} from 'lit/directives/live.js';
-import {SlDropdown, SlInput, SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
+import {
+  SlDropdown,
+  SlInput,
+  SlMenu,
+  SlMenuItem,
+} from '@shoelace-style/shoelace';
 
 /* This file consists of 3 classes that together implement a "typeahead"
    text field with autocomplete:
@@ -49,34 +54,33 @@ interface VocabularyItem {
   doc: string;
 }
 
-
 @customElement('webstatus-typeahead')
 export class WebstatusTypeahead extends LitElement {
   slDropdownRef = createRef();
   slInputRef = createRef();
 
-    @property()
-    value: string;
+  @property()
+  value: string;
 
-    @property()
-    placeholder: string;
+  @property()
+  placeholder: string;
 
-    @property()
-    candidates: Array<VocabularyItem>;
+  @property()
+  candidates: Array<VocabularyItem>;
 
-    @state()
-    vocabulary: Array<VocabularyItem>;
+  @state()
+  vocabulary: Array<VocabularyItem>;
 
-    @state()
-    prefix: string | null;
+  @state()
+  prefix: string | null;
 
-    @state()
-    chunkStart: number;
+  @state()
+  chunkStart: number;
 
-    @state()
-    chunkEnd: number;
+  @state()
+  chunkEnd: number;
 
-    wasDismissed: boolean;
+  wasDismissed: boolean;
 
   constructor() {
     super();
@@ -102,7 +106,7 @@ export class WebstatusTypeahead extends LitElement {
     ];
   }
 
-    _fireEvent(eventName: string, detail: any) {
+  _fireEvent(eventName: string, detail: LitElement) {
     const event = new CustomEvent(eventName, {
       bubbles: true,
       composed: true,
@@ -120,18 +124,18 @@ export class WebstatusTypeahead extends LitElement {
   }
 
   hide() {
-      (this.slDropdownRef.value as SlDropdown).hide();
+    (this.slDropdownRef.value as SlDropdown).hide();
   }
 
   show() {
-      (this.slDropdownRef.value as SlDropdown).show();
+    (this.slDropdownRef.value as SlDropdown).show();
   }
 
   findPrefix() {
-      const inputEl = (this.slInputRef.value as SlInput).input;
+    const inputEl = (this.slInputRef.value as SlInput).input;
     const wholeStr = inputEl!.value;
     const caret = inputEl.selectionStart;
-      if (caret === null || caret !== inputEl.selectionEnd) {
+    if (caret === null || caret !== inputEl.selectionEnd) {
       // User has a range selected.
       this.prefix = null;
       return;
@@ -142,9 +146,12 @@ export class WebstatusTypeahead extends LitElement {
     this.prefix = wholeStr.substring(this.chunkStart, caret);
   }
 
-    shouldShowCandidate(candidate: VocabularyItem, prefix: string | null): boolean {
+  shouldShowCandidate(
+    candidate: VocabularyItem,
+    prefix: string | null
+  ): boolean {
     if (prefix === null) return false;
-        const lowerPrefix: string = prefix.toLowerCase();
+    const lowerPrefix: string = prefix.toLowerCase();
     const lowerName = candidate.name.toLowerCase();
     const lowerDoc = candidate.doc.toLowerCase();
     return (
@@ -155,12 +162,12 @@ export class WebstatusTypeahead extends LitElement {
     );
   }
 
-    async handleCandidateSelected(e: {detail: {item: SlMenuItem}}) {
+  async handleCandidateSelected(e: {detail: {item: SlMenuItem}}) {
     const candidateValue = e.detail!.item!.value;
-        const inputEl = (this.slInputRef.value as SlInput).input;
+    const inputEl = (this.slInputRef.value as SlInput).input;
     const wholeStr = inputEl.value;
     const maybeAddSpace =
-            !candidateValue.endsWith(':') && wholeStr[this.chunkEnd] !== ' '
+      !candidateValue.endsWith(':') && wholeStr[this.chunkEnd] !== ' '
         ? ' '
         : '';
     const newWholeStr =
@@ -168,7 +175,7 @@ export class WebstatusTypeahead extends LitElement {
       candidateValue +
       maybeAddSpace +
       wholeStr.substring(this.chunkEnd, wholeStr.length);
-        (this.slInputRef.value as SlInput).value = newWholeStr;
+    (this.slInputRef.value as SlInput).value = newWholeStr;
     this.reflectValue();
     // Wait for the sl-input to propagate its new value to its <input> before
     // setting or accessing the text selection.
@@ -187,7 +194,7 @@ export class WebstatusTypeahead extends LitElement {
 
   // Check if the user is pressing Enter to send a query.  This is detected
   // on keyDown so that the handler is run before the dropdown keyDown is run.
-    handleInputFieldKeyDown(event: KeyboardEvent) {
+  handleInputFieldKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
       const slDropdown = this.slDropdownRef.value as WebstatusTypeaheadDropdown;
       if (!slDropdown.open || !slDropdown.getCurrentItem()) {
@@ -254,7 +261,7 @@ export class WebstatusTypeahead extends LitElement {
   renderAutocompleteMenu(): TemplateResult {
     return html`
       <sl-menu
-@click=${(e: Event) => e.preventDefault()}
+        @click=${(e: Event) => e.preventDefault()}
         @sl-select=${this.handleCandidateSelected}
       >
         ${this.candidates.map(
@@ -285,7 +292,6 @@ export class WebstatusTypeahead extends LitElement {
 
 @customElement('webstatus-typeahead-dropdown')
 export class WebstatusTypeaheadDropdown extends SlDropdown {
-
   getCurrentItem(): SlMenuItem | undefined {
     return this.getMenu()!.getCurrentItem();
   }
@@ -355,20 +361,20 @@ export class WebstatusTypeaheadDropdown extends SlDropdown {
 
 @customElement('webstatus-typeahead-item')
 export class WebstatusTypeaheadItem extends LitElement {
-    @property()
-    value: string;
+  @property()
+  value: string;
 
-    @property()
-    doc: string;
+  @property()
+  doc: string;
 
-    @property()
-    prefix: string;
+  @property()
+  prefix: string;
 
-    @property({reflect: true})
-    role: string;
+  @property({reflect: true})
+  role: string;
 
-    @property()
-    tabindex!: string;
+  @property()
+  tabindex!: string;
 
   constructor() {
     super();
@@ -418,9 +424,11 @@ export class WebstatusTypeaheadItem extends LitElement {
   }
 
   handleMouseOver(event: Event) {
-      if (this.parentElement) {
-          (this.parentElement as SlMenu).setCurrentItem(this as unknown as SlMenuItem);
-      }
+    if (this.parentElement) {
+      (this.parentElement as SlMenu).setCurrentItem(
+        this as unknown as SlMenuItem
+      );
+    }
     event.stopPropagation();
   }
 
