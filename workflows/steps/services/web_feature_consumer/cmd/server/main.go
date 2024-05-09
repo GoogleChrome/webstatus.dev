@@ -21,6 +21,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
+	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/httpserver"
 )
@@ -35,7 +36,6 @@ func main() {
 		slog.Error("failed to create datastore client", "error", err.Error())
 		os.Exit(1)
 	}
-	_ = fs
 
 	projectID := os.Getenv("PROJECT_ID")
 	spannerDB := os.Getenv("SPANNER_DATABASE")
@@ -53,6 +53,7 @@ func main() {
 		"8080",
 		gh.NewClient(token),
 		spanneradapters.NewWebFeaturesConsumer(spannerClient),
+		datastoreadapters.NewWebFeaturesConsumer(fs),
 		"data.json",
 		"web-platform-dx",
 		"web-features",

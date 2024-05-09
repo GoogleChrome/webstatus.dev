@@ -95,6 +95,29 @@ func (m *mockWebFeatureStorer) InsertWebFeatures(
 	return m.mockInsertWebFeaturesCfg.returnedMapping, m.mockInsertWebFeaturesCfg.returnError
 }
 
+type mockInsertWebFeaturesMetadataConfig struct {
+	expectedData    map[string]web_platform_dx__web_features.FeatureData
+	expectedMapping map[string]string
+	returnError     error
+}
+
+type mockWebFeatureMetadataStorer struct {
+	t                                *testing.T
+	mockInsertWebFeaturesMetadataCfg mockInsertWebFeaturesMetadataConfig
+}
+
+func (m *mockWebFeatureMetadataStorer) InsertWebFeaturesMetadata(
+	_ context.Context,
+	featureKeyToID map[string]string,
+	data map[string]web_platform_dx__web_features.FeatureData) error {
+	if !reflect.DeepEqual(data, m.mockInsertWebFeaturesMetadataCfg.expectedData) ||
+		!reflect.DeepEqual(featureKeyToID, m.mockInsertWebFeaturesMetadataCfg.expectedMapping) {
+		m.t.Error("unexpected input")
+	}
+
+	return m.mockInsertWebFeaturesMetadataCfg.returnError
+}
+
 const (
 	testRepoOwner = "owner"
 	testRepoName  = "name"
@@ -103,11 +126,12 @@ const (
 
 func TestPostV1WebFeatures(t *testing.T) {
 	testCases := []struct {
-		name                           string
-		mockDownloadFileFromReleaseCfg mockDownloadFileFromReleaseConfig
-		mockParseCfg                   mockParseConfig
-		mockInsertWebFeaturesCfg       mockInsertWebFeaturesConfig
-		expectedResponse               web_feature_consumer.PostV1WebFeaturesResponseObject
+		name                             string
+		mockDownloadFileFromReleaseCfg   mockDownloadFileFromReleaseConfig
+		mockParseCfg                     mockParseConfig
+		mockInsertWebFeaturesCfg         mockInsertWebFeaturesConfig
+		mockInsertWebFeaturesMetadataCfg mockInsertWebFeaturesMetadataConfig
+		expectedResponse                 web_feature_consumer.PostV1WebFeaturesResponseObject
 	}{
 		{
 			name: "success",
@@ -154,6 +178,25 @@ func TestPostV1WebFeatures(t *testing.T) {
 				},
 				returnError: nil,
 			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+					"feature1": {
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures200Response{},
 		},
 		{
@@ -173,6 +216,11 @@ func TestPostV1WebFeatures(t *testing.T) {
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData:    nil,
 				returnedMapping: nil,
+				returnError:     nil,
+			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData:    nil,
+				expectedMapping: nil,
 				returnError:     nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
@@ -209,6 +257,11 @@ func TestPostV1WebFeatures(t *testing.T) {
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData:    nil,
 				returnedMapping: nil,
+				returnError:     nil,
+			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData:    nil,
+				expectedMapping: nil,
 				returnError:     nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
@@ -261,9 +314,83 @@ func TestPostV1WebFeatures(t *testing.T) {
 				},
 				returnError: errors.New("uh-oh"),
 			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData:    nil,
+				expectedMapping: nil,
+				returnError:     nil,
+			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
 				Message: "unable to store data",
+			},
+		},
+		{
+			name: "fail to store metadata",
+			mockDownloadFileFromReleaseCfg: mockDownloadFileFromReleaseConfig{
+				expectedOwner:    testRepoOwner,
+				expectedRepo:     testRepoName,
+				expectedFileName: testFileName,
+				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnError:      nil,
+			},
+			mockParseCfg: mockParseConfig{
+				expectedFileContents: "hi features",
+				returnData: map[string]web_platform_dx__web_features.FeatureData{
+					"feature1": {
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+					"feature1": {
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
+					},
+				},
+				returnedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+					"feature1": {
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: errors.New("uh-oh"),
+			},
+			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
+				Code:    500,
+				Message: "unable to store metadata",
 			},
 		},
 	}
@@ -281,10 +408,15 @@ func TestPostV1WebFeatures(t *testing.T) {
 				t:                        t,
 				mockInsertWebFeaturesCfg: tc.mockInsertWebFeaturesCfg,
 			}
+			mockMetadataStorer := &mockWebFeatureMetadataStorer{
+				t:                                t,
+				mockInsertWebFeaturesMetadataCfg: tc.mockInsertWebFeaturesMetadataCfg,
+			}
 
 			server := &Server{
 				assetGetter:           mockGetter,
 				storer:                mockStorer,
+				metadataStorer:        mockMetadataStorer,
 				webFeaturesDataParser: mockParser,
 				defaultAssetName:      testFileName,
 				defaultRepoOwner:      testRepoOwner,
