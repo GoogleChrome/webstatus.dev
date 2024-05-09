@@ -22,7 +22,6 @@ import {
   html,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
-
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {ref, createRef} from 'lit/directives/ref.js';
 import {live} from 'lit/directives/live.js';
@@ -65,10 +64,10 @@ export class WebstatusTypeahead extends LitElement {
   @property()
   placeholder: string;
 
-  @property()
+  @state()
   candidates: Array<VocabularyItem>;
 
-  @state()
+  @property({type: Array})
   vocabulary: Array<VocabularyItem>;
 
   @state()
@@ -269,7 +268,7 @@ export class WebstatusTypeahead extends LitElement {
             <webstatus-typeahead-item
               value=${c.name}
               doc=${c.doc}
-              prefix=${this.prefix}
+              prefix=${this.prefix || ''}
             ></webstatus-typeahead-item>
           `
         )}
