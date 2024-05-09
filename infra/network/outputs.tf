@@ -25,3 +25,6 @@ output "region_to_subnet_info_map" {
 output "vpc_name" {
   value = google_compute_network.shared_vpc.name
 }
+output "vpc_id" {
+  value = google_compute_network.shared_vpc.id
+}

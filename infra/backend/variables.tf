@@ -66,3 +66,15 @@ variable "projects" {
     public   = string
   })
 }
+
+variable "redis_env_vars" {
+  type = map(object({
+    host = string
+    port = number
+  }))
+  description = "Map of Redis host and port per region"
+}
+
+variable "cache_duration" {
+  type = string
+}

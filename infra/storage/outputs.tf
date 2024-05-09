@@ -42,3 +42,13 @@ output "buckets" {
     repo_download_bucket = google_storage_bucket.repo_storage_bucket.name
   }
 }
+
+output "redis_env_vars" {
+  value = {
+    for region, _ in var.region_to_subnet_info_map :
+    region => {
+      host = google_redis_instance.redis_instances[region].host
+      port = google_redis_instance.redis_instances[region].port
+    }
+  }
+}

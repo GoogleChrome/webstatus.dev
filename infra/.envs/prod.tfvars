@@ -42,3 +42,5 @@ frontend_domains_for_gcp_managed_certificates = ["webstatus.dev", "www.webstatus
 ssl_certificates                              = []
 
 spanner_region_override = "nam-eur-asia1"
+
+cache_duration = "5m"

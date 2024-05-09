@@ -44,12 +44,14 @@ module "storage" {
   env_id              = var.env_id
   deletion_protection = false
   # `gcloud spanner instance-configs list --project=<PROJECT>` returns the available configs
-  spanner_region_id        = local.spanner_repository_region
-  datastore_region_id      = var.datastore_region_id
-  spanner_processing_units = var.spanner_processing_units
-  docker_repository_region = local.docker_repository_region
-  projects                 = var.projects
-  depends_on               = [module.services]
+  spanner_region_id         = local.spanner_repository_region
+  datastore_region_id       = var.datastore_region_id
+  spanner_processing_units  = var.spanner_processing_units
+  docker_repository_region  = local.docker_repository_region
+  projects                  = var.projects
+  depends_on                = [module.services]
+  vpc_id                    = module.network.vpc_id
+  region_to_subnet_info_map = module.network.region_to_subnet_info_map
 }
 
 module "ingestion" {
@@ -86,6 +88,8 @@ module "backend" {
   ssl_certificates                     = var.ssl_certificates
   domains_for_gcp_managed_certificates = var.backend_domains_for_gcp_managed_certificates
   projects                             = var.projects
+  cache_duration                       = var.cache_duration
+  redis_env_vars                       = module.storage.redis_env_vars
 }
 
 module "frontend" {
