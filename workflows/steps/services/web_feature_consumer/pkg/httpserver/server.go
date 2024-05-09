@@ -47,12 +47,22 @@ type AssetParser interface {
 type WebFeatureStorer interface {
 	InsertWebFeatures(
 		ctx context.Context,
+		data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error)
+}
+
+// WebFeatureMetadataStorer describes the logic to insert the non-relation metadata about web features that
+// were returned by the AssetParser.
+type WebFeatureMetadataStorer interface {
+	InsertWebFeaturesMetadata(
+		ctx context.Context,
+		featureKeyToID map[string]string,
 		data map[string]web_platform_dx__web_features.FeatureData) error
 }
 
 type Server struct {
 	assetGetter           AssetGetter
 	storer                WebFeatureStorer
+	metadataStorer        WebFeatureMetadataStorer
 	webFeaturesDataParser AssetParser
 	defaultAssetName      string
 	defaultRepoOwner      string
@@ -90,13 +100,23 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
-	err = s.storer.InsertWebFeatures(ctx, data)
+	mapping, err := s.storer.InsertWebFeatures(ctx, data)
 	if err != nil {
 		slog.Error("unable to store data", "error", err)
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,
 			Message: "unable to store data",
+		}, nil
+	}
+
+	err = s.metadataStorer.InsertWebFeaturesMetadata(ctx, mapping, data)
+	if err != nil {
+		slog.Error("unable to store metadata", "error", err)
+
+		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
+			Code:    500,
+			Message: "unable to store metadata",
 		}, nil
 	}
 
@@ -107,6 +127,7 @@ func NewHTTPServer(
 	port string,
 	assetGetter AssetGetter,
 	storer WebFeatureStorer,
+	metadataStorer WebFeatureMetadataStorer,
 	defaultAssetName string,
 	defaultRepoOwner string,
 	defaultRepoName string,
@@ -120,6 +141,7 @@ func NewHTTPServer(
 	srv := &Server{
 		assetGetter:           assetGetter,
 		storer:                storer,
+		metadataStorer:        metadataStorer,
 		webFeaturesDataParser: data.Parser{},
 		defaultAssetName:      defaultAssetName,
 		defaultRepoOwner:      defaultRepoOwner,

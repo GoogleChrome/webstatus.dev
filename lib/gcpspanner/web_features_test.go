@@ -78,7 +78,7 @@ func TestUpsertWebFeature(t *testing.T) {
 	ctx := context.Background()
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
@@ -91,7 +91,7 @@ func TestUpsertWebFeature(t *testing.T) {
 		t.Errorf("unequal features. expected %+v actual %+v", sampleFeatures, features)
 	}
 
-	err = client.UpsertWebFeature(ctx, WebFeature{
+	_, err = client.UpsertWebFeature(ctx, WebFeature{
 		Name:       "Feature 1!!",
 		FeatureKey: "feature1",
 	})
