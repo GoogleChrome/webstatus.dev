@@ -77,7 +77,7 @@ type BackendSpannerClient interface {
 	) (*gcpspanner.BrowserFeatureCountResultPage, error)
 }
 
-// Backend converts queries to spanner to useable entities for the backend
+// Backend converts queries to spanner to usable entities for the backend
 // service.
 type Backend struct {
 	client BackendSpannerClient

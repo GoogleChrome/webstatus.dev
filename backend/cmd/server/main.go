@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
+	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/GoogleChrome/webstatus.dev/lib/rediscache"
 	"github.com/go-chi/cors"
@@ -97,7 +98,7 @@ func main() {
 
 	srv, err := httpserver.NewHTTPServer(
 		"8080",
-		fs,
+		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
 		[]func(http.Handler) http.Handler{
 			cors.Handler(
