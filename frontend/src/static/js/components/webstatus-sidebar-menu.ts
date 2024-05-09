@@ -251,7 +251,7 @@ export class WebstatusSidebarMenu extends LitElement {
             this.renderBookmark(bookmark, index)
           )}
         </sl-tree-item>
-        <sl-tree-item id="${NavigationItemKey.STATISTICS}">
+        <sl-tree-item style="display:none" id="${NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item>
       </sl-tree>

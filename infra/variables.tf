@@ -112,3 +112,8 @@ variable "backend_domains_for_gcp_managed_certificates" {
   type        = list(string)
   description = "List of domains for the backend that GCP should manage certs for."
 }
+
+variable "cache_duration" {
+  type        = string
+  description = "TTL for entries that are cached"
+}

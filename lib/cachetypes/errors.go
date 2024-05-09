@@ -17,3 +17,4 @@ package cachetypes
 import "errors"
 
 var ErrCachedDataNotFound = errors.New("cached data not found for key")
+var ErrInvalidValueType = errors.New("cached data is not valid type")

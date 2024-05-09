@@ -25,7 +25,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/cors"
 )
 
 type WebFeatureMetadataStorer interface{}
@@ -112,7 +111,7 @@ func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
-	allowedOrigin string) (*http.Server, error) {
+	middlewares []func(http.Handler) http.Handler) (*http.Server, error) {
 	_, err := backend.GetSwagger()
 	if err != nil {
 		return nil, fmt.Errorf("error loading swagger spec. %w", err)
@@ -128,16 +127,7 @@ func NewHTTPServer(
 
 	// This is how you set up a basic chi router
 	r := chi.NewRouter()
-	//nolint: exhaustruct // No need to use every option of 3rd party struct.
-	r.Use(cors.Handler(cors.Options{
-		AllowedOrigins: []string{allowedOrigin},
-		// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
-		AllowedMethods: []string{"GET", "OPTIONS"},
-		// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-		// ExposedHeaders:   []string{"Link"},
-		AllowCredentials: true, // Remove after UbP
-		MaxAge:           300,  // Maximum value not ignored by any of major browsers
-	}))
+	r.Use(middlewares...)
 
 	// Use our validation middleware to check all requests against the
 	// OpenAPI schema.

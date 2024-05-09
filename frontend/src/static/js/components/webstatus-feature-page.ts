@@ -368,6 +368,20 @@ export class FeaturePage extends LitElement {
       // Uncomment to allow multiple selection of points,
       // and all selected points will be summarized in one tooltip.
       // selectionMode: 'multiple',
+
+      // Enable explorer mode
+      explorer: {
+        actions: ['dragToZoom', 'rightClickToReset'],
+        axis: 'horizontal',
+        keepInBounds: true,
+        maxZoomIn: 4,
+        maxZoomOut: 4,
+        minZoomIn: 1,
+        minZoomOut: 1,
+        keepInBoundsX: true,
+        keepInBoundsY: true,
+        zoomDelta: 0.01,
+      },
     } as google.visualization.LineChartOptions;
 
     this.featureSupportChartOptions = options;
@@ -482,13 +496,19 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  buildWPTLink(featureId: string): string {
+    const wptLinkURL = new URL('https://wpt.fyi/results');
+    const query = `feature:${featureId}!is:tentative`;
+    wptLinkURL.searchParams.append('label', 'master');
+    wptLinkURL.searchParams.append('label', 'stable');
+    wptLinkURL.searchParams.append('aligned', '');
+    wptLinkURL.searchParams.append('q', query);
+    return wptLinkURL.toString();
+  }
+
   renderNameAndOffsiteLinks(): TemplateResult {
     const featureId = this.feature?.feature_id || this.featureId;
-    const wptLink =
-      'https://wpt.fyi/results' +
-      '?label=master&label=stable&aligned' +
-      '&q=feature%3A' +
-      featureId;
+    const wptLink = this.buildWPTLink(featureId);
     const wptLogo = '/public/img/wpt-logo.svg';
 
     return html`

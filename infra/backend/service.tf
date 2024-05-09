@@ -75,14 +75,26 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "CORS_ALLOWED_ORIGIN"
         value = "https://website-webstatus-dev.corp.goog"
       }
+      env {
+        name  = "REDISHOST"
+        value = var.redis_env_vars[each.key].host
+      }
+      env {
+        name  = "REDISPORT"
+        value = var.redis_env_vars[each.key].port
+      }
+      env {
+        name  = "CACHE_TTL"
+        value = var.cache_duration
+      }
     }
-    # vpc_access {
-    #   network_interfaces {
-    #     network    = "projects/${data.google_project.host_project.name}/global/networks/${var.vpc_name}"
-    #     subnetwork = "projects/${data.google_project.host_project.name}/regions/${each.key}/subnetworks/${each.value.public}"
-    #   }
-    #   egress = "ALL_TRAFFIC"
-    # }
+    vpc_access {
+      network_interfaces {
+        network    = "projects/${data.google_project.host_project.name}/global/networks/${var.vpc_name}"
+        subnetwork = "projects/${data.google_project.host_project.name}/regions/${each.key}/subnetworks/${each.value.public}"
+      }
+      egress = "PRIVATE_RANGES_ONLY"
+    }
     service_account = google_service_account.backend.email
   }
   depends_on = [

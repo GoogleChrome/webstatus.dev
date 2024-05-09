@@ -40,6 +40,12 @@ spec:
           value: 'datastore:8085'
         - name: CORS_ALLOWED_ORIGIN
           value: 'http://localhost:5555'
+        - name: REDISHOST
+          value: redis
+        - name: REDISPORT
+          value: '6379'
+        - name: CACHE_TTL
+          value: 5m # Short TTL locally
       resources:
         limits:
           cpu: 250m

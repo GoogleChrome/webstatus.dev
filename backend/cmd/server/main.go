@@ -15,13 +15,20 @@
 package main
 
 import (
+	"cmp"
 	"log/slog"
+	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
+	"github.com/GoogleChrome/webstatus.dev/lib/rediscache"
+	"github.com/go-chi/cors"
 )
 
 func main() {
@@ -52,11 +59,61 @@ func main() {
 	// Allowed Origin. Can remove after UbP.
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 
+	redisHost := os.Getenv("REDISHOST")
+	redisPort := os.Getenv("REDISPORT")
+
+	cacheDuration := os.Getenv("CACHE_TTL")
+	duration, err := time.ParseDuration(cacheDuration)
+	if err != nil {
+		slog.Error("unable to parse CACHE_TTL duration", "input value", cacheDuration)
+		os.Exit(1)
+	}
+
+	connectionsStr := os.Getenv("CACHE_CONNECTIONS")
+	connections := 10
+	if connectionsStr != "" {
+		var parseErr error
+		connections, parseErr = strconv.Atoi(connectionsStr)
+		if parseErr != nil {
+			slog.Error("unable to parse cache connections", "input", connectionsStr)
+			os.Exit(1)
+		}
+	}
+
+	cacheKeyPrefix := cmp.Or[string](os.Getenv("K_REVISION"), "test-revision")
+	slog.Info("cache settings", "duration", duration, "prefix", cacheKeyPrefix, "connections", connections)
+
+	cache, err := rediscache.NewRedisDataCache[string, []byte](
+		cacheKeyPrefix,
+		redisHost,
+		redisPort,
+		duration,
+		connections,
+	)
+	if err != nil {
+		slog.Error("unable to create redis cache instance", "error", err)
+		os.Exit(1)
+	}
+
 	srv, err := httpserver.NewHTTPServer(
 		"8080",
 		fs,
 		spanneradapters.NewBackend(spannerClient),
-		allowedOrigin)
+		[]func(http.Handler) http.Handler{
+			cors.Handler(
+				//nolint: exhaustruct // No need to use every option of 3rd party struct.
+				cors.Options{
+					AllowedOrigins: []string{allowedOrigin},
+					// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+					AllowedMethods: []string{"GET", "OPTIONS"},
+					// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+					// ExposedHeaders:   []string{"Link"},
+					AllowCredentials: true, // Remove after UbP
+					MaxAge:           300,  // Maximum value not ignored by any of major browsers
+				}),
+			httpmiddlewares.NewCacheMiddleware(cache),
+		},
+	)
 	if err != nil {
 		slog.Error("unable to create server", "error", err.Error())
 		os.Exit(1)
