@@ -42,3 +42,5 @@ frontend_domains_for_gcp_managed_certificates = []
 
 # Temporary for UB.
 ssl_certificates = ["ub-self-sign"]
+
+cache_duration = "5m"
