@@ -25,7 +25,7 @@ import (
 
 // WebFeatureSpannerClient expects a subset of the functionality from lib/gcpspanner that only apply to WebFeatures.
 type WebFeatureSpannerClient interface {
-	UpsertWebFeature(ctx context.Context, feature gcpspanner.WebFeature) error
+	UpsertWebFeature(ctx context.Context, feature gcpspanner.WebFeature) (*string, error)
 	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
 	InsertBrowserFeatureAvailability(
 		ctx context.Context,
@@ -47,16 +47,17 @@ type WebFeaturesConsumer struct {
 
 func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureData) error {
+	data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error) {
+	ret := make(map[string]string, len(data))
 	for featureID, featureData := range data {
 		webFeature := gcpspanner.WebFeature{
 			FeatureKey: featureID,
 			Name:       featureData.Name,
 		}
 
-		err := c.client.UpsertWebFeature(ctx, webFeature)
+		id, err := c.client.UpsertWebFeature(ctx, webFeature)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		featureBaselineStatus := gcpspanner.FeatureBaselineStatus{
@@ -71,7 +72,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 
 		err = c.client.UpsertFeatureBaselineStatus(ctx, featureID, featureBaselineStatus)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		// Read the browser support data.
@@ -85,19 +86,20 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 					"featureID", featureID,
 				)
 
-				return err
+				return nil, err
 			}
 		}
 
 		// Read the spec information
 		err = consumeFeatureSpecInformation(ctx, c.client, featureID, featureData)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
+		ret[featureID] = *id
 	}
 
-	return nil
+	return ret, nil
 }
 
 func consumeFeatureSpecInformation(ctx context.Context,

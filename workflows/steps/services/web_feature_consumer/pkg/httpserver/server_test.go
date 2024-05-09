@@ -76,8 +76,9 @@ func (m *mockAssetParser) Parse(file io.ReadCloser) (map[string]web_platform_dx_
 }
 
 type mockInsertWebFeaturesConfig struct {
-	expectedData map[string]web_platform_dx__web_features.FeatureData
-	returnError  error
+	expectedData    map[string]web_platform_dx__web_features.FeatureData
+	returnedMapping map[string]string
+	returnError     error
 }
 
 type mockWebFeatureStorer struct {
@@ -86,12 +87,12 @@ type mockWebFeatureStorer struct {
 }
 
 func (m *mockWebFeatureStorer) InsertWebFeatures(
-	_ context.Context, data map[string]web_platform_dx__web_features.FeatureData) error {
+	_ context.Context, data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error) {
 	if !reflect.DeepEqual(data, m.mockInsertWebFeaturesCfg.expectedData) {
 		m.t.Error("unexpected data")
 	}
 
-	return m.mockInsertWebFeaturesCfg.returnError
+	return m.mockInsertWebFeaturesCfg.returnedMapping, m.mockInsertWebFeaturesCfg.returnError
 }
 
 const (
@@ -121,13 +122,15 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedFileContents: "hi features",
 				returnData: map[string]web_platform_dx__web_features.FeatureData{
 					"feature1": {
-						Name:           "Feature 1",
-						Alias:          nil,
-						Caniuse:        nil,
-						CompatFeatures: nil,
-						Spec:           nil,
-						Status:         nil,
-						UsageStats:     nil,
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				returnError: nil,
@@ -135,14 +138,19 @@ func TestPostV1WebFeatures(t *testing.T) {
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: map[string]web_platform_dx__web_features.FeatureData{
 					"feature1": {
-						Name:           "Feature 1",
-						Alias:          nil,
-						Caniuse:        nil,
-						CompatFeatures: nil,
-						Spec:           nil,
-						Status:         nil,
-						UsageStats:     nil,
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
+				},
+				returnedMapping: map[string]string{
+					"feature1": "id-1",
 				},
 				returnError: nil,
 			},
@@ -163,8 +171,9 @@ func TestPostV1WebFeatures(t *testing.T) {
 				returnError:          nil,
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
-				expectedData: nil,
-				returnError:  nil,
+				expectedData:    nil,
+				returnedMapping: nil,
+				returnError:     nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
@@ -184,20 +193,23 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedFileContents: "hi features",
 				returnData: map[string]web_platform_dx__web_features.FeatureData{
 					"feature1": {
-						Name:           "Feature 1",
-						Alias:          nil,
-						Caniuse:        nil,
-						CompatFeatures: nil,
-						Spec:           nil,
-						Status:         nil,
-						UsageStats:     nil,
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				returnError: errors.New("cannot parse data"),
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
-				expectedData: nil,
-				returnError:  nil,
+				expectedData:    nil,
+				returnedMapping: nil,
+				returnError:     nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
@@ -217,13 +229,15 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedFileContents: "hi features",
 				returnData: map[string]web_platform_dx__web_features.FeatureData{
 					"feature1": {
-						Name:           "Feature 1",
-						Alias:          nil,
-						Caniuse:        nil,
-						CompatFeatures: nil,
-						Spec:           nil,
-						Status:         nil,
-						UsageStats:     nil,
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				returnError: nil,
@@ -231,14 +245,19 @@ func TestPostV1WebFeatures(t *testing.T) {
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: map[string]web_platform_dx__web_features.FeatureData{
 					"feature1": {
-						Name:           "Feature 1",
-						Alias:          nil,
-						Caniuse:        nil,
-						CompatFeatures: nil,
-						Spec:           nil,
-						Status:         nil,
-						UsageStats:     nil,
+						Name:            "Feature 1",
+						Alias:           nil,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Spec:            nil,
+						Status:          nil,
+						UsageStats:      nil,
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
+				},
+				returnedMapping: map[string]string{
+					"feature1": "id-1",
 				},
 				returnError: errors.New("uh-oh"),
 			},

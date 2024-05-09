@@ -261,7 +261,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
@@ -403,7 +403,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	// Load up runs, metrics and features.
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
@@ -805,7 +805,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	// Load up runs, metrics and features.
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}

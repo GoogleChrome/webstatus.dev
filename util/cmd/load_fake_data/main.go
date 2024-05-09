@@ -98,7 +98,7 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 			Name:       featureName,
 			FeatureKey: featureID,
 		}
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			return nil, err
 		}
