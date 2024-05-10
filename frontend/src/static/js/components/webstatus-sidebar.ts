@@ -67,7 +67,8 @@ export class WebstatusSidebar extends LitElement {
           <sl-tree id="bottom-menu">
             <sl-tree-item>
               <sl-icon name="github"></sl-icon>
-              <a href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
+<a href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
+    target="_blank"
                 >Report an issue</a
               >
             </sl-tree-item>
