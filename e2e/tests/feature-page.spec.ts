@@ -62,3 +62,39 @@ test('matches the screenshot', async ({page}) => {
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
 });
+
+test('date range changes are preserved in the URL', async ({page}) => {
+  await page.goto('http://localhost:5555/features/a117');
+  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForTimeout(1000);
+
+  // Change the start date to April 1st, 2020, in yyyy-mm-dd order
+  const startDateSelector = page.locator('sl-input#start-date');
+  const startDateInputElement = startDateSelector.locator('input');
+  await startDateInputElement.fill('2020-04-01');
+
+  // Blur the input to trigger the change event
+  await startDateInputElement.blur();
+
+  // Check that the URL includes the startDate and endDate
+  const url = page.url();
+  expect(url).toContain('startDate=2020-04-01');
+  expect(url).toContain('endDate=2020-05-01');
+
+  // Refresh the page with that URL.
+  await page.goto(url);
+  await page.waitForSelector('#feature-support-chart-container');
+
+  // Check that the startDate and endDate are still there.
+  const url2 = page.url();
+  expect(url2).toContain('startDate=2020-04-01');
+  expect(url2).toContain('endDate=2020-05-01');
+
+  // Check that the startDate selector has the right value.
+  const startDateSelector2 = page.locator('sl-input#start-date');
+  const startDateInputElement2 = startDateSelector2.locator('input');
+  const startDateValue2 = await startDateInputElement2.inputValue();
+  expect(startDateValue2).toBe('2020-04-01');
+
+  // TODO: Check that the chart has the right start date.
+});
