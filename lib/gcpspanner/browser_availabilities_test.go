@@ -84,7 +84,7 @@ func setupRequiredTablesForBrowserFeatureAvailability(
 	}
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}

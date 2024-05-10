@@ -136,6 +136,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 
 type mockUpsertWebFeatureConfig struct {
 	expectedInputs map[string]gcpspanner.WebFeature
+	outputIDs      map[string]*string
 	outputs        map[string]error
 	expectedCount  int
 }
@@ -171,7 +172,7 @@ type mockWebFeatureSpannerClient struct {
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
-	_ context.Context, feature gcpspanner.WebFeature) error {
+	_ context.Context, feature gcpspanner.WebFeature) (*string, error) {
 	if len(c.mockUpsertWebFeatureCfg.expectedInputs) <= c.upsertWebFeatureCount {
 		c.t.Fatal("no more expected input for UpsertWebFeature")
 	}
@@ -187,7 +188,7 @@ func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
 	}
 	c.upsertWebFeatureCount++
 
-	return c.mockUpsertWebFeatureCfg.outputs[feature.FeatureKey]
+	return c.mockUpsertWebFeatureCfg.outputIDs[feature.FeatureKey], c.mockUpsertWebFeatureCfg.outputs[feature.FeatureKey]
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertFeatureBaselineStatus(
@@ -307,6 +308,10 @@ func TestInsertWebFeatures(t *testing.T) {
 						Name:       "Feature 2",
 					},
 				},
+				outputIDs: map[string]*string{
+					"feature1": valuePtr("id-1"),
+					"feature2": valuePtr("id-2"),
+				},
 				outputs: map[string]error{
 					"feature1": nil,
 					"feature2": nil,
@@ -419,7 +424,9 @@ func TestInsertWebFeatures(t *testing.T) {
 							Bool: nil,
 						},
 					},
-					UsageStats: nil,
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					UsageStats:      nil,
 				},
 				"feature2": {
 					Name:           "Feature 2",
@@ -447,7 +454,9 @@ func TestInsertWebFeatures(t *testing.T) {
 							Bool: nil,
 						},
 					},
-					UsageStats: nil,
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					UsageStats:      nil,
 				},
 			},
 			expectedError: nil,
@@ -463,6 +472,9 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				outputs: map[string]error{
 					"feature1": ErrWebFeatureTest,
+				},
+				outputIDs: map[string]*string{
+					"feature1": valuePtr("id-1"),
 				},
 				expectedCount: 1,
 			},
@@ -497,7 +509,9 @@ func TestInsertWebFeatures(t *testing.T) {
 							Bool: nil,
 						},
 					},
-					UsageStats: nil,
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					UsageStats:      nil,
 				},
 			},
 			expectedError: ErrWebFeatureTest,
@@ -513,6 +527,9 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				outputs: map[string]error{
 					"feature1": nil,
+				},
+				outputIDs: map[string]*string{
+					"feature1": valuePtr("id-1"),
 				},
 				expectedCount: 1,
 			},
@@ -555,7 +572,9 @@ func TestInsertWebFeatures(t *testing.T) {
 							Bool: nil,
 						},
 					},
-					UsageStats: nil,
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					UsageStats:      nil,
 				},
 			},
 			expectedError: ErrBaselineStatusTest,
@@ -571,6 +590,9 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				outputs: map[string]error{
 					"feature1": nil,
+				},
+				outputIDs: map[string]*string{
+					"feature1": valuePtr("id-1"),
 				},
 				expectedCount: 1,
 			},
@@ -632,7 +654,9 @@ func TestInsertWebFeatures(t *testing.T) {
 							Bool: nil,
 						},
 					},
-					UsageStats: nil,
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					UsageStats:      nil,
 				},
 			},
 			expectedError: ErrBrowserFeatureAvailabilityTest,
@@ -648,6 +672,9 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				outputs: map[string]error{
 					"feature1": nil,
+				},
+				outputIDs: map[string]*string{
+					"feature1": valuePtr("id-1"),
 				},
 				expectedCount: 1,
 			},
@@ -733,7 +760,9 @@ func TestInsertWebFeatures(t *testing.T) {
 							Bool: nil,
 						},
 					},
-					UsageStats: nil,
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					UsageStats:      nil,
 				},
 			},
 			expectedError: ErrFeatureSpecTest,
@@ -751,7 +780,7 @@ func TestInsertWebFeatures(t *testing.T) {
 			)
 			consumer := NewWebFeaturesConsumer(mockClient)
 
-			err := consumer.InsertWebFeatures(context.TODO(), tc.input)
+			_, err := consumer.InsertWebFeatures(context.TODO(), tc.input)
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)

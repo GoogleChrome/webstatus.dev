@@ -29,7 +29,7 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		{FeatureKey: "FeatureW", Name: "Amazing API"},
 	}
 	for _, feature := range webFeatures {
-		err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}

@@ -44,7 +44,7 @@ type WebFeature struct {
 // UpsertWebFeature will upsert the given web feature.
 // If the feature, does not exist, it will insert a new feature.
 // If the run exists, it will only update the name.
-func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) error {
+func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		stmt := spanner.NewStatement(`
 		SELECT
@@ -100,8 +100,13 @@ func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) error
 		return nil
 	})
 	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	return nil
+	id, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(feature.FeatureKey))
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return id, nil
 }

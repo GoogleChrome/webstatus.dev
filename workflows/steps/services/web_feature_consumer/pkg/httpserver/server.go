@@ -47,7 +47,7 @@ type AssetParser interface {
 type WebFeatureStorer interface {
 	InsertWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureData) error
+		data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error)
 }
 
 type Server struct {
@@ -90,7 +90,8 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
-	err = s.storer.InsertWebFeatures(ctx, data)
+	// TODO use the mapping in the future for storing metadata
+	_, err = s.storer.InsertWebFeatures(ctx, data)
 	if err != nil {
 		slog.Error("unable to store data", "error", err)
 
