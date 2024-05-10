@@ -27,7 +27,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-type WebFeatureMetadataStorer interface{}
+type WebFeatureMetadataStorer interface {
+	GetFeatureMetadata(
+		ctx context.Context,
+		featureID string,
+	) (*backend.FeatureMetadata, error)
+}
 
 type WPTMetricsStorer interface {
 	ListMetricsForFeatureIDBrowserAndChannel(
@@ -73,6 +78,10 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.BrowserReleaseFeatureMetricsPage, error)
+	GetIDFromFeatureKey(
+		ctx context.Context,
+		featureID string,
+	) (*string, error)
 }
 
 type Server struct {

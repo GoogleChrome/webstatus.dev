@@ -28,6 +28,28 @@ import (
 
 func valuePtr[T any](in T) *T { return &in }
 
+type MockGetFeatureMetadataConfig struct {
+	expectedFeatureID string
+	result            *backend.FeatureMetadata
+	err               error
+}
+
+type MockWebFeatureMetadataStorer struct {
+	t                         *testing.T
+	mockGetFeatureMetadataCfg MockGetFeatureMetadataConfig
+}
+
+func (s *MockWebFeatureMetadataStorer) GetFeatureMetadata(
+	_ context.Context,
+	featureID string,
+) (*backend.FeatureMetadata, error) {
+	if featureID != s.mockGetFeatureMetadataCfg.expectedFeatureID {
+		s.t.Error("unexpected feature id")
+	}
+
+	return s.mockGetFeatureMetadataCfg.result, s.mockGetFeatureMetadataCfg.err
+}
+
 type MockListMetricsForFeatureIDBrowserAndChannelConfig struct {
 	expectedFeatureID string
 	expectedBrowser   string
@@ -75,6 +97,12 @@ type MockGetFeatureByIDConfig struct {
 	err                   error
 }
 
+type MockGetIDFromFeatureKeyConfig struct {
+	expectedFeatureKey string
+	result             *string
+	err                error
+}
+
 type MockListBrowserFeatureCountMetricConfig struct {
 	expectedBrowser   string
 	expectedStartAt   time.Time
@@ -92,12 +120,24 @@ type MockWPTMetricsStorer struct {
 	featuresSearchCfg                                 MockFeaturesSearchConfig
 	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
 	getFeatureByIDConfig                              MockGetFeatureByIDConfig
+	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
 	t                                                 *testing.T
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
 	callCountGetFeature                               int
+}
+
+func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
+	_ context.Context,
+	featureID string,
+) (*string, error) {
+	if featureID != m.getIDFromFeatureKeyConfig.expectedFeatureKey {
+		m.t.Errorf("unexpected feature key %s", featureID)
+	}
+
+	return m.getIDFromFeatureKeyConfig.result, m.getIDFromFeatureKeyConfig.err
 }
 
 func (m *MockWPTMetricsStorer) ListMetricsForFeatureIDBrowserAndChannel(_ context.Context,

@@ -144,6 +144,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/features/{feature_id}/feature-metadata:
+    parameters:
+      - name: feature_id
+        in: path
+        description: Feature ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get metadata for a given feature from github.com/web-platform-dx/web-features
+      operationId: getFeatureMetadata
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureMetadata'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}:
     parameters:
       - name: feature_id
@@ -576,6 +618,24 @@ components:
       type: object
       properties:
         link:
+          type: string
+    FeatureMetadata:
+      type: object
+      properties:
+        can_i_use:
+          $ref: '#/components/schemas/CanIUseInfo'
+        description:
+          type: string
+    CanIUseInfo:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CanIUseItem'
+    CanIUseItem:
+      properties:
+        id:
           type: string
     Feature:
       type: object
