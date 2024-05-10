@@ -33,4 +33,39 @@ describe('webstatus-feature-page', () => {
       'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom%21is%3Atentative'
     );
   });
+
+  it('optionally builds a caniuse link', async () => {
+    // Single item renders a link
+    const singleItem = {
+      items: [{id: 'flexbox'}],
+    };
+    const singleItemLink = el.findCanIUseLink(singleItem);
+    expect(singleItemLink).to.eq('https://caniuse.com/flexbox');
+
+    // Multiple item renders no link
+    const multipleItems = {
+      items: [{id: 'flexbox'}, {id: 'grid'}],
+    };
+    const multipleItemsLink = el.findCanIUseLink(multipleItems);
+    expect(multipleItemsLink).to.eq(null);
+
+    // No item renders no link
+    const emptyItems = {
+      items: [],
+    };
+    const emptyItemsLink = el.findCanIUseLink(emptyItems);
+    expect(emptyItemsLink).to.eq(null);
+
+    // Undefined items renders no link
+    const undefinedItems = {
+      items: undefined,
+    };
+    const undefinedItemsLink = el.findCanIUseLink(undefinedItems);
+    expect(undefinedItemsLink).to.eq(null);
+
+    // Undefined object renders no link
+    const undefinedObjItems = undefined;
+    const undefinedObjItemsLink = el.findCanIUseLink(undefinedObjItems);
+    expect(undefinedObjItemsLink).to.eq(null);
+  });
 });

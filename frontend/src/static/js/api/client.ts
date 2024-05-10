@@ -128,6 +128,24 @@ export class APIClient {
     return data;
   }
 
+  public async getFeatureMetadata(
+    featureId: string
+  ): Promise<components['schemas']['FeatureMetadata']> {
+    const {data, error} = await this.client.GET(
+      '/v1/features/{feature_id}/feature-metadata',
+      {
+        ...temporaryFetchOptions,
+        params: {
+          path: {feature_id: featureId},
+        },
+      }
+    );
+    if (error !== undefined) {
+      throw new Error(error?.message || error?.toString());
+    }
+    return data;
+  }
+
   // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.
   // Typically, users of the /v1/features endpoint should use the provided pagination token.
   // However, this token can be used to facilitate a UI with where we have selectable page numbers.
