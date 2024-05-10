@@ -27,18 +27,53 @@ import './webstatus-overview-table.js';
 
 const VOCABULARY = [
   {
-    name: 'available_on:',
-    doc: 'Available on a specific browser. E.g., available:chrome',
+    name: 'available_on:chrome',
+    doc: 'Features available on Chrome',
   },
   {
-    name: 'baseline_date:',
-    doc: 'Date the feature reached baseline: YYYY-MM-DD..YYYY-MM-DD',
+    name: 'available_on:edge',
+    doc: 'Features available on Edge',
   },
   {
-    name: 'baseline_status:',
-    doc: "Feature's baseline status: limited, newly, or widely",
+    name: 'available_on:firefox',
+    doc: 'Features available on Firefox',
   },
-  {name: 'name:', doc: 'Find by name. E.g. name:grid. E.g., name:"CSS Grid"'},
+  {
+    name: 'available_on:safari',
+    doc: 'Features available on Safari',
+  },
+  {
+    name: 'baseline_date:2023-01-01..2024-01-01',
+    doc: 'Reached baseline between the given dates',
+  },
+  {
+    name: 'baseline_status:limited',
+    doc: 'Features that are not yet in baseline',
+  },
+  {
+    name: 'baseline_status:newly',
+    doc: 'Features newly added to baseline',
+  },
+  {
+    name: 'baseline_status:widely',
+    doc: 'Features in baseline and widely available',
+  },
+  {
+    name: 'name:',
+    doc: 'Find by substring of the name. E.g., name:grid',
+  },
+  {
+    name: 'name:"a substring"',
+    doc: 'Find by substring of the name. E.g., name:"CSS Grid"',
+  },
+  {
+    name: 'OR',
+    doc: 'Combine query terms with a logical-OR',
+  },
+  {
+    name: '-',
+    doc: 'Negate search term with a leading minus',
+  },
 ];
 
 @customElement('webstatus-overview-filters')

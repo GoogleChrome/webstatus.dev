@@ -139,7 +139,10 @@ export class WebstatusTypeahead extends LitElement {
       this.prefix = null;
       return;
     }
-    this.chunkStart = wholeStr.lastIndexOf(' ', caret - 1) + 1;
+    this.chunkStart = Math.max(
+      wholeStr.lastIndexOf(' ', caret - 1) + 1,
+      wholeStr.lastIndexOf('-', caret - 1) + 1
+    );
     this.chunkEnd = wholeStr.indexOf(' ', caret);
     if (this.chunkEnd === -1) this.chunkEnd = wholeStr.length;
     this.prefix = wholeStr.substring(this.chunkStart, caret);
@@ -166,7 +169,9 @@ export class WebstatusTypeahead extends LitElement {
     const inputEl = (this.slInputRef.value as SlInput).input;
     const wholeStr = inputEl.value;
     const maybeAddSpace =
-      !candidateValue.endsWith(':') && wholeStr[this.chunkEnd] !== ' '
+      !candidateValue.endsWith(':') &&
+      !candidateValue.endsWith('-') &&
+      wholeStr[this.chunkEnd] !== ' '
         ? ' '
         : '';
     const newWholeStr =
