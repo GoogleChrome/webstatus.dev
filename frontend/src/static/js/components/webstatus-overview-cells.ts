@@ -161,7 +161,7 @@ export const renderBrowserQuality: CellRenderer = (
   if (feature.spec && isJavaScriptFeature(feature.spec)) {
     percentage = renderJavaScriptFeatureValue();
   }
-  if (hasInsufficientTestCoverage(feature)) {
+  if (hasInsufficientTestCoverage(feature.feature_id)) {
     percentage = renderInsufficentTestCoverage();
   }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
@@ -335,10 +335,8 @@ function renderJavaScriptFeatureValue(): TemplateResult {
   </sl-tooltip>`;
 }
 
-export function hasInsufficientTestCoverage(
-  feature: components['schemas']['Feature']
-): boolean {
-  return ['avif', 'declaritive-shadow-dom'].includes(feature.feature_id);
+export function hasInsufficientTestCoverage(feature_id: string): boolean {
+  return ['avif', 'declarative-shadow-dom'].includes(feature_id);
 }
 
 function renderInsufficentTestCoverage(): TemplateResult {
