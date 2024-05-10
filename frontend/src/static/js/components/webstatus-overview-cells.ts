@@ -158,6 +158,9 @@ export const renderBrowserQuality: CellRenderer = (
   if (browserImpl === 'unavailable') {
     percentage = renderMissingPercentage();
   }
+  if (feature.spec && isJavaScriptFeature(feature.spec)) {
+    percentage = renderJavaScriptFeatureValue();
+  }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
     <div class="browser-impl-${browserImpl}">
@@ -298,4 +301,33 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
   } else {
     return DEFAULT_COLUMNS;
   }
+}
+
+// JavaScript features will not have WPT scores for now. Instead of presenting MISSING_VALUE,
+// these features can present an informative message describing the absence of the
+// WPT score.
+const JS_FEATURE_LINK_PREFIX = 'https://tc39.es/';
+
+// FeatureSpecInfo represents the specification information for a feature,
+// particularly the links that might indicate it's a JavaScript feature.
+interface FeatureSpecInfo {
+  links?: {
+    link?: string;
+  }[]; // Array of objects potentially containing a 'link' property
+}
+
+export function isJavaScriptFeature(featureSpecInfo: FeatureSpecInfo): boolean {
+  return (
+    featureSpecInfo?.links?.some(
+      linkObj => linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX)
+    ) ?? false
+  );
+}
+
+function renderJavaScriptFeatureValue(): TemplateResult {
+  return html` <sl-tooltip
+    content="WPT metrics are not applicable to TC39 features."
+  >
+    <sl-icon-button name="info-circle" label="TC39 feature"></sl-icon-button>
+  </sl-tooltip>`;
 }

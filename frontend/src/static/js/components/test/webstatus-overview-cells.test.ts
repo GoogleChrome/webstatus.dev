@@ -20,6 +20,7 @@ import {
   ColumnKey,
   parseColumnsSpec,
   DEFAULT_COLUMNS,
+  isJavaScriptFeature,
 } from '../webstatus-overview-cells.js';
 
 describe('parseColumnsSpec', () => {
@@ -31,5 +32,26 @@ describe('parseColumnsSpec', () => {
   it('returns an array when given a column spec', () => {
     const cols = parseColumnsSpec('name, baseline_status ');
     assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
+  });
+});
+
+describe('isJavaScriptFeature', () => {
+  it('returns true for a JavaScript feature (link prefix match)', () => {
+    const featureSpecInfo = {
+      links: [{link: 'https://tc39.es/proposal-temporal'}],
+    };
+    assert.isTrue(isJavaScriptFeature(featureSpecInfo));
+  });
+
+  it('returns false for a non-JavaScript feature (no link match)', () => {
+    const featureSpecInfo = {
+      links: [{link: 'https://www.w3.org/TR/webgpu/'}],
+    };
+    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  });
+
+  it('returns false if links are missing', () => {
+    const featureSpecInfo = {}; // No 'links' property
+    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
   });
 });
