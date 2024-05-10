@@ -40,6 +40,7 @@ import {
   type BrowsersParameter,
   type ChannelsParameter,
   type WPTRunMetric,
+  NotFoundError,
 } from '../api/client.js';
 import {
   formatFeaturePageUrl,
@@ -424,7 +425,16 @@ export class FeaturePage extends LitElement {
   render(): TemplateResult | undefined {
     return this._loadingTask.render({
       complete: () => this.renderWhenComplete(),
-      error: () => this.renderWhenError(),
+      error: error => {
+        if (error instanceof NotFoundError) {
+          // TODO: cannot use navigateToUrl because it creates a
+          // circular dependency.
+          // For now use the window href and revisit when navigateToUrl
+          // is move to another location.
+          window.location.href = '/errors-404/feature-not-found';
+        }
+        return this.renderWhenError();
+      },
       initial: () => this.renderWhenInitial(),
       pending: () => this.renderWhenPending(),
     });
