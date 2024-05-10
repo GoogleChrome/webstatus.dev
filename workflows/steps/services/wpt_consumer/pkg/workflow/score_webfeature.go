@@ -15,7 +15,6 @@
 package workflow
 
 import (
-	"cmp"
 	"context"
 	"slices"
 	"strings"
@@ -99,6 +98,9 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 			// Reset the sub test metrics to nil.
 			score.SubtestPass = nil
 			score.TotalSubtests = nil
+			score.FeatureRunDetails = map[string]interface{}{
+				"status": string(WPTStatusCrash),
+			}
 			webFeatureScoreMap[webFeature] = score
 			// Skip the feature for future sub tests calculations.
 			featuresToExcludeSubtests[webFeature] = nil
@@ -129,17 +131,20 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 func getScoreForFeature(
 	webFeature string,
 	webFeatureScoreMap map[string]wptconsumertypes.WPTFeatureMetric) wptconsumertypes.WPTFeatureMetric {
-	var initialTestTotal, initialTestPass, initialSubtestTotal, initialSubtestPass int64 = 0, 0, 0, 0
-	webFeatureScore := cmp.Or(
-		webFeatureScoreMap[webFeature],
-		wptconsumertypes.WPTFeatureMetric{
+	score, found := webFeatureScoreMap[webFeature]
+	if !found {
+		var initialTestTotal, initialTestPass, initialSubtestTotal, initialSubtestPass int64 = 0, 0, 0, 0
+		score = wptconsumertypes.WPTFeatureMetric{
 			TotalTests:    &initialTestTotal,
 			TestPass:      &initialTestPass,
 			TotalSubtests: &initialSubtestTotal,
 			SubtestPass:   &initialSubtestPass,
-		})
+			// Up to the setter to initialize this since it is not commonly used.
+			FeatureRunDetails: nil,
+		}
+	}
 
-	return webFeatureScore
+	return score
 }
 
 // scoreTest updates web feature metrics for a single test

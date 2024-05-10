@@ -57,19 +57,8 @@ func (c *Client) GetFeature(
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
-		result.StableMetrics, findDefaultPlaceHolder)
-	if len(result.StableMetrics) == 0 {
-		// If we removed everything, just set it to nil
-		result.StableMetrics = nil
-	}
-
-	result.ExperimentalMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
-		result.ExperimentalMetrics, findDefaultPlaceHolder)
-	if len(result.ExperimentalMetrics) == 0 {
-		// If we removed everything, just set it to nil
-		result.ExperimentalMetrics = nil
-	}
+	stableMetrics := convertSpannerMetrics(result.StableMetrics)
+	experimentalMetrics := convertSpannerMetrics(result.ExperimentalMetrics)
 
 	result.ImplementationStatuses = slices.DeleteFunc[[]*ImplementationStatus](
 		result.ImplementationStatuses, findImplementationStatusDefaultPlaceHolder)
@@ -86,8 +75,8 @@ func (c *Client) GetFeature(
 		FeatureKey:             result.FeatureKey,
 		Name:                   result.Name,
 		Status:                 result.Status,
-		StableMetrics:          result.StableMetrics,
-		ExperimentalMetrics:    result.ExperimentalMetrics,
+		StableMetrics:          stableMetrics,
+		ExperimentalMetrics:    experimentalMetrics,
 		ImplementationStatuses: result.ImplementationStatuses,
 		LowDate:                result.LowDate,
 		HighDate:               result.HighDate,
