@@ -77,6 +77,10 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.gsi_client_id
       }
       env {
+        name  = "GOOGLE_ANALYTICS_ID"
+        value = var.google_analytics_id
+      }
+      env {
         name  = "PROJECT_ID"
         value = data.google_project.datastore_project.number
       }

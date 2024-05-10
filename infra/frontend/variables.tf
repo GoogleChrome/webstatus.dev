@@ -43,6 +43,10 @@ variable "gsi_client_id" {
   type = string
 }
 
+variable "google_analytics_id" {
+  type = string
+}
+
 variable "ssl_certificates" {
   type = list(string)
 }

@@ -92,6 +92,10 @@ variable "gsi_client_id" {
   type = string
 }
 
+variable "google_analytics_id" {
+  type = string
+}
+
 variable "frontend_docker_build_target" {
   type        = string
   description = "Dockerfile target for the frontend image"

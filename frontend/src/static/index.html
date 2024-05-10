@@ -49,6 +49,20 @@
   </head>
 
   <body>
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=$GOOGLE_ANALYTICS_ID"
+    ></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag('js', new Date());
+
+      gtag('config', '$GOOGLE_ANALYTICS_ID');
+    </script>
     <script src="/public/js/index.js"></script>
     <webstatus-app
       settings='{"apiUrl": "$API_URL", "gsiClientId": "$GSI_CLIENT_ID"}'
