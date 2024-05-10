@@ -203,6 +203,8 @@ export class WebstatusSidebarMenu extends LitElement {
       }
       const currentUrl = new URL(this.getLocation().href);
       currentUrl.pathname = navigationItem.path;
+      // Clear out any search parameters that may have been set by the bookmarks.
+      currentUrl.search = '';
 
       if (currentUrl.href !== this.getLocation().href) {
         this.navigate(currentUrl.href);
