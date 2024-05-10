@@ -161,6 +161,9 @@ export const renderBrowserQuality: CellRenderer = (
   if (feature.spec && isJavaScriptFeature(feature.spec)) {
     percentage = renderJavaScriptFeatureValue();
   }
+  if (didFeatureCrash(feature.wpt?.stable?.[browser!]?.metadata)) {
+    percentage = renderFeatureCrash();
+  }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
     <div class="browser-impl-${browserImpl}">
@@ -329,5 +332,20 @@ function renderJavaScriptFeatureValue(): TemplateResult {
     content="WPT metrics are not applicable to TC39 features."
   >
     <sl-icon-button name="info-circle" label="TC39 feature"></sl-icon-button>
+  </sl-tooltip>`;
+}
+
+export function didFeatureCrash(metadata?: {[key: string]: unknown}): boolean {
+  return !!metadata && 'status' in metadata && metadata['status'] === 'C';
+}
+
+function renderFeatureCrash(): TemplateResult {
+  return html` <sl-tooltip
+    content="Feature's WPT run metrics are incomplete due to a crash. See wpt.fyi for more information."
+  >
+    <sl-icon-button
+      name="exclamation-triangle"
+      label="feature-crash-warning"
+    ></sl-icon-button>
   </sl-tooltip>`;
 }

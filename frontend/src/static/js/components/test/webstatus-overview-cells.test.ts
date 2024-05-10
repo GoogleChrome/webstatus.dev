@@ -21,6 +21,7 @@ import {
   parseColumnsSpec,
   DEFAULT_COLUMNS,
   isJavaScriptFeature,
+  didFeatureCrash,
 } from '../webstatus-overview-cells.js';
 
 describe('parseColumnsSpec', () => {
@@ -53,5 +54,31 @@ describe('isJavaScriptFeature', () => {
   it('returns false if links are missing', () => {
     const featureSpecInfo = {}; // No 'links' property
     assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  });
+});
+
+describe('didFeatureCrash', () => {
+  it('returns true if metadata contains a mapping of "status" to "C"', () => {
+    const metadata = {
+      status: 'C',
+    };
+    assert.isTrue(didFeatureCrash(metadata));
+  });
+
+  it('returns false for other status metadata', () => {
+    const metadata = {
+      status: 'hi',
+    };
+    assert.isFalse(didFeatureCrash(metadata));
+  });
+
+  it('returns false for no metadata', () => {
+    const metadata = {};
+    assert.isFalse(didFeatureCrash(metadata));
+  });
+
+  it('returns false for undefined metadata', () => {
+    const metadata = undefined;
+    assert.isFalse(didFeatureCrash(metadata));
   });
 });
