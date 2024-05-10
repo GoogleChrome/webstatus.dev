@@ -74,10 +74,11 @@ func convertWorkflowMetricsToGCPMetrics(
 	ret := make(map[string]gcpspanner.WPTRunFeatureMetric, len(metricsPerFeature))
 	for featureID, consumerMetric := range metricsPerFeature {
 		ret[featureID] = gcpspanner.WPTRunFeatureMetric{
-			TotalTests:    consumerMetric.TotalTests,
-			TestPass:      consumerMetric.TestPass,
-			TotalSubtests: consumerMetric.TotalSubtests,
-			SubtestPass:   consumerMetric.SubtestPass,
+			TotalTests:        consumerMetric.TotalTests,
+			TestPass:          consumerMetric.TestPass,
+			TotalSubtests:     consumerMetric.TotalSubtests,
+			SubtestPass:       consumerMetric.SubtestPass,
+			FeatureRunDetails: consumerMetric.FeatureRunDetails,
 		}
 	}
 

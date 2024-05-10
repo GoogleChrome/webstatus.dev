@@ -307,18 +307,23 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 					TestPass:      valuePtr[int64](10),
 					TotalSubtests: valuePtr[int64](220),
 					SubtestPass:   valuePtr[int64](110),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "stale-foo-stable",
+					},
 				},
 				"feature2": {
-					TotalTests:    valuePtr[int64](5),
-					TestPass:      valuePtr[int64](0),
-					TotalSubtests: valuePtr[int64](55),
-					SubtestPass:   valuePtr[int64](11),
+					TotalTests:        valuePtr[int64](5),
+					TestPass:          valuePtr[int64](0),
+					TotalSubtests:     valuePtr[int64](55),
+					SubtestPass:       valuePtr[int64](11),
+					FeatureRunDetails: nil,
 				},
 				"feature3": {
-					TotalTests:    valuePtr[int64](50),
-					TestPass:      valuePtr[int64](5),
-					TotalSubtests: valuePtr[int64](5000),
-					SubtestPass:   valuePtr[int64](150),
+					TotalTests:        valuePtr[int64](50),
+					TestPass:          valuePtr[int64](5),
+					TotalSubtests:     valuePtr[int64](5000),
+					SubtestPass:       valuePtr[int64](150),
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -327,10 +332,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 1,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](20),
-					TestPass:      valuePtr[int64](20),
-					TotalSubtests: valuePtr[int64](200),
-					SubtestPass:   valuePtr[int64](200),
+					TotalTests:        valuePtr[int64](20),
+					TestPass:          valuePtr[int64](20),
+					TotalSubtests:     valuePtr[int64](200),
+					SubtestPass:       valuePtr[int64](200),
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -339,10 +345,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 2,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](20),
-					TestPass:      valuePtr[int64](10),
-					TotalSubtests: valuePtr[int64](200),
-					SubtestPass:   valuePtr[int64](15),
+					TotalTests:        valuePtr[int64](20),
+					TestPass:          valuePtr[int64](10),
+					TotalSubtests:     valuePtr[int64](200),
+					SubtestPass:       valuePtr[int64](15),
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -351,10 +358,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 3,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](20),
-					TestPass:      valuePtr[int64](10),
-					TotalSubtests: valuePtr[int64](700),
-					SubtestPass:   valuePtr[int64](250),
+					TotalTests:        valuePtr[int64](20),
+					TestPass:          valuePtr[int64](10),
+					TotalSubtests:     valuePtr[int64](700),
+					SubtestPass:       valuePtr[int64](250),
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -367,18 +375,27 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 					TestPass:      valuePtr[int64](20),
 					TotalSubtests: valuePtr[int64](1000),
 					SubtestPass:   valuePtr[int64](1000),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest1-foo-stable",
+					},
 				},
 				"feature2": {
 					TotalTests:    valuePtr[int64](10),
 					TestPass:      valuePtr[int64](0),
 					TotalSubtests: valuePtr[int64](100),
 					SubtestPass:   valuePtr[int64](15),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-foo-stable",
+					},
 				},
 				"feature3": {
 					TotalTests:    valuePtr[int64](50),
 					TestPass:      valuePtr[int64](35),
 					TotalSubtests: valuePtr[int64](9000),
 					SubtestPass:   valuePtr[int64](4000),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest3-foo-stable",
+					},
 				},
 			},
 		},
@@ -391,12 +408,18 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 					TestPass:      valuePtr[int64](11),
 					TotalSubtests: valuePtr[int64](11),
 					SubtestPass:   valuePtr[int64](11),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest1-foo-exp",
+					},
 				},
 				"feature2": {
 					TotalTests:    valuePtr[int64](12),
 					TestPass:      valuePtr[int64](12),
 					TotalSubtests: valuePtr[int64](12),
 					SubtestPass:   valuePtr[int64](12),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-foo-exp",
+					},
 				},
 			},
 		},
@@ -409,12 +432,18 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 					TestPass:      valuePtr[int64](33),
 					TotalSubtests: valuePtr[int64](333),
 					SubtestPass:   valuePtr[int64](333),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest1-bar-stable",
+					},
 				},
 				"feature2": {
 					TotalTests:    valuePtr[int64](10),
 					TestPass:      valuePtr[int64](10),
 					TotalSubtests: valuePtr[int64](100),
 					SubtestPass:   valuePtr[int64](100),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-bar-stable",
+					},
 				},
 			},
 		},
@@ -423,16 +452,20 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 9,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](220),
-					TestPass:      valuePtr[int64](220),
-					TotalSubtests: valuePtr[int64](2220),
-					SubtestPass:   valuePtr[int64](2220),
+					TotalTests:        valuePtr[int64](220),
+					TestPass:          valuePtr[int64](220),
+					TotalSubtests:     valuePtr[int64](2220),
+					SubtestPass:       valuePtr[int64](2220),
+					FeatureRunDetails: nil,
 				},
 				"feature2": {
 					TotalTests:    valuePtr[int64](120),
 					TestPass:      valuePtr[int64](120),
 					TotalSubtests: valuePtr[int64](1220),
 					SubtestPass:   valuePtr[int64](1220),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-bar-exp",
+					},
 				},
 			},
 		},
@@ -542,20 +575,30 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(33, 33),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest1-bar-stable",
+					},
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(20, 20),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest1-foo-stable",
+					},
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
-					BrowserName: "barBrowser",
-					PassRate:    big.NewRat(220, 220),
+					BrowserName:       "barBrowser",
+					PassRate:          big.NewRat(220, 220),
+					FeatureRunDetails: nil,
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(11, 11),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest1-foo-exp",
+					},
 				},
 			},
 			ImplementationStatuses: []*ImplementationStatus{
@@ -586,20 +629,32 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(10, 10),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-bar-stable",
+					},
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(0, 10),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-foo-stable",
+					},
 				},
 			},
 			ExperimentalMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(120, 120),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-bar-exp",
+					},
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(12, 12),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest2-foo-exp",
+					},
 				},
 			},
 			ImplementationStatuses: []*ImplementationStatus{
@@ -622,6 +677,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(35, 50),
+					FeatureRunDetails: map[string]interface{}{
+						"test": "latest3-foo-stable",
+					},
 				},
 			},
 			ExperimentalMetrics: nil,
@@ -1665,7 +1723,8 @@ func AreMetricsEqual(a, b []*FeatureResultMetric) bool {
 		}
 
 		return a.BrowserName == b.BrowserName &&
-			((a.PassRate == nil && b.PassRate == nil) || (a.PassRate.Cmp(b.PassRate) == 0))
+			((a.PassRate == nil && b.PassRate == nil) || (a.PassRate.Cmp(b.PassRate) == 0)) &&
+			reflect.DeepEqual(a.FeatureRunDetails, b.FeatureRunDetails)
 	})
 }
 
@@ -1723,6 +1782,7 @@ func PrettyPrintMetric(metric *FeatureResultMetric) string {
 		return "\t\tNIL\n"
 	}
 	fmt.Fprintf(&builder, "\t\tBrowserName: %s\n", metric.BrowserName)
+	fmt.Fprintf(&builder, "\t\tFeatureRunDetails: %v\n", metric.FeatureRunDetails)
 	fmt.Fprintf(&builder, "\t\tPassRate: %s\n", PrettyPrintPassRate(metric.PassRate))
 
 	return builder.String()

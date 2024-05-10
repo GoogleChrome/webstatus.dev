@@ -96,8 +96,9 @@ type FeatureMetricsTemplateData struct {
 // return to the end user since it is used to decouple the primary keys between
 // this system and wpt.fyi.
 type SpannerWPTRunFeatureMetric struct {
-	ID           string `spanner:"ID"`
-	WebFeatureID string `spanner:"WebFeatureID"`
+	ID                string           `spanner:"ID"`
+	WebFeatureID      string           `spanner:"WebFeatureID"`
+	FeatureRunDetails spanner.NullJSON `spanner:"FeatureRunDetails"`
 	WPTRunFeatureMetric
 	// Calculated pass rate
 	TestPassRate    *big.Rat `spanner:"TestPassRate"`
@@ -110,10 +111,11 @@ type SpannerWPTRunFeatureMetric struct {
 
 // WPTRunFeatureMetric represents the metrics for a particular feature in a run.
 type WPTRunFeatureMetric struct {
-	TotalTests    *int64 `spanner:"TotalTests"`
-	TestPass      *int64 `spanner:"TestPass"`
-	TotalSubtests *int64 `spanner:"TotalSubtests"`
-	SubtestPass   *int64 `spanner:"SubtestPass"`
+	TotalTests        *int64                 `spanner:"TotalTests"`
+	TestPass          *int64                 `spanner:"TestPass"`
+	TotalSubtests     *int64                 `spanner:"TotalSubtests"`
+	SubtestPass       *int64                 `spanner:"SubtestPass"`
+	FeatureRunDetails map[string]interface{} `spanner:"-"` // Not directly stored in Spanner
 }
 
 func getPassRate(testPass, totalTests *int64) *big.Rat {
@@ -128,6 +130,11 @@ func (c *Client) CreateSpannerWPTRunFeatureMetric(
 	webFeatureID string,
 	wptRunData WPTRunDataForMetrics,
 	in WPTRunFeatureMetric) SpannerWPTRunFeatureMetric {
+	var featureRunDetails spanner.NullJSON
+	if in.FeatureRunDetails != nil {
+		featureRunDetails = spanner.NullJSON{Value: in.FeatureRunDetails, Valid: true}
+	}
+
 	return SpannerWPTRunFeatureMetric{
 		ID:                  wptRunData.ID,
 		WebFeatureID:        webFeatureID,
@@ -137,6 +144,7 @@ func (c *Client) CreateSpannerWPTRunFeatureMetric(
 		WPTRunFeatureMetric: in,
 		TestPassRate:        getPassRate(in.TestPass, in.TotalTests),
 		SubtestPassRate:     getPassRate(in.SubtestPass, in.TotalSubtests),
+		FeatureRunDetails:   featureRunDetails,
 	}
 }
 
@@ -206,6 +214,7 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 				TotalSubtests,
 				SubtestPass,
 				SubtestPassRate,
+				FeatureRunDetails,
 				TimeStart,
 				Channel,
 				BrowserName
@@ -253,6 +262,8 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 				existingMetric.SubtestPass = metric.SubtestPass
 				existingMetric.TotalSubtests = metric.TotalSubtests
 				existingMetric.SubtestPassRate = getPassRate(existingMetric.SubtestPass, existingMetric.TotalSubtests)
+				// Allow feature run details to be reset
+				existingMetric.FeatureRunDetails = metric.FeatureRunDetails
 				m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
 				if err != nil {
 					return errors.Join(ErrInternalQueryFailure, err)

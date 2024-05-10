@@ -616,14 +616,16 @@ func TestFeaturesSearch(t *testing.T) {
 							HighDate:   nil,
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
-									BrowserName: "browser3",
-									PassRate:    big.NewRat(10, 20),
+									BrowserName:       "browser3",
+									PassRate:          big.NewRat(10, 20),
+									FeatureRunDetails: nil,
 								},
 							},
 							ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
 								{
-									BrowserName: "browser3",
-									PassRate:    big.NewRat(10, 50),
+									BrowserName:       "browser3",
+									PassRate:          big.NewRat(10, 50),
+									FeatureRunDetails: nil,
 								},
 							},
 							ImplementationStatuses: []*gcpspanner.ImplementationStatus{
@@ -644,22 +646,28 @@ func TestFeaturesSearch(t *testing.T) {
 							HighDate:   valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
-									BrowserName: "browser1",
-									PassRate:    big.NewRat(10, 20),
+									BrowserName:       "browser1",
+									PassRate:          big.NewRat(10, 20),
+									FeatureRunDetails: nil,
 								},
 								{
-									BrowserName: "browser2",
-									PassRate:    big.NewRat(5, 20),
+									BrowserName:       "browser2",
+									PassRate:          big.NewRat(5, 20),
+									FeatureRunDetails: nil,
 								},
 							},
 							ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
 								{
-									BrowserName: "browser1",
-									PassRate:    big.NewRat(10, 20),
+									BrowserName:       "browser1",
+									PassRate:          big.NewRat(10, 20),
+									FeatureRunDetails: nil,
 								},
 								{
 									BrowserName: "browser2",
 									PassRate:    big.NewRat(2, 20),
+									FeatureRunDetails: map[string]interface{}{
+										"test": "browser2-exp",
+									},
 								},
 							},
 							ImplementationStatuses: []*gcpspanner.ImplementationStatus{
@@ -720,12 +728,14 @@ func TestFeaturesSearch(t *testing.T) {
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser3": {
-									Score: valuePtr[float64](0.2),
+									Score:    valuePtr[float64](0.2),
+									Metadata: nil,
 								},
 							},
 							Stable: &map[string]backend.WPTFeatureData{
 								"browser3": {
-									Score: valuePtr[float64](0.5),
+									Score:    valuePtr[float64](0.5),
+									Metadata: nil,
 								},
 							},
 						},
@@ -763,18 +773,24 @@ func TestFeaturesSearch(t *testing.T) {
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser1": {
-									Score: valuePtr[float64](0.5),
+									Score:    valuePtr[float64](0.5),
+									Metadata: nil,
 								},
 								"browser2": {
 									Score: valuePtr[float64](0.1),
+									Metadata: &map[string]interface{}{
+										"test": "browser2-exp",
+									},
 								},
 							},
 							Stable: &map[string]backend.WPTFeatureData{
 								"browser1": {
-									Score: valuePtr[float64](0.5),
+									Score:    valuePtr[float64](0.5),
+									Metadata: nil,
 								},
 								"browser2": {
-									Score: valuePtr[float64](0.25),
+									Score:    valuePtr[float64](0.25),
+									Metadata: nil,
 								},
 							},
 						},
@@ -946,12 +962,16 @@ func TestGetFeature(t *testing.T) {
 						{
 							BrowserName: "browser3",
 							PassRate:    big.NewRat(10, 20),
+							FeatureRunDetails: map[string]interface{}{
+								"browser3": "test",
+							},
 						},
 					},
 					ExperimentalMetrics: []*gcpspanner.FeatureResultMetric{
 						{
-							BrowserName: "browser3",
-							PassRate:    big.NewRat(10, 50),
+							BrowserName:       "browser3",
+							PassRate:          big.NewRat(10, 50),
+							FeatureRunDetails: nil,
 						},
 					},
 					ImplementationStatuses: []*gcpspanner.ImplementationStatus{
@@ -991,12 +1011,16 @@ func TestGetFeature(t *testing.T) {
 				Wpt: &backend.FeatureWPTSnapshots{
 					Experimental: &map[string]backend.WPTFeatureData{
 						"browser3": {
-							Score: valuePtr[float64](0.2),
+							Score:    valuePtr[float64](0.2),
+							Metadata: nil,
 						},
 					},
 					Stable: &map[string]backend.WPTFeatureData{
 						"browser3": {
 							Score: valuePtr[float64](0.5),
+							Metadata: &map[string]interface{}{
+								"browser3": "test",
+							},
 						},
 					},
 				},

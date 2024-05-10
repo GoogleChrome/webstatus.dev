@@ -529,6 +529,12 @@ components:
         score:
           type: number
           format: double
+        metadata:
+          type: object
+          description: >
+            Contains optional metadata about the metric. This key-value pair is to be considered unstable and can change
+            at any moment. If a field here becomes mature, we can add it to the main WPTFeatureData definition.
+          additionalProperties: true
     BrowserImplementation:
       type: object
       properties:
