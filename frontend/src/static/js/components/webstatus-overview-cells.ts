@@ -161,6 +161,9 @@ export const renderBrowserQuality: CellRenderer = (
   if (feature.spec && isJavaScriptFeature(feature.spec)) {
     percentage = renderJavaScriptFeatureValue();
   }
+  if (hasInsufficientTestCoverage(feature)) {
+    percentage = renderInsufficentTestCoverage();
+  }
   const iconName = BROWSER_IMPL_ICONS[browserImpl];
   return html`
     <div class="browser-impl-${browserImpl}">
@@ -329,5 +332,20 @@ function renderJavaScriptFeatureValue(): TemplateResult {
     content="WPT metrics are not applicable to TC39 features."
   >
     <sl-icon-button name="info-circle" label="TC39 feature"></sl-icon-button>
+  </sl-tooltip>`;
+}
+
+export function hasInsufficientTestCoverage(
+  feature: components['schemas']['Feature']
+): boolean {
+  return ['avif', 'declaritive-shadow-dom'].includes(feature.feature_id);
+}
+
+function renderInsufficentTestCoverage(): TemplateResult {
+  return html` <sl-tooltip content="Insufficient test coverage.">
+    <sl-icon-button
+      name="info-circle"
+      label="insufficent-test-coverage"
+    ></sl-icon-button>
   </sl-tooltip>`;
 }
