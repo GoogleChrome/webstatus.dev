@@ -114,7 +114,9 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           </div>
           <div id="error-action-report">
             <sl-icon name="github"></sl-icon>
-            <a href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
+            <a
+              href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
+              target="_blank"
               >Report an issue</a
             >
           </div>
