@@ -88,23 +88,26 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](10),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature2": {
 					TotalTests: valuePtr[int64](5),
 					TestPass:   valuePtr[int64](0),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature3": {
 					TotalTests: valuePtr[int64](50),
 					TestPass:   valuePtr[int64](5),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -115,9 +118,10 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](20),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -128,9 +132,10 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](10),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -141,9 +146,10 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](10),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -154,23 +160,26 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](20),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature2": {
 					TotalTests: valuePtr[int64](10),
 					TestPass:   valuePtr[int64](0),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature3": {
 					TotalTests: valuePtr[int64](50),
 					TestPass:   valuePtr[int64](35),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -181,16 +190,18 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](20),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature2": {
 					TotalTests: valuePtr[int64](10),
 					TestPass:   valuePtr[int64](10),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -201,16 +212,18 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](20),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature2": {
 					TotalTests: valuePtr[int64](10),
 					TestPass:   valuePtr[int64](10),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -221,16 +234,18 @@ func getSampleRunMetrics() []struct {
 				"feature1": {
 					TotalTests: valuePtr[int64](20),
 					TestPass:   valuePtr[int64](20),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 				"feature2": {
 					TotalTests: valuePtr[int64](10),
 					TestPass:   valuePtr[int64](10),
-					// TODO: Put value when asserting subtest metrics
-					TotalSubtests: nil,
-					SubtestPass:   nil,
+					// TODO: Put value when asserting subtest metrics and feature run details
+					TotalSubtests:     nil,
+					SubtestPass:       nil,
+					FeatureRunDetails: nil,
 				},
 			},
 		},
@@ -301,9 +316,10 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 			"feature1": {
 				TotalTests: valuePtr[int64](300), // Change this value
 				TestPass:   valuePtr[int64](100), // Change this value
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+				// TODO: Put value when asserting subtest metrics and feature run details
+				TotalSubtests:     nil,
+				SubtestPass:       nil,
+				FeatureRunDetails: nil,
 			},
 		},
 	}
@@ -339,9 +355,10 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 			"feature2": {
 				TotalTests: valuePtr[int64](300), // This value should be changed
 				TestPass:   valuePtr[int64](100), // This value should be changed
-				// TODO: Put value when asserting subtest metrics
-				TotalSubtests: nil,
-				SubtestPass:   nil,
+				// TODO: Put value when asserting subtest metrics and feature run details
+				TotalSubtests:     nil,
+				SubtestPass:       nil,
+				FeatureRunDetails: nil,
 			},
 		},
 	}
@@ -387,9 +404,10 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		WPTRunFeatureMetric: WPTRunFeatureMetric{
 			TotalTests: valuePtr[int64](20),
 			TestPass:   valuePtr[int64](20),
-			// TODO: Put value when asserting subtest metrics
-			TotalSubtests: nil,
-			SubtestPass:   nil,
+			// TODO: Put value when asserting subtest metrics and feature run details
+			TotalSubtests:     nil,
+			SubtestPass:       nil,
+			FeatureRunDetails: nil,
 		},
 	}
 	if !reflect.DeepEqual(otherMetric.WPTRunFeatureMetric, *metric) {

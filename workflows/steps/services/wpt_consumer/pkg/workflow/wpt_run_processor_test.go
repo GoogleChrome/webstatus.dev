@@ -168,10 +168,11 @@ func TestProcessRun(t *testing.T) {
 				runID: 123,
 				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {
-						TotalTests:    valuePtr[int64](10),
-						TestPass:      valuePtr[int64](10),
-						TotalSubtests: valuePtr[int64](100),
-						SubtestPass:   valuePtr[int64](100),
+						TotalTests:        valuePtr[int64](10),
+						TestPass:          valuePtr[int64](10),
+						TotalSubtests:     valuePtr[int64](100),
+						SubtestPass:       valuePtr[int64](100),
+						FeatureRunDetails: nil,
 					},
 				},
 				err: nil,
@@ -180,10 +181,11 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:    valuePtr[int64](10),
-							TestPass:      valuePtr[int64](10),
-							TotalSubtests: valuePtr[int64](100),
-							SubtestPass:   valuePtr[int64](100),
+							TotalTests:        valuePtr[int64](10),
+							TestPass:          valuePtr[int64](10),
+							TotalSubtests:     valuePtr[int64](100),
+							SubtestPass:       valuePtr[int64](100),
+							FeatureRunDetails: nil,
 						},
 					},
 				},
@@ -253,10 +255,11 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:    valuePtr[int64](10),
-							TestPass:      valuePtr[int64](10),
-							TotalSubtests: valuePtr[int64](100),
-							SubtestPass:   valuePtr[int64](100),
+							TotalTests:        valuePtr[int64](10),
+							TestPass:          valuePtr[int64](10),
+							TotalSubtests:     valuePtr[int64](100),
+							SubtestPass:       valuePtr[int64](100),
+							FeatureRunDetails: nil,
 						},
 					},
 				},
@@ -310,10 +313,11 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:    valuePtr[int64](10),
-							TestPass:      valuePtr[int64](10),
-							TotalSubtests: valuePtr[int64](100),
-							SubtestPass:   valuePtr[int64](100),
+							TotalTests:        valuePtr[int64](10),
+							TestPass:          valuePtr[int64](10),
+							TotalSubtests:     valuePtr[int64](100),
+							SubtestPass:       valuePtr[int64](100),
+							FeatureRunDetails: nil,
 						},
 					},
 				},
@@ -367,10 +371,11 @@ func TestProcessRun(t *testing.T) {
 				runID: 123,
 				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {
-						TotalTests:    valuePtr[int64](10),
-						TestPass:      valuePtr[int64](10),
-						TotalSubtests: valuePtr[int64](100),
-						SubtestPass:   valuePtr[int64](100),
+						TotalTests:        valuePtr[int64](10),
+						TestPass:          valuePtr[int64](10),
+						TotalSubtests:     valuePtr[int64](100),
+						SubtestPass:       valuePtr[int64](100),
+						FeatureRunDetails: nil,
 					},
 				},
 				err: errUpsertWPTMetric,
@@ -379,10 +384,11 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:    valuePtr[int64](10),
-							TestPass:      valuePtr[int64](10),
-							TotalSubtests: valuePtr[int64](100),
-							SubtestPass:   valuePtr[int64](100),
+							TotalTests:        valuePtr[int64](10),
+							TestPass:          valuePtr[int64](10),
+							TotalSubtests:     valuePtr[int64](100),
+							SubtestPass:       valuePtr[int64](100),
+							FeatureRunDetails: nil,
 						},
 					},
 				},

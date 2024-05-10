@@ -21,10 +21,11 @@ import (
 // WPTFeatureMetric is the representation of the metric that comes from the WPT Consumer
 // This is located in the shared lib package so that it can be used in the adapter and the workflow.
 type WPTFeatureMetric struct {
-	TotalTests    *int64
-	TestPass      *int64
-	TotalSubtests *int64
-	SubtestPass   *int64
+	TotalTests        *int64
+	TestPass          *int64
+	TotalSubtests     *int64
+	SubtestPass       *int64
+	FeatureRunDetails map[string]interface{}
 }
 
 // ErrInvalidDataFromWPT indicates that the data will not be stored because it

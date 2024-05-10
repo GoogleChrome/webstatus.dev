@@ -16,7 +16,9 @@ package gcpspanner
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"math/big"
 	"slices"
 	"time"
@@ -30,16 +32,16 @@ import (
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user.
 type SpannerFeatureResult struct {
-	ID                     string                  `spanner:"ID"`
-	FeatureKey             string                  `spanner:"FeatureKey"`
-	Name                   string                  `spanner:"Name"`
-	Status                 *string                 `spanner:"Status"`
-	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
-	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
-	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
-	LowDate                *time.Time              `spanner:"LowDate"`
-	HighDate               *time.Time              `spanner:"HighDate"`
-	SpecLinks              []string                `spanner:"SpecLinks"`
+	ID                     string                        `spanner:"ID"`
+	FeatureKey             string                        `spanner:"FeatureKey"`
+	Name                   string                        `spanner:"Name"`
+	Status                 *string                       `spanner:"Status"`
+	StableMetrics          []*SpannerFeatureResultMetric `spanner:"StableMetrics"`
+	ExperimentalMetrics    []*SpannerFeatureResultMetric `spanner:"ExperimentalMetrics"`
+	ImplementationStatuses []*ImplementationStatus       `spanner:"ImplementationStatuses"`
+	LowDate                *time.Time                    `spanner:"LowDate"`
+	HighDate               *time.Time                    `spanner:"HighDate"`
+	SpecLinks              []string                      `spanner:"SpecLinks"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
@@ -60,8 +62,15 @@ type ImplementationStatus struct {
 // FeatureResultMetric contains metric information for a feature result query.
 // Very similar to WPTRunFeatureMetric.
 type FeatureResultMetric struct {
-	BrowserName string   `json:"BrowserName"`
-	PassRate    *big.Rat `json:"PassRate"`
+	BrowserName       string                 `spanner:"BrowserName"`
+	PassRate          *big.Rat               `spanner:"PassRate"`
+	FeatureRunDetails map[string]interface{} `spanner:"-"`
+}
+
+type SpannerFeatureResultMetric struct {
+	BrowserName       string           `spanner:"BrowserName"`
+	PassRate          *big.Rat         `spanner:"PassRate"`
+	FeatureRunDetails spanner.NullJSON `spanner:"FeatureRunDetails"`
 }
 
 // FeatureResult contains information regarding a particular feature.
@@ -201,19 +210,9 @@ func (c *Client) getFeatureResult(
 		if err := row.ToStruct(&result); err != nil {
 			return nil, err
 		}
-		result.StableMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
-			result.StableMetrics, findDefaultPlaceHolder)
-		if len(result.StableMetrics) == 0 {
-			// If we removed everything, just set it to nil
-			result.StableMetrics = nil
-		}
 
-		result.ExperimentalMetrics = slices.DeleteFunc[[]*FeatureResultMetric](
-			result.ExperimentalMetrics, findDefaultPlaceHolder)
-		if len(result.ExperimentalMetrics) == 0 {
-			// If we removed everything, just set it to nil
-			result.ExperimentalMetrics = nil
-		}
+		stableMetrics := convertSpannerMetrics(result.StableMetrics)
+		experimentalMetrics := convertSpannerMetrics(result.ExperimentalMetrics)
 
 		result.ImplementationStatuses = slices.DeleteFunc[[]*ImplementationStatus](
 			result.ImplementationStatuses, findImplementationStatusDefaultPlaceHolder)
@@ -230,8 +229,8 @@ func (c *Client) getFeatureResult(
 			FeatureKey:             result.FeatureKey,
 			Name:                   result.Name,
 			Status:                 result.Status,
-			StableMetrics:          result.StableMetrics,
-			ExperimentalMetrics:    result.ExperimentalMetrics,
+			StableMetrics:          stableMetrics,
+			ExperimentalMetrics:    experimentalMetrics,
 			ImplementationStatuses: result.ImplementationStatuses,
 			LowDate:                result.LowDate,
 			HighDate:               result.HighDate,
@@ -243,17 +242,45 @@ func (c *Client) getFeatureResult(
 	return results, nil
 }
 
+// convertSpannerMetrics converts a slice of SpannerFeatureResultMetric to FeatureResultMetric.
+func convertSpannerMetrics(spannerMetrics []*SpannerFeatureResultMetric) []*FeatureResultMetric {
+	featureResults := make([]*FeatureResultMetric, 0, len(spannerMetrics))
+	for _, metric := range spannerMetrics {
+		if findDefaultPlaceHolder(metric) {
+			continue
+		}
+		featureResultMetric := FeatureResultMetric{
+			BrowserName:       metric.BrowserName,
+			PassRate:          metric.PassRate,
+			FeatureRunDetails: nil,
+		}
+		if metric.FeatureRunDetails.Valid {
+			var detailsMap map[string]interface{}
+			if err := json.Unmarshal([]byte(metric.FeatureRunDetails.String()), &detailsMap); err != nil {
+				slog.Error("Error unmarshalling FeatureRunDetails", "error", err)
+			} else {
+				featureResultMetric.FeatureRunDetails = detailsMap
+			}
+		}
+		featureResults = append(featureResults, &featureResultMetric)
+	}
+
+	return featureResults
+}
+
 // nolint: gochecknoglobals // needed for findDefaultPlaceHolder.
 var zeroPassRatePlaceholder = big.NewRat(0, 1)
 
 // The base query has a solution that works on both GCP Spanner and Emulator that if it finds
 // a null array, put a placeholder in there. This function exists to find it and remove it before returning.
-func findDefaultPlaceHolder(in *FeatureResultMetric) bool {
+func findDefaultPlaceHolder(in *SpannerFeatureResultMetric) bool {
 	if in == nil {
 		return false
 	}
 
-	return in.PassRate == nil || in.BrowserName == "" && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0
+	return in.BrowserName == "" ||
+		(in.PassRate == nil || (in.PassRate != nil && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0)) &&
+			!in.FeatureRunDetails.Valid
 }
 
 // The base query has a solution that works on both GCP Spanner and Emulator that if it finds

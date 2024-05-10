@@ -264,6 +264,49 @@ func convertImplementationStatusToBackend(
 	return backend.Unavailable
 }
 
+func convertMetrics(
+	metrics []*gcpspanner.FeatureResultMetric,
+	wpt *backend.FeatureWPTSnapshots,
+	experimental bool) *backend.FeatureWPTSnapshots {
+	metricsMap := make(map[string]backend.WPTFeatureData)
+	for idx, metric := range metrics {
+		if metric.PassRate == nil && metric.FeatureRunDetails == nil {
+			continue
+		}
+		data := backend.WPTFeatureData{
+			Metadata: nil,
+			Score:    nil,
+		}
+		if metric.PassRate != nil {
+			passRate, _ := metric.PassRate.Float64()
+			data.Score = &passRate
+		}
+		if metric.FeatureRunDetails != nil {
+			data.Metadata = &metrics[idx].FeatureRunDetails
+		}
+		metricsMap[metric.BrowserName] = data
+	}
+
+	if len(metricsMap) > 0 {
+		// The database implementation should only return metrics that have PassRate.
+		// The logic below is only proactive in case something changes where we return
+		// a BrowserName without a PassRate. This will prevent the code from returning
+		// an initialized, but empty map by only overriding the default map when it actually
+		// has a value.
+		wpt = cmp.Or(wpt, &backend.FeatureWPTSnapshots{
+			Experimental: nil,
+			Stable:       nil,
+		})
+		if experimental {
+			wpt.Experimental = &metricsMap
+		} else {
+			wpt.Stable = &metricsMap
+		}
+	}
+
+	return wpt
+}
+
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
 	// Initialize the returned feature with the default values.
 	// The logic below will fill in nullable fields.
@@ -282,57 +325,11 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
-		experimentalMetricsMap := make(map[string]backend.WPTFeatureData, len(featureResult.ExperimentalMetrics))
-		for _, metric := range featureResult.ExperimentalMetrics {
-			if metric.PassRate == nil {
-				continue
-			}
-			passRate, _ := metric.PassRate.Float64()
-			experimentalMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-				Score: &passRate,
-			}
-		}
-
-		// The database implementation should only return metrics that have PassRate.
-		// The logic below is only proactive in case something changes where we return
-		// a BrowserName without a PassRate. This will prevent the code from returning
-		// an initialized, but empty map by only overriding the default map when it actually
-		// has a value.
-		if len(experimentalMetricsMap) > 0 {
-			wpt := cmp.Or(ret.Wpt, &backend.FeatureWPTSnapshots{
-				Stable:       nil,
-				Experimental: nil,
-			})
-			wpt.Experimental = &experimentalMetricsMap
-			ret.Wpt = wpt
-		}
+		ret.Wpt = convertMetrics(featureResult.ExperimentalMetrics, ret.Wpt, true)
 	}
 
 	if len(featureResult.StableMetrics) > 0 {
-		stableMetricsMap := make(map[string]backend.WPTFeatureData, len(featureResult.StableMetrics))
-		for _, metric := range featureResult.StableMetrics {
-			if metric.PassRate == nil {
-				continue
-			}
-			passRate, _ := metric.PassRate.Float64()
-			stableMetricsMap[metric.BrowserName] = backend.WPTFeatureData{
-				Score: &passRate,
-			}
-		}
-
-		// The database implementation should only return metrics that have PassRate.
-		// The logic below is only proactive in case something changes where we return
-		// a BrowserName without a PassRate. This will prevent the code from returning
-		// an initialized, but empty map by only overriding the default map when it actually
-		// has a value.
-		if len(stableMetricsMap) > 0 {
-			wpt := cmp.Or(ret.Wpt, &backend.FeatureWPTSnapshots{
-				Stable:       nil,
-				Experimental: nil,
-			})
-			wpt.Stable = &stableMetricsMap
-			ret.Wpt = wpt
-		}
+		ret.Wpt = convertMetrics(featureResult.StableMetrics, ret.Wpt, false)
 	}
 
 	if len(featureResult.ImplementationStatuses) > 0 {

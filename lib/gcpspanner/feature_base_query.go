@@ -435,7 +435,8 @@ WITH
 			lm.WebFeatureID,
 			lm.Channel,
 			lm.BrowserName,
-			m.{{ .PassRateColumn }}
+			m.{{ .PassRateColumn }},
+			FeatureRunDetails
 		FROM LatestMetrics lm
 		JOIN WPTRunFeatureMetrics m ON
 			lm.WebFeatureID = m.WebFeatureID AND
@@ -531,7 +532,26 @@ COALESCE(
 								AND metrics2.Channel = @{{ $.ChannelParam }}
 								AND metrics2.BrowserName = "{{ $browser }}"
 						)
-				) AS PassRate
+				) AS PassRate,
+				(
+					SELECT
+						IF(
+							ARRAY_LENGTH(ARRAY_AGG(FeatureRunDetails)) > 0,
+							ARRAY_AGG(FeatureRunDetails)[OFFSET(0)],
+							NULL
+						) AS FeatureRunDetails
+					FROM WPTRunFeatureMetrics metrics
+					WHERE metrics.WebFeatureID = wf.ID
+						AND metrics.Channel = @{{ $.ChannelParam }}
+						AND metrics.BrowserName = "{{ $browser }}"
+						AND metrics.TimeStart = (
+							SELECT MAX(TimeStart)
+							FROM WPTRunFeatureMetrics metrics2
+							WHERE metrics2.WebFeatureID = wf.ID
+								AND metrics2.Channel = @{{ $.ChannelParam }}
+								AND metrics2.BrowserName = "{{ $browser }}"
+						)
+				) AS FeatureRunDetails
 			{{- end }}
 		) metric_struct
 	),
@@ -539,7 +559,8 @@ COALESCE(
 		SELECT ARRAY(
 			SELECT AS STRUCT
 			'' BrowserName,
-			CAST(0.0 AS NUMERIC) PassRate
+			CAST(0.0 AS NUMERIC) PassRate,
+			CAST(NULL AS JSON) FeatureRunDetails
 		)
 	)
 ) AS {{ $.Channel }}Metrics
@@ -553,7 +574,8 @@ COALESCE(
 		SELECT ARRAY_AGG(
 			STRUCT(
 				BrowserName,
-				{{ .PassRateColumn }} AS PassRate
+				{{ .PassRateColumn }} AS PassRate,
+				FeatureRunDetails
 			)
 		)
 		FROM MetricsAggregation WHERE WebFeatureID = wf.ID AND Channel = @{{ .ChannelParam }}
@@ -562,7 +584,8 @@ COALESCE(
 		SELECT ARRAY(
 			SELECT AS STRUCT
 				'' BrowserName,
-				CAST(0.0 AS NUMERIC) PassRate
+				CAST(0.0 AS NUMERIC) PassRate,
+				CAST(NULL AS JSON) FeatureRunDetails
 		)
 	)
 ) AS {{ .Channel }}Metrics

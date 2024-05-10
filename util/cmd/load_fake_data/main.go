@@ -274,10 +274,11 @@ func generateRunsAndMetrics(
 					subtestPass := testPass * 10
 					subtestTotal := testTotal * 10
 					metric := gcpspanner.WPTRunFeatureMetric{
-						TotalTests:    &testTotal,
-						TestPass:      &testPass,
-						TotalSubtests: &subtestTotal,
-						SubtestPass:   &subtestPass,
+						TotalTests:        &testTotal,
+						TestPass:          &testPass,
+						TotalSubtests:     &subtestTotal,
+						SubtestPass:       &subtestPass,
+						FeatureRunDetails: nil,
 					}
 					spannerMetric := client.CreateSpannerWPTRunFeatureMetric(feature.ID, *wptRunData, metric)
 					m, err := spanner.InsertOrUpdateStruct(gcpspanner.WPTRunFeatureMetricTable, spannerMetric)
