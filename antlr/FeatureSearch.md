@@ -35,12 +35,6 @@ This query language enables you to construct flexible searches to find features 
       - `name:"CSS Grid"`
   - `baseline_date`: Represents the date a feature reached baseline.
     - Option 1: Searches for an inclusive date range (DATE..DATE) where features reached baseline.
-  - `missing_in_one_of`: Searches for features that are almost universally supported, meaning they are available on all
-    browsers **except one**. Expects a browser list (BROWSER_LIST) as its value. Not compatible with the `-` negation prefix.
-    - Example:
-      - missing_in_one_of(chrome, edge, firefox)
-        - Explanation: Look at all the features supported among the 4 specified browsers. Find the features that are
-          supported in N-1 browsers.
 - **Negation:** Prepend a term with a minus sign (-) to indicate negation (search for features not matching that criterion).
 - **Keywords:** These are reserved words used in the grammar, such as `AND`, `OR`
   - `AND`: Combine terms with the AND keyword for explicit logical AND, or use a space between terms for implied AND.
@@ -61,5 +55,4 @@ This query language enables you to construct flexible searches to find features 
 
 - `available_on:chrome AND baseline_status:newly` - Find features available on Chrome and having a newly baseline status.
 - `-available_on:firefox OR name:"CSS Grid"` - Find features either not available on Firefox or named "CSS Grid".
-- `missing_in_one_of(chrome,firefox,safari)` - Find features missing from at least one of the listed browsers.
 - `"CSS Grid" baseline_status:limited` - Find features named "CSS Grid" with a baseline status of none (implied AND).
