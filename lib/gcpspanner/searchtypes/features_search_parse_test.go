@@ -46,6 +46,42 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "available_on:Chrome",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "chrome",
+							Operator:   OperatorEq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "available_on:CHROME",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "chrome",
+							Operator:   OperatorEq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "-available_on:chrome",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,
@@ -635,16 +671,20 @@ func TestParseQueryBadInput(t *testing.T) {
 		{
 			input: "baseline_status:none",
 		},
+		{
+			input: "available_on:chrome,edge",
+		},
 	}
 	for _, tc := range testCases {
-		parser := FeaturesSearchQueryParser{}
-		resultTree, err := parser.Parse(tc.input)
-		if resultTree != nil {
-			t.Error("expected nil node")
-		}
-		if errors.Is(err, nil) {
-			t.Error("expected non nil error")
-		}
-
+		t.Run(tc.input, func(t *testing.T) {
+			parser := FeaturesSearchQueryParser{}
+			resultTree, err := parser.Parse(tc.input)
+			if resultTree != nil {
+				t.Error("expected nil node")
+			}
+			if errors.Is(err, nil) {
+				t.Error("expected non nil error")
+			}
+		})
 	}
 }

@@ -161,7 +161,7 @@ func (v *FeaturesSearchVisitor) VisitQuery(ctx *parser.QueryContext) interface{}
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_termContext) interface{} {
-	browserName := ctx.BROWSER_NAME().GetText()
+	browserName := strings.ToLower(ctx.BROWSER_NAME().GetText())
 
 	return &SearchNode{
 		Keyword: KeywordNone,
@@ -274,8 +274,6 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 		return v.VisitDate_range_query(tree)
 	case *parser.Generic_search_termContext:
 		return v.VisitGeneric_search_term(tree)
-	case *parser.Missing_in_one_ofContext:
-		return v.VisitMissing_in_one_of(tree)
 	case *parser.Name_termContext:
 		return v.VisitName_term(tree)
 	case *parser.OperatorContext:
@@ -370,11 +368,6 @@ func (v *FeaturesSearchVisitor) VisitSearch_criteria(ctx *parser.Search_criteria
 		return v.createNameNode(node.GetText())
 	}
 
-	return v.VisitChildren(ctx)
-}
-
-// nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitMissing_in_one_of(ctx *parser.Missing_in_one_ofContext) interface{} {
 	return v.VisitChildren(ctx)
 }
 
