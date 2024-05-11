@@ -35,6 +35,8 @@ region_information = {
 backend_api_url = "https://api-webstatus-dev.corp.goog"
 gsi_client_id   = "367048339992-5os99v0p6chosv28dpo9863h9sjeno36.apps.googleusercontent.com"
 
+google_analytics_id = "G-EPZE5TL134"
+
 frontend_docker_build_target = "static"
 
 backend_domains_for_gcp_managed_certificates  = []

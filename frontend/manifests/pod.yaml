@@ -33,6 +33,8 @@ spec:
           value: http://localhost:8080
         - name: GSI_CLIENT_ID
           value: 367048339992-5os99v0p6chosv28dpo9863h9sjeno36.apps.googleusercontent.com
+        - name: GOOGLE_ANALYTICS_ID
+          value: G-EPZE5TL134
       resources:
         limits:
           cpu: 250m
