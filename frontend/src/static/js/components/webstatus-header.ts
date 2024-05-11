@@ -36,7 +36,7 @@ export class WebstatusHeader extends LitElement {
         header {
           flex-grow: 1; /* .hbox > .halign-stretch */
           align-items: center;
-          background: #f2f2f2;
+          border-bottom: 1px solid #e1e3e8;
           height: 94px;
         }
         .title {

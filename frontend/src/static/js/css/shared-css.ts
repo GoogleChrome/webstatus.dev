@@ -103,13 +103,10 @@ export const SHARED_STYLES = [
 
     sl-details::part(base) {
       background: var(--card-background);
-      border-color: var(--card-border-color);
-      border-width: var(--card-border-width);
-      border-radius: var(--card-radius);
+      border: none;
     }
 
-    sl-details::part() {
-      border-top: var(--card-border-width) solid var(--card-border-color);
+    sl-details::part(header) {
       padding: var(--content-padding);
     }
 
