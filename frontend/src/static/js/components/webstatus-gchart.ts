@@ -25,9 +25,12 @@ import {
   css,
   html,
   PropertyValues,
+  nothing,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
+import {TaskStatus} from '@lit/task';
+import {classMap} from 'lit/directives/class-map.js';
 
 // The dataObj is a subset of the possible data that can be used to
 // generate a google.visualization.DataTable.
@@ -43,6 +46,8 @@ export class WebstatusGChart extends LitElement {
   @consume({context: gchartsContext, subscribe: true})
   @property({attribute: false})
   gchartsLibraryLoaded?: boolean;
+
+  private _pendingDataObj: WebStatusDataObj | undefined;
 
   // Properties for chartwrapper spec fields.
   @property({type: String, attribute: 'containerId'})
@@ -69,6 +74,9 @@ export class WebstatusGChart extends LitElement {
   @state()
   chartWrapper: google.visualization.ChartWrapper | undefined;
 
+  @state()
+  dataLoadingStatus: TaskStatus = TaskStatus.INITIAL;
+
   static get styles(): CSSResultGroup {
     return [
       css`
@@ -76,6 +84,47 @@ export class WebstatusGChart extends LitElement {
           padding: 0;
           margin: 0;
           border: 0;
+        }
+
+        .loading-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          pointer-events: none;
+          z-index: 10;
+          width: calc(100% - 100px);
+          height: calc(100% - 80px);
+          margin-left: 100px;
+          margin-top: 40px;
+          display: flex; /* Center the spinner */
+          align-items: center;
+          justify-content: center;
+        }
+
+        .loading-overlay::before {
+          /* Semi-transparent background */
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(255, 255, 255, 0.7);
+        }
+
+        /* Hide the overlay when not loading */
+        .loading-overlay.hidden {
+          display: none;
+        }
+
+        .loading-overlay > * {
+          /* Disable clicks on content inside the overlay */
+          pointer-events: none;
+        }
+
+        /* Disable chart interaction while loading */
+        .chart_container.loading .google-visualization-charteditor-svg {
+          pointer-events: none;
         }
       `,
     ];
@@ -117,18 +166,48 @@ export class WebstatusGChart extends LitElement {
           return this.shadowRoot!.getElementById(this.containerId!)!;
         };
       }
+    } else {
+      // If the library is not loaded, store the updated dataObj
+      if (this.dataObj && changedProperties.has('dataObj')) {
+        this._pendingDataObj = this.dataObj;
+      }
     }
   }
 
   render(): TemplateResult {
+    const chartContainerClasses = classMap({
+      chart_container: true,
+      loading: this.dataLoadingStatus !== TaskStatus.COMPLETE,
+    });
+
     return html`
-      <div id="${this.containerId!}" class="chart_container">
-        Loading chart library.
+      <div class="${chartContainerClasses}">
+        ${this.dataLoadingStatus === TaskStatus.ERROR
+          ? html`<div class="error-message">Error loading chart data.</div>`
+          : nothing}
+        ${this.dataLoadingStatus !== TaskStatus.COMPLETE &&
+        this.dataLoadingStatus !== TaskStatus.ERROR
+          ? html`<div class="loading-overlay">
+              <sl-spinner></sl-spinner>
+            </div>`
+          : nothing}
+        <div id="${this.containerId!}"></div>
       </div>
     `;
   }
 
-  updated() {
+  updated(changedProperties: PropertyValues<this>) {
+    // If the library just became loaded, process pending dataObj
+    if (
+      changedProperties.has('gchartsLibraryLoaded') &&
+      this.gchartsLibraryLoaded &&
+      this._pendingDataObj
+    ) {
+      this.dataTable = this.convertWebStatusDataObjToDataTable(
+        this._pendingDataObj
+      );
+      this._pendingDataObj = undefined; // Clear the pending data
+    }
     if (
       this.gchartsLibraryLoaded &&
       this.chartWrapper &&

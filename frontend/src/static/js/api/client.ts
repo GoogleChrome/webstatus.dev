@@ -183,18 +183,17 @@ export class APIClient {
     return data;
   }
 
-  public async getFeatureStatsByBrowserAndChannel(
+  public async *getFeatureStatsByBrowserAndChannel(
     featureId: string,
     browser: BrowsersParameter,
     channel: ChannelsParameter,
     startAtDate: Date,
     endAtDate: Date
-  ): Promise<WPTRunMetric[]> {
+  ): AsyncIterable<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
 
     let nextPageToken;
-    const allData: WPTRunMetric[] = [];
     do {
       const response = await this.client.GET(
         '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}',
@@ -217,12 +216,9 @@ export class APIClient {
       }
       const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
       nextPageToken = page?.metadata?.next_page_token;
-      if (page != null) {
-        allData.push(...page.data);
-      }
-    } while (nextPageToken !== undefined);
 
-    return allData;
+      yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
   }
 
   public async getStatsByBrowserAndChannel(
