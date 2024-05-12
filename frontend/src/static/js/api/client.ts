@@ -16,6 +16,7 @@
 
 import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
 import {type components, type paths} from 'webstatus.dev-backend';
+import {createAPIError} from './errors.js';
 
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
@@ -123,7 +124,7 @@ export class APIClient {
       },
     });
     if (error !== undefined) {
-      throw createError(error);
+      throw createAPIError(error);
     }
     return data;
   }
@@ -141,7 +142,7 @@ export class APIClient {
       }
     );
     if (error !== undefined) {
-      throw new Error(error?.message || error?.toString());
+      throw createAPIError(error);
     }
     return data;
   }
@@ -177,7 +178,7 @@ export class APIClient {
       },
     });
     if (error !== undefined) {
-      throw new Error(error?.message);
+      throw createAPIError(error);
     }
     return data;
   }
@@ -212,7 +213,7 @@ export class APIClient {
       );
       const error = response.error;
       if (error !== undefined) {
-        throw new Error(error?.message || error?.toString());
+        throw createAPIError(error);
       }
       const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
       nextPageToken = page?.metadata?.next_page_token;
@@ -248,7 +249,7 @@ export class APIClient {
       );
       const error = response.error;
       if (error !== undefined) {
-        throw new Error(error?.message);
+        throw createAPIError(error);
       }
       const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
       nextPageToken = page?.metadata?.next_page_token;
@@ -258,94 +259,5 @@ export class APIClient {
     } while (nextPageToken !== undefined);
 
     return allData;
-  }
-}
-
-function createError(error: unknown): ApiError {
-  let message = 'Unknown error';
-  let code = 500; // Default to Internal Server Error
-
-  if (error instanceof Error) {
-    message = error.message;
-
-    // Check if error object has a code property (could be ApiError or other custom error)
-    if ('code' in error && typeof error.code === 'number') {
-      code = error.code;
-    }
-  }
-
-  switch (code) {
-    case 400:
-      return new BadRequestError(message);
-    case 401:
-      return new UnauthorizedError(message);
-    case 403:
-      return new ForbiddenError(message);
-    case 404:
-      return new NotFoundError(message);
-    case 429:
-      return new RateLimitExceededError(message);
-    case 500:
-      return new InternalServerError(message);
-    default:
-      return new UnknownError(message);
-  }
-}
-
-class ApiError extends Error {
-  code: number;
-  constructor(message: string, code: number) {
-    super(message);
-    this.name = 'ApiError';
-    this.code = code;
-  }
-}
-
-export class BadRequestError extends ApiError {
-  constructor(message: string) {
-    super(message, 400);
-    this.name = 'BadRequestError';
-  }
-}
-
-export class UnauthorizedError extends ApiError {
-  constructor(message: string) {
-    super(message, 401);
-    this.name = 'UnauthorizedError';
-  }
-}
-
-export class ForbiddenError extends ApiError {
-  constructor(message: string) {
-    super(message, 403);
-    this.name = 'ForbiddenError';
-  }
-}
-
-export class RateLimitExceededError extends ApiError {
-  constructor(message: string) {
-    super(message, 429);
-    this.name = 'RateLimitExceededError';
-  }
-}
-
-export class InternalServerError extends ApiError {
-  constructor(message: string) {
-    super(message, 500);
-    this.name = 'InternalServerError';
-  }
-}
-
-export class NotFoundError extends ApiError {
-  constructor(message: string) {
-    super(message, 404);
-    this.name = 'NotFoundError';
-  }
-}
-
-export class UnknownError extends ApiError {
-  constructor(message: string) {
-    super(message, 0);
-    this.name = 'UnknownError';
   }
 }

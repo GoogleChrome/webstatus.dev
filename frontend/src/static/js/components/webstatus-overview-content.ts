@@ -15,7 +15,7 @@
  */
 
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
-import {type Task} from '@lit/task';
+import {TaskStatus} from '@lit/task';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
@@ -23,16 +23,17 @@ import './webstatus-overview-filters.js';
 import './webstatus-overview-table.js';
 import './webstatus-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {TaskTracker} from '../utils/task-tracker.js';
+import {ApiError} from '../api/errors.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
   @state()
-  features: Array<components['schemas']['Feature']> = [];
-
-  @state()
-  totalCount: number | undefined = undefined;
-
-  loadingTask!: Task; // Set by parent.
+  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+    status: TaskStatus.INITIAL, // Initial state
+    error: null,
+    data: null,
+  };
 
   @state()
   location!: {search: string}; // Set by parent.
@@ -53,13 +54,19 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   renderCount(): TemplateResult {
-    if (this.totalCount === undefined) {
-      return html`Loading features...`;
+    switch (this.taskTracker.status) {
+      case TaskStatus.INITIAL:
+      case TaskStatus.PENDING:
+        return html`Loading features...`;
+      case TaskStatus.COMPLETE:
+        return html`
+          <span class="stats-summary">
+            ${this.taskTracker.data?.metadata.total ?? 0} features
+          </span>
+        `;
+      case TaskStatus.ERROR:
+        return html`Failed to load features`;
     }
-
-    return html`
-      <span class="stats-summary"> ${this.totalCount} features </span>
-    `;
   }
 
   render(): TemplateResult {
@@ -77,13 +84,13 @@ export class WebstatusOverviewContent extends LitElement {
 
         <webstatus-overview-table
           .location=${this.location}
-          .features=${this.features}
-          .loadingTask=${this.loadingTask}
+          .features=${this.taskTracker.data}
+          .taskTracker=${this.taskTracker}
         >
         </webstatus-overview-table>
         <webstatus-pagination
           .location=${this.location}
-          .totalCount=${this.totalCount}
+          .totalCount=${this.taskTracker.data?.metadata.total ?? 0}
         ></webstatus-pagination>
       </div>
     `;

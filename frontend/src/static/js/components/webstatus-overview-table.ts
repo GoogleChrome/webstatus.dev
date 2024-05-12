@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
-import {Task} from '@lit/task';
+import {TaskStatus} from '@lit/task';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
 import {customElement, state} from 'lit/decorators.js';
@@ -28,13 +28,21 @@ import {
   renderFeatureCell,
   renderHeaderCell,
 } from './webstatus-overview-cells.js';
+import {TaskTracker} from '../utils/task-tracker.js';
+import {ApiError, BadRequestError} from '../api/errors.js';
+import {
+  GITHUB_REPO_ISSUE_LINK,
+  SEARCH_QUERY_README_LINK,
+} from '../utils/constants.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
   @state()
-  features: Array<components['schemas']['Feature']> = [];
-
-  loadingTask!: Task; // Set by parent.
+  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+    status: TaskStatus.INITIAL, // Initial state
+    error: null,
+    data: null,
+  };
 
   @state()
   location!: {search: string}; // Set by parent.
@@ -126,20 +134,27 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
-    return this.loadingTask.render({
-      complete: () => {
-        return this.features.length === 0
+    switch (this.taskTracker.status) {
+      case TaskStatus.COMPLETE:
+        return this.taskTracker.data?.data?.length === 0
           ? this.renderBodyWhenNoResults(columns)
           : this.renderBodyWhenComplete(columns);
-      },
-      error: () => this.renderBodyWhenError(columns),
-      initial: () => this.renderBodyWhenInitial(columns),
-      pending: () => this.renderBodyWhenPending(columns),
-    });
+      case TaskStatus.ERROR:
+        return this.renderBodyWhenError(columns);
+      case TaskStatus.INITIAL:
+        // Do the same thing as pending.
+        return this.renderBodyWhenPending(columns);
+      case TaskStatus.PENDING:
+        return this.renderBodyWhenPending(columns);
+    }
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    return html` ${this.features.map(f => this.renderFeatureRow(f, columns))} `;
+    return html`
+      ${this.taskTracker.data?.data?.map(f =>
+        this.renderFeatureRow(f, columns)
+      )}
+    `;
   }
 
   renderBodyWhenNoResults(columns: ColumnKey[]): TemplateResult {
@@ -155,6 +170,25 @@ export class WebstatusOverviewTable extends LitElement {
 
   // TODO(jrobbins): This never gets called, even when request fails.
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
+    if (this.taskTracker.error instanceof BadRequestError) {
+      return html`
+        <tr>
+          <td class="message" colspan=${columns.length}>
+            <div>Invalid query...</div>
+            <div>
+              Please review the
+              <a href="${SEARCH_QUERY_README_LINK}" target="_blank"
+                >search syntax</a
+              >
+              or
+              <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
+                >report an error</a
+              >.
+            </div>
+          </td>
+        </tr>
+      `;
+    }
     return html`
       <tr>
         <td class="message" colspan=${columns.length}>
@@ -162,18 +196,10 @@ export class WebstatusOverviewTable extends LitElement {
           <div>We had some trouble loading this data.</div>
           <div>
             Please refresh the page or
-            <a href="#TODO" target="_blank">report an error</a>.
+            <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
+              >report an error</a
+            >.
           </div>
-        </td>
-      </tr>
-    `;
-  }
-
-  renderBodyWhenInitial(columns: ColumnKey[]): TemplateResult {
-    return html`
-      <tr>
-        <td class="message" colspan=${columns.length}>
-          <div>Requesting data...</div>
         </td>
       </tr>
     `;
@@ -181,7 +207,8 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
     const DEFAULT_SKELETON_ROWS = 10;
-    const skeleton_rows = this.features?.length || DEFAULT_SKELETON_ROWS;
+    const skeleton_rows =
+      this.taskTracker.data?.data?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
         range(skeleton_rows),

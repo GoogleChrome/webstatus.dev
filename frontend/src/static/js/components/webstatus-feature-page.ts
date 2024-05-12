@@ -40,7 +40,6 @@ import {
   type BrowsersParameter,
   type ChannelsParameter,
   type WPTRunMetric,
-  NotFoundError,
 } from '../api/client.js';
 import {
   formatFeaturePageUrl,
@@ -57,6 +56,7 @@ import {
 
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
+import {NotFoundError} from '../api/errors.js';
 
 /** Generate a key for featureSupport. */
 function featureSupportKey(

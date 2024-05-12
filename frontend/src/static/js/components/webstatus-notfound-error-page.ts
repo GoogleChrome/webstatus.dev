@@ -17,6 +17,7 @@
 import {LitElement, html, type TemplateResult, CSSResultGroup, css} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 
 @customElement('webstatus-not-found-error-page')
 export class WebstatusNotFoundErrorPage extends LitElement {
@@ -114,9 +115,7 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           </div>
           <div id="error-action-report">
             <sl-icon name="github"></sl-icon>
-            <a
-              href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
-              target="_blank"
+            <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
               >Report an issue</a
             >
           </div>
