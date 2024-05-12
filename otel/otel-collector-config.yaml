@@ -22,13 +22,13 @@ receivers:
   filelog:
     start_at: beginning
     include:
-      - "/var/log/app.log"
+      - '/var/log/app.log'
     operators:
       - type: json_parser
         parse_to: body
         timestamp:
           parse_from: body.timestamp
-          layout: "%Y-%m-%dT%H:%M:%S.%fZ"
+          layout: '%Y-%m-%dT%H:%M:%S.%fZ'
         severity:
           parse_from: body.severity
           preset: none
@@ -47,7 +47,7 @@ receivers:
       # set trace_flags to SAMPLED if GCP attribute is set to true
       - type: add
         field: body.trace_flags
-        value: "01"
+        value: '01'
         if: body["logging.googleapis.com/trace_sampled"] == true
 
       # parse the trace context fields from GCP attributes
@@ -80,7 +80,7 @@ exporters:
   googlecloud:
     project: $GOOGLE_CLOUD_PROJECT
     log:
-      default_log_name: "opentelemetry.io/collector-exported-log"
+      default_log_name: 'opentelemetry.io/collector-exported-log'
   # Export metrics to Google Managed service for Prometheus
   googlemanagedprometheus:
     project: $GOOGLE_CLOUD_PROJECT
@@ -97,7 +97,7 @@ processors:
         value: ${env:K_REVISION}
         action: upsert
   resourcedetection:
-    detectors: ["gcp"]
+    detectors: ['gcp']
 
 extensions:
   health_check:
@@ -106,14 +106,14 @@ service:
   extensions: [health_check]
   pipelines:
     traces:
-      receivers: ["otlp"]
-      processors: ["batch", "resourcedetection"]
-      exporters: ["googlecloud"]
+      receivers: ['otlp']
+      processors: ['batch', 'resourcedetection']
+      exporters: ['googlecloud']
     metrics:
-      receivers: ["otlp"]
-      processors: ["batch", "resourcedetection", "resource"]
-      exporters: ["googlemanagedprometheus"]
+      receivers: ['otlp']
+      processors: ['batch', 'resourcedetection', 'resource']
+      exporters: ['googlemanagedprometheus']
     logs:
-      receivers: ["filelog"]
-      processors: ["batch", "resourcedetection"]
-      exporters: ["googlecloud"]
+      receivers: ['filelog']
+      processors: ['batch', 'resourcedetection']
+      exporters: ['googlecloud']
