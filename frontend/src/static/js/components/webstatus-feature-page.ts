@@ -15,7 +15,7 @@
  */
 
 import {consume} from '@lit/context';
-import {Task} from '@lit/task';
+import {Task, TaskStatus} from '@lit/task';
 import {
   LitElement,
   type TemplateResult,
@@ -54,6 +54,7 @@ import {
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
+import './webstatus-loading-overlay.js';
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
 import {NotFoundError} from '../api/errors.js';
@@ -441,22 +442,26 @@ export class FeaturePage extends LitElement {
     this.featureId = this.location.params.featureId;
   }
 
-  render(): TemplateResult | undefined {
-    return this._loadingTask?.render({
-      complete: () => this.renderWhenComplete(),
-      error: error => {
-        if (error instanceof NotFoundError) {
-          // TODO: cannot use navigateToUrl because it creates a
-          // circular dependency.
-          // For now use the window href and revisit when navigateToUrl
-          // is move to another location.
-          window.location.href = '/errors-404/feature-not-found';
-        }
-        return this.renderWhenError();
-      },
-      initial: () => this.renderWhenInitial(),
-      pending: () => this.renderWhenPending(),
-    });
+  render(): TemplateResult {
+    return html`
+      <webstatus-loading-overlay .status="${this._loadingMetricsTask?.status}">
+      </webstatus-loading-overlay>
+      ${this._loadingTask?.render({
+        complete: () => this.renderWhenComplete(),
+        error: error => {
+          if (error instanceof NotFoundError) {
+            // TODO: cannot use navigateToUrl because it creates a
+            // circular dependency.
+            // For now use the window href and revisit when navigateToUrl
+            // is move to another location.
+            window.location.href = '/errors-404/feature-not-found';
+          }
+          return this.renderWhenError();
+        },
+        initial: () => this.renderWhenInitial(),
+        pending: () => this.renderWhenPending(),
+      })}
+    `;
   }
 
   renderFeatureSupportChartWhenComplete(): TemplateResult {
@@ -725,7 +730,8 @@ export class FeaturePage extends LitElement {
           .chartType="${'LineChart'}"
           .dataObj="${this.featureSupportChartDataObj}"
           .options="${this.generateFeatureSupportChartOptions()}"
-          .dataLoadingStatus="${this._loadingMetricsTask?.status}"
+          .dataLoadingStatus="${this._loadingMetricsTask?.status ??
+          TaskStatus.INITIAL}"
         >
           Loading chart...
         </webstatus-gchart>

@@ -55,9 +55,14 @@ test.beforeEach(async ({page}) => {
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/features/a117');
 
-  // Wait for chart to be displayed
+  // Wait for the chart container to exist
   await page.waitForSelector('#feature-support-chart-container');
-  await page.waitForTimeout(1000);
+
+  // Wait for the loading overlay to disappear
+  await page.waitForSelector(
+    '#feature-support-chart-container .loading-overlay',
+    { state: 'hidden' } // Wait until the overlay is hidden
+  );
 
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();

@@ -86,42 +86,6 @@ export class WebstatusGChart extends LitElement {
           border: 0;
         }
 
-        .loading-overlay {
-          position: absolute;
-          top: 0;
-          left: 0;
-          pointer-events: none;
-          z-index: 10;
-          width: calc(100% - 100px);
-          height: calc(100% - 80px);
-          margin-left: 100px;
-          margin-top: 40px;
-          display: flex; /* Center the spinner */
-          align-items: center;
-          justify-content: center;
-        }
-
-        .loading-overlay::before {
-          /* Semi-transparent background */
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(255, 255, 255, 0.7);
-        }
-
-        /* Hide the overlay when not loading */
-        .loading-overlay.hidden {
-          display: none;
-        }
-
-        .loading-overlay > * {
-          /* Disable clicks on content inside the overlay */
-          pointer-events: none;
-        }
-
         /* Disable chart interaction while loading */
         .chart_container.loading .google-visualization-charteditor-svg {
           pointer-events: none;
@@ -184,12 +148,6 @@ export class WebstatusGChart extends LitElement {
       <div class="${chartContainerClasses}">
         ${this.dataLoadingStatus === TaskStatus.ERROR
           ? html`<div class="error-message">Error loading chart data.</div>`
-          : nothing}
-        ${this.dataLoadingStatus !== TaskStatus.COMPLETE &&
-        this.dataLoadingStatus !== TaskStatus.ERROR
-          ? html`<div class="loading-overlay">
-              <sl-spinner></sl-spinner>
-            </div>`
           : nothing}
         <div id="${this.containerId!}"></div>
       </div>
