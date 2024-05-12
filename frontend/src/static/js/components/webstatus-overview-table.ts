@@ -168,7 +168,6 @@ export class WebstatusOverviewTable extends LitElement {
     `;
   }
 
-  // TODO(jrobbins): This never gets called, even when request fails.
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
     if (this.taskTracker.error instanceof BadRequestError) {
       return html`
