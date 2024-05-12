@@ -156,7 +156,8 @@ func (c *Client) convertExternalMetricsToSpannerMetrics(ctx context.Context,
 		featureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(externalFeatureID))
 		if err != nil {
 			if errors.Is(err, ErrQueryReturnedNoResults) {
-				slog.Warn(
+				slog.WarnContext(
+					ctx,
 					"unable to find internal webfeatureID for key. will skip", "key",
 					externalFeatureID)
 

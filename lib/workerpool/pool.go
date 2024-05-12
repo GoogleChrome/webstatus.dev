@@ -41,7 +41,7 @@ func (p Pool[TJob]) Start(ctx context.Context, jobsChan <-chan TJob, numWorkers 
 	// Wait for workers and handle errors
 	go func() {
 		wg.Wait()
-		slog.Info("finished waiting")
+		slog.InfoContext(ctx, "finished waiting")
 		close(errChan) // Signal all errors collected
 		doneChan <- struct{}{}
 	}()
@@ -61,7 +61,7 @@ func (p Pool[TJob]) Start(ctx context.Context, jobsChan <-chan TJob, numWorkers 
 			}
 		case <-doneChan:
 			// All workers finished
-			slog.Info("Finished processing", "error count", len(allErrors))
+			slog.InfoContext(ctx, "Finished processing", "error count", len(allErrors))
 
 			return allErrors
 		}

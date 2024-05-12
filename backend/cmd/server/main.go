@@ -16,9 +16,11 @@ package main
 
 import (
 	"cmp"
+	"context"
 	"log/slog"
 	"net/http"
 	"os"
+	"slices"
 	"strconv"
 	"time"
 
@@ -28,6 +30,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
+	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/rediscache"
 	"github.com/go-chi/cors"
 )
@@ -43,6 +46,8 @@ func main() {
 		slog.Error("failed to create datastore client", "error", err.Error())
 		os.Exit(1)
 	}
+
+	ctx := context.Background()
 
 	spannerDB := os.Getenv("SPANNER_DATABASE")
 	spannerInstance := os.Getenv("SPANNER_INSTANCE")
@@ -95,25 +100,49 @@ func main() {
 		slog.Error("unable to create redis cache instance", "error", err)
 		os.Exit(1)
 	}
+	middlewares := []func(http.Handler) http.Handler{
+		opentelemetry.NewOpenTelemetryChiMiddleware(),
+		cors.Handler(
+			//nolint: exhaustruct // No need to use every option of 3rd party struct.
+			cors.Options{
+				AllowedOrigins: []string{allowedOrigin},
+				// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
+				AllowedMethods: []string{"GET", "OPTIONS"},
+				// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
+				// ExposedHeaders:   []string{"Link"},
+				AllowCredentials: true, // Remove after UbP
+				MaxAge:           300,  // Maximum value not ignored by any of major browsers
+			}),
+		httpmiddlewares.NewCacheMiddleware(cache),
+	}
+
+	if os.Getenv("OTEL_SERVICE_NAME") != "" {
+		slog.Info("opentelemetry settings detected.")
+		otelProjectID := os.Getenv("OTEL_GCP_PROJECT_ID")
+		if otelProjectID == "" {
+			slog.Error("missing project id for opentelemetry")
+			os.Exit(1)
+		}
+		shutdown, err := opentelemetry.SetupOpenTelemetry(ctx, otelProjectID)
+		if err != nil {
+			slog.Error("failed to setup opentelemetry", "error", err.Error())
+			os.Exit(1)
+		}
+		defer func() {
+			err := shutdown(ctx)
+			if err != nil {
+				slog.Error("unable to shutdown opentelemetry")
+			}
+		}()
+		// Prepend the opentelemtry middleware
+		middlewares = slices.Insert(middlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
+	}
 
 	srv, err := httpserver.NewHTTPServer(
 		"8080",
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
-		[]func(http.Handler) http.Handler{
-			cors.Handler(
-				//nolint: exhaustruct // No need to use every option of 3rd party struct.
-				cors.Options{
-					AllowedOrigins: []string{allowedOrigin},
-					// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
-					AllowedMethods: []string{"GET", "OPTIONS"},
-					// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-					// ExposedHeaders:   []string{"Link"},
-					AllowCredentials: true, // Remove after UbP
-					MaxAge:           300,  // Maximum value not ignored by any of major browsers
-				}),
-			httpmiddlewares.NewCacheMiddleware(cache),
-		},
+		middlewares,
 	)
 	if err != nil {
 		slog.Error("unable to create server", "error", err.Error())

@@ -53,6 +53,7 @@ type DataCacher[K string, V []byte] interface {
 	Get(context.Context, K) (V, error)
 }
 
+// TODO: Pass in context to be used by slog.ErrorContext.
 func NewCacheMiddleware[K string, V []byte](cacher DataCacher[string, []byte]) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

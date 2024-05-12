@@ -84,6 +84,30 @@ resource "google_project_service" "internal_private_service_access" {
   disable_on_destroy         = false
 }
 
+resource "google_project_service" "internal_logging" {
+  provider = google.internal_project
+  service  = "logging.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "internal_monitoring" {
+  provider = google.internal_project
+  service  = "monitoring.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "internal_trace" {
+  provider = google.internal_project
+  service  = "cloudtrace.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
 resource "google_project_service" "host_private_service_access" {
   provider = google
   service  = "servicenetworking.googleapis.com"

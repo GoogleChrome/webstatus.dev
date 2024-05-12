@@ -60,7 +60,7 @@ func (c *Client) Store(ctx context.Context, data io.Reader, filename string) err
 	writer := c.bucketHandle.Object(filename).NewWriter(ctx)
 	defer writer.Close()
 	amount, err := io.Copy(writer, data)
-	slog.Info("Copying data", "filename", filename, "bucket", c.bucketName, "amount", amount)
+	slog.InfoContext(ctx, "Copying data", "filename", filename, "bucket", c.bucketName, "amount", amount)
 
 	return err
 }

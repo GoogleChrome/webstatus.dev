@@ -67,7 +67,7 @@ func (g *CacheableWebFeaturesDataGetter) GetWebFeaturesData(
 	if err == nil {
 		return cachedData, nil
 	} else if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
-		slog.Warn("unexpected error when trying to get cache data", "err", err)
+		slog.WarnContext(ctx, "unexpected error when trying to get cache data", "err", err)
 	}
 
 	// Step 2.
@@ -78,7 +78,7 @@ func (g *CacheableWebFeaturesDataGetter) GetWebFeaturesData(
 
 	// Step 3.
 	if err := g.cache.Cache(ctx, cacheKeyLatest, data); err != nil {
-		slog.Warn("unable to cache web features data", "err", err)
+		slog.WarnContext(ctx, "unable to cache web features data", "err", err)
 	}
 
 	return data, nil

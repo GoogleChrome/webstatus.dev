@@ -67,7 +67,7 @@ func (h HTTPResultsGetter) DownloadResults(
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		slog.Warn("download failed: unexpected status code", "status code", resp.StatusCode)
+		slog.WarnContext(ctx, "download failed: unexpected status code", "status code", resp.StatusCode)
 
 		return nil, ErrResultsDownloadBadStatusCode
 	}

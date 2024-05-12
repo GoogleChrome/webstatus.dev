@@ -62,6 +62,7 @@ func (f BCDDataFilter) checkBrowserFilters(filteredBrowsers []string) error {
 	return nil
 }
 
+// TODO: Pass in context to be used by slog.ErrorContext.
 func (f BCDDataFilter) FilterData(
 	in *data.BCDData, filteredBrowsers []string) ([]bcdconsumertypes.BrowserRelease, error) {
 	err := f.checkBrowserFilters(filteredBrowsers)

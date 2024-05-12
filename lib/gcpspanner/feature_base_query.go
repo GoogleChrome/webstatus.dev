@@ -85,6 +85,7 @@ func NewQueryTemplate(in string) BaseQueryTemplate {
 	}
 }
 
+// TODO: Pass in context to be used by slog.ErrorContext.
 func (t *BaseQueryTemplate) Execute(data any) string {
 	var buf strings.Builder
 	err := t.tmpl.Execute(&buf, data)

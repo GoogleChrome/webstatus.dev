@@ -243,6 +243,7 @@ func (c *Client) getFeatureResult(
 }
 
 // convertSpannerMetrics converts a slice of SpannerFeatureResultMetric to FeatureResultMetric.
+// TODO: Pass in context to be used by slog.ErrorContext.
 func convertSpannerMetrics(spannerMetrics []*SpannerFeatureResultMetric) []*FeatureResultMetric {
 	featureResults := make([]*FeatureResultMetric, 0, len(spannerMetrics))
 	for _, metric := range spannerMetrics {

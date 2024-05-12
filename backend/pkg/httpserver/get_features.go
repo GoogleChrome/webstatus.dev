@@ -35,7 +35,7 @@ func (s *Server) GetV1Features(
 		// Try to decode the url.
 		decodedStr, err := url.QueryUnescape(*req.Params.Q)
 		if err != nil {
-			slog.Warn("unable to decode string", "input string", *req.Params.Q, "error", err)
+			slog.WarnContext(ctx, "unable to decode string", "input string", *req.Params.Q, "error", err)
 
 			return backend.GetV1Features400JSONResponse{
 				Code:    http.StatusBadRequest,
@@ -46,7 +46,7 @@ func (s *Server) GetV1Features(
 		parser := searchtypes.FeaturesSearchQueryParser{}
 		node, err = parser.Parse(decodedStr)
 		if err != nil {
-			slog.Warn("unable to parse query string", "query", decodedStr, "error", err)
+			slog.WarnContext(ctx, "unable to parse query string", "query", decodedStr, "error", err)
 
 			return backend.GetV1Features400JSONResponse{
 				Code:    http.StatusBadRequest,
@@ -66,7 +66,7 @@ func (s *Server) GetV1Features(
 
 	if err != nil {
 		// TODO check error type
-		slog.Error("unable to get list of features", "error", err)
+		slog.ErrorContext(ctx, "unable to get list of features", "error", err)
 
 		return backend.GetV1Features500JSONResponse{
 			Code:    500,

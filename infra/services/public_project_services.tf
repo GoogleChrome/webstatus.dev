@@ -37,3 +37,28 @@ resource "google_project_service" "public_spanner" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+
+resource "google_project_service" "public_logging" {
+  provider = google.public_project
+  service  = "logging.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "public_monitoring" {
+  provider = google.public_project
+  service  = "monitoring.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "public_trace" {
+  provider = google.public_project
+  service  = "cloudtrace.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}

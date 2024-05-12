@@ -154,6 +154,7 @@ func encodeWPTRunCursor(timeStart time.Time, id int64) string {
 
 // encodeCursor: Encodes a Cursor into a base64-encoded string.
 // Returns an empty string if is unable to create a token.
+// TODO: Pass in context to be used by slog.ErrorContext.
 func encodeCursor[T any](in T) string {
 	data, err := json.Marshal(in)
 	if err != nil {
