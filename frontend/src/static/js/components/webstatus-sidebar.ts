@@ -19,6 +19,7 @@ import {customElement} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
 import './webstatus-sidebar-menu.js';
+import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 
 @customElement('webstatus-sidebar')
 export class WebstatusSidebar extends LitElement {
@@ -67,7 +68,7 @@ export class WebstatusSidebar extends LitElement {
           <sl-tree id="bottom-menu">
             <sl-tree-item>
               <sl-icon name="github"></sl-icon>
-<a href="https://github.com/GoogleChrome/webstatus.dev/issues/new"
+<a href="${GITHUB_REPO_ISSUE_LINK}"
     target="_blank"
                 >Report an issue</a
               >

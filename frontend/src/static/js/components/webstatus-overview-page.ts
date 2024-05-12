@@ -15,7 +15,7 @@
  */
 
 import {consume} from '@lit/context';
-import {Task} from '@lit/task';
+import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
@@ -35,6 +35,8 @@ import {
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
+import {TaskTracker} from '../utils/task-tracker.js';
+import {ApiError, UnknownError} from '../api/errors.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -44,10 +46,11 @@ export class OverviewPage extends LitElement {
   apiClient?: APIClient;
 
   @state()
-  features: Array<components['schemas']['Feature']> = [];
-
-  @state()
-  totalCount: number | undefined = undefined;
+  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+    status: TaskStatus.INITIAL, // Initial state
+    error: null,
+    data: null,
+  };
 
   @state()
   location!: {search: string}; // Set by router.
@@ -57,9 +60,33 @@ export class OverviewPage extends LitElement {
     this.loadingTask = new Task(this, {
       args: () =>
         [this.apiClient, this.location] as [APIClient, {search: string}],
-      task: async ([apiClient, routerLocation]) => {
-        await this._fetchFeatures(apiClient, routerLocation);
-        return this.features;
+      task: async ([apiClient, routerLocation]): Promise<
+        components['schemas']['FeaturePage']
+      > => {
+        return this._fetchFeatures(apiClient, routerLocation);
+      },
+      onComplete: page => {
+        this.taskTracker = {
+          status: TaskStatus.COMPLETE,
+          error: null,
+          data: page,
+        };
+      },
+      onError: (error: unknown) => {
+        if (error instanceof ApiError) {
+          this.taskTracker = {
+            status: TaskStatus.ERROR,
+            error: error,
+            data: null,
+          };
+        } else {
+          // Should never reach here but let's handle it.
+          this.taskTracker = {
+            status: TaskStatus.ERROR,
+            error: new UnknownError('unknown error fetching features'),
+            data: null,
+          };
+        }
       },
     });
   }
@@ -67,34 +94,30 @@ export class OverviewPage extends LitElement {
   async _fetchFeatures(
     apiClient: APIClient | undefined,
     routerLocation: {search: string}
-  ) {
-    if (typeof apiClient !== 'object') return;
+  ): Promise<components['schemas']['FeaturePage']> {
+    if (typeof apiClient !== 'object')
+      return Promise.reject(new Error('APIClient is not initialized.'));
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
-    this.totalCount = undefined;
     const wptMetricView = getWPTMetricView(
       routerLocation
     ) as FeatureWPTMetricViewType;
-    const respJson = await apiClient.getFeatures(
+    return apiClient.getFeatures(
       searchQuery,
       sortSpec,
       wptMetricView,
       offset,
       pageSize
     );
-    this.features = respJson.data;
-    this.totalCount = respJson.metadata.total;
   }
 
   render(): TemplateResult {
     return html`
       <webstatus-overview-content
         .location=${this.location}
-        .features=${this.features}
-        .totalCount=${this.totalCount}
-        .loadingTask=${this.loadingTask}
+        .taskTracker=${this.taskTracker}
       >
       </webstatus-overview-content>
     `;

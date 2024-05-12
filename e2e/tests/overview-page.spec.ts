@@ -21,3 +21,27 @@ test('matches the screenshot', async ({page}) => {
 
   await expect(page).toHaveScreenshot();
 });
+
+test('shows an error that their query is invalid', async ({page}) => {
+  await page.goto('http://localhost:5555/?q=available_on%3Achrom');
+
+  await page.getByText('Invalid query...');
+});
+
+test('shows an unknown error when there is an internal error', async ({
+  page,
+}) => {
+  await page.route('**/v1/features', route =>
+    route.fulfill({
+      status: 500,
+      contentType: 'application/json',
+      json: {
+        code: 500,
+        message: 'uh-oh',
+      },
+    })
+  );
+  await page.goto('http://localhost:5555/');
+
+  await page.getByText('Something went wrong...');
+});
