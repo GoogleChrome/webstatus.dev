@@ -80,7 +80,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		for _, browserAvailability := range fba {
 			err := c.client.InsertBrowserFeatureAvailability(ctx, featureID, browserAvailability)
 			if err != nil {
-				slog.Error("unable to insert BrowserFeatureAvailability",
+				slog.ErrorContext(ctx, "unable to insert BrowserFeatureAvailability",
 					"browserName", browserAvailability.BrowserName,
 					"browserVersion", browserAvailability.BrowserVersion,
 					"featureID", featureID,
@@ -123,7 +123,8 @@ func consumeFeatureSpecInformation(ctx context.Context,
 		}
 		err := client.UpsertFeatureSpec(ctx, featureID, spec)
 		if err != nil {
-			slog.Error("unable to insert FeatureSpec",
+			slog.ErrorContext(ctx,
+				"unable to insert FeatureSpec",
 				"links", spec.Links,
 				"featureID", featureID,
 				"error", err,

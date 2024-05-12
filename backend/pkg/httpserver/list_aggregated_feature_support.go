@@ -37,7 +37,7 @@ func (s *Server) ListAggregatedFeatureSupport(
 	)
 	if err != nil {
 		// TODO check error type
-		slog.Error("unable to get list of features", "error", err)
+		slog.ErrorContext(ctx, "unable to get list of features", "error", err)
 
 		return backend.ListAggregatedFeatureSupport500JSONResponse{
 			Code:    500,

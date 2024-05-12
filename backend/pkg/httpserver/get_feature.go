@@ -43,7 +43,7 @@ func (s *Server) GetV1FeaturesFeatureId(
 			}, nil
 		}
 		// Catch all for all other errors.
-		slog.Error("unable to get feature", "error", err)
+		slog.ErrorContext(ctx, "unable to get feature", "error", err)
 
 		return backend.GetV1FeaturesFeatureId500JSONResponse{
 			Code:    500,

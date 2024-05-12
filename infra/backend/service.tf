@@ -40,6 +40,14 @@ resource "docker_registry_image" "backend_remote_image" {
 data "google_project" "host_project" {
 }
 
+module "otel_sidecar" {
+  source = "../modules/otel"
+  providers = {
+    google.project = google.public_project
+  }
+  docker_repository_details = var.docker_repository_details
+  service_account           = google_service_account.backend.member
+}
 
 resource "google_cloud_run_v2_service" "service" {
   for_each     = var.region_to_subnet_info_map
@@ -51,6 +59,7 @@ resource "google_cloud_run_v2_service" "service" {
 
   template {
     containers {
+      name  = "backend"
       image = "${docker_image.backend.name}@${docker_registry_image.backend_remote_image.sha256_digest}"
       ports {
         container_port = 8080
@@ -87,6 +96,37 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "CACHE_TTL"
         value = var.cache_duration
       }
+      env {
+        name  = "OTEL_EXPORTER_OTLP_ENDPOINT"
+        value = "http://localhost:4318"
+      }
+      env {
+        name  = "OTEL_SERVICE_NAME"
+        value = "backend"
+      }
+      env {
+        name  = "OTEL_GCP_PROJECT_ID"
+        value = var.projects.public
+      }
+    }
+    containers {
+      name  = "otel"
+      image = module.otel_sidecar.otel_image
+      liveness_probe {
+        http_get {
+          port = 13133
+          path = "/"
+        }
+        initial_delay_seconds = 3
+        period_seconds        = 10
+      }
+    }
+    annotations = {
+      "run.googleapis.com/container-dependencies" = jsonencode(
+        {
+          "backend" = ["otel"]
+        }
+      )
     }
     vpc_access {
       network_interfaces {

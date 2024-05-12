@@ -71,7 +71,7 @@ type JobProcessor interface {
 
 func (w BCDReleasesWorker) Work(
 	ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan JobArguments, errChan chan<- error) {
-	slog.Info("starting worker", "worker id", id)
+	slog.InfoContext(ctx, "starting worker", "worker id", id)
 	defer wg.Done()
 
 	// Processes jobs received on the 'jobs' channel

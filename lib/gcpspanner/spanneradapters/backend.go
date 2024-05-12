@@ -423,6 +423,7 @@ func (s *Backend) FeaturesSearch(
 	return ret, nil
 }
 
+// TODO: Pass in context to be used by slog.ErrorContext.
 func getFeatureSearchSortOrder(
 	sortOrder *backend.GetV1FeaturesParamsSort) gcpspanner.Sortable {
 	if sortOrder == nil {

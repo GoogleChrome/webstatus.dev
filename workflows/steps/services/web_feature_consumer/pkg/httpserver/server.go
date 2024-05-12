@@ -82,7 +82,7 @@ func (s *Server) PostV1WebFeatures(
 		http.DefaultClient,
 		s.defaultAssetName)
 	if err != nil {
-		slog.Error("unable to get asset", "error", err)
+		slog.ErrorContext(ctx, "unable to get asset", "error", err)
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,
@@ -92,7 +92,7 @@ func (s *Server) PostV1WebFeatures(
 
 	data, err := s.webFeaturesDataParser.Parse(file)
 	if err != nil {
-		slog.Error("unable to parse data", "error", err)
+		slog.ErrorContext(ctx, "unable to parse data", "error", err)
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,
@@ -102,7 +102,7 @@ func (s *Server) PostV1WebFeatures(
 
 	mapping, err := s.storer.InsertWebFeatures(ctx, data)
 	if err != nil {
-		slog.Error("unable to store data", "error", err)
+		slog.ErrorContext(ctx, "unable to store data", "error", err)
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,
@@ -112,7 +112,7 @@ func (s *Server) PostV1WebFeatures(
 
 	err = s.metadataStorer.InsertWebFeaturesMetadata(ctx, mapping, data)
 	if err != nil {
-		slog.Error("unable to store metadata", "error", err)
+		slog.ErrorContext(ctx, "unable to store metadata", "error", err)
 
 		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
 			Code:    500,

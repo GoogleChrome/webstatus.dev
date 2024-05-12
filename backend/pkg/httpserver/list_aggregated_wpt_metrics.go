@@ -39,7 +39,7 @@ func (s *Server) ListAggregatedWPTMetrics(
 		request.Params.PageToken,
 	)
 	if err != nil {
-		slog.Error("unable to get aggregated metrics", "error", err)
+		slog.ErrorContext(ctx, "unable to get aggregated metrics", "error", err)
 
 		return backend.ListAggregatedWPTMetrics500JSONResponse{
 			Code:    500,

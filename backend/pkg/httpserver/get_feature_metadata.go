@@ -38,7 +38,7 @@ func (s *Server) GetFeatureMetadata(ctx context.Context,
 			}, nil
 		}
 		// Catch all for all other errors.
-		slog.Error("unable to check feature before fetching metadata", "error", err)
+		slog.ErrorContext(ctx, "unable to check feature before fetching metadata", "error", err)
 
 		return backend.GetFeatureMetadata500JSONResponse{
 			Code:    500,
@@ -49,7 +49,7 @@ func (s *Server) GetFeatureMetadata(ctx context.Context,
 	metadata, err := s.metadataStorer.GetFeatureMetadata(ctx, *featureId)
 	if err != nil {
 		// Catch all for all other errors.
-		slog.Error("unable to get feature metadata", "error", err)
+		slog.ErrorContext(ctx, "unable to get feature metadata", "error", err)
 
 		return backend.GetFeatureMetadata500JSONResponse{
 			Code:    500,

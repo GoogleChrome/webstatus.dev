@@ -47,7 +47,7 @@ func main() {
 	spannerInstance := os.Getenv("SPANNER_INSTANCE")
 	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
 	if err != nil {
-		slog.Error("failed to create spanner client", "error", err.Error())
+		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -86,7 +86,7 @@ func main() {
 				string(bcdconsumertypes.Safari),
 			},
 		)
-		slog.Info("sending args to worker pool", "args", args)
+		slog.InfoContext(ctx, "sending args to worker pool", "args", args)
 		jobChan <- args
 		// Close the job channel now that we are done.
 		close(jobChan)
@@ -95,7 +95,7 @@ func main() {
 	// Job Execution and Error Handling
 	errs := pool.Start(ctx, jobChan, numWorkers, worker)
 	if len(errs) > 0 {
-		slog.Error("workflow returned errors", "error", errs)
+		slog.ErrorContext(ctx, "workflow returned errors", "error", errs)
 		os.Exit(1)
 	}
 }

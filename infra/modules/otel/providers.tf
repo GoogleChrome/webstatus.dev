@@ -20,8 +20,7 @@ terraform {
     google = {
       source = "hashicorp/google"
       configuration_aliases = [
-        google.internal_project,
-        google.public_project,
+        google.project,
       ]
     }
   }

@@ -40,7 +40,7 @@ func (s *Server) ListFeatureWPTMetrics(
 		request.Params.PageToken,
 	)
 	if err != nil {
-		slog.Error("unable to get feature metrics", "error", err)
+		slog.ErrorContext(ctx, "unable to get feature metrics", "error", err)
 
 		return backend.ListFeatureWPTMetrics500JSONResponse{
 			Code:    500,
