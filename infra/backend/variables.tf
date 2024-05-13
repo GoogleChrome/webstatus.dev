@@ -78,3 +78,7 @@ variable "redis_env_vars" {
 variable "cache_duration" {
   type = string
 }
+
+variable "cors_allowed_origin" {
+  type = string
+}

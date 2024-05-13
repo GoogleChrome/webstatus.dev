@@ -90,6 +90,7 @@ module "backend" {
   projects                             = var.projects
   cache_duration                       = var.cache_duration
   redis_env_vars                       = module.storage.redis_env_vars
+  cors_allowed_origin                  = var.backend_cors_allowed_origin
 }
 
 module "frontend" {

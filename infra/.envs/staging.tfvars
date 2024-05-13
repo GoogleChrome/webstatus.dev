@@ -42,7 +42,10 @@ frontend_docker_build_target = "static"
 backend_domains_for_gcp_managed_certificates  = []
 frontend_domains_for_gcp_managed_certificates = []
 
-# Temporary for UB.
+# Temporary for UbP.
 ssl_certificates = ["ub-self-sign"]
 
 cache_duration = "5m"
+
+# Needed for UbP.
+backend_cors_allowed_origin = "https://website-webstatus-dev.corp.goog"

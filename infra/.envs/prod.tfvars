@@ -46,3 +46,5 @@ ssl_certificates                              = []
 spanner_region_override = "nam-eur-asia1"
 
 cache_duration = "5m"
+
+backend_cors_allowed_origin = "https://*"

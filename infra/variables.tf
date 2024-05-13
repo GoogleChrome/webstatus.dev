@@ -121,3 +121,7 @@ variable "cache_duration" {
   type        = string
   description = "TTL for entries that are cached"
 }
+
+variable "backend_cors_allowed_origin" {
+  type = string
+}
