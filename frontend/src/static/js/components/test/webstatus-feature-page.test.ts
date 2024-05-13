@@ -30,7 +30,7 @@ describe('webstatus-feature-page', () => {
   it('builds the WPT link correctly', async () => {
     const link = el.buildWPTLink('declarative-shadow-dom');
     expect(link).to.eq(
-      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom%21is%3Atentative'
+      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative'
     );
   });
 
