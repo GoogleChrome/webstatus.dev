@@ -37,7 +37,7 @@ gsi_client_id   = "367048339992-5os99v0p6chosv28dpo9863h9sjeno36.apps.googleuser
 
 google_analytics_id = "G-CZ6STBPSB2"
 
-frontend_docker_build_target = "placeholder"
+frontend_docker_build_target = "static"
 
 backend_domains_for_gcp_managed_certificates  = ["api.webstatus.dev"]
 frontend_domains_for_gcp_managed_certificates = ["webstatus.dev", "www.webstatus.dev"]
