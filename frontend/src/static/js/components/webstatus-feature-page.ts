@@ -311,7 +311,8 @@ export class FeaturePage extends LitElement {
 
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
-    // Map from date to array of total_tests_count, the same for all browsers.
+    // Map from date to array of total_tests_count. This ought to be the same
+    // for all browsers, but we need to take the max instead.
     const dateToTotalTestsCountMap = new Map<number, number>();
 
     // Merge data across all browsers into one array of rows.
@@ -326,6 +327,9 @@ export class FeaturePage extends LitElement {
           dateToBrowserDataMap.set(dateSeconds, {});
           dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
         }
+        const total = Math.max(dateToTotalTestsCountMap.get(dateSeconds) || 0,
+          row.total_tests_count!);
+        dateToTotalTestsCountMap.set(dateSeconds, total);
         const browserCounts = dateToBrowserDataMap.get(dateSeconds)!;
         browserCounts[browser] = testPassCount;
       }
@@ -352,7 +356,7 @@ export class FeaturePage extends LitElement {
     return dataObj;
   }
 
-  generateFeatureSupportChartOptions(): google.visualization.LineChartOptions {
+  generateFeatureSupportChartOptions(): google.visualization.ComboChartOptions {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
     const selectedBrowsers = this.featureSupportBrowsers;
     const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
