@@ -82,7 +82,7 @@ resource "google_cloud_run_v2_service" "service" {
       }
       env {
         name  = "CORS_ALLOWED_ORIGIN"
-        value = "https://website-webstatus-dev.corp.goog"
+        value = var.cors_allowed_origin
       }
       env {
         name  = "REDISHOST"
