@@ -279,9 +279,9 @@ func findDefaultPlaceHolder(in *SpannerFeatureResultMetric) bool {
 		return false
 	}
 
-	return in.BrowserName == "" ||
-		(in.PassRate == nil || (in.PassRate != nil && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0)) &&
-			!in.FeatureRunDetails.Valid
+	return in.BrowserName == "" &&
+		(in.PassRate != nil && in.PassRate.Cmp(zeroPassRatePlaceholder) == 0) &&
+		!in.FeatureRunDetails.Valid
 }
 
 // The base query has a solution that works on both GCP Spanner and Emulator that if it finds

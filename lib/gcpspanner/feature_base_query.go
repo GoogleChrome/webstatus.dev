@@ -555,6 +555,7 @@ COALESCE(
 				) AS FeatureRunDetails
 			{{- end }}
 		) metric_struct
+		WHERE metric_struct.PassRate IS NOT NULL
 	),
 	(
 		SELECT ARRAY(
