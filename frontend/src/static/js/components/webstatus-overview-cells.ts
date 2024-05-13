@@ -339,7 +339,15 @@ function renderJavaScriptFeatureValue(): TemplateResult {
 }
 
 export function hasInsufficientTestCoverage(feature_id: string): boolean {
-  return ['avif', 'declarative-shadow-dom'].includes(feature_id);
+  return [
+    'avif',
+    'counter-set',
+    'declarative-shadow-dom',
+    'device-orientation-events',
+    'preserves-pitch',
+    'storage-access',
+    'webtransport',
+  ].includes(feature_id);
 }
 
 function renderInsufficentTestCoverage(): TemplateResult {
