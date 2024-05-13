@@ -311,8 +311,17 @@ export class FeaturePage extends LitElement {
 
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
-    // Map from date to array of total_tests_count. This ought to be the same
-    // for all browsers, but we need to take the max instead.
+
+    // We build a map from each time slot that any browser has data
+    // to an array of data for all browsers (in dateToBrowserDataMap)
+    // along with the total_tests_count for that time.
+    // The total ought to be the same for all browsers,
+    // but this is not the case due to upstream problems.
+    // As a workaround, we will instead use the max of all the
+    // browser's totals for each time slot.
+    // So effectively, for each unique time slot, we merge the data
+    // for all the browsers while computing the max of the total value for
+    // each of the browsers.
     const dateToTotalTestsCountMap = new Map<number, number>();
 
     // Merge data across all browsers into one array of rows.
@@ -325,8 +334,10 @@ export class FeaturePage extends LitElement {
         const testPassCount = row.test_pass_count!;
         if (!dateToBrowserDataMap.has(dateSeconds)) {
           dateToBrowserDataMap.set(dateSeconds, {});
-          dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
+          // The following line uses the first browser's total:
+          // dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
         }
+        // This computes the max of the total across all browsers.
         const total = Math.max(
           dateToTotalTestsCountMap.get(dateSeconds) || 0,
           row.total_tests_count!
