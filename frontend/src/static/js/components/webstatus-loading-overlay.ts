@@ -25,22 +25,17 @@ export class WebstatusLoadingOverlay extends LitElement {
 
   static styles = css`
     .spinner-container {
-      display: block;
-      position: absolute;
+      display: flex; /* Use flexbox for centering */
+      align-items: center;
+      justify-content: center;
+      position: fixed; /* Position relative to viewport, not just the parent component */
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
       background-color: rgba(255, 255, 255, 0.7);
       z-index: 10;
       pointer-events: none;
-    }
-    sl-spinner {
-      position: absolute; /* Position relative to the spinner-container */
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%); /* Center the spinner perfectly */
-      font-size: 2em;
     }
   `;
 

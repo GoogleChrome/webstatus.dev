@@ -59,10 +59,7 @@ test('matches the screenshot', async ({page}) => {
   await page.waitForSelector('#feature-support-chart-container');
 
   // Wait for the loading overlay to disappear
-  await page.waitForSelector(
-    '#feature-support-chart-container .loading-overlay',
-    { state: 'hidden' } // Wait until the overlay is hidden
-  );
+  await page.waitForSelector('.spinner-container', {state: 'detached'});
 
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
