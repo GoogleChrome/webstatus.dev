@@ -327,8 +327,10 @@ export class FeaturePage extends LitElement {
           dateToBrowserDataMap.set(dateSeconds, {});
           dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
         }
-        const total = Math.max(dateToTotalTestsCountMap.get(dateSeconds) || 0,
-          row.total_tests_count!);
+        const total = Math.max(
+          dateToTotalTestsCountMap.get(dateSeconds) || 0,
+          row.total_tests_count!
+        );
         dateToTotalTestsCountMap.set(dateSeconds, total);
         const browserCounts = dateToBrowserDataMap.get(dateSeconds)!;
         browserCounts[browser] = testPassCount;
