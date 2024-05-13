@@ -15,7 +15,7 @@
  */
 
 import {consume} from '@lit/context';
-import {Task} from '@lit/task';
+import {Task, TaskStatus} from '@lit/task';
 import {
   LitElement,
   type TemplateResult,
@@ -44,8 +44,8 @@ import {
 import {
   formatFeaturePageUrl,
   formatOverviewPageUrl,
-  getWPTMetricView,
   getDateRange,
+  getWPTMetricView,
   updateFeaturePageUrl,
 } from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
@@ -54,6 +54,7 @@ import {
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
+import './webstatus-loading-overlay.js';
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
 import {NotFoundError} from '../api/errors.js';
@@ -79,9 +80,11 @@ interface CanIUseData {
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends LitElement {
-  _loadingTask: Task;
+  _loadingTask?: Task;
 
   _loadingMetadataTask: Task;
+
+  _loadingMetricsTask?: Task;
 
   @consume({context: apiClientContext})
   @state()
@@ -229,15 +232,12 @@ export class FeaturePage extends LitElement {
             location
           ) as FeatureWPTMetricViewType;
           this.feature = await apiClient.getFeature(featureId, wptMetricView);
-          await this._fetchFeatureSupportData(
-            apiClient,
-            this.startDate,
-            this.endDate
-          );
+          return this.feature;
         }
-        return this.feature;
+        return Promise.reject('api client and/or featureId not set');
       },
     });
+    this._startMetricsTask(false);
     this._loadingMetadataTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
@@ -266,7 +266,7 @@ export class FeaturePage extends LitElement {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
-    this._fetchFeatureSupportData(this.apiClient, this.startDate, this.endDate);
+    this._startMetricsTask(true);
     this.generateFeatureSupportChartOptions();
   }
 
@@ -279,11 +279,7 @@ export class FeaturePage extends LitElement {
     ) {
       this.startDate = newStartDate;
       this.updateUrl();
-      this._fetchFeatureSupportData(
-        this.apiClient,
-        this.startDate,
-        this.endDate
-      );
+      this._startMetricsTask(true);
     }
   }
 
@@ -296,11 +292,7 @@ export class FeaturePage extends LitElement {
     ) {
       this.endDate = newEndDate;
       this.updateUrl();
-      this._fetchFeatureSupportData(
-        this.apiClient,
-        this.startDate,
-        this.endDate
-      );
+      this._startMetricsTask(true);
     }
   }
 
@@ -412,29 +404,36 @@ export class FeaturePage extends LitElement {
 
   async _fetchFeatureSupportData(
     apiClient: APIClient,
+    featureId: string,
     startDate: Date,
     endDate: Date
   ) {
     if (typeof apiClient !== 'object') return;
-    const fetchPromises = ALL_BROWSERS.map(async browser => {
-      const channel = STABLE_CHANNEL;
-      const wptRuns = await apiClient.getFeatureStatsByBrowserAndChannel(
-        this.featureId,
+
+    this.featureSupportChartDataObj = this.createFeatureSupportDataFromMap();
+    const channel = STABLE_CHANNEL;
+    const promises = ALL_BROWSERS.map(async browser => {
+      for await (const page of apiClient.getFeatureStatsByBrowserAndChannel(
+        featureId,
         browser,
         channel,
         startDate,
         endDate
-      );
-      return {browser, channel, wptRuns};
+      )) {
+        // Append the new data to existing data
+        const existingData =
+          this.featureSupport.get(featureSupportKey(browser, channel)) || [];
+        this.featureSupport.set(featureSupportKey(browser, channel), [
+          ...existingData,
+          ...page,
+        ]);
+
+        this.featureSupportChartDataObj =
+          this.createFeatureSupportDataFromMap();
+      }
     });
 
-    // Wait for all promises to resolve sequentially
-    for (const promise of fetchPromises) {
-      const {browser, channel, wptRuns} = await promise;
-      this.featureSupport.set(featureSupportKey(browser, channel), wptRuns);
-    }
-
-    this.featureSupportChartDataObj = this.createFeatureSupportDataFromMap();
+    await Promise.all(promises); // Wait for all browsers to finish
   }
 
   async firstUpdated(): Promise<void> {
@@ -443,22 +442,26 @@ export class FeaturePage extends LitElement {
     this.featureId = this.location.params.featureId;
   }
 
-  render(): TemplateResult | undefined {
-    return this._loadingTask.render({
-      complete: () => this.renderWhenComplete(),
-      error: error => {
-        if (error instanceof NotFoundError) {
-          // TODO: cannot use navigateToUrl because it creates a
-          // circular dependency.
-          // For now use the window href and revisit when navigateToUrl
-          // is move to another location.
-          window.location.href = '/errors-404/feature-not-found';
-        }
-        return this.renderWhenError();
-      },
-      initial: () => this.renderWhenInitial(),
-      pending: () => this.renderWhenPending(),
-    });
+  render(): TemplateResult {
+    return html`
+      <webstatus-loading-overlay .status="${this._loadingMetricsTask?.status}">
+      </webstatus-loading-overlay>
+      ${this._loadingTask?.render({
+        complete: () => this.renderWhenComplete(),
+        error: error => {
+          if (error instanceof NotFoundError) {
+            // TODO: cannot use navigateToUrl because it creates a
+            // circular dependency.
+            // For now use the window href and revisit when navigateToUrl
+            // is move to another location.
+            window.location.href = '/errors-404/feature-not-found';
+          }
+          return this.renderWhenError();
+        },
+        initial: () => this.renderWhenInitial(),
+        pending: () => this.renderWhenPending(),
+      })}
+    `;
   }
 
   renderFeatureSupportChartWhenComplete(): TemplateResult {
@@ -476,7 +479,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderFeatureSupportChart(): TemplateResult | undefined {
-    return this._loadingTask.render({
+    return this._loadingMetricsTask?.render({
       complete: () => this.renderFeatureSupportChartWhenComplete(),
       error: () => this.renderWhenError(),
       initial: () => this.renderWhenInitial(),
@@ -727,6 +730,8 @@ export class FeaturePage extends LitElement {
           .chartType="${'LineChart'}"
           .dataObj="${this.featureSupportChartDataObj}"
           .options="${this.generateFeatureSupportChartOptions()}"
+          .dataLoadingStatus="${this._loadingMetricsTask?.status ??
+          TaskStatus.INITIAL}"
         >
           Loading chart...
         </webstatus-gchart>
@@ -781,5 +786,26 @@ export class FeaturePage extends LitElement {
   renderWhenPending(): TemplateResult {
     // Lower-level render functions check for missing this.feature.
     return this.renderWhenComplete();
+  }
+
+  private _startMetricsTask(manualRun: boolean) {
+    this._loadingMetricsTask?.abort(); // Stop any existing task
+    this._loadingMetricsTask = new Task(this, {
+      args: () => [this.apiClient, this.featureId],
+      task: async ([apiClient, featureId]) => {
+        if (typeof apiClient === 'object' && typeof featureId === 'string') {
+          await this._fetchFeatureSupportData(
+            apiClient,
+            featureId,
+            this.startDate,
+            this.endDate
+          );
+        }
+      },
+    });
+    if (manualRun) {
+      this._loadingMetricsTask.autoRun = false;
+      this._loadingMetricsTask.run();
+    }
   }
 }
