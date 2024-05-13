@@ -85,6 +85,10 @@ export class WebstatusSidebarMenu extends LitElement {
           font-size: 24px;
           vertical-align: middle;
         }
+        .features-link {
+          color: inherit;
+          text-decoration: none;
+        }
         .bookmark-link {
           color: inherit;
           text-decoration: none;
@@ -248,7 +252,12 @@ export class WebstatusSidebarMenu extends LitElement {
           id="${NavigationItemKey.FEATURES}"
           expanded=${this.isFeaturesDropdownExpanded}
         >
-          <sl-icon name="menu-button"></sl-icon> Features
+          <sl-icon name="menu-button"></sl-icon>
+          <a
+            class="features-link"
+            href="${navigationMap[NavigationItemKey.FEATURES].path}"
+            >Features</a
+          >
           ${this.bookmarks.map((bookmark, index) =>
             this.renderBookmark(bookmark, index)
           )}
