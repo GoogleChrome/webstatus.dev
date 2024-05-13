@@ -35,7 +35,7 @@ import (
 
 const releasesPerBrowser = 50
 const runsPerBrowserPerChannel = 100
-const numberOfFeatures = 150
+const numberOfFeatures = 80
 
 // Allows us to regenerate the same values between runs.
 const seedValue = 1024
@@ -239,8 +239,9 @@ func generateRunsAndMetrics(
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	for _, channel := range channels {
 		for _, browser := range browsers {
+			totalDuration := runsPerBrowserPerChannel * 3
 			baseTime := startTimeWindow
-			for i := 0; i < runsPerBrowserPerChannel; i++ {
+			for i := 0; i < totalDuration; i += 3 {
 				timeStart := baseTime.AddDate(0, 0, i)
 				timeEnd := timeStart.Add(time.Duration(r.Intn(5)) * time.Hour)
 				runID := r.Int63n(1000000)

@@ -18,7 +18,7 @@ import {test, expect, Page} from '@playwright/test';
 
 async function setupFakeNow(page: Page): Promise<void> {
   // Get fakeNow from UTC to extract the timeZone offset used in the test
-  const fakeNowDateTime = 'May 1 2020 12:34:56';
+  const fakeNowDateTime = 'Dec 1 2020 12:34:56';
   const fakeNowFromUTC = new Date(fakeNowDateTime);
   const offset = fakeNowFromUTC.getTimezoneOffset();
   const offsetSign = offset < 0 ? '-' : '+';
@@ -53,10 +53,13 @@ test.beforeEach(async ({page}) => {
 });
 
 test('matches the screenshot', async ({page}) => {
-  await page.goto('http://localhost:5555/features/a117');
+  await page.goto('http://localhost:5555/features/odit64');
 
   // Wait for the chart container to exist
   await page.waitForSelector('#feature-support-chart-container');
+
+  // Wait specifically for the "Baseline since" text
+  await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
 
   // Wait for the loading overlay to disappear
   await page.waitForSelector('.spinner-container', {state: 'detached'});
@@ -66,7 +69,7 @@ test('matches the screenshot', async ({page}) => {
 });
 
 test('date range changes are preserved in the URL', async ({page}) => {
-  await page.goto('http://localhost:5555/features/a117');
+  await page.goto('http://localhost:5555/features/odit64');
   await page.waitForSelector('#feature-support-chart-container');
   await page.waitForTimeout(1000);
 
@@ -81,7 +84,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
   // Check that the URL includes the startDate and endDate
   const url = page.url();
   expect(url).toContain('startDate=2020-04-01');
-  expect(url).toContain('endDate=2020-05-01');
+  expect(url).toContain('endDate=2020-12-01');
 
   // Refresh the page with that URL.
   await page.goto(url);
@@ -90,7 +93,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
   // Check that the startDate and endDate are still there.
   const url2 = page.url();
   expect(url2).toContain('startDate=2020-04-01');
-  expect(url2).toContain('endDate=2020-05-01');
+  expect(url2).toContain('endDate=2020-12-01');
 
   // Check that the startDate selector has the right value.
   const startDateSelector2 = page.locator('sl-input#start-date');

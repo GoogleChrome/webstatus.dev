@@ -19,6 +19,11 @@ import {test, expect} from '@playwright/test';
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
 
+  // Wait for the loading indicator to disappear and be replaced (with timeout):
+  await page
+    .locator('webstatus-overview-content >> text=Loading features...')
+    .waitFor({state: 'hidden', timeout: 30000});
+
   await expect(page).toHaveScreenshot();
 });
 
