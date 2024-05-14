@@ -60,6 +60,11 @@ export class WebstatusHeader extends LitElement {
           margin-top: auto;
           margin-bottom: auto;
         }
+
+        .website-title a {
+          text-decoration: none;
+          color: inherit;
+        }
       `,
     ];
   }
@@ -93,7 +98,7 @@ export class WebstatusHeader extends LitElement {
             name="list"
           >
           </sl-icon-button>
-          <h2 class="website-title">Web Platform Dashboard</h2>
+          <h2 class="website-title"><a href="/">Web Platform Status</a></h2>
         </div>
 
         <div class="spacer"></div>
