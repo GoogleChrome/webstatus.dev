@@ -54,10 +54,10 @@ export class WebstatusGChart extends LitElement {
   containerId: string | undefined;
 
   @property({type: String, attribute: 'chartType'})
-  chartType = 'LineChart';
+  chartType = 'ComboChart';
 
   @property({type: Object, attribute: 'options'})
-  options: google.visualization.LineChartOptions | undefined;
+  options: google.visualization.ComboChartOptions | undefined;
 
   @property({
     type: Object,
@@ -106,6 +106,25 @@ export class WebstatusGChart extends LitElement {
       dataTable.addRow(row);
     });
     return dataTable;
+  }
+
+  augmentOptions(
+    options: google.visualization.ComboChartOptions
+  ): google.visualization.ComboChartOptions {
+    // Make the 'total' series, which is the last series, have type 'area'
+    // so that it fills the area under the lines.
+    // Get the current series option, if any.
+    const series = options.series || {};
+    // Count the number of series in the data
+    const numSeries = this.dataTable!.getNumberOfColumns() - 1;
+    const totalSeriesIndex = numSeries - 1;
+    const totalSeriesOptions = series[totalSeriesIndex] || {};
+    totalSeriesOptions.type = 'area';
+    totalSeriesOptions.areaOpacity = 0.06;
+    return {
+      ...options,
+      series: {...series, [totalSeriesIndex]: totalSeriesOptions},
+    };
   }
 
   willUpdate(changedProperties: PropertyValues<this>) {
@@ -176,7 +195,7 @@ export class WebstatusGChart extends LitElement {
     ) {
       this.chartWrapper.setContainerId(this.containerId); // Still required?
       this.chartWrapper.setChartType(this.chartType);
-      this.chartWrapper.setOptions(this.options);
+      this.chartWrapper.setOptions(this.augmentOptions(this.options));
       this.chartWrapper.setDataTable(
         this.dataTable as google.visualization.DataTable
       );
