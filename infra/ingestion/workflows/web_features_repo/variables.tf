@@ -60,3 +60,7 @@ variable "docker_repository_details" {
     name     = string
   })
 }
+
+variable "region_schedules" {
+  type = map(string)
+}

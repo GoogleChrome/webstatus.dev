@@ -49,3 +49,18 @@ cache_duration = "5m"
 
 # Needed for UbP.
 backend_cors_allowed_origin = "https://website-webstatus-dev.corp.goog"
+
+bcd_region_schedules = {
+  "us-central1"  = "0 19 * * *" # Daily at 7:00 PM
+  "europe-west1" = "0 7 * * *"  # Daily at 7:00 AM
+}
+
+web_features_region_schedules = {
+  "us-central1"  = "0 20 * * *" # Daily at 8:00 PM
+  "europe-west1" = "0 8 * * *"  # Daily at 8:00 AM
+}
+
+wpt_region_schedules = {
+  "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
+  "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
+}

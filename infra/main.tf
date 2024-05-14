@@ -61,15 +61,18 @@ module "ingestion" {
     google.public_project   = google.public_project
   }
 
-  env_id                    = var.env_id
-  docker_repository_details = module.storage.docker_repository_details
-  regions                   = keys(var.region_information)
-  buckets                   = module.storage.buckets
-  secret_ids                = var.secret_ids
-  datastore_info            = module.storage.datastore_info
-  spanner_datails           = module.storage.spanner_info
-  projects                  = var.projects
-  depends_on                = [module.services]
+  env_id                        = var.env_id
+  docker_repository_details     = module.storage.docker_repository_details
+  regions                       = keys(var.region_information)
+  buckets                       = module.storage.buckets
+  secret_ids                    = var.secret_ids
+  datastore_info                = module.storage.datastore_info
+  spanner_datails               = module.storage.spanner_info
+  projects                      = var.projects
+  depends_on                    = [module.services]
+  wpt_region_schedules          = var.wpt_region_schedules
+  bcd_region_schedules          = var.bcd_region_schedules
+  web_features_region_schedules = var.web_features_region_schedules
 }
 
 module "backend" {

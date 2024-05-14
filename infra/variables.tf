@@ -125,3 +125,15 @@ variable "cache_duration" {
 variable "backend_cors_allowed_origin" {
   type = string
 }
+
+variable "bcd_region_schedules" {
+  type = map(string)
+}
+
+variable "wpt_region_schedules" {
+  type = map(string)
+}
+
+variable "web_features_region_schedules" {
+  type = map(string)
+}

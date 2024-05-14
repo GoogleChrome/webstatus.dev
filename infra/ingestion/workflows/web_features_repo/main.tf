@@ -43,3 +43,25 @@ resource "google_cloud_run_v2_service_iam_member" "repo_downloader_step_invoker"
   role     = "roles/run.invoker"
   member   = google_service_account.service_account.member
 }
+
+resource "google_cloud_scheduler_job" "workflow_trigger_job" {
+  count    = length(var.regions)
+  provider = google.internal_project
+  name     = "${var.env_id}-features-trigger-job-${var.regions[count.index]}"
+  region   = var.regions[count.index]
+  schedule = var.region_schedules[var.regions[count.index]]
+  http_target {
+    uri         = "https://workflowexecutions.googleapis.com/v1/${google_workflows_workflow.workflow[count.index].id}/executions"
+    http_method = "POST"
+    oauth_token {
+      service_account_email = google_service_account.service_account.email
+    }
+  }
+}
+
+resource "google_project_iam_member" "invoker" {
+  provider = google.internal_project
+  role     = "roles/workflows.invoker"
+  project  = var.spanner_datails.project_id
+  member   = google_service_account.service_account.member
+}
