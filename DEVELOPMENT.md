@@ -1,13 +1,13 @@
 # Development
 
 ## Table Of Contents
+
 1. Requirements
 2. Project Structure
 3. Running Locally
 4. Populate Data Locally
 5. Generating Code
 6. Clean Up
-
 
 ## Requirements
 
@@ -17,8 +17,8 @@ run a devcontainer, check out this
 for the latest requirements to run devcontainer. The devcontainer will have
 everything pre-installed.
 
-
 ## Project Structure
+
 - backend/: Go backend code.
 - frontend/: TypeScript frontend code.
 - workflows/: Data pipelines for fetching and processing data.
@@ -28,7 +28,6 @@ everything pre-installed.
 - lib/gen: Output of generated code
 
 ## Running locally
-
 
 ```sh
 # Terminal 1
@@ -68,7 +67,6 @@ this command or the `make port-forward-terminate` command, something may be wron
 This will establish port forwarding, allowing you to access the backend at
 http://localhost:8080 and the frontend at http://localhost:5555.
 
-
 If you terminate everything in terminal 1, run this to clean up:
 
 ```sh
@@ -84,14 +82,14 @@ this command or the `make port-forward-manual` command, something may be wrong.
 
 The above skaffold command deploys multiple resources:
 
-| Resource             | Description                                                                             | Port Forwarded Address | Internal Address                                    |
-| -------------------- | --------------------------------------------------------------------------------------- | ---------------------- | --------------------------------------------------- |
-| backend              | Backend service in ./backend                                                            | http://localhost:8080  | http://backend:8080                                 |
-| frontend             | Frontend service in ./frontend                                                          | http://localhost:5555  | http://frontend:5555                                |
-| datastore            | Datastore Emulator                                                                      | N/A                    | http://datastore:8085                               |
-| spanner              | Spanner Emulator                                                                        | N/A                    | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
-| redis                | Redis                                                                                   | N/A                    | redis:6379                                          |
-| gcs                  | Google Cloud Storage Emulator                                                           | N/A                    | http://gcs:4443                                     |
+| Resource  | Description                    | Port Forwarded Address | Internal Address                                    |
+| --------- | ------------------------------ | ---------------------- | --------------------------------------------------- |
+| backend   | Backend service in ./backend   | http://localhost:8080  | http://backend:8080                                 |
+| frontend  | Frontend service in ./frontend | http://localhost:5555  | http://frontend:5555                                |
+| datastore | Datastore Emulator             | N/A                    | http://datastore:8085                               |
+| spanner   | Spanner Emulator               | N/A                    | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
+| redis     | Redis                          | N/A                    | redis:6379                                          |
+| gcs       | Google Cloud Storage Emulator  | N/A                    | http://gcs:4443                                     |
 
 _In the event the servers are not responsive, make a temporary change to a file_
 _in a watched directory (e.g. backend). This will rebuild and expose the_
@@ -130,12 +128,14 @@ from the latest snapshot from the web-features repo.
 
 ## OpenAPI
 
-| Resource      | Location                                                     |
-| ------------- | ------------------------------------------------------------ |
-| backend       | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml) |
+| Resource | Location                                                     |
+| -------- | ------------------------------------------------------------ |
+| backend  | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml) |
 
 ## Generating Code
+
 ### OpenAPI
+
 #### Go and OpenAPI
 
 There two common configurations used to generate code for Go.
@@ -153,6 +153,7 @@ The project use [openapi-typescript](https://github.com/drwpow/openapi-typescrip
 to generate types.
 
 #### Generate OpenAPI Code
+
 If changes are made to the openapi definition, run:
 
 ```sh
@@ -162,6 +163,7 @@ make -B openapi
 ### JSON Schema
 
 The project uses json schema to generate types from:
+
 - [browser-compat-data](https://github.com/mdn/browser-compat-data/tree/main/schemas)
 - [web-features](https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json)
   - We make minor tweaks to the web-features schema to work with the
@@ -192,5 +194,6 @@ TODO
 ## Clean Up
 
 To clean up the resources, do things in reverse:
+
 - Stop Port Forwarding: `make port-forward-terminate`
 - Stop Services (Local Setup): `make stop-local`

@@ -1,6 +1,7 @@
 # Deploying
 
 ## Table Of Contents
+
 1. Requirements
 2. Deploying your own copy
 3. Deploy Staging
@@ -9,16 +10,18 @@
 ## Requirements
 
 Users will need to have the following tools installed:
+
 - [terraform](https://www.terraform.io/)
 - [wrench](https://github.com/cloudspannerecosystem/wrench)
 - [Docker](https://www.docker.com/)
 
-*Note:* These tools are provided given you are using the devcontainer.
+_Note:_ These tools are provided given you are using the devcontainer.
 
 Users will also need to have access to GCP. In particular:
 
 These instructions could be adapted to use any GCP project however these
 instructions assume you have access to the following projects:
+
 - staging
   - web-compass-staging
   - webstatus-dev-internal-staging
@@ -27,7 +30,6 @@ instructions assume you have access to the following projects:
   - web-compass-staging
   - webstatus-dev-internal-prod
   - webstatus-dev-public-prod
-
 
 ## Deploying your own copy
 
@@ -107,6 +109,7 @@ terraform plan \
 ```
 
 Migrate the tables if any schemas changed:
+
 ```sh
 export SPANNER_PROJECT_ID=webstatus-dev-internal-staging
 gcloud auth application-default login --project=${SPANNER_PROJECT_ID} --no-browser
@@ -122,7 +125,6 @@ terraform apply \
     -var-file=".envs/staging.tfvars" \
     -var "env_id=${ENV_ID}"
 ```
-
 
 ## Deploy Prod
 
@@ -140,6 +142,7 @@ terraform plan \
 ```
 
 Migrate the tables if any schemas changed:
+
 ```sh
 export SPANNER_PROJECT_ID=webstatus-dev-internal-prod
 gcloud auth application-default login --project=${SPANNER_PROJECT_ID} --no-browser
@@ -148,12 +151,10 @@ export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
 wrench migrate up --directory ./storage/spanner/
 ```
 
-
 Assumming the plan output by the terraform plan command looks fine, run:
+
 ```sh
 terraform apply \
     -var-file=".envs/prod.tfvars" \
     -var "env_id=${ENV_ID}"
 ```
-
-

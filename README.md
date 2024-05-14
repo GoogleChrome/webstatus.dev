@@ -12,6 +12,7 @@ across browsers, and adoption and usage by web developers.
 
 This tool utilizes [workflows](./workflows/) to ingest data from different
 public sources such as:
+
 - [Browser Compat Data](https://github.com/mdn/browser-compat-data)
 - [Web Platform Tests](https://github.com/web-platform-tests/wpt)
 - [Web Features](https://github.com/web-platform-dx/web-features)
@@ -30,7 +31,7 @@ capabilities, please refer to our [Search Syntax Guide](./antlr/FeatureSearch.md
 
 ## Get the code
 
-This repository relies heavily on devcontainers to get started. 
+This repository relies heavily on devcontainers to get started.
 
 | Service                                                                                                  | Click The Badge                                                                                                                                                                                                                                                                             | Requirements                           |
 | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
@@ -43,6 +44,7 @@ git clone https://github.com/GoogleChrome/webstatus.dev
 ```
 
 ### Running the services locally
+
 After getting the code with or without devcontainer, check out the [DEVELOPMENT.md](./DEVELOPMENT.md) for more information to get started and running locally.
 
 ## Deployment
@@ -51,6 +53,7 @@ For project administrators or users interested in deploying their own version,
 refer to the [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Contributing
+
 We welcome contributions from the community to help make webstatus.dev even
 better! There are many ways you can contribute, including:
 
