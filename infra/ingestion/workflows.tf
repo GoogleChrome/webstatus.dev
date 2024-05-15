@@ -26,6 +26,7 @@ module "web_features_repo_workflow" {
   spanner_datails                              = var.spanner_datails
   repo_bucket                                  = var.buckets.repo_download_bucket
   docker_repository_details                    = var.docker_repository_details
+  region_schedules                             = var.web_features_region_schedules
 }
 
 module "wpt_workflow" {
@@ -40,6 +41,7 @@ module "wpt_workflow" {
   datastore_info            = var.datastore_info
   spanner_datails           = var.spanner_datails
   docker_repository_details = var.docker_repository_details
+  region_schedules          = var.wpt_region_schedules
 }
 
 module "bcd_workflow" {
@@ -53,4 +55,5 @@ module "bcd_workflow" {
   env_id                    = var.env_id
   spanner_datails           = var.spanner_datails
   docker_repository_details = var.docker_repository_details
+  region_schedules          = var.bcd_region_schedules
 }
