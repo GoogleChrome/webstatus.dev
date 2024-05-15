@@ -111,19 +111,30 @@ export class WebstatusGChart extends LitElement {
   augmentOptions(
     options: google.visualization.ComboChartOptions
   ): google.visualization.ComboChartOptions {
-    // Make the 'total' series, which is the last series, have type 'area'
-    // so that it fills the area under the lines.
+    const numSeries = this.dataTable!.getNumberOfColumns() - 1;
     // Get the current series option, if any.
     const series = options.series || {};
-    // Count the number of series in the data
-    const numSeries = this.dataTable!.getNumberOfColumns() - 1;
+
+    // Make the 'total' series, which is the last series, be drawn
+    // with type 'area' so that it fills the area under the lines.
     const totalSeriesIndex = numSeries - 1;
-    const totalSeriesOptions = series[totalSeriesIndex] || {};
-    totalSeriesOptions.type = 'area';
-    totalSeriesOptions.areaOpacity = 0.06;
+
+    // Compute the size of points on the total line to be inversely proportional
+    // to the number of data points, the more points, the smaller they are.
+    const pointSize = Math.max(2, 50 / this.dataTable!.getNumberOfRows());
+
     return {
       ...options,
-      series: {...series, [totalSeriesIndex]: totalSeriesOptions},
+      series: {
+        ...series,
+        [totalSeriesIndex]: {
+          type: 'area',
+          areaOpacity: 0.08,
+          opacity: 0.25,
+          lineWidth: 0.2,
+          pointSize: pointSize,
+        },
+      },
     };
   }
 

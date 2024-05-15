@@ -407,10 +407,6 @@ export class FeaturePage extends LitElement {
         keepInBounds: true,
         maxZoomIn: 4,
         maxZoomOut: 4,
-        minZoomIn: 1,
-        minZoomOut: 1,
-        keepInBoundsX: true,
-        keepInBoundsY: true,
         zoomDelta: 0.01,
       },
     } as google.visualization.LineChartOptions;
