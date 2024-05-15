@@ -89,6 +89,12 @@ resource "google_cloud_run_v2_job" "wpt" {
           name  = "DATA_WINDOW_DURATION"
           value = var.data_window_duration
         }
+        resources {
+          limits = {
+            cpu    = "2"
+            memory = "1024Mi"
+          }
+        }
       }
       service_account = google_service_account.wpt_consumer_service_account.email
     }
