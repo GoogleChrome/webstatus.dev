@@ -121,7 +121,10 @@ export class WebstatusGChart extends LitElement {
 
     // Compute the size of points on the total line to be inversely proportional
     // to the number of data points, the more points, the smaller they are.
-    const pointSize = Math.max(2, 50 / this.dataTable!.getNumberOfRows());
+    const pointSize = Math.min(
+      2,
+      100 / (this.dataTable!.getNumberOfRows() || 1)
+    );
 
     return {
       ...options,
