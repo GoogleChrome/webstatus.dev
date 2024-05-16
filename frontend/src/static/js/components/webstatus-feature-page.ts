@@ -312,9 +312,11 @@ export class FeaturePage extends LitElement {
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
 
-    // We build a map from each time slot that any browser has data
+    // We build a map from each time slot for which any browser has data.
     // to an array of data for all browsers (in dateToBrowserDataMap)
     // along with the total_tests_count for that time.
+    // Since times may be slightly different for data associated with each browser,
+    // we round times to the nearest 1 hour as a compromise.
     // The total ought to be the same for all browsers,
     // but this is not the case due to upstream problems.
     // As a workaround, we will instead use the max of all the
@@ -330,40 +332,43 @@ export class FeaturePage extends LitElement {
       if (!data) continue;
       for (const row of data) {
         if (!row) continue;
-        const dateSeconds = new Date(row.run_timestamp).getTime();
+        const timestampMs = new Date(row.run_timestamp).getTime();
+        // Round timestamp to the nearest hour.
+        const msInHour = 1000 * 60 * 60 * 1;
+        const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
         const testPassCount = row.test_pass_count!;
-        if (!dateToBrowserDataMap.has(dateSeconds)) {
-          dateToBrowserDataMap.set(dateSeconds, {});
+        if (!dateToBrowserDataMap.has(roundedTimestamp)) {
+          dateToBrowserDataMap.set(roundedTimestamp, {});
           // The following line uses the first browser's total:
-          // dateToTotalTestsCountMap.set(dateSeconds, row.total_tests_count!);
+          // dateToTotalTestsCountMap.set(roundedTimestamp, row.total_tests_count!);
         }
         // This computes the max of the total across all browsers.
         const total = Math.max(
-          dateToTotalTestsCountMap.get(dateSeconds) || 0,
+          dateToTotalTestsCountMap.get(roundedTimestamp) || 0,
           row.total_tests_count!
         );
-        dateToTotalTestsCountMap.set(dateSeconds, total);
-        const browserCounts = dateToBrowserDataMap.get(dateSeconds)!;
+        dateToTotalTestsCountMap.set(roundedTimestamp, total);
+        const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
         browserCounts[browser] = testPassCount;
       }
     }
 
-    // Create array of dateToBrowserDataMap entries and sort by dateSeconds
+    // Create array of dateToBrowserDataMap entries and sort by roundedTimestamp
     const data = Array.from(dateToBrowserDataMap.entries()).sort(
       ([d1], [d2]) => d1 - d2
     );
 
     // For each date, add a row to the dataTable
     for (const datum of data) {
-      const dateSeconds = datum[0];
-      const date = new Date(dateSeconds);
+      const dateMs = datum[0];
+      const date = new Date(dateMs);
       const browserCounts = datum[1];
-      // Make an array of browser counts, in the order of browsers.
+      // Make an array of browser counts, in the order of selected browsers.
       // If the browser is not in the browserCounts, add null.
       const browserCountArray = browsers.map(browser => {
         return browserCounts[browser] || null;
       });
-      const total = dateToTotalTestsCountMap.get(dateSeconds)!;
+      const total = dateToTotalTestsCountMap.get(dateMs)!;
       dataObj.rows.push([date, ...browserCountArray, total]);
     }
     return dataObj;
