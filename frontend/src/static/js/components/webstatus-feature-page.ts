@@ -303,14 +303,27 @@ export class FeaturePage extends LitElement {
     const channel = 'stable';
 
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
-    dataObj.cols.push({type: 'date', label: 'Date'});
+    dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
     for (const browser of browsers) {
-      dataObj.cols.push({type: 'number', label: BROWSER_ID_TO_LABEL[browser]});
+      const browserLabel = BROWSER_ID_TO_LABEL[browser];
+      dataObj.cols.push({type: 'number', label: browserLabel, role: 'data'});
+      dataObj.cols.push({
+        type: 'string',
+        label: `${browserLabel} tooltip`,
+        role: 'tooltip',
+      });
     }
-    dataObj.cols.push({type: 'number', label: 'Total number of subtests'});
+    dataObj.cols.push({
+      type: 'number',
+      label: 'Total number of subtests',
+      role: 'data',
+    });
 
     // Map from date to an object with counts for each browser
-    const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
+    const dateToBrowserDataMap = new Map<
+      number,
+      {[key: string]: {passed: number; tooltip: string}}
+    >();
 
     // We build a map from each time slot for which any browser has data.
     // to an array of data for all browsers (in dateToBrowserDataMap)
@@ -336,7 +349,10 @@ export class FeaturePage extends LitElement {
         // Round timestamp to the nearest hour.
         const msInHour = 1000 * 60 * 60 * 1;
         const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
-        const testPassCount = row.test_pass_count!;
+        const passed = row.test_pass_count!;
+        const tooltip =
+          `${BROWSER_ID_TO_LABEL[browser]}: ` +
+          `${row.test_pass_count} of ${row.total_tests_count}`;
         if (!dateToBrowserDataMap.has(roundedTimestamp)) {
           dateToBrowserDataMap.set(roundedTimestamp, {});
           // The following line uses the first browser's total:
@@ -349,7 +365,7 @@ export class FeaturePage extends LitElement {
         );
         dateToTotalTestsCountMap.set(roundedTimestamp, total);
         const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
-        browserCounts[browser] = testPassCount;
+        browserCounts[browser] = {passed, tooltip};
       }
     }
 
@@ -358,15 +374,23 @@ export class FeaturePage extends LitElement {
       ([d1], [d2]) => d1 - d2
     );
 
-    // For each date, add a row to the dataTable
+    // For each date, add a row to the dataObj
     for (const datum of data) {
       const dateMs = datum[0];
       const date = new Date(dateMs);
       const browserCounts = datum[1];
       // Make an array of browser counts, in the order of selected browsers.
       // If the browser is not in the browserCounts, add null.
-      const browserCountArray = browsers.map(browser => {
-        return browserCounts[browser] || null;
+      const browserCountArray: Array<number | string | null> = [];
+      browsers.forEach(browser => {
+        const countAndTooltip = browserCounts[browser];
+        if (countAndTooltip) {
+          browserCountArray.push(countAndTooltip.passed);
+          browserCountArray.push(countAndTooltip.tooltip);
+        } else {
+          browserCountArray.push(null);
+          browserCountArray.push(null);
+        }
       });
       const total = dateToTotalTestsCountMap.get(dateMs)!;
       dataObj.rows.push([date, ...browserCountArray, total]);
@@ -400,10 +424,11 @@ export class FeaturePage extends LitElement {
       legend: {position: 'top'},
       colors: seriesColors,
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+
+      // Multiple selection of points will be summarized in one tooltip.
       tooltip: {trigger: 'selection'},
-      // Uncomment to allow multiple selection of points,
-      // and all selected points will be summarized in one tooltip.
-      // selectionMode: 'multiple',
+      selectionMode: 'multiple',
+      aggregationTarget: 'category',
 
       // Enable explorer mode
       explorer: {

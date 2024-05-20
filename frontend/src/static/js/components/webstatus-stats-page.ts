@@ -202,11 +202,11 @@ export class StatsPage extends LitElement {
     const channel = 'stable';
 
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
-    dataObj.cols.push({type: 'date', label: 'Date'});
+    dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
     for (const browser of browsers) {
-      dataObj.cols.push({type: 'number', label: browser});
+      dataObj.cols.push({type: 'number', label: browser, role: 'data'});
     }
-    dataObj.cols.push({type: 'number', label: 'Total'});
+    dataObj.cols.push({type: 'number', label: 'Total', role: 'data'});
 
     // Map from date to an object with counts for each browser
     const dateToBrowserDataMap = new Map<number, {[key: string]: number}>();
