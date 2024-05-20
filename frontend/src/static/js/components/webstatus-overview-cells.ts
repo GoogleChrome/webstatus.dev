@@ -340,13 +340,13 @@ function renderJavaScriptFeatureValue(): TemplateResult {
 
 export function hasInsufficientTestCoverage(feature_id: string): boolean {
   return [
-    'avif',
-    'counter-set',
-    'declarative-shadow-dom',
-    'device-orientation-events',
-    'preserves-pitch',
-    'storage-access',
-    'webtransport',
+    'avif', // 1 test, for animated AVIF, and it fails in Edge+Firefox+Safari.
+    'counter-set', // 2 tests, and counter-set-001.html failures need review. Probably valid.
+    'declarative-shadow-dom', // Had widespread failures in previous review. Flaky tests?
+    'device-orientation-events', // Failures are mostly because of permissions. Feature could be OK.
+    'preserves-pitch', // Timeout in Firefox and Safari affect the scores a lot. Feature probably OK.
+    'storage-access', // 2 tests. idlharness.js is shallow by design, and the other fails.
+    'webtransport', // A big test suite, but harness errors could indicate a problem with the tests.
   ].includes(feature_id);
 }
 
