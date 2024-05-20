@@ -35,10 +35,10 @@ import {classMap} from 'lit/directives/class-map.js';
 // The dataObj is a subset of the possible data that can be used to
 // generate a google.visualization.DataTable.
 // It assumes the rows are sorted by the 'datetime' in the first column.
-// The subsequent columns are all numbers or nulls.
+// The subsequent columns are all numbers, string, or nulls.
 export type WebStatusDataObj = {
-  cols: Array<{type: string; label: string}>;
-  rows: Array<[Date, ...Array<number | null>]>;
+  cols: Array<{type: string; label: string; role: string}>;
+  rows: Array<[Date, ...Array<number | string | null>]>;
 };
 
 @customElement('webstatus-gchart')
@@ -100,7 +100,7 @@ export class WebstatusGChart extends LitElement {
   ): google.visualization.DataTable {
     const dataTable = new google.visualization.DataTable();
     dataObj.cols.forEach(col => {
-      dataTable.addColumn(col.type, col.label);
+      dataTable.addColumn({type: col.type, label: col.label, role: col.role});
     });
     dataObj.rows.forEach(row => {
       dataTable.addRow(row);
@@ -111,9 +111,15 @@ export class WebstatusGChart extends LitElement {
   augmentOptions(
     options: google.visualization.ComboChartOptions
   ): google.visualization.ComboChartOptions {
-    const numSeries = this.dataTable!.getNumberOfColumns() - 1;
-    // Get the current series option, if any.
-    const series = options.series || {};
+    const numColumns = this.dataTable!.getNumberOfColumns();
+    // The number of series is the number of columns with role 'data'.
+    let numSeries = 0;
+    for (let i = 0; i < numColumns; i++) {
+      const role = this.dataTable!.getColumnProperty(i, 'role');
+      if (role === 'data') {
+        numSeries++;
+      }
+    }
 
     // Make the 'total' series, which is the last series, be drawn
     // with type 'area' so that it fills the area under the lines.
@@ -126,18 +132,19 @@ export class WebstatusGChart extends LitElement {
       100 / (this.dataTable!.getNumberOfRows() || 1)
     );
 
+    // Get the current series option, if any, and augment with the total series.
+    const seriesOptions = options.series || {};
+    seriesOptions[totalSeriesIndex] = {
+      type: 'area',
+      areaOpacity: 0.08,
+      opacity: 0.25,
+      lineWidth: 0.2,
+      pointSize: pointSize,
+    };
+
     return {
       ...options,
-      series: {
-        ...series,
-        [totalSeriesIndex]: {
-          type: 'area',
-          areaOpacity: 0.08,
-          opacity: 0.25,
-          lineWidth: 0.2,
-          pointSize: pointSize,
-        },
-      },
+      series: seriesOptions,
     };
   }
 
