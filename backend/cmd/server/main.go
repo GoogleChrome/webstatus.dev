@@ -105,7 +105,7 @@ func main() {
 		cors.Handler(
 			//nolint: exhaustruct // No need to use every option of 3rd party struct.
 			cors.Options{
-				AllowedOrigins: []string{allowedOrigin},
+				AllowedOrigins: []string{allowedOrigin, "http://*"},
 				// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
 				AllowedMethods: []string{"GET", "OPTIONS"},
 				// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
