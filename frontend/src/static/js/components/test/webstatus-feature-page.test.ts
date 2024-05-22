@@ -34,11 +34,30 @@ describe('webstatus-feature-page', () => {
 
     await el.updateComplete;
   });
-  it('builds the WPT link correctly', async () => {
-    const link = el.buildWPTLink('declarative-shadow-dom');
+  it('builds the WPT link correctly when there are stable metrics', async () => {
+    const link = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+      wpt: {stable: {}},
+    });
     expect(link).to.eq(
       'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative'
     );
+  });
+
+  it('builds a null WPT link correctly when there are no stable metrics', async () => {
+    const noStableMetricsLink = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+      wpt: {experimental: {}},
+    });
+    expect(noStableMetricsLink).to.eq(null);
+
+    const missingWPTSectionLink = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+    });
+    expect(missingWPTSectionLink).to.eq(null);
+
+    const missingFeatureLink = el.buildWPTLink();
+    expect(missingFeatureLink).to.eq(null);
   });
 
   it('optionally builds a caniuse link', async () => {
