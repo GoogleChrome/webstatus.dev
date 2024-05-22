@@ -577,12 +577,7 @@ export class FeaturePage extends LitElement {
     feature_id: string;
     wpt?: {stable?: object; experimental?: object};
   }): string | null {
-    if (
-      feature === undefined ||
-      feature.wpt === undefined ||
-      feature.wpt.stable === undefined
-    )
-      return null;
+    if (feature?.wpt?.stable === undefined) return null;
     const wptLinkURL = new URL('https://wpt.fyi/results');
     const query = `feature:${feature.feature_id} !is:tentative`;
     wptLinkURL.searchParams.append('label', 'master');
