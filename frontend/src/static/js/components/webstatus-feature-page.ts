@@ -573,9 +573,18 @@ export class FeaturePage extends LitElement {
     `;
   }
 
-  buildWPTLink(featureId: string): string {
+  buildWPTLink(feature?: {
+    feature_id: string;
+    wpt?: {stable?: object; experimental?: object};
+  }): string | null {
+    if (
+      feature === undefined ||
+      feature.wpt === undefined ||
+      feature.wpt.stable === undefined
+    )
+      return null;
     const wptLinkURL = new URL('https://wpt.fyi/results');
-    const query = `feature:${featureId} !is:tentative`;
+    const query = `feature:${feature.feature_id} !is:tentative`;
     wptLinkURL.searchParams.append('label', 'master');
     wptLinkURL.searchParams.append('label', 'stable');
     wptLinkURL.searchParams.append('aligned', '');
@@ -595,8 +604,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
-    const featureId = this.feature?.feature_id || this.featureId;
-    const wptLink = this.buildWPTLink(featureId);
+    const wptLink = this.buildWPTLink(this.feature);
     const wptLogo = '/public/img/wpt-logo.svg';
     const canIUseLink = this.findCanIUseLink(this.featureMetadata?.can_i_use);
 
