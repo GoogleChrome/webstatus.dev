@@ -410,7 +410,6 @@ export class FeaturePage extends LitElement {
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
-      interpolateNulls: true,
       hAxis: {
         title: '',
         titleTextStyle: {color: '#333'},
@@ -424,6 +423,8 @@ export class FeaturePage extends LitElement {
       legend: {position: 'top'},
       colors: seriesColors,
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+
+      interpolateNulls: true,
 
       // Multiple selection of points will be summarized in one tooltip.
       tooltip: {trigger: 'selection'},
