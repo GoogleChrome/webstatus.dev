@@ -14,16 +14,23 @@
  * limitations under the License.
  */
 
-import {expect, fixture} from '@open-wc/testing';
+import {expect, fixture, html} from '@open-wc/testing';
 import {FeaturePage} from '../webstatus-feature-page.js';
 import '../webstatus-feature-page.js';
+import sinon from 'sinon';
 
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
+  let renderDescriptionSpy: sinon.SinonSpy;
   beforeEach(async () => {
+    const location = {params: {featureId: 'some-feature'}, search: ''};
     el = await fixture<FeaturePage>(
-      '<webstatus-feature-page></webstatus-feature-page>'
+      html`<webstatus-feature-page
+        .location=${location}
+      ></webstatus-feature-page>`
     );
+
+    renderDescriptionSpy = sinon.spy(el, 'renderDescription');
 
     await el.updateComplete;
   });
@@ -67,5 +74,47 @@ describe('webstatus-feature-page', () => {
     const undefinedObjItems = undefined;
     const undefinedObjItemsLink = el.findCanIUseLink(undefinedObjItems);
     expect(undefinedObjItemsLink).to.eq(null);
+  });
+
+  it('renders nothing when no featureMetadata or description is provided', async () => {
+    const callbacks = {
+      complete: sinon.fake(),
+      error: sinon.fake(),
+      initial: sinon.fake(),
+      pending: sinon.fake(),
+    };
+    el._loadingTask?.render(callbacks);
+    el._loadingTask?.run();
+    callbacks.complete();
+
+    await el.updateComplete;
+
+    expect(renderDescriptionSpy.callCount).to.be.greaterThan(0);
+    const descriptionSection = el.querySelector('#feature-description');
+    expect(descriptionSection).to.be.null;
+  });
+
+  it('renders a description after task completion', async () => {
+    el.featureMetadata = {description: 'AMAZING DESCRIPTION'};
+    await el.updateComplete;
+
+    const callbacks = {
+      complete: sinon.fake(),
+      error: sinon.fake(),
+      initial: sinon.fake(),
+      pending: sinon.fake(),
+    };
+    el._loadingTask?.render(callbacks);
+    el._loadingTask?.run();
+    callbacks.complete();
+
+    await el.updateComplete;
+
+    expect(renderDescriptionSpy.callCount).to.be.greaterThan(0);
+    const descriptionSection = el.shadowRoot?.querySelector(
+      '#feature-description'
+    );
+    expect(descriptionSection).to.not.be.null;
+    expect(descriptionSection?.textContent).to.contain('AMAZING DESCRIPTION');
   });
 });

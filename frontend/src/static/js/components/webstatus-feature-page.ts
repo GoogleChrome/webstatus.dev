@@ -116,7 +116,7 @@ export class FeaturePage extends LitElement {
   feature?: components['schemas']['Feature'] | undefined;
 
   @state()
-  featureMetadata?: components['schemas']['FeatureMetadata'] | undefined;
+  featureMetadata?: {can_i_use?: CanIUseData; description?: string} | undefined;
 
   @state()
   featureId!: string;
@@ -718,6 +718,18 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderDescription(): TemplateResult {
+    if (this.featureMetadata?.description === undefined) {
+      return html`${nothing}`;
+    }
+
+    return html`
+      <div id="feature-description">
+        <h3>${this.featureMetadata.description}</h3>
+      </div>
+    `;
+  }
+
   renderWPTScores(): TemplateResult {
     return html`
       <section id="wpt-scores">
@@ -810,7 +822,8 @@ export class FeaturePage extends LitElement {
     return html`
       <div class="vbox">
         ${this.renderCrumbs()} ${this.renderNameAndOffsiteLinks()}
-        ${this.renderWPTScores()} ${this.renderImplentationProgress()}
+        ${this.renderDescription()} ${this.renderWPTScores()}
+        ${this.renderImplentationProgress()}
       </div>
     `;
 

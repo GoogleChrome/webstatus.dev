@@ -311,8 +311,11 @@ bcd_workflow:
 dev_fake_data: is_local_migration_ready
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
-	SPANNER_EMULATOR_HOST=localhost:9010 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local
+	fuser -k 8085/tcp || true
+	kubectl port-forward --address 127.0.0.1 pod/datastore 8085:8085 2>&1 >/dev/null &
+	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8085 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local -datastore_project=local
 	fuser -k 9010/tcp || true
+	fuser -k 8085/tcp || true
 is_local_migration_ready:
 	kubectl wait --for=condition=ready --timeout=300s pod/spanner
 	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \
