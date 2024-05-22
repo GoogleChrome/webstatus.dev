@@ -23,7 +23,7 @@ describe('webstatus-feature-page', () => {
   let el: FeaturePage;
   let renderDescriptionSpy: sinon.SinonSpy;
   beforeEach(async () => {
-    const location = {params: {featureId: 'some-feature'}};
+    const location = {params: {featureId: 'some-feature'}, search: ''};
     el = await fixture<FeaturePage>(
       html`<webstatus-feature-page
         .location=${location}

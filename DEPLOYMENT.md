@@ -78,7 +78,7 @@ internal project.
 Or you could populate with fake data by running.
 
 ```
-go run ./util/cmd/load_fake_data/main.go -spanner_project=${SPANNER_PROJECT_ID} -spanner_instance=${SPANNER_INSTANCE_ID} -spanner_database=${SPANNER_DATABASE_ID}
+go run ./util/cmd/load_fake_data/main.go -spanner_project=${SPANNER_PROJECT_ID} -spanner_instance=${SPANNER_INSTANCE_ID} -spanner_database=${SPANNER_DATABASE_ID} -datastore_project=${DATASTORE_PROJECT_ID} -datastore_database=${DATASTORE_DATABASE}
 ```
 
 When you are done with your own copy
