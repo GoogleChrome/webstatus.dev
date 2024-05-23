@@ -539,7 +539,7 @@ export class FeaturePage extends LitElement {
       <div class="crumbs">
         <a href=${overviewUrl}>Feature overview</a>
         &rsaquo;
-        <a href=${canonicalFeatureUrl}
+        <a href=${canonicalFeatureUrl} router-ignore
           >${this.feature?.name || this.featureId}</a
         >
       </div>

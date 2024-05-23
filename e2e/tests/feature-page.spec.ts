@@ -73,9 +73,15 @@ test('date range changes are preserved in the URL', async ({page}) => {
   await page.waitForSelector('#feature-support-chart-container');
   await page.waitForTimeout(1000);
 
-  // Change the start date to April 1st, 2020, in yyyy-mm-dd order
+  // Get the current default startDate and endDate from the selectors
   const startDateSelector = page.locator('sl-input#start-date');
   const startDateInputElement = startDateSelector.locator('input');
+  const startDate = await startDateInputElement.inputValue();
+  const endDateSelector = page.locator('sl-input#end-date');
+  const endDateInputElement = endDateSelector.locator('input');
+  const endDate = await endDateInputElement.inputValue();
+
+  // Change the start date to April 1st, 2020, in yyyy-mm-dd order
   await startDateInputElement.fill('2020-04-01');
 
   // Blur the input to trigger the change event
@@ -102,4 +108,25 @@ test('date range changes are preserved in the URL', async ({page}) => {
   expect(startDateValue2).toBe('2020-04-01');
 
   // TODO: Check that the chart has the right start date.
+
+  // Click on the feature breadcrumb.
+  const featureCrumb = page.locator('.crumbs >> a:has-text("odit64")');
+  await featureCrumb.click();
+
+  // Check that the URL no longer contains the startDate or endDate.
+  const url3 = page.url();
+  expect(url3).not.toContain('startDate=2020-04-01');
+  expect(url3).not.toContain('endDate=2020-12-01');
+
+  // Go to that URL.
+  await page.goto(url3);
+  await page.waitForSelector('#feature-support-chart-container');
+
+  // Check that the startDate and endDate selectors are reset to the initial default.
+  const startDateSelector3 = page.locator('sl-input#start-date');
+  const startDateInputElement3 = startDateSelector3.locator('input');
+  expect(await startDateInputElement3.inputValue()).toBe(startDate);
+  const endDateSelector3 = page.locator('sl-input#end-date');
+  const endDateInputElement3 = endDateSelector3.locator('input');
+  expect(await endDateInputElement3.inputValue()).toBe(endDate);
 });
