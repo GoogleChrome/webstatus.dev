@@ -14,24 +14,50 @@
  * limitations under the License.
  */
 
-import {expect, fixture} from '@open-wc/testing';
+import {expect, fixture, html} from '@open-wc/testing';
 import {FeaturePage} from '../webstatus-feature-page.js';
 import '../webstatus-feature-page.js';
+import sinon from 'sinon';
 
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
+  let renderDescriptionSpy: sinon.SinonSpy;
   beforeEach(async () => {
+    const location = {params: {featureId: 'some-feature'}, search: ''};
     el = await fixture<FeaturePage>(
-      '<webstatus-feature-page></webstatus-feature-page>'
+      html`<webstatus-feature-page
+        .location=${location}
+      ></webstatus-feature-page>`
     );
+
+    renderDescriptionSpy = sinon.spy(el, 'renderDescription');
 
     await el.updateComplete;
   });
-  it('builds the WPT link correctly', async () => {
-    const link = el.buildWPTLink('declarative-shadow-dom');
+  it('builds the WPT link correctly when there are stable metrics', async () => {
+    const link = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+      wpt: {stable: {}},
+    });
     expect(link).to.eq(
       'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative'
     );
+  });
+
+  it('builds a null WPT link correctly when there are no stable metrics', async () => {
+    const noStableMetricsLink = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+      wpt: {experimental: {}},
+    });
+    expect(noStableMetricsLink).to.eq(null);
+
+    const missingWPTSectionLink = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+    });
+    expect(missingWPTSectionLink).to.eq(null);
+
+    const missingFeatureLink = el.buildWPTLink();
+    expect(missingFeatureLink).to.eq(null);
   });
 
   it('optionally builds a caniuse link', async () => {
@@ -67,5 +93,47 @@ describe('webstatus-feature-page', () => {
     const undefinedObjItems = undefined;
     const undefinedObjItemsLink = el.findCanIUseLink(undefinedObjItems);
     expect(undefinedObjItemsLink).to.eq(null);
+  });
+
+  it('renders nothing when no featureMetadata or description is provided', async () => {
+    const callbacks = {
+      complete: sinon.fake(),
+      error: sinon.fake(),
+      initial: sinon.fake(),
+      pending: sinon.fake(),
+    };
+    el._loadingTask?.render(callbacks);
+    el._loadingTask?.run();
+    callbacks.complete();
+
+    await el.updateComplete;
+
+    expect(renderDescriptionSpy.callCount).to.be.greaterThan(0);
+    const descriptionSection = el.querySelector('#feature-description');
+    expect(descriptionSection).to.be.null;
+  });
+
+  it('renders a description after task completion', async () => {
+    el.featureMetadata = {description: 'AMAZING DESCRIPTION'};
+    await el.updateComplete;
+
+    const callbacks = {
+      complete: sinon.fake(),
+      error: sinon.fake(),
+      initial: sinon.fake(),
+      pending: sinon.fake(),
+    };
+    el._loadingTask?.render(callbacks);
+    el._loadingTask?.run();
+    callbacks.complete();
+
+    await el.updateComplete;
+
+    expect(renderDescriptionSpy.callCount).to.be.greaterThan(0);
+    const descriptionSection = el.shadowRoot?.querySelector(
+      '#feature-description'
+    );
+    expect(descriptionSection).to.not.be.null;
+    expect(descriptionSection?.textContent).to.contain('AMAZING DESCRIPTION');
   });
 });

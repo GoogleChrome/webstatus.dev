@@ -116,7 +116,7 @@ export class FeaturePage extends LitElement {
   feature?: components['schemas']['Feature'] | undefined;
 
   @state()
-  featureMetadata?: components['schemas']['FeatureMetadata'] | undefined;
+  featureMetadata?: {can_i_use?: CanIUseData; description?: string} | undefined;
 
   @state()
   featureId!: string;
@@ -574,9 +574,13 @@ export class FeaturePage extends LitElement {
     `;
   }
 
-  buildWPTLink(featureId: string): string {
+  buildWPTLink(feature?: {
+    feature_id: string;
+    wpt?: {stable?: object; experimental?: object};
+  }): string | null {
+    if (feature?.wpt?.stable === undefined) return null;
     const wptLinkURL = new URL('https://wpt.fyi/results');
-    const query = `feature:${featureId} !is:tentative`;
+    const query = `feature:${feature.feature_id} !is:tentative`;
     wptLinkURL.searchParams.append('label', 'master');
     wptLinkURL.searchParams.append('label', 'stable');
     wptLinkURL.searchParams.append('aligned', '');
@@ -596,8 +600,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderNameAndOffsiteLinks(): TemplateResult {
-    const featureId = this.feature?.feature_id || this.featureId;
-    const wptLink = this.buildWPTLink(featureId);
+    const wptLink = this.buildWPTLink(this.feature);
     const wptLogo = '/public/img/wpt-logo.svg';
     const canIUseLink = this.findCanIUseLink(this.featureMetadata?.can_i_use);
 
@@ -719,6 +722,18 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderDescription(): TemplateResult {
+    if (this.featureMetadata?.description === undefined) {
+      return html`${nothing}`;
+    }
+
+    return html`
+      <div id="feature-description">
+        <h3>${this.featureMetadata.description}</h3>
+      </div>
+    `;
+  }
+
   renderWPTScores(): TemplateResult {
     return html`
       <section id="wpt-scores">
@@ -811,7 +826,8 @@ export class FeaturePage extends LitElement {
     return html`
       <div class="vbox">
         ${this.renderCrumbs()} ${this.renderNameAndOffsiteLinks()}
-        ${this.renderWPTScores()} ${this.renderImplentationProgress()}
+        ${this.renderDescription()} ${this.renderWPTScores()}
+        ${this.renderImplentationProgress()}
       </div>
     `;
 

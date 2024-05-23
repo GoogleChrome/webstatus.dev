@@ -26,6 +26,7 @@ import (
 
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/web-platform-tests/wpt.fyi/shared"
@@ -115,6 +116,21 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 	return features, nil
 }
 
+func generateFeatureMetadata(ctx context.Context, client *gds.Client, features []gcpspanner.SpannerWebFeature) error {
+	for _, feature := range features {
+		err := client.UpsertFeatureMetadata(ctx, gds.FeatureMetadata{
+			Description:  "Test description for " + feature.Name,
+			CanIUseIDs:   []string{"sample1"},
+			WebFeatureID: feature.ID,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func generateFeatureAvailability(
 	ctx context.Context,
 	client *gcpspanner.Client,
@@ -144,36 +160,43 @@ func generateFeatureAvailability(
 	return availabilitiesInserted, nil
 }
 
-func generateData(ctx context.Context, client *gcpspanner.Client) error {
-	releasesCount, err := generateReleases(ctx, client)
+func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client) error {
+	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)
 	}
 	slog.Info("releases generated",
 		"amount of releases created", releasesCount)
 
-	features, err := generateFeatures(ctx, client)
+	features, err := generateFeatures(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("feature generation failed %w", err)
 	}
 	slog.Info("features generated",
 		"amount of features created", len(features))
 
-	runsCount, metricsCount, err := generateRunsAndMetrics(ctx, client, features)
+	err = generateFeatureMetadata(ctx, datastoreClient, features)
+	if err != nil {
+		return fmt.Errorf("feature metadata generation failed %w", err)
+	}
+	slog.Info("feature metadata generated",
+		"amount of feature metadata created", len(features))
+
+	runsCount, metricsCount, err := generateRunsAndMetrics(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("wpt runs generation failed %w", err)
 	}
 	slog.Info("runs and metrics generated",
 		"amount of runs created", runsCount, "amount of metrics created", metricsCount)
 
-	statusCount, err := generateBaselineStatus(ctx, client, features)
+	statusCount, err := generateBaselineStatus(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("baseline status failed %w", err)
 	}
 	slog.Info("statuses generated",
 		"amount of statuses created", statusCount)
 
-	availabilityCount, err := generateFeatureAvailability(ctx, client, features)
+	availabilityCount, err := generateFeatureAvailability(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("feature availability generation failed %w", err)
 	}
@@ -308,9 +331,11 @@ func main() {
 	// Use the grpc port from spanner in .dev/spanner/skaffold.yaml
 	// Describe the command line flags and parse the flags
 	var (
-		spannerProject  = flag.String("spanner_project", "", "Spanner Project")
-		spannerInstance = flag.String("spanner_instance", "", "Spanner Instance")
-		spannerDatabase = flag.String("spanner_database", "", "Spanner Database")
+		spannerProject    = flag.String("spanner_project", "", "Spanner Project")
+		spannerInstance   = flag.String("spanner_instance", "", "Spanner Instance")
+		spannerDatabase   = flag.String("spanner_database", "", "Spanner Database")
+		datastoreProject  = flag.String("datastore_project", "", "Datastore Project")
+		datastoreDatabase = flag.String("datastore_database", "", "Datastore Database")
 	)
 	flag.Parse()
 
@@ -319,9 +344,19 @@ func main() {
 		"instance", *spannerInstance,
 		"database", *spannerDatabase)
 
-	client, err := gcpspanner.NewSpannerClient(*spannerProject, *spannerInstance, *spannerDatabase)
+	spannerClient, err := gcpspanner.NewSpannerClient(*spannerProject, *spannerInstance, *spannerDatabase)
 	if err != nil {
 		slog.Error("unable to create spanner client", "error", err)
+		os.Exit(1)
+	}
+
+	slog.Info("establishing datastore client",
+		"project", *datastoreProject,
+		"database", *datastoreDatabase)
+
+	datastoreClient, err := gds.NewDatastoreClient(*datastoreProject, datastoreDatabase)
+	if err != nil {
+		slog.Error("unable to create datastore client", "error", err)
 		os.Exit(1)
 	}
 
@@ -329,7 +364,7 @@ func main() {
 
 	ctx := context.Background()
 
-	err = generateData(ctx, client)
+	err = generateData(ctx, spannerClient, datastoreClient)
 	if err != nil {
 		slog.Error("unable to generate data", "error", err)
 		os.Exit(1)
