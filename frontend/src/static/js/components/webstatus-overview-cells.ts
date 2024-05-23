@@ -332,6 +332,7 @@ export function isJavaScriptFeature(featureSpecInfo: FeatureSpecInfo): boolean {
 
 function renderJavaScriptFeatureValue(): TemplateResult {
   return html` <sl-tooltip
+    class="missing percent"
     content="WPT metrics are not applicable to TC39 features."
   >
     <sl-icon-button name="info-circle" label="TC39 feature"></sl-icon-button>
@@ -352,7 +353,10 @@ export function hasInsufficientTestCoverage(feature_id: string): boolean {
 }
 
 function renderInsufficentTestCoverage(): TemplateResult {
-  return html` <sl-tooltip content="Insufficient test coverage.">
+  return html` <sl-tooltip
+    class="missing percent"
+    content="Insufficient test coverage."
+  >
     <sl-icon-button
       name="info-circle"
       label="insufficent-test-coverage"
@@ -366,6 +370,7 @@ export function didFeatureCrash(metadata?: {[key: string]: unknown}): boolean {
 
 function renderFeatureCrash(): TemplateResult {
   return html` <sl-tooltip
+    class="missing percent"
     content="Feature's WPT run metrics are incomplete due to a crash. See wpt.fyi for more information."
   >
     <sl-icon-button
