@@ -347,6 +347,7 @@ export function hasInsufficientTestCoverage(feature_id: string): boolean {
     'preserves-pitch', // Timeout in Firefox and Safari affect the scores a lot. Feature probably OK.
     'storage-access', // 2 tests. idlharness.js is shallow by design, and the other fails.
     'webtransport', // A big test suite, but harness errors could indicate a problem with the tests.
+    'webvtt', // Widespread failures due to default styling, see https://github.com/web-platform-tests/wpt/issues/46453.
   ].includes(feature_id);
 }
 
