@@ -108,9 +108,15 @@ export class WebstatusGChart extends LitElement {
     return dataTable;
   }
 
+  // Augment the options with options that apply for all charts.
   augmentOptions(
     options: google.visualization.ComboChartOptions
   ): google.visualization.ComboChartOptions {
+    options = {
+      ...options,
+      tooltip: {trigger: 'selection'},
+    };
+
     const numColumns = this.dataTable!.getNumberOfColumns();
     // The number of series is the number of columns with role 'data'.
     let numSeries = 0;
