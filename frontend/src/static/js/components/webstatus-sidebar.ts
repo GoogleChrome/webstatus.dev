@@ -31,15 +31,6 @@ export class WebstatusSidebar extends LitElement {
           width: 288px;
         }
 
-        sl-tree#bottom-menu {
-          margin-top: auto;
-        }
-
-        sl-tree#bottom-menu a {
-          color: inherit;
-          text-decoration: none;
-        }
-
         sl-tree-item#theme-selector sl-select::part(combobox) {
           border: 0;
         }
