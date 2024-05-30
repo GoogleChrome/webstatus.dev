@@ -19,7 +19,6 @@ import {customElement} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
 import './webstatus-sidebar-menu.js';
-import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 
 @customElement('webstatus-sidebar')
 export class WebstatusSidebar extends LitElement {
@@ -60,21 +59,6 @@ export class WebstatusSidebar extends LitElement {
     return html`
       <div class="sidebar vbox">
         <webstatus-sidebar-menu></webstatus-sidebar-menu>
-
-        <sl-divider></sl-divider>
-        <div class="spacer"></div>
-
-        <div class="valign-stretch-2"></div>
-          <sl-tree id="bottom-menu">
-            <sl-tree-item>
-              <sl-icon name="github"></sl-icon>
-<a href="${GITHUB_REPO_ISSUE_LINK}"
-    target="_blank"
-                >Report an issue</a
-              >
-            </sl-tree-item>
-          </sl-tree>
-        </div>
       </div>
     `;
   }

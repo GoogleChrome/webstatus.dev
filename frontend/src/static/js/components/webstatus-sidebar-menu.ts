@@ -30,6 +30,8 @@ import {
   navigateToUrl,
 } from '../utils/app-router.js';
 
+import { GITHUB_REPO_ISSUE_LINK } from '../utils/constants.js';
+
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
   FEATURES = 'features-item',
@@ -262,8 +264,16 @@ export class WebstatusSidebarMenu extends LitElement {
             this.renderBookmark(bookmark, index)
           )}
         </sl-tree-item>
-        <sl-tree-item style="display:none" id="${NavigationItemKey.STATISTICS}">
+        <!-- <sl-tree-item style="display:none" id="{NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
+        </sl-tree-item> -->
+
+        <sl-tree-item>
+              <sl-icon name="github"></sl-icon>
+          <a href="${GITHUB_REPO_ISSUE_LINK}"
+        target="_blank"
+                >Report an issue</a
+              >
         </sl-tree-item>
       </sl-tree>
     `;
