@@ -96,11 +96,11 @@ export class WebstatusSidebarMenu extends LitElement {
           text-decoration: none;
         }
 
-        sl-tree .report-issue-item {
+        .report-issue-item {
           margin-top: auto;
         }
 
-        sl-tree .report-issue-item a {
+        .report-issue-link {
           color: inherit;
           text-decoration: none;
         }
@@ -277,11 +277,13 @@ export class WebstatusSidebarMenu extends LitElement {
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item> -->
 
-        <sl-divider></sl-divider>
+        <sl-divider aria-hidden="true"></sl-divider>
 
         <sl-tree-item class="report-issue-item">
           <sl-icon name="github"></sl-icon>
-          <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
+          <a
+            class="report-issue-link"
+            href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
             >Report an issue</a
           >
         </sl-tree-item>

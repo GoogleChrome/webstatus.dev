@@ -54,12 +54,12 @@ describe('webstatus-sidebar-menu', () => {
 
     const tree = el.shadowRoot?.querySelector('sl-tree');
     const featuresItem = tree?.querySelector('#features-item');
-    const statsItem = tree?.querySelector('#statistics-item');
+    // const statsItem = tree?.querySelector('#statistics-item');
     const bookmarkItems = featuresItem?.querySelectorAll('sl-tree-item');
 
     expect(tree).to.exist;
     expect(featuresItem).to.exist;
-    expect(statsItem).to.exist;
+    // expect(statsItem).to.exist;
     expect(bookmarkItems).to.have.lengthOf(2); // Number of test bookmarks
 
     // By default no bookmarks should be highlighted
