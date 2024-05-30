@@ -115,9 +115,6 @@ export class WebstatusGChart extends LitElement {
     options = {
       ...options,
       tooltip: {trigger: 'selection'},
-      aggregationTarget: 'category',
-      // The following enables multiple selection of points, in one tooltip.
-      // selectionMode: 'multiple',
     };
 
     const numColumns = this.dataTable!.getNumberOfColumns();
