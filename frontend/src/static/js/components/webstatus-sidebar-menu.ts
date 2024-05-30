@@ -283,7 +283,8 @@ export class WebstatusSidebarMenu extends LitElement {
           <sl-icon name="github"></sl-icon>
           <a
             class="report-issue-link"
-            href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
+            href="${GITHUB_REPO_ISSUE_LINK}"
+            target="_blank"
             >Report an issue</a
           >
         </sl-tree-item>
