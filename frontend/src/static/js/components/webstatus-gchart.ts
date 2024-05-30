@@ -112,10 +112,9 @@ export class WebstatusGChart extends LitElement {
   augmentOptions(
     options: google.visualization.ComboChartOptions
   ): google.visualization.ComboChartOptions {
-
     options = {
       ...options,
-      tooltip: { trigger: 'selection' },
+      tooltip: {trigger: 'selection'},
       aggregationTarget: 'category',
       // The following enables multiple selection of points, in one tooltip.
       // selectionMode: 'multiple',
