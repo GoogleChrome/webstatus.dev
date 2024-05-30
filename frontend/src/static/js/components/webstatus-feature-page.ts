@@ -425,11 +425,6 @@ export class FeaturePage extends LitElement {
       colors: seriesColors,
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
 
-      // Multiple selection of points will be summarized in one tooltip.
-      tooltip: {trigger: 'selection'},
-      selectionMode: 'multiple',
-      aggregationTarget: 'category',
-
       // Enable explorer mode
       explorer: {
         actions: ['dragToZoom', 'rightClickToReset'],
