@@ -143,6 +143,33 @@ export class FeaturePage extends LitElement {
           gap: var(--content-padding-large);
         }
 
+        sl-card .card {
+          height: 100%;
+        }
+
+        .wptScore {
+          width: 16%;
+        }
+        .wptScore.baseline {
+          width: 20%;
+        }
+        @media (max-width: 1100px) {
+          .wptScore {
+            width: 32%;
+          }
+          .wptScore.baseline {
+            width: 50%;
+          }
+        }
+        @media (max-width: 800px) {
+          .wptScore {
+            width: 60%;
+          }
+          .wptScore.baseline {
+            width: 80%;
+          }
+        }
+
         .wptScore > div + div {
           margin-top: var(--content-padding-half);
         }
@@ -151,6 +178,11 @@ export class FeaturePage extends LitElement {
         }
         .wptScore .score {
           font-size: 150%;
+          white-space: nowrap;
+        }
+        .wptScore.baseline .score {
+          font-size: 150%;
+          white-space: wrap;
         }
         .wptScore .avail {
           color: var(--unimportant-text-color);
@@ -424,13 +456,6 @@ export class FeaturePage extends LitElement {
       colors: seriesColors,
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
 
-      interpolateNulls: true,
-
-      // Multiple selection of points will be summarized in one tooltip.
-      tooltip: {trigger: 'selection'},
-      selectionMode: 'multiple',
-      aggregationTarget: 'category',
-
       // Enable explorer mode
       explorer: {
         actions: ['dragToZoom', 'rightClickToReset'],
@@ -540,7 +565,7 @@ export class FeaturePage extends LitElement {
       <div class="crumbs">
         <a href=${overviewUrl}>Feature overview</a>
         &rsaquo;
-        <a href=${canonicalFeatureUrl}
+        <a href=${canonicalFeatureUrl} router-ignore
           >${this.feature?.name || this.featureId}</a
         >
       </div>
@@ -599,41 +624,34 @@ export class FeaturePage extends LitElement {
     return `https://caniuse.com/${data.items[0].id}`;
   }
 
-  renderNameAndOffsiteLinks(): TemplateResult {
-    const wptLink = this.buildWPTLink(this.feature);
-    const wptLogo = '/public/img/wpt-logo.svg';
-    const canIUseLink = this.findCanIUseLink(this.featureMetadata?.can_i_use);
-
+  renderNameDescriptionControls(): TemplateResult {
     return html`
-      <div id="nameAndOffsiteLinks" class="hbox valign-items-end">
-        <h1>${this.feature?.name || this.featureId}</h1>
+      <div id="nameAndOffsiteLinks" class="hbox wrap">
+        <div class="vbox">
+          <h1>${this.feature?.name || this.featureId}</h1>
+          ${this.renderDescription()}
+        </div>
         <div class="spacer"></div>
-        <label
-          >Start date
-          <sl-input
-            id="start-date"
-            @sl-change=${this.handleStartDateChange}
-            type="date"
-            .valueAsDate="${this.startDate}"
-          ></sl-input>
-        </label>
-        <label
-          >End date
-          <sl-input
-            id="end-date"
-            @sl-change=${this.handleEndDateChange}
-            type="date"
-            .valueAsDate="${this.endDate}"
-          ></sl-input>
-        </label>
-        ${this.renderOffsiteLink(
-          'WPT.fyi',
-          wptLink,
-          wptLogo,
-          'WPT default view'
-        )}
-        ${this.renderOffsiteLink('MDN', null)}
-        ${this.renderOffsiteLink('CanIUse', canIUseLink)}
+        <div class="hbox wrap">
+          <label>
+            Start date
+            <sl-input
+              id="start-date"
+              @sl-change=${this.handleStartDateChange}
+              type="date"
+              .valueAsDate="${this.startDate}"
+            ></sl-input>
+          </label>
+          <label>
+            End date
+            <sl-input
+              id="end-date"
+              @sl-change=${this.handleEndDateChange}
+              type="date"
+              .valueAsDate="${this.endDate}"
+            ></sl-input>
+          </label>
+        </div>
       </div>
     `;
   }
@@ -694,7 +712,7 @@ export class FeaturePage extends LitElement {
 
   renderBaselineCardWhenPending(): TemplateResult {
     return html`
-      <sl-card class="halign-stretch wptScore">
+      <sl-card class="halign-stretch wptScore baseline">
         <sl-skeleton effect="sheen" class="icon"></sl-skeleton>
         <div>Baseline</div>
         <div class="score"><sl-skeleton effect="sheen"></sl-skeleton></div>
@@ -711,7 +729,7 @@ export class FeaturePage extends LitElement {
     const chipConfig = BASELINE_CHIP_CONFIGS[status];
     const sinceDate = this.feature?.baseline?.low_date;
     return html`
-      <sl-card class="halign-stretch wptScore">
+      <sl-card class="halign-stretch wptScore baseline">
         <img height="28" src="/public/img/${chipConfig.icon}" class="icon" />
         <div>Baseline</div>
         <div class="score">${chipConfig.word}</div>
@@ -738,7 +756,7 @@ export class FeaturePage extends LitElement {
     return html`
       <section id="wpt-scores">
         <h3>Web platform test scores</h3>
-        <div class="hbox" style="margin:0">
+        <div class="wptScores hbox wrap" style="margin:0">
           ${this.renderOneWPTCard('chrome', 'chrome_32x32.png')}
           ${this.renderOneWPTCard('edge', 'edge_32x32.png')}
           ${this.renderOneWPTCard('firefox', 'firefox_32x32.png')}
@@ -823,10 +841,29 @@ export class FeaturePage extends LitElement {
   }
 
   renderWhenComplete(): TemplateResult {
+    const wptLink = this.buildWPTLink(this.feature);
+    const wptLogo = '/public/img/wpt-logo.svg';
+    const canIUseLink = this.findCanIUseLink(this.featureMetadata?.can_i_use);
+
     return html`
       <div class="vbox">
-        ${this.renderCrumbs()} ${this.renderNameAndOffsiteLinks()}
-        ${this.renderDescription()} ${this.renderWPTScores()}
+        <div class="hbox wrap">
+          ${this.renderCrumbs()}
+          <div class="spacer"></div>
+
+          <div class="hbox wrap">
+            ${this.renderOffsiteLink(
+              'WPT.fyi',
+              wptLink,
+              wptLogo,
+              'WPT default view'
+            )}
+            ${this.renderOffsiteLink('MDN', null)}
+            ${this.renderOffsiteLink('CanIUse', canIUseLink)}
+          </div>
+        </div>
+
+        ${this.renderNameDescriptionControls()} ${this.renderWPTScores()}
         ${this.renderImplentationProgress()}
       </div>
     `;
