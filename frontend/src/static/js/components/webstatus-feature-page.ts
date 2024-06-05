@@ -442,6 +442,7 @@ export class FeaturePage extends LitElement {
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
+      interpolateNulls: true,
       hAxis: {
         title: '',
         titleTextStyle: {color: '#333'},
