@@ -263,17 +263,15 @@ export class APIClient {
 
   // Fetches feature counts for a browser in a date range
   // via "/v1/stats/features/browsers/{browser}/feature_counts"
-  public async getFeatureCounts(
+  public async *getFeatureCountsForBrowser(
     browser: BrowsersParameter,
     startAtDate: Date,
     endAtDate: Date
-  ): Promise<BrowserReleaseFeatureMetric[]> {
+  ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
 
-    // Collect all the data in one array, for all pages of data.
     let nextPageToken;
-    const allData: BrowserReleaseFeatureMetric[] = [];
     do {
       const response = await this.client.GET(
         '/v1/stats/features/browsers/{browser}/feature_counts',
@@ -292,11 +290,7 @@ export class APIClient {
       const page: BrowserReleaseFeatureMetricsPage =
         response.data as BrowserReleaseFeatureMetricsPage;
       nextPageToken = page?.metadata?.next_page_token;
-      if (page != null) {
-        allData.push(...page.data);
-      }
+      yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
-
-    return allData;
   }
 }

@@ -147,19 +147,24 @@ export class StatsPage extends LitElement {
     endDate: Date
   ) {
     if (typeof apiClient !== 'object') return;
-    for (const browser of ALL_BROWSERS) {
-      const featureCounts = await apiClient.getFeatureCounts(
+    const promises = ALL_BROWSERS.map(async browser => {
+      for await (const page of apiClient.getFeatureCountsForBrowser(
         browser,
         startDate,
         endDate
-      );
-      this.globalFeatureSupport.set(
-        globalFeatureSupportKey(browser),
-        featureCounts
-      );
-    }
-    this.globalFeatureSupportChartDataObj =
-      this.createGlobalFeatureSupportDataFromMap();
+      )) {
+        // Append the new data to existing data
+        const existingData =
+          this.globalFeatureSupport.get(globalFeatureSupportKey(browser)) || [];
+        this.globalFeatureSupport.set(globalFeatureSupportKey(browser), [
+          ...existingData,
+          ...page,
+        ]);
+      }
+      this.globalFeatureSupportChartDataObj =
+        this.createGlobalFeatureSupportDataFromMap();
+    });
+    await Promise.all(promises); // Wait for all browsers to finish
   }
 
   constructor() {
