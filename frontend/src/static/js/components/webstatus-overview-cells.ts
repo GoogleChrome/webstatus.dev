@@ -119,7 +119,7 @@ const renderBaselineStatus: CellRenderer = (
     : 'Not yet available';
 
   return html`
-    <sl-tooltip content="${baselineSince}" placement="top-start">
+    <sl-tooltip content="${baselineSince}" placement="right-start">
       <span class="chip ${chipConfig.cssClass}">
         <img height="16" src="/public/img/${chipConfig.icon}" />
         ${chipConfig.word}
