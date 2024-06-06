@@ -114,10 +114,12 @@ const renderBaselineStatus: CellRenderer = (
   if (baselineStatus === undefined) return html``;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
   const lowDate = feature.baseline?.low_date;
-  const dateRange = lowDate ? `Baseline since ${lowDate}` : 'Not yet available';
+  const baselineSince = lowDate
+    ? `Baseline since ${lowDate}`
+    : 'Not yet available';
 
   return html`
-    <sl-tooltip content="${dateRange}">
+    <sl-tooltip content="${baselineSince}" placement="top-start">
       <span class="chip ${chipConfig.cssClass}">
         <img height="16" src="/public/img/${chipConfig.icon}" />
         ${chipConfig.word}
