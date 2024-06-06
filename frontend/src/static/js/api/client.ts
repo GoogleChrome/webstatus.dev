@@ -80,6 +80,10 @@ const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
 
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
+export type BrowserReleaseFeatureMetric =
+  components['schemas']['BrowserReleaseFeatureMetric'];
+export type BrowserReleaseFeatureMetricsPage =
+  components['schemas']['BrowserReleaseFeatureMetricsPage'];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
@@ -255,5 +259,38 @@ export class APIClient {
     } while (nextPageToken !== undefined);
 
     return allData;
+  }
+
+  // Fetches feature counts for a browser in a date range
+  // via "/v1/stats/features/browsers/{browser}/feature_counts"
+  public async *getFeatureCountsForBrowser(
+    browser: BrowsersParameter,
+    startAtDate: Date,
+    endAtDate: Date
+  ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+
+    let nextPageToken;
+    do {
+      const response = await this.client.GET(
+        '/v1/stats/features/browsers/{browser}/feature_counts',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {startAt, endAt, page_token: nextPageToken},
+            path: {browser},
+          },
+        }
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: BrowserReleaseFeatureMetricsPage =
+        response.data as BrowserReleaseFeatureMetricsPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
   }
 }

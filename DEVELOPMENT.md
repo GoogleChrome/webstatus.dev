@@ -121,6 +121,18 @@ the live data sources are down or constantly changing.
 make dev_fake_data
 ```
 
+#### Option 3: Load data from api.webstatus.dev
+
+To test with real data from `api.webstatus.dev`, you can replace the `$API_URL` variable
+in `apiUrl` settings property value in the `webstatus-app` component of
+`frontend/src/static/index.html` with the URL "https://api.webstatus.dev" as follows:
+
+```html
+<webstatus-app
+  settings='{"apiUrl": "https://api.webstatus.dev", "gsiClientId": "$GSI_CLIENT_ID"}'
+></webstatus-app>
+```
+
 #### Verify the database has data
 
 Open `http://localhost:8080/v1/features` to see the features populated
