@@ -33,9 +33,10 @@ test('matches the screenshot', async ({page}) => {
 test('shows an error that their query is invalid', async ({page}) => {
   await page.goto('http://localhost:5555/?q=available_on%3Achrom');
 
-  await page.waitForSelector('.message:has-text("Invalid query...")', {
-    state: 'visible',
-  });
+  const message = page.locator('.message');
+  await message.waitFor({state: 'visible'});
+  expect(message).toContainText('Invalid query...');
+
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot('invalid-query.png');
 });
@@ -55,9 +56,10 @@ test('shows an unknown error when there is an internal error', async ({
   );
   await page.goto('http://localhost:5555/');
 
-  await page.waitForSelector('.message:has-text("Something went wrong...")', {
-    state: 'visible',
-  });
+  const message = page.locator('.message');
+  await message.waitFor({state: 'visible'});
+  expect(message).toContainText('Something went wrong...');
+
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot('internal-error.png');
 });
