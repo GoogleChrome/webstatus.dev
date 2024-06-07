@@ -33,15 +33,18 @@ test('matches the screenshot', async ({page}) => {
 test('shows an error that their query is invalid', async ({page}) => {
   await page.goto('http://localhost:5555/?q=available_on%3Achrom');
 
-  await page.locator('.message').waitFor({state: 'visible'});
-  // The following works in --ui mode, but fails in batch mode.
-  // expect(page.locator('.message')).toContainText('Invalid query...');
+  const message = page.locator('.message');
+  await message.waitFor({state: 'visible'});
+  expect(message).toContainText('Invalid query...');
+
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot('invalid-query.png');
 });
 
 test('shows an unknown error when there is an internal error', async ({
   page,
 }) => {
-  await page.route('**/v1/features', route =>
+  await page.route('**/v1/features?page_size=25', route =>
     route.fulfill({
       status: 500,
       contentType: 'application/json',
@@ -53,9 +56,12 @@ test('shows an unknown error when there is an internal error', async ({
   );
   await page.goto('http://localhost:5555/');
 
-  // The following actually fails to find the error message:
-  // await page.locator('.message').waitFor({state: 'visible'});
-  // expect(page.getByText('Something went wrong...')).toBeTruthy();
+  const message = page.locator('.message');
+  await message.waitFor({state: 'visible'});
+  expect(message).toContainText('Something went wrong...');
+
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot('internal-error.png');
 });
 
 // test of hover over a baseline chip to show tooltip
@@ -67,18 +73,12 @@ test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
     .locator('sl-tooltip')
     .filter({hasText: 'Widely available'})
     .first();
+  const baselineText = 'Baseline since 2035-05-06';
+  await expect(tooltip.getByText(baselineText)).toBeHidden();
   const widelyAvailableChip = tooltip.locator('span').first();
   await widelyAvailableChip.hover();
-
-  // check that the tooltip sl-popup is visible
-  const tooltipPopup = tooltip.locator('sl-popup');
-
-  // The following works in --ui mode, but fails in batch mode.
-  // expect(tooltipPopup).toBeVisible();
-  // check that the sl-popup has the correct content
-  // expect(tooltipPopup).toContainText('Baseline since 2035-05-06');
-
-  // Still missing the tooltip screenshot.
-  // const pageContainer = page.locator('.page-container');
-  // await expect(pageContainer).toHaveScreenshot('baseline-hover-tooltip.png');
+  await expect(tooltip.getByText(baselineText)).toBeVisible();
+  // Move mouse away
+  await page.mouse.move(0, 0);
+  await expect(tooltip.getByText(baselineText)).toBeHidden();
 });
