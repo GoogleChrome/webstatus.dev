@@ -29,6 +29,8 @@ jobs:
       - name: Run precommit target for CI
         uses: devcontainers/ci@v0.3
         with:
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer-ci-precommit
+          push: never
           runCmd: make precommit
   playwright:
     runs-on: ubuntu-latest
@@ -41,7 +43,6 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
-          remove-docker-images: 'true'
       - name: Restart docker
         run: sudo service docker restart
       - name: Checkout (GitHub)
@@ -49,4 +50,6 @@ jobs:
       - name: Run playwright-test target for CI
         uses: devcontainers/ci@v0.3
         with:
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer-ci-playwright
+          push: never
           runCmd: CI=true make playwright-test
