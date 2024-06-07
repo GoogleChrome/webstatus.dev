@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-import {test, expect, Page} from '@playwright/test';
+import { test, expect } from '@playwright/test';
+import { setupFakeNow } from './utils';
+
+test.beforeEach(async ({page}) => {
+  await setupFakeNow(page, 'Dec 1 2023 12:34:56');
+});
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/stats');
