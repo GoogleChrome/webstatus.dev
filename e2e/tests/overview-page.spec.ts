@@ -33,7 +33,7 @@ test('matches the screenshot', async ({page}) => {
 test('shows an error that their query is invalid', async ({page}) => {
   await page.goto('http://localhost:5555/?q=available_on%3Achrom');
 
-  await page.locator('.message').waitFor({ state: 'visible' });
+  await page.locator('.message').waitFor({state: 'visible'});
   // The following works in --ui mode, but fails in batch mode.
   // expect(page.locator('.message')).toContainText('Invalid query...');
 });
@@ -58,14 +58,15 @@ test('shows an unknown error when there is an internal error', async ({
   // expect(page.getByText('Something went wrong...')).toBeTruthy();
 });
 
-
 // test of hover over a baseline chip to show tooltip
 test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
   await gotoUrl(page, 'http://localhost:5555/');
 
   // Find the tooltip for the first Widely available chip.
-  const tooltip = page.locator('sl-tooltip')
-    .filter({ hasText: 'Widely available' }).first();
+  const tooltip = page
+    .locator('sl-tooltip')
+    .filter({hasText: 'Widely available'})
+    .first();
   const widelyAvailableChip = tooltip.locator('span').first();
   await widelyAvailableChip.hover();
 
