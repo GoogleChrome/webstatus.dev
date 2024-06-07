@@ -1,0 +1,89 @@
+# Copyright 2024 Google LLC
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Dev Container Image Build
+on:
+  workflow_dispatch: # Allows manual triggering
+  schedule:
+    - cron: '0 0 * * 2' # Runs every Tuesday at midnight UTC
+jobs:
+  build-base-image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v3
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pre-build dev container base image
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          push: always
+  # Build two GitHub Action specific images: precommit and playwright
+  # They cannot exist in the same image together because the image would be
+  # too large to fit on the GitHub Runner.
+  build-precommit-image: # Job for precommit image
+    runs-on: ubuntu-latest
+    needs: build-base-image # Ensure base image is built first
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build CI Precommit Image
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer-ci-precommit
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          push: always
+          runCmd: make precommit
+
+  build-playwright-image: # Job for playwright image
+    runs-on: ubuntu-latest
+    needs: build-base-image # Ensure base image is built first
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
+        with:
+          build-mount-path: /var/lib/docker/
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+      - name: Restart docker
+        run: sudo service docker restart
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Login to GHCR
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build CI Playwright Image
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer-ci-playwright
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          push: always
+          runCmd: make skaffold-build
