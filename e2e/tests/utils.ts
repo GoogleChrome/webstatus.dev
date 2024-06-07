@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-import { Page } from '@playwright/test';
+import {Page} from '@playwright/test';
 
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
-export async function setupFakeNow(page: Page,
-  fakeNowDateString = DEFAULT_FAKE_NOW): Promise<void> {
+export async function setupFakeNow(
+  page: Page,
+  fakeNowDateString = DEFAULT_FAKE_NOW
+): Promise<void> {
   // Get fakeNow from UTC to extract the timeZone offset used in the test
   const fakeNowFromUTC = new Date(fakeNowDateString);
   const offset = fakeNowFromUTC.getTimezoneOffset();

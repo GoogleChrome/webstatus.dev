@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import { test, expect } from '@playwright/test';
-import { setupFakeNow } from './utils';
+import {test, expect} from '@playwright/test';
+import {setupFakeNow} from './utils';
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
