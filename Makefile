@@ -31,9 +31,13 @@ precommit: license-check lint test
 # Local Environment
 ################################
 SKAFFOLD_FLAGS = -p local
-SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --no-prune=false --cache-artifacts=false --port-forward=off
+SKAFFOLD_BUILD_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS)
+SKAFFOLD_RUN_FLAGS = $(SKAFFOLD_FLAGS) --build-concurrency=$(NPROCS) --port-forward=off
 start-local: configure-skaffold gen
 	skaffold dev $(SKAFFOLD_RUN_FLAGS)
+
+skaffold-build: configure-skaffold gen
+	skaffold build $(SKAFFOLD_BUILD_FLAGS)
 
 debug-local: configure-skaffold gen
 	skaffold debug $(SKAFFOLD_RUN_FLAGS)
