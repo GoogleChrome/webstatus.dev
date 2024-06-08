@@ -111,15 +111,20 @@ const renderBaselineStatus: CellRenderer = (
   _options
 ) => {
   const baselineStatus = feature.baseline?.status;
-
   if (baselineStatus === undefined) return html``;
-
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
+  const lowDate = feature.baseline?.low_date;
+  const baselineSince = lowDate
+    ? `Baseline since ${lowDate}`
+    : 'Not yet available';
+
   return html`
-    <span class="chip ${chipConfig.cssClass}">
-      <img height="16" src="/public/img/${chipConfig.icon}" />
-      ${chipConfig.word}
-    </span>
+    <sl-tooltip content="${baselineSince}" placement="right-start">
+      <span class="chip ${chipConfig.cssClass}">
+        <img height="16" src="/public/img/${chipConfig.icon}" />
+        ${chipConfig.word}
+      </span>
+    </sl-tooltip>
   `;
 };
 

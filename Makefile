@@ -272,14 +272,17 @@ license-fix: download-addlicense
 ################################
 fresh-env-for-playwright: playwright-install delete-local deploy-local dev_fake_data port-forward-manual
 
-playwright-update-snapshots: fresh-env-for-playwright
-	npx playwright test --update-snapshots
-
 playwright-install:
 	npx playwright install --with-deps
 
+playwright-update-snapshots: fresh-env-for-playwright
+	npx playwright test --update-snapshots
+
 playwright-test: fresh-env-for-playwright
 	npx playwright test
+
+playwright-ui: fresh-env-for-playwright
+	npx playwright test --ui --ui-port=8123
 
 ################################
 # Go Misc
