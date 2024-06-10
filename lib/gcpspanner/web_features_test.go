@@ -74,16 +74,16 @@ func (c *Client) ReadAllWebFeatures(ctx context.Context, t *testing.T) ([]WebFea
 }
 
 func TestUpsertWebFeature(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		_, err := client.UpsertWebFeature(ctx, feature)
+		_, err := spannerClient.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
 	}
-	features, err := client.ReadAllWebFeatures(ctx, t)
+	features, err := spannerClient.ReadAllWebFeatures(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
@@ -91,7 +91,7 @@ func TestUpsertWebFeature(t *testing.T) {
 		t.Errorf("unequal features. expected %+v actual %+v", sampleFeatures, features)
 	}
 
-	_, err = client.UpsertWebFeature(ctx, WebFeature{
+	_, err = spannerClient.UpsertWebFeature(ctx, WebFeature{
 		Name:       "Feature 1!!",
 		FeatureKey: "feature1",
 	})
@@ -99,7 +99,7 @@ func TestUpsertWebFeature(t *testing.T) {
 		t.Errorf("unexpected error during update. %s", err.Error())
 	}
 
-	features, err = client.ReadAllWebFeatures(ctx, t)
+	features, err = spannerClient.ReadAllWebFeatures(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}

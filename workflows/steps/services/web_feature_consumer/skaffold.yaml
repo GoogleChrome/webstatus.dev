@@ -30,7 +30,8 @@ profiles:
             dockerfile: images/go_service.Dockerfile
             buildArgs:
               service_dir: workflows/steps/services/web_feature_consumer
-      local: {}
+      local:
+        useBuildkit: true
     manifests:
       rawYaml:
         - manifests/*

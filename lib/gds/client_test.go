@@ -45,6 +45,7 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 		},
 		ExposedPorts: []string{"8085/tcp"},
 		WaitingFor:   wait.ForHTTP("/").WithPort("8085/tcp"),
+		Name:         "webstatus-dev-test-datastore",
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,

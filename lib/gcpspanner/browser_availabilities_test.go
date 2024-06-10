@@ -118,12 +118,12 @@ func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]Bro
 }
 
 func TestInsertBrowserFeatureAvailability(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
-	setupRequiredTablesForBrowserFeatureAvailability(ctx, client, t)
+	setupRequiredTablesForBrowserFeatureAvailability(ctx, spannerClient, t)
 	sampleAvailabilities := getSampleBrowserAvailabilities()
 	for _, availability := range sampleAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(
+		err := spannerClient.InsertBrowserFeatureAvailability(
 			ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
@@ -149,7 +149,7 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 		},
 	}
 
-	availabilities, err := client.ReadAllAvailabilities(ctx, t)
+	availabilities, err := spannerClient.ReadAllAvailabilities(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}

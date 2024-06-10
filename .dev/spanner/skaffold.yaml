@@ -28,7 +28,8 @@ profiles:
             infer:
               - ./.dev/spanner/run.sh
               - ./infra/storage/spanner.sql
-      local: {}
+      local:
+        useBuildkit: true
     manifests:
       rawYaml:
         - manifests/*

@@ -88,17 +88,17 @@ func (c *Client) ReadAllBrowserReleases(ctx context.Context, _ *testing.T) ([]Br
 }
 
 func TestInsertBrowserRelease(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 	sampleBrowserReleases := getSampleBrowserReleases()
 	for _, release := range sampleBrowserReleases {
-		err := client.InsertBrowserRelease(ctx, release)
+		err := spannerClient.InsertBrowserRelease(ctx, release)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
 	}
 
-	releases, err := client.ReadAllBrowserReleases(ctx, t)
+	releases, err := spannerClient.ReadAllBrowserReleases(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
