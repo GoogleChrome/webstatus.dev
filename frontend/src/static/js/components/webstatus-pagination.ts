@@ -25,7 +25,7 @@ import {
   getPageSize,
   getPaginationStart,
 } from '../utils/urls.js';
-
+import {navigateToUrl} from '../utils/app-router.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-pagination')
@@ -56,6 +56,19 @@ export class WebstatusPagination extends LitElement {
 
         sl-button::part(base):hover {
           background: var(--pagination-hover-background);
+        }
+
+        #items-per-page {
+          align-self: center;
+          color: var(--unimportant-text-color);
+          font-size: var(--sl-input-font-size-small);
+        }
+
+        sl-select {
+          align-self: center;
+          display: inline-block;
+          margin: 0 var(--content-padding-quarter) 0 var(--content-padding);
+          width: 5em;
         }
       `,
     ];
@@ -100,6 +113,28 @@ export class WebstatusPagination extends LitElement {
     `;
   }
 
+  setItemsPerPage(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const newSize = parseInt(target.value);
+    const url = formatOverviewPageUrl(this.location, {num: newSize});
+    navigateToUrl(url);
+  }
+
+  renderItemsPerPage(): TemplateResult {
+    return html`
+      <sl-select
+        value="${this.pageSize}"
+        size="small"
+        @sl-change=${this.setItemsPerPage}
+      >
+        <sl-option value="25">25</sl-option>
+        <sl-option value="50">50</sl-option>
+        <sl-option value="100">100</sl-option>
+      </sl-select>
+      <span id="items-per-page"> items per page </span>
+    `;
+  }
+
   render(): TemplateResult {
     if (this.totalCount === undefined || this.totalCount === 0) {
       return html``;
@@ -130,6 +165,9 @@ export class WebstatusPagination extends LitElement {
           ?disabled=${nextUrl === undefined}
           >Next</sl-button
         >
+
+        ${this.renderItemsPerPage()}
+
         <div class="spacer"></div>
       </div>
     `;
