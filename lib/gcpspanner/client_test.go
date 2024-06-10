@@ -33,12 +33,36 @@ const testSpannerProject = "local"
 const testSpannerInstance = "local"
 const testSpannerDBName = "local"
 
-// nolint: exhaustruct,lll // No need to use every option of 3rd party struct.
-func getTestDatabase(t testing.TB) *Client {
+// nolint:gochecknoglobals // WONTFIX. Used for testing.
+var (
+	spannerContainer testcontainers.Container
+	spannerClient    *Client
+	spannerHost      string
+)
+
+func TestMain(m *testing.M) {
+	err := createDatabaseContainer()
+	if err != nil {
+		fmt.Printf("failed to create container. error: %s", err.Error())
+		os.Exit(1)
+	}
+	code := m.Run()
+
+	err = terminateDatabaseContainer()
+	if err != nil {
+		fmt.Printf("Warning: failed to terminate container. error: %s", err.Error())
+		os.Exit(1)
+	}
+
+	os.Exit(code)
+}
+
+// nolint:exhaustruct // WONTFIX: external struct
+func createDatabaseContainer() error {
 	ctx := context.Background()
 	repoRoot, err := filepath.Abs(filepath.Join(".", "..", ".."))
 	if err != nil {
-		t.Error(err)
+		return err
 	}
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
@@ -47,52 +71,86 @@ func getTestDatabase(t testing.TB) *Client {
 		},
 		ExposedPorts: []string{"9010/tcp"},
 		WaitingFor:   wait.ForLog("Spanner setup for webstatus.dev finished"),
+		Name:         "webstatus-dev-test-spanner",
 	}
-	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	spannerContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
 		Started:          true,
 	})
 	if err != nil {
-		t.Error(err)
+		return err
 	}
 
-	mappedPort, err := container.MappedPort(ctx, "9010")
+	mappedPort, err := spannerContainer.MappedPort(ctx, "9010")
 	if err != nil {
-		t.Error(err)
+		return err
 	}
 
-	spannerHost := fmt.Sprintf("localhost:%s", mappedPort.Port())
+	spannerHost = fmt.Sprintf("localhost:%s", mappedPort.Port())
+	err = newTestSpannerClient()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func newTestSpannerClient() error {
+	var err error
 	// Set this for the sdk to automatically detect.
 	os.Setenv("SPANNER_EMULATOR_HOST", spannerHost)
-	spannerClient, err := NewSpannerClient(testSpannerProject, testSpannerInstance, testSpannerDBName)
+	spannerClient, err = NewSpannerClient(testSpannerProject, testSpannerInstance, testSpannerDBName)
 	if err != nil {
 		if unsetErr := os.Unsetenv("SPANNER_EMULATOR_HOST"); unsetErr != nil {
-			t.Errorf("failed to unset env. %s", unsetErr.Error())
+			return fmt.Errorf("failed to unset env. %s", unsetErr.Error())
 		}
 		spannerClient.Close()
-		if terminateErr := container.Terminate(ctx); terminateErr != nil {
-			t.Errorf("failed to terminate datastore. %s", terminateErr.Error())
+		if terminateErr := spannerContainer.Terminate(context.Background()); terminateErr != nil {
+			return fmt.Errorf("failed to terminate datastore. %s", terminateErr.Error())
 		}
-		t.Fatalf("failed to create datastore client. %s", err.Error())
+
+		return fmt.Errorf("failed to create datastore client. %s", err.Error())
 	}
 
-	t.Cleanup(func() {
-		if unsetErr := os.Unsetenv("SPANNER_EMULATOR_HOST"); unsetErr != nil {
-			t.Errorf("failed to unset env. %s", unsetErr.Error())
-		}
-		spannerClient.Close()
-		if err := container.Terminate(ctx); err != nil {
-			t.Errorf("failed to terminate datastore. %s", err.Error())
-		}
-	})
+	return nil
+}
 
-	return spannerClient
+func restartDatabaseContainer(t *testing.T) {
+	spannerClient.Close()
+	spannerClient = nil
+	// Wait 30 seconds for the command to finish
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	_, _, err := spannerContainer.Exec(ctx, []string{
+		"bash",
+		"-c",
+		"wrench reset --directory ./schemas/ && wrench migrate up --directory ./schemas/",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = newTestSpannerClient()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func terminateDatabaseContainer() error {
+	if unsetErr := os.Unsetenv("SPANNER_EMULATOR_HOST"); unsetErr != nil {
+		return fmt.Errorf("failed to unset env. %s", unsetErr.Error())
+	}
+	spannerClient.Close()
+	if err := spannerContainer.Terminate(context.Background()); err != nil {
+		return fmt.Errorf("failed to terminate datastore. %s", err.Error())
+	}
+
+	return nil
 }
 
 // This also tests the success path of NewSpannerClient.
 func TestGetTestDatabase(t *testing.T) {
-	client := getTestDatabase(t)
-	if client == nil {
+	restartDatabaseContainer(t)
+	if spannerClient == nil {
 		t.Error("exepected a client")
 	}
 }

@@ -253,14 +253,14 @@ func getSampleRunMetrics() []struct {
 }
 
 func TestUpsertWPTRunFeatureMetric(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 
 	sampleRunMetrics := getSampleRunMetrics()
 
 	// Should fail without the runs and features being uploaded first
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetrics(
+		err := spannerClient.UpsertWPTRunFeatureMetrics(
 			ctx, metric.ExternalRunID, metric.Metrics)
 		if err == nil {
 			t.Errorf("expected error upon insert")
@@ -269,14 +269,14 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	// Now, let's insert the runs and features.
 	for _, run := range getSampleRuns() {
-		err := client.InsertWPTRun(ctx, run)
+		err := spannerClient.InsertWPTRun(ctx, run)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
 	}
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		_, err := client.UpsertWebFeature(ctx, feature)
+		_, err := spannerClient.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
@@ -284,7 +284,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range sampleRunMetrics {
-		err := client.UpsertWPTRunFeatureMetrics(
+		err := spannerClient.UpsertWPTRunFeatureMetrics(
 			ctx, metric.ExternalRunID,
 			metric.Metrics)
 		if !errors.Is(err, nil) {
@@ -292,7 +292,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		}
 	}
 
-	metric, err := client.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
+	metric, err := spannerClient.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -324,7 +324,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		},
 	}
 
-	err = client.UpsertWPTRunFeatureMetrics(
+	err = spannerClient.UpsertWPTRunFeatureMetrics(
 		ctx,
 		updatedMetric1.ExternalRunID, updatedMetric1.Metrics)
 	if !errors.Is(err, nil) {
@@ -332,7 +332,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 
 	// Try to get the metric again and compare with the updated metric.
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
+	metric, err = spannerClient.GetMetricByRunIDAndFeatureID(ctx, 0, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -363,7 +363,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		},
 	}
 	// Upsert the metric
-	err = client.UpsertWPTRunFeatureMetrics(
+	err = spannerClient.UpsertWPTRunFeatureMetrics(
 		ctx,
 		updatedMetric2.ExternalRunID, updatedMetric2.Metrics)
 	if !errors.Is(err, nil) {
@@ -371,7 +371,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 
 	// Try to get the metric again and compare with the updated metric.
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "feature2")
+	metric, err = spannerClient.GetMetricByRunIDAndFeatureID(ctx, 9, "feature2")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -385,7 +385,7 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 
 	// Get the other metric for that run which should be unaffected
-	metric, err = client.GetMetricByRunIDAndFeatureID(ctx, 9, "feature1")
+	metric, err = spannerClient.GetMetricByRunIDAndFeatureID(ctx, 9, "feature1")
 	if !errors.Is(err, nil) {
 		t.Errorf("expected no error when reading the metric. received %s", err.Error())
 	}
@@ -416,19 +416,19 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 	// Load up runs, metrics and features.
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		_, err := client.UpsertWebFeature(ctx, feature)
+		_, err := spannerClient.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
 	}
 	// Now, let's insert the runs.
 	for _, run := range getSampleRuns() {
-		err := client.InsertWPTRun(ctx, run)
+		err := spannerClient.InsertWPTRun(ctx, run)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -436,7 +436,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetrics(
+		err := spannerClient.UpsertWPTRunFeatureMetrics(
 			ctx,
 			metric.ExternalRunID, metric.Metrics)
 		if !errors.Is(err, nil) {
@@ -446,7 +446,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 
 	// Test 1. Get all the metrics. Should only be 2 for the browser, channel,
 	// feature combination.
-	metrics, token, err := client.ListMetricsForFeatureIDBrowserAndChannel(
+	metrics, token, err := spannerClient.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
 		"feature1",
 		"fooBrowser",
@@ -483,7 +483,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 
 	// Test 2. Try pagination. Only return 1 per page.
 	// Get page 1
-	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
+	metrics, token, err = spannerClient.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
 		"feature1",
 		"fooBrowser",
@@ -507,7 +507,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageOne, metrics)
 	}
 	// Get page 2.
-	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
+	metrics, token, err = spannerClient.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
 		"feature1",
 		"fooBrowser",
@@ -531,7 +531,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", expectedMetricsPageTwo, metrics)
 	}
 	// Get page 3
-	metrics, token, err = client.ListMetricsForFeatureIDBrowserAndChannel(
+	metrics, token, err = spannerClient.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
 		"feature1",
 		"fooBrowser",
@@ -818,19 +818,19 @@ func testGetSubsetAggregatedMetricsPages(ctx context.Context, client *Client, t 
 }
 
 func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 	// Load up runs, metrics and features.
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		_, err := client.UpsertWebFeature(ctx, feature)
+		_, err := spannerClient.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
 	}
 	// Now, let's insert the runs.
 	for _, run := range getSampleRuns() {
-		err := client.InsertWPTRun(ctx, run)
+		err := spannerClient.InsertWPTRun(ctx, run)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
@@ -838,14 +838,14 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 
 	// Now, let's insert the metrics
 	for _, metric := range getSampleRunMetrics() {
-		err := client.UpsertWPTRunFeatureMetrics(
+		err := spannerClient.UpsertWPTRunFeatureMetrics(
 			ctx, metric.ExternalRunID, metric.Metrics)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
 	}
-	testGetAllAggregatedMetrics(ctx, client, t)
-	testGetAllAggregatedMetricsPages(ctx, client, t)
-	testGetSubsetAggregatedMetrics(ctx, client, t)
-	testGetSubsetAggregatedMetricsPages(ctx, client, t)
+	testGetAllAggregatedMetrics(ctx, spannerClient, t)
+	testGetAllAggregatedMetricsPages(ctx, spannerClient, t)
+	testGetSubsetAggregatedMetrics(ctx, spannerClient, t)
+	testGetSubsetAggregatedMetricsPages(ctx, spannerClient, t)
 }

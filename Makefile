@@ -197,8 +197,14 @@ style-lint:
 ################################
 test: go-test node-test
 
-# Skip the module if it ends in 'lib/gen'
-go-test:
+# Clean up any dangling test containers
+clean-up-go-testcontainers:
+	docker rm -f webstatus-dev-test-redis webstatus-dev-test-datastore webstatus-dev-test-spanner
+# TODO. We run the tests sequentially with `-p 1` because the testcontainers
+# do not play nicely together when running in parallel and take a long time to
+# reconcile state. Once the testcontainers library becomes stable (goes v1.0.0),
+# we should remove the `-p 1`.
+go-test: clean-up-go-testcontainers
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
@@ -207,7 +213,7 @@ go-test:
 			echo "********* Testing module: $${GO_MODULE} *********" ; \
 			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
 			mkdir -p $${GO_COVERAGE_DIR} ; \
-			TESTCONTAINERS_RYUK_DISABLED=true go test -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
+			go test -p 1 -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
 			echo "Generating coverage report for $${GO_MODULE}" && \
 			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out && \
 			echo -e "\n\n" || exit 1; \
