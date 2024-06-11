@@ -21,7 +21,7 @@ import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-filters.js';
 import './webstatus-overview-table.js';
-import './webstatus-pagination.js';
+import './webstatus-overview-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
@@ -88,10 +88,10 @@ export class WebstatusOverviewContent extends LitElement {
           .taskTracker=${this.taskTracker}
         >
         </webstatus-overview-table>
-        <webstatus-pagination
+        <webstatus-overview-pagination
           .location=${this.location}
           .totalCount=${this.taskTracker.data?.metadata.total ?? 0}
-        ></webstatus-pagination>
+        ></webstatus-overview-pagination>
       </div>
     `;
   }

@@ -28,8 +28,8 @@ import {
 import {navigateToUrl} from '../utils/app-router.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
-@customElement('webstatus-pagination')
-export class WebstatusPagination extends LitElement {
+@customElement('webstatus-overview-pagination')
+export class WebstatusOverviewPagination extends LitElement {
   @state()
   totalCount: number | undefined = undefined;
 
