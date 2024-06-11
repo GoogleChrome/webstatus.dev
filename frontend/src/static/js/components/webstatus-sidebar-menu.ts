@@ -297,7 +297,7 @@ export class WebstatusSidebarMenu extends LitElement {
         <sl-tree-item class="about-item">
           <sl-icon name="info-circle"></sl-icon>
           <a class="about-link" href="${ABOUT_PAGE_LINK}" target="_blank"
-            >About Web Platform Status</a
+            >About</a
           >
         </sl-tree-item>
       </sl-tree>
