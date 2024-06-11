@@ -18,3 +18,5 @@ export const GITHUB_REPO_ISSUE_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/issues/new';
 export const SEARCH_QUERY_README_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/blob/main/antlr/FeatureSearch.md';
+export const ABOUT_PAGE_LINK =
+  'https://github.com/GoogleChrome/webstatus.dev/wiki/About-Web-Platform-Status';
