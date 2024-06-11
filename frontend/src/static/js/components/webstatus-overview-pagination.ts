@@ -121,15 +121,20 @@ export class WebstatusOverviewPagination extends LitElement {
   }
 
   renderItemsPerPage(): TemplateResult {
+    const options = [25, 50, 100];
+    if (!options.includes(this.pageSize)) {
+      options.push(this.pageSize);
+      options.sort((a, b) => a - b);
+    }
     return html`
       <sl-select
         value="${this.pageSize}"
         size="small"
         @sl-change=${this.setItemsPerPage}
       >
-        <sl-option value="25">25</sl-option>
-        <sl-option value="50">50</sl-option>
-        <sl-option value="100">100</sl-option>
+        ${options.map(
+          opt => html` <sl-option value=${opt}>${opt}</sl-option> `
+        )}
       </sl-select>
       <span id="items-per-page"> items per page </span>
     `;
