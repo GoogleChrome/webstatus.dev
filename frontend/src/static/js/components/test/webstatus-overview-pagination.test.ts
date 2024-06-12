@@ -16,29 +16,27 @@
 
 import {assert, fixture} from '@open-wc/testing';
 
-import {
-  WebstatusOverviewPagination,
-} from '../webstatus-overview-pagination.js';
+import {WebstatusOverviewPagination} from '../webstatus-overview-pagination.js';
 
 describe('webstatus-overview-pagination', () => {
   let el: WebstatusOverviewPagination;
 
   beforeEach(async () => {
     el = await fixture<WebstatusOverviewPagination>(
-        '<webstatus-overview-pagination></webstatus-overview-pagination>'
+      '<webstatus-overview-pagination></webstatus-overview-pagination>'
     );
-      el.totalCount = 123;
-      el.location = {search: ''};
+    el.totalCount = 123;
+    el.location = {search: ''};
 
     await el.updateComplete;
   });
 
   it('can be added to the page', async () => {
-      assert.exists(el);
-      assert.instanceOf(el, WebstatusOverviewPagination);
+    assert.exists(el);
+    assert.instanceOf(el, WebstatusOverviewPagination);
   });
 
-    it('renders navigation buttons', async () => {
+  it('renders navigation buttons', async () => {
     const previous = el.shadowRoot!.querySelector('#previous');
     assert.exists(previous);
 
@@ -59,27 +57,27 @@ describe('webstatus-overview-pagination', () => {
     assert.exists(next);
   });
 
-    it('renders standard options for items-per-page', async () => {
-        const opt_25 = el.shadowRoot!.querySelector('#opt_25');
-        assert.exists(opt_25);
-        const opt_50 = el.shadowRoot!.querySelector('#opt_50');
-        assert.exists(opt_50);
-        const opt_77 = el.shadowRoot!.querySelector('#opt_77');
-        assert.notExists(opt_77);
-        const opt_100 = el.shadowRoot!.querySelector('#opt_100');
-        assert.exists(opt_100);
-    });
+  it('renders standard options for items-per-page', async () => {
+    const opt_25 = el.shadowRoot!.querySelector('#opt_25');
+    assert.exists(opt_25);
+    const opt_50 = el.shadowRoot!.querySelector('#opt_50');
+    assert.exists(opt_50);
+    const opt_77 = el.shadowRoot!.querySelector('#opt_77');
+    assert.notExists(opt_77);
+    const opt_100 = el.shadowRoot!.querySelector('#opt_100');
+    assert.exists(opt_100);
+  });
 
-    it('renders custom options for items-per-page', async () => {
-        el.location = {search: 'num=77'};
-        await el.updateComplete;
-        const opt_25 = el.shadowRoot!.querySelector('#opt_25');
-        assert.exists(opt_25);
-        const opt_50 = el.shadowRoot!.querySelector('#opt_50');
-        assert.exists(opt_50);
-        const opt_77 = el.shadowRoot!.querySelector('#opt_77');
-        assert.exists(opt_77);
-        const opt_100 = el.shadowRoot!.querySelector('#opt_100');
-        assert.exists(opt_100);
-    });
+  it('renders custom options for items-per-page', async () => {
+    el.location = {search: 'num=77'};
+    await el.updateComplete;
+    const opt_25 = el.shadowRoot!.querySelector('#opt_25');
+    assert.exists(opt_25);
+    const opt_50 = el.shadowRoot!.querySelector('#opt_50');
+    assert.exists(opt_50);
+    const opt_77 = el.shadowRoot!.querySelector('#opt_77');
+    assert.exists(opt_77);
+    const opt_100 = el.shadowRoot!.querySelector('#opt_100');
+    assert.exists(opt_100);
+  });
 });
