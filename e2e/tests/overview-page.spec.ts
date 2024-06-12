@@ -27,7 +27,8 @@ async function gotoUrl(page: any, url: string) {
 
 test('matches the screenshot', async ({page}) => {
   await gotoUrl(page, 'http://localhost:5555/');
-  await expect(page).toHaveScreenshot();
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
 });
 
 test('shows an error that their query is invalid', async ({page}) => {

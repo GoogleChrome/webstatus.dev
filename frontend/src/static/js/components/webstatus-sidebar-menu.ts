@@ -30,7 +30,7 @@ import {
   navigateToUrl,
 } from '../utils/app-router.js';
 
-import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
+import {GITHUB_REPO_ISSUE_LINK, ABOUT_PAGE_LINK} from '../utils/constants.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
@@ -101,6 +101,10 @@ export class WebstatusSidebarMenu extends LitElement {
         }
 
         .report-issue-link {
+          color: inherit;
+          text-decoration: none;
+        }
+        .about-link {
           color: inherit;
           text-decoration: none;
         }
@@ -273,7 +277,8 @@ export class WebstatusSidebarMenu extends LitElement {
             this.renderBookmark(bookmark, index)
           )}
         </sl-tree-item>
-        <!-- <sl-tree-item style="display:none" id="{NavigationItemKey.STATISTICS}">
+        <!-- commented out rather than merely hidden, to avoid breaking sl-tree
+        <sl-tree-item id="{NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item> -->
 
@@ -286,6 +291,13 @@ export class WebstatusSidebarMenu extends LitElement {
             href="${GITHUB_REPO_ISSUE_LINK}"
             target="_blank"
             >Report an issue</a
+          >
+        </sl-tree-item>
+
+        <sl-tree-item class="about-item">
+          <sl-icon name="info-circle"></sl-icon>
+          <a class="about-link" href="${ABOUT_PAGE_LINK}" target="_blank"
+            >About</a
           >
         </sl-tree-item>
       </sl-tree>
