@@ -102,7 +102,7 @@ export class WebstatusOverviewPagination extends LitElement {
         range(numPages),
         i => html`
           <sl-button
-            variant="text"
+      variant="text" id="jump_${i + 1}"
             class="page-button ${i === currentPage ? 'active' : ''}"
             href=${this.formatUrlForOffset(i * this.pageSize)}
           >
@@ -133,7 +133,7 @@ export class WebstatusOverviewPagination extends LitElement {
         @sl-change=${this.setItemsPerPage}
       >
         ${options.map(
-          opt => html` <sl-option value=${opt}>${opt}</sl-option> `
+opt => html` <sl-option id="opt_${opt}" value=${opt}>${opt}</sl-option> `
         )}
       </sl-select>
       <span id="items-per-page"> items per page </span>
@@ -154,7 +154,7 @@ export class WebstatusOverviewPagination extends LitElement {
       <div id="main" class="hbox halign-items-space-between">
         <div class="spacer"></div>
         <sl-button
-          variant="text"
+          variant="text" id="previous"
           class="stepper"
           href=${ifDefined(prevUrl)}
           ?disabled=${prevUrl === undefined}
@@ -164,7 +164,7 @@ export class WebstatusOverviewPagination extends LitElement {
         ${this.renderPageButtons()}
 
         <sl-button
-          variant="text"
+          variant="text" id="next"
           class="stepper"
           href=${ifDefined(nextUrl)}
           ?disabled=${nextUrl === undefined}
