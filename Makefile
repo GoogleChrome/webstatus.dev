@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 NPROCS := $(shell nproc)
+GH_REPO := "GoogleChrome/webstatus.dev"
 
 .PHONY: all \
 		antlr-gen \
@@ -355,3 +356,13 @@ spanner_er_diagram: spanner_port_forward
 	go install github.com/k1LoW/tbls@v1.73.2
 	SPANNER_EMULATOR_HOST=localhost:9010 tbls doc --rm-dist
 	make spanner_port_forward_terminate
+
+################################
+# GitHub
+################################
+check-gh-login:
+	@if ! gh auth status 2>/dev/null; then \
+		echo "Not logged into GitHub CLI. Please run 'gh auth login'." && exit 1; \
+	fi
+print-gh-runs: check-gh-login
+	gh run ls -R $(GH_REPO) -u $$(gh api user | jq -r '.login')
