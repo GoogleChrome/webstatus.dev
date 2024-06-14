@@ -30,7 +30,8 @@ profiles:
             dockerfile: images/go_service.Dockerfile
             buildArgs:
               service_dir: workflows/steps/services/common/repo_downloader
-      local: {}
+      local:
+        useBuildkit: true
     manifests:
       rawYaml:
         - manifests/*

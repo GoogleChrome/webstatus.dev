@@ -13,9 +13,15 @@
 # limitations under the License.
 
 name: 'build'
-on: # trigger builds for 1) PRs and 2) merges into main from merge_queue.
+on: # trigger builds for 1) PRs, 2) merges into main from merge_queue, and 3) manual runs.
   pull_request:
   merge_group:
+  workflow_dispatch:
+
+env:
+  GO_VERSION: '1.20'
+  NODE_VERSION: '20'
+  GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
 
 jobs:
   build:
@@ -25,14 +31,12 @@ jobs:
         uses: actions/checkout@v3
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.20'
-          cache-dependency-path: '**/*.sum'
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      - name: Setup devcontainer environment on host
-        run: ./.devcontainer/github-action-setup.sh
       - name: Run precommit target for CI
         uses: devcontainers/ci@v0.3
         with:
@@ -55,6 +59,14 @@ jobs:
         run: sudo service docker restart
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
       - name: Run playwright-test target for CI
         uses: devcontainers/ci@v0.3
         with:

@@ -31,7 +31,8 @@ profiles:
               service_dir: frontend
               build_env: local
             target: static # Can switch to "placeholder" to show placeholder site locally.
-      local: {}
+      local:
+        useBuildkit: true
     manifests:
       rawYaml:
         - manifests/*

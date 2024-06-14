@@ -17,6 +17,12 @@ on:
   workflow_dispatch: # Allows manual triggering
   schedule:
     - cron: '0 0 * * 2' # Runs every Tuesday at midnight UTC
+
+env:
+  GO_VERSION: '1.20'
+  NODE_VERSION: '20'
+  GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
+
 jobs:
   build-base-image:
     runs-on: ubuntu-latest
@@ -35,51 +41,63 @@ jobs:
           imageName: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
           cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
           push: always
-  # Build two GitHub Action specific images: precommit and playwright
-  # They cannot exist in the same image together because the image would be
-  # too large to fit on the GitHub Runner.
-  build-precommit-image: # Job for precommit image
+
+  # Run the precommit action to build language/tool specific caches
+  # The precommit action currently is configured to cache:
+  # - Go packages
+  # - Node packages
+  warm-up-precommit-action:
     runs-on: ubuntu-latest
-    needs: build-base-image # Ensure base image is built first
+    needs: build-base-image
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.20'
-          cache-dependency-path: '**/*.sum'
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-      - name: Setup devcontainer environment on host
-        run: ./.devcontainer/github-action-setup.sh
-      - name: Build CI Precommit Image
+      - name: Run precommit target for CI
         uses: devcontainers/ci@v0.3
         with:
           cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
           push: never
           runCmd: make precommit
 
-  # build-playwright-image: # Job for playwright image
-  #   runs-on: ubuntu-latest
-  #   needs: build-base-image # Ensure base image is built first
-  #   steps:
-  #     - name: Maximize build space
-  #       uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
-  #       with:
-  #         build-mount-path: /var/lib/docker/
-  #         remove-dotnet: 'true'
-  #         remove-android: 'true'
-  #         remove-haskell: 'true'
-  #         remove-codeql: 'true'
-  #     - name: Restart docker
-  #       run: sudo service docker restart
-  #     - name: Checkout
-  #       uses: actions/checkout@v3
-  #     - name: Build CI Playwright Image
-  #       uses: devcontainers/ci@v0.3
-  #       with:
-  #         cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
-  #         push: never
-  #         runCmd: make skaffold-build
+  # Currently, this action does not cache anything.
+  # However, we should run it as a sanity check to make sure the devcontainer
+  # is not broken.
+  test-playwright-action:
+    runs-on: ubuntu-latest
+    needs: build-base-image
+    steps:
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
+        with:
+          build-mount-path: /var/lib/docker/
+          remove-dotnet: 'true'
+          remove-android: 'true'
+          remove-haskell: 'true'
+          remove-codeql: 'true'
+          remove-docker-images: 'true'
+      - name: Restart docker
+        run: sudo service docker restart
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+      - name: Run playwright-test target for CI
+        uses: devcontainers/ci@v0.3
+        with:
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          push: never
+          runCmd: make skaffold-build

@@ -22,7 +22,8 @@ profiles:
       artifacts:
         - image: datastore
           context: .
-      local: {}
+      local:
+        useBuildkit: true
     manifests:
       rawYaml:
         - manifests/*

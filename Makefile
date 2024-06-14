@@ -247,6 +247,7 @@ COPYRIGHT_NAME := Google LLC
 # node_modules - External Node dependencies
 # infra/storage/spanner/schema.sql - Empty base schema. Wrench does not like an empty schema with comments.
 # antlr/.antlr - for intermediate antlr files
+# .devcontainer/cache - cached files
 ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
 	-ignore 'lib/gen/**' \
@@ -259,7 +260,8 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'playwright-report/**' \
 	-ignore 'node_modules/**' \
 	-ignore 'infra/storage/spanner/schema.sql' \
-	-ignore 'antlr/.antlr/**'
+	-ignore 'antlr/.antlr/**' \
+	-ignore '.devcontainer/cache/**'
 download-addlicense:
 	go install github.com/google/addlicense@latest
 

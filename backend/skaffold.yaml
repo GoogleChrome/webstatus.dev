@@ -31,7 +31,8 @@ profiles:
             dockerfile: images/go_service.Dockerfile
             buildArgs:
               service_dir: backend
-      local: {}
+      local:
+        useBuildkit: true
     manifests:
       rawYaml:
         - manifests/*
