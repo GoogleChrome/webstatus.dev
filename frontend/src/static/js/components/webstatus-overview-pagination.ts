@@ -25,11 +25,11 @@ import {
   getPageSize,
   getPaginationStart,
 } from '../utils/urls.js';
-
+import {navigateToUrl} from '../utils/app-router.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
-@customElement('webstatus-pagination')
-export class WebstatusPagination extends LitElement {
+@customElement('webstatus-overview-pagination')
+export class WebstatusOverviewPagination extends LitElement {
   @state()
   totalCount: number | undefined = undefined;
 
@@ -56,6 +56,19 @@ export class WebstatusPagination extends LitElement {
 
         sl-button::part(base):hover {
           background: var(--pagination-hover-background);
+        }
+
+        #items-per-page {
+          align-self: center;
+          color: var(--unimportant-text-color);
+          font-size: var(--sl-input-font-size-small);
+        }
+
+        sl-select {
+          align-self: center;
+          display: inline-block;
+          margin: 0 var(--content-padding-quarter) 0 var(--content-padding);
+          width: 5em;
         }
       `,
     ];
@@ -90,6 +103,7 @@ export class WebstatusPagination extends LitElement {
         i => html`
           <sl-button
             variant="text"
+            id="jump_${i + 1}"
             class="page-button ${i === currentPage ? 'active' : ''}"
             href=${this.formatUrlForOffset(i * this.pageSize)}
           >
@@ -97,6 +111,35 @@ export class WebstatusPagination extends LitElement {
           </sl-button>
         `
       )}
+    `;
+  }
+
+  setItemsPerPage(event: Event): void {
+    const target = event.target as HTMLInputElement;
+    const newSize = parseInt(target.value);
+    const url = formatOverviewPageUrl(this.location, {num: newSize});
+    navigateToUrl(url);
+  }
+
+  renderItemsPerPage(): TemplateResult {
+    const options = [25, 50, 100];
+    if (!options.includes(this.pageSize)) {
+      options.push(this.pageSize);
+      options.sort((a, b) => a - b);
+    }
+    return html`
+      <sl-select
+        value="${this.pageSize}"
+        size="small"
+        @sl-change=${this.setItemsPerPage}
+      >
+        ${options.map(
+          opt => html`
+            <sl-option id="opt_${opt}" value=${opt}>${opt}</sl-option>
+          `
+        )}
+      </sl-select>
+      <span id="items-per-page"> items per page </span>
     `;
   }
 
@@ -115,6 +158,7 @@ export class WebstatusPagination extends LitElement {
         <div class="spacer"></div>
         <sl-button
           variant="text"
+          id="previous"
           class="stepper"
           href=${ifDefined(prevUrl)}
           ?disabled=${prevUrl === undefined}
@@ -125,11 +169,15 @@ export class WebstatusPagination extends LitElement {
 
         <sl-button
           variant="text"
+          id="next"
           class="stepper"
           href=${ifDefined(nextUrl)}
           ?disabled=${nextUrl === undefined}
           >Next</sl-button
         >
+
+        ${this.renderItemsPerPage()}
+
         <div class="spacer"></div>
       </div>
     `;
