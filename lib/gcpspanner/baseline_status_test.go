@@ -99,21 +99,21 @@ func statusEquality(left, right FeatureBaselineStatus) bool {
 }
 
 func TestUpsertFeatureBaselineStatus(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
-	setupRequiredTablesForBaselineStatus(ctx, client, t)
+	setupRequiredTablesForBaselineStatus(ctx, spannerClient, t)
 	sampleStatuses := getSampleBaselineStatuses()
 
 	expectedStatuses := make([]FeatureBaselineStatus, 0, len(sampleStatuses))
 	for _, status := range sampleStatuses {
 		expectedStatuses = append(expectedStatuses, status.status)
-		err := client.UpsertFeatureBaselineStatus(ctx, status.featureKey, status.status)
+		err := spannerClient.UpsertFeatureBaselineStatus(ctx, status.featureKey, status.status)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
 	}
 
-	statuses, err := client.ReadAllBaselineStatuses(ctx, t)
+	statuses, err := spannerClient.ReadAllBaselineStatuses(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
@@ -123,7 +123,7 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedStatuses, statuses)
 	}
 
-	err = client.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
+	err = spannerClient.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
 		Status:   valuePtr(BaselineStatusHigh),
 		LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
 		HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
@@ -145,7 +145,7 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 		},
 	}
 
-	statuses, err = client.ReadAllBaselineStatuses(ctx, t)
+	statuses, err = spannerClient.ReadAllBaselineStatuses(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all after update. %s", err.Error())
 	}

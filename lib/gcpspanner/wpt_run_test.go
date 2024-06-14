@@ -118,15 +118,15 @@ func getSampleRuns() []WPTRun {
 }
 
 func TestInsertWPTRun(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 	for _, run := range getSampleRuns() {
-		err := client.InsertWPTRun(ctx, run)
+		err := spannerClient.InsertWPTRun(ctx, run)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}
 		// TODO: test update if we decide to allow updates in the future.
-		id, err := client.GetIDOfWPTRunByRunID(ctx, run.RunID)
+		id, err := spannerClient.GetIDOfWPTRunByRunID(ctx, run.RunID)
 		if !errors.Is(err, nil) {
 			t.Errorf("expected no error upon insert. received %s", err.Error())
 		}

@@ -1618,27 +1618,27 @@ func testFeatureSearchSortBrowserImpl(ctx context.Context, t *testing.T, client 
 }
 
 func TestFeaturesSearch(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
-	setupRequiredTablesForFeaturesSearch(ctx, client, t)
+	setupRequiredTablesForFeaturesSearch(ctx, spannerClient, t)
 
 	// Try with default GCPSpannerBaseQuery
 	t.Run("gcp spanner queries", func(t *testing.T) {
-		testFeatureSearchAll(ctx, t, client)
-		testFeatureSearchPagination(ctx, t, client)
-		testFeatureSearchFilters(ctx, t, client)
-		testFeatureSearchSort(ctx, t, client)
-		testFeatureSearchComplexQueries(ctx, t, client)
+		testFeatureSearchAll(ctx, t, spannerClient)
+		testFeatureSearchPagination(ctx, t, spannerClient)
+		testFeatureSearchFilters(ctx, t, spannerClient)
+		testFeatureSearchSort(ctx, t, spannerClient)
+		testFeatureSearchComplexQueries(ctx, t, spannerClient)
 	})
 
 	// Try with LocalFeatureBaseQuery
 	t.Run("local spanner queries", func(t *testing.T) {
-		client.SetFeatureSearchBaseQuery(LocalFeatureBaseQuery{})
-		testFeatureSearchAll(ctx, t, client)
-		testFeatureSearchPagination(ctx, t, client)
-		testFeatureSearchFilters(ctx, t, client)
-		testFeatureSearchSort(ctx, t, client)
-		testFeatureSearchComplexQueries(ctx, t, client)
+		spannerClient.SetFeatureSearchBaseQuery(LocalFeatureBaseQuery{})
+		testFeatureSearchAll(ctx, t, spannerClient)
+		testFeatureSearchPagination(ctx, t, spannerClient)
+		testFeatureSearchFilters(ctx, t, spannerClient)
+		testFeatureSearchSort(ctx, t, spannerClient)
+		testFeatureSearchComplexQueries(ctx, t, spannerClient)
 	})
 }
 

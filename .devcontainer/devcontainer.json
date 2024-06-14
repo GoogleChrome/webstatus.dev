@@ -5,6 +5,16 @@
   "build": {
     "dockerfile": "Dockerfile"
   },
+  "mounts": [
+    // https://docs.github.com/en/actions/using-workflows/caching-dependencies-to-speed-up-workflows#about-caching-workflow-dependencies
+    // These exist outside of the default /workspace folder. As a result, we need to mount them explicitly.
+    // Mount Go cache.
+    // Used by: https://github.com/actions/setup-go?tab=readme-ov-file#caching-dependency-files-and-build-outputs
+    "source=${localWorkspaceFolder}/.devcontainer/cache/go/go-build,target=/home/vscode/.cache/go-build,type=bind,consistency=consistent",
+    "source=${localWorkspaceFolder}/.devcontainer/cache/go/pkg,target=/go/pkg,type=bind,consistency=consistent",
+    // Mount npm cache
+    "source=${localWorkspaceFolder}/.devcontainer/cache/node/.npm,target=/home/vscode/.npm,type=bind,consistency=consistent"
+  ],
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/go:1": {

@@ -90,10 +90,10 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 }
 
 func TestListBrowserFeatureCountMetric(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 
-	loadDataForListBrowserFeatureCountMetric(ctx, t, client)
+	loadDataForListBrowserFeatureCountMetric(ctx, t, spannerClient)
 
 	// Test 1a. First Page
 	browser := "fooBrowser"
@@ -101,7 +101,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 	endAt := time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
 	pageSize := 2
 
-	result, err := client.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, nil)
+	result, err := spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -124,7 +124,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 	}
 
 	// Test 1b. Second Page
-	result, err = client.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, result.NextPageToken)
+	result, err = spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, result.NextPageToken)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 	startAt = time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)
 	endAt = time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
 
-	result, err = client.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, 100, nil)
+	result, err = spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, 100, nil)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}

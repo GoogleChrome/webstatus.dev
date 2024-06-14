@@ -23,14 +23,16 @@ COPY lib/gen/go.mod lib/gen/go.sum lib/gen/
 RUN go work init && \
     go work use ./lib && \
     go work use ./lib/gen
-RUN  go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Create the layers for the specific service in ${service_dir}.
 ARG service_dir
 COPY ${service_dir}/go.mod ${service_dir}/go.sum ${service_dir}/
 RUN  go work use ${service_dir} ${service_dir}
 WORKDIR /work/${service_dir}
-RUN  go mod download
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 # Copy the source files now that all the dependencies have been installed.
 WORKDIR /work
@@ -40,7 +42,9 @@ COPY ${service_dir} ${service_dir}
 # Build the binary
 ARG SKAFFOLD_GO_GCFLAGS
 ARG MAIN_BINARY=server
-RUN go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o program ./${service_dir}/cmd/${MAIN_BINARY}
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o program ./${service_dir}/cmd/${MAIN_BINARY}
 
 FROM alpine:3.18
 

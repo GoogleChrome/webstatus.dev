@@ -92,21 +92,21 @@ func specEquality(left, right FeatureSpec) bool {
 }
 
 func TestUpsertFeatureSpec(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
-	setupRequiredTablesForFeatureSpecs(ctx, client, t)
+	setupRequiredTablesForFeatureSpecs(ctx, spannerClient, t)
 	sampleSpecs := getSampleFeatureSpecs()
 
 	expectedSpecs := make([]FeatureSpec, 0, len(sampleSpecs))
 	for _, spec := range sampleSpecs {
 		expectedSpecs = append(expectedSpecs, spec.spec)
-		err := client.UpsertFeatureSpec(ctx, spec.featureKey, spec.spec)
+		err := spannerClient.UpsertFeatureSpec(ctx, spec.featureKey, spec.spec)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
 	}
 
-	specs, err := client.ReadAllFeatureSpecs(ctx, t)
+	specs, err := spannerClient.ReadAllFeatureSpecs(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
@@ -116,7 +116,7 @@ func TestUpsertFeatureSpec(t *testing.T) {
 		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedSpecs, specs)
 	}
 
-	err = client.UpsertFeatureSpec(ctx, "feature1", FeatureSpec{
+	err = spannerClient.UpsertFeatureSpec(ctx, "feature1", FeatureSpec{
 		Links: []string{
 			"https://sample1.com",
 			"https://sample2.com",
@@ -143,7 +143,7 @@ func TestUpsertFeatureSpec(t *testing.T) {
 		},
 	}
 
-	specs, err = client.ReadAllFeatureSpecs(ctx, t)
+	specs, err = spannerClient.ReadAllFeatureSpecs(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all after update. %s", err.Error())
 	}

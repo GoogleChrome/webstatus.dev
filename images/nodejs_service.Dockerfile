@@ -25,7 +25,8 @@ COPY package-lock.json package-lock.json
 COPY ${service_dir}/package.json ${service_dir}/package.json
 COPY lib/gen/openapi/ lib/gen/openapi/
 WORKDIR /work/${service_dir}
-RUN npm install --ignore-scripts --include-workspace-root=true
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --ignore-scripts --include-workspace-root=true
 COPY ${service_dir}/ /work/${service_dir}/
 RUN npm run postinstall || true
 RUN npm run build
@@ -39,7 +40,8 @@ COPY --from=builder /work/package.json /work/package.json
 COPY --from=builder /work/package-lock.json /work/package-lock.json
 COPY --from=builder /work/${service_dir}/package.json /work/${service_dir}/package.json
 WORKDIR /work/${service_dir}
-RUN npm install --ignore-scripts --production
+RUN --mount=type=cache,target=/root/.npm \
+    npm install --ignore-scripts --production
 RUN ln -s /work/node_modules /work/${service_dir}/node_modules
 COPY --from=builder /work/${service_dir}/dist /work/${service_dir}/dist
 CMD npm run start

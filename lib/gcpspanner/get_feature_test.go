@@ -21,13 +21,13 @@ import (
 )
 
 func TestGetFeature(t *testing.T) {
-	client := getTestDatabase(t)
+	restartDatabaseContainer(t)
 	ctx := context.Background()
 
-	setupRequiredTablesForFeaturesSearch(ctx, client, t)
+	setupRequiredTablesForFeaturesSearch(ctx, spannerClient, t)
 
 	// Test for present feature
-	result, err := client.GetFeature(ctx, NewFeatureKeyFilter("feature2"), defaultWPTMetricView(),
+	result, err := spannerClient.GetFeature(ctx, NewFeatureKeyFilter("feature2"), defaultWPTMetricView(),
 		getDefaultTestBrowserList())
 	if err != nil {
 		t.Errorf("unexpected error. %s", err.Error())
@@ -43,7 +43,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Also check the id of the feature.
-	id, err := client.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("feature2"))
+	id, err := spannerClient.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("feature2"))
 	if err != nil {
 		t.Errorf("unexpected error. %s", err.Error())
 	}
@@ -55,7 +55,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Test for non existent feature
-	result, err = client.GetFeature(ctx, NewFeatureKeyFilter("nopefeature2"), defaultWPTMetricView(),
+	result, err = spannerClient.GetFeature(ctx, NewFeatureKeyFilter("nopefeature2"), defaultWPTMetricView(),
 		getDefaultTestBrowserList())
 	if !errors.Is(err, ErrQueryReturnedNoResults) {
 		t.Errorf("unexpected error. %s", err)
@@ -65,7 +65,7 @@ func TestGetFeature(t *testing.T) {
 	}
 
 	// Also check the id of the feature does not exist
-	id, err = client.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("nopefeature2"))
+	id, err = spannerClient.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("nopefeature2"))
 	if !errors.Is(err, ErrQueryReturnedNoResults) {
 		t.Errorf("unexpected error. %s", err)
 	}
