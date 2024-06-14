@@ -49,12 +49,14 @@ jobs:
       - name: Maximize build space
         uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
         with:
-          build-mount-path: /var/lib/docker/
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
       - name: Restart docker
         run: sudo service docker restart
+      - name: check storage
+        run: |
+          sudo df -h
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
       - uses: actions/setup-go@v5
