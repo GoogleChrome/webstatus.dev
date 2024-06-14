@@ -364,5 +364,12 @@ check-gh-login:
 	@if ! gh auth status 2>/dev/null; then \
 		echo "Not logged into GitHub CLI. Please run 'gh auth login'." && exit 1; \
 	fi
+
 print-gh-runs: check-gh-login
 	gh run ls -R $(GH_REPO) -u $$(gh api user | jq -r '.login')
+
+playwright-report-from-run-%: check-gh-login
+	rm -rf playwright-report
+	mkdir -p playwright-report
+	gh run download -R $(GH_REPO) $* -n playwright-report --dir playwright-report
+	npx playwright show-report playwright-report --host 0.0.0.0
