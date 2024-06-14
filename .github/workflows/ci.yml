@@ -52,6 +52,8 @@ jobs:
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
+          # need space in /var for Docker images
+          root-reserve-mb:      50000
       - name: Restart docker
         run: sudo service docker restart
       - name: check storage
