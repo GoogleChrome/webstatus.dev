@@ -46,8 +46,6 @@ jobs:
   playwright:
     runs-on: ubuntu-latest
     steps:
-      - name: Move /var/lib/docker/
-        run: sudo mv /var/lib/docker/ "${GITHUB_WORKSPACE}/docker"
       - name: Maximize build space
         uses: easimon/maximize-build-space@fc881a613ad2a34aca9c9624518214ebc21dfc0c
         with:
@@ -55,8 +53,8 @@ jobs:
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
-      - name: Restore /var/lib/docker/
-        run: sudo sh -c "mv ${GITHUB_WORKSPACE}/docker/* /var/lib/docker"
+      - name: Restart docker
+        run: sudo service docker restart
       - name: Checkout (GitHub)
         uses: actions/checkout@v3
       - uses: actions/setup-go@v5
@@ -70,4 +68,6 @@ jobs:
       - name: Run playwright-test target for CI
         uses: devcontainers/ci@v0.3
         with:
+          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          push: never
           runCmd: CI=true make playwright-test
