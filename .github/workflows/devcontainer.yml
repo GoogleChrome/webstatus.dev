@@ -29,17 +29,20 @@ jobs:
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v4
+      - name: Get Repo Owner
+        id: get_repo_owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ env.REPO_OWNER }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Pre-build dev container base image
         uses: devcontainers/ci@v0.3
         with:
-          imageName: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          imageName: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
+          cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: always
 
   # Run the precommit action to build language/tool specific caches
@@ -60,10 +63,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+      - name: Get Repo Owner
+        id: get_repo_owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Run precommit target for CI
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
           runCmd: make precommit
 
@@ -98,9 +104,12 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+      - name: Get Repo Owner
+        id: get_repo_owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Run playwright-test target for CI
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
           runCmd: CI=true make playwright-test
