@@ -37,10 +37,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+      - name: Get Repo Owner
+        id: get_repo_owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Run precommit target for CI
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer-ci-precommit
+          cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer-ci-precommit
           push: never
           runCmd: make precommit
   playwright:
@@ -70,10 +73,13 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+      - name: Get Repo Owner
+        id: get_repo_owner
+        run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
       - name: Run playwright-test target for CI
         uses: devcontainers/ci@v0.3
         with:
-          cacheFrom: ghcr.io/${{ github.repository_owner }}/webstatus-dev-devcontainer
+          cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
           runCmd: CI=true make playwright-test
       - uses: actions/upload-artifact@v4
