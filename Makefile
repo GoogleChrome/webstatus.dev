@@ -293,7 +293,7 @@ playwright-open-report:
 	npx playwright show-report playwright-report --host 0.0.0.0
 
 playwright-show-traces:
-	find playwright-report/data -name *.zip -printf "%p %TY-%Tm-%Td %TH:%TM:%TS %Tz\n"
+	find playwright-report/data -name *.zip -printf "%TY-%Tm-%Td %TH:%TM:%TS %Tz %p\n"
 
 ################################
 # Go Misc
