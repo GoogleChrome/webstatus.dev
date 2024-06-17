@@ -205,7 +205,7 @@ clean-up-go-testcontainers:
 # do not play nicely together when running in parallel and take a long time to
 # reconcile state. Once the testcontainers library becomes stable (goes v1.0.0),
 # we should remove the `-p 1`.
-go-test: clean-up-go-testcontainers
+go-test: clean-up-go-testcontainers go-workspace-setup
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
@@ -299,7 +299,7 @@ playwright-show-traces:
 # Go Misc
 ################################
 
-go-tidy:
+go-tidy: go-workspace-setup
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
