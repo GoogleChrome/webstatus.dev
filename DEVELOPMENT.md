@@ -7,7 +7,8 @@
 3. Running Locally
 4. Populate Data Locally
 5. Generating Code
-6. Clean Up
+6. Test Code
+7. Clean Up
 
 ## Requirements
 
@@ -202,6 +203,10 @@ Run `make antlr-gen`
 #### TypeScript & ANTLR
 
 TODO
+
+## Test Code
+
+To learn more about testing and linting the code, refer to the testing [document](./docs/testing.md).
 
 ## Clean Up
 

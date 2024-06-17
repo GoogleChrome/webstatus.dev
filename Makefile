@@ -275,7 +275,7 @@ license-fix: download-addlicense
 ################################
 # Playwright
 ################################
-fresh-env-for-playwright: playwright-install delete-local deploy-local dev_fake_data port-forward-manual
+fresh-env-for-playwright: playwright-install delete-local build deploy-local dev_fake_data port-forward-manual
 
 playwright-install:
 	npx playwright install --with-deps
@@ -288,6 +288,12 @@ playwright-test: fresh-env-for-playwright
 
 playwright-ui: fresh-env-for-playwright
 	npx playwright test --ui --ui-port=8123
+
+playwright-open-report:
+	npx playwright show-report playwright-report --host 0.0.0.0
+
+playwright-show-traces:
+	find playwright-report/data -name *.zip -printf "%p %TY-%Tm-%Td %TH:%TM:%TS %Tz\n"
 
 ################################
 # Go Misc
@@ -368,8 +374,7 @@ check-gh-login:
 print-gh-runs: check-gh-login
 	gh run ls -R $(GH_REPO) -u $$(gh api user | jq -r '.login')
 
-playwright-report-from-run-%: check-gh-login
+download-playwright-report-from-run-%: check-gh-login
 	rm -rf playwright-report
 	mkdir -p playwright-report
 	gh run download -R $(GH_REPO) $* -n playwright-report --dir playwright-report
-	npx playwright show-report playwright-report --host 0.0.0.0
