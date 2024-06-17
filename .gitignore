@@ -55,7 +55,8 @@ coverage
 
 ./e2e/test-results/
 
-# Ignore the file per this: https://github.com/golang/go/issues/51941
+# Ignore the file per this: https://go.dev/ref/mod#go-work-file
+go.work
 go.work.sum
 
 # ANTLR4

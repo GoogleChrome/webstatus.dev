@@ -168,7 +168,7 @@ golint-version:
 
 lint: go-lint node-lint tf-lint shell-lint style-lint
 
-go-lint: golint-version
+go-lint: golint-version go-workspace-setup
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
 
 node-lint: node-install
@@ -300,9 +300,32 @@ playwright-show-traces:
 ################################
 
 go-tidy:
-	go list -f '{{.Dir}}/...' -m | xargs go mod tidy
-go-build: # TODO: Add go-tidy here once we move to GitHub.
+	@declare -a GO_MODULES=(); \
+	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
+	for GO_MODULE in $${GO_MODULES[@]}; \
+	do \
+		echo "********* go mod tidy module: $${GO_MODULE} *********" ; \
+		GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
+		mkdir -p $${GO_COVERAGE_DIR} ; \
+		pushd $${GO_MODULE} && \
+		go mod tidy && \
+		echo -e "\n" || exit 1; \
+		popd ; \
+	done
+go-build: go-workspace-setup go-tidy
 	go list -f '{{.Dir}}/...' -m | xargs go build
+go-workspace-setup: go-workspace-clean
+	go work init && \
+		go work use ./backend && \
+		go work use ./lib && \
+		go work use ./lib/gen && \
+		go work use ./util && \
+		go work use ./workflows/steps/services/bcd_consumer && \
+		go work use ./workflows/steps/services/common/repo_downloader && \
+		go work use ./workflows/steps/services/web_feature_consumer && \
+		go work use ./workflows/steps/services/wpt_consumer
+go-workspace-clean:
+	rm -rf go.work && rm -rf go.work.sum
 
 ################################
 # Node Misc
