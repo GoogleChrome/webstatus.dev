@@ -72,7 +72,7 @@ test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
   // Find the tooltip for the first Widely available chip.
   const tooltip = page
     .locator('sl-tooltip')
-    .filter({hasText: 'Widely availables'})
+    .filter({hasText: 'Widely available'})
     .first();
   const baselineText = 'Baseline since 2035-05-06';
   await expect(tooltip.getByText(baselineText)).toBeHidden();
