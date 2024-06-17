@@ -40,7 +40,7 @@ To run only the TypeScript tests (excluding Playwright tests), run: `make node-t
 
 ### License Check
 
-Run the following command to lint all the code: `make license-check`.
+Run the following command to check the license headers for all code: `make license-check`.
 
 #### License Fix
 
