@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 NPROCS := $(shell nproc)
+GH_REPO := "GoogleChrome/webstatus.dev"
 
 .PHONY: all \
 		antlr-gen \
@@ -274,7 +275,7 @@ license-fix: download-addlicense
 ################################
 # Playwright
 ################################
-fresh-env-for-playwright: playwright-install delete-local deploy-local dev_fake_data port-forward-manual
+fresh-env-for-playwright: playwright-install delete-local build deploy-local dev_fake_data port-forward-manual
 
 playwright-install:
 	npx playwright install --with-deps
@@ -287,6 +288,12 @@ playwright-test: fresh-env-for-playwright
 
 playwright-ui: fresh-env-for-playwright
 	npx playwright test --ui --ui-port=8123
+
+playwright-open-report:
+	npx playwright show-report playwright-report --host 0.0.0.0
+
+playwright-show-traces:
+	find playwright-report/data -name *.zip -printf "%TY-%Tm-%Td %TH:%TM:%TS %Tz %p\n"
 
 ################################
 # Go Misc
@@ -355,3 +362,19 @@ spanner_er_diagram: spanner_port_forward
 	go install github.com/k1LoW/tbls@v1.73.2
 	SPANNER_EMULATOR_HOST=localhost:9010 tbls doc --rm-dist
 	make spanner_port_forward_terminate
+
+################################
+# GitHub
+################################
+check-gh-login:
+	@if ! gh auth status 2>/dev/null; then \
+		echo "Not logged into GitHub CLI. Please run 'gh auth login'." && exit 1; \
+	fi
+
+print-gh-runs: check-gh-login
+	gh run ls -R $(GH_REPO) -u $$(gh api user | jq -r '.login')
+
+download-playwright-report-from-run-%: check-gh-login
+	rm -rf playwright-report
+	mkdir -p playwright-report
+	gh run download -R $(GH_REPO) $* -n playwright-report --dir playwright-report
