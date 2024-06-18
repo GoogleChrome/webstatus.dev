@@ -21,10 +21,13 @@ make minikube-delete
 sudo chown "$(whoami)":"$(whoami)" ~/.cache/
 
 # Install oapi-codegen
-go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.15.0
+go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.3.0
 
 # Install wrench CLI
-go install github.com/cloudspannerecosystem/wrench@v1.7.0
+go install github.com/cloudspannerecosystem/wrench@v1.8.0
+
+# Install addlicense
+go install github.com/google/addlicense@v1.1.1
 
 # Install repo-wide npm tools
 npm i --workspaces=false

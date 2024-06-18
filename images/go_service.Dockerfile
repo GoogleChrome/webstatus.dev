@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.22.0-alpine3.18 as builder
+FROM golang:1.22.4-alpine3.20 as builder
 
 WORKDIR /work
 
@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o program ./${service_dir}/cmd/${MAIN_BINARY}
 
-FROM alpine:3.18
+FROM alpine:3.20
 
 # Copy only the binary from the previous image
 COPY --from=builder /work/program .

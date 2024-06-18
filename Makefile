@@ -263,13 +263,11 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'infra/storage/spanner/schema.sql' \
 	-ignore 'antlr/.antlr/**' \
 	-ignore '.devcontainer/cache/**'
-download-addlicense:
-	go install github.com/google/addlicense@latest
 
-license-check: download-addlicense
+license-check:
 	addlicense -check $(ADDLICENSE_ARGS) .
 
-license-fix: download-addlicense
+license-fix:
 	addlicense $(ADDLICENSE_ARGS) .
 
 ################################
@@ -299,14 +297,24 @@ playwright-show-traces:
 # Go Misc
 ################################
 
+go-update: go-workspace-setup
+	@declare -a GO_MODULES=(); \
+	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
+	for GO_MODULE in $${GO_MODULES[@]}; \
+	do \
+		echo "********* go get -u ./... module: $${GO_MODULE} *********" ; \
+		pushd $${GO_MODULE} && \
+		go get -u ./... && \
+		echo -e "\n" || exit 1; \
+		popd ; \
+	done
+
 go-tidy: go-workspace-setup
 	@declare -a GO_MODULES=(); \
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
 	do \
 		echo "********* go mod tidy module: $${GO_MODULE} *********" ; \
-		GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
-		mkdir -p $${GO_COVERAGE_DIR} ; \
 		pushd $${GO_MODULE} && \
 		go mod tidy && \
 		echo -e "\n" || exit 1; \
@@ -332,6 +340,10 @@ go-workspace-clean:
 ################################
 node-install:
 	npm install -ws --foreground-scripts
+
+node-update:
+	npm update
+	npm update -w frontend
 
 clean-node:
 	npm run clean -ws
@@ -382,7 +394,7 @@ spanner_port_forward_terminate:
 # For now install tbls when we absolutely need it.
 # It is a heavy install.
 spanner_er_diagram: spanner_port_forward
-	go install github.com/k1LoW/tbls@v1.73.2
+	go install github.com/k1LoW/tbls@v1.76.0
 	SPANNER_EMULATOR_HOST=localhost:9010 tbls doc --rm-dist
 	make spanner_port_forward_terminate
 
