@@ -14,11 +14,18 @@
     "@playwright/test": "^1.40.1",
     "@types/node": "^20.10.4",
     "concurrently": "^8.2.2",
+    "eslint-plugin-n": "^17.9.0",
     "gts": "^5.2.0",
     "openapi-typescript": "6.7.3",
     "prettier": "3.1.1",
     "quicktype": "23.0.81",
     "stylelint": "^16.2.1",
     "stylelint-config-standard": "^36.0.0"
+  },
+  "resolutions_comments": {
+    "gts": "Can unpin once GTS bumps its version of eslint-plugin-n to a version that supports eslint v9"
+  },
+  "resolutions": {
+    "gts/**/eslint-plugin-n": "17.9.0"
   }
 }

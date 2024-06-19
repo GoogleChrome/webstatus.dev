@@ -157,7 +157,7 @@ There two common configurations used to generate code for Go.
 - [openapi/types.cfg.yaml](openapi/types.cfg.yaml)
 
 This repository uses
-[deepmap/oapi-codegen](https://github.com/deepmap/oapi-codegen) to generate the
+[oapi-codegen/oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) to generate the
 types.
 
 #### TypeScript and OpenAPI

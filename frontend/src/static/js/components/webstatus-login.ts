@@ -47,7 +47,6 @@ export class WebstatusLogin extends LitElement {
     this.redirectTo = '';
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async _signin(_token: string): Promise<void> {
     // TODO: Handle the token
   }

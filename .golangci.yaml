@@ -57,9 +57,11 @@ linters:
     - revive
     - unparam
     - usestdlibvars
-# issues:
-#   max-issues-per-linter: 0
-#   max-same-issues: 0
+issues:
+  #   max-issues-per-linter: 0
+  #   max-same-issues: 0
+  exclude-dirs:
+    - lib/gen
 linters-settings:
   #   exhaustruct:
   #     # List of regular expressions to exclude struct packages and names from check.
@@ -77,5 +79,3 @@ run:
   # Locally, it won't take this long. This is to prevent CI from failing in
   # case of a bad run.
   timeout: 5m
-  skip-dirs:
-    - lib/gen
