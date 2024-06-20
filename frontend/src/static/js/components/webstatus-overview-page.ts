@@ -53,7 +53,14 @@ export class OverviewPage extends LitElement {
   };
 
   @state()
-  location!: {search: string}; // Set by router.
+  location!: { search: string; }; // Set by router.
+
+  @state()
+    // allFeaturesFetcher is either undefined or a function that returns
+    // an array of all features via apiClient.getAllFeatures
+  allFeaturesFetcher: undefined |
+    (() => Promise<components['schemas']['Feature'][]>)
+   = undefined;
 
   constructor() {
     super();
@@ -62,7 +69,14 @@ export class OverviewPage extends LitElement {
         [this.apiClient, this.location] as [APIClient, {search: string}],
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
-      > => {
+        > => {
+        this.allFeaturesFetcher = () => {
+          return apiClient.getAllFeatures(
+            getSearchQuery(routerLocation) as FeatureSearchType,
+            getSortSpec(routerLocation) as FeatureSortOrderType,
+            getWPTMetricView(routerLocation) as FeatureWPTMetricViewType,
+          );
+        };
         return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
@@ -113,8 +127,74 @@ export class OverviewPage extends LitElement {
     );
   }
 
+
+
+  renderExportButton(): TemplateResult {
+    const convertToCSV = (features: components['schemas']['Feature'][]):
+      string => {
+      const header = [
+        'Feature',
+        'Baseline status',
+        'Browser Impl in Chrome',
+        'Browser Impl in Edge',
+        'Browser Impl in Firefox',
+        'Browser Impl in Safari',
+        'Browser Impl in Chrome Experimental',
+        'Browser Impl in Edge Experimental',
+        'Browser Impl in Firefox Experimental',
+        'Browser Impl in Safari Experimental',
+      ];
+      const rows = features.map(feature => {
+        const baselineStatus = feature.baseline!.status;
+        const browserImpl = feature.browser_implementations!;
+        return [
+          feature.name,
+          baselineStatus,
+          browserImpl.chrome,
+          browserImpl.edge,
+          browserImpl.firefox,
+          browserImpl.safari,
+          browserImpl.chrome_experimental,
+          browserImpl.edge_experimental,
+          browserImpl.firefox_experimental,
+          browserImpl.safari_experimental,
+        ];
+      });
+      const csv = [header, ...rows].map(row => row.join(',')).join('\n');
+      return csv;
+    };
+
+    const exportToCVS = async (): Promise<void> => {
+      if (this.allFeaturesFetcher) {
+        // Fetch all pages of data via getAllFeatures
+        const allFeatures = await this.allFeaturesFetcher();
+
+        // Convert data to csv
+        const csv = convertToCSV(allFeatures);
+
+        // Create blob to download the csv.
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'web-platform-tests-status.csv';
+        link.click();
+      }
+    };
+
+    return html`
+      <sl-button
+        @click=${exportToCVS()}
+      >
+        <sl-icon slot="prefix" name="download"></sl-icon>
+        Export to CSV
+      </sl-button>
+    `;
+  }
+
   render(): TemplateResult {
     return html`
+      ${ this.renderExportButton() }
       <webstatus-overview-content
         .location=${this.location}
         .taskTracker=${this.taskTracker}

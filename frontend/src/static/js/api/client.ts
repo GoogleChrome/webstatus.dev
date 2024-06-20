@@ -160,6 +160,7 @@ export class APIClient {
     return base64urlEncode(JSON.stringify({offset: offset}));
   }
 
+  // Get one page of features
   public async getFeatures(
     q: FeatureSearchType,
     sort: FeatureSortOrderType,
@@ -185,6 +186,31 @@ export class APIClient {
       throw createAPIError(error);
     }
     return data;
+  }
+
+  // Get data for all features by requesting every page of data via getFeatures.
+  public async getAllFeatures(
+    q: FeatureSearchType,
+    sort: FeatureSortOrderType,
+    wptMetricView?: FeatureWPTMetricViewType
+  ): Promise<components['schemas']['Feature'][]> {
+    let offset = 0;
+
+    let nextPageToken;
+    const allData: components['schemas']['Feature'][] = [];
+    do {
+      const page = await this.getFeatures(
+        q,
+        sort,
+        wptMetricView,
+        offset,
+        100
+      );
+      nextPageToken = page?.metadata?.next_page_token;
+      allData.push(...page.data);
+      offset += page.data.length;
+    } while (nextPageToken !== undefined);
+    return allData;
   }
 
   public async *getFeatureStatsByBrowserAndChannel(

@@ -187,7 +187,8 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          ${this.renderFilterInputBox(query)} ${this.renderColumnButton()}
+          ${this.renderFilterInputBox(query)}
+          ${this.renderColumnButton()}
         </div>
       </div>
     `;
