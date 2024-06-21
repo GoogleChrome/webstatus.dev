@@ -139,25 +139,17 @@ export class OverviewPage extends LitElement {
         'Browser Impl in Edge',
         'Browser Impl in Firefox',
         'Browser Impl in Safari',
-        'Browser Impl in Chrome Experimental',
-        'Browser Impl in Edge Experimental',
-        'Browser Impl in Firefox Experimental',
-        'Browser Impl in Safari Experimental',
       ];
       const rows = features.map(feature => {
-        const baselineStatus = feature.baseline!.status;
+        const baselineStatus = feature.baseline?.status || '';
         const browserImpl = feature.browser_implementations!;
         return [
           feature.name,
           baselineStatus,
-          browserImpl.chrome,
-          browserImpl.edge,
-          browserImpl.firefox,
-          browserImpl.safari,
-          browserImpl.chrome_experimental,
-          browserImpl.edge_experimental,
-          browserImpl.firefox_experimental,
-          browserImpl.safari_experimental,
+          browserImpl?.chrome?.date || '',
+          browserImpl?.edge?.date || '',
+          browserImpl?.firefox?.date || '',
+          browserImpl?.safari?.date || '',
         ];
       });
       const csv = [header, ...rows].map(row => row.join(',')).join('\n');
@@ -177,7 +169,7 @@ export class OverviewPage extends LitElement {
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = 'web-platform-tests-status.csv';
+        link.download = 'webstatus-feature-overview.csv';
         link.click();
       }
     };
