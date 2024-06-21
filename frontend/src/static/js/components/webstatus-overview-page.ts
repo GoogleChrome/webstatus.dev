@@ -164,7 +164,7 @@ export class OverviewPage extends LitElement {
       return csv;
     };
 
-    const exportToCVS = async (): Promise<void> => {
+    const exportToCSV = async (): Promise<void> => {
       if (this.allFeaturesFetcher) {
         // Fetch all pages of data via getAllFeatures
         const allFeatures = await this.allFeaturesFetcher();
@@ -184,7 +184,7 @@ export class OverviewPage extends LitElement {
 
     return html`
       <sl-button
-        @click=${exportToCVS()}
+        @click=${exportToCSV}
       >
         <sl-icon slot="prefix" name="download"></sl-icon>
         Export to CSV
