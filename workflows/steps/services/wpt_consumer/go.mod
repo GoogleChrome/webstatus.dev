@@ -37,7 +37,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.0.4 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/getkin/kin-openapi v0.125.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.13 // indirect
+	github.com/go-chi/chi/v5 v5.0.14 // indirect
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
@@ -75,7 +75,7 @@ require (
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/xerrors v0.0.0-20231012003039-104605ab7028 // indirect
-	google.golang.org/api v0.184.0 // indirect
+	google.golang.org/api v0.185.0 // indirect
 	google.golang.org/genproto v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240617180043-68d350f18fd4 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240617180043-68d350f18fd4 // indirect
