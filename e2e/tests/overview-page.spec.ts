@@ -15,18 +15,10 @@
  */
 
 import {test, expect} from '@playwright/test';
-
-async function gotoUrl(page: any, url: string) {
-  await page.goto(url);
-
-  // Wait for the loading indicator to disappear and be replaced (with timeout):
-  await page
-    .locator('webstatus-overview-content >> text=Loading features...')
-    .waitFor({state: 'hidden', timeout: 30000});
-}
+import {gotoOverviewPageUrl} from './utils';
 
 test('matches the screenshot', async ({page}) => {
-  await gotoUrl(page, 'http://localhost:5555/');
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
 });
@@ -67,7 +59,7 @@ test('shows an unknown error when there is an internal error', async ({
 
 // test of hover over a baseline chip to show tooltip
 test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
-  await gotoUrl(page, 'http://localhost:5555/');
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
 
   // Find the tooltip for the first Widely available chip.
   const tooltip = page

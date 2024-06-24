@@ -51,3 +51,12 @@ export async function setupFakeNow(
     Date.now = () => __DateNow() + __DateNowOffset;
   }`);
 }
+
+export async function gotoOverviewPageUrl(page: Page, url: string) {
+  await page.goto(url);
+
+  // Wait for the loading indicator to disappear and be replaced (with timeout):
+  await page
+    .locator('webstatus-overview-content >> text=Loading features...')
+    .waitFor({state: 'hidden', timeout: 30000});
+}
