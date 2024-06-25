@@ -19,52 +19,64 @@ updates:
     directory: '/backend'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/lib'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/lib/gen'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/util'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/workflows/steps/services/bcd_consumer'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/workflows/steps/services/common/repo_downloader'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/workflows/steps/services/web_feature_consumer'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   - package-ecosystem: 'gomod'
     directory: '/workflows/steps/services/wpt_consumer'
     schedule:
       interval: 'weekly'
+    allow:
+      - dependency-type: all
 
   # NPM
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
       interval: 'weekly'
-
-  - package-ecosystem: 'npm'
-    directory: '/frontend'
-    schedule:
-      interval: 'weekly'
+    versioning-strategy: 'increase'
 
   # Docker
   - package-ecosystem: 'docker'

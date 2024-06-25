@@ -329,8 +329,8 @@ interface FeatureSpecInfo {
 
 export function isJavaScriptFeature(featureSpecInfo: FeatureSpecInfo): boolean {
   return (
-    featureSpecInfo?.links?.some(
-      linkObj => linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX)
+    featureSpecInfo?.links?.some(linkObj =>
+      linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX)
     ) ?? false
   );
 }

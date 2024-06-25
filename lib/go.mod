@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/datastore v1.17.1
 	cloud.google.com/go/spanner v1.63.0
 	cloud.google.com/go/storage v1.42.0
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20240617233854-afc779445ed9
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/google/go-github/v60 v60.0.0
@@ -14,7 +14,7 @@ require (
 	github.com/testcontainers/testcontainers-go v0.31.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20240610182640-eca6121c6932
 	go.opentelemetry.io/contrib/detectors/gcp v1.27.0
-	google.golang.org/api v0.184.0
+	google.golang.org/api v0.185.0
 	google.golang.org/grpc v1.64.0
 )
 
@@ -28,10 +28,10 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.48.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/getkin/kin-openapi v0.125.0 // indirect
-	github.com/go-chi/chi/v5 v5.0.13 // indirect
-	github.com/go-openapi/jsonpointer v0.21.0 // indirect
-	github.com/go-openapi/swag v0.23.0 // indirect
-	github.com/invopop/yaml v0.3.1 // indirect
+	github.com/go-chi/chi/v5 v5.0.14 // indirect
+	github.com/go-openapi/jsonpointer v0.20.2 // indirect
+	github.com/go-openapi/swag v0.22.8 // indirect
+	github.com/invopop/yaml v0.2.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
