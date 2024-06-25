@@ -53,14 +53,14 @@ export class OverviewPage extends LitElement {
   };
 
   @state()
-  location!: { search: string; }; // Set by router.
+  location!: {search: string}; // Set by router.
 
   @state()
-    // allFeaturesFetcher is either undefined or a function that returns
-    // an array of all features via apiClient.getAllFeatures
-  allFeaturesFetcher: undefined |
-    (() => Promise<components['schemas']['Feature'][]>)
-   = undefined;
+  // allFeaturesFetcher is either undefined or a function that returns
+  // an array of all features via apiClient.getAllFeatures
+  allFeaturesFetcher:
+    | undefined
+    | (() => Promise<components['schemas']['Feature'][]>) = undefined;
 
   constructor() {
     super();
@@ -69,12 +69,12 @@ export class OverviewPage extends LitElement {
         [this.apiClient, this.location] as [APIClient, {search: string}],
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
-        > => {
+      > => {
         this.allFeaturesFetcher = () => {
           return apiClient.getAllFeatures(
             getSearchQuery(routerLocation) as FeatureSearchType,
             getSortSpec(routerLocation) as FeatureSortOrderType,
-            getWPTMetricView(routerLocation) as FeatureWPTMetricViewType,
+            getWPTMetricView(routerLocation) as FeatureWPTMetricViewType
           );
         };
         return this._fetchFeatures(apiClient, routerLocation);
@@ -127,11 +127,10 @@ export class OverviewPage extends LitElement {
     );
   }
 
-
-
   renderExportButton(): TemplateResult {
-    const convertToCSV = (features: components['schemas']['Feature'][]):
-      string => {
+    const convertToCSV = (
+      features: components['schemas']['Feature'][]
+    ): string => {
       const header = [
         'Feature',
         'Baseline status',
@@ -165,7 +164,7 @@ export class OverviewPage extends LitElement {
         const csv = convertToCSV(allFeatures);
 
         // Create blob to download the csv.
-        const blob = new Blob([csv], { type: 'text/csv' });
+        const blob = new Blob([csv], {type: 'text/csv'});
         const url = window.URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -175,9 +174,7 @@ export class OverviewPage extends LitElement {
     };
 
     return html`
-      <sl-button
-        @click=${exportToCSV}
-      >
+      <sl-button @click=${exportToCSV}>
         <sl-icon slot="prefix" name="download"></sl-icon>
         Export to CSV
       </sl-button>
@@ -186,7 +183,7 @@ export class OverviewPage extends LitElement {
 
   render(): TemplateResult {
     return html`
-      ${ this.renderExportButton() }
+      ${this.renderExportButton()}
       <webstatus-overview-content
         .location=${this.location}
         .taskTracker=${this.taskTracker}

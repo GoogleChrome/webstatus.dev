@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-import createClient, { HeadersOptions, type FetchOptions } from 'openapi-fetch';
-import type {
-  PathsWithMethod,
-} from "openapi-typescript-helpers"
+import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
+import type {PathsWithMethod} from 'openapi-typescript-helpers';
 import {type components, type paths} from 'webstatus.dev-backend';
 import {createAPIError} from './errors.js';
 
@@ -116,8 +114,8 @@ function base64urlEncode(str: string): string {
 // };
 
 interface PageParams extends Record<string, unknown> {
-  page_token?: components["parameters"]["paginationTokenParam"];
-  page_size?: components["parameters"]["paginationSizeParam"];
+  page_token?: components['parameters']['paginationTokenParam'];
+  page_size?: components['parameters']['paginationSizeParam'];
 }
 
 export class APIClient {
@@ -139,62 +137,69 @@ export class APIClient {
   }
 
   public async getPageOfData<
-  ResponseType extends { data: unknown[]; metadata?: { next_page_token?: string } },
-  ParamsType extends Record<string, unknown>
->(
-  path: string,
-  params: ParamsType = {} as ParamsType,
-  offset?: number,
-  pageSize?: number
-): Promise<ResponseType> {
-  const qsParams: ParamsType & PageParams = {
-    ...params,
-    page_token: offset
-      ? this.createOffsetPaginationTokenForGetFeatures(offset)
-      : undefined,
-    page_size: pageSize,
-  };
-
-  const { data, error } = await this.client.GET(path as PathsWithMethod<paths, "get">, {
-    ...temporaryFetchOptions,
-    params: {
-      query: qsParams,
+    ResponseType extends {
+      data: unknown[];
+      metadata?: {next_page_token?: string};
     },
-  });
+    ParamsType extends Record<string, unknown>,
+  >(
+    path: string,
+    params: ParamsType = {} as ParamsType,
+    offset?: number,
+    pageSize?: number
+  ): Promise<ResponseType> {
+    const qsParams: ParamsType & PageParams = {
+      ...params,
+      page_token: offset
+        ? this.createOffsetPaginationTokenForGetFeatures(offset)
+        : undefined,
+      page_size: pageSize,
+    };
 
-  if (error !== undefined) {
-    throw createAPIError(error);
+    const {data, error} = await this.client.GET(
+      path as PathsWithMethod<paths, 'get'>,
+      {
+        ...temporaryFetchOptions,
+        params: {
+          query: qsParams,
+        },
+      }
+    );
+
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return data as ResponseType;
   }
 
-  return data as ResponseType;
-}
+  public async getAllPagesOfData<
+    PageType extends WPTRunMetricsPage | BrowserReleaseFeatureMetricsPage,
+    ResponseType extends {
+      data: unknown[];
+      metadata?: {next_page_token?: string};
+    },
+    ParamsType extends Record<string, unknown>,
+  >(
+    path: string,
+    params: ParamsType = {} as ParamsType
+  ): Promise<ResponseType[]> {
+    let offset = 0;
+    let nextPageToken;
+    const allData: ResponseType[] = [];
 
-public async getAllPagesOfData<
-  PageType extends WPTRunMetricsPage | BrowserReleaseFeatureMetricsPage,
-  ResponseType extends { data: unknown[]; metadata?: { next_page_token?: string } },
-  ParamsType extends Record<string, unknown>
->(
-  path: string,
-  params: ParamsType = {} as ParamsType
-): Promise<ResponseType[]> {
-  let offset = 0;
-  let nextPageToken;
-  const allData: ResponseType[] = [];
+    do {
+      const page: PageType = (await this.getPageOfData<
+        ResponseType,
+        ParamsType
+      >(path, params, offset, 100)) as unknown as PageType;
+      nextPageToken = page?.metadata?.next_page_token;
+      allData.push(...((page.data || []) as unknown as ResponseType[]));
+      offset += (page.data || []).length;
+    } while (nextPageToken !== undefined);
 
-  do {
-    const page: PageType = await this.getPageOfData<ResponseType, ParamsType>(
-      path,
-      params,
-      offset,
-      100
-    ) as unknown as PageType;
-    nextPageToken = page?.metadata?.next_page_token;
-    allData.push(...(page.data || []) as unknown as ResponseType[]);
-    offset += (page.data || []).length;
-  } while (nextPageToken !== undefined);
-
-  return allData;
-}
+    return allData;
+  }
 
   public async getFeature(
     featureId: string,
@@ -234,55 +239,38 @@ public async getAllPagesOfData<
     return data;
   }
 
+  // Get one page of features
+  public async getFeatures(
+    q: FeatureSearchType,
+    sort: FeatureSortOrderType,
+    wptMetricView?: FeatureWPTMetricViewType,
+    offset?: number,
+    pageSize?: number
+  ): Promise<components['schemas']['FeaturePage']> {
+    const params: paths['/v1/features']['get']['parameters']['query'] = {};
+    if (q) params.q = q;
+    if (sort) params.sort = sort;
+    if (wptMetricView) params.wpt_metric_view = wptMetricView;
+    return this.getPageOfData('/v1/features', params, offset, pageSize);
+  }
 
-// Get one page of features
-public async getFeatures(
-  q: FeatureSearchType,
-  sort: FeatureSortOrderType,
-  wptMetricView?: FeatureWPTMetricViewType,
-  offset?: number,
-  pageSize?: number
-): Promise<components['schemas']['FeaturePage']> {
-  const params: paths['/v1/features']['get']['parameters']['query'] = {};
-  if (q) params.q = q;
-  if (sort) params.sort = sort;
-  if (wptMetricView) params.wpt_metric_view = wptMetricView;
-  return this.getPageOfData('/v1/features', params, offset, pageSize);
-}
+  // Get all features
+  public async getAllFeatures(
+    q: FeatureSearchType,
+    sort: FeatureSortOrderType,
+    wptMetricView?: FeatureWPTMetricViewType
+  ): Promise<components['schemas']['Feature'][]> {
+    const params: paths['/v1/features']['get']['parameters']['query'] = {};
+    if (q) params.q = q;
+    if (sort) params.sort = sort;
+    if (wptMetricView) params.wpt_metric_view = wptMetricView;
+    return this.getAllPagesOfData(
+      '/v1/features',
+      params
+    ) as unknown as components['schemas']['Feature'][];
+  }
 
-// Get all features
-public async getAllFeatures(
-  q: FeatureSearchType,
-  sort: FeatureSortOrderType,
-  wptMetricView?: FeatureWPTMetricViewType
-): Promise<components['schemas']['Feature'][]> {
-  const params: paths['/v1/features']['get']['parameters']['query'] = {};
-  if (q) params.q = q;
-  if (sort) params.sort = sort;
-  if (wptMetricView) params.wpt_metric_view = wptMetricView;
-  return this.getAllPagesOfData('/v1/features', params) as unknown as components['schemas']['Feature'][];
-}
-
-  // Get one page of feature stats by browser and channel.
-  // public async getFeatureStatsPageByBrowserAndChannel(
-  //   featureId: string,
-  //   browser: BrowsersParameter,
-  //   channel: ChannelsParameter,
-  //   startAtDate: Date,
-  //   endAtDate: Date,
-  //   offset?: number,
-  //   pageSize?: number
-  // ): Promise<components['schemas']['WPTRunMetricsPage']> {
-  //   const startAt: string = startAtDate.toISOString().substring(0, 10);
-  //   const endAt: string = endAtDate.toISOString().substring(0, 10);
-  //   const params: paths['/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}']['get']['parameters']['query'] = {
-  //     startAt,
-  //     endAt,
-  //   };
-  // // Use this.getPageOfData instead.
-
-
-public async *getFeatureStatsByBrowserAndChannel(
+  public async *getFeatureStatsByBrowserAndChannel(
     featureId: string,
     browser: BrowsersParameter,
     channel: ChannelsParameter,
@@ -319,25 +307,6 @@ public async *getFeatureStatsByBrowserAndChannel(
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
   }
-
-
-  // // Refactor getFeatureCountsForBrowser to use this.getAllPagesOfData
-  // public async *getFeatureCountsForBrowser(
-  //   browser: BrowsersParameter,
-  //   startAtDate: Date,
-  //   endAtDate: Date
-  // ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
-  //   const startAt: string = startAtDate.toISOString().substring(0, 10);
-  //   const endAt: string = endAtDate.toISOString().substring(0, 10);
-  //   const params: paths['/v1/stats/features/browsers/{browser}/feature_counts']['get']['parameters']['query'] = {
-  //     startAt,
-  //     endAt,
-  //   };
-
-  //   return this.getAllPagesOfData('/v1/stats/features/browsers/{browser}/feature_counts', params);
-  // }
-
-
 
   // Fetches feature counts for a browser in a date range
   // via "/v1/stats/features/browsers/{browser}/feature_counts"
