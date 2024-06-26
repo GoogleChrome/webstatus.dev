@@ -79,13 +79,6 @@ export class OverviewPage extends LitElement {
             getWPTMetricView(routerLocation) as FeatureWPTMetricViewType
           );
         };
-        // Store this component on window.pageComponent
-        if (
-          typeof window !== 'undefined' &&
-          !window.hasOwnProperty('pageComponent')
-        ) {
-          (window as {[key: string]: any})['pageComponent'] = this;
-        }
         return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
@@ -111,6 +104,11 @@ export class OverviewPage extends LitElement {
           };
         }
       },
+    });
+
+    // Set up listener of 'exportToCSV' event from webstatus-overview-filters.
+    this.addEventListener('exportToCSV', () => {
+      this.exportToCSV();
     });
   }
 

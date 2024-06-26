@@ -24,7 +24,6 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
-import {OverviewPage} from './webstatus-overview-page.js';
 
 const VOCABULARY = [
   {
@@ -184,14 +183,15 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   renderExportButton(): TemplateResult {
-    // Get the webstatus-overview-page component from window['pageComponent']
-
-    const pageComponent = (window as {[key: string]: any})
-      .pageComponent as OverviewPage;
-    if (!pageComponent) {
-      return html``;
-    }
-    const exportToCSV = () => pageComponent!.exportToCSV();
+    const exportToCSV = () => {
+      // dispatch an event via CustomEvent
+      const event = new CustomEvent('exportToCSV', {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      });
+      this.dispatchEvent(event);
+    };
 
     return html`
       <sl-button @click=${exportToCSV}>

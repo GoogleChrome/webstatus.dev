@@ -105,14 +105,6 @@ function base64urlEncode(str: string): string {
     .replace(/=+$/, ''); // Remove trailing '='
 }
 
-// type PathParamsType = Record<string, unknown>;
-// type QueryParamsType = {
-//   page_token?: components["parameters"]["paginationTokenParam"];
-//   page_size?: components["parameters"]["paginationSizeParam"];
-//   // Allow other name-value pairs with unknow values
-//   [key: string]: unknown;
-// };
-
 interface PageParams extends Record<string, unknown> {
   page_token?: components['parameters']['paginationTokenParam'];
   page_size?: components['parameters']['paginationSizeParam'];
@@ -136,6 +128,10 @@ export class APIClient {
     return base64urlEncode(JSON.stringify({offset: offset}));
   }
 
+  /**
+   * Returns one page of data.
+   * TODO: needs to be generalized further to
+   *   handle more variations of queries. */
   public async getPageOfData<
     ResponseType extends {
       data: unknown[];
@@ -173,6 +169,7 @@ export class APIClient {
     return data as ResponseType;
   }
 
+  /** Returns all pages of data.  */
   public async getAllPagesOfData<
     PageType extends WPTRunMetricsPage | BrowserReleaseFeatureMetricsPage,
     ResponseType extends {
