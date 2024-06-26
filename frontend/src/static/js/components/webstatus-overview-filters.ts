@@ -24,7 +24,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
-import { OverviewPage } from './webstatus-overview-page.js';
+import {OverviewPage} from './webstatus-overview-page.js';
 
 const VOCABULARY = [
   {
@@ -186,7 +186,8 @@ export class WebstatusOverviewFilters extends LitElement {
   renderExportButton(): TemplateResult {
     // Get the webstatus-overview-page component from window['pageComponent']
 
-    const pageComponent = (window as { [key: string]: any; }).pageComponent as OverviewPage;
+    const pageComponent = (window as {[key: string]: any})
+      .pageComponent as OverviewPage;
     if (!pageComponent) {
       return html``;
     }
@@ -205,8 +206,7 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          ${this.renderFilterInputBox(query)}
-          ${this.renderColumnButton()}
+          ${this.renderFilterInputBox(query)} ${this.renderColumnButton()}
           ${this.renderExportButton()}
         </div>
       </div>

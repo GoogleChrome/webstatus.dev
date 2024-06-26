@@ -19,6 +19,7 @@ import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
+import {convertToCSV} from '../utils/csv.js';
 
 import {
   getPageSize,
@@ -67,7 +68,7 @@ export class OverviewPage extends LitElement {
 
     this.loadingTask = new Task(this, {
       args: () =>
-        [this.apiClient, this.location] as [APIClient, { search: string; }],
+        [this.apiClient, this.location] as [APIClient, {search: string}],
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
@@ -79,8 +80,11 @@ export class OverviewPage extends LitElement {
           );
         };
         // Store this component on window.pageComponent
-        if (typeof window !== 'undefined' && !window.hasOwnProperty('pageComponent')) {
-          (window as { [key: string]: any; })['pageComponent'] = this;
+        if (
+          typeof window !== 'undefined' &&
+          !window.hasOwnProperty('pageComponent')
+        ) {
+          (window as {[key: string]: any})['pageComponent'] = this;
         }
         return this._fetchFeatures(apiClient, routerLocation);
       },
@@ -110,22 +114,6 @@ export class OverviewPage extends LitElement {
     });
   }
 
-  convertToCSV(
-    columns: string[],
-    rows: Record<string, string>[]
-  ) {
-    const csv = rows.map(row => {
-      return columns.map(column => {
-        return row[column] || '';
-      }).join(',');
-    }).join('\n');
-    if (csv.length > 0) {
-      return csv;
-    } else {
-      return 'No data to export.';
-    }
-  }
-
   async exportToCSV(): Promise<void> {
     if (!this.allFeaturesFetcher) {
       return;
@@ -141,24 +129,24 @@ export class OverviewPage extends LitElement {
       'Browser Impl in Safari',
     ];
 
-    // Convert array of rows into array of objects, with properties
-    // named by the column headers.
-    const rows = allFeatures.map((feature) => {
+    // Convert array of feature rows into array of arrays of strings, in the
+    // same order as columns.
+    const rows = allFeatures.map(feature => {
       const baselineStatus = feature.baseline?.status || '';
       const browserImpl = feature.browser_implementations!;
-      const row = {
-        'Feature': feature.name,
-        'Baseline status': baselineStatus,
-        'Browser Impl in Chrome': browserImpl?.chrome?.date || '',
-        'Browser Impl in Edge': browserImpl?.edge?.date || '',
-        'Browser Impl in Firefox': browserImpl?.firefox?.date || '',
-        'Browser Impl in Safari': browserImpl?.safari?.date || '',
-      };
+      const row = [
+        feature.name,
+        baselineStatus,
+        browserImpl?.chrome?.date || '',
+        browserImpl?.edge?.date || '',
+        browserImpl?.firefox?.date || '',
+        browserImpl?.safari?.date || '',
+      ];
       return row;
     });
 
     // Convert data to csv
-    const csv = this.convertToCSV(columns, rows);
+    const csv = convertToCSV(columns, rows);
 
     // Create blob to download the csv.
     const blob = new Blob([csv], {type: 'text/csv'});
@@ -167,7 +155,7 @@ export class OverviewPage extends LitElement {
     link.href = url;
     link.download = 'webstatus-feature-overview.csv';
     link.click();
-  };
+  }
 
   async _fetchFeatures(
     apiClient: APIClient | undefined,
