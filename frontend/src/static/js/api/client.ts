@@ -139,7 +139,7 @@ export class APIClient {
     },
     ParamsType extends Record<string, unknown>,
   >(
-    path: string,
+    path: PathsWithMethod<paths, 'get'>,
     params: ParamsType = {} as ParamsType,
     offset?: number,
     pageSize?: number
@@ -153,7 +153,7 @@ export class APIClient {
     };
 
     const {data, error} = await this.client.GET(
-      path as PathsWithMethod<paths, 'get'>,
+      path,
       {
         ...temporaryFetchOptions,
         params: {
@@ -178,7 +178,7 @@ export class APIClient {
     },
     ParamsType extends Record<string, unknown>,
   >(
-    path: string,
+    path: PathsWithMethod<paths, 'get'>,
     params: ParamsType = {} as ParamsType
   ): Promise<ResponseType[]> {
     let offset = 0;
