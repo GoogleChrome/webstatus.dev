@@ -19,19 +19,30 @@
  */
 export function convertToCSV(header: string[], rows: string[][]): string {
   const encodeCell = (cell: string) => {
-    // Encode any double quotes in the cell as "", and then wrap the
-    // cell in double quotes.
-    return `"${cell.replace(/"/g, '""')}"`;
+    // Prepend all double quotes with another double quote, RFC 4810 Section 2.7
+    let escaped = cell.replace(/"/g, '""');
+
+    // Prevent CSV injection: owasp.org/index.php/CSV_Injection
+    if (
+      cell[0] === '=' ||
+      cell[0] === '+' ||
+      cell[0] === '-' ||
+      cell[0] === '@'
+    ) {
+      escaped = `'${escaped}`;
+    }
+    // Wrap cell with double quotes, RFC 4810 Section 2.7
+    return `"${escaped}"`;
   };
-  const csv = rows.map((row: string[]) => {
+  const csvRows = rows.map((row: string[]) => {
     row = row.map(encodeCell);
     return row.join(',');
   });
 
-  if (csv.length > 0) {
-    header = header.map(encodeCell);
-    return header.join(',') + '\n' + csv.join('\n');
-  } else {
-    throw new Error('No rows to convert to CSV');
+  let csv = header.map(encodeCell).join(',');
+
+  if (csvRows.length > 0) {
+    csv += '\n' + csvRows.join('\n');
   }
+  return csv;
 }
