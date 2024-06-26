@@ -353,7 +353,7 @@ clean-node:
 ################################
 dev_workflows: bcd_workflow web_feature_local_workflow wpt_workflow
 web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
-web_feature_local_workflow: port-forward-manual
+web_feature_local_workflow: build port-forward-manual
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
 wpt_workflow:
 	./util/run_job.sh wpt-consumer images/go_service.Dockerfile workflows/steps/services/wpt_consumer \
@@ -361,7 +361,7 @@ wpt_workflow:
 bcd_workflow:
 	./util/run_job.sh bcd-consumer images/go_service.Dockerfile workflows/steps/services/bcd_consumer \
 		workflows/steps/services/bcd_consumer/manifests/job.yaml bcd-consumer
-dev_fake_data: is_local_migration_ready
+dev_fake_data: build is_local_migration_ready
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
 	fuser -k 8085/tcp || true
