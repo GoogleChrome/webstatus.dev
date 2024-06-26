@@ -64,9 +64,10 @@ export class OverviewPage extends LitElement {
 
   constructor() {
     super();
+
     this.loadingTask = new Task(this, {
       args: () =>
-        [this.apiClient, this.location] as [APIClient, {search: string}],
+        [this.apiClient, this.location] as [APIClient, { search: string; }],
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
@@ -77,6 +78,10 @@ export class OverviewPage extends LitElement {
             getWPTMetricView(routerLocation) as FeatureWPTMetricViewType
           );
         };
+        // Store this component on window.pageComponent
+        if (typeof window !== 'undefined' && !window.hasOwnProperty('pageComponent')) {
+          (window as { [key: string]: any; })['pageComponent'] = this;
+        }
         return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
@@ -105,6 +110,65 @@ export class OverviewPage extends LitElement {
     });
   }
 
+  convertToCSV(
+    columns: string[],
+    rows: Record<string, string>[]
+  ) {
+    const csv = rows.map(row => {
+      return columns.map(column => {
+        return row[column] || '';
+      }).join(',');
+    }).join('\n');
+    if (csv.length > 0) {
+      return csv;
+    } else {
+      return 'No data to export.';
+    }
+  }
+
+  async exportToCSV(): Promise<void> {
+    if (!this.allFeaturesFetcher) {
+      return;
+    }
+    // Fetch all pages of data via getAllFeatures
+    const allFeatures = await this.allFeaturesFetcher();
+    const columns = [
+      'Feature',
+      'Baseline status',
+      'Browser Impl in Chrome',
+      'Browser Impl in Edge',
+      'Browser Impl in Firefox',
+      'Browser Impl in Safari',
+    ];
+
+    // Convert array of rows into array of objects, with properties
+    // named by the column headers.
+    const rows = allFeatures.map((feature) => {
+      const baselineStatus = feature.baseline?.status || '';
+      const browserImpl = feature.browser_implementations!;
+      const row = {
+        'Feature': feature.name,
+        'Baseline status': baselineStatus,
+        'Browser Impl in Chrome': browserImpl?.chrome?.date || '',
+        'Browser Impl in Edge': browserImpl?.edge?.date || '',
+        'Browser Impl in Firefox': browserImpl?.firefox?.date || '',
+        'Browser Impl in Safari': browserImpl?.safari?.date || '',
+      };
+      return row;
+    });
+
+    // Convert data to csv
+    const csv = this.convertToCSV(columns, rows);
+
+    // Create blob to download the csv.
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'webstatus-feature-overview.csv';
+    link.click();
+  };
+
   async _fetchFeatures(
     apiClient: APIClient | undefined,
     routerLocation: {search: string}
@@ -127,63 +191,8 @@ export class OverviewPage extends LitElement {
     );
   }
 
-  renderExportButton(): TemplateResult {
-    const convertToCSV = (
-      features: components['schemas']['Feature'][]
-    ): string => {
-      const header = [
-        'Feature',
-        'Baseline status',
-        'Browser Impl in Chrome',
-        'Browser Impl in Edge',
-        'Browser Impl in Firefox',
-        'Browser Impl in Safari',
-      ];
-      const rows = features.map(feature => {
-        const baselineStatus = feature.baseline?.status || '';
-        const browserImpl = feature.browser_implementations!;
-        return [
-          feature.name,
-          baselineStatus,
-          browserImpl?.chrome?.date || '',
-          browserImpl?.edge?.date || '',
-          browserImpl?.firefox?.date || '',
-          browserImpl?.safari?.date || '',
-        ];
-      });
-      const csv = [header, ...rows].map(row => row.join(',')).join('\n');
-      return csv;
-    };
-
-    const exportToCSV = async (): Promise<void> => {
-      if (this.allFeaturesFetcher) {
-        // Fetch all pages of data via getAllFeatures
-        const allFeatures = await this.allFeaturesFetcher();
-
-        // Convert data to csv
-        const csv = convertToCSV(allFeatures);
-
-        // Create blob to download the csv.
-        const blob = new Blob([csv], {type: 'text/csv'});
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'webstatus-feature-overview.csv';
-        link.click();
-      }
-    };
-
-    return html`
-      <sl-button @click=${exportToCSV}>
-        <sl-icon slot="prefix" name="download"></sl-icon>
-        Export to CSV
-      </sl-button>
-    `;
-  }
-
   render(): TemplateResult {
     return html`
-      ${this.renderExportButton()}
       <webstatus-overview-content
         .location=${this.location}
         .taskTracker=${this.taskTracker}

@@ -24,6 +24,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
+import { OverviewPage } from './webstatus-overview-page.js';
 
 const VOCABULARY = [
   {
@@ -182,12 +183,31 @@ export class WebstatusOverviewFilters extends LitElement {
     `;
   }
 
+  renderExportButton(): TemplateResult {
+    // Get the webstatus-overview-page component from window['pageComponent']
+
+    const pageComponent = (window as { [key: string]: any; }).pageComponent as OverviewPage;
+    if (!pageComponent) {
+      return html``;
+    }
+    const exportToCSV = () => pageComponent!.exportToCSV();
+
+    return html`
+      <sl-button @click=${exportToCSV}>
+        <sl-icon slot="prefix" name="download"></sl-icon>
+        Export to CSV
+      </sl-button>
+    `;
+  }
+
   render(): TemplateResult {
     const query = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          ${this.renderFilterInputBox(query)} ${this.renderColumnButton()}
+          ${this.renderFilterInputBox(query)}
+          ${this.renderColumnButton()}
+          ${this.renderExportButton()}
         </div>
       </div>
     `;
