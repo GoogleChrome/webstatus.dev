@@ -25,9 +25,10 @@ If applicable, add screenshots to help explain your problem.
 
 **System (please complete the following information):**
 
-- OS: [e.g. iOS]
+- OS: [e.g. macOS, Linux, Windows]
+- OS Version: [e.g. 14.5]
 - Browser/Client [e.g. chrome, safari, cURL]
-- Version [e.g. 22]
+- Browser/Client Version [e.g. 125.0.6422.169]
 
 **Additional context**
 Add any other context about the problem here.
