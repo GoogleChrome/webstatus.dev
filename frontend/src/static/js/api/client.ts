@@ -15,9 +15,30 @@
  */
 
 import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
-import type {PathsWithMethod} from 'openapi-typescript-helpers';
 import {type components, type paths} from 'webstatus.dev-backend';
 import {createAPIError} from './errors.js';
+
+// import type {PathsWithMethod} from 'openapi-typescript-helpers';
+
+// Local copy of PathsWithMethod from oepnapi-typescript-helpers,
+// since eslint complains that the type is not required, but it is.
+type HttpMethod =
+  | 'get'
+  | 'put'
+  | 'post'
+  | 'delete'
+  | 'options'
+  | 'head'
+  | 'patch'
+  | 'trace';
+
+type PathsWithMethod<Paths extends {}, PathnameMethod extends HttpMethod> = {
+  [Pathname in keyof Paths]: Paths[Pathname] extends {
+    [K in PathnameMethod]: unknown;
+  }
+    ? Pathname
+    : never;
+}[keyof Paths];
 
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
@@ -152,15 +173,12 @@ export class APIClient {
       page_size: pageSize,
     };
 
-    const {data, error} = await this.client.GET(
-      path,
-      {
-        ...temporaryFetchOptions,
-        params: {
-          query: qsParams,
-        },
-      }
-    );
+    const {data, error} = await this.client.GET(path, {
+      ...temporaryFetchOptions,
+      params: {
+        query: qsParams,
+      },
+    });
 
     if (error !== undefined) {
       throw createAPIError(error);

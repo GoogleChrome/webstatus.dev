@@ -75,7 +75,8 @@ describe('convertToCSV', () => {
       ['=Value=5"', '+Value+6'],
       ['-Value-7', '@Value@8'],
     ];
-    const expectedCSV = `"Column1","""Column2"""\n"""",""""""\n"Value""3""","""Value4"""\n"'=Value=5""","'+Value+6"\n"'-Value-7","'@Value@8"`;
+    const expectedCSV =
+      '"Column1","""Column2"""\n"""",""""""\n"Value""3""","""Value4"""\n"\'=Value=5""","\'+Value+6"\n"\'-Value-7","\'@Value@8"';
 
     const csv = convertToCSV(columns, rows);
     assert.equal(csv, expectedCSV);
