@@ -20,7 +20,7 @@ import {createAPIError} from './errors.js';
 
 // import type {PathsWithMethod} from 'openapi-typescript-helpers';
 
-// Local copy of PathsWithMethod from oepnapi-typescript-helpers,
+// Local copy of PathsWithMethod from openapi-typescript-helpers,
 // since eslint complains that the type is not required, but it is.
 type HttpMethod =
   | 'get'
