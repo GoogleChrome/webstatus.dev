@@ -84,9 +84,9 @@ describe('webstatus-typeahead', () => {
     assert.equal('', component.prefix);
 
     slInput.value = 'term1 term2 -term3=2024-06-28..2025-02-03';
-      await slInput.updateComplete;
+    await slInput.updateComplete;
 
-      // Caret is at the start of the input field.
+    // Caret is at the start of the input field.
     slInput.input.selectionStart = 0;
     slInput.input.selectionEnd = 0;
     component.findPrefix();
@@ -94,7 +94,7 @@ describe('webstatus-typeahead', () => {
     assert.equal(5, component.chunkEnd);
     assert.equal('', component.prefix);
 
-      // User has selected a range.
+    // User has selected a range.
     slInput.input.selectionStart = 0;
     slInput.input.selectionEnd = 3; // A range
     component.findPrefix();

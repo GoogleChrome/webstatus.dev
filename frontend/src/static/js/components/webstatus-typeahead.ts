@@ -80,7 +80,7 @@ export class WebstatusTypeahead extends LitElement {
   chunkEnd: number;
 
   wasDismissed: boolean;
-    termWasCompleted: boolean;
+  termWasCompleted: boolean;
 
   constructor() {
     super();
@@ -93,9 +93,9 @@ export class WebstatusTypeahead extends LitElement {
     this.chunkEnd = 0;
     // If the user hits Escape, keep the menu closed until they use up or down.
     this.wasDismissed = false;
-      // If the user completes an entire term, don't offer the menu again
-      // until they type something.
-      this.termWasCompleted = false;
+    // If the user completes an entire term, don't offer the menu again
+    // until they type something.
+    this.termWasCompleted = false;
   }
 
   static get styles(): CSSResultGroup {
@@ -143,10 +143,10 @@ export class WebstatusTypeahead extends LitElement {
       this.prefix = null;
       return;
     }
-      this.chunkStart = wholeStr.lastIndexOf(' ', caret - 1) + 1;
-      if (wholeStr.substring(this.chunkStart, this.chunkStart + 1) === '-') {
-          this.chunkStart += 1;
-      }
+    this.chunkStart = wholeStr.lastIndexOf(' ', caret - 1) + 1;
+    if (wholeStr.substring(this.chunkStart, this.chunkStart + 1) === '-') {
+      this.chunkStart += 1;
+    }
     this.chunkEnd = wholeStr.indexOf(' ', caret);
     if (this.chunkEnd === -1) this.chunkEnd = wholeStr.length;
     this.prefix = wholeStr.substring(this.chunkStart, caret);
@@ -171,8 +171,8 @@ export class WebstatusTypeahead extends LitElement {
   async handleCandidateSelected(e: {detail: {item: SlMenuItem}}) {
     const candidateValue = e.detail!.item!.value;
     const inputEl = (this.slInputRef.value as SlInput).input;
-      const wholeStr = inputEl.value;
-      // Don't add a space after the completed value: let the user type it.
+    const wholeStr = inputEl.value;
+    // Don't add a space after the completed value: let the user type it.
     const newWholeStr =
       wholeStr.substring(0, this.chunkStart) +
       candidateValue +
@@ -187,11 +187,11 @@ export class WebstatusTypeahead extends LitElement {
     this.chunkEnd = this.chunkStart;
     inputEl.selectionStart = this.chunkStart;
     inputEl.selectionEnd = this.chunkEnd;
-      // TODO(jrobbins): Don't set termWasCompleted if we offer a value.
-      if (candidateValue !== '-') {
-          this.termWasCompleted = true;
-      }
-      this.calcCandidates();
+    // TODO(jrobbins): Don't set termWasCompleted if we offer a value.
+    if (candidateValue !== '-') {
+      this.termWasCompleted = true;
+    }
+    this.calcCandidates();
     // The user may have clicked a menu item, causing the sl-input to lose
     // keyboard focus.  So, focus on the sl-input again.
     inputEl.focus();
@@ -221,8 +221,8 @@ export class WebstatusTypeahead extends LitElement {
       this.wasDismissed = false;
       return;
     }
-      this.termWasCompleted = false;
-      this.calcCandidates();
+    this.termWasCompleted = false;
+    this.calcCandidates();
   }
 
   calcCandidates(event?: Event) {
@@ -234,11 +234,11 @@ export class WebstatusTypeahead extends LitElement {
       this.shouldShowCandidate(c, this.prefix)
     );
     const slDropdown = this.slDropdownRef.value as SlDropdown;
-      if (
-       this.candidates.length > 0 &&
-       !this.wasDismissed &&
-       !this.termWasCompleted
-     ) {
+    if (
+      this.candidates.length > 0 &&
+      !this.wasDismissed &&
+      !this.termWasCompleted
+    ) {
       slDropdown.show();
     } else {
       slDropdown.hide();
