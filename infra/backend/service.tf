@@ -119,6 +119,8 @@ resource "google_cloud_run_v2_service" "service" {
         }
         initial_delay_seconds = 3
         period_seconds        = 10
+        failure_threshold     = 10
+        timeout_seconds       = 10
       }
     }
     annotations = {
