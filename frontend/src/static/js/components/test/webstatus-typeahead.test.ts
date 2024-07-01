@@ -83,8 +83,10 @@ describe('webstatus-typeahead', () => {
     assert.equal(0, component.chunkEnd);
     assert.equal('', component.prefix);
 
-    slInput.value = 'term1 term2 term3';
+    slInput.value = 'term1 term2 -term3=2024-06-28..2025-02-03';
     await slInput.updateComplete;
+
+    // Caret is at the start of the input field.
     slInput.input.selectionStart = 0;
     slInput.input.selectionEnd = 0;
     component.findPrefix();
@@ -92,24 +94,35 @@ describe('webstatus-typeahead', () => {
     assert.equal(5, component.chunkEnd);
     assert.equal('', component.prefix);
 
+    // User has selected a range.
     slInput.input.selectionStart = 0;
     slInput.input.selectionEnd = 3; // A range
     component.findPrefix();
     assert.equal(null, component.prefix);
 
-    slInput.input.selectionStart = 14;
-    slInput.input.selectionEnd = 14;
+    // Caret is in middle of term2.
+    slInput.input.selectionStart = 8;
+    slInput.input.selectionEnd = 8;
     component.findPrefix();
-    assert.equal(12, component.chunkStart);
-    assert.equal(17, component.chunkEnd);
+    assert.equal(6, component.chunkStart);
+    assert.equal(11, component.chunkEnd);
     assert.equal('te', component.prefix);
 
-    slInput.input.selectionStart = 17;
-    slInput.input.selectionEnd = 17;
+    // Caret is after the negation operator, at start of term3.
+    slInput.input.selectionStart = 13;
+    slInput.input.selectionEnd = 13;
     component.findPrefix();
-    assert.equal(12, component.chunkStart);
-    assert.equal(17, component.chunkEnd);
-    assert.equal('term3', component.prefix);
+    assert.equal(13, component.chunkStart);
+    assert.equal(41, component.chunkEnd);
+    assert.equal('', component.prefix);
+
+    // Caret is near the end of -term3=2024-06-28..2025-02-03.
+    slInput.input.selectionStart = 40;
+    slInput.input.selectionEnd = 40;
+    component.findPrefix();
+    assert.equal(13, component.chunkStart);
+    assert.equal(41, component.chunkEnd);
+    assert.equal('term3=2024-06-28..2025-02-0', component.prefix);
   });
 
   it('determines whether a candidate should be shown', async () => {

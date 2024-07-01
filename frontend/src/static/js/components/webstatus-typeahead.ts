@@ -80,6 +80,7 @@ export class WebstatusTypeahead extends LitElement {
   chunkEnd: number;
 
   wasDismissed: boolean;
+  termWasCompleted: boolean;
 
   constructor() {
     super();
@@ -92,6 +93,9 @@ export class WebstatusTypeahead extends LitElement {
     this.chunkEnd = 0;
     // If the user hits Escape, keep the menu closed until they use up or down.
     this.wasDismissed = false;
+    // If the user completes an entire term, don't offer the menu again
+    // until they type something.
+    this.termWasCompleted = false;
   }
 
   static get styles(): CSSResultGroup {
@@ -139,10 +143,10 @@ export class WebstatusTypeahead extends LitElement {
       this.prefix = null;
       return;
     }
-    this.chunkStart = Math.max(
-      wholeStr.lastIndexOf(' ', caret - 1) + 1,
-      wholeStr.lastIndexOf('-', caret - 1) + 1
-    );
+    this.chunkStart = wholeStr.lastIndexOf(' ', caret - 1) + 1;
+    if (wholeStr.substring(this.chunkStart, this.chunkStart + 1) === '-') {
+      this.chunkStart += 1;
+    }
     this.chunkEnd = wholeStr.indexOf(' ', caret);
     if (this.chunkEnd === -1) this.chunkEnd = wholeStr.length;
     this.prefix = wholeStr.substring(this.chunkStart, caret);
@@ -168,16 +172,10 @@ export class WebstatusTypeahead extends LitElement {
     const candidateValue = e.detail!.item!.value;
     const inputEl = (this.slInputRef.value as SlInput).input;
     const wholeStr = inputEl.value;
-    const maybeAddSpace =
-      !candidateValue.endsWith(':') &&
-      !candidateValue.endsWith('-') &&
-      wholeStr[this.chunkEnd] !== ' '
-        ? ' '
-        : '';
+    // Don't add a space after the completed value: let the user type it.
     const newWholeStr =
       wholeStr.substring(0, this.chunkStart) +
       candidateValue +
-      maybeAddSpace +
       wholeStr.substring(this.chunkEnd, wholeStr.length);
     (this.slInputRef.value as SlInput).value = newWholeStr;
     this.reflectValue();
@@ -185,11 +183,14 @@ export class WebstatusTypeahead extends LitElement {
     // setting or accessing the text selection.
     await this.updateComplete;
 
-    this.chunkStart =
-      this.chunkStart + candidateValue.length + maybeAddSpace.length;
+    this.chunkStart = this.chunkStart + candidateValue.length;
     this.chunkEnd = this.chunkStart;
     inputEl.selectionStart = this.chunkStart;
     inputEl.selectionEnd = this.chunkEnd;
+    // TODO(jrobbins): Don't set termWasCompleted if we offer a value.
+    if (candidateValue !== '-') {
+      this.termWasCompleted = true;
+    }
     this.calcCandidates();
     // The user may have clicked a menu item, causing the sl-input to lose
     // keyboard focus.  So, focus on the sl-input again.
@@ -220,6 +221,7 @@ export class WebstatusTypeahead extends LitElement {
       this.wasDismissed = false;
       return;
     }
+    this.termWasCompleted = false;
     this.calcCandidates();
   }
 
@@ -232,7 +234,11 @@ export class WebstatusTypeahead extends LitElement {
       this.shouldShowCandidate(c, this.prefix)
     );
     const slDropdown = this.slDropdownRef.value as SlDropdown;
-    if (this.candidates.length > 0 && !this.wasDismissed) {
+    if (
+      this.candidates.length > 0 &&
+      !this.wasDismissed &&
+      !this.termWasCompleted
+    ) {
       slDropdown.show();
     } else {
       slDropdown.hide();
