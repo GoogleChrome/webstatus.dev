@@ -18,6 +18,28 @@ import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
 import {type components, type paths} from 'webstatus.dev-backend';
 import {createAPIError} from './errors.js';
 
+// import type {PathsWithMethod} from 'openapi-typescript-helpers';
+
+// Local copy of PathsWithMethod from openapi-typescript-helpers,
+// since eslint complains that the type is not required, but it is.
+type HttpMethod =
+  | 'get'
+  | 'put'
+  | 'post'
+  | 'delete'
+  | 'options'
+  | 'head'
+  | 'patch'
+  | 'trace';
+
+type PathsWithMethod<Paths extends {}, PathnameMethod extends HttpMethod> = {
+  [Pathname in keyof Paths]: Paths[Pathname] extends {
+    [K in PathnameMethod]: unknown;
+  }
+    ? Pathname
+    : never;
+}[keyof Paths];
+
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
 >['sort'];
@@ -104,6 +126,11 @@ function base64urlEncode(str: string): string {
     .replace(/=+$/, ''); // Remove trailing '='
 }
 
+interface PageParams extends Record<string, unknown> {
+  page_token?: components['parameters']['paginationTokenParam'];
+  page_size?: components['parameters']['paginationSizeParam'];
+}
+
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>;
   constructor(baseUrl: string) {
@@ -111,6 +138,82 @@ export class APIClient {
       baseUrl,
       headers: temporaryHeaders,
     });
+  }
+
+  // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.
+  // Typically, users of the /v1/features endpoint should use the provided pagination token.
+  // However, this token can be used to facilitate a UI with where we have selectable page numbers.
+  // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
+  // treated as a stable interface. Instead, external users should rely on the returned pagination token long term.
+  private createOffsetPaginationTokenForGetFeatures(offset: number): string {
+    return base64urlEncode(JSON.stringify({offset: offset}));
+  }
+
+  /**
+   * Returns one page of data.
+   * TODO: needs to be generalized further to
+   *   handle more variations of queries. */
+  public async getPageOfData<
+    ResponseType extends {
+      data: unknown[];
+      metadata?: {next_page_token?: string};
+    },
+    ParamsType extends Record<string, unknown>,
+  >(
+    path: PathsWithMethod<paths, 'get'>,
+    params: ParamsType = {} as ParamsType,
+    offset?: number,
+    pageSize?: number
+  ): Promise<ResponseType> {
+    const qsParams: ParamsType & PageParams = {
+      ...params,
+      page_token: offset
+        ? this.createOffsetPaginationTokenForGetFeatures(offset)
+        : undefined,
+      page_size: pageSize,
+    };
+
+    const {data, error} = await this.client.GET(path, {
+      ...temporaryFetchOptions,
+      params: {
+        query: qsParams,
+      },
+    });
+
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return data as ResponseType;
+  }
+
+  /** Returns all pages of data.  */
+  public async getAllPagesOfData<
+    PageType extends WPTRunMetricsPage | BrowserReleaseFeatureMetricsPage,
+    ResponseType extends {
+      data: unknown[];
+      metadata?: {next_page_token?: string};
+    },
+    ParamsType extends Record<string, unknown>,
+  >(
+    path: PathsWithMethod<paths, 'get'>,
+    params: ParamsType = {} as ParamsType
+  ): Promise<ResponseType[]> {
+    let offset = 0;
+    let nextPageToken;
+    const allData: ResponseType[] = [];
+
+    do {
+      const page: PageType = (await this.getPageOfData<
+        ResponseType,
+        ParamsType
+      >(path, params, offset, 100)) as unknown as PageType;
+      nextPageToken = page?.metadata?.next_page_token;
+      allData.push(...((page.data || []) as unknown as ResponseType[]));
+      offset += (page.data || []).length;
+    } while (nextPageToken !== undefined);
+
+    return allData;
   }
 
   public async getFeature(
@@ -151,15 +254,7 @@ export class APIClient {
     return data;
   }
 
-  // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.
-  // Typically, users of the /v1/features endpoint should use the provided pagination token.
-  // However, this token can be used to facilitate a UI with where we have selectable page numbers.
-  // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
-  // treated as a stable interface. Instead, external users should rely on the returned pagination token long term.
-  private createOffsetPaginationTokenForGetFeatures(offset: number): string {
-    return base64urlEncode(JSON.stringify({offset: offset}));
-  }
-
+  // Get one page of features
   public async getFeatures(
     q: FeatureSearchType,
     sort: FeatureSortOrderType,
@@ -167,24 +262,27 @@ export class APIClient {
     offset?: number,
     pageSize?: number
   ): Promise<components['schemas']['FeaturePage']> {
-    const qsParams: paths['/v1/features']['get']['parameters']['query'] = {};
-    if (q) qsParams.q = q;
-    if (sort) qsParams.sort = sort;
-    if (offset)
-      qsParams.page_token =
-        this.createOffsetPaginationTokenForGetFeatures(offset);
-    if (pageSize) qsParams.page_size = pageSize;
-    if (wptMetricView) qsParams.wpt_metric_view = wptMetricView;
-    const {data, error} = await this.client.GET('/v1/features', {
-      ...temporaryFetchOptions,
-      params: {
-        query: qsParams,
-      },
-    });
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return data;
+    const params: paths['/v1/features']['get']['parameters']['query'] = {};
+    if (q) params.q = q;
+    if (sort) params.sort = sort;
+    if (wptMetricView) params.wpt_metric_view = wptMetricView;
+    return this.getPageOfData('/v1/features', params, offset, pageSize);
+  }
+
+  // Get all features
+  public async getAllFeatures(
+    q: FeatureSearchType,
+    sort: FeatureSortOrderType,
+    wptMetricView?: FeatureWPTMetricViewType
+  ): Promise<components['schemas']['Feature'][]> {
+    const params: paths['/v1/features']['get']['parameters']['query'] = {};
+    if (q) params.q = q;
+    if (sort) params.sort = sort;
+    if (wptMetricView) params.wpt_metric_view = wptMetricView;
+    return this.getAllPagesOfData(
+      '/v1/features',
+      params
+    ) as unknown as components['schemas']['Feature'][];
   }
 
   public async *getFeatureStatsByBrowserAndChannel(
@@ -223,42 +321,6 @@ export class APIClient {
 
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
-  }
-
-  public async getStatsByBrowserAndChannel(
-    browser: BrowsersParameter,
-    channel: ChannelsParameter,
-    startAtDate: Date,
-    endAtDate: Date
-  ): Promise<WPTRunMetric[]> {
-    const startAt: string = startAtDate.toISOString().substring(0, 10);
-    const endAt: string = endAtDate.toISOString().substring(0, 10);
-
-    let nextPageToken;
-    const allData: WPTRunMetric[] = [];
-    do {
-      const response = await this.client.GET(
-        '/v1/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {startAt, endAt, page_token: nextPageToken},
-            path: {browser, channel, metric_view: DEFAULT_TEST_VIEW},
-          },
-        }
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
-      nextPageToken = page?.metadata?.next_page_token;
-      if (page != null) {
-        allData.push(...page.data);
-      }
-    } while (nextPageToken !== undefined);
-
-    return allData;
   }
 
   // Fetches feature counts for a browser in a date range

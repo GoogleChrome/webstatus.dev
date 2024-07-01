@@ -19,6 +19,7 @@ import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
+import {convertToCSV} from '../utils/csv.js';
 
 import {
   getPageSize,
@@ -55,14 +56,29 @@ export class OverviewPage extends LitElement {
   @state()
   location!: {search: string}; // Set by router.
 
+  @state()
+  // allFeaturesFetcher is either undefined or a function that returns
+  // an array of all features via apiClient.getAllFeatures
+  allFeaturesFetcher:
+    | undefined
+    | (() => Promise<components['schemas']['Feature'][]>) = undefined;
+
   constructor() {
     super();
+
     this.loadingTask = new Task(this, {
       args: () =>
         [this.apiClient, this.location] as [APIClient, {search: string}],
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
+        this.allFeaturesFetcher = () => {
+          return apiClient.getAllFeatures(
+            getSearchQuery(routerLocation) as FeatureSearchType,
+            getSortSpec(routerLocation) as FeatureSortOrderType,
+            getWPTMetricView(routerLocation) as FeatureWPTMetricViewType
+          );
+        };
         return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
@@ -89,6 +105,54 @@ export class OverviewPage extends LitElement {
         }
       },
     });
+
+    // Set up listener of 'exportToCSV' event from webstatus-overview-filters.
+    this.addEventListener('exportToCSV', () => {
+      this.exportToCSV();
+    });
+  }
+
+  async exportToCSV(): Promise<void> {
+    if (!this.allFeaturesFetcher) {
+      return;
+    }
+    // Fetch all pages of data via getAllFeatures
+    const allFeatures = await this.allFeaturesFetcher();
+    const columns = [
+      'Feature',
+      'Baseline status',
+      'Browser Impl in Chrome',
+      'Browser Impl in Edge',
+      'Browser Impl in Firefox',
+      'Browser Impl in Safari',
+    ];
+
+    // Convert array of feature rows into array of arrays of strings, in the
+    // same order as columns.
+    const rows = allFeatures.map(feature => {
+      const baselineStatus = feature.baseline?.status || '';
+      const browserImpl = feature.browser_implementations!;
+      const row = [
+        feature.name,
+        baselineStatus,
+        browserImpl?.chrome?.date || '',
+        browserImpl?.edge?.date || '',
+        browserImpl?.firefox?.date || '',
+        browserImpl?.safari?.date || '',
+      ];
+      return row;
+    });
+
+    // Convert data to csv
+    const csv = convertToCSV(columns, rows);
+
+    // Create blob to download the csv.
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'webstatus-feature-overview.csv';
+    link.click();
   }
 
   async _fetchFeatures(
