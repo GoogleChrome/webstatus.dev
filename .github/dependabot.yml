@@ -15,61 +15,8 @@
 version: 2
 updates:
   # Go Modules
-  - package-ecosystem: 'gomod'
-    directory: '/backend'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/lib'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/lib/gen'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/util'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/workflows/steps/services/bcd_consumer'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/workflows/steps/services/common/repo_downloader'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/workflows/steps/services/web_feature_consumer'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
-
-  - package-ecosystem: 'gomod'
-    directory: '/workflows/steps/services/wpt_consumer'
-    schedule:
-      interval: 'weekly'
-    allow:
-      - dependency-type: all
+  # TODO - revisit when dependabot has better support for multi-module projects that reference each other.
+  # https://github.com/dependabot/dependabot-core/issues/6012
 
   # NPM
   - package-ecosystem: 'npm'
