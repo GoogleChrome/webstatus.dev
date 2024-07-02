@@ -22,6 +22,7 @@ spec:
   containers:
     - name: gcs
       image: gcs
+      imagePullPolicy: Never # Need this for pushing directly into minikube
       ports:
         - containerPort: 4443
           name: gcs-port

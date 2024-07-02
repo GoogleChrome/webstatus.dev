@@ -22,6 +22,7 @@ spec:
   containers:
     - name: backend
       image: backend
+      imagePullPolicy: Never # Need this for pushing directly into minikube
       ports:
         - containerPort: 8080
           name: http-backend
