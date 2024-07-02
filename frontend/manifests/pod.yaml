@@ -25,6 +25,7 @@ spec:
   containers:
     - name: frontend
       image: frontend
+      imagePullPolicy: Never # Need this for pushing directly into minikube
       ports:
         - containerPort: 5555
           name: http-frontend
