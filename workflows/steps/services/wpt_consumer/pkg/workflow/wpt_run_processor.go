@@ -16,6 +16,8 @@ package workflow
 
 import (
 	"context"
+	"log/slog"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
@@ -72,6 +74,13 @@ type WebFeatureWPTScoreStorer interface {
 func (w WPTRunProcessor) ProcessRun(
 	ctx context.Context,
 	run shared.TestRun) error {
+
+	if !strings.HasSuffix(run.ResultsURL, "summary_v2.json.gz") {
+		slog.WarnContext(ctx, "can only process v2 summary runs. skipping...", "runID", run.ID, "resultsURL", run.ResultsURL)
+
+		return nil
+	}
+
 	// Get the results.
 	resultsSummaryFile, err := w.resultsDownloader.DownloadResults(ctx, run.ResultsURL)
 	if err != nil {
