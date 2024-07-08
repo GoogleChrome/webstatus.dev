@@ -72,6 +72,49 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 	return &metric, nil
 }
 
+// GetLatestMetricByFeatureKeyBrowserChannel is a helper function to fetch the latest metric for a given feature key,
+// browser, and channel.
+func (c *Client) GetLatestMetricByFeatureKeyBrowserChannel(
+	ctx context.Context,
+	featureKey, browserName, channel string,
+) (*WPTRunFeatureMetric, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	stmt := spanner.NewStatement(`
+        SELECT
+			wpfm.TotalTests, wpfm.TestPass, wpfm.TotalSubtests, wpfm.SubtestPass
+        FROM LatestWPTRunFeatureMetrics l
+        JOIN WPTRunFeatureMetrics wpfm ON l.ID = wpfm.ID AND l.WebFeatureID = wpfm.WebFeatureID
+        JOIN WebFeatures wf ON wf.ID = l.WebFeatureID
+        WHERE wf.FeatureKey = @featureKey AND l.BrowserName = @browserName AND l.Channel = @channel`)
+
+	stmt.Params = map[string]interface{}{
+		"featureKey":  featureKey,
+		"browserName": browserName,
+		"channel":     channel,
+	}
+
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	row, err := iter.Next()
+	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	var metric WPTRunFeatureMetric
+	if err := row.ToStruct(&metric); err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &metric, nil
+}
+
 func getSampleRunMetrics() []struct {
 	ExternalRunID int64
 	Metrics       map[string]WPTRunFeatureMetric
@@ -412,6 +455,107 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 	}
 	if !reflect.DeepEqual(otherMetric.WPTRunFeatureMetric, *metric) {
 		t.Errorf("unequal metrics. expected (%+v) received (%+v) ", otherMetric.WPTRunFeatureMetric, *metric)
+	}
+
+	testLatestWPTMetric(ctx, t, spannerClient, sampleRunMetrics)
+}
+
+func testLatestWPTMetric(ctx context.Context, t *testing.T, spannerClient *Client, sampleRunMetrics []struct {
+	ExternalRunID int64
+	Metrics       map[string]WPTRunFeatureMetric
+}) {
+	// Test. Add a new run and metric and get a new latest metric.
+	// Get the current latest (should be run 6 at index 5)
+	latestMetric, err := spannerClient.GetLatestMetricByFeatureKeyBrowserChannel(
+		ctx, "feature1", "fooBrowser", shared.StableLabel)
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error when reading the lateste metric. received %s", err.Error())
+	}
+	if !reflect.DeepEqual(sampleRunMetrics[5].Metrics["feature1"], *latestMetric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ",
+			sampleRunMetrics[5].Metrics["feature1"], *latestMetric)
+	}
+
+	// Add a new run
+	err = spannerClient.InsertWPTRun(ctx, WPTRun{
+		RunID:            10,
+		TimeStart:        time.Date(2020, time.January, 2, 0, 0, 0, 0, time.UTC),
+		TimeEnd:          time.Date(2020, time.January, 2, 1, 0, 0, 0, time.UTC),
+		BrowserName:      "fooBrowser",
+		BrowserVersion:   "0.0.0",
+		Channel:          shared.StableLabel,
+		OSName:           "os",
+		OSVersion:        "0.0.0",
+		FullRevisionHash: "abcdef0123456789",
+	})
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error upon insert. received %s", err.Error())
+	}
+	// Upsert the metric
+	newLatestMetric := struct {
+		ExternalRunID int64
+		Metrics       map[string]WPTRunFeatureMetric
+	}{
+		ExternalRunID: 10,
+		Metrics: map[string]WPTRunFeatureMetric{
+			"feature1": {
+				TotalTests: valuePtr[int64](3300), // Change this value
+				TestPass:   valuePtr[int64](120),  // Change this value
+				// TODO: Put value when asserting subtest metrics and feature run details
+				TotalSubtests:     nil,
+				SubtestPass:       nil,
+				FeatureRunDetails: nil,
+			},
+		},
+	}
+	err = spannerClient.UpsertWPTRunFeatureMetrics(
+		ctx,
+		newLatestMetric.ExternalRunID, newLatestMetric.Metrics)
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error upon insert. received %s", err.Error())
+	}
+	latestMetric, err = spannerClient.GetLatestMetricByFeatureKeyBrowserChannel(
+		ctx, "feature1", "fooBrowser", shared.StableLabel)
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error when reading the lateste metric. received %s", err.Error())
+	}
+	if !reflect.DeepEqual(newLatestMetric.Metrics["feature1"], *latestMetric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ",
+			newLatestMetric.Metrics["feature1"], *latestMetric)
+	}
+	// Update an older metric. We should still get the latest metric still.
+	updatedMetric1 := struct {
+		ExternalRunID int64
+		Metrics       map[string]WPTRunFeatureMetric
+	}{
+		ExternalRunID: 0,
+		Metrics: map[string]WPTRunFeatureMetric{
+			"feature1": {
+				TotalTests: valuePtr[int64](3500), // Change this value
+				TestPass:   valuePtr[int64](1000), // Change this value
+				// TODO: Put value when asserting subtest metrics and feature run details
+				TotalSubtests:     nil,
+				SubtestPass:       nil,
+				FeatureRunDetails: nil,
+			},
+		},
+	}
+
+	err = spannerClient.UpsertWPTRunFeatureMetrics(
+		ctx,
+		updatedMetric1.ExternalRunID, updatedMetric1.Metrics)
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error upon insert. received %s", err.Error())
+	}
+
+	latestMetric, err = spannerClient.GetLatestMetricByFeatureKeyBrowserChannel(
+		ctx, "feature1", "fooBrowser", shared.StableLabel)
+	if !errors.Is(err, nil) {
+		t.Errorf("expected no error when reading the lateste metric. received %s", err.Error())
+	}
+	if !reflect.DeepEqual(newLatestMetric.Metrics["feature1"], *latestMetric) {
+		t.Errorf("unequal metrics. expected (%+v) received (%+v) ",
+			newLatestMetric.Metrics["feature1"], *latestMetric)
 	}
 }
 
