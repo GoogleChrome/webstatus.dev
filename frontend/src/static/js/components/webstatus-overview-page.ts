@@ -39,7 +39,7 @@ import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
-import {CELL_DEFS} from '../webstatus-overview-cells.js';
+import {CELL_DEFS} from './webstatus-overview-cells.js';
 import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
 
 @customElement('webstatus-overview-page')
@@ -121,12 +121,13 @@ export class OverviewPage extends LitElement {
     }
     // Fetch all pages of data via getAllFeatures
     const allFeatures = await this.allFeaturesFetcher();
-    // Use CELL_DEFS to define the columns of the csv.
-    // const columns = CELL_DEFS.map(cellDef => cellDef.title);
 
-    // Get the current (active) columns.
+    // Use CELL_DEFS to define the columns and
+    // get the current (active) columns.
     const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
-    const columns = columnKeys.map(columnKey => CELL_DEFS[columnKey].title);
+    const columns = columnKeys.map(
+      columnKey => CELL_DEFS[columnKey].nameInDialog
+    );
 
     // Convert array of feature rows into array of arrays of strings, in the
     // same order as columns.
