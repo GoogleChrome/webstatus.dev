@@ -129,15 +129,15 @@ export class OverviewPage extends LitElement {
       columnKey => CELL_DEFS[columnKey].nameInDialog
     );
 
-    // Convert array of feature rows into array of arrays of strings, in the
-    // same order as columns.
+    // Convert array of feature rows into array of arrays of strings,
+    // in the same order as columns.
     const rows = allFeatures.map(feature => {
       const baselineStatus = feature.baseline?.status || '';
       const browserImpl = feature.browser_implementations!;
       const row = [];
       // Iterate over the current columns to get the values for each column.
-      for (const column of columns) {
-        switch (column) {
+      for (const key of columnKeys) {
+        switch (key) {
           case ColumnKey.Name:
             row.push(feature.name);
             break;
@@ -161,7 +161,6 @@ export class OverviewPage extends LitElement {
       return row;
     });
 
-    // Convert data to csv
     const csv = convertToCSV(columns, rows);
 
     // Create blob to download the csv.
