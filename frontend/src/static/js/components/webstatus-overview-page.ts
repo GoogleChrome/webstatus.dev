@@ -22,6 +22,7 @@ import {type components} from 'webstatus.dev-backend';
 import {convertToCSV} from '../utils/csv.js';
 
 import {
+  getColumnsSpec,
   getPageSize,
   getPaginationStart,
   getSearchQuery,
@@ -38,6 +39,8 @@ import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
+import {CELL_DEFS} from '../webstatus-overview-cells.js';
+import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -118,28 +121,42 @@ export class OverviewPage extends LitElement {
     }
     // Fetch all pages of data via getAllFeatures
     const allFeatures = await this.allFeaturesFetcher();
-    const columns = [
-      'Feature',
-      'Baseline status',
-      'Browser Impl in Chrome',
-      'Browser Impl in Edge',
-      'Browser Impl in Firefox',
-      'Browser Impl in Safari',
-    ];
+    // Use CELL_DEFS to define the columns of the csv.
+    // const columns = CELL_DEFS.map(cellDef => cellDef.title);
+
+    // Get the current (active) columns.
+    const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
+    const columns = columnKeys.map(columnKey => CELL_DEFS[columnKey].title);
 
     // Convert array of feature rows into array of arrays of strings, in the
     // same order as columns.
     const rows = allFeatures.map(feature => {
       const baselineStatus = feature.baseline?.status || '';
       const browserImpl = feature.browser_implementations!;
-      const row = [
-        feature.name,
-        baselineStatus,
-        browserImpl?.chrome?.date || '',
-        browserImpl?.edge?.date || '',
-        browserImpl?.firefox?.date || '',
-        browserImpl?.safari?.date || '',
-      ];
+      const row = [];
+      // Iterate over the current columns to get the values for each column.
+      for (const column of columns) {
+        switch (column) {
+          case ColumnKey.Name:
+            row.push(feature.name);
+            break;
+          case ColumnKey.BaselineStatus:
+            row.push(baselineStatus);
+            break;
+          case ColumnKey.StableChrome:
+            row.push(browserImpl?.chrome?.date || '');
+            break;
+          case ColumnKey.StableEdge:
+            row.push(browserImpl?.edge?.date || '');
+            break;
+          case ColumnKey.StableFirefox:
+            row.push(browserImpl?.firefox?.date || '');
+            break;
+          case ColumnKey.StableSafari:
+            row.push(browserImpl?.safari?.date || '');
+            break;
+        }
+      }
       return row;
     });
 
