@@ -14,9 +14,9 @@
 
 -- LatestWPTRunFeatureMetrics contains latest snapshot of WPT metric information for a web feature.
 CREATE TABLE IF NOT EXISTS LatestWPTRunFeatureMetrics (
-    ID STRING(36) NOT NULL,
+    RunMetricID STRING(36) NOT NULL,
     WebFeatureID STRING(36) NOT NULL,
     BrowserName STRING(64) NOT NULL,
     Channel STRING(32) NOT NULL,
-    FOREIGN KEY (ID, WebFeatureID) REFERENCES WPTRunFeatureMetrics(ID, WebFeatureID) ON DELETE CASCADE
+    FOREIGN KEY (RunMetricID, WebFeatureID) REFERENCES WPTRunFeatureMetrics(ID, WebFeatureID) ON DELETE CASCADE
 ) PRIMARY KEY (WebFeatureID, BrowserName, Channel);

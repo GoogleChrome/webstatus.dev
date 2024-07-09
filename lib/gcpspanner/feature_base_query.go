@@ -515,7 +515,7 @@ COALESCE(
 			)
 		)
 		FROM LatestWPTRunFeatureMetrics latest
-		JOIN WPTRunFeatureMetrics wpfm ON latest.ID = wpfm.ID
+		JOIN WPTRunFeatureMetrics wpfm ON latest.RunMetricID = wpfm.ID
 			AND latest.WebFeatureID = wpfm.WebFeatureID
 			AND latest.WebFeatureID = wf.ID
 		WHERE latest.Channel = @{{ $.ChannelParam }}

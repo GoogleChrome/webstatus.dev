@@ -85,7 +85,7 @@ func (c *Client) GetLatestMetricByFeatureKeyBrowserChannel(
         SELECT
 			wpfm.TotalTests, wpfm.TestPass, wpfm.TotalSubtests, wpfm.SubtestPass
         FROM LatestWPTRunFeatureMetrics l
-        JOIN WPTRunFeatureMetrics wpfm ON l.ID = wpfm.ID AND l.WebFeatureID = wpfm.WebFeatureID
+        JOIN WPTRunFeatureMetrics wpfm ON l.RunMetricID = wpfm.ID AND l.WebFeatureID = wpfm.WebFeatureID
         JOIN WebFeatures wf ON wf.ID = l.WebFeatureID
         WHERE wf.FeatureKey = @featureKey AND l.BrowserName = @browserName AND l.Channel = @channel`)
 

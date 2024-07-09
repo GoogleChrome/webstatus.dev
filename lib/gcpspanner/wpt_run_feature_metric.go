@@ -121,7 +121,7 @@ type WPTRunFeatureMetric struct {
 
 // SpannerLatestWPTRunFeatureMetric represents a pointer to an entry in WPTRunFeatureMetrics.
 type SpannerLatestWPTRunFeatureMetric struct {
-	ID           string `spanner:"ID"`
+	RunMetricID  string `spanner:"RunMetricID"`
 	WebFeatureID string `spanner:"WebFeatureID"`
 	BrowserName  string `spanner:"BrowserName"`
 	Channel      string `spanner:"Channel"`
@@ -195,7 +195,7 @@ func getLatestWPTRunFeatureMetricTimeStart(
 	stmt := spanner.NewStatement(`
         SELECT wpfm.TimeStart
         FROM LatestWPTRunFeatureMetrics l
-        JOIN WPTRunFeatureMetrics wpfm ON l.ID = wpfm.ID
+        JOIN WPTRunFeatureMetrics wpfm ON l.RunMetricID = wpfm.ID
         WHERE l.WebFeatureID = @featureID
         AND l.BrowserName = @browserName
         AND l.Channel = @channel`)
@@ -356,7 +356,7 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 			// Update LatestWPTRunFeatureMetrics if newer
 			if shouldUpsertLatestMetric(existingTimeStart, metric.TimeStart) {
 				m1, err := spanner.InsertOrUpdateStruct(LatestWPTRunFeatureMetricsTable, SpannerLatestWPTRunFeatureMetric{
-					ID:           metric.ID,
+					RunMetricID:  metric.ID,
 					WebFeatureID: metric.WebFeatureID,
 					BrowserName:  metric.BrowserName,
 					Channel:      metric.Channel,
