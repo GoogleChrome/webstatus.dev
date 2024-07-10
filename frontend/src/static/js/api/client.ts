@@ -162,14 +162,12 @@ export class APIClient {
   >(
     path: PathsWithMethod<paths, 'get'>,
     params: ParamsType = {} as ParamsType,
-    offset?: number,
+    pageToken?: string,
     pageSize?: number
   ): Promise<ResponseType> {
     const qsParams: ParamsType & PageParams = {
       ...params,
-      page_token: offset
-        ? this.createOffsetPaginationTokenForGetFeatures(offset)
-        : undefined,
+      page_token: pageToken,
       page_size: pageSize,
     };
 
