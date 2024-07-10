@@ -142,7 +142,7 @@ export class APIClient {
 
   // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.
   // Typically, users of the /v1/features endpoint should use the provided pagination token.
-  // However, this token can be used to facilitate a UI with where we have selectable page numbers.
+  // However, this token can be used to facilitate a UI where we have selectable page numbers.
   // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
   // treated as a stable interface. Instead, external users should rely on the returned pagination token long term.
   private createOffsetPaginationTokenForGetFeatures(offset: number): string {
@@ -162,12 +162,16 @@ export class APIClient {
   >(
     path: PathsWithMethod<paths, 'get'>,
     params: ParamsType = {} as ParamsType,
-    pageToken?: string,
+    // pageToken?: string,
+    offset?: number,
     pageSize?: number
   ): Promise<ResponseType> {
     const qsParams: ParamsType & PageParams = {
       ...params,
-      page_token: pageToken,
+      // page_token: pageToken,
+      page_token: offset
+        ? this.createOffsetPaginationTokenForGetFeatures(offset)
+        : undefined,
       page_size: pageSize,
     };
 
