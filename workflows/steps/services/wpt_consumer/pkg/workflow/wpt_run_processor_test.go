@@ -124,11 +124,17 @@ type processRunTest struct {
 	expectedErr               error
 }
 
+// nolint: lll // WONTFIX
+const v2ResultsURL = "https://storage.googleapis.com/wptd/ddd7a27d89d29d2f4573213fa9b757952efd75f1/chrome-128.0.6583.0-linux-20.04-bdd263c4fe-summary_v2.json.gz"
+
+// nolint: lll // WONTFIX
+const v1ResultsURL = "https://storage.googleapis.com/wptd/2ca67d39e538810661cd0c9a024f5ce605aa2ab1/chrome-105.0.5148.2_dev-linux-20.04-8a205efcc5-summary.json.gz"
+
 func TestProcessRun(t *testing.T) {
 	testCases := []processRunTest{
 		// nolint: dupl // Ok to have similar test cases
 		{
-			name: "Successful Processing",
+			name: "Successful Processing v2 file",
 			// nolint: exhaustruct // WONTFIX: external struct
 			inputRun: shared.TestRun{
 				ID:        123,
@@ -144,6 +150,7 @@ func TestProcessRun(t *testing.T) {
 						BrowserVersion: "browserverion",
 					},
 				},
+				ResultsURL: v2ResultsURL,
 			},
 			insertRunConfig: &insertRunConfig{
 				// nolint: exhaustruct // WONTFIX: external struct
@@ -161,6 +168,7 @@ func TestProcessRun(t *testing.T) {
 							BrowserVersion: "browserverion",
 						},
 					},
+					ResultsURL: v2ResultsURL,
 				},
 				err: nil,
 			},
@@ -202,6 +210,37 @@ func TestProcessRun(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			name: "skip non v2 file",
+			// nolint: exhaustruct // WONTFIX: external struct
+			inputRun: shared.TestRun{
+				ID:        123,
+				TimeStart: time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				TimeEnd:   time.Date(2024, time.January, 2, 0, 0, 0, 0, time.UTC),
+				Labels:    []string{shared.StableLabel},
+				ProductAtRevision: shared.ProductAtRevision{
+					FullRevisionHash: "sha",
+					Product: shared.Product{
+						OSName:         "os",
+						OSVersion:      "osversion",
+						BrowserName:    "browser",
+						BrowserVersion: "browserverion",
+					},
+				},
+				ResultsURL: v1ResultsURL,
+			},
+			insertRunConfig:    nil,
+			upsertMetricConfig: nil,
+			mockResultsDownloader: &MockResultsDownloader{
+				resultsSummary: nil,
+				shouldFail:     false,
+			},
+			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
+				webFeaturesData: shared.WebFeaturesData{},
+				shouldFail:      false,
+			},
+			expectedErr: nil,
+		},
+		{
 			name: "Fail to download data",
 			// nolint: exhaustruct // WONTFIX: external struct
 			inputRun: shared.TestRun{
@@ -218,6 +257,7 @@ func TestProcessRun(t *testing.T) {
 						BrowserVersion: "browserverion",
 					},
 				},
+				ResultsURL: v2ResultsURL,
 			},
 			insertRunConfig:    nil,
 			upsertMetricConfig: nil,
@@ -248,6 +288,7 @@ func TestProcessRun(t *testing.T) {
 						BrowserVersion: "browserverion",
 					},
 				},
+				ResultsURL: v2ResultsURL,
 			},
 			insertRunConfig:    nil,
 			upsertMetricConfig: nil,
@@ -288,6 +329,7 @@ func TestProcessRun(t *testing.T) {
 						BrowserVersion: "browserverion",
 					},
 				},
+				ResultsURL: v2ResultsURL,
 			},
 			insertRunConfig: &insertRunConfig{
 				// nolint: exhaustruct // WONTFIX: external struct
@@ -305,6 +347,7 @@ func TestProcessRun(t *testing.T) {
 							BrowserVersion: "browserverion",
 						},
 					},
+					ResultsURL: v2ResultsURL,
 				},
 				err: errInsertWPTRun,
 			},
@@ -347,6 +390,7 @@ func TestProcessRun(t *testing.T) {
 						BrowserVersion: "browserverion",
 					},
 				},
+				ResultsURL: v2ResultsURL,
 			},
 			insertRunConfig: &insertRunConfig{
 				// nolint: exhaustruct // WONTFIX: external struct
@@ -364,6 +408,7 @@ func TestProcessRun(t *testing.T) {
 							BrowserVersion: "browserverion",
 						},
 					},
+					ResultsURL: v2ResultsURL,
 				},
 				err: nil,
 			},

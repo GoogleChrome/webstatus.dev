@@ -507,55 +507,19 @@ OFFSET {{ .Offset }}
 	gcpFSMetricsSubQueryRawTemplate = `
 COALESCE(
 	(
-		SELECT ARRAY_AGG(metric_struct)
-		FROM (
-		{{- range $index, $browser := .BrowserList }}
-			{{ if $index -}}
-			UNION ALL
-			{{ end }}
-			SELECT AS STRUCT
-				"{{ $browser }}" AS BrowserName,
-				(
-					SELECT
-						IF(
-							ARRAY_LENGTH(ARRAY_AGG({{ $.PassRateColumn }})) > 0,
-							ARRAY_AGG({{ $.PassRateColumn }})[OFFSET(0)],
-							NULL
-						) AS PassRate
-					FROM WPTRunFeatureMetrics metrics
-					WHERE metrics.WebFeatureID = wf.ID
-						AND metrics.Channel = @{{ $.ChannelParam }}
-						AND metrics.BrowserName = "{{ $browser }}"
-						AND metrics.TimeStart = (
-							SELECT MAX(TimeStart)
-							FROM WPTRunFeatureMetrics metrics2
-							WHERE metrics2.WebFeatureID = wf.ID
-								AND metrics2.Channel = @{{ $.ChannelParam }}
-								AND metrics2.BrowserName = "{{ $browser }}"
-						)
-				) AS PassRate,
-				(
-					SELECT
-						IF(
-							ARRAY_LENGTH(ARRAY_AGG(FeatureRunDetails)) > 0,
-							ARRAY_AGG(FeatureRunDetails)[OFFSET(0)],
-							NULL
-						) AS FeatureRunDetails
-					FROM WPTRunFeatureMetrics metrics
-					WHERE metrics.WebFeatureID = wf.ID
-						AND metrics.Channel = @{{ $.ChannelParam }}
-						AND metrics.BrowserName = "{{ $browser }}"
-						AND metrics.TimeStart = (
-							SELECT MAX(TimeStart)
-							FROM WPTRunFeatureMetrics metrics2
-							WHERE metrics2.WebFeatureID = wf.ID
-								AND metrics2.Channel = @{{ $.ChannelParam }}
-								AND metrics2.BrowserName = "{{ $browser }}"
-						)
-				) AS FeatureRunDetails
-			{{- end }}
-		) metric_struct
-		WHERE metric_struct.PassRate IS NOT NULL
+		SELECT ARRAY_AGG(
+			STRUCT(
+				latest.BrowserName AS BrowserName,
+				wpfm.{{ $.PassRateColumn }} AS PassRate,
+				wpfm.FeatureRunDetails AS FeatureRunDetails
+			)
+		)
+		FROM LatestWPTRunFeatureMetrics latest
+		JOIN WPTRunFeatureMetrics wpfm ON latest.RunMetricID = wpfm.ID
+			AND latest.WebFeatureID = wpfm.WebFeatureID
+			AND latest.WebFeatureID = wf.ID
+		WHERE latest.Channel = @{{ $.ChannelParam }}
+			AND latest.BrowserName IN UNNEST(@browserNames)
 	),
 	(
 		SELECT ARRAY(
@@ -616,6 +580,8 @@ func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
 	params[stableParamName] = "stable"
 	experimentalParamName := "experimentalChannelParam"
 	params[experimentalParamName] = "experimental"
+
+	params["browserNames"] = args.Browsers
 
 	stableMetricsData := GCPFSMetricsTemplateData{
 		Channel:        "Stable",
