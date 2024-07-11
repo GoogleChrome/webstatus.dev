@@ -18,27 +18,7 @@ import createClient, {HeadersOptions, type FetchOptions} from 'openapi-fetch';
 import {type components, type paths} from 'webstatus.dev-backend';
 import {createAPIError} from './errors.js';
 
-// import type {PathsWithMethod} from 'openapi-typescript-helpers';
-
-// Local copy of PathsWithMethod from openapi-typescript-helpers,
-// since eslint complains that the type is not required, but it is.
-type HttpMethod =
-  | 'get'
-  | 'put'
-  | 'post'
-  | 'delete'
-  | 'options'
-  | 'head'
-  | 'patch'
-  | 'trace';
-
-type PathsWithMethod<Paths extends {}, PathnameMethod extends HttpMethod> = {
-  [Pathname in keyof Paths]: Paths[Pathname] extends {
-    [K in PathnameMethod]: unknown;
-  }
-    ? Pathname
-    : never;
-}[keyof Paths];
+import type {PathsWithMethod} from 'openapi-typescript-helpers';
 
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']

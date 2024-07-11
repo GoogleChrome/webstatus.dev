@@ -75,7 +75,11 @@ export default [
       'n/no-unpublished-import': [
         'error',
         {
-          allowModules: ['@open-wc/testing', 'sinon'],
+          allowModules: [
+            '@open-wc/testing',
+            'sinon',
+            'openapi-typescript-helpers',
+          ],
         },
       ],
 
