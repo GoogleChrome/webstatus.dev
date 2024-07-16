@@ -31,14 +31,14 @@ var ErrUnexpectedFormat = errors.New("unexpected format")
 // https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
 // The string is the feature ID.
 // It will consume the readcloser and close it.
-func (p Parser) Parse(in io.ReadCloser) (map[string]web_platform_dx__web_features.FeatureData, error) {
+func (p Parser) Parse(in io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error) {
 	defer in.Close()
-	var ret map[string]web_platform_dx__web_features.FeatureData
+	var ret web_platform_dx__web_features.FeatureData
 	decoder := json.NewDecoder(in)
 	err := decoder.Decode(&ret)
 	if err != nil {
 		return nil, errors.Join(ErrUnexpectedFormat, err)
 	}
 
-	return ret, nil
+	return &ret, nil
 }

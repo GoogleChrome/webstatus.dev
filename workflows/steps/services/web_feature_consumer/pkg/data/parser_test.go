@@ -29,7 +29,7 @@ func TestParse(t *testing.T) {
 		path string
 	}{
 		{
-			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v0.6.0",
+			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v0.10.0",
 			path: path.Join("testdata", "data.json"),
 		},
 	}
@@ -43,8 +43,14 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Errorf("unable to parse file err %s", err.Error())
 			}
-			if len(result) == 0 {
-				t.Error("unexpected empty map")
+			if len(result.Features) == 0 {
+				t.Error("unexpected empty map for features")
+			}
+			if len(result.Groups) == 0 {
+				t.Error("unexpected empty map for groups")
+			}
+			if len(result.Snapshots) == 0 {
+				t.Error("unexpected empty map for snapshots")
 			}
 		})
 	}

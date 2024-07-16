@@ -45,7 +45,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 	testCases := []struct {
 		name                string
 		featureKeyToID      map[string]string
-		inputFeatureData    map[string]web_platform_dx__web_features.FeatureData
+		inputFeatureData    map[string]web_platform_dx__web_features.FeatureValue
 		expectedUpserts     map[string]gds.FeatureMetadata
 		mockClientError     error
 		expectedErrorReturn error
@@ -53,7 +53,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Success with single CanIUse ID",
 			featureKeyToID: map[string]string{"feature1": "id1"},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureData{
+			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Alias:          nil,
 					CompatFeatures: nil,
@@ -64,9 +64,23 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 						StringArray: nil,
 					},
 					DescriptionHTML: "<html>1",
-					Status:          nil,
-					UsageStats:      nil,
-					Spec:            nil,
+					Status: web_platform_dx__web_features.Status{
+						Baseline:         nil,
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						Support: web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        nil,
+							FirefoxAndroid: nil,
+							Safari:         nil,
+							SafariIos:      nil,
+						},
+					},
+					Spec:     nil,
+					Group:    nil,
+					Snapshot: nil,
 				},
 			},
 			expectedUpserts: map[string]gds.FeatureMetadata{
@@ -78,7 +92,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Success with multiple CanIUse IDs",
 			featureKeyToID: map[string]string{"feature2": "id2"},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureData{
+			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature2": {
 					Alias:          nil,
 					CompatFeatures: nil,
@@ -89,9 +103,23 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 						StringArray: []string{"caniuse-id2a", "caniuse-id2b"},
 					},
 					DescriptionHTML: "<html>2",
-					Status:          nil,
-					UsageStats:      nil,
-					Spec:            nil,
+					Status: web_platform_dx__web_features.Status{
+						Baseline:         nil,
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						Support: web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        nil,
+							FirefoxAndroid: nil,
+							Safari:         nil,
+							SafariIos:      nil,
+						},
+					},
+					Spec:     nil,
+					Group:    nil,
+					Snapshot: nil,
 				},
 			},
 			expectedUpserts: map[string]gds.FeatureMetadata{
@@ -107,7 +135,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Missing feature ID",
 			featureKeyToID: map[string]string{},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureData{
+			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature3": {
 					Alias:           nil,
 					Caniuse:         nil,
@@ -115,9 +143,23 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Name:            "feature 3",
 					Description:     "Feature 3 description",
 					DescriptionHTML: "<html>3",
-					Status:          nil,
-					UsageStats:      nil,
-					Spec:            nil,
+					Status: web_platform_dx__web_features.Status{
+						Baseline:         nil,
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						Support: web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        nil,
+							FirefoxAndroid: nil,
+							Safari:         nil,
+							SafariIos:      nil,
+						},
+					},
+					Spec:     nil,
+					Group:    nil,
+					Snapshot: nil,
 				},
 			},
 			expectedUpserts:     map[string]gds.FeatureMetadata{},
@@ -127,7 +169,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Upsert error",
 			featureKeyToID: map[string]string{"feature4": "id4"},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureData{
+			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature4": {
 					Alias:           nil,
 					Caniuse:         nil,
@@ -135,9 +177,23 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Name:            "feature 4",
 					Description:     "Feature 4 description",
 					DescriptionHTML: "<html>4",
-					Status:          nil,
-					UsageStats:      nil,
-					Spec:            nil,
+					Status: web_platform_dx__web_features.Status{
+						Baseline:         nil,
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						Support: web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        nil,
+							FirefoxAndroid: nil,
+							Safari:         nil,
+							SafariIos:      nil,
+						},
+					},
+					Spec:     nil,
+					Group:    nil,
+					Snapshot: nil,
 				},
 			},
 			expectedUpserts:     map[string]gds.FeatureMetadata{},

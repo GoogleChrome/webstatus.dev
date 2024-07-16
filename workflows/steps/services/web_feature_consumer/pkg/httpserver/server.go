@@ -40,14 +40,14 @@ type AssetGetter interface {
 
 // AssetParser describes the behavior to parse the io.ReadCloser from AssetGetter into the expected data type.
 type AssetParser interface {
-	Parse(io.ReadCloser) (map[string]web_platform_dx__web_features.FeatureData, error)
+	Parse(io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error)
 }
 
 // WebFeatureStorer describes the logic to insert the web features that were returned by the AssetParser.
 type WebFeatureStorer interface {
 	InsertWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error)
+		data map[string]web_platform_dx__web_features.FeatureValue) (map[string]string, error)
 }
 
 // WebFeatureMetadataStorer describes the logic to insert the non-relation metadata about web features that
@@ -56,7 +56,7 @@ type WebFeatureMetadataStorer interface {
 	InsertWebFeaturesMetadata(
 		ctx context.Context,
 		featureKeyToID map[string]string,
-		data map[string]web_platform_dx__web_features.FeatureData) error
+		data map[string]web_platform_dx__web_features.FeatureValue) error
 }
 
 type Server struct {
@@ -100,7 +100,7 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
-	mapping, err := s.storer.InsertWebFeatures(ctx, data)
+	mapping, err := s.storer.InsertWebFeatures(ctx, data.Features)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store data", "error", err)
 
@@ -110,7 +110,7 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
-	err = s.metadataStorer.InsertWebFeaturesMetadata(ctx, mapping, data)
+	err = s.metadataStorer.InsertWebFeaturesMetadata(ctx, mapping, data.Features)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store metadata", "error", err)
 
