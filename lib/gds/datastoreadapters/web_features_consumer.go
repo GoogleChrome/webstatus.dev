@@ -44,7 +44,7 @@ type WebFeaturesConsumer struct {
 func (c *WebFeaturesConsumer) InsertWebFeaturesMetadata(
 	ctx context.Context,
 	featureKeyToID map[string]string,
-	data map[string]web_platform_dx__web_features.FeatureData) error {
+	data map[string]web_platform_dx__web_features.FeatureValue) error {
 	for featureKey, featureData := range data {
 		featureID, found := featureKeyToID[featureKey]
 		if !found {

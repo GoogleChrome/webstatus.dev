@@ -58,11 +58,11 @@ type mockAssetParser struct {
 
 type mockParseConfig struct {
 	expectedFileContents string
-	returnData           map[string]web_platform_dx__web_features.FeatureData
+	returnData           *web_platform_dx__web_features.FeatureData
 	returnError          error
 }
 
-func (m *mockAssetParser) Parse(file io.ReadCloser) (map[string]web_platform_dx__web_features.FeatureData, error) {
+func (m *mockAssetParser) Parse(file io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error) {
 	defer file.Close()
 	fileContents, err := io.ReadAll(file)
 	if err != nil {
@@ -76,7 +76,7 @@ func (m *mockAssetParser) Parse(file io.ReadCloser) (map[string]web_platform_dx_
 }
 
 type mockInsertWebFeaturesConfig struct {
-	expectedData    map[string]web_platform_dx__web_features.FeatureData
+	expectedData    map[string]web_platform_dx__web_features.FeatureValue
 	returnedMapping map[string]string
 	returnError     error
 }
@@ -87,7 +87,7 @@ type mockWebFeatureStorer struct {
 }
 
 func (m *mockWebFeatureStorer) InsertWebFeatures(
-	_ context.Context, data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error) {
+	_ context.Context, data map[string]web_platform_dx__web_features.FeatureValue) (map[string]string, error) {
 	if !reflect.DeepEqual(data, m.mockInsertWebFeaturesCfg.expectedData) {
 		m.t.Error("unexpected data")
 	}
@@ -96,7 +96,7 @@ func (m *mockWebFeatureStorer) InsertWebFeatures(
 }
 
 type mockInsertWebFeaturesMetadataConfig struct {
-	expectedData    map[string]web_platform_dx__web_features.FeatureData
+	expectedData    map[string]web_platform_dx__web_features.FeatureValue
 	expectedMapping map[string]string
 	returnError     error
 }
@@ -109,7 +109,7 @@ type mockWebFeatureMetadataStorer struct {
 func (m *mockWebFeatureMetadataStorer) InsertWebFeaturesMetadata(
 	_ context.Context,
 	featureKeyToID map[string]string,
-	data map[string]web_platform_dx__web_features.FeatureData) error {
+	data map[string]web_platform_dx__web_features.FeatureValue) error {
 	if !reflect.DeepEqual(data, m.mockInsertWebFeaturesMetadataCfg.expectedData) ||
 		!reflect.DeepEqual(featureKeyToID, m.mockInsertWebFeaturesMetadataCfg.expectedMapping) {
 		m.t.Error("unexpected input")
@@ -144,33 +144,65 @@ func TestPostV1WebFeatures(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: map[string]web_platform_dx__web_features.FeatureData{
-					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
-						Description:     "text",
-						DescriptionHTML: "<html>",
+				returnData: &web_platform_dx__web_features.FeatureData{
+					Features: map[string]web_platform_dx__web_features.FeatureValue{
+						"feature1": {
+							Name:           "Feature 1",
+							Alias:          nil,
+							Caniuse:        nil,
+							CompatFeatures: nil,
+							Spec:           nil,
+							Status: web_platform_dx__web_features.Status{
+								Baseline:         nil,
+								BaselineHighDate: nil,
+								BaselineLowDate:  nil,
+								Support: web_platform_dx__web_features.Support{
+									Chrome:         nil,
+									ChromeAndroid:  nil,
+									Edge:           nil,
+									Firefox:        nil,
+									FirefoxAndroid: nil,
+									Safari:         nil,
+									SafariIos:      nil,
+								},
+							},
+							Description:     "text",
+							DescriptionHTML: "<html>",
+							Group:           nil,
+							Snapshot:        nil,
+						},
 					},
+					Groups:    nil,
+					Snapshots: nil,
 				},
 				returnError: nil,
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
-				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
+						Name:           "Feature 1",
+						Alias:          nil,
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
 						Description:     "text",
 						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
 					},
 				},
 				returnedMapping: map[string]string{
@@ -179,17 +211,31 @@ func TestPostV1WebFeatures(t *testing.T) {
 				returnError: nil,
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
-				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
+						Name:           "Feature 1",
+						Alias:          nil,
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
 						Description:     "text",
 						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
 					},
 				},
 				expectedMapping: map[string]string{
@@ -239,20 +285,8 @@ func TestPostV1WebFeatures(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: map[string]web_platform_dx__web_features.FeatureData{
-					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
-						Description:     "text",
-						DescriptionHTML: "<html>",
-					},
-				},
-				returnError: errors.New("cannot parse data"),
+				returnData:           nil,
+				returnError:          errors.New("cannot parse data"),
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData:    nil,
@@ -280,33 +314,65 @@ func TestPostV1WebFeatures(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: map[string]web_platform_dx__web_features.FeatureData{
-					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
-						Description:     "text",
-						DescriptionHTML: "<html>",
+				returnData: &web_platform_dx__web_features.FeatureData{
+					Features: map[string]web_platform_dx__web_features.FeatureValue{
+						"feature1": {
+							Name:           "Feature 1",
+							Alias:          nil,
+							Caniuse:        nil,
+							CompatFeatures: nil,
+							Spec:           nil,
+							Status: web_platform_dx__web_features.Status{
+								Baseline:         nil,
+								BaselineHighDate: nil,
+								BaselineLowDate:  nil,
+								Support: web_platform_dx__web_features.Support{
+									Chrome:         nil,
+									ChromeAndroid:  nil,
+									Edge:           nil,
+									Firefox:        nil,
+									FirefoxAndroid: nil,
+									Safari:         nil,
+									SafariIos:      nil,
+								},
+							},
+							Description:     "text",
+							DescriptionHTML: "<html>",
+							Group:           nil,
+							Snapshot:        nil,
+						},
 					},
+					Groups:    nil,
+					Snapshots: nil,
 				},
 				returnError: nil,
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
-				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
+						Name:           "Feature 1",
+						Alias:          nil,
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
 						Description:     "text",
 						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
 					},
 				},
 				returnedMapping: map[string]string{
@@ -335,33 +401,65 @@ func TestPostV1WebFeatures(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: map[string]web_platform_dx__web_features.FeatureData{
-					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
-						Description:     "text",
-						DescriptionHTML: "<html>",
+				returnData: &web_platform_dx__web_features.FeatureData{
+					Features: map[string]web_platform_dx__web_features.FeatureValue{
+						"feature1": {
+							Name:           "Feature 1",
+							Alias:          nil,
+							Caniuse:        nil,
+							CompatFeatures: nil,
+							Spec:           nil,
+							Status: web_platform_dx__web_features.Status{
+								Baseline:         nil,
+								BaselineHighDate: nil,
+								BaselineLowDate:  nil,
+								Support: web_platform_dx__web_features.Support{
+									Chrome:         nil,
+									ChromeAndroid:  nil,
+									Edge:           nil,
+									Firefox:        nil,
+									FirefoxAndroid: nil,
+									Safari:         nil,
+									SafariIos:      nil,
+								},
+							},
+							Description:     "text",
+							DescriptionHTML: "<html>",
+							Group:           nil,
+							Snapshot:        nil,
+						},
 					},
+					Groups:    nil,
+					Snapshots: nil,
 				},
 				returnError: nil,
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
-				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
+						Name:           "Feature 1",
+						Alias:          nil,
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
 						Description:     "text",
 						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
 					},
 				},
 				returnedMapping: map[string]string{
@@ -370,17 +468,31 @@ func TestPostV1WebFeatures(t *testing.T) {
 				returnError: nil,
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
-				expectedData: map[string]web_platform_dx__web_features.FeatureData{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
-						Name:            "Feature 1",
-						Alias:           nil,
-						Caniuse:         nil,
-						CompatFeatures:  nil,
-						Spec:            nil,
-						Status:          nil,
-						UsageStats:      nil,
+						Name:           "Feature 1",
+						Alias:          nil,
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
 						Description:     "text",
 						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
 					},
 				},
 				expectedMapping: map[string]string{
