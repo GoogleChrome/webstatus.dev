@@ -47,7 +47,7 @@ type WebFeaturesConsumer struct {
 
 func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureData) (map[string]string, error) {
+	data map[string]web_platform_dx__web_features.FeatureValue) (map[string]string, error) {
 	ret := make(map[string]string, len(data))
 	for featureID, featureData := range data {
 		webFeature := gcpspanner.WebFeature{
@@ -65,10 +65,9 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 			LowDate:  nil,
 			HighDate: nil,
 		}
-		if featureData.Status != nil {
-			featureBaselineStatus.LowDate = convertStringToDate(featureData.Status.BaselineLowDate)
-			featureBaselineStatus.HighDate = convertStringToDate(featureData.Status.BaselineHighDate)
-		}
+
+		featureBaselineStatus.LowDate = convertStringToDate(featureData.Status.BaselineLowDate)
+		featureBaselineStatus.HighDate = convertStringToDate(featureData.Status.BaselineHighDate)
 
 		err = c.client.UpsertFeatureBaselineStatus(ctx, featureID, featureBaselineStatus)
 		if err != nil {
@@ -105,7 +104,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 func consumeFeatureSpecInformation(ctx context.Context,
 	client WebFeatureSpannerClient,
 	featureID string,
-	featureData web_platform_dx__web_features.FeatureData) error {
+	featureData web_platform_dx__web_features.FeatureValue) error {
 	if featureData.Spec == nil {
 		return nil
 	}
@@ -139,34 +138,32 @@ func consumeFeatureSpecInformation(ctx context.Context,
 }
 
 func extractBrowserAvailability(
-	featureData web_platform_dx__web_features.FeatureData) []gcpspanner.BrowserFeatureAvailability {
+	featureData web_platform_dx__web_features.FeatureValue) []gcpspanner.BrowserFeatureAvailability {
 	var fba []gcpspanner.BrowserFeatureAvailability
-	if featureData.Status != nil && featureData.Status.Support != nil {
-		support := featureData.Status.Support
-		if support.Chrome != nil {
-			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
-				BrowserName:    "chrome",
-				BrowserVersion: *support.Chrome,
-			})
-		}
-		if support.Edge != nil {
-			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
-				BrowserName:    "edge",
-				BrowserVersion: *support.Edge,
-			})
-		}
-		if support.Firefox != nil {
-			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
-				BrowserName:    "firefox",
-				BrowserVersion: *support.Firefox,
-			})
-		}
-		if support.Safari != nil {
-			fba = append(fba, gcpspanner.BrowserFeatureAvailability{
-				BrowserName:    "safari",
-				BrowserVersion: *support.Safari,
-			})
-		}
+	support := featureData.Status.Support
+	if support.Chrome != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "chrome",
+			BrowserVersion: *support.Chrome,
+		})
+	}
+	if support.Edge != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "edge",
+			BrowserVersion: *support.Edge,
+		})
+	}
+	if support.Firefox != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "firefox",
+			BrowserVersion: *support.Firefox,
+		})
+	}
+	if support.Safari != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "safari",
+			BrowserVersion: *support.Safari,
+		})
 	}
 
 	return fba
@@ -190,8 +187,8 @@ func convertStringToDate(in *string) *time.Time {
 }
 
 // getBaselineStatusEnum converts the web feature status to the Spanner-compatible BaselineStatus type.
-func getBaselineStatusEnum(status *web_platform_dx__web_features.Status) *gcpspanner.BaselineStatus {
-	if status == nil || status.Baseline == nil {
+func getBaselineStatusEnum(status web_platform_dx__web_features.Status) *gcpspanner.BaselineStatus {
+	if status.Baseline == nil {
 		return nil
 	}
 	if status.Baseline.Enum != nil {

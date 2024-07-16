@@ -53,30 +53,59 @@ func TestConvertStringToDate(t *testing.T) {
 func TestGetBaselineStatusEnum(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    *web_platform_dx__web_features.Status
+		input    web_platform_dx__web_features.Status
 		expected *gcpspanner.BaselineStatus
 	}{
 		{
-			name:     "undefined status",
-			input:    nil,
+			name: "undefined status",
+			input: web_platform_dx__web_features.Status{
+				Support: web_platform_dx__web_features.Support{
+					Chrome:         nil,
+					ChromeAndroid:  nil,
+					Edge:           nil,
+					Firefox:        nil,
+					FirefoxAndroid: nil,
+					Safari:         nil,
+					SafariIos:      nil,
+				},
+				Baseline:         nil,
+				BaselineHighDate: nil,
+				BaselineLowDate:  nil,
+			},
 			expected: nil,
 		},
 		{
 			name: "undefined baseline",
-			input: &web_platform_dx__web_features.Status{
+			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support:          nil,
-				Baseline:         nil,
+				Support: web_platform_dx__web_features.Support{
+					Chrome:         nil,
+					ChromeAndroid:  nil,
+					Edge:           nil,
+					Firefox:        nil,
+					FirefoxAndroid: nil,
+					Safari:         nil,
+					SafariIos:      nil,
+				},
+				Baseline: nil,
 			},
 			expected: nil,
 		},
 		{
 			name: "enum: High",
-			input: &web_platform_dx__web_features.Status{
+			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support:          nil,
+				Support: web_platform_dx__web_features.Support{
+					Chrome:         nil,
+					ChromeAndroid:  nil,
+					Edge:           nil,
+					Firefox:        nil,
+					FirefoxAndroid: nil,
+					Safari:         nil,
+					SafariIos:      nil,
+				},
 				Baseline: &web_platform_dx__web_features.BaselineUnion{
 					Enum: valuePtr(web_platform_dx__web_features.High),
 					Bool: nil,
@@ -86,10 +115,18 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "enum: Low",
-			input: &web_platform_dx__web_features.Status{
+			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support:          nil,
+				Support: web_platform_dx__web_features.Support{
+					Chrome:         nil,
+					ChromeAndroid:  nil,
+					Edge:           nil,
+					Firefox:        nil,
+					FirefoxAndroid: nil,
+					Safari:         nil,
+					SafariIos:      nil,
+				},
 				Baseline: &web_platform_dx__web_features.BaselineUnion{
 					Enum: valuePtr(web_platform_dx__web_features.Low),
 					Bool: nil,
@@ -99,10 +136,18 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "bool: False",
-			input: &web_platform_dx__web_features.Status{
+			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support:          nil,
+				Support: web_platform_dx__web_features.Support{
+					Chrome:         nil,
+					ChromeAndroid:  nil,
+					Edge:           nil,
+					Firefox:        nil,
+					FirefoxAndroid: nil,
+					Safari:         nil,
+					SafariIos:      nil,
+				},
 				Baseline: &web_platform_dx__web_features.BaselineUnion{
 					Bool: valuePtr(false),
 					Enum: nil,
@@ -112,10 +157,18 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "bool: True (should never happen)",
-			input: &web_platform_dx__web_features.Status{
+			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support:          nil,
+				Support: web_platform_dx__web_features.Support{
+					Chrome:         nil,
+					ChromeAndroid:  nil,
+					Edge:           nil,
+					Firefox:        nil,
+					FirefoxAndroid: nil,
+					Safari:         nil,
+					SafariIos:      nil,
+				},
 				Baseline: &web_platform_dx__web_features.BaselineUnion{
 					Bool: valuePtr(true),
 					Enum: nil,
@@ -292,7 +345,7 @@ func TestInsertWebFeatures(t *testing.T) {
 		mockUpsertFeatureBaselineStatusCfg      mockUpsertFeatureBaselineStatusConfig
 		mockInsertBrowserFeatureAvailabilityCfg mockInsertBrowserFeatureAvailabilityConfig
 		mockUpsertFeatureSpecCfg                mockUpsertFeatureSpecConfig
-		input                                   map[string]web_platform_dx__web_features.FeatureData
+		input                                   map[string]web_platform_dx__web_features.FeatureValue
 		expectedError                           error // Expected error from InsertWebFeatures
 	}{
 		{
@@ -397,7 +450,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
-			input: map[string]web_platform_dx__web_features.FeatureData{
+			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
 					Alias:          nil,
@@ -407,10 +460,10 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},
-					Status: &web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: &web_platform_dx__web_features.Support{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -426,7 +479,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					},
 					Description:     "text",
 					DescriptionHTML: "<html>",
-					UsageStats:      nil,
+					Group:           nil,
+					Snapshot:        nil,
 				},
 				"feature2": {
 					Name:           "Feature 2",
@@ -437,10 +491,10 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: nil,
 						String:      valuePtr("feature2-link"),
 					},
-					Status: &web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: &web_platform_dx__web_features.Support{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -456,7 +510,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					},
 					Description:     "text",
 					DescriptionHTML: "<html>",
-					UsageStats:      nil,
+					Group:           nil,
+					Snapshot:        nil,
 				},
 			},
 			expectedError: nil,
@@ -493,17 +548,25 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
-			input: map[string]web_platform_dx__web_features.FeatureData{
+			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
 					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
 					Spec:           nil,
-					Status: &web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support:          nil,
+						Support: web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        nil,
+							FirefoxAndroid: nil,
+							Safari:         nil,
+							SafariIos:      nil,
+						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.High),
 							Bool: nil,
@@ -511,7 +574,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					},
 					Description:     "text",
 					DescriptionHTML: "<html>",
-					UsageStats:      nil,
+					Group:           nil,
+					Snapshot:        nil,
 				},
 			},
 			expectedError: ErrWebFeatureTest,
@@ -556,17 +620,25 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
-			input: map[string]web_platform_dx__web_features.FeatureData{
+			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
 					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
 					Spec:           nil,
-					Status: &web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support:          nil,
+						Support: web_platform_dx__web_features.Support{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        nil,
+							FirefoxAndroid: nil,
+							Safari:         nil,
+							SafariIos:      nil,
+						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.High),
 							Bool: nil,
@@ -574,7 +646,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					},
 					Description:     "text",
 					DescriptionHTML: "<html>",
-					UsageStats:      nil,
+					Group:           nil,
+					Snapshot:        nil,
 				},
 			},
 			expectedError: ErrBaselineStatusTest,
@@ -630,17 +703,17 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
-			input: map[string]web_platform_dx__web_features.FeatureData{
+			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
 					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
 					Spec:           nil,
-					Status: &web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: &web_platform_dx__web_features.Support{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -656,7 +729,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					},
 					Description:     "text",
 					DescriptionHTML: "<html>",
-					UsageStats:      nil,
+					Group:           nil,
+					Snapshot:        nil,
 				},
 			},
 			expectedError: ErrBrowserFeatureAvailabilityTest,
@@ -733,7 +807,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
-			input: map[string]web_platform_dx__web_features.FeatureData{
+			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
 					Alias:          nil,
@@ -743,10 +817,10 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},
-					Status: &web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: &web_platform_dx__web_features.Support{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -762,7 +836,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					},
 					Description:     "text",
 					DescriptionHTML: "<html>",
-					UsageStats:      nil,
+					Group:           nil,
+					Snapshot:        nil,
 				},
 			},
 			expectedError: ErrFeatureSpecTest,
