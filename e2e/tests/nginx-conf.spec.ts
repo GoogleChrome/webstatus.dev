@@ -37,7 +37,7 @@ test('All public assets should be served with GZIP compression', async ({
       const headers = route.request().headers();
       // Add the "Via" header to simulate Cloud Run environment
       // https://cloud.google.com/load-balancing/docs/https/troubleshooting-ext-https-lbs#compression-not-working
-      headers['Via'] = 'test google'; // Simulate a Via header from Google Cloud Load Balancer;
+      headers['Via'] = '1.1 google'; // Simulate a Via header from Google Cloud Load Balancer;
       await route.continue({headers});
     });
   });
