@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-export function createAPIError(error: unknown): ApiError {
+export function createAPIError(error?: unknown): ApiError {
   let message = 'Unknown error';
   let code = 500; // Default to Internal Server Error
 

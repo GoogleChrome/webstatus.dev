@@ -19,8 +19,10 @@ import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
+import {convertToCSV} from '../utils/csv.js';
 
 import {
+  getColumnsSpec,
   getPageSize,
   getPaginationStart,
   getSearchQuery,
@@ -37,6 +39,8 @@ import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
+import {CELL_DEFS} from './webstatus-overview-cells.js';
+import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -55,14 +59,29 @@ export class OverviewPage extends LitElement {
   @state()
   location!: {search: string}; // Set by router.
 
+  @state()
+  // allFeaturesFetcher is either undefined or a function that returns
+  // an array of all features via apiClient.getAllFeatures
+  allFeaturesFetcher:
+    | undefined
+    | (() => Promise<components['schemas']['Feature'][]>) = undefined;
+
   constructor() {
     super();
+
     this.loadingTask = new Task(this, {
       args: () =>
         [this.apiClient, this.location] as [APIClient, {search: string}],
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
+        this.allFeaturesFetcher = () => {
+          return apiClient.getAllFeatures(
+            getSearchQuery(routerLocation) as FeatureSearchType,
+            getSortSpec(routerLocation) as FeatureSortOrderType,
+            getWPTMetricView(routerLocation) as FeatureWPTMetricViewType
+          );
+        };
         return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
@@ -89,6 +108,68 @@ export class OverviewPage extends LitElement {
         }
       },
     });
+
+    // Set up listener of 'exportToCSV' event from webstatus-overview-filters.
+    this.addEventListener('exportToCSV', () => {
+      this.exportToCSV();
+    });
+  }
+
+  async exportToCSV(): Promise<void> {
+    if (!this.allFeaturesFetcher) {
+      return;
+    }
+    // Fetch all pages of data via getAllFeatures
+    const allFeatures = await this.allFeaturesFetcher();
+
+    // Use CELL_DEFS to define the columns and
+    // get the current (active) columns.
+    const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
+    const columns = columnKeys.map(
+      columnKey => CELL_DEFS[columnKey].nameInDialog
+    );
+
+    // Convert array of feature rows into array of arrays of strings,
+    // in the same order as columns.
+    const rows = allFeatures.map(feature => {
+      const baselineStatus = feature.baseline?.status || '';
+      const browserImpl = feature.browser_implementations!;
+      const row = [];
+      // Iterate over the current columns to get the values for each column.
+      for (const key of columnKeys) {
+        switch (key) {
+          case ColumnKey.Name:
+            row.push(feature.name);
+            break;
+          case ColumnKey.BaselineStatus:
+            row.push(baselineStatus);
+            break;
+          case ColumnKey.StableChrome:
+            row.push(browserImpl?.chrome?.date || '');
+            break;
+          case ColumnKey.StableEdge:
+            row.push(browserImpl?.edge?.date || '');
+            break;
+          case ColumnKey.StableFirefox:
+            row.push(browserImpl?.firefox?.date || '');
+            break;
+          case ColumnKey.StableSafari:
+            row.push(browserImpl?.safari?.date || '');
+            break;
+        }
+      }
+      return row;
+    });
+
+    const csv = convertToCSV(columns, rows);
+
+    // Create blob to download the csv.
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'webstatus-feature-overview.csv';
+    link.click();
   }
 
   async _fetchFeatures(

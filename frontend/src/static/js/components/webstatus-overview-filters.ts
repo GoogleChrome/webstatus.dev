@@ -182,12 +182,32 @@ export class WebstatusOverviewFilters extends LitElement {
     `;
   }
 
+  renderExportButton(): TemplateResult {
+    const exportToCSV = () => {
+      // dispatch an event via CustomEvent
+      const event = new CustomEvent('exportToCSV', {
+        bubbles: true,
+        composed: true,
+        cancelable: true,
+      });
+      this.dispatchEvent(event);
+    };
+
+    return html`
+      <sl-button @click=${exportToCSV}>
+        <sl-icon slot="prefix" name="download"></sl-icon>
+        Export to CSV
+      </sl-button>
+    `;
+  }
+
   render(): TemplateResult {
     const query = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
           ${this.renderFilterInputBox(query)} ${this.renderColumnButton()}
+          ${this.renderExportButton()}
         </div>
       </div>
     `;

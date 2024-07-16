@@ -75,3 +75,21 @@ test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
   await page.mouse.move(0, 0);
   await expect(tooltip.getByText(baselineText)).toBeHidden();
 });
+
+test('Export to CSV button downloads a file', async ({page}) => {
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  const downloadPromise = page.waitForEvent('download');
+  const exportButton = page.getByRole('button', {
+    name: 'Export to CSV',
+  });
+
+  await expect(exportButton).toBeVisible();
+  await exportButton.click();
+  const download = await downloadPromise;
+
+  const stream = await download.createReadStream();
+  const file = (await stream.toArray()).toString();
+
+  expect(file).toMatchSnapshot('webstatus-feature-overview-default.csv');
+  expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
+});
