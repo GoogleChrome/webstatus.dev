@@ -16,13 +16,7 @@
 
 import {test, expect} from '@playwright/test';
 import {gotoOverviewPageUrl} from './utils';
-import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
-import {join} from 'node:path';
-
-// This results in "SyntaxError: Cannot use 'import.meta' outside a module"
-
-const __dirname = fileURLToPath(import.meta.url);
 
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
@@ -84,6 +78,7 @@ test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
 });
 
 test('Export to CSV button downloads a file', async ({page}) => {
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const downloadPromise = page.waitForEvent('download');
   const exportButton = page.getByRole('button', {
     name: 'Export to CSV',
@@ -93,12 +88,9 @@ test('Export to CSV button downloads a file', async ({page}) => {
   await exportButton.click();
   const download = await downloadPromise;
 
-  const expectedFile = readFileSync(
-    join(__dirname, './webstatus-feature-overview.csv'),
-    {encoding: 'utf-8'}
-  );
   const stream = await download.createReadStream();
   const file = (await stream.toArray()).toString();
-  expect(file).toBe(expectedFile);
-  expect(download.suggestedFilename()).toBe('./webstatus-feature-overview.csv');
+
+  expect(file).toMatchSnapshot('webstatus-feature-overview-default.csv');
+  expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
 });
