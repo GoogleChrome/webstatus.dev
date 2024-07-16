@@ -16,7 +16,6 @@
 
 import {test, expect} from '@playwright/test';
 import {gotoOverviewPageUrl} from './utils';
-import {fileURLToPath} from 'node:url';
 
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
