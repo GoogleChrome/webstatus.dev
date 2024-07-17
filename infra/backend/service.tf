@@ -50,12 +50,11 @@ module "otel_sidecar" {
 }
 
 resource "google_cloud_run_v2_service" "service" {
-  for_each     = var.region_to_subnet_info_map
-  provider     = google.public_project
-  launch_stage = "BETA"
-  name         = "${var.env_id}-${each.key}-webstatus-backend"
-  location     = each.key
-  ingress      = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  for_each = var.region_to_subnet_info_map
+  provider = google.public_project
+  name     = "${var.env_id}-${each.key}-webstatus-backend"
+  location = each.key
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     containers {
@@ -64,6 +63,7 @@ resource "google_cloud_run_v2_service" "service" {
       ports {
         container_port = 8080
       }
+      depends_on = ["otel"]
       env {
         name  = "SPANNER_DATABASE"
         value = var.spanner_datails.database
@@ -114,7 +114,7 @@ resource "google_cloud_run_v2_service" "service" {
       image = module.otel_sidecar.otel_image
       liveness_probe {
         http_get {
-          port = 13133
+          port = 4319
           path = "/"
         }
         initial_delay_seconds = 3
@@ -122,13 +122,15 @@ resource "google_cloud_run_v2_service" "service" {
         failure_threshold     = 10
         timeout_seconds       = 10
       }
-    }
-    annotations = {
-      "run.googleapis.com/container-dependencies" = jsonencode(
-        {
-          "backend" = ["otel"]
+      startup_probe {
+        initial_delay_seconds = 0
+        timeout_seconds       = 1
+        period_seconds        = 3
+        failure_threshold     = 3
+        tcp_socket {
+          port = 4319
         }
-      )
+      }
     }
     vpc_access {
       network_interfaces {
@@ -139,6 +141,12 @@ resource "google_cloud_run_v2_service" "service" {
     }
     service_account = google_service_account.backend.email
   }
+
+  traffic {
+    percent = 100
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+  }
+
   depends_on = [
     google_project_iam_member.gcp_datastore_user,
   ]
