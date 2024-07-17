@@ -36,7 +36,7 @@ instructions assume you have access to the following projects:
 ```sh
 cd infra
 gcloud auth login
-gcloud auth application-default login --project=web-compass-staging --no-browser
+gcloud auth application-default login --project=web-compass-staging
 # Something 6 characters long. Could use "openssl rand -hex 3"
 ENV_ID="some-unique-string-here"
 # SAVE THAT ENV_ID
@@ -99,20 +99,19 @@ terraform workspace delete $ENV_ID
 ```sh
 cd infra
 gcloud auth login
-gcloud auth application-default login --project=web-compass-staging --no-browser
+gcloud auth application-default login --project=web-compass-staging
 ENV_ID="staging"
+export TF_WORKSPACE=${ENV_ID}
 terraform init -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
-terraform workspace select $ENV_ID
 terraform plan \
     -var-file=".envs/staging.tfvars" \
     -var "env_id=${ENV_ID}"
 ```
 
-Migrate the tables if any schemas changed:
+Migrate the tables if any schemas changed (assuming you already authenticated with `gcloud auth application-default login`):
 
 ```sh
 export SPANNER_PROJECT_ID=webstatus-dev-internal-staging
-gcloud auth application-default login --project=${SPANNER_PROJECT_ID} --no-browser
 export SPANNER_DATABASE_ID=${ENV_ID}-database
 export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
 wrench migrate up --directory ./storage/spanner/
@@ -131,21 +130,20 @@ terraform apply \
 ```sh
 cd infra
 gcloud auth login
-gcloud auth application-default login --project=web-compass-prod --no-browser
+gcloud auth application-default login --project=web-compass-prod
 ENV_ID="prod"
+export TF_WORKSPACE=${ENV_ID}
 terraform init -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars
-terraform workspace select $ENV_ID
 
 terraform plan \
     -var-file=".envs/prod.tfvars" \
     -var "env_id=${ENV_ID}"
 ```
 
-Migrate the tables if any schemas changed:
+Migrate the tables if any schemas changed (assuming you already authenticated with `gcloud auth application-default login`):
 
 ```sh
 export SPANNER_PROJECT_ID=webstatus-dev-internal-prod
-gcloud auth application-default login --project=${SPANNER_PROJECT_ID} --no-browser
 export SPANNER_DATABASE_ID=${ENV_ID}-database
 export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
 wrench migrate up --directory ./storage/spanner/

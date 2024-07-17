@@ -86,6 +86,12 @@ resource "google_cloud_run_v2_service" "service" {
     }
     service_account = google_service_account.service_account.email
   }
+
+  traffic {
+    percent = 100
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+  }
+
   depends_on = [
     google_storage_bucket_iam_member.iam_member,
     google_secret_manager_secret_iam_member.iam_member,
