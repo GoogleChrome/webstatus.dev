@@ -110,12 +110,15 @@ export class OverviewPage extends LitElement {
     });
 
     // Set up listener of 'exportToCSV' event from webstatus-overview-filters.
-    this.addEventListener('exportToCSV', () => {
-      this.exportToCSV();
+    this.addEventListener('exportToCSV', event => {
+      const {detail} = event as CustomEvent<{
+        callback: (() => void) | undefined;
+      }>;
+      this.exportToCSV(detail.callback);
     });
   }
 
-  async exportToCSV(): Promise<void> {
+  async exportToCSV(resolved: (() => void) | undefined): Promise<void> {
     if (!this.allFeaturesFetcher) {
       return;
     }
@@ -170,6 +173,8 @@ export class OverviewPage extends LitElement {
     link.href = url;
     link.download = 'webstatus-feature-overview.csv';
     link.click();
+
+    if (resolved) resolved();
   }
 
   async _fetchFeatures(

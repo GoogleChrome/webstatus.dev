@@ -83,6 +83,11 @@ export class WebstatusOverviewFilters extends LitElement {
   @state()
   location!: {search: string}; // Set by parent.
 
+  // Whether the export button is enabled.
+  // false unless waiting for export to finish.
+  @state()
+  exportingData: boolean = false;
+
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -128,6 +133,14 @@ export class WebstatusOverviewFilters extends LitElement {
         }
       `,
     ];
+  }
+
+  constructor() {
+    super();
+    // Setup listener for exportToCSVDone
+    this.addEventListener('exportToCSVDone', () => {
+      this.exportingData = false;
+    });
   }
 
   gotoFilterQueryString(): void {
@@ -184,17 +197,28 @@ export class WebstatusOverviewFilters extends LitElement {
 
   renderExportButton(): TemplateResult {
     const exportToCSV = () => {
+      this.exportingData = true;
+
       // dispatch an event via CustomEvent
       const event = new CustomEvent('exportToCSV', {
         bubbles: true,
         composed: true,
         cancelable: true,
+        detail: {
+          callback: () => {
+            this.exportingData = false;
+          },
+        },
       });
       this.dispatchEvent(event);
     };
 
     return html`
-      <sl-button @click=${exportToCSV}>
+      <sl-button
+        @click=${exportToCSV}
+        ?loading=${this.exportingData}
+        ?disabled=${this.exportingData}
+      >
         <sl-icon slot="prefix" name="download"></sl-icon>
         Export to CSV
       </sl-button>
