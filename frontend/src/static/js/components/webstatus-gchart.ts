@@ -94,6 +94,41 @@ export class WebstatusGChart extends LitElement {
     ];
   }
 
+  // private _resizeObserver: ResizeObserver | undefined;
+
+  // connectedCallback() {
+  //   super.connectedCallback();
+
+  //   if (!this.containerId) {
+  //     return;
+  //   }
+
+  //   const chartContainer = this.shadowRoot?.getElementById(
+  //     this.containerId
+  //   ) as HTMLElement;
+  // chartContainer;
+  //   this.shadowRoot!.getElementById(this.containerId!)!
+
+  //   // 1. Create the ResizeObserver
+  //   this._resizeObserver = new ResizeObserver(() => {
+  //     // 2. Redraw the chart when a resize occurs
+  //     if (this.chartWrapper) {
+  //       this.chartWrapper.draw();
+  //     }
+  //   });
+
+  //   // 3. Start observing the chart container element
+  //   this._resizeObserver.observe(
+
+  //   );
+  // }
+
+  // disconnectedCallback() {
+  //   // 4. Clean up the ResizeObserver
+  //   this._resizeObserver!.disconnect();
+  //   super.disconnectedCallback();
+  // }
+
   // Convert the WebStatusDataObj to a DataTable.
   convertWebStatusDataObjToDataTable(
     dataObj: WebStatusDataObj
