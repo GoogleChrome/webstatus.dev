@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import {toast} from './toast.js';
+
 /**
  * Returns a string in CSV format given header strings and rows.
  */
@@ -45,4 +47,39 @@ export function convertToCSV(header: string[], rows: string[][]): string {
     csv += '\n' + csvRows.join('\n');
   }
   return csv;
+}
+
+export function downloadCSV(columns: string[], rows: string[][]) {
+  // Create the CSV string.
+  const csv = convertToCSV(columns, rows);
+
+  // Create blob to download the csv.
+  const blob = new Blob([csv], {type: 'text/csv'});
+  const url = window.URL.createObjectURL(blob);
+
+  // Use fetch to download the csv.
+  const request = (path: string, filename?: string) =>
+    fetch(path)
+      .then(response => response.blob())
+      .then(blob => {
+        if (!filename) {
+          const blobType = blob.type.split('/').pop();
+          const type = blobType === 'plain' ? 'txt' : blobType;
+          filename = 'file-' + new Date().getTime() + '.' + type;
+        }
+        const link = document.createElement('a');
+        link.className = 'download';
+        link.download = filename;
+        link.href = URL.createObjectURL(blob);
+        document.body.appendChild(link);
+        link.click();
+        link.parentElement!.removeChild(link);
+      })
+      // handle request error
+      .catch(err => {
+        // console.log(err);
+        toast(err);
+      });
+
+  request(url, 'webstatus-feature-overview.csv');
 }

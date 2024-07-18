@@ -19,7 +19,7 @@ import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
-import {convertToCSV} from '../utils/csv.js';
+import {downloadCSV} from '../utils/csv.js';
 
 import {
   getColumnsSpec,
@@ -41,6 +41,7 @@ import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {CELL_DEFS} from './webstatus-overview-cells.js';
 import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
+import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -60,8 +61,7 @@ export class OverviewPage extends LitElement {
   location!: {search: string}; // Set by router.
 
   @state()
-  // allFeaturesFetcher is either undefined or a function that returns
-  // an array of all features via apiClient.getAllFeatures
+  // A function that returns an array of all features via apiClient.getAllFeatures
   allFeaturesFetcher:
     | undefined
     | (() => Promise<components['schemas']['Feature'][]>) = undefined;
@@ -98,6 +98,7 @@ export class OverviewPage extends LitElement {
             error: error,
             data: null,
           };
+          toast(`${error.message}`, 'danger', 'exclamation-triangle');
         } else {
           // Should never reach here but let's handle it.
           this.taskTracker = {
@@ -164,16 +165,7 @@ export class OverviewPage extends LitElement {
       return row;
     });
 
-    const csv = convertToCSV(columns, rows);
-
-    // Create blob to download the csv.
-    const blob = new Blob([csv], {type: 'text/csv'});
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'webstatus-feature-overview.csv';
-    link.click();
-
+    downloadCSV(columns, rows);
     if (resolved) resolved();
   }
 
