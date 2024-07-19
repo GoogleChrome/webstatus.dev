@@ -24,6 +24,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
+import {TaskStatus} from '@lit/task';
 
 const VOCABULARY = [
   {
@@ -86,7 +87,7 @@ export class WebstatusOverviewFilters extends LitElement {
   // Whether the export button is enabled.
   // false unless waiting for export to finish.
   @state()
-  exportingData: boolean = false;
+  exportDataStatus: TaskStatus = TaskStatus.INITIAL;
 
   static get styles(): CSSResultGroup {
     return [
@@ -133,14 +134,6 @@ export class WebstatusOverviewFilters extends LitElement {
         }
       `,
     ];
-  }
-
-  constructor() {
-    super();
-    // Setup listener for exportToCSVDone
-    this.addEventListener('exportToCSVDone', () => {
-      this.exportingData = false;
-    });
   }
 
   gotoFilterQueryString(): void {
@@ -197,7 +190,7 @@ export class WebstatusOverviewFilters extends LitElement {
 
   renderExportButton(): TemplateResult {
     const exportToCSV = () => {
-      this.exportingData = true;
+      this.exportDataStatus = TaskStatus.PENDING;
 
       // dispatch an event via CustomEvent
       const event = new CustomEvent('exportToCSV', {
@@ -206,7 +199,7 @@ export class WebstatusOverviewFilters extends LitElement {
         cancelable: true,
         detail: {
           callback: () => {
-            this.exportingData = false;
+            this.exportDataStatus = TaskStatus.COMPLETE;
           },
         },
       });
@@ -216,8 +209,8 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <sl-button
         @click=${exportToCSV}
-        ?loading=${this.exportingData}
-        ?disabled=${this.exportingData}
+        ?loading=${this.exportDataStatus === TaskStatus.PENDING}
+        ?disabled=${this.exportDataStatus === TaskStatus.PENDING}
       >
         <sl-icon slot="prefix" name="download"></sl-icon>
         Export to CSV

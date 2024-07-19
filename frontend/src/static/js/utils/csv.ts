@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import {toast} from './toast.js';
 
 /**
  * Returns a string in CSV format given header strings and rows.
@@ -49,7 +48,11 @@ export function convertToCSV(header: string[], rows: string[][]): string {
   return csv;
 }
 
-export function downloadCSV(columns: string[], rows: string[][]) {
+export function downloadCSV(
+  columns: string[],
+  rows: string[][],
+  filename: string
+): Promise<void> {
   // Create the CSV string.
   const csv = convertToCSV(columns, rows);
 
@@ -74,12 +77,11 @@ export function downloadCSV(columns: string[], rows: string[][]) {
         document.body.appendChild(link);
         link.click();
         link.parentElement!.removeChild(link);
-      })
-      // handle request error
-      .catch(err => {
-        // console.log(err);
-        toast(err);
       });
+  // // handle request error
+  // .catch(err => {
+  //   throw new Error(`Download of CSV resulted in ${err}`);
+  // });
 
-  request(url, 'webstatus-feature-overview.csv');
+  return request(url, filename);
 }

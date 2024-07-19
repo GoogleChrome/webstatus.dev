@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import {type SlAlert} from '@shoelace-style/shoelace';
+
 // Escape HTML for text arguments
 export function escapeHtml(html: string) {
   const div = document.createElement('div');
@@ -24,8 +26,8 @@ export function escapeHtml(html: string) {
 // Custom function to emit toast notifications
 export function toast(
   message: string,
-  variant = 'primary',
-  icon = 'info-circle',
+  variant: SlAlert['variant'] = 'primary',
+  icon: 'info-circle' | 'exclamation-triangle' = 'info-circle',
   duration = 3000
 ) {
   const alert = Object.assign(document.createElement('sl-alert'), {

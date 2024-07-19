@@ -119,54 +119,73 @@ export class OverviewPage extends LitElement {
     });
   }
 
-  async exportToCSV(resolved: (() => void) | undefined): Promise<void> {
+  async exportToCSV(
+    completedCallback: (() => void) | undefined
+  ): Promise<void> {
     if (!this.allFeaturesFetcher) {
       return;
     }
     // Fetch all pages of data via getAllFeatures
-    const allFeatures = await this.allFeaturesFetcher();
+    this.allFeaturesFetcher()
+      .then(allFeatures => {
+        // Use CELL_DEFS to define the columns and
+        // get the current (active) columns.
+        const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
+        const columns = columnKeys.map(
+          columnKey => CELL_DEFS[columnKey].nameInDialog
+        );
 
-    // Use CELL_DEFS to define the columns and
-    // get the current (active) columns.
-    const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
-    const columns = columnKeys.map(
-      columnKey => CELL_DEFS[columnKey].nameInDialog
-    );
+        // Convert array of feature rows into array of arrays of strings,
+        // in the same order as columns.
+        const rows = allFeatures.map(feature => {
+          const baselineStatus = feature.baseline?.status || '';
+          const browserImpl = feature.browser_implementations!;
+          const row = [];
+          // Iterate over the current columns to get the values for each column.
+          for (const key of columnKeys) {
+            switch (key) {
+              case ColumnKey.Name:
+                row.push(feature.name);
+                break;
+              case ColumnKey.BaselineStatus:
+                row.push(baselineStatus);
+                break;
+              case ColumnKey.StableChrome:
+                row.push(browserImpl?.chrome?.date || '');
+                break;
+              case ColumnKey.StableEdge:
+                row.push(browserImpl?.edge?.date || '');
+                break;
+              case ColumnKey.StableFirefox:
+                row.push(browserImpl?.firefox?.date || '');
+                break;
+              case ColumnKey.StableSafari:
+                row.push(browserImpl?.safari?.date || '');
+                break;
+            }
+          }
+          return row;
+        });
 
-    // Convert array of feature rows into array of arrays of strings,
-    // in the same order as columns.
-    const rows = allFeatures.map(feature => {
-      const baselineStatus = feature.baseline?.status || '';
-      const browserImpl = feature.browser_implementations!;
-      const row = [];
-      // Iterate over the current columns to get the values for each column.
-      for (const key of columnKeys) {
-        switch (key) {
-          case ColumnKey.Name:
-            row.push(feature.name);
-            break;
-          case ColumnKey.BaselineStatus:
-            row.push(baselineStatus);
-            break;
-          case ColumnKey.StableChrome:
-            row.push(browserImpl?.chrome?.date || '');
-            break;
-          case ColumnKey.StableEdge:
-            row.push(browserImpl?.edge?.date || '');
-            break;
-          case ColumnKey.StableFirefox:
-            row.push(browserImpl?.firefox?.date || '');
-            break;
-          case ColumnKey.StableSafari:
-            row.push(browserImpl?.safari?.date || '');
-            break;
-        }
-      }
-      return row;
-    });
-
-    downloadCSV(columns, rows);
-    if (resolved) resolved();
+        downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
+          .then(() => {
+            if (completedCallback) completedCallback();
+          })
+          .catch(error => {
+            toast(
+              `Save file error: ${error.message}`,
+              'danger',
+              'exclamation-triangle'
+            );
+          });
+      })
+      .catch(error => {
+        toast(
+          `Download error: ${error.message}`,
+          'danger',
+          'exclamation-triangle'
+        );
+      });
   }
 
   async _fetchFeatures(
