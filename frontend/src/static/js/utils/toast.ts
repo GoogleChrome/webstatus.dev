@@ -35,7 +35,7 @@ export function toast(
     closable: true,
     duration: duration,
     innerHTML: `
-      <sl-icon name="${icon}" slot="icon"></sl-icon>
+      <sl-icon name="${icon}" class="toast" slot="icon"></sl-icon>
       ${escapeHtml(message)}
     `,
   });

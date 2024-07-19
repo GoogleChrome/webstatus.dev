@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 /**
  * Returns a string in CSV format given header strings and rows.
  */
