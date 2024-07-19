@@ -17,7 +17,7 @@ receivers:
   otlp:
     protocols:
       http:
-        endpoint: localhost:4318
+        endpoint: 0.0.0.0:4318
   # Use the filelog receiver to read our log from its log file.
   filelog:
     start_at: beginning
@@ -101,6 +101,7 @@ processors:
 
 extensions:
   health_check:
+    endpoint: 0.0.0.0:4319
 
 service:
   extensions: [health_check]

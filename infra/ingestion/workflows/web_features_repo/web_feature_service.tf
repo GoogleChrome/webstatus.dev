@@ -94,6 +94,12 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
     timeout         = format("%ds", var.timeout_seconds)
     service_account = google_service_account.web_feature_consumer_service_account.email
   }
+
+  traffic {
+    percent = 100
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
+  }
+
   depends_on = [
     google_storage_bucket_iam_member.web_feature_consumer,
   ]

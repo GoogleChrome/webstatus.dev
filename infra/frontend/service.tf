@@ -55,12 +55,11 @@ data "google_project" "datastore_project" {
 
 
 resource "google_cloud_run_v2_service" "service" {
-  for_each     = var.region_to_subnet_info_map
-  provider     = google.public_project
-  launch_stage = "BETA"
-  name         = "${var.env_id}-${each.key}-webstatus-frontend"
-  location     = each.key
-  ingress      = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
+  for_each = var.region_to_subnet_info_map
+  provider = google.public_project
+  name     = "${var.env_id}-${each.key}-webstatus-frontend"
+  location = each.key
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
     containers {
@@ -93,6 +92,11 @@ resource "google_cloud_run_v2_service" "service" {
       egress = "ALL_TRAFFIC"
     }
     service_account = google_service_account.frontend.email
+  }
+
+  traffic {
+    percent = 100
+    type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
   }
 }
 
