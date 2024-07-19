@@ -84,8 +84,7 @@ export class WebstatusOverviewFilters extends LitElement {
   @state()
   location!: {search: string}; // Set by parent.
 
-  // Whether the export button is enabled.
-  // false unless waiting for export to finish.
+  // Whether the export button should be enabled based on export status.
   @state()
   exportDataStatus: TaskStatus = TaskStatus.INITIAL;
 

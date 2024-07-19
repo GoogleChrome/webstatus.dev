@@ -77,10 +77,6 @@ export function downloadCSV(
         link.click();
         link.parentElement!.removeChild(link);
       });
-  // // handle request error
-  // .catch(err => {
-  //   throw new Error(`Download of CSV resulted in ${err}`);
-  // });
 
   return request(url, filename);
 }
