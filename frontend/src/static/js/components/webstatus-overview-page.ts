@@ -19,7 +19,7 @@ import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
-import {convertToCSV} from '../utils/csv.js';
+import {downloadCSV} from '../utils/csv.js';
 
 import {
   getColumnsSpec,
@@ -41,6 +41,7 @@ import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {CELL_DEFS} from './webstatus-overview-cells.js';
 import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
+import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -60,8 +61,7 @@ export class OverviewPage extends LitElement {
   location!: {search: string}; // Set by router.
 
   @state()
-  // allFeaturesFetcher is either undefined or a function that returns
-  // an array of all features via apiClient.getAllFeatures
+  // A function that returns an array of all features via apiClient.getAllFeatures
   allFeaturesFetcher:
     | undefined
     | (() => Promise<components['schemas']['Feature'][]>) = undefined;
@@ -98,6 +98,7 @@ export class OverviewPage extends LitElement {
             error: error,
             data: null,
           };
+          toast(`${error.message}`, 'danger', 'exclamation-triangle');
         } else {
           // Should never reach here but let's handle it.
           this.taskTracker = {
@@ -110,66 +111,81 @@ export class OverviewPage extends LitElement {
     });
 
     // Set up listener of 'exportToCSV' event from webstatus-overview-filters.
-    this.addEventListener('exportToCSV', () => {
-      this.exportToCSV();
+    this.addEventListener('exportToCSV', event => {
+      const {detail} = event as CustomEvent<{
+        callback: (() => void) | undefined;
+      }>;
+      this.exportToCSV(detail.callback);
     });
   }
 
-  async exportToCSV(): Promise<void> {
+  async exportToCSV(
+    completedCallback: (() => void) | undefined
+  ): Promise<void> {
     if (!this.allFeaturesFetcher) {
       return;
     }
     // Fetch all pages of data via getAllFeatures
-    const allFeatures = await this.allFeaturesFetcher();
+    this.allFeaturesFetcher()
+      .then(allFeatures => {
+        // Use CELL_DEFS to define the columns and
+        // get the current (active) columns.
+        const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
+        const columns = columnKeys.map(
+          columnKey => CELL_DEFS[columnKey].nameInDialog
+        );
 
-    // Use CELL_DEFS to define the columns and
-    // get the current (active) columns.
-    const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
-    const columns = columnKeys.map(
-      columnKey => CELL_DEFS[columnKey].nameInDialog
-    );
+        // Convert array of feature rows into array of arrays of strings,
+        // in the same order as columns.
+        const rows = allFeatures.map(feature => {
+          const baselineStatus = feature.baseline?.status || '';
+          const browserImpl = feature.browser_implementations!;
+          const row = [];
+          // Iterate over the current columns to get the values for each column.
+          for (const key of columnKeys) {
+            switch (key) {
+              case ColumnKey.Name:
+                row.push(feature.name);
+                break;
+              case ColumnKey.BaselineStatus:
+                row.push(baselineStatus);
+                break;
+              case ColumnKey.StableChrome:
+                row.push(browserImpl?.chrome?.date || '');
+                break;
+              case ColumnKey.StableEdge:
+                row.push(browserImpl?.edge?.date || '');
+                break;
+              case ColumnKey.StableFirefox:
+                row.push(browserImpl?.firefox?.date || '');
+                break;
+              case ColumnKey.StableSafari:
+                row.push(browserImpl?.safari?.date || '');
+                break;
+            }
+          }
+          return row;
+        });
 
-    // Convert array of feature rows into array of arrays of strings,
-    // in the same order as columns.
-    const rows = allFeatures.map(feature => {
-      const baselineStatus = feature.baseline?.status || '';
-      const browserImpl = feature.browser_implementations!;
-      const row = [];
-      // Iterate over the current columns to get the values for each column.
-      for (const key of columnKeys) {
-        switch (key) {
-          case ColumnKey.Name:
-            row.push(feature.name);
-            break;
-          case ColumnKey.BaselineStatus:
-            row.push(baselineStatus);
-            break;
-          case ColumnKey.StableChrome:
-            row.push(browserImpl?.chrome?.date || '');
-            break;
-          case ColumnKey.StableEdge:
-            row.push(browserImpl?.edge?.date || '');
-            break;
-          case ColumnKey.StableFirefox:
-            row.push(browserImpl?.firefox?.date || '');
-            break;
-          case ColumnKey.StableSafari:
-            row.push(browserImpl?.safari?.date || '');
-            break;
-        }
-      }
-      return row;
-    });
-
-    const csv = convertToCSV(columns, rows);
-
-    // Create blob to download the csv.
-    const blob = new Blob([csv], {type: 'text/csv'});
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'webstatus-feature-overview.csv';
-    link.click();
+        downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
+          .then(() => {
+            if (completedCallback) completedCallback();
+          })
+          .catch(error => {
+            toast(
+              `Save file error: ${error.message}`,
+              'danger',
+              'exclamation-triangle'
+            );
+          });
+      })
+      .catch(error => {
+        toast(
+          `Download error: ${error.message}`,
+          'danger',
+          'exclamation-triangle'
+        );
+      });
   }
 
   async _fetchFeatures(

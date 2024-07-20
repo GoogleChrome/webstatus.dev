@@ -24,6 +24,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
+import {TaskStatus} from '@lit/task';
 
 const VOCABULARY = [
   {
@@ -82,6 +83,10 @@ export class WebstatusOverviewFilters extends LitElement {
 
   @state()
   location!: {search: string}; // Set by parent.
+
+  // Whether the export button should be enabled based on export status.
+  @state()
+  exportDataStatus: TaskStatus = TaskStatus.INITIAL;
 
   static get styles(): CSSResultGroup {
     return [
@@ -184,17 +189,28 @@ export class WebstatusOverviewFilters extends LitElement {
 
   renderExportButton(): TemplateResult {
     const exportToCSV = () => {
+      this.exportDataStatus = TaskStatus.PENDING;
+
       // dispatch an event via CustomEvent
       const event = new CustomEvent('exportToCSV', {
         bubbles: true,
         composed: true,
         cancelable: true,
+        detail: {
+          callback: () => {
+            this.exportDataStatus = TaskStatus.COMPLETE;
+          },
+        },
       });
       this.dispatchEvent(event);
     };
 
     return html`
-      <sl-button @click=${exportToCSV}>
+      <sl-button
+        @click=${exportToCSV}
+        ?loading=${this.exportDataStatus === TaskStatus.PENDING}
+        ?disabled=${this.exportDataStatus === TaskStatus.PENDING}
+      >
         <sl-icon slot="prefix" name="download"></sl-icon>
         Export to CSV
       </sl-button>
