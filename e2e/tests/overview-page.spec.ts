@@ -93,3 +93,30 @@ test('Export to CSV button downloads a file', async ({page}) => {
   expect(file).toMatchSnapshot('webstatus-feature-overview-default.csv');
   expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
 });
+
+test('Export to CSV button fails to download file and shows toast', async ({
+  page,
+}) => {
+  page.on('request', async request => {
+    await page.route('**/features*', async route => {
+      if (route.request().url().includes('page_size=100')) {
+        // allFeaturesFetcher gets features 100 at a time.
+        return route.abort();
+      } else {
+        // Continue with the original request
+        route.continue();
+      }
+    });
+  });
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  const exportButton = page.getByRole('button', {
+    name: 'Export to CSV',
+  });
+
+  await expect(exportButton).toBeVisible();
+  await exportButton.click();
+
+  // Assert toast is visible
+  const toast = page.locator('.toast');
+  await toast.waitFor({state: 'visible'});
+});

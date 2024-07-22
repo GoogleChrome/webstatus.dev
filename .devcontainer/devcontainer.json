@@ -62,7 +62,8 @@
         "esbenp.prettier-vscode",
         "ms-playwright.playwright",
         "figma.figma-vscode-extension",
-        "mike-lischke.vscode-antlr4"
+        "mike-lischke.vscode-antlr4",
+        "ms-vsliveshare.vsliveshare"
       ]
     }
   },
