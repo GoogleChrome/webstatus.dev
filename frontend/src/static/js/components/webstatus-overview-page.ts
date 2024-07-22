@@ -135,7 +135,15 @@ export class OverviewPage extends LitElement {
 
         const pushBrowserName = (name: string) => {
           columns.push(name);
-          columns.push(`${name} WPT Stable Score`);
+          const pattern =
+            /^Browser Implementation in (.+?)(?: (Experimental))?$/;
+          const match = name.match(pattern);
+          if (match) {
+            const browser = match[1];
+            const channel = match[2] ? 'Experimental' : 'Stable';
+            const wptName = `${browser} WPT ${channel} Score`;
+            columns.push(wptName);
+          }
         };
 
         columnKeys.forEach(columnKey => {
@@ -154,7 +162,6 @@ export class OverviewPage extends LitElement {
               pushBrowserName(name);
               break;
           }
-          columns.push(name);
         });
 
         // Convert array of feature rows into array of arrays of strings,
