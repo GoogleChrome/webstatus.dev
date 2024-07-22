@@ -128,34 +128,34 @@ export class OverviewPage extends LitElement {
     // Fetch all pages of data via getAllFeatures
     this.allFeaturesFetcher()
       .then(allFeatures => {
+        // Use CELL_DEFS to define the columns and
+        // get the current (active) columns.
+        const columns: string[] = [];
+        const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
 
-      // Use CELL_DEFS to define the columns and
-      // get the current (active) columns.
-      const columns: string[] = [];
+        const pushBrowserName = (name: string) => {
+          columns.push(name);
+          columns.push(`${name} WPT Stable Score`);
+        };
 
-      const pushBrowserName = (name: string) => {
-        columns.push(name);
-        columns.push(`${name} WPT Stable Score`);
-      };
-
-      columnKeys.forEach(columnKey => {
-        const name = CELL_DEFS[columnKey].nameInDialog;
-        switch (columnKey) {
-          case ColumnKey.Name:
-            columns.push(name);
-            break;
-          case ColumnKey.BaselineStatus:
-            columns.push(name);
-            break;
-          case ColumnKey.StableChrome:
-          case ColumnKey.StableEdge:
-          case ColumnKey.StableFirefox:
-          case ColumnKey.StableSafari:
-            pushBrowserName(name);
-            break;
-        }
-        columns.push(name);
-      });
+        columnKeys.forEach(columnKey => {
+          const name = CELL_DEFS[columnKey].nameInDialog;
+          switch (columnKey) {
+            case ColumnKey.Name:
+              columns.push(name);
+              break;
+            case ColumnKey.BaselineStatus:
+              columns.push(name);
+              break;
+            case ColumnKey.StableChrome:
+            case ColumnKey.StableEdge:
+            case ColumnKey.StableFirefox:
+            case ColumnKey.StableSafari:
+              pushBrowserName(name);
+              break;
+          }
+          columns.push(name);
+        });
 
         // Convert array of feature rows into array of arrays of strings,
         // in the same order as columns.
@@ -163,7 +163,7 @@ export class OverviewPage extends LitElement {
           const baselineStatus = feature.baseline?.status || '';
           const browserImpl = feature.browser_implementations!;
           const wptStableScores = feature.wpt?.stable || undefined;
-      const row = [];
+          const row = [];
           // Iterate over the current columns to get the values for each column.
           for (const key of columnKeys) {
             switch (key) {
@@ -176,19 +176,19 @@ export class OverviewPage extends LitElement {
               case ColumnKey.StableChrome:
                 row.push(browserImpl?.chrome?.date || '');
                 row.push(String(wptStableScores?.chrome?.score) || '');
-            break;
+                break;
               case ColumnKey.StableEdge:
                 row.push(browserImpl?.edge?.date || '');
                 row.push(String(wptStableScores?.edge?.score) || '');
-            break;
+                break;
               case ColumnKey.StableFirefox:
                 row.push(browserImpl?.firefox?.date || '');
                 row.push(String(wptStableScores?.firefox?.score) || '');
-            break;
+                break;
               case ColumnKey.StableSafari:
                 row.push(browserImpl?.safari?.date || '');
                 row.push(String(wptStableScores?.safari?.score) || '');
-            break;
+                break;
             }
           }
           return row;
