@@ -77,7 +77,22 @@ test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
 });
 
 test('Export to CSV button downloads a file', async ({page}) => {
-  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  const columnIds = [
+    'name',
+    'baseline_status',
+    'stable_chrome',
+    'stable_edge',
+    'stable_firefox',
+    'stable_safari',
+    'experimental_chrome',
+    'experimental_edge',
+    'experimental_firefox',
+    'experimental_safari',
+  ];
+  const columnsParam = columnIds.join('%2');
+
+  await gotoOverviewPageUrl(page, `http://localhost:5555/?${columnsParam}`);
+
   const downloadPromise = page.waitForEvent('download');
   const exportButton = page.getByRole('button', {
     name: 'Export to CSV',
