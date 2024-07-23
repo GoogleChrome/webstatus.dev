@@ -181,6 +181,7 @@ export class OverviewPage extends LitElement {
         const rows = allFeatures.map(feature => {
           const baselineStatus = feature.baseline?.status || '';
           const browserImpl = feature.browser_implementations!;
+          const wptData = feature.wpt;
           const row: string[] = [];
 
           const pushBrowserChannelValue = (
@@ -188,8 +189,9 @@ export class OverviewPage extends LitElement {
           ) => {
             const browser = CELL_DEFS[browserColumnKey].options.browser!;
             const channel = CELL_DEFS[browserColumnKey].options.channel!;
-            const wptScore = feature.wpt?.[channel]?.[browser];
-            row.push(browserImpl[browser]?.date || '');
+            const browserImplDate = browserImpl && browserImpl[browser]?.date;
+            const wptScore = wptData?.[channel]?.[browser]?.score;
+            row.push(browserImplDate || '');
             row.push(String(wptScore) || '');
           };
 
@@ -218,15 +220,15 @@ export class OverviewPage extends LitElement {
         });
 
         downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
-          .then(() => {
-            if (completedCallback) completedCallback();
-          })
           .catch(error => {
             toast(
               `Save file error: ${error.message}`,
               'danger',
               'exclamation-triangle'
             );
+          })
+          .finally(() => {
+            completedCallback && completedCallback();
           });
       })
       .catch(error => {
@@ -235,6 +237,9 @@ export class OverviewPage extends LitElement {
           'danger',
           'exclamation-triangle'
         );
+      })
+      .finally(() => {
+        completedCallback && completedCallback();
       });
   }
 

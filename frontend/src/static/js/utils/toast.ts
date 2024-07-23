@@ -28,7 +28,7 @@ export function toast(
   message: string,
   variant: SlAlert['variant'] = 'primary',
   icon: 'info-circle' | 'exclamation-triangle' = 'info-circle',
-  duration = 3000
+  duration = 10000
 ) {
   const alert = Object.assign(document.createElement('sl-alert'), {
     variant,
