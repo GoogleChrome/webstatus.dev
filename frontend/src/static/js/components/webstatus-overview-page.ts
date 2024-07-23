@@ -34,13 +34,19 @@ import {
   type FeatureSortOrderType,
   type FeatureSearchType,
   FeatureWPTMetricViewType,
+  BROWSER_ID_TO_LABEL,
+  CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {CELL_DEFS} from './webstatus-overview-cells.js';
-import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
+import {
+  ColumnKey,
+  parseColumnsSpec,
+  BrowserChannelColumnKeys,
+} from './webstatus-overview-cells.js';
 import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-page')
@@ -133,17 +139,19 @@ export class OverviewPage extends LitElement {
         const columns: string[] = [];
         const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
 
-        const pushBrowserName = (name: string) => {
+        const pushBrowserChannelName = (
+          browserColumnKey: BrowserChannelColumnKeys
+        ) => {
+          const name = CELL_DEFS[browserColumnKey].nameInDialog;
           columns.push(name);
-          const pattern =
-            /^Browser Implementation in (.+?)(?: (Experimental))?$/;
-          const match = name.match(pattern);
-          if (match) {
-            const browser = match[1];
-            const channel = match[2] ? 'Experimental' : 'Stable';
-            const wptName = `${browser} WPT ${channel} Score`;
-            columns.push(wptName);
-          }
+
+          const browser = CELL_DEFS[browserColumnKey].options.browser!;
+          const browserLabel = BROWSER_ID_TO_LABEL[browser];
+          const channel = CELL_DEFS[browserColumnKey].options.channel!;
+          const channelLabel = CHANNEL_ID_TO_LABEL[channel];
+
+          const wptName = `${browserLabel} WPT ${channelLabel} Score`;
+          columns.push(wptName);
         };
 
         columnKeys.forEach(columnKey => {
@@ -159,7 +167,11 @@ export class OverviewPage extends LitElement {
             case ColumnKey.StableEdge:
             case ColumnKey.StableFirefox:
             case ColumnKey.StableSafari:
-              pushBrowserName(name);
+            case ColumnKey.ExpChrome:
+            case ColumnKey.ExpEdge:
+            case ColumnKey.ExpFirefox:
+            case ColumnKey.ExpSafari:
+              pushBrowserChannelName(columnKey);
               break;
           }
         });
@@ -169,8 +181,18 @@ export class OverviewPage extends LitElement {
         const rows = allFeatures.map(feature => {
           const baselineStatus = feature.baseline?.status || '';
           const browserImpl = feature.browser_implementations!;
-          const wptStableScores = feature.wpt?.stable || undefined;
-          const row = [];
+          const row: string[] = [];
+
+          const pushBrowserChannelValue = (
+            browserColumnKey: BrowserChannelColumnKeys
+          ) => {
+            const browser = CELL_DEFS[browserColumnKey].options.browser!;
+            const channel = CELL_DEFS[browserColumnKey].options.channel!;
+            const wptScore = feature.wpt?.[channel]?.[browser];
+            row.push(browserImpl[browser]?.date || '');
+            row.push(String(wptScore) || '');
+          };
+
           // Iterate over the current columns to get the values for each column.
           for (const key of columnKeys) {
             switch (key) {
@@ -181,20 +203,14 @@ export class OverviewPage extends LitElement {
                 row.push(baselineStatus);
                 break;
               case ColumnKey.StableChrome:
-                row.push(browserImpl?.chrome?.date || '');
-                row.push(String(wptStableScores?.chrome?.score) || '');
-                break;
               case ColumnKey.StableEdge:
-                row.push(browserImpl?.edge?.date || '');
-                row.push(String(wptStableScores?.edge?.score) || '');
-                break;
               case ColumnKey.StableFirefox:
-                row.push(browserImpl?.firefox?.date || '');
-                row.push(String(wptStableScores?.firefox?.score) || '');
-                break;
               case ColumnKey.StableSafari:
-                row.push(browserImpl?.safari?.date || '');
-                row.push(String(wptStableScores?.safari?.score) || '');
+              case ColumnKey.ExpChrome:
+              case ColumnKey.ExpEdge:
+              case ColumnKey.ExpFirefox:
+              case ColumnKey.ExpSafari:
+                pushBrowserChannelValue(key);
                 break;
             }
           }
