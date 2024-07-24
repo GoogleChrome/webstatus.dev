@@ -41,7 +41,7 @@ import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
-import {CELL_DEFS} from './webstatus-overview-cells.js';
+import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
 import {
   ColumnKey,
   parseColumnsSpec,
@@ -131,6 +131,7 @@ export class OverviewPage extends LitElement {
     if (!this.allFeaturesFetcher) {
       return;
     }
+
     // Fetch all pages of data via getAllFeatures
     this.allFeaturesFetcher()
       .then(allFeatures => {
@@ -143,15 +144,15 @@ export class OverviewPage extends LitElement {
           browserColumnKey: BrowserChannelColumnKeys
         ) => {
           const name = CELL_DEFS[browserColumnKey].nameInDialog;
-          columns.push(name);
 
-          const browser = CELL_DEFS[browserColumnKey].options.browser!;
+          const {browser, channel} = getBrowserAndChannel(browserColumnKey);
           const browserLabel = BROWSER_ID_TO_LABEL[browser];
-          const channel = CELL_DEFS[browserColumnKey].options.channel!;
           const channelLabel = CHANNEL_ID_TO_LABEL[channel];
 
-          const wptName = `${browserLabel} WPT ${channelLabel} Score`;
-          columns.push(wptName);
+          if (channel === 'stable') {
+            columns.push(name);
+          }
+          columns.push(`${browserLabel} WPT ${channelLabel} Score`);
         };
 
         columnKeys.forEach(columnKey => {
@@ -187,11 +188,13 @@ export class OverviewPage extends LitElement {
           const pushBrowserChannelValue = (
             browserColumnKey: BrowserChannelColumnKeys
           ) => {
-            const browser = CELL_DEFS[browserColumnKey].options.browser!;
-            const channel = CELL_DEFS[browserColumnKey].options.channel!;
+            const {browser, channel} = getBrowserAndChannel(browserColumnKey);
             const browserImplDate = browserImpl && browserImpl[browser]?.date;
             const wptScore = wptData?.[channel]?.[browser]?.score;
-            row.push(browserImplDate || '');
+
+            if (channel === 'stable') {
+              row.push(browserImplDate || '');
+            }
             row.push(String(wptScore) || '');
           };
 

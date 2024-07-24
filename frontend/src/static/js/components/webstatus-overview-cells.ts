@@ -201,6 +201,23 @@ export const renderBrowserQualityExp: CellRenderer = (
   return renderPercentage(score);
 };
 
+export const getBrowserAndChannel = (
+  browserColumnKey: BrowserChannelColumnKeys
+): {
+  browser: components['parameters']['browserPathParam'];
+  channel: components['parameters']['channelPathParam'];
+} => {
+  const browser = CELL_DEFS[browserColumnKey].options.browser;
+  if (!browser) {
+    throw new Error('browser is undefined');
+  }
+  const channel = CELL_DEFS[browserColumnKey].options.channel;
+  if (!channel) {
+    throw new Error('channel is undefined');
+  }
+  return {browser, channel};
+};
+
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.Name]: {
     nameInDialog: 'Feature name',

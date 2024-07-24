@@ -146,6 +146,7 @@ export class WebstatusOverviewFilters extends LitElement {
   renderColumnButton(): TemplateResult {
     return html`
       <sl-button
+        id="columns-button"
         slot="trigger"
         @click=${() => openColumnsDialog(this.location)}
       >

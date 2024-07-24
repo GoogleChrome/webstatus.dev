@@ -76,22 +76,10 @@ test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
   await expect(tooltip.getByText(baselineText)).toBeHidden();
 });
 
-test('Export to CSV button downloads a file', async ({page}) => {
-  const columnIds = [
-    'name',
-    'baseline_status',
-    'stable_chrome',
-    'stable_edge',
-    'stable_firefox',
-    'stable_safari',
-    'experimental_chrome',
-    'experimental_edge',
-    'experimental_firefox',
-    'experimental_safari',
-  ];
-  const columnsParam = columnIds.join('%2');
-
-  await gotoOverviewPageUrl(page, `http://localhost:5555/?${columnsParam}`);
+test('Export to CSV button downloads a file with default columns', async ({
+  page,
+}) => {
+  await gotoOverviewPageUrl(page, `http://localhost:5555/`);
 
   const downloadPromise = page.waitForEvent('download');
   const exportButton = page.getByRole('button', {
@@ -107,6 +95,46 @@ test('Export to CSV button downloads a file', async ({page}) => {
 
   expect(file).toMatchSnapshot('webstatus-feature-overview-default.csv');
   expect(download.suggestedFilename()).toBe('webstatus-feature-overview.csv');
+});
+
+test('Export to CSV button downloads a file with all columns', async ({
+  page,
+}) => {
+  await gotoOverviewPageUrl(page, `http://localhost:5555/`);
+
+  // Click the Columns button to open the column selector.
+  const columnsButton = page.locator('#columns-button');
+  await columnsButton.waitFor({state: 'visible'});
+  await columnsButton.click();
+  const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
+  const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
+  await columnsDialog.waitFor({state: 'visible'});
+  const checkboxes = webstatusColumnsDialog.locator('sl-checkbox');
+  await checkboxes.evaluateAll((checkboxes: HTMLInputElement[]) => {
+    checkboxes.forEach(checkbox => {
+      // Make sure all the checkboxes are checked.
+      console.info(checkbox.name, checkbox.checked);
+      if (!checkbox.checked) {
+        checkbox.click();
+      }
+    });
+  });
+  await page.locator('#columns-save-button').click();
+  await page.waitForTimeout(500);
+
+  const downloadPromise = page.waitForEvent('download');
+  const exportButton = page.getByRole('button', {
+    name: 'Export to CSV',
+  });
+
+  await expect(exportButton).toBeVisible();
+  await exportButton.click();
+  const download = await downloadPromise;
+
+  const stream = await download.createReadStream();
+  const file = (await stream.toArray()).toString();
+
+  expect(file).toMatchSnapshot('webstatus-feature-overview-all-columns.csv');
 });
 
 test('Export to CSV button fails to download file and shows toast', async ({
