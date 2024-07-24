@@ -31,16 +31,18 @@ capabilities, please refer to our [Search Syntax Guide](./antlr/FeatureSearch.md
 
 ## Get the code
 
-This repository relies heavily on devcontainers to get started.
+This repository relies heavily on [devcontainers](https://code.visualstudio.com/docs/remote/create-dev-container) to get started.
 
-| Service                                                                                                  | Click The Badge                                                                                                                                                                                                                                                                             | Requirements                           |
-| -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- |
-| [Visual Studio Code Remote - Containers](https://code.visualstudio.com/docs/remote/create-dev-container) | [![Open in Remote - Containers](https://img.shields.io/static/v1?label=Remote%20-%20Containers&message=Open&color=blue&logo=visualstudiocode)](https://vscode.dev/redirect?url=vscode://ms-vscode-remote.remote-containers/cloneInVolume?url=https://github.com/GoogleChrome/webstatus.dev) | Locally: Docker and Visual Studio Code |
-
-Otherwise, to continue setting up locally:
+To continue setting up locally:
 
 ```sh
 git clone https://github.com/GoogleChrome/webstatus.dev
+code webstatus.dev # Opens Visual Studio Code with the webstatus.dev folder.
+
+# While inside Visual Studio Code, start the devcontainer.
+# Start it by:
+# 1. Opening the Command Palette (via View -> Command Palette)
+# 2. Select the option: Dev containers: Rebuild and Reopen in Container
 ```
 
 ### Running the services locally

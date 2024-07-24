@@ -37,6 +37,7 @@ instructions assume you have access to the following projects:
 cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-staging
+gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 # Something 6 characters long. Could use "openssl rand -hex 3"
 ENV_ID="some-unique-string-here"
 # SAVE THAT ENV_ID
@@ -100,6 +101,7 @@ terraform workspace delete $ENV_ID
 cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-staging
+gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 ENV_ID="staging"
 export TF_WORKSPACE=${ENV_ID}
 terraform init -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
@@ -117,7 +119,7 @@ export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
 wrench migrate up --directory ./storage/spanner/
 ```
 
-Assumming the plan output by the terraform plan command looks fine, run:
+Assuming the plan output by the terraform plan command looks fine, run:
 
 ```sh
 terraform apply \
@@ -131,6 +133,7 @@ terraform apply \
 cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-prod
+gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
 ENV_ID="prod"
 export TF_WORKSPACE=${ENV_ID}
 terraform init -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars
@@ -149,7 +152,7 @@ export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
 wrench migrate up --directory ./storage/spanner/
 ```
 
-Assumming the plan output by the terraform plan command looks fine, run:
+Assuming the plan output by the terraform plan command looks fine, run:
 
 ```sh
 terraform apply \
