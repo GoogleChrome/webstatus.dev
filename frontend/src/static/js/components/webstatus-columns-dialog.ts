@@ -94,7 +94,11 @@ export class WebstatusColumnsDialog extends LitElement {
     return html`
       <div class="vbox" id="checkboxes">${checkboxes}</div>
       <div id="button-row">
-        <sl-button size="small" variant="primary" @click=${this.handleSave}
+        <sl-button
+          id="columns-save-button"
+          size="small"
+          variant="primary"
+          @click=${this.handleSave}
           >Save
         </sl-button>
       </div>

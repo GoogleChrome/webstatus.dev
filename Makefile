@@ -287,6 +287,9 @@ playwright-test: fresh-env-for-playwright
 playwright-ui: fresh-env-for-playwright
 	npx playwright test --ui --ui-port=8123
 
+playwright-debug: fresh-env-for-playwright
+	npx playwright test --debug --ui-port=8123
+
 playwright-open-report:
 	npx playwright show-report playwright-report --host 0.0.0.0
 

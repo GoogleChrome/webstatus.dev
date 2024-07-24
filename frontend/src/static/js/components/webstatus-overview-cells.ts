@@ -71,6 +71,16 @@ export const DEFAULT_COLUMNS = [
   ColumnKey.StableSafari,
 ];
 
+export type BrowserChannelColumnKeys =
+  | ColumnKey.StableChrome
+  | ColumnKey.StableEdge
+  | ColumnKey.StableFirefox
+  | ColumnKey.StableSafari
+  | ColumnKey.ExpChrome
+  | ColumnKey.ExpEdge
+  | ColumnKey.ExpFirefox
+  | ColumnKey.ExpSafari;
+
 export const DEFAULT_SORT_SPEC: FeatureSortOrderType = 'baseline_status_desc';
 
 interface BaselineChipConfig {
@@ -191,6 +201,23 @@ export const renderBrowserQualityExp: CellRenderer = (
   return renderPercentage(score);
 };
 
+export const getBrowserAndChannel = (
+  browserColumnKey: BrowserChannelColumnKeys
+): {
+  browser: components['parameters']['browserPathParam'];
+  channel: components['parameters']['channelPathParam'];
+} => {
+  const browser = CELL_DEFS[browserColumnKey].options.browser;
+  if (!browser) {
+    throw new Error('browser is undefined');
+  }
+  const channel = CELL_DEFS[browserColumnKey].options.channel;
+  if (!channel) {
+    throw new Error('channel is undefined');
+  }
+  return {browser, channel};
+};
+
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.Name]: {
     nameInDialog: 'Feature name',
@@ -208,52 +235,52 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Chrome',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'chrome'},
+    options: {browser: 'chrome', channel: 'stable'},
   },
   [ColumnKey.StableEdge]: {
     nameInDialog: 'Browser Implementation in Edge',
     headerHtml: html`<img src="/public/img/edge_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'edge'},
+    options: {browser: 'edge', channel: 'stable'},
   },
   [ColumnKey.StableFirefox]: {
     nameInDialog: 'Browser Implementation in Firefox',
     headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'firefox'},
+    options: {browser: 'firefox', channel: 'stable'},
   },
   [ColumnKey.StableSafari]: {
     nameInDialog: 'Browser Implementation in Safari',
     headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'safari'},
+    options: {browser: 'safari', channel: 'stable'},
   },
   [ColumnKey.ExpChrome]: {
     nameInDialog: 'Browser Implementation in Chrome Experimental',
     headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'chrome'},
+    options: {browser: 'chrome', channel: 'experimental'},
   },
   [ColumnKey.ExpEdge]: {
     nameInDialog: 'Browser Implementation in Edge Experimental',
     headerHtml: html`<img src="/public/img/edge-dev_24x24.png" /> Experimental`,
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'edge'},
+    options: {browser: 'edge', channel: 'experimental'},
   },
   [ColumnKey.ExpFirefox]: {
     nameInDialog: 'Browser Implementation in Firefox Experimental',
     headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'firefox'},
+    options: {browser: 'firefox', channel: 'experimental'},
   },
   [ColumnKey.ExpSafari]: {
     nameInDialog: 'Browser Implementation in Safari Experimental',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'safari'},
+    options: {browser: 'safari', channel: 'experimental'},
   },
 };
 

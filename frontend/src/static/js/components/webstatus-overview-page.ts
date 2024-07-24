@@ -34,13 +34,19 @@ import {
   type FeatureSortOrderType,
   type FeatureSearchType,
   FeatureWPTMetricViewType,
+  BROWSER_ID_TO_LABEL,
+  CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
-import {CELL_DEFS} from './webstatus-overview-cells.js';
-import {ColumnKey, parseColumnsSpec} from './webstatus-overview-cells.js';
+import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
+import {
+  ColumnKey,
+  parseColumnsSpec,
+  BrowserChannelColumnKeys,
+} from './webstatus-overview-cells.js';
 import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-page')
@@ -125,22 +131,73 @@ export class OverviewPage extends LitElement {
     if (!this.allFeaturesFetcher) {
       return;
     }
+
     // Fetch all pages of data via getAllFeatures
     this.allFeaturesFetcher()
       .then(allFeatures => {
         // Use CELL_DEFS to define the columns and
         // get the current (active) columns.
+        const columns: string[] = [];
         const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
-        const columns = columnKeys.map(
-          columnKey => CELL_DEFS[columnKey].nameInDialog
-        );
+
+        const pushBrowserChannelName = (
+          browserColumnKey: BrowserChannelColumnKeys
+        ) => {
+          const name = CELL_DEFS[browserColumnKey].nameInDialog;
+
+          const {browser, channel} = getBrowserAndChannel(browserColumnKey);
+          const browserLabel = BROWSER_ID_TO_LABEL[browser];
+          const channelLabel = CHANNEL_ID_TO_LABEL[channel];
+
+          if (channel === 'stable') {
+            columns.push(name);
+          }
+          columns.push(`${browserLabel} WPT ${channelLabel} Score`);
+        };
+
+        columnKeys.forEach(columnKey => {
+          const name = CELL_DEFS[columnKey].nameInDialog;
+          switch (columnKey) {
+            case ColumnKey.Name:
+              columns.push(name);
+              break;
+            case ColumnKey.BaselineStatus:
+              columns.push(name);
+              break;
+            case ColumnKey.StableChrome:
+            case ColumnKey.StableEdge:
+            case ColumnKey.StableFirefox:
+            case ColumnKey.StableSafari:
+            case ColumnKey.ExpChrome:
+            case ColumnKey.ExpEdge:
+            case ColumnKey.ExpFirefox:
+            case ColumnKey.ExpSafari:
+              pushBrowserChannelName(columnKey);
+              break;
+          }
+        });
 
         // Convert array of feature rows into array of arrays of strings,
         // in the same order as columns.
         const rows = allFeatures.map(feature => {
           const baselineStatus = feature.baseline?.status || '';
           const browserImpl = feature.browser_implementations!;
-          const row = [];
+          const wptData = feature.wpt;
+          const row: string[] = [];
+
+          const pushBrowserChannelValue = (
+            browserColumnKey: BrowserChannelColumnKeys
+          ) => {
+            const {browser, channel} = getBrowserAndChannel(browserColumnKey);
+            const browserImplDate = browserImpl && browserImpl[browser]?.date;
+            const wptScore = wptData?.[channel]?.[browser]?.score;
+
+            if (channel === 'stable') {
+              row.push(browserImplDate || '');
+            }
+            row.push(String(wptScore) || '');
+          };
+
           // Iterate over the current columns to get the values for each column.
           for (const key of columnKeys) {
             switch (key) {
@@ -151,16 +208,14 @@ export class OverviewPage extends LitElement {
                 row.push(baselineStatus);
                 break;
               case ColumnKey.StableChrome:
-                row.push(browserImpl?.chrome?.date || '');
-                break;
               case ColumnKey.StableEdge:
-                row.push(browserImpl?.edge?.date || '');
-                break;
               case ColumnKey.StableFirefox:
-                row.push(browserImpl?.firefox?.date || '');
-                break;
               case ColumnKey.StableSafari:
-                row.push(browserImpl?.safari?.date || '');
+              case ColumnKey.ExpChrome:
+              case ColumnKey.ExpEdge:
+              case ColumnKey.ExpFirefox:
+              case ColumnKey.ExpSafari:
+                pushBrowserChannelValue(key);
                 break;
             }
           }
@@ -168,15 +223,15 @@ export class OverviewPage extends LitElement {
         });
 
         downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
-          .then(() => {
-            if (completedCallback) completedCallback();
-          })
           .catch(error => {
             toast(
               `Save file error: ${error.message}`,
               'danger',
               'exclamation-triangle'
             );
+          })
+          .finally(() => {
+            completedCallback && completedCallback();
           });
       })
       .catch(error => {
@@ -185,6 +240,9 @@ export class OverviewPage extends LitElement {
           'danger',
           'exclamation-triangle'
         );
+      })
+      .finally(() => {
+        completedCallback && completedCallback();
       });
   }
 

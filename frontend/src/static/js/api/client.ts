@@ -93,6 +93,11 @@ export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
     total: '#888888',
   };
 
+export const CHANNEL_ID_TO_LABEL: Record<ChannelsParameter, string> = {
+  stable: 'Stable',
+  experimental: 'Experimental',
+};
+
 export type ChannelsParameter = components['parameters']['channelPathParam'];
 
 export const STABLE_CHANNEL: ChannelsParameter = 'stable';
