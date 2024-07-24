@@ -3,37 +3,26 @@
   "$ref": "#/definitions/WebFeaturesData",
   "$schema": "http://json-schema.org/draft-07/schema#",
   "definitions": {
+    "StringOrStringArray": {
+      "additionalProperties": false,
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "type": "array"
+        }
+      ]
+    },
     "FeatureData": {
       "additionalProperties": false,
       "properties": {
-        "alias": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "minItems": 2,
-              "type": "array"
-            }
-          ],
-          "description": "Alias identifier"
-        },
         "caniuse": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "minItems": 2,
-              "type": "array"
-            }
-          ],
+          "$ref": "#/definitions/StringOrStringArray",
           "description": "caniuse.com identifier"
         },
         "compat_features": {
@@ -52,18 +41,7 @@
           "type": "string"
         },
         "group": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "minItems": 2,
-              "type": "array"
-            }
-          ],
+          "$ref": "#/definitions/StringOrStringArray",
           "description": "Group identifier"
         },
         "name": {
@@ -71,37 +49,11 @@
           "type": "string"
         },
         "snapshot": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "items": {
-                "type": "string"
-              },
-              "minItems": 2,
-              "type": "array"
-            }
-          ],
+          "$ref": "#/definitions/StringOrStringArray",
           "description": "Snapshot identifier"
         },
         "spec": {
-          "anyOf": [
-            {
-              "description": "Specification URL",
-              "format": "uri",
-              "type": "string"
-            },
-            {
-              "items": {
-                "description": "Specification URL",
-                "format": "uri",
-                "type": "string"
-              },
-              "minItems": 2,
-              "type": "array"
-            }
-          ],
+          "$ref": "#/definitions/StringOrStringArray",
           "description": "Specification"
         },
         "status": {

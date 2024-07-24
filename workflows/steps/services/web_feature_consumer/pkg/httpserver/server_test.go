@@ -148,7 +148,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 					Features: map[string]web_platform_dx__web_features.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
-							Alias:          nil,
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Spec:           nil,
@@ -181,7 +180,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
 						Name:           "Feature 1",
-						Alias:          nil,
 						Caniuse:        nil,
 						CompatFeatures: nil,
 						Spec:           nil,
@@ -214,7 +212,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
 						Name:           "Feature 1",
-						Alias:          nil,
 						Caniuse:        nil,
 						CompatFeatures: nil,
 						Spec:           nil,
@@ -318,7 +315,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 					Features: map[string]web_platform_dx__web_features.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
-							Alias:          nil,
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Spec:           nil,
@@ -351,7 +347,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
 						Name:           "Feature 1",
-						Alias:          nil,
 						Caniuse:        nil,
 						CompatFeatures: nil,
 						Spec:           nil,
@@ -405,7 +400,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 					Features: map[string]web_platform_dx__web_features.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
-							Alias:          nil,
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Spec:           nil,
@@ -438,7 +432,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
 						Name:           "Feature 1",
-						Alias:          nil,
 						Caniuse:        nil,
 						CompatFeatures: nil,
 						Spec:           nil,
@@ -471,7 +464,6 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
 					"feature1": {
 						Name:           "Feature 1",
-						Alias:          nil,
 						Caniuse:        nil,
 						CompatFeatures: nil,
 						Spec:           nil,
