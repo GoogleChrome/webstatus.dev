@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 )
@@ -40,5 +41,97 @@ func (p Parser) Parse(in io.ReadCloser) (*web_platform_dx__web_features.FeatureD
 		return nil, errors.Join(ErrUnexpectedFormat, err)
 	}
 
+	postProcess(&ret)
+
 	return &ret, nil
+}
+
+func postProcess(data *web_platform_dx__web_features.FeatureData) {
+	postProcessFeatureValue(data.Features)
+}
+
+func postProcessFeatureValue(
+	data map[string]web_platform_dx__web_features.FeatureValue) {
+	for id, value := range data {
+		data[id] = web_platform_dx__web_features.FeatureValue{
+			Caniuse:         postProcessStringOrStringArray(value.Caniuse),
+			CompatFeatures:  value.CompatFeatures,
+			Description:     value.Description,
+			DescriptionHTML: value.DescriptionHTML,
+			Group:           postProcessStringOrStringArray(value.Group),
+			Name:            value.Name,
+			Snapshot:        postProcessStringOrStringArray(value.Snapshot),
+			Spec:            postProcessStringOrStringArray(value.Spec),
+			Status:          postProcessStatus(value.Status),
+		}
+	}
+}
+
+func postProcessStringOrStringArray(
+	value *web_platform_dx__web_features.StringOrStringArray) *web_platform_dx__web_features.StringOrStringArray {
+	// Do nothing for now.
+	if value == nil {
+		return nil
+	}
+
+	return &web_platform_dx__web_features.StringOrStringArray{
+		String:      value.String,
+		StringArray: value.StringArray,
+	}
+}
+
+func postProcessStatus(value web_platform_dx__web_features.Status) web_platform_dx__web_features.Status {
+	return web_platform_dx__web_features.Status{
+		Baseline:         postProcessBaseline(value.Baseline),
+		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),
+		BaselineLowDate:  postProcessBaselineDates(value.BaselineLowDate),
+		Support:          postProcessBaselineSupport(value.Support),
+	}
+}
+
+func postProcessBaselineDates(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	*value = removeRangeSymbol(*value)
+
+	return value
+}
+
+func postProcessBaseline(
+	value *web_platform_dx__web_features.BaselineUnion) *web_platform_dx__web_features.BaselineUnion {
+	if value == nil {
+		return nil
+	}
+
+	return &web_platform_dx__web_features.BaselineUnion{
+		Bool: value.Bool,
+		Enum: value.Enum,
+	}
+}
+
+func postProcessBaselineSupportBrowser(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	*value = removeRangeSymbol(*value)
+
+	return value
+}
+
+func postProcessBaselineSupport(value web_platform_dx__web_features.Support) web_platform_dx__web_features.Support {
+	return web_platform_dx__web_features.Support{
+		Chrome:         postProcessBaselineSupportBrowser(value.Chrome),
+		ChromeAndroid:  postProcessBaselineSupportBrowser(value.ChromeAndroid),
+		Edge:           postProcessBaselineSupportBrowser(value.Edge),
+		Firefox:        postProcessBaselineSupportBrowser(value.Firefox),
+		FirefoxAndroid: postProcessBaselineSupportBrowser(value.FirefoxAndroid),
+		Safari:         postProcessBaselineSupportBrowser(value.Safari),
+		SafariIos:      postProcessBaselineSupportBrowser(value.SafariIos),
+	}
+}
+
+// Removes web-features range character "≤" from the string.
+func removeRangeSymbol(value string) string {
+	return strings.TrimPrefix(value, "≤")
 }

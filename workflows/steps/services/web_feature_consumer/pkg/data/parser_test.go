@@ -19,8 +19,11 @@ import (
 	"io"
 	"os"
 	"path"
+	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 )
 
 func TestParse(t *testing.T) {
@@ -77,6 +80,138 @@ func TestParseError(t *testing.T) {
 			}
 			if result != nil {
 				t.Error("unexpected map")
+			}
+		})
+	}
+}
+
+func valuePtr[T any](in T) *T { return &in }
+
+func TestPostProcess(t *testing.T) {
+	testCases := []struct {
+		name                 string
+		featureData          *web_platform_dx__web_features.FeatureData
+		expectedFeatureValue web_platform_dx__web_features.FeatureValue
+	}{
+		{
+			name: "catch-all case",
+			featureData: &web_platform_dx__web_features.FeatureData{
+				Groups:    nil,
+				Snapshots: nil,
+				Features: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						CompatFeatures:  []string{"compat1", "compat2"},
+						Description:     "description",
+						DescriptionHTML: "description html",
+						Name:            "feature 1 name",
+						Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+							String: valuePtr("caniuse_data"),
+							StringArray: []string{
+								"caniuse1",
+								"caniuse2",
+							},
+						},
+						Group: &web_platform_dx__web_features.StringOrStringArray{
+							String: valuePtr("group_name"),
+							StringArray: []string{
+								"group1",
+								"group2",
+							},
+						},
+						Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+							String: valuePtr("snapshot_data"),
+							StringArray: []string{
+								"snapshot1",
+								"snapshot2",
+							},
+						},
+						Spec: &web_platform_dx__web_features.StringOrStringArray{
+							String: valuePtr("spec_link"),
+							StringArray: []string{
+								"spec1",
+								"spec2",
+							},
+						},
+						Status: web_platform_dx__web_features.Status{
+							Baseline: &web_platform_dx__web_features.BaselineUnion{
+								Bool: valuePtr(false),
+								Enum: valuePtr(web_platform_dx__web_features.High),
+							},
+							BaselineHighDate: valuePtr("≤2023-01-01"),
+							BaselineLowDate:  valuePtr("≤2022-12-01"),
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         valuePtr("≤99"),
+								ChromeAndroid:  valuePtr("≤98"),
+								Firefox:        valuePtr("≤97"),
+								FirefoxAndroid: valuePtr("≤96"),
+								Edge:           valuePtr("≤95"),
+								Safari:         valuePtr("≤94"),
+								SafariIos:      valuePtr("≤93"),
+							},
+						},
+					},
+				},
+			},
+			expectedFeatureValue: web_platform_dx__web_features.FeatureValue{
+				CompatFeatures:  []string{"compat1", "compat2"},
+				Description:     "description",
+				DescriptionHTML: "description html",
+				Name:            "feature 1 name",
+				Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+					String: valuePtr("caniuse_data"),
+					StringArray: []string{
+						"caniuse1",
+						"caniuse2",
+					},
+				},
+				Group: &web_platform_dx__web_features.StringOrStringArray{
+					String: valuePtr("group_name"),
+					StringArray: []string{
+						"group1",
+						"group2",
+					},
+				},
+				Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+					String: valuePtr("snapshot_data"),
+					StringArray: []string{
+						"snapshot1",
+						"snapshot2",
+					},
+				},
+				Spec: &web_platform_dx__web_features.StringOrStringArray{
+					String: valuePtr("spec_link"),
+					StringArray: []string{
+						"spec1",
+						"spec2",
+					},
+				},
+				Status: web_platform_dx__web_features.Status{
+					Baseline: &web_platform_dx__web_features.BaselineUnion{
+						Bool: valuePtr(false),
+						Enum: valuePtr(web_platform_dx__web_features.High),
+					},
+					BaselineHighDate: valuePtr("2023-01-01"),
+					BaselineLowDate:  valuePtr("2022-12-01"),
+					Support: web_platform_dx__web_features.Support{
+						Chrome:         valuePtr("99"),
+						ChromeAndroid:  valuePtr("98"),
+						Firefox:        valuePtr("97"),
+						FirefoxAndroid: valuePtr("96"),
+						Edge:           valuePtr("95"),
+						Safari:         valuePtr("94"),
+						SafariIos:      valuePtr("93"),
+					},
+				},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			postProcess(tc.featureData)
+			featureValue := tc.featureData.Features["feature1"]
+			if !reflect.DeepEqual(featureValue, tc.expectedFeatureValue) {
+				t.Errorf("FeatureValue not as expected")
 			}
 		})
 	}
