@@ -37,6 +37,36 @@ test('matches the screenshot', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+test('chart width resizes with window', async ({page}) => {
+  await page.goto('http://localhost:5555/features/odit64');
+  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForTimeout(1000);
+  const narrowWidth = 1000;
+  const wideWidth = 1200;
+  const height = 1000;
+  const chartContainer = page.locator('#feature-support-chart-container');
+
+  // Resize to narrow width
+  await page.setViewportSize({width: narrowWidth, height});
+  await page.waitForTimeout(1000);
+  const newChartWidth = await chartContainer.evaluate(el => el.clientWidth);
+
+  // Ensure that the chart is wider than the narrow width
+  await page.setViewportSize({width: wideWidth, height});
+  await page.waitForTimeout(1000);
+  const newChartWidth2 = await chartContainer.evaluate(el => el.clientWidth);
+  expect(newChartWidth2).toBeGreaterThan(newChartWidth);
+
+  // And restore to original size
+  await page.setViewportSize({width: narrowWidth, height});
+  await page.waitForTimeout(10000);
+  const newChartWidth3 = await chartContainer.evaluate(el => el.clientWidth);
+  expect(newChartWidth3).toEqual(newChartWidth);
+
+  // Compare screenshot of smaller chart
+  await expect(chartContainer).toHaveScreenshot();
+});
+
 test('date range changes are preserved in the URL', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
   await page.waitForSelector('#feature-support-chart-container');
