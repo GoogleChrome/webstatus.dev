@@ -29,7 +29,7 @@ func TestParse(t *testing.T) {
 		path string
 	}{
 		{
-			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v0.10.0",
+			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v1.0.0",
 			path: path.Join("testdata", "data.json"),
 		},
 	}
