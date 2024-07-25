@@ -453,10 +453,9 @@ func TestInsertWebFeatures(t *testing.T) {
 			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
-					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
-					Spec: &web_platform_dx__web_features.Alias{
+					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},
@@ -484,10 +483,9 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				"feature2": {
 					Name:           "Feature 2",
-					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
-					Spec: &web_platform_dx__web_features.Alias{
+					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: nil,
 						String:      valuePtr("feature2-link"),
 					},
@@ -551,7 +549,6 @@ func TestInsertWebFeatures(t *testing.T) {
 			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
-					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
 					Spec:           nil,
@@ -623,7 +620,6 @@ func TestInsertWebFeatures(t *testing.T) {
 			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
-					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
 					Spec:           nil,
@@ -706,7 +702,6 @@ func TestInsertWebFeatures(t *testing.T) {
 			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
-					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
 					Spec:           nil,
@@ -810,10 +805,9 @@ func TestInsertWebFeatures(t *testing.T) {
 			input: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Name:           "Feature 1",
-					Alias:          nil,
 					Caniuse:        nil,
 					CompatFeatures: nil,
-					Spec: &web_platform_dx__web_features.Alias{
+					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},

@@ -55,11 +55,10 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 			featureKeyToID: map[string]string{"feature1": "id1"},
 			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
-					Alias:          nil,
 					CompatFeatures: nil,
 					Name:           "feature 1",
 					Description:    "Feature 1 description",
-					Caniuse: &web_platform_dx__web_features.Alias{
+					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 						String:      valuePtr("caniuse-id1"),
 						StringArray: nil,
 					},
@@ -94,11 +93,10 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 			featureKeyToID: map[string]string{"feature2": "id2"},
 			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature2": {
-					Alias:          nil,
 					CompatFeatures: nil,
 					Name:           "feature 2",
 					Description:    "Feature 2 description",
-					Caniuse: &web_platform_dx__web_features.Alias{
+					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 						String:      nil,
 						StringArray: []string{"caniuse-id2a", "caniuse-id2b"},
 					},
@@ -137,7 +135,6 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 			featureKeyToID: map[string]string{},
 			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature3": {
-					Alias:           nil,
 					Caniuse:         nil,
 					CompatFeatures:  nil,
 					Name:            "feature 3",
@@ -171,7 +168,6 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 			featureKeyToID: map[string]string{"feature4": "id4"},
 			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature4": {
-					Alias:           nil,
 					Caniuse:         nil,
 					CompatFeatures:  nil,
 					Name:            "feature 4",
