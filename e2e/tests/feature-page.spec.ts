@@ -48,6 +48,7 @@ test('chart width resizes with window', async ({page}) => {
 
   // Resize to narrow width
   await page.setViewportSize({width: narrowWidth, height});
+  await page.waitForTimeout(1000);
   const newChartWidth = await chartContainer.evaluate(el => el.clientWidth);
 
   // Ensure that the chart is wider than the narrow width
@@ -58,6 +59,7 @@ test('chart width resizes with window', async ({page}) => {
 
   // And restore to original size
   await page.setViewportSize({width: narrowWidth, height});
+  await page.waitForTimeout(1000);
   const newChartWidth3 = await chartContainer.evaluate(el => el.clientWidth);
   expect(newChartWidth3).toEqual(newChartWidth);
 
