@@ -90,8 +90,38 @@ export class WebstatusGChart extends LitElement {
         .chart_container.loading .google-visualization-charteditor-svg {
           pointer-events: none;
         }
+
+        /* override the fixed width of the chart */
+        .chart_container > div > div > div {
+          width: auto !important;
+        }
       `,
     ];
+  }
+
+  private _resizeObserver: ResizeObserver | undefined;
+
+  firstUpdated() {
+    // 1. Create the ResizeObserver
+    this._resizeObserver = new ResizeObserver(() => {
+      // 2. Redraw the chart when a resize occurs
+      if (this.chartWrapper) {
+        this.chartWrapper.draw();
+      }
+    });
+
+    // 3. Start observing the chart container element
+    this._resizeObserver.observe(
+      this.shadowRoot!.getElementById(this.containerId!)!
+    );
+  }
+
+  disconnectedCallback() {
+    // 4. Clean up the ResizeObserver
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+    }
+    super.disconnectedCallback();
   }
 
   // Convert the WebStatusDataObj to a DataTable.
