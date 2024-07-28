@@ -52,17 +52,24 @@ port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
 	kubectl wait --for=condition=ready pod/web-feature-consumer
+	kubectl wait --for=condition=ready pod/auth
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/web-feature-consumer 8092:8080 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
 	curl -s -o /dev/null -m 5 http://localhost:8080 || true
 	curl -s -o /dev/null -m 5 http://localhost:5555 || true
 	curl -s -o /dev/null -m 5 http://localhost:8092 || true
+	curl -s -o /dev/null -m 5 http://localhost:9099 || true
+	curl -s -o /dev/null -m 5 http://localhost:9100 || true
 
 port-forward-terminate:
 	fuser -k 5555/tcp || true
 	fuser -k 8080/tcp || true
 	fuser -k 8092/tcp || true
+	fuser -k 9099/tcp || true
+	fuser -k 9100/tcp || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:
