@@ -280,7 +280,7 @@ license-fix:
 ################################
 # Playwright
 ################################
-fresh-env-for-playwright: playwright-install delete-local build deploy-local dev_fake_data port-forward-manual
+fresh-env-for-playwright: playwright-install delete-local build deploy-local dev_fake_data dev_fake_users port-forward-manual
 
 playwright-install:
 	npx playwright install --with-deps
@@ -371,6 +371,10 @@ wpt_workflow:
 bcd_workflow:
 	./util/run_job.sh bcd-consumer images/go_service.Dockerfile workflows/steps/services/bcd_consumer \
 		workflows/steps/services/bcd_consumer/manifests/job.yaml bcd-consumer
+dev_fake_users: build
+	fuser -k 9099/tcp || true
+	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
+	go run util/cmd/load_test_users/main.go -project=local
 dev_fake_data: build is_local_migration_ready
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &

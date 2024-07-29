@@ -6,9 +6,10 @@
 2. Project Structure
 3. Running Locally
 4. Populate Data Locally
-5. Generating Code
-6. Test Code
-7. Clean Up
+5. Populate Users Locally
+6. Generating Code
+7. Test Code
+8. Clean Up
 
 ## Requirements
 
@@ -145,6 +146,16 @@ from the latest snapshot from the web-features repo.
 | Resource | Location                                                     |
 | -------- | ------------------------------------------------------------ |
 | backend  | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml) |
+
+## Populate Users Locally
+
+After doing an initial deployment, we need to set up users in the auth emulator.
+
+```sh
+make dev_fake_users
+```
+
+The output of the command will indicate if it is successful.
 
 ## Generating Code
 
