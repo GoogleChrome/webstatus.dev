@@ -7,6 +7,7 @@ require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20240708145018-355a5213f27b
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20240708145018-355a5213f27b
 	github.com/brianvoe/gofakeit/v7 v7.0.4
+	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20240708101548-8d306180e4ed
 	golang.org/x/text v0.16.0
 )
