@@ -1,0 +1,14 @@
+{
+  "emulators": {
+    "auth": {
+      "port": 9099,
+      "host": "0.0.0.0"
+    },
+    "ui": {
+      "enabled": true,
+      "port": 9100,
+      "host": "0.0.0.0"
+    },
+    "singleProjectMode": true
+  }
+}
