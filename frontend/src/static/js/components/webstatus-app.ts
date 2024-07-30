@@ -33,6 +33,7 @@ import './webstatus-app-settings.js';
 import './webstatus-header.js';
 import './webstatus-page.js';
 import './webstatus-gcharts-loader.js';
+import './webstatus-services-container.js';
 
 @customElement('webstatus-app')
 export class WebstatusApp extends LitElement {
@@ -81,10 +82,12 @@ export class WebstatusApp extends LitElement {
     return html`
       <webstatus-gcharts-loader>
         <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
-          <webstatus-header></webstatus-header>
-          <webstatus-page class="halign-stretch valign-stretch">
-            <slot></slot>
-          </webstatus-page>
+          <webstatus-services-container>
+            <webstatus-header></webstatus-header>
+            <webstatus-page class="halign-stretch valign-stretch">
+              <slot></slot>
+            </webstatus-page>
+          </webstatus-services-container>
         </webstatus-app-settings>
       </webstatus-gcharts-loader>
     `;

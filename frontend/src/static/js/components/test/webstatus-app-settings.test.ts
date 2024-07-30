@@ -34,6 +34,10 @@ describe('webstatus-app-settings', () => {
   const settings: AppSettings = {
     apiUrl: 'http://localhost',
     gsiClientId: 'testclientid',
+    firebaseAuthEmulatorURL: 'http://localhost:9099',
+    firebase: {
+      authEmulatorURL: 'http://localhost:9099',
+    },
   };
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusAppSettings>(
@@ -43,6 +47,13 @@ describe('webstatus-app-settings', () => {
     assert.exists(component);
     assert.equal(component.appSettings.apiUrl, 'http://localhost');
     assert.equal(component.appSettings.gsiClientId, 'testclientid');
+    assert.equal(
+      component.appSettings.firebaseAuthEmulatorURL,
+      'http://localhost:9099'
+    );
+    assert.equal(component.appSettings.firebase, {
+      authEmulatorURL: 'http://localhost:9099',
+    });
   });
   it('can have child components which are provided the settings via context', async () => {
     @customElement('fake-child-element')
@@ -75,9 +86,23 @@ describe('webstatus-app-settings', () => {
     assert.exists(component);
     assert.equal(component.appSettings.apiUrl, 'http://localhost');
     assert.equal(component.appSettings.gsiClientId, 'testclientid');
+    assert.equal(
+      component.appSettings.firebaseAuthEmulatorURL,
+      'http://localhost:9099'
+    );
+    assert.equal(component.appSettings.firebase, {
+      authEmulatorURL: 'http://localhost:9099',
+    });
 
     assert.exists(childComponent);
     assert.equal(childComponent.appSettings.apiUrl, 'http://localhost');
     assert.equal(childComponent.appSettings.gsiClientId, 'testclientid');
+    assert.equal(
+      childComponent.appSettings.firebaseAuthEmulatorURL,
+      'http://localhost:9099'
+    );
+    assert.equal(childComponent.appSettings.firebase, {
+      authEmulatorURL: 'http://localhost:9099',
+    });
   });
 });

@@ -24,6 +24,10 @@ describe('webstatus-app', () => {
     const settings: AppSettings = {
       apiUrl: 'http://localhost',
       gsiClientId: 'testclientid',
+      firebaseAuthEmulatorURL: 'http://localhost:9099',
+      firebase: {
+        authEmulatorURL: 'http://localhost:9099',
+      },
     };
     const component = await fixture<WebstatusApp>(
       html` <webstatus-app .settings=${settings}></webstatus-app>`
@@ -31,5 +35,12 @@ describe('webstatus-app', () => {
     assert.exists(component);
     assert.equal(component.settings.apiUrl, 'http://localhost');
     assert.equal(component.settings.gsiClientId, 'testclientid');
+    assert.equal(
+      component.settings.firebaseAuthEmulatorURL,
+      'http://localhost:9099'
+    );
+    assert.equal(component.settings.firebase, {
+      authEmulatorURL: 'http://localhost:9099',
+    });
   });
 });

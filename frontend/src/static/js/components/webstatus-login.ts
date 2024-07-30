@@ -18,111 +18,150 @@
 
 import {consume} from '@lit/context';
 import {LitElement, type TemplateResult, html} from 'lit';
-import {customElement, property, query, state} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 
-import {LoadingState} from '../../../common/loading-state.js';
 import {
   type AppSettings,
   appSettingsContext,
 } from '../contexts/settings-context.js';
+import {TaskStatus} from '@lit/task';
+import {Auth, GithubAuthProvider, User, signInWithPopup} from 'firebase/auth';
+import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {firebaseAuthContext} from '../contexts/firebase-auth-context.js';
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
   @consume({context: appSettingsContext})
   appSettings?: AppSettings;
 
-  @query('#login-container')
+  @property({type: Number})
+  initializationStatus: TaskStatus = TaskStatus.INITIAL;
+
+  @consume({context: firebaseAuthContext, subscribe: true})
   @state()
-  protected container?: HTMLElement;
+  firebaseAuth?: Auth;
 
-  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED;
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user?: User;
 
-  @property()
-  public declare redirectTo: null | string;
+  // firstUpdated(): void {
+  //   // const app = initializeApp({
+  //   //   projectId: 'local',
+  //   //   apiKey: 'local',
+  //   //   authDomain: 'local',
+  //   // });
+  //   // this.firebaseAuth = getAuth(app);
+  //   // this.firebaseAuth.onAuthStateChanged(user => {
+  //   //   // Resume the user if previously signed in.
+  //   //   this.user = user ? user : undefined;
+  //   // });
+  //   // if (
+  //   //   this.appSettings?.firebaseAuthEmulatorURL !== undefined &&
+  //   //   this.appSettings?.firebaseAuthEmulatorURL !== ''
+  //   // ) {
+  //   //   connectAuthEmulator(
+  //   //     this.firebaseAuth,
+  //   //     this.appSettings?.firebaseAuthEmulatorURL
+  //   //   );
+  //   // }
+  // }
 
-  protected scriptInserted: boolean = false;
-
-  constructor() {
-    super();
-    this.redirectTo = '';
-  }
-
-  async _signin(_token: string): Promise<void> {
-    // TODO: Handle the token
-  }
-
-  firstUpdated(): void {
-    this.loadScript().then(
-      // TODO. Success case
-      () => {},
-      // TODO. Failure case
-      () => {}
-    );
-  }
-
-  initializeLibrary(): void {
-    if (
-      this.libraryLoaded === LoadingState.COMPLETE ||
-      this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
-      this.appSettings === undefined ||
-      this.container === undefined ||
-      this.appSettings?.gsiClientId === undefined
-    ) {
+  startSignInFlow() {
+    if (this.firebaseAuth === undefined) {
       return;
     }
+    signInWithPopup(this.firebaseAuth, new GithubAuthProvider())
+      .then(result => {
+        // This gives you a GitHub Access Token. You can use it to access the GitHub API.
+        const credential = GithubAuthProvider.credentialFromResult(result);
+        if (credential === null) {
+          return;
+        }
+        console.log(credential.idToken);
+        // const token = credential.accessToken;
 
-    google.accounts.id.initialize({
-      callback: (response: google.accounts.id.CredentialResponse) => {
-        this._signin(response.credential).then(
-          () => {
-            // TODO. Do successful redirect
-          },
-          () => {
-            // TODO. Handle the error case
-          }
-        );
-      },
-      client_id: this.appSettings?.gsiClientId,
-    });
-
-    google.accounts.id.renderButton(this.container, {type: 'standard'});
-    // TODO: Revisit this for playwright tests.
-    // google.accounts.id.prompt();
-
-    this.libraryLoaded = LoadingState.COMPLETE;
-  }
-
-  async loadScript(): Promise<void> {
-    if (this.scriptInserted) {
-      return;
-    }
-
-    // Load the script.
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    document.head.appendChild(script);
-
-    this.scriptInserted = true;
-
-    const promise = new Promise<void>(resolve => {
-      script.addEventListener('load', () => {
-        resolve();
+        // The signed-in user info.
+        // this.user = result.user;
+        // this.user.getIdToken(true).then(value => {
+        //   console.log(value);
+        // });
+        // console.log(this.user);
+        // IdP data available using getAdditionalUserInfo(result)
+        // ...
+      })
+      .catch(error => {
+        // Handle Errors here.
+        // const errorCode = error.code;
+        // const errorMessage = error.message;
+        // The email of the user's account used.
+        // const email = error.customData.email;
+        // The AuthCredential type that was used.
+        // const credential = GithubAuthProvider.credentialFromError(error);
+        // ...
+        console.log(error);
       });
-    });
+  }
 
-    // When the script is loaded, request an update.
-    await promise.then(() => {
-      this.scriptLoaded();
-      this.requestUpdate();
-    });
+  handleLogInClick() {
+    console.log('log in click');
+    if (this.user === undefined) {
+      this.startSignInFlow();
+      return;
+    }
+    this.user
+      .getIdToken()
+      .then(value => {
+        console.log(value);
+      })
+      .catch(() => {
+        this.startSignInFlow();
+      });
+  }
+
+  handleLogOutClick() {
+    if (this.firebaseAuth === undefined) {
+      return;
+    }
+
+    this.firebaseAuth
+      .signOut()
+      .then(() => {
+        console.log('signed out');
+      })
+      .catch(error => {
+        console.error(error);
+      });
+  }
+
+  renderLoginButton(): TemplateResult {
+    return html`
+      <sl-button variant="default" @click=${this.handleLogInClick}>
+        <sl-icon slot="prefix" name="github"></sl-icon>
+        Log in
+      </sl-button>
+    `;
+  }
+
+  renderAuthenticatedButton(user: User): TemplateResult {
+    return html`
+      <sl-dropdown>
+        <sl-button slot="trigger" caret
+          ><sl-icon slot="prefix" name="github"></sl-icon
+          >${user.email}</sl-button
+        >
+        <sl-menu>
+          <sl-menu-item @click=${this.handleLogOutClick}>Sign out</sl-menu-item>
+        </sl-menu>
+      </sl-dropdown>
+    `;
   }
 
   render(): TemplateResult {
-    return html` <div id="login-container"></div> `;
-  }
+    if (this.user === undefined) {
+      return this.renderLoginButton();
+    }
 
-  // TODO: remove eslint exemption when token handling is complete.
-  scriptLoaded(): void {
-    this.initializeLibrary();
+    return this.renderAuthenticatedButton(this.user);
   }
 }

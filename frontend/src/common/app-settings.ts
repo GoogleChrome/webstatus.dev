@@ -18,4 +18,10 @@
 export interface AppSettings {
   apiUrl: string;
   gsiClientId: string;
+  firebaseAuthEmulatorURL: string;
+  firebase: FirebaseSettings;
+}
+
+interface FirebaseSettings {
+  authEmulatorURL: string;
 }

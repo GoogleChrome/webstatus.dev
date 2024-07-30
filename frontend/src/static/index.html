@@ -68,7 +68,11 @@
     </script>
     <script src="/public/js/index.js"></script>
     <webstatus-app
-      settings='{"apiUrl": "$API_URL", "gsiClientId": "$GSI_CLIENT_ID"}'
+      settings='{
+        "apiUrl": "$API_URL",
+        "gsiClientId": "$GSI_CLIENT_ID",
+        "firebaseAuthEmulatorURL": "$FIREBASE_AUTH_EMULATOR_URL"
+      }'
     >
     </webstatus-app>
   </body>
