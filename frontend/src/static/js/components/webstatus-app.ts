@@ -29,10 +29,9 @@ import {type AppSettings} from '../../../common/app-settings.js';
 import {routerContext} from '../contexts/router-context.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {initRouter} from '../utils/app-router.js';
-import './webstatus-app-settings.js';
 import './webstatus-header.js';
 import './webstatus-page.js';
-import './webstatus-gcharts-loader.js';
+import './webstatus-services-container.js';
 
 @customElement('webstatus-app')
 export class WebstatusApp extends LitElement {
@@ -56,13 +55,12 @@ export class WebstatusApp extends LitElement {
         /* We have to specify the vbox style of the :host manually,
            because the vbox class is not available in index.html.
            Consequently, we have to specify the vbox item style of
-           webstatus-app-settings manually for the same reason. */
+           webstatus-services-container manually for the same reason. */
         :host {
           display: flex;
           flex-direction: column;
-          height: 100vh;
         }
-        webstatus-app-settings {
+        webstatus-services-container {
           flex-grow: 1;
         }
       `,
@@ -79,14 +77,12 @@ export class WebstatusApp extends LitElement {
 
   protected render(): TemplateResult {
     return html`
-      <webstatus-gcharts-loader>
-        <webstatus-app-settings class="vbox" .appSettings="${this.settings}">
-          <webstatus-header></webstatus-header>
-          <webstatus-page class="halign-stretch valign-stretch">
-            <slot></slot>
-          </webstatus-page>
-        </webstatus-app-settings>
-      </webstatus-gcharts-loader>
+      <webstatus-services-container class="vbox" .settings="${this.settings}">
+        <webstatus-header></webstatus-header>
+        <webstatus-page class="halign-stretch valign-stretch">
+          <slot></slot>
+        </webstatus-page>
+      </webstatus-services-container>
     `;
   }
 }
