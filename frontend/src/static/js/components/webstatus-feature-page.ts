@@ -666,12 +666,14 @@ export class FeaturePage extends LitElement {
       return html` <span class="chip small unchanged"></span> `;
     }
 
-    const firstRun = runs[0];
-    const lastRun = runs[runs.length - 1];
-    const firstPercent =
-      firstRun.test_pass_count! / firstRun.total_tests_count!;
-    const lastPercent = lastRun.test_pass_count! / lastRun.total_tests_count!;
-    const delta = lastPercent - firstPercent;
+    // Runs are retrieved in descending chronological order.
+    const mostRecentRun = runs[0];
+    const oldestRun = runs[runs.length - 1];
+    const mostRecentPercent =
+      mostRecentRun.test_pass_count! / mostRecentRun.total_tests_count!;
+    const oldestPercent =
+      oldestRun.test_pass_count! / oldestRun.total_tests_count!;
+    const delta = (mostRecentPercent - oldestPercent) * 100.0;
     let deltaStr = Number(delta).toFixed(1) + '%';
     let deltaClass = 'unchanged';
     if (delta > 0) {
