@@ -15,18 +15,18 @@
  */
 
 import {assert, fixture, html} from '@open-wc/testing';
-import '../webstatus-gcharts-loader.js';
+import '../../services/webstatus-gcharts-loader-service.js';
 import '../webstatus-gchart.js';
-import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
 import {type WebstatusGChart} from '../webstatus-gchart.js';
 import {render} from 'lit';
+import {type WebstatusGChartsLoaderService} from '../../services/webstatus-gcharts-loader-service.js';
 
 describe('webstatus-gchart', () => {
   it('can receive loaded state via loader context', async () => {
-    const component = await fixture<WebstatusGChartsLoader>(
-      html`<webstatus-gcharts-loader>
+    const component = await fixture<WebstatusGChartsLoaderService>(
+      html`<webstatus-gcharts-loader-service>
         <webstatus-gchart></webstatus-gchart>
-      </webstatus-gcharts-loader>`
+      </webstatus-gcharts-loader-service>`
     );
 
     assert.exists(component);
@@ -47,15 +47,15 @@ describe('webstatus-gchart', () => {
     document.body.appendChild(root);
     render(
       html`
-        <webstatus-gcharts-loader>
+        <webstatus-gcharts-loader-service>
           <webstatus-gchart></webstatus-gchart>
-        </webstatus-gcharts-loader>
+        </webstatus-gcharts-loader-service>
       `,
       root
     );
     const loader = root.querySelector(
-      'webstatus-gcharts-loader'
-    ) as WebstatusGChartsLoader;
+      'webstatus-gcharts-loader-service'
+    ) as WebstatusGChartsLoaderService;
     assert.exists(loader);
     await loader.updateComplete;
     await loader.waitForGChartsLibraryLoaded();

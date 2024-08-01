@@ -18,21 +18,17 @@
 /// <reference types="@types/google.visualization" />
 
 import {provide} from '@lit/context';
-import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 
 import {gchartsContext} from '../contexts/gcharts-context.js';
+import {ServiceElement} from './service-element.js';
 
-@customElement('webstatus-gcharts-loader')
-export class WebstatusGChartsLoader extends LitElement {
+@customElement('webstatus-gcharts-loader-service')
+export class WebstatusGChartsLoaderService extends ServiceElement {
   @provide({context: gchartsContext})
   gchartsLibraryLoaded = false;
 
   scriptInserted: boolean = false;
-
-  constructor() {
-    super();
-  }
 
   firstUpdated(): void {
     this.loadGoogleChartsLoaderAndPackages().then(
@@ -89,9 +85,5 @@ export class WebstatusGChartsLoader extends LitElement {
       };
       setTimeout(loaderLoop, delay);
     });
-  }
-
-  render(): TemplateResult {
-    return html` <slot></slot> `;
   }
 }

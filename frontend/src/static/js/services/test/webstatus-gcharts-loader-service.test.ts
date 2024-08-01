@@ -21,14 +21,15 @@ import {consume} from '@lit/context';
 import {assert, fixture, html} from '@open-wc/testing';
 import {LitElement} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
-import '../webstatus-gcharts-loader.js';
-import {type WebstatusGChartsLoader} from '../webstatus-gcharts-loader.js';
+import '../webstatus-gcharts-loader-service.js';
+import {type WebstatusGChartsLoaderService} from '../webstatus-gcharts-loader-service.js';
 import {gchartsContext} from '../../contexts/gcharts-context.js';
 
 describe('webstatus-gcharts-loader', () => {
   it('can be added to the page', async () => {
-    const component = await fixture<WebstatusGChartsLoader>(
-      html`<webstatus-gcharts-loader> </webstatus-gcharts-loader>`
+    const component = await fixture<WebstatusGChartsLoaderService>(
+      html`<webstatus-gcharts-loader-service>
+      </webstatus-gcharts-loader-service>`
     );
     assert.exists(component);
     await component.updateComplete;
@@ -46,10 +47,10 @@ describe('webstatus-gcharts-loader', () => {
       gchartsLibraryLoaded!: boolean;
     }
 
-    const component = await fixture<WebstatusGChartsLoader>(
-      html`<webstatus-gcharts-loader>
+    const component = await fixture<WebstatusGChartsLoaderService>(
+      html`<webstatus-gcharts-loader-service>
         <fake-child-element></fake-child-element>
-      </webstatus-gcharts-loader>`
+      </webstatus-gcharts-loader-service>`
     );
 
     assert.exists(component);

@@ -54,6 +54,7 @@ export class OverviewPage extends LitElement {
   loadingTask: Task;
 
   @consume({context: apiClientContext})
+  @state()
   apiClient?: APIClient;
 
   @state()
@@ -81,13 +82,6 @@ export class OverviewPage extends LitElement {
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
-        this.allFeaturesFetcher = () => {
-          return apiClient.getAllFeatures(
-            getSearchQuery(routerLocation) as FeatureSearchType,
-            getSortSpec(routerLocation) as FeatureSortOrderType,
-            getWPTMetricView(routerLocation) as FeatureWPTMetricViewType
-          );
-        };
         return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
@@ -123,6 +117,20 @@ export class OverviewPage extends LitElement {
       }>;
       this.exportToCSV(detail.callback);
     });
+  }
+
+  protected firstUpdated(): void {
+    if (this.apiClient !== undefined) {
+      // Perform any initializations once the apiClient is passed to us via context.
+      // TODO. allFeaturesFetcher should be moved to a separate task.
+      this.allFeaturesFetcher = () => {
+        return this.apiClient!.getAllFeatures(
+          getSearchQuery(this.location) as FeatureSearchType,
+          getSortSpec(this.location) as FeatureSortOrderType,
+          getWPTMetricView(this.location) as FeatureWPTMetricViewType
+        );
+      };
+    }
   }
 
   async exportToCSV(

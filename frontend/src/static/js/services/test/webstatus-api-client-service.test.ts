@@ -19,53 +19,40 @@ import {assert, fixture, html} from '@open-wc/testing';
 import {LitElement, render} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 
-import {
-  type APIClient,
-  apiClientContext,
-} from '../../contexts/api-client-context.js';
-import {
-  type AppSettings,
-  appSettingsContext,
-} from '../../contexts/settings-context.js';
-import '../webstatus-app-settings.js';
-import {type WebstatusAppSettings} from '../webstatus-app-settings.js';
+import {apiClientContext} from '../../contexts/api-client-context.js';
+import '../webstatus-api-client-service.js';
+import {type WebstatusAPIClientService} from '../webstatus-api-client-service.js';
+import {APIClient} from '../../api/client.js';
 
-describe('webstatus-app-settings', () => {
-  const settings: AppSettings = {
-    apiUrl: 'http://localhost',
-    gsiClientId: 'testclientid',
-  };
-  it('can be added to the page with the settings', async () => {
-    const component = await fixture<WebstatusAppSettings>(
-      html`<webstatus-app-settings .appSettings=${settings}>
-      </webstatus-app-settings>`
+describe('webstatus-api-client-service', () => {
+  const apiUrl = 'http://localhost';
+  it('can be added to the page with the api url', async () => {
+    const component = await fixture<WebstatusAPIClientService>(
+      html`<webstatus-api-client-service url=${apiUrl}>
+      </webstatus-api-client-service>`
     );
     assert.exists(component);
-    assert.equal(component.appSettings.apiUrl, 'http://localhost');
-    assert.equal(component.appSettings.gsiClientId, 'testclientid');
+    assert.equal(component.url, 'http://localhost');
+    assert.exists(component.apiClient);
   });
-  it('can have child components which are provided the settings via context', async () => {
+  it('can have child components which are provided the api client via context', async () => {
     @customElement('fake-child-element')
     class FakeChildElement extends LitElement {
       @consume({context: apiClientContext, subscribe: true})
       @property({attribute: false})
       apiClient!: APIClient;
-
-      @consume({context: appSettingsContext, subscribe: true})
-      @property({attribute: false})
-      appSettings!: AppSettings;
     }
     const root = document.createElement('div');
     document.body.appendChild(root);
     render(
-      html` <webstatus-app-settings .appSettings=${settings}>
+      html` <webstatus-api-client-service .url=${apiUrl}>
         <fake-child-element></fake-child-element>
-      </webstatus-app-settings>`,
+      </webstatus-api-client-service>`,
       root
     );
     const component = root.querySelector(
-      'webstatus-app-settings'
-    ) as WebstatusAppSettings;
+      'webstatus-api-client-service'
+    ) as WebstatusAPIClientService;
     const childComponent = root.querySelector(
       'fake-child-element'
     ) as FakeChildElement;
@@ -73,11 +60,10 @@ describe('webstatus-app-settings', () => {
     await childComponent.updateComplete;
 
     assert.exists(component);
-    assert.equal(component.appSettings.apiUrl, 'http://localhost');
-    assert.equal(component.appSettings.gsiClientId, 'testclientid');
+    assert.equal(component.url, 'http://localhost');
+    assert.exists(component.apiClient);
 
     assert.exists(childComponent);
-    assert.equal(childComponent.appSettings.apiUrl, 'http://localhost');
-    assert.equal(childComponent.appSettings.gsiClientId, 'testclientid');
+    assert.exists(childComponent.apiClient);
   });
 });
