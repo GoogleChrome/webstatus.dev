@@ -48,6 +48,11 @@
         max-width: 100%;
         min-height: 100vh;
       }
+
+      /* For the firebase auth emulator */
+      .firebase-emulator-warning {
+        display: none;
+      }
     </style>
   </head>
 
@@ -68,7 +73,19 @@
     </script>
     <script src="/public/js/index.js"></script>
     <webstatus-app
-      settings='{"apiUrl": "$API_URL", "gsiClientId": "$GSI_CLIENT_ID"}'
+      settings='{
+        "apiUrl": "$API_URL",
+        "gsiClientId": "$GSI_CLIENT_ID",
+        "firebase": {
+          "app": {
+            "apiKey": "$FIREBASE_APP_API_KEY",
+            "authDomain": "$FIREBASE_APP_AUTH_DOMAIN"
+          },
+          "auth": {
+            "emulatorURL": "$FIREBASE_AUTH_EMULATOR_URL"
+          }
+        }
+      }'
     >
     </webstatus-app>
   </body>

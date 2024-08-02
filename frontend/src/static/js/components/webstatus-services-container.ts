@@ -18,6 +18,8 @@ import {LitElement, TemplateResult, html} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 import {AppSettings} from '../../../common/app-settings.js';
 import '../services/webstatus-app-settings-service.js';
+import '../services/webstatus-firebase-app-service.js';
+import '../services/webstatus-firebase-auth-service.js';
 import '../services/webstatus-gcharts-loader-service.js';
 import '../services/webstatus-api-client-service.js';
 
@@ -47,7 +49,15 @@ export class WebstatusServicesContainer extends LitElement {
       <webstatus-gcharts-loader-service>
         <webstatus-app-settings-service .appSettings="${this.settings}">
           <webstatus-api-client-service .url="${this.settings.apiUrl}">
-            <slot></slot>
+            <webstatus-firebase-app-service
+              .settings="${this.settings.firebase.app}"
+            >
+              <webstatus-firebase-auth-service
+                .settings="${this.settings.firebase.auth}"
+              >
+                <slot></slot>
+              </webstatus-firebase-auth-service>
+            </webstatus-firebase-app-service>
           </webstatus-api-client-service>
         </webstatus-app-settings-service>
       </webstatus-gcharts-loader-service>

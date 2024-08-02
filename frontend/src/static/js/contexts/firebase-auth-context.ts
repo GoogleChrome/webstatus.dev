@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,23 +14,19 @@
  * limitations under the License.
  */
 
-// AppSettings contains non sensitive settings that can be passed to the client.
-export interface AppSettings {
-  apiUrl: string;
-  gsiClientId: string;
-  firebase: FirebaseSettings;
+import {createContext} from '@lit/context';
+
+import type {Auth, AuthProvider, UserCredential} from 'firebase/auth';
+
+export type authIcon = 'github';
+
+export interface AuthConfig {
+  auth: Auth;
+  provider: AuthProvider;
+  icon: authIcon;
+  signIn: () => Promise<UserCredential>;
 }
 
-interface FirebaseAppSettings {
-  apiKey: string;
-  authDomain: string;
-}
-
-interface FirebaseAuthSettings {
-  emulatorURL: string;
-}
-
-interface FirebaseSettings {
-  app: FirebaseAppSettings;
-  auth: FirebaseAuthSettings;
-}
+export const firebaseAuthContext = createContext<AuthConfig | undefined>(
+  'firebase-auth'
+);
