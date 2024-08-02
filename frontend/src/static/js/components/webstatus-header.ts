@@ -20,7 +20,6 @@ import {
   type TemplateResult,
   css,
   html,
-  nothing,
 } from 'lit';
 import {customElement} from 'lit/decorators.js';
 
@@ -83,8 +82,6 @@ export class WebstatusHeader extends LitElement {
   }
 
   render(): TemplateResult {
-    const signInButton = nothing; // TODO: See issue #147
-
     return html`
       <header class="hbox">
         <div class="title">
@@ -102,7 +99,7 @@ export class WebstatusHeader extends LitElement {
         </div>
 
         <div class="spacer"></div>
-        ${signInButton}
+        <webstatus-login></webstatus-login>
       </header>
     `;
   }

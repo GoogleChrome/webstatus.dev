@@ -36,6 +36,12 @@ spec:
           value: 367048339992-5os99v0p6chosv28dpo9863h9sjeno36.apps.googleusercontent.com
         - name: GOOGLE_ANALYTICS_ID
           value: G-EPZE5TL134
+        - name: FIREBASE_AUTH_EMULATOR_URL
+          value: http://localhost:9099
+        - name: FIREBASE_APP_API_KEY
+          value: local
+        - name: FIREBASE_APP_AUTH_DOMAIN
+          value: local
       resources:
         limits:
           cpu: 250m

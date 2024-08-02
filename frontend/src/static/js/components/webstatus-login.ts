@@ -14,115 +14,94 @@
  * limitations under the License.
  */
 
-/// <reference types="@types/google.accounts" />
-
 import {consume} from '@lit/context';
-import {LitElement, type TemplateResult, html} from 'lit';
-import {customElement, property, query, state} from 'lit/decorators.js';
+import {LitElement, type TemplateResult, html, nothing} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
 
-import {LoadingState} from '../../../common/loading-state.js';
+import {User} from 'firebase/auth';
+import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 import {
-  type AppSettings,
-  appSettingsContext,
-} from '../contexts/settings-context.js';
+  AuthConfig,
+  firebaseAuthContext,
+} from '../contexts/firebase-auth-context.js';
+import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
-  @consume({context: appSettingsContext})
-  appSettings?: AppSettings;
-
-  @query('#login-container')
+  @consume({context: firebaseAuthContext, subscribe: true})
   @state()
-  protected container?: HTMLElement;
+  firebaseAuthConfig?: AuthConfig;
 
-  protected libraryLoaded: LoadingState = LoadingState.NOT_STARTED;
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user?: User;
 
-  @property()
-  public declare redirectTo: null | string;
-
-  protected scriptInserted: boolean = false;
-
-  constructor() {
-    super();
-    this.redirectTo = '';
-  }
-
-  async _signin(_token: string): Promise<void> {
-    // TODO: Handle the token
-  }
-
-  firstUpdated(): void {
-    this.loadScript().then(
-      // TODO. Success case
-      () => {},
-      // TODO. Failure case
-      () => {}
-    );
-  }
-
-  initializeLibrary(): void {
-    if (
-      this.libraryLoaded === LoadingState.COMPLETE ||
-      this.libraryLoaded === LoadingState.COMPLETE_WITH_ERRORS ||
-      this.appSettings === undefined ||
-      this.container === undefined ||
-      this.appSettings?.gsiClientId === undefined
-    ) {
-      return;
-    }
-
-    google.accounts.id.initialize({
-      callback: (response: google.accounts.id.CredentialResponse) => {
-        this._signin(response.credential).then(
-          () => {
-            // TODO. Do successful redirect
-          },
-          () => {
-            // TODO. Handle the error case
-          }
+  handleLogInClick(authConfig: AuthConfig) {
+    if (this.user === undefined) {
+      authConfig.signIn().catch(error => {
+        toast(
+          `Failed to login: ${error.message ?? 'unknown'}`,
+          'danger',
+          'exclamation-triangle'
         );
-      },
-      client_id: this.appSettings?.gsiClientId,
-    });
-
-    google.accounts.id.renderButton(this.container, {type: 'standard'});
-    // TODO: Revisit this for playwright tests.
-    // google.accounts.id.prompt();
-
-    this.libraryLoaded = LoadingState.COMPLETE;
-  }
-
-  async loadScript(): Promise<void> {
-    if (this.scriptInserted) {
+      });
       return;
     }
+  }
 
-    // Load the script.
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    document.head.appendChild(script);
-
-    this.scriptInserted = true;
-
-    const promise = new Promise<void>(resolve => {
-      script.addEventListener('load', () => {
-        resolve();
-      });
+  handleLogOutClick(authConfig: AuthConfig) {
+    authConfig.auth.signOut().catch(error => {
+      toast(
+        `Failed to logout: ${error.message ?? 'unknown'}`,
+        'danger',
+        'exclamation-triangle'
+      );
     });
+  }
 
-    // When the script is loaded, request an update.
-    await promise.then(() => {
-      this.scriptLoaded();
-      this.requestUpdate();
-    });
+  renderLoginButton(authConfig: AuthConfig): TemplateResult {
+    return html`
+      <sl-button
+        variant="default"
+        @click=${() => this.handleLogInClick(authConfig)}
+      >
+        <sl-icon slot="prefix" name="${authConfig.icon}"></sl-icon>
+        Log in
+      </sl-button>
+    `;
+  }
+
+  renderAuthenticatedButton(
+    user: User,
+    authConfig: AuthConfig
+  ): TemplateResult {
+    return html`
+      <sl-dropdown>
+        <sl-button slot="trigger" caret
+          ><sl-icon slot="prefix" name="${authConfig.icon}"></sl-icon
+          >${user.email}</sl-button
+        >
+        <sl-menu>
+          <sl-menu-item @click=${() => this.handleLogOutClick(authConfig)}
+            >Sign out</sl-menu-item
+          >
+        </sl-menu>
+      </sl-dropdown>
+    `;
   }
 
   render(): TemplateResult {
-    return html` <div id="login-container"></div> `;
-  }
+    // Firebase auth not loaded yet.
+    if (this.firebaseAuthConfig === undefined) {
+      return html`${nothing}`;
+    }
 
-  // TODO: remove eslint exemption when token handling is complete.
-  scriptLoaded(): void {
-    this.initializeLibrary();
+    // Unauthenticated user.
+    if (this.user === undefined) {
+      return this.renderLoginButton(this.firebaseAuthConfig);
+    }
+
+    // Authenticated user.
+    return this.renderAuthenticatedButton(this.user, this.firebaseAuthConfig);
   }
 }
