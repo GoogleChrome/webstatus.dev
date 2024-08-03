@@ -23,7 +23,6 @@ describe('webstatus-app', () => {
   it('can be added to the page with the settings', async () => {
     const settings: AppSettings = {
       apiUrl: 'http://localhost',
-      gsiClientId: 'testclientid',
       firebase: {
         app: {
           apiKey: 'testapikey',

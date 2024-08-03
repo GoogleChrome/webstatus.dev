@@ -72,10 +72,6 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.backend_api_host
       }
       env {
-        name  = "GSI_CLIENT_ID"
-        value = var.gsi_client_id
-      }
-      env {
         name  = "GOOGLE_ANALYTICS_ID"
         value = var.google_analytics_id
       }

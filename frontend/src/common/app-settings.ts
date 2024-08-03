@@ -17,7 +17,6 @@
 // AppSettings contains non sensitive settings that can be passed to the client.
 export interface AppSettings {
   apiUrl: string;
-  gsiClientId: string;
   firebase: FirebaseSettings;
 }
 
