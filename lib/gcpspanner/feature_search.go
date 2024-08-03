@@ -54,9 +54,10 @@ const (
 
 // ImplementationStatus contains the implementation status information for a given browser.
 type ImplementationStatus struct {
-	BrowserName          string                      `spanner:"BrowserName"`
-	ImplementationStatus BrowserImplementationStatus `spanner:"ImplementationStatus"`
-	ImplementationDate   *time.Time                  `spanner:"ImplementationDate"`
+	BrowserName           string                      `spanner:"BrowserName"`
+	ImplementationStatus  BrowserImplementationStatus `spanner:"ImplementationStatus"`
+	ImplementationDate    *time.Time                  `spanner:"ImplementationDate"`
+	ImplementationVersion *string                     `spanner:"ImplementationVersion"`
 }
 
 // FeatureResultMetric contains metric information for a feature result query.
@@ -291,5 +292,9 @@ func findImplementationStatusDefaultPlaceHolder(in *ImplementationStatus) bool {
 		return false
 	}
 
-	return in.BrowserName == "" && in.ImplementationStatus == Unavailable && in.ImplementationDate == nil
+	return in.BrowserName == "" &&
+		in.ImplementationStatus == Unavailable &&
+		in.ImplementationDate == nil &&
+		in.ImplementationVersion != nil &&
+		*in.ImplementationVersion == ""
 }

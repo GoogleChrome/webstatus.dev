@@ -329,7 +329,8 @@ COALESCE(
 					),
 					'unavailable' -- Default if no match
 				) AS ImplementationStatus,
-				COALESCE(br.ReleaseDate, CAST(NULL AS TIMESTAMP)) AS ImplementationDate
+				COALESCE(br.ReleaseDate, CAST(NULL AS TIMESTAMP)) AS ImplementationDate,
+				br.BrowserVersion AS ImplementationVersion
 			)
 		)
 		FROM BrowserFeatureAvailabilities bfa
@@ -342,7 +343,8 @@ COALESCE(
 	   		SELECT AS STRUCT
 				'' BrowserName,
 				'unavailable' AS ImplementationStatus,
-				CAST(NULL AS TIMESTAMP) AS ImplementationDate
+				CAST(NULL AS TIMESTAMP) AS ImplementationDate,
+				'' AS ImplementationVersion
 		)
 	)
 ) AS ImplementationStatuses
