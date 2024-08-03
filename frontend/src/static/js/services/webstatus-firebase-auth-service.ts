@@ -53,14 +53,14 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   @provide({context: firebaseUserContext})
   user?: User;
 
-  initialized: boolean = false;
-
+  // Useful for testing
   authInitializer: (app: FirebaseApp | undefined) => Auth = getAuth;
 
+  // Useful for testing
   emulatorConnector: (auth: Auth, url: string) => void = connectAuthEmulator;
 
   initFirebaseAuth() {
-    if (!this.initialized && this.firebaseApp) {
+    if (this.firebaseApp) {
       const auth = this.authInitializer(this.firebaseApp);
       const provider = new GithubAuthProvider();
       this.firebaseAuthConfig = {
@@ -82,11 +82,10 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       this.firebaseAuthConfig.auth.onAuthStateChanged(user => {
         this.user = user ? user : undefined;
       });
-      this.initialized = true;
     }
   }
 
-  protected updated(): void {
+  protected firstUpdated(): void {
     this.initFirebaseAuth();
   }
 }

@@ -39,6 +39,17 @@ class FakeFirebaseApp implements FirebaseApp {
   automaticDataCollectionEnabled: boolean = false;
 }
 
+@customElement('fake-parent-element')
+class FakeParentElement extends LitElement {
+  @provide({context: firebaseAppContext})
+  @property({attribute: false})
+  app?: FirebaseApp;
+
+  render(): TemplateResult {
+    return html`<slot></slot>`;
+  }
+}
+
 describe('webstatus-firebase-auth-service', () => {
   const settings = {
     emulatorURL: '',
@@ -53,16 +64,6 @@ describe('webstatus-firebase-auth-service', () => {
   });
   it('can receive the firebase app via context', async () => {
     const firebaseApp = new FakeFirebaseApp();
-    @customElement('fake-parent-element')
-    class FakeParentElement extends LitElement {
-      @provide({context: firebaseAppContext})
-      @property({attribute: false})
-      app?: FirebaseApp;
-
-      render(): TemplateResult {
-        return html`<slot></slot>`;
-      }
-    }
 
     const root = document.createElement('div');
     document.body.appendChild(root);
@@ -99,7 +100,7 @@ describe('webstatus-firebase-auth-service', () => {
     assert.equal(component.firebaseApp, parentElement.app);
   });
 
-  it('initializes correctly with a Firebase App', async () => {
+  it('initializes correctly with a Firebase Auth', async () => {
     @customElement('fake-child-auth-element-1')
     class FakeChildElement extends LitElement {
       @consume({context: firebaseAuthContext, subscribe: true})
@@ -132,7 +133,6 @@ describe('webstatus-firebase-auth-service', () => {
     component.firebaseApp = firebaseApp;
     await component.updateComplete;
 
-    assert.isTrue(component.initialized, 'initialized should be true');
     assert.exists(component.firebaseAuthConfig);
     assert.equal(
       component.firebaseAuthConfig?.auth,
@@ -190,20 +190,41 @@ describe('webstatus-firebase-auth-service', () => {
   });
 
   it('calls emulatorConnector when emulatorURL is set', async () => {
-    const component = await fixture<WebstatusFirebaseAuthService>(
-      html`<webstatus-firebase-auth-service
-        .settings=${settings}
-      ></webstatus-firebase-auth-service>`
-    );
+    const testSettings = {
+      // Set emulator URL
+      emulatorURL: 'http://localhost:9099',
+    };
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    const emulatorConnectorStub = sinon.stub();
     const userStub = {} as User;
     const authStub = {
       onAuthStateChanged: (callback: (user?: User) => void) =>
         callback(userStub),
     } as Auth;
-    const emulatorConnectorStub = sinon.stub(component, 'emulatorConnector');
+
+    render(
+      html`
+        <fake-parent-element>
+          <webstatus-firebase-auth-service .settings=${testSettings}>
+          </webstatus-firebase-auth-service>
+        </fake-parent-element>
+      `,
+      root
+    );
+    const parentElement = root.querySelector<FakeParentElement>(
+      'fake-parent-element'
+    );
+    assert.exists(parentElement);
+    parentElement.app = new FakeFirebaseApp();
+    const component = root.querySelector<WebstatusFirebaseAuthService>(
+      'webstatus-firebase-auth-service'
+    );
+
+    assert.exists(component);
+    component!.emulatorConnector = emulatorConnectorStub;
     component.authInitializer = () => authStub;
-    component.settings.emulatorURL = 'http://localhost:9099'; // Set emulator URL
-    component.firebaseApp = {} as FirebaseApp;
+
     await component.updateComplete;
 
     assert.isTrue(emulatorConnectorStub.calledOnce);
