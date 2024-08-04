@@ -594,6 +594,48 @@ func TestParseQuery(t *testing.T) {
 				},
 			},
 		},
+		{
+			InputQuery: "availability:chrome:2000-01-01..2000-12-31",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordAND,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierBrowserAvailability,
+									Value:      "chrome",
+									Operator:   OperatorEq,
+								},
+								Children: nil,
+							},
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierBrowserReleaseDate,
+									Value:      "2000-01-01",
+									Operator:   OperatorGtEq,
+								},
+								Children: nil,
+							},
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierBrowserReleaseDate,
+									Value:      "2000-12-31",
+									Operator:   OperatorLtEq,
+								},
+								Children: nil,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {

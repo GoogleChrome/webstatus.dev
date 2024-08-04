@@ -27,9 +27,12 @@ available_on_term: 'available_on' COLON BROWSER_NAME;
 baseline_status_term: 'baseline_status' COLON BASELINE_STATUS;
 // In the future support other operators by doing something like (date_operator_query | date_range_query)
 baseline_date_term: 'baseline_date' COLON (date_range_query);
+browser_availability_term:
+	'availability' COLON BROWSER_NAME COLON (date_range_query);
 name_term: 'name' COLON ANY_VALUE;
 term:
-	available_on_term
+	browser_availability_term
+	| available_on_term
 	| baseline_status_term
 	| baseline_date_term
 	| name_term;

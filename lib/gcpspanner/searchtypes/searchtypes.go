@@ -83,8 +83,10 @@ type SearchTerm struct {
 type SearchIdentifier string
 
 const (
-	IdentifierAvailableOn    SearchIdentifier = "available_on"
-	IdentifierBaselineDate   SearchIdentifier = "baseline_date"
-	IdentifierBaselineStatus SearchIdentifier = "baseline_status"
-	IdentifierName           SearchIdentifier = "name"
+	IdentifierAvailableOn         SearchIdentifier = "available_on"
+	IdentifierBaselineDate        SearchIdentifier = "baseline_date"
+	IdentifierBaselineStatus      SearchIdentifier = "baseline_status"
+	IdentifierName                SearchIdentifier = "name"
+	IdentifierBrowserAvailability SearchIdentifier = "browser_availability"
+	IdentifierBrowserReleaseDate  SearchIdentifier = "browser_release_date"
 )

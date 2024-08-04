@@ -195,6 +195,48 @@ func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_dat
 }
 
 // nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitBrowser_availability_term(
+	ctx *parser.Browser_availability_termContext) interface{} {
+	startDate := ctx.Date_range_query().GetStartDate().GetText()
+	endDate := ctx.Date_range_query().GetEndDate().GetText()
+	browser := ctx.BROWSER_NAME().GetText()
+
+	return &SearchNode{
+		Keyword: KeywordAND,
+		Term:    nil,
+		Children: []*SearchNode{
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierBrowserAvailability,
+					Value:      browser,
+					Operator:   OperatorEq,
+				},
+				Children: nil,
+			},
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierBrowserReleaseDate,
+					Value:      startDate,
+					Operator:   OperatorGtEq,
+				},
+				Children: nil,
+			},
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierBrowserReleaseDate,
+					Value:      endDate,
+					Operator:   OperatorLtEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+}
+
+// nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitDate_range_query(ctx *parser.Date_range_queryContext) interface{} {
 	startDate := ctx.GetStartDate().GetText()
 	endDate := ctx.GetEndDate().GetText()
@@ -268,6 +310,8 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 		return v.VisitBaseline_status_term(tree)
 	case *parser.Baseline_date_termContext:
 		return v.VisitBaseline_date_term(tree)
+	case *parser.Browser_availability_termContext:
+		return v.VisitBrowser_availability_term(tree)
 	case *parser.Combined_search_criteriaContext:
 		return v.VisitCombined_search_criteria(tree)
 	case *parser.Date_range_queryContext:
