@@ -19,53 +19,45 @@ import {assert, fixture, html} from '@open-wc/testing';
 import {LitElement, render} from 'lit';
 import {customElement, property} from 'lit/decorators.js';
 
+import '../webstatus-firebase-app-service.js';
+import {type WebstatusFirebaseAppService} from '../webstatus-firebase-app-service.js';
 import {
-  type AppSettings,
-  appSettingsContext,
-} from '../../contexts/settings-context.js';
-import '../webstatus-app-settings-service.js';
-import {type WebstatusAppSettingsService} from '../webstatus-app-settings-service.js';
+  FirebaseApp,
+  firebaseAppContext,
+} from '../../contexts/firebase-app-context.js';
 
-describe('webstatus-app-settings-service', () => {
-  const settings: AppSettings = {
-    apiUrl: 'http://localhost',
-    gsiClientId: 'testclientid',
-    firebase: {
-      app: {
-        apiKey: 'testapikey',
-        authDomain: 'testauthdomain',
-      },
-      auth: {
-        emulatorURL: 'http://localhost:9099',
-      },
-    },
+describe('webstatus-firebase-app-service', () => {
+  const settings = {
+    apiKey: 'testapikey',
+    authDomain: 'testauthdomain',
   };
   it('can be added to the page with the settings', async () => {
-    const component = await fixture<WebstatusAppSettingsService>(
-      html`<webstatus-app-settings-service .appSettings=${settings}>
-      </webstatus-app-settings-service>`
+    const component = await fixture<WebstatusFirebaseAppService>(
+      html`<webstatus-firebase-app-service .settings=${settings}>
+      </webstatus-firebase-app-service>`
     );
     assert.exists(component);
-    assert.equal(component.appSettings, settings);
+    assert.equal(component.settings, settings);
+    assert.exists(component.firebaseApp);
   });
   it('can have child components which are provided the settings via context', async () => {
     @customElement('fake-child-element')
     class FakeChildElement extends LitElement {
-      @consume({context: appSettingsContext, subscribe: true})
+      @consume({context: firebaseAppContext, subscribe: true})
       @property({attribute: false})
-      appSettings!: AppSettings;
+      firebaseApp?: FirebaseApp;
     }
     const root = document.createElement('div');
     document.body.appendChild(root);
     render(
-      html` <webstatus-app-settings-service .appSettings=${settings}>
+      html` <webstatus-firebase-app-service .settings=${settings}>
         <fake-child-element></fake-child-element>
-      </webstatus-app-settings-service>`,
+      </webstatus-firebase-app-service>`,
       root
     );
     const component = root.querySelector(
-      'webstatus-app-settings-service'
-    ) as WebstatusAppSettingsService;
+      'webstatus-firebase-app-service'
+    ) as WebstatusFirebaseAppService;
     const childComponent = root.querySelector(
       'fake-child-element'
     ) as FakeChildElement;
@@ -73,9 +65,8 @@ describe('webstatus-app-settings-service', () => {
     await childComponent.updateComplete;
 
     assert.exists(component);
-    assert.equal(component.appSettings, settings);
-
     assert.exists(childComponent);
-    assert.equal(childComponent.appSettings, settings);
+    assert.exists(component.firebaseApp);
+    assert.equal(component.firebaseApp, childComponent.firebaseApp);
   });
 });

@@ -25,6 +25,15 @@ describe('WebstatusServiceContainer', () => {
   const settings: AppSettings = {
     apiUrl: 'http://localhost',
     gsiClientId: 'testclientid',
+    firebase: {
+      app: {
+        apiKey: 'testapikey',
+        authDomain: 'testauthdomain',
+      },
+      auth: {
+        emulatorURL: 'http://localhost:9099',
+      },
+    },
   };
 
   const slotContent = html`<div id="slot-content">
@@ -38,6 +47,8 @@ describe('WebstatusServiceContainer', () => {
       'webstatus-gcharts-loader-service',
       'webstatus-app-settings-service',
       'webstatus-api-client-service',
+      'webstatus-firebase-app-service',
+      'webstatus-firebase-auth-service',
     ];
 
     for (const serviceTag of serviceTags) {
