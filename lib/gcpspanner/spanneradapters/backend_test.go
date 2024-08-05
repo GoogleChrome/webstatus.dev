@@ -634,6 +634,7 @@ func TestFeaturesSearch(t *testing.T) {
 									ImplementationStatus: gcpspanner.Available,
 									ImplementationDate: valuePtr(
 										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
+									ImplementationVersion: valuePtr("103"),
 								},
 							},
 							SpecLinks: nil,
@@ -676,12 +677,14 @@ func TestFeaturesSearch(t *testing.T) {
 									ImplementationStatus: gcpspanner.Available,
 									ImplementationDate: valuePtr(
 										time.Date(1998, time.January, 1, 0, 0, 0, 0, time.UTC)),
+									ImplementationVersion: valuePtr("101"),
 								},
 								{
 									BrowserName:          "browser2",
 									ImplementationStatus: gcpspanner.Available,
 									ImplementationDate: valuePtr(
 										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
+									ImplementationVersion: valuePtr("102"),
 								},
 							},
 							SpecLinks: []string{
@@ -744,6 +747,7 @@ func TestFeaturesSearch(t *testing.T) {
 								Status: valuePtr(backend.Available),
 								Date: &openapi_types.Date{
 									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								Version: valuePtr("103"),
 							},
 						},
 					},
@@ -799,11 +803,13 @@ func TestFeaturesSearch(t *testing.T) {
 								Status: valuePtr(backend.Available),
 								Date: &openapi_types.Date{
 									Time: time.Date(1998, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								Version: valuePtr("101"),
 							},
 							"browser2": {
 								Status: valuePtr(backend.Available),
 								Date: &openapi_types.Date{
 									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
+								Version: valuePtr("102"),
 							},
 						},
 					},

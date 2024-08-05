@@ -603,14 +603,16 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			},
 			ImplementationStatuses: []*ImplementationStatus{
 				{
-					BrowserName:          "barBrowser",
-					ImplementationStatus: Available,
-					ImplementationDate:   valuePtr(time.Date(2000, time.February, 2, 0, 0, 0, 0, time.UTC)),
+					BrowserName:           "barBrowser",
+					ImplementationStatus:  Available,
+					ImplementationDate:    valuePtr(time.Date(2000, time.February, 2, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: valuePtr("1.0.0"),
 				},
 				{
-					BrowserName:          "fooBrowser",
-					ImplementationStatus: Available,
-					ImplementationDate:   valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					BrowserName:           "fooBrowser",
+					ImplementationStatus:  Available,
+					ImplementationDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: valuePtr("0.0.0"),
 				},
 			},
 			SpecLinks: []string{
@@ -659,9 +661,10 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			},
 			ImplementationStatuses: []*ImplementationStatus{
 				{
-					BrowserName:          "barBrowser",
-					ImplementationStatus: Available,
-					ImplementationDate:   valuePtr(time.Date(2000, time.March, 2, 0, 0, 0, 0, time.UTC)),
+					BrowserName:           "barBrowser",
+					ImplementationStatus:  Available,
+					ImplementationDate:    valuePtr(time.Date(2000, time.March, 2, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: valuePtr("2.0.0"),
 				},
 			},
 			SpecLinks: nil,
@@ -685,9 +688,10 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ExperimentalMetrics: nil,
 			ImplementationStatuses: []*ImplementationStatus{
 				{
-					BrowserName:          "fooBrowser",
-					ImplementationStatus: Available,
-					ImplementationDate:   valuePtr(time.Date(2000, time.February, 1, 0, 0, 0, 0, time.UTC)),
+					BrowserName:           "fooBrowser",
+					ImplementationStatus:  Available,
+					ImplementationDate:    valuePtr(time.Date(2000, time.February, 1, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: valuePtr("1.0.0"),
 				},
 			},
 			SpecLinks: []string{
@@ -1712,7 +1716,12 @@ func AreImplementationStatusesEqual(a, b []*ImplementationStatus) bool {
 				b.ImplementationDate == nil) ||
 				(a.ImplementationDate != nil &&
 					b.ImplementationDate != nil &&
-					(*a.ImplementationDate).Equal(*b.ImplementationDate)))
+					(*a.ImplementationDate).Equal(*b.ImplementationDate))) &&
+			((a.ImplementationVersion == nil &&
+				b.ImplementationVersion == nil) ||
+				(a.ImplementationVersion != nil &&
+					b.ImplementationVersion != nil &&
+					(*a.ImplementationVersion) == (*b.ImplementationVersion)))
 	})
 }
 
@@ -1771,7 +1780,8 @@ func PrettyPrintImplementationStatus(status *ImplementationStatus) string {
 	}
 	fmt.Fprintf(&builder, "\t\tBrowserName: %s\n", status.BrowserName)
 	fmt.Fprintf(&builder, "\t\tStatus: %s\n", status.ImplementationStatus)
-	fmt.Fprintf(&builder, "\t\tStatus: %s\n", status.ImplementationDate)
+	fmt.Fprintf(&builder, "\t\tDate: %s\n", PrintNullableField(status.ImplementationDate))
+	fmt.Fprintf(&builder, "\t\tVersion: %s\n", PrintNullableField(status.ImplementationVersion))
 
 	return builder.String()
 }
