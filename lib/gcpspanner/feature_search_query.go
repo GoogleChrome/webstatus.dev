@@ -112,6 +112,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 	case node.Term != nil && (node.Keyword == searchtypes.KeywordNone):
 		var filter string
 		switch node.Term.Identifier {
+		case searchtypes.IdentifierAvailableDate:
+			filter = b.availableDateFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierAvailableOn:
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
@@ -184,6 +186,24 @@ func (b *FeatureSearchFilterBuilder) availabilityFilter(browser string, op searc
 
 	return fmt.Sprintf(`wf.ID %s (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @%s)`, searchOperatorToSpannerListOperator(op), paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) availableDateFilter(rawDate string, op searchtypes.SearchOperator) string {
+	date, err := time.Parse(time.DateOnly, rawDate)
+	if err != nil {
+		// an empty string which will be thrown away by the filter builder
+		return ""
+	}
+
+	paramName := b.addParamGetName(date)
+
+	return fmt.Sprintf(`
+	(
+		SELECT COUNT(*)
+		FROM UNNEST(browser_info.BrowserInfo) AS b
+		WHERE b.ImplementationStatus = 'available' AND b.ImplementationDate %s @%s
+	) > 0
+	`, searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op searchtypes.SearchOperator) string {
