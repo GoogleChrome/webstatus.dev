@@ -13,4 +13,4 @@
 # limitations under the License.
 
 # Ensure the version matches what GCP supports https://cloud.google.com/memorystore/docs/redis/supported-versions
-FROM redis:7.2.5-alpine3.20
+FROM redis:7.4.0-alpine3.20
