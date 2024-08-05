@@ -28,6 +28,10 @@ import {TaskStatus} from '@lit/task';
 
 const VOCABULARY = [
   {
+    name: 'available_date:2023-01-01..2024-01-01',
+    doc: 'Became available between the given dates',
+  },
+  {
     name: 'available_on:chrome',
     doc: 'Features available on Chrome',
   },
