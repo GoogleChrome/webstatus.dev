@@ -70,6 +70,6 @@
     "@vaadin/router": "^1.7.5",
     "firebase": "^10.12.4",
     "lit": "^3.0.1",
-    "openapi-fetch": "^0.10.2"
+    "openapi-fetch": "^0.10.5"
   }
 }
