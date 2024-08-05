@@ -33,7 +33,6 @@
     "@rollup/plugin-node-resolve": "^15.2.1",
     "@rollup/plugin-terser": "^0.4.4",
     "@types/chai": "^4.3.11",
-    "@types/google.accounts": "^0.0.14",
     "@types/mocha": "^10.0.7",
     "@types/node": "^20.14.10",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",

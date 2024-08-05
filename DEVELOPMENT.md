@@ -132,7 +132,7 @@ in `apiUrl` settings property value in the `webstatus-app` component of
 
 ```html
 <webstatus-app
-  settings='{"apiUrl": "https://api.webstatus.dev", "gsiClientId": "$GSI_CLIENT_ID"}'
+  settings='{"apiUrl": "https://api.webstatus.dev" ...}'
 ></webstatus-app>
 ```
 

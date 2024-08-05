@@ -88,10 +88,6 @@ variable "backend_api_url" {
   type = string
 }
 
-variable "gsi_client_id" {
-  type = string
-}
-
 variable "google_analytics_id" {
   type = string
 }
