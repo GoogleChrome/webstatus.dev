@@ -58,4 +58,7 @@ FROM nginx:alpine3.19-slim as static
 ARG service_dir
 COPY --from=builder /work/${service_dir}/nginx.conf /etc/nginx/nginx.conf
 COPY --from=production /work/${service_dir}/dist/static /usr/share/nginx/html
+# This fixes the case when git pull uses the wrong permission.
+RUN find /usr/share/nginx/html -type d -exec chmod o+x {} + && \
+    chmod -R o+r /usr/share/nginx/html
 COPY --from=builder /work/${service_dir}/scripts/setup_server.sh /docker-entrypoint.d/setup_server.sh
