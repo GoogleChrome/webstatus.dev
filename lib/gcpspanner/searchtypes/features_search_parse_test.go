@@ -562,6 +562,120 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "available_date:2000-01-01..2000-12-31",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordAND,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierAvailableDate,
+									Value:      "2000-01-01",
+									Operator:   OperatorGtEq,
+								},
+								Children: nil,
+							},
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierAvailableDate,
+									Value:      "2000-12-31",
+									Operator:   OperatorLtEq,
+								},
+								Children: nil,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "-available_date:2000-01-01..2000-12-31",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordOR,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierAvailableDate,
+									Value:      "2000-01-01",
+									Operator:   OperatorLt,
+								},
+								Children: nil,
+							},
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierAvailableDate,
+									Value:      "2000-12-31",
+									Operator:   OperatorGt,
+								},
+								Children: nil,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `available_date:2000-01-01..2000-12-31 AND available_on:chrome`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordAND,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordAND,
+								Term:    nil,
+								Children: []*SearchNode{
+									{
+										Keyword: KeywordNone,
+										Term: &SearchTerm{
+											Identifier: IdentifierAvailableDate,
+											Value:      "2000-01-01",
+											Operator:   OperatorGtEq,
+										},
+										Children: nil,
+									},
+									{
+										Keyword: KeywordNone,
+										Term: &SearchTerm{
+											Identifier: IdentifierAvailableDate,
+											Value:      "2000-12-31",
+											Operator:   OperatorLtEq,
+										},
+										Children: nil,
+									},
+								},
+							},
+							{
+								Keyword:  KeywordNone,
+								Children: nil,
+								Term: &SearchTerm{
+									Identifier: IdentifierAvailableOn,
+									Value:      "chrome",
+									Operator:   OperatorEq,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "-available_on:chrome OR baseline_status:widely",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,
