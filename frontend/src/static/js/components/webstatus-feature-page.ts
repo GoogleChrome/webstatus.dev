@@ -694,12 +694,17 @@ export class FeaturePage extends LitElement {
     const scorePart = this.feature
       ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
       : html`<sl-skeleton effect="sheen"></sl-skeleton>`;
-    const sinceDate: string | undefined =
-      this.feature?.browser_implementations?.[browser]?.date;
+    const browserImpl = this.feature?.browser_implementations?.[browser];
+    const sinceDate: string | undefined = browserImpl?.date;
     const sincePhrase =
       sinceDate && this.endDate > new Date(sinceDate)
         ? 'Available since'
         : 'Became available on';
+    const sinceVersion: string | undefined = browserImpl?.version;
+    const versionText =
+      sinceVersion
+        ? 'in version ' + sinceVersion
+        : '';
 
     return html`
       <sl-card class="halign-stretch wptScore">
@@ -707,7 +712,7 @@ export class FeaturePage extends LitElement {
         <div>${browser[0].toUpperCase() + browser.slice(1)}</div>
         <div class="score">${scorePart} ${this.renderDeltaChip(browser)}</div>
         ${sinceDate
-          ? html`<div class="avail">${sincePhrase} ${sinceDate}</div>`
+          ? html`<div class="avail">${sincePhrase} ${sinceDate} ${versionText}</div>`
           : nothing}
       </sl-card>
     `;
