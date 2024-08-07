@@ -186,14 +186,14 @@ export const renderBrowserQuality: CellRenderer = (
   const iconName = BROWSER_IMPL_ICONS[browserImplStatus];
   return html`
     <div class="browser-impl-${browserImplStatus}">
-<sl-tooltip
-?disabled=${browserImplVersion === undefined}
-          content="Since version ${browserImplVersion}"
-        >
-          <sl-icon name="${iconName}" library="custom"></sl-icon>
-       </sl-tooltip>
-       ${percentage}
-   </div>
+      <sl-tooltip
+        ?disabled=${browserImplVersion === undefined}
+        content="Since version ${browserImplVersion}"
+      >
+        <sl-icon name="${iconName}" library="custom"></sl-icon>
+      </sl-tooltip>
+      ${percentage}
+    </div>
   `;
 };
 
