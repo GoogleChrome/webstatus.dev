@@ -308,43 +308,41 @@ FROM WebFeatures wf
 LEFT OUTER JOIN FeatureBaselineStatus fbs ON wf.ID = fbs.WebFeatureID
 LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
 LEFT OUTER JOIN FeatureSpecs fs ON wf.ID = fs.WebFeatureID
+LEFT OUTER JOIN (
+	SELECT
+		bfa.WebFeatureID,
+		ARRAY_AGG(
+			STRUCT(
+				bfa.BrowserName AS BrowserName,
+				bfa.BrowserVersion AS ImplementationVersion,
+				IF(br.ReleaseDate IS NULL, 'unavailable', 'available') AS ImplementationStatus,
+				br.ReleaseDate AS ImplementationDate
+			)
+		) AS BrowserInfo
+	FROM BrowserFeatureAvailabilities bfa
+	LEFT OUTER JOIN BrowserReleases br
+		ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
+	GROUP BY bfa.WebFeatureID
+) AS browser_info ON wf.ID = browser_info.WebFeatureID
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
 
 	// commonFSImplementationStatusRawTemplate returns an array of structs that represent the implementation status.
+	// GCP Spanner doesn't support directly returning a NULL-valued array of structs.
+	// If browser_info.BrowserInfo is NULL (no browser data available for the feature),
+	// we need to provide a default non-NULL array with a specific structure to avoid errors.
+	// https://github.com/GoogleChrome/webstatus.dev/issues/576
 	commonFSImplementationStatusRawTemplate = `
 COALESCE(
-	(
-		SELECT ARRAY_AGG(
-			STRUCT(
-				bfa.BrowserName AS BrowserName,
-				COALESCE(
-					(
-						SELECT 'available'
-						FROM BrowserFeatureAvailabilities bfa1
-						WHERE bfa.WebFeatureID = wf.ID
-							AND bfa1.BrowserName = bfa.BrowserName
-						LIMIT 1
-					),
-					'unavailable' -- Default if no match
-				) AS ImplementationStatus,
-				COALESCE(br.ReleaseDate, CAST(NULL AS TIMESTAMP)) AS ImplementationDate,
-				br.BrowserVersion AS ImplementationVersion
-			)
-		)
-		FROM BrowserFeatureAvailabilities bfa
-		LEFT JOIN BrowserReleases br
-			ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
-		WHERE bfa.WebFeatureID = wf.ID
-	),
+	browser_info.BrowserInfo,
 	(
 		SELECT ARRAY(
-	   		SELECT AS STRUCT
+			SELECT AS STRUCT
 				'' BrowserName,
+				'' AS ImplementationVersion,
 				'unavailable' AS ImplementationStatus,
 				CAST(NULL AS TIMESTAMP) AS ImplementationDate,
-				'' AS ImplementationVersion
 		)
 	)
 ) AS ImplementationStatuses

@@ -112,6 +112,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 	case node.Term != nil && (node.Keyword == searchtypes.KeywordNone):
 		var filter string
 		switch node.Term.Identifier {
+		case searchtypes.IdentifierAvailableDate:
+			filter = b.availableDateFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierAvailableOn:
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
@@ -184,6 +186,31 @@ func (b *FeatureSearchFilterBuilder) availabilityFilter(browser string, op searc
 
 	return fmt.Sprintf(`wf.ID %s (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @%s)`, searchOperatorToSpannerListOperator(op), paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) availableDateFilter(rawDate string, op searchtypes.SearchOperator) string {
+	date, err := time.Parse(time.DateOnly, rawDate)
+	if err != nil {
+		// an empty string which will be thrown away by the filter builder
+		return ""
+	}
+
+	paramName := b.addParamGetName(date)
+
+	// Can't directly use browser_info here because Spanner doesn't support
+	// accessing fields of a struct array within a subquery when that same
+	// array is also in the main query's result set.
+	// Check this issue: https://github.com/GoogleChrome/webstatus.dev/issues/576
+	return fmt.Sprintf(`
+    EXISTS (
+        SELECT 1
+        FROM BrowserFeatureAvailabilities bfa
+        JOIN BrowserReleases br
+            ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
+        WHERE bfa.WebFeatureID = wf.ID
+            AND br.ReleaseDate %s @%s
+    )
+    `, searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op searchtypes.SearchOperator) string {

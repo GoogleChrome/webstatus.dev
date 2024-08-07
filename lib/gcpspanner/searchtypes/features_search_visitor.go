@@ -190,12 +190,29 @@ func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_s
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_date_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitAvailable_date_term(ctx *parser.Available_date_termContext) interface{} {
+	if dateRangeCtx := ctx.Date_range_query(); dateRangeCtx != nil {
+		return v.VisitDateRangeQuery(dateRangeCtx, IdentifierAvailableDate)
+	}
+
+	// Otherwise, use the default behavior of the visitor.
 	return v.VisitChildren(ctx)
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitDate_range_query(ctx *parser.Date_range_queryContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_date_termContext) interface{} {
+	if dateRangeCtx := ctx.Date_range_query(); dateRangeCtx != nil {
+		return v.VisitDateRangeQuery(dateRangeCtx, IdentifierBaselineDate)
+	}
+
+	// Otherwise, use the default behavior of the visitor.
+	return v.VisitChildren(ctx)
+}
+
+// VisitDateRangeQuery is not part of the generated methods. It is specialized to handle queries that
+// have a date range context. The generated VisitDate_range_query is no longer needed.
+func (v *FeaturesSearchVisitor) VisitDateRangeQuery(ctx parser.IDate_range_queryContext,
+	identifier SearchIdentifier) *SearchNode {
 	startDate := ctx.GetStartDate().GetText()
 	endDate := ctx.GetEndDate().GetText()
 
@@ -206,7 +223,7 @@ func (v *FeaturesSearchVisitor) VisitDate_range_query(ctx *parser.Date_range_que
 			{
 				Keyword: KeywordNone,
 				Term: &SearchTerm{
-					Identifier: IdentifierBaselineDate,
+					Identifier: identifier,
 					Value:      startDate,
 					Operator:   OperatorGtEq,
 				},
@@ -215,7 +232,7 @@ func (v *FeaturesSearchVisitor) VisitDate_range_query(ctx *parser.Date_range_que
 			{
 				Keyword: KeywordNone,
 				Term: &SearchTerm{
-					Identifier: IdentifierBaselineDate,
+					Identifier: identifier,
 					Value:      endDate,
 					Operator:   OperatorLtEq,
 				},
