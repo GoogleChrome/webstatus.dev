@@ -41,6 +41,10 @@ export class WebstatusColumnsDialog extends LitElement {
         #button-row {
           padding-top: var(--content-padding);
         }
+
+        sl-dialog::part(body) {
+          padding-top: 0;
+        }
       `,
     ];
   }
@@ -82,17 +86,42 @@ export class WebstatusColumnsDialog extends LitElement {
       const ck = enumKeyStr as keyof typeof ColumnKey;
       const columnId = ColumnKey[ck];
       const displayName = CELL_DEFS[columnId].nameInDialog;
+      // For baseline status, include options to show the low and high dates.
+      let baselineStatusOptions = html``;
+      if (columnId === ColumnKey.BaselineStatus) {
+        baselineStatusOptions = html`
+          <sl-tree-item expanded>
+            <sl-checkbox
+              value="low_date"
+              ?checked=${columns.includes('low_date' as ColumnKey)}
+              >Show Baseline status low date</sl-checkbox
+            >
+          </sl-tree-item>
+          <sl-tree-item expanded>
+            <sl-checkbox
+              value="high_date"
+              ?checked=${columns.includes('high_date' as ColumnKey)}
+              >Show Baseline status high date</sl-checkbox
+            >
+          </sl-tree-item>
+        `;
+      }
+
       checkboxes.push(html`
-        <sl-checkbox
-          value="${columnId}"
-          ?checked=${columns.includes(ColumnKey[ck])}
-        >
-          ${displayName}
-        </sl-checkbox>
+        <sl-tree-item expanded>
+          <sl-checkbox
+            value="${columnId}"
+            ?checked=${columns.includes(ColumnKey[ck])}
+          >
+            ${displayName}
+          </sl-checkbox>
+          ${baselineStatusOptions}
+        </sl-tree-item>
       `);
     }
+    const tree = html`<sl-tree>${checkboxes}</sl-tree>`;
     return html`
-      <div class="vbox" id="checkboxes">${checkboxes}</div>
+      <div class="vbox" id="checkboxes">${tree}</div>
       <div id="button-row">
         <sl-button
           id="columns-save-button"
