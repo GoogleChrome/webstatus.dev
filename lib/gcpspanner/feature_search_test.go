@@ -798,7 +798,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureNameFilters(ctx, t, client)
 	testFeatureBaselineStatusFilters(ctx, t, client)
 	testFeatureBaselineStatusDateFilters(ctx, t, client)
-	testFeatureAvailableDateFilters(ctx, t, client)
+	testFeatureAvailableBrowserDateFilters(ctx, t, client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
@@ -1109,14 +1109,14 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 	)
 }
 
-func testFeatureAvailableDateFilters(ctx context.Context, t *testing.T, client *Client) {
-	// Available Date 2000-01-01..2000-02-02
+func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, client *Client) {
+	// available_date:barBrowser:2000-01-01..2000-02-02
+	// Only Feature 1 is available on barBrowser during that same time window.
 	expectedResults := []FeatureResult{
 		getFeatureSearchTestFeature(FeatureSearchTestFId1),
-		getFeatureSearchTestFeature(FeatureSearchTestFId3),
 	}
 	expectedPage := FeatureResultPage{
-		Total:         2,
+		Total:         1,
 		NextPageToken: nil,
 		Features:      expectedResults,
 	}
@@ -1128,67 +1128,48 @@ func testFeatureAvailableDateFilters(ctx context.Context, t *testing.T, client *
 				Keyword: searchtypes.KeywordAND,
 				Term:    nil,
 				Children: []*searchtypes.SearchNode{
-					{
+					{ // startDateNode
 						Keyword: searchtypes.KeywordNone,
 						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableDate,
-							Value:      "2000-01-01",
-							Operator:   searchtypes.OperatorGtEq,
+							Identifier: searchtypes.IdentifierAvailableBrowserDate,
+							Operator:   searchtypes.OperatorNone,
+							Value:      "",
 						},
-						Children: nil,
-					},
-					{
-						Keyword: searchtypes.KeywordNone,
-						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableDate,
-							Value:      "2000-02-02",
-							Operator:   searchtypes.OperatorLtEq,
-						},
-						Children: nil,
-					},
-				},
-			},
-		},
-	}
-
-	assertFeatureSearch(ctx, t, client,
-		featureSearchArgs{
-			pageToken: nil,
-			pageSize:  100,
-			node:      node,
-			sort:      defaultSorting(),
-		},
-		&expectedPage,
-	)
-
-	// Available Date = 2000-01-01..2000-02-02 AND available on = barBrowser
-	// Only Feature 1 is available on barBrowser during that same time window.
-	expectedResults = []FeatureResult{
-		getFeatureSearchTestFeature(FeatureSearchTestFId1),
-	}
-	expectedPage = FeatureResultPage{
-		Total:         1,
-		NextPageToken: nil,
-		Features:      expectedResults,
-	}
-	node = &searchtypes.SearchNode{
-		Keyword: searchtypes.KeywordRoot,
-		Term:    nil,
-		Children: []*searchtypes.SearchNode{
-			{
-				Keyword: searchtypes.KeywordAND,
-				Term:    nil,
-				Children: []*searchtypes.SearchNode{
-					{
-						Keyword: searchtypes.KeywordAND,
-						Term:    nil,
 						Children: []*searchtypes.SearchNode{
+							{
+								Keyword: searchtypes.KeywordNone,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "barBrowser",
+									Operator:   searchtypes.OperatorEq,
+								},
+								Children: nil,
+							},
 							{
 								Keyword: searchtypes.KeywordNone,
 								Term: &searchtypes.SearchTerm{
 									Identifier: searchtypes.IdentifierAvailableDate,
 									Value:      "2000-01-01",
 									Operator:   searchtypes.OperatorGtEq,
+								},
+								Children: nil,
+							},
+						},
+					},
+					{ // endDateNode
+						Keyword: searchtypes.KeywordNone,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierAvailableBrowserDate,
+							Operator:   searchtypes.OperatorNone,
+							Value:      "",
+						},
+						Children: []*searchtypes.SearchNode{
+							{
+								Keyword: searchtypes.KeywordNone,
+								Term: &searchtypes.SearchTerm{
+									Identifier: searchtypes.IdentifierAvailableOn,
+									Value:      "barBrowser",
+									Operator:   searchtypes.OperatorEq,
 								},
 								Children: nil,
 							},
@@ -1201,15 +1182,6 @@ func testFeatureAvailableDateFilters(ctx context.Context, t *testing.T, client *
 								},
 								Children: nil,
 							},
-						},
-					},
-					{
-						Keyword:  searchtypes.KeywordNone,
-						Children: nil,
-						Term: &searchtypes.SearchTerm{
-							Identifier: searchtypes.IdentifierAvailableOn,
-							Value:      "barBrowser",
-							Operator:   searchtypes.OperatorEq,
 						},
 					},
 				},

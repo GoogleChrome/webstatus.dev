@@ -45,6 +45,7 @@ const (
 	OperatorLt   SearchOperator = "LT"
 	OperatorEq   SearchOperator = "EQ"
 	OperatorNeq  SearchOperator = "NEQ"
+	OperatorNone SearchOperator = "NONE"
 )
 
 func (o *SearchOperator) Invert() {
@@ -61,6 +62,8 @@ func (o *SearchOperator) Invert() {
 		*o = OperatorGt
 	case OperatorNeq:
 		*o = OperatorEq
+	case OperatorNone:
+		break
 	}
 }
 
@@ -83,9 +86,10 @@ type SearchTerm struct {
 type SearchIdentifier string
 
 const (
-	IdentifierAvailableDate  SearchIdentifier = "available_date"
-	IdentifierAvailableOn    SearchIdentifier = "available_on"
-	IdentifierBaselineDate   SearchIdentifier = "baseline_date"
-	IdentifierBaselineStatus SearchIdentifier = "baseline_status"
-	IdentifierName           SearchIdentifier = "name"
+	IdentifierAvailableBrowserDate SearchIdentifier = "available_browser_date"
+	IdentifierAvailableDate        SearchIdentifier = "available_date"
+	IdentifierAvailableOn          SearchIdentifier = "available_on"
+	IdentifierBaselineDate         SearchIdentifier = "baseline_date"
+	IdentifierBaselineStatus       SearchIdentifier = "baseline_status"
+	IdentifierName                 SearchIdentifier = "name"
 )

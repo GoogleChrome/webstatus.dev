@@ -191,12 +191,90 @@ func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_s
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitAvailable_date_term(ctx *parser.Available_date_termContext) interface{} {
+	var browserName string
+	if browserCtx := ctx.BROWSER_NAME(); browserCtx != nil {
+		browserName = strings.ToLower(browserCtx.GetText())
+	}
 	if dateRangeCtx := ctx.Date_range_query(); dateRangeCtx != nil {
-		return v.VisitDateRangeQuery(dateRangeCtx, IdentifierAvailableDate)
+		if browserName != "" {
+			return v.VisitAvailableBrowserDateTerm(dateRangeCtx, browserName)
+		}
 	}
 
 	// Otherwise, use the default behavior of the visitor.
 	return v.VisitChildren(ctx)
+}
+
+func (v *FeaturesSearchVisitor) VisitAvailableBrowserDateTerm(
+	ctx parser.IDate_range_queryContext, browserName string) interface{} {
+	startDate := ctx.GetStartDate().GetText()
+	endDate := ctx.GetEndDate().GetText()
+
+	// Create two nodes for start and end dates
+	startDateNode := &SearchNode{
+		Keyword: KeywordNone,
+		Term: &SearchTerm{
+			Identifier: IdentifierAvailableBrowserDate,
+			Operator:   OperatorNone,
+			Value:      "",
+		},
+		Children: []*SearchNode{
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierAvailableOn,
+					Value:      browserName,
+					Operator:   OperatorEq,
+				},
+				Children: nil,
+			},
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierAvailableDate,
+					Value:      startDate,
+					Operator:   OperatorGtEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	endDateNode := &SearchNode{
+		Keyword: KeywordNone,
+		Term: &SearchTerm{
+			Identifier: IdentifierAvailableBrowserDate,
+			Operator:   OperatorNone,
+			Value:      "",
+		},
+		Children: []*SearchNode{
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierAvailableOn,
+					Value:      browserName,
+					Operator:   OperatorEq,
+				},
+				Children: nil,
+			},
+			{
+				Keyword: KeywordNone,
+				Term: &SearchTerm{
+					Identifier: IdentifierAvailableDate,
+					Value:      endDate,
+					Operator:   OperatorLtEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	// Create a parent AND node to combine the two date conditions
+	return &SearchNode{
+		Keyword:  KeywordAND,
+		Term:     nil,
+		Children: []*SearchNode{startDateNode, endDateNode},
+	}
 }
 
 // nolint: revive // Method signature is generated.
@@ -279,6 +357,8 @@ func (v *FeaturesSearchVisitor) VisitChildren(node antlr.RuleNode) interface{} {
 // Similar to https://github.com/google/mangle/blob/28db3310648ee110b108523b3df943ce22b61e2a/parse/parse.go#L154
 func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 	switch tree := tree.(type) {
+	case *parser.Available_date_termContext:
+		return v.VisitAvailable_date_term(tree)
 	case *parser.Available_on_termContext:
 		return v.VisitAvailable_on_term(tree)
 	case *parser.Baseline_status_termContext:
@@ -357,7 +437,10 @@ func (v *FeaturesSearchVisitor) VisitTerm(ctx *parser.TermContext) interface{} {
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_search_termContext) interface{} {
-	node := v.VisitChildren(ctx).(*SearchNode)
+	node, ok := v.VisitChildren(ctx).(*SearchNode)
+	if !ok {
+		return nil
+	}
 	// Add the negation if needed as we come back up from the children.
 	if ctx.NOT() != nil {
 		node.Keyword.Invert()
