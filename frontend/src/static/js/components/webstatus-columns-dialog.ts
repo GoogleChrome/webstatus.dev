@@ -86,27 +86,27 @@ export class WebstatusColumnsDialog extends LitElement {
       const ck = enumKeyStr as keyof typeof ColumnKey;
       const columnId = ColumnKey[ck];
       const displayName = CELL_DEFS[columnId].nameInDialog;
-      // // For baseline status, include options to show the high and low date.
-      // let baselineStatusOptions = html``;
-      // if (columnId === ColumnKey.BaselineStatus) {
-      //   baselineStatusOptions = html`
-      //     <sl-tree-item expanded>
-      //       <sl-checkbox
-      //         value="highDate"
-      //         ?checked=${columns.includes(ColumnKey.BaselineStatusHighDate)}
-      //         >Show Baseline status high date</sl-checkbox
-      //       >
-      //     </sl-tree-item>
-      //     <sl-tree-item expanded>
-      //       <sl-checkbox
-      //         value="lowDate"
-      //         ?checked=${columns.includes(ColumnKey.BaselineStatusLowDate)}
-      //         >Show Baseline status low date</sl-checkbox
-      //       >
-      //     </sl-tree-item>
-      //   `;
-      // }
-      // ${baselineStatusOptions}
+      // For baseline status, include options to show the low and high dates.
+      let baselineStatusOptions = html``;
+      if (columnId === ColumnKey.BaselineStatus) {
+        baselineStatusOptions = html`
+          <sl-tree-item expanded>
+            <sl-checkbox
+              value="low_date"
+              ?checked=${columns.includes('low_date' as ColumnKey)}
+              >Show Baseline status low date</sl-checkbox
+            >
+          </sl-tree-item>
+          <sl-tree-item expanded>
+            <sl-checkbox
+              value="high_date"
+              ?checked=${columns.includes('high_date' as ColumnKey)}
+              >Show Baseline status high date</sl-checkbox
+            >
+          </sl-tree-item>
+        `;
+      }
+
       checkboxes.push(html`
         <sl-tree-item expanded>
           <sl-checkbox
@@ -115,6 +115,7 @@ export class WebstatusColumnsDialog extends LitElement {
           >
             ${displayName}
           </sl-checkbox>
+          ${baselineStatusOptions}
         </sl-tree-item>
       `);
     }

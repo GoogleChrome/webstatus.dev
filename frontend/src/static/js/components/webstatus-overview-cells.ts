@@ -259,19 +259,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellRenderer: renderBaselineStatus,
     options: {},
   },
-  // // "columns" for the baseline status high and low dates
-  // [ColumnKey.BaselineStatusLowDate]: {
-  //   nameInDialog: 'Baseline low date',
-  //   headerHtml: html`Low date`,
-  //   cellRenderer: (_feature, _routerLocation, _options) => html``,
-  //   options: {},
-  // },
-  // [ColumnKey.BaselineStatusHighDate]: {
-  //   nameInDialog: 'Baseline high date',
-  //   headerHtml: html`High date`,
-  //   cellRenderer: (_feature, _routerLocation, _options) => html``,
-  //   options: {},
-  // },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
@@ -371,8 +358,8 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
   colStrs = colStrs.map(s => s.trim()).filter(c => c);
   const colKeys: ColumnKey[] = [];
   for (const cs of colStrs) {
-    if (columnKeyMapping[cs]) {
-      colKeys.push(columnKeyMapping[cs]);
+    if (columnKeyMapping[cs] || cs === 'low_date' || cs === 'high_date') {
+      colKeys.push(columnKeyMapping[cs] || cs);
     }
   }
   if (colKeys.length > 0) {
