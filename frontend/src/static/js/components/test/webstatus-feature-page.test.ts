@@ -238,4 +238,42 @@ describe('webstatus-feature-page', () => {
       expect(chip?.textContent).to.equal('0.0%');
     });
   });
+  describe('renderBrowserImpl', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page></webstatus-feature-page>`
+      );
+      element.endDate = new Date('2024-01-01');
+      hostElement = document.createElement('div');
+    });
+
+    it('renders nothing when there is no implemenation', async () => {
+      const browserImpl = undefined;
+      const actual = element.renderBrowserImpl(browserImpl);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders the "since" phrase', async () => {
+      const browserImpl = {date: '2024-08-07'};
+      const actual = element.renderBrowserImpl(browserImpl);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host?.textContent).to.contain('Became available on 2024-08-07');
+    });
+
+    it('renders the "version" phrase', async () => {
+      const browserImpl = {date: '2024-08-07', version: '123'};
+      const actual = element.renderBrowserImpl(browserImpl);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host?.textContent).to.contain(
+        'Became available on 2024-08-07 in version 123'
+      );
+    });
+  });
 });

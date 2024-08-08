@@ -687,6 +687,26 @@ export class FeaturePage extends LitElement {
     return html` <span class="chip small ${deltaClass}">${deltaStr}</span> `;
   }
 
+  renderBrowserImpl(
+    browserImpl?: components['schemas']['BrowserImplementation']
+  ): TemplateResult {
+    const sinceDate: string | undefined = browserImpl?.date;
+    const sincePhrase =
+      sinceDate && this.endDate > new Date(sinceDate)
+        ? 'Available since'
+        : 'Became available on';
+    const sinceVersion: string | undefined = browserImpl?.version;
+    const versionText = sinceVersion ? 'in version ' + sinceVersion : '';
+
+    return html`
+      ${sinceDate
+        ? html`<div class="avail">
+            ${sincePhrase} ${sinceDate} ${versionText}
+          </div>`
+        : nothing}
+    `;
+  }
+
   renderOneWPTCard(
     browser: components['parameters']['browserPathParam'],
     icon: string
@@ -694,21 +714,14 @@ export class FeaturePage extends LitElement {
     const scorePart = this.feature
       ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
       : html`<sl-skeleton effect="sheen"></sl-skeleton>`;
-    const sinceDate: string | undefined =
-      this.feature?.browser_implementations?.[browser]?.date;
-    const sincePhrase =
-      sinceDate && this.endDate > new Date(sinceDate)
-        ? 'Available since'
-        : 'Became available on';
+    const browserImpl = this.feature?.browser_implementations?.[browser];
 
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
         <div>${browser[0].toUpperCase() + browser.slice(1)}</div>
         <div class="score">${scorePart} ${this.renderDeltaChip(browser)}</div>
-        ${sinceDate
-          ? html`<div class="avail">${sincePhrase} ${sinceDate}</div>`
-          : nothing}
+        ${this.renderBrowserImpl(browserImpl)}
       </sl-card>
     `;
   }
