@@ -197,13 +197,20 @@ func (b *FeatureSearchFilterBuilder) availableDateFilter(rawDate string, op sear
 
 	paramName := b.addParamGetName(date)
 
+	// Can't directly use browser_info here because Spanner doesn't support
+	// accessing fields of a struct array within a subquery when that same
+	// array is also in the main query's result set.
+	// Check this issue: https://github.com/GoogleChrome/webstatus.dev/issues/576
 	return fmt.Sprintf(`
-	(
-		SELECT COUNT(*)
-		FROM UNNEST(browser_info.BrowserInfo) AS b
-		WHERE b.ImplementationStatus = 'available' AND b.ImplementationDate %s @%s
-	) > 0
-	`, searchOperatorToSpannerBinaryOperator(op), paramName)
+    EXISTS (
+        SELECT 1
+        FROM BrowserFeatureAvailabilities bfa
+        JOIN BrowserReleases br
+            ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
+        WHERE bfa.WebFeatureID = wf.ID
+            AND br.ReleaseDate %s @%s
+    )
+    `, searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op searchtypes.SearchOperator) string {

@@ -190,9 +190,10 @@ export const renderBrowserQuality: CellRenderer = (
 ) => {
   const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
   let percentage = renderPercentage(score);
-  const browserImpl =
-    feature.browser_implementations?.[browser!]?.status || 'unavailable';
-  if (browserImpl === 'unavailable') {
+  const browserImpl = feature.browser_implementations?.[browser!];
+  const browserImplStatus = browserImpl?.status || 'unavailable';
+  const browserImplVersion = browserImpl?.version;
+  if (browserImplStatus === 'unavailable') {
     percentage = renderMissingPercentage();
   }
   if (feature.spec && isJavaScriptFeature(feature.spec)) {
@@ -204,10 +205,15 @@ export const renderBrowserQuality: CellRenderer = (
   if (didFeatureCrash(feature.wpt?.stable?.[browser!]?.metadata)) {
     percentage = renderFeatureCrash();
   }
-  const iconName = BROWSER_IMPL_ICONS[browserImpl];
+  const iconName = BROWSER_IMPL_ICONS[browserImplStatus];
   return html`
-    <div class="browser-impl-${browserImpl}">
-      <sl-icon name="${iconName}" library="custom"></sl-icon>
+    <div class="browser-impl-${browserImplStatus}">
+      <sl-tooltip
+        ?disabled=${browserImplVersion === undefined}
+        content="Since version ${browserImplVersion}"
+      >
+        <sl-icon name="${iconName}" library="custom"></sl-icon>
+      </sl-tooltip>
       ${percentage}
     </div>
   `;

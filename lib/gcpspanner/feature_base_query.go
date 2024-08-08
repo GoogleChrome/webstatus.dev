@@ -329,8 +329,23 @@ LEFT OUTER JOIN (
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
 
 	// commonFSImplementationStatusRawTemplate returns an array of structs that represent the implementation status.
+	// GCP Spanner doesn't support directly returning a NULL-valued array of structs.
+	// If browser_info.BrowserInfo is NULL (no browser data available for the feature),
+	// we need to provide a default non-NULL array with a specific structure to avoid errors.
+	// https://github.com/GoogleChrome/webstatus.dev/issues/576
 	commonFSImplementationStatusRawTemplate = `
-browser_info.BrowserInfo as ImplementationStatuses
+COALESCE(
+	browser_info.BrowserInfo,
+	(
+		SELECT ARRAY(
+			SELECT AS STRUCT
+				'' BrowserName,
+				'' AS ImplementationVersion,
+				'unavailable' AS ImplementationStatus,
+				CAST(NULL AS TIMESTAMP) AS ImplementationDate,
+		)
+	)
+) AS ImplementationStatuses
 `
 	gcpFSImplementationStatusRawTemplate   = commonFSImplementationStatusRawTemplate
 	localFSImplementationStatusRawTemplate = commonFSImplementationStatusRawTemplate
