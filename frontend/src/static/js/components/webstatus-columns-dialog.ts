@@ -41,6 +41,10 @@ export class WebstatusColumnsDialog extends LitElement {
         #button-row {
           padding-top: var(--content-padding);
         }
+
+        sl-dialog::part(body) {
+          padding-top: 0;
+        }
       `,
     ];
   }
@@ -82,17 +86,41 @@ export class WebstatusColumnsDialog extends LitElement {
       const ck = enumKeyStr as keyof typeof ColumnKey;
       const columnId = ColumnKey[ck];
       const displayName = CELL_DEFS[columnId].nameInDialog;
+      // // For baseline status, include options to show the high and low date.
+      // let baselineStatusOptions = html``;
+      // if (columnId === ColumnKey.BaselineStatus) {
+      //   baselineStatusOptions = html`
+      //     <sl-tree-item expanded>
+      //       <sl-checkbox
+      //         value="highDate"
+      //         ?checked=${columns.includes(ColumnKey.BaselineStatusHighDate)}
+      //         >Show Baseline status high date</sl-checkbox
+      //       >
+      //     </sl-tree-item>
+      //     <sl-tree-item expanded>
+      //       <sl-checkbox
+      //         value="lowDate"
+      //         ?checked=${columns.includes(ColumnKey.BaselineStatusLowDate)}
+      //         >Show Baseline status low date</sl-checkbox
+      //       >
+      //     </sl-tree-item>
+      //   `;
+      // }
+      // ${baselineStatusOptions}
       checkboxes.push(html`
-        <sl-checkbox
-          value="${columnId}"
-          ?checked=${columns.includes(ColumnKey[ck])}
-        >
-          ${displayName}
-        </sl-checkbox>
+        <sl-tree-item expanded>
+          <sl-checkbox
+            value="${columnId}"
+            ?checked=${columns.includes(ColumnKey[ck])}
+          >
+            ${displayName}
+          </sl-checkbox>
+        </sl-tree-item>
       `);
     }
+    const tree = html`<sl-tree>${checkboxes}</sl-tree>`;
     return html`
-      <div class="vbox" id="checkboxes">${checkboxes}</div>
+      <div class="vbox" id="checkboxes">${tree}</div>
       <div id="button-row">
         <sl-button
           id="columns-save-button"

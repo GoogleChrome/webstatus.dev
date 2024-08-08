@@ -44,6 +44,8 @@ type ColumnDefinition = {
 export enum ColumnKey {
   Name = 'name',
   BaselineStatus = 'baseline_status',
+  // BaselineStatusHighDate = 'baseline_status_high_date',
+  // BaselineStatusLowDate = 'baseline_status_low_date',
   StableChrome = 'stable_chrome',
   StableEdge = 'stable_edge',
   StableFirefox = 'stable_firefox',
@@ -123,19 +125,39 @@ const renderBaselineStatus: CellRenderer = (
   const baselineStatus = feature.baseline?.status;
   if (baselineStatus === undefined) return html``;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
-  const lowDate = feature.baseline?.low_date;
-  const baselineSince = lowDate
-    ? `Baseline since ${lowDate}`
-    : 'Not yet available';
+  // const lowDate = feature.baseline?.low_date;
+  // const baselineSince = lowDate
+  //   ? `Baseline since ${lowDate}`
+  //   : 'Not yet available';
 
-  return html`
-    <sl-tooltip content="${baselineSince}" placement="right-start">
-      <span class="chip ${chipConfig.cssClass}">
-        <img height="16" src="/public/img/${chipConfig.icon}" />
-        ${chipConfig.word}
-      </span>
-    </sl-tooltip>
-  `;
+  let baselineStatusLowDateHtml = html``;
+  const baselineStatusLowDate = feature.baseline?.low_date;
+  if (baselineStatusLowDate) {
+    baselineStatusLowDateHtml = html`<br />Newly available:
+      ${baselineStatusLowDate}`;
+  }
+  let baselineStatusHighDateHtml = html``;
+  const baselineStatusHighDate = feature.baseline?.high_date;
+  if (baselineStatusHighDate) {
+    baselineStatusHighDateHtml = html`<br />Widely available:
+      ${baselineStatusHighDate}`;
+  } else if (baselineStatusLowDate) {
+    // Add 30 months to the low date to get the projected high date.
+    const projectedHighDate = baselineStatusLowDate + 30;
+    baselineStatusHighDateHtml = html`<br />Projected Widely available:
+      ${projectedHighDate}`;
+  }
+  // <sl-tooltip content="${baselineSince}" placement="right-start">
+  //   <span class="chip ${chipConfig.cssClass}">
+  //     <img height="16" src="/public/img/${chipConfig.icon}" />
+  //     ${chipConfig.word}
+  //   </span>
+  // </sl-tooltip>
+  return html` <span class="chip ${chipConfig.cssClass}">
+      <img height="16" src="/public/img/${chipConfig.icon}" />
+      ${chipConfig.word}
+    </span>
+    ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}`;
 };
 
 const BROWSER_IMPL_ICONS: Record<
@@ -231,6 +253,19 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellRenderer: renderBaselineStatus,
     options: {},
   },
+  // // "columns" for the baseline status high and low dates
+  // [ColumnKey.BaselineStatusLowDate]: {
+  //   nameInDialog: 'Baseline low date',
+  //   headerHtml: html`Low date`,
+  //   cellRenderer: (_feature, _routerLocation, _options) => html``,
+  //   options: {},
+  // },
+  // [ColumnKey.BaselineStatusHighDate]: {
+  //   nameInDialog: 'Baseline high date',
+  //   headerHtml: html`High date`,
+  //   cellRenderer: (_feature, _routerLocation, _options) => html``,
+  //   options: {},
+  // },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
