@@ -113,7 +113,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 		var filter string
 		switch node.Term.Identifier {
 		case searchtypes.IdentifierAvailableDate:
-			filter = b.availableDateFilter(node.Term.Value, node.Term.Operator)
+			// Currently not a terminal identifier.
+			break
 		case searchtypes.IdentifierAvailableOn:
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
@@ -122,6 +123,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filter = b.baselineStatusFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierBaselineDate:
 			filter = b.baselineDateFilter(node.Term.Value, node.Term.Operator)
+		case searchtypes.IdentifierAvailableBrowserDate:
+			filter = b.handleIdentifierAvailableBrowserDateTerm(node)
 		}
 		if filter != "" {
 			filters = append(filters, "("+filter+")")
@@ -145,6 +148,8 @@ func searchOperatorToSpannerBinaryOperator(in searchtypes.SearchOperator) string
 		return "="
 	case searchtypes.OperatorNeq:
 		return "!="
+	case searchtypes.OperatorNone:
+		fallthrough
 	default:
 		// If caller tries to pass a string that actually is not an operator, default to =
 		return "="
@@ -157,7 +162,11 @@ func searchOperatorToSpannerListOperator(in searchtypes.SearchOperator) string {
 		return "IN"
 	case searchtypes.OperatorNeq:
 		return "NOT IN"
-	case searchtypes.OperatorGt, searchtypes.OperatorGtEq, searchtypes.OperatorLt, searchtypes.OperatorLtEq:
+	case searchtypes.OperatorGt,
+		searchtypes.OperatorGtEq,
+		searchtypes.OperatorLt,
+		searchtypes.OperatorLtEq,
+		searchtypes.OperatorNone:
 		fallthrough
 	default:
 		// Default to "IN". Callers should know the filter is applying to a list and the searchNode should have
@@ -172,7 +181,11 @@ func searchOperatorToSpannerStringPatternOperator(in searchtypes.SearchOperator)
 		return "LIKE"
 	case searchtypes.OperatorNeq:
 		return "NOT LIKE"
-	case searchtypes.OperatorGt, searchtypes.OperatorGtEq, searchtypes.OperatorLt, searchtypes.OperatorLtEq:
+	case searchtypes.OperatorGt,
+		searchtypes.OperatorGtEq,
+		searchtypes.OperatorLt,
+		searchtypes.OperatorLtEq,
+		searchtypes.OperatorNone:
 		fallthrough
 	default:
 		// Default to "NOT LIKE". Callers should know the filter is applying to a string pattern and the
@@ -188,29 +201,60 @@ func (b *FeatureSearchFilterBuilder) availabilityFilter(browser string, op searc
 WHERE BrowserName = @%s)`, searchOperatorToSpannerListOperator(op), paramName)
 }
 
-func (b *FeatureSearchFilterBuilder) availableDateFilter(rawDate string, op searchtypes.SearchOperator) string {
+func (b *FeatureSearchFilterBuilder) handleIdentifierAvailableBrowserDateTerm(node *searchtypes.SearchNode) string {
+	if len(node.Children) != 2 {
+		return ""
+	}
+	var browserNode, dateNode *searchtypes.SearchNode
+	for idx := range node.Children {
+		if node.Children[idx].Term.Identifier == searchtypes.IdentifierAvailableOn {
+			browserNode = node.Children[idx]
+		} else if node.Children[idx].Term.Identifier == searchtypes.IdentifierAvailableDate {
+			dateNode = node.Children[idx]
+		}
+	}
+	if browserNode == nil || dateNode == nil {
+		return ""
+	}
+
+	return b.availableBrowserDateFilter(
+		browserNode.Term.Value,
+		dateNode.Term.Value,
+		browserNode.Term.Operator,
+		dateNode.Term.Operator,
+	)
+}
+
+func (b *FeatureSearchFilterBuilder) availableBrowserDateFilter(
+	browser, rawDate string,
+	browserOp, dateOp searchtypes.SearchOperator) string {
 	date, err := time.Parse(time.DateOnly, rawDate)
 	if err != nil {
 		// an empty string which will be thrown away by the filter builder
 		return ""
 	}
+	browserParamName := b.addParamGetName(browser)
 
-	paramName := b.addParamGetName(date)
+	dateParamName := b.addParamGetName(date)
 
 	// Can't directly use browser_info here because Spanner doesn't support
 	// accessing fields of a struct array within a subquery when that same
 	// array is also in the main query's result set.
 	// Check this issue: https://github.com/GoogleChrome/webstatus.dev/issues/576
 	return fmt.Sprintf(`
-    EXISTS (
-        SELECT 1
-        FROM BrowserFeatureAvailabilities bfa
-        JOIN BrowserReleases br
-            ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
-        WHERE bfa.WebFeatureID = wf.ID
-            AND br.ReleaseDate %s @%s
-    )
-    `, searchOperatorToSpannerBinaryOperator(op), paramName)
+	wf.ID IN (
+		SELECT bfa.WebFeatureID
+		FROM BrowserFeatureAvailabilities bfa
+		JOIN BrowserReleases br
+			ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
+		WHERE
+			br.BrowserName %s @%s
+			AND br.ReleaseDate %s @%s
+	)
+    `,
+		searchOperatorToSpannerBinaryOperator(browserOp), browserParamName,
+		searchOperatorToSpannerBinaryOperator(dateOp), dateParamName,
+	)
 }
 
 func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op searchtypes.SearchOperator) string {
