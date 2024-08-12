@@ -28,7 +28,7 @@ export function getColumnsSpec(location: {search: string}): string {
 }
 
 export function getColumnOptions(location: {search: string}): string {
-  return getQueryParam(location.search, 'columns_options');
+  return getQueryParam(location.search, 'column_options');
 }
 
 export function getSortSpec(location: {search: string}): string {

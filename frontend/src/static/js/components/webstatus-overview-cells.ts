@@ -403,7 +403,7 @@ export function parseColumnOptions(columnOptions: string): ColumnOptionKey[] {
   colStrs = colStrs.map(s => s.trim()).filter(c => c);
   const colKeys: ColumnOptionKey[] = [];
   for (const cs of colStrs) {
-    if (columnKeyMapping[cs]) {
+    if (columnOptionKeyMapping[cs]) {
       colKeys.push(columnOptionKeyMapping[cs]);
     }
   }
