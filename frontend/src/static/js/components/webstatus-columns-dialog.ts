@@ -17,11 +17,17 @@
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 
-import {formatOverviewPageUrl, getColumnsSpec} from '../utils/urls.js';
+import {
+  formatOverviewPageUrl,
+  getColumnOptions,
+  getColumnsSpec,
+} from '../utils/urls.js';
 import {
   ColumnKey,
   parseColumnsSpec,
   CELL_DEFS,
+  ColumnOptionKey,
+  parseColumnOptions,
 } from './webstatus-overview-cells.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
@@ -62,18 +68,25 @@ export class WebstatusColumnsDialog extends LitElement {
 
   handleSave() {
     const newColumns: string[] = [];
+    const columnOptions: string[] = [];
     this.shadowRoot!.querySelectorAll('sl-checkbox').forEach(cb => {
+      if (cb.classList.contains('column-option') && !cb.checked) {
+        columnOptions.push(cb.value);
+      }
       if (cb.checked) {
         newColumns.push(cb.value);
       }
     });
     this.hide();
-    const nextUrl = this.formatUrlWithColumns(newColumns);
+    const nextUrl = this.formatUrlWithColumns(newColumns, columnOptions);
     window.location.href = nextUrl;
   }
 
-  formatUrlWithColumns(columns: string[]): string {
-    return formatOverviewPageUrl(this.location, {columns});
+  formatUrlWithColumns(columns: string[], columnOptions: string[]): string {
+    return formatOverviewPageUrl(this.location, {
+      columns,
+      column_options: columnOptions,
+    });
   }
 
   renderDialogContent(): TemplateResult {
@@ -81,33 +94,16 @@ export class WebstatusColumnsDialog extends LitElement {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location)
     );
+    const columnOptions: ColumnOptionKey[] = parseColumnOptions(
+      getColumnOptions(this.location)
+    );
     const checkboxes: TemplateResult[] = [];
     for (const enumKeyStr of Object.keys(ColumnKey)) {
       const ck = enumKeyStr as keyof typeof ColumnKey;
       const columnId = ColumnKey[ck];
       const displayName = CELL_DEFS[columnId].nameInDialog;
-      // For baseline status, include options to show the low and high dates.
-      let baselineStatusOptions = html``;
-      if (columnId === ColumnKey.BaselineStatus) {
-        baselineStatusOptions = html`
-          <sl-tree-item expanded>
-            <sl-checkbox
-              value="low_date"
-              ?checked=${columns.includes('low_date' as ColumnKey)}
-              >Show Baseline status low date</sl-checkbox
-            >
-          </sl-tree-item>
-          <sl-tree-item expanded>
-            <sl-checkbox
-              value="high_date"
-              ?checked=${columns.includes('high_date' as ColumnKey)}
-              >Show Baseline status high date</sl-checkbox
-            >
-          </sl-tree-item>
-        `;
-      }
-
-      checkboxes.push(html`
+      const cellColumnOptions = CELL_DEFS[columnId].options.columnOptions;
+      const checkbox = html`
         <sl-tree-item expanded>
           <sl-checkbox
             value="${columnId}"
@@ -115,9 +111,23 @@ export class WebstatusColumnsDialog extends LitElement {
           >
             ${displayName}
           </sl-checkbox>
-          ${baselineStatusOptions}
+          ${cellColumnOptions?.map(
+            option => html`
+              <sl-tree-item expanded>
+                <sl-checkbox
+                  value=${option.columnOptionKey}
+                  class="column-option"
+                  ?checked=${columns.includes(ColumnKey[ck]) &&
+                  columnOptions.includes(option.columnOptionKey)}
+                  >${option.nameInDialog}</sl-checkbox
+                >
+              </sl-tree-item>
+            `
+          )}
         </sl-tree-item>
-      `);
+      `;
+
+      checkboxes.push(checkbox);
     }
     const tree = html`<sl-tree>${checkboxes}</sl-tree>`;
     return html`

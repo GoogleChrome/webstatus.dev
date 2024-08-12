@@ -38,14 +38,13 @@ type ColumnDefinition = {
   options: {
     browser?: components['parameters']['browserPathParam'];
     channel?: components['parameters']['channelPathParam'];
+    columnOptions?: Array<ColumnOptionDefinition>;
   };
 };
 
 export enum ColumnKey {
   Name = 'name',
   BaselineStatus = 'baseline_status',
-  // BaselineStatusHighDate = 'baseline_status_high_date',
-  // BaselineStatusLowDate = 'baseline_status_low_date',
   StableChrome = 'stable_chrome',
   StableEdge = 'stable_edge',
   StableFirefox = 'stable_firefox',
@@ -62,6 +61,25 @@ const columnKeyMapping = Object.entries(ColumnKey).reduce(
     return mapping;
   },
   {} as Record<string, ColumnKey>
+);
+
+type ColumnOptionDefinition = {
+  nameInDialog: string;
+  columnOptionKey: ColumnOptionKey;
+};
+
+export enum ColumnOptionKey {
+  BaselineStatusHighDate = 'baseline_status_high_date',
+  BaselineStatusLowDate = 'baseline_status_low_date',
+}
+
+const columnOptionKeyMapping = Object.entries(ColumnOptionKey).reduce(
+  (mapping, [enumKey, enumValue]) => {
+    mapping[enumValue] =
+      ColumnOptionKey[enumKey as keyof typeof ColumnOptionKey];
+    return mapping;
+  },
+  {} as Record<string, ColumnOptionKey>
 );
 
 export const DEFAULT_COLUMNS = [
@@ -257,7 +275,18 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Baseline status',
     headerHtml: html`Baseline`,
     cellRenderer: renderBaselineStatus,
-    options: {},
+    options: {
+      columnOptions: [
+        {
+          nameInDialog: 'Show Baseline status low date',
+          columnOptionKey: ColumnOptionKey.BaselineStatusLowDate,
+        },
+        {
+          nameInDialog: 'Show Baseline status high date',
+          columnOptionKey: ColumnOptionKey.BaselineStatusHighDate,
+        },
+      ],
+    },
   },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
@@ -358,14 +387,30 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
   colStrs = colStrs.map(s => s.trim()).filter(c => c);
   const colKeys: ColumnKey[] = [];
   for (const cs of colStrs) {
-    if (columnKeyMapping[cs] || cs === 'low_date' || cs === 'high_date') {
-      colKeys.push(columnKeyMapping[cs] || cs);
+    if (columnKeyMapping[cs]) {
+      colKeys.push(columnKeyMapping[cs]);
     }
   }
   if (colKeys.length > 0) {
     return colKeys;
   } else {
     return DEFAULT_COLUMNS;
+  }
+}
+
+export function parseColumnOptions(columnOptions: string): ColumnOptionKey[] {
+  let colStrs = columnOptions.toLowerCase().split(',');
+  colStrs = colStrs.map(s => s.trim()).filter(c => c);
+  const colKeys: ColumnOptionKey[] = [];
+  for (const cs of colStrs) {
+    if (columnKeyMapping[cs]) {
+      colKeys.push(columnOptionKeyMapping[cs]);
+    }
+  }
+  if (colKeys.length > 0) {
+    return colKeys;
+  } else {
+    return [];
   }
 }
 
