@@ -17,10 +17,9 @@ package gcpspanner
 import (
 	"cmp"
 	"context"
-	"errors"
+	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
 )
 
 const webFeaturesTable = "WebFeatures"
@@ -41,72 +40,62 @@ type WebFeature struct {
 	Name       string `spanner:"Name"`
 }
 
-// UpsertWebFeature will upsert the given web feature.
-// If the feature, does not exist, it will insert a new feature.
-// If the run exists, it will only update the name.
-func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
-	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		stmt := spanner.NewStatement(`
-		SELECT
-			ID, FeatureKey, Name
-		FROM WebFeatures
-		WHERE FeatureKey = @featureKey
-		LIMIT 1`)
-		parameters := map[string]interface{}{
-			"featureKey": feature.FeatureKey,
-		}
-		stmt.Params = parameters
+// Implements the entityMapper interface for WebFeature and SpannerWebFeature.
+type webFeatureSpannerMapper struct{}
 
-		// Attempt to query for the row.
-		it := txn.Query(ctx, stmt)
-		defer it.Stop()
-		var m *spanner.Mutation
+func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID, FeatureKey, Name
+	FROM %s
+	WHERE FeatureKey = @featureKey
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"featureKey": key,
+	}
+	stmt.Params = parameters
 
-		row, err := it.Next()
-		// nolint: nestif // TODO: fix in the future.
-		if err != nil {
-			if errors.Is(err, iterator.Done) {
-				// No rows returned. Act as if this is an insertion.
-				var err error
-				m, err = spanner.InsertOrUpdateStruct(webFeaturesTable, feature)
-				if err != nil {
-					return errors.Join(ErrInternalQueryFailure, err)
-				}
-			} else {
-				// An unexpected error occurred.
+	return stmt
+}
 
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		} else {
-			// Read the existing feature and merge the values.
-			var existingFeature SpannerWebFeature
-			err = row.ToStruct(&existingFeature)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
+func (m webFeatureSpannerMapper) Merge(in WebFeature, existing SpannerWebFeature) SpannerWebFeature {
+	return SpannerWebFeature{
+		ID: existing.ID,
+		WebFeature: WebFeature{
+			FeatureKey: existing.FeatureKey,
 			// Only allow overriding of the feature name.
-			existingFeature.Name = cmp.Or[string](feature.Name, existingFeature.Name)
-			m, err = spanner.InsertOrUpdateStruct(webFeaturesTable, existingFeature)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		}
-		// Buffer the mutation to be committed.
-		err = txn.BufferWrite([]*spanner.Mutation{m})
-		if err != nil {
-			return errors.Join(ErrInternalQueryFailure, err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+			Name: cmp.Or[string](in.Name, existing.Name),
+		},
 	}
+}
 
-	id, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(feature.FeatureKey))
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+func (m webFeatureSpannerMapper) Table() string {
+	return webFeaturesTable
+}
+
+func (m webFeatureSpannerMapper) GetKey(in WebFeature) string {
+	return in.FeatureKey
+}
+
+func (m webFeatureSpannerMapper) GetID(key string) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID
+	FROM %s
+	WHERE FeatureKey = @featureKey
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"featureKey": key,
 	}
+	stmt.Params = parameters
 
-	return id, nil
+	return stmt
+}
+
+func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
+	return newEntityWriterWithIDRetrieval[webFeatureSpannerMapper, string](c).upsertAndGetID(ctx, feature)
+}
+
+func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilter) (*string, error) {
+	return newEntityWriterWithIDRetrieval[webFeatureSpannerMapper, string](c).getIDByKey(ctx, filter.featureKey)
 }

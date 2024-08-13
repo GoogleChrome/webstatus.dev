@@ -77,7 +77,7 @@ func (c *Client) ReadAllBrowserReleases(ctx context.Context, _ *testing.T) ([]Br
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var release SpannerBrowserRelease
+		var release spannerBrowserRelease
 		if err := row.ToStruct(&release); err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
