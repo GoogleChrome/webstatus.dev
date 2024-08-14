@@ -118,6 +118,32 @@ func (m *mockWebFeatureMetadataStorer) InsertWebFeaturesMetadata(
 	return m.mockInsertWebFeaturesMetadataCfg.returnError
 }
 
+type mockInsertWebFeatureGroupsConfig struct {
+	expectedFeatureData map[string]web_platform_dx__web_features.FeatureValue
+	expectedGroupData   map[string]web_platform_dx__web_features.GroupData
+	expectedMapping     map[string]string
+	returnError         error
+}
+
+type mockWebFeatureGroupStorer struct {
+	t                             *testing.T
+	mockInsertWebFeatureGroupsCfg mockInsertWebFeatureGroupsConfig
+}
+
+func (m *mockWebFeatureGroupStorer) InsertWebFeatureGroups(
+	_ context.Context,
+	featureKeyToID map[string]string,
+	featureData map[string]web_platform_dx__web_features.FeatureValue,
+	groupData map[string]web_platform_dx__web_features.GroupData) error {
+	if !reflect.DeepEqual(featureData, m.mockInsertWebFeatureGroupsCfg.expectedFeatureData) ||
+		!reflect.DeepEqual(groupData, m.mockInsertWebFeatureGroupsCfg.expectedGroupData) ||
+		!reflect.DeepEqual(featureKeyToID, m.mockInsertWebFeatureGroupsCfg.expectedMapping) {
+		m.t.Error("unexpected input")
+	}
+
+	return m.mockInsertWebFeatureGroupsCfg.returnError
+}
+
 const (
 	testRepoOwner = "owner"
 	testRepoName  = "name"
@@ -131,6 +157,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 		mockParseCfg                     mockParseConfig
 		mockInsertWebFeaturesCfg         mockInsertWebFeaturesConfig
 		mockInsertWebFeaturesMetadataCfg mockInsertWebFeaturesMetadataConfig
+		mockInsertWebFeatureGroupsCfg    mockInsertWebFeatureGroupsConfig
 		expectedResponse                 web_feature_consumer.PostV1WebFeaturesResponseObject
 	}{
 		{
@@ -171,7 +198,12 @@ func TestPostV1WebFeatures(t *testing.T) {
 							Snapshot:        nil,
 						},
 					},
-					Groups:    nil,
+					Groups: map[string]web_platform_dx__web_features.GroupData{
+						"group1": {
+							Name:   "Group 1",
+							Parent: nil,
+						},
+					},
 					Snapshots: nil,
 				},
 				returnError: nil,
@@ -240,6 +272,44 @@ func TestPostV1WebFeatures(t *testing.T) {
 				},
 				returnError: nil,
 			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
+					"group1": {
+						Name:   "Group 1",
+						Parent: nil,
+					},
+				},
+				returnError: nil,
+			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures200Response{},
 		},
 		{
@@ -265,6 +335,12 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData:    nil,
 				expectedMapping: nil,
 				returnError:     nil,
+			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: nil,
+				expectedGroupData:   nil,
+				expectedMapping:     nil,
+				returnError:         nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
@@ -294,6 +370,12 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData:    nil,
 				expectedMapping: nil,
 				returnError:     nil,
+			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: nil,
+				expectedGroupData:   nil,
+				expectedMapping:     nil,
+				returnError:         nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
@@ -379,6 +461,12 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedData:    nil,
 				expectedMapping: nil,
 				returnError:     nil,
+			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: nil,
+				expectedGroupData:   nil,
+				expectedMapping:     nil,
+				returnError:         nil,
 			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
@@ -492,9 +580,170 @@ func TestPostV1WebFeatures(t *testing.T) {
 				},
 				returnError: errors.New("uh-oh"),
 			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: nil,
+				expectedGroupData:   nil,
+				expectedMapping:     nil,
+				returnError:         nil,
+			},
 			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
 				Code:    500,
 				Message: "unable to store metadata",
+			},
+		},
+		{
+			name: "fail to store groups",
+			mockDownloadFileFromReleaseCfg: mockDownloadFileFromReleaseConfig{
+				expectedOwner:    testRepoOwner,
+				expectedRepo:     testRepoName,
+				expectedFileName: testFileName,
+				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnError:      nil,
+			},
+			mockParseCfg: mockParseConfig{
+				expectedFileContents: "hi features",
+				returnData: &web_platform_dx__web_features.FeatureData{
+					Features: map[string]web_platform_dx__web_features.FeatureValue{
+						"feature1": {
+							Name:           "Feature 1",
+							Caniuse:        nil,
+							CompatFeatures: nil,
+							Spec:           nil,
+							Status: web_platform_dx__web_features.Status{
+								Baseline:         nil,
+								BaselineHighDate: nil,
+								BaselineLowDate:  nil,
+								Support: web_platform_dx__web_features.Support{
+									Chrome:         nil,
+									ChromeAndroid:  nil,
+									Edge:           nil,
+									Firefox:        nil,
+									FirefoxAndroid: nil,
+									Safari:         nil,
+									SafariIos:      nil,
+								},
+							},
+							Description:     "text",
+							DescriptionHTML: "<html>",
+							Group:           nil,
+							Snapshot:        nil,
+						},
+					},
+					Groups: map[string]web_platform_dx__web_features.GroupData{
+						"group1": {
+							Name:   "Group 1",
+							Parent: nil,
+						},
+					},
+					Snapshots: nil,
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				returnedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
+					"group1": {
+						Name:   "Group 1",
+						Parent: nil,
+					},
+				},
+				returnError: errors.New("uh-oh"),
+			},
+			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
+				Code:    500,
+				Message: "unable to store groups",
 			},
 		},
 	}
@@ -517,10 +766,16 @@ func TestPostV1WebFeatures(t *testing.T) {
 				mockInsertWebFeaturesMetadataCfg: tc.mockInsertWebFeaturesMetadataCfg,
 			}
 
+			mockGroupStorer := &mockWebFeatureGroupStorer{
+				t:                             t,
+				mockInsertWebFeatureGroupsCfg: tc.mockInsertWebFeatureGroupsCfg,
+			}
+
 			server := &Server{
 				assetGetter:           mockGetter,
 				storer:                mockStorer,
 				metadataStorer:        mockMetadataStorer,
+				groupStorer:           mockGroupStorer,
 				webFeaturesDataParser: mockParser,
 				defaultAssetName:      testFileName,
 				defaultRepoOwner:      testRepoOwner,

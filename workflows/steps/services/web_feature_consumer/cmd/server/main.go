@@ -54,6 +54,7 @@ func main() {
 		gh.NewClient(token),
 		spanneradapters.NewWebFeaturesConsumer(spannerClient),
 		datastoreadapters.NewWebFeaturesConsumer(fs),
+		spanneradapters.NewWebFeatureGroupsConsumer(spannerClient),
 		"data.json",
 		"web-platform-dx",
 		"web-features",
