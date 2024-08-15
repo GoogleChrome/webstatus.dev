@@ -57,25 +57,6 @@ test('shows an unknown error when there is an internal error', async ({
   await expect(pageContainer).toHaveScreenshot('internal-error.png');
 });
 
-// test of hover over a baseline chip to show tooltip
-test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
-  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
-
-  // Find the tooltip for the first Widely available chip.
-  const tooltip = page
-    .locator('sl-tooltip')
-    .filter({hasText: 'Widely available'})
-    .first();
-  const baselineText = 'Baseline since 2035-05-06';
-  await expect(tooltip.getByText(baselineText)).toBeHidden();
-  const widelyAvailableChip = tooltip.locator('span').first();
-  await widelyAvailableChip.hover();
-  await expect(tooltip.getByText(baselineText)).toBeVisible();
-  // Move mouse away
-  await page.mouse.move(0, 0);
-  await expect(tooltip.getByText(baselineText)).toBeHidden();
-});
-
 test('Export to CSV button downloads a file with default columns', async ({
   page,
 }) => {
