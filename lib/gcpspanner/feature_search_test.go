@@ -37,8 +37,10 @@ func getDefaultTestBrowserList() []string {
 	}
 }
 
+// nolint:gocognit // TODO: break this into smaller methods.
 func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	client *Client, t *testing.T) {
+	webFeatureKeyToInternalFeatureID := map[string]string{}
 	//nolint: dupl // Okay to duplicate for tests
 	sampleFeatures := []WebFeature{
 		{
@@ -63,10 +65,11 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		},
 	}
 	for _, feature := range sampleFeatures {
-		_, err := client.UpsertWebFeature(ctx, feature)
+		id, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
+		webFeatureKeyToInternalFeatureID[feature.FeatureKey] = *id
 	}
 
 	// Insert excluded feature 5
@@ -508,6 +511,74 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			t.Errorf("unexpected error during insert of spec. %s", err.Error())
 		}
 	}
+	// Insert Group information
+	groupKeyToInternalID := map[string]string{}
+	groups := []Group{
+		{
+			GroupKey: "parent1",
+			Name:     "Parent 1",
+		},
+		{
+			GroupKey: "parent2",
+			Name:     "Parent 2",
+		},
+		{
+			GroupKey: "child3",
+			Name:     "Child 3",
+		},
+	}
+	for _, group := range groups {
+		id, err := client.UpsertGroup(ctx, group)
+		if err != nil {
+			t.Fatalf("failed to insert group. err: %s group: %v\n", err, group)
+		}
+		groupKeyToInternalID[group.GroupKey] = *id
+	}
+	groupDescArr := []struct {
+		groupKey string
+		info     GroupDescendantInfo
+	}{
+		{
+			groupKey: "parent1",
+			info: GroupDescendantInfo{
+				DescendantGroupIDs: []string{
+					groupKeyToInternalID["child3"],
+				},
+			},
+		},
+	}
+	for _, info := range groupDescArr {
+		err := client.UpsertGroupDescendantInfo(ctx, info.groupKey, info.info)
+		if err != nil {
+			t.Fatalf("unable to insert group descendant info err %s", err)
+		}
+	}
+	webFeatureGroups := []WebFeatureGroup{
+		{
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature1"],
+			GroupIDs: []string{
+				groupKeyToInternalID["parent1"],
+			},
+		},
+		{
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature2"],
+			GroupIDs: []string{
+				groupKeyToInternalID["parent2"],
+			},
+		},
+		{
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature3"],
+			GroupIDs: []string{
+				groupKeyToInternalID["child3"],
+			},
+		},
+	}
+	for _, webFeatureGroup := range webFeatureGroups {
+		err = client.UpsertWebFeatureGroup(ctx, webFeatureGroup)
+		if err != nil {
+			t.Fatalf("failed to insert web feature group. err: %s group\n", err)
+		}
+	}
 }
 
 func defaultSorting() Sortable {
@@ -799,6 +870,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureBaselineStatusFilters(ctx, t, client)
 	testFeatureBaselineStatusDateFilters(ctx, t, client)
 	testFeatureAvailableBrowserDateFilters(ctx, t, client)
+	testGroupFilters(ctx, t, client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
@@ -1098,6 +1170,113 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+}
+
+func testGroupFilters(ctx context.Context, t *testing.T, client *Client) {
+	// group:parent1
+	// Should get feature1 (mapped directly to parent1) and feature3 (mapped to child3 which is a child of parent1)
+	expectedResults := []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+		getFeatureSearchTestFeature(FeatureSearchTestFId3),
+	}
+	expectedPage := FeatureResultPage{
+		Total:         2,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node := &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierGroup,
+					Value:      "parent1",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Keyword: searchtypes.KeywordNone,
+			},
+		},
+	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+	// group:parent2
+	// Should get feature2 (mapped directly to parent2)
+	expectedResults = []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
+	}
+	expectedPage = FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierGroup,
+					Value:      "parent2",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Keyword: searchtypes.KeywordNone,
+			},
+		},
+	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+
+	// group:child3
+	// Should get feature3 (mapped directly to child3)
+	expectedResults = []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId3),
+	}
+	expectedPage = FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierGroup,
+					Value:      "child3",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Keyword: searchtypes.KeywordNone,
+			},
+		},
+	}
 	assertFeatureSearch(ctx, t, client,
 		featureSearchArgs{
 			pageToken: nil,

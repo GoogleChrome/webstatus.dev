@@ -603,6 +603,72 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "group:css",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierGroup,
+							Value:      "css",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `baseline_date:2000-01-01..2000-12-31 OR group:css`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordOR,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordAND,
+								Term:    nil,
+								Children: []*SearchNode{
+									{
+										Keyword: KeywordNone,
+										Term: &SearchTerm{
+											Identifier: IdentifierBaselineDate,
+											Value:      "2000-01-01",
+											Operator:   OperatorGtEq,
+										},
+										Children: nil,
+									},
+									{
+										Keyword: KeywordNone,
+										Term: &SearchTerm{
+											Identifier: IdentifierBaselineDate,
+											Value:      "2000-12-31",
+											Operator:   OperatorLtEq,
+										},
+										Children: nil,
+									},
+								},
+							},
+							{
+								Keyword:  KeywordNone,
+								Children: nil,
+								Term: &SearchTerm{
+									Identifier: IdentifierGroup,
+									Value:      "css",
+									Operator:   OperatorEq,
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			// Should remove the quotes
 			InputQuery: `name:"CSS Grid"`,
 			ExpectedTree: &SearchNode{
