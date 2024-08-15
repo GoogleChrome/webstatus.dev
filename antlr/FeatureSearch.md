@@ -47,7 +47,7 @@ This query language enables you to construct flexible searches to find features 
 
 ### Simple Term Examples
 
-- `available_date:2023-01-01..2023-12-31` - Searches for all features that became available on any browser in 2023.
+- `available_date:chrome:2023-01-01..2023-12-31` - Searches for all features that became available on Chrome in 2023.
 - `available_on:chrome` - Find features available on Chrome.
 - `-available_on:firefox` - Find features not available on Firefox.
 - `baseline_status:high` - Find features with a high baseline status.
@@ -56,7 +56,6 @@ This query language enables you to construct flexible searches to find features 
 
 ### Complex Queries
 
-- `available_date:2023-01-01..2023-12-31 AND available_on:chrome` - Searches for all features that became available on Chrome in 2023.
 - `available_on:chrome AND baseline_status:newly` - Find features available on Chrome and having a newly baseline status.
 - `-available_on:firefox OR name:"CSS Grid"` - Find features either not available on Firefox or named "CSS Grid".
 - `"CSS Grid" baseline_status:limited` - Find features named "CSS Grid" with a baseline status of none (implied AND).
