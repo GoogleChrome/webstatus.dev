@@ -25,7 +25,6 @@ import {
   ColumnKey,
   DEFAULT_SORT_SPEC,
   parseColumnsSpec,
-  parseColumnOptions,
   renderFeatureCell,
   renderHeaderCell,
 } from './webstatus-overview-cells.js';
