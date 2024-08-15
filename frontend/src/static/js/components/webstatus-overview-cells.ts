@@ -15,7 +15,11 @@
  */
 import {type TemplateResult, html, nothing} from 'lit';
 import {type components} from 'webstatus.dev-backend';
-import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
+import {
+  formatFeaturePageUrl,
+  formatOverviewPageUrl,
+  getColumnOptions,
+} from '../utils/urls.js';
 import {FeatureSortOrderType} from '../api/client.js';
 
 const MISSING_VALUE = html`---`;
@@ -137,40 +141,40 @@ const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
 
 const renderBaselineStatus: CellRenderer = (
   feature,
-  _routerLocation,
+  routerLocation,
   _options
 ) => {
   const baselineStatus = feature.baseline?.status;
   if (baselineStatus === undefined) return html``;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
-  // const lowDate = feature.baseline?.low_date;
-  // const baselineSince = lowDate
-  //   ? `Baseline since ${lowDate}`
-  //   : 'Not yet available';
+  const columnOptions: ColumnOptionKey[] = parseColumnOptions(
+    getColumnOptions(routerLocation)
+  );
+  const columnHighDateOption = columnOptions.includes(
+    ColumnOptionKey.BaselineStatusHighDate
+  );
+  const columnLowDateOption = columnOptions.includes(
+    ColumnOptionKey.BaselineStatusLowDate
+  );
 
   let baselineStatusLowDateHtml = html``;
   const baselineStatusLowDate = feature.baseline?.low_date;
-  if (baselineStatusLowDate) {
+  if (baselineStatusLowDate && columnLowDateOption) {
     baselineStatusLowDateHtml = html`<br />Newly available:
       ${baselineStatusLowDate}`;
   }
   let baselineStatusHighDateHtml = html``;
   const baselineStatusHighDate = feature.baseline?.high_date;
-  if (baselineStatusHighDate) {
+  if (baselineStatusHighDate && columnHighDateOption) {
     baselineStatusHighDateHtml = html`<br />Widely available:
       ${baselineStatusHighDate}`;
-  } else if (baselineStatusLowDate) {
+  } else if (baselineStatusLowDate && columnHighDateOption) {
     // Add 30 months to the low date to get the projected high date.
     const projectedHighDate = baselineStatusLowDate + 30;
     baselineStatusHighDateHtml = html`<br />Projected Widely available:
       ${projectedHighDate}`;
   }
-  // <sl-tooltip content="${baselineSince}" placement="right-start">
-  //   <span class="chip ${chipConfig.cssClass}">
-  //     <img height="16" src="/public/img/${chipConfig.icon}" />
-  //     ${chipConfig.word}
-  //   </span>
-  // </sl-tooltip>
+
   return html` <span class="chip ${chipConfig.cssClass}">
       <img height="16" src="/public/img/${chipConfig.icon}" />
       ${chipConfig.word}

@@ -31,6 +31,7 @@ import {
 } from './webstatus-overview-cells.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {SlCheckbox} from '@shoelace-style/shoelace';
 
 @customElement('webstatus-columns-dialog')
 export class WebstatusColumnsDialog extends LitElement {
@@ -69,12 +70,18 @@ export class WebstatusColumnsDialog extends LitElement {
   handleSave() {
     const newColumns: string[] = [];
     const columnOptions: string[] = [];
-    this.shadowRoot!.querySelectorAll('sl-checkbox').forEach(cb => {
-      if (cb.classList.contains('column-option') && !cb.checked) {
-        columnOptions.push(cb.value);
+    this.shadowRoot!.querySelectorAll<SlCheckbox>('sl-checkbox.column').forEach(
+      cb => {
+        if (cb.checked) {
+          newColumns.push(cb.value);
+        }
       }
+    );
+    this.shadowRoot!.querySelectorAll<SlCheckbox>(
+      'sl-checkbox.column-option'
+    ).forEach(cb => {
       if (cb.checked) {
-        newColumns.push(cb.value);
+        columnOptions.push(cb.value);
       }
     });
     this.hide();
@@ -107,6 +114,7 @@ export class WebstatusColumnsDialog extends LitElement {
         <sl-tree-item expanded>
           <sl-checkbox
             value="${columnId}"
+            class="column"
             ?checked=${columns.includes(ColumnKey[ck])}
           >
             ${displayName}
