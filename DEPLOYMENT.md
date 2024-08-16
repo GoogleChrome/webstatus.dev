@@ -34,6 +34,7 @@ instructions assume you have access to the following projects:
 ## Deploying your own copy
 
 ```sh
+make build
 cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-staging
@@ -98,6 +99,7 @@ terraform workspace delete $ENV_ID
 ## Deploy Staging
 
 ```sh
+make build
 cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-staging
@@ -130,6 +132,7 @@ terraform apply \
 ## Deploy Prod
 
 ```sh
+make build
 cd infra
 gcloud auth login
 gcloud auth application-default login --project=web-compass-prod
