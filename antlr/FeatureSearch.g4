@@ -32,12 +32,14 @@ available_date_term:
 baseline_date_term: 'baseline_date' COLON (date_range_query);
 name_term: 'name' COLON ANY_VALUE;
 group_term: 'group' COLON ANY_VALUE;
+snapshot_term: 'snapshot' COLON ANY_VALUE;
 term:
 	available_date_term
 	| available_on_term
 	| baseline_status_term
 	| baseline_date_term
 	| group_term
+	| snapshot_term
 	| name_term;
 
 date_range_query: startDate = DATE '..' endDate = DATE;
