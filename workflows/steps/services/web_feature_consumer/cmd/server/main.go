@@ -55,6 +55,7 @@ func main() {
 		spanneradapters.NewWebFeaturesConsumer(spannerClient),
 		datastoreadapters.NewWebFeaturesConsumer(fs),
 		spanneradapters.NewWebFeatureGroupsConsumer(spannerClient),
+		spanneradapters.NewWebFeatureSnapshotsConsumer(spannerClient),
 		"data.json",
 		"web-platform-dx",
 		"web-features",
