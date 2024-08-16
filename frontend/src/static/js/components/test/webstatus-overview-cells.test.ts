@@ -47,9 +47,7 @@ describe('parseColumnOptions', () => {
   });
 
   it('returns an array when given a column options spec', () => {
-    const options = parseColumnOptions(
-      'column_options=baseline_status_high_date'
-    );
+    const options = parseColumnOptions('baseline_status_high_date');
     assert.deepEqual(options, [ColumnOptionKey.BaselineStatusHighDate]);
   });
 });
