@@ -71,6 +71,7 @@ func (c *WebFeatureGroupConsumer) InsertWebFeatureGroups(
 		}
 	}
 	// Upsert the web-feature to group mappings
+	// nolint:dupl // TODO - we should fix this.
 	for featureKey, featureID := range featureKeyToID {
 		feature := featureData[featureKey]
 		if feature.Group == nil {
