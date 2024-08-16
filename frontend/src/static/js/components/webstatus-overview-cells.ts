@@ -95,6 +95,12 @@ export const DEFAULT_COLUMNS = [
   ColumnKey.StableSafari,
 ];
 
+export const DEFAULT_COLUMN_OPTIONS: ColumnOptionKey[] = [
+  // None, but here is an example of what could be added:
+  // ColumnOptionKey.BaselineStatusHighDate,
+  // ColumnOptionKey.BaselineStatusLowDate,
+];
+
 export type BrowserChannelColumnKeys =
   | ColumnKey.StableChrome
   | ColumnKey.StableEdge
