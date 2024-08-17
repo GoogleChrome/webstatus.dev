@@ -57,6 +57,35 @@ test('shows an unknown error when there is an internal error', async ({
   await expect(pageContainer).toHaveScreenshot('internal-error.png');
 });
 
+test('hides the Feature column', async ({page}) => {
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+
+  // Check that the "Feature" column is visible by default.
+  let nameColumn = page.locator('th > a', {hasText: 'Feature'});
+  await expect(nameColumn).toBeVisible();
+
+  // Click the Columns button to open the column selector.
+  const columnsButton = page.locator('#columns-button');
+  await columnsButton.waitFor({state: 'visible'});
+  await columnsButton.click();
+  const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
+  const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
+  await columnsDialog.waitFor({state: 'visible'});
+
+  // Uncheck the "Feature name" checkbox.
+  const nameCheckbox = webstatusColumnsDialog.locator(
+    'sl-checkbox[value="name"]'
+  );
+  await nameCheckbox.click();
+
+  // Click the Save button.
+  await page.locator('#columns-save-button').click();
+  await page.waitForTimeout(500);
+
+  nameColumn = page.locator('th > a', {hasText: 'Feature'});
+  await expect(nameColumn).not.toBeVisible();
+});
+
 test('Export to CSV button downloads a file with default columns', async ({
   page,
 }) => {
