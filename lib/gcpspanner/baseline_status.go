@@ -17,11 +17,10 @@ package gcpspanner
 import (
 	"cmp"
 	"context"
-	"errors"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
 )
 
 const featureBaselineStatusTable = "FeatureBaselineStatus"
@@ -37,12 +36,53 @@ const (
 	BaselineStatusHigh BaselineStatus = "high"
 )
 
-// SpannerFeatureBaselineStatus is a wrapper for the baseline status that is actually
+// spannerFeatureBaselineStatus is a wrapper for the baseline status that is actually
 // stored in spanner.
-type SpannerFeatureBaselineStatus struct {
+type spannerFeatureBaselineStatus struct {
 	WebFeatureID   string  `spanner:"WebFeatureID"`
 	InternalStatus *string `spanner:"Status"`
 	FeatureBaselineStatus
+}
+
+// Implements the entityMapper interface for FeatureBaselineStatus and SpannerFeatureBaselineStatus.
+type baselineStatusMapper struct{}
+
+func (m baselineStatusMapper) Table() string {
+	return featureBaselineStatusTable
+}
+
+func (m baselineStatusMapper) SelectOne(id string) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		WebFeatureID, Status, LowDate, HighDate
+	FROM %s
+	WHERE WebFeatureID = @webFeatureID
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"webFeatureID": id,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+func (m baselineStatusMapper) Merge(in spannerFeatureBaselineStatus,
+	existing spannerFeatureBaselineStatus) spannerFeatureBaselineStatus {
+	// Only allow overriding of the status, low date and high date.
+	return spannerFeatureBaselineStatus{
+		WebFeatureID:   existing.WebFeatureID,
+		InternalStatus: cmp.Or[*string]((*string)(in.Status), existing.InternalStatus),
+		FeatureBaselineStatus: FeatureBaselineStatus{
+			LowDate:  cmp.Or[*time.Time](in.LowDate, existing.LowDate),
+			HighDate: cmp.Or[*time.Time](in.HighDate, existing.HighDate),
+			// Status does not need to be set.
+			Status: nil,
+		},
+	}
+}
+
+func (m baselineStatusMapper) GetKey(in spannerFeatureBaselineStatus) string {
+	return in.WebFeatureID
 }
 
 // FeatureBaselineStatus contains information about the current baseline status
@@ -65,72 +105,12 @@ func (c *Client) UpsertFeatureBaselineStatus(ctx context.Context,
 	if id == nil {
 		return ErrInternalQueryFailure
 	}
-	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		stmt := spanner.NewStatement(`
-		SELECT
-			WebFeatureID, Status, LowDate, HighDate
-		FROM FeatureBaselineStatus
-		WHERE WebFeatureID = @webFeatureID
-		LIMIT 1`)
-		parameters := map[string]interface{}{
-			"webFeatureID": *id,
-		}
-		stmt.Params = parameters
-
-		// Create status based on the table model.
-		status := SpannerFeatureBaselineStatus{
-			WebFeatureID:          *id,
-			InternalStatus:        (*string)(input.Status),
-			FeatureBaselineStatus: input,
-		}
-
-		// Attempt to query for the row.
-		it := txn.Query(ctx, stmt)
-		defer it.Stop()
-		var m *spanner.Mutation
-
-		row, err := it.Next()
-		// nolint: nestif // TODO: fix in the future.
-		if err != nil {
-			if errors.Is(err, iterator.Done) {
-				// No rows returned. Act as if this is an insertion.
-				var err error
-				m, err = spanner.InsertOrUpdateStruct(featureBaselineStatusTable, status)
-				if err != nil {
-					return errors.Join(ErrInternalQueryFailure, err)
-				}
-			} else {
-				// An unexpected error occurred.
-
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		} else {
-			// Read the existing status and merge the values.
-			var existingStatus SpannerFeatureBaselineStatus
-			err = row.ToStruct(&existingStatus)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-			// Only allow overriding of the status, low date and high date.
-			existingStatus.InternalStatus = cmp.Or[*string](status.InternalStatus, existingStatus.InternalStatus)
-			existingStatus.LowDate = cmp.Or[*time.Time](status.LowDate, existingStatus.LowDate)
-			existingStatus.HighDate = cmp.Or[*time.Time](status.HighDate, existingStatus.HighDate)
-			m, err = spanner.InsertOrUpdateStruct(featureBaselineStatusTable, existingStatus)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		}
-		// Buffer the mutation to be committed.
-		err = txn.BufferWrite([]*spanner.Mutation{m})
-		if err != nil {
-			return errors.Join(ErrInternalQueryFailure, err)
-		}
-
-		return nil
-	})
-	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
+	// Create status based on the table model.
+	status := spannerFeatureBaselineStatus{
+		WebFeatureID:          *id,
+		InternalStatus:        (*string)(input.Status),
+		FeatureBaselineStatus: input,
 	}
 
-	return nil
+	return newEntityWriter[baselineStatusMapper](c).upsert(ctx, status)
 }

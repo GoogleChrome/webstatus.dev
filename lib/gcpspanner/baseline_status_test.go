@@ -79,7 +79,7 @@ func (c *Client) ReadAllBaselineStatuses(ctx context.Context, _ *testing.T) ([]F
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var status SpannerFeatureBaselineStatus
+		var status spannerFeatureBaselineStatus
 		if err := row.ToStruct(&status); err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}

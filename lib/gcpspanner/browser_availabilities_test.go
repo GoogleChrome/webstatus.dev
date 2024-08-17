@@ -107,7 +107,7 @@ func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]Bro
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var availability SpannerBrowserFeatureAvailability
+		var availability spannerBrowserFeatureAvailability
 		if err := row.ToStruct(&availability); err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}

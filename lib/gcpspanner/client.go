@@ -24,6 +24,7 @@ import (
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
 )
 
 // ErrQueryReturnedNoResults indicates no results were returned.
@@ -171,4 +172,202 @@ func encodeFeatureResultOffsetCursor(offset int) string {
 	return encodeCursor(FeatureResultOffsetCursor{
 		Offset: offset,
 	})
+}
+
+// entityMapper defines the core mapping operations between an external entity
+// struct and its corresponding internal representation stored in Spanner. It
+// provides methods to get the external key, generate a select statement, and
+// retrieve the table name associated with the entity.
+type entityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
+	GetKey(ExternalStruct) ExternalKey
+	SelectOne(ExternalKey) spanner.Statement
+	Table() string
+}
+
+// writeableEntityMapper extends EntityMapper with the ability to merge an
+// external entity representation into its corresponding Spanner representation.
+type writeableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
+	entityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	Merge(ExternalStruct, SpannerStruct) SpannerStruct
+}
+
+// writeableEntityMapperWithIDRetrieval further extends WriteableEntityMapper
+// with the capability to retrieve the ID of an entity based on its external key.
+type writeableEntityMapperWithIDRetrieval[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
+	writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	GetID(ExternalKey) spanner.Statement
+}
+
+// entityWriterWithIDRetrieval handles Spanner resources that use Spanner-generated
+// UUIDs as their primary key, but allows users to work with a different unique
+// value (e.g. ExternalKey) to find and retrieve the entity's ID.
+type entityWriterWithIDRetrieval[
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any,
+	ID any] struct {
+	*entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]
+}
+
+// upsertAndGetID performs an upsert operation on the entity and retrieves its ID.
+// It first attempts to upsert the entity using the `upsert` method from the
+// embedded `entityWriter`. If successful, it then uses the `getIDByKey` method to
+// fetch the entity's ID based on its external key.
+func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID]) upsertAndGetID(
+	ctx context.Context,
+	input ExternalStruct) (*ID, error) {
+	err := c.upsert(ctx, input)
+	if err != nil {
+		return nil, err
+	}
+
+	var mapper M
+	id, err := c.getIDByKey(ctx, mapper.GetKey(input))
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return id, nil
+}
+
+// getIDByKey retrieves the ID of an entity based on its external key.
+// It uses the `GetID` method from the `WriteableEntityMapperWithIDRetrieval`
+// interface to generate a Spanner query to fetch the ID.
+func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID]) getIDByKey(
+	ctx context.Context,
+	key ExternalKey,
+) (*ID, error) {
+	var mapper M
+	stmt := mapper.GetID(key)
+	// Attempt to query for the row.
+	txn := c.Single()
+	defer txn.Close()
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	row, err := it.Next()
+	if err != nil {
+		// No row found
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		// Catch-all for other errors.
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+	var id ID
+	err = row.Column(0, &id)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &id, nil
+}
+
+// entityWriter is a basic client for writing any row to the database.
+type entityWriter[
+	M writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any] struct {
+	*Client
+}
+
+// readRowErrorAndAttemptInsert handles errors that occur when reading a row
+// during an upsert operation. If no row is found (iterator.Done), it attempts
+// to insert the entity. Otherwise, it returns an internal query failure error.
+func (c *entityWriter[M, ExternalStruct, S, ExternalKey]) readRowErrorAndAttemptInsert(
+	err error, mapper M, input ExternalStruct) (*spanner.Mutation, error) {
+	if errors.Is(err, iterator.Done) {
+		// No rows returned. Act as if this is an insertion.
+		m, err := spanner.InsertOrUpdateStruct(mapper.Table(), input)
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+
+		return m, nil
+	}
+	// An unexpected error occurred.
+
+	return nil, errors.Join(ErrInternalQueryFailure, err)
+}
+
+// update reads an existing entity from a Spanner row, merges it with the input
+// entity using the mapper's Merge method, and creates a Spanner mutation for
+// updating the row.
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) update(
+	row *spanner.Row, mapper M, input ExternalStruct) (*spanner.Mutation, error) {
+	existing := new(SpannerStruct)
+	// Read the existing entity and merge the values.
+	err := row.ToStruct(existing)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+	// Override values
+	merged := mapper.Merge(input, *existing)
+	m, err := spanner.InsertOrUpdateStruct(mapper.Table(), merged)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return m, nil
+}
+
+// upsert performs an upsert (insert or update) operation on an entity.
+// It first attempts to select the entity based on its external key.
+// If the entity exists, it updates it; otherwise, it inserts a new entity.
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsert(
+	ctx context.Context,
+	input ExternalStruct) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		var mapper M
+		stmt := mapper.SelectOne(mapper.GetKey(input))
+		// Attempt to query for the row.
+		it := txn.Query(ctx, stmt)
+		defer it.Stop()
+		var m *spanner.Mutation
+
+		row, err := it.Next()
+		if err != nil {
+			m, err = c.readRowErrorAndAttemptInsert(err, mapper, input)
+			if err != nil {
+				return err
+			}
+		} else {
+			m, err = c.update(row, mapper, input)
+			if err != nil {
+				return err
+			}
+		}
+		// Buffer the mutation to be committed.
+		err = txn.BufferWrite([]*spanner.Mutation{m})
+		if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return nil
+}
+
+func newEntityWriterWithIDRetrieval[
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, ExternalKey],
+	ID any,
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any](c *Client) *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID] {
+	return &entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID]{
+		entityWriter: &entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}}
+}
+
+func newEntityWriter[
+	M writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any](c *Client) *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey] {
+	return &entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
 }

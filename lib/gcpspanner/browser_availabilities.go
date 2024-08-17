@@ -16,17 +16,57 @@ package gcpspanner
 
 import (
 	"context"
-	"errors"
+	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/grpc/codes"
 )
 
 const browserFeatureAvailabilitiesTable = "BrowserFeatureAvailabilities"
 
-// SpannerBrowserFeatureAvailability is a wrapper for the browser availability
+// Implements the entityMapper interface for BrowserFeatureAvailability and SpannerBrowserFeatureAvailability.
+type browserFeatureAvailabilityMapper struct{}
+
+func (m browserFeatureAvailabilityMapper) Table() string {
+	return browserFeatureAvailabilitiesTable
+}
+
+type browserFeatureAvailabilityKey struct {
+	WebFeatureID string
+	BrowserName  string
+}
+
+func (m browserFeatureAvailabilityMapper) SelectOne(key browserFeatureAvailabilityKey) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		WebFeatureID, BrowserName, BrowserVersion
+	FROM %s
+	WHERE WebFeatureID = @webFeatureID AND BrowserName = @browserName
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"webFeatureID": key.WebFeatureID,
+		"browserName":  key.BrowserName,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+func (m browserFeatureAvailabilityMapper) Merge(
+	_ spannerBrowserFeatureAvailability, existing spannerBrowserFeatureAvailability) spannerBrowserFeatureAvailability {
+	// If the feature availability exists, it currently does nothing and keeps the existing as-is.
+	return existing
+}
+
+func (m browserFeatureAvailabilityMapper) GetKey(in spannerBrowserFeatureAvailability) browserFeatureAvailabilityKey {
+	return browserFeatureAvailabilityKey{
+		WebFeatureID: in.WebFeatureID,
+		BrowserName:  in.BrowserName,
+	}
+}
+
+// spannerBrowserFeatureAvailability is a wrapper for the browser availability
 // information for a feature stored in spanner.
-type SpannerBrowserFeatureAvailability struct {
+type spannerBrowserFeatureAvailability struct {
 	WebFeatureID string
 	BrowserFeatureAvailability
 }
@@ -39,9 +79,6 @@ type BrowserFeatureAvailability struct {
 }
 
 // InsertBrowserFeatureAvailability will insert the given browser feature availability.
-// If the feature availability, does not exist, it will insert a new feature availability.
-// If the feature availability exists, it currently does nothing and keeps the existing as-is.
-// nolint: dupl // TODO. Will refactor for common patterns.
 func (c *Client) InsertBrowserFeatureAvailability(
 	ctx context.Context,
 	webFeatureID string,
@@ -53,39 +90,10 @@ func (c *Client) InsertBrowserFeatureAvailability(
 	if id == nil {
 		return ErrInternalQueryFailure
 	}
-	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		_, err := txn.ReadRow(
-			ctx,
-			browserFeatureAvailabilitiesTable,
-			spanner.Key{*id, input.BrowserName},
-			[]string{
-				"BrowserVersion",
-			})
-		if err != nil {
-			// Received an error other than not found. Return now.
-			if spanner.ErrCode(err) != codes.NotFound {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-			featureAvailability := SpannerBrowserFeatureAvailability{
-				WebFeatureID:               *id,
-				BrowserFeatureAvailability: input,
-			}
-			m, err := spanner.InsertOrUpdateStruct(browserFeatureAvailabilitiesTable, featureAvailability)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-			err = txn.BufferWrite([]*spanner.Mutation{m})
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		}
-		// For now, do not overwrite anything for releases.
-		return nil
-
-	})
-	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
+	featureAvailability := spannerBrowserFeatureAvailability{
+		WebFeatureID:               *id,
+		BrowserFeatureAvailability: input,
 	}
 
-	return nil
+	return newEntityWriter[browserFeatureAvailabilityMapper](c).upsert(ctx, featureAvailability)
 }

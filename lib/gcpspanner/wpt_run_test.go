@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -140,4 +141,34 @@ func TestInsertWPTRun(t *testing.T) {
 			t.Errorf("expected auto-generated uuid. id is only length %d", len(*id))
 		}
 	}
+}
+
+// GetIDOfWPTRunByRunID is a test helper function to help get the spanner ID of the
+// run. This ID then can be used to create WPT Run Metrics. By linking with this
+// ID, we do not have to be coupled with the ID from wpt.fyi.
+// It uses the RunsByExternalRunID index to quickly look up the row.
+func (c *Client) GetIDOfWPTRunByRunID(ctx context.Context, runID int64) (*string, error) {
+	txn := c.Single()
+	defer txn.Close()
+	row, err := txn.ReadRowUsingIndex(
+		ctx,
+		wptRunsTable,
+		indexRunsByExternalRunID,
+		spanner.Key{runID},
+		[]string{
+			"ID",
+		})
+	if err != nil {
+		// For now, do not check for the "does not exist" error. Treat it as ErrInternalQueryFailure for now.
+		// Can revisit whether or not separate that error from the rest of the errors in the future, if needed.
+
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+	var id string
+	err = row.Column(0, &id)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &id, nil
 }
