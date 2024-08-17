@@ -119,6 +119,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
 			filter = b.featureNameFilter(node.Term.Value, node.Term.Operator)
+		case searchtypes.IdentifierGroup:
+			filter = b.groupFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierBaselineStatus:
 			filter = b.baselineStatusFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierBaselineDate:
@@ -274,6 +276,34 @@ func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op se
 
 	return fmt.Sprintf(`(wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`, opStr, paramName,
 		opStr, paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) groupFilter(group string, op searchtypes.SearchOperator) string {
+	// Normalize the string to lower case to use the computed column.
+	group = strings.ToLower(group)
+
+	paramName := b.addParamGetName(group)
+
+	opStr := searchOperatorToSpannerBinaryOperator(op)
+
+	return fmt.Sprintf(`
+    wf.ID IN (
+        SELECT wfg.WebFeatureID
+        FROM WebFeatureGroups wfg
+        WHERE
+            EXISTS (
+                SELECT 1
+                FROM WebDXGroups g
+                LEFT JOIN WebDXGroupDescendants gd ON g.ID = gd.GroupID
+                WHERE g.GroupKey_Lowercase %s @%s
+                  AND (
+                      g.ID IN UNNEST(wfg.GroupIDs)
+                      OR
+                      ARRAY_INCLUDES_ANY(gd.DescendantGroupIDs, wfg.GroupIDs)
+                  )
+            )
+    )
+    `, opStr, paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string, op searchtypes.SearchOperator) string {
