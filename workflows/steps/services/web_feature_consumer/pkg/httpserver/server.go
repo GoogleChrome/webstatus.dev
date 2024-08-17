@@ -59,10 +59,20 @@ type WebFeatureMetadataStorer interface {
 		data map[string]web_platform_dx__web_features.FeatureValue) error
 }
 
+// WebDXGroupStorer describes the logic to insert the groups that were returned by the AssetParser.
+type WebDXGroupStorer interface {
+	InsertWebFeatureGroups(
+		ctx context.Context,
+		featureKeyToID map[string]string,
+		featureData map[string]web_platform_dx__web_features.FeatureValue,
+		groupData map[string]web_platform_dx__web_features.GroupData) error
+}
+
 type Server struct {
 	assetGetter           AssetGetter
 	storer                WebFeatureStorer
 	metadataStorer        WebFeatureMetadataStorer
+	groupStorer           WebDXGroupStorer
 	webFeaturesDataParser AssetParser
 	defaultAssetName      string
 	defaultRepoOwner      string
@@ -120,6 +130,16 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
+	err = s.groupStorer.InsertWebFeatureGroups(ctx, mapping, data.Features, data.Groups)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to store groups", "error", err)
+
+		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
+			Code:    500,
+			Message: "unable to store groups",
+		}, nil
+	}
+
 	return web_feature_consumer.PostV1WebFeatures200Response{}, nil
 }
 
@@ -128,6 +148,7 @@ func NewHTTPServer(
 	assetGetter AssetGetter,
 	storer WebFeatureStorer,
 	metadataStorer WebFeatureMetadataStorer,
+	groupStorer WebDXGroupStorer,
 	defaultAssetName string,
 	defaultRepoOwner string,
 	defaultRepoName string,
@@ -142,6 +163,7 @@ func NewHTTPServer(
 		assetGetter:           assetGetter,
 		storer:                storer,
 		metadataStorer:        metadataStorer,
+		groupStorer:           groupStorer,
 		webFeaturesDataParser: data.Parser{},
 		defaultAssetName:      defaultAssetName,
 		defaultRepoOwner:      defaultRepoOwner,
