@@ -579,6 +579,45 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			t.Fatalf("failed to insert web feature group. err: %s group\n", err)
 		}
 	}
+	// Insert Snapshot information
+	snapshotKeyToInternalID := map[string]string{}
+	snapshots := []Snapshot{
+		{
+			SnapshotKey: "snapshot1",
+			Name:        "Snapshot 1",
+		},
+		{
+			SnapshotKey: "snapshot2",
+			Name:        "Snapshot 2",
+		},
+	}
+	for _, snapshot := range snapshots {
+		id, err := client.UpsertSnapshot(ctx, snapshot)
+		if err != nil {
+			t.Fatalf("failed to insert snapshot. err: %s snapshot: %v\n", err, snapshot)
+		}
+		snapshotKeyToInternalID[snapshot.SnapshotKey] = *id
+	}
+	webFeatureSnapshots := []WebFeatureSnapshot{
+		{
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature1"],
+			SnapshotIDs: []string{
+				snapshotKeyToInternalID["snapshot1"],
+			},
+		},
+		{
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature2"],
+			SnapshotIDs: []string{
+				snapshotKeyToInternalID["snapshot2"],
+			},
+		},
+	}
+	for _, webFeatureSnapshot := range webFeatureSnapshots {
+		err = client.UpsertWebFeatureSnapshot(ctx, webFeatureSnapshot)
+		if err != nil {
+			t.Fatalf("failed to insert web feature snapshot. err: %s", err)
+		}
+	}
 }
 
 func defaultSorting() Sortable {
@@ -871,6 +910,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureBaselineStatusDateFilters(ctx, t, client)
 	testFeatureAvailableBrowserDateFilters(ctx, t, client)
 	testGroupFilters(ctx, t, client)
+	testSnapshotFilters(ctx, t, client)
 }
 
 func testFeatureCommonFilterCombos(ctx context.Context, t *testing.T, client *Client) {
@@ -1170,6 +1210,77 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 		},
 	}
 
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+}
+
+func testSnapshotFilters(ctx context.Context, t *testing.T, client *Client) {
+	// snapshot:snapshot1
+	// Should get feature1
+	expectedResults := []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+	}
+	expectedPage := FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node := &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierSnapshot,
+					Value:      "snapshot1",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Keyword: searchtypes.KeywordNone,
+			},
+		},
+	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+	// snapshot:snapshot1
+	// Should get feature2
+	expectedResults = []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
+	}
+	expectedPage = FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Children: nil,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierSnapshot,
+					Value:      "snapshot2",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Keyword: searchtypes.KeywordNone,
+			},
+		},
+	}
 	assertFeatureSearch(ctx, t, client,
 		featureSearchArgs{
 			pageToken: nil,

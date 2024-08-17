@@ -128,6 +128,10 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 	return rootNode
 }
 
+func (v *FeaturesSearchVisitor) createSnapshotNode(snapshot string) *SearchNode {
+	return v.createSimpleNode(snapshot, IdentifierSnapshot, OperatorEq)
+}
+
 func (v *FeaturesSearchVisitor) createGroupNode(group string) *SearchNode {
 	return v.createSimpleNode(group, IdentifierGroup, OperatorEq)
 }
@@ -437,6 +441,11 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 	root = current
 
 	return root
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitSnapshot_term(ctx *parser.Snapshot_termContext) interface{} {
+	return v.createSnapshotNode(ctx.ANY_VALUE().GetText())
 }
 
 // nolint: revive // Method signature is generated.
