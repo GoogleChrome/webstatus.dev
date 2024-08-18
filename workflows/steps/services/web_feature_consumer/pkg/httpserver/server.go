@@ -68,11 +68,21 @@ type WebDXGroupStorer interface {
 		groupData map[string]web_platform_dx__web_features.GroupData) error
 }
 
+// WebDXSnapshotStorer describes the logic to insert the snapshots that were returned by the AssetParser.
+type WebDXSnapshotStorer interface {
+	InsertWebFeatureSnapshots(
+		ctx context.Context,
+		featureKeyToID map[string]string,
+		featureData map[string]web_platform_dx__web_features.FeatureValue,
+		snapshotData map[string]web_platform_dx__web_features.SnapshotData) error
+}
+
 type Server struct {
 	assetGetter           AssetGetter
 	storer                WebFeatureStorer
 	metadataStorer        WebFeatureMetadataStorer
 	groupStorer           WebDXGroupStorer
+	snapshotStorer        WebDXSnapshotStorer
 	webFeaturesDataParser AssetParser
 	defaultAssetName      string
 	defaultRepoOwner      string
@@ -140,6 +150,16 @@ func (s *Server) PostV1WebFeatures(
 		}, nil
 	}
 
+	err = s.snapshotStorer.InsertWebFeatureSnapshots(ctx, mapping, data.Features, data.Snapshots)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to store snapshots", "error", err)
+
+		return web_feature_consumer.PostV1WebFeatures500JSONResponse{
+			Code:    500,
+			Message: "unable to store snapshots",
+		}, nil
+	}
+
 	return web_feature_consumer.PostV1WebFeatures200Response{}, nil
 }
 
@@ -149,6 +169,7 @@ func NewHTTPServer(
 	storer WebFeatureStorer,
 	metadataStorer WebFeatureMetadataStorer,
 	groupStorer WebDXGroupStorer,
+	snapshotStorer WebDXSnapshotStorer,
 	defaultAssetName string,
 	defaultRepoOwner string,
 	defaultRepoName string,
@@ -164,6 +185,7 @@ func NewHTTPServer(
 		storer:                storer,
 		metadataStorer:        metadataStorer,
 		groupStorer:           groupStorer,
+		snapshotStorer:        snapshotStorer,
 		webFeaturesDataParser: data.Parser{},
 		defaultAssetName:      defaultAssetName,
 		defaultRepoOwner:      defaultRepoOwner,
