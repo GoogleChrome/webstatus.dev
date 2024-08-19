@@ -340,6 +340,7 @@ go-workspace-setup: go-workspace-clean
 		go work use ./util && \
 		go work use ./workflows/steps/services/bcd_consumer && \
 		go work use ./workflows/steps/services/common/repo_downloader && \
+		go work use ./workflows/steps/services/uma_export && \
 		go work use ./workflows/steps/services/web_feature_consumer && \
 		go work use ./workflows/steps/services/wpt_consumer
 go-workspace-clean:
