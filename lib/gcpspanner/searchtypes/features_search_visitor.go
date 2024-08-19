@@ -128,16 +128,31 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 	return rootNode
 }
 
+func (v *FeaturesSearchVisitor) createSnapshotNode(snapshot string) *SearchNode {
+	return v.createSimpleNode(snapshot, IdentifierSnapshot, OperatorEq)
+}
+
+func (v *FeaturesSearchVisitor) createGroupNode(group string) *SearchNode {
+	return v.createSimpleNode(group, IdentifierGroup, OperatorEq)
+}
+
 func (v *FeaturesSearchVisitor) createNameNode(name string) *SearchNode {
-	name = strings.Trim(name, `"`)
+	return v.createSimpleNode(name, IdentifierName, OperatorEq)
+}
+
+func (v *FeaturesSearchVisitor) createSimpleNode(
+	value string,
+	identifier SearchIdentifier,
+	operator SearchOperator) *SearchNode {
+	value = strings.Trim(value, `"`)
 
 	return &SearchNode{
 		Keyword:  KeywordNone,
 		Children: nil,
 		Term: &SearchTerm{
-			Identifier: IdentifierName,
-			Value:      name,
-			Operator:   OperatorEq,
+			Identifier: identifier,
+			Value:      value,
+			Operator:   operator,
 		},
 	}
 }
@@ -371,6 +386,8 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 		return v.VisitDate_range_query(tree)
 	case *parser.Generic_search_termContext:
 		return v.VisitGeneric_search_term(tree)
+	case *parser.Group_termContext:
+		return v.VisitGroup_term(tree)
 	case *parser.Name_termContext:
 		return v.VisitName_term(tree)
 	case *parser.OperatorContext:
@@ -424,6 +441,16 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 	root = current
 
 	return root
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitSnapshot_term(ctx *parser.Snapshot_termContext) interface{} {
+	return v.createSnapshotNode(ctx.ANY_VALUE().GetText())
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitGroup_term(ctx *parser.Group_termContext) interface{} {
+	return v.createGroupNode(ctx.ANY_VALUE().GetText())
 }
 
 // nolint: revive // Method signature is generated.

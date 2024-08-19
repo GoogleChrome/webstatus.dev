@@ -19,7 +19,6 @@ import (
 	"errors"
 	"slices"
 
-	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 )
 
@@ -84,40 +83,4 @@ func (c *Client) GetFeature(
 	}
 
 	return &actualResult, nil
-}
-
-func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilter) (*string, error) {
-	query := `
-	SELECT
-		ID
-	FROM WebFeatures wf ` +
-		"WHERE " + filter.Clause() + `
-	LIMIT 1
-	`
-	stmt := spanner.NewStatement(query)
-
-	stmt.Params = filter.Params()
-
-	// Attempt to query for the row.
-	txn := c.Single()
-	defer txn.Close()
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-	row, err := it.Next()
-	if err != nil {
-		// No row found
-		if errors.Is(err, iterator.Done) {
-			return nil, errors.Join(ErrQueryReturnedNoResults, err)
-		}
-
-		// Catch-all for other errors.
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-	var id string
-	err = row.Column(0, &id)
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-
-	return &id, nil
 }

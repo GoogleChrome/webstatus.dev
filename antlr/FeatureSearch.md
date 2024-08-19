@@ -37,6 +37,8 @@ This query language enables you to construct flexible searches to find features 
       - `name:"CSS Grid"`
   - `baseline_date`: Represents the date a feature reached baseline.
     - Option 1: Searches for an inclusive date range (DATE..DATE) where features reached baseline.
+  - `group`: Searches for features that belong to a group defined in the web-features [repository](https://github.com/web-platform-dx/web-features/tree/main/groups).
+  - `snapshot`: Searches for features that belong to a snapshot defined in the web-features [repository](https://github.com/web-platform-dx/web-features/tree/main/snapshots).
 - **Negation:** Prepend a term with a minus sign (-) to indicate negation (search for features not matching that criterion).
 - **Keywords:** These are reserved words used in the grammar, such as `AND`, `OR`
   - `AND`: Combine terms with the AND keyword for explicit logical AND, or use a space between terms for implied AND.
@@ -53,6 +55,8 @@ This query language enables you to construct flexible searches to find features 
 - `baseline_status:high` - Find features with a high baseline status.
 - `name:"Dark Mode"` - Find features named "Dark Mode" (including spaces).
 - `baseline_date:2023-01-01..2023-12-31` - Searches for all features that reached baseline in 2023.
+- `group:css` - Searches for features that belong to the `css` group and any groups that are descendants of that group.
+- `snapshot:ecmascript-5` - Searches for features that belong to the `ecmascript-5` snapshot.
 
 ### Complex Queries
 

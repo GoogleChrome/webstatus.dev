@@ -92,4 +92,6 @@ const (
 	IdentifierBaselineDate         SearchIdentifier = "baseline_date"
 	IdentifierBaselineStatus       SearchIdentifier = "baseline_status"
 	IdentifierName                 SearchIdentifier = "name"
+	IdentifierGroup                SearchIdentifier = "group"
+	IdentifierSnapshot             SearchIdentifier = "snapshot"
 )

@@ -17,21 +17,21 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
-	"google.golang.org/grpc/codes"
 )
 
 const wptRunsTable = "WPTRuns"
 const indexRunsByExternalRunID = "RunsByExternalRunID"
 
-// SpannerWPTRun is a wrapper for the run data that is actually
+// spannerWPTRun is a wrapper for the run data that is actually
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user since it is only used to decouple the primary keys
 // between this system and wpt.fyi.
-type SpannerWPTRun struct {
+type spannerWPTRun struct {
 	ID string `spanner:"ID"`
 	WPTRun
 }
@@ -50,6 +50,45 @@ type WPTRun struct {
 	FullRevisionHash string    `spanner:"FullRevisionHash"`
 }
 
+type wptRunSpannerMapper struct{}
+
+func (m wptRunSpannerMapper) SelectOne(externalRunID int64) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID,
+		ExternalRunID,
+		TimeStart,
+		TimeEnd,
+		BrowserName,
+		BrowserVersion,
+		Channel,
+		OSName,
+		OSVersion,
+		FullRevisionHash
+	FROM %s
+	WHERE ExternalRunID = @externalRunID
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"externalRunID": externalRunID,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+func (m wptRunSpannerMapper) GetKey(in WPTRun) int64 {
+	return in.RunID
+}
+
+func (m wptRunSpannerMapper) Table() string {
+	return wptRunsTable
+}
+
+func (m wptRunSpannerMapper) Merge(_ WPTRun, existing spannerWPTRun) spannerWPTRun {
+	// For now, only keep the existing.
+	return existing
+}
+
 // WPTRunDataForMetrics contains duplicate data from WPTRuns that will be stored
 // in the individual metrics. It will allow for quicker look up of metrics.
 type WPTRunDataForMetrics struct {
@@ -60,81 +99,12 @@ type WPTRunDataForMetrics struct {
 }
 
 // InsertWPTRun will insert the given WPT Run.
-// If the run, does not exist, it will insert a new run.
-// If the run exists, it currently does nothing and keeps the existing as-is.
-// The update case should be revisited later on.
-// It uses the RunsByExternalRunID index to quickly look up the row.
 func (c *Client) InsertWPTRun(ctx context.Context, run WPTRun) error {
-	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		_, err := txn.ReadRowUsingIndex(
-			ctx,
-			wptRunsTable,
-			indexRunsByExternalRunID,
-			spanner.Key{run.RunID},
-			[]string{
-				"ID",
-			})
-		if err != nil {
-			// Received an error other than not found. Return now.
-			if spanner.ErrCode(err) != codes.NotFound {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-			m, err := spanner.InsertOrUpdateStruct(wptRunsTable, run)
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-			err = txn.BufferWrite([]*spanner.Mutation{m})
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		}
-		// For now, do not overwrite anything for wpt runs.
-		// If this is changed in the future, do not allow changes to the data in
-		// WPTRunDataForMetrics because it is used in the metrics table.
-		return nil
-
-	})
-	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
-	}
-
-	return nil
+	return newEntityWriter[wptRunSpannerMapper](c).upsert(ctx, run)
 }
 
-// GetIDOfWPTRunByRunID is a helper function to help get the spanner ID of the
-// run. This ID then can be used to create WPT Run Metrics. By linking with this
-// ID, we do not have to be coupled with the ID from wpt.fyi.
-// It uses the RunsByExternalRunID index to quickly look up the row.
-func (c *Client) GetIDOfWPTRunByRunID(ctx context.Context, runID int64) (*string, error) {
-	txn := c.Single()
-	defer txn.Close()
-	row, err := txn.ReadRowUsingIndex(
-		ctx,
-		wptRunsTable,
-		indexRunsByExternalRunID,
-		spanner.Key{runID},
-		[]string{
-			"ID",
-		})
-	if err != nil {
-		// For now, do not check for the "does not exist" error. Treat it as ErrInternalQueryFailure for now.
-		// Can revisit whether or not separate that error from the rest of the errors in the future, if needed.
-
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-	var id string
-	err = row.Column(0, &id)
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-
-	return &id, nil
-}
-
-// GetIDOfWPTRunByRunID is a helper function to help get the spanner ID of the
-// run. This ID then can be used to create WPT Run Metrics. By linking with this
-// ID, we do not have to be coupled with the ID from wpt.fyi.
-// It uses the RunsByExternalRunID index to quickly look up the row.
+// GetWPTRunDataByRunIDForMetrics is a helper function to help get a subsection of the WPT Run information. This
+// information will be used to create the WPT Run metrics.
 func (c *Client) GetWPTRunDataByRunIDForMetrics(ctx context.Context, runID int64) (*WPTRunDataForMetrics, error) {
 	query := `
 	SELECT

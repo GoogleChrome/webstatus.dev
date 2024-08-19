@@ -160,6 +160,113 @@ func generateFeatureAvailability(
 	return availabilitiesInserted, nil
 }
 
+func generateGroups(ctx context.Context,
+	client *gcpspanner.Client,
+	features []gcpspanner.SpannerWebFeature) ([]string, error) {
+	groupKeyToInternalID := map[string]string{}
+	groups := []gcpspanner.Group{
+		{
+			GroupKey: "parent1",
+			Name:     "Parent 1",
+		},
+		{
+			GroupKey: "parent2",
+			Name:     "Parent 2",
+		},
+		{
+			GroupKey: "child3",
+			Name:     "Child 3",
+		},
+	}
+	for _, group := range groups {
+		id, err := client.UpsertGroup(ctx, group)
+		if err != nil {
+			return nil, err
+		}
+		groupKeyToInternalID[group.GroupKey] = *id
+	}
+	groupDescArr := []struct {
+		groupKey string
+		info     gcpspanner.GroupDescendantInfo
+	}{
+		{
+			groupKey: "parent1",
+			info: gcpspanner.GroupDescendantInfo{
+				DescendantGroupIDs: []string{
+					groupKeyToInternalID["child3"],
+				},
+			},
+		},
+	}
+	for _, info := range groupDescArr {
+		err := client.UpsertGroupDescendantInfo(ctx, info.groupKey, info.info)
+		if err != nil {
+			return nil, err
+		}
+	}
+	for _, feature := range features {
+		group := groups[r.Intn(len(groups))]
+		err := client.UpsertWebFeatureGroup(ctx, gcpspanner.WebFeatureGroup{
+			WebFeatureID: feature.ID,
+			GroupIDs: []string{
+				groupKeyToInternalID[group.GroupKey],
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	groupKeys := []string{}
+	for _, group := range groups {
+		groupKeys = append(groupKeys, group.GroupKey)
+	}
+
+	return groupKeys, nil
+}
+
+func generateSnapshots(ctx context.Context,
+	client *gcpspanner.Client,
+	features []gcpspanner.SpannerWebFeature) ([]string, error) {
+	snapshotKeyToInternalID := map[string]string{}
+	snapshots := []gcpspanner.Snapshot{
+		{
+			SnapshotKey: "parent1",
+			Name:        "Parent 1",
+		},
+		{
+			SnapshotKey: "parent2",
+			Name:        "Parent 2",
+		},
+	}
+	for _, snapshot := range snapshots {
+		id, err := client.UpsertSnapshot(ctx, snapshot)
+		if err != nil {
+			return nil, err
+		}
+		snapshotKeyToInternalID[snapshot.SnapshotKey] = *id
+	}
+	for _, feature := range features {
+		snapshot := snapshots[r.Intn(len(snapshots))]
+		err := client.UpsertWebFeatureSnapshot(ctx, gcpspanner.WebFeatureSnapshot{
+			WebFeatureID: feature.ID,
+			SnapshotIDs: []string{
+				snapshotKeyToInternalID[snapshot.SnapshotKey],
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	snapshotKeys := []string{}
+	for _, snapshot := range snapshots {
+		snapshotKeys = append(snapshotKeys, snapshot.SnapshotKey)
+	}
+
+	return snapshotKeys, nil
+}
+
 func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client) error {
 	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
@@ -202,6 +309,20 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.Info("availabilities generated",
 		"amount of availabilities created", availabilityCount)
+
+	groupKeys, err := generateGroups(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("group generation failed %w", err)
+	}
+	slog.Info("groups generated",
+		"groupKeys", groupKeys)
+
+	snapshotKeys, err := generateSnapshots(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("snapshot generation failed %w", err)
+	}
+	slog.Info("snapshots generated",
+		"snapshotKeys", snapshotKeys)
 
 	return nil
 }
