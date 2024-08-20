@@ -163,29 +163,45 @@ const renderBaselineStatus: CellRenderer = (
     ColumnOptionKey.BaselineStatusLowDate
   );
 
+  function generateDateHtml(header: string, date: string | number) {
+    return html`<div class="baseline-date-block">
+      <span class="baseline-date-header">${header}:</span>
+      <span class="baseline-date">${date}</span>
+    </div>`;
+  }
+
   let baselineStatusLowDateHtml = html``;
   const baselineStatusLowDate = feature.baseline?.low_date;
   if (baselineStatusLowDate && columnLowDateOption) {
-    baselineStatusLowDateHtml = html`<br />Newly available:
-      ${baselineStatusLowDate}`;
+    baselineStatusLowDateHtml = generateDateHtml(
+      'Newly available',
+      baselineStatusLowDate
+    );
   }
+
   let baselineStatusHighDateHtml = html``;
   const baselineStatusHighDate = feature.baseline?.high_date;
   if (baselineStatusHighDate && columnHighDateOption) {
-    baselineStatusHighDateHtml = html`<br />Widely available:
-      ${baselineStatusHighDate}`;
+    baselineStatusHighDateHtml = generateDateHtml(
+      'Widely available',
+      baselineStatusHighDate
+    );
   } else if (baselineStatusLowDate && columnHighDateOption) {
     // Add 30 months to the low date to get the projected high date.
     const projectedHighDate = baselineStatusLowDate + 30;
-    baselineStatusHighDateHtml = html`<br />Projected Widely available:
-      ${projectedHighDate}`;
+    baselineStatusHighDateHtml = generateDateHtml(
+      'Projected widely available',
+      projectedHighDate
+    );
   }
 
-  return html` <span class="chip ${chipConfig.cssClass}">
+  return html`<div class="vbox halign-items-start">
+    <span class="chip ${chipConfig.cssClass}">
       <img height="16" src="/public/img/${chipConfig.icon}" />
       ${chipConfig.word}
     </span>
-    ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}`;
+    ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}
+  </div>`;
 };
 
 const BROWSER_IMPL_ICONS: Record<

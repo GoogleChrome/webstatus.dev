@@ -215,6 +215,10 @@ export class FeaturePage extends LitElement {
           color: var(--chip-color-decreased);
         }
 
+        baseline-date {
+          font-size: 0.8em;
+        }
+
         #current-bugs li {
           list-style: none;
           margin-bottom: var(--content-padding);

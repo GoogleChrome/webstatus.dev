@@ -125,17 +125,17 @@ test('shows the Baseline status column with low and high date options', async ({
   const baselineStatusLowDateText = page.locator('td', {
     hasText: 'Newly available: ',
   });
-  await expect(baselineStatusLowDateText).toBeVisible();
+  await expect(baselineStatusLowDateText.first()).toBeVisible();
   // Check that "Widely available: " and "Projected Widely available: "
   // text is visible somewhere.
   const baselineStatusHighDateText = page.locator('td', {
     hasText: 'Widely available: ',
   });
-  await expect(baselineStatusHighDateText).toBeVisible();
+  await expect(baselineStatusHighDateText.first()).toBeVisible();
   const baselineStatusProjectedHighDateText = page.locator('td', {
     hasText: 'Projected widely available: ',
   });
-  await expect(baselineStatusProjectedHighDateText).toBeVisible();
+  await expect(baselineStatusProjectedHighDateText.first()).toBeVisible();
 });
 
 test('Export to CSV button downloads a file with default columns', async ({
