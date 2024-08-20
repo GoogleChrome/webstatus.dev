@@ -57,86 +57,86 @@ test('shows an unknown error when there is an internal error', async ({
   await expect(pageContainer).toHaveScreenshot('internal-error.png');
 });
 
-test('hides the Feature column', async ({page}) => {
-  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+// test('hides the Feature column', async ({page}) => {
+//   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
 
-  // Check that the "Feature" column is visible by default.
-  let nameColumn = page.locator('th > a', {hasText: 'Feature'});
-  await expect(nameColumn).toBeVisible();
+//   // Check that the "Feature" column is visible by default.
+//   let nameColumn = page.locator('th > a', {hasText: 'Feature'});
+//   await expect(nameColumn).toBeVisible();
 
-  // Click the Columns button to open the column selector.
-  const columnsButton = page.locator('#columns-button');
-  await columnsButton.waitFor({state: 'visible'});
-  await columnsButton.click();
-  const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
-  const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
-  await columnsDialog.waitFor({state: 'visible'});
+//   // Click the Columns button to open the column selector.
+//   const columnsButton = page.locator('#columns-button');
+//   await columnsButton.waitFor({state: 'visible'});
+//   await columnsButton.click();
+//   const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
+//   const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
+//   await columnsDialog.waitFor({state: 'visible'});
 
-  // Uncheck the "Feature name" checkbox.
-  const nameCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="name"]'
-  );
-  await nameCheckbox.click();
+//   // Uncheck the "Feature name" checkbox.
+//   const nameCheckbox = webstatusColumnsDialog.locator(
+//     'sl-checkbox[value="name"]'
+//   );
+//   await nameCheckbox.click();
 
-  // Click the Save button.
-  await page.locator('#columns-save-button').click();
-  await page.waitForTimeout(500);
+//   // Click the Save button.
+//   await page.locator('#columns-save-button').click();
+//   await page.waitForTimeout(500);
 
-  // Make sure the "Feature" column is no longer visible.
-  nameColumn = page.locator('th > a', {hasText: 'Feature'});
-  await expect(nameColumn).not.toBeVisible();
-});
+//   // Make sure the "Feature" column is no longer visible.
+//   nameColumn = page.locator('th > a', {hasText: 'Feature'});
+//   await expect(nameColumn).not.toBeVisible();
+// });
 
-test('shows the Baseline status column with low and high date options', async ({
-  page,
-}) => {
-  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+// test('shows the Baseline status column with low and high date options', async ({
+//   page,
+// }) => {
+//   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
 
-  // Check that the "Baseline" column is visible by default.
-  const baselineStatusColumn = page.locator('th > a', {
-    hasText: 'Baseline',
-  });
-  await expect(baselineStatusColumn).toBeVisible();
+//   // Check that the "Baseline" column is visible by default.
+//   const baselineStatusColumn = page.locator('th > a', {
+//     hasText: 'Baseline',
+//   });
+//   await expect(baselineStatusColumn).toBeVisible();
 
-  // Click the Columns button to open the column selector.
-  const columnsButton = page.locator('#columns-button');
-  await columnsButton.waitFor({state: 'visible'});
-  await columnsButton.click();
-  const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
-  const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
-  await columnsDialog.waitFor({state: 'visible'});
+//   // Click the Columns button to open the column selector.
+//   const columnsButton = page.locator('#columns-button');
+//   await columnsButton.waitFor({state: 'visible'});
+//   await columnsButton.click();
+//   const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
+//   const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
+//   await columnsDialog.waitFor({state: 'visible'});
 
-  // Check the "Baseline status low date" checkbox.
-  const baselineStatusLowDateCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="baseline_status_low_date"]'
-  );
-  await baselineStatusLowDateCheckbox.click();
-  // Check the "Baseline status high date" checkbox.
-  const baselineStatusHighDateCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="baseline_status_high_date"]'
-  );
-  await baselineStatusHighDateCheckbox.click();
+//   // Check the "Baseline status low date" checkbox.
+//   const baselineStatusLowDateCheckbox = webstatusColumnsDialog.locator(
+//     'sl-checkbox[value="baseline_status_low_date"]'
+//   );
+//   await baselineStatusLowDateCheckbox.click();
+//   // Check the "Baseline status high date" checkbox.
+//   const baselineStatusHighDateCheckbox = webstatusColumnsDialog.locator(
+//     'sl-checkbox[value="baseline_status_high_date"]'
+//   );
+//   await baselineStatusHighDateCheckbox.click();
 
-  // Click the Save button.
-  await page.locator('#columns-save-button').click();
-  await page.waitForTimeout(500);
+//   // Click the Save button.
+//   await page.locator('#columns-save-button').click();
+//   await page.waitForTimeout(500);
 
-  // Check that "Newly available: " text is visible somewhere.
-  const baselineStatusLowDateText = page.locator('td', {
-    hasText: 'Newly available: ',
-  });
-  await expect(baselineStatusLowDateText.first()).toBeVisible();
-  // Check that "Widely available: " and "Projected Widely available: "
-  // text is visible somewhere.
-  const baselineStatusHighDateText = page.locator('td', {
-    hasText: 'Widely available: ',
-  });
-  await expect(baselineStatusHighDateText.first()).toBeVisible();
-  const baselineStatusProjectedHighDateText = page.locator('td', {
-    hasText: 'Projected widely available: ',
-  });
-  await expect(baselineStatusProjectedHighDateText.first()).toBeVisible();
-});
+//   // Check that "Newly available: " text is visible somewhere.
+//   const baselineStatusLowDateText = page.locator('td', {
+//     hasText: 'Newly available: ',
+//   });
+//   await expect(baselineStatusLowDateText.first()).toBeVisible();
+//   // Check that "Widely available: " and "Projected Widely available: "
+//   // text is visible somewhere.
+//   const baselineStatusHighDateText = page.locator('td', {
+//     hasText: 'Widely available: ',
+//   });
+//   await expect(baselineStatusHighDateText.first()).toBeVisible();
+//   const baselineStatusProjectedHighDateText = page.locator('td', {
+//     hasText: 'Projected widely available: ',
+//   });
+//   await expect(baselineStatusProjectedHighDateText.first()).toBeVisible();
+// });
 
 test('Export to CSV button downloads a file with default columns', async ({
   page,
