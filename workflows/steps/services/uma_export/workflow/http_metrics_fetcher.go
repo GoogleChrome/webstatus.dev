@@ -16,14 +16,19 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 	"time"
 )
 
 const umaQueryServer = "https://uma-export.appspot.com/webstatus/"
+
+var errMissingBody = errors.New("missing response body")
+var errUnexpectedStatusCode = errors.New("unexpected status code")
 
 type tokenGenerator interface {
 	Generate(ctx context.Context, url string) (*string, error)
@@ -78,11 +83,26 @@ func (f HTTPMetricsFetcher) Fetch(ctx context.Context, queryName UMAExportQuery)
 		return nil, err
 	}
 
+	var dumpStr string
+	dump, err := httputil.DumpRequestOut(req, true)
+	if err != nil {
+		slog.Error("unable to dump request", "error", err)
+	}
+	dumpStr = string(dump)
+
+	slog.InfoContext(ctx, "debug", "respcode", resp.StatusCode, "bodynil?", resp.Body == nil, "request", dumpStr)
+
 	if resp.StatusCode != http.StatusOK {
 		// Clean up by closing since we will not be returning the body
-		resp.Body.Close()
+		if resp.Body != nil {
+			resp.Body.Close()
+		}
 
-		return nil, err
+		return nil, errUnexpectedStatusCode
+	}
+
+	if resp.Body == nil {
+		return nil, errMissingBody
 	}
 
 	return resp.Body, nil

@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
@@ -41,6 +42,22 @@ func NewUMAExportWorker(
 			metricsParser: metricParser,
 		},
 	}
+}
+
+func (w UMAExportWorker) Work(
+	ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan JobArguments, errChan chan<- error) {
+	slog.InfoContext(ctx, "starting worker", "worker id", id)
+	defer wg.Done()
+
+	// Processes jobs received on the 'jobs' channel
+	for job := range jobs {
+		err := w.jobProcessor.Process(ctx, job)
+		if err != nil {
+			errChan <- err
+		}
+	}
+	// Do not close the shared error channel here.
+	// It will prevent others from returning their errors.
 }
 
 // NewJobArguments constructor to create JobArguments, encapsulating essential workflow parameters.
@@ -92,24 +109,28 @@ type UMAExportJobProcessor struct {
 
 func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) error {
 	// Step 1. Check if already processed.
-	found, err := p.metricStorer.HasCapstone(ctx, job.day)
-	if err != nil {
-		slog.ErrorContext(ctx, "unable to parse metrics file", "error", err)
+	// found, err := p.metricStorer.HasCapstone(ctx, job.day)
+	// if err != nil {
+	// 	slog.ErrorContext(ctx, "unable to parse metrics file", "error", err)
 
-		return err
-	}
-	if found {
-		slog.InfoContext(ctx, "Found existing capstone entry", "date", job.day)
+	// 	return err
+	// }
+	// if found {
+	// 	slog.InfoContext(ctx, "Found existing capstone entry", "date", job.day)
 
-		return nil
-	}
+	// 	return nil
+	// }
 	slog.InfoContext(ctx, "No capstone entry found. Will fetch", "date", job.day)
 
 	// Step 2. Fetch results
 	rawData, err := p.metricFetcher.Fetch(ctx, job.queryName)
 	if err != nil {
+		slog.ErrorContext(ctx, "unable to fetch metrics", "error", err)
+
 		return err
 	}
+
+	slog.InfoContext(ctx, "debug after fetch", "rawdata nil?", rawData == nil)
 
 	// Step 3. Parse the data.
 	data, err := p.metricsParser.Parse(ctx, rawData)
@@ -119,13 +140,15 @@ func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) er
 		return err
 	}
 
-	// Step 4. Save the data.
-	err = p.metricStorer.SaveMetrics(ctx, data)
-	if err != nil {
-		slog.ErrorContext(ctx, "unable to save the metrics", "error", err)
+	slog.InfoContext(ctx, "debug", "data", data)
 
-		return err
-	}
+	// Step 4. Save the data.
+	// err = p.metricStorer.SaveMetrics(ctx, data)
+	// if err != nil {
+	// 	slog.ErrorContext(ctx, "unable to save the metrics", "error", err)
+
+	// 	return err
+	// }
 
 	return nil
 }

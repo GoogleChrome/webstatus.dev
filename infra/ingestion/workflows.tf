@@ -60,3 +60,17 @@ module "bcd_workflow" {
   docker_repository_details = var.docker_repository_details
   region_schedules          = var.bcd_region_schedules
 }
+
+module "uma_export_workflow" {
+  source = "./workflows/uma_export"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+
+  regions                   = var.regions
+  env_id                    = var.env_id
+  spanner_datails           = var.spanner_datails
+  docker_repository_details = var.docker_repository_details
+  region_schedules          = var.bcd_region_schedules
+}

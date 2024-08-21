@@ -27,3 +27,20 @@ type BucketDataMetric struct {
 //
 //nolint:lll // WONTFIX - url is long.
 type BucketDataMetrics map[int64]BucketDataMetric
+
+type HistogramName string
+
+// Names come from
+// https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/enums.xml
+const (
+	// Generated from third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom.
+	WebDXFeatureEnum HistogramName = "WebDXFeatureObserver"
+)
+
+type HistogramMapping map[HistogramName][]HistogramEnumInfo
+
+// HistogramEnumInfo contains the information for a single enumeration inside a given histogram.
+type HistogramEnumInfo struct {
+	BucketID int64
+	Label    string
+}
