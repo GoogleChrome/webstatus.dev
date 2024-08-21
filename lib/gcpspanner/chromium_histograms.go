@@ -15,6 +15,7 @@
 package gcpspanner
 
 import (
+	"context"
 	"fmt"
 
 	"cloud.google.com/go/spanner"
@@ -36,7 +37,7 @@ func (m chromiumHistogramMapper) SelectOne(key spannerChromiumHistogramKey) span
 	WHERE HistogramName = @histogramName AND BucketID = @bucketID
 	LIMIT 1`, m.Table()))
 	parameters := map[string]interface{}{
-		"histogramName": key.HistorgramName,
+		"histogramName": key.HistogramName,
 		"bucketID":      key.BucketID,
 	}
 	stmt.Params = parameters
@@ -44,12 +45,60 @@ func (m chromiumHistogramMapper) SelectOne(key spannerChromiumHistogramKey) span
 	return stmt
 }
 
-type ChromiumHistogramEnum struct {
+func (m chromiumHistogramMapper) GetKey(in ChromiumHistogramEnum) spannerChromiumHistogramKey {
+	return spannerChromiumHistogramKey{
+		HistogramName: in.HistogramName,
+		BucketID:      in.BucketID,
+	}
 }
 
-type spannerChromiumHistogram struct{}
+func (m chromiumHistogramMapper) Merge(
+	_ ChromiumHistogramEnum, existing spannerChromiumHistogramEnum) spannerChromiumHistogramEnum {
+	// If the histogram exists, it currently does nothing and keeps the existing as-is.
+	return existing
+}
+
+type ChromiumHistogramEnum struct {
+	HistogramName string `spanner:"HistogramName"`
+	BucketID      int64  `spanner:"BucketID"`
+	Label         string `spanner:"Label"`
+}
+
+type spannerChromiumHistogramEnum struct {
+	ID string `spanner:"ID"`
+	ChromiumHistogramEnum
+}
 
 type spannerChromiumHistogramKey struct {
-	HistorgramName string
-	BucketID       int64
+	HistogramName string
+	BucketID      int64
+}
+
+func (m chromiumHistogramMapper) GetID(key spannerChromiumHistogramKey) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID
+	FROM %s
+	WHERE HistogramName = @histogramName AND BucketID = @bucketID
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"histogramName": key.HistogramName,
+		"bucketID":      key.BucketID,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+func (c *Client) UpsertChromiumHistogramEnum(ctx context.Context, in ChromiumHistogramEnum) (*string, error) {
+	return newEntityWriterWithIDRetrieval[chromiumHistogramMapper, string](c).upsertAndGetID(ctx, in)
+}
+
+func (c *Client) GetIDFromChromiumHistogramKey(
+	ctx context.Context, histogramName string, bucketID int64) (*string, error) {
+	return newEntityWriterWithIDRetrieval[chromiumHistogramMapper, string](c).
+		getIDByKey(ctx, spannerChromiumHistogramKey{
+			HistogramName: histogramName,
+			BucketID:      bucketID,
+		})
 }

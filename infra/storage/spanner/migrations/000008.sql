@@ -20,7 +20,6 @@ CREATE TABLE IF NOT EXISTS ChromiumHistogramEnums (
     HistogramName STRING(MAX) NOT NULL,
     BucketID INT64 NOT NULL,
     Label STRING(MAX) NOT NULL,
-    Name STRING(64) NOT NULL,
     -- Additional lowercase columns for case-insensitive search
     HistogramName_Lowercase STRING(64) AS (LOWER(HistogramName)) STORED,
     Label_Lowercase STRING(64) AS (LOWER(Label)) STORED,
