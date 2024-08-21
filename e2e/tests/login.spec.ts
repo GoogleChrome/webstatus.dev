@@ -35,6 +35,7 @@ test('can sign in and sign out user', async ({page}) => {
 
   await popup.getByText('test user 1').click();
   const login = page.locator('webstatus-login');
+  await page.waitForTimeout(1000);
 
   const expectedEmail = 'test.user.1@example.com';
 
