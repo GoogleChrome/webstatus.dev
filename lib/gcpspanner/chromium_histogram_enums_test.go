@@ -1,9 +1,22 @@
+// Copyright 2024 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package gcpspanner
 
 import (
 	"context"
 	"errors"
-	"fmt"
 	"slices"
 	"testing"
 
@@ -11,39 +24,26 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func getSampleChromiumHistograms() []ChromiumHistogramEnum {
+func getSampleChromiumHistogramEnums() []ChromiumHistogramEnum {
 	return []ChromiumHistogramEnum{
 		{
 			HistogramName: "AnotherHistogram",
-			BucketID:      1,
-			Label:         "CompressionStreams",
 		},
 		{
 			HistogramName: "WebDXFeatureObserver",
-			BucketID:      1,
-			Label:         "CompressionStreams",
-		},
-		{
-			HistogramName: "WebDXFeatureObserver",
-			BucketID:      2,
-			Label:         "ViewTransitions",
 		},
 	}
 }
 
-func testEnumKey(histogramName string, bucketID int64) string {
-	return fmt.Sprintf("%s-%d", histogramName, bucketID)
-}
-
-func insertSampleChromiumHistograms(ctx context.Context, t *testing.T, c *Client) map[string]string {
-	enums := getSampleChromiumHistograms()
+func insertSampleChromiumHistogramEnums(ctx context.Context, t *testing.T, c *Client) map[string]string {
+	enums := getSampleChromiumHistogramEnums()
 	m := make(map[string]string, len(enums))
 	for _, enum := range enums {
 		id, err := c.UpsertChromiumHistogramEnum(ctx, enum)
 		if err != nil {
-			t.Fatalf("unable to insert sample histograms. error %s", err)
+			t.Fatalf("unable to insert sample histogram enums. error %s", err)
 		}
-		m[testEnumKey(enum.HistogramName, enum.BucketID)] = *id
+		m[enum.HistogramName] = *id
 	}
 
 	return m
@@ -53,9 +53,9 @@ func insertSampleChromiumHistograms(ctx context.Context, t *testing.T, c *Client
 func (c *Client) ReadAllChromiumHistogramEnums(ctx context.Context, t *testing.T) ([]ChromiumHistogramEnum, error) {
 	stmt := spanner.NewStatement(
 		`SELECT
-			ID, HistogramName, BucketID, Label
+			ID, HistogramName
 		FROM ChromiumHistogramEnums
-		ORDER BY HistogramName ASC, BucketID ASC`)
+		ORDER BY HistogramName ASC`)
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -81,36 +81,24 @@ func (c *Client) ReadAllChromiumHistogramEnums(ctx context.Context, t *testing.T
 	return ret, nil
 }
 
-func TestChromiumHistogramEnum(t *testing.T) {
+func TestUpsertChromiumHistogramEnum(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	insertSampleChromiumHistograms(ctx, t, spannerClient)
+	insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
 	enums, err := spannerClient.ReadAllChromiumHistogramEnums(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
-	sampleHistogramsEnums := getSampleChromiumHistograms()
-	if !slices.Equal[[]ChromiumHistogramEnum](getSampleChromiumHistograms(), enums) {
+	sampleHistogramsEnums := getSampleChromiumHistogramEnums()
+	if !slices.Equal[[]ChromiumHistogramEnum](getSampleChromiumHistogramEnums(), enums) {
 		t.Errorf("unequal enums. expected %+v actual %+v", sampleHistogramsEnums, enums)
 	}
 
 	_, err = spannerClient.UpsertChromiumHistogramEnum(ctx, ChromiumHistogramEnum{
 		HistogramName: "WebDXFeatureObserver",
-		BucketID:      1,
-		// Should not update
-		Label: "CompressionStreamssssssss",
 	})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
 	}
-
-	enums, err = spannerClient.ReadAllChromiumHistogramEnums(ctx, t)
-	if err != nil {
-		t.Errorf("unexpected error during read all. %s", err.Error())
-	}
-
-	// Should be the same. No updates should happen.
-	if !slices.Equal[[]ChromiumHistogramEnum](sampleHistogramsEnums, enums) {
-		t.Errorf("unequal enums after update. expected %+v actual %+v", sampleHistogramsEnums, enums)
-	}
+	// TODO: Try to upsert with the generated UUID.
 }

@@ -49,14 +49,14 @@ func (c *Client) createSampleWebFeatureChromiumHistogramEnums(
 	ctx context.Context, t *testing.T, featureIDMap map[string]string, enumIDMap map[string]string) {
 	err := c.UpsertWebFeatureChromiumHistogramEnum(ctx, WebFeatureChromiumHistogramEnum{
 		WebFeatureID:            featureIDMap["feature1"],
-		ChromiumHistogramEnumID: enumIDMap[testEnumKey("WebDXFeatureObserver", 1)],
+		ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
 	})
 	if err != nil {
 		t.Fatalf("failed to insert WebFeatureChromiumHistogramEnum. err: %s", err)
 	}
 	err = c.UpsertWebFeatureChromiumHistogramEnum(ctx, WebFeatureChromiumHistogramEnum{
 		WebFeatureID:            featureIDMap["feature2"],
-		ChromiumHistogramEnumID: enumIDMap[testEnumKey("WebDXFeatureObserver", 2)],
+		ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
 	})
 	if err != nil {
 		t.Fatalf("failed to insert WebFeatureChromiumHistogramEnum. err: %s", err)
@@ -104,35 +104,35 @@ func TestUpsertWebFeatureChromiumHistogramEnum(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 	idMap := setupRequiredTablesForWebFeatureChromiumHistogramEnum(ctx, t)
-	enumIDMap := insertSampleChromiumHistograms(ctx, t, spannerClient)
+	enumIDMap := insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
 	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumIDMap)
 
 	expected := []WebFeatureChromiumHistogramEnum{
 		{
 			WebFeatureID:            idMap["feature1"],
-			ChromiumHistogramEnumID: enumIDMap[testEnumKey("WebDXFeatureObserver", 1)],
+			ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
 		},
 		{
 			WebFeatureID:            idMap["feature2"],
-			ChromiumHistogramEnumID: enumIDMap[testEnumKey("WebDXFeatureObserver", 2)],
+			ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
 		},
 	}
 	slices.SortFunc(expected, sortWebFeatureChromiumHistogramEnums)
 
 	chromiumHistogramEnums, err := spannerClient.ReadAllWebFeatureChromiumHistogramEnums(ctx, t)
 	if err != nil {
-		t.Fatalf("unable to get all ChromiumHistogramEnums err: %s", err)
+		t.Fatalf("unable to get all ChromiumHistogramEnumValues err: %s", err)
 	}
 	slices.SortFunc(chromiumHistogramEnums, sortWebFeatureChromiumHistogramEnums)
 
 	if !slices.EqualFunc(expected, chromiumHistogramEnums, webFeatureChromiumHistogramEnumEquality) {
-		t.Errorf("unequal ChromiumHistogramEnums.\nexpected %+v\nreceived %+v", expected, chromiumHistogramEnums)
+		t.Errorf("unequal ChromiumHistogramEnumValues.\nexpected %+v\nreceived %+v", expected, chromiumHistogramEnums)
 	}
 
-	// Upsert ChromiumHistogramEnum
+	// Upsert WebFeatureChromiumHistogramEnum
 	err = spannerClient.UpsertWebFeatureChromiumHistogramEnum(ctx, WebFeatureChromiumHistogramEnum{
 		WebFeatureID:            idMap["feature2"],
-		ChromiumHistogramEnumID: testEnumKey("WebDXFeatureObserver", 2),
+		ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
 	})
 	if err != nil {
 		t.Fatalf("unable to update ChromiumHistogramEnum err: %s", err)
@@ -143,11 +143,11 @@ func TestUpsertWebFeatureChromiumHistogramEnum(t *testing.T) {
 
 	chromiumHistogramEnums, err = spannerClient.ReadAllWebFeatureChromiumHistogramEnums(ctx, t)
 	if err != nil {
-		t.Fatalf("unable to get all ChromiumHistogramEnums err: %s", err)
+		t.Fatalf("unable to get all ChromiumHistogramEnumValues err: %s", err)
 	}
 	slices.SortFunc(chromiumHistogramEnums, sortWebFeatureChromiumHistogramEnums)
 
 	if !slices.EqualFunc(expected, chromiumHistogramEnums, webFeatureChromiumHistogramEnumEquality) {
-		t.Errorf("unequal ChromiumHistogramEnums.\nexpected %+v\nreceived %+v", expected, chromiumHistogramEnums)
+		t.Errorf("unequal ChromiumHistogramEnumValues.\nexpected %+v\nreceived %+v", expected, chromiumHistogramEnums)
 	}
 }

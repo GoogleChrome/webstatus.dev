@@ -21,38 +21,36 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-const chromiumHistogramEnumsTable = "ChromiumHistogramEnums"
+const (
+	chromiumHistogramEnumsTable = "ChromiumHistogramEnums"
+)
 
-type chromiumHistogramMapper struct{}
+type chromiumHistogramEnumsMapper struct{}
 
-func (m chromiumHistogramMapper) Table() string {
+func (m chromiumHistogramEnumsMapper) Table() string {
 	return chromiumHistogramEnumsTable
 }
 
-func (m chromiumHistogramMapper) SelectOne(key spannerChromiumHistogramKey) spanner.Statement {
+func (m chromiumHistogramEnumsMapper) SelectOne(histogramName string) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
-		ID, HistogramName, BucketID, Label
+		ID, HistogramName
 	FROM %s
-	WHERE HistogramName = @histogramName AND BucketID = @bucketID
+	WHERE HistogramName = @histogramName
 	LIMIT 1`, m.Table()))
 	parameters := map[string]interface{}{
-		"histogramName": key.HistogramName,
-		"bucketID":      key.BucketID,
+		"histogramName": histogramName,
 	}
 	stmt.Params = parameters
 
 	return stmt
 }
 
-func (m chromiumHistogramMapper) GetKey(in ChromiumHistogramEnum) spannerChromiumHistogramKey {
-	return spannerChromiumHistogramKey{
-		HistogramName: in.HistogramName,
-		BucketID:      in.BucketID,
-	}
+func (m chromiumHistogramEnumsMapper) GetKey(in ChromiumHistogramEnum) string {
+	return in.HistogramName
 }
 
-func (m chromiumHistogramMapper) Merge(
+func (m chromiumHistogramEnumsMapper) Merge(
 	_ ChromiumHistogramEnum, existing spannerChromiumHistogramEnum) spannerChromiumHistogramEnum {
 	// If the histogram exists, it currently does nothing and keeps the existing as-is.
 	return existing
@@ -60,8 +58,6 @@ func (m chromiumHistogramMapper) Merge(
 
 type ChromiumHistogramEnum struct {
 	HistogramName string `spanner:"HistogramName"`
-	BucketID      int64  `spanner:"BucketID"`
-	Label         string `spanner:"Label"`
 }
 
 type spannerChromiumHistogramEnum struct {
@@ -69,21 +65,15 @@ type spannerChromiumHistogramEnum struct {
 	ChromiumHistogramEnum
 }
 
-type spannerChromiumHistogramKey struct {
-	HistogramName string
-	BucketID      int64
-}
-
-func (m chromiumHistogramMapper) GetID(key spannerChromiumHistogramKey) spanner.Statement {
+func (m chromiumHistogramEnumsMapper) GetID(histogramName string) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
 		ID
 	FROM %s
-	WHERE HistogramName = @histogramName AND BucketID = @bucketID
+	WHERE HistogramName = @histogramName
 	LIMIT 1`, m.Table()))
 	parameters := map[string]interface{}{
-		"histogramName": key.HistogramName,
-		"bucketID":      key.BucketID,
+		"histogramName": histogramName,
 	}
 	stmt.Params = parameters
 
@@ -91,14 +81,11 @@ func (m chromiumHistogramMapper) GetID(key spannerChromiumHistogramKey) spanner.
 }
 
 func (c *Client) UpsertChromiumHistogramEnum(ctx context.Context, in ChromiumHistogramEnum) (*string, error) {
-	return newEntityWriterWithIDRetrieval[chromiumHistogramMapper, string](c).upsertAndGetID(ctx, in)
+	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumsMapper, string](c).upsertAndGetID(ctx, in)
 }
 
 func (c *Client) GetIDFromChromiumHistogramKey(
-	ctx context.Context, histogramName string, bucketID int64) (*string, error) {
-	return newEntityWriterWithIDRetrieval[chromiumHistogramMapper, string](c).
-		getIDByKey(ctx, spannerChromiumHistogramKey{
-			HistogramName: histogramName,
-			BucketID:      bucketID,
-		})
+	ctx context.Context, histogramName string) (*string, error) {
+	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumsMapper, string](c).
+		getIDByKey(ctx, histogramName)
 }

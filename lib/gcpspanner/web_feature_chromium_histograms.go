@@ -23,7 +23,7 @@ import (
 
 const webFeatureChromiumHistogramEnumsTable = "WebFeatureChromiumHistogramEnums"
 
-// WebFeatureChromiumHistogramEnum contains the mapping between ChromiumHistogramEnums and WebFeatures.
+// WebFeatureChromiumHistogramEnum contains the mapping between ChromiumHistogramEnumValues and WebFeatures.
 // Columns come from the ../../infra/storage/spanner/migrations/*.sql files.
 type WebFeatureChromiumHistogramEnum struct {
 	WebFeatureID            string `spanner:"WebFeatureID"`
