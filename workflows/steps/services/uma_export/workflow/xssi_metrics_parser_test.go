@@ -36,18 +36,20 @@ func TestXSSIMetricsParser_Parse(t *testing.T) {
 			name: "Valid JSON with XSSI prefix",
 			inputData: `)]}\
 {
-	"123":
-		{
-			"rate": 0.5,
-			"milestone": "89",
-			"low_volume": true
-		},
-	"456":
-		{
-			"rate": 0.2,
-			"milestone": "99",
-			"low_volume": false
-		}
+	"r": {
+		"123":
+			{
+				"rate": 0.5,
+				"milestone": "89",
+				"low_volume": true
+			},
+		"456":
+			{
+				"rate": 0.2,
+				"milestone": "99",
+				"low_volume": false
+			}
+	}
 }`,
 			expected: metricdatatypes.BucketDataMetrics{
 				123: {Rate: 0.5, Milestone: "89", LowVolume: true},
@@ -65,7 +67,22 @@ func TestXSSIMetricsParser_Parse(t *testing.T) {
 		{
 			name: "Non-numeric bucket ID",
 			inputData: `)]}\
-{"abc": {"rate": 0.3}}`,
+{
+	"r": {
+		"abc":
+			{
+				"rate": 0.5,
+				"milestone": "89",
+				"low_volume": true
+			},
+		"456":
+			{
+				"rate": 0.2,
+				"milestone": "99",
+				"low_volume": false
+			}
+	}
+}`,
 			expected:    nil,
 			expectedErr: errUnexpectedBucketID,
 		},

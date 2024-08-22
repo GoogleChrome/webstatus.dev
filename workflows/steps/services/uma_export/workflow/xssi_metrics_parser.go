@@ -61,7 +61,10 @@ func removeXSSIPrefix(body io.ReadCloser) (io.ReadCloser, error) {
 	return newBody, nil
 }
 
-type JSONPayload map[string]metricdatatypes.BucketDataMetric
+type RField map[string]metricdatatypes.BucketDataMetric
+type JSONPayload struct {
+	R RField `json:"r,omitempty"`
+}
 
 func (p XSSIMetricsParser) Parse(ctx context.Context, data io.ReadCloser) (metricdatatypes.BucketDataMetrics, error) {
 	defer data.Close()
@@ -84,8 +87,8 @@ func (p XSSIMetricsParser) Parse(ctx context.Context, data io.ReadCloser) (metri
 		return nil, errors.Join(err, errInvalidJSON)
 	}
 
-	ret := make(metricdatatypes.BucketDataMetrics, len(parsedData))
-	for keyStr, data := range parsedData {
+	ret := make(metricdatatypes.BucketDataMetrics, len(parsedData.R))
+	for keyStr, data := range parsedData.R {
 		keyInt, err := strconv.ParseInt(keyStr, 10, 64)
 		if err != nil {
 			slog.ErrorContext(ctx, "unable to parse bucket id", "error", err, "bucket", keyStr)
