@@ -22,6 +22,7 @@ import {
   formatOverviewPageUrl,
   formatFeaturePageUrl,
   getWPTMetricView,
+  getColumnOptions,
 } from '../urls.js';
 
 describe('getSearchQuery', () => {
@@ -55,6 +56,25 @@ describe('getColumnsSpec', () => {
   it('returns the string when the columns= param was set', () => {
     const cs = getSearchQuery({search: '?q=name, baseline_stats '});
     assert.equal(cs, 'name, baseline_stats ');
+  });
+});
+
+describe('getColumnOptions', () => {
+  it('returns empty string when there was no column_options= param', () => {
+    const cs = getColumnOptions({search: ''});
+    assert.equal(cs, '');
+  });
+
+  it('returns empty string when the column_options= param has no value', () => {
+    const cs = getColumnOptions({search: '?column_options='});
+    assert.equal(cs, '');
+  });
+
+  it('returns the string when the column_options= param was set', () => {
+    const cs = getColumnOptions({
+      search: '?column_options=baseline_stats_high_date',
+    });
+    assert.equal(cs, 'baseline_stats_high_date');
   });
 });
 
@@ -145,6 +165,24 @@ describe('formatOverviewPageUrl', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&columns=name'},
       {columns: []}
+    );
+    assert.equal(url, '/?q=css');
+  });
+
+  // It can override the column_options parameter
+  it('can override the column_options parameter', () => {
+    const url = formatOverviewPageUrl(
+      {search: '?q=css&column_options=baseline_stats_high_date'},
+      {column_options: ['baseline_stats_high_date']}
+    );
+    assert.equal(url, '/?q=css&column_options=baseline_stats_high_date');
+  });
+
+  // It can clear the column_options parameter
+  it('can clear the column_options parameter', () => {
+    const url = formatOverviewPageUrl(
+      {search: '?q=css&column_options=baseline_stats_high_date'},
+      {column_options: []}
     );
     assert.equal(url, '/?q=css');
   });
