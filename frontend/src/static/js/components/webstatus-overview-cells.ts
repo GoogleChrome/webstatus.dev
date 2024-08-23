@@ -195,13 +195,13 @@ const renderBaselineStatus: CellRenderer = (
     );
   }
 
-  return html`<div class="vbox halign-items-start">
+  return html`
     <span class="chip ${chipConfig.cssClass}">
       <img height="16" src="/public/img/${chipConfig.icon}" />
       ${chipConfig.word}
     </span>
     ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}
-  </div>`;
+  `;
 };
 
 const BROWSER_IMPL_ICONS: Record<
