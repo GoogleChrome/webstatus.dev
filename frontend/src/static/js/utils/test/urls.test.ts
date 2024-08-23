@@ -169,7 +169,6 @@ describe('formatOverviewPageUrl', () => {
     assert.equal(url, '/?q=css');
   });
 
-  // It can override the column_options parameter
   it('can override the column_options parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&column_options=baseline_stats_high_date'},
@@ -178,7 +177,6 @@ describe('formatOverviewPageUrl', () => {
     assert.equal(url, '/?q=css&column_options=baseline_stats_high_date');
   });
 
-  // It can clear the column_options parameter
   it('can clear the column_options parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&column_options=baseline_stats_high_date'},
