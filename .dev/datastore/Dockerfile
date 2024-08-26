@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM google/cloud-sdk:488.0.0-emulators
+FROM google/cloud-sdk:489.0.0-emulators
 
 # https://cloud.google.com/datastore/docs/tools/datastore-emulator
 ENTRYPOINT [ "gcloud", "beta", "emulators", "datastore", "start", "--host-port=0.0.0.0:8085", "--project=local", "--log-http", "--verbosity=debug", "--use-firestore-in-datastore-mode" ]
