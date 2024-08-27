@@ -57,23 +57,85 @@ test('shows an unknown error when there is an internal error', async ({
   await expect(pageContainer).toHaveScreenshot('internal-error.png');
 });
 
-// test of hover over a baseline chip to show tooltip
-test('shows a tooltip when hovering over a baseline chip', async ({page}) => {
+test('hides the Feature column', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
 
-  // Find the tooltip for the first Widely available chip.
-  const tooltip = page
-    .locator('sl-tooltip')
-    .filter({hasText: 'Widely available'})
-    .first();
-  const baselineText = 'Baseline since 2035-05-06';
-  await expect(tooltip.getByText(baselineText)).toBeHidden();
-  const widelyAvailableChip = tooltip.locator('span').first();
-  await widelyAvailableChip.hover();
-  await expect(tooltip.getByText(baselineText)).toBeVisible();
-  // Move mouse away
-  await page.mouse.move(0, 0);
-  await expect(tooltip.getByText(baselineText)).toBeHidden();
+  // Check that the "Feature" column is visible by default.
+  let nameColumn = page.locator('th > a', {hasText: 'Feature'});
+  await expect(nameColumn).toBeVisible();
+
+  // Click the Columns button to open the column selector.
+  const columnsButton = page.locator('#columns-button');
+  await columnsButton.waitFor({state: 'visible'});
+  await columnsButton.click();
+  const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
+  const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
+  await columnsDialog.waitFor({state: 'visible'});
+
+  // Uncheck the "Feature name" checkbox.
+  const nameCheckbox = webstatusColumnsDialog.locator(
+    'sl-checkbox[value="name"]'
+  );
+  await nameCheckbox.click();
+
+  // Click the Save button.
+  await page.locator('#columns-save-button').click();
+  await page.waitForTimeout(500);
+
+  // Make sure the "Feature" column is no longer visible.
+  nameColumn = page.locator('th > a', {hasText: 'Feature'});
+  await expect(nameColumn).not.toBeVisible();
+});
+
+test('shows the Baseline status column with low and high date options', async ({
+  page,
+}) => {
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+
+  // Check that the "Baseline" column is visible by default.
+  const baselineStatusColumn = page.locator('th > a', {
+    hasText: 'Baseline',
+  });
+  await expect(baselineStatusColumn).toBeVisible();
+
+  // Click the Columns button to open the column selector.
+  const columnsButton = page.locator('#columns-button');
+  await columnsButton.waitFor({state: 'visible'});
+  await columnsButton.click();
+  const webstatusColumnsDialog = page.locator('webstatus-columns-dialog');
+  const columnsDialog = webstatusColumnsDialog.getByRole('dialog');
+  await columnsDialog.waitFor({state: 'visible'});
+
+  // Check the "Baseline status low date" checkbox.
+  const baselineStatusLowDateCheckbox = webstatusColumnsDialog.locator(
+    'sl-checkbox[value="baseline_status_low_date"]'
+  );
+  await baselineStatusLowDateCheckbox.click();
+  // Check the "Baseline status high date" checkbox.
+  const baselineStatusHighDateCheckbox = webstatusColumnsDialog.locator(
+    'sl-checkbox[value="baseline_status_high_date"]'
+  );
+  await baselineStatusHighDateCheckbox.click();
+
+  // Click the Save button.
+  await page.locator('#columns-save-button').click();
+  await page.waitForTimeout(500);
+
+  // Check that "Newly available: " text is visible somewhere.
+  const baselineStatusLowDateText = page.locator('td', {
+    hasText: 'Newly available: ',
+  });
+  await expect(baselineStatusLowDateText.first()).toBeVisible();
+  // Check that "Widely available: " and "Projected Widely available: "
+  // text is visible somewhere.
+  const baselineStatusHighDateText = page.locator('td', {
+    hasText: 'Widely available: ',
+  });
+  await expect(baselineStatusHighDateText.first()).toBeVisible();
+  const baselineStatusProjectedHighDateText = page.locator('td', {
+    hasText: 'Projected widely available: ',
+  });
+  await expect(baselineStatusProjectedHighDateText.first()).toBeVisible();
 });
 
 test('Export to CSV button downloads a file with default columns', async ({

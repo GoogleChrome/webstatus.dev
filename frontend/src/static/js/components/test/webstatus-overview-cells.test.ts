@@ -22,6 +22,9 @@ import {
   DEFAULT_COLUMNS,
   isJavaScriptFeature,
   didFeatureCrash,
+  parseColumnOptions,
+  DEFAULT_COLUMN_OPTIONS,
+  ColumnOptionKey,
 } from '../webstatus-overview-cells.js';
 
 describe('parseColumnsSpec', () => {
@@ -33,6 +36,19 @@ describe('parseColumnsSpec', () => {
   it('returns an array when given a column spec', () => {
     const cols = parseColumnsSpec('name, baseline_status ');
     assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
+  });
+});
+
+// Add test of parseColumnOptions here
+describe('parseColumnOptions', () => {
+  it('returns default column options when none are specified', () => {
+    const options = parseColumnOptions('');
+    assert.deepEqual(options, DEFAULT_COLUMN_OPTIONS);
+  });
+
+  it('returns an array when given a column options spec', () => {
+    const options = parseColumnOptions('baseline_status_high_date');
+    assert.deepEqual(options, [ColumnOptionKey.BaselineStatusHighDate]);
   });
 });
 

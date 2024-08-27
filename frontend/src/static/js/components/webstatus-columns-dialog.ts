@@ -17,14 +17,21 @@
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 
-import {formatOverviewPageUrl, getColumnsSpec} from '../utils/urls.js';
+import {
+  formatOverviewPageUrl,
+  getColumnOptions,
+  getColumnsSpec,
+} from '../utils/urls.js';
 import {
   ColumnKey,
   parseColumnsSpec,
   CELL_DEFS,
+  ColumnOptionKey,
+  parseColumnOptions,
 } from './webstatus-overview-cells.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {SlCheckbox} from '@shoelace-style/shoelace';
 
 @customElement('webstatus-columns-dialog')
 export class WebstatusColumnsDialog extends LitElement {
@@ -40,6 +47,10 @@ export class WebstatusColumnsDialog extends LitElement {
         }
         #button-row {
           padding-top: var(--content-padding);
+        }
+
+        sl-dialog::part(body) {
+          padding-top: 0;
         }
       `,
     ];
@@ -58,18 +69,31 @@ export class WebstatusColumnsDialog extends LitElement {
 
   handleSave() {
     const newColumns: string[] = [];
-    this.shadowRoot!.querySelectorAll('sl-checkbox').forEach(cb => {
+    const columnOptions: string[] = [];
+    this.shadowRoot!.querySelectorAll<SlCheckbox>('sl-checkbox.column').forEach(
+      cb => {
+        if (cb.checked) {
+          newColumns.push(cb.value);
+        }
+      }
+    );
+    this.shadowRoot!.querySelectorAll<SlCheckbox>(
+      'sl-checkbox.column-option'
+    ).forEach(cb => {
       if (cb.checked) {
-        newColumns.push(cb.value);
+        columnOptions.push(cb.value);
       }
     });
     this.hide();
-    const nextUrl = this.formatUrlWithColumns(newColumns);
+    const nextUrl = this.formatUrlWithColumns(newColumns, columnOptions);
     window.location.href = nextUrl;
   }
 
-  formatUrlWithColumns(columns: string[]): string {
-    return formatOverviewPageUrl(this.location, {columns});
+  formatUrlWithColumns(columns: string[], columnOptions: string[]): string {
+    return formatOverviewPageUrl(this.location, {
+      columns,
+      column_options: columnOptions,
+    });
   }
 
   renderDialogContent(): TemplateResult {
@@ -77,22 +101,45 @@ export class WebstatusColumnsDialog extends LitElement {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location)
     );
+    const columnOptions: ColumnOptionKey[] = parseColumnOptions(
+      getColumnOptions(this.location)
+    );
     const checkboxes: TemplateResult[] = [];
     for (const enumKeyStr of Object.keys(ColumnKey)) {
       const ck = enumKeyStr as keyof typeof ColumnKey;
       const columnId = ColumnKey[ck];
       const displayName = CELL_DEFS[columnId].nameInDialog;
-      checkboxes.push(html`
-        <sl-checkbox
-          value="${columnId}"
-          ?checked=${columns.includes(ColumnKey[ck])}
-        >
-          ${displayName}
-        </sl-checkbox>
-      `);
+      const cellColumnOptions = CELL_DEFS[columnId].options.columnOptions;
+      const checkbox = html`
+        <sl-tree-item expanded>
+          <sl-checkbox
+            value="${columnId}"
+            class="column"
+            ?checked=${columns.includes(ColumnKey[ck])}
+          >
+            ${displayName}
+          </sl-checkbox>
+          ${cellColumnOptions?.map(
+            option => html`
+              <sl-tree-item expanded>
+                <sl-checkbox
+                  value=${option.columnOptionKey}
+                  class="column-option"
+                  ?checked=${columns.includes(ColumnKey[ck]) &&
+                  columnOptions.includes(option.columnOptionKey)}
+                  >${option.nameInDialog}</sl-checkbox
+                >
+              </sl-tree-item>
+            `
+          )}
+        </sl-tree-item>
+      `;
+
+      checkboxes.push(checkbox);
     }
+    const tree = html`<sl-tree>${checkboxes}</sl-tree>`;
     return html`
-      <div class="vbox" id="checkboxes">${checkboxes}</div>
+      <div class="vbox" id="checkboxes">${tree}</div>
       <div id="button-row">
         <sl-button
           id="columns-save-button"

@@ -59,7 +59,9 @@ test('chart width resizes with window', async ({page}) => {
 
   // And restore to original size
   await page.setViewportSize({width: narrowWidth, height});
-  await page.waitForTimeout(10000);
+  // We may be able to remove the following waitForTimeout after we address:
+  // https://github.com/GoogleChrome/webstatus.dev/issues/278
+  await page.waitForTimeout(15000);
   const newChartWidth3 = await chartContainer.evaluate(el => el.clientWidth);
   expect(newChartWidth3).toEqual(newChartWidth);
 

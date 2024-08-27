@@ -69,6 +69,9 @@ export class WebstatusOverviewTable extends LitElement {
           background: var(--chip-background-widely);
           color: var(--chip-color-widely);
         }
+        .baseline-date-block {
+          padding-top: var(--content-padding-quarter);
+        }
         .browser-impl-unavailable {
           color: var(--icon-color-avail-unavailable);
         }

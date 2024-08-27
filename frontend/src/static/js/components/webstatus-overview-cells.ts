@@ -15,7 +15,11 @@
  */
 import {type TemplateResult, html, nothing} from 'lit';
 import {type components} from 'webstatus.dev-backend';
-import {formatFeaturePageUrl, formatOverviewPageUrl} from '../utils/urls.js';
+import {
+  formatFeaturePageUrl,
+  formatOverviewPageUrl,
+  getColumnOptions,
+} from '../utils/urls.js';
 import {FeatureSortOrderType} from '../api/client.js';
 
 const MISSING_VALUE = html`---`;
@@ -38,6 +42,7 @@ type ColumnDefinition = {
   options: {
     browser?: components['parameters']['browserPathParam'];
     channel?: components['parameters']['channelPathParam'];
+    columnOptions?: Array<ColumnOptionDefinition>;
   };
 };
 
@@ -62,6 +67,25 @@ const columnKeyMapping = Object.entries(ColumnKey).reduce(
   {} as Record<string, ColumnKey>
 );
 
+type ColumnOptionDefinition = {
+  nameInDialog: string;
+  columnOptionKey: ColumnOptionKey;
+};
+
+export enum ColumnOptionKey {
+  BaselineStatusHighDate = 'baseline_status_high_date',
+  BaselineStatusLowDate = 'baseline_status_low_date',
+}
+
+const columnOptionKeyMapping = Object.entries(ColumnOptionKey).reduce(
+  (mapping, [enumKey, enumValue]) => {
+    mapping[enumValue] =
+      ColumnOptionKey[enumKey as keyof typeof ColumnOptionKey];
+    return mapping;
+  },
+  {} as Record<string, ColumnOptionKey>
+);
+
 export const DEFAULT_COLUMNS = [
   ColumnKey.Name,
   ColumnKey.BaselineStatus,
@@ -69,6 +93,12 @@ export const DEFAULT_COLUMNS = [
   ColumnKey.StableEdge,
   ColumnKey.StableFirefox,
   ColumnKey.StableSafari,
+];
+
+export const DEFAULT_COLUMN_OPTIONS: ColumnOptionKey[] = [
+  // None, but here is an example of what could be added:
+  // ColumnOptionKey.BaselineStatusHighDate,
+  // ColumnOptionKey.BaselineStatusLowDate,
 ];
 
 export type BrowserChannelColumnKeys =
@@ -117,24 +147,60 @@ const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
 
 const renderBaselineStatus: CellRenderer = (
   feature,
-  _routerLocation,
+  routerLocation,
   _options
 ) => {
   const baselineStatus = feature.baseline?.status;
   if (baselineStatus === undefined) return html``;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
-  const lowDate = feature.baseline?.low_date;
-  const baselineSince = lowDate
-    ? `Baseline since ${lowDate}`
-    : 'Not yet available';
+  const columnOptions: ColumnOptionKey[] = parseColumnOptions(
+    getColumnOptions(routerLocation)
+  );
+  const columnHighDateOption = columnOptions.includes(
+    ColumnOptionKey.BaselineStatusHighDate
+  );
+  const columnLowDateOption = columnOptions.includes(
+    ColumnOptionKey.BaselineStatusLowDate
+  );
+
+  function generateDateHtml(header: string, date: string | number) {
+    return html`<div class="baseline-date-block">
+      <span class="baseline-date-header">${header}:</span>
+      <span class="baseline-date">${date}</span>
+    </div>`;
+  }
+
+  let baselineStatusLowDateHtml = html``;
+  const baselineStatusLowDate = feature.baseline?.low_date;
+  if (baselineStatusLowDate && columnLowDateOption) {
+    baselineStatusLowDateHtml = generateDateHtml(
+      'Newly available',
+      baselineStatusLowDate
+    );
+  }
+
+  let baselineStatusHighDateHtml = html``;
+  const baselineStatusHighDate = feature.baseline?.high_date;
+  if (baselineStatusHighDate && columnHighDateOption) {
+    baselineStatusHighDateHtml = generateDateHtml(
+      'Widely available',
+      baselineStatusHighDate
+    );
+  } else if (baselineStatusLowDate && columnHighDateOption) {
+    // Add 30 months to the low date to get the projected high date.
+    const projectedHighDate = baselineStatusLowDate + 30;
+    baselineStatusHighDateHtml = generateDateHtml(
+      'Projected widely available',
+      projectedHighDate
+    );
+  }
 
   return html`
-    <sl-tooltip content="${baselineSince}" placement="right-start">
-      <span class="chip ${chipConfig.cssClass}">
-        <img height="16" src="/public/img/${chipConfig.icon}" />
-        ${chipConfig.word}
-      </span>
-    </sl-tooltip>
+    <span class="chip ${chipConfig.cssClass}">
+      <img height="16" src="/public/img/${chipConfig.icon}" />
+      ${chipConfig.word}
+    </span>
+    ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}
   `;
 };
 
@@ -235,7 +301,18 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Baseline status',
     headerHtml: html`Baseline`,
     cellRenderer: renderBaselineStatus,
-    options: {},
+    options: {
+      columnOptions: [
+        {
+          nameInDialog: 'Show Baseline status low date',
+          columnOptionKey: ColumnOptionKey.BaselineStatusLowDate,
+        },
+        {
+          nameInDialog: 'Show Baseline status high date',
+          columnOptionKey: ColumnOptionKey.BaselineStatusHighDate,
+        },
+      ],
+    },
   },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
@@ -344,6 +421,22 @@ export function parseColumnsSpec(colSpec: string): ColumnKey[] {
     return colKeys;
   } else {
     return DEFAULT_COLUMNS;
+  }
+}
+
+export function parseColumnOptions(columnOptions: string): ColumnOptionKey[] {
+  let colStrs = columnOptions.toLowerCase().split(',');
+  colStrs = colStrs.map(s => s.trim()).filter(c => c);
+  const colKeys: ColumnOptionKey[] = [];
+  for (const cs of colStrs) {
+    if (columnOptionKeyMapping[cs]) {
+      colKeys.push(columnOptionKeyMapping[cs]);
+    }
+  }
+  if (colKeys.length > 0) {
+    return colKeys;
+  } else {
+    return [];
   }
 }
 

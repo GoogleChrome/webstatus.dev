@@ -27,6 +27,10 @@ export function getColumnsSpec(location: {search: string}): string {
   return getQueryParam(location.search, 'columns');
 }
 
+export function getColumnOptions(location: {search: string}): string {
+  return getQueryParam(location.search, 'column_options');
+}
+
 export function getSortSpec(location: {search: string}): string {
   return getQueryParam(location.search, 'sort');
 }
@@ -71,6 +75,7 @@ type QueryStringOverrides = {
   columns?: string[];
   wpt_metric_view?: string;
   dateRange?: DateRange;
+  column_options?: string[];
 };
 
 /* Given the router location object, return a query string with
@@ -96,6 +101,15 @@ function getContextualQueryStringParams(
   if (colSpec) {
     searchParams.set('columns', colSpec);
   }
+
+  const colOptions =
+    'column_options' in overrides
+      ? overrides.column_options!.join(',')
+      : getColumnOptions(location);
+  if (colOptions) {
+    searchParams.set('column_options', colOptions);
+  }
+
   const sortSpec = 'sort' in overrides ? overrides.sort : getSortSpec(location);
   if (sortSpec) {
     searchParams.set('sort', sortSpec);
