@@ -28,8 +28,20 @@ import {TaskStatus} from '@lit/task';
 
 const VOCABULARY = [
   {
-    name: 'available_date:2023-01-01..2024-01-01',
-    doc: 'Became available between the given dates',
+    name: 'available_date:chrome:2023-01-01..2024-01-01',
+    doc: 'Became available on Chrome between the given dates',
+  },
+  {
+    name: 'available_date:edge:2023-01-01..2024-01-01',
+    doc: 'Became available on Edge between the given dates',
+  },
+  {
+    name: 'available_date:firefox:2023-01-01..2024-01-01',
+    doc: 'Became available on Firefox between the given dates',
+  },
+  {
+    name: 'available_date:safari:2023-01-01..2024-01-01',
+    doc: 'Became available on Safari between the given dates',
   },
   {
     name: 'available_on:chrome',
@@ -62,6 +74,14 @@ const VOCABULARY = [
   {
     name: 'baseline_status:widely',
     doc: 'Features in baseline and widely available',
+  },
+  {
+    name: 'group:',
+    doc: 'Features in a group or its descendants. E.g., group:css',
+  },
+  {
+    name: 'snapshot:',
+    doc: 'Features in a snapshot. E.g., snapshot:ecmascript-5',
   },
   {
     name: 'name:',
