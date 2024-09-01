@@ -225,3 +225,15 @@ test('Export to CSV button fails to download file and shows toast', async ({
   const toast = page.locator('.toast');
   await toast.waitFor({state: 'visible'});
 });
+
+test('Typing slash focuses on searchbox', async ({page}) => {
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  const searchbox = page.locator('#inputfield');
+  await expect(searchbox).toBeVisible();
+  await expect(searchbox).toHaveAttribute('value', '');
+  await page.keyboard.type('abc/def/ghi');
+  // Characters before the first slash go to the page.
+  // The slash focuses on the searchbox.
+  // Later characters, including slashes, go in the searchbox.
+  await expect(searchbox).toHaveAttribute('value', 'def/ghi');
+});
