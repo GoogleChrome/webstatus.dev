@@ -134,6 +134,16 @@ export class WebstatusTypeahead extends LitElement {
     (this.slDropdownRef.value as SlDropdown).show();
   }
 
+  focus() {
+    const slInput: SlInput = this.slInputRef.value as SlInput;
+    slInput?.focus();
+  }
+
+  blur() {
+    const slInput: SlInput = this.slInputRef.value as SlInput;
+    slInput?.blur();
+  }
+
   findPrefix() {
     const inputEl = (this.slInputRef.value as SlInput).input;
     const wholeStr = inputEl!.value;

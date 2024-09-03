@@ -159,6 +159,31 @@ export class WebstatusOverviewFilters extends LitElement {
     ];
   }
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    document.addEventListener('keyup', this.handleDocumentKeyUp);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    document.removeEventListener('keyup', this.handleDocumentKeyUp);
+  }
+
+  handleDocumentKeyUp = (e: KeyboardEvent) => {
+    const inInputContext = e
+      .composedPath()
+      .some(el =>
+        ['INPUT', 'TEXTAREA', 'SL-POPUP', 'SL-DIALOG'].includes(
+          (el as HTMLElement).tagName
+        )
+      );
+    if (e.key === '/' && !inInputContext) {
+      e.preventDefault();
+      e.stopPropagation();
+      (this.typeaheadRef?.value as WebstatusTypeahead).focus();
+    }
+  };
+
   gotoFilterQueryString(): void {
     const newUrl = formatOverviewPageUrl(this.location, {
       q: (this.typeaheadRef.value as WebstatusTypeahead).value,
