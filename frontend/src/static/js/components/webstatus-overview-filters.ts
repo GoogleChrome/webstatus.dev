@@ -413,19 +413,6 @@ export class WebstatusOverviewFilters extends LitElement {
   renderExportButton(): TemplateResult {
     const exportToCSV = () => {
       this.exportDataStatus = TaskStatus.PENDING;
-
-      // // dispatch an event via CustomEvent
-      // const event = new CustomEvent('exportToCSV', {
-      //   bubbles: true,
-      //   composed: true,
-      //   cancelable: true,
-      //   detail: {
-      //     callback: () => {
-      //       this.exportDataStatus = TaskStatus.COMPLETE;
-      //     },
-      //   },
-      // });
-      // this.dispatchEvent(event);
       this.exportToCSV(() => {
         this.exportDataStatus = TaskStatus.COMPLETE;
       });

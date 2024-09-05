@@ -19,10 +19,8 @@ import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
-import {downloadCSV} from '../utils/csv.js';
 
 import {
-  getColumnsSpec,
   getPageSize,
   getPaginationStart,
   getSearchQuery,
@@ -34,19 +32,11 @@ import {
   type FeatureSortOrderType,
   type FeatureSearchType,
   FeatureWPTMetricViewType,
-  BROWSER_ID_TO_LABEL,
-  CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
-import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
-import {
-  ColumnKey,
-  parseColumnsSpec,
-  BrowserChannelColumnKeys,
-} from './webstatus-overview-cells.js';
 import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-page')
@@ -66,12 +56,6 @@ export class OverviewPage extends LitElement {
 
   @state()
   location!: {search: string}; // Set by router.
-
-  @state()
-  // A function that returns an array of all features via apiClient.getAllFeatures
-  allFeaturesFetcher:
-    | undefined
-    | (() => Promise<components['schemas']['Feature'][]>) = undefined;
 
   constructor() {
     super();
@@ -109,149 +93,6 @@ export class OverviewPage extends LitElement {
         }
       },
     });
-
-    // Set up listener of 'exportToCSV' event from webstatus-overview-filters.
-    this.addEventListener('exportToCSV', event => {
-      const {detail} = event as CustomEvent<{
-        callback: (() => void) | undefined;
-      }>;
-      this.exportToCSV(detail.callback);
-    });
-  }
-
-  protected firstUpdated(): void {
-    if (this.apiClient !== undefined) {
-      // Perform any initializations once the apiClient is passed to us via context.
-      // TODO. allFeaturesFetcher should be moved to a separate task.
-      this.allFeaturesFetcher = () => {
-        return this.apiClient!.getAllFeatures(
-          getSearchQuery(this.location) as FeatureSearchType,
-          getSortSpec(this.location) as FeatureSortOrderType,
-          getWPTMetricView(this.location) as FeatureWPTMetricViewType
-        );
-      };
-    }
-  }
-
-  async exportToCSV(
-    completedCallback: (() => void) | undefined
-  ): Promise<void> {
-    if (!this.allFeaturesFetcher) {
-      return;
-    }
-
-    // Fetch all pages of data via getAllFeatures
-    this.allFeaturesFetcher()
-      .then(allFeatures => {
-        // Use CELL_DEFS to define the columns and
-        // get the current (active) columns.
-        const columns: string[] = [];
-        const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
-
-        const pushBrowserChannelName = (
-          browserColumnKey: BrowserChannelColumnKeys
-        ) => {
-          const name = CELL_DEFS[browserColumnKey].nameInDialog;
-
-          const {browser, channel} = getBrowserAndChannel(browserColumnKey);
-          const browserLabel = BROWSER_ID_TO_LABEL[browser];
-          const channelLabel = CHANNEL_ID_TO_LABEL[channel];
-
-          if (channel === 'stable') {
-            columns.push(name);
-          }
-          columns.push(`${browserLabel} WPT ${channelLabel} Score`);
-        };
-
-        columnKeys.forEach(columnKey => {
-          const name = CELL_DEFS[columnKey].nameInDialog;
-          switch (columnKey) {
-            case ColumnKey.Name:
-              columns.push(name);
-              break;
-            case ColumnKey.BaselineStatus:
-              columns.push(name);
-              break;
-            case ColumnKey.StableChrome:
-            case ColumnKey.StableEdge:
-            case ColumnKey.StableFirefox:
-            case ColumnKey.StableSafari:
-            case ColumnKey.ExpChrome:
-            case ColumnKey.ExpEdge:
-            case ColumnKey.ExpFirefox:
-            case ColumnKey.ExpSafari:
-              pushBrowserChannelName(columnKey);
-              break;
-          }
-        });
-
-        // Convert array of feature rows into array of arrays of strings,
-        // in the same order as columns.
-        const rows = allFeatures.map(feature => {
-          const baselineStatus = feature.baseline?.status || '';
-          const browserImpl = feature.browser_implementations!;
-          const wptData = feature.wpt;
-          const row: string[] = [];
-
-          const pushBrowserChannelValue = (
-            browserColumnKey: BrowserChannelColumnKeys
-          ) => {
-            const {browser, channel} = getBrowserAndChannel(browserColumnKey);
-            const browserImplDate = browserImpl && browserImpl[browser]?.date;
-            const wptScore = wptData?.[channel]?.[browser]?.score;
-
-            if (channel === 'stable') {
-              row.push(browserImplDate || '');
-            }
-            row.push(String(wptScore) || '');
-          };
-
-          // Iterate over the current columns to get the values for each column.
-          for (const key of columnKeys) {
-            switch (key) {
-              case ColumnKey.Name:
-                row.push(feature.name);
-                break;
-              case ColumnKey.BaselineStatus:
-                row.push(baselineStatus);
-                break;
-              case ColumnKey.StableChrome:
-              case ColumnKey.StableEdge:
-              case ColumnKey.StableFirefox:
-              case ColumnKey.StableSafari:
-              case ColumnKey.ExpChrome:
-              case ColumnKey.ExpEdge:
-              case ColumnKey.ExpFirefox:
-              case ColumnKey.ExpSafari:
-                pushBrowserChannelValue(key);
-                break;
-            }
-          }
-          return row;
-        });
-
-        downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
-          .catch(error => {
-            toast(
-              `Save file error: ${error.message}`,
-              'danger',
-              'exclamation-triangle'
-            );
-          })
-          .finally(() => {
-            completedCallback && completedCallback();
-          });
-      })
-      .catch(error => {
-        toast(
-          `Download error: ${error.message}`,
-          'danger',
-          'exclamation-triangle'
-        );
-      })
-      .finally(() => {
-        completedCallback && completedCallback();
-      });
   }
 
   async _fetchFeatures(
