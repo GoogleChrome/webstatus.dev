@@ -23,23 +23,35 @@ export function escapeHtml(html: string) {
   return div.innerHTML;
 }
 
-// Custom function to emit toast notifications
+// Define a class with a toast generator function.
+export class Toast {
+  toast(
+    message: string,
+    variant: SlAlert['variant'] = 'primary',
+    icon: 'info-circle' | 'exclamation-triangle' = 'info-circle',
+    duration = 10000
+  ) {
+    const alert: SlAlert = Object.assign(document.createElement('sl-alert'), {
+      variant,
+      closable: true,
+      duration: duration,
+      innerHTML: `
+        <sl-icon name="${icon}" class="toast" slot="icon"></sl-icon>
+        ${escapeHtml(message)}
+      `,
+    });
+
+    document.body.append(alert);
+    return alert.toast();
+  }
+}
+
+// Define a function that returns a toast generator function.
 export function toast(
   message: string,
   variant: SlAlert['variant'] = 'primary',
   icon: 'info-circle' | 'exclamation-triangle' = 'info-circle',
   duration = 10000
 ) {
-  const alert = Object.assign(document.createElement('sl-alert'), {
-    variant,
-    closable: true,
-    duration: duration,
-    innerHTML: `
-      <sl-icon name="${icon}" class="toast" slot="icon"></sl-icon>
-      ${escapeHtml(message)}
-    `,
-  });
-
-  document.body.append(alert);
-  return alert.toast();
+  return new Toast().toast(message, variant, icon, duration);
 }

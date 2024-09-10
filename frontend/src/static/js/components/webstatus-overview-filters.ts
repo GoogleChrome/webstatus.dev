@@ -52,7 +52,7 @@ import {
   BrowserChannelColumnKeys,
 } from './webstatus-overview-cells.js';
 
-import {downloadCSV} from '../utils/csv.js';
+import {CSVUtils} from '../utils/csv.js';
 import {toast} from '../utils/toast.js';
 
 const VOCABULARY = [
@@ -341,7 +341,7 @@ export class WebstatusOverviewFilters extends LitElement {
           return row;
         });
 
-        downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
+        CSVUtils.downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
           .catch(error => {
             toast(
               `Save file error: ${error.message}`,
@@ -420,6 +420,7 @@ export class WebstatusOverviewFilters extends LitElement {
 
     return html`
       <sl-button
+        id="export-to-CSV-button"
         @click=${exportToCSV}
         ?loading=${this.exportDataStatus === TaskStatus.PENDING}
         ?disabled=${this.exportDataStatus === TaskStatus.PENDING}

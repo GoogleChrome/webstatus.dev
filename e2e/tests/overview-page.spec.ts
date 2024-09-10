@@ -199,9 +199,10 @@ test('Export to CSV button downloads a file with all columns', async ({
   expect(file).toMatchSnapshot('webstatus-feature-overview-all-columns.csv');
 });
 
-test('Export to CSV button fails to download file and shows toast', async ({
+test('Export to CSV button fails to request all features and shows toast', async ({
   page,
 }) => {
+  // Mock the API to return an error when requesting all features.
   page.on('request', async request => {
     await page.route('**/features*', async route => {
       if (route.request().url().includes('page_size=100')) {
@@ -217,13 +218,14 @@ test('Export to CSV button fails to download file and shows toast', async ({
   const exportButton = page.getByRole('button', {
     name: 'Export to CSV',
   });
-
   await expect(exportButton).toBeVisible();
   await exportButton.click();
 
   // Assert toast is visible
   const toast = page.locator('.toast');
   await toast.waitFor({state: 'visible'});
+
+  await page.unrouteAll();
 });
 
 test('Typing slash focuses on searchbox', async ({page}) => {
