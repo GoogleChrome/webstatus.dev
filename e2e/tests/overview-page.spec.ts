@@ -224,8 +224,6 @@ test('Export to CSV button fails to request all features and shows toast', async
   // Assert toast is visible
   const toast = page.locator('.toast');
   await toast.waitFor({state: 'visible'});
-
-  await page.unrouteAll();
 });
 
 test('Typing slash focuses on searchbox', async ({page}) => {
