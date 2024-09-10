@@ -33,7 +33,7 @@ linters:
     - errorlint
     - exhaustive
     - exhaustruct
-    - exportloopref
+    - copyloopvar
     - gochecknoglobals
     - gocognit
     - goconst
