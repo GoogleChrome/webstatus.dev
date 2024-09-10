@@ -33,11 +33,11 @@ test('can sign in and sign out user', async ({page}) => {
   await page.getByText('Log in').click();
   const popup = await popupPromise;
 
+  await popup.getByText('test user 1').waitFor();
+  await popup.getByText('test user 1').hover(); // Needed for Firefox for some reason.
   await popup.getByText('test user 1').click();
+  await popup.waitForEvent('close');
   const login = page.locator('webstatus-login');
-  // We may be able to remove the following waitForTimeout after we address:
-  // https://github.com/GoogleChrome/webstatus.dev/issues/278
-  await page.waitForTimeout(5000);
 
   const expectedEmail = 'test.user.1@example.com';
 
