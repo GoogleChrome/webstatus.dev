@@ -17,21 +17,23 @@ package targz
 import (
 	"archive/tar"
 	"compress/gzip"
+	"errors"
 	"io"
+	"math"
 	"path/filepath"
 	"strings"
 )
 
 const (
-	defaultStripComponents uint = 1
-	minStripComonents      int  = 0
-	maxStripComonents      int  = 1
+	defaultStripComponents uint32 = 1
+	minStripComonents      int    = 0
+	maxStripComonents      int    = 1
 )
 
 type ArchiveIteartor struct {
 	gzipReader      *gzip.Reader
 	tarReader       *tar.Reader
-	stripComponents uint
+	stripComponents uint32
 }
 
 type ArchiveFile struct {
@@ -85,7 +87,11 @@ func NewTarGzArchiveIterator(reader io.ReadCloser, stripComponentsInput *int) (*
 	if stripComponentsInput != nil &&
 		(*stripComponentsInput >= minStripComonents &&
 			*stripComponentsInput <= maxStripComonents) {
-		stripComponents = uint(*stripComponentsInput)
+		value := *stripComponentsInput
+		if value < 0 || value > math.MaxUint32 {
+			return nil, errors.New("overflow")
+		}
+		stripComponents = uint32(value)
 	}
 	tarReader := tar.NewReader(gzip)
 
