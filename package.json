@@ -13,7 +13,7 @@
   ],
   "devDependencies": {
     "@playwright/test": "^1.47.0",
-    "@types/node": "^20.14.10",
+    "@types/node": "^22.5.4",
     "concurrently": "^8.2.2",
     "eslint-plugin-n": "^17.10.2",
     "gts": "^5.2.0",

@@ -34,7 +34,7 @@
     "@rollup/plugin-terser": "^0.4.4",
     "@types/chai": "^4.3.11",
     "@types/mocha": "^10.0.7",
-    "@types/node": "^20.14.10",
+    "@types/node": "^22.5.4",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
     "@typescript-eslint/eslint-plugin": "^7.16.1",
     "@typescript-eslint/parser": "^7.16.1",
