@@ -420,7 +420,7 @@ export class WebstatusOverviewFilters extends LitElement {
 
     return html`
       <sl-button
-        id="export-to-CSV-button"
+        id="export-to-csv-button"
         @click=${exportToCSV}
         ?loading=${this.exportDataStatus === TaskStatus.PENDING}
         ?disabled=${this.exportDataStatus === TaskStatus.PENDING}

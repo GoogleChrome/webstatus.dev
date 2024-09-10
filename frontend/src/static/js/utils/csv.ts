@@ -52,17 +52,14 @@ export class CSVUtils {
     rows: string[][],
     filename: string
   ): Promise<void> {
-    // Create the CSV string.
     const csv = this.convertToCSV(columns, rows);
 
-    // Create blob to download the csv.
+    // Create blob which will be saved via a link.
     const blob = new Blob([csv], {type: 'text/csv'});
     const url = window.URL.createObjectURL(blob);
 
-    console.info('url', url);
-
-    // Use fetch to download the csv.
-    const request = (path: string, filename?: string) =>
+    const saveRequest = (path: string, filename?: string) =>
+      // Use fetch to download the csv.
       fetch(path)
         .then(response => response.blob())
         .then(blob => {
@@ -83,10 +80,6 @@ export class CSVUtils {
           link.parentElement!.removeChild(link);
         });
 
-    // if (rows.length > 0) {
-    //   throw new Error('rows.length > 0');
-    // }
-
-    return request(url, filename);
+    return saveRequest(url, filename);
   }
 }

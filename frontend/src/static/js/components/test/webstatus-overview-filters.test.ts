@@ -38,7 +38,7 @@ describe('downloadCSV', () => {
 
     // Click the 'Export to CSV' button
     const downloadButton = filterComponent.shadowRoot!.querySelector(
-      '#export-to-CSV-button'
+      '#export-to-csv-button'
     )! as HTMLButtonElement;
     downloadButton.click();
 
