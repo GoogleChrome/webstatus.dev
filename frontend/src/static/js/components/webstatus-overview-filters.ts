@@ -55,6 +55,9 @@ import {
 import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
 
+const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
+  'webstatus-feature-overview.csv';
+
 const VOCABULARY = [
   {
     name: 'available_date:chrome:2023-01-01..2024-01-01',
@@ -349,7 +352,7 @@ export class WebstatusOverviewFilters extends LitElement {
       await CSVUtils.downloadCSV(
         columns,
         rows,
-        'webstatus-feature-overview.csv'
+        WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME
       );
     } catch (error) {
       if (error instanceof Error) {
