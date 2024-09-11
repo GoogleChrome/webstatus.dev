@@ -187,11 +187,16 @@ const renderBaselineStatus: CellRenderer = (
       baselineStatusHighDate
     );
   } else if (baselineStatusLowDate && columnHighDateOption) {
-    // Add 30 months to the low date to get the projected high date.
-    const projectedHighDate = baselineStatusLowDate + 30;
+    // Add approx. 30 months to the low date to get the projected high date.
+    const baselineStatusLowDateMS = new Date(baselineStatusLowDate).getTime();
+    const msIn30Months = 30 * 30 * 24 * 60 * 60 * 1000;
+    const projectedHighDate = new Date(baselineStatusLowDateMS + msIn30Months);
+    const projectedHighDateString = projectedHighDate
+      .toISOString()
+      .split('T')[0]; // Format as yyyy-MM-dd.
     baselineStatusHighDateHtml = generateDateHtml(
       'Projected widely available',
-      projectedHighDate
+      projectedHighDateString
     );
   }
 
