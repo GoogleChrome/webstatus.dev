@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {assert} from '@open-wc/testing';
+import {assert, expect, fixture} from '@open-wc/testing';
 
 import {
   ColumnKey,
@@ -25,7 +25,10 @@ import {
   parseColumnOptions,
   DEFAULT_COLUMN_OPTIONS,
   ColumnOptionKey,
+  renderBaselineStatus,
 } from '../webstatus-overview-cells.js';
+import {components} from 'webstatus.dev-backend';
+import {render} from 'lit';
 
 describe('parseColumnsSpec', () => {
   it('returns default columns when there was no column spec', () => {
@@ -96,5 +99,331 @@ describe('didFeatureCrash', () => {
   it('returns false for undefined metadata', () => {
     const metadata = undefined;
     assert.isFalse(didFeatureCrash(metadata));
+  });
+});
+
+describe('renderBaselineStatus', () => {
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('div');
+  });
+  describe('widely available feature', () => {
+    const widelyAvailableFeature: components['schemas']['Feature'] = {
+      feature_id: 'id',
+      name: 'name',
+      baseline: {
+        status: 'widely',
+        low_date: '2015-07-29',
+        high_date: '2018-01-29',
+      },
+    };
+    it('renders only the word and icon by default', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: ''},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Widely available');
+
+      // Assert the absence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('additionally renders the low date when selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: 'column_options=baseline_status_low_date'},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Widely available');
+
+      // Assert the presence of the low date block and absence of the high date block.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.exist;
+      expect(
+        lowDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Newly available:');
+      expect(
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2015-07-29');
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('additionally renders the high date when selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: 'column_options=baseline_status_high_date'},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Widely available');
+
+      // Assert the presence of the high date block and absence of the low date block.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.exist;
+      expect(
+        highDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Widely available:');
+      expect(
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2018-01-29');
+    });
+    it('additionally renders the low date and high date when both are selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {
+          search:
+            'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
+        },
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Widely available');
+
+      // Assert the presence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.exist;
+      expect(
+        lowDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Newly available:');
+      expect(
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2015-07-29');
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.exist;
+      expect(
+        highDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Widely available:');
+      expect(
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2018-01-29');
+    });
+  });
+  describe('newly available feature', () => {
+    const widelyAvailableFeature: components['schemas']['Feature'] = {
+      feature_id: 'id',
+      name: 'name',
+      baseline: {
+        status: 'newly',
+        low_date: '2015-07-29',
+      },
+    };
+    it('renders only the word and icon by default', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: ''},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Newly available');
+
+      // Assert the absence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('additionally renders the low date when selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: 'column_options=baseline_status_low_date'},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Newly available');
+
+      // Assert the presence of the low date block and absence of the high date block.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.exist;
+      expect(
+        lowDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Newly available:');
+      expect(
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2015-07-29');
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('additionally renders the projected high date when selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: 'column_options=baseline_status_high_date'},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Newly available');
+
+      // Assert the presence of the high date block and absence of the low date block.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.exist;
+      expect(
+        highDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Projected widely available:');
+      expect(
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2018-01-29');
+    });
+    it('additionally renders the low date and projected high date when both are selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {
+          search:
+            'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
+        },
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Newly available');
+
+      // Assert the presence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.exist;
+      expect(
+        lowDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Newly available:');
+      expect(
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2015-07-29');
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.exist;
+      expect(
+        highDateBlock
+          ?.querySelector('.baseline-date-header')
+          ?.textContent?.trim()
+      ).to.equal('Projected widely available:');
+      expect(
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+      ).to.equal('2018-01-29');
+    });
+  });
+  describe('limited feature', () => {
+    const widelyAvailableFeature: components['schemas']['Feature'] = {
+      feature_id: 'id',
+      name: 'name',
+      baseline: {
+        status: 'limited',
+      },
+    };
+    it('renders only the word and icon by default', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: ''},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+
+      // Assert the absence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('does not render the low date even when selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: 'column_options=baseline_status_low_date'},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+
+      // Assert the absence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('does not render the projected high date even when selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {search: 'column_options=baseline_status_high_date'},
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+
+      // Assert the absence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
+    it('does render the low date and projected high date even when both are selected', async () => {
+      const result = renderBaselineStatus(
+        widelyAvailableFeature,
+        {
+          search:
+            'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
+        },
+        {}
+      );
+      render(result, container);
+      const el = await fixture(container);
+      const chip = el.querySelector('.chip');
+      expect(chip).to.exist;
+      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+
+      // Assert the absence of the low date block and the high date blocks.
+      const lowDateBlock = el.querySelector('.baseline-date-block-newly');
+      expect(lowDateBlock).to.not.exist;
+      const highDateBlock = el.querySelector('.baseline-date-block-widely');
+      expect(highDateBlock).to.not.exist;
+    });
   });
 });
