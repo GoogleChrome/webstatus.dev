@@ -53,7 +53,7 @@ import {
 } from './webstatus-overview-cells.js';
 
 import {CSVUtils} from '../utils/csv.js';
-import {toast} from '../utils/toast.js';
+import {Toast} from '../utils/toast.js';
 
 const VOCABULARY = [
   {
@@ -244,125 +244,120 @@ export class WebstatusOverviewFilters extends LitElement {
     }
   }
 
-  async exportToCSV(
-    completedCallback: (() => void) | undefined
-  ): Promise<void> {
+  async exportToCSV(): Promise<void> {
     if (!this.allFeaturesFetcher) {
       return;
     }
 
-    // Fetch all pages of data via getAllFeatures
-    this.allFeaturesFetcher()
-      .then(allFeatures => {
-        // Use CELL_DEFS to define the columns and
-        // get the current (active) columns.
-        const columns: string[] = [];
-        const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
+    let allFeatures: components['schemas']['Feature'][];
+    try {
+      allFeatures = await this.allFeaturesFetcher();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Download error: ${error?.message}`);
+      }
+      throw new Error('Unknown error fetching features.');
+    }
 
-        const pushBrowserChannelName = (
-          browserColumnKey: BrowserChannelColumnKeys
-        ) => {
-          const name = CELL_DEFS[browserColumnKey].nameInDialog;
+    // Use CELL_DEFS to define the columns and
+    // get the current (active) columns.
+    const columns: string[] = [];
+    const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
 
-          const {browser, channel} = getBrowserAndChannel(browserColumnKey);
-          const browserLabel = BROWSER_ID_TO_LABEL[browser];
-          const channelLabel = CHANNEL_ID_TO_LABEL[channel];
+    const pushBrowserChannelName = (
+      browserColumnKey: BrowserChannelColumnKeys
+    ) => {
+      const name = CELL_DEFS[browserColumnKey].nameInDialog;
 
-          if (channel === 'stable') {
-            columns.push(name);
-          }
-          columns.push(`${browserLabel} WPT ${channelLabel} Score`);
-        };
+      const {browser, channel} = getBrowserAndChannel(browserColumnKey);
+      const browserLabel = BROWSER_ID_TO_LABEL[browser];
+      const channelLabel = CHANNEL_ID_TO_LABEL[channel];
 
-        columnKeys.forEach(columnKey => {
-          const name = CELL_DEFS[columnKey].nameInDialog;
-          switch (columnKey) {
-            case ColumnKey.Name:
-              columns.push(name);
-              break;
-            case ColumnKey.BaselineStatus:
-              columns.push(name);
-              break;
-            case ColumnKey.StableChrome:
-            case ColumnKey.StableEdge:
-            case ColumnKey.StableFirefox:
-            case ColumnKey.StableSafari:
-            case ColumnKey.ExpChrome:
-            case ColumnKey.ExpEdge:
-            case ColumnKey.ExpFirefox:
-            case ColumnKey.ExpSafari:
-              pushBrowserChannelName(columnKey);
-              break;
-          }
-        });
+      if (channel === 'stable') {
+        columns.push(name);
+      }
+      columns.push(`${browserLabel} WPT ${channelLabel} Score`);
+    };
 
-        // Convert array of feature rows into array of arrays of strings,
-        // in the same order as columns.
-        const rows = allFeatures.map(feature => {
-          const baselineStatus = feature.baseline?.status || '';
-          const browserImpl = feature.browser_implementations!;
-          const wptData = feature.wpt;
-          const row: string[] = [];
+    columnKeys.forEach(columnKey => {
+      const name = CELL_DEFS[columnKey].nameInDialog;
+      switch (columnKey) {
+        case ColumnKey.Name:
+          columns.push(name);
+          break;
+        case ColumnKey.BaselineStatus:
+          columns.push(name);
+          break;
+        case ColumnKey.StableChrome:
+        case ColumnKey.StableEdge:
+        case ColumnKey.StableFirefox:
+        case ColumnKey.StableSafari:
+        case ColumnKey.ExpChrome:
+        case ColumnKey.ExpEdge:
+        case ColumnKey.ExpFirefox:
+        case ColumnKey.ExpSafari:
+          pushBrowserChannelName(columnKey);
+          break;
+      }
+    });
 
-          const pushBrowserChannelValue = (
-            browserColumnKey: BrowserChannelColumnKeys
-          ) => {
-            const {browser, channel} = getBrowserAndChannel(browserColumnKey);
-            const browserImplDate = browserImpl && browserImpl[browser]?.date;
-            const wptScore = wptData?.[channel]?.[browser]?.score;
+    // Convert array of feature rows into array of arrays of strings,
+    // in the same order as columns.
+    const rows = allFeatures.map(feature => {
+      const baselineStatus = feature.baseline?.status || '';
+      const browserImpl = feature.browser_implementations!;
+      const wptData = feature.wpt;
+      const row: string[] = [];
 
-            if (channel === 'stable') {
-              row.push(browserImplDate || '');
-            }
-            row.push(String(wptScore) || '');
-          };
+      const pushBrowserChannelValue = (
+        browserColumnKey: BrowserChannelColumnKeys
+      ) => {
+        const {browser, channel} = getBrowserAndChannel(browserColumnKey);
+        const browserImplDate = browserImpl && browserImpl[browser]?.date;
+        const wptScore = wptData?.[channel]?.[browser]?.score;
 
-          // Iterate over the current columns to get the values for each column.
-          for (const key of columnKeys) {
-            switch (key) {
-              case ColumnKey.Name:
-                row.push(feature.name);
-                break;
-              case ColumnKey.BaselineStatus:
-                row.push(baselineStatus);
-                break;
-              case ColumnKey.StableChrome:
-              case ColumnKey.StableEdge:
-              case ColumnKey.StableFirefox:
-              case ColumnKey.StableSafari:
-              case ColumnKey.ExpChrome:
-              case ColumnKey.ExpEdge:
-              case ColumnKey.ExpFirefox:
-              case ColumnKey.ExpSafari:
-                pushBrowserChannelValue(key);
-                break;
-            }
-          }
-          return row;
-        });
+        if (channel === 'stable') {
+          row.push(browserImplDate || '');
+        }
+        row.push(String(wptScore) || '');
+      };
 
-        CSVUtils.downloadCSV(columns, rows, 'webstatus-feature-overview.csv')
-          .catch(error => {
-            toast(
-              `Save file error: ${error.message}`,
-              'danger',
-              'exclamation-triangle'
-            );
-          })
-          .finally(() => {
-            completedCallback && completedCallback();
-          });
-      })
-      .catch(error => {
-        toast(
-          `Download error: ${error.message}`,
-          'danger',
-          'exclamation-triangle'
-        );
-      })
-      .finally(() => {
-        completedCallback && completedCallback();
-      });
+      // Iterate over the current columns to get the values for each column.
+      for (const key of columnKeys) {
+        switch (key) {
+          case ColumnKey.Name:
+            row.push(feature.name);
+            break;
+          case ColumnKey.BaselineStatus:
+            row.push(baselineStatus);
+            break;
+          case ColumnKey.StableChrome:
+          case ColumnKey.StableEdge:
+          case ColumnKey.StableFirefox:
+          case ColumnKey.StableSafari:
+          case ColumnKey.ExpChrome:
+          case ColumnKey.ExpEdge:
+          case ColumnKey.ExpFirefox:
+          case ColumnKey.ExpSafari:
+            pushBrowserChannelValue(key);
+            break;
+        }
+      }
+      return row;
+    });
+
+    try {
+      await CSVUtils.downloadCSV(
+        columns,
+        rows,
+        'webstatus-feature-overview.csv'
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Save file error: ${error.message}`);
+      }
+      throw new Error('Unknown error downloading csv');
+    }
   }
 
   renderColumnButton(): TemplateResult {
@@ -411,17 +406,22 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   renderExportButton(): TemplateResult {
-    const exportToCSV = () => {
+    const handleExportToCSV = () => {
       this.exportDataStatus = TaskStatus.PENDING;
-      this.exportToCSV(() => {
-        this.exportDataStatus = TaskStatus.COMPLETE;
-      });
+      this.exportToCSV()
+        .then(() => {
+          this.exportDataStatus = TaskStatus.COMPLETE;
+        })
+        .catch(error => {
+          new Toast().toast(error?.message, 'danger', 'exclamation-triangle');
+          this.exportDataStatus = TaskStatus.ERROR;
+        });
     };
 
     return html`
       <sl-button
         id="export-to-csv-button"
-        @click=${exportToCSV}
+        @click=${handleExportToCSV}
         ?loading=${this.exportDataStatus === TaskStatus.PENDING}
         ?disabled=${this.exportDataStatus === TaskStatus.PENDING}
       >
