@@ -348,6 +348,7 @@ export class WebstatusOverviewFilters extends LitElement {
       }
       return row;
     });
+
     try {
       await CSVUtils.downloadCSV(
         columns,

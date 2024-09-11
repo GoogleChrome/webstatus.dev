@@ -32,10 +32,6 @@ import {APIClient} from '../../api/client.js';
 
 describe('downloadCSV', () => {
   it('should display an error toast when the CSVUtils.downloadCSV function throws an error', async () => {
-    const downloadCSVStub = sinon.stub(CSVUtils, 'downloadCSV');
-    downloadCSVStub.rejects(new Error('Test error'));
-
-    const toastStub = sinon.stub(Toast.prototype, 'toast');
     const apiClient = new APIClient(''); // TODO Can probably stub allFeaturesFetecher instead.
     const getAllFeaturesStub = sinon.stub(apiClient, 'getAllFeatures');
     getAllFeaturesStub.resolves([]);
@@ -50,6 +46,10 @@ describe('downloadCSV', () => {
 
     assert.exists(filterComponent);
     await filterComponent.updateComplete;
+
+    const toastStub = sinon.stub(Toast.prototype, 'toast');
+    const downloadCSVStub = sinon.stub(CSVUtils, 'downloadCSV');
+    downloadCSVStub.rejects(new Error('Test error'));
 
     // Click the 'Export to CSV' button
     const downloadButton =
@@ -79,5 +79,37 @@ describe('downloadCSV', () => {
     downloadCSVStub.restore();
     toastStub.restore();
   });
-  // TODO. Add a test for the download error.
+
+  it('should display an error toast when the allFeaturesFetcher promise rejects', async () => {
+    const apiClient = new APIClient('');
+    const getAllFeaturesStub = sinon.stub(apiClient, 'getAllFeatures');
+    getAllFeaturesStub.rejects(new Error('Test error'));
+
+    const location = {search: ''};
+    const filterComponent = await fixture<WebstatusOverviewFilters>(
+      html`<webstatus-overview-filters
+        .location=${location}
+        .apiClient=${apiClient}
+      ></webstatus-overview-filters>`
+    );
+    assert.exists(filterComponent);
+    await filterComponent.updateComplete;
+
+    // Click the 'Export to CSV' button
+    const downloadButton =
+      filterComponent.shadowRoot?.querySelector<HTMLButtonElement>(
+        '#export-to-csv-button'
+      );
+    assert.exists(downloadButton);
+
+    const toastStub = sinon.stub(Toast.prototype, 'toast');
+    downloadButton.click();
+    await elementUpdated(filterComponent);
+
+    await waitUntil(
+      () => filterComponent.exportDataStatus,
+      'Export data status failed to change'
+    );
+    expect(toastStub.calledOnce).to.be.true;
+  });
 });
