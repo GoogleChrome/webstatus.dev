@@ -64,6 +64,7 @@ describe('downloadCSV', () => {
       () => filterComponent.exportDataStatus,
       'Export data status failed to change'
     );
+
     expect(downloadCSVStub.calledOnce).to.be.true;
     expect(toastStub.calledOnce).to.be.true;
     expect(
@@ -73,9 +74,7 @@ describe('downloadCSV', () => {
         'exclamation-triangle'
       )
     ).to.be.true;
-
     expect(getAllFeaturesStub.calledOnce).to.be.true;
-
     downloadCSVStub.restore();
     toastStub.restore();
   });
@@ -105,11 +104,20 @@ describe('downloadCSV', () => {
     const toastStub = sinon.stub(Toast.prototype, 'toast');
     downloadButton.click();
     await elementUpdated(filterComponent);
-
     await waitUntil(
       () => filterComponent.exportDataStatus,
       'Export data status failed to change'
     );
+
     expect(toastStub.calledOnce).to.be.true;
+    expect(
+      toastStub.calledWith(
+        'Save file error: Test error',
+        'danger',
+        'exclamation-triangle'
+      )
+    ).to.be.true;
+    expect(getAllFeaturesStub.calledOnce).to.be.true;
+    toastStub.restore();
   });
 });
