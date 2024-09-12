@@ -108,7 +108,7 @@ describe('renderBaselineStatus', () => {
     container = document.createElement('div');
   });
   describe('widely available feature', () => {
-    const widelyAvailableFeature: components['schemas']['Feature'] = {
+    const feature: components['schemas']['Feature'] = {
       feature_id: 'id',
       name: 'name',
       baseline: {
@@ -118,11 +118,7 @@ describe('renderBaselineStatus', () => {
       },
     };
     it('renders only the word and icon by default', async () => {
-      const result = renderBaselineStatus(
-        widelyAvailableFeature,
-        {search: ''},
-        {}
-      );
+      const result = renderBaselineStatus(feature, {search: ''}, {});
       render(result, container);
       const el = await fixture(container);
       const chip = el.querySelector('.chip');
@@ -137,7 +133,7 @@ describe('renderBaselineStatus', () => {
     });
     it('additionally renders the low date when selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {search: 'column_options=baseline_status_low_date'},
         {}
       );
@@ -163,7 +159,7 @@ describe('renderBaselineStatus', () => {
     });
     it('additionally renders the high date when selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {search: 'column_options=baseline_status_high_date'},
         {}
       );
@@ -189,7 +185,7 @@ describe('renderBaselineStatus', () => {
     });
     it('additionally renders the low date and high date when both are selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {
           search:
             'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
@@ -226,7 +222,7 @@ describe('renderBaselineStatus', () => {
     });
   });
   describe('newly available feature', () => {
-    const widelyAvailableFeature: components['schemas']['Feature'] = {
+    const feature: components['schemas']['Feature'] = {
       feature_id: 'id',
       name: 'name',
       baseline: {
@@ -235,11 +231,7 @@ describe('renderBaselineStatus', () => {
       },
     };
     it('renders only the word and icon by default', async () => {
-      const result = renderBaselineStatus(
-        widelyAvailableFeature,
-        {search: ''},
-        {}
-      );
+      const result = renderBaselineStatus(feature, {search: ''}, {});
       render(result, container);
       const el = await fixture(container);
       const chip = el.querySelector('.chip');
@@ -254,7 +246,7 @@ describe('renderBaselineStatus', () => {
     });
     it('additionally renders the low date when selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {search: 'column_options=baseline_status_low_date'},
         {}
       );
@@ -280,7 +272,7 @@ describe('renderBaselineStatus', () => {
     });
     it('additionally renders the projected high date when selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {search: 'column_options=baseline_status_high_date'},
         {}
       );
@@ -306,7 +298,7 @@ describe('renderBaselineStatus', () => {
     });
     it('additionally renders the low date and projected high date when both are selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {
           search:
             'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
@@ -343,7 +335,7 @@ describe('renderBaselineStatus', () => {
     });
   });
   describe('limited feature', () => {
-    const widelyAvailableFeature: components['schemas']['Feature'] = {
+    const feature: components['schemas']['Feature'] = {
       feature_id: 'id',
       name: 'name',
       baseline: {
@@ -351,11 +343,7 @@ describe('renderBaselineStatus', () => {
       },
     };
     it('renders only the word and icon by default', async () => {
-      const result = renderBaselineStatus(
-        widelyAvailableFeature,
-        {search: ''},
-        {}
-      );
+      const result = renderBaselineStatus(feature, {search: ''}, {});
       render(result, container);
       const el = await fixture(container);
       const chip = el.querySelector('.chip');
@@ -370,7 +358,7 @@ describe('renderBaselineStatus', () => {
     });
     it('does not render the low date even when selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {search: 'column_options=baseline_status_low_date'},
         {}
       );
@@ -388,7 +376,7 @@ describe('renderBaselineStatus', () => {
     });
     it('does not render the projected high date even when selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {search: 'column_options=baseline_status_high_date'},
         {}
       );
@@ -406,7 +394,7 @@ describe('renderBaselineStatus', () => {
     });
     it('does render the low date and projected high date even when both are selected', async () => {
       const result = renderBaselineStatus(
-        widelyAvailableFeature,
+        feature,
         {
           search:
             'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
