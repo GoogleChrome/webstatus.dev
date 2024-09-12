@@ -34,7 +34,7 @@ func (m chromiumHistogramEnumValuesMapper) Table() string {
 func (m chromiumHistogramEnumValuesMapper) SelectOne(key spannerChromiumHistogramEnumValueKey) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
-		ChromiumHistogramEnumID, BucketID, Label
+		ID, ChromiumHistogramEnumID, BucketID, Label
 	FROM %s
 	WHERE ChromiumHistogramEnumID = @chromiumHistogramEnumID AND BucketID = @bucketID
 	LIMIT 1`, m.Table()))
@@ -60,6 +60,22 @@ func (m chromiumHistogramEnumValuesMapper) Merge(
 	return existing
 }
 
+func (m chromiumHistogramEnumValuesMapper) GetID(in spannerChromiumHistogramEnumValueKey) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID
+	FROM %s
+	WHERE ChromiumHistogramEnumID = @chromiumHistogramEnumID AND BucketID = @bucketID
+	LIMIT 1`, m.Table()))
+	parameters := map[string]interface{}{
+		"chromiumHistogramEnumID": in.ChromiumHistogramEnumID,
+		"bucketID":                in.BucketID,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
 type ChromiumHistogramEnumValue struct {
 	ChromiumHistogramEnumID string `spanner:"ChromiumHistogramEnumID"`
 	BucketID                int64  `spanner:"BucketID"`
@@ -67,6 +83,7 @@ type ChromiumHistogramEnumValue struct {
 }
 
 type spannerChromiumHistogramEnumValue struct {
+	ID string `spanner:"ID"`
 	ChromiumHistogramEnumValue
 }
 
@@ -75,6 +92,6 @@ type spannerChromiumHistogramEnumValueKey struct {
 	BucketID                int64
 }
 
-func (c *Client) UpsertChromiumHistogramEnumValue(ctx context.Context, in ChromiumHistogramEnumValue) error {
-	return newEntityWriter[chromiumHistogramEnumValuesMapper](c).upsert(ctx, in)
+func (c *Client) UpsertChromiumHistogramEnumValue(ctx context.Context, in ChromiumHistogramEnumValue) (*string, error) {
+	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumValuesMapper, string](c).upsertAndGetID(ctx, in)
 }

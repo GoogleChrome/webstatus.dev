@@ -89,8 +89,8 @@ type JobArguments struct {
 // MetricStorer represents the behavior to the storage layer.
 type MetricStorer interface {
 	HasCapstone(context.Context, time.Time) (bool, error)
-	SaveCapstone(context.Context) error
-	SaveMetrics(context.Context, metricdatatypes.BucketDataMetrics) error
+	SaveCapstone(context.Context, time.Time) error
+	SaveMetrics(context.Context, time.Time, metricdatatypes.BucketDataMetrics) error
 }
 
 type MetricFetecher interface {
@@ -109,17 +109,17 @@ type UMAExportJobProcessor struct {
 
 func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) error {
 	// Step 1. Check if already processed.
-	// found, err := p.metricStorer.HasCapstone(ctx, job.day)
-	// if err != nil {
-	// 	slog.ErrorContext(ctx, "unable to parse metrics file", "error", err)
+	found, err := p.metricStorer.HasCapstone(ctx, job.day)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to parse metrics file", "error", err)
 
-	// 	return err
-	// }
-	// if found {
-	// 	slog.InfoContext(ctx, "Found existing capstone entry", "date", job.day)
+		return err
+	}
+	if found {
+		slog.InfoContext(ctx, "Found existing capstone entry", "date", job.day)
 
-	// 	return nil
-	// }
+		return nil
+	}
 	slog.InfoContext(ctx, "No capstone entry found. Will fetch", "date", job.day)
 
 	// Step 2. Fetch results

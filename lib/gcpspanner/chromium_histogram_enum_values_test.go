@@ -15,6 +15,7 @@
 package gcpspanner
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"slices"
@@ -45,14 +46,18 @@ func getSampleChromiumHistogramEnumValues(histogramIDMap map[string]string) []Ch
 }
 
 func insertSampleChromiumHistogramEnumValues(
-	ctx context.Context, t *testing.T, c *Client, enumIDMap map[string]string) {
+	ctx context.Context, t *testing.T, c *Client, enumIDMap map[string]string) map[string]string {
 	enumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	m := make(map[string]string, len(enumValues))
 	for _, enumValue := range enumValues {
-		err := c.UpsertChromiumHistogramEnumValue(ctx, enumValue)
+		enumValueID, err := c.UpsertChromiumHistogramEnumValue(ctx, enumValue)
 		if err != nil {
 			t.Fatalf("unable to insert sample enum value. error %s", err)
 		}
+		m[enumValue.Label] = *enumValueID
 	}
+
+	return m
 }
 
 // Helper method to get all the enum values in a stable order.
@@ -98,11 +103,12 @@ func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
 	sampleHistogramsEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	slices.SortFunc(enumValues, sortChromiumHistogramEnumValues)
 	if !slices.Equal[[]ChromiumHistogramEnumValue](sampleHistogramsEnumValues, enumValues) {
 		t.Errorf("unequal enums. expected %+v actual %+v", sampleHistogramsEnumValues, enumValues)
 	}
 
-	err = spannerClient.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValue{
+	_, err = spannerClient.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValue{
 		ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
 		BucketID:                1,
 		// Should not update
@@ -116,9 +122,14 @@ func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
+	slices.SortFunc(enumValues, sortChromiumHistogramEnumValues)
 
 	// Should be the same. No updates should happen.
 	if !slices.Equal[[]ChromiumHistogramEnumValue](sampleHistogramsEnumValues, enumValues) {
 		t.Errorf("unequal enum values after update. expected %+v actual %+v", sampleHistogramsEnumValues, enumValues)
 	}
+}
+
+func sortChromiumHistogramEnumValues(left, right ChromiumHistogramEnumValue) int {
+	return cmp.Compare(left.Label, right.Label)
 }

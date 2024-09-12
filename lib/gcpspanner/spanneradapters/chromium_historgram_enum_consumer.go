@@ -23,11 +23,11 @@ import (
 // ChromiumHistogramEnumConsumer handles the conversion of histogram between the workflow/API input
 // format and the format used by the GCP Spanner client.
 type ChromiumHistogramEnumConsumer struct {
-	client WebFeatureSpannerClient
+	client ChromiumHistogramEnumsClient
 }
 
 // NewChromiumHistogramEnumConsumer constructs an adapter for the chromium histogram enum consumer service.
-func NewChromiumHistogramEnumConsumer(client WebFeatureSpannerClient) *ChromiumHistogramEnumConsumer {
+func NewChromiumHistogramEnumConsumer(client ChromiumHistogramEnumsClient) *ChromiumHistogramEnumConsumer {
 	return &ChromiumHistogramEnumConsumer{client: client}
 }
 

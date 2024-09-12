@@ -13,7 +13,7 @@
 -- limitations under the License.
 
 
--- ChromiumHistogramEnums contains metadata about a his within a enum found in
+-- ChromiumHistogramEnums contains metadata about a histogram within a enum found in
 -- https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/enums.xml
 CREATE TABLE IF NOT EXISTS ChromiumHistogramEnums (
     ID STRING(36) NOT NULL DEFAULT (GENERATE_UUID()),
@@ -28,22 +28,26 @@ CREATE UNIQUE NULL_FILTERED INDEX ChromiumHistogramEnumsByHistogramName ON Chrom
 -- ChromiumHistogramEnumValues contains metadata about the values within an enum found in
 -- https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/enums.xml
 CREATE TABLE IF NOT EXISTS ChromiumHistogramEnumValues (
+    ID STRING(36) NOT NULL DEFAULT (GENERATE_UUID()),
     ChromiumHistogramEnumID STRING(36) NOT NULL,
     BucketID INT64 NOT NULL,
     Label STRING(MAX) NOT NULL,
     -- Additional lowercase columns for case-insensitive search
     Label_Lowercase STRING(64) AS (LOWER(Label)) STORED,
     FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums(ID)  ON DELETE CASCADE
-) PRIMARY KEY (ChromiumHistogramEnumID, BucketID);
+) PRIMARY KEY (ID);
+
+-- Used to enforce that only one combination of Enum and Bucket
+CREATE UNIQUE NULL_FILTERED INDEX UniqueEnumValuesByEnumAndBucket ON ChromiumHistogramEnumValues(ChromiumHistogramEnumID, BucketID);
 
 -- DailyChromiumHistogramMetrics contains the daily metrics.
 CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
-    ChromiumHistogramEnumID STRING(36) NOT NULL,
-    BucketID INT64 NOT NULL,
-    Day DATE NOT NULL,
-    Percentage FLOAT64 NOT NULL,
-    FOREIGN KEY (ChromiumHistogramEnumID, BucketID) REFERENCES ChromiumHistogramEnumValues(ChromiumHistogramEnumID, BucketID) ON DELETE CASCADE
-) PRIMARY KEY (ChromiumHistogramEnumID, Day);
+    ChromiumHistogramEnumValueID STRING(36) NOT NULL,
+    Day TIMESTAMP NOT NULL,
+    Rate NUMERIC NOT NULL,
+    FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE
+) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);
+
 
 -- Maps web features to ChromiumHistogramEnums.
 CREATE TABLE IF NOT EXISTS WebFeatureChromiumHistogramEnums (
