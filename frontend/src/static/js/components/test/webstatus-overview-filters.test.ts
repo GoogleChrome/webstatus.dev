@@ -112,7 +112,7 @@ describe('downloadCSV', () => {
     expect(toastStub.calledOnce).to.be.true;
     expect(
       toastStub.calledWith(
-        'Save file error: Test error',
+        'Download features error: Test error',
         'danger',
         'exclamation-triangle'
       )

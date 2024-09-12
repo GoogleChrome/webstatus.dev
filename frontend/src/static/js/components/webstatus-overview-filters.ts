@@ -257,7 +257,7 @@ export class WebstatusOverviewFilters extends LitElement {
       allFeatures = await this.allFeaturesFetcher();
     } catch (error) {
       if (error instanceof Error) {
-        throw new Error(`Download error: ${error?.message}`);
+        throw new Error(`Download features error: ${error?.message}`);
       }
       throw new Error('Unknown error fetching features.');
     }
