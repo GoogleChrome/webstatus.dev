@@ -46,6 +46,11 @@ type ColumnDefinition = {
   };
 };
 
+// Currently, the widely available date is defined as 30 months after the newly available date.
+// https://github.com/web-platform-dx/web-features/blob/6ac2ef2325d26b0c430c6dd08665d2361fa4653d/docs/baseline.md?plain=1#L152
+// In the event a newly available feature is not widely available yet, we use this constant to estimate widely available date.
+const NEWLY_TO_WIDELY_MONTH_OFFSET = 30;
+
 export enum ColumnKey {
   Name = 'name',
   BaselineStatus = 'baseline_status',
@@ -145,7 +150,20 @@ const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   return html` <a href=${featureUrl}>${feature.name}</a> `;
 };
 
-const renderBaselineStatus: CellRenderer = (
+function formatDateString(dateString: string): string {
+  return formatDate(new Date(dateString));
+}
+
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+  const day = date.getDate().toString().padStart(2, '0'); // Days are 1-indexed
+
+  // Assuming the original format was YYYY-MM-DD
+  return `${year}-${month}-${day}`;
+}
+
+export const renderBaselineStatus: CellRenderer = (
   feature,
   routerLocation,
   _options
@@ -163,8 +181,14 @@ const renderBaselineStatus: CellRenderer = (
     ColumnOptionKey.BaselineStatusLowDate
   );
 
-  function generateDateHtml(header: string, date: string | number) {
-    return html`<div class="baseline-date-block">
+  function generateDateHtml(
+    header: string,
+    date: string | number,
+    blockType: 'widely' | 'newly'
+  ) {
+    return html`<div
+      class="baseline-date-block baseline-date-block-${blockType}"
+    >
       <span class="baseline-date-header">${header}:</span>
       <span class="baseline-date">${date}</span>
     </div>`;
@@ -175,7 +199,8 @@ const renderBaselineStatus: CellRenderer = (
   if (baselineStatusLowDate && columnLowDateOption) {
     baselineStatusLowDateHtml = generateDateHtml(
       'Newly available',
-      baselineStatusLowDate
+      formatDateString(baselineStatusLowDate),
+      'newly'
     );
   }
 
@@ -184,14 +209,19 @@ const renderBaselineStatus: CellRenderer = (
   if (baselineStatusHighDate && columnHighDateOption) {
     baselineStatusHighDateHtml = generateDateHtml(
       'Widely available',
-      baselineStatusHighDate
+      formatDateString(baselineStatusHighDate),
+      'widely'
     );
   } else if (baselineStatusLowDate && columnHighDateOption) {
-    // Add 30 months to the low date to get the projected high date.
-    const projectedHighDate = baselineStatusLowDate + 30;
+    // Add the month offset to the low date to get the projected high date.
+    const projectedHighDate = new Date(baselineStatusLowDate);
+    projectedHighDate.setMonth(
+      projectedHighDate.getMonth() + NEWLY_TO_WIDELY_MONTH_OFFSET
+    );
     baselineStatusHighDateHtml = generateDateHtml(
       'Projected widely available',
-      projectedHighDate
+      formatDate(projectedHighDate),
+      'widely'
     );
   }
 
