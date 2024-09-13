@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io"
 	"log/slog"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
@@ -94,6 +95,11 @@ func (p ChromiumCodesearchEnumParser) Parse(
 			if bucketIDToSkip != nil && *bucketIDToSkip == value.Value {
 				continue
 			}
+			// Skip labels with DRAFT_ prefix
+			if strings.HasPrefix(value.Label, "DRAFT_") {
+				continue
+			}
+
 			enums = append(enums, metricdatatypes.HistogramEnumInfo{
 				BucketID: value.Value,
 				Label:    value.Label,

@@ -49,10 +49,10 @@ CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
 ) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);
 
 
--- Maps web features to ChromiumHistogramEnums.
-CREATE TABLE IF NOT EXISTS WebFeatureChromiumHistogramEnums (
+-- Maps web features to ChromiumHistogramEnumValues.
+CREATE TABLE IF NOT EXISTS WebFeatureChromiumHistogramEnumValues (
     WebFeatureID STRING(36) NOT NULL,
-    ChromiumHistogramEnumID STRING(36),
+    ChromiumHistogramEnumValueID STRING(36),
     FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID)  ON DELETE CASCADE,
-    FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums(ID)  ON DELETE CASCADE
+    FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID)  ON DELETE CASCADE
 ) PRIMARY KEY (WebFeatureID);

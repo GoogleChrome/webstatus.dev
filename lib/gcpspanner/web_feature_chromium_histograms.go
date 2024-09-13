@@ -21,34 +21,34 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-const webFeatureChromiumHistogramEnumsTable = "WebFeatureChromiumHistogramEnums"
+const webFeatureChromiumHistogramEnumValuesTable = "WebFeatureChromiumHistogramEnumValues"
 
-// WebFeatureChromiumHistogramEnum contains the mapping between ChromiumHistogramEnumValues and WebFeatures.
+// WebFeatureChromiumHistogramEnumValue contains the mapping between ChromiumHistogramEnumValues and WebFeatures.
 // Columns come from the ../../infra/storage/spanner/migrations/*.sql files.
-type WebFeatureChromiumHistogramEnum struct {
-	WebFeatureID            string `spanner:"WebFeatureID"`
-	ChromiumHistogramEnumID string `spanner:"ChromiumHistogramEnumID"`
+type WebFeatureChromiumHistogramEnumValue struct {
+	WebFeatureID                 string `spanner:"WebFeatureID"`
+	ChromiumHistogramEnumValueID string `spanner:"ChromiumHistogramEnumValueID"`
 }
 
 // SpannerWebFeatureChromiumHistogramEnum is a wrapper for the WebFeatureChromiumHistogramEnum that is actually
 // stored in spanner.
 type spannerWebFeatureChromiumHistogramEnum struct {
-	WebFeatureChromiumHistogramEnum
+	WebFeatureChromiumHistogramEnumValue
 }
 
 // Implements the Mapping interface for WebFeatureChromiumHistogramEnum and SpannerWebFeatureChromiumHistogramEnum.
 type webFeaturesChromiumHistogramEnumSpannerMapper struct{}
 
-func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetKey(in WebFeatureChromiumHistogramEnum) string {
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetKey(in WebFeatureChromiumHistogramEnumValue) string {
 	return in.WebFeatureID
 }
 
 func (m webFeaturesChromiumHistogramEnumSpannerMapper) Table() string {
-	return webFeatureChromiumHistogramEnumsTable
+	return webFeatureChromiumHistogramEnumValuesTable
 }
 
 func (m webFeaturesChromiumHistogramEnumSpannerMapper) Merge(
-	_ WebFeatureChromiumHistogramEnum,
+	_ WebFeatureChromiumHistogramEnumValue,
 	existing spannerWebFeatureChromiumHistogramEnum) spannerWebFeatureChromiumHistogramEnum {
 	return existing
 }
@@ -56,7 +56,7 @@ func (m webFeaturesChromiumHistogramEnumSpannerMapper) Merge(
 func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectOne(id string) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
-		WebFeatureID, ChromiumHistogramEnumID
+		WebFeatureID, ChromiumHistogramEnumValueID
 	FROM %s
 	WHERE WebFeatureID = @webFeatureID
 	LIMIT 1`, m.Table()))
@@ -68,6 +68,7 @@ func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectOne(id string) span
 	return stmt
 }
 
-func (c *Client) UpsertWebFeatureChromiumHistogramEnum(ctx context.Context, in WebFeatureChromiumHistogramEnum) error {
+func (c *Client) UpsertWebFeatureChromiumHistogramEnumValue(
+	ctx context.Context, in WebFeatureChromiumHistogramEnumValue) error {
 	return newEntityWriter[webFeaturesChromiumHistogramEnumSpannerMapper](c).upsert(ctx, in)
 }
