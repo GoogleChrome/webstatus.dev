@@ -40,6 +40,14 @@ CREATE TABLE IF NOT EXISTS ChromiumHistogramEnumValues (
 -- Used to enforce that only one combination of Enum and Bucket
 CREATE UNIQUE NULL_FILTERED INDEX UniqueEnumValuesByEnumAndBucket ON ChromiumHistogramEnumValues(ChromiumHistogramEnumID, BucketID);
 
+-- Maps web features to ChromiumHistogramEnumValues.
+CREATE TABLE IF NOT EXISTS WebFeatureChromiumHistogramEnumValues (
+    WebFeatureID STRING(36) NOT NULL,
+    ChromiumHistogramEnumValueID STRING(36),
+    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID)  ON DELETE CASCADE,
+    FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID)  ON DELETE CASCADE
+) PRIMARY KEY (WebFeatureID);
+
 -- DailyChromiumHistogramMetrics contains the daily metrics.
 CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
     ChromiumHistogramEnumValueID STRING(36) NOT NULL,
@@ -48,11 +56,9 @@ CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
     FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE
 ) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);
 
-
--- Maps web features to ChromiumHistogramEnumValues.
-CREATE TABLE IF NOT EXISTS WebFeatureChromiumHistogramEnumValues (
-    WebFeatureID STRING(36) NOT NULL,
-    ChromiumHistogramEnumValueID STRING(36),
-    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID)  ON DELETE CASCADE,
-    FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID)  ON DELETE CASCADE
-) PRIMARY KEY (WebFeatureID);
+-- DailyChromiumHistogramMetricCapstones records completed ingestions for a particular day.
+CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetricCapstones (
+    ChromiumHistogramEnumValueID STRING(36) NOT NULL,
+    Day TIMESTAMP NOT NULL,
+    FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE
+) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);

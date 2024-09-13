@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/uma_export/workflow"
 )
@@ -40,7 +41,6 @@ func main() {
 		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
 		os.Exit(1)
 	}
-	_ = spannerClient
 	numWorkers := 1
 	// Worker Pool Setup
 	pool := workerpool.Pool[workflow.JobArguments]{}
@@ -50,7 +50,10 @@ func main() {
 		slog.ErrorContext(ctx, "failed to create metrics fetcher", "error", err.Error())
 		os.Exit(1)
 	}
-	worker := workflow.NewUMAExportWorker(nil, fetcher, workflow.XSSIMetricsParser{})
+	worker := workflow.NewUMAExportWorker(
+		spanneradapters.NewUMAMetricConsumer(spannerClient),
+		fetcher,
+		workflow.XSSIMetricsParser{})
 
 	// Job Generation
 	jobChan := make(chan workflow.JobArguments)

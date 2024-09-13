@@ -39,8 +39,8 @@ func NewUMAMetricConsumer(client UMAMetricsClient) *UMAMetricConsumer {
 // UMAMetricsClient expects a subset of the functionality from lib/gcpspanner that only apply to
 // Chromium Histograms.
 type UMAMetricsClient interface {
-	GetCapstone(context.Context, time.Time, int) error
-	UpsertCapstone(context.Context, time.Time, int) error
+	GetCapstone(context.Context, time.Time) error
+	UpsertCapstone(context.Context, time.Time) error
 	UpsertDailyChromiumHistogramMetric(context.Context, metricdatatypes.HistogramName,
 		int64, gcpspanner.DailyChromiumHistogramMetric) error
 }
