@@ -18,6 +18,7 @@ import (
 	"context"
 	"io"
 	"log/slog"
+	"sync"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
@@ -25,6 +26,22 @@ import (
 type ChromiumHistogramEnumsWorker struct {
 	// Handles the processing of individual jobs
 	jobProcessor JobProcessor
+}
+
+func (w ChromiumHistogramEnumsWorker) Work(
+	ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan JobArguments, errChan chan<- error) {
+	slog.InfoContext(ctx, "starting worker", "worker id", id)
+	defer wg.Done()
+
+	// Processes jobs received on the 'jobs' channel
+	for job := range jobs {
+		err := w.jobProcessor.Process(ctx, job)
+		if err != nil {
+			errChan <- err
+		}
+	}
+	// Do not close the shared error channel here.
+	// It will prevent others from returning their errors.
 }
 
 // NewJobArguments constructor to create JobArguments, encapsulating essential workflow parameters.
@@ -96,15 +113,14 @@ func (p ChromiumHistogramEnumsJobProcessor) Process(ctx context.Context, job Job
 
 		return err
 	}
-	slog.Info("debug", "data", data)
 
 	// Step 3. Save histogram enums
-	// err = p.histogramStorer.SaveHistogramEnums(ctx, data)
-	// if err != nil {
-	// 	slog.ErrorContext(ctx, "unable to save enums", "error", err)
+	err = p.histogramStorer.SaveHistogramEnums(ctx, data)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to save enums", "error", err)
 
-	// 	return err
-	// }
+		return err
+	}
 
 	return nil
 }
