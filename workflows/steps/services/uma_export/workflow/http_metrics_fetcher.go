@@ -20,7 +20,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"time"
 )
@@ -82,15 +81,6 @@ func (f HTTPMetricsFetcher) Fetch(ctx context.Context, queryName UMAExportQuery)
 	if err != nil {
 		return nil, err
 	}
-
-	var dumpStr string
-	dump, err := httputil.DumpRequestOut(req, true)
-	if err != nil {
-		slog.Error("unable to dump request", "error", err)
-	}
-	dumpStr = string(dump)
-
-	slog.InfoContext(ctx, "debug", "respcode", resp.StatusCode, "bodynil?", resp.Body == nil, "request", dumpStr)
 
 	if resp.StatusCode != http.StatusOK {
 		// Clean up by closing since we will not be returning the body
