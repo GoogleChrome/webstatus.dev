@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
+import {consume} from '@lit/context';
 import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
+import {type components} from 'webstatus.dev-backend';
 import {ref, createRef} from 'lit/directives/ref.js';
-import {formatOverviewPageUrl, getSearchQuery} from '../utils/urls.js';
+import {
+  formatOverviewPageUrl,
+  getSearchQuery,
+  getColumnsSpec,
+  getSortSpec,
+  getWPTMetricView,
+} from '../utils/urls.js';
+
 import {openColumnsDialog} from './webstatus-columns-dialog.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
@@ -25,6 +34,29 @@ import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
 import {TaskStatus} from '@lit/task';
+
+import {
+  type APIClient,
+  type FeatureSortOrderType,
+  type FeatureSearchType,
+  FeatureWPTMetricViewType,
+  BROWSER_ID_TO_LABEL,
+  CHANNEL_ID_TO_LABEL,
+} from '../api/client.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
+
+import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
+import {
+  ColumnKey,
+  parseColumnsSpec,
+  BrowserChannelColumnKeys,
+} from './webstatus-overview-cells.js';
+
+import {CSVUtils} from '../utils/csv.js';
+import {Toast} from '../utils/toast.js';
+
+const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
+  'webstatus-feature-overview.csv';
 
 const VOCABULARY = [
   {
@@ -104,6 +136,9 @@ const VOCABULARY = [
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
   typeaheadRef = createRef();
+  @consume({context: apiClientContext})
+  @state()
+  apiClient?: APIClient;
 
   @state()
   location!: {search: string}; // Set by parent.
@@ -111,6 +146,12 @@ export class WebstatusOverviewFilters extends LitElement {
   // Whether the export button should be enabled based on export status.
   @state()
   exportDataStatus: TaskStatus = TaskStatus.INITIAL;
+
+  @state()
+  // A function that returns an array of all features via apiClient.getAllFeatures
+  allFeaturesFetcher:
+    | undefined
+    | (() => Promise<components['schemas']['Feature'][]>) = undefined;
 
   static get styles(): CSSResultGroup {
     return [
@@ -192,6 +233,136 @@ export class WebstatusOverviewFilters extends LitElement {
     window.location.href = newUrl;
   }
 
+  protected firstUpdated(): void {
+    if (this.apiClient !== undefined) {
+      // Perform any initializations once the apiClient is passed to us via context.
+      // TODO. allFeaturesFetcher should be moved to a separate task.
+      this.allFeaturesFetcher = () => {
+        return this.apiClient!.getAllFeatures(
+          getSearchQuery(this.location) as FeatureSearchType,
+          getSortSpec(this.location) as FeatureSortOrderType,
+          getWPTMetricView(this.location) as FeatureWPTMetricViewType
+        );
+      };
+    }
+  }
+
+  async exportToCSV(): Promise<void> {
+    if (!this.allFeaturesFetcher) {
+      return;
+    }
+
+    let allFeatures: components['schemas']['Feature'][];
+    try {
+      allFeatures = await this.allFeaturesFetcher();
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Download features error: ${error?.message}`);
+      }
+      throw new Error('Unknown error fetching features.');
+    }
+
+    // Use CELL_DEFS to define the columns and
+    // get the current (active) columns.
+    const columns: string[] = [];
+    const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
+
+    const pushBrowserChannelName = (
+      browserColumnKey: BrowserChannelColumnKeys
+    ) => {
+      const name = CELL_DEFS[browserColumnKey].nameInDialog;
+
+      const {browser, channel} = getBrowserAndChannel(browserColumnKey);
+      const browserLabel = BROWSER_ID_TO_LABEL[browser];
+      const channelLabel = CHANNEL_ID_TO_LABEL[channel];
+
+      if (channel === 'stable') {
+        columns.push(name);
+      }
+      columns.push(`${browserLabel} WPT ${channelLabel} Score`);
+    };
+
+    columnKeys.forEach(columnKey => {
+      const name = CELL_DEFS[columnKey].nameInDialog;
+      switch (columnKey) {
+        case ColumnKey.Name:
+          columns.push(name);
+          break;
+        case ColumnKey.BaselineStatus:
+          columns.push(name);
+          break;
+        case ColumnKey.StableChrome:
+        case ColumnKey.StableEdge:
+        case ColumnKey.StableFirefox:
+        case ColumnKey.StableSafari:
+        case ColumnKey.ExpChrome:
+        case ColumnKey.ExpEdge:
+        case ColumnKey.ExpFirefox:
+        case ColumnKey.ExpSafari:
+          pushBrowserChannelName(columnKey);
+          break;
+      }
+    });
+
+    // Convert array of feature rows into array of arrays of strings,
+    // in the same order as columns.
+    const rows = allFeatures.map(feature => {
+      const baselineStatus = feature.baseline?.status || '';
+      const browserImpl = feature.browser_implementations!;
+      const wptData = feature.wpt;
+      const row: string[] = [];
+
+      const pushBrowserChannelValue = (
+        browserColumnKey: BrowserChannelColumnKeys
+      ) => {
+        const {browser, channel} = getBrowserAndChannel(browserColumnKey);
+        const browserImplDate = browserImpl && browserImpl[browser]?.date;
+        const wptScore = wptData?.[channel]?.[browser]?.score;
+
+        if (channel === 'stable') {
+          row.push(browserImplDate || '');
+        }
+        row.push(String(wptScore) || '');
+      };
+
+      // Iterate over the current columns to get the values for each column.
+      for (const key of columnKeys) {
+        switch (key) {
+          case ColumnKey.Name:
+            row.push(feature.name);
+            break;
+          case ColumnKey.BaselineStatus:
+            row.push(baselineStatus);
+            break;
+          case ColumnKey.StableChrome:
+          case ColumnKey.StableEdge:
+          case ColumnKey.StableFirefox:
+          case ColumnKey.StableSafari:
+          case ColumnKey.ExpChrome:
+          case ColumnKey.ExpEdge:
+          case ColumnKey.ExpFirefox:
+          case ColumnKey.ExpSafari:
+            pushBrowserChannelValue(key);
+            break;
+        }
+      }
+      return row;
+    });
+
+    try {
+      await CSVUtils.downloadCSV(
+        columns,
+        rows,
+        WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME
+      );
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Save file error: ${error.message}`);
+      }
+      throw new Error('Unknown error downloading csv');
+    }
+  }
+
   renderColumnButton(): TemplateResult {
     return html`
       <sl-button
@@ -238,26 +409,22 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   renderExportButton(): TemplateResult {
-    const exportToCSV = () => {
+    const handleExportToCSV = () => {
       this.exportDataStatus = TaskStatus.PENDING;
-
-      // dispatch an event via CustomEvent
-      const event = new CustomEvent('exportToCSV', {
-        bubbles: true,
-        composed: true,
-        cancelable: true,
-        detail: {
-          callback: () => {
-            this.exportDataStatus = TaskStatus.COMPLETE;
-          },
-        },
-      });
-      this.dispatchEvent(event);
+      this.exportToCSV()
+        .then(() => {
+          this.exportDataStatus = TaskStatus.COMPLETE;
+        })
+        .catch(error => {
+          new Toast().toast(error?.message, 'danger', 'exclamation-triangle');
+          this.exportDataStatus = TaskStatus.ERROR;
+        });
     };
 
     return html`
       <sl-button
-        @click=${exportToCSV}
+        id="export-to-csv-button"
+        @click=${handleExportToCSV}
         ?loading=${this.exportDataStatus === TaskStatus.PENDING}
         ?disabled=${this.exportDataStatus === TaskStatus.PENDING}
       >

@@ -13,70 +13,73 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+export class CSVUtils {
+  /**
+   * Returns a string in CSV format given header strings and rows.
+   */
+  static convertToCSV(header: string[], rows: string[][]): string {
+    const encodeCell = (cell: string) => {
+      // Prepend all double quotes with another double quote, RFC 4810 Section 2.7
+      let escaped = cell.replace(/"/g, '""');
 
-/**
- * Returns a string in CSV format given header strings and rows.
- */
-export function convertToCSV(header: string[], rows: string[][]): string {
-  const encodeCell = (cell: string) => {
-    // Prepend all double quotes with another double quote, RFC 4810 Section 2.7
-    let escaped = cell.replace(/"/g, '""');
+      // Prevent CSV injection: owasp.org/index.php/CSV_Injection
+      if (
+        cell[0] === '=' ||
+        cell[0] === '+' ||
+        cell[0] === '-' ||
+        cell[0] === '@'
+      ) {
+        escaped = `'${escaped}`;
+      }
+      // Wrap cell with double quotes, RFC 4810 Section 2.7
+      return `"${escaped}"`;
+    };
+    const csvRows = rows.map((row: string[]) => {
+      row = row.map(encodeCell);
+      return row.join(',');
+    });
 
-    // Prevent CSV injection: owasp.org/index.php/CSV_Injection
-    if (
-      cell[0] === '=' ||
-      cell[0] === '+' ||
-      cell[0] === '-' ||
-      cell[0] === '@'
-    ) {
-      escaped = `'${escaped}`;
+    let csv = header.map(encodeCell).join(',');
+
+    if (csvRows.length > 0) {
+      csv += '\n' + csvRows.join('\n');
     }
-    // Wrap cell with double quotes, RFC 4810 Section 2.7
-    return `"${escaped}"`;
-  };
-  const csvRows = rows.map((row: string[]) => {
-    row = row.map(encodeCell);
-    return row.join(',');
-  });
-
-  let csv = header.map(encodeCell).join(',');
-
-  if (csvRows.length > 0) {
-    csv += '\n' + csvRows.join('\n');
+    return csv;
   }
-  return csv;
-}
 
-export function downloadCSV(
-  columns: string[],
-  rows: string[][],
-  filename: string
-): Promise<void> {
-  // Create the CSV string.
-  const csv = convertToCSV(columns, rows);
+  static downloadCSV(
+    columns: string[],
+    rows: string[][],
+    filename: string
+  ): Promise<void> {
+    const csv = this.convertToCSV(columns, rows);
 
-  // Create blob to download the csv.
-  const blob = new Blob([csv], {type: 'text/csv'});
-  const url = window.URL.createObjectURL(blob);
+    // Create blob which will be saved via a link.
+    const blob = new Blob([csv], {type: 'text/csv'});
+    const url = window.URL.createObjectURL(blob);
 
-  // Use fetch to download the csv.
-  const request = (path: string, filename?: string) =>
-    fetch(path)
-      .then(response => response.blob())
-      .then(blob => {
-        if (!filename) {
-          const blobType = blob.type.split('/').pop();
-          const type = blobType === 'plain' ? 'txt' : blobType;
-          filename = 'file-' + new Date().getTime() + '.' + type;
-        }
-        const link = document.createElement('a');
-        link.className = 'download';
-        link.download = filename;
-        link.href = URL.createObjectURL(blob);
-        document.body.appendChild(link);
-        link.click();
-        link.parentElement!.removeChild(link);
-      });
+    const saveRequest = (path: string, filename?: string) =>
+      // Use fetch to download the csv.
+      fetch(path)
+        .then(response => response.blob())
+        .then(blob => {
+          if (!filename) {
+            const blobType = blob.type.split('/').pop();
+            const type = blobType === 'plain' ? 'txt' : blobType;
+            filename = 'file-' + new Date().getTime() + '.' + type;
+          }
 
-  return request(url, filename);
+          const link = document.createElement('a');
+          link.className = 'download';
+          link.download = filename;
+          const href = URL.createObjectURL(blob);
+          console.info('href', href);
+          link.href = href;
+          document.body.appendChild(link);
+          link.click();
+          link.parentElement!.removeChild(link);
+        });
+
+    return saveRequest(url, filename);
+  }
 }

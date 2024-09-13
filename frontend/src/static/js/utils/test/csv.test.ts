@@ -15,20 +15,20 @@
  */
 
 import {assert} from '@open-wc/testing';
-import {convertToCSV} from '../csv.js';
+import {CSVUtils} from '../csv.js';
 
 describe('convertToCSV', () => {
   it('should return an empty string when there are no columns', () => {
     const columns: string[] = [];
     const rows: string[][] = [];
-    const csv = convertToCSV(columns, rows);
+    const csv = CSVUtils.convertToCSV(columns, rows);
     assert.equal(csv, '');
   });
 
   it('should return just the column header when there is no rows to convert to CSV', () => {
     const columns = ['Column1', 'Column2'];
     const rows: string[][] = [];
-    const csv = convertToCSV(columns, rows);
+    const csv = CSVUtils.convertToCSV(columns, rows);
     assert.equal(csv, '"Column1","Column2"');
   });
 
@@ -36,7 +36,7 @@ describe('convertToCSV', () => {
     const columns = ['Column1', 'Column2'];
     const rows: string[][] = [['Value1', 'Value2']];
     const expectedCSV = '"Column1","Column2"\n"Value1","Value2"';
-    const csv = convertToCSV(columns, rows);
+    const csv = CSVUtils.convertToCSV(columns, rows);
     assert.equal(csv, expectedCSV);
   });
 
@@ -48,7 +48,7 @@ describe('convertToCSV', () => {
     ];
     const expectedCSV =
       '"Column1","Column2","Column3"\n"Value1","Value2","Value3"\n"Value4","Value5","Value6"';
-    const csv = convertToCSV(columns, rows);
+    const csv = CSVUtils.convertToCSV(columns, rows);
     assert.equal(csv, expectedCSV);
   });
 
@@ -60,7 +60,7 @@ describe('convertToCSV', () => {
     ];
     const expectedCSV =
       '"Column1","Column2","Column3"\n"Value1","Value2",""\n"Value4","","Value6"';
-    const csv = convertToCSV(columns, rows);
+    const csv = CSVUtils.convertToCSV(columns, rows);
     assert.equal(csv, expectedCSV);
   });
 
@@ -78,7 +78,7 @@ describe('convertToCSV', () => {
     const expectedCSV =
       '"Column1","""Column2"""\n"""",""""""\n"Value""3""","""Value4"""\n"\'=Value=5""","\'+Value+6"\n"\'-Value-7","\'@Value@8"';
 
-    const csv = convertToCSV(columns, rows);
+    const csv = CSVUtils.convertToCSV(columns, rows);
     assert.equal(csv, expectedCSV);
     if (csv !== expectedCSV) {
       console.error('Expected CSV:', expectedCSV);
