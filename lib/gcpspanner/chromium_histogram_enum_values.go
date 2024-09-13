@@ -95,3 +95,12 @@ type spannerChromiumHistogramEnumValueKey struct {
 func (c *Client) UpsertChromiumHistogramEnumValue(ctx context.Context, in ChromiumHistogramEnumValue) (*string, error) {
 	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumValuesMapper, string](c).upsertAndGetID(ctx, in)
 }
+
+func (c *Client) GetIDFromChromiumHistogramEnumValueKey(
+	ctx context.Context, chromiumHistogramEnumID string, bucketID int64) (*string, error) {
+	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumValuesMapper, string](c).
+		getIDByKey(ctx, spannerChromiumHistogramEnumValueKey{
+			ChromiumHistogramEnumID: chromiumHistogramEnumID,
+			BucketID:                bucketID,
+		})
+}
