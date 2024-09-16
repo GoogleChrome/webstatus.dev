@@ -82,3 +82,7 @@ variable "cache_duration" {
 variable "cors_allowed_origin" {
   type = string
 }
+
+variable "deletion_protection" {
+  type = bool
+}

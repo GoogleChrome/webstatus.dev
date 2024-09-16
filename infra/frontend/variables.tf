@@ -63,3 +63,7 @@ variable "projects" {
     public   = string
   })
 }
+
+variable "deletion_protection" {
+  type = bool
+}

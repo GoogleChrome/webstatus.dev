@@ -75,3 +75,8 @@ variable "wpt_region_schedules" {
 variable "web_features_region_schedules" {
   type = map(string)
 }
+
+
+variable "deletion_protection" {
+  type = bool
+}

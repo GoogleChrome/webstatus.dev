@@ -20,6 +20,7 @@ module "web_features_repo_workflow" {
   }
 
   regions                                      = var.regions
+  deletion_protection                          = var.deletion_protection
   env_id                                       = var.env_id
   repo_downloader_step_region_to_step_info_map = module.repo_downloader_step.region_to_step_info_map
   datastore_info                               = var.datastore_info
@@ -37,6 +38,7 @@ module "wpt_workflow" {
   }
 
   regions                   = var.regions
+  deletion_protection       = var.deletion_protection
   env_id                    = var.env_id
   datastore_info            = var.datastore_info
   spanner_datails           = var.spanner_datails
@@ -52,6 +54,7 @@ module "bcd_workflow" {
   }
 
   regions                   = var.regions
+  deletion_protection       = var.deletion_protection
   env_id                    = var.env_id
   spanner_datails           = var.spanner_datails
   docker_repository_details = var.docker_repository_details

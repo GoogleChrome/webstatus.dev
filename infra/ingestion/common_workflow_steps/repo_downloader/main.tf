@@ -96,4 +96,6 @@ resource "google_cloud_run_v2_service" "service" {
     google_storage_bucket_iam_member.iam_member,
     google_secret_manager_secret_iam_member.iam_member,
   ]
+
+  deletion_protection = var.deletion_protection
 }

@@ -42,7 +42,7 @@ module "storage" {
   }
 
   env_id              = var.env_id
-  deletion_protection = false
+  deletion_protection = var.deletion_protection
   # `gcloud spanner instance-configs list --project=<PROJECT>` returns the available configs
   spanner_region_id         = local.spanner_repository_region
   datastore_region_id       = var.datastore_region_id
@@ -63,6 +63,7 @@ module "ingestion" {
 
   env_id                        = var.env_id
   docker_repository_details     = module.storage.docker_repository_details
+  deletion_protection           = var.deletion_protection
   regions                       = keys(var.region_information)
   buckets                       = module.storage.buckets
   secret_ids                    = var.secret_ids
@@ -83,6 +84,7 @@ module "backend" {
   }
 
   region_to_subnet_info_map            = module.network.region_to_subnet_info_map
+  deletion_protection                  = var.deletion_protection
   env_id                               = var.env_id
   spanner_datails                      = module.storage.spanner_info
   docker_repository_details            = module.storage.docker_repository_details
@@ -104,6 +106,7 @@ module "frontend" {
   }
 
   env_id                               = var.env_id
+  deletion_protection                  = var.deletion_protection
   docker_repository_details            = module.storage.docker_repository_details
   backend_api_host                     = var.backend_api_url
   google_analytics_id                  = var.google_analytics_id
