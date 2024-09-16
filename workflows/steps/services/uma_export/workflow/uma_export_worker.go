@@ -61,10 +61,14 @@ func (w UMAExportWorker) Work(
 }
 
 // NewJobArguments constructor to create JobArguments, encapsulating essential workflow parameters.
-func NewJobArguments(queryName UMAExportQuery, day time.Time) JobArguments {
+func NewJobArguments(
+	queryName UMAExportQuery,
+	day time.Time,
+	histogramName metricdatatypes.HistogramName) JobArguments {
 	return JobArguments{
-		queryName: queryName,
-		day:       day,
+		queryName:     queryName,
+		day:           day,
+		histogramName: histogramName,
 	}
 }
 
@@ -82,14 +86,15 @@ const (
 )
 
 type JobArguments struct {
-	queryName UMAExportQuery
-	day       time.Time
+	queryName     UMAExportQuery
+	day           time.Time
+	histogramName metricdatatypes.HistogramName
 }
 
 // MetricStorer represents the behavior to the storage layer.
 type MetricStorer interface {
-	HasCapstone(context.Context, time.Time) (bool, error)
-	SaveCapstone(context.Context, time.Time) error
+	HasCapstone(context.Context, time.Time, metricdatatypes.HistogramName) (bool, error)
+	SaveCapstone(context.Context, time.Time, metricdatatypes.HistogramName) error
 	SaveMetrics(context.Context, time.Time, metricdatatypes.BucketDataMetrics) error
 }
 
@@ -109,7 +114,7 @@ type UMAExportJobProcessor struct {
 
 func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) error {
 	// Step 1. Check if already processed.
-	found, err := p.metricStorer.HasCapstone(ctx, job.day)
+	found, err := p.metricStorer.HasCapstone(ctx, job.day, job.histogramName)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to parse metrics file", "error", err)
 

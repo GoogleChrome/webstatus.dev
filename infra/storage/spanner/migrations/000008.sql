@@ -56,9 +56,9 @@ CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
     FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE
 ) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);
 
--- DailyChromiumHistogramMetricCapstones records completed ingestions for a particular day.
-CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetricCapstones (
-    ChromiumHistogramEnumValueID STRING(36) NOT NULL,
+-- DailyChromiumHistogramEnumCapstones records completed enum ingestions for a particular day.
+CREATE TABLE IF NOT EXISTS DailyChromiumHistogramEnumCapstones (
+    ChromiumHistogramEnumID STRING(36) NOT NULL,
     Day TIMESTAMP NOT NULL,
-    FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE
-) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);
+    FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums(ID) ON DELETE CASCADE
+) PRIMARY KEY (ChromiumHistogramEnumID, Day);

@@ -184,10 +184,16 @@ type entityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interf
 	Table() string
 }
 
+// readableEntityMapper extends EntityMapper with the ability to merge an
+// external entity representation into its corresponding Spanner representation.
+type readableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
+	entityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+}
+
 // writeableEntityMapper extends EntityMapper with the ability to merge an
 // external entity representation into its corresponding Spanner representation.
 type writeableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	entityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
 	Merge(ExternalStruct, SpannerStruct) SpannerStruct
 }
 
@@ -231,6 +237,37 @@ func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalK
 	return id, nil
 }
 
+// readRowByKey retrieves the row of an entity based on its external key.
+func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByKey(
+	ctx context.Context,
+	key ExternalKey,
+) (*SpannerStruct, error) {
+	var mapper M
+	stmt := mapper.SelectOne(key)
+	// Attempt to query for the row.
+	txn := c.Single()
+	defer txn.Close()
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	row, err := it.Next()
+	if err != nil {
+		// No row found
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		// Catch-all for other errors.
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+	existing := new(SpannerStruct)
+	err = row.ToStruct(existing)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return existing, nil
+}
+
 // getIDByKey retrieves the ID of an entity based on its external key.
 // It uses the `GetID` method from the `WriteableEntityMapperWithIDRetrieval`
 // interface to generate a Spanner query to fetch the ID.
@@ -262,6 +299,15 @@ func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalK
 	}
 
 	return &id, nil
+}
+
+// entityReader is a basic client for reading any row from the database.
+type entityReader[
+	M readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any] struct {
+	*Client
 }
 
 // entityWriter is a basic client for writing any row to the database.
@@ -370,4 +416,12 @@ func newEntityWriter[
 	SpannerStruct any,
 	ExternalKey any](c *Client) *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey] {
 	return &entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+}
+
+func newEntityReader[
+	M readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	SpannerStruct any,
+	ExternalStruct any,
+	ExternalKey any](c *Client) *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey] {
+	return &entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
 }

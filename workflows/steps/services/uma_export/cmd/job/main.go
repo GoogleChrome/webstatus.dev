@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/uma_export/workflow"
 )
@@ -58,7 +59,11 @@ func main() {
 	// Job Generation
 	jobChan := make(chan workflow.JobArguments)
 	go func() {
-		args := workflow.NewJobArguments(workflow.WebDXFeaturesQuery, time.Now().Add(-24*5*time.Hour))
+		args := workflow.NewJobArguments(
+			workflow.WebDXFeaturesQuery,
+			time.Now().Add(-24*5*time.Hour),
+			metricdatatypes.WebDXFeatureEnum,
+		)
 		slog.InfoContext(ctx, "sending args to worker pool", "args", args)
 		jobChan <- args
 		// Close the job channel now that we are done.

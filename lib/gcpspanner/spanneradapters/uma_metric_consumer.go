@@ -39,23 +39,35 @@ func NewUMAMetricConsumer(client UMAMetricsClient) *UMAMetricConsumer {
 // UMAMetricsClient expects a subset of the functionality from lib/gcpspanner that only apply to
 // Chromium Histograms.
 type UMAMetricsClient interface {
-	GetCapstone(context.Context, time.Time) error
-	UpsertCapstone(context.Context, time.Time) error
+	HasDailyChromiumHistogramCapstone(context.Context, gcpspanner.DailyChromiumHistogramEnumCapstone) (*bool, error)
+	UpsertDailyChromiumHistogramCapstone(context.Context, gcpspanner.DailyChromiumHistogramEnumCapstone) error
 	UpsertDailyChromiumHistogramMetric(context.Context, metricdatatypes.HistogramName,
 		int64, gcpspanner.DailyChromiumHistogramMetric) error
 }
 
-func (c *UMAMetricConsumer) HasCapstone(ctx context.Context, day time.Time, capstoneID int) (bool, error) {
-	err := c.client.GetCapstone(ctx, day, capstoneID)
+func (c *UMAMetricConsumer) HasCapstone(
+	ctx context.Context,
+	day time.Time,
+	histogramName metricdatatypes.HistogramName) (bool, error) {
+	found, err := c.client.HasDailyChromiumHistogramCapstone(ctx, gcpspanner.DailyChromiumHistogramEnumCapstone{
+		HistogramName: histogramName,
+		Day:           day,
+	})
 	if err != nil {
 		return false, errors.Join(umaconsumertypes.ErrCapstoneLookupFailed, err)
 	}
 
-	return true, nil
+	return *found, nil
 }
 
-func (c *UMAMetricConsumer) SaveCapstone(ctx context.Context, day time.Time, capstoneID int) error {
-	err := c.client.UpsertCapstone(ctx, day, capstoneID)
+func (c *UMAMetricConsumer) SaveCapstone(
+	ctx context.Context,
+	day time.Time,
+	histogramName metricdatatypes.HistogramName) error {
+	err := c.client.UpsertDailyChromiumHistogramCapstone(ctx, gcpspanner.DailyChromiumHistogramEnumCapstone{
+		HistogramName: histogramName,
+		Day:           day,
+	})
 	if err != nil {
 		return errors.Join(umaconsumertypes.ErrCapstoneSaveFailed, err)
 	}
