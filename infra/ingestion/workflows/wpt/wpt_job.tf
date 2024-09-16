@@ -99,6 +99,8 @@ resource "google_cloud_run_v2_job" "wpt" {
       service_account = google_service_account.wpt_consumer_service_account.email
     }
   }
+
+  deletion_protection = var.deletion_protection
 }
 
 resource "google_cloud_run_v2_job_iam_member" "wpt_step_invoker" {

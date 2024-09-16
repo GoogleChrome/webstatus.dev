@@ -18,19 +18,6 @@ resource "google_artifact_registry_repository" "docker" {
   repository_id = "${var.env_id}-docker-repository"
   description   = "${var.env_id} webcompass docker repository"
   format        = "DOCKER"
-
-  depends_on = [null_resource.docker_auth_setup]
-}
-
-resource "null_resource" "docker_auth_setup" {
-  triggers = {
-    docker_region = var.docker_repository_region
-    # Debug to always force the auth.
-    always_run = "${timestamp()}"
-  }
-  provisioner "local-exec" {
-    command = "gcloud auth configure-docker -q ${self.triggers.docker_region}-docker.pkg.dev"
-  }
 }
 
 data "google_project" "public" {

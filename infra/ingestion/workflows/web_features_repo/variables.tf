@@ -64,3 +64,7 @@ variable "docker_repository_details" {
 variable "region_schedules" {
   type = map(string)
 }
+
+variable "deletion_protection" {
+  type = bool
+}

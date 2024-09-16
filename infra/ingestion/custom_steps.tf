@@ -20,6 +20,7 @@ module "repo_downloader_step" {
   }
 
   env_id                    = var.env_id
+  deletion_protection       = var.deletion_protection
   regions                   = var.regions
   docker_repository_details = var.docker_repository_details
   repo_bucket               = var.buckets.repo_download_bucket

@@ -150,6 +150,8 @@ resource "google_cloud_run_v2_service" "service" {
   depends_on = [
     google_project_iam_member.gcp_datastore_user,
   ]
+
+  deletion_protection = var.deletion_protection
 }
 
 resource "google_service_account" "backend" {
@@ -205,6 +207,9 @@ resource "google_compute_backend_service" "lb_backend" {
     content {
       group = backend.value.id
     }
+  }
+  iap {
+    enabled = false
   }
 }
 

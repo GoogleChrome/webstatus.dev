@@ -103,6 +103,8 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
   depends_on = [
     google_storage_bucket_iam_member.web_feature_consumer,
   ]
+
+  deletion_protection = var.deletion_protection
 }
 
 resource "google_cloud_run_v2_service_iam_member" "web_feature_step_invoker" {

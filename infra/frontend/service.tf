@@ -94,6 +94,8 @@ resource "google_cloud_run_v2_service" "service" {
     percent = 100
     type    = "TRAFFIC_TARGET_ALLOCATION_TYPE_LATEST"
   }
+
+  deletion_protection = var.deletion_protection
 }
 
 resource "google_cloud_run_service_iam_member" "public" {
@@ -129,6 +131,9 @@ resource "google_compute_backend_service" "lb_backend" {
     content {
       group = backend.value.id
     }
+  }
+  iap {
+    enabled = false
   }
 }
 

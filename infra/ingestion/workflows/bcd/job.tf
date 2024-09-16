@@ -78,6 +78,8 @@ resource "google_cloud_run_v2_job" "bcd" {
       service_account = google_service_account.bcd_consumer_service_account.email
     }
   }
+
+  deletion_protection = var.deletion_protection
 }
 
 resource "google_cloud_run_v2_job_iam_member" "bcd_step_invoker" {
