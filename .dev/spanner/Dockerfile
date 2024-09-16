@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM google/cloud-sdk:491.0.0-emulators
+FROM google/cloud-sdk:492.0.0-emulators
 
 ENV SPANNER_PROJECT_ID=local
 ENV SPANNER_INSTANCE_ID=local
