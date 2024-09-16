@@ -208,6 +208,9 @@ resource "google_compute_backend_service" "lb_backend" {
       group = backend.value.id
     }
   }
+  iap {
+    enabled = false
+  }
 }
 
 resource "google_compute_url_map" "url_map" {
