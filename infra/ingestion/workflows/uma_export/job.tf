@@ -78,6 +78,8 @@ resource "google_cloud_run_v2_job" "uma_export" {
       service_account = google_service_account.uma_export_service_account.email
     }
   }
+
+  deletion_protection = var.deletion_protection
 }
 
 resource "google_cloud_run_v2_job_iam_member" "uma_export_step_invoker" {

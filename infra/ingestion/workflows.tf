@@ -69,6 +69,7 @@ module "uma_export_workflow" {
   }
 
   regions                   = var.regions
+  deletion_protection       = var.deletion_protection
   env_id                    = var.env_id
   spanner_datails           = var.spanner_datails
   docker_repository_details = var.docker_repository_details
