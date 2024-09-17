@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
@@ -29,7 +30,11 @@ func TestUpsertDailyChromiumHistogramCapstone(t *testing.T) {
 
 	in := DailyChromiumHistogramEnumCapstone{
 		HistogramName: metricdatatypes.WebDXFeatureEnum,
-		Day:           time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
+		Day: civil.Date{
+			Year:  2000,
+			Month: time.January,
+			Day:   3,
+		},
 	}
 	// Test absence
 	found, err := spannerClient.HasDailyChromiumHistogramCapstone(ctx, in)

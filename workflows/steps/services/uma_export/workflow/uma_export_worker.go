@@ -19,8 +19,8 @@ import (
 	"io"
 	"log/slog"
 	"sync"
-	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
@@ -63,7 +63,7 @@ func (w UMAExportWorker) Work(
 // NewJobArguments constructor to create JobArguments, encapsulating essential workflow parameters.
 func NewJobArguments(
 	queryName UMAExportQuery,
-	day time.Time,
+	day civil.Date,
 	histogramName metricdatatypes.HistogramName) JobArguments {
 	return JobArguments{
 		queryName:     queryName,
@@ -87,15 +87,15 @@ const (
 
 type JobArguments struct {
 	queryName     UMAExportQuery
-	day           time.Time
+	day           civil.Date
 	histogramName metricdatatypes.HistogramName
 }
 
 // MetricStorer represents the behavior to the storage layer.
 type MetricStorer interface {
-	HasCapstone(context.Context, time.Time, metricdatatypes.HistogramName) (bool, error)
-	SaveCapstone(context.Context, time.Time, metricdatatypes.HistogramName) error
-	SaveMetrics(context.Context, time.Time, metricdatatypes.BucketDataMetrics) error
+	HasCapstone(context.Context, civil.Date, metricdatatypes.HistogramName) (bool, error)
+	SaveCapstone(context.Context, civil.Date, metricdatatypes.HistogramName) error
+	SaveMetrics(context.Context, civil.Date, metricdatatypes.BucketDataMetrics) error
 }
 
 type MetricFetecher interface {
@@ -135,8 +135,6 @@ func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) er
 		return err
 	}
 
-	slog.InfoContext(ctx, "debug after fetch", "rawdata nil?", rawData == nil)
-
 	// Step 3. Parse the data.
 	data, err := p.metricsParser.Parse(ctx, rawData)
 	if err != nil {
@@ -145,15 +143,21 @@ func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) er
 		return err
 	}
 
-	slog.InfoContext(ctx, "debug", "data", data)
-
 	// Step 4. Save the data.
-	// err = p.metricStorer.SaveMetrics(ctx, data)
-	// if err != nil {
-	// 	slog.ErrorContext(ctx, "unable to save the metrics", "error", err)
+	err = p.metricStorer.SaveMetrics(ctx, job.day, data)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to save the metrics", "error", err)
 
-	// 	return err
-	// }
+		return err
+	}
+
+	// Step 5. Save the capstone.
+	err = p.metricStorer.SaveCapstone(ctx, job.day, job.histogramName)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to save the capstone", "error", err)
+
+		return err
+	}
 
 	return nil
 }

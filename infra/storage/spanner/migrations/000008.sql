@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS WebFeatureChromiumHistogramEnumValues (
 -- DailyChromiumHistogramMetrics contains the daily metrics.
 CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
     ChromiumHistogramEnumValueID STRING(36) NOT NULL,
-    Day TIMESTAMP NOT NULL,
+    Day DATE NOT NULL,
     Rate NUMERIC NOT NULL,
     FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE
 ) PRIMARY KEY (ChromiumHistogramEnumValueID, Day);
@@ -59,6 +59,6 @@ CREATE TABLE IF NOT EXISTS DailyChromiumHistogramMetrics (
 -- DailyChromiumHistogramEnumCapstones records completed enum ingestions for a particular day.
 CREATE TABLE IF NOT EXISTS DailyChromiumHistogramEnumCapstones (
     ChromiumHistogramEnumID STRING(36) NOT NULL,
-    Day TIMESTAMP NOT NULL,
+    Day DATE NOT NULL,
     FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums(ID) ON DELETE CASCADE
 ) PRIMARY KEY (ChromiumHistogramEnumID, Day);

@@ -46,7 +46,7 @@ require (
 )
 
 require (
-	cloud.google.com/go v0.115.0 // indirect
+	cloud.google.com/go v0.115.0
 	cloud.google.com/go/cloudtasks v1.12.13 // indirect
 	cloud.google.com/go/compute/metadata v0.5.0 // indirect
 	cloud.google.com/go/iam v1.1.13 // indirect

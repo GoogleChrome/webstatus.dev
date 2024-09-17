@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 	"google.golang.org/api/iterator"
@@ -41,7 +42,11 @@ func getSampleDailyChromiumHistogramMetricsToInsert() []dailyChromiumHistogramMe
 			histogramName: metricdatatypes.WebDXFeatureEnum,
 			bucketID:      1,
 			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   1,
+				},
 				Rate: *big.NewRat(7, 100),
 			},
 		},
@@ -49,7 +54,11 @@ func getSampleDailyChromiumHistogramMetricsToInsert() []dailyChromiumHistogramMe
 			histogramName: metricdatatypes.WebDXFeatureEnum,
 			bucketID:      1,
 			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   2,
+				},
 				Rate: *big.NewRat(8, 100),
 			},
 		},
@@ -58,7 +67,11 @@ func getSampleDailyChromiumHistogramMetricsToInsert() []dailyChromiumHistogramMe
 			histogramName: metricdatatypes.WebDXFeatureEnum,
 			bucketID:      2,
 			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   1,
+				},
 				Rate: *big.NewRat(91, 100),
 			},
 		},
@@ -66,9 +79,9 @@ func getSampleDailyChromiumHistogramMetricsToInsert() []dailyChromiumHistogramMe
 }
 
 type testSpannerDailyChromiumHistogramMetric struct {
-	ChromiumHistogramEnumValueID string    `spanner:"ChromiumHistogramEnumValueID"`
-	Day                          time.Time `spanner:"Day"`
-	Rate                         big.Rat   `spanner:"Rate"`
+	ChromiumHistogramEnumValueID string     `spanner:"ChromiumHistogramEnumValueID"`
+	Day                          civil.Date `spanner:"Day"`
+	Rate                         big.Rat    `spanner:"Rate"`
 }
 
 func getSampleDailyChromiumHistogramMetricsToCheckBeforeUpdate(
@@ -77,20 +90,32 @@ func getSampleDailyChromiumHistogramMetricsToCheckBeforeUpdate(
 		// AnotherLabel
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
-			Day:                          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			Rate:                         *big.NewRat(7, 100),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   1,
+			},
+			Rate: *big.NewRat(7, 100),
 		},
 		// CompressionStreams
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
-			Day:                          time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
-			Rate:                         *big.NewRat(8, 100),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   2,
+			},
+			Rate: *big.NewRat(8, 100),
 		},
 		// ViewTransitions
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["ViewTransitions"],
-			Day:                          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			Rate:                         *big.NewRat(91, 100),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   1,
+			},
+			Rate: *big.NewRat(91, 100),
 		},
 	}
 }
@@ -101,20 +126,32 @@ func getSampleDailyChromiumHistogramMetricsToCheckAfterUpdate(
 		// AnotherLabel
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
-			Day:                          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			Rate:                         *big.NewRat(7, 100),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   1,
+			},
+			Rate: *big.NewRat(7, 100),
 		},
 		// CompressionStreams
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
-			Day:                          time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
-			Rate:                         *big.NewRat(8, 100),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   2,
+			},
+			Rate: *big.NewRat(8, 100),
 		},
 		// ViewTransitions
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["ViewTransitions"],
-			Day:                          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-			Rate:                         *big.NewRat(93, 100),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   1,
+			},
+			Rate: *big.NewRat(93, 100),
 		},
 	}
 }
@@ -179,7 +216,11 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	// Update the rate of one of the items.
 	err = spannerClient.UpsertDailyChromiumHistogramMetric(ctx,
 		metricdatatypes.WebDXFeatureEnum, 2, DailyChromiumHistogramMetric{
-			Day: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   1,
+			},
 			// Change it to 93
 			Rate: *big.NewRat(93, 100),
 		})

@@ -18,8 +18,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
+	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
@@ -36,7 +36,7 @@ func (m dailyChromiumHistogramEnumCapstonesSpannerMapper) Table() string {
 
 type dailyChromiumHistogramEnumCapstoneKey struct {
 	ChromiumHistogramEnumID string
-	Day                     time.Time
+	Day                     civil.Date
 }
 
 func (m dailyChromiumHistogramEnumCapstonesSpannerMapper) GetKey(
@@ -72,13 +72,13 @@ func (m dailyChromiumHistogramEnumCapstonesSpannerMapper) SelectOne(
 }
 
 type DailyChromiumHistogramEnumCapstone struct {
-	Day           time.Time
+	Day           civil.Date
 	HistogramName metricdatatypes.HistogramName
 }
 
 type spannerDailyChromiumHistogramEnumCapstone struct {
-	Day                     time.Time `spanner:"Day"`
-	ChromiumHistogramEnumID string    `spanner:"ChromiumHistogramEnumID"`
+	Day                     civil.Date `spanner:"Day"`
+	ChromiumHistogramEnumID string     `spanner:"ChromiumHistogramEnumID"`
 }
 
 func (c *Client) HasDailyChromiumHistogramCapstone(

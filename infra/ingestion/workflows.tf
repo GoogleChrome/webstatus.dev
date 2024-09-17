@@ -75,3 +75,18 @@ module "uma_export_workflow" {
   docker_repository_details = var.docker_repository_details
   region_schedules          = var.bcd_region_schedules
 }
+
+module "chromium_histogram_enums_workflow" {
+  source = "./workflows/chromium_histogram_enums"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+
+  regions                   = var.regions
+  deletion_protection       = var.deletion_protection
+  env_id                    = var.env_id
+  spanner_datails           = var.spanner_datails
+  docker_repository_details = var.docker_repository_details
+  region_schedules          = var.bcd_region_schedules
+}

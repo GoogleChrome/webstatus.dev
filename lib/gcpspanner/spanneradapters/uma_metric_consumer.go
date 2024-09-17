@@ -18,8 +18,8 @@ import (
 	"context"
 	"errors"
 	"math/big"
-	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/umaconsumertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
@@ -47,7 +47,7 @@ type UMAMetricsClient interface {
 
 func (c *UMAMetricConsumer) HasCapstone(
 	ctx context.Context,
-	day time.Time,
+	day civil.Date,
 	histogramName metricdatatypes.HistogramName) (bool, error) {
 	found, err := c.client.HasDailyChromiumHistogramCapstone(ctx, gcpspanner.DailyChromiumHistogramEnumCapstone{
 		HistogramName: histogramName,
@@ -62,7 +62,7 @@ func (c *UMAMetricConsumer) HasCapstone(
 
 func (c *UMAMetricConsumer) SaveCapstone(
 	ctx context.Context,
-	day time.Time,
+	day civil.Date,
 	histogramName metricdatatypes.HistogramName) error {
 	err := c.client.UpsertDailyChromiumHistogramCapstone(ctx, gcpspanner.DailyChromiumHistogramEnumCapstone{
 		HistogramName: histogramName,
@@ -77,7 +77,7 @@ func (c *UMAMetricConsumer) SaveCapstone(
 
 func (c *UMAMetricConsumer) SaveMetrics(
 	ctx context.Context,
-	day time.Time,
+	day civil.Date,
 	data metricdatatypes.BucketDataMetrics) error {
 	for id, bucketData := range data {
 		rate := new(big.Rat).SetFloat64(bucketData.Rate)
