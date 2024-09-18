@@ -57,8 +57,8 @@ func TestChromiumCodesearchEnumParser_Parse(t *testing.T) {
 			filteredEnums: []metricdatatypes.HistogramName{metricdatatypes.WebDXFeatureEnum},
 			expectedOutput: metricdatatypes.HistogramMapping{
 				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
-					{BucketID: 1, Label: "CompressionStreams"},
-					{BucketID: 2, Label: "ViewTransitions"},
+					{Value: 1, Label: "CompressionStreams"},
+					{Value: 2, Label: "ViewTransitions"},
 				},
 			},
 			expectedError: nil,

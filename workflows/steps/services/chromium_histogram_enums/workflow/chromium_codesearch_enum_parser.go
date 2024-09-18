@@ -101,8 +101,8 @@ func (p ChromiumCodesearchEnumParser) Parse(
 			}
 
 			enums = append(enums, metricdatatypes.HistogramEnumValue{
-				BucketID: value.Value,
-				Label:    value.Label,
+				Value: value.Value,
+				Label: value.Label,
 			})
 		}
 		m[metricdatatypes.HistogramName(histogram.Name)] = enums
