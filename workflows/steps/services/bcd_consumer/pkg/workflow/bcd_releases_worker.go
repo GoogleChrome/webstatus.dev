@@ -17,40 +17,11 @@ package workflow
 import (
 	"context"
 	"io"
-	"log/slog"
 	"net/http"
-	"sync"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/bcdconsumertypes"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/bcd_consumer/pkg/data"
 )
-
-func NewBCDReleasesWorker(
-	dataGetter DataGetter,
-	dataParser DataParser,
-	dataFilter DataFilter,
-	dataStorer DataStorer,
-	repoOwner string,
-	repoName string,
-	releaseAssetFilename string,
-) *BCDReleasesWorker {
-	return &BCDReleasesWorker{
-		jobProcessor: BCDJobProcessor{
-			dataGetter:           dataGetter,
-			dataParser:           dataParser,
-			dataFilter:           dataFilter,
-			dataStorer:           dataStorer,
-			repoOwner:            repoOwner,
-			repoName:             repoName,
-			releaseAssetFilename: releaseAssetFilename,
-		},
-	}
-}
-
-type BCDReleasesWorker struct {
-	// Handles the processing of individual jobs
-	jobProcessor JobProcessor
-}
 
 func NewJobArguments(browsers []string) JobArguments {
 	return JobArguments{
@@ -67,22 +38,6 @@ type JobProcessor interface {
 	Process(
 		ctx context.Context,
 		job JobArguments) error
-}
-
-func (w BCDReleasesWorker) Work(
-	ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan JobArguments, errChan chan<- error) {
-	slog.InfoContext(ctx, "starting worker", "worker id", id)
-	defer wg.Done()
-
-	// Processes jobs received on the 'jobs' channel
-	for job := range jobs {
-		err := w.jobProcessor.Process(ctx, job)
-		if err != nil {
-			errChan <- err
-		}
-	}
-	// Do not close the shared error channel here.
-	// It will prevent others from returning their errors.
 }
 
 type DataGetter interface {
@@ -106,6 +61,24 @@ type DataFilter interface {
 // DataStorer describes the behavior to store the release information.
 type DataStorer interface {
 	InsertBrowserReleases(ctx context.Context, releases []bcdconsumertypes.BrowserRelease) error
+}
+
+func NewBCDJobProcessor(dataGetter DataGetter,
+	dataParser DataParser,
+	dataFilter DataFilter,
+	dataStorer DataStorer,
+	repoOwner string,
+	repoName string,
+	releaseAssetFilename string) BCDJobProcessor {
+	return BCDJobProcessor{
+		dataGetter:           dataGetter,
+		dataParser:           dataParser,
+		dataFilter:           dataFilter,
+		dataStorer:           dataStorer,
+		repoOwner:            repoOwner,
+		repoName:             repoName,
+		releaseAssetFilename: releaseAssetFilename,
+	}
 }
 
 type BCDJobProcessor struct {

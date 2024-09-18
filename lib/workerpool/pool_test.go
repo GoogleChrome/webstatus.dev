@@ -16,136 +16,104 @@ package workerpool
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log/slog"
-	"reflect"
-	"slices"
-	"sync"
 	"testing"
 )
 
-type mockStartConfig struct {
-	workersToFail map[int]bool
+type mockJobProcessor[TJob any] struct {
+	processFunc func(ctx context.Context, job TJob) error
 }
 
-type MockWorker struct {
-	startedWorkers []int
-	calls          int
-	mockStartCfg   mockStartConfig
-	jobs           []string
-	mu             *sync.Mutex
-}
-
-func (m *MockWorker) addCallAndID(id int) {
-	m.mu.Lock()
-	m.calls++
-	m.startedWorkers = append(m.startedWorkers, id)
-	defer m.mu.Unlock()
-}
-
-func (m *MockWorker) addJob(job string) {
-	m.mu.Lock()
-	m.jobs = append(m.jobs, job)
-	defer m.mu.Unlock()
-}
-
-func (m *MockWorker) Work(
-	_ context.Context,
-	id int,
-	wg *sync.WaitGroup,
-	jobsChan <-chan string,
-	errChan chan<- error) {
-	defer wg.Done()
-	m.addCallAndID(id)
-	slog.Info("start running", "id", id)
-	if m.mockStartCfg.workersToFail[id] { // Check if we should fail this worker
-		errChan <- fmt.Errorf("Mock WorkerStarter error from worker %d", id)
-	} else {
-		for job := range jobsChan {
-			m.addJob(job)
-		}
+func (m *mockJobProcessor[TJob]) Process(ctx context.Context, job TJob) error {
+	if m.processFunc != nil {
+		return m.processFunc(ctx, job)
 	}
 
+	return nil
 }
 
 type startPoolTest struct {
-	name               string
-	numWorkers         int
-	mockStartCfg       mockStartConfig
-	expectedErrors     []error
-	expectedStartedIDs []int // Worker IDs we expect to be started
+	name        string
+	numWorkers  int
+	jobs        []int
+	processFunc func(ctx context.Context, job int) error
+	want        []error
 }
 
 func TestWorkflowStart(t *testing.T) {
 	testCases := []startPoolTest{
 		{
-			name:       "Successful Start",
-			numWorkers: 2,
-			mockStartCfg: mockStartConfig{
-				workersToFail: nil,
+			name:       "no workers",
+			numWorkers: 0,
+			jobs:       []int{1, 2, 3},
+			processFunc: func(_ context.Context, _ int) error {
+				return nil
 			},
-			expectedStartedIDs: []int{0, 1},
-			expectedErrors:     nil,
+			want: nil, // Expect no errors since no workers are started
 		},
 		{
-			name:       "Some Worker Errors",
-			numWorkers: 4,
-			mockStartCfg: mockStartConfig{
-				workersToFail: map[int]bool{
-					2: true,
-				},
+			name:       "success",
+			numWorkers: 2,
+			jobs:       []int{1, 2, 3},
+			processFunc: func(_ context.Context, _ int) error {
+				return nil
 			},
-			expectedErrors: []error{ // Expect errors reported
-				fmt.Errorf("Mock WorkerStarter error from worker 2"),
+			want: nil,
+		},
+		{
+			name:       "single error",
+			numWorkers: 2,
+			jobs:       []int{1, 2, 3},
+			processFunc: func(_ context.Context, job int) error {
+				if job == 2 {
+					return errors.New("error processing job 2")
+				}
+
+				return nil
 			},
-			expectedStartedIDs: []int{0, 1, 2, 3},
+			want: []error{errors.New("error processing job 2")},
+		},
+		{
+			name:       "multiple errors",
+			numWorkers: 3,
+			jobs:       []int{1, 2, 3, 4, 5},
+			processFunc: func(_ context.Context, job int) error {
+				if job == 2 || job == 4 {
+					return fmt.Errorf("error processing job %d", job)
+				}
+
+				return nil
+			},
+			want: []error{
+				errors.New("error processing job 2"),
+				errors.New("error processing job 4"),
+			},
 		},
 	}
-	for _, tt := range testCases {
-		t.Run(tt.name, func(t *testing.T) {
-			worker := MockWorker{
-				mu:             &sync.Mutex{},
-				startedWorkers: []int{},
-				calls:          0,
-				jobs:           []string{},
-				mockStartCfg:   tt.mockStartCfg,
-			}
-			jobs := []string{"a", "b", "c", "d", "e", "f"}
-			pool := Pool[string]{}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := Pool[int]{}
+			processor := &mockJobProcessor[int]{processFunc: tc.processFunc}
+			got := p.Start(context.Background(), tc.numWorkers, processor, tc.jobs)
 
-			jobChan := make(chan string)
-			go func() {
-				for _, job := range jobs {
-					jobChan <- job
+			// Compare errors (order doesn't matter)
+			if len(got) != len(tc.want) {
+				t.Errorf("Start() returned %d errors, want %d errors", len(got), len(tc.want))
+			} else {
+				for _, wantErr := range tc.want {
+					found := false
+					for _, gotErr := range got {
+						if wantErr.Error() == gotErr.Error() {
+							found = true
+
+							break
+						}
+					}
+					if !found {
+						t.Errorf("Start() returned unexpected error: %v", wantErr)
+					}
 				}
-				close(jobChan)
-			}()
-			errs := pool.Start(
-				context.Background(),
-				jobChan,
-				tt.numWorkers,
-				&worker,
-			)
-
-			// Error Assertions
-			if len(tt.expectedErrors) == 0 && errs != nil {
-				t.Errorf("Unexpected error: %v", errs)
-			} else if !reflect.DeepEqual(tt.expectedErrors, errs) {
-				t.Errorf("Expected errors: %v, Got: %v", tt.expectedErrors, errs)
-			}
-
-			// Assertions on MockWorker (calls, started IDs, etc.)
-			if worker.calls != tt.numWorkers {
-				t.Errorf("Expected %d calls to WorkerStarter.Start, got %d", tt.numWorkers, worker.calls)
-			}
-			slices.Sort(worker.startedWorkers)
-			if !reflect.DeepEqual(worker.startedWorkers, tt.expectedStartedIDs) {
-				t.Errorf("Expected started worker IDs: %v, got: %v", tt.expectedStartedIDs, worker.startedWorkers)
-			}
-
-			slices.Sort(worker.jobs)
-			if !reflect.DeepEqual(worker.jobs, jobs) {
-				t.Errorf("Expected jobs: %v, got: %v", jobs, worker.jobs)
 			}
 		})
 	}

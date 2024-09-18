@@ -17,33 +17,16 @@ package workflow
 import (
 	"context"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
-// NewWptRunsWorker constructs a WptRunsWorker, initializing it with a WPTJobProcessor and
-// the provided dependencies for getting and processing runs.
-func NewWptRunsWorker(runsGetter RunsGetter, runsProcessor RunsProcessor) *WptRunsWorker {
-	return &WptRunsWorker{
-		jobProcessor: WPTJobProcessor{
-			runsGetter:    runsGetter,
-			runsProcessor: runsProcessor,
-		},
+func NewWPTJobProcessor(runsGetter RunsGetter, runsProcessor RunsProcessor) WPTJobProcessor {
+	return WPTJobProcessor{
+		runsGetter:    runsGetter,
+		runsProcessor: runsProcessor,
 	}
-}
-
-type WptRunsWorker struct {
-	// Handles the processing of individual jobs
-	jobProcessor JobProcessor
-}
-
-// JobProcessor defines the contract for processing a single job within the WPT workflow.
-type JobProcessor interface {
-	Process(
-		ctx context.Context,
-		job JobArguments) error
 }
 
 type WPTJobProcessor struct {
@@ -82,22 +65,6 @@ type RunsGetter interface {
 		browserName string,
 		channelName string,
 	) (shared.TestRuns, error)
-}
-
-func (w WptRunsWorker) Work(
-	ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan JobArguments, errChan chan<- error) {
-	slog.InfoContext(ctx, "starting worker", "worker id", id)
-	defer wg.Done()
-
-	// Processes jobs received on the 'jobs' channel
-	for job := range jobs {
-		err := w.jobProcessor.Process(ctx, job)
-		if err != nil {
-			errChan <- err
-		}
-	}
-	// Do not close the shared error channel here.
-	// It will prevent others from returning their errors.
 }
 
 func (w WPTJobProcessor) Process(

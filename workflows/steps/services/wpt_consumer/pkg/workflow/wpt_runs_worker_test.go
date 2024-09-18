@@ -17,160 +17,11 @@ package workflow
 import (
 	"context"
 	"errors"
-	"reflect"
-	"slices"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
-
-type MockJobProcessor struct {
-	processJobs            []JobArguments
-	mockProcessWorkflowCfg mockProcessWorkflowConfig
-}
-
-type mockProcessWorkflowConfig struct {
-	shouldFail bool
-}
-
-func (m *MockJobProcessor) Process(_ context.Context, job JobArguments) error {
-	if m.mockProcessWorkflowCfg.shouldFail {
-		return errMockWriterFail
-	}
-	m.processJobs = append(m.processJobs, job)
-
-	return nil
-}
-
-var errMockWriterFail = errors.New("mock writer test erro")
-
-type startWorkerTest struct {
-	name                   string
-	jobs                   []JobArguments
-	expectedErrs           []error // Errors expected on the error channel
-	mockProcessWorkflowCfg mockProcessWorkflowConfig
-	expectJobs             []JobArguments // To check if jobs were passed correctly
-}
-
-// nolint: gocognit // TODO. Refactor test to make it clearer
-func TestWork(t *testing.T) {
-	testCases := []startWorkerTest{
-		{
-			name: "Successful Jobs",
-			jobs: []JobArguments{
-				NewJobArguments(
-					time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-					"Chrome",
-					"stable",
-					25,
-				),
-				NewJobArguments(
-					time.Date(2024, time.February, 1, 0, 0, 0, 0, time.UTC),
-					"Firefox",
-					"experimental",
-					25,
-				),
-			},
-			mockProcessWorkflowCfg: mockProcessWorkflowConfig{
-				shouldFail: false,
-			},
-			expectJobs: []JobArguments{
-				{
-					from:     time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-					browser:  "Chrome",
-					channel:  "stable",
-					pageSize: 25,
-				},
-				{
-					from:     time.Date(2024, time.February, 1, 0, 0, 0, 0, time.UTC),
-					browser:  "Firefox",
-					channel:  "experimental",
-					pageSize: 25,
-				},
-			},
-			expectedErrs: nil,
-		},
-		{
-			name: "Worker Failure",
-			jobs: []JobArguments{
-				NewJobArguments(time.Now(), "Chrome", "stable", 25),
-			},
-			mockProcessWorkflowCfg: mockProcessWorkflowConfig{
-				shouldFail: true,
-			},
-			expectedErrs: []error{errMockWriterFail},
-			expectJobs:   []JobArguments{},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			testJobs := make(chan JobArguments)
-			testErrChan := make(chan error)
-			testWg := &sync.WaitGroup{}
-
-			ctx, cancelFunc := context.WithCancel(context.Background()) // For potential cancellation tests
-			defer cancelFunc()                                          // Ensure cleanup
-
-			testWg.Add(1)
-
-			jobProcessor := &MockJobProcessor{
-				processJobs:            []JobArguments{},
-				mockProcessWorkflowCfg: tc.mockProcessWorkflowCfg,
-			}
-			w := WptRunsWorker{
-				jobProcessor: jobProcessor,
-			}
-
-			go w.Work(ctx, 1, testWg, testJobs, testErrChan)
-
-			// Send jobs
-			for _, job := range tc.jobs {
-				testJobs <- job
-			}
-			close(testJobs)
-
-			done := make(chan struct{}) // Signal completion
-			go func() {
-				testWg.Wait()
-				done <- struct{}{}
-				close(done)
-			}()
-
-			// Assertions
-			receivedErrors := []error{} // Collect errors
-			isDone := false
-			for {
-				select {
-				case err := <-testErrChan:
-					if err != nil {
-						receivedErrors = append(receivedErrors, err)
-					}
-				case <-ctx.Done():
-					if ctx.Err() == context.DeadlineExceeded {
-						t.Error("Timeout waiting for errors")
-					} else {
-						t.Errorf("Unexpected error: %v", ctx.Err())
-					}
-				case <-done:
-					isDone = true
-				default:
-				}
-				if isDone {
-					break
-				}
-			}
-
-			if !reflect.DeepEqual(jobProcessor.processJobs, tc.expectJobs) {
-				t.Errorf("Expected jobs: %v, received: %v", tc.expectJobs, jobProcessor.processJobs)
-			}
-			if !slices.Equal(receivedErrors, tc.expectedErrs) {
-				t.Errorf("unexpected errors. expected %v, received %v", tc.expectedErrs, receivedErrors)
-			}
-		})
-	}
-}
 
 var (
 	errGetRuns     = errors.New("mock RunsGetter error")
@@ -227,12 +78,12 @@ func TestProcess(t *testing.T) {
 	testCases := []processWorkflowTest{
 		{
 			name: "Successful Workflow",
-			job: JobArguments{
-				from:     time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				browser:  "Chrome",
-				channel:  "stable",
-				pageSize: 25,
-			},
+			job: NewJobArguments(
+				time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				"Chrome",
+				"stable",
+				25,
+			),
 			mockGetRunsCfg: mockGetRunsConfig{
 				// nolint: exhaustruct // WONTFIX: external struct
 				runs: []shared.TestRun{
@@ -249,12 +100,12 @@ func TestProcess(t *testing.T) {
 		},
 		{
 			name: "Failed to get runs",
-			job: JobArguments{
-				from:     time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				browser:  "Chrome",
-				channel:  "stable",
-				pageSize: 25,
-			},
+			job: NewJobArguments(
+				time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				"Chrome",
+				"stable",
+				25,
+			),
 			mockGetRunsCfg: mockGetRunsConfig{
 				// nolint: exhaustruct // WONTFIX: external struct
 				runs: []shared.TestRun{
@@ -271,12 +122,12 @@ func TestProcess(t *testing.T) {
 		},
 		{
 			name: "Failed to process runs",
-			job: JobArguments{
-				from:     time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
-				browser:  "Chrome",
-				channel:  "stable",
-				pageSize: 25,
-			},
+			job: NewJobArguments(
+				time.Date(2024, time.January, 1, 0, 0, 0, 0, time.UTC),
+				"Chrome",
+				"stable",
+				25,
+			),
 			mockGetRunsCfg: mockGetRunsConfig{
 				// nolint: exhaustruct // WONTFIX: external struct
 				runs: []shared.TestRun{
@@ -300,9 +151,9 @@ func TestProcess(t *testing.T) {
 			runsProcessor := MockRunsProcessor{
 				mockProcessRunsCfg: tc.mockProcessRunsCfg,
 			}
-			worker := NewWptRunsWorker(&runsGetter, &runsProcessor)
+			processor := NewWPTJobProcessor(&runsGetter, &runsProcessor)
 
-			err := worker.jobProcessor.Process(context.Background(), tc.job)
+			err := processor.Process(context.Background(), tc.job)
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("Expected error: %v, Got: %v", tc.expectedErr, err)
 			}

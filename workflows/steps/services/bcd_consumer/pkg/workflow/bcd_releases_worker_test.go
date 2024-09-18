@@ -22,7 +22,6 @@ import (
 	"reflect"
 	"slices"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -51,112 +50,6 @@ func (m *MockJobProcessor) Process(_ context.Context, job JobArguments) error {
 	m.processJobs = append(m.processJobs, job)
 
 	return nil
-}
-
-type workerTest struct {
-	name                   string
-	jobs                   []JobArguments
-	expectedErrs           []error // Errors expected on the error channel
-	mockProcessWorkflowCfg mockProcessWorkflowConfig
-	expectJobs             []JobArguments // To check if jobs were passed correctly
-}
-
-// nolint: gocognit // TODO. Refactor test to make it clearer
-func TestWork(t *testing.T) {
-	testCases := []workerTest{
-		{
-			name: "Successful Jobs",
-			jobs: []JobArguments{
-				NewJobArguments([]string{"fooBrowser", "barBrowser"}),
-			},
-			mockProcessWorkflowCfg: mockProcessWorkflowConfig{
-				shouldFail: false,
-			},
-			expectJobs: []JobArguments{
-				{
-					browsers: []string{"fooBrowser", "barBrowser"},
-				},
-			},
-			expectedErrs: nil,
-		},
-		{
-			name: "Worker Failure",
-			jobs: []JobArguments{
-				NewJobArguments([]string{"fooBrowser", "barBrowser"}),
-			},
-			mockProcessWorkflowCfg: mockProcessWorkflowConfig{
-				shouldFail: true,
-			},
-			expectJobs:   []JobArguments{},
-			expectedErrs: []error{errTestProcess},
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			testJobs := make(chan JobArguments)
-			testErrChan := make(chan error)
-			testWg := &sync.WaitGroup{}
-
-			ctx, cancelFunc := context.WithCancel(context.Background()) // For potential cancellation tests
-			defer cancelFunc()                                          // Ensure cleanup
-
-			testWg.Add(1)
-
-			jobProcessor := &MockJobProcessor{
-				processJobs:            []JobArguments{},
-				mockProcessWorkflowCfg: tc.mockProcessWorkflowCfg,
-			}
-			w := BCDReleasesWorker{
-				jobProcessor: jobProcessor,
-			}
-
-			go w.Work(ctx, 1, testWg, testJobs, testErrChan)
-
-			// Send jobs
-			for _, job := range tc.jobs {
-				testJobs <- job
-			}
-			close(testJobs)
-
-			done := make(chan struct{}) // Signal completion
-			go func() {
-				testWg.Wait()
-				done <- struct{}{}
-				close(done)
-			}()
-
-			// Assertions
-			receivedErrors := []error{} // Collect errors
-			isDone := false
-			for {
-				select {
-				case err := <-testErrChan:
-					if err != nil {
-						receivedErrors = append(receivedErrors, err)
-					}
-				case <-ctx.Done():
-					if ctx.Err() == context.DeadlineExceeded {
-						t.Error("Timeout waiting for errors")
-					} else {
-						t.Errorf("Unexpected error: %v", ctx.Err())
-					}
-				case <-done:
-					isDone = true
-				default:
-				}
-				if isDone {
-					break
-				}
-			}
-
-			if !reflect.DeepEqual(jobProcessor.processJobs, tc.expectJobs) {
-				t.Errorf("Expected jobs: %v, received: %v", tc.expectJobs, jobProcessor.processJobs)
-			}
-			if !slices.Equal(receivedErrors, tc.expectedErrs) {
-				t.Errorf("unexpected errors. expected %v, received %v", tc.expectedErrs, receivedErrors)
-			}
-		})
-	}
 }
 
 type mockDownloadFileFromReleaseConfig struct {
@@ -315,9 +208,9 @@ func TestProcess(t *testing.T) {
 	testCases := []processWorkflowTest{
 		{
 			name: "successful process",
-			job: JobArguments{
-				browsers: []string{"fooBrowser", "barBrowser"},
-			},
+			job: NewJobArguments(
+				[]string{"fooBrowser", "barBrowser"},
+			),
 			mockDownloadFileFromReleaseCfg: &mockDownloadFileFromReleaseConfig{
 				repoOwner:   repoOwner,
 				repoName:    repoName,
@@ -344,9 +237,9 @@ func TestProcess(t *testing.T) {
 		},
 		{
 			name: "failed to get data",
-			job: JobArguments{
-				browsers: []string{"fooBrowser", "barBrowser"},
-			},
+			job: NewJobArguments(
+				[]string{"fooBrowser", "barBrowser"},
+			),
 			mockDownloadFileFromReleaseCfg: &mockDownloadFileFromReleaseConfig{
 				repoOwner:   repoOwner,
 				repoName:    repoName,
@@ -361,9 +254,9 @@ func TestProcess(t *testing.T) {
 		},
 		{
 			name: "failed to parse data",
-			job: JobArguments{
-				browsers: []string{"fooBrowser", "barBrowser"},
-			},
+			job: NewJobArguments(
+				[]string{"fooBrowser", "barBrowser"},
+			),
 			mockDownloadFileFromReleaseCfg: &mockDownloadFileFromReleaseConfig{
 				repoOwner:   repoOwner,
 				repoName:    repoName,
@@ -382,9 +275,9 @@ func TestProcess(t *testing.T) {
 		},
 		{
 			name: "failed to filter data",
-			job: JobArguments{
-				browsers: []string{"fooBrowser", "barBrowser"},
-			},
+			job: NewJobArguments(
+				[]string{"fooBrowser", "barBrowser"},
+			),
 			mockDownloadFileFromReleaseCfg: &mockDownloadFileFromReleaseConfig{
 				repoOwner:   repoOwner,
 				repoName:    repoName,
@@ -408,9 +301,9 @@ func TestProcess(t *testing.T) {
 		},
 		{
 			name: "failed to store data",
-			job: JobArguments{
-				browsers: []string{"fooBrowser", "barBrowser"},
-			},
+			job: NewJobArguments(
+				[]string{"fooBrowser", "barBrowser"},
+			),
 			mockDownloadFileFromReleaseCfg: &mockDownloadFileFromReleaseConfig{
 				repoOwner:   repoOwner,
 				repoName:    repoName,
@@ -439,7 +332,7 @@ func TestProcess(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 
-			worker := NewBCDReleasesWorker(
+			processor := NewBCDJobProcessor(
 				&MockDataGetter{
 					t:                              t,
 					mockDownloadFileFromReleaseCfg: tc.mockDownloadFileFromReleaseCfg,
@@ -461,7 +354,7 @@ func TestProcess(t *testing.T) {
 				filePattern,
 			)
 
-			err := worker.jobProcessor.Process(context.Background(), tc.job)
+			err := processor.Process(context.Background(), tc.job)
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("Expected error: %v, Got: %v", tc.expectedErr, err)
 			}

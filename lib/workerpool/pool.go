@@ -23,20 +23,54 @@ import (
 // Generic pool type, can work with any job type.
 type Pool[TJob any] struct{}
 
-// A worker has a Work method handling a single job from the jobs channel and reporting any errors.
-type Worker[TJob any] interface {
-	Work(ctx context.Context, id int, wg *sync.WaitGroup, jobs <-chan TJob, errChan chan<- error)
+// JobProcessor defines the contract for processing a single job within a workflow.
+type JobProcessor[TJob any] interface {
+	Process(
+		ctx context.Context,
+		job TJob) error
 }
 
-func (p Pool[TJob]) Start(ctx context.Context, jobsChan <-chan TJob, numWorkers int, worker Worker[TJob]) []error {
+func (p Pool[TJob]) StartWorker(
+	ctx context.Context,
+	processor JobProcessor[TJob],
+	id int,
+	wg *sync.WaitGroup,
+	jobs <-chan TJob,
+	errChan chan<- error) {
+	slog.InfoContext(ctx, "starting worker", "worker id", id)
+	defer wg.Done()
+
+	// Processes jobs received on the 'jobs' channel
+	for job := range jobs {
+		err := processor.Process(ctx, job)
+		if err != nil {
+			errChan <- err
+		}
+	}
+	// Do not close the shared error channel here.
+	// It will prevent others from returning their errors.
+}
+
+func (p Pool[TJob]) Start(ctx context.Context, numWorkers int, processor JobProcessor[TJob], jobs []TJob) []error {
 	wg := sync.WaitGroup{}
 	errChan := make(chan error)
+	jobsChan := make(chan TJob)
 
 	// Start the workers
 	wg.Add(numWorkers)
 	for i := 0; i < numWorkers; i++ {
-		go worker.Work(ctx, i, &wg, jobsChan, errChan)
+		go p.StartWorker(ctx, processor, i, &wg, jobsChan, errChan)
 	}
+	// Send the job
+	go func() {
+		for _, job := range jobs {
+			slog.InfoContext(ctx, "sending job to workers in pool", "job", job)
+			jobsChan <- job
+		}
+		// Close the job channel now that we are done.
+		close(jobsChan)
+	}()
+
 	doneChan := make(chan struct{})
 	// Wait for workers and handle errors
 	go func() {
