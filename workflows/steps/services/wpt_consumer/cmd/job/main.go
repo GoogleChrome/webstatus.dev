@@ -88,7 +88,7 @@ func main() {
 	// Worker Pool Setup
 	pool := workerpool.Pool[workflow.JobArguments]{}
 
-	worker := workflow.NewWptRunsWorker(
+	processor := workflow.NewWPTJobProcessor(
 		wptfyi.NewHTTPClient(wptFyiHostname),
 		workflow.NewWPTRunsProcessor(
 			workflow.NewWPTRunProcessor(
@@ -103,29 +103,23 @@ func main() {
 	)
 
 	// Job Generation
-	jobChan := make(chan workflow.JobArguments)
-	go func() {
-		startAt := time.Now().UTC().Add(-duration)
-		browsers := shared.GetDefaultBrowserNames()
-		channels := []string{shared.StableLabel, shared.ExperimentalLabel}
-		for _, browser := range browsers {
-			for _, channel := range channels {
-				args := workflow.NewJobArguments(
-					startAt,
-					browser,
-					channel,
-					wptPageLimit,
-				)
-				slog.Info("sending args to worker pool", "args", args)
-				jobChan <- args
-			}
+	jobs := []workflow.JobArguments{}
+	startAt := time.Now().UTC().Add(-duration)
+	browsers := shared.GetDefaultBrowserNames()
+	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
+	for _, browser := range browsers {
+		for _, channel := range channels {
+			jobs = append(jobs, workflow.NewJobArguments(
+				startAt,
+				browser,
+				channel,
+				wptPageLimit,
+			))
 		}
-		// Close the job channel now that we are done.
-		close(jobChan)
-	}()
+	}
 
 	// Job Execution and Error Handling
-	errs := pool.Start(ctx, jobChan, numWorkers, worker)
+	errs := pool.Start(ctx, numWorkers, processor, jobs)
 	if len(errs) > 0 {
 		slog.Error("workflow returned errors", "error", errs)
 		os.Exit(1)

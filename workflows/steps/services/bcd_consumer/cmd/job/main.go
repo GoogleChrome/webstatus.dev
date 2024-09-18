@@ -65,7 +65,7 @@ func main() {
 
 	// Will be empty if not set and that is okay.
 	token := os.Getenv("GITHUB_TOKEN")
-	worker := workflow.NewBCDReleasesWorker(
+	processor := workflow.NewBCDJobProcessor(
 		gh.NewClient(token),
 		data.Parser{},
 		workflow.BCDDataFilter{},
@@ -76,24 +76,18 @@ func main() {
 	)
 
 	// Job Generation
-	jobChan := make(chan workflow.JobArguments)
-	go func() {
-		args := workflow.NewJobArguments(
+	jobs := []workflow.JobArguments{
+		workflow.NewJobArguments(
 			[]string{
 				string(bcdconsumertypes.Chrome),
 				string(bcdconsumertypes.Edge),
 				string(bcdconsumertypes.Firefox),
 				string(bcdconsumertypes.Safari),
 			},
-		)
-		slog.InfoContext(ctx, "sending args to worker pool", "args", args)
-		jobChan <- args
-		// Close the job channel now that we are done.
-		close(jobChan)
-	}()
-
+		),
+	}
 	// Job Execution and Error Handling
-	errs := pool.Start(ctx, jobChan, numWorkers, worker)
+	errs := pool.Start(ctx, numWorkers, processor, jobs)
 	if len(errs) > 0 {
 		slog.ErrorContext(ctx, "workflow returned errors", "error", errs)
 		os.Exit(1)
