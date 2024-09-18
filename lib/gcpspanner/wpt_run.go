@@ -16,12 +16,10 @@ package gcpspanner
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
 )
 
 const wptRunsTable = "WPTRuns"
@@ -106,39 +104,15 @@ func (c *Client) InsertWPTRun(ctx context.Context, run WPTRun) error {
 // GetWPTRunDataByRunIDForMetrics is a helper function to help get a subsection of the WPT Run information. This
 // information will be used to create the WPT Run metrics.
 func (c *Client) GetWPTRunDataByRunIDForMetrics(ctx context.Context, runID int64) (*WPTRunDataForMetrics, error) {
-	query := `
-	SELECT
-		ID, BrowserName, Channel, TimeStart
-	FROM WPTRuns
-		WHERE ExternalRunID = @id
-	LIMIT 1
-	`
-	stmt := spanner.NewStatement(query)
-
-	stmt.Params = map[string]interface{}{
-		"id": runID,
-	}
-
-	// Attempt to query for the row.
-	txn := c.Single()
-	defer txn.Close()
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-	row, err := it.Next()
+	row, err := newEntityReader[wptRunSpannerMapper, spannerWPTRun](c).readRowByKey(ctx, runID)
 	if err != nil {
-		// No row found
-		if errors.Is(err, iterator.Done) {
-			return nil, errors.Join(ErrQueryReturnedNoResults, err)
-		}
-
-		// Catch-all for other errors.
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-	var data WPTRunDataForMetrics
-	err = row.ToStruct(&data)
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, err
 	}
 
-	return &data, nil
+	return &WPTRunDataForMetrics{
+		ID:          row.ID,
+		BrowserName: row.BrowserName,
+		Channel:     row.Channel,
+		TimeStart:   row.TimeStart,
+	}, nil
 }
