@@ -389,6 +389,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/saved-searches:
+    get:
+      summary: List saved searches
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedSearchPage'
+  /v1/saved-searches/{search_id}:
+    parameters:
+      - name: search_id
+        in: path
+        description: Saved Search ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get saved search
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedSearchResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
     browserPathParam:
@@ -646,6 +679,61 @@ components:
       properties:
         id:
           type: string
+    GenericUpdatableUniqueModel:
+      type: object
+      properties:
+        id:
+          type: string
+        updated_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - created_at
+    SavedSearch:
+      type: object
+      properties:
+        name:
+          type: string
+        query:
+          type: string
+      required:
+        - name
+        - query
+    SavedSearchResponse:
+      allOf:
+        - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
+        - $ref: '#/components/schemas/SavedSearch'
+        - type: object
+          properties:
+            subscription_status:
+              type: string
+              description: |
+                The subscription status for a saved search for a user.
+                This field is only populated when the request is authenticated.
+              enum:
+                - none
+                - active
+            owner_status:
+              type: string
+              description: |
+                The owner status for a saved search for a user.
+                This field is only populated when the request is authenticated.
+              enum:
+                - none
+                - admin
+    SavedSearchPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedSearchResponse'
     Feature:
       type: object
       properties:
