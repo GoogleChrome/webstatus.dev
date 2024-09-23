@@ -89,7 +89,7 @@ func (c *UMAMetricConsumer) SaveMetrics(
 				Rate: *rate,
 			})
 		if err != nil {
-			return errors.Join(ErrMetricsSaveFailed)
+			return errors.Join(ErrMetricsSaveFailed, err)
 		}
 	}
 

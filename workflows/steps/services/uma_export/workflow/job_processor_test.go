@@ -51,6 +51,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 		hasCapstone     bool
 		hasCapstoneErr  error
 		fetchErr        error
+		parseRet        metricdatatypes.BucketDataMetrics
 		parseErr        error
 		saveMetricsErr  error
 		saveCapstoneErr error
@@ -62,6 +63,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			hasCapstone: true,
 			want:        nil,
 			// Values that don't matter
+			parseRet:        nil,
 			parseErr:        nil,
 			saveMetricsErr:  nil,
 			saveCapstoneErr: nil,
@@ -74,6 +76,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			hasCapstoneErr: errHasCapstone,
 			want:           errHasCapstone,
 			// Values that don't matter
+			parseRet:        nil,
 			parseErr:        nil,
 			saveMetricsErr:  nil,
 			saveCapstoneErr: nil,
@@ -86,6 +89,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			fetchErr: errFetchMetrics,
 			want:     errFetchMetrics,
 			// Values that don't matter
+			parseRet:        nil,
 			parseErr:        nil,
 			saveMetricsErr:  nil,
 			saveCapstoneErr: nil,
@@ -98,6 +102,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			parseErr: errParseMetrics,
 			want:     errParseMetrics,
 			// Values that don't matter
+			parseRet:        nil,
 			saveMetricsErr:  nil,
 			saveCapstoneErr: nil,
 			fetchErr:        nil,
@@ -109,6 +114,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			job:            NewJobArguments(sampleQuery, sampleDate, sampleHistogram),
 			saveMetricsErr: errSaveMetrics,
 			want:           errSaveMetrics,
+			parseRet:       sampleMetrics,
 			// Values that don't matter
 			parseErr:        nil,
 			saveCapstoneErr: nil,
@@ -121,6 +127,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			job:             NewJobArguments(sampleQuery, sampleDate, sampleHistogram),
 			saveCapstoneErr: errSaveCapstone,
 			want:            errSaveCapstone,
+			parseRet:        sampleMetrics,
 			// Values that don't matter
 			parseErr:       nil,
 			saveMetricsErr: nil,
@@ -129,9 +136,23 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			hasCapstoneErr: nil,
 		},
 		{
-			name: "success",
-			job:  NewJobArguments(sampleQuery, sampleDate, sampleHistogram),
-			want: nil, // No error on successful processing
+			name:     "success",
+			job:      NewJobArguments(sampleQuery, sampleDate, sampleHistogram),
+			parseRet: sampleMetrics,
+			want:     nil, // No error on successful processing
+			// Values that don't matter
+			parseErr:        nil,
+			saveMetricsErr:  nil,
+			saveCapstoneErr: nil,
+			fetchErr:        nil,
+			hasCapstone:     false,
+			hasCapstoneErr:  nil,
+		},
+		{
+			name:     "success no data",
+			job:      NewJobArguments(sampleQuery, sampleDate, sampleHistogram),
+			parseRet: nil,
+			want:     nil, // No error on successful processing
 			// Values that don't matter
 			parseErr:        nil,
 			saveMetricsErr:  nil,
@@ -173,7 +194,7 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 						return nil, tt.parseErr
 					}
 
-					return sampleMetrics, nil
+					return tt.parseRet, nil
 				},
 			}
 

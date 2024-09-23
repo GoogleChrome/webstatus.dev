@@ -16,7 +16,9 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"math/big"
 
 	"cloud.google.com/go/civil"
@@ -93,10 +95,28 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 	// TODO: When we have a generic way to do batch upserts, change this to accept an array of metrics.
 	chromiumHistogramEnumID, err := c.GetIDFromChromiumHistogramKey(ctx, string(histogramName))
 	if err != nil {
+		slog.ErrorContext(ctx, "unable to find histogram key id from histogram name", "name", string(histogramName))
+
 		return err
 	}
-	chromiumHistogramEnumValueID, err := c.GetIDFromChromiumHistogramEnumValueKey(ctx, *chromiumHistogramEnumID, bucketID)
+	chromiumHistogramEnumValueID, err := c.GetIDFromChromiumHistogramEnumValueKey(
+		ctx, *chromiumHistogramEnumID, bucketID)
 	if err != nil {
+		if errors.Is(err, ErrQueryReturnedNoResults) {
+			slog.WarnContext(ctx, "unable to find histogram value id. likely a draft feature. will skip",
+				"id", *chromiumHistogramEnumID,
+				"bucketID", bucketID)
+
+			// TODO. Create a specific error for ErrQueryReturnedNoResults from GetIDFromChromiumHistogramEnumValueKey
+			// and return that. Then have the adapter check for it. For now, we can treat this as a warning and ignore
+			// the error.
+			return nil
+		}
+
+		slog.ErrorContext(ctx, "unable to find histogram value id",
+			"id", *chromiumHistogramEnumID,
+			"bucketID", bucketID)
+
 		return err
 	}
 
