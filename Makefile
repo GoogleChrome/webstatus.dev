@@ -363,7 +363,7 @@ clean-node:
 ################################
 # Local Data / Workflows
 ################################
-dev_workflows: bcd_workflow web_feature_local_workflow wpt_workflow
+dev_workflows: bcd_workflow web_feature_local_workflow chromium_histogram_enums_workflow wpt_workflow
 web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
 web_feature_local_workflow: build port-forward-manual
 	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
@@ -373,6 +373,9 @@ wpt_workflow:
 bcd_workflow:
 	./util/run_job.sh bcd-consumer images/go_service.Dockerfile workflows/steps/services/bcd_consumer \
 		workflows/steps/services/bcd_consumer/manifests/job.yaml bcd-consumer
+chromium_histogram_enums_workflow:
+	./util/run_job.sh chromium-histogram-enums-consumer images/go_service.Dockerfile workflows/steps/services/chromium_histogram_enums \
+		workflows/steps/services/chromium_histogram_enums/manifests/job.yaml chromium-histogram-enums-consumer
 dev_fake_users: build
 	fuser -k 9099/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
