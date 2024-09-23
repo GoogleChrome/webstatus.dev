@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# TODO. Once this workflow is changed from a web services to a job, use the same
+# single stage workflow as the others.
 module "web_features_repo_workflow" {
   source = "./workflows/web_features_repo"
   providers = {
@@ -31,32 +33,85 @@ module "web_features_repo_workflow" {
 }
 
 module "wpt_workflow" {
-  source = "./workflows/wpt"
+  source = "../modules/single_stage_go_workflow"
   providers = {
     google.internal_project = google.internal_project
     google.public_project   = google.public_project
   }
-
-  regions                   = var.regions
-  deletion_protection       = var.deletion_protection
-  env_id                    = var.env_id
-  datastore_info            = var.datastore_info
-  spanner_datails           = var.spanner_datails
-  docker_repository_details = var.docker_repository_details
-  region_schedules          = var.wpt_region_schedules
+  regions                         = var.regions
+  short_name                      = "wpt-consumer"
+  full_name                       = "WPT Workflow"
+  deletion_protection             = var.deletion_protection
+  project_id                      = var.spanner_datails.project_id
+  timeout_seconds                 = 86400 # 24 hours
+  image_name                      = "wpt_consumer_image"
+  spanner_details                 = var.spanner_datails
+  env_id                          = var.env_id
+  region_schedules                = var.wpt_region_schedules
+  docker_repository_url           = var.docker_repository_details.url
+  go_module_path                  = "workflows/steps/services/wpt_consumer"
+  does_process_write_to_spanner   = true
+  does_process_write_to_datastore = true
+  resource_job_limits = {
+    cpu    = "2"
+    memory = "1024Mi"
+  }
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    },
+    {
+      name  = "DATASTORE_DATABASE"
+      value = var.datastore_info.database_name
+    },
+    {
+      name  = "DATA_WINDOW_DURATION"
+      value = "17520h" # 2 years
+    }
+  ]
 }
 
 module "bcd_workflow" {
-  source = "./workflows/bcd"
+  source = "../modules/single_stage_go_workflow"
   providers = {
     google.internal_project = google.internal_project
     google.public_project   = google.public_project
   }
-
-  regions                   = var.regions
-  deletion_protection       = var.deletion_protection
-  env_id                    = var.env_id
-  spanner_datails           = var.spanner_datails
-  docker_repository_details = var.docker_repository_details
-  region_schedules          = var.bcd_region_schedules
+  regions                       = var.regions
+  short_name                    = "bcd-consumer"
+  full_name                     = "BCD Workflow"
+  deletion_protection           = var.deletion_protection
+  project_id                    = var.spanner_datails.project_id
+  timeout_seconds               = 60 * 5 # 5 minutes
+  image_name                    = "bcd_consumer_image"
+  spanner_details               = var.spanner_datails
+  env_id                        = var.env_id
+  region_schedules              = var.bcd_region_schedules
+  docker_repository_url         = var.docker_repository_details.url
+  go_module_path                = "workflows/steps/services/bcd_consumer"
+  does_process_write_to_spanner = true
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    }
+  ]
 }
+
