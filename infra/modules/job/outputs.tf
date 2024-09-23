@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,17 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-terraform {
-  required_providers {
-    docker = {
-      source = "kreuzwerker/docker"
+output "regional_job_map" {
+  value = tomap({
+    for j in google_cloud_run_v2_job.job : j.location => {
+      project_id = j.project
+      name       = j.name
     }
-    google = {
-      source = "hashicorp/google"
-      configuration_aliases = [
-        google.internal_project,
-        google.public_project,
-      ]
-    }
-  }
+  })
 }

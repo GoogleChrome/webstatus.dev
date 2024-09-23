@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2024 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,13 +16,6 @@ terraform {
   required_providers {
     docker = {
       source = "kreuzwerker/docker"
-    }
-    google = {
-      source = "hashicorp/google"
-      configuration_aliases = [
-        google.internal_project,
-        google.public_project,
-      ]
     }
   }
 }
