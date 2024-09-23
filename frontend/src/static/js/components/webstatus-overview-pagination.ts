@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import {LitElement, type TemplateResult, CSSResultGroup, css, html, nothing} from 'lit';
+import {
+  LitElement,
+  type TemplateResult,
+  CSSResultGroup,
+  css,
+  html,
+  nothing,
+} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {range} from 'lit/directives/range.js';
@@ -99,7 +106,7 @@ export class WebstatusOverviewPagination extends LitElement {
 
     let missingFront = false;
     let missingBack = false;
-    let hasLastPage = numPages > 1;
+    const hasLastPage = numPages > 1;
 
     let displayPages: Array<number> = [];
     const displaySet = new Set<number>();
@@ -200,7 +207,10 @@ export class WebstatusOverviewPagination extends LitElement {
     const nextUrl = this.formatUrlForRelativeOffset(this.pageSize);
 
     return html`
-      <div id="main" class="hbox halign-items-space-between valign-items-center">
+      <div
+        id="main"
+        class="hbox halign-items-space-between valign-items-center"
+      >
         <div class="spacer"></div>
         <sl-button
           variant="text"
