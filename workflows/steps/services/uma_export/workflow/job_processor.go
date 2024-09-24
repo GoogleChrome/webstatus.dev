@@ -105,6 +105,12 @@ func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) er
 		return err
 	}
 
+	if len(data) == 0 {
+		slog.WarnContext(ctx, "no data found for date. will return early", "date", job.day)
+
+		return nil
+	}
+
 	// Step 4. Save the data.
 	err = p.metricStorer.SaveMetrics(ctx, job.day, data)
 	if err != nil {
