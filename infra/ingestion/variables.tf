@@ -68,6 +68,14 @@ variable "bcd_region_schedules" {
   type = map(string)
 }
 
+variable "chromium_region_schedules" {
+  type = map(string)
+}
+
+variable "uma_region_schedules" {
+  type = map(string)
+}
+
 variable "wpt_region_schedules" {
   type = map(string)
 }

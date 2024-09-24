@@ -73,6 +73,8 @@ module "ingestion" {
   depends_on                    = [module.services]
   wpt_region_schedules          = var.wpt_region_schedules
   bcd_region_schedules          = var.bcd_region_schedules
+  uma_region_schedules          = var.uma_region_schedules
+  chromium_region_schedules     = var.chromium_region_schedules
   web_features_region_schedules = var.web_features_region_schedules
 }
 

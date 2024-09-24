@@ -115,3 +115,73 @@ module "bcd_workflow" {
   ]
 }
 
+module "chromium_enum_workflow" {
+  source = "../modules/single_stage_go_workflow"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+  regions                       = var.regions
+  short_name                    = "chromium-enum"
+  full_name                     = "Chromium Enum Workflow"
+  deletion_protection           = var.deletion_protection
+  project_id                    = var.spanner_datails.project_id
+  timeout_seconds               = 60 * 5 # 5 minutes
+  image_name                    = "chromium_enum_consumer_image"
+  spanner_details               = var.spanner_datails
+  env_id                        = var.env_id
+  region_schedules              = var.chromium_region_schedules
+  docker_repository_url         = var.docker_repository_details.url
+  go_module_path                = "workflows/steps/services/chromium_histogram_enums"
+  does_process_write_to_spanner = true
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    }
+  ]
+}
+
+module "uma_export_workflow" {
+  source = "../modules/single_stage_go_workflow"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+  regions                       = var.regions
+  short_name                    = "uma-consumer"
+  full_name                     = "UMA Export Workflow"
+  deletion_protection           = var.deletion_protection
+  project_id                    = var.spanner_datails.project_id
+  timeout_seconds               = 60 * 5 # 5 minutes
+  image_name                    = "uma_export_consumer_image"
+  spanner_details               = var.spanner_datails
+  env_id                        = var.env_id
+  region_schedules              = var.uma_region_schedules
+  docker_repository_url         = var.docker_repository_details.url
+  go_module_path                = "workflows/steps/services/uma_export"
+  does_process_write_to_spanner = true
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    }
+  ]
+}
+

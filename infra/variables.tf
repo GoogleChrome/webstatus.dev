@@ -130,6 +130,14 @@ variable "wpt_region_schedules" {
   type = map(string)
 }
 
+variable "uma_region_schedules" {
+  type = map(string)
+}
+
+variable "chromium_region_schedules" {
+  type = map(string)
+}
+
 variable "web_features_region_schedules" {
   type = map(string)
 }
