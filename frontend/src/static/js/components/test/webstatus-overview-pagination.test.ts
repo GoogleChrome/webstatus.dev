@@ -27,7 +27,6 @@ describe('webstatus-overview-pagination', () => {
     );
     el.totalCount = 123;
     el.location = {search: ''};
-
     await el.updateComplete;
   });
 
@@ -58,9 +57,8 @@ describe('webstatus-overview-pagination', () => {
   });
 
   it('renders skips distant navigation buttons', async () => {
+    el.location = {search: 'start=20&num=2'};
     el.totalCount = 40;
-    el.start = 20;
-    el.pageSize = 2;
     await el.updateComplete;
 
     const previous = el.shadowRoot!.querySelector('#previous');
