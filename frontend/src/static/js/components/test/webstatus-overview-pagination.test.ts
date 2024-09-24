@@ -27,7 +27,6 @@ describe('webstatus-overview-pagination', () => {
     );
     el.totalCount = 123;
     el.location = {search: ''};
-
     await el.updateComplete;
   });
 
@@ -52,6 +51,35 @@ describe('webstatus-overview-pagination', () => {
     assert.exists(jump_5);
     const jump_6 = el.shadowRoot!.querySelector('#jump_6');
     assert.isNull(jump_6);
+
+    const next = el.shadowRoot!.querySelector('#next');
+    assert.exists(next);
+  });
+
+  it('renders skips distant navigation buttons', async () => {
+    el.location = {search: 'start=20&num=2'};
+    el.totalCount = 40;
+    await el.updateComplete;
+
+    const previous = el.shadowRoot!.querySelector('#previous');
+    assert.exists(previous);
+
+    const jump_1 = el.shadowRoot!.querySelector('#jump_1');
+    assert.exists(jump_1);
+    const jump_2 = el.shadowRoot!.querySelector('#jump_2');
+    assert.notExists(jump_2);
+    const jump_3 = el.shadowRoot!.querySelector('#jump_3');
+    assert.notExists(jump_3);
+    const jump_7 = el.shadowRoot!.querySelector('#jump_7');
+    assert.exists(jump_7);
+    const jump_11 = el.shadowRoot!.querySelector('#jump_11');
+    assert.exists(jump_11);
+    const jump_15 = el.shadowRoot!.querySelector('#jump_15');
+    assert.exists(jump_15);
+    const jump_19 = el.shadowRoot!.querySelector('#jump_19');
+    assert.notExists(jump_19);
+    const jump_20 = el.shadowRoot!.querySelector('#jump_20');
+    assert.exists(jump_20);
 
     const next = el.shadowRoot!.querySelector('#next');
     assert.exists(next);
