@@ -79,6 +79,18 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "PROJECT_ID"
         value = data.google_project.datastore_project.number
       }
+      env {
+        name  = "FIREBASE_APP_AUTH_DOMAIN"
+        value = var.firebase_settings.auth_domain
+      }
+      env {
+        name  = "FIREBASE_APP_API_KEY"
+        value = var.firebase_settings.api_key
+      }
+      env {
+        name  = "FIREBASE_AUTH_TENANT_ID"
+        value = var.firebase_settings.tenant_id
+      }
     }
     vpc_access {
       network_interfaces {

@@ -12,6 +12,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+locals {
+  firebase_api_key = sensitive(data.google_secret_manager_secret_version_access.firebase_api_key.secret_data)
+}
+
+data "google_secret_manager_secret_version_access" "firebase_api_key" {
+  provider = google.internal_project
+  secret   = var.firebase_api_key_location
+}
+
+module "auth" {
+  source = "./auth"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+  env_id                  = var.env_id
+  github_config_locations = var.auth_github_config_locations
+}
+
 module "services" {
   source = "./services"
   providers = {
@@ -118,4 +136,9 @@ module "frontend" {
   ssl_certificates                     = var.ssl_certificates
   domains_for_gcp_managed_certificates = var.frontend_domains_for_gcp_managed_certificates
   projects                             = var.projects
+  firebase_settings = {
+    api_key     = local.firebase_api_key
+    auth_domain = "${var.projects.internal}.firebaseapp.com"
+    tenant_id   = module.auth.tenant_id
+  }
 }

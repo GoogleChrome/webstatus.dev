@@ -67,3 +67,11 @@ variable "projects" {
 variable "deletion_protection" {
   type = bool
 }
+
+variable "firebase_settings" {
+  type = object({
+    auth_domain = string
+    api_key     = string
+    tenant_id   = string
+  })
+}

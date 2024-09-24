@@ -73,3 +73,10 @@ wpt_region_schedules = {
   "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
   "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
 }
+
+firebase_api_key_location = "staging-firebase-app-api-key"
+
+auth_github_config_locations = {
+  client_id     = "staging-github-client-id"
+  client_secret = "staging-github-client-secret"
+}
