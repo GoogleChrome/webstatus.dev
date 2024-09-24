@@ -37,6 +37,7 @@ module "job" {
   spanner_project_id              = var.spanner_details.project_id
   does_process_write_to_datastore = var.does_process_write_to_datastore
   does_process_write_to_spanner   = var.does_process_write_to_spanner
+  resource_limits                 = var.resource_job_limits
 }
 
 resource "google_service_account" "service_account" {
