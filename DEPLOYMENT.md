@@ -90,7 +90,7 @@ go run ./util/cmd/load_fake_data/main.go -spanner_project=${SPANNER_PROJECT_ID} 
 
 Setup auth:
 
-Add your domain to the allow-list of domains in the [console](https://pantheon.corp.google.com/customer-identity/settings?project=webstatus-dev-internal-staging).
+Add your domain to the allow-list of domains in the [console](https://console.cloud.google.com/customer-identity/settings?project=webstatus-dev-internal-staging).
 
 When you are done with your own copy
 
@@ -105,7 +105,7 @@ terraform workspace select default
 terraform workspace delete $ENV_ID
 ```
 
-Also, remove your domain from the allow-list of domains in the [console](https://pantheon.corp.google.com/customer-identity/settings?project=webstatus-dev-internal-staging).
+Also, remove your domain from the allow-list of domains in the [console](https://console.cloud.google.com/customer-identity/settings?project=webstatus-dev-internal-staging).
 
 ## Deploy Staging
 
