@@ -27,6 +27,7 @@ interface FirebaseAppSettings {
 
 interface FirebaseAuthSettings {
   emulatorURL: string;
+  tenantID: string;
 }
 
 interface FirebaseSettings {

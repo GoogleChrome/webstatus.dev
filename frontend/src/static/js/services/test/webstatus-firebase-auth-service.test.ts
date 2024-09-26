@@ -53,6 +53,7 @@ class FakeParentElement extends LitElement {
 describe('webstatus-firebase-auth-service', () => {
   const settings = {
     emulatorURL: '',
+    tenantID: 'tenantID',
   };
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusFirebaseAuthService>(
@@ -144,6 +145,11 @@ describe('webstatus-firebase-auth-service', () => {
       'github',
       'icon should be github'
     );
+    assert.equal(
+      component.firebaseAuthConfig?.auth.tenantId,
+      'tenantID',
+      'unexpected tenantID'
+    );
     // Ensure it gets it via context.
     assert.equal(
       component.firebaseAuthConfig,
@@ -193,6 +199,7 @@ describe('webstatus-firebase-auth-service', () => {
     const testSettings = {
       // Set emulator URL
       emulatorURL: 'http://localhost:9099',
+      tenantID: '',
     };
     const root = document.createElement('div');
     document.body.appendChild(root);
@@ -228,6 +235,10 @@ describe('webstatus-firebase-auth-service', () => {
     await component.updateComplete;
 
     assert.isTrue(emulatorConnectorStub.calledOnce);
+    assert.notExists(
+      component.firebaseAuthConfig?.auth.tenantId,
+      'unexpected tenantID'
+    );
     expect(emulatorConnectorStub).to.have.been.calledWith(
       authStub,
       'http://localhost:9099'

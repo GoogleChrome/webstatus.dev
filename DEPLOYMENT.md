@@ -27,9 +27,14 @@ instructions assume you have access to the following projects:
   - webstatus-dev-internal-staging
   - webstatus-dev-public-staging
 - production
-  - web-compass-staging
+  - web-compass-prod
   - webstatus-dev-internal-prod
   - webstatus-dev-public-prod
+
+Google Cloud Identity Platform:
+
+- [Enable](https://console.cloud.google.com/marketplace/details/google-cloud-platform/customer-identity) Cloud Identity Platform for the internal project.
+- [Enable](https://cloud.google.com/identity-platform/docs/multi-tenancy-quickstart) multi-tenancy in the Google Cloud Console.
 
 ## Deploying your own copy
 
@@ -83,6 +88,10 @@ Or you could populate with fake data by running.
 go run ./util/cmd/load_fake_data/main.go -spanner_project=${SPANNER_PROJECT_ID} -spanner_instance=${SPANNER_INSTANCE_ID} -spanner_database=${SPANNER_DATABASE_ID} -datastore_project=${DATASTORE_PROJECT_ID} -datastore_database=${DATASTORE_DATABASE}
 ```
 
+Setup auth:
+
+Add your domain to the allow-list of domains in the [console](https://console.cloud.google.com/customer-identity/settings?project=webstatus-dev-internal-staging).
+
 When you are done with your own copy
 
 ```sh
@@ -95,6 +104,8 @@ terraform destroy \
 terraform workspace select default
 terraform workspace delete $ENV_ID
 ```
+
+Also, remove your domain from the allow-list of domains in the [console](https://console.cloud.google.com/customer-identity/settings?project=webstatus-dev-internal-staging).
 
 ## Deploy Staging
 

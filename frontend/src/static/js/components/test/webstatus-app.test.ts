@@ -30,6 +30,7 @@ describe('webstatus-app', () => {
         },
         auth: {
           emulatorURL: 'http://localhost:9099',
+          tenantID: 'tenantID',
         },
       },
     };

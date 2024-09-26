@@ -33,6 +33,9 @@ provider "google" {
 provider "google" {
   alias   = "internal_project"
   project = var.projects.internal
+  # Need user_project_override=true for identity platform
+  # https://stackoverflow.com/a/78203631
+  user_project_override = true
 }
 
 provider "google" {

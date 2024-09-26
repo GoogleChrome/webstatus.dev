@@ -36,6 +36,7 @@ import {ServiceElement} from './service-element.js';
 
 interface FirebaseAuthSettings {
   emulatorURL: string;
+  tenantID: string;
 }
 
 @customElement('webstatus-firebase-auth-service')
@@ -62,6 +63,10 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   initFirebaseAuth() {
     if (this.firebaseApp) {
       const auth = this.authInitializer(this.firebaseApp);
+      // Local environment will not have a tenantID.
+      if (this.settings.tenantID !== '') {
+        auth.tenantId = this.settings.tenantID;
+      }
       const provider = new GithubAuthProvider();
       this.firebaseAuthConfig = {
         auth: auth,

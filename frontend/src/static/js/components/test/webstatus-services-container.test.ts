@@ -31,6 +31,7 @@ describe('WebstatusServiceContainer', () => {
       },
       auth: {
         emulatorURL: 'http://localhost:9099',
+        tenantID: 'tenantID',
       },
     },
   };

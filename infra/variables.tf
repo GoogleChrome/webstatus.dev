@@ -141,3 +141,17 @@ variable "chromium_region_schedules" {
 variable "web_features_region_schedules" {
   type = map(string)
 }
+
+
+variable "firebase_api_key_location" {
+  description = "Location of the firebase api key in secret manager"
+  type        = string
+}
+
+variable "auth_github_config_locations" {
+  description = "Location of the github configuration in secret manager"
+  type = object({
+    client_id     = string
+    client_secret = string
+  })
+}
