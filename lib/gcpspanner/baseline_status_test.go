@@ -113,17 +113,10 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 		}
 	}
 
-	statuses, err := spannerClient.ReadAllBaselineStatuses(ctx, t)
-	if err != nil {
-		t.Errorf("unexpected error during read all. %s", err.Error())
-	}
-	if !slices.EqualFunc[[]FeatureBaselineStatus](
-		expectedStatuses,
-		statuses, statusEquality) {
-		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedStatuses, statuses)
-	}
+	assertBaselineStatuses(ctx, t, expectedStatuses)
 
-	err = spannerClient.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
+	// Update feature 1.
+	err := spannerClient.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
 		Status:   valuePtr(BaselineStatusHigh),
 		LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
 		HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
@@ -133,25 +126,57 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 	}
 
 	expectedPageAfterUpdate := []FeatureBaselineStatus{
+		// feature2
 		{
 			Status:   valuePtr(BaselineStatusHigh),
 			LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
 			HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 		},
+		// feature1
 		{
 			Status:   valuePtr(BaselineStatusHigh),
 			LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
 			HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
 		},
 	}
+	assertBaselineStatuses(ctx, t, expectedPageAfterUpdate)
 
-	statuses, err = spannerClient.ReadAllBaselineStatuses(ctx, t)
+	// Reset a baseline feature back to false
+	err = spannerClient.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
+		Status:   valuePtr(BaselineStatusNone),
+		LowDate:  nil,
+		HighDate: nil,
+	})
 	if err != nil {
-		t.Errorf("unexpected error during read all after update. %s", err.Error())
+		t.Errorf("unexpected error during reset. %s", err.Error())
+	}
+
+	expectedPageAfterReset := []FeatureBaselineStatus{
+		// feature1
+		{
+			Status:   valuePtr(BaselineStatusNone),
+			LowDate:  nil,
+			HighDate: nil,
+		},
+		// feature2
+		{
+			Status:   valuePtr(BaselineStatusHigh),
+			LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
+			HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+		},
+	}
+
+	assertBaselineStatuses(ctx, t, expectedPageAfterReset)
+}
+
+func assertBaselineStatuses(ctx context.Context, t *testing.T, expectedStatuses []FeatureBaselineStatus) {
+	statuses, err := spannerClient.ReadAllBaselineStatuses(ctx, t)
+	if err != nil {
+		t.Errorf("unexpected error during read all %s", err.Error())
 	}
 	if !slices.EqualFunc[[]FeatureBaselineStatus](
-		expectedPageAfterUpdate,
+		expectedStatuses,
 		statuses, statusEquality) {
-		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedPageAfterUpdate, statuses)
+		t.Errorf("unequal status.\nexpected %+v\nreceived %+v", expectedStatuses, statuses)
 	}
 }

@@ -15,7 +15,6 @@
 package gcpspanner
 
 import (
-	"cmp"
 	"context"
 	"fmt"
 	"time"
@@ -71,10 +70,10 @@ func (m baselineStatusMapper) Merge(in spannerFeatureBaselineStatus,
 	// Only allow overriding of the status, low date and high date.
 	return spannerFeatureBaselineStatus{
 		WebFeatureID:   existing.WebFeatureID,
-		InternalStatus: cmp.Or[*string]((*string)(in.Status), existing.InternalStatus),
+		InternalStatus: in.InternalStatus,
 		FeatureBaselineStatus: FeatureBaselineStatus{
-			LowDate:  cmp.Or[*time.Time](in.LowDate, existing.LowDate),
-			HighDate: cmp.Or[*time.Time](in.HighDate, existing.HighDate),
+			LowDate:  in.LowDate,
+			HighDate: in.HighDate,
 			// Status does not need to be set.
 			Status: nil,
 		},
