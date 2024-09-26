@@ -13,10 +13,11 @@
 # limitations under the License.
 
 locals {
-  firebase_api_key = sensitive(data.google_secret_manager_secret_version_access.firebase_api_key.secret_data)
+  firebase_api_key = sensitive(try(data.google_secret_manager_secret_version_access.firebase_api_key[0].secret_data, ""))
 }
 
 data "google_secret_manager_secret_version_access" "firebase_api_key" {
+  count    = var.firebase_api_key_location != "" ? 1 : 0
   provider = google.internal_project
   secret   = var.firebase_api_key_location
 }

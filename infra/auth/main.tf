@@ -13,16 +13,18 @@
 # limitations under the License.
 
 locals {
-  gh_client_id     = sensitive(data.google_secret_manager_secret_version_access.gh_client_id.secret_data)
-  gh_client_secret = sensitive(data.google_secret_manager_secret_version_access.gh_client_secret.secret_data)
+  gh_client_id     = sensitive(try(data.google_secret_manager_secret_version_access.gh_client_id[0].secret_data, ""))
+  gh_client_secret = sensitive(try(data.google_secret_manager_secret_version_access.gh_client_secret[0].secret_data, ""))
 }
 
 data "google_secret_manager_secret_version_access" "gh_client_id" {
+  count    = var.github_config_locations.client_id != null ? 1 : 0
   provider = google.internal_project
   secret   = var.github_config_locations.client_id
 }
 
 data "google_secret_manager_secret_version_access" "gh_client_secret" {
+  count    = var.github_config_locations.client_secret != null ? 1 : 0
   provider = google.internal_project
   secret   = var.github_config_locations.client_secret
 }
@@ -35,6 +37,7 @@ resource "google_identity_platform_tenant" "tenant" {
 }
 
 resource "google_identity_platform_tenant_default_supported_idp_config" "github_idp_config" {
+  count         = local.gh_client_secret != "" ? 1 : 0
   provider      = google.internal_project
   enabled       = true
   tenant        = google_identity_platform_tenant.tenant.name

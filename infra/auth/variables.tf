@@ -19,7 +19,7 @@ variable "env_id" {
 variable "github_config_locations" {
   description = "Location of the github configuration in secret manager"
   type = object({
-    client_id     = string
-    client_secret = string
+    client_id     = optional(string)
+    client_secret = optional(string)
   })
 }
