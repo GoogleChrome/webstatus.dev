@@ -14,7 +14,7 @@
 
 FROM node:20.14.0-slim
 # FIREBASE_CLI_VERSION from https://github.com/firebase/firebase-tools/releases
-ARG FIREBASE_CLI_VERSION=13.14.1
+ARG FIREBASE_CLI_VERSION=13.20.1
 # Workaround for https://github.com/firebase/firebase-tools/issues/6931 is to install via npm
 RUN npm i firebase-tools@${FIREBASE_CLI_VERSION} -g
 # Once https://github.com/firebase/firebase-tools/issues/6931 is resolved, we can install via ADD instead of npm
