@@ -19,8 +19,8 @@ on: # trigger builds for 1) PRs, 2) merges into main from merge_queue, and 3) ma
   workflow_dispatch:
 
 env:
-  GO_VERSION: '1.20'
-  NODE_VERSION: '20'
+  GO_VERSION: '1.23'
+  NODE_VERSION: '22'
   GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
 
 jobs:

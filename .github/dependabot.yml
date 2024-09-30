@@ -61,6 +61,11 @@ updates:
     schedule:
       interval: 'weekly'
 
+  - package-ecosystem: 'docker'
+    directory: '/.dev/auth'
+    schedule:
+      interval: 'weekly'
+
   # Terraform
   - package-ecosystem: 'terraform'
     directory: '/infra'
