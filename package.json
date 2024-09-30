@@ -17,7 +17,7 @@
     "concurrently": "^8.2.2",
     "eslint-plugin-n": "^17.10.2",
     "gts": "^5.2.0",
-    "openapi-typescript": "7.4.0",
+    "openapi-typescript": "7.4.1",
     "prettier": "3.3.3",
     "quicktype": "23.0.170",
     "stylelint": "^16.7.0",
