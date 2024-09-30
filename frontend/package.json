@@ -59,7 +59,7 @@
     "rollup-plugin-css-only": "^4.5.2",
     "sinon": "^18.0.0",
     "ts-lit-plugin": "^2.0.1",
-    "typescript": "^5.5.4"
+    "typescript": "^5.6.2"
   },
   "dependencies": {
     "@lit/context": "^1.1.0",
