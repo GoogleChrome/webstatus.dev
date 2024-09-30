@@ -47,7 +47,7 @@
     "cpy": "^11.1.0",
     "eslint": "^9.10.0",
     "eslint-plugin-import": "^2.29.0",
-    "eslint-plugin-lit": "^1.10.1",
+    "eslint-plugin-lit": "^1.15.0",
     "eslint-plugin-perfectionist": "^3.5.0",
     "eslint-plugin-promise": "^7.1.0",
     "lit-analyzer": "^2.0.2",
