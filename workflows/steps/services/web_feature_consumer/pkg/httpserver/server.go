@@ -26,7 +26,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/data"
-	"github.com/go-chi/chi/v5"
 )
 
 // AssetGetter describes the behavior to get a certain asset from a github release.
@@ -194,8 +193,8 @@ func NewHTTPServer(
 
 	srvStrictHandler := web_feature_consumer.NewStrictHandler(srv, nil)
 
-	// This is how you set up a basic chi router
-	r := chi.NewRouter()
+	// Use standard library router
+	r := http.NewServeMux()
 
 	// Use our validation middleware to check all requests against the
 	// web_feature_consumer schema.

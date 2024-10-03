@@ -52,6 +52,9 @@
   },
   "customizations": {
     "vscode": {
+      "settings": {
+        "extensions.verifySignature": false // remove when bug is fixed: https://github.com/microsoft/vscode/issues/174632
+      },
       "extensions": [
         "googlecloudtools.cloudcode",
         "hashicorp.terraform",

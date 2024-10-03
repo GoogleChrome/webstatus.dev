@@ -5,7 +5,6 @@ go 1.22.0
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/getkin/kin-openapi v0.127.0
-	github.com/go-chi/chi/v5 v5.1.0
 	github.com/oapi-codegen/runtime v1.1.1
 )
 
