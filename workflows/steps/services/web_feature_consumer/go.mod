@@ -5,7 +5,6 @@ go 1.22.0
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20240812120404-fc08699998a5
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20240812120404-fc08699998a5
-	github.com/go-chi/chi/v5 v5.1.0
 )
 
 require (

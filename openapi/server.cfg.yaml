@@ -13,8 +13,6 @@
 # limitations under the License.
 
 generate:
-  chi-server: true
+  std-http-server: true
   embedded-spec: true
   strict-server: true
-compatibility:
-  apply-chi-middleware-first-to-last: true

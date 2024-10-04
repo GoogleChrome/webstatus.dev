@@ -28,7 +28,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/repo_downloader/pkg/filefilter"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/repo_downloader/pkg/gh"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/repo_downloader/pkg/targz"
-	"github.com/go-chi/chi/v5"
 )
 
 type Storer interface {
@@ -137,8 +136,8 @@ func NewHTTPServer(port string, downloader *gh.Downloader, storer Storer) (*http
 
 	srvStrictHandler := repo_downloader.NewStrictHandler(srv, nil)
 
-	// This is how you set up a basic chi router
-	r := chi.NewRouter()
+	// Use standard library router
+	r := http.NewServeMux()
 
 	// Use our validation middleware to check all requests against the
 	// repo_downloader schema.

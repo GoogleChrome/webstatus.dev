@@ -24,7 +24,6 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	"github.com/go-chi/chi/v5"
 )
 
 type WebFeatureMetadataStorer interface {
@@ -116,6 +115,18 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
+func applyMiddlewares(mux *http.ServeMux, middlewares []func(http.Handler) http.Handler) http.Handler {
+	var next http.Handler
+	next = mux
+	// Apply middlewares in reverse order to ensure they execute in the order they are defined.
+	// This is because each middleware wraps the next one in the chain.
+	for i := len(middlewares) - 1; i >= 0; i-- {
+		next = middlewares[i](next)
+	}
+
+	return next
+}
+
 func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
@@ -134,9 +145,8 @@ func NewHTTPServer(
 
 	srvStrictHandler := backend.NewStrictHandler(srv, nil)
 
-	// This is how you set up a basic chi router
-	r := chi.NewRouter()
-	r.Use(middlewares...)
+	// Use standard library router
+	r := http.NewServeMux()
 
 	// Use our validation middleware to check all requests against the
 	// OpenAPI schema.
@@ -147,9 +157,12 @@ func NewHTTPServer(
 	// We now register our web feature router above as the handler for the interface
 	backend.HandlerFromMux(srvStrictHandler, r)
 
+	// Now wrap the middleware
+	wrappedHandler := applyMiddlewares(r, middlewares)
+
 	// nolint:exhaustruct // No need to populate 3rd party struct
 	return &http.Server{
-		Handler:           r,
+		Handler:           wrappedHandler,
 		Addr:              net.JoinHostPort("0.0.0.0", port),
 		ReadHeaderTimeout: 30 * time.Second,
 	}, nil
