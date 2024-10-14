@@ -70,6 +70,10 @@
       ]
     }
   },
+  "forwardPorts": [
+    // gcloud CLI
+    8085
+  ],
   "runArgs": ["--env-file", ".devcontainer/devcontainer.env"],
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],

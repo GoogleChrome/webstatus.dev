@@ -15,4 +15,4 @@
 FROM google/cloud-sdk:495.0.0-emulators
 
 # https://cloud.google.com/datastore/docs/tools/datastore-emulator
-ENTRYPOINT [ "gcloud", "beta", "emulators", "datastore", "start", "--host-port=0.0.0.0:8085", "--project=local", "--log-http", "--verbosity=debug", "--use-firestore-in-datastore-mode" ]
+ENTRYPOINT [ "gcloud", "beta", "emulators", "datastore", "start", "--host-port=0.0.0.0:8086", "--project=local", "--log-http", "--verbosity=debug", "--use-firestore-in-datastore-mode" ]

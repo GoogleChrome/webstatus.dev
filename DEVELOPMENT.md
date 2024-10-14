@@ -88,7 +88,7 @@ The above skaffold command deploys multiple resources:
 | --------- | ------------------------------ | ---------------------------------------------------------- | --------------------------------------------------- |
 | backend   | Backend service in ./backend   | http://localhost:8080                                      | http://backend:8080                                 |
 | frontend  | Frontend service in ./frontend | http://localhost:5555                                      | http://frontend:5555                                |
-| datastore | Datastore Emulator             | N/A                                                        | http://datastore:8085                               |
+| datastore | Datastore Emulator             | N/A                                                        | http://datastore:8086                               |
 | spanner   | Spanner Emulator               | N/A                                                        | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
 | redis     | Redis                          | N/A                                                        | redis:6379                                          |
 | gcs       | Google Cloud Storage Emulator  | N/A                                                        | http://gcs:4443                                     |

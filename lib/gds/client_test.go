@@ -43,8 +43,8 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 			Dockerfile: filepath.Join("Dockerfile"),
 			Context:    datastoreFolder,
 		},
-		ExposedPorts: []string{"8085/tcp"},
-		WaitingFor:   wait.ForHTTP("/").WithPort("8085/tcp"),
+		ExposedPorts: []string{"8086/tcp"},
+		WaitingFor:   wait.ForHTTP("/").WithPort("8086/tcp"),
 		Name:         "webstatus-dev-test-datastore",
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -55,7 +55,7 @@ func getTestDatabase(ctx context.Context, t *testing.T) (*Client, func()) {
 		t.Fatal(err)
 	}
 
-	mappedPort, err := container.MappedPort(ctx, "8085")
+	mappedPort, err := container.MappedPort(ctx, "8086")
 	if err != nil {
 		t.Fatal(err)
 	}
