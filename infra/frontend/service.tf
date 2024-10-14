@@ -62,6 +62,10 @@ resource "google_cloud_run_v2_service" "service" {
   ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
+    scaling {
+      min_instance_count = var.min_instance_count
+      max_instance_count = var.max_instance_count
+    }
     containers {
       image = "${docker_image.frontend.name}@${docker_registry_image.frontend_remote_image.sha256_digest}"
       ports {

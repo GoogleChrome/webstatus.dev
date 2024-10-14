@@ -160,3 +160,30 @@ variable "auth_github_config_locations" {
     client_secret = string
   })
 }
+
+variable "backend_min_instance_count" {
+  type        = number
+  description = "Minimum instance count for backend instances"
+}
+
+variable "backend_max_instance_count" {
+  type        = number
+  description = "Maximum instance count for backend instances"
+  # Use default max of 100.
+  # https://cloud.google.com/run/docs/configuring/max-instances#setting
+  default = 100
+}
+
+
+variable "frontend_min_instance_count" {
+  type        = number
+  description = "Minimum instance count for frontend instances"
+}
+
+variable "frontend_max_instance_count" {
+  type        = number
+  description = "Maximum instance count for frontend instances"
+  # Use default max of 100.
+  # https://cloud.google.com/run/docs/configuring/max-instances#setting
+  default = 100
+}

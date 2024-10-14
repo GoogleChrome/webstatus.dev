@@ -86,3 +86,11 @@ variable "cors_allowed_origin" {
 variable "deletion_protection" {
   type = bool
 }
+
+variable "min_instance_count" {
+  type = number
+}
+
+variable "max_instance_count" {
+  type = number
+}

@@ -80,3 +80,6 @@ auth_github_config_locations = {
   client_id     = "prod-github-client-id"
   client_secret = "prod-github-client-secret"
 }
+
+backend_min_instance_count  = 1
+frontend_min_instance_count = 1
