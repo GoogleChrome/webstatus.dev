@@ -22,6 +22,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"runtime"
 	"testing"
 	"time"
 
@@ -64,10 +65,13 @@ func createDatabaseContainer() error {
 	if err != nil {
 		return err
 	}
+
+	goarch := runtime.GOARCH
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
 			Dockerfile: filepath.Join(".dev", "spanner", "Dockerfile"),
 			Context:    repoRoot,
+			BuildArgs:  map[string]*string{"TARGETARCH": &goarch},
 		},
 		ExposedPorts: []string{"9010/tcp"},
 		WaitingFor:   wait.ForLog("Spanner setup for webstatus.dev finished"),

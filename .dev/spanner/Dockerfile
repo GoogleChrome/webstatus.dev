@@ -13,6 +13,9 @@
 # limitations under the License.
 
 FROM google/cloud-sdk:495.0.0-emulators
+# TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
+# https://docs.docker.com/reference/dockerfile/#automatic-platform-args-in-the-global-scope
+ARG TARGETARCH
 
 ENV SPANNER_PROJECT_ID=local
 ENV SPANNER_INSTANCE_ID=local
@@ -20,10 +23,11 @@ ENV SPANNER_DATABASE_ID=local
 ENV SPANNER_EMULATOR_HOST=0.0.0.0:9010
 
 # Install Wrench - https://github.com/cloudspannerecosystem/wrench
-ENV WRENCH_VERSION="1.7.0"
+ENV WRENCH_VERSION="1.10.1"
+RUN echo "Downloading for version ${WRENCH_VERSION} for architecture ${TARGETARCH}"
 RUN curl \
     -L -o wrench.tar.gz \
-    "https://github.com/cloudspannerecosystem/wrench/releases/download/v${WRENCH_VERSION}/wrench-${WRENCH_VERSION}-linux-amd64.tar.gz" && \
+    "https://github.com/cloudspannerecosystem/wrench/releases/download/v${WRENCH_VERSION}/wrench-${WRENCH_VERSION}-linux-${TARGETARCH}.tar.gz" && \
     tar -xf wrench.tar.gz && mv wrench /bin/
 
 RUN gcloud config set auth/disable_credentials true && \
