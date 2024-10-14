@@ -54,7 +54,7 @@
     "openapi-typescript-helpers": "^0.0.13",
     "playwright": "^1.47.2",
     "prettier": "3.3.3",
-    "rollup": "^4.22.5",
+    "rollup": "^4.24.0",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-css-only": "^4.5.2",
     "sinon": "^18.0.0",
