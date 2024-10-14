@@ -36,7 +36,7 @@ spec:
         - name: DATASTORE_DATABASE
           value: ''
         - name: DATASTORE_EMULATOR_HOST
-          value: 'datastore:8085'
+          value: 'datastore:8086'
       resources:
         limits:
           cpu: 250m
