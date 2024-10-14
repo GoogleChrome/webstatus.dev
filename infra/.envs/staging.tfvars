@@ -38,11 +38,12 @@ google_analytics_id = "G-EPZE5TL134"
 
 frontend_docker_build_target = "static"
 
-backend_domains_for_gcp_managed_certificates  = []
-frontend_domains_for_gcp_managed_certificates = []
+backend_domains  = ["api-webstatus-dev.corp.goog"]
+frontend_domains = ["website-webstatus-dev.corp.goog"]
 
 # Temporary for UbP.
-ssl_certificates = ["ub-self-sign"]
+custom_ssl_certificates_for_frontend = ["ub-self-sign"]
+custom_ssl_certificates_for_backend  = ["ub-self-sign"]
 
 cache_duration = "5m"
 
