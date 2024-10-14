@@ -97,20 +97,25 @@ variable "frontend_docker_build_target" {
   description = "Dockerfile target for the frontend image"
 }
 
-variable "ssl_certificates" {
+variable "custom_ssl_certificates_for_frontend" {
   type        = list(string)
-  description = "List of custom SSL certs"
+  description = "List of custom SSL certs for frontend that are not managed by GCP"
+}
+
+variable "custom_ssl_certificates_for_backend" {
+  type        = list(string)
+  description = "List of custom SSL certs for backend that are not managed by GCP"
 }
 
 
-variable "frontend_domains_for_gcp_managed_certificates" {
+variable "frontend_domains" {
   type        = list(string)
-  description = "List of domains for the frontend that GCP should manage certs for."
+  description = "List of domains for the frontend"
 }
 
-variable "backend_domains_for_gcp_managed_certificates" {
+variable "backend_domains" {
   type        = list(string)
-  description = "List of domains for the backend that GCP should manage certs for."
+  description = "List of domains for the backend"
 }
 
 variable "cache_duration" {

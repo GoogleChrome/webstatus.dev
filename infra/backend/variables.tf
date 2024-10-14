@@ -51,11 +51,11 @@ variable "docker_repository_details" {
   })
 }
 
-variable "ssl_certificates" {
+variable "custom_ssl_certificates" {
   type = list(string)
 }
 
-variable "domains_for_gcp_managed_certificates" {
+variable "domains" {
   type = list(string)
 }
 

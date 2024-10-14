@@ -44,7 +44,7 @@ variable "google_analytics_id" {
   type = string
 }
 
-variable "ssl_certificates" {
+variable "custom_ssl_certificates" {
   type = list(string)
 }
 
@@ -52,7 +52,7 @@ variable "docker_build_target" {
   type = string
 }
 
-variable "domains_for_gcp_managed_certificates" {
+variable "domains" {
   type = list(string)
 }
 
