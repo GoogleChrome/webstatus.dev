@@ -81,3 +81,8 @@ auth_github_config_locations = {
   client_id     = "staging-github-client-id"
   client_secret = "staging-github-client-secret"
 }
+
+# TODO: Once staging is public, we should change the minimum instance count to
+# match production.
+backend_min_instance_count  = 0
+frontend_min_instance_count = 0

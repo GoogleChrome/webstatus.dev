@@ -116,6 +116,8 @@ module "backend" {
   cache_duration            = var.cache_duration
   redis_env_vars            = module.storage.redis_env_vars
   cors_allowed_origin       = var.backend_cors_allowed_origin
+  min_instance_count        = var.backend_min_instance_count
+  max_instance_count        = var.backend_max_instance_count
 }
 
 module "frontend" {
@@ -141,4 +143,6 @@ module "frontend" {
     auth_domain = "${var.projects.internal}.firebaseapp.com"
     tenant_id   = module.auth.tenant_id
   }
+  min_instance_count = var.frontend_min_instance_count
+  max_instance_count = var.frontend_max_instance_count
 }

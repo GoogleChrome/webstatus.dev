@@ -75,3 +75,11 @@ variable "firebase_settings" {
     tenant_id   = string
   })
 }
+
+variable "min_instance_count" {
+  type = number
+}
+
+variable "max_instance_count" {
+  type = number
+}
