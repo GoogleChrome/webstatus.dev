@@ -68,7 +68,7 @@
     "@types/google.visualization": "^0.0.74",
     "@vaadin/router": "^1.7.5",
     "firebase": "^10.12.5",
-    "lit": "^3.2.0",
+    "lit": "^3.2.1",
     "openapi-fetch": "^0.12.0"
   }
 }
