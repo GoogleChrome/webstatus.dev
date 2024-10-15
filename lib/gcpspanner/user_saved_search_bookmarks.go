@@ -13,3 +13,11 @@
 // limitations under the License.
 
 package gcpspanner
+
+const userSavedSearchBookmarksTable = "UserSavedSearchBookmarks"
+
+// UserSavedSearchBookmark represents a user's bookmark for a saved search.
+type UserSavedSearchBookmark struct {
+	SavedSearchID string `spanner:"SavedSearchID"`
+	UserID        string `spanner:"UserID"`
+}
