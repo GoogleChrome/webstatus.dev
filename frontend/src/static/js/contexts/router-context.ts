@@ -14,9 +14,11 @@
  * limitations under the License.
  */
 
-import type {Router} from '@vaadin/router';
+import type {AnyObject, Router} from '@vaadin/router';
 
 import {createContext} from '@lit/context';
 
 export type {Router} from '@vaadin/router';
-export const routerContext = createContext<Router | undefined>('router');
+export const routerContext = createContext<
+  Router<AnyObject, AnyObject> | undefined
+>('router');
