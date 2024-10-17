@@ -28,39 +28,42 @@ func TestCreateNewUserSavedSearch(t *testing.T) {
 		MaxOwnedSearchesPerUser: 2,
 	}
 
-	savedSearchID1, err := spannerClient.CreateNewUserSavedSearch(ctx, savedSearchesConfig, NewSavedSearchRequest{
-		Name:        "my little search",
-		Query:       "group:css",
-		OwnerUserID: "userID1",
-	})
-	if err != nil {
-		t.Errorf("expected nil error. received %s", err)
-	}
-	if savedSearchID1 == nil {
-		t.Error("expected non-nil id.")
-	}
+	t.Run("create fails after reaching limit", func(t *testing.T) {
+		savedSearchID1, err := spannerClient.CreateNewUserSavedSearch(ctx, savedSearchesConfig, NewSavedSearchRequest{
+			Name:        "my little search",
+			Query:       "group:css",
+			OwnerUserID: "userID1",
+		})
+		if err != nil {
+			t.Errorf("expected nil error. received %s", err)
+		}
+		if savedSearchID1 == nil {
+			t.Error("expected non-nil id.")
+		}
 
-	savedSearchID2, err := spannerClient.CreateNewUserSavedSearch(ctx, savedSearchesConfig, NewSavedSearchRequest{
-		Name:        "my little search part 2",
-		Query:       "group:avif",
-		OwnerUserID: "userID1",
-	})
-	if err != nil {
-		t.Errorf("expected nil error. received %s", err)
-	}
-	if savedSearchID2 == nil {
-		t.Error("expected non-nil id.")
-	}
+		savedSearchID2, err := spannerClient.CreateNewUserSavedSearch(ctx, savedSearchesConfig, NewSavedSearchRequest{
+			Name:        "my little search part 2",
+			Query:       "group:avif",
+			OwnerUserID: "userID1",
+		})
+		if err != nil {
+			t.Errorf("expected nil error. received %s", err)
+		}
+		if savedSearchID2 == nil {
+			t.Error("expected non-nil id.")
+		}
 
-	savedSearchID3, err := spannerClient.CreateNewUserSavedSearch(ctx, savedSearchesConfig, NewSavedSearchRequest{
-		Name:        "my little search part 3",
-		Query:       "name:subgrid",
-		OwnerUserID: "userID1",
+		savedSearchID3, err := spannerClient.CreateNewUserSavedSearch(ctx, savedSearchesConfig, NewSavedSearchRequest{
+			Name:        "my little search part 3",
+			Query:       "name:subgrid",
+			OwnerUserID: "userID1",
+		})
+		if !errors.Is(err, ErrOwnerSavedSearchLimitExceeded) {
+			t.Errorf("unexpected error. received %v", err)
+		}
+		if savedSearchID3 != nil {
+			t.Error("expected nil id.")
+		}
 	})
-	if !errors.Is(err, ErrOwnerSavedSearchLimitExceeded) {
-		t.Errorf("unexpected error. received %v", err)
-	}
-	if savedSearchID3 != nil {
-		t.Error("expected nil id.")
-	}
+
 }

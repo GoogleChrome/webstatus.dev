@@ -51,7 +51,7 @@ type SavedSearchRole string
 
 const (
 	// SavedSearchOwner indicates the user owns the saved search query.
-	SavedSearchOwner = "OWNER"
+	SavedSearchOwner SavedSearchRole = "OWNER"
 )
 
 var (
@@ -82,7 +82,10 @@ type SavedSearchUserRole struct {
 
 // CreateNewUserSavedSearch creates a new user-owned saved search.
 // It returns the ID of the newly created saved search if successful.
-func (c *Client) CreateNewUserSavedSearch(ctx context.Context, cfg SearchConfig, newSearch NewSavedSearchRequest) (*string, error) {
+func (c *Client) CreateNewUserSavedSearch(
+	ctx context.Context,
+	cfg SearchConfig,
+	newSearch NewSavedSearchRequest) (*string, error) {
 	id := uuid.NewString()
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// 1. Read the current count of owned searches

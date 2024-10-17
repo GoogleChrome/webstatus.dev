@@ -90,7 +90,9 @@ func (c *Client) HasDailyChromiumHistogramCapstone(
 
 	_, err = newEntityReader[
 		dailyChromiumHistogramEnumCapstonesSpannerMapper,
-		spannerDailyChromiumHistogramEnumCapstone](c).readRowByKey(ctx, dailyChromiumHistogramEnumCapstoneKey{
+		spannerDailyChromiumHistogramEnumCapstone,
+		dailyChromiumHistogramEnumCapstoneKey,
+	](c).readRowByKey(ctx, dailyChromiumHistogramEnumCapstoneKey{
 		ChromiumHistogramEnumID: *chromiumHistogramEnumID,
 		Day:                     in.Day,
 	})
