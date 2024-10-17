@@ -18,8 +18,10 @@ import {consume} from '@lit/context';
 import {LitElement, type TemplateResult, html, nothing} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 
-import {User} from 'firebase/auth';
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  FirebaseUser,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 import {
   AuthConfig,
   firebaseAuthContext,
@@ -34,7 +36,7 @@ export class WebstatusLogin extends LitElement {
 
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user?: User;
+  user?: FirebaseUser;
 
   handleLogInClick(authConfig: AuthConfig) {
     if (this.user === undefined) {
@@ -72,14 +74,14 @@ export class WebstatusLogin extends LitElement {
   }
 
   renderAuthenticatedButton(
-    user: User,
+    user: FirebaseUser,
     authConfig: AuthConfig
   ): TemplateResult {
     return html`
       <sl-dropdown>
         <sl-button slot="trigger" caret
           ><sl-icon slot="prefix" name="${authConfig.icon}"></sl-icon
-          >${user.email}</sl-button
+          >${user?.gitHubUsername || user.email}</sl-button
         >
         <sl-menu>
           <sl-menu-item @click=${() => this.handleLogOutClick(authConfig)}
