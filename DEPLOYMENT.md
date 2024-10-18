@@ -54,7 +54,11 @@ terraform plan \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
     -var "deletion_protection=false" \
-    -var "datastore_region_id=us-east1"
+    -var "datastore_region_id=us-east1" \
+    -var "backend_domains=[\"${ENV_ID}-api.test.webstatus.dev\"]" \
+    -var "frontend_domains=[\"${ENV_ID}-website.test.webstatus.dev\"]" \
+    -var "custom_ssl_certificates_for_frontend=[]" \
+    -var "custom_ssl_certificates_for_backend=[]"
 ```
 
 That will print the plan to create everything. Once it looks okay, run:
@@ -65,8 +69,14 @@ terraform apply \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
     -var "deletion_protection=false" \
-    -var "datastore_region_id=us-east1"
+    -var "datastore_region_id=us-east1" \
+    -var "backend_domains=[\"${ENV_ID}-api.test.webstatus.dev\"]" \
+    -var "frontend_domains=[\"${ENV_ID}-website.test.webstatus.dev\"]" \
+    -var "custom_ssl_certificates_for_frontend=[]" \
+    -var "custom_ssl_certificates_for_backend=[]"
 ```
+
+**NOTE**: You may need to run it multiple times if it gets stuck.
 
 Create the tables by running:
 
@@ -100,7 +110,12 @@ terraform destroy \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
     -var "deletion_protection=false" \
-    -var "datastore_region_id=us-east1"
+    -var "datastore_region_id=us-east1" \
+    -var "custom_ssl_certificates_for_frontend=[]" \
+    -var "custom_ssl_certificates_for_backend=[]"
+
+If it fails, run: `./network/clean_up.sh web-compass-staging ${ENV_ID}-webstatus-dev-network`
+
 terraform workspace select default
 terraform workspace delete $ENV_ID
 ```

@@ -276,6 +276,17 @@ resource "google_compute_target_https_proxy" "lb_https_proxy" {
   ]
 }
 
+# resource "google_dns_record_set" "dns" {
+#   count = var.dns_zone != null ? 1: 0
+#   name = "frontend.${var.dns_zone}"
+#   type = "A"
+#   ttl  = 300
+
+#   managed_zone = var.dns_zone
+
+#   rrdatas = [google_compute_instance.frontend.network_interface[0].access_config[0].nat_ip]
+# }
+
 resource "google_compute_managed_ssl_certificate" "lb_default" {
   provider = google.public_project
   name     = "${var.env_id}-backend-ssl-cert"
