@@ -41,11 +41,11 @@ CREATE TABLE IF NOT EXISTS SavedSearchUserRoles (
     UserID STRING(MAX) NOT NULL,
     UserRole STRING(MAX) NOT NULL,
     FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches(ID)  ON DELETE CASCADE
-) PRIMARY KEY (SavedSearchID, UserID);
+) PRIMARY KEY (UserID, SavedSearchID);
 
 -- UserSavedSearchBookmarks keeps track of the user's bookmarks for user-created saved searches.
 CREATE TABLE IF NOT EXISTS UserSavedSearchBookmarks (
     SavedSearchID STRING(36) NOT NULL,
     UserID STRING(MAX) NOT NULL,
     FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches(ID)  ON DELETE CASCADE
-) PRIMARY KEY (SavedSearchID, UserID);
+) PRIMARY KEY (UserID, SavedSearchID);

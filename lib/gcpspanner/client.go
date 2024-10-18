@@ -200,7 +200,7 @@ type writeableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey an
 // removableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
 type removableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
 	writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
-	DeleteKey(ExternalKey) spanner.KeySet
+	DeleteKey(ExternalKey) spanner.Key
 }
 
 // writeableEntityMapperWithIDRetrieval further extends WriteableEntityMapper
@@ -332,6 +332,15 @@ type entityRemover[
 	SpannerStruct any,
 	ExternalKey any] struct {
 	*Client
+}
+
+func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) remove(ctx context.Context,
+	input ExternalStruct) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		return c.removeWithTransaction(ctx, txn, input)
+	})
+
+	return err
 }
 
 // removeWithTransaction performs an delete operation on an entity using the existing transaction.
