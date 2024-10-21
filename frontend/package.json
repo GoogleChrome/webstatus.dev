@@ -32,7 +32,7 @@
     "@open-wc/testing": "^4.0.0",
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
-    "@types/chai": "^4.3.19",
+    "@types/chai": "^5.0.0",
     "@types/mocha": "^10.0.9",
     "@types/node": "^22.7.7",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
