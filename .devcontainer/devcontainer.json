@@ -27,7 +27,7 @@
       "moby": false
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22.9.0"
+      "version": "22.10.0"
     },
     "ghcr.io/devcontainers/features/terraform:1": {
       // Get version from https://github.com/hashicorp/terraform/releases
