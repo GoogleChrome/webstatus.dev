@@ -103,19 +103,21 @@ module "backend" {
     google.public_project   = google.public_project
   }
 
-  region_to_subnet_info_map            = module.network.region_to_subnet_info_map
-  deletion_protection                  = var.deletion_protection
-  env_id                               = var.env_id
-  spanner_datails                      = module.storage.spanner_info
-  docker_repository_details            = module.storage.docker_repository_details
-  datastore_info                       = module.storage.datastore_info
-  vpc_name                             = module.network.vpc_name
-  ssl_certificates                     = var.ssl_certificates
-  domains_for_gcp_managed_certificates = var.backend_domains_for_gcp_managed_certificates
-  projects                             = var.projects
-  cache_duration                       = var.cache_duration
-  redis_env_vars                       = module.storage.redis_env_vars
-  cors_allowed_origin                  = var.backend_cors_allowed_origin
+  region_to_subnet_info_map = module.network.region_to_subnet_info_map
+  deletion_protection       = var.deletion_protection
+  env_id                    = var.env_id
+  spanner_datails           = module.storage.spanner_info
+  docker_repository_details = module.storage.docker_repository_details
+  datastore_info            = module.storage.datastore_info
+  vpc_name                  = module.network.vpc_name
+  domains                   = var.backend_domains
+  custom_ssl_certificates   = var.custom_ssl_certificates_for_backend
+  projects                  = var.projects
+  cache_duration            = var.cache_duration
+  redis_env_vars            = module.storage.redis_env_vars
+  cors_allowed_origin       = var.backend_cors_allowed_origin
+  min_instance_count        = var.backend_min_instance_count
+  max_instance_count        = var.backend_max_instance_count
 }
 
 module "frontend" {
@@ -125,20 +127,22 @@ module "frontend" {
     google.public_project   = google.public_project
   }
 
-  env_id                               = var.env_id
-  deletion_protection                  = var.deletion_protection
-  docker_repository_details            = module.storage.docker_repository_details
-  backend_api_host                     = var.backend_api_url
-  google_analytics_id                  = var.google_analytics_id
-  region_to_subnet_info_map            = module.network.region_to_subnet_info_map
-  vpc_name                             = module.network.vpc_name
-  docker_build_target                  = var.frontend_docker_build_target
-  ssl_certificates                     = var.ssl_certificates
-  domains_for_gcp_managed_certificates = var.frontend_domains_for_gcp_managed_certificates
-  projects                             = var.projects
+  env_id                    = var.env_id
+  deletion_protection       = var.deletion_protection
+  docker_repository_details = module.storage.docker_repository_details
+  backend_api_host          = var.backend_api_url
+  google_analytics_id       = var.google_analytics_id
+  region_to_subnet_info_map = module.network.region_to_subnet_info_map
+  vpc_name                  = module.network.vpc_name
+  docker_build_target       = var.frontend_docker_build_target
+  domains                   = var.frontend_domains
+  custom_ssl_certificates   = var.custom_ssl_certificates_for_frontend
+  projects                  = var.projects
   firebase_settings = {
     api_key     = local.firebase_api_key
     auth_domain = "${var.projects.internal}.firebaseapp.com"
     tenant_id   = module.auth.tenant_id
   }
+  min_instance_count = var.frontend_min_instance_count
+  max_instance_count = var.frontend_max_instance_count
 }

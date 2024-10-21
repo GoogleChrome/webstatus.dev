@@ -24,7 +24,7 @@ spec:
       image: datastore
       imagePullPolicy: Never # Need this for pushing directly into minikube
       ports:
-        - containerPort: 8085
+        - containerPort: 8086
           name: datastore-port
       resources:
         limits:

@@ -38,9 +38,10 @@ google_analytics_id = "G-CZ6STBPSB2"
 
 frontend_docker_build_target = "static"
 
-backend_domains_for_gcp_managed_certificates  = ["api.webstatus.dev"]
-frontend_domains_for_gcp_managed_certificates = ["webstatus.dev", "www.webstatus.dev"]
-ssl_certificates                              = []
+backend_domains                      = ["api.webstatus.dev"]
+frontend_domains                     = ["webstatus.dev", "www.webstatus.dev"]
+custom_ssl_certificates_for_frontend = []
+custom_ssl_certificates_for_backend  = []
 
 spanner_region_override = "nam-eur-asia1"
 
@@ -79,3 +80,6 @@ auth_github_config_locations = {
   client_id     = "prod-github-client-id"
   client_secret = "prod-github-client-secret"
 }
+
+backend_min_instance_count  = 1
+frontend_min_instance_count = 1

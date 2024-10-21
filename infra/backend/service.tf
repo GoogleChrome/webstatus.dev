@@ -57,6 +57,10 @@ resource "google_cloud_run_v2_service" "service" {
   ingress  = "INGRESS_TRAFFIC_INTERNAL_LOAD_BALANCER"
 
   template {
+    scaling {
+      min_instance_count = var.min_instance_count
+      max_instance_count = var.max_instance_count
+    }
     containers {
       name  = "backend"
       image = "${docker_image.backend.name}@${docker_registry_image.backend_remote_image.sha256_digest}"
@@ -217,7 +221,21 @@ resource "google_compute_url_map" "url_map" {
   provider = google.public_project
   name     = "${var.env_id}-backend-url-map"
 
-  default_service = google_compute_backend_service.lb_backend.id
+  host_rule {
+    hosts        = var.domains
+    path_matcher = "allpaths"
+  }
+
+  path_matcher {
+    name            = "allpaths"
+    default_service = google_compute_backend_service.lb_backend.id
+  }
+  default_url_redirect {
+    host_redirect  = "github.com"
+    https_redirect = true
+    path_redirect  = "/GoogleChrome/webstatus.dev"
+    strip_query    = true
+  }
 }
 
 resource "google_compute_global_forwarding_rule" "https" {
@@ -252,7 +270,7 @@ resource "google_compute_target_https_proxy" "lb_https_proxy" {
   provider         = google.public_project
   name             = "${var.env_id}-backend-https-proxy"
   url_map          = google_compute_url_map.url_map.id
-  ssl_certificates = length(google_compute_managed_ssl_certificate.lb_default) > 0 ? [google_compute_managed_ssl_certificate.lb_default[0].id] : var.ssl_certificates
+  ssl_certificates = length(google_compute_managed_ssl_certificate.lb_default) > 0 ? [google_compute_managed_ssl_certificate.lb_default[0].id] : var.custom_ssl_certificates
   depends_on = [
     google_compute_managed_ssl_certificate.lb_default
   ]
@@ -261,9 +279,9 @@ resource "google_compute_target_https_proxy" "lb_https_proxy" {
 resource "google_compute_managed_ssl_certificate" "lb_default" {
   provider = google.public_project
   name     = "${var.env_id}-backend-ssl-cert"
-  count    = length(var.domains_for_gcp_managed_certificates) > 0 ? 1 : 0
+  count    = length(var.custom_ssl_certificates) > 0 ? 0 : 1
   project  = var.projects.public
   managed {
-    domains = var.domains_for_gcp_managed_certificates
+    domains = var.domains
   }
 }

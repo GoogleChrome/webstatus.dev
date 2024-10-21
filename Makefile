@@ -75,7 +75,7 @@ port-forward-terminate:
 minikube-running:
 		# Check if minikube is running using a shell command
 		@if ! minikube status -p "$${MINIKUBE_PROFILE}" | grep -q "Running"; then \
-				minikube start -p "$${MINIKUBE_PROFILE}" --disk-size=10gb --cpus=2 --memory=4096m; \
+				minikube start -p "$${MINIKUBE_PROFILE}" --cni calico --disk-size=10gb --cpus=2 --memory=4096m; \
 		fi
 minikube-clean-restart: minikube-delete minikube-running
 minikube-delete:
@@ -383,11 +383,11 @@ dev_fake_users: build
 dev_fake_data: build is_local_migration_ready
 	fuser -k 9010/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
-	fuser -k 8085/tcp || true
-	kubectl port-forward --address 127.0.0.1 pod/datastore 8085:8085 2>&1 >/dev/null &
-	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8085 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local -datastore_project=local
+	fuser -k 8086/tcp || true
+	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
+	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local -datastore_project=local
 	fuser -k 9010/tcp || true
-	fuser -k 8085/tcp || true
+	fuser -k 8086/tcp || true
 is_local_migration_ready:
 	kubectl wait --for=condition=ready --timeout=300s pod/spanner
 	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \

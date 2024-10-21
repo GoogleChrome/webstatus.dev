@@ -97,20 +97,25 @@ variable "frontend_docker_build_target" {
   description = "Dockerfile target for the frontend image"
 }
 
-variable "ssl_certificates" {
+variable "custom_ssl_certificates_for_frontend" {
   type        = list(string)
-  description = "List of custom SSL certs"
+  description = "List of custom SSL certs for frontend that are not managed by GCP"
+}
+
+variable "custom_ssl_certificates_for_backend" {
+  type        = list(string)
+  description = "List of custom SSL certs for backend that are not managed by GCP"
 }
 
 
-variable "frontend_domains_for_gcp_managed_certificates" {
+variable "frontend_domains" {
   type        = list(string)
-  description = "List of domains for the frontend that GCP should manage certs for."
+  description = "List of domains for the frontend"
 }
 
-variable "backend_domains_for_gcp_managed_certificates" {
+variable "backend_domains" {
   type        = list(string)
-  description = "List of domains for the backend that GCP should manage certs for."
+  description = "List of domains for the backend"
 }
 
 variable "cache_duration" {
@@ -154,4 +159,31 @@ variable "auth_github_config_locations" {
     client_id     = string
     client_secret = string
   })
+}
+
+variable "backend_min_instance_count" {
+  type        = number
+  description = "Minimum instance count for backend instances"
+}
+
+variable "backend_max_instance_count" {
+  type        = number
+  description = "Maximum instance count for backend instances"
+  # Use default max of 100.
+  # https://cloud.google.com/run/docs/configuring/max-instances#setting
+  default = 100
+}
+
+
+variable "frontend_min_instance_count" {
+  type        = number
+  description = "Minimum instance count for frontend instances"
+}
+
+variable "frontend_max_instance_count" {
+  type        = number
+  description = "Maximum instance count for frontend instances"
+  # Use default max of 100.
+  # https://cloud.google.com/run/docs/configuring/max-instances#setting
+  default = 100
 }
