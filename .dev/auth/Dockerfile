@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:22.9.0-slim
+FROM node:23.0.0-slim
 # FIREBASE_CLI_VERSION from https://github.com/firebase/firebase-tools/releases
 ARG FIREBASE_CLI_VERSION=13.20.1
 # Workaround for https://github.com/firebase/firebase-tools/issues/6931 is to install via npm
