@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM fsouza/fake-gcs-server:1.50.0
+FROM fsouza/fake-gcs-server:1.50.2
 
 # https://cloud.google.com/datastore/docs/tools/datastore-emulator
 CMD ["-scheme", "http", "-public-host", "gcs:4443", "-external-url", "http://gcs:4443"]
