@@ -87,4 +87,11 @@ export default [
       'n/no-unsupported-features/node-builtins': 'off',
     },
   },
+  {
+    // chai assertion statements will trigger this.
+    files: ['**/test/*.test.ts'],
+    rules: {
+      '@typescript-eslint/no-unused-expressions': 'off',
+    },
+  },
 ];
