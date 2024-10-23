@@ -13,6 +13,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Set umask inside the container for new files.
+umask 022
+
+# Make sure all files have read everyone for existing files.
+chmod -R a+r ./*
+
 # Clean up minikube just in case to ensure a fresh cluster.
 make minikube-delete
 
