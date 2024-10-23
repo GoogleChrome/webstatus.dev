@@ -104,7 +104,7 @@ func (c *Client) InsertWPTRun(ctx context.Context, run WPTRun) error {
 // GetWPTRunDataByRunIDForMetrics is a helper function to help get a subsection of the WPT Run information. This
 // information will be used to create the WPT Run metrics.
 func (c *Client) GetWPTRunDataByRunIDForMetrics(ctx context.Context, runID int64) (*WPTRunDataForMetrics, error) {
-	row, err := newEntityReader[wptRunSpannerMapper, spannerWPTRun](c).readRowByKey(ctx, runID)
+	row, err := newEntityReader[wptRunSpannerMapper, spannerWPTRun, int64](c).readRowByKey(ctx, runID)
 	if err != nil {
 		return nil, err
 	}
