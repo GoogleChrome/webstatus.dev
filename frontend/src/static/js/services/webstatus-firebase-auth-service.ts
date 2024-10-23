@@ -16,6 +16,7 @@
 
 import {customElement, property, state} from 'lit/decorators.js';
 import {consume, provide} from '@lit/context';
+import {Task} from '@lit/task';
 import {
   FirebaseApp,
   firebaseAppContext,
@@ -31,9 +32,12 @@ import {
   getAuth,
   signInWithPopup,
 } from 'firebase/auth';
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  FirebaseUser,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 import {ServiceElement} from './service-element.js';
-
+import {Octokit} from '@octokit/rest';
 interface FirebaseAuthSettings {
   emulatorURL: string;
   tenantID: string;
@@ -52,13 +56,20 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   firebaseAuthConfig?: AuthConfig;
 
   @provide({context: firebaseUserContext})
-  user?: User;
+  user?: FirebaseUser;
+
+  _loadingGithubUsername?: Task;
 
   // Useful for testing
   authInitializer: (app: FirebaseApp | undefined) => Auth = getAuth;
 
   // Useful for testing
   emulatorConnector: (auth: Auth, url: string) => void = connectAuthEmulator;
+
+  loadGithubUsername = async (token?: string) => {
+    const octokit = new Octokit({auth: token});
+    return await octokit.users.getAuthenticated();
+  };
 
   initFirebaseAuth() {
     if (this.firebaseApp) {
@@ -84,9 +95,24 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       // Set up the callback that will detect when:
       // 1. The user first logs in
       // 2. Resuming a session
-      this.firebaseAuthConfig.auth.onAuthStateChanged(user => {
-        this.user = user ? user : undefined;
-      });
+      this.firebaseAuthConfig.auth.onAuthStateChanged(
+        async (authenticatedUser?: any) => {
+          if (authenticatedUser !== null) {
+            await this.loadGithubUsername(authenticatedUser.accessToken)
+              .then(githubUser => {
+                this.user = {
+                  ...authenticatedUser,
+                  gitHubUsername: githubUser.data.login || null,
+                };
+              })
+              .catch(_ => {
+                throw new Error('Github username request failed.');
+              });
+          } else {
+            throw new Error('No user authenticated.');
+          }
+        }
+      );
     }
   }
 
