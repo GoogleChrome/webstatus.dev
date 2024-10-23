@@ -22,12 +22,12 @@ CREATE TABLE IF NOT EXISTS SavedSearches (
     Name STRING(MAX) NOT NULL,
     -- Query is the query string of the saved search.
     Query STRING(MAX) NOT NULL,
-    -- Scope is the scope of the saved search, which can be one of the following:
-    -- USER_PUBLIC: The saved search is created by a user and is publicly accessible.
+    -- Scope is the scope of the saved search.
+    -- Refer to the SavedSearchScope enum in lib/gcpspanner/saved_searches.go for possible values.
     Scope STRING(MAX) NOT NULL,
-    -- AuthorID is only for auditing purposes. The author may not always be the
-    -- owner. Instead, we should always rely on SavedSearchUserRoles for current
-    -- roles.
+    -- AuthorID is only for auditing purposes. The author may not always be the owner.
+    -- Instead, we should always rely on SavedSearchUserRoles for current roles.
+    -- This ID is the unique ID for each user managed by Google Cloud Identity Platform.
     AuthorID STRING(MAX) NOT NULL,
     -- CreatedAt is the timestamp of the first saved search revision.
     CreatedAt TIMESTAMP OPTIONS (allow_commit_timestamp=true),
@@ -39,6 +39,7 @@ CREATE TABLE IF NOT EXISTS SavedSearches (
 CREATE TABLE IF NOT EXISTS SavedSearchUserRoles (
     SavedSearchID STRING(36) NOT NULL,
     UserID STRING(MAX) NOT NULL,
+    -- Refer to the SavedSearchRole enum in lib/gcpspanner/saved_search_user_roles.go for possible values.
     UserRole STRING(MAX) NOT NULL,
     FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches(ID)  ON DELETE CASCADE
 ) PRIMARY KEY (UserID, SavedSearchID);
