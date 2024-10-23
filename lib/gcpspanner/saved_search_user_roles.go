@@ -21,3 +21,12 @@ const (
 	// SavedSearchOwner indicates the user owns the saved search query.
 	SavedSearchOwner SavedSearchRole = "OWNER"
 )
+
+const savedSearchUserRolesTable = "SavedSearchUserRoles"
+
+// SavedSearchUserRole represents a user's role in relation to a saved search.
+type SavedSearchUserRole struct {
+	SavedSearchID string          `spanner:"SavedSearchID"`
+	UserID        string          `spanner:"UserID"`
+	UserRole      SavedSearchRole `spanner:"UserRole"`
+}

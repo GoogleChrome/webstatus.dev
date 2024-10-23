@@ -14,6 +14,10 @@
 
 package gcpspanner
 
+import (
+	"time"
+)
+
 // SavedSearchScope represents the scope of a saved search.
 type SavedSearchScope string
 
@@ -21,3 +25,16 @@ const (
 	// UserPublicScope indicates that this is user created saved search meant to be publicly accessible.
 	UserPublicScope SavedSearchScope = "USER_PUBLIC"
 )
+
+const savedSearchesTable = "SavedSearches"
+
+// SavedSearch represents a saved search row in the SavedSearches table.
+type SavedSearch struct {
+	ID        string           `spanner:"ID"`
+	Name      string           `spanner:"Name"`
+	Query     string           `spanner:"Query"`
+	Scope     SavedSearchScope `spanner:"Scope"`
+	AuthorID  string           `spanner:"AuthorID"`
+	CreatedAt time.Time        `spanner:"CreatedAt"`
+	UpdatedAt time.Time        `spanner:"UpdatedAt"`
+}

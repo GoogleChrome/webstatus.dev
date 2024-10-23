@@ -46,7 +46,15 @@ var ErrInvalidCursorFormat = errors.New("invalid cursor format")
 type Client struct {
 	*spanner.Client
 	featureSearchQuery FeatureSearchBaseQuery
+	searchCfg          searchConfig
 }
+
+// searchConfig holds the application configuation for the saved search feature.
+type searchConfig struct {
+	maxOwnedSearchesPerUser uint32
+}
+
+const defaultMaxOwnedSearchesPerUser = 25
 
 // NewSpannerClient returns a Client for the Google Spanner service.
 func NewSpannerClient(projectID string, instanceID string, name string) (*Client, error) {
@@ -66,6 +74,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 	return &Client{
 		client,
 		GCPFeatureSearchBaseQuery{},
+		searchConfig{maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser},
 	}, nil
 }
 
