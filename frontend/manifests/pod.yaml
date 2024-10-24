@@ -32,6 +32,8 @@ spec:
       env:
         - name: API_URL
           value: http://localhost:8080
+        - name: WEB_FEATURES_PROGRESS_URL
+          value: http://localhost:4443/download/storage/v1/b/webfeatures/o/progress.json
         - name: GOOGLE_ANALYTICS_ID
           value: G-EPZE5TL134
         - name: FIREBASE_AUTH_EMULATOR_URL

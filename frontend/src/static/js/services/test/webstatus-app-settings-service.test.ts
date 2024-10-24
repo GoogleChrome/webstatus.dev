@@ -29,6 +29,7 @@ import {type WebstatusAppSettingsService} from '../webstatus-app-settings-servic
 describe('webstatus-app-settings-service', () => {
   const settings: AppSettings = {
     apiUrl: 'http://localhost',
+    webFeaturesProgressUrl: 'url',
     firebase: {
       app: {
         apiKey: 'testapikey',

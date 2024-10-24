@@ -18,6 +18,7 @@
 export interface AppSettings {
   apiUrl: string;
   firebase: FirebaseSettings;
+  webFeaturesProgressUrl: string;
 }
 
 interface FirebaseAppSettings {
