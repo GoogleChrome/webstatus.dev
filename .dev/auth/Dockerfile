@@ -12,14 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:22.10.0-slim
-# FIREBASE_CLI_VERSION from https://github.com/firebase/firebase-tools/releases
-ARG FIREBASE_CLI_VERSION=13.20.1
-# Workaround for https://github.com/firebase/firebase-tools/issues/6931 is to install via npm
-RUN npm i firebase-tools@${FIREBASE_CLI_VERSION} -g
-# Once https://github.com/firebase/firebase-tools/issues/6931 is resolved, we can install via ADD instead of npm
-# ADD https://github.com/firebase/firebase-tools/releases/download/v${FIREBASE_CLI_VERSION}/firebase-tools-linux /usr/local/bin/firebase
-RUN chmod +x /usr/local/bin/firebase
+FROM andreysenov/firebase-tools:13.23.0-node-20-slim
+
 ADD firebase.json firebase.json
 RUN firebase setup:emulators:ui --project=local
 ENTRYPOINT [ "firebase", "emulators:start", "--project=local" ]
