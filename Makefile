@@ -330,6 +330,19 @@ go-tidy: go-workspace-setup
 		echo -e "\n" || exit 1; \
 		popd ; \
 	done
+go-module-graph:
+	sudo apt install graphviz
+	go install github.com/loov/goda@latest
+	rm -f docs/go_dependencies/*.svg
+	@declare -a GO_MODULES=(); \
+	readarray -t GO_MODULES <  <(go list -f {{.String}} -m); \
+	for GO_MODULE in $${GO_MODULES[@]}; \
+	do \
+		echo "********* graphing modules for: $${GO_MODULE} *********" ; \
+		filename="$${GO_MODULE//\//_}"; \
+		filename="$${filename//./-}"; \
+		goda graph -cluster -short "$${GO_MODULE}/... + $${GO_MODULE}/...:import" | dot -Tsvg -o docs/go_dependencies/$${filename}.svg ; \
+	done
 go-build: go-workspace-setup go-tidy
 	go list -f '{{.Dir}}/...' -m | xargs go build
 go-workspace-setup: go-workspace-clean
