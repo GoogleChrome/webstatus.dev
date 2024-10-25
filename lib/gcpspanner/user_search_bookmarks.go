@@ -14,6 +14,13 @@
 
 package gcpspanner
 
+import (
+	"context"
+	"fmt"
+
+	"cloud.google.com/go/spanner"
+)
+
 // UserSavedSearchBookmark represents a user's bookmark for a saved search.
 type UserSavedSearchBookmark struct {
 	UserID        string `spanner:"UserID"`
@@ -21,3 +28,56 @@ type UserSavedSearchBookmark struct {
 }
 
 const userSavedSearchBookmarksTable = "UserSavedSearchBookmarks"
+
+// Implements the entityMapper interface for UserSavedSearchBookmark.
+type userSavedSearchBookmarkMapper struct{}
+
+func (m userSavedSearchBookmarkMapper) Table() string {
+	return userSavedSearchBookmarksTable
+}
+
+type userSavedSearchBookmarkKey struct {
+	UserSavedSearchBookmark
+}
+
+func (m userSavedSearchBookmarkMapper) GetKey(
+	in UserSavedSearchBookmark) userSavedSearchBookmarkKey {
+	return userSavedSearchBookmarkKey{
+		UserSavedSearchBookmark: in,
+	}
+}
+
+func (m userSavedSearchBookmarkMapper) Merge(
+	_ UserSavedSearchBookmark, existing UserSavedSearchBookmark) UserSavedSearchBookmark {
+	return existing
+}
+
+func (m userSavedSearchBookmarkMapper) SelectOne(
+	key userSavedSearchBookmarkKey) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		SavedSearchID, UserID
+	FROM %s
+	WHERE UserID = @userID AND SavedSearchID = @savedSearchID
+	LIMIT 1`,
+		m.Table()))
+	parameters := map[string]interface{}{
+		"userID":        key.UserID,
+		"savedSearchID": key.SavedSearchID,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+func (m userSavedSearchBookmarkMapper) DeleteKey(key userSavedSearchBookmarkKey) spanner.Key {
+	return spanner.Key{key.UserID, key.SavedSearchID}
+}
+
+func (c *Client) AddUserSearchBookmark(ctx context.Context, req UserSavedSearchBookmark) error {
+	return newEntityWriter[userSavedSearchBookmarkMapper](c).upsert(ctx, req)
+}
+
+func (c *Client) DeleteUserSearchBookmark(ctx context.Context, req UserSavedSearchBookmark) error {
+	return newEntityRemover[userSavedSearchBookmarkMapper](c).remove(ctx, req)
+}
