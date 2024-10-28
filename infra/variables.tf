@@ -187,3 +187,7 @@ variable "frontend_max_instance_count" {
   # https://cloud.google.com/run/docs/configuring/max-instances#setting
   default = 100
 }
+
+variable "web_features_progress_url" {
+  type = string
+}

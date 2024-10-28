@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,24 +14,14 @@
  * limitations under the License.
  */
 
-// AppSettings contains non sensitive settings that can be passed to the client.
-export interface AppSettings {
-  apiUrl: string;
-  firebase: FirebaseSettings;
-  webFeaturesProgressUrl: string;
+import {createContext} from '@lit/context';
+
+export interface WebFeatureProgress {
+  bcdMapProgress?: number;
+  isDisabled?: boolean;
+  error?: string;
 }
 
-interface FirebaseAppSettings {
-  apiKey: string;
-  authDomain: string;
-}
-
-interface FirebaseAuthSettings {
-  emulatorURL: string;
-  tenantID: string;
-}
-
-interface FirebaseSettings {
-  app: FirebaseAppSettings;
-  auth: FirebaseAuthSettings;
-}
+export const webFeatureProgressContext = createContext<
+  WebFeatureProgress | undefined
+>('webfeature-progress');
