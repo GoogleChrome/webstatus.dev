@@ -240,14 +240,13 @@ test('Typing slash focuses on searchbox', async ({page}) => {
 });
 
 test.describe('web features mapping progress', () => {
+  const mappingPattern = /Percentage of Features Mapped:\s+\d+(\.\d+)?%/;
   test('Overview page has the progress with a clickable link', async ({
     page,
   }) => {
     await gotoOverviewPageUrl(page, 'http://localhost:5555/');
 
-    const textLocator = page.getByText(
-      /Percentage of Features Mapped:\s+\d+(\.\d+)?%/
-    );
+    const textLocator = page.getByText(mappingPattern);
     await expect(textLocator).toBeVisible();
 
     const linkLocator = textLocator.locator('a');
@@ -265,7 +264,7 @@ test.describe('web features mapping progress', () => {
   test('Web Features progress request fails and shows toast', async ({
     page,
   }) => {
-    // Mock the API to return an error when requesting all features.
+    // Mock the API to return an error when requesting mapping feature progress.
     page.on('request', async request => {
       await page.route('**/progress.json*', async route => {
         return route.abort();
@@ -277,5 +276,24 @@ test.describe('web features mapping progress', () => {
     // For some reason it brings up two toasts. We should fix that.
     const toast = page.locator('.toast').first();
     await toast.waitFor({state: 'visible'});
+  });
+
+  test('Web Features progress can be removed if is_disabled=true', async ({
+    page,
+  }) => {
+    // Mock the API to is_disabled flag.
+    page.on('request', async request => {
+      await page.route('**/progress.json*', route =>
+        route.fulfill({
+          status: 200,
+          body: '{"is_disabled": true}',
+        })
+      );
+    });
+    await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+
+    // Assert mapping text is not visible
+    const textLocator = page.getByText(mappingPattern);
+    await expect(textLocator).toBeVisible({visible: false});
   });
 });
