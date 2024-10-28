@@ -80,7 +80,7 @@ export class WebstatusOverviewContent extends LitElement {
       );
       return html``;
     }
-    return html`Percentage of Features Mapped:&nbsp;
+    return html`Percentage of features mapped:&nbsp;
       <a href="${webFeaturesRepoUrl}">
         ${
           this.webFeaturesProgress.bcdMapProgress

@@ -239,7 +239,7 @@ test('Typing slash focuses on searchbox', async ({page}) => {
 });
 
 test.describe('web features mapping progress', () => {
-  const mappingPattern = /Percentage of Features Mapped:\s+\d+(\.\d+)?%/;
+  const mappingPattern = /Percentage of features mapped:\s+\d+(\.\d+)?%/;
   test('Overview page has the progress with a clickable link', async ({
     page,
   }) => {

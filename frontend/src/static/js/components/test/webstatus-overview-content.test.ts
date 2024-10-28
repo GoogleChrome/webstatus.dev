@@ -96,7 +96,7 @@ describe('webstatus-overview-content', () => {
       element.webFeaturesProgress = {bcdMapProgress: 75};
       await element.updateComplete;
       expect(testContainer.textContent?.trim()).to.match(
-        /Percentage of Features Mapped:\s*75%/
+        /Percentage of features mapped:\s*75%/
       );
     });
   });
