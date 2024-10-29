@@ -224,7 +224,7 @@ test: go-test node-test
 
 # Clean up any dangling test containers
 clean-up-go-testcontainers:
-	docker rm -f webstatus-dev-test-redis webstatus-dev-test-datastore webstatus-dev-test-spanner
+	docker rm -f webstatus-dev-test-valkey webstatus-dev-test-datastore webstatus-dev-test-spanner
 # TODO. We run the tests sequentially with `-p 1` because the testcontainers
 # do not play nicely together when running in parallel and take a long time to
 # reconcile state. Once the testcontainers library becomes stable (goes v1.0.0),

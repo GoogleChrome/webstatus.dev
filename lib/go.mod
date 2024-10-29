@@ -14,6 +14,7 @@ require (
 	github.com/google/go-github/v60 v60.0.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/testcontainers/testcontainers-go v0.31.0
+	github.com/valkey-io/valkey-go v1.0.53
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20241223190530-0cee35888986
 	go.opentelemetry.io/contrib/detectors/gcp v1.33.0
 	google.golang.org/api v0.214.0
@@ -85,7 +86,7 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
-	github.com/gomodule/redigo v1.9.2
+	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/uuid v1.6.0

@@ -12,20 +12,5 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta9
-kind: Config
-metadata:
-  name: redis-config
-profiles:
-  - name: local
-    build:
-      artifacts:
-        - image: redis
-          context: .
-      local:
-        useBuildkit: true
-    manifests:
-      rawYaml:
-        - manifests/*
-    deploy:
-      kubectl: {}
+# Ensure the version matches what GCP supports https://cloud.google.com/memorystore/docs/valkey/supported-versions
+FROM valkey/valkey:8.0.1-alpine3.20

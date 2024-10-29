@@ -43,12 +43,12 @@ output "buckets" {
   }
 }
 
-output "redis_env_vars" {
+output "valkey_env_vars" {
   value = {
     for region, _ in var.region_to_subnet_info_map :
     region => {
-      host = google_redis_instance.redis_instances[region].host
-      port = google_redis_instance.redis_instances[region].port
+      host = google_memorystore_instance.valkey_instance[region].host
+      port = google_memorystore_instance.valkey_instance[region].port
     }
   }
 }
