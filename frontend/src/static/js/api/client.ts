@@ -54,7 +54,11 @@ type SuccessResponsePageableData<
   Options,
   Media extends MediaType,
   Path extends PageablePath,
-> = ParseAsResponse<SuccessResponse<ResponseObjectMap<T>, Media>, Options> & {
+> = ParseAsResponse<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  SuccessResponse<ResponseObjectMap<T> & Record<string | number, any>, Media>,
+  Options
+> & {
   metadata: Path extends '/v1/features' ? PageMetadataWithTotal : PageMetadata;
 };
 
