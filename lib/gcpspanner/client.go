@@ -471,14 +471,12 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) updateWith
 }
 
 // removableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
-// nolint:unused // TODO: Remove nolint directive once the interface is used.
 type removableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
 	writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
 	DeleteKey(ExternalKey) spanner.Key
 }
 
 // entityRemover is a basic client for removing any row from the database.
-// nolint:unused // TODO: Remove nolint directive once the type is used.
 type entityRemover[
 	M removableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
 	ExternalStruct any,
@@ -488,7 +486,6 @@ type entityRemover[
 }
 
 // remove performs an delete operation on an entity.
-// nolint:unused // TODO: Remove nolint directive once the method is used.
 func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) remove(ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
@@ -559,7 +556,6 @@ func newEntityReader[
 	return &entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
 }
 
-// nolint:unused // TODO: Remove nolint directive once the method is used.
 func newEntityRemover[
 	M removableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
 	SpannerStruct any,
