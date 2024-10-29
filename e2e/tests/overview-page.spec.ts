@@ -45,7 +45,7 @@ test('shows an unknown error when there is an internal error', async ({
         code: 500,
         message: 'uh-oh',
       },
-    })
+    }),
   );
   await page.goto('http://localhost:5555/');
 
@@ -74,7 +74,7 @@ test('hides the Feature column', async ({page}) => {
 
   // Uncheck the "Feature name" checkbox.
   const nameCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="name"]'
+    'sl-checkbox[value="name"]',
   );
   await nameCheckbox.click();
 
@@ -108,12 +108,12 @@ test('shows the Baseline status column with low and high date options', async ({
 
   // Check the "Baseline status low date" checkbox.
   const baselineStatusLowDateCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="baseline_status_low_date"]'
+    'sl-checkbox[value="baseline_status_low_date"]',
   );
   await baselineStatusLowDateCheckbox.click();
   // Check the "Baseline status high date" checkbox.
   const baselineStatusHighDateCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="baseline_status_high_date"]'
+    'sl-checkbox[value="baseline_status_high_date"]',
   );
   await baselineStatusHighDateCheckbox.click();
 
@@ -256,7 +256,7 @@ test.describe('web features mapping progress', () => {
 
     await linkLocator.click();
     await expect(page).toHaveURL(
-      'https://github.com/web-platform-dx/web-features'
+      'https://github.com/web-platform-dx/web-features',
     );
   });
 
@@ -286,7 +286,7 @@ test.describe('web features mapping progress', () => {
         route.fulfill({
           status: 200,
           body: '{"is_disabled": true}',
-        })
+        }),
       );
     });
     await gotoOverviewPageUrl(page, 'http://localhost:5555/');

@@ -76,14 +76,14 @@ export class OverviewPage extends LitElement {
           data: page,
         };
       },
-      onError: (error: unknown) => {
+      onError: async (error: unknown) => {
         if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: error,
             data: null,
           };
-          toast(`${error.message}`, 'danger', 'exclamation-triangle');
+          await toast(`${error.message}`, 'danger', 'exclamation-triangle');
         } else {
           // Should never reach here but let's handle it.
           this.taskTracker = {

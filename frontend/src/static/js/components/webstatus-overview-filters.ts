@@ -415,8 +415,12 @@ export class WebstatusOverviewFilters extends LitElement {
         .then(() => {
           this.exportDataStatus = TaskStatus.COMPLETE;
         })
-        .catch(error => {
-          new Toast().toast(error?.message, 'danger', 'exclamation-triangle');
+        .catch(async error => {
+          await new Toast().toast(
+            error?.message,
+            'danger',
+            'exclamation-triangle',
+          );
           this.exportDataStatus = TaskStatus.ERROR;
         });
     };

@@ -60,6 +60,9 @@ export class WebstatusGChartsLoaderService extends ServiceElement {
           .then(() => {
             this.gchartsLibraryLoaded = true;
             resolve();
+          })
+          .catch(error => {
+            console.error(JSON.stringify(error));
           });
       });
     });

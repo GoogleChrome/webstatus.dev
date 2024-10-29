@@ -56,18 +56,18 @@ export class WebstatusColumnsDialog extends LitElement {
     ];
   }
 
-  openWithContext(location: {search: string}) {
+  async openWithContext(location: {search: string}) {
     this.location = location;
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
-    if (dialog?.show) dialog.show();
+    if (dialog?.show) await dialog.show();
   }
 
-  hide() {
+  async hide() {
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
-    if (dialog?.hide) dialog.hide();
+    if (dialog?.hide) await dialog.hide();
   }
 
-  handleSave() {
+  async handleSave() {
     const newColumns: string[] = [];
     const columnOptions: string[] = [];
     this.shadowRoot!.querySelectorAll<SlCheckbox>('sl-checkbox.column').forEach(
@@ -84,7 +84,7 @@ export class WebstatusColumnsDialog extends LitElement {
         columnOptions.push(cb.value);
       }
     });
-    this.hide();
+    await this.hide();
     const nextUrl = this.formatUrlWithColumns(newColumns, columnOptions);
     window.location.href = nextUrl;
   }
@@ -173,6 +173,6 @@ export async function openColumnsDialog(location: {
     document.body.appendChild(columnsDialogEl);
     await columnsDialogEl.updateComplete;
   }
-  columnsDialogEl.openWithContext(location);
+  await columnsDialogEl.openWithContext(location);
   return columnsDialogEl;
 }

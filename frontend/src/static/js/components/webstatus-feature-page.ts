@@ -273,7 +273,11 @@ export class FeaturePage extends LitElement {
         return Promise.reject('api client and/or featureId not set');
       },
     });
-    this._startMetricsTask(false);
+    // Temporarily to avoid the no-floating-promises error.
+    this._startMetricsTask(false).then(
+      () => {},
+      () => {},
+    );
     this._loadingMetadataTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
@@ -291,7 +295,7 @@ export class FeaturePage extends LitElement {
     updateFeaturePageUrl({feature_id: this.featureId}, location, overrides);
   }
 
-  handleBrowserSelection(event: Event) {
+  async handleBrowserSelection(event: Event) {
     const menu = event.target as SlMenu;
     const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
       child => child instanceof SlMenuItem,
@@ -302,11 +306,11 @@ export class FeaturePage extends LitElement {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
-    this._startMetricsTask(true);
+    await this._startMetricsTask(true);
     this.generateFeatureSupportChartOptions();
   }
 
-  handleStartDateChange(event: Event) {
+  async handleStartDateChange(event: Event) {
     const currentStartDate = this.startDate;
     const newStartDate = new Date((event.target as HTMLInputElement).value);
     if (
@@ -315,11 +319,11 @@ export class FeaturePage extends LitElement {
     ) {
       this.startDate = newStartDate;
       this.updateUrl();
-      this._startMetricsTask(true);
+      await this._startMetricsTask(true);
     }
   }
 
-  handleEndDateChange(event: Event) {
+  async handleEndDateChange(event: Event) {
     const currentEndDate = this.endDate;
     const newEndDate = new Date((event.target as HTMLInputElement).value);
     if (
@@ -328,7 +332,7 @@ export class FeaturePage extends LitElement {
     ) {
       this.endDate = newEndDate;
       this.updateUrl();
-      this._startMetricsTask(true);
+      await this._startMetricsTask(true);
     }
   }
 
@@ -905,7 +909,7 @@ export class FeaturePage extends LitElement {
     return this.renderWhenComplete();
   }
 
-  private _startMetricsTask(manualRun: boolean) {
+  private async _startMetricsTask(manualRun: boolean) {
     this._loadingMetricsTask?.abort(); // Stop any existing task
     this._loadingMetricsTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
@@ -922,7 +926,7 @@ export class FeaturePage extends LitElement {
     });
     if (manualRun) {
       this._loadingMetricsTask.autoRun = false;
-      this._loadingMetricsTask.run();
+      await this._loadingMetricsTask.run();
     }
   }
 }
