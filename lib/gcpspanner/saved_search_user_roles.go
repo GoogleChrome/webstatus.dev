@@ -14,6 +14,15 @@
 
 package gcpspanner
 
+import (
+	"context"
+	"errors"
+	"log/slog"
+
+	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
+)
+
 // SavedSearchRole is the enum for the saved searches role.
 type SavedSearchRole string
 
@@ -29,4 +38,40 @@ type SavedSearchUserRole struct {
 	SavedSearchID string          `spanner:"SavedSearchID"`
 	UserID        string          `spanner:"UserID"`
 	UserRole      SavedSearchRole `spanner:"UserRole"`
+}
+
+func (c *Client) checkForSavedSearchRole(
+	ctx context.Context, txn *spanner.ReadWriteTransaction, roleToCheck SavedSearchRole,
+	userID string, savedSearchID string) error {
+	var role string
+	stmt := spanner.Statement{
+		SQL: `SELECT UserRole
+				  FROM SavedSearchUserRoles
+				  WHERE SavedSearchID = @savedSearchID AND UserID = @userID`,
+		Params: map[string]interface{}{
+			"savedSearchID": savedSearchID,
+			"userID":        userID,
+		},
+	}
+	row, err := txn.Query(ctx, stmt).Next()
+	if err != nil {
+		// No row found. User does not have a role.
+		if errors.Is(err, iterator.Done) {
+			return errors.Join(ErrMissingRequiredRole, err)
+		}
+		slog.ErrorContext(ctx, "failed to query user role", "error", err)
+
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+	if err := row.Columns(&role); err != nil {
+		slog.ErrorContext(ctx, "failed to extract role from row", "error", err)
+
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	if role != string(roleToCheck) {
+		return ErrMissingRequiredRole
+	}
+
+	return nil
 }
