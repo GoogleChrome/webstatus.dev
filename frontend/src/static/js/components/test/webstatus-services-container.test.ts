@@ -54,7 +54,7 @@ describe('WebstatusServiceContainer', () => {
 
     for (const serviceTag of serviceTags) {
       const service = el.shadowRoot?.querySelector(
-        serviceTag
+        serviceTag,
       ) as ServiceElement;
       try {
         assert.exists(service, `${serviceTag} should be rendered`);
@@ -91,7 +91,7 @@ describe('WebstatusServiceContainer', () => {
     assert.strictEqual(
       slotContentElement.textContent?.trim(),
       'This is the slot content',
-      'Slot content should match'
+      'Slot content should match',
     );
   });
 });

@@ -65,15 +65,15 @@ describe('webstatus-webfeature-progress-service', () => {
       </fake-parent-element>
     `;
     parent = container.querySelector(
-      'fake-parent-element'
+      'fake-parent-element',
     ) as FakeParentElement;
 
     element = container.querySelector(
-      'webstatus-webfeature-progress-service'
+      'webstatus-webfeature-progress-service',
     ) as WebstatusWebFeatureProgressService;
 
     child = container.querySelector(
-      'fake-child-progress-element'
+      'fake-child-progress-element',
     ) as FakeChildElement;
     document.body.appendChild(container);
     await parent.updateComplete;

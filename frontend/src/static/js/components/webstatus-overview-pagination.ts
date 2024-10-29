@@ -151,7 +151,7 @@ export class WebstatusOverviewPagination extends LitElement {
           >
             ${i + 1}
           </sl-button>
-        `
+        `,
       )}
       ${missingBack ? html`<div>...</div>` : nothing}
       ${hasLastPage
@@ -189,7 +189,7 @@ export class WebstatusOverviewPagination extends LitElement {
         ${options.map(
           opt => html`
             <sl-option id="opt_${opt}" value=${opt}>${opt}</sl-option>
-          `
+          `,
         )}
       </sl-select>
       <span id="items-per-page"> items per page </span>

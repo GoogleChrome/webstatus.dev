@@ -29,7 +29,7 @@ describe('webstatus-feature-page', () => {
     el = await fixture<FeaturePage>(
       html`<webstatus-feature-page
         .location=${location}
-      ></webstatus-feature-page>`
+      ></webstatus-feature-page>`,
     );
 
     renderDescriptionSpy = sinon.spy(el, 'renderDescription');
@@ -42,7 +42,7 @@ describe('webstatus-feature-page', () => {
       wpt: {stable: {}},
     });
     expect(link).to.eq(
-      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative'
+      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative',
     );
   });
 
@@ -133,7 +133,7 @@ describe('webstatus-feature-page', () => {
 
     expect(renderDescriptionSpy.callCount).to.be.greaterThan(0);
     const descriptionSection = el.shadowRoot?.querySelector(
-      '#feature-description'
+      '#feature-description',
     );
     expect(descriptionSection).to.not.be.null;
     expect(descriptionSection?.textContent).to.contain('AMAZING DESCRIPTION');
@@ -144,7 +144,7 @@ describe('webstatus-feature-page', () => {
 
     beforeEach(async () => {
       element = await fixture(
-        html`<webstatus-feature-page></webstatus-feature-page>`
+        html`<webstatus-feature-page></webstatus-feature-page>`,
       );
       hostElement = document.createElement('div');
 
@@ -244,7 +244,7 @@ describe('webstatus-feature-page', () => {
 
     beforeEach(async () => {
       element = await fixture(
-        html`<webstatus-feature-page></webstatus-feature-page>`
+        html`<webstatus-feature-page></webstatus-feature-page>`,
       );
       element.endDate = new Date('2024-01-01');
       hostElement = document.createElement('div');
@@ -272,7 +272,7 @@ describe('webstatus-feature-page', () => {
       render(actual, hostElement);
       const host = await fixture(hostElement);
       expect(host?.textContent).to.contain(
-        'Became available on 2024-08-07 in version 123'
+        'Became available on 2024-08-07 in version 123',
       );
     });
   });

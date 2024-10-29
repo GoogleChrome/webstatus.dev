@@ -29,7 +29,7 @@ describe('webstatus-sidebar-menu', () => {
 
   beforeEach(async () => {
     el = await fixture<WebstatusSidebarMenu>(
-      '<webstatus-sidebar-menu></webstatus-sidebar-menu>'
+      '<webstatus-sidebar-menu></webstatus-sidebar-menu>',
     );
 
     // Mock router utility functions and initial location
@@ -67,10 +67,10 @@ describe('webstatus-sidebar-menu', () => {
     expect(bookmarkItems![1].selected).to.be.false;
 
     expect(bookmarkItems![0].querySelector('sl-icon')?.name).to.equal(
-      'bookmark'
+      'bookmark',
     );
     expect(bookmarkItems![1].querySelector('sl-icon')?.name).to.equal(
-      'bookmark'
+      'bookmark',
     );
   });
 
@@ -90,7 +90,7 @@ describe('webstatus-sidebar-menu', () => {
   it('correctly handles bookmark clicks', async () => {
     // Get the whole tree item
     const bookmarkItem = el.shadowRoot?.querySelector(
-      'sl-tree-item[id="bookmark0"]'
+      'sl-tree-item[id="bookmark0"]',
     ) as SlTreeItem;
     expect(bookmarkItem).to.exist;
 
@@ -133,10 +133,10 @@ describe('webstatus-sidebar-menu', () => {
 
     // Check the icon name based on the selected state
     expect(bookmarkItems[0].querySelector('sl-icon')?.name).to.equal(
-      'bookmark-star'
+      'bookmark-star',
     );
     expect(bookmarkItems[1].querySelector('sl-icon')?.name).to.equal(
-      'bookmark'
+      'bookmark',
     );
 
     // Restore
@@ -173,10 +173,10 @@ describe('webstatus-sidebar-menu', () => {
 
     // Check the icon name based on the selected state
     expect(bookmarkItems[0].querySelector('sl-icon')?.name).to.equal(
-      'bookmark-star'
+      'bookmark-star',
     );
     expect(bookmarkItems[1].querySelector('sl-icon')?.name).to.equal(
-      'bookmark'
+      'bookmark',
     );
   });
 });

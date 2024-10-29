@@ -29,7 +29,7 @@ describe('webstatus-gcharts-loader', () => {
   it('can be added to the page', async () => {
     const component = await fixture<WebstatusGChartsLoaderService>(
       html`<webstatus-gcharts-loader-service>
-      </webstatus-gcharts-loader-service>`
+      </webstatus-gcharts-loader-service>`,
     );
     assert.exists(component);
     await component.updateComplete;
@@ -50,7 +50,7 @@ describe('webstatus-gcharts-loader', () => {
     const component = await fixture<WebstatusGChartsLoaderService>(
       html`<webstatus-gcharts-loader-service>
         <fake-child-element></fake-child-element>
-      </webstatus-gcharts-loader-service>`
+      </webstatus-gcharts-loader-service>`,
     );
 
     assert.exists(component);
@@ -58,7 +58,7 @@ describe('webstatus-gcharts-loader', () => {
     await component.waitForGChartsLibraryLoaded();
 
     const childComponent = component.querySelector(
-      'fake-child-element'
+      'fake-child-element',
     ) as FakeChildElement;
     assert.exists(childComponent);
     await childComponent.updateComplete;

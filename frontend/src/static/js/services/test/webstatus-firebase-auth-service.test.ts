@@ -58,7 +58,7 @@ describe('webstatus-firebase-auth-service', () => {
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusFirebaseAuthService>(
       html`<webstatus-firebase-auth-service .settings=${settings}>
-      </webstatus-firebase-auth-service>`
+      </webstatus-firebase-auth-service>`,
     );
     assert.exists(component);
     assert.equal(component.settings, settings);
@@ -76,15 +76,15 @@ describe('webstatus-firebase-auth-service', () => {
           </webstatus-firebase-auth-service>
         </fake-parent-element>
       `,
-      root
+      root,
     );
     const parentElement = root.querySelector<FakeParentElement>(
-      'fake-parent-element'
+      'fake-parent-element',
     );
     assert.exists(parentElement);
 
     const component = root.querySelector<WebstatusFirebaseAuthService>(
-      'webstatus-firebase-auth-service'
+      'webstatus-firebase-auth-service',
     );
     assert.exists(component);
 
@@ -114,14 +114,14 @@ describe('webstatus-firebase-auth-service', () => {
       html`<webstatus-firebase-auth-service .settings=${settings}
         ><fake-child-auth-element-1></fake-child-auth-element-1>
       </webstatus-firebase-auth-service>`,
-      root
+      root,
     );
     const component = root.querySelector<WebstatusFirebaseAuthService>(
-      'webstatus-firebase-auth-service'
+      'webstatus-firebase-auth-service',
     );
     assert.exists(component);
     const childComponent = root.querySelector<FakeChildElement>(
-      'fake-child-auth-element-1'
+      'fake-child-auth-element-1',
     );
     assert.exists(childComponent);
     const userStub = {} as User;
@@ -138,22 +138,22 @@ describe('webstatus-firebase-auth-service', () => {
     assert.equal(
       component.firebaseAuthConfig?.auth,
       authStub,
-      'auth should be set correctly'
+      'auth should be set correctly',
     );
     assert.equal(
       component.firebaseAuthConfig?.icon,
       'github',
-      'icon should be github'
+      'icon should be github',
     );
     assert.equal(
       component.firebaseAuthConfig?.auth.tenantId,
       'tenantID',
-      'unexpected tenantID'
+      'unexpected tenantID',
     );
     // Ensure it gets it via context.
     assert.equal(
       component.firebaseAuthConfig,
-      childComponent.firebaseAuthConfig
+      childComponent.firebaseAuthConfig,
     );
   });
 
@@ -170,14 +170,14 @@ describe('webstatus-firebase-auth-service', () => {
       html`<webstatus-firebase-auth-service .settings=${settings}
         ><fake-child-auth-element-2></fake-child-auth-element-2>
       </webstatus-firebase-auth-service>`,
-      root
+      root,
     );
     const component = root.querySelector<WebstatusFirebaseAuthService>(
-      'webstatus-firebase-auth-service'
+      'webstatus-firebase-auth-service',
     );
     assert.exists(component);
     const childComponent = root.querySelector<FakeChildElement>(
-      'fake-child-auth-element-2'
+      'fake-child-auth-element-2',
     );
     assert.exists(childComponent);
 
@@ -217,15 +217,15 @@ describe('webstatus-firebase-auth-service', () => {
           </webstatus-firebase-auth-service>
         </fake-parent-element>
       `,
-      root
+      root,
     );
     const parentElement = root.querySelector<FakeParentElement>(
-      'fake-parent-element'
+      'fake-parent-element',
     );
     assert.exists(parentElement);
     parentElement.app = new FakeFirebaseApp();
     const component = root.querySelector<WebstatusFirebaseAuthService>(
-      'webstatus-firebase-auth-service'
+      'webstatus-firebase-auth-service',
     );
 
     assert.exists(component);
@@ -237,11 +237,11 @@ describe('webstatus-firebase-auth-service', () => {
     assert.isTrue(emulatorConnectorStub.calledOnce);
     assert.notExists(
       component.firebaseAuthConfig?.auth.tenantId,
-      'unexpected tenantID'
+      'unexpected tenantID',
     );
     expect(emulatorConnectorStub).to.have.been.calledWith(
       authStub,
-      'http://localhost:9099'
+      'http://localhost:9099',
     );
   });
 });

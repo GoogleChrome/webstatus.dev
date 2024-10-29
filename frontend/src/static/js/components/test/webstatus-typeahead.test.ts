@@ -50,7 +50,7 @@ describe('webstatus-typeahead', () => {
     assert.exists(component);
     assert.instanceOf(component, WebstatusTypeahead);
     const dropdown = component.shadowRoot!.querySelector(
-      'webstatus-typeahead-dropdown'
+      'webstatus-typeahead-dropdown',
     ) as WebstatusTypeaheadDropdown;
 
     assert.equal(false, dropdown.open);

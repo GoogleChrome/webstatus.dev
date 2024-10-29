@@ -76,7 +76,7 @@ export class WebstatusOverviewContent extends LitElement {
       new Toast().toast(
         this.webFeaturesProgress.error,
         'danger',
-        'exclamation-triangle'
+        'exclamation-triangle',
       );
       return html``;
     }

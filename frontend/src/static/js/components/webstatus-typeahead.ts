@@ -164,7 +164,7 @@ export class WebstatusTypeahead extends LitElement {
 
   shouldShowCandidate(
     candidate: VocabularyItem,
-    prefix: string | null
+    prefix: string | null,
   ): boolean {
     if (prefix === null) return false;
     const lowerPrefix: string = prefix.toLowerCase();
@@ -241,7 +241,7 @@ export class WebstatusTypeahead extends LitElement {
     }
     this.findPrefix();
     this.candidates = this.vocabulary.filter(c =>
-      this.shouldShowCandidate(c, this.prefix)
+      this.shouldShowCandidate(c, this.prefix),
     );
     const slDropdown = this.slDropdownRef.value as SlDropdown;
     if (
@@ -291,7 +291,7 @@ export class WebstatusTypeahead extends LitElement {
               doc=${c.doc}
               prefix=${this.prefix || ''}
             ></webstatus-typeahead-item>
-          `
+          `,
         )}
       </sl-menu>
     `;
@@ -446,7 +446,7 @@ export class WebstatusTypeaheadItem extends LitElement {
   handleMouseOver(event: Event) {
     if (this.parentElement) {
       (this.parentElement as SlMenu).setCurrentItem(
-        this as unknown as SlMenuItem
+        this as unknown as SlMenuItem,
       );
     }
     event.stopPropagation();

@@ -103,7 +103,7 @@ export class StatsPage extends LitElement {
   handleBrowserSelection(event: Event) {
     const menu = event.target as SlMenu;
     const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
-      child => child instanceof SlMenuItem
+      child => child instanceof SlMenuItem,
     ) as Array<SlMenuItem>;
 
     // Build the list of values of checked menu-items.
@@ -131,7 +131,7 @@ export class StatsPage extends LitElement {
     // Set up ResizeObserver one time to redraw chart when container resizes.
     if (!this.globalFeatureSupportResizeObserver) {
       const gfsChartElement = this.shadowRoot!.getElementById(
-        'global-feature-support-chart'
+        'global-feature-support-chart',
       );
       if (!gfsChartElement) return;
       this.globalFeatureSupportResizeObserver = new ResizeObserver(() => {
@@ -144,14 +144,14 @@ export class StatsPage extends LitElement {
   async _fetchGlobalFeatureSupportData(
     apiClient: APIClient,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ) {
     if (typeof apiClient !== 'object') return;
     const promises = ALL_BROWSERS.map(async browser => {
       for await (const page of apiClient.getFeatureCountsForBrowser(
         browser,
         startDate,
-        endDate
+        endDate,
       )) {
         // Append the new data to existing data
         const existingData =
@@ -185,7 +185,7 @@ export class StatsPage extends LitElement {
         await this._fetchGlobalFeatureSupportData(
           apiClient,
           startDate,
-          endDate
+          endDate,
         );
         return this.globalFeatureSupport;
       },
@@ -210,7 +210,7 @@ export class StatsPage extends LitElement {
     // Merge data across all browsers into one array of rows.
     for (const browser of browsers) {
       const data = this.globalFeatureSupport.get(
-        globalFeatureSupportKey(browser)
+        globalFeatureSupportKey(browser),
       );
       if (!data) continue;
       for (const row of data) {
@@ -227,7 +227,7 @@ export class StatsPage extends LitElement {
 
     // Create array of dateToBrowserDataMap entries and sort by dateSeconds
     const data = Array.from(dateToBrowserDataMap.entries()).sort(
-      ([d1], [d2]) => d1 - d2
+      ([d1], [d2]) => d1 - d2,
     );
 
     // For each date, add a row to the dataTable

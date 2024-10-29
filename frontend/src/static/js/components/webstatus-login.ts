@@ -42,7 +42,7 @@ export class WebstatusLogin extends LitElement {
         toast(
           `Failed to login: ${error.message ?? 'unknown'}`,
           'danger',
-          'exclamation-triangle'
+          'exclamation-triangle',
         );
       });
       return;
@@ -54,7 +54,7 @@ export class WebstatusLogin extends LitElement {
       toast(
         `Failed to logout: ${error.message ?? 'unknown'}`,
         'danger',
-        'exclamation-triangle'
+        'exclamation-triangle',
       );
     });
   }
@@ -73,7 +73,7 @@ export class WebstatusLogin extends LitElement {
 
   renderAuthenticatedButton(
     user: User,
-    authConfig: AuthConfig
+    authConfig: AuthConfig,
   ): TemplateResult {
     return html`
       <sl-dropdown>

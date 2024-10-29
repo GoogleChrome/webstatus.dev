@@ -75,10 +75,10 @@ export class WebstatusColumnsDialog extends LitElement {
         if (cb.checked) {
           newColumns.push(cb.value);
         }
-      }
+      },
     );
     this.shadowRoot!.querySelectorAll<SlCheckbox>(
-      'sl-checkbox.column-option'
+      'sl-checkbox.column-option',
     ).forEach(cb => {
       if (cb.checked) {
         columnOptions.push(cb.value);
@@ -99,10 +99,10 @@ export class WebstatusColumnsDialog extends LitElement {
   renderDialogContent(): TemplateResult {
     if (!this.location) return html``;
     const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location)
+      getColumnsSpec(this.location),
     );
     const columnOptions: ColumnOptionKey[] = parseColumnOptions(
-      getColumnOptions(this.location)
+      getColumnOptions(this.location),
     );
     const checkboxes: TemplateResult[] = [];
     for (const enumKeyStr of Object.keys(ColumnKey)) {
@@ -130,7 +130,7 @@ export class WebstatusColumnsDialog extends LitElement {
                   >${option.nameInDialog}</sl-checkbox
                 >
               </sl-tree-item>
-            `
+            `,
           )}
         </sl-tree-item>
       `;
@@ -168,7 +168,7 @@ export async function openColumnsDialog(location: {
 }): Promise<WebstatusColumnsDialog> {
   if (!columnsDialogEl) {
     columnsDialogEl = document.createElement(
-      'webstatus-columns-dialog'
+      'webstatus-columns-dialog',
     ) as WebstatusColumnsDialog;
     document.body.appendChild(columnsDialogEl);
     await columnsDialogEl.updateComplete;

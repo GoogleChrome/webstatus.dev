@@ -98,7 +98,7 @@ export class OverviewPage extends LitElement {
 
   async _fetchFeatures(
     apiClient: APIClient | undefined,
-    routerLocation: {search: string}
+    routerLocation: {search: string},
   ): Promise<components['schemas']['FeaturePage']> {
     if (typeof apiClient !== 'object')
       return Promise.reject(new Error('APIClient is not initialized.'));
@@ -107,14 +107,14 @@ export class OverviewPage extends LitElement {
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
     const wptMetricView = getWPTMetricView(
-      routerLocation
+      routerLocation,
     ) as FeatureWPTMetricViewType;
     return apiClient.getFeatures(
       searchQuery,
       sortSpec,
       wptMetricView,
       offset,
-      pageSize
+      pageSize,
     );
   }
 

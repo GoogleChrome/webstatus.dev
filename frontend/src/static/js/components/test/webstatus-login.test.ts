@@ -24,7 +24,7 @@ import sinon from 'sinon';
 describe('webstatus-login', () => {
   it('renders nothing when firebaseAuthConfig is undefined', async () => {
     const component = await fixture<WebstatusLogin>(
-      html`<webstatus-login></webstatus-login>`
+      html`<webstatus-login></webstatus-login>`,
     );
     expect(component.shadowRoot?.textContent?.trim()).to.equal('');
   });
@@ -40,11 +40,11 @@ describe('webstatus-login', () => {
     const component = await fixture<WebstatusLogin>(
       html`<webstatus-login
         .firebaseAuthConfig=${authConfigStub}
-      ></webstatus-login>`
+      ></webstatus-login>`,
     );
 
     expect(
-      component.shadowRoot?.querySelector('sl-button')?.textContent?.trim()
+      component.shadowRoot?.querySelector('sl-button')?.textContent?.trim(),
     ).to.equal('Log in');
   });
 
@@ -58,7 +58,7 @@ describe('webstatus-login', () => {
     const component = await fixture<WebstatusLogin>(
       html`<webstatus-login
         .firebaseAuthConfig=${authConfigStub}
-      ></webstatus-login>`
+      ></webstatus-login>`,
     );
 
     const loginButton = component.shadowRoot?.querySelector('sl-button');
@@ -86,10 +86,10 @@ describe('webstatus-login', () => {
     `);
 
     expect(
-      component.shadowRoot?.querySelector('sl-dropdown')?.textContent?.trim()
+      component.shadowRoot?.querySelector('sl-dropdown')?.textContent?.trim(),
     ).to.include('test@example.com');
     expect(
-      component.shadowRoot?.querySelector('sl-menu-item')?.textContent?.trim()
+      component.shadowRoot?.querySelector('sl-menu-item')?.textContent?.trim(),
     ).to.equal('Sign out');
   });
 

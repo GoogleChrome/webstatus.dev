@@ -188,12 +188,12 @@ export class WebstatusSidebarMenu extends LitElement {
     const currentUrl = new URL(this.getLocation().href);
     const currentPath = currentUrl.pathname;
     const matchingNavItem = Object.values(navigationMap).find(
-      item => item.path === currentPath
+      item => item.path === currentPath,
     );
 
     if (matchingNavItem) {
       const itemToSelect = tree.querySelector(
-        `#${matchingNavItem.id}`
+        `#${matchingNavItem.id}`,
       ) as SlTreeItem;
       if (itemToSelect) {
         itemToSelect.selected = true;
@@ -274,7 +274,7 @@ export class WebstatusSidebarMenu extends LitElement {
             >Features</a
           >
           ${this.bookmarks.map((bookmark, index) =>
-            this.renderBookmark(bookmark, index)
+            this.renderBookmark(bookmark, index),
           )}
         </sl-tree-item>
         <!-- commented out rather than merely hidden, to avoid breaking sl-tree

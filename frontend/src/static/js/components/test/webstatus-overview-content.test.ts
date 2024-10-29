@@ -53,17 +53,17 @@ describe('webstatus-overview-content', () => {
         </fake-parent-element>
       `;
       parent = container.querySelector(
-        'fake-parent-element'
+        'fake-parent-element',
       ) as FakeParentElement;
 
       element = container.querySelector(
-        'webstatus-overview-content'
+        'webstatus-overview-content',
       ) as WebstatusOverviewContent;
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;
       testContainer = element?.shadowRoot?.querySelector(
-        '#mapping-percentage'
+        '#mapping-percentage',
       ) as HTMLElement;
       assert.exists(testContainer);
     });
@@ -86,7 +86,7 @@ describe('webstatus-overview-content', () => {
       await element.updateComplete;
       expect(toastStub.calledOnce).to.be.true;
       expect(
-        toastStub.calledWith('Test error', 'danger', 'exclamation-triangle')
+        toastStub.calledWith('Test error', 'danger', 'exclamation-triangle'),
       ).to.be.true;
 
       expect(testContainer.textContent?.trim()).to.equal('');
@@ -96,7 +96,7 @@ describe('webstatus-overview-content', () => {
       element.webFeaturesProgress = {bcdMapProgress: 75};
       await element.updateComplete;
       expect(testContainer.textContent?.trim()).to.match(
-        /Percentage of features mapped:\s*75%/
+        /Percentage of features mapped:\s*75%/,
       );
     });
   });

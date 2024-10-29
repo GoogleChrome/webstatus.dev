@@ -34,7 +34,7 @@ describe('webstatus-firebase-app-service', () => {
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusFirebaseAppService>(
       html`<webstatus-firebase-app-service .settings=${settings}>
-      </webstatus-firebase-app-service>`
+      </webstatus-firebase-app-service>`,
     );
     assert.exists(component);
     assert.equal(component.settings, settings);
@@ -53,13 +53,13 @@ describe('webstatus-firebase-app-service', () => {
       html` <webstatus-firebase-app-service .settings=${settings}>
         <fake-child-element></fake-child-element>
       </webstatus-firebase-app-service>`,
-      root
+      root,
     );
     const component = root.querySelector(
-      'webstatus-firebase-app-service'
+      'webstatus-firebase-app-service',
     ) as WebstatusFirebaseAppService;
     const childComponent = root.querySelector(
-      'fake-child-element'
+      'fake-child-element',
     ) as FakeChildElement;
     await component.updateComplete;
     await childComponent.updateComplete;
