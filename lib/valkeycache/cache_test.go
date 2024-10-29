@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rediscache
+package valkeycache
 
 import (
 	"context"
@@ -30,7 +30,7 @@ import (
 func getDefatulTTL() time.Duration { return time.Duration(2 * time.Second) }
 
 // nolint: exhaustruct // No need to use every option of 3rd party struct.
-func getTestRedis(t testing.TB) *RedisDataCache[string, []byte] {
+func getTestValkey(t testing.TB) *ValkeyDataCache[string, []byte] {
 	ctx := context.Background()
 	repoRoot, err := filepath.Abs(filepath.Join(".", "..", ".."))
 	if err != nil {
@@ -38,12 +38,12 @@ func getTestRedis(t testing.TB) *RedisDataCache[string, []byte] {
 	}
 	req := testcontainers.ContainerRequest{
 		FromDockerfile: testcontainers.FromDockerfile{
-			Dockerfile: filepath.Join(".dev", "redis", "Dockerfile"),
+			Dockerfile: filepath.Join(".dev", "valkey", "Dockerfile"),
 			Context:    repoRoot,
 		},
 		ExposedPorts: []string{"6379/tcp"},
 		WaitingFor:   wait.ForLog("Ready to accept connections"),
-		Name:         "webstatus-dev-test-redis",
+		Name:         "webstatus-dev-test-valkey",
 	}
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: req,
@@ -58,26 +58,25 @@ func getTestRedis(t testing.TB) *RedisDataCache[string, []byte] {
 		t.Error(err)
 	}
 
-	cache, err := NewRedisDataCache[string, []byte](
+	cache, err := NewValkeyDataCache[string, []byte](
 		"testPrefix",
 		"localhost",
 		mappedPort.Port(),
 		getDefatulTTL(),
-		10,
 	)
 	if err != nil {
 		t.Error(err)
 	}
 
 	t.Cleanup(func() {
-		cache.redisPool.Close()
+		cache.client.Close()
 	})
 
 	return cache
 }
 
-func TestRedisDataCache(t *testing.T) {
-	cache := getTestRedis(t)
+func TestValkeyDataCache(t *testing.T) {
+	cache := getTestValkey(t)
 	ctx := context.Background()
 
 	testKey1 := "test-key-1"

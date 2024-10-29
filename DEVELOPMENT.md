@@ -90,7 +90,7 @@ The above skaffold command deploys multiple resources:
 | frontend  | Frontend service in ./frontend | http://localhost:5555                                      | http://frontend:5555                                |
 | datastore | Datastore Emulator             | N/A                                                        | http://datastore:8086                               |
 | spanner   | Spanner Emulator               | N/A                                                        | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
-| redis     | Redis                          | N/A                                                        | redis:6379                                          |
+| valkey    | Valkey                         | N/A                                                        | valkey:6379                                         |
 | gcs       | Google Cloud Storage Emulator  | N/A                                                        | http://gcs:4443                                     |
 | auth      | Auth Emulator                  | http://localhost:9099<br />http://localhost:9100/auth (ui) | http://auth:9099<br />http://auth:9100/auth (ui)    |
 

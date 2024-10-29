@@ -19,7 +19,7 @@ metadata:
 requires:
   - path: ../.dev/auth
   - path: ../.dev/datastore
-  - path: ../.dev/redis
+  - path: ../.dev/valkey
   - path: ../.dev/spanner
 profiles:
   - name: local

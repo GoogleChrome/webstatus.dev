@@ -14,7 +14,8 @@ require (
 	github.com/google/go-github/v60 v60.0.0
 	github.com/oapi-codegen/runtime v1.1.1
 	github.com/testcontainers/testcontainers-go v0.31.0
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20241028124407-3e70c0607edd
+	github.com/valkey-io/valkey-go v1.0.48
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20241029135702-72e945910908
 	go.opentelemetry.io/contrib/detectors/gcp v1.31.0
 	google.golang.org/api v0.203.0
 	google.golang.org/grpc v1.67.1
@@ -34,6 +35,7 @@ require (
 	github.com/getkin/kin-openapi v0.128.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
+	github.com/gomodule/redigo v1.9.2 // indirect
 	github.com/google/go-github/v65 v65.0.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -85,7 +87,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
-	github.com/gomodule/redigo v1.9.2
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.8 // indirect
 	github.com/google/uuid v1.6.0

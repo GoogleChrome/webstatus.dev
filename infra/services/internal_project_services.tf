@@ -68,9 +68,9 @@ resource "google_project_service" "internal_scheduler" {
   disable_on_destroy         = false
 }
 
-resource "google_project_service" "internal_redis" {
+resource "google_project_service" "internal_memorystore" {
   provider = google.internal_project
-  service  = "redis.googleapis.com"
+  service  = "memorystore.googleapis.com"
 
   disable_dependent_services = true
   disable_on_destroy         = false

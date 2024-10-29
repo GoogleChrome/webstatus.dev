@@ -71,6 +71,7 @@ require (
 	github.com/prometheus/common v0.60.1 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
+	github.com/valkey-io/valkey-go v1.0.48 // indirect
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20241028124407-3e70c0607edd // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/bridges/prometheus v0.56.0 // indirect
