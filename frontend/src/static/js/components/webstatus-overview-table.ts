@@ -115,7 +115,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   render(): TemplateResult {
     const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location)
+      getColumnsSpec(this.location),
     );
     const sortSpec: string =
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
@@ -125,7 +125,7 @@ export class WebstatusOverviewTable extends LitElement {
         <thead>
           <tr>
             ${columns.map(
-              col => html`${renderHeaderCell(this.location, col, sortSpec)}`
+              col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
             )}
           </tr>
         </thead>
@@ -155,7 +155,7 @@ export class WebstatusOverviewTable extends LitElement {
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
     return html`
       ${this.taskTracker.data?.data?.map(f =>
-        this.renderFeatureRow(f, columns)
+        this.renderFeatureRow(f, columns),
       )}
     `;
   }
@@ -218,7 +218,7 @@ export class WebstatusOverviewTable extends LitElement {
           <tr>
             ${columns.map(col => html` <td>${this.renderShimmer(col)}</td> `)}
           </tr>
-        `
+        `,
       )}
     `;
   }
@@ -231,14 +231,14 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderFeatureRow(
     feature: components['schemas']['Feature'],
-    columns: ColumnKey[]
+    columns: ColumnKey[],
   ): TemplateResult {
     return html`
       <tr>
         ${columns.map(
           col => html`
             <td>${renderFeatureCell(feature, this.location, col)}</td>
-          `
+          `,
         )}
       </tr>
     `;

@@ -112,7 +112,7 @@ export class WebstatusGChart extends LitElement {
 
     // 3. Start observing the chart container element
     this._resizeObserver.observe(
-      this.shadowRoot!.getElementById(this.containerId!)!
+      this.shadowRoot!.getElementById(this.containerId!)!,
     );
   }
 
@@ -126,7 +126,7 @@ export class WebstatusGChart extends LitElement {
 
   // Convert the WebStatusDataObj to a DataTable.
   convertWebStatusDataObjToDataTable(
-    dataObj: WebStatusDataObj
+    dataObj: WebStatusDataObj,
   ): google.visualization.DataTable {
     const dataTable = new google.visualization.DataTable();
     dataObj.cols.forEach(col => {
@@ -140,7 +140,7 @@ export class WebstatusGChart extends LitElement {
 
   // Augment the options with options that apply for all charts.
   augmentOptions(
-    options: google.visualization.ComboChartOptions
+    options: google.visualization.ComboChartOptions,
   ): google.visualization.ComboChartOptions {
     options = {
       ...options,
@@ -165,7 +165,7 @@ export class WebstatusGChart extends LitElement {
     // to the number of data points, the more points, the smaller they are.
     const pointSize = Math.min(
       2,
-      100 / (this.dataTable!.getNumberOfRows() || 1)
+      100 / (this.dataTable!.getNumberOfRows() || 1),
     );
 
     // Get the current series option, if any, and augment with the total series.
@@ -238,7 +238,7 @@ export class WebstatusGChart extends LitElement {
       this._pendingDataObj
     ) {
       this.dataTable = this.convertWebStatusDataObjToDataTable(
-        this._pendingDataObj
+        this._pendingDataObj,
       );
       this._pendingDataObj = undefined; // Clear the pending data
     }
@@ -254,7 +254,7 @@ export class WebstatusGChart extends LitElement {
       this.chartWrapper.setChartType(this.chartType);
       this.chartWrapper.setOptions(this.augmentOptions(this.options));
       this.chartWrapper.setDataTable(
-        this.dataTable as google.visualization.DataTable
+        this.dataTable as google.visualization.DataTable,
       );
       this.chartWrapper.draw();
     }

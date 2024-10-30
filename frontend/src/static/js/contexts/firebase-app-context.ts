@@ -20,5 +20,5 @@ import type {FirebaseApp} from 'firebase/app';
 export type {FirebaseApp} from 'firebase/app';
 
 export const firebaseAppContext = createContext<FirebaseApp | undefined>(
-  'firebase-app'
+  'firebase-app',
 );

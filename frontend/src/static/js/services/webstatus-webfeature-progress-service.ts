@@ -62,7 +62,7 @@ export class WebstatusWebFeatureProgressService extends ServiceElement {
   }
 
   protected async willUpdate(
-    changedProperties: PropertyValueMap<this>
+    changedProperties: PropertyValueMap<this>,
   ): Promise<void> {
     if (changedProperties.has('appSettings')) {
       await this.loadProgress(this.appSettings?.webFeaturesProgressUrl);

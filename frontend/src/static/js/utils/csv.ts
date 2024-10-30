@@ -50,7 +50,7 @@ export class CSVUtils {
   static downloadCSV(
     columns: string[],
     rows: string[][],
-    filename: string
+    filename: string,
   ): Promise<void> {
     const csv = this.convertToCSV(columns, rows);
 

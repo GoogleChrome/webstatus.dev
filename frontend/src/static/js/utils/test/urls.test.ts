@@ -148,7 +148,7 @@ describe('formatOverviewPageUrl', () => {
   it('can add the column spec parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css'},
-      {columns: ['name', 'baseline_stats']}
+      {columns: ['name', 'baseline_stats']},
     );
     assert.equal(url, '/?q=css&columns=name%2Cbaseline_stats');
   });
@@ -156,7 +156,7 @@ describe('formatOverviewPageUrl', () => {
   it('can override and existing column spec parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&columns=name'},
-      {columns: ['name', 'baseline_stats']}
+      {columns: ['name', 'baseline_stats']},
     );
     assert.equal(url, '/?q=css&columns=name%2Cbaseline_stats');
   });
@@ -164,7 +164,7 @@ describe('formatOverviewPageUrl', () => {
   it('can clear the column spec parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&columns=name'},
-      {columns: []}
+      {columns: []},
     );
     assert.equal(url, '/?q=css');
   });
@@ -172,7 +172,7 @@ describe('formatOverviewPageUrl', () => {
   it('can override the column_options parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&column_options=baseline_stats_high_date'},
-      {column_options: ['baseline_stats_high_date']}
+      {column_options: ['baseline_stats_high_date']},
     );
     assert.equal(url, '/?q=css&column_options=baseline_stats_high_date');
   });
@@ -180,7 +180,7 @@ describe('formatOverviewPageUrl', () => {
   it('can clear the column_options parameter', () => {
     const url = formatOverviewPageUrl(
       {search: '?q=css&column_options=baseline_stats_high_date'},
-      {column_options: []}
+      {column_options: []},
     );
     assert.equal(url, '/?q=css');
   });

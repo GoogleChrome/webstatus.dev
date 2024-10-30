@@ -29,7 +29,7 @@ describe('webstatus-api-client-service', () => {
   it('can be added to the page with the api url', async () => {
     const component = await fixture<WebstatusAPIClientService>(
       html`<webstatus-api-client-service url=${apiUrl}>
-      </webstatus-api-client-service>`
+      </webstatus-api-client-service>`,
     );
     assert.exists(component);
     assert.equal(component.url, 'http://localhost');
@@ -48,13 +48,13 @@ describe('webstatus-api-client-service', () => {
       html` <webstatus-api-client-service .url=${apiUrl}>
         <fake-child-element></fake-child-element>
       </webstatus-api-client-service>`,
-      root
+      root,
     );
     const component = root.querySelector(
-      'webstatus-api-client-service'
+      'webstatus-api-client-service',
     ) as WebstatusAPIClientService;
     const childComponent = root.querySelector(
-      'fake-child-element'
+      'fake-child-element',
     ) as FakeChildElement;
     await component.updateComplete;
     await childComponent.updateComplete;

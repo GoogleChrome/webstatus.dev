@@ -38,11 +38,11 @@ export class WebstatusLogin extends LitElement {
 
   handleLogInClick(authConfig: AuthConfig) {
     if (this.user === undefined) {
-      authConfig.signIn().catch(error => {
-        toast(
+      authConfig.signIn().catch(async error => {
+        await toast(
           `Failed to login: ${error.message ?? 'unknown'}`,
           'danger',
-          'exclamation-triangle'
+          'exclamation-triangle',
         );
       });
       return;
@@ -50,11 +50,11 @@ export class WebstatusLogin extends LitElement {
   }
 
   handleLogOutClick(authConfig: AuthConfig) {
-    authConfig.auth.signOut().catch(error => {
-      toast(
+    authConfig.auth.signOut().catch(async error => {
+      await toast(
         `Failed to logout: ${error.message ?? 'unknown'}`,
         'danger',
-        'exclamation-triangle'
+        'exclamation-triangle',
       );
     });
   }
@@ -73,7 +73,7 @@ export class WebstatusLogin extends LitElement {
 
   renderAuthenticatedButton(
     user: User,
-    authConfig: AuthConfig
+    authConfig: AuthConfig,
   ): TemplateResult {
     return html`
       <sl-dropdown>

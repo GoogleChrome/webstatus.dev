@@ -73,10 +73,11 @@ export class WebstatusOverviewContent extends LitElement {
       return html``;
     }
     if (this.webFeaturesProgress.error) {
-      new Toast().toast(
+      // Temporarily to avoid the no-floating-promises error.
+      void new Toast().toast(
         this.webFeaturesProgress.error,
         'danger',
-        'exclamation-triangle'
+        'exclamation-triangle',
       );
       return html``;
     }

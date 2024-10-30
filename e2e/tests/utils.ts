@@ -20,7 +20,7 @@ const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
 export async function setupFakeNow(
   page: Page,
-  fakeNowDateString = DEFAULT_FAKE_NOW
+  fakeNowDateString = DEFAULT_FAKE_NOW,
 ): Promise<void> {
   // Get fakeNow from UTC to extract the timeZone offset used in the test
   const fakeNowFromUTC = new Date(fakeNowDateString);

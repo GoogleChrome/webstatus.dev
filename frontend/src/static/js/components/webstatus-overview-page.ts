@@ -76,14 +76,14 @@ export class OverviewPage extends LitElement {
           data: page,
         };
       },
-      onError: (error: unknown) => {
+      onError: async (error: unknown) => {
         if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: error,
             data: null,
           };
-          toast(`${error.message}`, 'danger', 'exclamation-triangle');
+          await toast(`${error.message}`, 'danger', 'exclamation-triangle');
         } else {
           // Should never reach here but let's handle it.
           this.taskTracker = {
@@ -98,7 +98,7 @@ export class OverviewPage extends LitElement {
 
   async _fetchFeatures(
     apiClient: APIClient | undefined,
-    routerLocation: {search: string}
+    routerLocation: {search: string},
   ): Promise<components['schemas']['FeaturePage']> {
     if (typeof apiClient !== 'object')
       return Promise.reject(new Error('APIClient is not initialized.'));
@@ -107,14 +107,14 @@ export class OverviewPage extends LitElement {
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
     const wptMetricView = getWPTMetricView(
-      routerLocation
+      routerLocation,
     ) as FeatureWPTMetricViewType;
     return apiClient.getFeatures(
       searchQuery,
       sortSpec,
       wptMetricView,
       offset,
-      pageSize
+      pageSize,
     );
   }
 

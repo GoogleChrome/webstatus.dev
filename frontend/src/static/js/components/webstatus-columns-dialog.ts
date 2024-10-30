@@ -56,18 +56,18 @@ export class WebstatusColumnsDialog extends LitElement {
     ];
   }
 
-  openWithContext(location: {search: string}) {
+  async openWithContext(location: {search: string}) {
     this.location = location;
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
-    if (dialog?.show) dialog.show();
+    if (dialog?.show) await dialog.show();
   }
 
-  hide() {
+  async hide() {
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
-    if (dialog?.hide) dialog.hide();
+    if (dialog?.hide) await dialog.hide();
   }
 
-  handleSave() {
+  async handleSave() {
     const newColumns: string[] = [];
     const columnOptions: string[] = [];
     this.shadowRoot!.querySelectorAll<SlCheckbox>('sl-checkbox.column').forEach(
@@ -75,16 +75,16 @@ export class WebstatusColumnsDialog extends LitElement {
         if (cb.checked) {
           newColumns.push(cb.value);
         }
-      }
+      },
     );
     this.shadowRoot!.querySelectorAll<SlCheckbox>(
-      'sl-checkbox.column-option'
+      'sl-checkbox.column-option',
     ).forEach(cb => {
       if (cb.checked) {
         columnOptions.push(cb.value);
       }
     });
-    this.hide();
+    await this.hide();
     const nextUrl = this.formatUrlWithColumns(newColumns, columnOptions);
     window.location.href = nextUrl;
   }
@@ -99,10 +99,10 @@ export class WebstatusColumnsDialog extends LitElement {
   renderDialogContent(): TemplateResult {
     if (!this.location) return html``;
     const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location)
+      getColumnsSpec(this.location),
     );
     const columnOptions: ColumnOptionKey[] = parseColumnOptions(
-      getColumnOptions(this.location)
+      getColumnOptions(this.location),
     );
     const checkboxes: TemplateResult[] = [];
     for (const enumKeyStr of Object.keys(ColumnKey)) {
@@ -130,7 +130,7 @@ export class WebstatusColumnsDialog extends LitElement {
                   >${option.nameInDialog}</sl-checkbox
                 >
               </sl-tree-item>
-            `
+            `,
           )}
         </sl-tree-item>
       `;
@@ -168,11 +168,11 @@ export async function openColumnsDialog(location: {
 }): Promise<WebstatusColumnsDialog> {
   if (!columnsDialogEl) {
     columnsDialogEl = document.createElement(
-      'webstatus-columns-dialog'
+      'webstatus-columns-dialog',
     ) as WebstatusColumnsDialog;
     document.body.appendChild(columnsDialogEl);
     await columnsDialogEl.updateComplete;
   }
-  columnsDialogEl.openWithContext(location);
+  await columnsDialogEl.openWithContext(location);
   return columnsDialogEl;
 }

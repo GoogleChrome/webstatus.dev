@@ -177,7 +177,7 @@ export class APIClient {
     path: Path,
     params: FetchOptions<FilterKeys<paths[Path], 'get'>>,
     pageToken?: string,
-    pageSize?: number
+    pageSize?: number,
   ): Promise<ResponseData> {
     // Add the pagination parameters to the query
     if (params.params === undefined) params.params = {};
@@ -215,7 +215,7 @@ export class APIClient {
   >(
     path: Path,
     params: FetchOptions<FilterKeys<paths[Path], 'get'>>,
-    overridenOffsetPaginator?: ManualOffsetPagination
+    overridenOffsetPaginator?: ManualOffsetPagination,
   ): Promise<ResponseData['data'][number][]> {
     let offset = 0;
     let nextPageToken;
@@ -228,7 +228,7 @@ export class APIClient {
         overridenOffsetPaginator
           ? overridenOffsetPaginator(offset)
           : nextPageToken,
-        100
+        100,
       );
 
       nextPageToken = page?.metadata?.next_page_token;
@@ -241,7 +241,7 @@ export class APIClient {
 
   public async getFeature(
     featureId: string,
-    wptMetricView: FeatureWPTMetricViewType
+    wptMetricView: FeatureWPTMetricViewType,
   ): Promise<components['schemas']['Feature']> {
     const qsParams: paths['/v1/features/{feature_id}']['get']['parameters']['query'] =
       {};
@@ -260,7 +260,7 @@ export class APIClient {
   }
 
   public async getFeatureMetadata(
-    featureId: string
+    featureId: string,
   ): Promise<components['schemas']['FeatureMetadata']> {
     const {data, error} = await this.client.GET(
       '/v1/features/{feature_id}/feature-metadata',
@@ -269,7 +269,7 @@ export class APIClient {
         params: {
           path: {feature_id: featureId},
         },
-      }
+      },
     );
     if (error !== undefined) {
       throw createAPIError(error);
@@ -283,7 +283,7 @@ export class APIClient {
     sort: FeatureSortOrderType,
     wptMetricView?: FeatureWPTMetricViewType,
     offset?: number,
-    pageSize?: number
+    pageSize?: number,
   ): Promise<components['schemas']['FeaturePage']> {
     const queryParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) queryParams.q = q;
@@ -297,7 +297,7 @@ export class APIClient {
       '/v1/features',
       {params: {query: queryParams}},
       pageToken,
-      pageSize
+      pageSize,
     );
   }
 
@@ -305,7 +305,7 @@ export class APIClient {
   public async getAllFeatures(
     q: FeatureSearchType,
     sort: FeatureSortOrderType,
-    wptMetricView?: FeatureWPTMetricViewType
+    wptMetricView?: FeatureWPTMetricViewType,
   ): Promise<components['schemas']['Feature'][]> {
     const queryParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) queryParams.q = q;
@@ -317,7 +317,7 @@ export class APIClient {
     >(
       '/v1/features',
       {params: {query: queryParams}},
-      this.createOffsetPaginationTokenForGetFeatures
+      this.createOffsetPaginationTokenForGetFeatures,
     );
   }
 
@@ -326,7 +326,7 @@ export class APIClient {
     browser: BrowsersParameter,
     channel: ChannelsParameter,
     startAtDate: Date,
-    endAtDate: Date
+    endAtDate: Date,
   ): AsyncIterable<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
@@ -346,7 +346,7 @@ export class APIClient {
               metric_view: DEFAULT_TEST_VIEW,
             },
           },
-        }
+        },
       );
       const error = response.error;
       if (error !== undefined) {
@@ -364,7 +364,7 @@ export class APIClient {
   public async *getFeatureCountsForBrowser(
     browser: BrowsersParameter,
     startAtDate: Date,
-    endAtDate: Date
+    endAtDate: Date,
   ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
@@ -379,7 +379,7 @@ export class APIClient {
             query: {startAt, endAt, page_token: nextPageToken},
             path: {browser},
           },
-        }
+        },
       );
       const error = response.error;
       if (error !== undefined) {

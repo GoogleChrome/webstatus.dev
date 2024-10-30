@@ -21,8 +21,8 @@ function checkReponseForGZIPCompression(response: Response) {
   expect(
     response.headers()['content-encoding'],
     `GZIP assertion failed for ${response.url()}: Asset not returning GZIP compression. Headers: ${JSON.stringify(
-      response.headers()
-    )}`
+      response.headers(),
+    )}`,
   ).toContain('gzip');
 }
 
@@ -56,7 +56,7 @@ test('All public assets should be served with GZIP compression', async ({
   await gotoOverviewPageUrl(page, 'http://localhost:5555');
   expect(
     publicAssetFound,
-    'At least one public asset must be loaded'
+    'At least one public asset must be loaded',
   ).toBeTruthy();
   expect(homepageFound, 'index.html must be loaded').toBeTruthy();
 });

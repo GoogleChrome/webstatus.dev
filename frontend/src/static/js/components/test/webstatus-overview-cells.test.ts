@@ -135,7 +135,7 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(
         feature,
         {search: 'column_options=baseline_status_low_date'},
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -149,10 +149,10 @@ describe('renderBaselineStatus', () => {
       expect(
         lowDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Newly available:');
       expect(
-        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2015-07-29');
       const highDateBlock = el.querySelector('.baseline-date-block-widely');
       expect(highDateBlock).to.not.exist;
@@ -161,7 +161,7 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(
         feature,
         {search: 'column_options=baseline_status_high_date'},
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -177,10 +177,10 @@ describe('renderBaselineStatus', () => {
       expect(
         highDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Widely available:');
       expect(
-        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2018-01-29');
     });
     it('additionally renders the low date and high date when both are selected', async () => {
@@ -190,7 +190,7 @@ describe('renderBaselineStatus', () => {
           search:
             'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
         },
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -204,20 +204,20 @@ describe('renderBaselineStatus', () => {
       expect(
         lowDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Newly available:');
       expect(
-        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2015-07-29');
       const highDateBlock = el.querySelector('.baseline-date-block-widely');
       expect(highDateBlock).to.exist;
       expect(
         highDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Widely available:');
       expect(
-        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2018-01-29');
     });
   });
@@ -248,7 +248,7 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(
         feature,
         {search: 'column_options=baseline_status_low_date'},
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -262,10 +262,10 @@ describe('renderBaselineStatus', () => {
       expect(
         lowDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Newly available:');
       expect(
-        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2015-07-29');
       const highDateBlock = el.querySelector('.baseline-date-block-widely');
       expect(highDateBlock).to.not.exist;
@@ -274,7 +274,7 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(
         feature,
         {search: 'column_options=baseline_status_high_date'},
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -290,10 +290,10 @@ describe('renderBaselineStatus', () => {
       expect(
         highDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Projected widely available:');
       expect(
-        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2018-01-29');
     });
     it('additionally renders the low date and projected high date when both are selected', async () => {
@@ -303,7 +303,7 @@ describe('renderBaselineStatus', () => {
           search:
             'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
         },
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -317,20 +317,20 @@ describe('renderBaselineStatus', () => {
       expect(
         lowDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Newly available:');
       expect(
-        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        lowDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2015-07-29');
       const highDateBlock = el.querySelector('.baseline-date-block-widely');
       expect(highDateBlock).to.exist;
       expect(
         highDateBlock
           ?.querySelector('.baseline-date-header')
-          ?.textContent?.trim()
+          ?.textContent?.trim(),
       ).to.equal('Projected widely available:');
       expect(
-        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim()
+        highDateBlock?.querySelector('.baseline-date')?.textContent?.trim(),
       ).to.equal('2018-01-29');
     });
   });
@@ -360,7 +360,7 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(
         feature,
         {search: 'column_options=baseline_status_low_date'},
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -378,7 +378,7 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(
         feature,
         {search: 'column_options=baseline_status_high_date'},
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);
@@ -399,7 +399,7 @@ describe('renderBaselineStatus', () => {
           search:
             'column_options=baseline_status_low_date%2Cbaseline_status_high_date',
         },
-        {}
+        {},
       );
       render(result, container);
       const el = await fixture(container);

@@ -62,7 +62,7 @@ import {NotFoundError} from '../api/errors.js';
 /** Generate a key for featureSupport. */
 function featureSupportKey(
   browser: BrowsersParameter,
-  channel?: ChannelsParameter
+  channel?: ChannelsParameter,
 ): string {
   return `${browser}-${channel}`;
 }
@@ -265,7 +265,7 @@ export class FeaturePage extends LitElement {
       task: async ([apiClient, featureId]) => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
           const wptMetricView = getWPTMetricView(
-            location
+            location,
           ) as FeatureWPTMetricViewType;
           this.feature = await apiClient.getFeature(featureId, wptMetricView);
           return this.feature;
@@ -273,7 +273,8 @@ export class FeaturePage extends LitElement {
         return Promise.reject('api client and/or featureId not set');
       },
     });
-    this._startMetricsTask(false);
+    // Temporarily to avoid the no-floating-promises error.
+    void this._startMetricsTask(false);
     this._loadingMetadataTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
@@ -291,10 +292,10 @@ export class FeaturePage extends LitElement {
     updateFeaturePageUrl({feature_id: this.featureId}, location, overrides);
   }
 
-  handleBrowserSelection(event: Event) {
+  async handleBrowserSelection(event: Event) {
     const menu = event.target as SlMenu;
     const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
-      child => child instanceof SlMenuItem
+      child => child instanceof SlMenuItem,
     ) as Array<SlMenuItem>;
 
     // Build the list of values of checked menu-items.
@@ -302,11 +303,11 @@ export class FeaturePage extends LitElement {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
-    this._startMetricsTask(true);
+    await this._startMetricsTask(true);
     this.generateFeatureSupportChartOptions();
   }
 
-  handleStartDateChange(event: Event) {
+  async handleStartDateChange(event: Event) {
     const currentStartDate = this.startDate;
     const newStartDate = new Date((event.target as HTMLInputElement).value);
     if (
@@ -315,11 +316,11 @@ export class FeaturePage extends LitElement {
     ) {
       this.startDate = newStartDate;
       this.updateUrl();
-      this._startMetricsTask(true);
+      await this._startMetricsTask(true);
     }
   }
 
-  handleEndDateChange(event: Event) {
+  async handleEndDateChange(event: Event) {
     const currentEndDate = this.endDate;
     const newEndDate = new Date((event.target as HTMLInputElement).value);
     if (
@@ -328,7 +329,7 @@ export class FeaturePage extends LitElement {
     ) {
       this.endDate = newEndDate;
       this.updateUrl();
-      this._startMetricsTask(true);
+      await this._startMetricsTask(true);
     }
   }
 
@@ -397,7 +398,7 @@ export class FeaturePage extends LitElement {
         // This computes the max of the total across all browsers.
         const total = Math.max(
           dateToTotalTestsCountMap.get(roundedTimestamp) || 0,
-          row.total_tests_count!
+          row.total_tests_count!,
         );
         dateToTotalTestsCountMap.set(roundedTimestamp, total);
         const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
@@ -407,7 +408,7 @@ export class FeaturePage extends LitElement {
 
     // Create array of dateToBrowserDataMap entries and sort by roundedTimestamp
     const data = Array.from(dateToBrowserDataMap.entries()).sort(
-      ([d1], [d2]) => d1 - d2
+      ([d1], [d2]) => d1 - d2,
     );
 
     // For each date, add a row to the dataObj
@@ -480,7 +481,7 @@ export class FeaturePage extends LitElement {
     apiClient: APIClient,
     featureId: string,
     startDate: Date,
-    endDate: Date
+    endDate: Date,
   ) {
     if (typeof apiClient !== 'object') return;
 
@@ -492,7 +493,7 @@ export class FeaturePage extends LitElement {
         browser,
         channel,
         startDate,
-        endDate
+        endDate,
       )) {
         // Append the new data to existing data
         const existingData =
@@ -581,7 +582,7 @@ export class FeaturePage extends LitElement {
     label: string,
     link: string | null,
     logo?: string,
-    logoAlt?: string
+    logoAlt?: string,
   ): TemplateResult {
     if (!link) {
       return html``;
@@ -662,7 +663,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderDeltaChip(
-    browser: components['parameters']['browserPathParam']
+    browser: components['parameters']['browserPathParam'],
   ): TemplateResult {
     const channel = 'stable';
     const runs = this.featureSupport.get(featureSupportKey(browser, channel));
@@ -692,7 +693,7 @@ export class FeaturePage extends LitElement {
   }
 
   renderBrowserImpl(
-    browserImpl?: components['schemas']['BrowserImplementation']
+    browserImpl?: components['schemas']['BrowserImplementation'],
   ): TemplateResult {
     const sinceDate: string | undefined = browserImpl?.date;
     const sincePhrase =
@@ -713,7 +714,7 @@ export class FeaturePage extends LitElement {
 
   renderOneWPTCard(
     browser: components['parameters']['browserPathParam'],
-    icon: string
+    icon: string,
   ): TemplateResult {
     const scorePart = this.feature
       ? renderBrowserQuality(this.feature, {search: ''}, {browser: browser})
@@ -853,7 +854,7 @@ export class FeaturePage extends LitElement {
         <div slot="summary">Current bugs</div>
         <ul class="under-construction">
           ${[21830, 123412, 12983712, 1283, 987123, 12982, 1287].map(bugId =>
-            this.renderBug(bugId)
+            this.renderBug(bugId),
           )}
         </ul>
       </sl-details>
@@ -876,7 +877,7 @@ export class FeaturePage extends LitElement {
               'WPT.fyi',
               wptLink,
               wptLogo,
-              'WPT default view'
+              'WPT default view',
             )}
             ${this.renderOffsiteLink('MDN', null)}
             ${this.renderOffsiteLink('CanIUse', canIUseLink)}
@@ -905,7 +906,7 @@ export class FeaturePage extends LitElement {
     return this.renderWhenComplete();
   }
 
-  private _startMetricsTask(manualRun: boolean) {
+  private async _startMetricsTask(manualRun: boolean) {
     this._loadingMetricsTask?.abort(); // Stop any existing task
     this._loadingMetricsTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
@@ -915,14 +916,14 @@ export class FeaturePage extends LitElement {
             apiClient,
             featureId,
             this.startDate,
-            this.endDate
+            this.endDate,
           );
         }
       },
     });
     if (manualRun) {
       this._loadingMetricsTask.autoRun = false;
-      this._loadingMetricsTask.run();
+      await this._loadingMetricsTask.run();
     }
   }
 }
