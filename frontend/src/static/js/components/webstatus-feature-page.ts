@@ -274,10 +274,7 @@ export class FeaturePage extends LitElement {
       },
     });
     // Temporarily to avoid the no-floating-promises error.
-    this._startMetricsTask(false).then(
-      () => {},
-      () => {},
-    );
+    void this._startMetricsTask(false);
     this._loadingMetadataTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {

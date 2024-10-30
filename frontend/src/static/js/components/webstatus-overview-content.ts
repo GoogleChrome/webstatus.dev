@@ -73,6 +73,7 @@ export class WebstatusOverviewContent extends LitElement {
       return html``;
     }
     if (this.webFeaturesProgress.error) {
+      // Temporarily to avoid the no-floating-promises error.
       void new Toast().toast(
         this.webFeaturesProgress.error,
         'danger',
