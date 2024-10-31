@@ -729,6 +729,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example1.com",
 				"http://example2.com",
 			},
+			ChromiumUsage: 0.0,
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -777,7 +778,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					ImplementationVersion: valuePtr("2.0.0"),
 				},
 			},
-			SpecLinks: nil,
+			SpecLinks:     nil,
+			ChromiumUsage: 0.0,
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -808,6 +810,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example3.com",
 				"http://example4.com",
 			},
+			ChromiumUsage: 0.0,
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -820,6 +823,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ExperimentalMetrics:    nil,
 			ImplementationStatuses: nil,
 			SpecLinks:              nil,
+			ChromiumUsage:          0.0,
 		}
 	}
 
