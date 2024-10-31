@@ -760,19 +760,19 @@ components:
           type: object
           properties:
             chromium:
-              $ref: '#/components/schemas/UsageInfo'
+              $ref: '#/components/schemas/ChromiumUsageInfo'
         wpt:
           $ref: '#/components/schemas/FeatureWPTSnapshots'
       required:
         - feature_id
         - name
         - baseline_status
-    UsageInfo:
+    ChromiumUsageInfo:
       type: object
       properties:
         daily:
           type: number
-          format: float
+          format: double
           description: >
             Latest snapshot of the usage metric for the given feature.
           minimum: 0.0
