@@ -1,0 +1,212 @@
+package gcpspanner
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"time"
+
+	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
+)
+
+func init() {
+	missingOneImplTemplate = NewQueryTemplate(missingOneImplCountRawTemplate)
+}
+
+// nolint: gochecknoglobals // WONTFIX. Compile the template once at startup. Startup fails if invalid.
+var (
+	// missingOneImplTemplate is the compiled version of missingOneImplCountRawTemplate.
+	missingOneImplTemplate BaseQueryTemplate
+)
+
+// MissingOneImplCountPage contains the details for the missing one implementation count request.
+type MissingOneImplCountPage struct {
+	NextPageToken *string
+	Metrics       []MissingOneImplCount
+}
+
+// SpannerMissingOneImplCount is a wrapper for the missing one implementation count.
+type SpannerMissingOneImplCount struct {
+	MissingOneImplCount
+}
+
+// MissingOneImplCount contains information regarding the count of features implemented in all other browsers but not
+// in the target browser.
+type MissingOneImplCount struct {
+	EventReleaseDate time.Time `spanner:"EventReleaseDate"`
+	Count            int64     `spanner:"Count"`
+}
+
+// MissingOneImplCursor: Represents a point for resuming queries based on the last
+// browser release date. Useful for pagination.
+type MissingOneImplCursor struct {
+	ReleaseDate time.Time `json:"release_date"`
+}
+
+// decodeMissingOneImplCursor provides a wrapper around the generic decodeCursor.
+func decodeMissingOneImplCursor(cursor string) (*MissingOneImplCursor, error) {
+	return decodeCursor[MissingOneImplCursor](cursor)
+}
+
+// encodeMissingOneImplCursor provides a wrapper around the generic encodeCursor.
+func encodeMissingOneImplCursor(releaseDate time.Time) string {
+	return encodeCursor(MissingOneImplCursor{
+		ReleaseDate: releaseDate,
+	})
+}
+
+const missingOneImplCountRawTemplate = `
+SELECT releases.EventReleaseDate,
+       (
+           SELECT COUNT(DISTINCT wf.ID)
+           FROM WebFeatures wf
+           LEFT JOIN BrowserFeatureSupportEvents bfse
+               ON wf.ID = bfse.WebFeatureID
+               AND bfse.EventBrowserName = @targetBrowserParam  -- Target browser
+			   AND bfse.TargetBrowserName = @targetBrowserParam
+               AND bfse.EventReleaseDate = releases.EventReleaseDate
+               AND bfse.SupportStatus = 'unsupported'  -- Added condition
+           WHERE bfse.WebFeatureID IS NOT NULL  -- Feature is unsupported by the target browser
+             AND {{range $browser := .OtherBrowserParamNames}}
+                 EXISTS (
+                   SELECT 1
+                   FROM BrowserFeatureSupportEvents bfse_other
+                   WHERE bfse_other.WebFeatureID = wf.ID
+                     AND bfse_other.EventBrowserName = @{{ $browser }}
+                     AND bfse_other.SupportStatus = 'supported'
+                     AND bfse_other.TargetBrowserName = @targetBrowserParam
+                     AND bfse_other.EventReleaseDate = releases.EventReleaseDate
+                 )
+                 AND
+               {{end}}
+			   1=1
+       ) AS Count
+FROM (
+    SELECT DISTINCT EventReleaseDate
+    FROM BrowserFeatureSupportEvents
+    WHERE TargetBrowserName = @targetBrowserParam
+) releases
+WHERE releases.EventReleaseDate >= @startAt
+  AND releases.EventReleaseDate < @endAt
+  {{if .ReleaseDateParam }}
+  AND releases.EventReleaseDate < @{{ .ReleaseDateParam }}
+  {{end}}
+ORDER BY releases.EventReleaseDate
+LIMIT @limit;
+`
+
+type MissingOneImplTemplateData struct {
+	// TargetBrowserParamName string
+	OtherBrowserParamNames []string
+	ReleaseDateParam       string
+}
+
+func buildMissingOneImplTemplate(
+	cursor *MissingOneImplCursor,
+	targetBrowser string,
+	otherBrowsers []string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+) spanner.Statement {
+	params := map[string]interface{}{}
+	// targetBrowserParamName := "targetBrowserParam"
+	params["targetBrowserParam"] = targetBrowser
+	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
+	for i := range otherBrowsers {
+		paramName := fmt.Sprintf("otherBrowser%d", i)
+		params[paramName] = otherBrowsers[i]
+		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
+	}
+	params["limit"] = pageSize
+
+	releaseDateParamName := ""
+	if cursor != nil {
+		releaseDateParamName = "releaseDateCursor"
+		params[releaseDateParamName] = cursor.ReleaseDate
+	}
+
+	params["startAt"] = startAt
+	params["endAt"] = endAt
+
+	tmplData := MissingOneImplTemplateData{
+		OtherBrowserParamNames: otherBrowsersParamNames,
+		ReleaseDateParam:       releaseDateParamName,
+	}
+	sql := missingOneImplTemplate.Execute(tmplData)
+	stmt := spanner.NewStatement(sql)
+	stmt.Params = params
+
+	return stmt
+}
+
+func (c *Client) ListMissingOneImplCounts(
+	ctx context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*MissingOneImplCountPage, error) {
+
+	var cursor *MissingOneImplCursor
+	var err error
+	if pageToken != nil {
+		cursor, err = decodeMissingOneImplCursor(*pageToken)
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+	}
+
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	stmt := buildMissingOneImplTemplate(
+		cursor,
+		targetBrowser,
+		otherBrowsers,
+		startAt,
+		endAt,
+		pageSize,
+	)
+
+	slog.Info("stmt", "sql", stmt.SQL, "params", stmt.Params)
+
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	var results []MissingOneImplCount
+	for {
+		row, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		var result SpannerMissingOneImplCount
+		if err := row.ToStruct(&result); err != nil {
+			return nil, err
+		}
+		actualResult := MissingOneImplCount{
+			EventReleaseDate: result.EventReleaseDate,
+			Count:            result.Count,
+		}
+		results = append(results, actualResult)
+	}
+
+	page := MissingOneImplCountPage{
+		Metrics:       results,
+		NextPageToken: nil,
+	}
+
+	if len(results) == pageSize {
+		token := encodeMissingOneImplCursor(results[len(results)-1].EventReleaseDate)
+		page.NextPageToken = &token
+	}
+
+	return &page, nil
+}
