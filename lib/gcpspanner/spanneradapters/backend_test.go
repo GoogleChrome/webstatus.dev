@@ -638,7 +638,7 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 							SpecLinks:     nil,
-							ChromiumUsage: 0.0,
+							ChromiumUsage: nil,
 						},
 						{
 							Name:       "feature 2",
@@ -692,7 +692,7 @@ func TestFeaturesSearch(t *testing.T) {
 								"link1",
 								"link2",
 							},
-							ChromiumUsage: 0.0,
+							ChromiumUsage: nil,
 						},
 					},
 				},
@@ -992,7 +992,7 @@ func TestGetFeature(t *testing.T) {
 						"link1",
 						"link2",
 					},
-					ChromiumUsage: 0.0,
+					ChromiumUsage: nil,
 				},
 				returnedError: nil,
 			},
@@ -1186,7 +1186,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				},
 				ImplementationStatuses: nil,
 				SpecLinks:              nil,
-				ChromiumUsage:          0.0,
+				ChromiumUsage:          nil,
 			},
 
 			expectedFeature: &backend.Feature{

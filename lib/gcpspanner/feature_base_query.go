@@ -324,6 +324,29 @@ LEFT OUTER JOIN (
 		ON bfa.BrowserName = br.BrowserName AND bfa.BrowserVersion = br.BrowserVersion
 	GROUP BY bfa.WebFeatureID
 ) AS browser_info ON wf.ID = browser_info.WebFeatureID
+LEFT OUTER JOIN (
+    SELECT
+        wfchev.WebFeatureID,
+        dchm.Rate AS ChromiumUsage
+    FROM WebFeatureChromiumHistogramEnumValues wfchev
+    LEFT OUTER JOIN
+	(
+		SELECT
+			dch.ChromiumHistogramEnumValueID,
+			dch.Rate,
+			dchm_max.max_day AS Day
+		FROM DailyChromiumHistogramMetrics dch
+		INNER JOIN (
+			SELECT
+				ChromiumHistogramEnumValueID,
+				MAX(Day) as max_day
+			FROM DailyChromiumHistogramMetrics
+			GROUP BY ChromiumHistogramEnumValueID
+		) dchm_max
+		ON dch.ChromiumHistogramEnumValueID = dchm_max.ChromiumHistogramEnumValueID AND dch.Day = dchm_max.max_day
+	) dchm ON wfchev.ChromiumHistogramEnumValueID = dchm.ChromiumHistogramEnumValueID
+    GROUP BY wfchev.WebFeatureID, ChromiumUsage
+) AS chromium_usage_metrics ON wf.ID = chromium_usage_metrics.WebFeatureID
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
@@ -391,6 +414,7 @@ SELECT
 	fbs.LowDate,
 	fbs.HighDate,
 	fs.Links AS SpecLinks,
+	chromium_usage_metrics.ChromiumUsage,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
@@ -452,6 +476,7 @@ SELECT
 	fbs.Status,
 	fbs.LowDate,
 	fbs.HighDate,
+	chromium_usage_metrics.ChromiumUsage,
 	fs.Links AS SpecLinks,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
