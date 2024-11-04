@@ -81,7 +81,7 @@ export class WebstatusLogin extends LitElement {
       <sl-dropdown>
         <sl-button slot="trigger" caret
           ><sl-icon slot="prefix" name="${authConfig.icon}"></sl-icon
-          >${user?.gitHubUsername || user.email}</sl-button
+          >${user?.gitHubUsername}</sl-button
         >
         <sl-menu>
           <sl-menu-item @click=${() => this.handleLogOutClick(authConfig)}
