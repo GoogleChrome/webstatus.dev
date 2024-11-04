@@ -126,12 +126,12 @@ export class WebstatusTypeahead extends LitElement {
     this.value = slInput.value;
   }
 
-  hide() {
-    (this.slDropdownRef.value as SlDropdown).hide();
+  async hide() {
+    await (this.slDropdownRef.value as SlDropdown).hide();
   }
 
-  show() {
-    (this.slDropdownRef.value as SlDropdown).show();
+  async show() {
+    await (this.slDropdownRef.value as SlDropdown).show();
   }
 
   focus() {
@@ -164,7 +164,7 @@ export class WebstatusTypeahead extends LitElement {
 
   shouldShowCandidate(
     candidate: VocabularyItem,
-    prefix: string | null
+    prefix: string | null,
   ): boolean {
     if (prefix === null) return false;
     const lowerPrefix: string = prefix.toLowerCase();
@@ -201,7 +201,7 @@ export class WebstatusTypeahead extends LitElement {
     if (candidateValue !== '-') {
       this.termWasCompleted = true;
     }
-    this.calcCandidates();
+    await this.calcCandidates();
     // The user may have clicked a menu item, causing the sl-input to lose
     // keyboard focus.  So, focus on the sl-input again.
     inputEl.focus();
@@ -222,7 +222,7 @@ export class WebstatusTypeahead extends LitElement {
   // As the user types and moves the caret, keep recalculating a-c choices.
   // Left and right movement is handled on keyUp so that caret has already been
   // moved to its new position before this handler is run.
-  handleInputFieldKeyUp(event: KeyboardEvent) {
+  async handleInputFieldKeyUp(event: KeyboardEvent) {
     if (['Escape'].includes(event.key)) {
       this.wasDismissed = true;
       return;
@@ -232,16 +232,16 @@ export class WebstatusTypeahead extends LitElement {
       return;
     }
     this.termWasCompleted = false;
-    this.calcCandidates();
+    await this.calcCandidates();
   }
 
-  calcCandidates(event?: Event) {
+  async calcCandidates(event?: Event) {
     if (event) {
       event.stopPropagation();
     }
     this.findPrefix();
     this.candidates = this.vocabulary.filter(c =>
-      this.shouldShowCandidate(c, this.prefix)
+      this.shouldShowCandidate(c, this.prefix),
     );
     const slDropdown = this.slDropdownRef.value as SlDropdown;
     if (
@@ -249,9 +249,9 @@ export class WebstatusTypeahead extends LitElement {
       !this.wasDismissed &&
       !this.termWasCompleted
     ) {
-      slDropdown.show();
+      await slDropdown.show();
     } else {
-      slDropdown.hide();
+      await slDropdown.hide();
     }
   }
 
@@ -291,7 +291,7 @@ export class WebstatusTypeahead extends LitElement {
               doc=${c.doc}
               prefix=${this.prefix || ''}
             ></webstatus-typeahead-item>
-          `
+          `,
         )}
       </sl-menu>
     `;
@@ -355,7 +355,7 @@ export class WebstatusTypeaheadDropdown extends SlDropdown {
 
       // Show the menu if it's not already open
       if (!this.open) {
-        this.show();
+        await this.show();
       }
 
       if (currentItem) {
@@ -446,7 +446,7 @@ export class WebstatusTypeaheadItem extends LitElement {
   handleMouseOver(event: Event) {
     if (this.parentElement) {
       (this.parentElement as SlMenu).setCurrentItem(
-        this as unknown as SlMenuItem
+        this as unknown as SlMenuItem,
       );
     }
     event.stopPropagation();

@@ -26,7 +26,7 @@ describe('webstatus-gchart', () => {
     const component = await fixture<WebstatusGChartsLoaderService>(
       html`<webstatus-gcharts-loader-service>
         <webstatus-gchart></webstatus-gchart>
-      </webstatus-gcharts-loader-service>`
+      </webstatus-gcharts-loader-service>`,
     );
 
     assert.exists(component);
@@ -34,7 +34,7 @@ describe('webstatus-gchart', () => {
     await component.waitForGChartsLibraryLoaded();
 
     const childComponent = component.querySelector(
-      'webstatus-gchart'
+      'webstatus-gchart',
     ) as WebstatusGChart;
     assert.exists(childComponent);
     await childComponent.updateComplete;
@@ -51,10 +51,10 @@ describe('webstatus-gchart', () => {
           <webstatus-gchart></webstatus-gchart>
         </webstatus-gcharts-loader-service>
       `,
-      root
+      root,
     );
     const loader = root.querySelector(
-      'webstatus-gcharts-loader-service'
+      'webstatus-gcharts-loader-service',
     ) as WebstatusGChartsLoaderService;
     assert.exists(loader);
     await loader.updateComplete;

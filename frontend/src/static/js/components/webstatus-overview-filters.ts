@@ -215,8 +215,8 @@ export class WebstatusOverviewFilters extends LitElement {
       .composedPath()
       .some(el =>
         ['INPUT', 'TEXTAREA', 'SL-POPUP', 'SL-DIALOG'].includes(
-          (el as HTMLElement).tagName
-        )
+          (el as HTMLElement).tagName,
+        ),
       );
     if (e.key === '/' && !inInputContext) {
       e.preventDefault();
@@ -241,7 +241,7 @@ export class WebstatusOverviewFilters extends LitElement {
         return this.apiClient!.getAllFeatures(
           getSearchQuery(this.location) as FeatureSearchType,
           getSortSpec(this.location) as FeatureSortOrderType,
-          getWPTMetricView(this.location) as FeatureWPTMetricViewType
+          getWPTMetricView(this.location) as FeatureWPTMetricViewType,
         );
       };
     }
@@ -268,7 +268,7 @@ export class WebstatusOverviewFilters extends LitElement {
     const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
 
     const pushBrowserChannelName = (
-      browserColumnKey: BrowserChannelColumnKeys
+      browserColumnKey: BrowserChannelColumnKeys,
     ) => {
       const name = CELL_DEFS[browserColumnKey].nameInDialog;
 
@@ -313,7 +313,7 @@ export class WebstatusOverviewFilters extends LitElement {
       const row: string[] = [];
 
       const pushBrowserChannelValue = (
-        browserColumnKey: BrowserChannelColumnKeys
+        browserColumnKey: BrowserChannelColumnKeys,
       ) => {
         const {browser, channel} = getBrowserAndChannel(browserColumnKey);
         const browserImplDate = browserImpl && browserImpl[browser]?.date;
@@ -353,7 +353,7 @@ export class WebstatusOverviewFilters extends LitElement {
       await CSVUtils.downloadCSV(
         columns,
         rows,
-        WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME
+        WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME,
       );
     } catch (error) {
       if (error instanceof Error) {
@@ -415,8 +415,12 @@ export class WebstatusOverviewFilters extends LitElement {
         .then(() => {
           this.exportDataStatus = TaskStatus.COMPLETE;
         })
-        .catch(error => {
-          new Toast().toast(error?.message, 'danger', 'exclamation-triangle');
+        .catch(async error => {
+          await new Toast().toast(
+            error?.message,
+            'danger',
+            'exclamation-triangle',
+          );
           this.exportDataStatus = TaskStatus.ERROR;
         });
     };

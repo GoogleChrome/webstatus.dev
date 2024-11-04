@@ -68,3 +68,6 @@ go.work.sum
 !.devcontainer/cache/go/go-build/.gitkeep
 !.devcontainer/cache/go/pkg/.gitkeep
 !.devcontainer/cache/node/.npm/.gitkeep
+
+# TypeScript
+tsconfig.tsbuildinfo

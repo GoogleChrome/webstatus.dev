@@ -55,7 +55,7 @@ export class WebstatusPage extends LitElement {
 
   firstUpdated(): void {
     const sidebarDrawer = this.shadowRoot?.querySelector(
-      '#sidebar-drawer'
+      '#sidebar-drawer',
     ) as SlDrawer | null;
     if (!sidebarDrawer) {
       throw new Error('Sidebar Drawer is missing');

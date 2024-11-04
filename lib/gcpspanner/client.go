@@ -46,7 +46,15 @@ var ErrInvalidCursorFormat = errors.New("invalid cursor format")
 type Client struct {
 	*spanner.Client
 	featureSearchQuery FeatureSearchBaseQuery
+	searchCfg          searchConfig
 }
+
+// searchConfig holds the application configuation for the saved search feature.
+type searchConfig struct {
+	maxOwnedSearchesPerUser uint32
+}
+
+const defaultMaxOwnedSearchesPerUser = 25
 
 // NewSpannerClient returns a Client for the Google Spanner service.
 func NewSpannerClient(projectID string, instanceID string, name string) (*Client, error) {
@@ -66,6 +74,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 	return &Client{
 		client,
 		GCPFeatureSearchBaseQuery{},
+		searchConfig{maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser},
 	}, nil
 }
 
@@ -179,9 +188,7 @@ func encodeFeatureResultOffsetCursor(offset int) string {
 // provides methods to get the external key, generate a select statement, and
 // retrieve the table name associated with the entity.
 type entityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	GetKey(ExternalStruct) ExternalKey
 	SelectOne(ExternalKey) spanner.Statement
-	Table() string
 }
 
 // readableEntityMapper extends EntityMapper with the ability to merge an
@@ -195,6 +202,8 @@ type readableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any
 type writeableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
 	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
 	Merge(ExternalStruct, SpannerStruct) SpannerStruct
+	GetKey(ExternalStruct) ExternalKey
+	Table() string
 }
 
 // writeableEntityMapperWithIDRetrieval further extends WriteableEntityMapper
@@ -319,29 +328,21 @@ type entityWriter[
 	*Client
 }
 
-// readRowErrorAndAttemptInsert handles errors that occur when reading a row
-// during an upsert operation. If no row is found (iterator.Done), it attempts
-// to insert the entity. Otherwise, it returns an internal query failure error.
-func (c *entityWriter[M, ExternalStruct, S, ExternalKey]) readRowErrorAndAttemptInsert(
-	err error, mapper M, input ExternalStruct) (*spanner.Mutation, error) {
-	if errors.Is(err, iterator.Done) {
-		// No rows returned. Act as if this is an insertion.
-		m, err := spanner.InsertOrUpdateStruct(mapper.Table(), input)
-		if err != nil {
-			return nil, errors.Join(ErrInternalQueryFailure, err)
-		}
-
-		return m, nil
+// createInsertMutation simply creates a spanner mutation from the struct to the table.
+func (c *entityWriter[M, ExternalStruct, S, ExternalKey]) createInsertMutation(
+	mapper M, input ExternalStruct) (*spanner.Mutation, error) {
+	m, err := spanner.InsertStruct(mapper.Table(), input)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
-	// An unexpected error occurred.
 
-	return nil, errors.Join(ErrInternalQueryFailure, err)
+	return m, nil
 }
 
-// update reads an existing entity from a Spanner row, merges it with the input
+// createUpdateMutation reads an existing entity from a Spanner row, merges it with the input
 // entity using the mapper's Merge method, and creates a Spanner mutation for
 // updating the row.
-func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) update(
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) createUpdateMutation(
 	row *spanner.Row, mapper M, input ExternalStruct) (*spanner.Mutation, error) {
 	existing := new(SpannerStruct)
 	// Read the existing entity and merge the values.
@@ -366,33 +367,162 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsert(
 	ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		var mapper M
-		stmt := mapper.SelectOne(mapper.GetKey(input))
-		// Attempt to query for the row.
-		it := txn.Query(ctx, stmt)
-		defer it.Stop()
-		var m *spanner.Mutation
+		return c.upsertWithTransaction(ctx, txn, input)
+	})
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
 
-		row, err := it.Next()
-		if err != nil {
-			m, err = c.readRowErrorAndAttemptInsert(err, mapper, input)
-			if err != nil {
-				return err
-			}
-		} else {
-			m, err = c.update(row, mapper, input)
-			if err != nil {
-				return err
-			}
-		}
-		// Buffer the mutation to be committed.
-		err = txn.BufferWrite([]*spanner.Mutation{m})
-		if err != nil {
+	return nil
+}
+
+// upsertWithTransaction performs an upsert operation on an entity using the existing transaction.
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertWithTransaction(
+	ctx context.Context,
+	txn *spanner.ReadWriteTransaction,
+	input ExternalStruct) error {
+	var mapper M
+	stmt := mapper.SelectOne(mapper.GetKey(input))
+	// Attempt to query for the row.
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	var m *spanner.Mutation
+
+	row, err := it.Next()
+	if err != nil {
+		// Check if an unexpected error occurred.
+		if !errors.Is(err, iterator.Done) {
 			return errors.Join(ErrInternalQueryFailure, err)
 		}
 
-		return nil
+		// No rows returned. Act as if this is an insertion.
+		m, err = c.createInsertMutation(mapper, input)
+		if err != nil {
+			return err
+		}
+	} else {
+		m, err = c.createUpdateMutation(row, mapper, input)
+		if err != nil {
+			return err
+		}
+	}
+	// Buffer the mutation to be committed.
+	err = txn.BufferWrite([]*spanner.Mutation{m})
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return nil
+}
+
+// update performs an update operation on an entity.
+// It first attempts to select the entity based on its external key.
+// If the entity exists, it updates it; otherwise, it returns an error.
+// nolint:unused // TODO: Remove nolint directive once the method is used.
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) update(
+	ctx context.Context,
+	input ExternalStruct) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		return c.updateWithTransaction(ctx, txn, input)
 	})
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return nil
+}
+
+// updateWithTransaction performs an update operation on an entity using the existing transaction.
+// nolint:unused // TODO: Remove nolint directive once the method is used.
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) updateWithTransaction(
+	ctx context.Context,
+	txn *spanner.ReadWriteTransaction,
+	input ExternalStruct) error {
+	var mapper M
+	stmt := mapper.SelectOne(mapper.GetKey(input))
+	// Attempt to query for the row.
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	var m *spanner.Mutation
+
+	row, err := it.Next()
+	if err != nil {
+		// No row found
+		if errors.Is(err, iterator.Done) {
+			return errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		// Catch-all for other errors.
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	m, err = c.createUpdateMutation(row, mapper, input)
+	if err != nil {
+		return err
+	}
+
+	// Buffer the mutation to be committed.
+	err = txn.BufferWrite([]*spanner.Mutation{m})
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return nil
+}
+
+// removableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
+type removableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
+	writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	DeleteKey(ExternalKey) spanner.Key
+}
+
+// entityRemover is a basic client for removing any row from the database.
+type entityRemover[
+	M removableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any] struct {
+	*Client
+}
+
+// remove performs an delete operation on an entity.
+func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) remove(ctx context.Context,
+	input ExternalStruct) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		return c.removeWithTransaction(ctx, txn, input)
+	})
+
+	return err
+}
+
+// removeWithTransaction performs an delete operation on an entity using the existing transaction.
+// nolint:unused // TODO: Remove nolint directive once the method is used.
+func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) removeWithTransaction(ctx context.Context,
+	txn *spanner.ReadWriteTransaction,
+	input ExternalStruct) error {
+	var mapper M
+	key := mapper.GetKey(input)
+	stmt := mapper.SelectOne(key)
+	// Attempt to query for the row.
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	var m *spanner.Mutation
+
+	_, err := it.Next()
+	if err != nil {
+		// No row found
+		if errors.Is(err, iterator.Done) {
+			return errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		// Catch-all for other errors.
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	m = spanner.Delete(mapper.Table(), mapper.DeleteKey(key))
+
+	// Buffer the mutation to be committed.
+	err = txn.BufferWrite([]*spanner.Mutation{m})
 	if err != nil {
 		return errors.Join(ErrInternalQueryFailure, err)
 	}
@@ -424,4 +554,12 @@ func newEntityReader[
 	ExternalStruct any,
 	ExternalKey any](c *Client) *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey] {
 	return &entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+}
+
+func newEntityRemover[
+	M removableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	SpannerStruct any,
+	ExternalStruct any,
+	ExternalKey any](c *Client) *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey] {
+	return &entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
 }

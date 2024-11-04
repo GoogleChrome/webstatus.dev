@@ -24,6 +24,7 @@ import {ServiceElement} from '../../services/service-element.js';
 describe('WebstatusServiceContainer', () => {
   const settings: AppSettings = {
     apiUrl: 'http://localhost',
+    webFeaturesProgressUrl: 'url',
     firebase: {
       app: {
         apiKey: 'testapikey',
@@ -53,7 +54,7 @@ describe('WebstatusServiceContainer', () => {
 
     for (const serviceTag of serviceTags) {
       const service = el.shadowRoot?.querySelector(
-        serviceTag
+        serviceTag,
       ) as ServiceElement;
       try {
         assert.exists(service, `${serviceTag} should be rendered`);
@@ -90,7 +91,7 @@ describe('WebstatusServiceContainer', () => {
     assert.strictEqual(
       slotContentElement.textContent?.trim(),
       'This is the slot content',
-      'Slot content should match'
+      'Slot content should match',
     );
   });
 });

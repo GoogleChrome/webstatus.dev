@@ -757,18 +757,26 @@ components:
         baseline:
           $ref: '#/components/schemas/BaselineInfo'
         usage:
-          type: number
-          format: float
-          description: >
-            Latest snapshot of the usage metric for the given feature.
-          minimum: 0.0
-          maximum: 100.0
+          type: object
+          properties:
+            chromium:
+              $ref: '#/components/schemas/ChromiumUsageInfo'
         wpt:
           $ref: '#/components/schemas/FeatureWPTSnapshots'
       required:
         - feature_id
         - name
         - baseline_status
+    ChromiumUsageInfo:
+      type: object
+      properties:
+        daily:
+          type: number
+          format: double
+          description: >
+            Latest snapshot of the usage metric for the given feature.
+          minimum: 0.0
+          maximum: 100.0
     BasicErrorModel:
       type: object
       required:

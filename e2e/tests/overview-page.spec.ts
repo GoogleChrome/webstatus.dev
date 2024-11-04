@@ -45,7 +45,7 @@ test('shows an unknown error when there is an internal error', async ({
         code: 500,
         message: 'uh-oh',
       },
-    })
+    }),
   );
   await page.goto('http://localhost:5555/');
 
@@ -74,7 +74,7 @@ test('hides the Feature column', async ({page}) => {
 
   // Uncheck the "Feature name" checkbox.
   const nameCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="name"]'
+    'sl-checkbox[value="name"]',
   );
   await nameCheckbox.click();
 
@@ -108,12 +108,12 @@ test('shows the Baseline status column with low and high date options', async ({
 
   // Check the "Baseline status low date" checkbox.
   const baselineStatusLowDateCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="baseline_status_low_date"]'
+    'sl-checkbox[value="baseline_status_low_date"]',
   );
   await baselineStatusLowDateCheckbox.click();
   // Check the "Baseline status high date" checkbox.
   const baselineStatusHighDateCheckbox = webstatusColumnsDialog.locator(
-    'sl-checkbox[value="baseline_status_high_date"]'
+    'sl-checkbox[value="baseline_status_high_date"]',
   );
   await baselineStatusHighDateCheckbox.click();
 
@@ -236,4 +236,63 @@ test('Typing slash focuses on searchbox', async ({page}) => {
   // The slash focuses on the searchbox.
   // Later characters, including slashes, go in the searchbox.
   await expect(searchbox).toHaveAttribute('value', 'def/ghi');
+});
+
+test.describe('web features mapping progress', () => {
+  const mappingPattern = /Percentage of features mapped:\s+\d+(\.\d+)?%/;
+  test('Overview page has the progress with a clickable link', async ({
+    page,
+  }) => {
+    await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+
+    const textLocator = page.getByText(mappingPattern);
+    await expect(textLocator).toBeVisible();
+
+    const linkLocator = textLocator.locator('a');
+
+    // Assert the link's text content matches the number pattern
+    const linkText = await linkLocator.textContent();
+    expect(linkText).toMatch(/\d+(\.\d+)?%/);
+
+    await linkLocator.click();
+    await expect(page).toHaveURL(
+      'https://github.com/web-platform-dx/web-features',
+    );
+  });
+
+  test('Web Features progress request fails and shows toast', async ({
+    page,
+  }) => {
+    // Mock the API to return an error when requesting mapping feature progress.
+    page.on('request', async request => {
+      await page.route('**/progress.json*', async route => {
+        return route.abort();
+      });
+    });
+    await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+
+    // Assert toast is visible
+    // For some reason it brings up two toasts. We should fix that.
+    const toast = page.locator('.toast').first();
+    await toast.waitFor({state: 'visible'});
+  });
+
+  test('Web Features progress can be removed if is_disabled=true', async ({
+    page,
+  }) => {
+    // Mock the API to is_disabled flag.
+    page.on('request', async request => {
+      await page.route('**/progress.json*', route =>
+        route.fulfill({
+          status: 200,
+          body: '{"is_disabled": true}',
+        }),
+      );
+    });
+    await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+
+    // Assert mapping text is not visible
+    const textLocator = page.getByText(mappingPattern);
+    await expect(textLocator).toBeVisible({visible: false});
+  });
 });

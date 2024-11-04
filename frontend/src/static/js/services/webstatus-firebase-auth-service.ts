@@ -89,7 +89,7 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       if (this.settings.emulatorURL !== '') {
         this.emulatorConnector(
           this.firebaseAuthConfig.auth,
-          this.settings.emulatorURL
+          this.settings.emulatorURL,
         );
       }
       // Set up the callback that will detect when:

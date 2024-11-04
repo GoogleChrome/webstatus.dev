@@ -38,6 +38,7 @@ import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {toast} from '../utils/toast.js';
+import '../services/webstatus-webfeature-progress-service.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -75,14 +76,14 @@ export class OverviewPage extends LitElement {
           data: page,
         };
       },
-      onError: (error: unknown) => {
+      onError: async (error: unknown) => {
         if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: error,
             data: null,
           };
-          toast(`${error.message}`, 'danger', 'exclamation-triangle');
+          await toast(`${error.message}`, 'danger', 'exclamation-triangle');
         } else {
           // Should never reach here but let's handle it.
           this.taskTracker = {
@@ -97,7 +98,7 @@ export class OverviewPage extends LitElement {
 
   async _fetchFeatures(
     apiClient: APIClient | undefined,
-    routerLocation: {search: string}
+    routerLocation: {search: string},
   ): Promise<components['schemas']['FeaturePage']> {
     if (typeof apiClient !== 'object')
       return Promise.reject(new Error('APIClient is not initialized.'));
@@ -106,24 +107,26 @@ export class OverviewPage extends LitElement {
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
     const wptMetricView = getWPTMetricView(
-      routerLocation
+      routerLocation,
     ) as FeatureWPTMetricViewType;
     return apiClient.getFeatures(
       searchQuery,
       sortSpec,
       wptMetricView,
       offset,
-      pageSize
+      pageSize,
     );
   }
 
   render(): TemplateResult {
     return html`
-      <webstatus-overview-content
-        .location=${this.location}
-        .taskTracker=${this.taskTracker}
-      >
-      </webstatus-overview-content>
+      <webstatus-webfeature-progress-service>
+        <webstatus-overview-content
+          .location=${this.location}
+          .taskTracker=${this.taskTracker}
+        >
+        </webstatus-overview-content>
+      </webstatus-webfeature-progress-service>
     `;
   }
 }

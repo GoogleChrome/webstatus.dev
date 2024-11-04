@@ -18,6 +18,7 @@ metadata:
   name: frontend-config
 requires:
   - path: ../backend
+  - path: ../.dev/gcs
 profiles:
   - name: local
     build:

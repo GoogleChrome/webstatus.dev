@@ -36,7 +36,7 @@ export class WebstatusGChartsLoaderService extends ServiceElement {
       () => {},
       // TODO. Failure case.  We could progagate an event or signal
       // that will render a useful message to the user to reload the page.
-      () => {}
+      () => {},
     );
   }
 
@@ -60,6 +60,9 @@ export class WebstatusGChartsLoaderService extends ServiceElement {
           .then(() => {
             this.gchartsLibraryLoaded = true;
             resolve();
+          })
+          .catch(error => {
+            console.error(JSON.stringify(error));
           });
       });
     });

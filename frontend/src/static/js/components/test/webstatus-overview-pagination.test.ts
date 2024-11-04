@@ -23,7 +23,7 @@ describe('webstatus-overview-pagination', () => {
 
   beforeEach(async () => {
     el = await fixture<WebstatusOverviewPagination>(
-      '<webstatus-overview-pagination></webstatus-overview-pagination>'
+      '<webstatus-overview-pagination></webstatus-overview-pagination>',
     );
     el.totalCount = 123;
     el.location = {search: ''};

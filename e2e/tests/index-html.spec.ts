@@ -34,7 +34,7 @@ test('preconnect tag present', async ({page}) => {
     const preconnectLink = await page.$(selector);
     expect(
       preconnectLink,
-      `Preconnect link not found for ${link.origin}`
+      `Preconnect link not found for ${link.origin}`,
     ).toBeTruthy();
 
     if (link.crossorigin) {
@@ -47,16 +47,16 @@ test('preconnect tag present', async ({page}) => {
   // 2. Verify No Extra Preconnects
   const allPreconnectLinks = await page.$$('link[rel="preconnect"]');
   const actualOrigins = await Promise.all(
-    allPreconnectLinks.map(async link => await link.getAttribute('href'))
+    allPreconnectLinks.map(async link => await link.getAttribute('href')),
   );
 
   for (const actualOrigin of actualOrigins) {
     const isExpected = expectedPreconnectLinks.some(
-      link => link.origin === actualOrigin
+      link => link.origin === actualOrigin,
     );
     expect(
       isExpected,
-      `Unexpected preconnect link found for ${actualOrigin}`
+      `Unexpected preconnect link found for ${actualOrigin}`,
     ).toBeTruthy();
   }
 });

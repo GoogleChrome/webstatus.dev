@@ -86,3 +86,5 @@ auth_github_config_locations = {
 # match production.
 backend_min_instance_count  = 0
 frontend_min_instance_count = 0
+
+web_features_progress_url = "https://storage.googleapis.com/web-features-progress-staging/progress.json"

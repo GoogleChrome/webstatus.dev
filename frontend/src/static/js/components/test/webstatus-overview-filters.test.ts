@@ -41,7 +41,7 @@ describe('downloadCSV', () => {
       html`<webstatus-overview-filters
         .location=${location}
         .apiClient=${apiClient}
-      ></webstatus-overview-filters>`
+      ></webstatus-overview-filters>`,
     );
 
     assert.exists(filterComponent);
@@ -54,7 +54,7 @@ describe('downloadCSV', () => {
     // Click the 'Export to CSV' button
     const downloadButton =
       filterComponent.shadowRoot?.querySelector<HTMLButtonElement>(
-        '#export-to-csv-button'
+        '#export-to-csv-button',
       );
     assert.exists(downloadButton);
     downloadButton.click();
@@ -62,7 +62,7 @@ describe('downloadCSV', () => {
     await elementUpdated(filterComponent);
     await waitUntil(
       () => filterComponent.exportDataStatus,
-      'Export data status failed to change'
+      'Export data status failed to change',
     );
 
     expect(downloadCSVStub.calledOnce).to.be.true;
@@ -71,8 +71,8 @@ describe('downloadCSV', () => {
       toastStub.calledWith(
         'Save file error: Test error',
         'danger',
-        'exclamation-triangle'
-      )
+        'exclamation-triangle',
+      ),
     ).to.be.true;
     expect(getAllFeaturesStub.calledOnce).to.be.true;
     downloadCSVStub.restore();
@@ -89,7 +89,7 @@ describe('downloadCSV', () => {
       html`<webstatus-overview-filters
         .location=${location}
         .apiClient=${apiClient}
-      ></webstatus-overview-filters>`
+      ></webstatus-overview-filters>`,
     );
     assert.exists(filterComponent);
     await filterComponent.updateComplete;
@@ -97,7 +97,7 @@ describe('downloadCSV', () => {
     // Click the 'Export to CSV' button
     const downloadButton =
       filterComponent.shadowRoot?.querySelector<HTMLButtonElement>(
-        '#export-to-csv-button'
+        '#export-to-csv-button',
       );
     assert.exists(downloadButton);
 
@@ -106,7 +106,7 @@ describe('downloadCSV', () => {
     await elementUpdated(filterComponent);
     await waitUntil(
       () => filterComponent.exportDataStatus,
-      'Export data status failed to change'
+      'Export data status failed to change',
     );
 
     expect(toastStub.calledOnce).to.be.true;
@@ -114,8 +114,8 @@ describe('downloadCSV', () => {
       toastStub.calledWith(
         'Download features error: Test error',
         'danger',
-        'exclamation-triangle'
-      )
+        'exclamation-triangle',
+      ),
     ).to.be.true;
     expect(getAllFeaturesStub.calledOnce).to.be.true;
     toastStub.restore();

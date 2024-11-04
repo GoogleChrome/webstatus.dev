@@ -62,7 +62,7 @@ export function getDateRange(location: {search: string}): DateRange {
 export const DEFAULT_ITEMS_PER_PAGE = 25;
 export function getPageSize(location: {search: string}): number {
   const num = Number(
-    getQueryParam(location.search, 'num') || DEFAULT_ITEMS_PER_PAGE
+    getQueryParam(location.search, 'num') || DEFAULT_ITEMS_PER_PAGE,
   );
   return Math.min(100, Math.max(num, 1));
 }
@@ -84,7 +84,7 @@ type QueryStringOverrides = {
    around, I should still be searching for 'mouse'. */
 function getContextualQueryStringParams(
   location: {search: string} | undefined,
-  overrides: QueryStringOverrides = {}
+  overrides: QueryStringOverrides = {},
 ): string {
   if (location === undefined) {
     return '';
@@ -152,7 +152,7 @@ function getContextualQueryStringParams(
 /* Return a URL for the overview (feature list) page. */
 export function formatOverviewPageUrl(
   location?: {search: string},
-  overrides: QueryStringOverrides = {}
+  overrides: QueryStringOverrides = {},
 ): string {
   const qs = getContextualQueryStringParams(location, overrides);
   return `/${qs}`;
@@ -167,7 +167,7 @@ interface FeatureURLDetails {
 export function formatFeaturePageUrl(
   feature: FeatureURLDetails,
   location?: {search: string},
-  overrides: QueryStringOverrides = {}
+  overrides: QueryStringOverrides = {},
 ): string {
   const qs = getContextualQueryStringParams(location, overrides);
   return `/features/${feature.feature_id}${qs}`;
@@ -177,7 +177,7 @@ export function formatFeaturePageUrl(
 export function updateFeaturePageUrl(
   feature: FeatureURLDetails,
   location: {search: string},
-  overrides: QueryStringOverrides = {}
+  overrides: QueryStringOverrides = {},
 ): void {
   const url = formatFeaturePageUrl(feature, location, overrides);
   window.history.replaceState({}, '', url);

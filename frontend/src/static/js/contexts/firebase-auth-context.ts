@@ -28,5 +28,5 @@ export interface AuthConfig {
 }
 
 export const firebaseAuthContext = createContext<AuthConfig | undefined>(
-  'firebase-auth'
+  'firebase-auth',
 );

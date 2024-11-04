@@ -140,6 +140,25 @@ terraform apply \
     -var "env_id=${ENV_ID}"
 ```
 
+### Update the value of the BCD progress
+
+Go to https://github.com/web-platform-dx/web-features/releases and there should be a line like `X% coverage of mdn/browser-compat-data features`. Copy the percentage.
+
+```sh
+BCD_VALUE=62 # Replace the value
+echo "{\"bcd_map_progress\": $BCD_VALUE}"  | gsutil -h "Content-Type:application/json" cp - gs://web-features-progress-staging/progress.json
+```
+
+### Or, disable the BCD progress text
+
+**Note:** Normally, we should only need to update the progress. **ONLY** do
+this section if there is a request to disable the text. Otherwise, you can skip
+this part and consider the deployment done.
+
+```sh
+echo "{\"is_disabled\": true}"  | gsutil -h "Content-Type:application/json" cp - gs://web-features-progress-staging/progress.json
+```
+
 ## Deploy Prod
 
 ```sh
@@ -172,4 +191,23 @@ Assuming the plan output by the terraform plan command looks fine, run:
 terraform apply \
     -var-file=".envs/prod.tfvars" \
     -var "env_id=${ENV_ID}"
+```
+
+### Update the value of the BCD progress
+
+Go to https://github.com/web-platform-dx/web-features/releases and there should be a line like `X% coverage of mdn/browser-compat-data features`. Copy the percentage.
+
+```sh
+BCD_VALUE=62 # Replace the value
+echo "{\"bcd_map_progress\": $BCD_VALUE}"  | gsutil -h "Content-Type:application/json" cp - gs://web-features-progress-prod/progress.json
+```
+
+### Or, disable the BCD progress text
+
+**Note:** Normally, we should only need to update the progress. **ONLY** do
+this section if there is a request to disable the text. Otherwise, you can skip
+this part and consider the deployment done.
+
+```sh
+echo "{\"is_disabled\": true}"  | gsutil -h "Content-Type:application/json" cp - gs://web-features-progress-prod/progress.json
 ```

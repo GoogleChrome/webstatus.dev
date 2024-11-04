@@ -24,7 +24,7 @@ import {
 describe('webstatus-columns-dialog', () => {
   it('can be added to the page', async () => {
     const component = await fixture<WebstatusColumnsDialog>(
-      html` <webstatus-columns-dialog></webstatus-columns-dialog>`
+      html` <webstatus-columns-dialog></webstatus-columns-dialog>`,
     );
     assert.exists(component);
   });

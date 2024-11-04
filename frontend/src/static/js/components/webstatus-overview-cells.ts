@@ -31,7 +31,7 @@ type CellRenderer = {
     options: {
       browser?: components['parameters']['browserPathParam'];
       channel?: components['parameters']['channelPathParam'];
-    }
+    },
   ): TemplateResult | typeof nothing;
 };
 
@@ -69,7 +69,7 @@ const columnKeyMapping = Object.entries(ColumnKey).reduce(
     mapping[enumValue] = ColumnKey[enumKey as keyof typeof ColumnKey];
     return mapping;
   },
-  {} as Record<string, ColumnKey>
+  {} as Record<string, ColumnKey>,
 );
 
 type ColumnOptionDefinition = {
@@ -88,7 +88,7 @@ const columnOptionKeyMapping = Object.entries(ColumnOptionKey).reduce(
       ColumnOptionKey[enumKey as keyof typeof ColumnOptionKey];
     return mapping;
   },
-  {} as Record<string, ColumnOptionKey>
+  {} as Record<string, ColumnOptionKey>,
 );
 
 export const DEFAULT_COLUMNS = [
@@ -166,25 +166,25 @@ function formatDate(date: Date): string {
 export const renderBaselineStatus: CellRenderer = (
   feature,
   routerLocation,
-  _options
+  _options,
 ) => {
   const baselineStatus = feature.baseline?.status;
   if (baselineStatus === undefined) return html``;
   const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
   const columnOptions: ColumnOptionKey[] = parseColumnOptions(
-    getColumnOptions(routerLocation)
+    getColumnOptions(routerLocation),
   );
   const columnHighDateOption = columnOptions.includes(
-    ColumnOptionKey.BaselineStatusHighDate
+    ColumnOptionKey.BaselineStatusHighDate,
   );
   const columnLowDateOption = columnOptions.includes(
-    ColumnOptionKey.BaselineStatusLowDate
+    ColumnOptionKey.BaselineStatusLowDate,
   );
 
   function generateDateHtml(
     header: string,
     date: string | number,
-    blockType: 'widely' | 'newly'
+    blockType: 'widely' | 'newly',
   ) {
     return html`<div
       class="baseline-date-block baseline-date-block-${blockType}"
@@ -200,7 +200,7 @@ export const renderBaselineStatus: CellRenderer = (
     baselineStatusLowDateHtml = generateDateHtml(
       'Newly available',
       formatDateString(baselineStatusLowDate),
-      'newly'
+      'newly',
     );
   }
 
@@ -210,18 +210,18 @@ export const renderBaselineStatus: CellRenderer = (
     baselineStatusHighDateHtml = generateDateHtml(
       'Widely available',
       formatDateString(baselineStatusHighDate),
-      'widely'
+      'widely',
     );
   } else if (baselineStatusLowDate && columnHighDateOption) {
     // Add the month offset to the low date to get the projected high date.
     const projectedHighDate = new Date(baselineStatusLowDate);
     projectedHighDate.setMonth(
-      projectedHighDate.getMonth() + NEWLY_TO_WIDELY_MONTH_OFFSET
+      projectedHighDate.getMonth() + NEWLY_TO_WIDELY_MONTH_OFFSET,
     );
     baselineStatusHighDateHtml = generateDateHtml(
       'Projected widely available',
       formatDate(projectedHighDate),
-      'widely'
+      'widely',
     );
   }
 
@@ -260,7 +260,7 @@ function renderPercentage(score?: number): TemplateResult {
 export const renderBrowserQuality: CellRenderer = (
   feature,
   _routerLocation,
-  {browser}
+  {browser},
 ) => {
   const score: number | undefined = feature.wpt?.stable?.[browser!]?.score;
   let percentage = renderPercentage(score);
@@ -296,7 +296,7 @@ export const renderBrowserQuality: CellRenderer = (
 export const renderBrowserQualityExp: CellRenderer = (
   feature,
   _routerLocation,
-  {browser}
+  {browser},
 ) => {
   const score: number | undefined =
     feature.wpt?.experimental?.[browser!]?.score;
@@ -304,7 +304,7 @@ export const renderBrowserQualityExp: CellRenderer = (
 };
 
 export const getBrowserAndChannel = (
-  browserColumnKey: BrowserChannelColumnKeys
+  browserColumnKey: BrowserChannelColumnKeys,
 ): {
   browser: components['parameters']['browserPathParam'];
   channel: components['parameters']['channelPathParam'];
@@ -400,7 +400,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
 export function renderHeaderCell(
   routerLocation: {search: string},
   column: ColumnKey,
-  sortSpec: string
+  sortSpec: string,
 ): TemplateResult {
   let sortIndicator = html``;
   let urlWithSort = formatOverviewPageUrl(routerLocation, {
@@ -428,7 +428,7 @@ export function renderHeaderCell(
 export function renderFeatureCell(
   feature: components['schemas']['Feature'],
   routerLocation: {search: string},
-  column: ColumnKey
+  column: ColumnKey,
 ): TemplateResult | typeof nothing {
   const colDef = CELL_DEFS[column];
   if (colDef?.cellRenderer) {
@@ -486,7 +486,7 @@ interface FeatureSpecInfo {
 export function isJavaScriptFeature(featureSpecInfo: FeatureSpecInfo): boolean {
   return (
     featureSpecInfo?.links?.some(linkObj =>
-      linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX)
+      linkObj.link?.startsWith(JS_FEATURE_LINK_PREFIX),
     ) ?? false
   );
 }

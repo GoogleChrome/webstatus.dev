@@ -21,6 +21,7 @@ export type {User} from 'firebase/auth';
 
 export const firebaseUserContext = createContext<FirebaseUser | undefined>(
   'firebase-user'
+
 );
 
 type FirebaseUser = User & {

@@ -95,6 +95,10 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "FIREBASE_AUTH_TENANT_ID"
         value = var.firebase_settings.tenant_id
       }
+      env {
+        name  = "WEB_FEATURES_PROGRESS_URL"
+        value = var.web_features_progress_url
+      }
     }
     vpc_access {
       network_interfaces {
