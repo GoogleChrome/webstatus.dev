@@ -153,6 +153,7 @@ func (c *Client) readAllBrowserFeatureSupportEvents(ctx context.Context, t *test
 	stmt := spanner.Statement{
 		SQL: `SELECT *
               FROM BrowserFeatureSupportEvents`,
+		Params: nil,
 	}
 	var actualEvents []BrowserFeatureSupportEvent
 	iter := spannerClient.Single().Query(ctx, stmt)
@@ -163,11 +164,13 @@ func (c *Client) readAllBrowserFeatureSupportEvents(ctx context.Context, t *test
 			return err
 		}
 		actualEvents = append(actualEvents, event)
+
 		return nil
 	})
 	if err != nil {
 		t.Fatalf("Failed to fetch data from BrowserFeatureSupportEvents: %v", err)
 	}
+
 	return actualEvents
 }
 
@@ -177,6 +180,7 @@ func sortBrowserFeatureSupportEvents(left, right BrowserFeatureSupportEvent) int
 		if left.EventReleaseDate.Before(right.EventReleaseDate) {
 			return -1
 		}
+
 		return 1
 	}
 
@@ -185,6 +189,7 @@ func sortBrowserFeatureSupportEvents(left, right BrowserFeatureSupportEvent) int
 		if left.EventBrowserName < right.EventBrowserName {
 			return -1
 		}
+
 		return 1
 	}
 
@@ -193,6 +198,7 @@ func sortBrowserFeatureSupportEvents(left, right BrowserFeatureSupportEvent) int
 		if left.TargetBrowserName < right.TargetBrowserName {
 			return -1
 		}
+
 		return 1
 	}
 

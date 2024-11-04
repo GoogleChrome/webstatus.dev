@@ -97,3 +97,28 @@ func (c *Client) InsertBrowserFeatureAvailability(
 
 	return newEntityWriter[browserFeatureAvailabilityMapper](c).upsert(ctx, featureAvailability)
 }
+
+func (c *Client) fetchAllBrowserAvailabilitiesWithTransaction(
+	ctx context.Context, txn *spanner.ReadWriteTransaction) ([]spannerBrowserFeatureAvailability, error) {
+	var availabilities []spannerBrowserFeatureAvailability
+	iter := txn.Read(ctx, browserFeatureAvailabilitiesTable, spanner.AllKeys(), []string{
+		"BrowserName",
+		"BrowserVersion",
+		"WebFeatureID",
+	})
+	defer iter.Stop()
+	err := iter.Do(func(row *spanner.Row) error {
+		var entry spannerBrowserFeatureAvailability
+		if err := row.ToStruct(&entry); err != nil {
+			return err
+		}
+		availabilities = append(availabilities, entry)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return availabilities, nil
+}

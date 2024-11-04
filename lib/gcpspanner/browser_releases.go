@@ -82,3 +82,28 @@ func (m browserReleaseSpannerMapper) Table() string {
 func (c *Client) InsertBrowserRelease(ctx context.Context, release BrowserRelease) error {
 	return newEntityWriter[browserReleaseSpannerMapper](c).upsert(ctx, release)
 }
+
+func (c *Client) fetchAllBrowserReleasesWithTransaction(
+	ctx context.Context, txn *spanner.ReadWriteTransaction) ([]spannerBrowserRelease, error) {
+	var releases []spannerBrowserRelease
+	iter := txn.Read(ctx, browserReleasesTable, spanner.AllKeys(), []string{
+		"BrowserName",
+		"BrowserVersion",
+		"ReleaseDate",
+	})
+	defer iter.Stop()
+	err := iter.Do(func(row *spanner.Row) error {
+		var entry spannerBrowserRelease
+		if err := row.ToStruct(&entry); err != nil {
+			return err
+		}
+		releases = append(releases, entry)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return releases, nil
+}

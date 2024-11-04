@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -64,7 +63,6 @@ SELECT releases.EventReleaseDate,
            FROM WebFeatures wf
            LEFT JOIN BrowserFeatureSupportEvents bfse
                ON wf.ID = bfse.WebFeatureID
-               AND bfse.EventBrowserName = @targetBrowserParam  -- Target browser
 			   AND bfse.TargetBrowserName = @targetBrowserParam
                AND bfse.EventReleaseDate = releases.EventReleaseDate
                AND bfse.SupportStatus = 'unsupported'  -- Added condition
@@ -74,9 +72,8 @@ SELECT releases.EventReleaseDate,
                    SELECT 1
                    FROM BrowserFeatureSupportEvents bfse_other
                    WHERE bfse_other.WebFeatureID = wf.ID
-                     AND bfse_other.EventBrowserName = @{{ $browser }}
                      AND bfse_other.SupportStatus = 'supported'
-                     AND bfse_other.TargetBrowserName = @targetBrowserParam
+                     AND bfse_other.TargetBrowserName = @{{ $browser }}
                      AND bfse_other.EventReleaseDate = releases.EventReleaseDate
                  )
                  AND
@@ -87,13 +84,14 @@ FROM (
     SELECT DISTINCT EventReleaseDate
     FROM BrowserFeatureSupportEvents
     WHERE TargetBrowserName = @targetBrowserParam
+		AND EventBrowserName IN UNNEST(@allBrowsersParam)
 ) releases
 WHERE releases.EventReleaseDate >= @startAt
   AND releases.EventReleaseDate < @endAt
   {{if .ReleaseDateParam }}
   AND releases.EventReleaseDate < @{{ .ReleaseDateParam }}
   {{end}}
-ORDER BY releases.EventReleaseDate
+ORDER BY releases.EventReleaseDate DESC
 LIMIT @limit;
 `
 
@@ -113,7 +111,11 @@ func buildMissingOneImplTemplate(
 ) spanner.Statement {
 	params := map[string]interface{}{}
 	// targetBrowserParamName := "targetBrowserParam"
+	allBrowsers := make([]string, len(otherBrowsers)+1)
+	copy(allBrowsers, otherBrowsers)
+	allBrowsers[len(allBrowsers)-1] = targetBrowser
 	params["targetBrowserParam"] = targetBrowser
+	params["allBrowsersParam"] = allBrowsers
 	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
 	for i := range otherBrowsers {
 		paramName := fmt.Sprintf("otherBrowser%d", i)
@@ -172,8 +174,6 @@ func (c *Client) ListMissingOneImplCounts(
 		endAt,
 		pageSize,
 	)
-
-	slog.Info("stmt", "sql", stmt.SQL, "params", stmt.Params)
 
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
