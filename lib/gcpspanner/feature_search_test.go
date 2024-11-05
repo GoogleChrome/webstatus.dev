@@ -641,6 +641,7 @@ func addSampleChromiumHistogramEnums(ctx context.Context, client *Client, t *tes
 		}
 		chromiumHistogramEnumIDMap[enum.HistogramName] = *id
 	}
+
 	return chromiumHistogramEnumIDMap
 }
 
@@ -675,6 +676,7 @@ func addSampleChromiumHistogramEnumValues(
 		}
 		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *enumValueID
 	}
+
 	return chromiumHistogramEnumValueToIDMap
 }
 
