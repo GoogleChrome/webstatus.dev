@@ -334,7 +334,7 @@ LEFT OUTER JOIN (
 		SELECT
 			dch.ChromiumHistogramEnumValueID,
 			dch.Rate,
-			dchm_max.max_day AS Day
+			dch.Day
 		FROM DailyChromiumHistogramMetrics dch
 		INNER JOIN (
 			SELECT

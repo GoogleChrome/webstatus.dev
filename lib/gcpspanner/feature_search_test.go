@@ -199,130 +199,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 	}
 
-	sampleChromiumHistogramEnums := []ChromiumHistogramEnum{
-		{
-			HistogramName: "AnotherHistogram",
-		},
-		{
-			HistogramName: "WebDXFeatureObserver",
-		},
-	}
-	enumValueLabelToIDMap := make(map[string]string, len(sampleChromiumHistogramEnums))
-	for _, enum := range sampleChromiumHistogramEnums {
-		id, err := client.UpsertChromiumHistogramEnum(ctx, enum)
-		if err != nil {
-			t.Fatalf("unable to insert sample histogram enums. error %s", err)
-		}
-		enumValueLabelToIDMap[enum.HistogramName] = *id
-	}
-
-	sampleWebFeatureChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
-		{
-			ChromiumHistogramEnumID: enumValueLabelToIDMap["AnotherHistogram"],
-			BucketID:                1,
-			Label:                   "AnotherLabel",
-		},
-		{
-			ChromiumHistogramEnumID: enumValueLabelToIDMap["WebDXFeatureObserver"],
-			BucketID:                1,
-			Label:                   "CompressionStreams",
-		},
-		{
-			ChromiumHistogramEnumID: enumValueLabelToIDMap["WebDXFeatureObserver"],
-			BucketID:                2,
-			Label:                   "ViewTransitions",
-		},
-	}
-	for _, webFeatureChromiumHistogramEnumValue := range sampleWebFeatureChromiumHistogramEnumValues {
-		_, err := client.UpsertChromiumHistogramEnumValue(
-			ctx,
-			webFeatureChromiumHistogramEnumValue,
-		)
-		if err != nil {
-			t.Errorf("unexpected error during insert of Chromium enums. %s", err.Error())
-		}
-	}
-
-	type dailyChromiumHistogramMetricToInsert struct {
-		DailyChromiumHistogramMetric
-		histogramName metricdatatypes.HistogramName
-		bucketID      int64
-	}
-	sampleDailyChromiumHistogramMetrics := []dailyChromiumHistogramMetricToInsert{
-		// CompressionStreams
-		{
-			histogramName: metricdatatypes.WebDXFeatureEnum,
-			bucketID:      1,
-			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day: civil.Date{
-					Year:  2000,
-					Month: time.January,
-					Day:   1,
-				},
-				Rate: *big.NewRat(7, 100),
-			},
-		},
-		{
-			histogramName: metricdatatypes.WebDXFeatureEnum,
-			bucketID:      1,
-			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day: civil.Date{
-					Year:  2000,
-					Month: time.January,
-					Day:   2,
-				},
-				Rate: *big.NewRat(8, 100),
-			},
-		},
-		// ViewTransitions
-		{
-			histogramName: metricdatatypes.WebDXFeatureEnum,
-			bucketID:      2,
-			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day: civil.Date{
-					Year:  2000,
-					Month: time.January,
-					Day:   1,
-				},
-				Rate: *big.NewRat(89, 100),
-			},
-		},
-		{
-			histogramName: metricdatatypes.WebDXFeatureEnum,
-			bucketID:      2,
-			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day: civil.Date{
-					Year:  2000,
-					Month: time.January,
-					Day:   2,
-				},
-				Rate: *big.NewRat(90, 100),
-			},
-		},
-		{
-			histogramName: metricdatatypes.WebDXFeatureEnum,
-			bucketID:      2,
-			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-				Day: civil.Date{
-					Year:  2001,
-					Month: time.January,
-					Day:   15,
-				},
-				Rate: *big.NewRat(91, 100),
-			},
-		},
-	}
-	for _, metricToInsert := range sampleDailyChromiumHistogramMetrics {
-		err := client.UpsertDailyChromiumHistogramMetric(
-			ctx,
-			metricToInsert.histogramName,
-			metricToInsert.bucketID,
-			metricToInsert.DailyChromiumHistogramMetric,
-		)
-		if err != nil {
-			t.Errorf("unexpected error during insert of runs. %s", err.Error())
-		}
-	}
+	addSampleChromiumUsageMetricsData(ctx, client, t, webFeatureKeyToInternalFeatureID)
 
 	// nolint: dupl // Okay to duplicate for tests
 	sampleRuns := []WPTRun{
@@ -747,6 +624,181 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
+func addSampleChromiumHistogramEnums(ctx context.Context, client *Client, t *testing.T) map[string]string {
+	sampleChromiumHistogramEnums := []ChromiumHistogramEnum{
+		{
+			HistogramName: "AnotherHistogram",
+		},
+		{
+			HistogramName: "WebDXFeatureObserver",
+		},
+	}
+	chromiumHistogramEnumIDMap := make(map[string]string, len(sampleChromiumHistogramEnums))
+	for _, enum := range sampleChromiumHistogramEnums {
+		id, err := client.UpsertChromiumHistogramEnum(ctx, enum)
+		if err != nil {
+			t.Fatalf("unable to insert sample histogram enums. error %s", err)
+		}
+		chromiumHistogramEnumIDMap[enum.HistogramName] = *id
+	}
+	return chromiumHistogramEnumIDMap
+}
+
+func addSampleChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *Client,
+	t *testing.T,
+	chromiumHistogramEnumIDMap map[string]string,
+) map[string]string {
+	sampleChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["AnotherHistogram"],
+			BucketID:                1,
+			Label:                   "AnotherLabel",
+		},
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                1,
+			Label:                   "feature1",
+		},
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                2,
+			Label:                   "feature2",
+		},
+	}
+	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(sampleChromiumHistogramEnumValues))
+	for _, enumValue := range sampleChromiumHistogramEnumValues {
+		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, enumValue)
+		if err != nil {
+			t.Fatalf("unable to insert sample enum value. error %s", err)
+		}
+		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *enumValueID
+	}
+	return chromiumHistogramEnumValueToIDMap
+}
+
+func addSampleWebFeatureChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *Client,
+	t *testing.T,
+	webFeatureKeyToInternalFeatureID map[string]string,
+	chromiumHistogramEnumValueToIDMap map[string]string,
+) {
+	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
+		{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature1"],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature1"],
+		},
+		{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature2"],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature2"],
+		},
+	}
+	for _, webFeatureChromiumHistogramEnumValue := range sampleWebFeatureChromiumHistogramEnumValues {
+		err := client.UpsertWebFeatureChromiumHistogramEnumValue(
+			ctx,
+			webFeatureChromiumHistogramEnumValue,
+		)
+		if err != nil {
+			t.Errorf("unexpected error during insert of Chromium enums. %s", err.Error())
+		}
+	}
+}
+
+func addSampleChromiumHistogramMetrics(ctx context.Context, client *Client, t *testing.T) {
+	type dailyChromiumHistogramMetricToInsert struct {
+		DailyChromiumHistogramMetric
+		histogramName metricdatatypes.HistogramName
+		bucketID      int64
+	}
+	sampleDailyChromiumHistogramMetrics := []dailyChromiumHistogramMetricToInsert{
+		// feature1
+		{
+			histogramName: metricdatatypes.WebDXFeatureEnum,
+			bucketID:      1,
+			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   1,
+				},
+				Rate: *big.NewRat(7, 100),
+			},
+		},
+		{
+			histogramName: metricdatatypes.WebDXFeatureEnum,
+			bucketID:      1,
+			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   2,
+				},
+				Rate: *big.NewRat(8, 100),
+			},
+		},
+		// feature2
+		{
+			histogramName: metricdatatypes.WebDXFeatureEnum,
+			bucketID:      2,
+			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   1,
+				},
+				Rate: *big.NewRat(89, 100),
+			},
+		},
+		{
+			histogramName: metricdatatypes.WebDXFeatureEnum,
+			bucketID:      2,
+			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   2,
+				},
+				Rate: *big.NewRat(90, 100),
+			},
+		},
+		{
+			histogramName: metricdatatypes.WebDXFeatureEnum,
+			bucketID:      2,
+			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
+				Day: civil.Date{
+					Year:  2001,
+					Month: time.January,
+					Day:   15,
+				},
+				Rate: *big.NewRat(91, 100),
+			},
+		},
+	}
+	for _, metricToInsert := range sampleDailyChromiumHistogramMetrics {
+		err := client.UpsertDailyChromiumHistogramMetric(
+			ctx,
+			metricToInsert.histogramName,
+			metricToInsert.bucketID,
+			metricToInsert.DailyChromiumHistogramMetric,
+		)
+		if err != nil {
+			t.Errorf("unexpected error during insert of Chromium metrics. %s", err.Error())
+		}
+	}
+}
+
+func addSampleChromiumUsageMetricsData(ctx context.Context,
+	client *Client, t *testing.T, webFeatureKeyToInternalFeatureID map[string]string) {
+	chromiumHistogramEnumIDMap := addSampleChromiumHistogramEnums(ctx, client, t)
+	chromiumHistogramEnumValueToIDMap := addSampleChromiumHistogramEnumValues(
+		ctx, client, t, chromiumHistogramEnumIDMap)
+	addSampleWebFeatureChromiumHistogramEnumValues(
+		ctx, client, t, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap)
+	addSampleChromiumHistogramMetrics(ctx, client, t)
+}
+
 func defaultSorting() Sortable {
 	return NewFeatureNameSort(true)
 }
@@ -856,7 +908,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example1.com",
 				"http://example2.com",
 			},
-			ChromiumUsage: big.NewRat(0, 100),
+			ChromiumUsage: big.NewRat(8, 100),
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -906,7 +958,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				},
 			},
 			SpecLinks:     nil,
-			ChromiumUsage: big.NewRat(0, 100),
+			ChromiumUsage: big.NewRat(91, 100),
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -937,7 +989,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example3.com",
 				"http://example4.com",
 			},
-			ChromiumUsage: big.NewRat(0, 100),
+			ChromiumUsage: nil,
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -2213,11 +2265,16 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		AreMetricsEqual(a.StableMetrics, b.StableMetrics) &&
 		AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) &&
 		AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) &&
-		AreSpecLinksEqual(a.SpecLinks, b.SpecLinks)
+		AreSpecLinksEqual(a.SpecLinks, b.SpecLinks) &&
+		AreChromiumUsagesEqual(a.ChromiumUsage, b.ChromiumUsage)
 }
 
 func AreSpecLinksEqual(a, b []string) bool {
 	return slices.Equal(a, b)
+}
+
+func AreChromiumUsagesEqual(a, b *big.Rat) bool {
+	return reflect.DeepEqual(a, b)
 }
 
 func AreImplementationStatusesEqual(a, b []*ImplementationStatus) bool {
@@ -2266,6 +2323,7 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	fmt.Fprintf(&builder, "\tLowDate: %s\n", PrintNullableField(result.LowDate))
 	fmt.Fprintf(&builder, "\tHighDate: %s\n", PrintNullableField(result.HighDate))
 	fmt.Fprintf(&builder, "\tSpecLinks: %s\n", result.SpecLinks)
+	fmt.Fprintf(&builder, "\tChromiumUsage: %s\n", PrintNullableField(result.ChromiumUsage))
 
 	fmt.Fprintln(&builder, "\tStable Metrics:")
 	for _, metric := range result.StableMetrics {
