@@ -24,6 +24,11 @@ updates:
     schedule:
       interval: 'weekly'
     versioning-strategy: 'increase'
+    ignore:
+      - dependency-name: '@types/node'
+        versions:
+          - '>=23'
+          - '<24'
 
   # Docker
   - package-ecosystem: 'docker'

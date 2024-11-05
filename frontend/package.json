@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "1.0.0",
   "engines": {
-    "node": ">=20.14.0"
+    "node": ">=22"
   },
   "description": "webstatus.dev frontend",
   "main": "index.js",
