@@ -2274,7 +2274,11 @@ func AreSpecLinksEqual(a, b []string) bool {
 }
 
 func AreChromiumUsagesEqual(a, b *big.Rat) bool {
-	return reflect.DeepEqual(a, b)
+	if (a == nil && b != nil) || (a != nil && b == nil) {
+		return false
+	}
+
+	return (a == nil && b == nil) || (a.Cmp(b) == 0)
 }
 
 func AreImplementationStatusesEqual(a, b []*ImplementationStatus) bool {
