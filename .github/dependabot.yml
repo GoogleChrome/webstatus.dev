@@ -60,6 +60,11 @@ updates:
     directory: '/images'
     schedule:
       interval: 'weekly'
+    ignore:
+      - dependency-name: 'node'
+        versions:
+          - '>=23'
+          - '<24'
 
   - package-ecosystem: 'docker'
     directory: '/otel'
