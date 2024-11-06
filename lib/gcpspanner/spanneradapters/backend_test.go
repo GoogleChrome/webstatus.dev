@@ -729,9 +729,7 @@ func TestFeaturesSearch(t *testing.T) {
 						FeatureId: "feature1",
 						Name:      "feature 1",
 						Spec:      nil,
-						Usage: &struct {
-							Chromium *backend.ChromiumUsageInfo "json:\"chromium,omitempty\""
-						}{
+						Usage: &backend.BrowserUsage{
 							Chromium: &backend.ChromiumUsageInfo{
 								Daily: valuePtr[float64](0.91),
 							},
@@ -781,9 +779,7 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
-						Usage: &struct {
-							Chromium *backend.ChromiumUsageInfo "json:\"chromium,omitempty\""
-						}{
+						Usage: &backend.BrowserUsage{
 							Chromium: &backend.ChromiumUsageInfo{
 								Daily: valuePtr[float64](0.1),
 							},
@@ -1035,9 +1031,7 @@ func TestGetFeature(t *testing.T) {
 						},
 					},
 				},
-				Usage: &struct {
-					Chromium *backend.ChromiumUsageInfo "json:\"chromium,omitempty\""
-				}{
+				Usage: &backend.BrowserUsage{
 					Chromium: &backend.ChromiumUsageInfo{
 						Daily: nil,
 					},
@@ -1231,9 +1225,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				FeatureId: "feature1",
 				Name:      "feature 1",
 				Spec:      nil,
-				Usage: &struct {
-					Chromium *backend.ChromiumUsageInfo "json:\"chromium,omitempty\""
-				}{
+				Usage: &backend.BrowserUsage{
 					Chromium: &backend.ChromiumUsageInfo{
 						Daily: valuePtr[float64](0.08),
 					},

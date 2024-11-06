@@ -333,9 +333,7 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		),
 		Wpt:  nil,
 		Spec: nil,
-		Usage: &struct {
-			Chromium *backend.ChromiumUsageInfo "json:\"chromium,omitempty\""
-		}{
+		Usage: &backend.BrowserUsage{
 			Chromium: convertChromiumUsageToBackend(featureResult.ChromiumUsage),
 		},
 		BrowserImplementations: nil,
