@@ -895,7 +895,7 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 }
 
 func compareChromiumUsage(c1, c2 backend.ChromiumUsageInfo) bool {
-	return c1.Daily == c2.Daily
+	return reflect.DeepEqual(c1.Daily, c2.Daily)
 }
 
 func compareImplementationStatus(s1, s2 *map[string]backend.BrowserImplementation) bool {
