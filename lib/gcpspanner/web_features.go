@@ -99,3 +99,24 @@ func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*str
 func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilter) (*string, error) {
 	return newEntityWriterWithIDRetrieval[webFeatureSpannerMapper, string](c).getIDByKey(ctx, filter.featureKey)
 }
+
+func (c *Client) fetchAllWebFeatureIDsWithTransaction(
+	ctx context.Context, txn *spanner.ReadWriteTransaction) ([]string, error) {
+	var ids []string
+	iter := txn.Read(ctx, webFeaturesTable, spanner.AllKeys(), []string{"ID"})
+	defer iter.Stop()
+	err := iter.Do(func(row *spanner.Row) error {
+		var id string
+		if err := row.Column(0, &id); err != nil {
+			return err
+		}
+		ids = append(ids, id)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return ids, nil
+}

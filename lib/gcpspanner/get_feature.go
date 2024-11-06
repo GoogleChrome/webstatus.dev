@@ -80,6 +80,7 @@ func (c *Client) GetFeature(
 		LowDate:                result.LowDate,
 		HighDate:               result.HighDate,
 		SpecLinks:              result.SpecLinks,
+		ChromiumUsage:          result.ChromiumUsage,
 	}
 
 	return &actualResult, nil
