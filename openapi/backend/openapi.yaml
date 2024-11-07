@@ -300,7 +300,8 @@ paths:
           name: browser
           description: >
             A list of browsers to check if {browser} is lagging behind on
-            features.
+            features. The list is provided by specifying repeating query parameters.
+            Example: ?browser=fooBrowser&browser=bazBrowser
           required: true
           schema:
             type: array
@@ -353,7 +354,10 @@ paths:
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
           name: featureId
-          description: A list of feature IDs to filter results.
+          description: >
+            A list of feature IDs to filter results. TThe list is provided by
+            specifying repeating query parameters.
+            Example: ?featureId=id1&featureId=id2
           required: false
           schema:
             type: array
