@@ -132,9 +132,9 @@ go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
 
 clean-go-openapi:
-	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/backend, */types.gen.go */server.gen.go)
-	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer, */types.gen.go */server.gen.go)
-	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader, */types.gen.go */server.gen.go)
+	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/backend, /types.gen.go /server.gen.go)
+	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer, /types.gen.go /server.gen.go)
+	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader, /types.gen.go /server.gen.go)
 
 node-openapi:
 	npx openapi-typescript openapi/backend/openapi.yaml -o lib/gen/openapi/ts-webstatus.dev-backend-types/types.d.ts
