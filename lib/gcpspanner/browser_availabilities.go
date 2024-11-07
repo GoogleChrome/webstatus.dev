@@ -99,7 +99,7 @@ func (c *Client) InsertBrowserFeatureAvailability(
 }
 
 func (c *Client) fetchAllBrowserAvailabilitiesWithTransaction(
-	ctx context.Context, txn *spanner.ReadWriteTransaction) ([]spannerBrowserFeatureAvailability, error) {
+	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]spannerBrowserFeatureAvailability, error) {
 	var availabilities []spannerBrowserFeatureAvailability
 	iter := txn.Read(ctx, browserFeatureAvailabilitiesTable, spanner.AllKeys(), []string{
 		"BrowserName",

@@ -84,7 +84,7 @@ func (c *Client) InsertBrowserRelease(ctx context.Context, release BrowserReleas
 }
 
 func (c *Client) fetchAllBrowserReleasesWithTransaction(
-	ctx context.Context, txn *spanner.ReadWriteTransaction) ([]spannerBrowserRelease, error) {
+	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]spannerBrowserRelease, error) {
 	var releases []spannerBrowserRelease
 	iter := txn.Read(ctx, browserReleasesTable, spanner.AllKeys(), []string{
 		"BrowserName",

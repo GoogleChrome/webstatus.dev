@@ -16,7 +16,8 @@ package gcpspanner
 
 import (
 	"context"
-	"errors"
+	"log/slog"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -66,11 +67,12 @@ func buildAvailabilityMap(
 	return availabilityMap
 }
 
-func calculateBrowserSupportEvents(
+func calculateBrowserSupportEventsAndSend(
 	availabilityMap map[string]map[string]time.Time,
 	releases []spannerBrowserRelease,
-	ids []string) []BrowserFeatureSupportEvent {
-	var supportEvents []BrowserFeatureSupportEvent
+	ids []string,
+	eventChan chan<- BrowserFeatureSupportEvent,
+) {
 	for _, targetBrowser := range releases {
 		for _, eventBrowser := range releases {
 			for _, id := range ids {
@@ -82,60 +84,110 @@ func calculateBrowserSupportEvents(
 						supportStatus = SupportedFeatureSupport
 					}
 				}
-				supportEvents = append(supportEvents, BrowserFeatureSupportEvent{
+				eventChan <- BrowserFeatureSupportEvent{
 					TargetBrowserName: targetBrowser.BrowserName,
 					EventBrowserName:  eventBrowser.BrowserName,
 					EventReleaseDate:  eventBrowser.ReleaseDate,
 					WebFeatureID:      id,
 					SupportStatus:     supportStatus,
-				})
+				}
 			}
 		}
 	}
+	close(eventChan)
+}
 
-	return supportEvents
+func (c *Client) batchWriteBrowserFeatureSupportEvents(
+	ctx context.Context, wg *sync.WaitGroup, batchSize int,
+	eventChan <-chan BrowserFeatureSupportEvent, errChan chan error) {
+	defer wg.Done()
+	for {
+		batch := make([]*spanner.Mutation, 0, batchSize)
+		for i := 0; i < batchSize; i++ {
+			select {
+			case event, isChannelStillOpen := <-eventChan:
+				// If the channel is closed, go ahead and apply what we have and return.
+				if !isChannelStillOpen {
+					if len(batch) > 0 {
+						_, err := c.Client.Apply(ctx, batch)
+						if err != nil {
+							errChan <- err
+						}
+					}
+
+					return
+				}
+				// Else, the channel is still open and it has received a value.
+				// Create a mutation and append it to the upcoming batch
+				m, err := spanner.InsertOrUpdateStruct(browserFeatureSupportEventsTable, event)
+				if err != nil {
+					errChan <- err
+
+					return
+				}
+				batch = append(batch, m)
+			case <-ctx.Done():
+				// If the system tells us that we are done, we can abort too.
+				return
+			}
+		}
+		// The current batch is full. Send the mutations to the database.
+		_, err := c.Client.Apply(ctx, batch)
+		if err != nil {
+			errChan <- err
+
+			return
+		}
+	}
 }
 
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
 func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error {
-	_, err := c.Client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		// 1. Fetch all BrowserFeatureAvailabilities
-		availabilities, err := c.fetchAllBrowserAvailabilitiesWithTransaction(ctx, txn)
-		if err != nil {
-			return err
-		}
+	const batchSize = 1000000
+	eventChan := make(chan BrowserFeatureSupportEvent, batchSize)
+	errChan := make(chan error)
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go c.batchWriteBrowserFeatureSupportEvents(ctx, &wg, batchSize, eventChan, errChan)
+	slog.InfoContext(ctx, "About to pre-calculate")
+	txn := c.Client.ReadOnlyTransaction()
+	// 1. Fetch all BrowserFeatureAvailabilities
+	availabilities, err := c.fetchAllBrowserAvailabilitiesWithTransaction(ctx, txn)
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "Availabilities fetched")
 
-		// 2. Fetch all BrowserReleases
-		releases, err := c.fetchAllBrowserReleasesWithTransaction(ctx, txn)
-		if err != nil {
-			return err
-		}
+	// 2. Fetch all BrowserReleases
+	releases, err := c.fetchAllBrowserReleasesWithTransaction(ctx, txn)
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "releases fetched")
 
-		// 3. Fetch all WebFeatures
-		ids, err := c.fetchAllWebFeatureIDsWithTransaction(ctx, txn)
-		if err != nil {
-			return err
-		}
+	// 3. Fetch all WebFeatures
+	ids, err := c.fetchAllWebFeatureIDsWithTransaction(ctx, txn)
+	if err != nil {
+		return err
+	}
 
-		// 4. Create maps for quick look ups
-		availabilityMap := buildAvailabilityMap(releases, availabilities)
+	// 4. Create maps for quick look ups
+	availabilityMap := buildAvailabilityMap(releases, availabilities)
 
-		// 4. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
-		supportEvents := calculateBrowserSupportEvents(availabilityMap, releases, ids)
+	// 4. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
+	calculateBrowserSupportEventsAndSend(availabilityMap, releases, ids, eventChan)
 
-		// 5. Insert the new entries into BrowserFeatureSupportEvents
-		var mutations []*spanner.Mutation
-		for _, entry := range supportEvents {
-			m, err := spanner.InsertOrUpdateStruct(browserFeatureSupportEventsTable, entry)
-			if err != nil {
-				return errors.Join(err, ErrInternalQueryFailure)
-			}
-			mutations = append(mutations, m)
-		}
+	slog.InfoContext(ctx, "support events sent")
 
-		return txn.BufferWrite(mutations)
+	wg.Wait()
+	// 4. Check for errors from the goroutine
+	select {
+	case err := <-errChan:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	default:
+		return nil
+	}
 
-	})
-
-	return err
 }

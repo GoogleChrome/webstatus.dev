@@ -72,8 +72,18 @@ resource "google_cloud_run_v2_service" "web_feature_service" {
   location = var.regions[count.index]
 
   template {
+    # Until we move this to a full Cloud Run job like the others, only allow one request per instance.
+    max_instance_request_concurrency = 1
     containers {
       image = "${docker_image.web_feature_consumer_image.name}@${docker_registry_image.web_feature_consumer_remote_image.sha256_digest}"
+      resources {
+        limits = {
+          # We really don't need 8 cpus but we have to set the CPU to 8 in order to get the higher memory limit.
+          # https://cloud.google.com/run/docs/configuring/services/memory-limits
+          cpu    = "2"
+          memory = "4Gi"
+        }
+      }
       env {
         name  = "PROJECT_ID"
         value = var.datastore_info.project_id
