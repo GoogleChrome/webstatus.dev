@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"log/slog"
+	"math/big"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -252,6 +253,18 @@ func convertBaselineSpannerToBackend(strStatus *string,
 	return ret
 }
 
+func convertChromiumUsageToBackend(chromiumUsage *big.Rat) *backend.ChromiumUsageInfo {
+	ret := &backend.ChromiumUsageInfo{
+		Daily: nil,
+	}
+	if chromiumUsage != nil {
+		usage, _ := chromiumUsage.Float64()
+		ret.Daily = &usage
+	}
+
+	return ret
+}
+
 func convertImplementationStatusToBackend(
 	status gcpspanner.BrowserImplementationStatus) backend.BrowserImplementationStatus {
 	switch status {
@@ -318,9 +331,11 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			featureResult.LowDate,
 			featureResult.HighDate,
 		),
-		Wpt:                    nil,
-		Spec:                   nil,
-		Usage:                  nil,
+		Wpt:  nil,
+		Spec: nil,
+		Usage: &backend.BrowserUsage{
+			Chromium: convertChromiumUsageToBackend(featureResult.ChromiumUsage),
+		},
 		BrowserImplementations: nil,
 	}
 

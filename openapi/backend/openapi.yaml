@@ -757,16 +757,18 @@ components:
         baseline:
           $ref: '#/components/schemas/BaselineInfo'
         usage:
-          type: object
-          properties:
-            chromium:
-              $ref: '#/components/schemas/ChromiumUsageInfo'
+          $ref: '#/components/schemas/BrowserUsage'
         wpt:
           $ref: '#/components/schemas/FeatureWPTSnapshots'
       required:
         - feature_id
         - name
         - baseline_status
+    BrowserUsage:
+      type: object
+      properties:
+        chromium:
+          $ref: '#/components/schemas/ChromiumUsageInfo'
     ChromiumUsageInfo:
       type: object
       properties:
