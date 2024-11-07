@@ -29,7 +29,7 @@ func (s *Server) ListAggregatedWPTMetrics(
 ) (backend.ListAggregatedWPTMetricsResponseObject, error) {
 	metrics, nextPageToken, err := s.wptMetricsStorer.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
-		getFeatureIDsOrDefault(request.Params.FeatureIds),
+		getFeatureIDsOrDefault(request.Params.FeatureId),
 		string(request.Browser),
 		string(request.Channel),
 		request.MetricView,
