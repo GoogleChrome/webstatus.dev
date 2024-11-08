@@ -194,7 +194,7 @@ func TestGetV(t *testing.T) {
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
 
 			// Call the function under test
-			resp, err := myServer.GetV1FeaturesIDStatusUsageChromiumDailyStats(context.Background(), tc.request)
+			resp, err := myServer.GetV1FeaturesIdStatusUsageChromiumDailyStats(context.Background(), tc.request)
 
 			// Assertions
 			if mockStorer.callCountGetFeature != tc.expectedCallCount {

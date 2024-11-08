@@ -25,7 +25,9 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-func (s *Server) GetV1FeaturesIDStatusUsageChromiumDailyStats(
+// GetV1FeaturesIdStatusUsageChromiumDailyStats implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) GetV1FeaturesIdStatusUsageChromiumDailyStats(
 	ctx context.Context,
 	request backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject,
 ) (backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsResponseObject, error) {
