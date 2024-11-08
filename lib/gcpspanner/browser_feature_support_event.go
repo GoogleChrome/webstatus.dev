@@ -73,6 +73,7 @@ func calculateBrowserSupportEventsAndSend(
 	ids []string,
 	eventChan chan<- BrowserFeatureSupportEvent,
 ) {
+	count := 0
 	for _, targetBrowser := range releases {
 		for _, eventBrowser := range releases {
 			for _, id := range ids {
@@ -84,6 +85,7 @@ func calculateBrowserSupportEventsAndSend(
 						supportStatus = SupportedFeatureSupport
 					}
 				}
+				count++
 				eventChan <- BrowserFeatureSupportEvent{
 					TargetBrowserName: targetBrowser.BrowserName,
 					EventBrowserName:  eventBrowser.BrowserName,
@@ -94,6 +96,7 @@ func calculateBrowserSupportEventsAndSend(
 			}
 		}
 	}
+	slog.Info("finished sending", "count", count)
 	close(eventChan)
 }
 
@@ -109,7 +112,7 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 				// If the channel is closed, go ahead and apply what we have and return.
 				if !isChannelStillOpen {
 					if len(batch) > 0 {
-						_, err := c.Client.Apply(ctx, batch)
+						err := c.BatchWriteMutations(ctx, c.Client, batch)
 						if err != nil {
 							errChan <- err
 						}
@@ -132,7 +135,7 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 			}
 		}
 		// The current batch is full. Send the mutations to the database.
-		_, err := c.Client.Apply(ctx, batch)
+		err := c.BatchWriteMutations(ctx, c.Client, batch)
 		if err != nil {
 			errChan <- err
 
@@ -143,7 +146,7 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
 func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error {
-	const batchSize = 1000000
+	const batchSize = 1000
 	eventChan := make(chan BrowserFeatureSupportEvent, batchSize)
 	errChan := make(chan error)
 	var wg sync.WaitGroup
