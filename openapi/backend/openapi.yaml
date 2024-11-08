@@ -236,6 +236,35 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/features/{id}/status/usage/chromium/daily_stats:
+    parameters:
+      - name: id
+        in: path
+        description: Feature ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get Chromium usage metrics for a given feature
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChromiumUsageResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/stats/features/browsers/{browser}/feature_counts:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
@@ -775,6 +804,16 @@ components:
           format: double
           description: >
             Latest snapshot of the usage metric for the given feature.
+          minimum: 0.0
+          maximum: 100.0
+    ChromiumUsageResponse:
+      type: object
+      properties:
+        usage:
+          type: number
+          format: double
+          description: >
+            Latest snapshot of the Chromium usage metric for the given feature.
           minimum: 0.0
           maximum: 100.0
     BasicErrorModel:
