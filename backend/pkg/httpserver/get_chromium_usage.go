@@ -25,7 +25,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-func (s *Server) GetV1FeaturesIdStatusUsageChromiumDailyStats(
+func (s *Server) GetV1FeaturesIDStatusUsageChromiumDailyStats(
 	ctx context.Context,
 	request backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject,
 ) (backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsResponseObject, error) {
