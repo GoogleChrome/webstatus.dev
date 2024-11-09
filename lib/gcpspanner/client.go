@@ -67,8 +67,6 @@ func (w gcpBatchWriter) BatchWriteMutations(
 		},
 	})
 
-	slog.InfoContext(ctx, "sending batch", "size", len(mutations))
-
 	return it.Do(func(r *spannerpb.BatchWriteResponse) error {
 		if status := status.ErrorProto(r.GetStatus()); status != nil {
 			slog.ErrorContext(ctx, "invalid status while batch writing", "status", status)

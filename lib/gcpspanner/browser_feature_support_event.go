@@ -102,8 +102,12 @@ func calculateBrowserSupportEventsAndSend(
 
 func (c *Client) batchWriteBrowserFeatureSupportEvents(
 	ctx context.Context, wg *sync.WaitGroup, batchSize int,
-	eventChan <-chan BrowserFeatureSupportEvent, errChan chan error) {
-	defer wg.Done()
+	eventChan <-chan BrowserFeatureSupportEvent, errChan chan error, workerID int) {
+	defer func() {
+		wg.Done()
+		slog.InfoContext(ctx, "worker finishing", "id", workerID)
+	}()
+	slog.InfoContext(ctx, "worker starting", "id", workerID)
 	for {
 		batch := make([]*spanner.Mutation, 0, batchSize)
 		for i := 0; i < batchSize; i++ {
@@ -112,6 +116,7 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 				// If the channel is closed, go ahead and apply what we have and return.
 				if !isChannelStillOpen {
 					if len(batch) > 0 {
+						slog.InfoContext(ctx, "sending final batch", "size", len(batch), "id", workerID)
 						err := c.BatchWriteMutations(ctx, c.Client, batch)
 						if err != nil {
 							errChan <- err
@@ -135,6 +140,7 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 			}
 		}
 		// The current batch is full. Send the mutations to the database.
+		slog.InfoContext(ctx, "sending batch", "size", len(batch), "id", workerID)
 		err := c.BatchWriteMutations(ctx, c.Client, batch)
 		if err != nil {
 			errChan <- err
@@ -149,11 +155,20 @@ func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) er
 	const batchSize = 10000
 	eventChan := make(chan BrowserFeatureSupportEvent, batchSize)
 	errChan := make(chan error)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	var wg sync.WaitGroup
 	workers := 8
 	wg.Add(workers)
+	doneChan := make(chan struct{})
+	go func() {
+		slog.InfoContext(ctx, "waiting for wait group to finish")
+		wg.Wait()
+		slog.InfoContext(ctx, "wait group to finished")
+		close(doneChan)
+	}()
 	for i := 0; i < workers; i++ {
-		go c.batchWriteBrowserFeatureSupportEvents(ctx, &wg, batchSize, eventChan, errChan)
+		go c.batchWriteBrowserFeatureSupportEvents(ctx, &wg, batchSize, eventChan, errChan, i)
 	}
 	slog.InfoContext(ctx, "About to pre-calculate")
 	txn := c.Client.ReadOnlyTransaction()
@@ -185,14 +200,14 @@ func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) er
 
 	slog.InfoContext(ctx, "support events sent")
 
-	wg.Wait()
 	// 4. Check for errors from the goroutine
 	select {
 	case err := <-errChan:
+		cancel()
 		return err
 	case <-ctx.Done():
 		return ctx.Err()
-	default:
+	case <-doneChan:
 		return nil
 	}
 

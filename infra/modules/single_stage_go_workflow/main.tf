@@ -74,6 +74,7 @@ resource "google_workflows_workflow" "workflow" {
   source_contents = templatefile(
     "${path.root}/modules/single_stage_go_workflow/workflows.yaml.tftpl",
     {
+      timeout      = var.timeout_seconds
       project_id   = each.value.project_id
       job_name     = each.value.name
       job_location = each.key

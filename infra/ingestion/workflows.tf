@@ -19,11 +19,11 @@ module "web_features_workflow" {
     google.public_project   = google.public_project
   }
   regions                         = var.regions
-  short_name                      = "web-features-consumer"
+  short_name                      = "web-features"
   full_name                       = "Web Features Workflow"
   deletion_protection             = var.deletion_protection
   project_id                      = var.spanner_datails.project_id
-  timeout_seconds                 = 86400 # 24 hours
+  timeout_seconds                 = 7200 # 2 hours
   image_name                      = "web_features_consumer_image"
   spanner_details                 = var.spanner_datails
   env_id                          = var.env_id
