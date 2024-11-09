@@ -124,16 +124,12 @@ $(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml
 # Target to generate all OpenAPI code
 go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
 			$(OPENAPI_OUT_DIR)/backend/server.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
 
 clean-go-openapi:
 	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/backend, /types.gen.go /server.gen.go)
-	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer, /types.gen.go /server.gen.go)
 	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader, /types.gen.go /server.gen.go)
 
 node-openapi:
@@ -372,10 +368,10 @@ clean-node:
 ################################
 # Local Data / Workflows
 ################################
-dev_workflows: bcd_workflow web_feature_local_workflow chromium_histogram_enums_workflow wpt_workflow
-web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
-web_feature_local_workflow: build port-forward-manual
-	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+dev_workflows: bcd_workflow web_feature_workflow chromium_histogram_enums_workflow wpt_workflow
+web_feature_workflow:
+	./util/run_job.sh web-features-consumer images/go_service.Dockerfile workflows/steps/services/web_feature_consumer \
+		workflows/steps/services/web_feature_consumer/manifests/job.yaml web-features-consumer
 wpt_workflow:
 	./util/run_job.sh wpt-consumer images/go_service.Dockerfile workflows/steps/services/wpt_consumer \
 		workflows/steps/services/wpt_consumer/manifests/job.yaml wpt-consumer

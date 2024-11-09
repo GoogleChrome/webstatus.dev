@@ -59,7 +59,8 @@ type batchWriter interface {
 
 type gcpBatchWriter struct{}
 
-func (w gcpBatchWriter) BatchWriteMutations(ctx context.Context, client *spanner.Client, mutations []*spanner.Mutation) error {
+func (w gcpBatchWriter) BatchWriteMutations(
+	ctx context.Context, client *spanner.Client, mutations []*spanner.Mutation) error {
 	it := client.BatchWrite(ctx, []*spanner.MutationGroup{
 		{
 			Mutations: mutations,
@@ -81,7 +82,8 @@ func (w gcpBatchWriter) BatchWriteMutations(ctx context.Context, client *spanner
 
 type localBatchWriter struct{}
 
-func (w localBatchWriter) BatchWriteMutations(ctx context.Context, client *spanner.Client, mutations []*spanner.Mutation) error {
+func (w localBatchWriter) BatchWriteMutations(
+	ctx context.Context, client *spanner.Client, mutations []*spanner.Mutation) error {
 	_, err := client.Apply(ctx, mutations)
 
 	return err

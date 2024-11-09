@@ -146,12 +146,15 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
 func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error {
-	const batchSize = 1000
+	const batchSize = 10000
 	eventChan := make(chan BrowserFeatureSupportEvent, batchSize)
 	errChan := make(chan error)
 	var wg sync.WaitGroup
-	wg.Add(1)
-	go c.batchWriteBrowserFeatureSupportEvents(ctx, &wg, batchSize, eventChan, errChan)
+	workers := 8
+	wg.Add(workers)
+	for i := 0; i < workers; i++ {
+		go c.batchWriteBrowserFeatureSupportEvents(ctx, &wg, batchSize, eventChan, errChan)
+	}
 	slog.InfoContext(ctx, "About to pre-calculate")
 	txn := c.Client.ReadOnlyTransaction()
 	// 1. Fetch all BrowserFeatureAvailabilities

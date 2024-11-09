@@ -1,4 +1,4 @@
-// Copyright 2023 Google LLC
+// Copyright 2024 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 package main
 
 import (
+	"cmp"
+	"context"
 	"log/slog"
 	"os"
 
@@ -23,10 +25,22 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
-	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/httpserver"
+	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/data"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/workflow"
+)
+
+const (
+	defaultRepoOwner        = "web-platform-dx"
+	defaultRepoName         = "web-features"
+	defaultReleaseAssetName = "data.json"
 )
 
 func main() {
+	ctx := context.Background()
+
+	// Configuration and Client Setup
+
 	var datastoreDB *string
 	if value, found := os.LookupEnv("DATASTORE_DATABASE"); found {
 		datastoreDB = &value
@@ -49,24 +63,39 @@ func main() {
 	// Will be empty if not set and that is okay.
 	token := os.Getenv("GITHUB_TOKEN")
 
-	srv, err := httpserver.NewHTTPServer(
-		"8080",
+	// Currently, only one worker needed
+	numWorkers := 1
+
+	repoName := cmp.Or(os.Getenv("REPO_NAME"), defaultRepoName)
+
+	repoOwner := cmp.Or(os.Getenv("REPO_OWNER"), defaultRepoOwner)
+
+	releaseAssetName := cmp.Or(os.Getenv("RELEASE_ASSET_NAME"), defaultReleaseAssetName)
+
+	// Worker Pool Setup
+	pool := workerpool.Pool[workflow.JobArguments]{}
+
+	processor := workflow.NewWebFeaturesJobProcessor(
 		gh.NewClient(token),
 		spanneradapters.NewWebFeaturesConsumer(spannerClient),
 		datastoreadapters.NewWebFeaturesConsumer(fs),
 		spanneradapters.NewWebFeatureGroupsConsumer(spannerClient),
 		spanneradapters.NewWebFeatureSnapshotsConsumer(spannerClient),
-		"data.json",
-		"web-platform-dx",
-		"web-features",
+		data.Parser{},
 	)
-	if err != nil {
-		slog.Error("unable to create server", "error", err.Error())
-		os.Exit(1)
+
+	// Job Generation
+	jobs := []workflow.JobArguments{
+		workflow.NewJobArguments(
+			releaseAssetName,
+			repoOwner,
+			repoName,
+		),
 	}
-	err = srv.ListenAndServe()
-	if err != nil {
-		slog.Error("unable to start server", "error", err.Error())
+	// Job Execution and Error Handling
+	errs := pool.Start(ctx, numWorkers, processor, jobs)
+	if len(errs) > 0 {
+		slog.ErrorContext(ctx, "workflow returned errors", "error", errs)
 		os.Exit(1)
 	}
 }
