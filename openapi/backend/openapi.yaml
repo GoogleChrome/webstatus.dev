@@ -281,30 +281,32 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/stats/features/browsers/{browser}/feature_lag_counts:
+  /v1/stats/features/browsers/{browser}/missing_one_implementation_counts:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
     get:
       summary: >
-        Returns the count of features where the specified browser has a feature
-        lag compared to other browsers at a given time. The timestamps represent
-        releases of the specified browser or one of the comparison browsers.
-      operationId: listFeatureLagMetrics
+        Returns the count of features that are supported by all of the specified
+        comparison browsers but not supported by the specified target browser,
+        as of each browser's (target browser or comparison browser) release
+        date.
+      operationId: listMissingOneImplemenationCounts
       parameters:
         - $ref: '#/components/parameters/startAtParam'
         - $ref: '#/components/parameters/endAtParam'
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
-          name: browsers
+          name: browser
           description: >
-            A comma-separated list of browsers to check if {browser} is lagging
-            behind on features.
+            A list of browsers to check if {browser} is lagging behind on
+            features. The list is provided by specifying repeating query parameters.
+            Example: ?browser=fooBrowser&browser=bazBrowser
           required: true
           schema:
             type: array
             items:
-              type: string
+              $ref: '#/components/schemas/SupportedBrowsers'
       responses:
         '200':
           description: OK
@@ -351,8 +353,11 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
-          name: featureIds
-          description: A comma-separated list of feature IDs to filter results.
+          name: featureId
+          description: >
+            A list of feature IDs to filter results. TThe list is provided by
+            specifying repeating query parameters.
+            Example: ?featureId=id1&featureId=id2
           required: false
           schema:
             type: array
@@ -430,13 +435,7 @@ components:
       description: Browser name
       required: true
       schema:
-        type: string
-        # List of supported browsers that webstatus.dev currently ingests
-        enum:
-          - chrome
-          - firefox
-          - safari
-          - edge
+        $ref: '#/components/schemas/SupportedBrowsers'
     channelPathParam:
       in: path
       name: channel
@@ -489,6 +488,14 @@ components:
       required: false
       description: Number of results to return
   schemas:
+    SupportedBrowsers:
+      type: string
+      description: List of supported browsers that webstatus.dev currently ingests
+      enum:
+        - chrome
+        - firefox
+        - safari
+        - edge
     WPTMetricView:
       type: string
       description: The desired view of the WPT Data
@@ -757,16 +764,18 @@ components:
         baseline:
           $ref: '#/components/schemas/BaselineInfo'
         usage:
-          type: object
-          properties:
-            chromium:
-              $ref: '#/components/schemas/ChromiumUsageInfo'
+          $ref: '#/components/schemas/BrowserUsage'
         wpt:
           $ref: '#/components/schemas/FeatureWPTSnapshots'
       required:
         - feature_id
         - name
         - baseline_status
+    BrowserUsage:
+      type: object
+      properties:
+        chromium:
+          $ref: '#/components/schemas/ChromiumUsageInfo'
     ChromiumUsageInfo:
       type: object
       properties:
