@@ -21,10 +21,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"cloud.google.com/go/spanner"
+	"cloud.google.com/go/spanner/apiv1/spannerpb"
 	"google.golang.org/api/iterator"
+	"google.golang.org/grpc/status"
 )
 
 // ErrQueryReturnedNoResults indicates no results were returned.
@@ -47,6 +50,48 @@ type Client struct {
 	*spanner.Client
 	featureSearchQuery FeatureSearchBaseQuery
 	searchCfg          searchConfig
+	batchWriter
+}
+
+type batchWriter interface {
+	BatchWriteMutations(context.Context, *spanner.Client, []*spanner.Mutation) error
+}
+
+// gcpBatchWriter is a batch writer for GCP environments using a real spanner database.
+type gcpBatchWriter struct{}
+
+func (w gcpBatchWriter) BatchWriteMutations(
+	ctx context.Context, client *spanner.Client, mutations []*spanner.Mutation) error {
+	it := client.BatchWrite(ctx, []*spanner.MutationGroup{
+		{
+			Mutations: mutations,
+		},
+	})
+
+	return it.Do(func(r *spannerpb.BatchWriteResponse) error {
+		if status := status.ErrorProto(r.GetStatus()); status != nil {
+			slog.ErrorContext(ctx, "invalid status while batch writing", "status", status)
+
+			return ErrInternalQueryFailure
+		}
+
+		return nil
+	})
+}
+
+// LocalBatchWriter is a batch writer for local environments using the emulator.
+// BatchWrite is not implemented in the emulator.
+// https://github.com/GoogleCloudPlatform/cloud-spanner-emulator/issues/154
+// Instead, do Apply which does multiple statements atomically.
+// Remove this once the emulator supports BatchWrite.
+// This is only exported for the load_fake_data utility.
+type LocalBatchWriter struct{}
+
+func (w LocalBatchWriter) BatchWriteMutations(
+	ctx context.Context, client *spanner.Client, mutations []*spanner.Mutation) error {
+	_, err := client.Apply(ctx, mutations)
+
+	return err
 }
 
 // searchConfig holds the application configuation for the saved search feature.
@@ -71,10 +116,18 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		return nil, errors.Join(ErrFailedToEstablishClient, err)
 	}
 
+	var bw batchWriter
+	bw = gcpBatchWriter{}
+	if _, found := os.LookupEnv("SPANNER_EMULATOR_HOST"); found {
+		slog.Info("using local batch writer")
+		bw = LocalBatchWriter{}
+	}
+
 	return &Client{
 		client,
 		GCPFeatureSearchBaseQuery{},
 		searchConfig{maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser},
+		bw,
 	}, nil
 }
 

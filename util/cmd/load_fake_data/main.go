@@ -432,11 +432,8 @@ func generateRunsAndMetrics(
 					}
 					mutations = append(mutations, m)
 				}
-				// BatchWrite is not implemented in the emulator.
-				// https://github.com/GoogleCloudPlatform/cloud-spanner-emulator/issues/154
-				// Instead, do Apply which does multiple statements atomically.
-				// Revisit this once the emulator supports BatchWrite.
-				_, err = client.Apply(ctx, mutations)
+				writer := gcpspanner.LocalBatchWriter{}
+				err = writer.BatchWriteMutations(ctx, client.Client, mutations)
 				if err != nil {
 					return runsGenerated, metricsGenerated, err
 				}
