@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package httpserver
+package workflow
 
 import (
 	"context"
@@ -24,7 +24,15 @@ import (
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/workflows/steps/web_feature_consumer"
+)
+
+var (
+	errTestFailToGetAsset       = errors.New("fail to get asset")
+	errTestCannotParseData      = errors.New("cannot parse data")
+	errTestFailToStoreData      = errors.New("fail to store data")
+	errTestFailToStoreMetadata  = errors.New("fail to store metadata")
+	errTestFailToStoreGroups    = errors.New("fail to store groups")
+	errTestFailToStoreSnapshots = errors.New("fail to store snapshots")
 )
 
 type mockAssetGetter struct {
@@ -176,7 +184,8 @@ const (
 	testFileName  = "file.txt"
 )
 
-func TestPostV1WebFeatures(t *testing.T) {
+func TestProcess(t *testing.T) {
+	// nolint: dupl
 	testCases := []struct {
 		name                             string
 		mockDownloadFileFromReleaseCfg   mockDownloadFileFromReleaseConfig
@@ -185,7 +194,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 		mockInsertWebFeaturesMetadataCfg mockInsertWebFeaturesMetadataConfig
 		mockInsertWebFeatureGroupsCfg    mockInsertWebFeatureGroupsConfig
 		mockInsertWebFeatureSnapshotsCfg mockInsertWebFeatureSnapshotsConfig
-		expectedResponse                 web_feature_consumer.PostV1WebFeaturesResponseObject
+		expectedError                    error
 	}{
 		{
 			name: "success",
@@ -380,7 +389,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				},
 				returnError: nil,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures200Response{},
+			expectedError: nil,
 		},
 		{
 			name: "fail to get asset data",
@@ -389,7 +398,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
 				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
-				returnError:      errors.New("fail to get asset"),
+				returnError:      errTestFailToGetAsset,
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "",
@@ -418,10 +427,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to get asset",
-			},
+			expectedError: errTestFailToGetAsset,
 		},
 		{
 			name: "fail to parse data",
@@ -435,7 +441,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
 				returnData:           nil,
-				returnError:          errors.New("cannot parse data"),
+				returnError:          errTestCannotParseData,
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData:    nil,
@@ -459,10 +465,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to parse data",
-			},
+			expectedError: errTestCannotParseData,
 		},
 		{
 			name: "fail to store data",
@@ -537,7 +540,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				returnedMapping: map[string]string{
 					"feature1": "id-1",
 				},
-				returnError: errors.New("uh-oh"),
+				returnError: errTestFailToStoreData,
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
 				expectedData:    nil,
@@ -556,10 +559,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to store data",
-			},
+			expectedError: errTestFailToStoreData,
 		},
 		{
 			name: "fail to store metadata",
@@ -666,7 +666,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedMapping: map[string]string{
 					"feature1": "id-1",
 				},
-				returnError: errors.New("uh-oh"),
+				returnError: errTestFailToStoreMetadata,
 			},
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: nil,
@@ -680,10 +680,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to store metadata",
-			},
+			expectedError: errTestFailToStoreMetadata,
 		},
 		{
 			name: "fail to store groups",
@@ -833,7 +830,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 						Parent: nil,
 					},
 				},
-				returnError: errors.New("uh-oh"),
+				returnError: errTestFailToStoreGroups,
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
 				expectedFeatureData:  nil,
@@ -841,10 +838,7 @@ func TestPostV1WebFeatures(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to store groups",
-			},
+			expectedError: errTestFailToStoreGroups,
 		},
 		{
 			name: "fail to store snapshots",
@@ -1037,12 +1031,9 @@ func TestPostV1WebFeatures(t *testing.T) {
 						Spec: "",
 					},
 				},
-				returnError: errors.New("uh-oh"),
+				returnError: errTestFailToStoreSnapshots,
 			},
-			expectedResponse: web_feature_consumer.PostV1WebFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to store snapshots",
-			},
+			expectedError: errTestFailToStoreSnapshots,
 		},
 	}
 	for _, tc := range testCases {
@@ -1074,26 +1065,22 @@ func TestPostV1WebFeatures(t *testing.T) {
 				mockInsertWebFeatureSnapshotCfg: tc.mockInsertWebFeatureSnapshotsCfg,
 			}
 
-			server := &Server{
-				assetGetter:           mockGetter,
-				storer:                mockStorer,
-				metadataStorer:        mockMetadataStorer,
-				groupStorer:           mockGroupStorer,
-				snapshotStorer:        mockSnapshotStorer,
-				webFeaturesDataParser: mockParser,
-				defaultAssetName:      testFileName,
-				defaultRepoOwner:      testRepoOwner,
-				defaultRepoName:       testRepoName,
-			}
+			processor := NewWebFeaturesJobProcessor(
+				mockGetter,
+				mockStorer,
+				mockMetadataStorer,
+				mockGroupStorer,
+				mockSnapshotStorer,
+				mockParser,
+			)
 
-			req := web_feature_consumer.PostV1WebFeaturesRequestObject{}
-
-			response, err := server.PostV1WebFeatures(context.TODO(), req)
-			if err != nil {
-				t.Errorf("error should not be set")
-			}
-			if !reflect.DeepEqual(tc.expectedResponse, response) {
-				t.Error("unexpected response")
+			err := processor.Process(context.TODO(), NewJobArguments(
+				testFileName,
+				testRepoOwner,
+				testRepoName,
+			))
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("Expected error: %v, Got: %v", tc.expectedError, err)
 			}
 		})
 	}

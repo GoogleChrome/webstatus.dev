@@ -54,12 +54,10 @@ delete-local:
 port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
-	kubectl wait --for=condition=ready pod/web-feature-consumer
 	kubectl wait --for=condition=ready pod/auth
 	kubectl wait --for=condition=ready pod/gcs
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
-	kubectl port-forward --address 127.0.0.1 pod/web-feature-consumer 8092:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/gcs 4443:4443 2>&1 >/dev/null &
@@ -124,16 +122,12 @@ $(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml
 # Target to generate all OpenAPI code
 go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
 			$(OPENAPI_OUT_DIR)/backend/server.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/client.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/types.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer/server.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
 			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
 
 clean-go-openapi:
 	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/backend, /types.gen.go /server.gen.go)
-	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/web_feature_consumer, /types.gen.go /server.gen.go)
 	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader, /types.gen.go /server.gen.go)
 
 node-openapi:
@@ -372,10 +366,10 @@ clean-node:
 ################################
 # Local Data / Workflows
 ################################
-dev_workflows: bcd_workflow web_feature_local_workflow chromium_histogram_enums_workflow wpt_workflow
-web_feature_local_workflow: FLAGS := -web_consumer_host=http://localhost:8092
-web_feature_local_workflow: build port-forward-manual
-	go run ./util/cmd/local_web_feature_workflow/main.go $(FLAGS)
+dev_workflows: bcd_workflow web_feature_workflow chromium_histogram_enums_workflow wpt_workflow
+web_feature_workflow:
+	./util/run_job.sh web-features-consumer images/go_service.Dockerfile workflows/steps/services/web_feature_consumer \
+		workflows/steps/services/web_feature_consumer/manifests/job.yaml web-features-consumer
 wpt_workflow:
 	./util/run_job.sh wpt-consumer images/go_service.Dockerfile workflows/steps/services/wpt_consumer \
 		workflows/steps/services/wpt_consumer/manifests/job.yaml wpt-consumer
