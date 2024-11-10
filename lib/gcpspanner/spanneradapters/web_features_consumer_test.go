@@ -320,7 +320,8 @@ func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
 	return c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureID][idx]
 }
 
-func (c *mockWebFeatureSpannerClient) PrecalculateBrowserFeatureSupportEvents(_ context.Context) error {
+func (c *mockWebFeatureSpannerClient) PrecalculateBrowserFeatureSupportEvents(_ context.Context,
+	_ gcpspanner.PrecalculateBrowserFeatureSupportEventFilter) error {
 	c.precalculateBrowserFeatureSupportEventsCount++
 
 	return c.mockPrecalculateBrowserFeatureSupportEventsCfg.err

@@ -72,6 +72,8 @@ func calculateBrowserSupportEventsAndSend(
 	releases []spannerBrowserRelease,
 	ids []string,
 	eventChan chan<- BrowserFeatureSupportEvent,
+	startAtFilter *time.Time,
+	endAtFilter *time.Time,
 ) {
 	count := 0
 	for _, targetBrowser := range releases {
@@ -80,6 +82,12 @@ func calculateBrowserSupportEventsAndSend(
 				supportStatus := UnsupportedFeatureSupport // Default to unsupported
 				if _, ok := availabilityMap[targetBrowser.BrowserName]; ok {
 					availabilityTime, supported := availabilityMap[targetBrowser.BrowserName][id]
+					if startAtFilter != nil && availabilityTime.Before(*startAtFilter) {
+						continue
+					}
+					if endAtFilter != nil && availabilityTime.After(*endAtFilter) {
+						continue
+					}
 					if supported && (availabilityTime.Equal(eventBrowser.ReleaseDate) ||
 						eventBrowser.ReleaseDate.After(availabilityTime)) {
 						supportStatus = SupportedFeatureSupport
@@ -150,8 +158,14 @@ func (c *Client) batchWriteBrowserFeatureSupportEvents(
 	}
 }
 
+type PrecalculateBrowserFeatureSupportEventFilter struct {
+	StartAt *time.Time
+	EndAt   *time.Time
+}
+
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
-func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error {
+func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context,
+	filter PrecalculateBrowserFeatureSupportEventFilter) error {
 	const batchSize = 10000
 	eventChan := make(chan BrowserFeatureSupportEvent, batchSize)
 	errChan := make(chan error)
@@ -196,7 +210,7 @@ func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) er
 	availabilityMap := buildAvailabilityMap(releases, availabilities)
 
 	// 4. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
-	calculateBrowserSupportEventsAndSend(availabilityMap, releases, ids, eventChan)
+	calculateBrowserSupportEventsAndSend(availabilityMap, releases, ids, eventChan, filter.StartAt, filter.EndAt)
 
 	slog.InfoContext(ctx, "support events sent")
 

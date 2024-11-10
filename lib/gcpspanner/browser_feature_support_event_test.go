@@ -88,7 +88,10 @@ func TestPrecalculateBrowserFeatureSupportEvents(t *testing.T) {
 	}
 
 	// 4. Call the function to pre-calculate the data
-	err := spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx)
+	err := spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx, PrecalculateBrowserFeatureSupportEventFilter{
+		StartAt: nil,
+		EndAt:   nil,
+	})
 	if err != nil {
 		t.Fatalf("PrecalculateBrowserFeatureSupportEvents failed: %v", err)
 	}

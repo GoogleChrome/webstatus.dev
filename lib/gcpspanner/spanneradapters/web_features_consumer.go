@@ -32,7 +32,8 @@ type WebFeatureSpannerClient interface {
 		featureID string,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
 	UpsertFeatureSpec(ctx context.Context, webFeatureID string, input gcpspanner.FeatureSpec) error
-	PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error
+	PrecalculateBrowserFeatureSupportEvents(ctx context.Context,
+		filter gcpspanner.PrecalculateBrowserFeatureSupportEventFilter) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -46,9 +47,14 @@ type WebFeaturesConsumer struct {
 	client WebFeatureSpannerClient
 }
 
+type InsertWwebFeaturesOptions struct {
+	PrecalculateEventStartAt *time.Time
+	PrecalculateEventEndtAt  *time.Time
+}
+
 func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureValue) (map[string]string, error) {
+	data map[string]web_platform_dx__web_features.FeatureValue, options InsertWwebFeaturesOptions) (map[string]string, error) {
 	ret := make(map[string]string, len(data))
 	for featureID, featureData := range data {
 		webFeature := gcpspanner.WebFeature{
@@ -101,7 +107,10 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 
 	// Now that all the feature information is stored, run pre-calculation of
 	// feature support events.
-	err := c.client.PrecalculateBrowserFeatureSupportEvents(ctx)
+	err := c.client.PrecalculateBrowserFeatureSupportEvents(ctx, gcpspanner.PrecalculateBrowserFeatureSupportEventFilter{
+		StartAt: options.PrecalculateEventStartAt,
+		EndAt:   options.PrecalculateEventEndtAt,
+	})
 	if err != nil {
 		return nil, err
 	}
