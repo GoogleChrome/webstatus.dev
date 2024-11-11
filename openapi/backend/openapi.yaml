@@ -608,8 +608,11 @@ components:
           description: The usage timestamp
         usage:
           type: integer
-          description: The feature's usage level
-          format: int64
+          description: >
+            Snapshot of the usage metric for the given feature
+          format: double
+          minimum: 0.0
+          maximum: 100.0
       required:
         - timestamp
     WPTRunMetricsPage:
