@@ -22,6 +22,8 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 import {
+  ALL_BROWSERS,
+  BROWSER_ID_TO_COLOR,
   type APIClient,
   type BrowsersParameter,
   type BrowserReleaseFeatureMetric,
@@ -30,15 +32,6 @@ import {apiClientContext} from '../contexts/api-client-context.js';
 
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
-
-// No way to get the values from the parameter types, so we have to
-// redundantly specify them.
-const ALL_BROWSERS: BrowsersParameter[] = [
-  'chrome',
-  'firefox',
-  'safari',
-  'edge',
-];
 
 /** Generate a key for globalFeatureSupport. */
 function globalFeatureSupportKey(browser: BrowsersParameter): string {
@@ -57,7 +50,8 @@ export class StatsPage extends LitElement {
   globalFeatureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
 
   @state()
-  startDate: Date = new Date(2020, 0, 1); // Jan 1, 2020.
+  // Default: Date.now() - 1 year.
+  startDate: Date = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
 
   @state()
   endDate: Date = new Date(); // Today
@@ -252,8 +246,15 @@ export class StatsPage extends LitElement {
   }
 
   generateGlobalFeatureSupportChartOptions(): google.visualization.LineChartOptions {
-    // Add 2 weeks to this.endDate.
-    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24 * 14);
+    // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
+    const selectedBrowsers = this.globalFeatureSupportBrowsers;
+    const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
+      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
+      return BROWSER_ID_TO_COLOR[browserKey];
+    });
+
+    // Add one day to this.endDate.
+    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
       hAxis: {
@@ -267,6 +268,7 @@ export class StatsPage extends LitElement {
         format: '#,###',
       },
       legend: {position: 'top'},
+      colors: seriesColors,
       chartArea: {left: 100, right: 16, top: 40, bottom: 40},
 
       interpolateNulls: true,
