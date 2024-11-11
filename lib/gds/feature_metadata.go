@@ -49,14 +49,14 @@ func (f webFeaturesMetadataFilter) FilterQuery(query *datastore.Query) *datastor
 // webFeatureMetadataMerge implements Mergeable for FeatureMetadata.
 type webFeatureMetadataMerge struct{}
 
-func (m webFeatureMetadataMerge) Merge(existing *FeatureMetadata, new *FeatureMetadata) *FeatureMetadata {
+func (m webFeatureMetadataMerge) Merge(existing *FeatureMetadata, incoming *FeatureMetadata) *FeatureMetadata {
 	canIUseIDs := existing.CanIUseIDs
-	if len(new.CanIUseIDs) > 0 {
-		canIUseIDs = new.CanIUseIDs
+	if len(incoming.CanIUseIDs) > 0 {
+		canIUseIDs = incoming.CanIUseIDs
 	}
 
 	return &FeatureMetadata{
-		Description: cmp.Or[string](new.Description, existing.Description, ""),
+		Description: cmp.Or[string](incoming.Description, existing.Description, ""),
 		CanIUseIDs:  canIUseIDs,
 		// The below fields cannot be overridden during a merge.
 		WebFeatureID: existing.WebFeatureID,

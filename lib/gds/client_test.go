@@ -124,9 +124,9 @@ func (f limitSampleFilter) FilterQuery(query *datastore.Query) *datastore.Query 
 // testSampleMerge implements Mergeable for TestSample.
 type testSampleMerge struct{}
 
-func (m testSampleMerge) Merge(existing *TestSample, new *TestSample) *TestSample {
+func (m testSampleMerge) Merge(existing *TestSample, incoming *TestSample) *TestSample {
 	return &TestSample{
-		Value: cmp.Or[*int](new.Value, existing.Value),
+		Value: cmp.Or[*int](incoming.Value, existing.Value),
 		// The below fields cannot be overridden during a merge.
 		Name:      existing.Name,
 		CreatedAt: existing.CreatedAt,

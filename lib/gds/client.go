@@ -63,7 +63,7 @@ type entityClient[T any] struct {
 }
 
 type Mergeable[T any] interface {
-	Merge(existing *T, new *T) *T
+	Merge(existing *T, incoming *T) *T
 }
 
 func (c *entityClient[T]) upsert(
