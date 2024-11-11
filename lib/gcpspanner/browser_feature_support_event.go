@@ -16,10 +16,8 @@ package gcpspanner
 
 import (
 	"context"
-	"errors"
+	"log/slog"
 	"time"
-
-	"cloud.google.com/go/spanner"
 )
 
 const browserFeatureSupportEventsTable = "BrowserFeatureSupportEvents"
@@ -69,73 +67,62 @@ func buildAvailabilityMap(
 func calculateBrowserSupportEvents(
 	availabilityMap map[string]map[string]time.Time,
 	releases []spannerBrowserRelease,
-	ids []string) []BrowserFeatureSupportEvent {
-	var supportEvents []BrowserFeatureSupportEvent
-	for _, targetBrowser := range releases {
+	ids []string,
+	eventChan chan<- BrowserFeatureSupportEvent,
+) {
+	for targetBrowserName := range availabilityMap {
 		for _, eventBrowser := range releases {
 			for _, id := range ids {
 				supportStatus := UnsupportedFeatureSupport // Default to unsupported
-				if _, ok := availabilityMap[targetBrowser.BrowserName]; ok {
-					availabilityTime, supported := availabilityMap[targetBrowser.BrowserName][id]
+				if _, ok := availabilityMap[targetBrowserName]; ok {
+					availabilityTime, supported := availabilityMap[targetBrowserName][id]
 					if supported && (availabilityTime.Equal(eventBrowser.ReleaseDate) ||
 						eventBrowser.ReleaseDate.After(availabilityTime)) {
 						supportStatus = SupportedFeatureSupport
 					}
 				}
-				supportEvents = append(supportEvents, BrowserFeatureSupportEvent{
-					TargetBrowserName: targetBrowser.BrowserName,
+				eventChan <- BrowserFeatureSupportEvent{
+					TargetBrowserName: targetBrowserName,
 					EventBrowserName:  eventBrowser.BrowserName,
 					EventReleaseDate:  eventBrowser.ReleaseDate,
 					WebFeatureID:      id,
 					SupportStatus:     supportStatus,
-				})
+				}
 			}
 		}
 	}
-
-	return supportEvents
 }
 
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
 func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error {
-	_, err := c.Client.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		// 1. Fetch all BrowserFeatureAvailabilities
-		availabilities, err := c.fetchAllBrowserAvailabilitiesWithTransaction(ctx, txn)
-		if err != nil {
-			return err
-		}
+	txn := c.Client.ReadOnlyTransaction()
+	// 1. Fetch all BrowserFeatureAvailabilities
+	availabilities, err := c.fetchAllBrowserAvailabilitiesWithTransaction(ctx, txn)
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "availabilities fetched", "size", len(availabilities))
 
-		// 2. Fetch all BrowserReleases
-		releases, err := c.fetchAllBrowserReleasesWithTransaction(ctx, txn)
-		if err != nil {
-			return err
-		}
+	// 2. Fetch all BrowserReleases
+	releases, err := c.fetchAllBrowserReleasesWithTransaction(ctx, txn)
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "releases fetched", "size", len(releases))
 
-		// 3. Fetch all WebFeatures
-		ids, err := c.fetchAllWebFeatureIDsWithTransaction(ctx, txn)
-		if err != nil {
-			return err
-		}
+	// 3. Fetch all WebFeatures
+	ids, err := c.fetchAllWebFeatureIDsWithTransaction(ctx, txn)
+	if err != nil {
+		return err
+	}
+	slog.InfoContext(ctx, "feature ids fetched", "size", len(ids))
 
-		// 4. Create maps for quick look ups
-		availabilityMap := buildAvailabilityMap(releases, availabilities)
+	// 4. Create maps for quick look ups
+	availabilityMap := buildAvailabilityMap(releases, availabilities)
 
-		// 4. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
-		supportEvents := calculateBrowserSupportEvents(availabilityMap, releases, ids)
-
-		// 5. Insert the new entries into BrowserFeatureSupportEvents
-		var mutations []*spanner.Mutation
-		for _, entry := range supportEvents {
-			m, err := spanner.InsertOrUpdateStruct(browserFeatureSupportEventsTable, entry)
-			if err != nil {
-				return errors.Join(err, ErrInternalQueryFailure)
-			}
-			mutations = append(mutations, m)
-		}
-
-		return txn.BufferWrite(mutations)
-
-	})
-
-	return err
+	// 5. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
+	return runConcurrentBatch[BrowserFeatureSupportEvent](ctx,
+		c, func(entityChan chan<- BrowserFeatureSupportEvent) {
+			calculateBrowserSupportEvents(availabilityMap, releases, ids, entityChan)
+		}, browserFeatureSupportEventsTable)
 }

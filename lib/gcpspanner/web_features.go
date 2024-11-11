@@ -101,7 +101,7 @@ func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilte
 }
 
 func (c *Client) fetchAllWebFeatureIDsWithTransaction(
-	ctx context.Context, txn *spanner.ReadWriteTransaction) ([]string, error) {
+	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]string, error) {
 	var ids []string
 	iter := txn.Read(ctx, webFeaturesTable, spanner.AllKeys(), []string{"ID"})
 	defer iter.Stop()
