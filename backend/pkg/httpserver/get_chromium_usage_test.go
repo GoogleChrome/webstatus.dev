@@ -21,165 +21,57 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-func TestGetV(t *testing.T) {
+func TestListChromiumDailyUsageStats(t *testing.T) {
 	testCases := []struct {
 		name              string
-		mockConfig        MockGetFeatureByIDConfig
+		mockConfig        MockListChromiumDailyUsageStatsConfig
 		expectedCallCount int // For the mock method
-		request           backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject
-		expectedResponse  backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsResponseObject
+		request           backend.ListChromiumDailyUsageStatsRequestObject
+		expectedResponse  backend.ListChromiumDailyUsageStatsResponseObject
 		expectedError     error
 	}{
 		{
-			name: "Success Case",
-			// nolint:dupl // WONTFIX - being explicit for short list of tests.
-			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
+			name: "Success Case - no optional params - use defaults",
+			mockConfig: MockListChromiumDailyUsageStatsConfig{
+				expectedFeatureID: "feature1",
+				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:  100,
+				expectedPageToken: nil,
+				pageToken:         nil,
+				err:               nil,
+
+				data: []backend.ChromiumUsageStat{
+					{
+						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						Usage:     nil,
+					},
 				},
-				data: &backend.Feature{
-					Baseline: &backend.BaselineInfo{
-						Status: valuePtr(backend.Widely),
-						LowDate: valuePtr(
-							openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-						),
-						HighDate: valuePtr(
-							openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
-						),
-					},
-					BrowserImplementations: &map[string]backend.BrowserImplementation{
-						"chrome": {
-							Status:  valuePtr(backend.Available),
-							Date:    &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-							Version: valuePtr("100"),
-						},
-					},
-					FeatureId: "feature1",
-					Name:      "feature 1",
-					Spec:      nil,
-					Usage: &backend.BrowserUsage{
-						Chromium: &backend.ChromiumUsageInfo{
-							Daily: valuePtr[float64](0.91),
-						},
-					},
-					Wpt: nil,
-				},
-				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesIdStatusUsageChromiumDailyStats200JSONResponse{
-				Usage: valuePtr[float64](0.91),
-			},
-			request: backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject{
-				Id: "feature1",
-			},
-			expectedError: nil,
-		},
-		{
-			name: "Success Case with null usage",
-			// nolint:dupl // WONTFIX - being explicit for short list of tests.
-			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
-				},
-				data: &backend.Feature{
-					Baseline: &backend.BaselineInfo{
-						Status: valuePtr(backend.Widely),
-						LowDate: valuePtr(
-							openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-						),
-						HighDate: valuePtr(
-							openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
-						),
-					},
-					BrowserImplementations: &map[string]backend.BrowserImplementation{
-						"chrome": {
-							Status:  valuePtr(backend.Available),
-							Date:    &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-							Version: valuePtr("100"),
-						},
-					},
-					FeatureId: "feature1",
-					Name:      "feature 1",
-					Spec:      nil,
-					Wpt:       nil,
-					Usage: &backend.BrowserUsage{
-						Chromium: &backend.ChromiumUsageInfo{
-							Daily: nil,
-						},
+			expectedResponse: backend.ListChromiumDailyUsageStats200JSONResponse{
+				Data: []backend.ChromiumUsageStat{
+					{
+						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						Usage:     nil,
 					},
 				},
-				err: nil,
-			},
-			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesIdStatusUsageChromiumDailyStats200JSONResponse{
-				Usage: nil,
-			},
-			request: backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject{
-				Id: "feature1",
-			},
-			expectedError: nil,
-		},
-		{
-			name: "404",
-			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
+				Metadata: &backend.PageMetadata{
+					NextPageToken: nil,
 				},
-				data: nil,
-				err:  gcpspanner.ErrQueryReturnedNoResults,
 			},
-			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesIdStatusUsageChromiumDailyStats404JSONResponse{
-				Code:    404,
-				Message: "feature id feature1 is not found",
-			},
-			request: backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject{
-				Id: "feature1",
-			},
-			expectedError: nil,
-		},
-		{
-			name: "500",
-			mockConfig: MockGetFeatureByIDConfig{
-				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
+			request: backend.ListChromiumDailyUsageStatsRequestObject{
+				Params: backend.ListChromiumDailyUsageStatsParams{
+					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
+					PageToken: nil,
+					PageSize:  nil,
 				},
-				data: nil,
-				err:  errTest,
-			},
-			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesIdStatusUsageChromiumDailyStats500JSONResponse{
-				Code:    500,
-				Message: "unable to get feature",
-			},
-			request: backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject{
-				Id: "feature1",
+				FeatureId: "feature1",
 			},
 			expectedError: nil,
 		},
@@ -188,19 +80,19 @@ func TestGetV(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// nolint: exhaustruct
 			mockStorer := &MockWPTMetricsStorer{
-				getFeatureByIDConfig: tc.mockConfig,
-				t:                    t,
+				listChromiumDailyUsageStatsCfg: tc.mockConfig,
+				t:                              t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
 
 			// Call the function under test
-			resp, err := myServer.GetV1FeaturesIdStatusUsageChromiumDailyStats(context.Background(), tc.request)
+			resp, err := myServer.ListChromiumDailyUsageStats(context.Background(), tc.request)
 
 			// Assertions
-			if mockStorer.callCountGetFeature != tc.expectedCallCount {
+			if mockStorer.callCountListChromiumDailyUsageStats != tc.expectedCallCount {
 				t.Errorf("Incorrect call count: expected %d, got %d",
 					tc.expectedCallCount,
-					mockStorer.callCountGetFeature)
+					mockStorer.callCountListChromiumDailyUsageStats)
 			}
 
 			if !errors.Is(err, tc.expectedError) {

@@ -16,42 +16,36 @@ package httpserver
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"log/slog"
-	"net/http"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// GetV1FeaturesIdStatusUsageChromiumDailyStats implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) GetV1FeaturesIdStatusUsageChromiumDailyStats(
+func (s *Server) ListChromiumDailyUsageStats(
 	ctx context.Context,
-	request backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsRequestObject,
-) (backend.GetV1FeaturesIdStatusUsageChromiumDailyStatsResponseObject, error) {
-	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.Id,
-		getWPTMetricViewOrDefault(nil),
-		defaultBrowsers(),
+	request backend.ListChromiumDailyUsageStatsRequestObject,
+) (backend.ListChromiumDailyUsageStatsResponseObject, error) {
+	stats, nextPageToken, err := s.wptMetricsStorer.ListChromiumDailyUsageStatsForFeatureID(
+		ctx,
+		request.FeatureId,
+		request.Params.StartAt.Time,
+		request.Params.EndAt.Time,
+		getPageSizeOrDefault(request.Params.PageSize),
+		request.Params.PageToken,
 	)
 	if err != nil {
-		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
-			return backend.GetV1FeaturesIdStatusUsageChromiumDailyStats404JSONResponse{
-				Code:    http.StatusNotFound,
-				Message: fmt.Sprintf("feature id %s is not found", request.Id),
-			}, nil
-		}
-		// Catch all for all other errors.
-		slog.ErrorContext(ctx, "unable to get feature", "error", err)
+		slog.ErrorContext(ctx, "unable to get feature metrics", "error", err)
 
-		return backend.GetV1FeaturesIdStatusUsageChromiumDailyStats500JSONResponse{
+		return backend.ListChromiumDailyUsageStats500JSONResponse{
 			Code:    500,
-			Message: "unable to get feature",
+			Message: "unable to get feature metrics",
 		}, nil
 	}
 
-	return backend.GetV1FeaturesIdStatusUsageChromiumDailyStats200JSONResponse{
-		Usage: feature.Usage.Chromium.Daily,
+	return backend.ListChromiumDailyUsageStats200JSONResponse{
+		Data: stats,
+		Metadata: &backend.PageMetadata{
+			NextPageToken: nextPageToken,
+		},
 	}, nil
 }
