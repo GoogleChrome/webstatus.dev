@@ -204,7 +204,7 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 	return m.aggregateCfg.data, m.aggregateCfg.pageToken, m.aggregateCfg.err
 }
 
-func (m *MockWPTMetricsStorer) ListChromiumDailyUsageStatsForFeatureID(
+func (m *MockWPTMetricsStorer) ListChromiumDailyUsageStats(
 	_ context.Context,
 	featureID string,
 	startAt time.Time,

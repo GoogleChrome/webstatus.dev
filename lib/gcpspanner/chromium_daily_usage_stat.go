@@ -25,11 +25,7 @@ type ChromiumDailyUsageStatWithTime struct {
 	Usage *int64    `spanner:"Usage"`
 }
 
-// ListMetricsForFeatureIDBrowserAndChannel attempts to return a page of
-// metrics based on a web feature key, browser name and channel. A time window
-// must be specified to analyze the runs according to the TimeStart of the run.
-// If the page size matches the pageSize, a page token is returned. Else,
-// no page token is returned.
+// nolint: revive // method currently returns fake data.
 func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 	ctx context.Context,
 	featureKey string,

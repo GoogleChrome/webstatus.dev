@@ -54,7 +54,7 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) ([]backend.WPTRunMetric, *string, error)
-	ListChromiumDailyUsageStatsForFeatureID(
+	ListChromiumDailyUsageStats(
 		ctx context.Context,
 		featureID string,
 		startAt, endAt time.Time,

@@ -21,11 +21,13 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+// ListChromiumDailyUsageStats implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
 func (s *Server) ListChromiumDailyUsageStats(
 	ctx context.Context,
 	request backend.ListChromiumDailyUsageStatsRequestObject,
 ) (backend.ListChromiumDailyUsageStatsResponseObject, error) {
-	stats, nextPageToken, err := s.wptMetricsStorer.ListChromiumDailyUsageStatsForFeatureID(
+	stats, nextPageToken, err := s.wptMetricsStorer.ListChromiumDailyUsageStats(
 		ctx,
 		request.FeatureId,
 		request.Params.StartAt.Time,
