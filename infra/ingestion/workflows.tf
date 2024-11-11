@@ -53,6 +53,10 @@ module "web_features_workflow" {
       name  = "DATASTORE_DATABASE"
       value = var.datastore_info.database_name
     },
+    {
+      name  = "DATA_WINDOW_DURATION"
+      value = "262980h" # 30 years in hours (365.25*30*24)
+    }
   ]
 }
 

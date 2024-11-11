@@ -69,9 +69,14 @@ func calculateBrowserSupportEvents(
 	releases []spannerBrowserRelease,
 	ids []string,
 	eventChan chan<- BrowserFeatureSupportEvent,
+	startAt time.Time,
+	endAt time.Time,
 ) {
 	for targetBrowserName := range availabilityMap {
 		for _, eventBrowser := range releases {
+			if eventBrowser.ReleaseDate.Before(startAt) || eventBrowser.ReleaseDate.After(endAt) {
+				continue
+			}
 			for _, id := range ids {
 				supportStatus := UnsupportedFeatureSupport // Default to unsupported
 				if _, ok := availabilityMap[targetBrowserName]; ok {
@@ -94,7 +99,7 @@ func calculateBrowserSupportEvents(
 }
 
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
-func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error {
+func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context, startAt, endAt time.Time) error {
 	txn := c.Client.ReadOnlyTransaction()
 	// 1. Fetch all BrowserFeatureAvailabilities
 	availabilities, err := c.fetchAllBrowserAvailabilitiesWithTransaction(ctx, txn)
@@ -123,6 +128,6 @@ func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context) er
 	// 5. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
 	return runConcurrentBatch[BrowserFeatureSupportEvent](ctx,
 		c, func(entityChan chan<- BrowserFeatureSupportEvent) {
-			calculateBrowserSupportEvents(availabilityMap, releases, ids, entityChan)
+			calculateBrowserSupportEvents(availabilityMap, releases, ids, entityChan, startAt, endAt)
 		}, browserFeatureSupportEventsTable)
 }

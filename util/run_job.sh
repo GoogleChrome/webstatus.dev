@@ -40,7 +40,7 @@ kubectl delete job "$job_name" --ignore-not-found=true
 kubectl apply -f "$job_yaml"
 
 # Wait for Job completion
-kubectl wait --for=condition=complete --timeout=90s job/"$job_name"
+kubectl wait --for=condition=complete --timeout=600s job/"$job_name"
 
 # Get Job pod name
 pod_name=$(kubectl get pods --selector=job-name="$job_name" -o jsonpath='{.items[0].metadata.name}')
