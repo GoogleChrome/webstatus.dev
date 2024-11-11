@@ -32,6 +32,7 @@ type WebFeatureSpannerClient interface {
 		featureID string,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
 	UpsertFeatureSpec(ctx context.Context, webFeatureID string, input gcpspanner.FeatureSpec) error
+	PrecalculateBrowserFeatureSupportEvents(ctx context.Context) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -96,6 +97,13 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 
 		ret[featureID] = *id
+	}
+
+	// Now that all the feature information is stored, run pre-calculation of
+	// feature support events.
+	err := c.client.PrecalculateBrowserFeatureSupportEvents(ctx)
+	if err != nil {
+		return nil, err
 	}
 
 	return ret, nil

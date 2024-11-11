@@ -659,7 +659,7 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 							SpecLinks:     nil,
-							ChromiumUsage: nil,
+							ChromiumUsage: big.NewRat(91, 100),
 						},
 						{
 							Name:       "feature 2",
@@ -713,7 +713,7 @@ func TestFeaturesSearch(t *testing.T) {
 								"link1",
 								"link2",
 							},
-							ChromiumUsage: nil,
+							ChromiumUsage: big.NewRat(10, 100),
 						},
 					},
 				},
@@ -750,7 +750,11 @@ func TestFeaturesSearch(t *testing.T) {
 						FeatureId: "feature1",
 						Name:      "feature 1",
 						Spec:      nil,
-						Usage:     nil,
+						Usage: &backend.BrowserUsage{
+							Chromium: &backend.ChromiumUsageInfo{
+								Daily: valuePtr[float64](0.91),
+							},
+						},
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser3": {
@@ -796,7 +800,11 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
-						Usage: nil,
+						Usage: &backend.BrowserUsage{
+							Chromium: &backend.ChromiumUsageInfo{
+								Daily: valuePtr[float64](0.1),
+							},
+						},
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser1": {
@@ -872,8 +880,7 @@ func TestFeaturesSearch(t *testing.T) {
 func CompareFeatures(f1, f2 backend.Feature) bool {
 	// 1. Basic Equality Checks
 	if f1.FeatureId != f2.FeatureId ||
-		f1.Name != f2.Name ||
-		f1.Usage != f2.Usage {
+		f1.Name != f2.Name {
 		return false
 	}
 
@@ -887,7 +894,7 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 		return false
 	}
 
-	if !compareImplementationStatus(f1.BrowserImplementations, f1.BrowserImplementations) {
+	if !compareImplementationStatus(f1.BrowserImplementations, f2.BrowserImplementations) {
 		return false
 	}
 
@@ -896,8 +903,16 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 		return false
 	}
 
+	if !compareChromiumUsage(*f1.Usage.Chromium, *f2.Usage.Chromium) {
+		return false
+	}
+
 	// All fields match
 	return true
+}
+
+func compareChromiumUsage(c1, c2 backend.ChromiumUsageInfo) bool {
+	return reflect.DeepEqual(c1.Daily, c2.Daily)
 }
 
 func compareImplementationStatus(s1, s2 *map[string]backend.BrowserImplementation) bool {
@@ -1037,7 +1052,11 @@ func TestGetFeature(t *testing.T) {
 						},
 					},
 				},
-				Usage: nil,
+				Usage: &backend.BrowserUsage{
+					Chromium: &backend.ChromiumUsageInfo{
+						Daily: nil,
+					},
+				},
 				Wpt: &backend.FeatureWPTSnapshots{
 					Experimental: &map[string]backend.WPTFeatureData{
 						"browser3": {
@@ -1054,7 +1073,13 @@ func TestGetFeature(t *testing.T) {
 						},
 					},
 				},
-				BrowserImplementations: nil,
+				BrowserImplementations: &map[string]backend.BrowserImplementation{
+					"browser3": {
+						Status:  valuePtr(backend.Available),
+						Date:    nil,
+						Version: nil,
+					},
+				},
 			},
 		},
 	}
@@ -1207,7 +1232,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				},
 				ImplementationStatuses: nil,
 				SpecLinks:              nil,
-				ChromiumUsage:          nil,
+				ChromiumUsage:          big.NewRat(8, 100),
 			},
 
 			expectedFeature: &backend.Feature{
@@ -1218,10 +1243,14 @@ func TestConvertFeatureResult(t *testing.T) {
 					),
 					HighDate: nil,
 				},
-				FeatureId:              "feature1",
-				Name:                   "feature 1",
-				Spec:                   nil,
-				Usage:                  nil,
+				FeatureId: "feature1",
+				Name:      "feature 1",
+				Spec:      nil,
+				Usage: &backend.BrowserUsage{
+					Chromium: &backend.ChromiumUsageInfo{
+						Daily: valuePtr[float64](0.08),
+					},
+				},
 				Wpt:                    nil,
 				BrowserImplementations: nil,
 			},

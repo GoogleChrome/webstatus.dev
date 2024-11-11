@@ -20,10 +20,15 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// ListFeatureLagMetrics implements backend.StrictServerInterface.
+// ListMissingOneImplemenationCounts implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Signature generated from openapi
-func (s *Server) ListFeatureLagMetrics(
+func (s *Server) ListMissingOneImplemenationCounts(
 	_ context.Context,
-	_ backend.ListFeatureLagMetricsRequestObject) (backend.ListFeatureLagMetricsResponseObject, error) {
-	panic("unimplemented")
+	_ backend.ListMissingOneImplemenationCountsRequestObject) (
+	backend.ListMissingOneImplemenationCountsResponseObject, error) {
+	// TODO: Will implement in future PRs.
+	return backend.ListMissingOneImplemenationCounts200JSONResponse{
+		Metadata: nil,
+		Data:     nil,
+	}, nil
 }
