@@ -78,6 +78,17 @@ type MockListMetricsOverTimeWithAggregatedTotalsConfig struct {
 	err                error
 }
 
+type MockListChromiumDailyUsageStatsConfig struct {
+	expectedFeatureID string
+	expectedStartAt   time.Time
+	expectedEndAt     time.Time
+	expectedPageSize  int
+	expectedPageToken *string
+	data              []backend.ChromiumUsageStat
+	pageToken         *string
+	err               error
+}
+
 type MockFeaturesSearchConfig struct {
 	expectedPageToken     *string
 	expectedPageSize      int
@@ -119,11 +130,13 @@ type MockWPTMetricsStorer struct {
 	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
 	featuresSearchCfg                                 MockFeaturesSearchConfig
 	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
+	listChromiumDailyUsageStatsCfg                    MockListChromiumDailyUsageStatsConfig
 	getFeatureByIDConfig                              MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
 	t                                                 *testing.T
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
+	callCountListChromiumDailyUsageStats              int
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
 	callCountGetFeature                               int
@@ -189,6 +202,29 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 	}
 
 	return m.aggregateCfg.data, m.aggregateCfg.pageToken, m.aggregateCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListChromiumDailyUsageStats(
+	_ context.Context,
+	featureID string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) ([]backend.ChromiumUsageStat, *string, error) {
+	m.callCountListChromiumDailyUsageStats++
+
+	if featureID != m.listChromiumDailyUsageStatsCfg.expectedFeatureID ||
+		!startAt.Equal(m.listChromiumDailyUsageStatsCfg.expectedStartAt) ||
+		!endAt.Equal(m.listChromiumDailyUsageStatsCfg.expectedEndAt) ||
+		pageSize != m.listChromiumDailyUsageStatsCfg.expectedPageSize ||
+		pageToken != m.listChromiumDailyUsageStatsCfg.expectedPageToken {
+
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %s, %d %v }",
+			m.listChromiumDailyUsageStatsCfg, featureID, startAt, endAt, pageSize, pageToken)
+	}
+
+	return m.listChromiumDailyUsageStatsCfg.data, m.featureCfg.pageToken, m.featureCfg.err
 }
 
 func (m *MockWPTMetricsStorer) FeaturesSearch(

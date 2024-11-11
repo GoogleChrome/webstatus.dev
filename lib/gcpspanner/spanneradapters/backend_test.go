@@ -72,6 +72,7 @@ type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
 	featureData                          []gcpspanner.WPTRunFeatureMetricWithTime
+	chromiumDailyUsageData               []gcpspanner.ChromiumDailyUsageStatWithTime
 	mockFeaturesSearchCfg                mockFeaturesSearchConfig
 	mockGetFeatureCfg                    mockGetFeatureConfig
 	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
@@ -147,6 +148,26 @@ func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
 	}
 
 	return c.featureData, c.pageToken, c.err
+}
+
+func (c mockBackendSpannerClient) ListChromiumDailyUsageStatsForFeatureID(
+	ctx context.Context,
+	featureID string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) ([]gcpspanner.ChromiumDailyUsageStatWithTime, *string, error) {
+	if ctx != context.Background() ||
+		featureID != "feature" ||
+		!startAt.Equal(testStart) ||
+		!endAt.Equal(testEnd) ||
+		pageSize != 100 ||
+		pageToken != nonNilInputPageToken {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.chromiumDailyUsageData, c.pageToken, c.err
 }
 
 func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(

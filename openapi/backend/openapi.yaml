@@ -236,6 +236,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/features/{feature_id}/stats/usage/chromium/daily_stats:
+    parameters:
+      - name: feature_id
+        in: path
+        description: Feature ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get Chromium daily usage metrics for a given feature
+      operationId: listChromiumDailyUsageStats
+      parameters:
+        - $ref: '#/components/parameters/startAtParam'
+        - $ref: '#/components/parameters/endAtParam'
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChromiumDailyStatsPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/stats/features/browsers/{browser}/feature_counts:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
@@ -552,6 +599,22 @@ components:
           format: int64
       required:
         - run_timestamp
+    ChromiumUsageStat:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: The usage timestamp
+        usage:
+          type: integer
+          description: >
+            Snapshot of the usage metric for the given feature
+          format: double
+          minimum: 0.0
+          maximum: 100.0
+      required:
+        - timestamp
     WPTRunMetricsPage:
       type: object
       properties:
@@ -561,6 +624,17 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/WPTRunMetric'
+      required:
+        - data
+    ChromiumDailyStatsPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChromiumUsageStat'
       required:
         - data
     WPTFeatureData:

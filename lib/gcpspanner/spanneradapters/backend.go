@@ -49,6 +49,13 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) ([]gcpspanner.WPTRunAggregationMetricWithTime, *string, error)
+	ListChromiumDailyUsageStatsForFeatureID(
+		ctx context.Context,
+		featureID string,
+		startAt, endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) ([]gcpspanner.ChromiumDailyUsageStatWithTime, *string, error)
 	FeaturesSearch(
 		ctx context.Context,
 		pageToken *string,
@@ -199,6 +206,37 @@ func (s *Backend) ListMetricsForFeatureIDBrowserAndChannel(
 	}
 
 	return backendMetrics, nextPageToken, nil
+}
+
+func (s *Backend) ListChromiumDailyUsageStats(
+	ctx context.Context,
+	featureID string,
+	startAt, endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) ([]backend.ChromiumUsageStat, *string, error) {
+	metrics, nextPageToken, err := s.client.ListChromiumDailyUsageStatsForFeatureID(
+		ctx,
+		featureID,
+		startAt,
+		endAt,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	// Convert the feature metric type to backend metrics
+	backendStats := make([]backend.ChromiumUsageStat, 0, len(metrics))
+	for _, stat := range metrics {
+		backendStats = append(backendStats, backend.ChromiumUsageStat{
+			Timestamp: stat.Date,
+			Usage:     stat.Usage,
+		})
+	}
+
+	return backendStats, nextPageToken, nil
 }
 
 func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gcpspanner.BaselineStatus {
