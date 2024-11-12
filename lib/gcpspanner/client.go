@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -51,6 +52,8 @@ type Client struct {
 	featureSearchQuery FeatureSearchBaseQuery
 	searchCfg          searchConfig
 	batchWriter
+	batchSize    int
+	batchWriters int
 }
 
 type batchWriter interface {
@@ -100,6 +103,8 @@ type searchConfig struct {
 }
 
 const defaultMaxOwnedSearchesPerUser = 25
+const defaultBatchSize = 10000
+const defaultBatchWriters = 8
 
 // NewSpannerClient returns a Client for the Google Spanner service.
 func NewSpannerClient(projectID string, instanceID string, name string) (*Client, error) {
@@ -128,6 +133,8 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		GCPFeatureSearchBaseQuery{},
 		searchConfig{maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser},
 		bw,
+		defaultBatchSize,
+		defaultBatchWriters,
 	}, nil
 }
 
@@ -615,4 +622,99 @@ func newEntityRemover[
 	ExternalStruct any,
 	ExternalKey any](c *Client) *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey] {
 	return &entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+}
+
+func concurrentBatchWriteEntity[SpannerStruct any](
+	ctx context.Context, c *Client, wg *sync.WaitGroup, batchSize int,
+	entityChan <-chan SpannerStruct, table string, errChan chan error, workerID int) {
+	var totalBatches, entityCount uint
+	success := true
+	defer func() {
+		wg.Done()
+		slog.InfoContext(ctx, "batch writer worker finishing", "id", workerID,
+			"totalBatches", totalBatches, "entityCount", entityCount,
+			"success", success, "table", table)
+	}()
+	slog.InfoContext(ctx, "batch writer worker starting", "id", workerID, "table", table)
+	for {
+		batch := make([]*spanner.Mutation, 0, batchSize)
+		for i := 0; i < batchSize; i++ {
+			select {
+			case entity, isChannelStillOpen := <-entityChan:
+				// If the channel is closed, go ahead and apply what we have and return.
+				if !isChannelStillOpen {
+					if len(batch) > 0 {
+						slog.InfoContext(ctx, "sending final batch", "size", len(batch), "id", workerID, "table", table)
+						totalBatches++
+						entityCount += uint(len(batch))
+						err := c.BatchWriteMutations(ctx, c.Client, batch)
+						if err != nil {
+							success = false
+							errChan <- err
+						}
+					}
+
+					return
+				}
+				// Else, the channel is still open and it has received a value.
+				// Create a mutation and append it to the upcoming batch
+				m, err := spanner.InsertOrUpdateStruct(table, entity)
+				if err != nil {
+					success = false
+					errChan <- err
+
+					return
+				}
+				batch = append(batch, m)
+			case <-ctx.Done():
+				// If the system tells us that we are done, we can abort too.
+				return
+			}
+		}
+		// The current batch is full. Send the mutations to the database.
+		totalBatches++
+		entityCount += uint(len(batch))
+		err := c.BatchWriteMutations(ctx, c.Client, batch)
+		if err != nil {
+			success = false
+			errChan <- err
+
+			return
+		}
+	}
+}
+
+func runConcurrentBatch[SpannerStruct any](ctx context.Context, c *Client,
+	producerFn func(entityChan chan<- SpannerStruct), table string) error {
+	entityChan := make(chan SpannerStruct, c.batchSize)
+	errChan := make(chan error)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var wg sync.WaitGroup
+	workers := c.batchWriters
+	wg.Add(workers)
+	doneChan := make(chan struct{})
+	go func() {
+		slog.InfoContext(ctx, "waiting for batch write wait group to finish", "table", table)
+		wg.Wait()
+		slog.InfoContext(ctx, "batch write wait group to finished", "table", table)
+		close(doneChan)
+	}()
+	for i := 0; i < workers; i++ {
+		go concurrentBatchWriteEntity(ctx, c, &wg, c.batchSize, entityChan, table, errChan, i)
+	}
+	producerFn(entityChan)
+	close(entityChan)
+
+	// Check for errors from the goroutine
+	select {
+	case err := <-errChan:
+		cancel()
+
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-doneChan:
+		return nil
+	}
 }
