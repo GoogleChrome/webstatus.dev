@@ -12,24 +12,48 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# TODO. Once this workflow is changed from a web services to a job, use the same
-# single stage workflow as the others.
-module "web_features_repo_workflow" {
-  source = "./workflows/web_features_repo"
+module "web_features_workflow" {
+  source = "../modules/single_stage_go_workflow"
   providers = {
     google.internal_project = google.internal_project
     google.public_project   = google.public_project
   }
-
-  regions                                      = var.regions
-  deletion_protection                          = var.deletion_protection
-  env_id                                       = var.env_id
-  repo_downloader_step_region_to_step_info_map = module.repo_downloader_step.region_to_step_info_map
-  datastore_info                               = var.datastore_info
-  spanner_datails                              = var.spanner_datails
-  repo_bucket                                  = var.buckets.repo_download_bucket
-  docker_repository_details                    = var.docker_repository_details
-  region_schedules                             = var.web_features_region_schedules
+  regions                         = var.regions
+  short_name                      = "web-features"
+  full_name                       = "Web Features Workflow"
+  deletion_protection             = var.deletion_protection
+  project_id                      = var.spanner_datails.project_id
+  timeout_seconds                 = 7200 # 2 hours
+  image_name                      = "web_features_consumer_image"
+  spanner_details                 = var.spanner_datails
+  env_id                          = var.env_id
+  region_schedules                = var.web_features_region_schedules
+  docker_repository_url           = var.docker_repository_details.url
+  go_module_path                  = "workflows/steps/services/web_feature_consumer"
+  does_process_write_to_spanner   = true
+  does_process_write_to_datastore = true
+  resource_job_limits = {
+    cpu    = "4"
+    memory = "2Gi"
+  }
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    },
+    {
+      name  = "DATASTORE_DATABASE"
+      value = var.datastore_info.database_name
+    },
+  ]
 }
 
 module "wpt_workflow" {
