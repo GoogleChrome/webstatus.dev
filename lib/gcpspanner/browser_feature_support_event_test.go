@@ -24,9 +24,10 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-func TestPrecalculateBrowserFeatureSupportEvents(t *testing.T) {
-	restartDatabaseContainer(t)
-	ctx := context.Background()
+func setupTablesForPrecalculateBrowserFeatureSupportEvents(
+	ctx context.Context,
+	t *testing.T,
+) ([]WebFeature, map[string]string) {
 	featureKeyToID := map[string]string{}
 
 	// 1. Insert sample data into WebFeatures
@@ -87,221 +88,360 @@ func TestPrecalculateBrowserFeatureSupportEvents(t *testing.T) {
 		}
 	}
 
-	// 4. Call the function to pre-calculate the data
-	err := spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx)
-	if err != nil {
-		t.Fatalf("PrecalculateBrowserFeatureSupportEvents failed: %v", err)
-	}
+	return features, featureKeyToID
+}
 
-	// 5. Assert the expected data in BrowserFeatureSupportEvents
-	expectedEvents := []BrowserFeatureSupportEvent{
-		/*
-			2024-01-10 - Chrome release
-		*/
-		// Chrome supports features[0] during it's own release which has features[0]
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Chrome never supports features[1]
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Chrome does not support features[2] yet
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Firefox never supports features[0]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Firefox should not support features[1] during the release of Chrome because
-		// Firefox doesn't support features[1] until its release later.
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Firefox does not support features[2] yet
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		/*
-			2024-02-01 - Firefox and Chrome release
-		*/
-		// Firefox release
-		// Chrome already supports features[0].
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Chrome never supports features[1]
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Chrome now supports features[2].
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Firefox never supports features[0]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Firefox supports features[1] during it's own release which has features[1]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Firefox does not support features[2] yet
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
+func TestPrecalculateBrowserFeatureSupportEvents(t *testing.T) {
+	t.Run("all data", func(t *testing.T) {
+		restartDatabaseContainer(t)
+		ctx := context.Background()
+		features, featureKeyToID := setupTablesForPrecalculateBrowserFeatureSupportEvents(ctx, t)
 
-		// Chrome release
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Chrome never supports features[1]
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Chrome now supports features[2].
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Firefox never supports features[0]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Firefox supports features[1] during it's own release which has features[1]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Firefox does not support features[2] yet
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Chrome",
-			EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
+		// 4. Call the function to pre-calculate the data
+		err := spannerClient.PrecalculateBrowserFeatureSupportEvents(
+			ctx,
+			time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC),
+		)
+		if err != nil {
+			t.Fatalf("PrecalculateBrowserFeatureSupportEvents failed: %v", err)
+		}
 
-		/*
-			2024-03-01 - Firefox release
-		*/
-		// Chrome already supports features[0].
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Chrome never supports features[1]
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Chrome now supports features[2].
-		{
-			TargetBrowserName: "Chrome",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Firefox never supports features[0]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[0].FeatureKey],
-			SupportStatus:     UnsupportedFeatureSupport,
-		},
-		// Firefox supports features[1] during it's own release which has features[1]
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[1].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-		// Firefox supports features[2] now
-		{
-			TargetBrowserName: "Firefox",
-			EventBrowserName:  "Firefox",
-			EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
-			WebFeatureID:      featureKeyToID[features[2].FeatureKey],
-			SupportStatus:     SupportedFeatureSupport,
-		},
-	}
+		// 5. Assert the expected data in BrowserFeatureSupportEvents
+		expectedEvents := []BrowserFeatureSupportEvent{
+			/*
+				2024-01-10 - Chrome release
+			*/
+			// Chrome supports features[0] during it's own release which has features[0]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Chrome never supports features[1]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Chrome does not support features[2] yet
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox never supports features[0]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox should not support features[1] during the release of Chrome because
+			// Firefox doesn't support features[1] until its release later.
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox does not support features[2] yet
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			/*
+				2024-02-01 - Firefox and Chrome release
+			*/
+			// Firefox release
+			// Chrome already supports features[0].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Chrome never supports features[1]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Chrome now supports features[2].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox never supports features[0]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox supports features[1] during it's own release which has features[1]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox does not support features[2] yet
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
 
+			// Chrome release
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Chrome never supports features[1]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Chrome now supports features[2].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox never supports features[0]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox supports features[1] during it's own release which has features[1]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox does not support features[2] yet
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+
+			/*
+				2024-03-01 - Firefox release
+			*/
+			// Chrome already supports features[0].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Chrome never supports features[1]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Chrome now supports features[2].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox never supports features[0]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox supports features[1] during it's own release which has features[1]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox supports features[2] now
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 3, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+		}
+		assertBrowserFeatureSupportEvents(ctx, t, expectedEvents)
+	})
+
+	t.Run("narrow time window of data", func(t *testing.T) {
+		restartDatabaseContainer(t)
+		ctx := context.Background()
+		features, featureKeyToID := setupTablesForPrecalculateBrowserFeatureSupportEvents(ctx, t)
+
+		// 4. Call the function to pre-calculate the data
+		err := spannerClient.PrecalculateBrowserFeatureSupportEvents(
+			ctx,
+			time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+			time.Date(2024, 2, 25, 0, 0, 0, 0, time.UTC),
+		)
+		if err != nil {
+			t.Fatalf("PrecalculateBrowserFeatureSupportEvents failed: %v", err)
+		}
+
+		// 5. Assert the expected data in BrowserFeatureSupportEvents
+		expectedEvents := []BrowserFeatureSupportEvent{
+			/*
+				2024-02-01 - Firefox and Chrome release
+			*/
+			// Firefox release
+			// Chrome already supports features[0].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Chrome never supports features[1]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Chrome now supports features[2].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox never supports features[0]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox supports features[1] during it's own release which has features[1]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox does not support features[2] yet
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Firefox",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+
+			// Chrome release
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Chrome never supports features[1]
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Chrome now supports features[2].
+			{
+				TargetBrowserName: "Chrome",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox never supports features[0]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[0].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+			// Firefox supports features[1] during it's own release which has features[1]
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[1].FeatureKey],
+				SupportStatus:     SupportedFeatureSupport,
+			},
+			// Firefox does not support features[2] yet
+			{
+				TargetBrowserName: "Firefox",
+				EventBrowserName:  "Chrome",
+				EventReleaseDate:  time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+				WebFeatureID:      featureKeyToID[features[2].FeatureKey],
+				SupportStatus:     UnsupportedFeatureSupport,
+			},
+		}
+		assertBrowserFeatureSupportEvents(ctx, t, expectedEvents)
+	})
+}
+
+func assertBrowserFeatureSupportEvents(ctx context.Context, t *testing.T, expectedEvents []BrowserFeatureSupportEvent) {
 	actualEvents := spannerClient.readAllBrowserFeatureSupportEvents(ctx, t)
 
 	// Assert that the actual events match the expected events

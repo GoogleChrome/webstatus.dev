@@ -19,6 +19,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 )
@@ -41,7 +42,8 @@ type AssetParser interface {
 type WebFeatureStorer interface {
 	InsertWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureValue) (map[string]string, error)
+		data map[string]web_platform_dx__web_features.FeatureValue,
+		startAt time.Time, endAt time.Time) (map[string]string, error)
 }
 
 // WebFeatureMetadataStorer describes the logic to insert the non-relation metadata about web features that
@@ -117,7 +119,7 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 		return err
 	}
 
-	mapping, err := p.storer.InsertWebFeatures(ctx, data.Features)
+	mapping, err := p.storer.InsertWebFeatures(ctx, data.Features, job.startAt, job.endAt)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store data", "error", err)
 
@@ -148,11 +150,13 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 	return nil
 }
 
-func NewJobArguments(assetName, repoOwner, repoName string) JobArguments {
+func NewJobArguments(assetName, repoOwner, repoName string, startAt, endAt time.Time) JobArguments {
 	return JobArguments{
 		assetName: assetName,
 		repoOwner: repoOwner,
 		repoName:  repoName,
+		startAt:   startAt,
+		endAt:     endAt,
 	}
 }
 
@@ -160,4 +164,6 @@ type JobArguments struct {
 	assetName string // Asset Name in Github Release
 	repoOwner string
 	repoName  string
+	startAt   time.Time
+	endAt     time.Time
 }

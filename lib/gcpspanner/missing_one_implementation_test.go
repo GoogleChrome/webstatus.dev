@@ -117,7 +117,8 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
 	}
-	err := spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx)
+	err := spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx,
+		time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Errorf("unexpected error during pre-calculate. %s", err.Error())
 	}

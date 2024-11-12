@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 )
@@ -83,6 +84,12 @@ func (m *mockAssetParser) Parse(file io.ReadCloser) (*web_platform_dx__web_featu
 	return m.mockParseCfg.returnData, m.mockParseCfg.returnError
 }
 
+// nolint:gochecknoglobals
+var (
+	testInsertWebFeaturesStartAt = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	testInsertWebFeaturesEndAt   = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
+)
+
 type mockInsertWebFeaturesConfig struct {
 	expectedData    map[string]web_platform_dx__web_features.FeatureValue
 	returnedMapping map[string]string
@@ -95,9 +102,16 @@ type mockWebFeatureStorer struct {
 }
 
 func (m *mockWebFeatureStorer) InsertWebFeatures(
-	_ context.Context, data map[string]web_platform_dx__web_features.FeatureValue) (map[string]string, error) {
+	_ context.Context, data map[string]web_platform_dx__web_features.FeatureValue,
+	startAt, endAt time.Time) (map[string]string, error) {
 	if !reflect.DeepEqual(data, m.mockInsertWebFeaturesCfg.expectedData) {
 		m.t.Error("unexpected data")
+	}
+	if !startAt.Equal(testInsertWebFeaturesStartAt) {
+		m.t.Errorf("unexpected startAt time %s", startAt)
+	}
+	if !endAt.Equal(testInsertWebFeaturesEndAt) {
+		m.t.Errorf("unexpected endAt time %s", endAt)
 	}
 
 	return m.mockInsertWebFeaturesCfg.returnedMapping, m.mockInsertWebFeaturesCfg.returnError
@@ -1078,6 +1092,8 @@ func TestProcess(t *testing.T) {
 				testFileName,
 				testRepoOwner,
 				testRepoName,
+				testInsertWebFeaturesStartAt,
+				testInsertWebFeaturesEndAt,
 			))
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("Expected error: %v, Got: %v", tc.expectedError, err)

@@ -19,6 +19,7 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
@@ -63,6 +64,15 @@ func main() {
 	// Will be empty if not set and that is okay.
 	token := os.Getenv("GITHUB_TOKEN")
 
+	dataWindowDuration := os.Getenv("DATA_WINDOW_DURATION")
+	duration, err := time.ParseDuration(dataWindowDuration)
+	if err != nil {
+		slog.Error("unable to parse DATA_WINDOW_DURATION duration", "input value", dataWindowDuration)
+		os.Exit(1)
+	}
+	endAt := time.Now().UTC()
+	startAt := endAt.Add(-duration)
+
 	// Currently, only one worker needed
 	numWorkers := 1
 
@@ -90,6 +100,8 @@ func main() {
 			releaseAssetName,
 			repoOwner,
 			repoName,
+			startAt,
+			endAt,
 		),
 	}
 	// Job Execution and Error Handling

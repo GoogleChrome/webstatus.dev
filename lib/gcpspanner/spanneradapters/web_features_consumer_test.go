@@ -320,8 +320,15 @@ func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
 	return c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureID][idx]
 }
 
-func (c *mockWebFeatureSpannerClient) PrecalculateBrowserFeatureSupportEvents(_ context.Context) error {
+func (c *mockWebFeatureSpannerClient) PrecalculateBrowserFeatureSupportEvents(_ context.Context,
+	startAt, endAt time.Time) error {
 	c.precalculateBrowserFeatureSupportEventsCount++
+	if !startAt.Equal(testInsertWebFeaturesStartAt) {
+		c.t.Errorf("unexpected startAt time %s", startAt)
+	}
+	if !endAt.Equal(testInsertWebFeaturesEndAt) {
+		c.t.Errorf("unexpected endAt time %s", endAt)
+	}
 
 	return c.mockPrecalculateBrowserFeatureSupportEventsCfg.err
 }
@@ -354,6 +361,12 @@ var ErrBaselineStatusTest = errors.New("baseline status test error")
 var ErrBrowserFeatureAvailabilityTest = errors.New("browser feature availability test error")
 var ErrFeatureSpecTest = errors.New("feature spec test error")
 var ErrPrecalculateBrowserFeatureSupportEventsTest = errors.New("precalculate support events error")
+
+// nolint:gochecknoglobals
+var (
+	testInsertWebFeaturesStartAt = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	testInsertWebFeaturesEndAt   = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
+)
 
 func TestInsertWebFeatures(t *testing.T) {
 	// nolint: dupl // WONTFIX - some of the test cases are similar. It is better to be explicit for each case.
@@ -1059,7 +1072,8 @@ func TestInsertWebFeatures(t *testing.T) {
 			)
 			consumer := NewWebFeaturesConsumer(mockClient)
 
-			_, err := consumer.InsertWebFeatures(context.TODO(), tc.input)
+			_, err := consumer.InsertWebFeatures(context.TODO(), tc.input,
+				testInsertWebFeaturesStartAt, testInsertWebFeaturesEndAt)
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
