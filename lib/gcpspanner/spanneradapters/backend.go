@@ -83,6 +83,15 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) (*gcpspanner.BrowserFeatureCountResultPage, error)
+	ListMissingOneImplCounts(
+		ctx context.Context,
+		targetBrowser string,
+		otherBrowsers []string,
+		startAt time.Time,
+		endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*gcpspanner.MissingOneImplCountPage, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -237,6 +246,44 @@ func (s *Backend) ListChromiumDailyUsageStats(
 	}
 
 	return backendStats, nextPageToken, nil
+}
+
+func (s *Backend) ListMissingOneImplCounts(
+	ctx context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	startAt, endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.BrowserReleaseFeatureMetricsPage, error) {
+	spannerPage, err := s.client.ListMissingOneImplCounts(
+		ctx,
+		targetBrowser,
+		otherBrowsers,
+		startAt,
+		endAt,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert the feature metric type to backend metrics
+	backendData := make([]backend.BrowserReleaseFeatureMetric, 0, len(spannerPage.Metrics))
+	for _, metric := range spannerPage.Metrics {
+		backendData = append(backendData, backend.BrowserReleaseFeatureMetric{
+			Timestamp: metric.EventReleaseDate,
+			Count:     &metric.Count,
+		})
+	}
+
+	return &backend.BrowserReleaseFeatureMetricsPage{
+		Metadata: &backend.PageMetadata{
+			NextPageToken: spannerPage.NextPageToken,
+		},
+		Data: backendData,
+	}, nil
 }
 
 func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gcpspanner.BaselineStatus {

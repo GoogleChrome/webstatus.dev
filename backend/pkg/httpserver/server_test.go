@@ -125,11 +125,24 @@ type MockListBrowserFeatureCountMetricConfig struct {
 	err               error
 }
 
+type MockListMissingOneImplCountsConfig struct {
+	expectedTargetBrowser string
+	expectedOtherBrowsers []string
+	expectedStartAt       time.Time
+	expectedEndAt         time.Time
+	expectedPageSize      int
+	expectedPageToken     *string
+	pageToken             *string
+	page                  *backend.BrowserReleaseFeatureMetricsPage
+	err                   error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
 	featuresSearchCfg                                 MockFeaturesSearchConfig
 	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
+	listMissingOneImplCountCfg                        MockListMissingOneImplCountsConfig
 	listChromiumDailyUsageStatsCfg                    MockListChromiumDailyUsageStatsConfig
 	getFeatureByIDConfig                              MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
@@ -290,6 +303,31 @@ func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 	}
 
 	return m.listBrowserFeatureCountMetricCfg.page, m.listBrowserFeatureCountMetricCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
+	_ context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.BrowserReleaseFeatureMetricsPage, error) {
+	m.callCountListBrowserFeatureCountMetric++
+
+	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||
+		!slices.Equal(otherBrowsers, m.listMissingOneImplCountCfg.expectedOtherBrowsers) ||
+		!startAt.Equal(m.listMissingOneImplCountCfg.expectedStartAt) ||
+		!endAt.Equal(m.listMissingOneImplCountCfg.expectedEndAt) ||
+		pageSize != m.listMissingOneImplCountCfg.expectedPageSize ||
+		pageToken != m.listMissingOneImplCountCfg.expectedPageToken {
+
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %d %v }",
+			m.listMissingOneImplCountCfg, targetBrowser, otherBrowsers, startAt, endAt, pageSize, pageToken)
+	}
+
+	return m.listMissingOneImplCountCfg.page, m.listMissingOneImplCountCfg.err
 }
 
 func TestGetPageSizeOrDefault(t *testing.T) {
