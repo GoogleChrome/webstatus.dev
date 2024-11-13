@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:22.11.0-slim
+FROM node:22.13.0-alpine3.21
 # FIREBASE_CLI_VERSION from https://github.com/firebase/firebase-tools/releases
 ARG FIREBASE_CLI_VERSION=13.29.1
 ADD https://github.com/firebase/firebase-tools/releases/download/v${FIREBASE_CLI_VERSION}/firebase-tools-linux /usr/local/bin/firebase
