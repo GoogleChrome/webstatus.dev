@@ -291,6 +291,9 @@ export class WebstatusOverviewFilters extends LitElement {
         case ColumnKey.BaselineStatus:
           columns.push(name);
           break;
+        case ColumnKey.ChromiumUsage:
+          columns.push(name);
+          break;
         case ColumnKey.StableChrome:
         case ColumnKey.StableEdge:
         case ColumnKey.StableFirefox:
