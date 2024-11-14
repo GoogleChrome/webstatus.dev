@@ -68,6 +68,11 @@ type mockListBrowserFeatureCountMetricConfig struct {
 	returnedError error
 }
 
+type mockListMissingOneImplCountsConfig struct {
+	result        *gcpspanner.MissingOneImplCountPage
+	returnedError error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -77,6 +82,7 @@ type mockBackendSpannerClient struct {
 	mockGetFeatureCfg                    mockGetFeatureConfig
 	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
 	mockListBrowserFeatureCountMetricCfg mockListBrowserFeatureCountMetricConfig
+	mockListMissingOneImplCountsCfg      mockListMissingOneImplCountsConfig
 	pageToken                            *string
 	err                                  error
 }
@@ -214,6 +220,28 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 
 	return c.mockFeaturesSearchCfg.result,
 		c.mockFeaturesSearchCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) ListMissingOneImplCounts(
+	ctx context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*gcpspanner.MissingOneImplCountPage, error) {
+	if ctx != context.Background() ||
+		targetBrowser != "mybrowser" ||
+		!slices.Equal(otherBrowsers, []string{"browser1", "browser2"}) ||
+		!startAt.Equal(testStart) ||
+		!endAt.Equal(testEnd) ||
+		pageSize != 100 ||
+		pageToken != nonNilInputPageToken {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListMissingOneImplCountsCfg.result, c.mockListMissingOneImplCountsCfg.returnedError
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
@@ -486,6 +514,85 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(metrics, tc.expectedOutput) {
+				t.Error("unexpected metrics")
+			}
+		})
+	}
+}
+
+func TestListMissingOneImplCounts(t *testing.T) {
+	testCases := []struct {
+		name         string
+		cfg          mockListMissingOneImplCountsConfig
+		expectedPage *backend.BrowserReleaseFeatureMetricsPage
+		expectedErr  error
+	}{
+		{
+			name: "success",
+			cfg: mockListMissingOneImplCountsConfig{
+				result: &gcpspanner.MissingOneImplCountPage{
+					NextPageToken: nonNilNextPageToken,
+					Metrics: []gcpspanner.MissingOneImplCount{
+						{
+							Count:            90,
+							EventReleaseDate: time.Date(2010, time.March, 10, 0, 0, 0, 0, time.UTC),
+						},
+						{
+							Count:            99,
+							EventReleaseDate: time.Date(2010, time.March, 9, 0, 0, 0, 0, time.UTC),
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedPage: &backend.BrowserReleaseFeatureMetricsPage{
+				Metadata: &backend.PageMetadata{
+					NextPageToken: nonNilNextPageToken,
+				},
+				Data: []backend.BrowserReleaseFeatureMetric{
+					{
+						Count:     valuePtr[int64](90),
+						Timestamp: time.Date(2010, time.March, 10, 0, 0, 0, 0, time.UTC),
+					},
+					{
+						Count:     valuePtr[int64](99),
+						Timestamp: time.Date(2010, time.March, 9, 0, 0, 0, 0, time.UTC),
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "failure",
+			cfg: mockListMissingOneImplCountsConfig{
+				result:        nil,
+				returnedError: errTest,
+			},
+			expectedPage: nil,
+			expectedErr:  errTest,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                               t,
+				mockListMissingOneImplCountsCfg: tc.cfg,
+			}
+			backend := NewBackend(mock)
+			page, err := backend.ListMissingOneImplCounts(
+				context.Background(),
+				"mybrowser",
+				[]string{"browser1", "browser2"},
+				testStart,
+				testEnd,
+				100,
+				nonNilInputPageToken)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(page, tc.expectedPage) {
 				t.Error("unexpected metrics")
 			}
 		})

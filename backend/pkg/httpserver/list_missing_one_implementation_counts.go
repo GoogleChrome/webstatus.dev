@@ -16,19 +16,42 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
 // ListMissingOneImplemenationCounts implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Signature generated from openapi
+// nolint: ireturn // Signature generated from openapi
 func (s *Server) ListMissingOneImplemenationCounts(
-	_ context.Context,
-	_ backend.ListMissingOneImplemenationCountsRequestObject) (
+	ctx context.Context,
+	request backend.ListMissingOneImplemenationCountsRequestObject) (
 	backend.ListMissingOneImplemenationCountsResponseObject, error) {
-	// TODO: Will implement in future PRs.
+	otherBrowsers := make([]string, len(request.Params.Browser))
+	for i := 0; i < len(request.Params.Browser); i++ {
+		otherBrowsers[i] = string(request.Params.Browser[i])
+	}
+	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(
+		ctx,
+		string(request.Browser),
+		otherBrowsers,
+		request.Params.StartAt.Time,
+		request.Params.EndAt.Time,
+		getPageSizeOrDefault(request.Params.PageSize),
+		request.Params.PageToken,
+	)
+	if err != nil {
+		// TODO check error type
+		slog.ErrorContext(ctx, "unable to get missing one implementation count", "error", err)
+
+		return backend.ListMissingOneImplemenationCounts500JSONResponse{
+			Code:    500,
+			Message: "unable to get missing one implementation metrics",
+		}, nil
+	}
+
 	return backend.ListMissingOneImplemenationCounts200JSONResponse{
-		Metadata: nil,
-		Data:     nil,
+		Metadata: page.Metadata,
+		Data:     page.Data,
 	}, nil
 }
