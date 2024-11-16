@@ -94,4 +94,5 @@ const (
 	IdentifierName                 SearchIdentifier = "name"
 	IdentifierGroup                SearchIdentifier = "group"
 	IdentifierSnapshot             SearchIdentifier = "snapshot"
+	IdentifierID                   SearchIdentifier = "id"
 )

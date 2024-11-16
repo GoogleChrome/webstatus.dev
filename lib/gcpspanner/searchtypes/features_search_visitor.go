@@ -128,6 +128,10 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 	return rootNode
 }
 
+func (v *FeaturesSearchVisitor) createIDNode(id string) *SearchNode {
+	return v.createSimpleNode(id, IdentifierID, OperatorEq)
+}
+
 func (v *FeaturesSearchVisitor) createSnapshotNode(snapshot string) *SearchNode {
 	return v.createSimpleNode(snapshot, IdentifierSnapshot, OperatorEq)
 }
@@ -388,6 +392,10 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 		return v.VisitGeneric_search_term(tree)
 	case *parser.Group_termContext:
 		return v.VisitGroup_term(tree)
+	case *parser.Snapshot_termContext:
+		return v.VisitSnapshot_term(tree)
+	case *parser.Id_termContext:
+		return v.VisitId_term(tree)
 	case *parser.Name_termContext:
 		return v.VisitName_term(tree)
 	case *parser.OperatorContext:
@@ -441,6 +449,11 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 	root = current
 
 	return root
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitId_term(ctx *parser.Id_termContext) interface{} {
+	return v.createIDNode(ctx.ANY_VALUE().GetText())
 }
 
 // nolint: revive // Method signature is generated.
