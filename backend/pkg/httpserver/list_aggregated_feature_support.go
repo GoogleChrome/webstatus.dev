@@ -22,7 +22,7 @@ import (
 )
 
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Signature generated from openapi
+// nolint: ireturn // Signature generated from openapi
 func (s *Server) ListAggregatedFeatureSupport(
 	ctx context.Context,
 	request backend.ListAggregatedFeatureSupportRequestObject) (
@@ -37,7 +37,7 @@ func (s *Server) ListAggregatedFeatureSupport(
 	)
 	if err != nil {
 		// TODO check error type
-		slog.ErrorContext(ctx, "unable to get list of features", "error", err)
+		slog.ErrorContext(ctx, "unable to get count of supported features", "error", err)
 
 		return backend.ListAggregatedFeatureSupport500JSONResponse{
 			Code:    500,
