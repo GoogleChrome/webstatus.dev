@@ -138,6 +138,21 @@ test('shows the Baseline status column with low and high date options', async ({
   await expect(baselineStatusProjectedHighDateText.first()).toBeVisible();
 });
 
+test('shows the usage column', async ({page}) => {
+  // Given that the usage column will graduate to be a default column,
+  // we will not test the interaction to enable it in the columns dialog like we
+  // normally would. Instead, we will navigate straight to the page with it enabled.
+  // TODO: remove this test once the usage column is enabled by default.
+  await gotoOverviewPageUrl(
+    page,
+    'http://localhost:5555/?columns=name%2Cbaseline_status%2Cstable_chrome%2Cstable_edge%2Cstable_firefox%2Cstable_safari%2Cchromium_usage',
+  );
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot(
+    'display-with-chromium-usage-column.png',
+  );
+});
+
 test('Export to CSV button downloads a file with default columns', async ({
   page,
 }) => {

@@ -288,28 +288,6 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.Info("features generated",
 		"amount of features created", len(features))
 
-	chromiumHistogramEnumIDMap, err := generateChromiumHistogramEnums(ctx, spannerClient)
-	if err != nil {
-		return fmt.Errorf("chromium histogram enums generation failed %w", err)
-	}
-
-	chromiumHistogramEnumValueToIDMap, err := generateChromiumHistogramEnumValues(
-		ctx, spannerClient, chromiumHistogramEnumIDMap, features)
-	if err != nil {
-		return fmt.Errorf("chromium histogram enum values generation failed %w", err)
-	}
-
-	err = generateWebFeatureChromiumHistogramEnumValues(
-		ctx, spannerClient, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap, features)
-	if err != nil {
-		return fmt.Errorf("web feature chromium histogram enums values generation failed %w", err)
-	}
-
-	err = generateChromiumHistogramMetrics(ctx, spannerClient, features)
-	if err != nil {
-		return fmt.Errorf("chromium histogram metrics generation failed %w", err)
-	}
-
 	err = generateFeatureMetadata(ctx, datastoreClient, features)
 	if err != nil {
 		return fmt.Errorf("feature metadata generation failed %w", err)
@@ -351,6 +329,30 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.Info("snapshots generated",
 		"snapshotKeys", snapshotKeys)
+
+	chromiumHistogramEnumIDMap, err := generateChromiumHistogramEnums(ctx, spannerClient)
+	if err != nil {
+		return fmt.Errorf("chromium histogram enums generation failed %w", err)
+	}
+
+	chromiumHistogramEnumValueToIDMap, err := generateChromiumHistogramEnumValues(
+		ctx, spannerClient, chromiumHistogramEnumIDMap, features)
+	if err != nil {
+		return fmt.Errorf("chromium histogram enum values generation failed %w", err)
+	}
+
+	err = generateWebFeatureChromiumHistogramEnumValues(
+		ctx, spannerClient, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap, features)
+	if err != nil {
+		return fmt.Errorf("web feature chromium histogram enums values generation failed %w", err)
+	}
+
+	chromiumMetricsCount, err := generateChromiumHistogramMetrics(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("chromium histogram metrics generation failed %w", err)
+	}
+	slog.Info("chromium histogram metrics generated",
+		"amount of metrics generated", chromiumMetricsCount)
 
 	return nil
 }
@@ -540,11 +542,12 @@ func generateWebFeatureChromiumHistogramEnumValues(
 }
 
 func generateChromiumHistogramMetrics(
-	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) error {
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
+	metricsCount := 0
 	for i := range len(features) {
 		currDate := startTimeWindow
-		for currDate.After(time.Date(2020, time.December, 1, 0, 0, 0, 0, time.UTC)) {
-			usage := big.NewRat(r.Int63n(100), 100) // Generate usage between 0-100%
+		for currDate.Before(time.Date(2020, time.December, 1, 0, 0, 0, 0, time.UTC)) {
+			usage := big.NewRat(r.Int63n(10000), 10000) // Generate usage between 0-100%
 			err := client.UpsertDailyChromiumHistogramMetric(
 				ctx,
 				metricdatatypes.WebDXFeatureEnum,
@@ -555,13 +558,14 @@ func generateChromiumHistogramMetrics(
 				},
 			)
 			if err != nil {
-				return err
+				return metricsCount, err
 			}
-			currDate = currDate.AddDate(0, 0, r.Intn(23)+7) // Add up to a month, increasing by at least 1.
+			currDate = currDate.AddDate(0, 0, r.Intn(23)+7) // Add up to a month, increasing by at least 7 days.
+			metricsCount++
 		}
 	}
 
-	return nil
+	return metricsCount, nil
 }
 
 func main() {

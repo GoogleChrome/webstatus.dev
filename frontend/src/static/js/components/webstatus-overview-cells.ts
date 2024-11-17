@@ -156,8 +156,9 @@ const renderChromiumUsage: CellRenderer = (
   _routerLocation,
   _options,
 ) => {
-  if (feature.usage?.chromium?.daily && feature.usage.chromium.daily > 0.0) {
-    return html`${Math.round(feature.usage.chromium.daily * 100) / 100}%`;
+  if (feature.usage?.chromium?.daily && feature.usage.chromium.daily > 0) {
+    // Format to display percentage with single decimal e.g. 0.8371 -> 83.7%.
+    return html`${Math.round(feature.usage.chromium.daily * 1000) / 10}%`;
   }
   return html`N/A`;
 };
