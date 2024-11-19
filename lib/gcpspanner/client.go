@@ -25,6 +25,7 @@ import (
 	"sync"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/apiv1/spannerpb"
 	"google.golang.org/api/iterator"
@@ -149,6 +150,11 @@ type WPTRunCursor struct {
 	LastRunID     int64     `json:"last_run_id"`
 }
 
+type ChromiumDailyUsageCursor struct {
+	LastDate  civil.Date `json:"last_date"`
+	LastUsage float64    `json:"last_usage"`
+}
+
 // FeatureResultOffsetCursor: A numerical offset from the start of the result set. Enables the construction of
 // human-friendly URLs specifying an exact page offset.
 // Disclaimer: External users should be aware that the format of this token is subject to change and should not be
@@ -176,6 +182,12 @@ func decodeInputFeatureResultCursor(
 	}
 
 	return offsetCursor, nil
+}
+
+// decodeChromiumDailyUsageCursor provides a wrapper around the generic decodeCursor.
+func decodeChromiumDailyUsageCursor(
+	cursor string) (*ChromiumDailyUsageCursor, error) {
+	return decodeCursor[ChromiumDailyUsageCursor](cursor)
 }
 
 // decodeCursor: Decodes a base64-encoded cursor string into a Cursor struct.
@@ -220,6 +232,10 @@ func encodeBrowserFeatureCountCursor(releaseDate time.Time, lastCount int64) str
 // encodeWPTRunCursor provides a wrapper around the generic encodeCursor.
 func encodeWPTRunCursor(timeStart time.Time, id int64) string {
 	return encodeCursor[WPTRunCursor](WPTRunCursor{LastTimeStart: timeStart, LastRunID: id})
+}
+
+func encodeChromiumDailyUsageCursor(date civil.Date, usage float64) string {
+	return encodeCursor[ChromiumDailyUsageCursor](ChromiumDailyUsageCursor{LastDate: date, LastUsage: usage})
 }
 
 // encodeCursor: Encodes a Cursor into a base64-encoded string.
