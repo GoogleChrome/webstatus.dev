@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/big"
+	"time"
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
@@ -119,7 +120,9 @@ func getLatestDailyChromiumMetricDate(
 	if err != nil {
 		if errors.Is(err, iterator.Done) {
 			// No row found, return zero time
-			return &civil.Date{}, nil
+			zeroTime := time.Time{}
+			zeroDate := civil.DateOf(zeroTime)
+			return &zeroDate, nil
 		}
 		slog.ErrorContext(ctx, "error querying for latest run time", "error", err)
 
@@ -169,59 +172,6 @@ func getWebFeatureIDByChromiumHistogramEnumValueID(
 	return &featureID, nil
 }
 
-// updateDailyChromiumHistogramMetric handles the insertion or update logic for the DailyChromiumHistogramMetrics table.
-// If a metric does not exist, it will insert a new metrics.
-// If a metric exists, it will update the Rate column.
-func updateDailyChromiumHistogramMetric(
-	ctx context.Context,
-	txn *spanner.ReadWriteTransaction,
-	metric spannerDailyChromiumHistogramMetric) (*spanner.Mutation, error) {
-	stmt := spanner.NewStatement(`
-				SELECT
-					ChromiumHistogramEnumValueID
-					Day,
-					Rate
-				FROM DailyChromiumHistogramMetrics
-				WHERE ChromiumHistogramEnumValueID = @chromiumHistogramEnumValueID
-				AND Day = @day`)
-	parameters := map[string]interface{}{
-		"chromiumHistogramEnumValueID": metric.ChromiumHistogramEnumValueID,
-		"day":                          metric.Day,
-	}
-	stmt.Params = parameters
-
-	// Attempt to query for the row.
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-	var m *spanner.Mutation
-	row, err := it.Next()
-
-	if err != nil && errors.Is(err, iterator.Done) {
-		// No rows returned. Act as if this is an insertion.
-		var err error
-		m, err = spanner.InsertOrUpdateStruct(dailyChromiumHistogramMetricsTable, metric)
-		if err != nil {
-			return nil, err
-		}
-	} else if err != nil {
-		return nil, err
-	} else {
-		// Read the existing metric and merge the values.
-		var existingMetric spannerDailyChromiumHistogramMetric
-		err = row.ToStruct(&existingMetric)
-		if err != nil {
-			return nil, err
-		}
-		existingMetric.Rate = metric.Rate
-		m, err = spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, existingMetric)
-		if err != nil {
-			return nil, errors.Join(ErrInternalQueryFailure, err)
-		}
-	}
-
-	return m, nil
-}
-
 // shouldUpsertLatestDailyChromiumUsageMetric determines whether the latest metric should be upserted based on
 // date comparison.
 func shouldUpsertLatestDailyChromiumUsageMetric(existingDate *civil.Date, newDate civil.Date) bool {
@@ -261,31 +211,20 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 		return err
 	}
 
-	// err = newEntityWriter[dailyChromiumHistogramMetricSpannerMapper](c).upsert(ctx, spannerDailyChromiumHistogramMetric{
-	// 	DailyChromiumHistogramMetric: metric,
-	// 	ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+	err = newEntityWriter[dailyChromiumHistogramMetricSpannerMapper](c).upsert(ctx, spannerDailyChromiumHistogramMetric{
+		DailyChromiumHistogramMetric: metric,
+		ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
+	})
+	if err != nil {
+		return err
+	}
 
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		mutations := []*spanner.Mutation{}
 		existingDate, err := getLatestDailyChromiumMetricDate(ctx, txn, *chromiumHistogramEnumValueID)
 		if err != nil {
 			if !errors.Is(err, iterator.Done) { // Handle errors other than "not found"
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-		}
-		m0, err := updateDailyChromiumHistogramMetric(ctx, txn, spannerDailyChromiumHistogramMetric{
-			DailyChromiumHistogramMetric: metric,
-			ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
-		})
-		if err != nil {
-			return errors.Join(ErrInternalQueryFailure, err)
-		}
-		if m0 != nil {
-			mutations = append(mutations, m0)
 		}
 
 		if shouldUpsertLatestDailyChromiumUsageMetric(existingDate, metric.Day) {
@@ -293,7 +232,7 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-			m1, err := spanner.InsertOrUpdateStruct(
+			m, err := spanner.InsertOrUpdateStruct(
 				LatestDailyChromiumHistogramMetricsTable,
 				SpannerLatestDailyChromiumHistogramMetric{
 					WebFeatureID:                 *featureID,
@@ -303,9 +242,8 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-			mutations = append(mutations, m1)
 
-			err = txn.BufferWrite(mutations)
+			err = txn.BufferWrite([]*spanner.Mutation{m})
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
