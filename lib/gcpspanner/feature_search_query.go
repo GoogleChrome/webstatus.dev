@@ -124,6 +124,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filter = b.groupFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierSnapshot:
 			filter = b.snapshotFilter(node.Term.Value, node.Term.Operator)
+		case searchtypes.IdentifierID:
+			filter = b.idFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierBaselineStatus:
 			filter = b.baselineStatusFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierBaselineDate:
@@ -329,6 +331,15 @@ func (b *FeatureSearchFilterBuilder) snapshotFilter(snapshot string, op searchty
             )
     )
     `, opStr, paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) idFilter(id string, op searchtypes.SearchOperator) string {
+	// Normalize the string to lower case to use the computed column.
+	id = strings.ToLower(id)
+	paramName := b.addParamGetName(id)
+	opStr := searchOperatorToSpannerBinaryOperator(op)
+
+	return fmt.Sprintf(`(wf.FeatureKey_Lowercase %s @%s)`, opStr, paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) baselineStatusFilter(baselineStatus string, op searchtypes.SearchOperator) string {
