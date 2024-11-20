@@ -19,15 +19,18 @@ import (
 	"flag"
 	"fmt"
 	"log/slog"
+	"math/big"
 	"math/rand"
 	"os"
 	"strings"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 	"golang.org/x/text/cases"
@@ -81,9 +84,11 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
 	return releasesGenerated, nil
 }
 
-func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspanner.SpannerWebFeature, error) {
+func generateFeatures(
+	ctx context.Context, client *gcpspanner.Client) ([]gcpspanner.SpannerWebFeature, map[string]string, error) {
 	features := make([]gcpspanner.SpannerWebFeature, 0, numberOfFeatures)
 	featureIDMap := make(map[string]interface{})
+	webFeatureKeyToInternalFeatureID := map[string]string{}
 
 	for len(featureIDMap) < numberOfFeatures {
 		word := fmt.Sprintf("%s%d", gofakeit.LoremIpsumWord(), len(featureIDMap))
@@ -101,19 +106,20 @@ func generateFeatures(ctx context.Context, client *gcpspanner.Client) ([]gcpspan
 		}
 		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		id, err := client.GetIDFromFeatureKey(ctx, gcpspanner.NewFeatureKeyFilter(featureID))
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		webFeatureKeyToInternalFeatureID[featureID] = *id
 		features = append(features, gcpspanner.SpannerWebFeature{
 			WebFeature: feature,
 			ID:         *id,
 		})
 	}
 
-	return features, nil
+	return features, webFeatureKeyToInternalFeatureID, nil
 }
 
 func generateFeatureMetadata(ctx context.Context, client *gds.Client, features []gcpspanner.SpannerWebFeature) error {
@@ -275,7 +281,7 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.Info("releases generated",
 		"amount of releases created", releasesCount)
 
-	features, err := generateFeatures(ctx, spannerClient)
+	features, webFeatureKeyToInternalFeatureID, err := generateFeatures(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("feature generation failed %w", err)
 	}
@@ -323,6 +329,30 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.Info("snapshots generated",
 		"snapshotKeys", snapshotKeys)
+
+	chromiumHistogramEnumIDMap, err := generateChromiumHistogramEnums(ctx, spannerClient)
+	if err != nil {
+		return fmt.Errorf("chromium histogram enums generation failed %w", err)
+	}
+
+	chromiumHistogramEnumValueToIDMap, err := generateChromiumHistogramEnumValues(
+		ctx, spannerClient, chromiumHistogramEnumIDMap, features)
+	if err != nil {
+		return fmt.Errorf("chromium histogram enum values generation failed %w", err)
+	}
+
+	err = generateWebFeatureChromiumHistogramEnumValues(
+		ctx, spannerClient, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap, features)
+	if err != nil {
+		return fmt.Errorf("web feature chromium histogram enums values generation failed %w", err)
+	}
+
+	chromiumMetricsCount, err := generateChromiumHistogramMetrics(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("chromium histogram metrics generation failed %w", err)
+	}
+	slog.Info("chromium histogram metrics generated",
+		"amount of metrics generated", chromiumMetricsCount)
 
 	return nil
 }
@@ -443,6 +473,99 @@ func generateRunsAndMetrics(
 	}
 
 	return runsGenerated, metricsGenerated, nil
+}
+
+func generateChromiumHistogramEnums(
+	ctx context.Context, client *gcpspanner.Client) (map[string]string, error) {
+	sampleChromiumHistogramEnums := []gcpspanner.ChromiumHistogramEnum{
+		{
+			HistogramName: "WebDXFeatureObserver",
+		},
+	}
+	chromiumHistogramEnumIDMap := make(map[string]string, len(sampleChromiumHistogramEnums))
+	for _, enum := range sampleChromiumHistogramEnums {
+		id, err := client.UpsertChromiumHistogramEnum(ctx, enum)
+		if err != nil {
+			return nil, err
+		}
+		chromiumHistogramEnumIDMap[enum.HistogramName] = *id
+	}
+
+	return chromiumHistogramEnumIDMap, nil
+}
+
+func generateChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *gcpspanner.Client,
+	chromiumHistogramEnumIDMap map[string]string,
+	features []gcpspanner.SpannerWebFeature,
+) (map[string]string, error) {
+	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(features))
+	for i, feature := range features {
+		ChromiumHistogramEnumValueEntry := gcpspanner.ChromiumHistogramEnumValue{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                int64(i + 1),
+			Label:                   feature.FeatureKey,
+		}
+		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValueEntry)
+		if err != nil {
+			return nil, err
+		}
+		chromiumHistogramEnumValueToIDMap[feature.FeatureKey] = *enumValueID
+	}
+
+	return chromiumHistogramEnumValueToIDMap, nil
+}
+
+func generateWebFeatureChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *gcpspanner.Client,
+	webFeatureKeyToInternalFeatureID map[string]string,
+	chromiumHistogramEnumValueToIDMap map[string]string,
+	features []gcpspanner.SpannerWebFeature,
+) error {
+	for _, feature := range features {
+		webFeatureChromiumHistogramEnumValueEntry := gcpspanner.WebFeatureChromiumHistogramEnumValue{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID[feature.FeatureKey],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap[feature.FeatureKey],
+		}
+		err := client.UpsertWebFeatureChromiumHistogramEnumValue(
+			ctx,
+			webFeatureChromiumHistogramEnumValueEntry,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func generateChromiumHistogramMetrics(
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
+	metricsCount := 0
+	for i := range len(features) {
+		currDate := startTimeWindow
+		for currDate.Before(time.Date(2020, time.December, 1, 0, 0, 0, 0, time.UTC)) {
+			usage := big.NewRat(r.Int63n(10000), 10000) // Generate usage between 0-100%
+			err := client.UpsertDailyChromiumHistogramMetric(
+				ctx,
+				metricdatatypes.WebDXFeatureEnum,
+				int64(i+1),
+				gcpspanner.DailyChromiumHistogramMetric{
+					Day:  civil.DateOf(currDate),
+					Rate: *usage,
+				},
+			)
+			if err != nil {
+				return metricsCount, err
+			}
+			currDate = currDate.AddDate(0, 0, r.Intn(23)+7) // Add up to a month, increasing by at least 7 days.
+			metricsCount++
+		}
+	}
+
+	return metricsCount, nil
 }
 
 func main() {
