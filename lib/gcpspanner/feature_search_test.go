@@ -1029,6 +1029,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureBaselineStatusFilters(ctx, t, client)
 	testFeatureBaselineStatusDateFilters(ctx, t, client)
 	testFeatureAvailableBrowserDateFilters(ctx, t, client)
+	testIDFilters(ctx, t, client)
 	testGroupFilters(ctx, t, client)
 	testSnapshotFilters(ctx, t, client)
 }
@@ -1409,6 +1410,103 @@ func testSnapshotFilters(ctx context.Context, t *testing.T, client *Client) {
 			sort:      defaultSorting(),
 		},
 		&expectedPage,
+	)
+}
+
+func testIDFilters(ctx context.Context, t *testing.T, client *Client) {
+	expectedResults := []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+	}
+	node := &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierID,
+					Value:      "feature1",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	expectedPage := FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+
+	// All upper case with "FEATURE1" name. Should return same result(s).
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierID,
+					Value:      "FEATURE1",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+
+	// Return empty when search for a partial featurekey name.
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierID,
+					Value:      "FEATU",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	emptyResult := FeatureResultPage{
+		Total:         0,
+		NextPageToken: nil,
+		Features:      nil,
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&emptyResult,
 	)
 }
 
