@@ -168,6 +168,21 @@ func insertSampleDailyChromiumHistogramMetrics(
 	}
 }
 
+func insertGivenSampleDailyChromiumHistogramMetrics(
+	ctx context.Context, c *Client, t *testing.T, values []dailyChromiumHistogramMetricToInsert) {
+	for _, metricToInsert := range values {
+		err := c.UpsertDailyChromiumHistogramMetric(
+			ctx,
+			metricToInsert.histogramName,
+			metricToInsert.bucketID,
+			metricToInsert.DailyChromiumHistogramMetric,
+		)
+		if err != nil {
+			t.Errorf("unexpected error during insert of Chromium metrics. %s", err.Error())
+		}
+	}
+}
+
 // Helper method to get all the metrics in a stable order.
 func (c *Client) readAllDailyChromiumHistogramMetrics(
 	ctx context.Context) ([]testSpannerDailyChromiumHistogramMetric, error) {

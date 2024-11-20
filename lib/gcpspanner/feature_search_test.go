@@ -624,12 +624,51 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
-func addSampleChromiumHistogramMetrics(ctx context.Context, client *Client, t *testing.T) {
-	type dailyChromiumHistogramMetricToInsert struct {
-		DailyChromiumHistogramMetric
-		histogramName metricdatatypes.HistogramName
-		bucketID      int64
+func addSampleChromiumUsageMetricsData(ctx context.Context,
+	client *Client, t *testing.T, webFeatureKeyToInternalFeatureID map[string]string) {
+	sampleChromiumHistogramEnums := []ChromiumHistogramEnum{
+		{
+			HistogramName: "AnotherHistogram",
+		},
+		{
+			HistogramName: "WebDXFeatureObserver",
+		},
 	}
+	chromiumHistogramEnumIDMap := insertGivenSampleChromiumHistogramEnums(ctx, client, t, sampleChromiumHistogramEnums)
+
+	sampleChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["AnotherHistogram"],
+			BucketID:                1,
+			Label:                   "AnotherLabel",
+		},
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                1,
+			Label:                   "feature1",
+		},
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                2,
+			Label:                   "feature2",
+		},
+	}
+	chromiumHistogramEnumValueToIDMap := insertGivenChromiumHistogramEnumValues(
+		ctx, client, t, sampleChromiumHistogramEnumValues)
+
+	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
+		{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature1"],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature1"],
+		},
+		{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature2"],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature2"],
+		},
+	}
+	insertGivenWebFeatureChromiumHistogramEnumValues(
+		ctx, client, t, sampleWebFeatureChromiumHistogramEnumValues)
+
 	sampleDailyChromiumHistogramMetrics := []dailyChromiumHistogramMetricToInsert{
 		// feature1
 		{
@@ -694,64 +733,7 @@ func addSampleChromiumHistogramMetrics(ctx context.Context, client *Client, t *t
 			},
 		},
 	}
-	for _, metricToInsert := range sampleDailyChromiumHistogramMetrics {
-		err := client.UpsertDailyChromiumHistogramMetric(
-			ctx,
-			metricToInsert.histogramName,
-			metricToInsert.bucketID,
-			metricToInsert.DailyChromiumHistogramMetric,
-		)
-		if err != nil {
-			t.Errorf("unexpected error during insert of Chromium metrics. %s", err.Error())
-		}
-	}
-}
-
-func addSampleChromiumUsageMetricsData(ctx context.Context,
-	client *Client, t *testing.T, webFeatureKeyToInternalFeatureID map[string]string) {
-	sampleChromiumHistogramEnums := []ChromiumHistogramEnum{
-		{
-			HistogramName: "AnotherHistogram",
-		},
-		{
-			HistogramName: "WebDXFeatureObserver",
-		},
-	}
-	chromiumHistogramEnumIDMap := insertGivenSampleChromiumHistogramEnums(ctx, client, t, sampleChromiumHistogramEnums)
-
-	sampleChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
-		{
-			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["AnotherHistogram"],
-			BucketID:                1,
-			Label:                   "AnotherLabel",
-		},
-		{
-			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
-			BucketID:                1,
-			Label:                   "feature1",
-		},
-		{
-			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
-			BucketID:                2,
-			Label:                   "feature2",
-		},
-	}
-	chromiumHistogramEnumValueToIDMap := insertGivenChromiumHistogramEnumValues(
-		ctx, client, t, sampleChromiumHistogramEnumValues)
-
-	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
-		{
-			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature1"],
-			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature1"],
-		},
-		{
-			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature2"],
-			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature2"],
-		},
-	}
-	insertGivenWebFeatureChromiumHistogramEnumValues(
-		ctx, client, t, sampleWebFeatureChromiumHistogramEnumValues)
-	addSampleChromiumHistogramMetrics(ctx, client, t)
+	insertGivenSampleDailyChromiumHistogramMetrics(ctx, client, t, sampleDailyChromiumHistogramMetrics)
 }
 
 func defaultSorting() Sortable {
