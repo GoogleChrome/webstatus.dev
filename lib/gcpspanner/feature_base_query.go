@@ -326,26 +326,12 @@ LEFT OUTER JOIN (
 ) AS browser_info ON wf.ID = browser_info.WebFeatureID
 LEFT OUTER JOIN (
     SELECT
-        wfchev.WebFeatureID,
+        ldchm.WebFeatureID AS WebFeatureID,
         dchm.Rate AS ChromiumUsage
-    FROM WebFeatureChromiumHistogramEnumValues wfchev
-    LEFT OUTER JOIN
-	(
-		SELECT
-			dch.ChromiumHistogramEnumValueID,
-			dch.Rate,
-			dch.Day
-		FROM DailyChromiumHistogramMetrics dch
-		INNER JOIN (
-			SELECT
-				ChromiumHistogramEnumValueID,
-				MAX(Day) as max_day
-			FROM DailyChromiumHistogramMetrics
-			GROUP BY ChromiumHistogramEnumValueID
-		) dchm_max
-		ON dch.ChromiumHistogramEnumValueID = dchm_max.ChromiumHistogramEnumValueID AND dch.Day = dchm_max.max_day
-	) dchm ON wfchev.ChromiumHistogramEnumValueID = dchm.ChromiumHistogramEnumValueID
-    GROUP BY wfchev.WebFeatureID, ChromiumUsage
+    FROM LatestDailyChromiumHistogramMetrics ldchm
+    JOIN DailyChromiumHistogramMetrics dchm
+	ON ldchm.ChromiumHistogramEnumValueID = dchm.ChromiumHistogramEnumValueID
+	AND ldchm.Day = dchm.Day
 ) AS chromium_usage_metrics ON wf.ID = chromium_usage_metrics.WebFeatureID
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
