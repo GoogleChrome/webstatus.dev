@@ -63,6 +63,23 @@ func (c *Client) createSampleWebFeatureChromiumHistogramEnums(
 	}
 }
 
+func insertGivenWebFeatureChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *Client,
+	t *testing.T,
+	values []WebFeatureChromiumHistogramEnumValue,
+) {
+	for _, webFeatureChromiumHistogramEnumValue := range values {
+		err := client.UpsertWebFeatureChromiumHistogramEnumValue(
+			ctx,
+			webFeatureChromiumHistogramEnumValue,
+		)
+		if err != nil {
+			t.Errorf("unexpected error during insert of Chromium enums. %s", err.Error())
+		}
+	}
+}
+
 func (c *Client) readAllWebFeatureChromiumHistogramEnums(
 	ctx context.Context, _ *testing.T) ([]WebFeatureChromiumHistogramEnumValue, error) {
 	stmt := spanner.NewStatement(

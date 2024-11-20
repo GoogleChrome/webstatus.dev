@@ -624,34 +624,6 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
-func addSampleWebFeatureChromiumHistogramEnumValues(
-	ctx context.Context,
-	client *Client,
-	t *testing.T,
-	webFeatureKeyToInternalFeatureID map[string]string,
-	chromiumHistogramEnumValueToIDMap map[string]string,
-) {
-	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
-		{
-			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature1"],
-			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature1"],
-		},
-		{
-			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature2"],
-			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature2"],
-		},
-	}
-	for _, webFeatureChromiumHistogramEnumValue := range sampleWebFeatureChromiumHistogramEnumValues {
-		err := client.UpsertWebFeatureChromiumHistogramEnumValue(
-			ctx,
-			webFeatureChromiumHistogramEnumValue,
-		)
-		if err != nil {
-			t.Errorf("unexpected error during insert of Chromium enums. %s", err.Error())
-		}
-	}
-}
-
 func addSampleChromiumHistogramMetrics(ctx context.Context, client *Client, t *testing.T) {
 	type dailyChromiumHistogramMetricToInsert struct {
 		DailyChromiumHistogramMetric
@@ -767,8 +739,18 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 	chromiumHistogramEnumValueToIDMap := insertGivenChromiumHistogramEnumValues(
 		ctx, client, t, sampleChromiumHistogramEnumValues)
 
-	addSampleWebFeatureChromiumHistogramEnumValues(
-		ctx, client, t, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap)
+	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
+		{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature1"],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature1"],
+		},
+		{
+			WebFeatureID:                 webFeatureKeyToInternalFeatureID["feature2"],
+			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature2"],
+		},
+	}
+	insertGivenWebFeatureChromiumHistogramEnumValues(
+		ctx, client, t, sampleWebFeatureChromiumHistogramEnumValues)
 	addSampleChromiumHistogramMetrics(ctx, client, t)
 }
 
