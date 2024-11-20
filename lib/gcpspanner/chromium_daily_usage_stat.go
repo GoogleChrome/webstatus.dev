@@ -43,8 +43,7 @@ const (
  	ORDER BY Date DESC, Usage DESC LIMIT @pageSize`
 
 	commonChromiumDailyUsagePaginationRawTemplate = `
-		AND (dchm.Day < @lastDate OR
-			dchm.Day = @lastDate AND dchm.Rate < @lastUsage)`
+		AND dchm.Day < @lastDate`
 )
 
 func init() {
@@ -95,7 +94,6 @@ func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 		params["lastDate"] = cursor.LastDate
-		params["lastUsage"] = cursor.LastUsage
 		tmplData.PageFilter = commonChromiumDailyUsagePaginationRawTemplate
 	}
 	tmpl := getChromiumDailyUsageBaseTemplate.Execute(tmplData)
@@ -125,8 +123,7 @@ func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 
 	if len(usageStats) == pageSize {
 		lastUsageStat := usageStats[len(usageStats)-1]
-		usageFloat, _ := lastUsageStat.Usage.Float64()
-		newCursor := encodeChromiumDailyUsageCursor(lastUsageStat.Date, usageFloat)
+		newCursor := encodeChromiumDailyUsageCursor(lastUsageStat.Date)
 
 		return usageStats, &newCursor, nil
 	}

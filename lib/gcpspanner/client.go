@@ -151,8 +151,7 @@ type WPTRunCursor struct {
 }
 
 type ChromiumDailyUsageCursor struct {
-	LastDate  civil.Date `json:"last_date"`
-	LastUsage float64    `json:"last_usage"`
+	LastDate civil.Date `json:"last_date"`
 }
 
 // FeatureResultOffsetCursor: A numerical offset from the start of the result set. Enables the construction of
@@ -234,8 +233,8 @@ func encodeWPTRunCursor(timeStart time.Time, id int64) string {
 	return encodeCursor[WPTRunCursor](WPTRunCursor{LastTimeStart: timeStart, LastRunID: id})
 }
 
-func encodeChromiumDailyUsageCursor(date civil.Date, usage float64) string {
-	return encodeCursor[ChromiumDailyUsageCursor](ChromiumDailyUsageCursor{LastDate: date, LastUsage: usage})
+func encodeChromiumDailyUsageCursor(date civil.Date) string {
+	return encodeCursor[ChromiumDailyUsageCursor](ChromiumDailyUsageCursor{LastDate: date})
 }
 
 // encodeCursor: Encodes a Cursor into a base64-encoded string.
