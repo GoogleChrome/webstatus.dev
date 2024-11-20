@@ -124,6 +124,10 @@ const VOCABULARY = [
     doc: 'Find by substring of the name. E.g., name:"CSS Grid"',
   },
   {
+    name: 'id:',
+    doc: 'Find by its feature identifier . E.g., id:html',
+  },
+  {
     name: 'OR',
     doc: 'Combine query terms with a logical-OR',
   },
