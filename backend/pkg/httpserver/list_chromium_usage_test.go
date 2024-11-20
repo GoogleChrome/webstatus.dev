@@ -48,7 +48,7 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				data: []backend.ChromiumUsageStat{
 					{
 						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						Usage:     0.0,
+						Usage:     valuePtr[float64](0.0),
 					},
 				},
 			},
@@ -57,7 +57,7 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				Data: []backend.ChromiumUsageStat{
 					{
 						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						Usage:     0.0,
+						Usage:     valuePtr[float64](0.0),
 					},
 				},
 				Metadata: &backend.PageMetadata{

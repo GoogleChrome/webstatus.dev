@@ -607,7 +607,7 @@ components:
           format: date-time
           description: The usage timestamp
         usage:
-          type: integer
+          type: number
           description: >
             Snapshot of the usage metric for the given feature
           format: double

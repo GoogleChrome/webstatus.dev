@@ -242,7 +242,7 @@ func (s *Backend) ListChromiumDailyUsageStats(
 		usageFloat, _ := stat.Usage.Float64()
 		backendStats = append(backendStats, backend.ChromiumUsageStat{
 			Timestamp: stat.Date.In(time.UTC),
-			Usage:     usageFloat,
+			Usage:     &usageFloat,
 		})
 	}
 
