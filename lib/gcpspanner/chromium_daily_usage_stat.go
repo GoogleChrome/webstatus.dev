@@ -40,7 +40,7 @@ const (
 {{ if .PageFilter }}
  	{{ .PageFilter }}
 {{ end }}
- 	ORDER BY Date DESC, Usage DESC LIMIT @pageSize`
+ 	ORDER BY Date DESC LIMIT @pageSize`
 
 	commonChromiumDailyUsagePaginationRawTemplate = `
 		AND dchm.Day < @lastDate`
