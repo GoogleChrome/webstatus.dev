@@ -624,41 +624,6 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
-func addSampleChromiumHistogramEnumValues(
-	ctx context.Context,
-	client *Client,
-	t *testing.T,
-	chromiumHistogramEnumIDMap map[string]string,
-) map[string]string {
-	sampleChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
-		{
-			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["AnotherHistogram"],
-			BucketID:                1,
-			Label:                   "AnotherLabel",
-		},
-		{
-			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
-			BucketID:                1,
-			Label:                   "feature1",
-		},
-		{
-			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
-			BucketID:                2,
-			Label:                   "feature2",
-		},
-	}
-	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(sampleChromiumHistogramEnumValues))
-	for _, enumValue := range sampleChromiumHistogramEnumValues {
-		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, enumValue)
-		if err != nil {
-			t.Fatalf("unable to insert sample enum value. error %s", err)
-		}
-		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *enumValueID
-	}
-
-	return chromiumHistogramEnumValueToIDMap
-}
-
 func addSampleWebFeatureChromiumHistogramEnumValues(
 	ctx context.Context,
 	client *Client,
@@ -781,8 +746,27 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 		},
 	}
 	chromiumHistogramEnumIDMap := insertGivenSampleChromiumHistogramEnums(ctx, client, t, sampleChromiumHistogramEnums)
-	chromiumHistogramEnumValueToIDMap := addSampleChromiumHistogramEnumValues(
-		ctx, client, t, chromiumHistogramEnumIDMap)
+
+	sampleChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["AnotherHistogram"],
+			BucketID:                1,
+			Label:                   "AnotherLabel",
+		},
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                1,
+			Label:                   "feature1",
+		},
+		{
+			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			BucketID:                2,
+			Label:                   "feature2",
+		},
+	}
+	chromiumHistogramEnumValueToIDMap := insertGivenChromiumHistogramEnumValues(
+		ctx, client, t, sampleChromiumHistogramEnumValues)
+
 	addSampleWebFeatureChromiumHistogramEnumValues(
 		ctx, client, t, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap)
 	addSampleChromiumHistogramMetrics(ctx, client, t)

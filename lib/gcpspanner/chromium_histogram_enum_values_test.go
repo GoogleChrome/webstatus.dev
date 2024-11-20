@@ -60,6 +60,24 @@ func insertSampleChromiumHistogramEnumValues(
 	return m
 }
 
+func insertGivenChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *Client,
+	t *testing.T,
+	values []ChromiumHistogramEnumValue,
+) map[string]string {
+	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(values))
+	for _, enumValue := range values {
+		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, enumValue)
+		if err != nil {
+			t.Fatalf("unable to insert sample enum value. error %s", err)
+		}
+		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *enumValueID
+	}
+
+	return chromiumHistogramEnumValueToIDMap
+}
+
 // Helper method to get all the enum values in a stable order.
 func (c *Client) ReadAllChromiumHistogramEnumValues(
 	ctx context.Context, t *testing.T) ([]ChromiumHistogramEnumValue, error) {
