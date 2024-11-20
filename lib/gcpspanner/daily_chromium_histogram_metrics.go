@@ -122,6 +122,7 @@ func getLatestDailyChromiumMetricDate(
 			// No row found, return zero time
 			zeroTime := time.Time{}
 			zeroDate := civil.DateOf(zeroTime)
+
 			return &zeroDate, nil
 		}
 		slog.ErrorContext(ctx, "error querying for latest run time", "error", err)
