@@ -129,25 +129,24 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 }
 
 func (v *FeaturesSearchVisitor) createIDNode(id string) *SearchNode {
-	return v.createSimpleNode(id, IdentifierID, OperatorEq)
+	return v.createSimpleNode(id, IdentifierID)
 }
 
 func (v *FeaturesSearchVisitor) createSnapshotNode(snapshot string) *SearchNode {
-	return v.createSimpleNode(snapshot, IdentifierSnapshot, OperatorEq)
+	return v.createSimpleNode(snapshot, IdentifierSnapshot)
 }
 
 func (v *FeaturesSearchVisitor) createGroupNode(group string) *SearchNode {
-	return v.createSimpleNode(group, IdentifierGroup, OperatorEq)
+	return v.createSimpleNode(group, IdentifierGroup)
 }
 
 func (v *FeaturesSearchVisitor) createNameNode(name string) *SearchNode {
-	return v.createSimpleNode(name, IdentifierName, OperatorEq)
+	return v.createSimpleNode(name, IdentifierName)
 }
 
 func (v *FeaturesSearchVisitor) createSimpleNode(
 	value string,
-	identifier SearchIdentifier,
-	operator SearchOperator) *SearchNode {
+	identifier SearchIdentifier) *SearchNode {
 	value = strings.Trim(value, `"`)
 
 	return &SearchNode{
@@ -156,7 +155,7 @@ func (v *FeaturesSearchVisitor) createSimpleNode(
 		Term: &SearchTerm{
 			Identifier: identifier,
 			Value:      value,
-			Operator:   operator,
+			Operator:   OperatorEq,
 		},
 	}
 }
@@ -373,41 +372,7 @@ func (v *FeaturesSearchVisitor) VisitChildren(node antlr.RuleNode) interface{} {
 	return nil
 }
 
-// Similar to https://github.com/google/mangle/blob/28db3310648ee110b108523b3df943ce22b61e2a/parse/parse.go#L154
 func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
-	switch tree := tree.(type) {
-	case *parser.Available_date_termContext:
-		return v.VisitAvailable_date_term(tree)
-	case *parser.Available_on_termContext:
-		return v.VisitAvailable_on_term(tree)
-	case *parser.Baseline_status_termContext:
-		return v.VisitBaseline_status_term(tree)
-	case *parser.Baseline_date_termContext:
-		return v.VisitBaseline_date_term(tree)
-	case *parser.Combined_search_criteriaContext:
-		return v.VisitCombined_search_criteria(tree)
-	case *parser.Date_range_queryContext:
-		return v.VisitDate_range_query(tree)
-	case *parser.Generic_search_termContext:
-		return v.VisitGeneric_search_term(tree)
-	case *parser.Group_termContext:
-		return v.VisitGroup_term(tree)
-	case *parser.Snapshot_termContext:
-		return v.VisitSnapshot_term(tree)
-	case *parser.Id_termContext:
-		return v.VisitId_term(tree)
-	case *parser.Name_termContext:
-		return v.VisitName_term(tree)
-	case *parser.OperatorContext:
-		return v.VisitOperator(tree)
-	case *parser.QueryContext:
-		return v.VisitQuery(tree)
-	case *parser.Search_criteriaContext:
-		return v.VisitSearch_criteria(tree)
-	case *parser.TermContext:
-		return v.VisitTerm(tree)
-	}
-
 	return tree.Accept(v)
 }
 
