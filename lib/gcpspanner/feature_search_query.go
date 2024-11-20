@@ -111,6 +111,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 
 	case node.Term != nil && (node.Keyword == searchtypes.KeywordNone):
 		var filter string
+		// nolint: exhaustive // Temporarily disable this.
 		switch node.Term.Identifier {
 		case searchtypes.IdentifierAvailableDate:
 			// Currently not a terminal identifier.
