@@ -624,27 +624,6 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 }
 
-func addSampleChromiumHistogramEnums(ctx context.Context, client *Client, t *testing.T) map[string]string {
-	sampleChromiumHistogramEnums := []ChromiumHistogramEnum{
-		{
-			HistogramName: "AnotherHistogram",
-		},
-		{
-			HistogramName: "WebDXFeatureObserver",
-		},
-	}
-	chromiumHistogramEnumIDMap := make(map[string]string, len(sampleChromiumHistogramEnums))
-	for _, enum := range sampleChromiumHistogramEnums {
-		id, err := client.UpsertChromiumHistogramEnum(ctx, enum)
-		if err != nil {
-			t.Fatalf("unable to insert sample histogram enums. error %s", err)
-		}
-		chromiumHistogramEnumIDMap[enum.HistogramName] = *id
-	}
-
-	return chromiumHistogramEnumIDMap
-}
-
 func addSampleChromiumHistogramEnumValues(
 	ctx context.Context,
 	client *Client,
@@ -793,7 +772,15 @@ func addSampleChromiumHistogramMetrics(ctx context.Context, client *Client, t *t
 
 func addSampleChromiumUsageMetricsData(ctx context.Context,
 	client *Client, t *testing.T, webFeatureKeyToInternalFeatureID map[string]string) {
-	chromiumHistogramEnumIDMap := addSampleChromiumHistogramEnums(ctx, client, t)
+	sampleChromiumHistogramEnums := []ChromiumHistogramEnum{
+		{
+			HistogramName: "AnotherHistogram",
+		},
+		{
+			HistogramName: "WebDXFeatureObserver",
+		},
+	}
+	chromiumHistogramEnumIDMap := insertGivenSampleChromiumHistogramEnums(ctx, client, t, sampleChromiumHistogramEnums)
 	chromiumHistogramEnumValueToIDMap := addSampleChromiumHistogramEnumValues(
 		ctx, client, t, chromiumHistogramEnumIDMap)
 	addSampleWebFeatureChromiumHistogramEnumValues(
