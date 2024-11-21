@@ -15,7 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {gotoOverviewPageUrl} from './utils';
+import {gotoOverviewPageUrl, getOverviewPageFeatureCount} from './utils';
 
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
@@ -247,20 +247,17 @@ test('Test id search atoms in a query', async ({page}) => {
   await expect(searchbox).toBeVisible();
   await expect(searchbox).toHaveAttribute('value', '');
 
-  const stats = await page.locator('.stats-summary');
-  const textContent = await stats.innerText();
-  expect(parseInt(textContent.split(' ')[0])).toBeGreaterThan(7);
+  const initialFeatureCount = await getOverviewPageFeatureCount(page);
+  expect(initialFeatureCount).toBeGreaterThan(7);
 
   const sevenIDAtoms =
     'id:Molestiae77 OR id:Ratione74 OR id:Molestias63 OR id:Ut59 OR id:Ad50 OR id:Inventore43 OR id:Rem51';
   await page.keyboard.type('/' + sevenIDAtoms);
   await expect(searchbox).toHaveAttribute('value', sevenIDAtoms);
   await page.locator('#filter-submit-button').click();
-  await page.waitForTimeout(1000);
 
-  const newStats = await page.locator('.stats-summary');
-  const nextContent = await stats.innerText();
-  expect(parseInt(nextContent.split(' ')[0])).toBe(7);
+  const newFeatureCount = await getOverviewPageFeatureCount(page);
+  expect(newFeatureCount).toEqual(7);
 });
 
 test('Typing slash focuses on searchbox', async ({page}) => {

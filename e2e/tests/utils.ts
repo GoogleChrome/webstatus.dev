@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {Page} from '@playwright/test';
+import {Page, expect} from '@playwright/test';
 
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
@@ -52,11 +52,24 @@ export async function setupFakeNow(
   }`);
 }
 
-export async function gotoOverviewPageUrl(page: Page, url: string) {
-  await page.goto(url);
-
+export async function waitForOverviewPageLoad(page: Page) {
   // Wait for the loading indicator to disappear and be replaced (with timeout):
   await page
     .locator('webstatus-overview-content >> text=Loading features...')
     .waitFor({state: 'hidden', timeout: 30000});
+}
+
+export async function gotoOverviewPageUrl(page: Page, url: string) {
+  await page.goto(url);
+
+  await waitForOverviewPageLoad(page);
+}
+
+export async function getOverviewPageFeatureCount(page: Page): Promise<number> {
+  await waitForOverviewPageLoad(page);
+  const regex = /(\d+) features/;
+  const statsSummary = page.getByText(regex);
+  expect(statsSummary).toBeVisible();
+  const text = await statsSummary.innerText();
+  return parseInt(text.match(regex)![1]);
 }
