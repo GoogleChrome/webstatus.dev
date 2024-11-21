@@ -15,7 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {gotoOverviewPageUrl} from './utils';
+import {gotoOverviewPageUrl, getOverviewPageFeatureCount} from './utils';
 
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
@@ -239,6 +239,25 @@ test('Export to CSV button fails to request all features and shows toast', async
   // Assert toast is visible
   const toast = page.locator('.toast');
   await toast.waitFor({state: 'visible'});
+});
+
+test('Test id search atoms in a query', async ({page}) => {
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  const searchbox = page.locator('#inputfield');
+  await expect(searchbox).toBeVisible();
+  await expect(searchbox).toHaveAttribute('value', '');
+
+  const initialFeatureCount = await getOverviewPageFeatureCount(page);
+  expect(initialFeatureCount).toBeGreaterThan(7);
+
+  const sevenIDAtoms =
+    'id:Molestiae77 OR id:Ratione74 OR id:Molestias63 OR id:Ut59 OR id:Ad50 OR id:Inventore43 OR id:Rem51';
+  await page.keyboard.type('/' + sevenIDAtoms);
+  await expect(searchbox).toHaveAttribute('value', sevenIDAtoms);
+  await page.locator('#filter-submit-button').click();
+
+  const newFeatureCount = await getOverviewPageFeatureCount(page);
+  expect(newFeatureCount).toEqual(7);
 });
 
 test('Typing slash focuses on searchbox', async ({page}) => {
