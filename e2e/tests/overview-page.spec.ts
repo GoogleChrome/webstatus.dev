@@ -256,7 +256,7 @@ test('Test id search atoms in a query', async ({page}) => {
   await page.keyboard.type('/' + sevenIDAtoms);
   await expect(searchbox).toHaveAttribute('value', sevenIDAtoms);
   await page.locator('#filter-submit-button').click();
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(1000);
 
   const newStats = await page.locator('.stats-summary');
   const nextContent = await stats.innerText();
