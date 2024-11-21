@@ -326,7 +326,7 @@ LEFT OUTER JOIN (
 ) AS browser_info ON wf.ID = browser_info.WebFeatureID
 LEFT OUTER JOIN (
     SELECT
-        ldchm.WebFeatureID AS WebFeatureID,
+        ldchm.WebFeatureID,
         dchm.Rate AS ChromiumUsage
     FROM LatestDailyChromiumHistogramMetrics ldchm
     JOIN DailyChromiumHistogramMetrics dchm

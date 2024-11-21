@@ -159,7 +159,7 @@ func getWebFeatureIDByChromiumHistogramEnumValueID(
 
 	row, err := iter.Next()
 	if err != nil {
-		slog.ErrorContext(ctx, "error querying for latest run time", "error", err)
+		slog.ErrorContext(ctx, "error querying for web feature ID", "error", err)
 
 		return nil, err
 	}
