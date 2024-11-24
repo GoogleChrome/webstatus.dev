@@ -62,6 +62,7 @@ export enum ColumnKey {
   ExpEdge = 'experimental_edge',
   ExpFirefox = 'experimental_firefox',
   ExpSafari = 'experimental_safari',
+  ChromiumUsage = 'chromium_usage',
 }
 
 const columnKeyMapping = Object.entries(ColumnKey).reduce(
@@ -148,6 +149,18 @@ export const BASELINE_CHIP_CONFIGS: Record<
 const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   const featureUrl = formatFeaturePageUrl(feature, routerLocation);
   return html` <a href=${featureUrl}>${feature.name}</a> `;
+};
+
+const renderChromiumUsage: CellRenderer = (
+  feature,
+  _routerLocation,
+  _options,
+) => {
+  if (feature.usage?.chromium?.daily && feature.usage.chromium.daily > 0) {
+    // Format to display percentage with single decimal e.g. 0.8371 -> 83.7%.
+    return html`${(feature.usage.chromium.daily * 100).toFixed(1)}%`;
+  }
+  return html`N/A`;
 };
 
 function formatDateString(dateString: string): string {
@@ -394,6 +407,12 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
       Experimental`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'safari', channel: 'experimental'},
+  },
+  [ColumnKey.ChromiumUsage]: {
+    nameInDialog: 'Chromium Usage',
+    headerHtml: html`Usage`,
+    cellRenderer: renderChromiumUsage,
+    options: {},
   },
 };
 
