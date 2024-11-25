@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -72,28 +71,30 @@ func encodeMissingOneImplCursor(releaseDate time.Time) string {
 
 const missingOneImplCountRawTemplate = `
 SELECT releases.EventReleaseDate,
-       (
-           SELECT COUNT(DISTINCT wf.ID)
-           FROM WebFeatures wf
-           LEFT JOIN BrowserFeatureSupportEvents bfse
-               ON wf.ID = bfse.WebFeatureID
-			   AND bfse.TargetBrowserName = @targetBrowserParam
-               AND bfse.EventReleaseDate = releases.EventReleaseDate
-               AND bfse.SupportStatus = 'unsupported'  -- Added condition
-           WHERE bfse.WebFeatureID IS NOT NULL  -- Feature is unsupported by the target browser
-             AND {{range $browser := .OtherBrowserParamNames}}
-                 EXISTS (
-                   SELECT 1
-                   FROM BrowserFeatureSupportEvents bfse_other
-                   WHERE bfse_other.WebFeatureID = wf.ID
-                     AND bfse_other.SupportStatus = 'supported'
-                     AND bfse_other.TargetBrowserName = @{{ $browser }}
-                     AND bfse_other.EventReleaseDate = releases.EventReleaseDate
-                 )
-                 AND
-               {{end}}
-			   1=1
-       ) AS Count
+	(
+		SELECT COUNT(DISTINCT wf.ID)
+		FROM WebFeatures wf
+		INNER JOIN BrowserFeatureSupportEvents bfse
+			ON wf.ID = bfse.WebFeatureID
+			AND bfse.EventReleaseDate = releases.EventReleaseDate
+		WHERE
+			bfse.TargetBrowserName = @targetBrowserParam AND bfse.SupportStatus = 'unsupported'
+			AND EXISTS (
+				SELECT 1
+				FROM BrowserFeatureSupportEvents bfse_other
+				WHERE bfse_other.WebFeatureID = wf.ID
+					AND bfse_other.SupportStatus = 'supported'
+					AND bfse_other.TargetBrowserName IN UNNEST(@{{.OtherBrowsersListParamName}})
+					AND bfse_other.EventReleaseDate = releases.EventReleaseDate
+					AND bfse_other.EventReleaseDate >= @startAt
+					AND bfse_other.EventReleaseDate < @endAt
+					{{if .ReleaseDateParam }}
+					AND bfse_other.EventReleaseDate < @{{ .ReleaseDateParam }}
+					{{end}}
+				GROUP BY bfse_other.WebFeatureID
+				HAVING COUNT(DISTINCT bfse_other.TargetBrowserName) = @{{ .OtherBrowserListSizeParamName }}
+			)
+	) AS Count
 FROM (
     SELECT DISTINCT EventReleaseDate
     FROM BrowserFeatureSupportEvents
@@ -110,8 +111,9 @@ LIMIT @limit;
 `
 
 type missingOneImplTemplateData struct {
-	OtherBrowserParamNames []string
-	ReleaseDateParam       string
+	OtherBrowserListSizeParamName string
+	OtherBrowsersListParamName    string
+	ReleaseDateParam              string
 }
 
 func buildMissingOneImplTemplate(
@@ -128,12 +130,7 @@ func buildMissingOneImplTemplate(
 	allBrowsers[len(allBrowsers)-1] = targetBrowser
 	params["targetBrowserParam"] = targetBrowser
 	params["allBrowsersParam"] = allBrowsers
-	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
-	for i := range otherBrowsers {
-		paramName := fmt.Sprintf("otherBrowser%d", i)
-		params[paramName] = otherBrowsers[i]
-		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
-	}
+
 	params["limit"] = pageSize
 
 	releaseDateParamName := ""
@@ -145,9 +142,16 @@ func buildMissingOneImplTemplate(
 	params["startAt"] = startAt
 	params["endAt"] = endAt
 
+	otherBrowsersListParamName := "otherBrowsersList"
+	params[otherBrowsersListParamName] = otherBrowsers
+
+	otherBrowserListSizeParamName := "otherBrowserListSize"
+	params[otherBrowserListSizeParamName] = len(otherBrowsers)
+
 	tmplData := missingOneImplTemplateData{
-		OtherBrowserParamNames: otherBrowsersParamNames,
-		ReleaseDateParam:       releaseDateParamName,
+		OtherBrowserListSizeParamName: otherBrowserListSizeParamName,
+		OtherBrowsersListParamName:    otherBrowsersListParamName,
+		ReleaseDateParam:              releaseDateParamName,
 	}
 	sql := missingOneImplTemplate.Execute(tmplData)
 	stmt := spanner.NewStatement(sql)

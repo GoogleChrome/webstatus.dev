@@ -37,7 +37,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-const releasesPerBrowser = 50
+const releasesPerBrowser = 10
 const runsPerBrowserPerChannel = 100
 const numberOfFeatures = 80
 
@@ -142,23 +142,59 @@ func generateFeatureAvailability(
 	client *gcpspanner.Client,
 	features []gcpspanner.SpannerWebFeature) (int, error) {
 	availabilitiesInserted := 0
+	// Create a map to track feature availability per browser and release
+	featureAvailability := make(map[string]map[int]map[string]bool) // map[browserName]map[releaseIdx]map[featureID]bool
+
+	// Initialize the map with all features marked as unsupported for each browser and release
 	for _, browser := range browsers {
-		for _, feature := range features {
-			// Add availability randomly at a 50% chance
-			releaseVersion := r.Int31n(2*releasesPerBrowser) + 1
-			if releaseVersion <= releasesPerBrowser {
-				err := client.InsertBrowserFeatureAvailability(
-					ctx,
-					feature.FeatureKey,
-					gcpspanner.BrowserFeatureAvailability{
-						BrowserName:    browser,
-						BrowserVersion: fmt.Sprintf("%d", releaseVersion),
-					},
-				)
-				if err != nil {
-					return availabilitiesInserted, err
+		featureAvailability[browser] = make(map[int]map[string]bool)
+		for i := 0; i < releasesPerBrowser; i++ {
+			featureAvailability[browser][i] = make(map[string]bool)
+			for _, feature := range features {
+				featureAvailability[browser][i][feature.FeatureKey] = false
+			}
+		}
+	}
+
+	// Ensure at least one "missing one" implementation per release
+	for i := 0; i < releasesPerBrowser; i++ {
+		for j, browser := range browsers {
+			// Skip the last browser, as it will be the "missing one"
+			if j == len(browsers)-1 {
+				continue
+			}
+
+			// Choose a random feature to be supported by this browser on this release
+			randomFeatureIndex := r.Intn(len(features))
+			featureAvailability[browser][i][features[randomFeatureIndex].FeatureKey] = true
+		}
+
+		// Mark a random feature as supported by the last browser on the next release
+		// (if it's not the last release)
+		if i < releasesPerBrowser-1 {
+			randomFeatureIndex := r.Intn(len(features))
+			lastBrowser := browsers[len(browsers)-1]
+			featureAvailability[lastBrowser][i+1][features[randomFeatureIndex].FeatureKey] = true
+		}
+	}
+	// Insert the availabilities into Spanner
+	for _, browser := range browsers {
+		for i := 0; i < releasesPerBrowser; i++ {
+			for featureID, isSupported := range featureAvailability[browser][i] {
+				if isSupported {
+					err := client.InsertBrowserFeatureAvailability(
+						ctx,
+						featureID,
+						gcpspanner.BrowserFeatureAvailability{
+							BrowserName:    browser,
+							BrowserVersion: fmt.Sprintf("%d", i+1),
+						},
+					)
+					if err != nil {
+						return availabilitiesInserted, err
+					}
+					availabilitiesInserted++
 				}
-				availabilitiesInserted++
 			}
 		}
 	}
@@ -315,6 +351,14 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.Info("availabilities generated",
 		"amount of availabilities created", availabilityCount)
+
+	// Only 12 months
+	err = spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx, startTimeWindow, startTimeWindow.Add(
+		12*30*24*time.Hour))
+	if err != nil {
+		return fmt.Errorf("browser feature support precalculation failed %w", err)
+	}
+	slog.Info("browser feature support precalculation complete")
 
 	groupKeys, err := generateGroups(ctx, spannerClient, features)
 	if err != nil {
