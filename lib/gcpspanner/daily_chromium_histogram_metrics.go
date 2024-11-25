@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"math/big"
 	"time"
@@ -30,55 +29,6 @@ import (
 
 const dailyChromiumHistogramMetricsTable = "DailyChromiumHistogramMetrics"
 const LatestDailyChromiumHistogramMetricsTable = "LatestDailyChromiumHistogramMetrics"
-
-// Implements the entityMapper interface for DailyChromiumHistogramMetric and SpannerDailyChromiumHistogramMetric.
-type dailyChromiumHistogramMetricSpannerMapper struct{}
-
-func (m dailyChromiumHistogramMetricSpannerMapper) Table() string {
-	return dailyChromiumHistogramMetricsTable
-}
-
-type dailyChromiumHistogramMetricKey struct {
-	ChromiumHistogramEnumValueID string
-	Day                          civil.Date
-}
-
-func (m dailyChromiumHistogramMetricSpannerMapper) GetKey(
-	in spannerDailyChromiumHistogramMetric) dailyChromiumHistogramMetricKey {
-	return dailyChromiumHistogramMetricKey{
-		ChromiumHistogramEnumValueID: in.ChromiumHistogramEnumValueID,
-		Day:                          in.Day,
-	}
-}
-
-func (m dailyChromiumHistogramMetricSpannerMapper) Merge(
-	in spannerDailyChromiumHistogramMetric,
-	existing spannerDailyChromiumHistogramMetric) spannerDailyChromiumHistogramMetric {
-	return spannerDailyChromiumHistogramMetric{
-		ChromiumHistogramEnumValueID: existing.ChromiumHistogramEnumValueID,
-		DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
-			Day:  existing.Day,
-			Rate: in.Rate,
-		},
-	}
-}
-
-func (m dailyChromiumHistogramMetricSpannerMapper) SelectOne(key dailyChromiumHistogramMetricKey) spanner.Statement {
-	stmt := spanner.NewStatement(fmt.Sprintf(`
-	SELECT
-		ChromiumHistogramEnumValueID, Day, Rate
-	FROM %s
-	WHERE ChromiumHistogramEnumValueID = @chromiumHistogramEnumValueID AND Day = @day
-	LIMIT 1`,
-		m.Table()))
-	parameters := map[string]interface{}{
-		"chromiumHistogramEnumValueID": key.ChromiumHistogramEnumValueID,
-		"day":                          key.Day,
-	}
-	stmt.Params = parameters
-
-	return stmt
-}
 
 type DailyChromiumHistogramMetric struct {
 	Day  civil.Date `spanner:"Day"`
@@ -213,13 +163,17 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 	}
 
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		err = newEntityWriter[dailyChromiumHistogramMetricSpannerMapper](c).upsert(ctx, spannerDailyChromiumHistogramMetric{
-			DailyChromiumHistogramMetric: metric,
-			ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
-		})
+		var mutations []*spanner.Mutation
+		m0, err := spanner.InsertOrUpdateStruct(
+			dailyChromiumHistogramMetricsTable,
+			spannerDailyChromiumHistogramMetric{
+				DailyChromiumHistogramMetric: metric,
+				ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
+			})
 		if err != nil {
 			return err
 		}
+		mutations = append(mutations, m0)
 
 		existingDate, err := getLatestDailyChromiumMetricDate(ctx, txn, *chromiumHistogramEnumValueID)
 		if err != nil {
@@ -233,7 +187,7 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-			m, err := spanner.InsertOrUpdateStruct(
+			m1, err := spanner.InsertOrUpdateStruct(
 				LatestDailyChromiumHistogramMetricsTable,
 				SpannerLatestDailyChromiumHistogramMetric{
 					WebFeatureID:                 *featureID,
@@ -243,12 +197,11 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-			err = txn.BufferWrite([]*spanner.Mutation{m})
-			if err != nil {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-
-			return nil
+			mutations = append(mutations, m1)
+		}
+		err = txn.BufferWrite(mutations)
+		if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
 		}
 
 		return nil
