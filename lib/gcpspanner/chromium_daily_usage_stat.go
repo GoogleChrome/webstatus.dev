@@ -24,7 +24,7 @@ import (
 	"cloud.google.com/go/spanner"
 	"google.golang.org/api/iterator"
 )
- 
+
 const (
 	getChromiumDailyUsageBaseRawTemplate = `
 	SELECT
