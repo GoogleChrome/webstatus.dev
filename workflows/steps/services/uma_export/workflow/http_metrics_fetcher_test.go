@@ -22,13 +22,16 @@ import (
 	"strings"
 	"testing"
 
+	"cloud.google.com/go/civil"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
 func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
+	sampleDate := civil.Date{Year: 2024, Month: 9, Day: 18}
 	tests := []struct {
 		name         string
 		queryName    metricdatatypes.UMAExportQuery
+		date         civil.Date
 		expectedURL  string
 		token        string
 		tokenErr     error
@@ -40,6 +43,7 @@ func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
 		{
 			name:       "success",
 			queryName:  metricdatatypes.WebDXFeaturesQuery,
+			date:       sampleDate,
 			token:      "test-token",
 			httpStatus: http.StatusOK,
 			responseBody: `{
@@ -50,13 +54,14 @@ func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
 				"queryName": "WebFeatureObserverDailyMetrics",
 				"rows": []
 			}`,
-			expectedURL: "https://uma-export.appspot.com/webstatus/usecounter.webdxfeatures",
+			expectedURL: "https://uma-export.appspot.com/webstatus/usecounter.webdxfeatures?date=20240918",
 			err:         nil,
 			tokenErr:    nil,
 		},
 		{
 			name:        "error generating token",
 			queryName:   metricdatatypes.WebDXFeaturesQuery,
+			date:        sampleDate,
 			tokenErr:    errors.New("some error"),
 			httpStatus:  http.StatusOK,
 			expectedURL: "",
@@ -69,6 +74,7 @@ func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
 		{
 			name:        "error unexpected status code",
 			queryName:   metricdatatypes.WebDXFeaturesQuery,
+			date:        sampleDate,
 			token:       "test-token",
 			httpStatus:  http.StatusInternalServerError,
 			expectedURL: "",
@@ -108,7 +114,7 @@ func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
 				Transport: mockTransport,
 			}
 
-			got, err := fetcher.Fetch(context.Background(), tc.queryName)
+			got, err := fetcher.Fetch(context.Background(), tc.queryName, sampleDate)
 			if !errors.Is(err, tc.err) {
 				t.Errorf("Fetch() error = %s, expected %s", err, tc.err)
 

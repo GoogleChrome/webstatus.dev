@@ -5,6 +5,7 @@ go 1.22.7
 toolchain go1.23.2
 
 require (
+	cloud.google.com/go v0.116.0
 	cloud.google.com/go/spanner v1.70.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20241028191306-75f646a1ea74
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241028191306-75f646a1ea74
@@ -16,7 +17,6 @@ require (
 
 require (
 	cel.dev/expr v0.18.0 // indirect
-	cloud.google.com/go v0.116.0 // indirect
 	cloud.google.com/go/auth v0.9.9 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.4 // indirect
 	cloud.google.com/go/cloudtasks v1.13.2 // indirect
