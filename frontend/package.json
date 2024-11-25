@@ -33,7 +33,7 @@
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
     "@types/chai": "^4.3.19",
-    "@types/mocha": "^10.0.9",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.9.0",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
