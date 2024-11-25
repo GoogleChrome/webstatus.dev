@@ -301,9 +301,9 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	ctx := context.Background()
 
 	idMap := setupRequiredTablesForWebFeatureChromiumHistogramEnum(ctx, t)
-  sampleEnums := getSampleChromiumHistogramEnums()
+	sampleEnums := getSampleChromiumHistogramEnums()
 	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
-  sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
 	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
 	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
 	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
