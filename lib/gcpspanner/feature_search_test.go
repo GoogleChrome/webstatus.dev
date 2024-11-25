@@ -770,7 +770,7 @@ func addSampleChromiumHistogramMetrics(ctx context.Context, client *Client, t *t
 			bucketID:      2,
 			DailyChromiumHistogramMetric: DailyChromiumHistogramMetric{
 				Day: civil.Date{
-					Year:  2001,
+					Year:  2000,
 					Month: time.January,
 					Day:   15,
 				},
