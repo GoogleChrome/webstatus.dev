@@ -243,7 +243,6 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
-
 			err = txn.BufferWrite([]*spanner.Mutation{m})
 			if err != nil {
 				return errors.Join(ErrInternalQueryFailure, err)

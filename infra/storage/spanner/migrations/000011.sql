@@ -20,4 +20,4 @@ CREATE TABLE IF NOT EXISTS LatestDailyChromiumHistogramMetrics (
     FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
     FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE,
     FOREIGN KEY (ChromiumHistogramEnumValueID, Day) REFERENCES DailyChromiumHistogramMetrics(ChromiumHistogramEnumValueID, Day) ON DELETE CASCADE,
-) PRIMARY KEY (WebFeatureID, ChromiumHistogramEnumValueID, Day);
+) PRIMARY KEY (WebFeatureID, ChromiumHistogramEnumValueID);

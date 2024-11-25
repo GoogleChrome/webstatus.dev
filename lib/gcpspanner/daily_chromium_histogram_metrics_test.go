@@ -201,8 +201,11 @@ func (c *Client) readAllDailyChromiumHistogramMetrics(
 func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
+
+	idMap := setupRequiredTablesForWebFeatureChromiumHistogramEnum(ctx, t)
 	enumIDMap := insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
 	enumValueLabelToIDMap := insertSampleChromiumHistogramEnumValues(ctx, t, spannerClient, enumIDMap)
+	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
 	insertSampleDailyChromiumHistogramMetrics(ctx, t, spannerClient)
 	metricValues, err := spannerClient.readAllDailyChromiumHistogramMetrics(ctx)
 	if err != nil {
