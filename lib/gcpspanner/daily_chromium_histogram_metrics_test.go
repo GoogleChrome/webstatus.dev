@@ -156,14 +156,17 @@ func getSampleDailyChromiumHistogramMetricsToCheckAfterUpdate(
 	}
 }
 
-func insertSampleDailyChromiumHistogramMetrics(
-	ctx context.Context, t *testing.T, c *Client) {
-	metrics := getSampleDailyChromiumHistogramMetricsToInsert()
-	for _, metric := range metrics {
+func insertTestDailyChromiumHistogramMetrics(
+	ctx context.Context, c *Client, t *testing.T, values []dailyChromiumHistogramMetricToInsert) {
+	for _, metricToInsert := range values {
 		err := c.UpsertDailyChromiumHistogramMetric(
-			ctx, metric.histogramName, metric.bucketID, metric.DailyChromiumHistogramMetric)
+			ctx,
+			metricToInsert.histogramName,
+			metricToInsert.bucketID,
+			metricToInsert.DailyChromiumHistogramMetric,
+		)
 		if err != nil {
-			t.Fatalf("unable to insert metric. error %s", err)
+			t.Errorf("unexpected error during insert of Chromium metrics. %s", err.Error())
 		}
 	}
 }
@@ -201,9 +204,12 @@ func (c *Client) readAllDailyChromiumHistogramMetrics(
 func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	enumIDMap := insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
-	enumValueLabelToIDMap := insertSampleChromiumHistogramEnumValues(ctx, t, spannerClient, enumIDMap)
-	insertSampleDailyChromiumHistogramMetrics(ctx, t, spannerClient)
+	sampleEnums := getSampleChromiumHistogramEnums()
+	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
+	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
+	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
+	insertTestDailyChromiumHistogramMetrics(ctx, spannerClient, t, sampleMetrics)
 	metricValues, err := spannerClient.readAllDailyChromiumHistogramMetrics(ctx)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
