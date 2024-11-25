@@ -179,13 +179,21 @@ func TestUMAExportJobProcessor_Process(t *testing.T) {
 			}
 
 			mockFetcher := &mockMetricFetcher{
-				fetchFunc: func(_ context.Context, _ metricdatatypes.UMAExportQuery) (io.ReadCloser, error) {
+				fetchFunc: func(_ context.Context, t *testing.T,
+					query metricdatatypes.UMAExportQuery, date civil.Date) (io.ReadCloser, error) {
+					if query != sampleQuery {
+						t.Errorf("received bad query.\nexpected: %s\nreceived: %s\n", sampleQuery, query)
+					}
+					if sampleDate.Compare(date) != 0 {
+						t.Errorf("received bad query.\nexpected: %s\nreceived: %s\n", sampleDate, date)
+					}
 					if tt.fetchErr != nil {
 						return nil, tt.fetchErr
 					}
 
 					return io.NopCloser(strings.NewReader("mock data")), nil
 				},
+				t: t,
 			}
 
 			mockParser := &mockMetricParser{
@@ -249,13 +257,15 @@ func (m *mockMetricStorer) SaveCapstone(
 }
 
 type mockMetricFetcher struct {
-	fetchFunc func(ctx context.Context, queryName metricdatatypes.UMAExportQuery) (io.ReadCloser, error)
+	fetchFunc func(ctx context.Context, t *testing.T, queryName metricdatatypes.UMAExportQuery,
+		date civil.Date) (io.ReadCloser, error)
+	t *testing.T
 }
 
 func (m *mockMetricFetcher) Fetch(
-	ctx context.Context, queryName metricdatatypes.UMAExportQuery) (io.ReadCloser, error) {
+	ctx context.Context, queryName metricdatatypes.UMAExportQuery, date civil.Date) (io.ReadCloser, error) {
 	if m.fetchFunc != nil {
-		return m.fetchFunc(ctx, queryName)
+		return m.fetchFunc(ctx, m.t, queryName, date)
 	}
 
 	return nil, errMetricsResponseNil
