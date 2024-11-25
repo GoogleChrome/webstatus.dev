@@ -61,7 +61,7 @@ type MetricStorer interface {
 }
 
 type MetricFetecher interface {
-	Fetch(context.Context, metricdatatypes.UMAExportQuery) (io.ReadCloser, error)
+	Fetch(context.Context, metricdatatypes.UMAExportQuery, civil.Date) (io.ReadCloser, error)
 }
 
 type MetricParser interface {
@@ -90,7 +90,7 @@ func (p UMAExportJobProcessor) Process(ctx context.Context, job JobArguments) er
 	slog.InfoContext(ctx, "No capstone entry found. Will fetch", "date", job.day)
 
 	// Step 2. Fetch results
-	rawData, err := p.metricFetcher.Fetch(ctx, job.queryName)
+	rawData, err := p.metricFetcher.Fetch(ctx, job.queryName, job.day)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to fetch metrics", "error", err)
 
