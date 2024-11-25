@@ -33,7 +33,7 @@
     "@rollup/plugin-node-resolve": "^15.3.0",
     "@rollup/plugin-terser": "^0.4.4",
     "@types/chai": "^4.3.19",
-    "@types/mocha": "^10.0.9",
+    "@types/mocha": "^10.0.10",
     "@types/node": "^22.9.0",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
@@ -48,7 +48,7 @@
     "eslint": "^9.15.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-lit": "^1.15.0",
-    "eslint-plugin-perfectionist": "^3.9.1",
+    "eslint-plugin-perfectionist": "^4.0.3",
     "eslint-plugin-promise": "^7.1.0",
     "lit-analyzer": "^2.0.2",
     "openapi-typescript-helpers": "^0.0.15",
@@ -67,7 +67,7 @@
     "@shoelace-style/shoelace": "^2.18.0",
     "@types/google.visualization": "^0.0.74",
     "@vaadin/router": "^2.0.0",
-    "firebase": "^11.0.1",
+    "firebase": "^11.0.2",
     "lit": "^3.2.1",
     "openapi-fetch": "^0.13.0"
   }

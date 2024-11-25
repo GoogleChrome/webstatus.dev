@@ -23,6 +23,7 @@ import (
 	"net/url"
 	"time"
 
+	"cloud.google.com/go/civil"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
@@ -62,8 +63,8 @@ type HTTPMetricsFetcher struct {
 }
 
 func (f HTTPMetricsFetcher) Fetch(ctx context.Context,
-	queryName metricdatatypes.UMAExportQuery) (io.ReadCloser, error) {
-	queryURL := f.queryURL(queryName)
+	queryName metricdatatypes.UMAExportQuery, date civil.Date) (io.ReadCloser, error) {
+	queryURL := f.queryURL(queryName, date)
 
 	token, err := f.tokenGen.Generate(ctx, queryURL)
 	if err != nil {
@@ -102,6 +103,13 @@ func (f HTTPMetricsFetcher) Fetch(ctx context.Context,
 	return resp.Body, nil
 }
 
-func (f HTTPMetricsFetcher) queryURL(queryName metricdatatypes.UMAExportQuery) string {
-	return f.baseURL.JoinPath(string(queryName)).String()
+func (f HTTPMetricsFetcher) queryURL(queryName metricdatatypes.UMAExportQuery, date civil.Date) string {
+	u := f.baseURL.JoinPath(string(queryName))
+	q := u.Query()
+	// Format the date into YYYYMMDDD
+	// More information in https://go.dev/src/time/format.go
+	q.Add("date", date.In(time.UTC).Format("20060102"))
+	u.RawQuery = q.Encode()
+
+	return u.String()
 }

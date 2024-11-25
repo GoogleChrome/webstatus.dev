@@ -255,6 +255,7 @@ test('Test id search atoms in a query', async ({page}) => {
   await page.keyboard.type('/' + sevenIDAtoms);
   await expect(searchbox).toHaveAttribute('value', sevenIDAtoms);
   await page.locator('#filter-submit-button').click();
+  await page.waitForLoadState('networkidle');
 
   const newFeatureCount = await getOverviewPageFeatureCount(page);
   expect(newFeatureCount).toEqual(7);
