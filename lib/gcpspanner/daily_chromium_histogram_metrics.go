@@ -212,15 +212,15 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 		return err
 	}
 
-	err = newEntityWriter[dailyChromiumHistogramMetricSpannerMapper](c).upsert(ctx, spannerDailyChromiumHistogramMetric{
-		DailyChromiumHistogramMetric: metric,
-		ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
-	})
-	if err != nil {
-		return err
-	}
-
 	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		err = newEntityWriter[dailyChromiumHistogramMetricSpannerMapper](c).upsert(ctx, spannerDailyChromiumHistogramMetric{
+			DailyChromiumHistogramMetric: metric,
+			ChromiumHistogramEnumValueID: *chromiumHistogramEnumValueID,
+		})
+		if err != nil {
+			return err
+		}
+
 		existingDate, err := getLatestDailyChromiumMetricDate(ctx, txn, *chromiumHistogramEnumValueID)
 		if err != nil {
 			if !errors.Is(err, iterator.Done) { // Handle errors other than "not found"
