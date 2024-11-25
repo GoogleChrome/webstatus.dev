@@ -634,7 +634,7 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 			HistogramName: "WebDXFeatureObserver",
 		},
 	}
-	chromiumHistogramEnumIDMap := insertGivenSampleChromiumHistogramEnums(ctx, client, t, sampleChromiumHistogramEnums)
+	chromiumHistogramEnumIDMap := insertTestChromiumHistogramEnums(ctx, client, t, sampleChromiumHistogramEnums)
 
 	sampleChromiumHistogramEnumValues := []ChromiumHistogramEnumValue{
 		{
@@ -653,7 +653,7 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 			Label:                   "feature2",
 		},
 	}
-	chromiumHistogramEnumValueToIDMap := insertGivenChromiumHistogramEnumValues(
+	chromiumHistogramEnumValueToIDMap := insertTestChromiumHistogramEnumValues(
 		ctx, client, t, sampleChromiumHistogramEnumValues)
 
 	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
@@ -666,7 +666,7 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap["feature2"],
 		},
 	}
-	insertGivenWebFeatureChromiumHistogramEnumValues(
+	insertTestWebFeatureChromiumHistogramEnumValues(
 		ctx, client, t, sampleWebFeatureChromiumHistogramEnumValues)
 
 	sampleDailyChromiumHistogramMetrics := []dailyChromiumHistogramMetricToInsert{
@@ -733,7 +733,7 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 			},
 		},
 	}
-	insertGivenSampleDailyChromiumHistogramMetrics(ctx, client, t, sampleDailyChromiumHistogramMetrics)
+	insertTestDailyChromiumHistogramMetrics(ctx, client, t, sampleDailyChromiumHistogramMetrics)
 }
 
 func defaultSorting() Sortable {

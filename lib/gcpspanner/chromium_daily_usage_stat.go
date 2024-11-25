@@ -22,7 +22,7 @@ import (
 // ChromiumDailyUsageStatsWithTime contains usage stats for a feature at a given time.
 type ChromiumDailyUsageStatWithTime struct {
 	Date  time.Time `spanner:"Date"`
-	Usage *int      `spanner:"Usage"`
+	Usage *float64  `spanner:"Usage"`
 }
 
 // nolint: revive // method currently returns fake data.

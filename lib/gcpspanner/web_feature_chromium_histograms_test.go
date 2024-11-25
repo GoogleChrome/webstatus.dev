@@ -63,7 +63,7 @@ func (c *Client) createSampleWebFeatureChromiumHistogramEnums(
 	}
 }
 
-func insertGivenWebFeatureChromiumHistogramEnumValues(
+func insertTestWebFeatureChromiumHistogramEnumValues(
 	ctx context.Context,
 	client *Client,
 	t *testing.T,
@@ -121,8 +121,10 @@ func TestUpsertWebFeatureChromiumHistogramEnumValue(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 	idMap := setupRequiredTablesForWebFeatureChromiumHistogramEnum(ctx, t)
-	enumIDMap := insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
-	enumValueLabelToIDMap := insertSampleChromiumHistogramEnumValues(ctx, t, spannerClient, enumIDMap)
+	sampleEnums := getSampleChromiumHistogramEnums()
+	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
+	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
 	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
 
 	expected := []WebFeatureChromiumHistogramEnumValue{

@@ -35,21 +35,7 @@ func getSampleChromiumHistogramEnums() []ChromiumHistogramEnum {
 	}
 }
 
-func insertSampleChromiumHistogramEnums(ctx context.Context, t *testing.T, c *Client) map[string]string {
-	enums := getSampleChromiumHistogramEnums()
-	m := make(map[string]string, len(enums))
-	for _, enum := range enums {
-		id, err := c.UpsertChromiumHistogramEnum(ctx, enum)
-		if err != nil {
-			t.Fatalf("unable to insert sample histogram enums. error %s", err)
-		}
-		m[enum.HistogramName] = *id
-	}
-
-	return m
-}
-
-func insertGivenSampleChromiumHistogramEnums(
+func insertTestChromiumHistogramEnums(
 	ctx context.Context,
 	client *Client,
 	t *testing.T,
@@ -101,7 +87,8 @@ func (c *Client) ReadAllChromiumHistogramEnums(ctx context.Context, t *testing.T
 func TestUpsertChromiumHistogramEnum(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
+	sampleEnums := getSampleChromiumHistogramEnums()
+	insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
 	enums, err := spannerClient.ReadAllChromiumHistogramEnums(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
