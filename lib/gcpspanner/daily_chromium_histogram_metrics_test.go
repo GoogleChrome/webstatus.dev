@@ -151,6 +151,67 @@ func getSampleDailyChromiumHistogramMetricsToCheckAfterUpdate(
 				Month: time.January,
 				Day:   1,
 			},
+			Rate: *big.NewRat(90, 100),
+		},
+		{
+			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["ViewTransitions"],
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   20,
+			},
+			Rate: *big.NewRat(93, 100),
+		},
+	}
+}
+
+func getSampleLatestDailyChromiumHistogramMetricsToCheckBeforeUpdate(
+	enumValueLabelToIDMap map[string]string) []testSpannerDailyChromiumHistogramMetric {
+	return []testSpannerDailyChromiumHistogramMetric{
+		// CompressionStreams
+		{
+			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   2,
+			},
+			Rate: *big.NewRat(8, 100),
+		},
+		// ViewTransitions
+		{
+			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["ViewTransitions"],
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   1,
+			},
+			Rate: *big.NewRat(91, 100),
+		},
+	}
+}
+
+func getSampleLatestDailyChromiumHistogramMetricsToCheckAfterUpdate(
+	enumValueLabelToIDMap map[string]string) []testSpannerDailyChromiumHistogramMetric {
+	return []testSpannerDailyChromiumHistogramMetric{
+		// CompressionStreams
+		{
+			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   2,
+			},
+			Rate: *big.NewRat(8, 100),
+		},
+		// ViewTransitions
+		{
+			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["ViewTransitions"],
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   20,
+			},
 			Rate: *big.NewRat(93, 100),
 		},
 	}
@@ -198,6 +259,40 @@ func (c *Client) readAllDailyChromiumHistogramMetrics(
 	return ret, nil
 }
 
+func (c *Client) readAllLatestDailyChromiumHistogramMetrics(
+	ctx context.Context) ([]testSpannerDailyChromiumHistogramMetric, error) {
+	stmt := spanner.NewStatement(
+		`SELECT
+			ldchm.ChromiumHistogramEnumValueID,
+			dchm.Day,
+			dchm.Rate
+		FROM LatestDailyChromiumHistogramMetrics ldchm
+		JOIN DailyChromiumHistogramMetrics dchm
+		ON ldchm.ChromiumHistogramEnumValueID = dchm.ChromiumHistogramEnumValueID
+		AND ldchm.Day = dchm.Day
+		ORDER BY Rate ASC`)
+	iter := c.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	var ret []testSpannerDailyChromiumHistogramMetric
+	for {
+		row, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break // End of results
+		}
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		var metric testSpannerDailyChromiumHistogramMetric
+		if err := row.ToStruct(&metric); err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		ret = append(ret, metric)
+	}
+
+	return ret, nil
+}
+
 func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
@@ -216,6 +311,15 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 		t.Errorf("unequal metrics.\nexpected %+v\nreceived %+v", samples, metricValues)
 	}
 
+	latestMetricValues, err := spannerClient.readAllLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Errorf("unexpected error during read all (latest metrics) %s", err.Error())
+	}
+	sampleLatestMetrics := getSampleLatestDailyChromiumHistogramMetricsToCheckBeforeUpdate(enumValueLabelToIDMap)
+	if !slices.EqualFunc(sampleLatestMetrics, latestMetricValues, latestDailyMetricEquality) {
+		t.Errorf("unequal metrics.\nexpected %+v\nreceived %+v", sampleLatestMetrics, latestMetricValues)
+	}
+
 	// Update the rate of one of the items.
 	err = spannerClient.UpsertDailyChromiumHistogramMetric(ctx,
 		metricdatatypes.WebDXFeatureEnum, 2, DailyChromiumHistogramMetric{
@@ -224,7 +328,22 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 				Month: time.January,
 				Day:   1,
 			},
-			// Change it to 93
+			// Change it to 90
+			Rate: *big.NewRat(90, 100),
+		})
+	if err != nil {
+		t.Errorf("unexpected error during update. %s", err.Error())
+	}
+
+	// Insert a newer value.
+	err = spannerClient.UpsertDailyChromiumHistogramMetric(ctx,
+		metricdatatypes.WebDXFeatureEnum, 2, DailyChromiumHistogramMetric{
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   20,
+			},
+			// New value of 93 for new day.
 			Rate: *big.NewRat(93, 100),
 		})
 	if err != nil {
@@ -238,8 +357,21 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	if !slices.EqualFunc(samples, metricValues, dailyMetricEquality) {
 		t.Errorf("unequal metrics.\nexpected %+v\nreceived %+v", samples, metricValues)
 	}
+
+	latestMetricValues, err = spannerClient.readAllLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Errorf("unexpected error during read all (latest metrics) %s", err.Error())
+	}
+	sampleLatestMetrics = getSampleLatestDailyChromiumHistogramMetricsToCheckAfterUpdate(enumValueLabelToIDMap)
+	if !slices.EqualFunc(sampleLatestMetrics, latestMetricValues, latestDailyMetricEquality) {
+		t.Errorf("unequal metrics.\nexpected %+v\nreceived %+v", sampleLatestMetrics, latestMetricValues)
+	}
 }
 
 func dailyMetricEquality(left, right testSpannerDailyChromiumHistogramMetric) bool {
+	return reflect.DeepEqual(left, right)
+}
+
+func latestDailyMetricEquality(left, right testSpannerDailyChromiumHistogramMetric) bool {
 	return reflect.DeepEqual(left, right)
 }
