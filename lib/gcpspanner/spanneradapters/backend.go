@@ -239,9 +239,13 @@ func (s *Backend) ListChromiumDailyUsageStats(
 	// Convert the feature metric type to backend metrics
 	backendStats := make([]backend.ChromiumUsageStat, 0, len(metrics))
 	for _, stat := range metrics {
+		var usage float64
+		if stat.Usage != nil {
+			usage, _ = stat.Usage.Float64()
+		}
 		backendStats = append(backendStats, backend.ChromiumUsageStat{
 			Timestamp: stat.Date,
-			Usage:     stat.Usage,
+			Usage:     &usage,
 		})
 	}
 
