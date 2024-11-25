@@ -45,19 +45,22 @@ func getSampleChromiumHistogramEnumValues(histogramIDMap map[string]string) []Ch
 	}
 }
 
-func insertSampleChromiumHistogramEnumValues(
-	ctx context.Context, t *testing.T, c *Client, enumIDMap map[string]string) map[string]string {
-	enumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
-	m := make(map[string]string, len(enumValues))
-	for _, enumValue := range enumValues {
-		enumValueID, err := c.UpsertChromiumHistogramEnumValue(ctx, enumValue)
+func insertTestChromiumHistogramEnumValues(
+	ctx context.Context,
+	client *Client,
+	t *testing.T,
+	values []ChromiumHistogramEnumValue,
+) map[string]string {
+	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(values))
+	for _, enumValue := range values {
+		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, enumValue)
 		if err != nil {
 			t.Fatalf("unable to insert sample enum value. error %s", err)
 		}
-		m[enumValue.Label] = *enumValueID
+		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *enumValueID
 	}
 
-	return m
+	return chromiumHistogramEnumValueToIDMap
 }
 
 // Helper method to get all the enum values in a stable order.
@@ -96,8 +99,10 @@ func (c *Client) ReadAllChromiumHistogramEnumValues(
 func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	enumIDMap := insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
-	insertSampleChromiumHistogramEnumValues(ctx, t, spannerClient, enumIDMap)
+	sampleEnums := getSampleChromiumHistogramEnums()
+	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
+	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
 	enumValues, err := spannerClient.ReadAllChromiumHistogramEnumValues(ctx, t)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())

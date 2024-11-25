@@ -217,14 +217,17 @@ func getSampleLatestDailyChromiumHistogramMetricsToCheckAfterUpdate(
 	}
 }
 
-func insertSampleDailyChromiumHistogramMetrics(
-	ctx context.Context, t *testing.T, c *Client) {
-	metrics := getSampleDailyChromiumHistogramMetricsToInsert()
-	for _, metric := range metrics {
+func insertTestDailyChromiumHistogramMetrics(
+	ctx context.Context, c *Client, t *testing.T, values []dailyChromiumHistogramMetricToInsert) {
+	for _, metricToInsert := range values {
 		err := c.UpsertDailyChromiumHistogramMetric(
-			ctx, metric.histogramName, metric.bucketID, metric.DailyChromiumHistogramMetric)
+			ctx,
+			metricToInsert.histogramName,
+			metricToInsert.bucketID,
+			metricToInsert.DailyChromiumHistogramMetric,
+		)
 		if err != nil {
-			t.Fatalf("unable to insert metric. error %s", err)
+			t.Errorf("unexpected error during insert of Chromium metrics. %s", err.Error())
 		}
 	}
 }
@@ -298,10 +301,14 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	ctx := context.Background()
 
 	idMap := setupRequiredTablesForWebFeatureChromiumHistogramEnum(ctx, t)
-	enumIDMap := insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
-	enumValueLabelToIDMap := insertSampleChromiumHistogramEnumValues(ctx, t, spannerClient, enumIDMap)
+  sampleEnums := getSampleChromiumHistogramEnums()
+	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
+  sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
 	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
-	insertSampleDailyChromiumHistogramMetrics(ctx, t, spannerClient)
+	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
+	insertTestDailyChromiumHistogramMetrics(ctx, spannerClient, t, sampleMetrics)
+
 	metricValues, err := spannerClient.readAllDailyChromiumHistogramMetrics(ctx)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())

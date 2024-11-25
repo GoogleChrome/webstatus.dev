@@ -26,7 +26,8 @@ import (
 func TestUpsertDailyChromiumHistogramCapstone(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	insertSampleChromiumHistogramEnums(ctx, t, spannerClient)
+	sampleEnums := getSampleChromiumHistogramEnums()
+	insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
 
 	in := DailyChromiumHistogramEnumCapstone{
 		HistogramName: metricdatatypes.WebDXFeatureEnum,
