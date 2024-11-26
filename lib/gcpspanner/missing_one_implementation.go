@@ -77,35 +77,29 @@ SELECT releases.EventReleaseDate,
 		INNER JOIN BrowserFeatureSupportEvents bfse
 			ON wf.ID = bfse.WebFeatureID
 			AND bfse.EventReleaseDate = releases.EventReleaseDate
+			AND bfse.TargetBrowserName = @targetBrowserParam AND bfse.SupportStatus = 'unsupported'
 		WHERE
-			bfse.TargetBrowserName = @targetBrowserParam AND bfse.SupportStatus = 'unsupported'
-			AND EXISTS (
+			EXISTS (
 				SELECT 1
 				FROM BrowserFeatureSupportEvents bfse_other
 				WHERE bfse_other.WebFeatureID = wf.ID
 					AND bfse_other.SupportStatus = 'supported'
 					AND bfse_other.TargetBrowserName IN UNNEST(@{{.OtherBrowsersListParamName}})
 					AND bfse_other.EventReleaseDate = releases.EventReleaseDate
-					AND bfse_other.EventReleaseDate >= @startAt
-					AND bfse_other.EventReleaseDate < @endAt
-					{{if .ReleaseDateParam }}
-					AND bfse_other.EventReleaseDate < @{{ .ReleaseDateParam }}
-					{{end}}
 				GROUP BY bfse_other.WebFeatureID
 				HAVING COUNT(DISTINCT bfse_other.TargetBrowserName) = @{{ .OtherBrowserListSizeParamName }}
 			)
 	) AS Count
 FROM (
-    SELECT DISTINCT EventReleaseDate
-    FROM BrowserFeatureSupportEvents
-    WHERE TargetBrowserName = @targetBrowserParam
-		AND EventBrowserName IN UNNEST(@allBrowsersParam)
+    SELECT DISTINCT ReleaseDate AS EventReleaseDate
+    FROM BrowserReleases
+    WHERE BrowserName IN UNNEST(@allBrowsersParam)
+	AND ReleaseDate >= @startAt
+	AND ReleaseDate < @endAt
+	{{if .ReleaseDateParam }}
+	AND ReleaseDate < @{{ .ReleaseDateParam }}
+	{{end}}
 ) releases
-WHERE releases.EventReleaseDate >= @startAt
-  AND releases.EventReleaseDate < @endAt
-  {{if .ReleaseDateParam }}
-  AND releases.EventReleaseDate < @{{ .ReleaseDateParam }}
-  {{end}}
 ORDER BY releases.EventReleaseDate DESC
 LIMIT @limit;
 `
