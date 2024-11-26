@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -78,17 +79,24 @@ SELECT releases.EventReleaseDate,
 			ON wf.ID = bfse.WebFeatureID
 			AND bfse.EventReleaseDate = releases.EventReleaseDate
 			AND bfse.TargetBrowserName = @targetBrowserParam AND bfse.SupportStatus = 'unsupported'
+		INNER JOIN (
+			SELECT
+				bfse_other.WebFeatureID,
+				ARRAY_AGG(DISTINCT bfse_other.TargetBrowserName) AS SupportedBrowsers
+			FROM
+				BrowserFeatureSupportEvents bfse_other
+			WHERE
+				bfse_other.SupportStatus = 'supported'
+				AND bfse_other.EventReleaseDate = releases.EventReleaseDate
+			GROUP BY
+				bfse_other.WebFeatureID
+			) AS other_browsers ON wf.ID = other_browsers.WebFeatureID
 		WHERE
-			EXISTS (
-				SELECT 1
-				FROM BrowserFeatureSupportEvents bfse_other
-				WHERE bfse_other.WebFeatureID = wf.ID
-					AND bfse_other.SupportStatus = 'supported'
-					AND bfse_other.TargetBrowserName IN UNNEST(@{{.OtherBrowsersListParamName}})
-					AND bfse_other.EventReleaseDate = releases.EventReleaseDate
-				GROUP BY bfse_other.WebFeatureID
-				HAVING COUNT(DISTINCT bfse_other.TargetBrowserName) = @{{ .OtherBrowserListSizeParamName }}
-			)
+			{{ range $browserParamName := .OtherBrowsersParamNames }}
+				@{{ $browserParamName }} IN UNNEST(other_browsers.SupportedBrowsers)
+				AND
+			{{ end }}
+			1=1
 	) AS Count
 FROM (
     SELECT DISTINCT ReleaseDate AS EventReleaseDate
@@ -105,9 +113,8 @@ LIMIT @limit;
 `
 
 type missingOneImplTemplateData struct {
-	OtherBrowserListSizeParamName string
-	OtherBrowsersListParamName    string
-	ReleaseDateParam              string
+	ReleaseDateParam        string
+	OtherBrowsersParamNames []string
 }
 
 func buildMissingOneImplTemplate(
@@ -124,6 +131,12 @@ func buildMissingOneImplTemplate(
 	allBrowsers[len(allBrowsers)-1] = targetBrowser
 	params["targetBrowserParam"] = targetBrowser
 	params["allBrowsersParam"] = allBrowsers
+	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
+	for i := range otherBrowsers {
+		paramName := fmt.Sprintf("otherBrowser%d", i)
+		params[paramName] = otherBrowsers[i]
+		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
+	}
 
 	params["limit"] = pageSize
 
@@ -136,16 +149,9 @@ func buildMissingOneImplTemplate(
 	params["startAt"] = startAt
 	params["endAt"] = endAt
 
-	otherBrowsersListParamName := "otherBrowsersList"
-	params[otherBrowsersListParamName] = otherBrowsers
-
-	otherBrowserListSizeParamName := "otherBrowserListSize"
-	params[otherBrowserListSizeParamName] = len(otherBrowsers)
-
 	tmplData := missingOneImplTemplateData{
-		OtherBrowserListSizeParamName: otherBrowserListSizeParamName,
-		OtherBrowsersListParamName:    otherBrowsersListParamName,
-		ReleaseDateParam:              releaseDateParamName,
+		ReleaseDateParam:        releaseDateParamName,
+		OtherBrowsersParamNames: otherBrowsersParamNames,
 	}
 	sql := missingOneImplTemplate.Execute(tmplData)
 	stmt := spanner.NewStatement(sql)
