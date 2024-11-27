@@ -12,13 +12,26 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- This index is designed to optimize queries that retrieve "missing one implementation" counts.
--- It covers the columns used to identify features supported by all browsers except the target browser
--- on a specific release date. The descending order on EventReleaseDate supports efficient retrieval
+-- This index is designed to optimize queries that need to quickly identify the support status of
+-- a specific feature across different browsers and releases. This is particularly useful for
+-- identifying "missing one implementation" scenarios, where a feature is supported by all
+-- browsers except the target browser on a given release date.
+-- The descending order on EventReleaseDate supports efficient retrieval
 -- of the most recent releases.
-CREATE INDEX BrowserFeatureSupportEvents_MissingOne ON
+CREATE INDEX BrowserFeatureSupportEvents_FeatureStatusOnBrowserRelease ON
     BrowserFeatureSupportEvents(
         WebFeatureID,
+        EventReleaseDate DESC,
+        TargetBrowserName,
+        SupportStatus
+    );
+
+-- This index is designed to optimize queries that need to quickly identify the support status of
+-- all features for a specific target browser on a given release date.
+-- The descending order on EventReleaseDate supports efficient retrieval
+-- of the most recent releases.
+CREATE INDEX BrowserFeatureSupportEvents_AllFeatureStatusesOnBrowserRelease ON
+    BrowserFeatureSupportEvents(
         EventReleaseDate DESC,
         TargetBrowserName,
         SupportStatus

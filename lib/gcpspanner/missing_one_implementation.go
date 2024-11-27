@@ -74,11 +74,7 @@ func encodeMissingOneImplCursor(releaseDate time.Time) string {
 }
 
 const localMissingOneImplCountRawTemplate = `
-WITH WebFeatureIDs AS (
-    SELECT ID
-    FROM WebFeatures
-),
-TargetBrowserUnsupportedFeatures AS (
+WITH TargetBrowserUnsupportedFeatures AS (
     SELECT bfse.WebFeatureID, bfse.EventReleaseDate
     FROM BrowserFeatureSupportEvents bfse
     WHERE bfse.TargetBrowserName = @targetBrowserParam
@@ -98,20 +94,17 @@ OtherBrowsersSupportedFeatures AS (
 )
 SELECT releases.EventReleaseDate,
 	(
-		SELECT COUNT(DISTINCT wf.ID)
-		FROM WebFeatureIDs AS wf
-		INNER JOIN TargetBrowserUnsupportedFeatures tbuf
-			ON wf.ID = tbuf.WebFeatureID
-			AND tbuf.EventReleaseDate = releases.EventReleaseDate
+		SELECT COUNT(DISTINCT tbuf.WebFeatureID)
+		FROM TargetBrowserUnsupportedFeatures tbuf
 		INNER JOIN OtherBrowsersSupportedFeatures obsf
 			ON tbuf.WebFeatureID = obsf.WebFeatureID
 			AND obsf.EventReleaseDate = tbuf.EventReleaseDate
 		WHERE
+			tbuf.EventReleaseDate = releases.EventReleaseDate
 			{{ range $browserParamName := .OtherBrowsersParamNames }}
-				@{{ $browserParamName }} IN UNNEST(obsf.SupportedBrowsers)
 				AND
+				@{{ $browserParamName }} IN UNNEST(obsf.SupportedBrowsers)
 			{{ end }}
-			1=1
 	) AS Count
 FROM (
     SELECT DISTINCT ReleaseDate AS EventReleaseDate
@@ -129,31 +122,24 @@ LIMIT @limit;
 `
 
 const gcpMissingOneImplCountRawTemplate = `
-WITH WebFeatureIDs AS (
-    SELECT ID
-    FROM WebFeatures
-)
 SELECT releases.EventReleaseDate,
 	(
-		SELECT COUNT(DISTINCT wf.ID)
-		FROM WebFeatureIDs AS wf
-		INNER JOIN BrowserFeatureSupportEvents bfse
-			ON wf.ID = bfse.WebFeatureID
-			AND bfse.EventReleaseDate = releases.EventReleaseDate
-			AND bfse.TargetBrowserName = @targetBrowserParam AND bfse.SupportStatus = 'unsupported'
+		SELECT COUNT(DISTINCT bfse.WebFeatureID)
+		FROM BrowserFeatureSupportEvents bfse
 		WHERE
+			bfse.EventReleaseDate = releases.EventReleaseDate
+			AND bfse.TargetBrowserName = @targetBrowserParam
+			AND bfse.SupportStatus = 'unsupported'
 		{{ range $browserParamName := .OtherBrowsersParamNames }}
-			EXISTS (
+			AND EXISTS (
 				SELECT 1
 				FROM BrowserFeatureSupportEvents bfse_other
-				WHERE bfse_other.WebFeatureID = wf.ID
+				WHERE bfse_other.WebFeatureID = bfse.WebFeatureID
 				AND bfse_other.TargetBrowserName = @{{ $browserParamName }}
 				AND bfse_other.SupportStatus = 'supported'
 				AND bfse_other.EventReleaseDate = bfse.EventReleaseDate
 			)
-			AND
 		{{ end }}
-			1=1
 	) AS Count
 FROM (
     SELECT DISTINCT ReleaseDate AS EventReleaseDate

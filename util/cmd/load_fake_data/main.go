@@ -37,7 +37,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-const releasesPerBrowser = 10
+const releasesPerBrowser = 50
 const runsPerBrowserPerChannel = 100
 const numberOfFeatures = 80
 
