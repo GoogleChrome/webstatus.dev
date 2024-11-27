@@ -25,13 +25,16 @@ import (
 )
 
 func init() {
-	missingOneImplTemplate = NewQueryTemplate(missingOneImplCountRawTemplate)
+	gcpMissingOneImplTemplate = NewQueryTemplate(gcpMissingOneImplCountRawTemplate)
+	localMissingOneImplTemplate = NewQueryTemplate(localMissingOneImplCountRawTemplate)
 }
 
 // nolint: gochecknoglobals // WONTFIX. Compile the template once at startup. Startup fails if invalid.
 var (
-	// missingOneImplTemplate is the compiled version of missingOneImplCountRawTemplate.
-	missingOneImplTemplate BaseQueryTemplate
+	// gcpMissingOneImplTemplate is the compiled version of gcpMissingOneImplCountRawTemplate.
+	gcpMissingOneImplTemplate BaseQueryTemplate
+	// localMissingOneImplTemplate is the compiled version of localMissingOneImplCountRawTemplate.
+	localMissingOneImplTemplate BaseQueryTemplate
 )
 
 // MissingOneImplCountPage contains the details for the missing one implementation count request.
@@ -70,7 +73,62 @@ func encodeMissingOneImplCursor(releaseDate time.Time) string {
 	})
 }
 
-const missingOneImplCountRawTemplate = `
+const localMissingOneImplCountRawTemplate = `
+WITH WebFeatureIDs AS (
+    SELECT ID
+    FROM WebFeatures
+),
+TargetBrowserUnsupportedFeatures AS (
+    SELECT bfse.WebFeatureID, bfse.EventReleaseDate
+    FROM BrowserFeatureSupportEvents bfse
+    WHERE bfse.TargetBrowserName = @targetBrowserParam
+      AND bfse.SupportStatus = 'unsupported'
+),
+OtherBrowsersSupportedFeatures AS (
+    SELECT
+        bfse_other.WebFeatureID,
+        bfse_other.EventReleaseDate,
+        ARRAY_AGG(DISTINCT bfse_other.TargetBrowserName) AS SupportedBrowsers
+    FROM
+        BrowserFeatureSupportEvents bfse_other
+    WHERE
+        bfse_other.SupportStatus = 'supported'
+    GROUP BY
+        bfse_other.WebFeatureID, bfse_other.EventReleaseDate
+)
+SELECT releases.EventReleaseDate,
+	(
+		SELECT COUNT(DISTINCT wf.ID)
+		FROM WebFeatureIDs AS wf
+		INNER JOIN TargetBrowserUnsupportedFeatures tbuf
+			ON wf.ID = tbuf.WebFeatureID
+			AND tbuf.EventReleaseDate = releases.EventReleaseDate
+		INNER JOIN OtherBrowsersSupportedFeatures obsf
+			ON tbuf.WebFeatureID = obsf.WebFeatureID
+			AND obsf.EventReleaseDate = tbuf.EventReleaseDate
+		WHERE
+			{{ range $browserParamName := .OtherBrowsersParamNames }}
+				@{{ $browserParamName }} IN UNNEST(obsf.SupportedBrowsers)
+				AND
+			{{ end }}
+			1=1
+	) AS Count
+FROM (
+    SELECT DISTINCT ReleaseDate AS EventReleaseDate
+    FROM BrowserReleases
+    WHERE BrowserName IN UNNEST(@allBrowsersParam)
+	AND ReleaseDate >= @startAt
+	AND ReleaseDate < @endAt
+	{{if .ReleaseDateParam }}
+	AND ReleaseDate < @{{ .ReleaseDateParam }}
+	{{end}}
+	AND ReleaseDate < CURRENT_TIMESTAMP()
+) releases
+ORDER BY releases.EventReleaseDate DESC
+LIMIT @limit;
+`
+
+const gcpMissingOneImplCountRawTemplate = `
 WITH WebFeatureIDs AS (
     SELECT ID
     FROM WebFeatures
@@ -106,6 +164,7 @@ FROM (
 	{{if .ReleaseDateParam }}
 	AND ReleaseDate < @{{ .ReleaseDateParam }}
 	{{end}}
+	AND ReleaseDate < CURRENT_TIMESTAMP()
 ) releases
 ORDER BY releases.EventReleaseDate DESC
 LIMIT @limit;
@@ -116,6 +175,33 @@ type missingOneImplTemplateData struct {
 	OtherBrowsersParamNames []string
 }
 
+// MissingOneImplementationQuery contains the base query for all missing one implementation
+// related queries.
+type MissingOneImplementationQuery interface {
+	Query(missingOneImplTemplateData) string
+}
+
+// GCPMissingOneImplementationQuery provides a base query that is optimal for GCP Spanner to retrieve the information
+// described in the MissingOneImplementationQuery interface.
+type GCPMissingOneImplementationQuery struct{}
+
+func (q GCPMissingOneImplementationQuery) Query(data missingOneImplTemplateData) string {
+	return gcpMissingOneImplTemplate.Execute(data)
+}
+
+// LocalMissingOneImplementationQuery is a version of the base query that works well on the local emulator.
+// For some reason, the local emulator takes at least 1 minute with the fake data when using the
+// GCPMissingOneImplementationQuery.
+// Rather than sacrifice performance for the sake of compatibility, we have this LocalMissingOneImplementationQuery
+// implementation which is good for the volume of data locally.
+// TODO. Consolidate to using either LocalMissingOneImplementationQuery or GCPMissingOneImplementationQuery to reduce
+// the maintenance burden.
+type LocalMissingOneImplementationQuery struct{}
+
+func (q LocalMissingOneImplementationQuery) Query(data missingOneImplTemplateData) string {
+	return localMissingOneImplTemplate.Execute(data)
+}
+
 func buildMissingOneImplTemplate(
 	cursor *missingOneImplCursor,
 	targetBrowser string,
@@ -123,6 +209,7 @@ func buildMissingOneImplTemplate(
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
+	tmpl MissingOneImplementationQuery,
 ) spanner.Statement {
 	params := map[string]interface{}{}
 	allBrowsers := make([]string, len(otherBrowsers)+1)
@@ -152,7 +239,7 @@ func buildMissingOneImplTemplate(
 		ReleaseDateParam:        releaseDateParamName,
 		OtherBrowsersParamNames: otherBrowsersParamNames,
 	}
-	sql := missingOneImplTemplate.Execute(tmplData)
+	sql := tmpl.Query(tmplData)
 	stmt := spanner.NewStatement(sql)
 	stmt.Params = params
 
@@ -188,6 +275,7 @@ func (c *Client) ListMissingOneImplCounts(
 		startAt,
 		endAt,
 		pageSize,
+		c.missingOneImplQuery,
 	)
 
 	it := txn.Query(ctx, stmt)
