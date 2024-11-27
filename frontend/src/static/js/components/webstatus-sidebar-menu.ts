@@ -30,7 +30,12 @@ import {
   navigateToUrl,
 } from '../utils/app-router.js';
 
-import {GITHUB_REPO_ISSUE_LINK, ABOUT_PAGE_LINK} from '../utils/constants.js';
+import {
+  GITHUB_REPO_ISSUE_LINK,
+  ABOUT_PAGE_LINK,
+  DEFAULT_BOOKMARKS,
+  Bookmark,
+} from '../utils/constants.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
@@ -58,13 +63,6 @@ const navigationMap: NavigationMap = {
   },
 };
 
-export interface Bookmark {
-  // Display name
-  name: string;
-  // Query for filtering
-  query: string;
-}
-
 interface GetLocationFunction {
   (): AppLocation;
 }
@@ -72,10 +70,6 @@ interface GetLocationFunction {
 interface NavigateToUrlFunction {
   (url: string, event?: MouseEvent): void;
 }
-
-const DEFAULT_BOOKMARKS: Bookmark[] = [
-  {name: 'Baseline 2023', query: 'baseline_date:2023-01-01..2023-12-31'},
-];
 
 @customElement('webstatus-sidebar-menu')
 export class WebstatusSidebarMenu extends LitElement {

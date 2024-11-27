@@ -59,6 +59,8 @@ describe('webstatus-overview-content', () => {
       element = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
+      // Set location to one of the DEFAULT_BOOKMARKS.
+      element.location = {search: '?q=baseline_date:2023-01-01..2023-12-31'};
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;
@@ -98,6 +100,98 @@ describe('webstatus-overview-content', () => {
       expect(testContainer.textContent?.trim()).to.match(
         /Percentage of features mapped:\s*75%/,
       );
+    });
+  });
+  describe('RenderBookmarkUI', () => {
+    let container: HTMLElement;
+    afterEach(() => {
+      document.body.removeChild(container);
+    });
+
+    it('should display the bookmark title and description when query is matched', async () => {
+      let parent: FakeParentElement;
+      let element: WebstatusOverviewContent;
+      container = document.createElement('div');
+      container.innerHTML = `
+        <fake-parent-element>
+          <webstatus-overview-content>
+          </webstatus-overview-content>
+        </fake-parent-element>
+      `;
+      parent = container.querySelector(
+        'fake-parent-element',
+      ) as FakeParentElement;
+      element = container.querySelector(
+        'webstatus-overview-content',
+      ) as WebstatusOverviewContent;
+      // Set location to one of the DEFAULT_BOOKMARKS.
+      element.location = {search: '?q=test_query_1'};
+      element.bookmarks = [
+        {
+          name: 'Test Bookmark 1',
+          query: 'test_query_1',
+          description: 'test description1',
+        },
+        {
+          name: 'Test Bookmark 2',
+          query: 'test_query_2',
+          description: 'test description2',
+        },
+      ];
+      document.body.appendChild(container);
+      await parent.updateComplete;
+      await element.updateComplete;
+
+      assert.exists(element.getBookmarkFromQuery());
+
+      const title = element?.shadowRoot?.querySelector('#overview-title');
+      expect(title).to.exist;
+      expect(title!.textContent!.trim()).to.equal('Test Bookmark 1');
+
+      const description = element?.shadowRoot?.querySelector(
+        '#overview-description',
+      );
+      expect(description).to.exist;
+      expect(description!.textContent).to.contain('test description1');
+    });
+    it('should not display description UI when it is empty', async () => {
+      let parent: FakeParentElement;
+      let element: WebstatusOverviewContent;
+      container = document.createElement('div');
+      container.innerHTML = `
+        <fake-parent-element>
+          <webstatus-overview-content>
+          </webstatus-overview-content>
+        </fake-parent-element>
+      `;
+      parent = container.querySelector(
+        'fake-parent-element',
+      ) as FakeParentElement;
+      element = container.querySelector(
+        'webstatus-overview-content',
+      ) as WebstatusOverviewContent;
+      // Set location to one of the DEFAULT_BOOKMARKS.
+      element.location = {search: '?q=test_query_1'};
+      element.bookmarks = [
+        {
+          name: 'Test Bookmark 1',
+          query: 'test_query_1',
+        },
+      ];
+      document.body.appendChild(container);
+      await parent.updateComplete;
+      await element.updateComplete;
+
+      assert.exists(element.getBookmarkFromQuery());
+
+      const title = element?.shadowRoot?.querySelector('#overview-title');
+      expect(title).to.exist;
+      expect(title!.textContent!.trim()).to.equal('Test Bookmark 1');
+
+      const description = element?.shadowRoot?.querySelector(
+        '#overview-description',
+      );
+      expect(description).to.not.exist;
     });
   });
 });

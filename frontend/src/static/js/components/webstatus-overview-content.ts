@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
+import {
+  LitElement,
+  type TemplateResult,
+  CSSResultGroup,
+  css,
+  html,
+  nothing,
+} from 'lit';
 import {TaskStatus} from '@lit/task';
 import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
@@ -31,6 +38,8 @@ import {
   webFeatureProgressContext,
 } from '../contexts/webfeature-progress-context.js';
 import {Toast} from '../utils/toast.js';
+import {getSearchQuery} from '../utils/urls.js';
+import {DEFAULT_BOOKMARKS, Bookmark} from '../utils/constants.js';
 
 const webFeaturesRepoUrl = 'https://github.com/web-platform-dx/web-features';
 
@@ -50,6 +59,9 @@ export class WebstatusOverviewContent extends LitElement {
   @state()
   webFeaturesProgress?: WebFeatureProgress;
 
+  @state()
+  bookmarks: Bookmark[] = DEFAULT_BOOKMARKS;
+
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -63,6 +75,11 @@ export class WebstatusOverviewContent extends LitElement {
         }
       `,
     ];
+  }
+
+  getBookmarkFromQuery(): Bookmark | undefined {
+    const currentQuery = getSearchQuery(this.location);
+    return this.bookmarks.find(bookmark => bookmark.query === currentQuery);
   }
 
   renderMappingPercentage(): TemplateResult {
@@ -108,11 +125,19 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   render(): TemplateResult {
+    const bookmark = this.getBookmarkFromQuery();
+    const pageTitle = bookmark ? bookmark.name : `Features overview`;
+    const pageDescription = bookmark?.description;
     return html`
       <div class="main">
         <div class="hbox halign-items-space-between header-line">
-          <h1 class="halign-stretch">Features overview</h1>
+          <h1 class="halign-stretch" id="overview-title">${pageTitle}</h1>
         </div>
+        ${pageDescription
+          ? html`<div class="hbox wrap" id="overview-description">
+              <h3>${pageDescription}</h3>
+            </div>`
+          : nothing}
         <div class="hbox wrap">
           ${this.renderCount()}
           <div class="spacer"></div>
