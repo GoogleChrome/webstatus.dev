@@ -20,3 +20,23 @@ export const SEARCH_QUERY_README_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/blob/main/antlr/FeatureSearch.md';
 export const ABOUT_PAGE_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/wiki/About-Web-Platform-Status';
+
+export interface Bookmark {
+  // Bookmark display name
+  name: string;
+  // Query for filtering
+  query: string;
+  // Overview page title
+  title: string;
+  // Overview page description
+  description: string;
+}
+
+export const DEFAULT_BOOKMARKS: Bookmark[] = [
+  {
+    name: 'Baseline 2023',
+    query: 'baseline_date:2023-01-01..2023-12-31',
+    title: 'Baseline 2023',
+    description: 'All Baseline 2023 features',
+  },
+];
