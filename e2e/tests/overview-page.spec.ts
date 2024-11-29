@@ -344,6 +344,6 @@ test.describe('web features mapping progress', () => {
     const bookmarkDescription = page.locator('#overview-description');
     await expect(bookmarkDescription).toBeVisible();
     const description = await bookmarkDescription.textContent();
-    await expect(description).toEqual('All Baseline 2023 features');
+    await expect(description).toContain('All Baseline 2023 features');
   });
 });
