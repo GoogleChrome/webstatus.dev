@@ -348,7 +348,10 @@ export class FeaturePage extends LitElement {
     ) {
       this.startDate = newStartDate;
       this.updateUrl();
-      await this._startMetricsTask(true);
+      await Promise.all([
+        this._startMetricsTask(true),
+        this._startUsageMetricsTask(true),
+      ]);
     }
   }
 
@@ -361,7 +364,10 @@ export class FeaturePage extends LitElement {
     ) {
       this.endDate = newEndDate;
       this.updateUrl();
-      await this._startMetricsTask(true);
+      await Promise.all([
+        this._startMetricsTask(true),
+        this._startUsageMetricsTask(true),
+      ]);
     }
   }
 
