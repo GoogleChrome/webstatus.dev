@@ -15,7 +15,7 @@
     "@playwright/test": "^1.49.0",
     "@types/node": "^22.9.0",
     "concurrently": "^9.1.0",
-    "eslint-plugin-n": "^17.13.1",
+    "eslint-plugin-n": "^17.14.0",
     "gts": "^6.0.2",
     "openapi-typescript": "7.4.3",
     "prettier": "3.3.3",
