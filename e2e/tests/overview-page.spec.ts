@@ -330,20 +330,4 @@ test.describe('web features mapping progress', () => {
     const textLocator = page.getByText(mappingPattern);
     await expect(textLocator).toBeVisible({visible: false});
   });
-
-  test('Show bookmark title and description', async ({page}) => {
-    await gotoOverviewPageUrl(
-      page,
-      'http://localhost:5555/?q=baseline_date%3A2023-01-01..2023-12-31',
-    );
-    const overviewTitle = page.locator('#overview-title');
-    await expect(overviewTitle).toBeVisible();
-    const title = await overviewTitle.textContent();
-    await expect(title).toEqual('Baseline 2023');
-
-    const bookmarkDescription = page.locator('#overview-description');
-    await expect(bookmarkDescription).toBeVisible();
-    const description = await bookmarkDescription.textContent();
-    await expect(description).toContain('All Baseline 2023 features');
-  });
 });

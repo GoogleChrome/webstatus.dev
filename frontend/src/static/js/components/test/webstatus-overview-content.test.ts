@@ -59,6 +59,8 @@ describe('webstatus-overview-content', () => {
       element = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
+      // Set location to one of the DEFAULT_BOOKMARKS.
+      element.location = {search: '?q=baseline_date:2023-01-01..2023-12-31'};
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;
@@ -98,6 +100,20 @@ describe('webstatus-overview-content', () => {
       expect(testContainer.textContent?.trim()).to.match(
         /Percentage of features mapped:\s*75%/,
       );
+    });
+
+    it('should display the bookmark title and description when query is matched', async () => {
+      assert.exists(element.getBookmarkFromQuery());
+
+      const title = element?.shadowRoot?.querySelector('#overview-title');
+      expect(title).to.exist;
+      expect(title!.textContent!.trim()).to.equal('Baseline 2023');
+
+      const description = element?.shadowRoot?.querySelector(
+        '#overview-description',
+      );
+      expect(description).to.exist;
+      expect(description!.textContent).to.contain('All Baseline 2023 features');
     });
   });
 });

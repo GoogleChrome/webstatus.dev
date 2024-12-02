@@ -38,6 +38,7 @@ import {
   webFeatureProgressContext,
 } from '../contexts/webfeature-progress-context.js';
 import {Toast} from '../utils/toast.js';
+import {getSearchQuery} from '../utils/urls.js';
 import {DEFAULT_BOOKMARKS, Bookmark} from '../utils/constants.js';
 
 const webFeaturesRepoUrl = 'https://github.com/web-platform-dx/web-features';
@@ -74,7 +75,7 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   getBookmarkFromQuery(): Bookmark | undefined {
-    const currentQuery = new URLSearchParams(location.search).get('q');
+    const currentQuery = getSearchQuery(this.location);
     return DEFAULT_BOOKMARKS.find(bookmark => bookmark.query === currentQuery);
   }
 
@@ -122,7 +123,7 @@ export class WebstatusOverviewContent extends LitElement {
 
   render(): TemplateResult {
     const bookmark = this.getBookmarkFromQuery();
-    const pageTitle = bookmark ? bookmark.title : `Features overview`;
+    const pageTitle = bookmark ? bookmark.name : `Features overview`;
     const pageDescription = bookmark?.description;
     return html`
       <div class="main">

@@ -25,13 +25,11 @@ const testBookmarks: Bookmark[] = [
   {
     name: 'Test Bookmark 1',
     query: 'test_query_1',
-    title: 'title1',
     description: 'test description1',
   },
   {
     name: 'Test Bookmark 2',
     query: 'test_query_2',
-    title: 'title2',
     description: 'test description2',
   },
 ];
