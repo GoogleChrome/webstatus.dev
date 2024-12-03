@@ -64,7 +64,7 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
 		releases := make([]gcpspanner.BrowserRelease, 0, releasesPerBrowser)
 		for i := 0; i < releasesPerBrowser; i++ {
 			if i > 1 {
-				baseDate = releases[i-1].ReleaseDate.AddDate(0, 1, r.Intn(90)) // Add 1 month to ~3 months
+				baseDate = releases[i-1].ReleaseDate.AddDate(0, 2, r.Intn(90)) // Add 2 months to ~5 months
 			}
 			release := gcpspanner.BrowserRelease{
 				BrowserName:    browser,
@@ -138,29 +138,61 @@ func generateFeatureMetadata(ctx context.Context, client *gds.Client, features [
 }
 
 func generateMissingOneImplementations(
-	featureAvailability map[string]map[int]map[string]bool,
+	featureAvailability map[string]map[string]int,
 	features []gcpspanner.SpannerWebFeature,
 ) {
 	for i := 0; i < releasesPerBrowser; i++ {
+		// Choose a random browser to be the "missing one" for this release
 		missingOneBrowserIndex := r.Intn(len(browsers))
+
+		// Choose a random feature to be the "missing one" for this release
 		missingOneFeatureIndex := r.Intn(len(features))
+		missingOneFeatureKey := features[missingOneFeatureIndex].FeatureKey
 
 		for j, browser := range browsers {
+			// This browser will be the "missing one"
 			if j == missingOneBrowserIndex {
 				continue
 			}
-			featureAvailability[browser][i][features[missingOneFeatureIndex].FeatureKey] = true
 
+			// Make all browsers except the chosen one support the chosen feature
+			// Only mark it as supported if it hasn't been marked before.
+			// The browser has a 70% chance of supporting it.
+			if _, ok := featureAvailability[browser][missingOneFeatureKey]; !ok && r.Intn(10) < 7 {
+				// Mark as supported from this release onwards
+				featureAvailability[browser][missingOneFeatureKey] = i + 1
+			}
+
+			// For the remaining features, given a 10% chance, assign support status to the current browser
+			// only if it hasn't been assigned before
 			for k, feature := range features {
-				if k != missingOneFeatureIndex && r.Intn(2) == 0 {
-					featureAvailability[browser][i][feature.FeatureKey] = true
+				if k != missingOneFeatureIndex { // Skip the "missing one" feature
+					if _, ok := featureAvailability[browser][feature.FeatureKey]; !ok && r.Intn(10) == 0 {
+						featureAvailability[browser][feature.FeatureKey] = i + 1
+					}
 				}
 			}
 		}
 
+		// Mark the "missing one" feature as supported by the "missing one" browser on the next release
+		// (if it's not the last release AND it's not already supported AND given a 10% chance)
 		if i < releasesPerBrowser-1 {
-			lastBrowser := browsers[len(browsers)-1]
-			featureAvailability[lastBrowser][i+1][features[missingOneFeatureIndex].FeatureKey] = true
+			missingOneBrowser := browsers[missingOneBrowserIndex]
+			if _, ok := featureAvailability[missingOneBrowser][missingOneFeatureKey]; !ok && r.Intn(10) == 0 {
+				// Mark as supported from the next release onwards
+				featureAvailability[missingOneBrowser][missingOneFeatureKey] = i + 2
+			}
+		}
+	}
+}
+
+func generateUnimplementedFeatures(featureAvailability map[string]map[string]int) {
+	for _, featureReleases := range featureAvailability {
+		for featureKey := range featureReleases {
+			// 10% chance of removing it
+			if r.Intn(10) == 0 {
+				delete(featureReleases, featureKey)
+			}
 		}
 	}
 }
@@ -172,41 +204,34 @@ func generateFeatureAvailability(
 ) (int, error) {
 	availabilitiesInserted := 0
 	// Create a map to track feature availability per browser and release
-	featureAvailability := make(map[string]map[int]map[string]bool) // map[browserName]map[releaseIdx]map[featureID]bool
+	featureAvailability := make(map[string]map[string]int) // map[browserName]map[featureKey]releaseNumber
 
 	// Initialize the map with all features marked as unsupported for each browser and release
 	for _, browser := range browsers {
-		featureAvailability[browser] = make(map[int]map[string]bool)
-		for i := 0; i < releasesPerBrowser; i++ {
-			featureAvailability[browser][i] = make(map[string]bool)
-			for _, feature := range features {
-				featureAvailability[browser][i][feature.FeatureKey] = false
-			}
-		}
+		featureAvailability[browser] = make(map[string]int)
 	}
 
 	// Ensure at least one "missing one" implementation per release, and vary feature support
 	generateMissingOneImplementations(featureAvailability, features)
 
+	// Ensure that some features are never implemented in a browser.
+	generateUnimplementedFeatures(featureAvailability)
+
 	// Insert the availabilities into Spanner
 	for _, browser := range browsers {
-		for i := 0; i < releasesPerBrowser; i++ {
-			for featureKey, isSupported := range featureAvailability[browser][i] {
-				if isSupported {
-					err := client.InsertBrowserFeatureAvailability(
-						ctx,
-						featureKey,
-						gcpspanner.BrowserFeatureAvailability{
-							BrowserName:    browser,
-							BrowserVersion: fmt.Sprintf("%d", i+1),
-						},
-					)
-					if err != nil {
-						return availabilitiesInserted, err
-					}
-					availabilitiesInserted++
-				}
+		for featureKey, releaseNumber := range featureAvailability[browser] {
+			err := client.InsertBrowserFeatureAvailability(
+				ctx,
+				featureKey,
+				gcpspanner.BrowserFeatureAvailability{
+					BrowserName:    browser,
+					BrowserVersion: fmt.Sprintf("%d", releaseNumber),
+				},
+			)
+			if err != nil {
+				return availabilitiesInserted, err
 			}
+			availabilitiesInserted++
 		}
 	}
 
