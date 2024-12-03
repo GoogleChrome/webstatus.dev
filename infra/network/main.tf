@@ -77,7 +77,7 @@ resource "google_project_iam_member" "internal_network_user" {
   member  = "serviceAccount:service-${data.google_project.internal.number}@serverless-robot-prod.iam.gserviceaccount.com"
 }
 
-# Allocate address space for Google Managed Services (e.g. Redis) to use and communicate
+# Allocate address space for Google Managed Services (e.g. Valkey) to use and communicate
 # to our resources in our project.
 resource "google_compute_global_address" "private_ip_address" {
   name          = "${var.env_id}-private-service-access-ip"

@@ -1020,8 +1020,8 @@ github.com/tklauser/numcpus v0.6.1 h1:ng9scYS7az0Bk4OZLvrNXNSAO2Pxr1XXRAPyjhIx+F
 github.com/tklauser/numcpus v0.6.1/go.mod h1:1XfjsgE2zo8GVw7POkMbHENHzVg3GzmoZ9fESEdAacY=
 github.com/ugorji/go/codec v1.2.11 h1:BMaWp1Bb6fHwEtbplGBGJ498wD+LKlNSl25MjdZY4dU=
 github.com/ugorji/go/codec v1.2.11/go.mod h1:UNopzCgEMSXjBc6AOMqYvWC1ktqTAfzJZUZgYf6w6lg=
-github.com/web-platform-tests/wpt.fyi v0.0.0-20241028124407-3e70c0607edd h1:doiVMUpXpmXP9Bmki9S5xBqOyn6S5//Itx/WkeiEDIA=
-github.com/web-platform-tests/wpt.fyi v0.0.0-20241028124407-3e70c0607edd/go.mod h1:hFjMfLPC8Iky81NPD+J1WdVmWHE+Cnd7brr/GjYWs/M=
+github.com/web-platform-tests/wpt.fyi v0.0.0-20241029135702-72e945910908 h1:pkpM14RWLCNJWUVhWt5eHKVNRt4Vf5oQqx+2DQcOOlc=
+github.com/web-platform-tests/wpt.fyi v0.0.0-20241029135702-72e945910908/go.mod h1:zrVUpyI1HjThN3jO+QqIiD0PRNXXtOfZIsxUziMtWkY=
 github.com/yuin/goldmark v1.1.25/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.1.32/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=

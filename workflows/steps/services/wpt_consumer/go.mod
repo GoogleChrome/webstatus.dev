@@ -11,7 +11,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20241028191306-75f646a1ea74
 	github.com/google/go-github/v65 v65.0.0
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20241028124407-3e70c0607edd
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20241029135702-72e945910908
 )
 
 require (

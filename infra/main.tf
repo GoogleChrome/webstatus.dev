@@ -114,7 +114,7 @@ module "backend" {
   custom_ssl_certificates   = var.custom_ssl_certificates_for_backend
   projects                  = var.projects
   cache_duration            = var.cache_duration
-  redis_env_vars            = module.storage.redis_env_vars
+  valkey_env_vars           = module.storage.valkey_env_vars
   cors_allowed_origin       = var.backend_cors_allowed_origin
   min_instance_count        = var.backend_min_instance_count
   max_instance_count        = var.backend_max_instance_count

@@ -13,23 +13,13 @@
 # limitations under the License.
 
 apiVersion: v1
-kind: Pod
+kind: Service
 metadata:
-  name: redis
-  labels:
-    app.kubernetes.io/name: redis
+  name: valkey
 spec:
-  containers:
-    - name: redis
-      image: redis
-      imagePullPolicy: Never # Need this for pushing directly into minikube
-      ports:
-        - containerPort: 6379
-          name: redis-port
-      resources:
-        limits:
-          cpu: 250m
-          memory: 1024Mi
-        requests:
-          cpu: 100m
-          memory: 64Mi
+  selector:
+    app.kubernetes.io/name: valkey
+  ports:
+    - protocol: TCP
+      port: 6379
+      targetPort: valkey-port

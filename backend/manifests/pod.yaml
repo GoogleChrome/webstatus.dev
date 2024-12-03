@@ -41,9 +41,9 @@ spec:
           value: 'datastore:8086'
         - name: CORS_ALLOWED_ORIGIN
           value: 'http://*'
-        - name: REDISHOST
-          value: redis
-        - name: REDISPORT
+        - name: VALKEYHOST
+          value: valkey
+        - name: VALKEYPORT
           value: '6379'
         - name: CACHE_TTL
           value: 5m # Short TTL locally

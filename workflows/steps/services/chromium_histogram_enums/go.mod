@@ -58,7 +58,7 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20241028124407-3e70c0607edd // indirect
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20241029135702-72e945910908 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/detectors/gcp v1.31.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.56.0 // indirect

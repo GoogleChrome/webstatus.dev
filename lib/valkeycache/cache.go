@@ -12,65 +12,63 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package rediscache
+package valkeycache
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
-	"github.com/gomodule/redigo/redis"
+	"github.com/valkey-io/valkey-go"
 )
 
-// RedisCache is a cache that relies on redis.
+// ValkeyDataCache is a cache that relies on valkey.
 // It uses generics so that users of it can uses any type of data they want.
 // The key K must be of type comparable. More infomration here: https://go.dev/blog/comparable
 // The value V can be any type.
-type RedisDataCache[K comparable, V any] struct {
-	keyPrefix  string
-	redisPool  *redis.Pool
-	ttlSeconds int64
+type ValkeyDataCache[K comparable, V []byte] struct {
+	keyPrefix string
+	client    valkey.Client
+	ttl       time.Duration
 }
 
-// NewRedisDataCache creates a new RedisDataCache instance.
-func NewRedisDataCache[K comparable, V any](
+// NewValkeyDataCache creates a new ValkeyDataCache instance.
+func NewValkeyDataCache[K comparable, V []byte](
 	keyPrefix string,
 	host string,
 	port string, // Will likely come from the environment variable as a string
-	ttl time.Duration,
-	maxConnections int) (*RedisDataCache[K, V], error) {
+	ttl time.Duration) (*ValkeyDataCache[K, V], error) {
 
-	redisAddr := fmt.Sprintf("%s:%s", host, port)
+	addr := fmt.Sprintf("%s:%s", host, port)
 	// nolint: exhaustruct // No need to use every option of 3rd party struct.
-	redisPool := &redis.Pool{
-		MaxIdle: maxConnections,
-		Dial:    func() (redis.Conn, error) { return redis.Dial("tcp", redisAddr) },
+	c, err := valkey.NewClient(valkey.ClientOption{
+		InitAddress: []string{addr},
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return &RedisDataCache[K, V]{
-		keyPrefix:  keyPrefix,
-		redisPool:  redisPool,
-		ttlSeconds: int64(ttl.Seconds()),
+	return &ValkeyDataCache[K, V]{
+		keyPrefix: keyPrefix,
+		client:    c,
+		ttl:       ttl,
 	}, nil
 }
 
-func (c *RedisDataCache[K, V]) cacheKey(key K) string {
+func (c *ValkeyDataCache[K, V]) cacheKey(key K) string {
 	return fmt.Sprintf("%s-%v", c.keyPrefix, key)
 }
 
 // Cache stores a value in the cache.
-func (c *RedisDataCache[K, V]) Cache(
+func (c *ValkeyDataCache[K, V]) Cache(
 	ctx context.Context,
 	key K,
 	in V,
 ) error {
-	conn, err := c.redisPool.GetContext(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-	_, err = conn.Do("SET", c.cacheKey(key), in, "EX", c.ttlSeconds)
+	err := c.client.Do(ctx, c.client.B().Set().Key(c.cacheKey(key)).
+		Value(valkey.BinaryString(in)).Ex(c.ttl).Build()).Error()
 	if err != nil {
 		return err
 	}
@@ -81,26 +79,18 @@ func (c *RedisDataCache[K, V]) Cache(
 // Get retrieves a value from the cache.
 // It returns cachetypes.ErrCachedDataNotFound if it does not exist.
 // nolint: ireturn // V is not a interface always. Can ignore this.
-func (c *RedisDataCache[K, V]) Get(
+func (c *ValkeyDataCache[K, V]) Get(
 	ctx context.Context,
 	key K,
 ) (V, error) {
-	conn, err := c.redisPool.GetContext(ctx)
-	if err != nil {
-		return *new(V), err
-	}
-	defer conn.Close()
-	rawResult, err := conn.Do("GET", c.cacheKey(key))
-	if err != nil {
-		return *new(V), err
-	} else if rawResult == nil {
-		return *new(V), cachetypes.ErrCachedDataNotFound
+	defaultValue := *new(V)
+	msg, err := c.client.Do(ctx, c.client.B().Get().Key(c.cacheKey(key)).Build()).ToMessage()
+	if errors.Is(err, valkey.Nil) {
+		return defaultValue, cachetypes.ErrCachedDataNotFound
+	} else if err != nil {
+		// All other errors
+		return defaultValue, err
 	}
 
-	result, ok := rawResult.(V)
-	if !ok {
-		return *new(V), cachetypes.ErrInvalidValueType
-	}
-
-	return result, nil
+	return msg.AsBytes()
 }
