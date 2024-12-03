@@ -109,8 +109,6 @@ describe('webstatus-overview-content', () => {
     });
 
     it('should display the bookmark title and description when query is matched', async () => {
-      let parent: FakeParentElement;
-      let element: WebstatusOverviewContent;
       container = document.createElement('div');
       container.innerHTML = `
         <fake-parent-element>
@@ -118,10 +116,10 @@ describe('webstatus-overview-content', () => {
           </webstatus-overview-content>
         </fake-parent-element>
       `;
-      parent = container.querySelector(
+      const parent: FakeParentElement = container.querySelector(
         'fake-parent-element',
       ) as FakeParentElement;
-      element = container.querySelector(
+      const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
       // Set location to one of the DEFAULT_BOOKMARKS.
@@ -155,8 +153,6 @@ describe('webstatus-overview-content', () => {
       expect(description!.textContent).to.contain('test description1');
     });
     it('should not display description UI when it is empty', async () => {
-      let parent: FakeParentElement;
-      let element: WebstatusOverviewContent;
       container = document.createElement('div');
       container.innerHTML = `
         <fake-parent-element>
@@ -164,10 +160,10 @@ describe('webstatus-overview-content', () => {
           </webstatus-overview-content>
         </fake-parent-element>
       `;
-      parent = container.querySelector(
+      const parent: FakeParentElement = container.querySelector(
         'fake-parent-element',
       ) as FakeParentElement;
-      element = container.querySelector(
+      const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
       // Set location to one of the DEFAULT_BOOKMARKS.

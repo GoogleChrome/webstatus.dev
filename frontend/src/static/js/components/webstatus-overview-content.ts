@@ -126,7 +126,7 @@ export class WebstatusOverviewContent extends LitElement {
 
   render(): TemplateResult {
     const bookmark = this.getBookmarkFromQuery();
-    const pageTitle = bookmark ? bookmark.name : `Features overview`;
+    const pageTitle = bookmark ? bookmark.name : 'Features overview';
     const pageDescription = bookmark?.description;
     return html`
       <div class="main">
