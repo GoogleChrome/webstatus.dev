@@ -22,6 +22,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"sort"
 	"strings"
 	"time"
 
@@ -186,12 +187,26 @@ func generateMissingOneImplementations(
 	}
 }
 
-func generateUnimplementedFeatures(featureAvailability map[string]map[string]int) {
-	for _, featureReleases := range featureAvailability {
-		for featureKey := range featureReleases {
-			// 10% chance of removing it
+func generateUnimplementedFeatures(featureAvailability map[string]map[string]int, browsers []string) {
+	// Iterate over browsers in a fixed order.
+	// If we iterate directly over featureAvailability, the order is not guaranteed.
+	for _, browser := range browsers {
+		featureReleases := featureAvailability[browser]
+
+		// Extract the keys from the featureReleases map.
+		keys := make([]string, 0, len(featureReleases))
+		for k := range featureReleases {
+			keys = append(keys, k)
+		}
+
+		// Sort the keys alphabetically to ensure a consistent iteration order.
+		sort.Strings(keys)
+
+		// Iterate over the sorted keys.
+		for _, k := range keys {
+			// 10% chance of removing the feature.
 			if r.Intn(10) == 0 {
-				delete(featureReleases, featureKey)
+				delete(featureReleases, k)
 			}
 		}
 	}
@@ -215,7 +230,7 @@ func generateFeatureAvailability(
 	generateMissingOneImplementations(featureAvailability, features)
 
 	// Ensure that some features are never implemented in a browser.
-	generateUnimplementedFeatures(featureAvailability)
+	generateUnimplementedFeatures(featureAvailability, browsers)
 
 	// Insert the availabilities into Spanner
 	for _, browser := range browsers {
