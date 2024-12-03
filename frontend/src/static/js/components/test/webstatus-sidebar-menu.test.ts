@@ -16,13 +16,22 @@
 
 import {expect, fixture, html} from '@open-wc/testing';
 import sinon from 'sinon';
-import {Bookmark, WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
+import {WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
 import {SlTreeItem} from '@shoelace-style/shoelace';
 import '../webstatus-sidebar-menu.js';
+import {Bookmark} from '../../utils/constants.js';
 
 const testBookmarks: Bookmark[] = [
-  {name: 'Test Bookmark 1', query: 'test_query_1'},
-  {name: 'Test Bookmark 2', query: 'test_query_2'},
+  {
+    name: 'Test Bookmark 1',
+    query: 'test_query_1',
+    description: 'test description1',
+  },
+  {
+    name: 'Test Bookmark 2',
+    query: 'test_query_2',
+    description: 'test description2',
+  },
 ];
 describe('webstatus-sidebar-menu', () => {
   let el: WebstatusSidebarMenu;
