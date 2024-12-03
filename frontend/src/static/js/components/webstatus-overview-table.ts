@@ -33,7 +33,9 @@ import {ApiError, BadRequestError} from '../api/errors.js';
 import {
   GITHUB_REPO_ISSUE_LINK,
   SEARCH_QUERY_README_LINK,
+  Bookmark,
 } from '../utils/constants.js';
+import {threadId} from 'worker_threads';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -46,6 +48,9 @@ export class WebstatusOverviewTable extends LitElement {
 
   @state()
   location!: {search: string}; // Set by parent.
+
+  @state()
+  bookmark: Bookmark | undefined; // Set by parent.
 
   static get styles(): CSSResultGroup {
     return [
@@ -111,6 +116,33 @@ export class WebstatusOverviewTable extends LitElement {
         }
       `,
     ];
+  }
+
+  sortDataOrder() {
+    if (!this.bookmark || !this.bookmark.is_ordered) {
+      return;
+    }
+    const atoms: string[] = this.bookmark.query.trim().split(' ');
+    const results = [];
+    for (const atom in atoms) {
+      let found = null;
+      const terms = atom.split(':');
+      for (const d in this.taskTracker.data) {
+        if (terms[0] === 'id') {
+          if (d.feature_id == terms[1]) {
+            found = d;
+          }
+        } else if (terms[0] == 'name') {
+          if (d.feature_id.startsWith(terms[1])) {
+            found = d;
+          }
+        }
+        if (found) {
+          results.push(found);
+          break;
+        }
+      }
+    }
   }
 
   render(): TemplateResult {
