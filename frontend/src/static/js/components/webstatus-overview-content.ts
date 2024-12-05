@@ -73,6 +73,10 @@ export class WebstatusOverviewContent extends LitElement {
           color: var(--unimportant-text-color);
           margin-right: var(--content-padding);
         }
+        .overview-description {
+          color: var(--unimportant-text-color);
+          margin-bottom: var(--content-padding);
+        }
       `,
     ];
   }
