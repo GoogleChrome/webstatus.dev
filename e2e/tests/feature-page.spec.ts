@@ -37,6 +37,25 @@ test('matches the screenshot', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+test('matches the screenshot with usage chart', async ({page}) => {
+  await page.goto('http://localhost:5555/features/odit64?showUsageChart');
+
+  // Wait for the chart container to exist
+  await page.waitForSelector('#feature-support-chart-container');
+
+  // Wait for the usage chart container to exist
+  await page.waitForSelector('#feature-usage-chart-container');
+
+  // Wait specifically for the "Baseline since" text
+  await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
+
+  // Wait for the loading overlay to disappear
+  await page.waitForSelector('.spinner-container', {state: 'detached'});
+
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
 test('chart width resizes with window', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
   await page.waitForSelector('#feature-support-chart-container');

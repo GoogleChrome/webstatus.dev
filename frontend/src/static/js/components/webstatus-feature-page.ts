@@ -324,21 +324,6 @@ export class FeaturePage extends LitElement {
     this.generateFeatureSupportChartOptions();
   }
 
-  async handleUsageBrowserSelection(event: Event) {
-    const menu = event.target as SlMenu;
-    const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
-      child => child instanceof SlMenuItem,
-    ) as Array<SlMenuItem>;
-
-    // Build the list of values of checked menu-items.
-    this.featureUsageBrowsers = menuItemsArray
-      .filter(menuItem => menuItem.checked)
-      .map(menuItem => menuItem.value) as BrowsersParameter[];
-    // Regenerate data and redraw. We should instead just filter it.
-    await this._startUsageMetricsTask(true);
-    this.generateFeatureUsageChartOptions();
-  }
-
   async handleStartDateChange(event: Event) {
     const currentStartDate = this.startDate;
     const newStartDate = new Date((event.target as HTMLInputElement).value);
@@ -1014,6 +999,10 @@ export class FeaturePage extends LitElement {
   }
 
   renderFeatureUsage(): TemplateResult {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('showUsageChart') === null) {
+      return html``;
+    }
     return html`
       <sl-card id="feature-usage">
         <div class="hbox">
