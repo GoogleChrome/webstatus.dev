@@ -143,17 +143,13 @@ func assertListMissingOneImplCounts(ctx context.Context, t *testing.T, startAt, 
 	}
 }
 
-func TestListMissingOneImplCounts(t *testing.T) {
-	restartDatabaseContainer(t)
-	ctx := context.Background()
-
-	loadDataForListMissingOneImplCounts(ctx, t, spannerClient)
-	actualEvents := spannerClient.readAllBrowserFeatureSupportEvents(ctx, t)
-	slices.SortFunc(actualEvents, sortBrowserFeatureSupportEvents)
-	defaultStartAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
-	defaultEndAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
-	defaultPageSize := 100
-
+func testMissingOneImplSuite(
+	ctx context.Context,
+	t *testing.T,
+	startAt,
+	endAt time.Time,
+	pageSize int,
+) {
 	t.Run("bazBrowser ", func(t *testing.T) {
 		targetBrowser := "bazBrowser"
 		otherBrowsers := []string{
@@ -261,12 +257,12 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			assertListMissingOneImplCounts(
 				ctx,
 				t,
-				defaultStartAt,
-				defaultEndAt,
+				startAt,
+				endAt,
 				nil,
 				targetBrowser,
 				otherBrowsers,
-				defaultPageSize,
+				pageSize,
 				expectedResult,
 			)
 		})
@@ -323,8 +319,8 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			assertListMissingOneImplCounts(
 				ctx,
 				t,
-				defaultStartAt,
-				defaultEndAt,
+				startAt,
+				endAt,
 				nil,
 				targetBrowser,
 				otherBrowsers,
@@ -382,8 +378,8 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			assertListMissingOneImplCounts(
 				ctx,
 				t,
-				defaultStartAt,
-				defaultEndAt,
+				startAt,
+				endAt,
 				&pageOneToken,
 				targetBrowser,
 				otherBrowsers,
@@ -410,8 +406,8 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			assertListMissingOneImplCounts(
 				ctx,
 				t,
-				defaultStartAt,
-				defaultEndAt,
+				startAt,
+				endAt,
 				&pageTwoToken,
 				targetBrowser,
 				otherBrowsers,
@@ -474,7 +470,7 @@ func TestListMissingOneImplCounts(t *testing.T) {
 				nil,
 				targetBrowser,
 				otherBrowsers,
-				defaultPageSize,
+				pageSize,
 				expectedResult,
 			)
 		})
@@ -538,12 +534,12 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			assertListMissingOneImplCounts(
 				ctx,
 				t,
-				defaultStartAt,
-				defaultEndAt,
+				startAt,
+				endAt,
 				nil,
 				targetBrowser,
 				otherBrowsers,
-				defaultPageSize,
+				pageSize,
 				expectedResult,
 			)
 		})
@@ -657,13 +653,34 @@ func TestListMissingOneImplCounts(t *testing.T) {
 		assertListMissingOneImplCounts(
 			ctx,
 			t,
-			defaultStartAt,
-			defaultEndAt,
+			startAt,
+			endAt,
 			nil,
 			targetBrowser,
 			otherBrowsers,
-			defaultPageSize,
+			pageSize,
 			expectedResult,
 		)
+	})
+}
+
+func TestListMissingOneImplCounts(t *testing.T) {
+	restartDatabaseContainer(t)
+	ctx := context.Background()
+
+	loadDataForListMissingOneImplCounts(ctx, t, spannerClient)
+	actualEvents := spannerClient.readAllBrowserFeatureSupportEvents(ctx, t)
+	slices.SortFunc(actualEvents, sortBrowserFeatureSupportEvents)
+	defaultStartAt := time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)
+	defaultEndAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	defaultPageSize := 100
+
+	t.Run("GCPMissingOneImplementationQuery", func(t *testing.T) {
+		testMissingOneImplSuite(ctx, t, defaultStartAt, defaultEndAt, defaultPageSize)
+	})
+
+	t.Run("LocalMissingOneImplementationQuery", func(t *testing.T) {
+		spannerClient.SetMisingOneImplementationQuery(LocalMissingOneImplementationQuery{})
+		testMissingOneImplSuite(ctx, t, defaultStartAt, defaultEndAt, defaultPageSize)
 	})
 }

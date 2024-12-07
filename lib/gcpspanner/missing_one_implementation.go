@@ -25,13 +25,16 @@ import (
 )
 
 func init() {
-	missingOneImplTemplate = NewQueryTemplate(missingOneImplCountRawTemplate)
+	gcpMissingOneImplTemplate = NewQueryTemplate(gcpMissingOneImplCountRawTemplate)
+	localMissingOneImplTemplate = NewQueryTemplate(localMissingOneImplCountRawTemplate)
 }
 
 // nolint: gochecknoglobals // WONTFIX. Compile the template once at startup. Startup fails if invalid.
 var (
-	// missingOneImplTemplate is the compiled version of missingOneImplCountRawTemplate.
-	missingOneImplTemplate BaseQueryTemplate
+	// gcpMissingOneImplTemplate is the compiled version of gcpMissingOneImplCountRawTemplate.
+	gcpMissingOneImplTemplate BaseQueryTemplate
+	// localMissingOneImplTemplate is the compiled version of localMissingOneImplCountRawTemplate.
+	localMissingOneImplTemplate BaseQueryTemplate
 )
 
 // MissingOneImplCountPage contains the details for the missing one implementation count request.
@@ -70,48 +73,119 @@ func encodeMissingOneImplCursor(releaseDate time.Time) string {
 	})
 }
 
-const missingOneImplCountRawTemplate = `
+const localMissingOneImplCountRawTemplate = `
+WITH TargetBrowserUnsupportedFeatures AS (
+    SELECT bfse.WebFeatureID, bfse.EventReleaseDate
+    FROM BrowserFeatureSupportEvents bfse
+    WHERE bfse.TargetBrowserName = @targetBrowserParam
+      AND bfse.SupportStatus = 'unsupported'
+),
+OtherBrowsersSupportedFeatures AS (
+    SELECT
+        bfse_other.WebFeatureID,
+        bfse_other.EventReleaseDate,
+        ARRAY_AGG(DISTINCT bfse_other.TargetBrowserName) AS SupportedBrowsers
+    FROM
+        BrowserFeatureSupportEvents bfse_other
+    WHERE
+        bfse_other.SupportStatus = 'supported'
+    GROUP BY
+        bfse_other.WebFeatureID, bfse_other.EventReleaseDate
+)
 SELECT releases.EventReleaseDate,
-       (
-           SELECT COUNT(DISTINCT wf.ID)
-           FROM WebFeatures wf
-           LEFT JOIN BrowserFeatureSupportEvents bfse
-               ON wf.ID = bfse.WebFeatureID
-			   AND bfse.TargetBrowserName = @targetBrowserParam
-               AND bfse.EventReleaseDate = releases.EventReleaseDate
-               AND bfse.SupportStatus = 'unsupported'  -- Added condition
-           WHERE bfse.WebFeatureID IS NOT NULL  -- Feature is unsupported by the target browser
-             AND {{range $browser := .OtherBrowserParamNames}}
-                 EXISTS (
-                   SELECT 1
-                   FROM BrowserFeatureSupportEvents bfse_other
-                   WHERE bfse_other.WebFeatureID = wf.ID
-                     AND bfse_other.SupportStatus = 'supported'
-                     AND bfse_other.TargetBrowserName = @{{ $browser }}
-                     AND bfse_other.EventReleaseDate = releases.EventReleaseDate
-                 )
-                 AND
-               {{end}}
-			   1=1
-       ) AS Count
+	(
+		SELECT COUNT(DISTINCT tbuf.WebFeatureID)
+		FROM TargetBrowserUnsupportedFeatures tbuf
+		INNER JOIN OtherBrowsersSupportedFeatures obsf
+			ON tbuf.WebFeatureID = obsf.WebFeatureID
+			AND obsf.EventReleaseDate = tbuf.EventReleaseDate
+		WHERE
+			tbuf.EventReleaseDate = releases.EventReleaseDate
+			{{ range $browserParamName := .OtherBrowsersParamNames }}
+				AND
+				@{{ $browserParamName }} IN UNNEST(obsf.SupportedBrowsers)
+			{{ end }}
+	) AS Count
 FROM (
-    SELECT DISTINCT EventReleaseDate
-    FROM BrowserFeatureSupportEvents
-    WHERE TargetBrowserName = @targetBrowserParam
-		AND EventBrowserName IN UNNEST(@allBrowsersParam)
+    SELECT DISTINCT ReleaseDate AS EventReleaseDate
+    FROM BrowserReleases
+    WHERE BrowserName IN UNNEST(@allBrowsersParam)
+	AND ReleaseDate >= @startAt
+	AND ReleaseDate < @endAt
+	{{if .ReleaseDateParam }}
+	AND ReleaseDate < @{{ .ReleaseDateParam }}
+	{{end}}
+	AND ReleaseDate < CURRENT_TIMESTAMP()
 ) releases
-WHERE releases.EventReleaseDate >= @startAt
-  AND releases.EventReleaseDate < @endAt
-  {{if .ReleaseDateParam }}
-  AND releases.EventReleaseDate < @{{ .ReleaseDateParam }}
-  {{end}}
+ORDER BY releases.EventReleaseDate DESC
+LIMIT @limit;
+`
+
+const gcpMissingOneImplCountRawTemplate = `
+SELECT releases.EventReleaseDate,
+	(
+		SELECT COUNT(DISTINCT bfse.WebFeatureID)
+		FROM BrowserFeatureSupportEvents bfse
+		WHERE
+			bfse.EventReleaseDate = releases.EventReleaseDate
+			AND bfse.TargetBrowserName = @targetBrowserParam
+			AND bfse.SupportStatus = 'unsupported'
+		{{ range $browserParamName := .OtherBrowsersParamNames }}
+			AND EXISTS (
+				SELECT 1
+				FROM BrowserFeatureSupportEvents bfse_other
+				WHERE bfse_other.WebFeatureID = bfse.WebFeatureID
+				AND bfse_other.TargetBrowserName = @{{ $browserParamName }}
+				AND bfse_other.SupportStatus = 'supported'
+				AND bfse_other.EventReleaseDate = bfse.EventReleaseDate
+			)
+		{{ end }}
+	) AS Count
+FROM (
+    SELECT DISTINCT ReleaseDate AS EventReleaseDate
+    FROM BrowserReleases
+    WHERE BrowserName IN UNNEST(@allBrowsersParam)
+	AND ReleaseDate >= @startAt
+	AND ReleaseDate < @endAt
+	{{if .ReleaseDateParam }}
+	AND ReleaseDate < @{{ .ReleaseDateParam }}
+	{{end}}
+	AND ReleaseDate < CURRENT_TIMESTAMP()
+) releases
 ORDER BY releases.EventReleaseDate DESC
 LIMIT @limit;
 `
 
 type missingOneImplTemplateData struct {
-	OtherBrowserParamNames []string
-	ReleaseDateParam       string
+	ReleaseDateParam        string
+	OtherBrowsersParamNames []string
+}
+
+// MissingOneImplementationQuery contains the base query for all missing one implementation
+// related queries.
+type MissingOneImplementationQuery interface {
+	Query(missingOneImplTemplateData) string
+}
+
+// GCPMissingOneImplementationQuery provides a base query that is optimal for GCP Spanner to retrieve the information
+// described in the MissingOneImplementationQuery interface.
+type GCPMissingOneImplementationQuery struct{}
+
+func (q GCPMissingOneImplementationQuery) Query(data missingOneImplTemplateData) string {
+	return gcpMissingOneImplTemplate.Execute(data)
+}
+
+// LocalMissingOneImplementationQuery is a version of the base query that works well on the local emulator.
+// For some reason, the local emulator takes at least 1 minute with the fake data when using the
+// GCPMissingOneImplementationQuery.
+// Rather than sacrifice performance for the sake of compatibility, we have this LocalMissingOneImplementationQuery
+// implementation which is good for the volume of data locally.
+// TODO. Consolidate to using either LocalMissingOneImplementationQuery or GCPMissingOneImplementationQuery to reduce
+// the maintenance burden.
+type LocalMissingOneImplementationQuery struct{}
+
+func (q LocalMissingOneImplementationQuery) Query(data missingOneImplTemplateData) string {
+	return localMissingOneImplTemplate.Execute(data)
 }
 
 func buildMissingOneImplTemplate(
@@ -121,6 +195,7 @@ func buildMissingOneImplTemplate(
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
+	tmpl MissingOneImplementationQuery,
 ) spanner.Statement {
 	params := map[string]interface{}{}
 	allBrowsers := make([]string, len(otherBrowsers)+1)
@@ -134,6 +209,7 @@ func buildMissingOneImplTemplate(
 		params[paramName] = otherBrowsers[i]
 		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
 	}
+
 	params["limit"] = pageSize
 
 	releaseDateParamName := ""
@@ -146,10 +222,10 @@ func buildMissingOneImplTemplate(
 	params["endAt"] = endAt
 
 	tmplData := missingOneImplTemplateData{
-		OtherBrowserParamNames: otherBrowsersParamNames,
-		ReleaseDateParam:       releaseDateParamName,
+		ReleaseDateParam:        releaseDateParamName,
+		OtherBrowsersParamNames: otherBrowsersParamNames,
 	}
-	sql := missingOneImplTemplate.Execute(tmplData)
+	sql := tmpl.Query(tmplData)
 	stmt := spanner.NewStatement(sql)
 	stmt.Params = params
 
@@ -185,6 +261,7 @@ func (c *Client) ListMissingOneImplCounts(
 		startAt,
 		endAt,
 		pageSize,
+		c.missingOneImplQuery,
 	)
 
 	it := txn.Query(ctx, stmt)

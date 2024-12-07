@@ -239,10 +239,13 @@ func (s *Backend) ListChromiumDailyUsageStats(
 	// Convert the feature metric type to backend metrics
 	backendStats := make([]backend.ChromiumUsageStat, 0, len(metrics))
 	for _, stat := range metrics {
-		usageFloat, _ := stat.Usage.Float64()
+		var usage float64
+		if stat.Usage != nil {
+			usage, _ = stat.Usage.Float64()
+		}
 		backendStats = append(backendStats, backend.ChromiumUsageStat{
 			Timestamp: stat.Date.In(time.UTC),
-			Usage:     &usageFloat,
+			Usage:     &usage,
 		})
 	}
 
@@ -573,6 +576,10 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), true)
 	case backend.StableSafariDesc:
 		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), true)
+	case backend.ChromiumUsageAsc:
+		return gcpspanner.NewChromiumUsageSort(true)
+	case backend.ChromiumUsageDesc:
+		return gcpspanner.NewChromiumUsageSort(false)
 	}
 
 	// Unknown sort order

@@ -50,8 +50,9 @@ var ErrInvalidCursorFormat = errors.New("invalid cursor format")
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
 	*spanner.Client
-	featureSearchQuery FeatureSearchBaseQuery
-	searchCfg          searchConfig
+	featureSearchQuery  FeatureSearchBaseQuery
+	missingOneImplQuery MissingOneImplementationQuery
+	searchCfg           searchConfig
 	batchWriter
 	batchSize    int
 	batchWriters int
@@ -132,6 +133,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 	return &Client{
 		client,
 		GCPFeatureSearchBaseQuery{},
+		GCPMissingOneImplementationQuery{},
 		searchConfig{maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser},
 		bw,
 		defaultBatchSize,
@@ -141,6 +143,10 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 
 func (c *Client) SetFeatureSearchBaseQuery(query FeatureSearchBaseQuery) {
 	c.featureSearchQuery = query
+}
+
+func (c *Client) SetMisingOneImplementationQuery(query MissingOneImplementationQuery) {
+	c.missingOneImplQuery = query
 }
 
 // WPTRunCursor: Represents a point for resuming queries based on the last
