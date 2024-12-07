@@ -65,6 +65,9 @@ export class WebstatusGChart extends LitElement {
   })
   dataObj: WebStatusDataObj | undefined;
 
+  @property({attribute: false})
+  hasMax!: boolean;
+
   @property({state: true, type: Object})
   dataTable:
     | google.visualization.DataTable
@@ -142,10 +145,13 @@ export class WebstatusGChart extends LitElement {
   augmentOptions(
     options: google.visualization.ComboChartOptions,
   ): google.visualization.ComboChartOptions {
-    options = {
-      ...options,
-      tooltip: {trigger: 'selection'},
-    };
+    if (!this.hasMax) {
+      options = {
+        ...options,
+        tooltip: {trigger: 'selection'},
+      };
+      return options;
+    }
 
     const numColumns = this.dataTable!.getNumberOfColumns();
     // The number of series is the number of columns with role 'data'.
