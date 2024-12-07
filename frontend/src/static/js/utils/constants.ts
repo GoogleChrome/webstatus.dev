@@ -20,3 +20,27 @@ export const SEARCH_QUERY_README_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/blob/main/antlr/FeatureSearch.md';
 export const ABOUT_PAGE_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/wiki/About-Web-Platform-Status';
+
+export interface Bookmark {
+  // Bookmark display name
+  name: string;
+  // Query for filtering
+  query: string;
+  // Overview page description
+  description?: string;
+}
+
+export const DEFAULT_BOOKMARKS: Bookmark[] = [
+  {
+    name: 'Baseline 2023',
+    query: 'baseline_date:2023-01-01..2023-12-31',
+    description: 'All Baseline 2023 features',
+  },
+  {
+    name: 'Top CSS Interop issues',
+    query:
+      'id:anchor-positioning OR id:container-queries OR id:has OR id:nesting OR id:view-transitions OR id:subgrid OR id:grid OR name:scrollbar OR id:scroll-driven-animations OR id:scope',
+    description:
+      "This list reflects the top 10 interoperability pain points identified by developers in the State of CSS 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
+  },
+];

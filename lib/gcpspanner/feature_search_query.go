@@ -432,7 +432,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		expBrowserImplDetails = &SortByBrowserImplDetails{
 			BrowserName: sort.BrowserTarget(),
 		}
-	case IDSort, NameSort, StatusSort:
+	case ChromiumUsageSort, IDSort, NameSort, StatusSort:
 		break // do nothing.
 	}
 
@@ -496,8 +496,8 @@ func (s Sortable) SortTarget() FeaturesSearchSortTarget {
 // buildFullClause generates a sorting clause appropriate for Spanner pagination.
 // It includes the primary sorting column and the 'WebFeatureID' column as a tiebreaker
 // to ensure deterministic page ordering.
-func buildFullClause(sortableClauses []string, tieBreakerColumn FeatureSearchColumn) string {
-	return strings.Join(append(sortableClauses, string(tieBreakerColumn)), ", ")
+func buildFullClause(sortableClauses []string) string {
+	return strings.Join(append(sortableClauses, string(featureSearchFeatureKeyColumn)), ", ")
 }
 
 func buildSortableOrderClause(isAscending bool, column FeatureSearchColumn) string {
@@ -516,11 +516,12 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 	switch f {
 	case featureSearchFeatureKeyColumn,
 		featureSearchFeatureNameColumn,
-		featureSearcBrowserMetricColumn,
+		featureSearchBrowserMetricColumn,
 		featureSearchLowDateColumn,
 		featureSearchHighDateColumn,
-		featureSearcBrowserImplColumn,
-		featureSearchStatusColumn:
+		featureSearchBrowserImplColumn,
+		featureSearchStatusColumn,
+		featureSearchChromiumUsageColumn:
 		return string(f)
 	}
 
@@ -537,16 +538,18 @@ const (
 	StatusSort           FeaturesSearchSortTarget = "status"
 	StableImplSort       FeaturesSearchSortTarget = "stable_browser_impl"
 	ExperimentalImplSort FeaturesSearchSortTarget = "experimental_browser_impl"
+	ChromiumUsageSort    FeaturesSearchSortTarget = "chromium_usage"
 )
 
 const (
-	featureSearchFeatureKeyColumn   FeatureSearchColumn = "wf.FeatureKey"
-	featureSearchFeatureNameColumn  FeatureSearchColumn = "wf.Name"
-	featureSearchStatusColumn       FeatureSearchColumn = "Status"
-	featureSearchLowDateColumn      FeatureSearchColumn = "LowDate"
-	featureSearchHighDateColumn     FeatureSearchColumn = "HighDate"
-	featureSearcBrowserMetricColumn FeatureSearchColumn = "sort_metric_calcs.SortMetric"
-	featureSearcBrowserImplColumn   FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
+	featureSearchFeatureKeyColumn    FeatureSearchColumn = "wf.FeatureKey"
+	featureSearchFeatureNameColumn   FeatureSearchColumn = "wf.Name"
+	featureSearchStatusColumn        FeatureSearchColumn = "Status"
+	featureSearchLowDateColumn       FeatureSearchColumn = "LowDate"
+	featureSearchHighDateColumn      FeatureSearchColumn = "HighDate"
+	featureSearchBrowserMetricColumn FeatureSearchColumn = "sort_metric_calcs.SortMetric"
+	featureSearchBrowserImplColumn   FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
+	featureSearchChromiumUsageColumn FeatureSearchColumn = "chromium_usage_metrics.ChromiumUsage"
 )
 
 const (
@@ -558,8 +561,7 @@ const (
 func NewFeatureNameSort(isAscending bool) Sortable {
 	return Sortable{
 		clause: buildFullClause(
-			[]string{buildSortableOrderClause(isAscending, featureSearchFeatureNameColumn)},
-			featureSearchFeatureKeyColumn),
+			[]string{buildSortableOrderClause(isAscending, featureSearchFeatureNameColumn)}),
 		ascendingOrder: isAscending,
 		sortTarget:     NameSort,
 		browserTarget:  nil,
@@ -575,7 +577,6 @@ func NewBaselineStatusSort(isAscending bool) Sortable {
 				buildSortableOrderClause(isAscending, featureSearchHighDateColumn),
 				buildSortableOrderClause(isAscending, featureSearchStatusColumn),
 			},
-			featureSearchFeatureKeyColumn,
 		),
 		ascendingOrder: isAscending,
 		sortTarget:     StatusSort,
@@ -602,13 +603,26 @@ func NewBrowserImplSort(isAscending bool, browserName string, isStable bool) Sor
 	return Sortable{
 		clause: buildFullClause(
 			[]string{
-				buildSortableOrderClause(isAscending, featureSearcBrowserMetricColumn),
-				buildSortableOrderClause(isAscending, featureSearcBrowserImplColumn),
+				buildSortableOrderClause(isAscending, featureSearchBrowserMetricColumn),
+				buildSortableOrderClause(isAscending, featureSearchBrowserImplColumn),
 			},
-			featureSearchFeatureKeyColumn,
 		),
 		browserTarget:  &browserName,
 		ascendingOrder: isAscending,
 		sortTarget:     sortTarget,
+	}
+}
+
+// NewChromiumUsageSort returns a Sortable specifically for the ChromiumUsage column.
+func NewChromiumUsageSort(isAscending bool) Sortable {
+	return Sortable{
+		clause: buildFullClause(
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearchChromiumUsageColumn),
+			},
+		),
+		ascendingOrder: isAscending,
+		sortTarget:     ChromiumUsageSort,
+		browserTarget:  nil,
 	}
 }

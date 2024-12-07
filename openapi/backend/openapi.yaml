@@ -68,6 +68,8 @@ paths:
               - experimental_edge_desc
               - experimental_firefox_asc
               - experimental_firefox_desc
+              - chromium_usage_asc
+              - chromium_usage_desc
       responses:
         '200':
           description: OK

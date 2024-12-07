@@ -2011,6 +2011,7 @@ func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
 	testFeatureSearchSortName(ctx, t, client)
 	testFeatureSearchSortBaselineStatus(ctx, t, client)
 	testFeatureSearchSortBrowserImpl(ctx, t, client)
+	testFeatureSearchChromiumUsage(ctx, t, client)
 }
 
 // nolint: dupl // WONTFIX. Only duplicated because the feature filter test yields similar results.
@@ -2200,6 +2201,101 @@ func testFeatureSearchSortBrowserImpl(ctx context.Context, t *testing.T, client 
 					// null metric, null status
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 					// null metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
+		})
+	}
+}
+
+func testFeatureSearchChromiumUsage(ctx context.Context, t *testing.T, client *Client) {
+	type BaselineStatusSortCase struct {
+		name         string
+		sortable     Sortable
+		expectedPage *FeatureResultPage
+	}
+	testCases := []BaselineStatusSortCase{
+		{
+			name:     "ChromiumUsage asc",
+			sortable: NewChromiumUsageSort(true),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// 0.7 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// 1.0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+				},
+			},
+		},
+		{
+			name:     "ChromiumUsage desc",
+			sortable: NewChromiumUsageSort(false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// 1.0 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// 0.7 metric, available status
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+				},
+			},
+		},
+		{
+			name:     "BrowserImpl fooBrowser Experimental asc",
+			sortable: NewBrowserImplSort(true, "fooBrowser", false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// 0.08 metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// 0.91 metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+				},
+			},
+		},
+		{
+			name:     "BrowserImpl fooBrowser Experimental desc",
+			sortable: NewBrowserImplSort(false, "fooBrowser", false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// 0.91 metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// 0.08 metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// null metric
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// null metric
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 				},
 			},

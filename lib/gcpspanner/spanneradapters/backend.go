@@ -576,6 +576,10 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), true)
 	case backend.StableSafariDesc:
 		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), true)
+	case backend.ChromiumUsageAsc:
+		return gcpspanner.NewChromiumUsageSort(true)
+	case backend.ChromiumUsageDesc:
+		return gcpspanner.NewChromiumUsageSort(false)
 	}
 
 	// Unknown sort order
