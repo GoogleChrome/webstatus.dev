@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
+import {test, expect, request} from '@playwright/test';
 
 test('matches the screenshot for unauthenticated user', async ({page}) => {
   await page.goto('http://localhost:5555/');
@@ -31,18 +31,31 @@ test('can sign in and sign out user', async ({page}) => {
   const popupPromise = page.waitForEvent('popup');
   await page.goto('http://localhost:5555/');
   await page.getByText('Log in').click();
+  await page.route('*//api.github.com/*', async route => {
+    // Mock successful login response
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        email: 'test_email@gmail.com',
+        data: {
+          login: 'default_user',
+        },
+      }),
+    });
+  });
   const popup = await popupPromise;
 
-  await popup.getByText('test user 1').waitFor();
-  await popup.getByText('test user 1').hover(); // Needed for Firefox for some reason.
-  await popup.getByText('test user 1').click();
+  await popup.getByText('default_user').waitFor();
+  await popup.getByText('default_user').hover(); // Needed for Firefox for some reason.
+  await popup.getByText('default_user').click();
   await popup.waitForEvent('close');
   const login = page.locator('webstatus-login');
 
-  const expectedEmail = 'test.user.1@example.com';
+  const expectedUsername = 'default_user';
 
-  // Should have the email address
-  await expect(login).toContainText(expectedEmail);
+  // Should have the githubUsername = 'default_user'
+  await expect(login).toContainText(expectedUsername);
 
   const header = page.locator('webstatus-header');
   await expect(header).toHaveScreenshot('authenticated-header.png');
