@@ -26,6 +26,7 @@ import {
   DEFAULT_COLUMN_OPTIONS,
   ColumnOptionKey,
   renderBaselineStatus,
+  renderChromiumUsage,
 } from '../webstatus-overview-cells.js';
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
@@ -412,6 +413,84 @@ describe('renderBaselineStatus', () => {
       expect(lowDateBlock).to.not.exist;
       const highDateBlock = el.querySelector('.baseline-date-block-widely');
       expect(highDateBlock).to.not.exist;
+    });
+  });
+  describe('renderChromiumUsage', () => {
+    let container: HTMLElement;
+    let feature: components['schemas']['Feature'];
+    beforeEach(() => {
+      container = document.createElement('div');
+
+      feature = {
+        feature_id: 'id',
+        name: 'name',
+        baseline: {
+          status: 'widely',
+          low_date: '2015-07-29',
+          high_date: '2018-01-29',
+        },
+        usage: {},
+      };
+    });
+    it('does render usage as a percentage', async () => {
+      // 10.3% Chromium usage.
+      feature.usage = {chromium: {daily: 0.1034}};
+      const result = renderChromiumUsage(feature, {search: ''}, {});
+      render(result, container);
+      const el = await fixture(container);
+      const usageEl = el.querySelector('#chromium-usage');
+      expect(usageEl).to.exist;
+      expect(usageEl!.textContent!.trim()).to.equal('10.3%');
+    });
+    it('does render usage as a percentage, and rounds correctly', async () => {
+      // Should round to 10.4% Chromium usage.
+      feature.usage = {chromium: {daily: 0.1036}};
+      const result = renderChromiumUsage(feature, {search: ''}, {});
+      render(result, container);
+      const el = await fixture(container);
+      const usageEl = el.querySelector('#chromium-usage');
+      expect(usageEl).to.exist;
+      expect(usageEl!.textContent!.trim()).to.equal('10.4%');
+    });
+    it('does render 0 usage amounts as "0.0%"', async () => {
+      // Explicitly 0 Chromium usage.
+      feature.usage = {chromium: {daily: 0.0}};
+      const result = renderChromiumUsage(feature, {search: ''}, {});
+      render(result, container);
+      const el = await fixture(container);
+      const usageEl = el.querySelector('#chromium-usage');
+      expect(usageEl).to.exist;
+      expect(usageEl!.textContent!.trim()).to.equal('0.0%');
+    });
+    it('does render 100% usage amounts as "100%"', async () => {
+      // Explicitly 100% Chromium usage.
+      feature.usage = {chromium: {daily: 1.0}};
+      const result = renderChromiumUsage(feature, {search: ''}, {});
+      render(result, container);
+      const el = await fixture(container);
+      const usageEl = el.querySelector('#chromium-usage');
+      expect(usageEl).to.exist;
+      expect(usageEl!.textContent!.trim()).to.equal('100.0%');
+    });
+    it('does render very small usage amounts as "<0.1%"', async () => {
+      // 0.0003%.
+      feature.usage = {chromium: {daily: 0.000003}};
+      const result = renderChromiumUsage(feature, {search: ''}, {});
+      render(result, container);
+      const el = await fixture(container);
+      const usageEl = el.querySelector('#chromium-usage');
+      expect(usageEl).to.exist;
+      expect(usageEl!.textContent!.trim()).to.equal('<0.1%');
+    });
+    it('does render null usage amounts as "N/A"', async () => {
+      // No usage found.
+      feature.usage = undefined;
+      const result = renderChromiumUsage(feature, {search: ''}, {});
+      render(result, container);
+      const el = await fixture(container);
+      const usageEl = el.querySelector('#chromium-usage');
+      expect(usageEl).to.exist;
+      expect(usageEl!.textContent!.trim()).to.equal('N/A');
     });
   });
 });

@@ -151,28 +151,30 @@ const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   return html` <a href=${featureUrl}>${feature.name}</a> `;
 };
 
-const renderChromiumUsage: CellRenderer = (
+export const renderChromiumUsage: CellRenderer = (
   feature,
   _routerLocation,
   _options,
 ) => {
+  let usage = 'N/A';
   if (feature.usage?.chromium?.daily && feature.usage.chromium.daily > 0) {
     // If the feature has some usage, but the usage is less than 0.1%,
     // display it as "<0.1%".
     if (feature.usage.chromium.daily < 0.001) {
-      return html`&lt;0.1%`;
+      usage = '<0.1%';
+    } else {
+      // Format to display percentage with single decimal e.g. 0.8371 -> 83.7%.
+      usage = `${(feature.usage.chromium.daily * 100).toFixed(1)}%`;
     }
-    // Format to display percentage with single decimal e.g. 0.8371 -> 83.7%.
-    return html`${(feature.usage.chromium.daily * 100).toFixed(1)}%`;
   } else if (feature.usage?.chromium?.daily === 0) {
-    return html`0.0%`;
+    usage = '0.0%';
   } else if (
     feature.usage?.chromium?.daily &&
     feature.usage.chromium.daily >= 1
   ) {
-    return html`100%`;
+    usage = '100%';
   }
-  return html`N/A`;
+  return html`<span id="chromium-usage">${usage}</span>`;
 };
 
 function formatDateString(dateString: string): string {
