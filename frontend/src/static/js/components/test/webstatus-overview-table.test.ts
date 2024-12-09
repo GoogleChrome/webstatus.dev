@@ -76,7 +76,7 @@ describe('webstatus-overview-table', () => {
     assert.exists(component);
   });
 
-  it('sortDataOrder() sorts correctly', async () => {
+  it('reorderByQueryTerms() sorts correctly', async () => {
     const location = {search: '?q=name:test3 OR id:test1 OR id:test2'};
     const component: WebstatusOverviewTable =
       await fixture<WebstatusOverviewTable>(
@@ -90,7 +90,7 @@ describe('webstatus-overview-table', () => {
     assert.instanceOf(component, WebstatusOverviewTable);
     assert.exists(component);
 
-    const sortedFeatures = component.sortDataOrder();
+    const sortedFeatures = component.reorderByQueryTerms();
 
     assert.exists(sortedFeatures);
     expect(sortedFeatures.length).to.equal(4);
@@ -100,7 +100,7 @@ describe('webstatus-overview-table', () => {
     expect(sortedFeatures[3].feature_id).to.equal('test2');
   });
 
-  it('sortDataOrder() return undefined when query is not ordered', async () => {
+  it('reorderByQueryTerms() return undefined when query is not ordered', async () => {
     const location = {search: 'id:nothing'};
     const component = await fixture<WebstatusOverviewTable>(
       html`<webstatus-overview-table
@@ -113,7 +113,7 @@ describe('webstatus-overview-table', () => {
     assert.instanceOf(component, WebstatusOverviewTable);
     assert.exists(component);
 
-    const sortedFeatures = component.sortDataOrder();
+    const sortedFeatures = component.reorderByQueryTerms();
 
     assert.notExists(sortedFeatures);
   });

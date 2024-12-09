@@ -35,6 +35,7 @@ import {
   SEARCH_QUERY_README_LINK,
   Bookmark,
 } from '../utils/constants.js';
+import {Toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -119,7 +120,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   findFeaturesFromAtom(
     searchKey: string,
-    SearchValue: string,
+    searchValue: string,
   ): components['schemas']['Feature'][] {
     if (!this.taskTracker.data?.data) {
       return [];
@@ -127,13 +128,13 @@ export class WebstatusOverviewTable extends LitElement {
 
     const features: components['schemas']['Feature'][] = [];
     for (const feature of this.taskTracker.data.data) {
-      if (searchKey === 'id' && feature?.feature_id === SearchValue) {
+      if (searchKey === 'id' && feature?.feature_id === searchValue) {
         features.push(feature);
         break;
       } else if (
         searchKey === 'name' &&
-        (feature?.feature_id.includes(SearchValue) ||
-          feature?.name.includes(SearchValue))
+        (feature?.feature_id.includes(searchValue) ||
+          feature?.name.includes(searchValue))
       ) {
         features.push(feature);
       }
@@ -141,7 +142,7 @@ export class WebstatusOverviewTable extends LitElement {
     return features;
   }
 
-  sortDataOrder(): components['schemas']['Feature'][] | undefined {
+  reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
     if (!this.bookmark || !this.bookmark.is_ordered) {
       return undefined;
     }
@@ -157,8 +158,10 @@ export class WebstatusOverviewTable extends LitElement {
     }
 
     if (features.length !== this.taskTracker?.data?.data?.length) {
-      console.warn(
-        `Missing features after sorting ${this.bookmark.name} query results`,
+      void new Toast().toast(
+        `Unable to apply custom sorting to bookmark "${this.bookmark.name}". Defaulting to normal sorting.`,
+        'warning',
+        'exclamation-triangle',
       );
       return undefined;
     }
@@ -205,7 +208,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    let renderFeatures = this.sortDataOrder();
+    let renderFeatures = this.reorderByQueryTerms();
     if (!renderFeatures) {
       renderFeatures = this.taskTracker.data?.data;
     }

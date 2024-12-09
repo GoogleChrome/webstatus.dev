@@ -37,7 +37,6 @@ export const DEFAULT_BOOKMARKS: Bookmark[] = [
     name: 'Baseline 2023',
     query: 'baseline_date:2023-01-01..2023-12-31',
     description: 'All Baseline 2023 features',
-    is_ordered: false,
   },
   {
     name: 'Top CSS Interop issues',
