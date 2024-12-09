@@ -46,7 +46,7 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     --mount=type=cache,target=/go/pkg/mod \
     go build -gcflags="${SKAFFOLD_GO_GCFLAGS}" -o program ./${service_dir}/cmd/${MAIN_BINARY}
 
-FROM alpine:3.20
+FROM alpine:3.21
 
 # Copy only the binary from the previous image
 COPY --from=builder /work/program .
