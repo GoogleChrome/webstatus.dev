@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23.3-alpine3.20 as builder
+FROM golang:1.23.4-alpine3.20 as builder
 
 WORKDIR /work
 
