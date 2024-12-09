@@ -20,7 +20,7 @@
     "openapi-typescript": "7.4.3",
     "prettier": "3.4.1",
     "quicktype": "23.0.170",
-    "stylelint": "^16.10.0",
+    "stylelint": "^16.11.0",
     "stylelint-config-standard": "^36.0.1"
   },
   "resolutions_comments": {
