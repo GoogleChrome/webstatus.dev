@@ -362,11 +362,11 @@ export class APIClient {
     } while (nextPageToken !== undefined);
   }
 
-  public async getChromiumDailyUsageStats(
+  public async *getChromiumDailyUsageStats(
     featureId: string,
     startAtDate: Date,
     endAtDate: Date,
-  ): Promise<ChromiumUsageStat[]> {
+  ): AsyncIterable<ChromiumUsageStat[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
     let nextPageToken;
@@ -390,7 +390,7 @@ export class APIClient {
       const page: ChromiumDailyUsageStatsPage =
         response.data as ChromiumDailyUsageStatsPage;
       nextPageToken = page?.metadata?.next_page_token;
-      return page.data;
+      yield page.data;
     } while (nextPageToken !== undefined);
   }
 

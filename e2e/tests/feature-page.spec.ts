@@ -37,6 +37,7 @@ test('matches the screenshot', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+// TODO: Remove this test once the usage chart is enabled by default.
 test('matches the screenshot with usage chart', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64?showUsageChart');
 
