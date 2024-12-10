@@ -100,6 +100,109 @@ describe('webstatus-overview-table', () => {
     expect(sortedFeatures[3].feature_id).to.equal('test2');
   });
 
+  it('reorderByQueryTerms() sorts correctly with DEFAULT_BOOKMARKS', async () => {
+    const cssQuery =
+      'id:anchor-positioning OR id:container-queries OR id:has OR id:nesting OR id:view-transitions OR id:subgrid OR id:grid OR name:scrollbar OR id:scroll-driven-animations OR id:scope';
+    const cssBookmark = {
+      name: 'css',
+      query: cssQuery,
+      description: 'test description1',
+      is_ordered: true,
+    };
+    const cssPage = {
+      data: [
+        {
+          feature_id: 'has',
+          name: ':has()',
+        },
+        {
+          feature_id: 'nesting',
+          name: 'Nesting',
+        },
+        {
+          feature_id: 'subgrid',
+          name: 'Subgrid',
+        },
+        {
+          feature_id: 'container-queries',
+          name: 'Container queries',
+        },
+        {
+          feature_id: 'grid',
+          name: 'Grid',
+        },
+        {
+          feature_id: 'anchor-positioning',
+          name: 'Anchor positioning',
+        },
+        {
+          feature_id: 'scope',
+          name: '@scope',
+        },
+        {
+          feature_id: 'scroll-driven-animations',
+          name: 'Scroll-driven animations',
+        },
+        {
+          feature_id: 'scrollbar-color',
+          name: 'scrollbar-color',
+        },
+        {
+          feature_id: 'scrollbar-gutter',
+          name: 'scrollbar-gutter',
+        },
+        {
+          feature_id: 'scrollbar-width',
+          name: 'scrollbar-width',
+        },
+        {
+          feature_id: 'view-transitions',
+          name: 'View transitions',
+        },
+      ],
+      metadata: {
+        total: 12,
+      },
+    };
+    const cssTaskTracker: TaskTracker<
+      components['schemas']['FeaturePage'],
+      ApiError
+    > = {
+      status: TaskStatus.COMPLETE,
+      error: null,
+      data: cssPage,
+    };
+    const location = {search: `?q=${cssQuery}`};
+    const component: WebstatusOverviewTable =
+      await fixture<WebstatusOverviewTable>(
+        html`<webstatus-overview-table
+          .location=${location}
+          .bookmark=${cssBookmark}
+          .taskTracker=${cssTaskTracker}
+        ></webstatus-overview-table>`,
+      );
+    await component.updateComplete;
+    assert.instanceOf(component, WebstatusOverviewTable);
+    assert.exists(component);
+
+    const sortedFeatures = component.reorderByQueryTerms();
+
+    assert.exists(sortedFeatures);
+    expect(sortedFeatures.length).to.equal(12);
+    expect(sortedFeatures[0].feature_id).to.equal('anchor-positioning');
+    expect(sortedFeatures[1].feature_id).to.equal('container-queries');
+    expect(sortedFeatures[2].feature_id).to.equal('has');
+    expect(sortedFeatures[3].feature_id).to.equal('nesting');
+    expect(sortedFeatures[4].feature_id).to.equal('view-transitions');
+    expect(sortedFeatures[5].feature_id).to.equal('subgrid');
+    expect(sortedFeatures[6].feature_id).to.equal('grid');
+    expect(sortedFeatures[7].feature_id).to.equal('scrollbar-color');
+    expect(sortedFeatures[8].feature_id).to.equal('scrollbar-gutter');
+    expect(sortedFeatures[9].feature_id).to.equal('scrollbar-width');
+    expect(sortedFeatures[10].feature_id).to.equal('scroll-driven-animations');
+    expect(sortedFeatures[11].feature_id).to.equal('scope');
+  });
+
   it('reorderByQueryTerms() return undefined when query is not ordered', async () => {
     const location = {search: 'id:nothing'};
     const component = await fixture<WebstatusOverviewTable>(
