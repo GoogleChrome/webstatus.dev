@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM mcr.microsoft.com/devcontainers/base:bullseye
+FROM mcr.microsoft.com/devcontainers/base:bookworm
 
 ENV CLOUD_SDK_VERSION=480.0.0
 # Install gcloud similarly to how it is done in cloud-sdk-docker
