@@ -17,7 +17,7 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {TaskStatus} from '@lit/task';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
@@ -33,7 +33,9 @@ import {ApiError, BadRequestError} from '../api/errors.js';
 import {
   GITHUB_REPO_ISSUE_LINK,
   SEARCH_QUERY_README_LINK,
+  Bookmark,
 } from '../utils/constants.js';
+import {Toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -46,6 +48,9 @@ export class WebstatusOverviewTable extends LitElement {
 
   @state()
   location!: {search: string}; // Set by parent.
+
+  @property({type: Object})
+  bookmark: Bookmark | undefined;
 
   static get styles(): CSSResultGroup {
     return [
@@ -113,6 +118,56 @@ export class WebstatusOverviewTable extends LitElement {
     ];
   }
 
+  findFeaturesFromAtom(
+    searchKey: string,
+    searchValue: string,
+  ): components['schemas']['Feature'][] {
+    if (!this.taskTracker.data?.data) {
+      return [];
+    }
+
+    const features: components['schemas']['Feature'][] = [];
+    for (const feature of this.taskTracker.data.data) {
+      if (searchKey === 'id' && feature?.feature_id === searchValue) {
+        features.push(feature);
+        break;
+      } else if (
+        searchKey === 'name' &&
+        (feature?.feature_id.includes(searchValue) ||
+          feature?.name.includes(searchValue))
+      ) {
+        features.push(feature);
+      }
+    }
+    return features;
+  }
+
+  reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
+    if (!this.bookmark || !this.bookmark.is_ordered) {
+      return undefined;
+    }
+
+    const atoms: string[] = this.bookmark.query.trim().split('OR');
+    const features = [];
+    for (const atom of atoms) {
+      const terms = atom.trim().split(':');
+      const foundFeatures = this.findFeaturesFromAtom(terms[0], terms[1]);
+      if (foundFeatures) {
+        features.push(...foundFeatures);
+      }
+    }
+
+    if (features.length !== this.taskTracker?.data?.data?.length) {
+      void new Toast().toast(
+        `Unable to apply custom sorting to bookmark "${this.bookmark.name}". Defaulting to normal sorting.`,
+        'warning',
+        'exclamation-triangle',
+      );
+      return undefined;
+    }
+    return features;
+  }
+
   render(): TemplateResult {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location),
@@ -153,10 +208,12 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
+    let renderFeatures = this.reorderByQueryTerms();
+    if (!renderFeatures) {
+      renderFeatures = this.taskTracker.data?.data;
+    }
     return html`
-      ${this.taskTracker.data?.data?.map(f =>
-        this.renderFeatureRow(f, columns),
-      )}
+      ${renderFeatures?.map(f => this.renderFeatureRow(f, columns))}
     `;
   }
 

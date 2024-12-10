@@ -157,8 +157,8 @@ export class WebstatusOverviewContent extends LitElement {
 
         <webstatus-overview-table
           .location=${this.location}
-          .features=${this.taskTracker.data}
           .taskTracker=${this.taskTracker}
+          .bookmark=${this.getBookmarkFromQuery()}
         >
         </webstatus-overview-table>
         <webstatus-overview-pagination

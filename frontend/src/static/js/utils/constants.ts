@@ -28,6 +28,8 @@ export interface Bookmark {
   query: string;
   // Overview page description
   description?: string;
+  // Should display query results in query's order.
+  is_ordered?: boolean;
 }
 
 export const DEFAULT_BOOKMARKS: Bookmark[] = [
