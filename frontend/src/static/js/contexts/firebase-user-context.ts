@@ -19,6 +19,13 @@ import {createContext} from '@lit/context';
 import type {User} from 'firebase/auth';
 export type {User} from 'firebase/auth';
 
-export const firebaseUserContext = createContext<User | undefined>(
-  'firebase-user',
+export const firebaseUserContext = createContext<FirebaseUser | undefined>(
+  'firebase-user'
+
 );
+
+type FirebaseUser = User & {
+  gitHubUsername: string | null;
+};
+
+export type {FirebaseUser};
