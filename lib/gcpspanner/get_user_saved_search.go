@@ -39,6 +39,7 @@ func (m unauthenticatedUserSavedSearchMapper) SelectOne(
 	SELECT
 		ID,
 		Name,
+		Description,
 		Query,
 		Scope,
 		AuthorID,
@@ -72,6 +73,7 @@ func (m authenticatedUserSavedSearchMapper) SelectOne(
 	SELECT
 		ID,
 		Name,
+		Description,
 		Query,
 		Scope,
 		AuthorID,

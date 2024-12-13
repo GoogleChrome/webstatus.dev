@@ -739,3 +739,11 @@ func runConcurrentBatch[SpannerStruct any](ctx context.Context, c *Client,
 		return nil
 	}
 }
+
+// OptionallySet allows distinguishing between setting a value
+// and leaving it unchanged. Useful for PATCH operations where
+// only specific fields are updated.
+type OptionallySet[T any] struct {
+	Value T
+	IsSet bool
+}

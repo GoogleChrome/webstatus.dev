@@ -30,11 +30,12 @@ const savedSearchesTable = "SavedSearches"
 
 // SavedSearch represents a saved search row in the SavedSearches table.
 type SavedSearch struct {
-	ID        string           `spanner:"ID"`
-	Name      string           `spanner:"Name"`
-	Query     string           `spanner:"Query"`
-	Scope     SavedSearchScope `spanner:"Scope"`
-	AuthorID  string           `spanner:"AuthorID"`
-	CreatedAt time.Time        `spanner:"CreatedAt"`
-	UpdatedAt time.Time        `spanner:"UpdatedAt"`
+	ID          string           `spanner:"ID"`
+	Name        string           `spanner:"Name"`
+	Description *string          `spanner:"Description"`
+	Query       string           `spanner:"Query"`
+	Scope       SavedSearchScope `spanner:"Scope"`
+	AuthorID    string           `spanner:"AuthorID"`
+	CreatedAt   time.Time        `spanner:"CreatedAt"`
+	UpdatedAt   time.Time        `spanner:"UpdatedAt"`
 }

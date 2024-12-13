@@ -29,6 +29,7 @@ func TestUserSearchBookmark(t *testing.T) {
 		Name:        "my little search",
 		Query:       "group:css",
 		OwnerUserID: "userID1",
+		Description: nil,
 	})
 	if err != nil {
 		t.Errorf("expected nil error. received %s", err)
@@ -44,11 +45,12 @@ func TestUserSearchBookmark(t *testing.T) {
 		IsBookmarked: valuePtr(false),
 		Role:         nil,
 		SavedSearch: SavedSearch{
-			ID:       *savedSearchID,
-			Name:     "my little search",
-			Query:    "group:css",
-			Scope:    "USER_PUBLIC",
-			AuthorID: "userID1",
+			ID:          *savedSearchID,
+			Name:        "my little search",
+			Query:       "group:css",
+			Scope:       "USER_PUBLIC",
+			AuthorID:    "userID1",
+			Description: nil,
 			// Don't actually compare the last two values.
 			CreatedAt: spanner.CommitTimestamp,
 			UpdatedAt: spanner.CommitTimestamp,
@@ -67,11 +69,12 @@ func TestUserSearchBookmark(t *testing.T) {
 		IsBookmarked: valuePtr(true),
 		Role:         nil,
 		SavedSearch: SavedSearch{
-			ID:       *savedSearchID,
-			Name:     "my little search",
-			Query:    "group:css",
-			Scope:    "USER_PUBLIC",
-			AuthorID: "userID1",
+			ID:          *savedSearchID,
+			Name:        "my little search",
+			Query:       "group:css",
+			Scope:       "USER_PUBLIC",
+			AuthorID:    "userID1",
+			Description: nil,
 			// Don't actually compare the last two values.
 			CreatedAt: spanner.CommitTimestamp,
 			UpdatedAt: spanner.CommitTimestamp,
