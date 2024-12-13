@@ -28,7 +28,7 @@ require (
 	cloud.google.com/go/monitoring v1.22.0 // indirect
 	cloud.google.com/go/secretmanager v1.14.2 // indirect
 	cloud.google.com/go/spanner v1.73.0 // indirect
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241207233127-9853b93b5aff // indirect
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.2 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.25.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
@@ -72,7 +72,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.32.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect

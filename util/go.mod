@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go v0.116.0
 	cloud.google.com/go/spanner v1.73.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20241207233127-9853b93b5aff
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241207233127-9853b93b5aff
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
 	github.com/brianvoe/gofakeit/v7 v7.1.2
 	github.com/golang-jwt/jwt/v5 v5.2.1
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20241206211335-405e268ed1c6
@@ -71,7 +71,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.32.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.32.0 // indirect
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect
