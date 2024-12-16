@@ -373,6 +373,48 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	if !slices.EqualFunc(sampleLatestMetrics, latestMetricValues, latestDailyMetricEquality) {
 		t.Errorf("unequal metrics.\nexpected %+v\nreceived %+v", sampleLatestMetrics, latestMetricValues)
 	}
+	t.Run("errors", func(t *testing.T) {
+		unsuedMetric := DailyChromiumHistogramMetric{Day: civil.Date{
+			Year:  2000,
+			Month: time.January,
+			Day:   1,
+		},
+			Rate: *big.NewRat(0, 100),
+		}
+		testCases := []struct {
+			name          string
+			histogram     metricdatatypes.HistogramName
+			bucketID      int64
+			expectedError error
+		}{
+			{
+				name:          "bad histogram name",
+				histogram:     "",
+				bucketID:      0,
+				expectedError: ErrUsageMetricUpsertNoHistogramFound,
+			},
+			{
+				name:          "bad histogram bucket id",
+				histogram:     metricdatatypes.WebDXFeatureEnum,
+				bucketID:      0,
+				expectedError: ErrUsageMetricUpsertNoHistogramEnumFound,
+			},
+			{
+				name:          "bucket id exists but no matching web features entry",
+				histogram:     metricdatatypes.WebDXFeatureEnum,
+				bucketID:      3,
+				expectedError: ErrUsageMetricUpsertNoFeatureIDFound,
+			},
+		}
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				err := spannerClient.UpsertDailyChromiumHistogramMetric(ctx, tc.histogram, tc.bucketID, unsuedMetric)
+				if !errors.Is(err, tc.expectedError) {
+					t.Errorf("expected %v, received %v", tc.expectedError, err)
+				}
+			})
+		}
+	})
 }
 
 func dailyMetricEquality(left, right testSpannerDailyChromiumHistogramMetric) bool {

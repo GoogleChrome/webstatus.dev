@@ -47,6 +47,25 @@ var ErrFailedToEstablishClient = errors.New("failed to establish spanner client"
 // ErrInvalidCursorFormat indicates the cursor is not the correct format.
 var ErrInvalidCursorFormat = errors.New("invalid cursor format")
 
+// DailyChromiumHistogramMetrics specific errors.
+var (
+	// ErrUsageMetricUpsertNoFeatureIDFound indicates that no web feature ID was found
+	// when attempting to upsert a usage metric using the chromiumHistogramEnumValueID.
+	// This typically occurs when there is no corresponding web feature associated with
+	// the given chromiumHistogramEnumValueID.
+	ErrUsageMetricUpsertNoFeatureIDFound = errors.New("no web feature id found when upserting usage metric")
+
+	// ErrUsageMetricUpsertNoHistogramFound indicates that the chromium histogram metric
+	// was not found when attempting to upsert a usage metric.
+	ErrUsageMetricUpsertNoHistogramFound = errors.New("histogram not found when upserting usage metric")
+
+	// ErrUsageMetricUpsertNoHistogramEnumFound indicates that the chromium histogram enum
+	// was not found when attempting to upsert a usage metric. This typically occurs when
+	// the histogram name associated with the metric is not found, possibly due to
+	// a draft or obsolete feature for which the corresponding enum ID has not been created.
+	ErrUsageMetricUpsertNoHistogramEnumFound = errors.New("histogram enum not found when upserting usage metric")
+)
+
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
 	*spanner.Client
