@@ -238,6 +238,8 @@ export class StatsPage extends LitElement {
   }
 
   // Make a DataTable from the target data map.
+  // TODO(kyleju): refactor this method acorss feature detail page
+  // and stats page, https://github.com/GoogleChrome/webstatus.dev/issues/964.
   createDisplayDataFromMap(
     targetMap: Map<string, Array<BrowserReleaseFeatureMetric>>,
     addMax: boolean,
