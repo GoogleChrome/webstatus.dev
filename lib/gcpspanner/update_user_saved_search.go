@@ -15,7 +15,6 @@
 package gcpspanner
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"log/slog"
@@ -29,10 +28,11 @@ var ErrMissingRequiredRole = errors.New("user is missing required role")
 
 // UpdateSavedSearchRequest is a request to update the saved search.
 type UpdateSavedSearchRequest struct {
-	ID       string
-	AuthorID string
-	Query    *string
-	Name     *string
+	ID          string
+	AuthorID    string
+	Query       OptionallySet[string]
+	Name        OptionallySet[string]
+	Description OptionallySet[*string]
 }
 
 type updateUserSavedSearchMapper struct {
@@ -44,22 +44,33 @@ func (m updateUserSavedSearchMapper) GetKey(in UpdateSavedSearchRequest) string 
 func (m updateUserSavedSearchMapper) Table() string { return savedSearchesTable }
 
 func (m updateUserSavedSearchMapper) Merge(req UpdateSavedSearchRequest, existing SavedSearch) SavedSearch {
-	var incomingName, incomingQuery string
-	if req.Name != nil {
-		incomingName = *req.Name
+	var newName, newQuery string
+	var newDescription *string
+	if req.Name.IsSet {
+		newName = req.Name.Value
+	} else {
+		newName = existing.Name
 	}
-	if req.Query != nil {
-		incomingQuery = *req.Query
+	if req.Query.IsSet {
+		newQuery = req.Query.Value
+	} else {
+		newQuery = existing.Query
+	}
+	if req.Description.IsSet {
+		newDescription = req.Description.Value
+	} else {
+		newDescription = existing.Description
 	}
 
 	return SavedSearch{
-		ID:        existing.ID,
-		Name:      cmp.Or(incomingName, existing.Name),
-		Query:     cmp.Or(incomingQuery, existing.Query),
-		Scope:     existing.Scope,
-		AuthorID:  req.AuthorID,
-		CreatedAt: existing.CreatedAt,
-		UpdatedAt: spanner.CommitTimestamp,
+		ID:          existing.ID,
+		Name:        newName,
+		Query:       newQuery,
+		Description: newDescription,
+		Scope:       existing.Scope,
+		AuthorID:    req.AuthorID,
+		CreatedAt:   existing.CreatedAt,
+		UpdatedAt:   spanner.CommitTimestamp,
 	}
 }
 

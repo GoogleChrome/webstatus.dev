@@ -28,6 +28,7 @@ type CreateUserSavedSearchRequest struct {
 	Name        string
 	Query       string
 	OwnerUserID string
+	Description *string
 }
 
 var (
@@ -71,13 +72,14 @@ func (c *Client) CreateNewUserSavedSearch(
 		// TODO: In the future, look into using an entityMapper for SavedSearch.
 		// Then, we can use createInsertMutation.
 		m1, err := spanner.InsertStruct(savedSearchesTable, SavedSearch{
-			ID:        id,
-			Name:      newSearch.Name,
-			Query:     newSearch.Query,
-			Scope:     UserPublicScope,
-			AuthorID:  newSearch.OwnerUserID,
-			CreatedAt: spanner.CommitTimestamp,
-			UpdatedAt: spanner.CommitTimestamp,
+			ID:          id,
+			Name:        newSearch.Name,
+			Query:       newSearch.Query,
+			Description: newSearch.Description,
+			Scope:       UserPublicScope,
+			AuthorID:    newSearch.OwnerUserID,
+			CreatedAt:   spanner.CommitTimestamp,
+			UpdatedAt:   spanner.CommitTimestamp,
 		})
 		if err != nil {
 			return errors.Join(ErrInternalQueryFailure, err)
