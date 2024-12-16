@@ -6,7 +6,7 @@ toolchain go1.23.2
 
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20241207233127-9853b93b5aff
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241207233127-9853b93b5aff
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
 	github.com/go-chi/cors v1.2.1
 	github.com/oapi-codegen/runtime v1.1.1
 )
@@ -103,7 +103,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/oauth2 v0.24.0 // indirect

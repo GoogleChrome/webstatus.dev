@@ -40,6 +40,7 @@ import {
   type BrowsersParameter,
   type ChannelsParameter,
   type WPTRunMetric,
+  type ChromiumUsageStat,
 } from '../api/client.js';
 import {
   formatFeaturePageUrl,
@@ -86,12 +87,17 @@ export class FeaturePage extends LitElement {
 
   _loadingMetricsTask?: Task;
 
+  _loadingUsageTask?: Task;
+
   @consume({context: apiClientContext})
   @state()
   apiClient!: APIClient;
 
   @state()
   featureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
+
+  @state()
+  featureUsageBrowsers: BrowsersParameter[] = ['chrome'];
 
   @state()
   // Default: Date.now() - 1 year.
@@ -107,10 +113,19 @@ export class FeaturePage extends LitElement {
   featureSupport = new Map<string, Array<WPTRunMetric>>();
 
   @state()
+  featureUsage = new Map<string, Array<ChromiumUsageStat>>();
+
+  @state()
   featureSupportChartOptions = {};
 
   @state()
+  featureUsageChartOptions = {};
+
+  @state()
   featureSupportChartDataObj: WebStatusDataObj | undefined;
+
+  @state()
+  featureUsageChartDataObj: WebStatusDataObj | undefined;
 
   @state()
   feature?: components['schemas']['Feature'] | undefined;
@@ -275,6 +290,8 @@ export class FeaturePage extends LitElement {
     });
     // Temporarily to avoid the no-floating-promises error.
     void this._startMetricsTask(false);
+    void this._startUsageMetricsTask(false);
+
     this._loadingMetadataTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
@@ -316,7 +333,10 @@ export class FeaturePage extends LitElement {
     ) {
       this.startDate = newStartDate;
       this.updateUrl();
-      await this._startMetricsTask(true);
+      await Promise.all([
+        this._startMetricsTask(true),
+        this._startUsageMetricsTask(true),
+      ]);
     }
   }
 
@@ -329,7 +349,10 @@ export class FeaturePage extends LitElement {
     ) {
       this.endDate = newEndDate;
       this.updateUrl();
-      await this._startMetricsTask(true);
+      await Promise.all([
+        this._startMetricsTask(true),
+        this._startUsageMetricsTask(true),
+      ]);
     }
   }
 
@@ -435,6 +458,82 @@ export class FeaturePage extends LitElement {
     return dataObj;
   }
 
+  // Make a DataTable from the data in featureUsage
+  createFeatureUsageDataFromMap(): WebStatusDataObj {
+    // Get the list of browsers from featureUsage
+    const browsers = this.featureUsageBrowsers;
+
+    const dataObj: WebStatusDataObj = {cols: [], rows: []};
+    dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
+    for (const browser of browsers) {
+      const browserLabel = BROWSER_ID_TO_LABEL[browser];
+      dataObj.cols.push({type: 'number', label: browserLabel, role: 'data'});
+      dataObj.cols.push({
+        type: 'string',
+        label: `${browserLabel} tooltip`,
+        role: 'tooltip',
+      });
+    }
+
+    // Map from date to an object with counts for each browser
+    const dateToBrowserDataMap = new Map<
+      number,
+      {[key: string]: {usage: number; tooltip: string}}
+    >();
+
+    const dateToTotalTestsCountMap = new Map<number, number>();
+
+    // Merge data across all browsers into one array of rows.
+    for (const browser of browsers) {
+      const data = this.featureUsage.get(browser);
+      if (!data) continue;
+      for (const row of data) {
+        if (!row) continue;
+        const timestampMs = new Date(row.timestamp).getTime();
+        // Round timestamp to the nearest hour.
+        const msInHour = 1000 * 60 * 60 * 1;
+        const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
+        const usage = row.usage ? row.usage * 100 : 0;
+        const tooltip = `${BROWSER_ID_TO_LABEL[browser]}: ${usage}%`;
+        if (!dateToBrowserDataMap.has(roundedTimestamp)) {
+          dateToBrowserDataMap.set(roundedTimestamp, {});
+          // The following line uses the first browser's total:
+          // dateToTotalTestsCountMap.set(roundedTimestamp, row.total_tests_count!);
+        }
+        dateToTotalTestsCountMap.set(roundedTimestamp, 100);
+        const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
+        browserCounts[browser] = {usage, tooltip};
+      }
+    }
+
+    // Create array of dateToBrowserDataMap entries and sort by roundedTimestamp
+    const data = Array.from(dateToBrowserDataMap.entries()).sort(
+      ([d1], [d2]) => d1 - d2,
+    );
+
+    // For each date, add a row to the dataObj
+    for (const datum of data) {
+      const dateMs = datum[0];
+      const date = new Date(dateMs);
+      const browserCounts = datum[1];
+      // Make an array of browser counts, in the order of selected browsers.
+      // If the browser is not in the browserCounts, add null.
+      const browserCountArray: Array<number | string | null> = [];
+      browsers.forEach(browser => {
+        const countAndTooltip = browserCounts[browser];
+        if (countAndTooltip) {
+          browserCountArray.push(countAndTooltip.usage);
+          browserCountArray.push(countAndTooltip.tooltip);
+        } else {
+          browserCountArray.push(null);
+          browserCountArray.push(null);
+        }
+      });
+      dataObj.rows.push([date, ...browserCountArray]);
+    }
+    return dataObj;
+  }
+
   generateFeatureSupportChartOptions(): google.visualization.ComboChartOptions {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
     const selectedBrowsers = this.featureSupportBrowsers;
@@ -477,6 +576,48 @@ export class FeaturePage extends LitElement {
     return options;
   }
 
+  generateFeatureUsageChartOptions(): google.visualization.ComboChartOptions {
+    // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
+    const selectedBrowsers = this.featureUsageBrowsers;
+    const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
+      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
+      return BROWSER_ID_TO_COLOR[browserKey];
+    });
+
+    // Add one day to this.endDate.
+    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
+    const options = {
+      height: 300, // This is necessary to avoid shrinking to 0 or 18px.
+      interpolateNulls: true,
+      hAxis: {
+        title: '',
+        titleTextStyle: {color: '#333'},
+        viewWindow: {min: this.startDate, max: endDate},
+      },
+      vAxis: {
+        minValue: 0,
+        title: 'Usage (%)',
+        format: '#,###',
+      },
+      legend: {position: 'top'},
+      colors: seriesColors,
+      chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+
+      // Enable explorer mode
+      explorer: {
+        actions: ['dragToZoom', 'rightClickToReset'],
+        axis: 'horizontal',
+        keepInBounds: true,
+        maxZoomIn: 4,
+        maxZoomOut: 4,
+        zoomDelta: 0.01,
+      },
+    } as google.visualization.LineChartOptions;
+
+    this.featureUsageChartOptions = options;
+    return options;
+  }
+
   async _fetchFeatureSupportData(
     apiClient: APIClient,
     featureId: string,
@@ -509,6 +650,32 @@ export class FeaturePage extends LitElement {
     });
 
     await Promise.all(promises); // Wait for all browsers to finish
+  }
+
+  async _fetchFeatureUsageData(
+    apiClient: APIClient,
+    featureId: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    if (typeof apiClient !== 'object') return;
+
+    this.featureUsageChartDataObj = this.createFeatureUsageDataFromMap();
+    for (const browser of this.featureUsageBrowsers) {
+      for await (const page of apiClient.getChromiumDailyUsageStats(
+        featureId,
+        startDate,
+        endDate,
+      )) {
+        // Append the new data to existing data
+        const existingData = this.featureUsage.get(featureId) || [];
+        this.featureUsage.set(browser, [...existingData, ...page]);
+
+        this.featureSupportChartDataObj =
+          this.createFeatureSupportDataFromMap();
+      }
+      this.featureUsageChartDataObj = this.createFeatureUsageDataFromMap();
+    }
   }
 
   async firstUpdated(): Promise<void> {
@@ -837,6 +1004,53 @@ export class FeaturePage extends LitElement {
     `;
   }
 
+  renderFeatureUsage(): TemplateResult {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('showUsageChart') === null) {
+      return html``;
+    }
+    return html`
+      <sl-card id="feature-usage">
+        <div class="hbox">
+          <div slot="header">Feature Usage</div>
+          <div class="spacer"></div>
+          <div class="spacer"></div>
+          <div class="hbox wrap valign-items-end">
+            <sl-dropdown
+              style="display:none"
+              id="feature-usage-browser-selector"
+              multiple
+              stay-open-on-select
+              .value="${this.featureUsageBrowsers.join(' ')}"
+            >
+              <sl-button slot="trigger">
+                <sl-icon slot="suffix" name="chevron-down"></sl-icon>
+                Browsers
+              </sl-button>
+              <sl-menu @sl-select=${this.handleBrowserSelection}>
+                <sl-menu-item type="checkbox" value="chrome"
+                  >Chrome</sl-menu-item
+                >
+              </sl-menu>
+            </sl-dropdown>
+          </div>
+        </div>
+
+        <webstatus-gchart
+          id="feature-usage-chart"
+          .containerId="${'feature-usage-chart-container'}"
+          .chartType="${'LineChart'}"
+          .dataObj="${this.featureUsageChartDataObj}"
+          .options="${this.generateFeatureUsageChartOptions()}"
+          .dataLoadingStatus="${this._loadingUsageTask?.status ??
+          TaskStatus.INITIAL}"
+        >
+          Loading chart...
+        </webstatus-gchart>
+      </sl-card>
+    `;
+  }
+
   renderBug(bugId: number): TemplateResult {
     return html`
       <li>
@@ -885,7 +1099,7 @@ export class FeaturePage extends LitElement {
         </div>
 
         ${this.renderNameDescriptionControls()} ${this.renderWPTScores()}
-        ${this.renderImplentationProgress()}
+        ${this.renderImplentationProgress()} ${this.renderFeatureUsage()}
       </div>
     `;
 
@@ -924,6 +1138,27 @@ export class FeaturePage extends LitElement {
     if (manualRun) {
       this._loadingMetricsTask.autoRun = false;
       await this._loadingMetricsTask.run();
+    }
+  }
+
+  private async _startUsageMetricsTask(manualRun: boolean) {
+    this._loadingUsageTask?.abort(); // Stop any existing task.
+    this._loadingUsageTask = new Task(this, {
+      args: () => [this.apiClient, this.featureId],
+      task: async ([apiClient, featureId]) => {
+        if (typeof apiClient === 'object' && typeof featureId === 'string') {
+          await this._fetchFeatureUsageData(
+            apiClient,
+            featureId,
+            this.startDate,
+            this.endDate,
+          );
+        }
+      },
+    });
+    if (manualRun) {
+      this._loadingUsageTask.autoRun = false;
+      await this._loadingUsageTask.run();
     }
   }
 }

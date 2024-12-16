@@ -120,6 +120,9 @@ const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
 
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
+export type ChromiumUsageStat = components['schemas']['ChromiumUsageStat'];
+export type ChromiumDailyUsageStatsPage =
+  components['schemas']['ChromiumDailyStatsPage'];
 export type BrowserReleaseFeatureMetric =
   components['schemas']['BrowserReleaseFeatureMetric'];
 export type BrowserReleaseFeatureMetricsPage =
@@ -356,6 +359,38 @@ export class APIClient {
       nextPageToken = page?.metadata?.next_page_token;
 
       yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
+  }
+
+  public async *getChromiumDailyUsageStats(
+    featureId: string,
+    startAtDate: Date,
+    endAtDate: Date,
+  ): AsyncIterable<ChromiumUsageStat[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    let nextPageToken;
+    do {
+      const response = await this.client.GET(
+        '/v1/features/{feature_id}/stats/usage/chromium/daily_stats',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {startAt, endAt, page_token: nextPageToken},
+            path: {
+              feature_id: featureId,
+            },
+          },
+        },
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: ChromiumDailyUsageStatsPage =
+        response.data as ChromiumDailyUsageStatsPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      yield page.data;
     } while (nextPageToken !== undefined);
   }
 

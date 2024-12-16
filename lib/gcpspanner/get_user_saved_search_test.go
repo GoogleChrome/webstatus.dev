@@ -30,6 +30,7 @@ func TestGetUserSavedSearch(t *testing.T) {
 		Name:        "my little search",
 		Query:       "group:css",
 		OwnerUserID: "userID1",
+		Description: valuePtr("desc"),
 	})
 	if err != nil {
 		t.Errorf("expected nil error. received %s", err)
@@ -43,11 +44,12 @@ func TestGetUserSavedSearch(t *testing.T) {
 			IsBookmarked: nil,
 			Role:         nil,
 			SavedSearch: SavedSearch{
-				ID:       *savedSearchID,
-				Name:     "my little search",
-				Query:    "group:css",
-				Scope:    "USER_PUBLIC",
-				AuthorID: "userID1",
+				ID:          *savedSearchID,
+				Name:        "my little search",
+				Query:       "group:css",
+				Scope:       "USER_PUBLIC",
+				AuthorID:    "userID1",
+				Description: valuePtr("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -66,11 +68,12 @@ func TestGetUserSavedSearch(t *testing.T) {
 			IsBookmarked: valuePtr(true),
 			Role:         valuePtr(string(SavedSearchOwner)),
 			SavedSearch: SavedSearch{
-				ID:       *savedSearchID,
-				Name:     "my little search",
-				Query:    "group:css",
-				Scope:    "USER_PUBLIC",
-				AuthorID: "userID1",
+				ID:          *savedSearchID,
+				Name:        "my little search",
+				Query:       "group:css",
+				Scope:       "USER_PUBLIC",
+				AuthorID:    "userID1",
+				Description: valuePtr("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -90,11 +93,12 @@ func TestGetUserSavedSearch(t *testing.T) {
 			IsBookmarked: valuePtr(false),
 			Role:         nil,
 			SavedSearch: SavedSearch{
-				ID:       *savedSearchID,
-				Name:     "my little search",
-				Query:    "group:css",
-				Scope:    "USER_PUBLIC",
-				AuthorID: "userID1",
+				ID:          *savedSearchID,
+				Name:        "my little search",
+				Query:       "group:css",
+				Scope:       "USER_PUBLIC",
+				AuthorID:    "userID1",
+				Description: valuePtr("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -125,6 +129,7 @@ func savedSearchEquality(left, right SavedSearch) bool {
 		left.Query == right.Query &&
 		left.Scope == right.Scope &&
 		left.AuthorID == right.AuthorID &&
+		reflect.DeepEqual(left.Description, right.Description) &&
 		// Just make sure the times are non zero.
 		!left.CreatedAt.IsZero() && !right.CreatedAt.IsZero() &&
 		!left.UpdatedAt.IsZero() && !right.UpdatedAt.IsZero()

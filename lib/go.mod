@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/datastore v1.20.0
 	cloud.google.com/go/spanner v1.73.0
 	cloud.google.com/go/storage v1.48.0
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241207233127-9853b93b5aff
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/deckarep/golang-set v1.8.0
 	github.com/google/go-github/v60 v60.0.0
@@ -141,7 +141,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.32.0
 	go.opentelemetry.io/proto/otlp v1.4.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/crypto v0.30.0 // indirect
+	golang.org/x/crypto v0.31.0 // indirect
 	golang.org/x/exp v0.0.0-20241204233417-43b7b7cde48d // indirect
 	golang.org/x/mod v0.22.0 // indirect
 	golang.org/x/net v0.32.0 // indirect
