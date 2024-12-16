@@ -45,7 +45,7 @@
     "@web/test-runner-playwright": "^0.11.0",
     "chai": "^5.1.1",
     "cpy": "^11.1.0",
-    "eslint": "^9.16.0",
+    "eslint": "^9.17.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-lit": "^1.15.0",
     "eslint-plugin-perfectionist": "^4.3.0",
