@@ -73,7 +73,7 @@ func getLatestDailyChromiumMetricDate(
 			zeroTime := time.Time{}
 			zeroDate := civil.DateOf(zeroTime)
 
-			return &zeroDate, nil
+			return &zeroDate, errors.Join(ErrQueryReturnedNoResults, err)
 		}
 		slog.ErrorContext(ctx, "error querying for latest run time", "error", err)
 
@@ -109,6 +109,9 @@ func getWebFeatureIDByChromiumHistogramEnumValueID(
 
 	row, err := iter.Next()
 	if err != nil {
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
 		slog.ErrorContext(ctx, "error querying for web feature ID", "error", err)
 
 		return nil, err
@@ -129,6 +132,15 @@ func shouldUpsertLatestDailyChromiumUsageMetric(existingDate *civil.Date, newDat
 	return existingDate == nil || existingDate.IsZero() || newDate.After(*existingDate)
 }
 
+// UpsertDailyChromiumHistogramMetric upserts a daily chromium histogram metric.
+//
+// Errors:
+//   - ErrQueryReturnedNoResults: If the histogram key or value ID is not found.
+//   - ErrInternalQueryFailure: If any internal query fails during the process.
+//   - ErrUsageMetricUpsertNoFeatureIDFound: If no feature ID is found while
+//     attempting to upsert the latest daily chromium usage metric.
+//   - ErrUsageMetricUpsertNoHistogramFound: If the histogram is not found
+//   - ErrUsageMetricUpsertNoHistogramEnumFound: If a particular enum in the histogram is not found.
 func (c *Client) UpsertDailyChromiumHistogramMetric(
 	ctx context.Context,
 	histogramName metricdatatypes.HistogramName,
@@ -139,20 +151,17 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to find histogram key id from histogram name", "name", string(histogramName))
 
-		return err
+		return errors.Join(err, ErrUsageMetricUpsertNoHistogramFound)
 	}
 	chromiumHistogramEnumValueID, err := c.GetIDFromChromiumHistogramEnumValueKey(
 		ctx, *chromiumHistogramEnumID, bucketID)
 	if err != nil {
 		if errors.Is(err, ErrQueryReturnedNoResults) {
-			slog.WarnContext(ctx, "unable to find histogram value id. likely a draft feature. will skip",
+			slog.WarnContext(ctx, "unable to find histogram value id. likely a draft or obsolete feature. will skip",
 				"id", *chromiumHistogramEnumID,
 				"bucketID", bucketID)
 
-			// TODO. Create a specific error for ErrQueryReturnedNoResults from GetIDFromChromiumHistogramEnumValueKey
-			// and return that. Then have the adapter check for it. For now, we can treat this as a warning and ignore
-			// the error.
-			return nil
+			return errors.Join(err, ErrUsageMetricUpsertNoHistogramEnumFound)
 		}
 
 		slog.ErrorContext(ctx, "unable to find histogram value id",
@@ -177,7 +186,7 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 
 		existingDate, err := getLatestDailyChromiumMetricDate(ctx, txn, *chromiumHistogramEnumValueID)
 		if err != nil {
-			if !errors.Is(err, iterator.Done) { // Handle errors other than "not found"
+			if !errors.Is(err, ErrQueryReturnedNoResults) { // Handle errors other than "not found"
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
 		}
@@ -185,6 +194,10 @@ func (c *Client) UpsertDailyChromiumHistogramMetric(
 		if shouldUpsertLatestDailyChromiumUsageMetric(existingDate, metric.Day) {
 			featureID, err := getWebFeatureIDByChromiumHistogramEnumValueID(ctx, txn, *chromiumHistogramEnumValueID)
 			if err != nil {
+				if errors.Is(err, ErrQueryReturnedNoResults) {
+					return errors.Join(err, ErrUsageMetricUpsertNoFeatureIDFound)
+				}
+
 				return errors.Join(ErrInternalQueryFailure, err)
 			}
 			m1, err := spanner.InsertOrUpdateStruct(

@@ -42,6 +42,12 @@ func getSampleChromiumHistogramEnumValues(histogramIDMap map[string]string) []Ch
 			BucketID:                2,
 			Label:                   "ViewTransitions",
 		},
+		// Create an enum that does not have a match in the web features table.
+		{
+			ChromiumHistogramEnumID: histogramIDMap["WebDXFeatureObserver"],
+			BucketID:                3,
+			Label:                   "WritingSuggestions",
+		},
 	}
 }
 
@@ -109,8 +115,8 @@ func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 	}
 	sampleHistogramsEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
 	slices.SortFunc(enumValues, sortChromiumHistogramEnumValues)
-	if !slices.Equal[[]ChromiumHistogramEnumValue](sampleHistogramsEnumValues, enumValues) {
-		t.Errorf("unequal enums. expected %+v actual %+v", sampleHistogramsEnumValues, enumValues)
+	if !slices.Equal(sampleHistogramsEnumValues, enumValues) {
+		t.Errorf("unequal enums.\nexpected %+v\nreceived %+v", sampleHistogramsEnumValues, enumValues)
 	}
 
 	_, err = spannerClient.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValue{
@@ -130,8 +136,8 @@ func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 	slices.SortFunc(enumValues, sortChromiumHistogramEnumValues)
 
 	// Should be the same. No updates should happen.
-	if !slices.Equal[[]ChromiumHistogramEnumValue](sampleHistogramsEnumValues, enumValues) {
-		t.Errorf("unequal enum values after update. expected %+v actual %+v", sampleHistogramsEnumValues, enumValues)
+	if !slices.Equal(sampleHistogramsEnumValues, enumValues) {
+		t.Errorf("unequal enum values after update.\nexpected %+v\nreceived %+v", sampleHistogramsEnumValues, enumValues)
 	}
 }
 

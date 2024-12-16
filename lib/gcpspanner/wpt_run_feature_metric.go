@@ -213,7 +213,7 @@ func getLatestWPTRunFeatureMetricTimeStart(
 	if err != nil {
 		if errors.Is(err, iterator.Done) {
 			// No row found, return zero time
-			return &time.Time{}, nil
+			return &time.Time{}, errors.Join(ErrQueryReturnedNoResults, err)
 		}
 		slog.ErrorContext(ctx, "error querying for latest run time", "error", err)
 
@@ -339,7 +339,7 @@ func (c *Client) UpsertWPTRunFeatureMetrics(
 		for _, metric := range spannerMetrics {
 			existingTimeStart, err := getLatestWPTRunFeatureMetricTimeStart(ctx, txn, metric)
 			if err != nil {
-				if !errors.Is(err, iterator.Done) { // Handle errors other than "not found"
+				if !errors.Is(err, ErrQueryReturnedNoResults) { // Handle errors other than "not found"
 					return errors.Join(ErrInternalQueryFailure, err)
 				}
 				// No existing entry, proceed with insert (existingTimeStart will be zero time)

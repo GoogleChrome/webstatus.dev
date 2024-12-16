@@ -214,6 +214,38 @@ func TestUMAMetricConsumer_SaveMetrics(t *testing.T) {
 			},
 			expectedErr: ErrMetricsSaveFailed,
 		},
+		{
+			name: "UpsertDailyChromiumHistogramMetric skips on ErrUsageMetricUpsertNoHistogramEnumFound",
+			client: &mockUMAMetricsClient{
+				hasDailyChromiumHistogramCapstone:    nil,
+				upsertDailyChromiumHistogramCapstone: nil,
+				upsertDailyChromiumHistogramMetric: func(_ context.Context, _ metricdatatypes.HistogramName,
+					_ int64, _ gcpspanner.DailyChromiumHistogramMetric) error {
+					return gcpspanner.ErrUsageMetricUpsertNoHistogramEnumFound
+				},
+			},
+			day: civil.Date{Year: 2024, Month: 1, Day: 1},
+			data: metricdatatypes.BucketDataMetrics{
+				1: {Rate: 0.5, LowVolume: false, Milestone: ""},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "UpsertDailyChromiumHistogramMetric skips on ErrUsageMetricUpsertNoFeatureIDFound",
+			client: &mockUMAMetricsClient{
+				hasDailyChromiumHistogramCapstone:    nil,
+				upsertDailyChromiumHistogramCapstone: nil,
+				upsertDailyChromiumHistogramMetric: func(_ context.Context, _ metricdatatypes.HistogramName,
+					_ int64, _ gcpspanner.DailyChromiumHistogramMetric) error {
+					return gcpspanner.ErrUsageMetricUpsertNoFeatureIDFound
+				},
+			},
+			day: civil.Date{Year: 2024, Month: 1, Day: 1},
+			data: metricdatatypes.BucketDataMetrics{
+				1: {Rate: 0.5, LowVolume: false, Milestone: ""},
+			},
+			expectedErr: nil,
+		},
 	}
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
