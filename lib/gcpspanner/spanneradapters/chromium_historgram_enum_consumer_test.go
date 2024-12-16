@@ -212,9 +212,24 @@ func TestEnumLabelToFeatureKey(t *testing.T) {
 			want:  "typical-case",
 		},
 		{
-			name:  "With numbers",
+			name:  "With numbers in the middle",
 			label: "With123Numbers",
-			want:  "with123-numbers",
+			want:  "with-123-numbers",
+		},
+		{
+			name:  "Starting with number",
+			label: "123Abc",
+			want:  "123-abc",
+		},
+		{
+			name:  "Consecutive uppercase letters",
+			label: "ABCTest",
+			want:  "a-b-c-test",
+		},
+		{
+			name:  "Mixed case with numbers and consecutive uppercase",
+			label: "ABC123defGHI456Jkl",
+			want:  "a-b-c-123def-g-h-i-456-jkl",
 		},
 	}
 	for _, tc := range tests {

@@ -114,6 +114,10 @@ func enumLabelToFeatureKey(label string) string {
 
 			continue
 		}
+		// Add hyphen if previous character is a letter and current character is a digit
+		if idx > 0 && unicode.IsLetter(rune(label[idx-1])) && unicode.IsDigit(c) {
+			b.WriteRune('-')
+		}
 		b.WriteRune(c)
 	}
 

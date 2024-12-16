@@ -47,6 +47,7 @@ func TestChromiumCodesearchEnumParser_Parse(t *testing.T) {
                             <int value="1" label="CompressionStreams"/>
                             <int value="2" label="ViewTransitions"/>
                             <int value="3" label="DRAFT_Serial"/>
+                            <int value="3" label="OBSOLETE_CanvasColorManagement"/>
                         </enum>
                         <enum name="OtherEnum">
                             <int value="10" label="SomeValue"/>
