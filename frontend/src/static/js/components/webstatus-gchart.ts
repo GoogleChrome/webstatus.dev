@@ -65,8 +65,11 @@ export class WebstatusGChart extends LitElement {
   })
   dataObj: WebStatusDataObj | undefined;
 
-  @property({attribute: false})
-  hasMax!: boolean;
+  @property({
+    type: Boolean,
+    attribute: 'hasMax',
+  })
+  hasMax = true;
 
   @property({state: true, type: Object})
   dataTable:

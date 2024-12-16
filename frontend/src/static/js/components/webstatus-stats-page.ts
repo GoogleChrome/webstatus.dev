@@ -393,7 +393,7 @@ export class StatsPage extends LitElement {
     return html`
       <webstatus-gchart
         id="global-feature-support-chart"
-        ?hasMax="${true}"
+        .hasMax=${true}
         .containerId="${'global-feature-support-chart-container'}"
         .chartType="${'LineChart'}"
         .dataObj="${this.globalFeatureSupportChartDataObj}"
@@ -419,7 +419,7 @@ export class StatsPage extends LitElement {
     return html`
       <webstatus-gchart
         id="missing-one-implementation-chart"
-        ?hasMax="${false}"
+        .hasMax=${false}
         .containerId="${'missing-one-implementation-chart-container'}"
         .chartType="${'LineChart'}"
         .dataObj="${this.missingOneImplementationChartDataObj}"
