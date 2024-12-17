@@ -232,6 +232,7 @@ export class WebstatusSidebarMenu extends LitElement {
     const bookmarkUrl = formatOverviewPageUrl(currentURL, {
       q: bookmark.query,
       start: 0,
+      num: 25,
     });
     // The bookmark should only be active when the path is the FEATURES path
     // and the query is set to the active query.
