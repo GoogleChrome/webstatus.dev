@@ -120,7 +120,6 @@ export type BrowserChannelColumnKeys =
 export const DEFAULT_SORT_SPEC: FeatureSortOrderType = 'baseline_status_desc';
 
 interface BaselineChipConfig {
-  cssClass: string;
   icon: string;
   word: string;
 }
@@ -130,17 +129,14 @@ export const BASELINE_CHIP_CONFIGS: Record<
   BaselineChipConfig
 > = {
   limited: {
-    cssClass: 'limited',
     icon: 'cross.svg',
     word: 'Limited availability',
   },
   newly: {
-    cssClass: 'newly',
     icon: 'newly.svg',
     word: 'Newly available',
   },
   widely: {
-    cssClass: 'widely',
     icon: 'check.svg',
     word: 'Widely available',
   },
@@ -253,10 +249,9 @@ export const renderBaselineStatus: CellRenderer = (
   }
 
   return html`
-    <span class="chip ${chipConfig.cssClass}">
-      <img height="16" src="/public/img/${chipConfig.icon}" />
-      ${chipConfig.word}
-    </span>
+    <img height="16" src="/public/img/${chipConfig.icon}"
+      title=${chipConfig.word}
+      />
     ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}
   `;
 };
