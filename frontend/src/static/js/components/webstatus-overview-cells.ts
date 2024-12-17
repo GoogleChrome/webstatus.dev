@@ -249,9 +249,11 @@ export const renderBaselineStatus: CellRenderer = (
   }
 
   return html`
-    <img height="16" src="/public/img/${chipConfig.icon}"
+    <img
+      height="16"
+      src="/public/img/${chipConfig.icon}"
       title=${chipConfig.word}
-      />
+    />
     ${baselineStatusLowDateHtml} ${baselineStatusHighDateHtml}
   `;
 };
