@@ -122,9 +122,9 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(feature, {search: ''}, {});
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Widely available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Widely available');
 
       // Assert the absence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -140,9 +140,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Widely available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Widely available');
 
       // Assert the presence of the low date block and absence of the high date block.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -166,9 +166,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Widely available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Widely available');
 
       // Assert the presence of the high date block and absence of the low date block.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -195,9 +195,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Widely available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Widely available');
 
       // Assert the presence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -235,9 +235,9 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(feature, {search: ''}, {});
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Newly available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Newly available');
 
       // Assert the absence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -253,9 +253,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Newly available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Newly available');
 
       // Assert the presence of the low date block and absence of the high date block.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -279,9 +279,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Newly available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Newly available');
 
       // Assert the presence of the high date block and absence of the low date block.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -308,9 +308,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Newly available');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Newly available');
 
       // Assert the presence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -347,9 +347,9 @@ describe('renderBaselineStatus', () => {
       const result = renderBaselineStatus(feature, {search: ''}, {});
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Limited availability');
 
       // Assert the absence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -365,9 +365,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Limited availability');
 
       // Assert the absence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -383,9 +383,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Limited availability');
 
       // Assert the absence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');
@@ -404,9 +404,9 @@ describe('renderBaselineStatus', () => {
       );
       render(result, container);
       const el = await fixture(container);
-      const chip = el.querySelector('.chip');
-      expect(chip).to.exist;
-      expect(chip!.textContent!.trim()).to.equal('Limited availability');
+      const icon = el.querySelector('img');
+      expect(icon).to.exist;
+      expect(icon!.getAttribute('title')).to.equal('Limited availability');
 
       // Assert the absence of the low date block and the high date blocks.
       const lowDateBlock = el.querySelector('.baseline-date-block-newly');

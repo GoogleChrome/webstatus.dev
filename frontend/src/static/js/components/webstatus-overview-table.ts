@@ -62,18 +62,6 @@ export class WebstatusOverviewTable extends LitElement {
         .data-table th:hover {
           background: var(--table-header-hover-background);
         }
-        .limited {
-          background: var(--chip-background-limited);
-          color: var(--chip-color-limited);
-        }
-        .newly {
-          background: var(--chip-background-newly);
-          color: var(--chip-color-newly);
-        }
-        .widely {
-          background: var(--chip-background-widely);
-          color: var(--chip-color-widely);
-        }
         .baseline-date-block {
           padding-top: var(--content-padding-quarter);
         }
