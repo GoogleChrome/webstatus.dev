@@ -433,7 +433,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
 };
 
-function calcColGroupSpans(
+export function calcColGroupSpans(
   columns: ColumnKey[],
 ): {group?: string; count: number}[] {
   const result: {group?: string; count: number}[] = [];

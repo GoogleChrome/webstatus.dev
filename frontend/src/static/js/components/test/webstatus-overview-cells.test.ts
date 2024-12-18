@@ -27,81 +27,12 @@ import {
   ColumnOptionKey,
   renderBaselineStatus,
   renderChromiumUsage,
+  calcColGroupSpans,
+  renderColgroups,
+  renderGroupsRow,
 } from '../webstatus-overview-cells.js';
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
-
-describe('parseColumnsSpec', () => {
-  it('returns default columns when there was no column spec', () => {
-    const cols = parseColumnsSpec('');
-    assert.deepEqual(cols, DEFAULT_COLUMNS);
-  });
-
-  it('returns an array when given a column spec', () => {
-    const cols = parseColumnsSpec('name, baseline_status ');
-    assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
-  });
-});
-
-// Add test of parseColumnOptions here
-describe('parseColumnOptions', () => {
-  it('returns default column options when none are specified', () => {
-    const options = parseColumnOptions('');
-    assert.deepEqual(options, DEFAULT_COLUMN_OPTIONS);
-  });
-
-  it('returns an array when given a column options spec', () => {
-    const options = parseColumnOptions('baseline_status_high_date');
-    assert.deepEqual(options, [ColumnOptionKey.BaselineStatusHighDate]);
-  });
-});
-
-describe('isJavaScriptFeature', () => {
-  it('returns true for a JavaScript feature (link prefix match)', () => {
-    const featureSpecInfo = {
-      links: [{link: 'https://tc39.es/proposal-temporal'}],
-    };
-    assert.isTrue(isJavaScriptFeature(featureSpecInfo));
-  });
-
-  it('returns false for a non-JavaScript feature (no link match)', () => {
-    const featureSpecInfo = {
-      links: [{link: 'https://www.w3.org/TR/webgpu/'}],
-    };
-    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
-  });
-
-  it('returns false if links are missing', () => {
-    const featureSpecInfo = {}; // No 'links' property
-    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
-  });
-});
-
-describe('didFeatureCrash', () => {
-  it('returns true if metadata contains a mapping of "status" to "C"', () => {
-    const metadata = {
-      status: 'C',
-    };
-    assert.isTrue(didFeatureCrash(metadata));
-  });
-
-  it('returns false for other status metadata', () => {
-    const metadata = {
-      status: 'hi',
-    };
-    assert.isFalse(didFeatureCrash(metadata));
-  });
-
-  it('returns false for no metadata', () => {
-    const metadata = {};
-    assert.isFalse(didFeatureCrash(metadata));
-  });
-
-  it('returns false for undefined metadata', () => {
-    const metadata = undefined;
-    assert.isFalse(didFeatureCrash(metadata));
-  });
-});
 
 describe('renderChromiumUsage', () => {
   let container: HTMLElement;
@@ -493,5 +424,156 @@ describe('renderBaselineStatus', () => {
       const highDateBlock = el.querySelector('.baseline-date-block-widely');
       expect(highDateBlock).to.not.exist;
     });
+  });
+});
+
+describe('calcColGroupSpans', () => {
+  const TEST_COLS = [
+    ColumnKey.Name,
+    ColumnKey.BaselineStatus,
+    ColumnKey.StableChrome,
+    ColumnKey.StableEdge,
+    ColumnKey.ExpChrome,
+    ColumnKey.ExpEdge,
+    ColumnKey.ExpFirefox,
+  ];
+  it('returns empty list when there was no column spec', () => {
+    const colSpans = calcColGroupSpans([]);
+    assert.deepEqual(colSpans, []);
+  });
+
+  it('keeps undefined groups separate and spans matching groups', () => {
+    const colSpans = calcColGroupSpans(TEST_COLS);
+    assert.deepEqual(colSpans, [
+      {count: 1},
+      {count: 1},
+      {group: 'WPT', count: 2},
+      {group: 'WPT Experimental', count: 3},
+    ]);
+  });
+});
+
+describe('renderColgroups', () => {
+  const TEST_COLS = [
+    ColumnKey.Name,
+    ColumnKey.BaselineStatus,
+    ColumnKey.StableChrome,
+    ColumnKey.StableEdge,
+  ];
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('table');
+  });
+  it('Renders <colgroup>s for column groups', async () => {
+    const result = renderColgroups(TEST_COLS);
+    render(result, container);
+    const el = await fixture(container);
+    const colGroups = el.querySelectorAll('colgroup');
+    expect(colGroups![0]).to.exist;
+    expect(colGroups![0].getAttribute('span')).to.equal('1');
+    expect(colGroups![1]).to.exist;
+    expect(colGroups![1].getAttribute('span')).to.equal('1');
+    expect(colGroups![2]).to.exist;
+    expect(colGroups![2].getAttribute('span')).to.equal('2');
+  });
+});
+
+describe('renderGroupsRow', () => {
+  const TEST_COLS = [
+    ColumnKey.Name,
+    ColumnKey.BaselineStatus,
+    ColumnKey.StableChrome,
+    ColumnKey.StableEdge,
+  ];
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('table');
+  });
+  it('Renders <th>s for column groups', async () => {
+    const result = renderGroupsRow(TEST_COLS);
+    render(result, container);
+    const el = await fixture(container);
+    const groupTHs = el.querySelectorAll('th');
+    expect(groupTHs![0]).to.exist;
+    expect(groupTHs![0].getAttribute('colspan')).to.equal('1');
+    expect(groupTHs![0].innerText).to.equal('');
+    expect(groupTHs![1]).to.exist;
+    expect(groupTHs![1].getAttribute('colspan')).to.equal('1');
+    expect(groupTHs![1].innerText).to.equal('');
+    expect(groupTHs![2]).to.exist;
+    expect(groupTHs![2].getAttribute('colspan')).to.equal('2');
+    expect(groupTHs![2].innerText).to.equal('WPT');
+  });
+});
+
+describe('parseColumnsSpec', () => {
+  it('returns default columns when there was no column spec', () => {
+    const cols = parseColumnsSpec('');
+    assert.deepEqual(cols, DEFAULT_COLUMNS);
+  });
+
+  it('returns an array when given a column spec', () => {
+    const cols = parseColumnsSpec('name, baseline_status ');
+    assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
+  });
+});
+
+// Add test of parseColumnOptions here
+describe('parseColumnOptions', () => {
+  it('returns default column options when none are specified', () => {
+    const options = parseColumnOptions('');
+    assert.deepEqual(options, DEFAULT_COLUMN_OPTIONS);
+  });
+
+  it('returns an array when given a column options spec', () => {
+    const options = parseColumnOptions('baseline_status_high_date');
+    assert.deepEqual(options, [ColumnOptionKey.BaselineStatusHighDate]);
+  });
+});
+
+describe('isJavaScriptFeature', () => {
+  it('returns true for a JavaScript feature (link prefix match)', () => {
+    const featureSpecInfo = {
+      links: [{link: 'https://tc39.es/proposal-temporal'}],
+    };
+    assert.isTrue(isJavaScriptFeature(featureSpecInfo));
+  });
+
+  it('returns false for a non-JavaScript feature (no link match)', () => {
+    const featureSpecInfo = {
+      links: [{link: 'https://www.w3.org/TR/webgpu/'}],
+    };
+    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  });
+
+  it('returns false if links are missing', () => {
+    const featureSpecInfo = {}; // No 'links' property
+    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  });
+});
+
+describe('didFeatureCrash', () => {
+  it('returns true if metadata contains a mapping of "status" to "C"', () => {
+    const metadata = {
+      status: 'C',
+    };
+    assert.isTrue(didFeatureCrash(metadata));
+  });
+
+  it('returns false for other status metadata', () => {
+    const metadata = {
+      status: 'hi',
+    };
+    assert.isFalse(didFeatureCrash(metadata));
+  });
+
+  it('returns false for no metadata', () => {
+    const metadata = {};
+    assert.isFalse(didFeatureCrash(metadata));
+  });
+
+  it('returns false for undefined metadata', () => {
+    const metadata = undefined;
+    assert.isFalse(didFeatureCrash(metadata));
   });
 });
