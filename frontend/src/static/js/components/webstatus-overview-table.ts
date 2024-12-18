@@ -17,7 +17,7 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {TaskStatus} from '@lit/task';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
@@ -39,14 +39,14 @@ import {Toast} from '../utils/toast.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
-  @state()
+  @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
     error: null,
     data: null,
   };
 
-  @state()
+  @property({type: Object})
   location!: {search: string}; // Set by parent.
 
   @property({type: Object})

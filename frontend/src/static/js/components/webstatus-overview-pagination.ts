@@ -22,7 +22,7 @@ import {
   html,
   nothing,
 } from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, state, property} from 'lit/decorators.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
@@ -37,7 +37,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-overview-pagination')
 export class WebstatusOverviewPagination extends LitElement {
-  @state()
+  @property({type: Number})
   totalCount: number | undefined = undefined;
 
   @state()
@@ -46,7 +46,7 @@ export class WebstatusOverviewPagination extends LitElement {
   @state()
   pageSize = DEFAULT_ITEMS_PER_PAGE; // Number of items to display per page
 
-  @state()
+  @property({type: Object})
   location!: {search: string}; // Set by parent.
 
   static get styles(): CSSResultGroup {
