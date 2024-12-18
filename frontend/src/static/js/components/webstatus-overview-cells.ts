@@ -39,6 +39,7 @@ type ColumnDefinition = {
   nameInDialog: string;
   headerHtml: TemplateResult;
   cellRenderer: CellRenderer;
+  unsortable?: boolean;
   options: {
     browser?: components['parameters']['browserPathParam'];
     channel?: components['parameters']['channelPathParam'];
@@ -448,11 +449,15 @@ export function renderHeaderCell(
   }
 
   const colDef = CELL_DEFS[column];
-  return html`
-    <th title="Click to sort">
-      <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
-    </th>
-  `;
+  if (colDef.unsortable) {
+    return html`<th>${colDef?.headerHtml}</th>`;
+  } else {
+    return html`
+      <th title="Click to sort" class="sortable">
+        <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
+      </th>
+    `;
+  }
 }
 
 export function renderFeatureCell(

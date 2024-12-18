@@ -27,6 +27,8 @@ import {
   ColumnOptionKey,
   renderBaselineStatus,
   renderChromiumUsage,
+  renderHeaderCell,
+  CELL_DEFS,
 } from '../webstatus-overview-cells.js';
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
@@ -492,5 +494,39 @@ describe('renderBaselineStatus', () => {
       expect(usageEl).to.exist;
       expect(usageEl!.textContent!.trim()).to.equal('N/A');
     });
+  });
+});
+
+describe('renderHeaderCell', () => {
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('tr');
+  });
+  it('renders a sortable header cell', async () => {
+    const result = renderHeaderCell(
+      {search: '/'},
+      ColumnKey.BaselineStatus,
+      '',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('title')).to.equal('Click to sort');
+    expect(th!.getAttribute('class')).to.equal('sortable');
+  });
+  it('renders an unsortable header cell', async () => {
+    CELL_DEFS[ColumnKey.BaselineStatus].unsortable = true;
+    const result = renderHeaderCell(
+      {search: '/'},
+      ColumnKey.BaselineStatus,
+      '',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('title')).to.not.equal('Click to sort');
+    expect(th!.getAttribute('class')).to.not.equal('sortable');
   });
 });
