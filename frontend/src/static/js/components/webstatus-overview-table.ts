@@ -171,9 +171,9 @@ export class WebstatusOverviewTable extends LitElement {
 
     return html`
       <table class="data-table">
-    ${renderColgroups(columns)}
-    <thead>
-   ${renderGroupsRow(columns)}
+        ${renderColgroups(columns)}
+        <thead>
+          ${renderGroupsRow(columns)}
           <tr class="header-row">
             ${columns.map(
               col => html`${renderHeaderCell(this.location, col, sortSpec)}`,

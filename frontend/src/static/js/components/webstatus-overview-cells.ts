@@ -434,38 +434,41 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
 };
 
 function calcColGroupSpans(
-  columns: ColumnKey[]): {group?: string, count: number}[] {
-    const result: {group?: string, count: number}[] = [];
-    for (let i = 0; i < columns.length; i++) {
-      let colDef = CELL_DEFS[columns[i]];
-      if (colDef.group === undefined) {
-	result.push({count: 1});
-      } else {
+  columns: ColumnKey[],
+): {group?: string; count: number}[] {
+  const result: {group?: string; count: number}[] = [];
+  for (let i = 0; i < columns.length; i++) {
+    const colDef = CELL_DEFS[columns[i]];
+    if (colDef.group === undefined) {
+      result.push({count: 1});
+    } else {
       let colspan = 1;
-	while (i + colspan < columns.length &&
-	  colDef.group === CELL_DEFS[columns[i + colspan]].group) {
-	    colspan++;
-	  }
-	result.push({group: colDef.group, count: colspan});
-	i += colspan - 1;
+      while (
+        i + colspan < columns.length &&
+        colDef.group === CELL_DEFS[columns[i + colspan]].group
+      ) {
+        colspan++;
       }
+      result.push({group: colDef.group, count: colspan});
+      i += colspan - 1;
     }
-    return result;
   }
+  return result;
+}
 
 export function renderColgroups(columns: ColumnKey[]): TemplateResult {
   const colGroupSpans = calcColGroupSpans(columns);
   return html`
-    ${colGroupSpans.map(({count}) =>
-html`<colgroup span=${count}></colgroup>`)}
+    ${colGroupSpans.map(({count}) => html`<colgroup span=${count}></colgroup>`)}
   `;
 }
 
 export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
   const colGroupSpans = calcColGroupSpans(columns);
   return html`
-    ${colGroupSpans.map(({group, count}) =>
-      html`<th colspan=${count}>${group}</th>`)}
+    ${colGroupSpans.map(
+      ({group, count}) => html`<th colspan=${count}>${group}</th>`,
+    )}
   `;
 }
 
