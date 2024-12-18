@@ -37,6 +37,7 @@ type CellRenderer = {
 
 type ColumnDefinition = {
   nameInDialog: string;
+  group?: string;
   headerHtml: TemplateResult;
   cellRenderer: CellRenderer;
   unsortable?: boolean;
@@ -371,52 +372,57 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
+    group: 'WPT',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'chrome', channel: 'stable'},
   },
   [ColumnKey.StableEdge]: {
     nameInDialog: 'Browser Implementation in Edge',
+    group: 'WPT',
     headerHtml: html`<img src="/public/img/edge_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'edge', channel: 'stable'},
   },
   [ColumnKey.StableFirefox]: {
     nameInDialog: 'Browser Implementation in Firefox',
+    group: 'WPT',
     headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'firefox', channel: 'stable'},
   },
   [ColumnKey.StableSafari]: {
     nameInDialog: 'Browser Implementation in Safari',
+    group: 'WPT',
     headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
     cellRenderer: renderBrowserQuality,
     options: {browser: 'safari', channel: 'stable'},
   },
   [ColumnKey.ExpChrome]: {
     nameInDialog: 'Browser Implementation in Chrome Experimental',
-    headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />
-      Experimental`,
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'chrome', channel: 'experimental'},
   },
   [ColumnKey.ExpEdge]: {
     nameInDialog: 'Browser Implementation in Edge Experimental',
-    headerHtml: html`<img src="/public/img/edge-dev_24x24.png" /> Experimental`,
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/edge-dev_24x24.png" />`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'edge', channel: 'experimental'},
   },
   [ColumnKey.ExpFirefox]: {
     nameInDialog: 'Browser Implementation in Firefox Experimental',
-    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />
-      Experimental`,
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'firefox', channel: 'experimental'},
   },
   [ColumnKey.ExpSafari]: {
     nameInDialog: 'Browser Implementation in Safari Experimental',
-    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
-      Experimental`,
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'safari', channel: 'experimental'},
   },
@@ -427,6 +433,45 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     options: {},
   },
 };
+
+export function calcColGroupSpans(
+  columns: ColumnKey[],
+): {group?: string; count: number}[] {
+  const result: {group?: string; count: number}[] = [];
+  for (let i = 0; i < columns.length; i++) {
+    const colDef = CELL_DEFS[columns[i]];
+    if (colDef.group === undefined) {
+      result.push({count: 1});
+    } else {
+      let colspan = 1;
+      while (
+        i + colspan < columns.length &&
+        colDef.group === CELL_DEFS[columns[i + colspan]].group
+      ) {
+        colspan++;
+      }
+      result.push({group: colDef.group, count: colspan});
+      i += colspan - 1;
+    }
+  }
+  return result;
+}
+
+export function renderColgroups(columns: ColumnKey[]): TemplateResult {
+  const colGroupSpans = calcColGroupSpans(columns);
+  return html`
+    ${colGroupSpans.map(({count}) => html`<colgroup span=${count}></colgroup>`)}
+  `;
+}
+
+export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
+  const colGroupSpans = calcColGroupSpans(columns);
+  return html`
+    ${colGroupSpans.map(
+      ({group, count}) => html`<th colspan=${count}>${group}</th>`,
+    )}
+  `;
+}
 
 export function renderHeaderCell(
   routerLocation: {search: string},

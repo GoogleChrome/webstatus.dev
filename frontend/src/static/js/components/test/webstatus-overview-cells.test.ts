@@ -29,79 +29,89 @@ import {
   renderChromiumUsage,
   renderHeaderCell,
   CELL_DEFS,
+  calcColGroupSpans,
+  renderColgroups,
+  renderGroupsRow,
 } from '../webstatus-overview-cells.js';
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
 
-describe('parseColumnsSpec', () => {
-  it('returns default columns when there was no column spec', () => {
-    const cols = parseColumnsSpec('');
-    assert.deepEqual(cols, DEFAULT_COLUMNS);
-  });
+describe('renderChromiumUsage', () => {
+  let container: HTMLElement;
+  let feature: components['schemas']['Feature'];
+  beforeEach(() => {
+    container = document.createElement('div');
 
-  it('returns an array when given a column spec', () => {
-    const cols = parseColumnsSpec('name, baseline_status ');
-    assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
-  });
-});
-
-// Add test of parseColumnOptions here
-describe('parseColumnOptions', () => {
-  it('returns default column options when none are specified', () => {
-    const options = parseColumnOptions('');
-    assert.deepEqual(options, DEFAULT_COLUMN_OPTIONS);
-  });
-
-  it('returns an array when given a column options spec', () => {
-    const options = parseColumnOptions('baseline_status_high_date');
-    assert.deepEqual(options, [ColumnOptionKey.BaselineStatusHighDate]);
-  });
-});
-
-describe('isJavaScriptFeature', () => {
-  it('returns true for a JavaScript feature (link prefix match)', () => {
-    const featureSpecInfo = {
-      links: [{link: 'https://tc39.es/proposal-temporal'}],
+    feature = {
+      feature_id: 'id',
+      name: 'name',
+      baseline: {
+        status: 'widely',
+        low_date: '2015-07-29',
+        high_date: '2018-01-29',
+      },
+      usage: {},
     };
-    assert.isTrue(isJavaScriptFeature(featureSpecInfo));
   });
-
-  it('returns false for a non-JavaScript feature (no link match)', () => {
-    const featureSpecInfo = {
-      links: [{link: 'https://www.w3.org/TR/webgpu/'}],
-    };
-    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  it('does render usage as a percentage', async () => {
+    // 10.3% Chromium usage.
+    feature.usage = {chromium: {daily: 0.1034}};
+    const result = renderChromiumUsage(feature, {search: ''}, {});
+    render(result, container);
+    const el = await fixture(container);
+    const usageEl = el.querySelector('#chromium-usage');
+    expect(usageEl).to.exist;
+    expect(usageEl!.textContent!.trim()).to.equal('10.3%');
   });
-
-  it('returns false if links are missing', () => {
-    const featureSpecInfo = {}; // No 'links' property
-    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  it('does render usage as a percentage, and rounds correctly', async () => {
+    // Should round to 10.4% Chromium usage.
+    feature.usage = {chromium: {daily: 0.1036}};
+    const result = renderChromiumUsage(feature, {search: ''}, {});
+    render(result, container);
+    const el = await fixture(container);
+    const usageEl = el.querySelector('#chromium-usage');
+    expect(usageEl).to.exist;
+    expect(usageEl!.textContent!.trim()).to.equal('10.4%');
   });
-});
-
-describe('didFeatureCrash', () => {
-  it('returns true if metadata contains a mapping of "status" to "C"', () => {
-    const metadata = {
-      status: 'C',
-    };
-    assert.isTrue(didFeatureCrash(metadata));
+  it('does render 0 usage amounts as "0.0%"', async () => {
+    // Explicitly 0 Chromium usage.
+    feature.usage = {chromium: {daily: 0.0}};
+    const result = renderChromiumUsage(feature, {search: ''}, {});
+    render(result, container);
+    const el = await fixture(container);
+    const usageEl = el.querySelector('#chromium-usage');
+    expect(usageEl).to.exist;
+    expect(usageEl!.textContent!.trim()).to.equal('0.0%');
   });
-
-  it('returns false for other status metadata', () => {
-    const metadata = {
-      status: 'hi',
-    };
-    assert.isFalse(didFeatureCrash(metadata));
+  it('does render 100% usage amounts as "100%"', async () => {
+    // Explicitly 100% Chromium usage.
+    feature.usage = {chromium: {daily: 1.0}};
+    const result = renderChromiumUsage(feature, {search: ''}, {});
+    render(result, container);
+    const el = await fixture(container);
+    const usageEl = el.querySelector('#chromium-usage');
+    expect(usageEl).to.exist;
+    expect(usageEl!.textContent!.trim()).to.equal('100.0%');
   });
-
-  it('returns false for no metadata', () => {
-    const metadata = {};
-    assert.isFalse(didFeatureCrash(metadata));
+  it('does render very small usage amounts as "<0.1%"', async () => {
+    // 0.0003%.
+    feature.usage = {chromium: {daily: 0.000003}};
+    const result = renderChromiumUsage(feature, {search: ''}, {});
+    render(result, container);
+    const el = await fixture(container);
+    const usageEl = el.querySelector('#chromium-usage');
+    expect(usageEl).to.exist;
+    expect(usageEl!.textContent!.trim()).to.equal('<0.1%');
   });
-
-  it('returns false for undefined metadata', () => {
-    const metadata = undefined;
-    assert.isFalse(didFeatureCrash(metadata));
+  it('does render null usage amounts as "N/A"', async () => {
+    // No usage found.
+    feature.usage = undefined;
+    const result = renderChromiumUsage(feature, {search: ''}, {});
+    render(result, container);
+    const el = await fixture(container);
+    const usageEl = el.querySelector('#chromium-usage');
+    expect(usageEl).to.exist;
+    expect(usageEl!.textContent!.trim()).to.equal('N/A');
   });
 });
 
@@ -417,83 +427,156 @@ describe('renderBaselineStatus', () => {
       expect(highDateBlock).to.not.exist;
     });
   });
-  describe('renderChromiumUsage', () => {
-    let container: HTMLElement;
-    let feature: components['schemas']['Feature'];
-    beforeEach(() => {
-      container = document.createElement('div');
+});
 
-      feature = {
-        feature_id: 'id',
-        name: 'name',
-        baseline: {
-          status: 'widely',
-          low_date: '2015-07-29',
-          high_date: '2018-01-29',
-        },
-        usage: {},
-      };
-    });
-    it('does render usage as a percentage', async () => {
-      // 10.3% Chromium usage.
-      feature.usage = {chromium: {daily: 0.1034}};
-      const result = renderChromiumUsage(feature, {search: ''}, {});
-      render(result, container);
-      const el = await fixture(container);
-      const usageEl = el.querySelector('#chromium-usage');
-      expect(usageEl).to.exist;
-      expect(usageEl!.textContent!.trim()).to.equal('10.3%');
-    });
-    it('does render usage as a percentage, and rounds correctly', async () => {
-      // Should round to 10.4% Chromium usage.
-      feature.usage = {chromium: {daily: 0.1036}};
-      const result = renderChromiumUsage(feature, {search: ''}, {});
-      render(result, container);
-      const el = await fixture(container);
-      const usageEl = el.querySelector('#chromium-usage');
-      expect(usageEl).to.exist;
-      expect(usageEl!.textContent!.trim()).to.equal('10.4%');
-    });
-    it('does render 0 usage amounts as "0.0%"', async () => {
-      // Explicitly 0 Chromium usage.
-      feature.usage = {chromium: {daily: 0.0}};
-      const result = renderChromiumUsage(feature, {search: ''}, {});
-      render(result, container);
-      const el = await fixture(container);
-      const usageEl = el.querySelector('#chromium-usage');
-      expect(usageEl).to.exist;
-      expect(usageEl!.textContent!.trim()).to.equal('0.0%');
-    });
-    it('does render 100% usage amounts as "100%"', async () => {
-      // Explicitly 100% Chromium usage.
-      feature.usage = {chromium: {daily: 1.0}};
-      const result = renderChromiumUsage(feature, {search: ''}, {});
-      render(result, container);
-      const el = await fixture(container);
-      const usageEl = el.querySelector('#chromium-usage');
-      expect(usageEl).to.exist;
-      expect(usageEl!.textContent!.trim()).to.equal('100.0%');
-    });
-    it('does render very small usage amounts as "<0.1%"', async () => {
-      // 0.0003%.
-      feature.usage = {chromium: {daily: 0.000003}};
-      const result = renderChromiumUsage(feature, {search: ''}, {});
-      render(result, container);
-      const el = await fixture(container);
-      const usageEl = el.querySelector('#chromium-usage');
-      expect(usageEl).to.exist;
-      expect(usageEl!.textContent!.trim()).to.equal('<0.1%');
-    });
-    it('does render null usage amounts as "N/A"', async () => {
-      // No usage found.
-      feature.usage = undefined;
-      const result = renderChromiumUsage(feature, {search: ''}, {});
-      render(result, container);
-      const el = await fixture(container);
-      const usageEl = el.querySelector('#chromium-usage');
-      expect(usageEl).to.exist;
-      expect(usageEl!.textContent!.trim()).to.equal('N/A');
-    });
+describe('calcColGroupSpans', () => {
+  const TEST_COLS = [
+    ColumnKey.Name,
+    ColumnKey.BaselineStatus,
+    ColumnKey.StableChrome,
+    ColumnKey.StableEdge,
+    ColumnKey.ExpChrome,
+    ColumnKey.ExpEdge,
+    ColumnKey.ExpFirefox,
+  ];
+  it('returns empty list when there was no column spec', () => {
+    const colSpans = calcColGroupSpans([]);
+    assert.deepEqual(colSpans, []);
+  });
+
+  it('keeps undefined groups separate and spans matching groups', () => {
+    const colSpans = calcColGroupSpans(TEST_COLS);
+    assert.deepEqual(colSpans, [
+      {count: 1},
+      {count: 1},
+      {group: 'WPT', count: 2},
+      {group: 'WPT Experimental', count: 3},
+    ]);
+  });
+});
+
+describe('renderColgroups', () => {
+  const TEST_COLS = [
+    ColumnKey.Name,
+    ColumnKey.BaselineStatus,
+    ColumnKey.StableChrome,
+    ColumnKey.StableEdge,
+  ];
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('table');
+  });
+  it('Renders <colgroup>s for column groups', async () => {
+    const result = renderColgroups(TEST_COLS);
+    render(result, container);
+    const el = await fixture(container);
+    const colGroups = el.querySelectorAll('colgroup');
+    expect(colGroups![0]).to.exist;
+    expect(colGroups![0].getAttribute('span')).to.equal('1');
+    expect(colGroups![1]).to.exist;
+    expect(colGroups![1].getAttribute('span')).to.equal('1');
+    expect(colGroups![2]).to.exist;
+    expect(colGroups![2].getAttribute('span')).to.equal('2');
+  });
+});
+
+describe('renderGroupsRow', () => {
+  const TEST_COLS = [
+    ColumnKey.Name,
+    ColumnKey.BaselineStatus,
+    ColumnKey.StableChrome,
+    ColumnKey.StableEdge,
+  ];
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('table');
+  });
+  it('Renders <th>s for column groups', async () => {
+    const result = renderGroupsRow(TEST_COLS);
+    render(result, container);
+    const el = await fixture(container);
+    const groupTHs = el.querySelectorAll('th');
+    expect(groupTHs![0]).to.exist;
+    expect(groupTHs![0].getAttribute('colspan')).to.equal('1');
+    expect(groupTHs![0].innerText).to.equal('');
+    expect(groupTHs![1]).to.exist;
+    expect(groupTHs![1].getAttribute('colspan')).to.equal('1');
+    expect(groupTHs![1].innerText).to.equal('');
+    expect(groupTHs![2]).to.exist;
+    expect(groupTHs![2].getAttribute('colspan')).to.equal('2');
+    expect(groupTHs![2].innerText).to.equal('WPT');
+  });
+});
+
+describe('parseColumnsSpec', () => {
+  it('returns default columns when there was no column spec', () => {
+    const cols = parseColumnsSpec('');
+    assert.deepEqual(cols, DEFAULT_COLUMNS);
+  });
+
+  it('returns an array when given a column spec', () => {
+    const cols = parseColumnsSpec('name, baseline_status ');
+    assert.deepEqual(cols, [ColumnKey.Name, ColumnKey.BaselineStatus]);
+  });
+});
+
+// Add test of parseColumnOptions here
+describe('parseColumnOptions', () => {
+  it('returns default column options when none are specified', () => {
+    const options = parseColumnOptions('');
+    assert.deepEqual(options, DEFAULT_COLUMN_OPTIONS);
+  });
+
+  it('returns an array when given a column options spec', () => {
+    const options = parseColumnOptions('baseline_status_high_date');
+    assert.deepEqual(options, [ColumnOptionKey.BaselineStatusHighDate]);
+  });
+});
+
+describe('isJavaScriptFeature', () => {
+  it('returns true for a JavaScript feature (link prefix match)', () => {
+    const featureSpecInfo = {
+      links: [{link: 'https://tc39.es/proposal-temporal'}],
+    };
+    assert.isTrue(isJavaScriptFeature(featureSpecInfo));
+  });
+
+  it('returns false for a non-JavaScript feature (no link match)', () => {
+    const featureSpecInfo = {
+      links: [{link: 'https://www.w3.org/TR/webgpu/'}],
+    };
+    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  });
+
+  it('returns false if links are missing', () => {
+    const featureSpecInfo = {}; // No 'links' property
+    assert.isFalse(isJavaScriptFeature(featureSpecInfo));
+  });
+});
+
+describe('didFeatureCrash', () => {
+  it('returns true if metadata contains a mapping of "status" to "C"', () => {
+    const metadata = {
+      status: 'C',
+    };
+    assert.isTrue(didFeatureCrash(metadata));
+  });
+
+  it('returns false for other status metadata', () => {
+    const metadata = {
+      status: 'hi',
+    };
+    assert.isFalse(didFeatureCrash(metadata));
+  });
+
+  it('returns false for no metadata', () => {
+    const metadata = {};
+    assert.isFalse(didFeatureCrash(metadata));
+  });
+
+  it('returns false for undefined metadata', () => {
+    const metadata = undefined;
+    assert.isFalse(didFeatureCrash(metadata));
   });
 });
 
