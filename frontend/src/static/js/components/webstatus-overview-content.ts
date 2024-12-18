@@ -23,7 +23,7 @@ import {
   nothing,
 } from 'lit';
 import {TaskStatus} from '@lit/task';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-filters.js';
@@ -45,14 +45,14 @@ const webFeaturesRepoUrl = 'https://github.com/web-platform-dx/web-features';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
-  @state()
+  @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
     error: null,
     data: null,
   };
 
-  @state()
+  @property({type: Object})
   location!: {search: string}; // Set by parent.
 
   @consume({context: webFeatureProgressContext, subscribe: true})
