@@ -27,6 +27,7 @@ import {
   parseColumnsSpec,
   renderFeatureCell,
   renderHeaderCell,
+  renderHeaderCellWithQuerySort,
 } from './webstatus-overview-cells.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
@@ -162,14 +163,22 @@ export class WebstatusOverviewTable extends LitElement {
     );
     const sortSpec: string =
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
-
     return html`
       <table class="data-table">
         <thead>
           <tr>
-            ${columns.map(
-              col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
-            )}
+            ${this.bookmark?.is_ordered
+              ? columns.map(
+                  col =>
+                    html`${renderHeaderCellWithQuerySort(
+                      col,
+                      this.bookmark?.name,
+                    )}`,
+                )
+              : columns.map(
+                  col =>
+                    html`${renderHeaderCell(this.location, col, sortSpec)}`,
+                )}
           </tr>
         </thead>
         <tbody>
