@@ -31,10 +31,14 @@ export const SHARED_STYLES = [
       color: var(--default-color);
     }
 
+    .data-table colgroup {
+      border: var(--default-border);
+    }
     .data-table {
       width: 100%;
       border: var(--default-border);
       border-radius: var(--border-radius);
+      border-collapse: collapse;
     }
     .data-table th {
       text-align: left;

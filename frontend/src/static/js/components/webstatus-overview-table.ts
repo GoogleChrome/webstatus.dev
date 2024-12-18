@@ -26,6 +26,8 @@ import {
   DEFAULT_SORT_SPEC,
   parseColumnsSpec,
   renderFeatureCell,
+  renderColgroups,
+  renderGroupsRow,
   renderHeaderCell,
 } from './webstatus-overview-cells.js';
 import {TaskTracker} from '../utils/task-tracker.js';
@@ -59,7 +61,11 @@ export class WebstatusOverviewTable extends LitElement {
         .data-table {
           margin: var(--content-padding) 0;
         }
-        .data-table th:hover {
+        .header-row th {
+          border-left: var(--default-border);
+          border-right: var(--default-border);
+        }
+        .header-row th:hover {
           background: var(--table-header-hover-background);
         }
         .baseline-date-block {
@@ -165,8 +171,10 @@ export class WebstatusOverviewTable extends LitElement {
 
     return html`
       <table class="data-table">
-        <thead>
-          <tr>
+    ${renderColgroups(columns)}
+    <thead>
+   ${renderGroupsRow(columns)}
+          <tr class="header-row">
             ${columns.map(
               col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
             )}
