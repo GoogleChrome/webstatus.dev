@@ -646,7 +646,7 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.include('sortable');
+    expect('' + th!.getAttribute('class')).to.include('sortable');
   });
   it('renders an unsortable header cell', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].unsortable = true;
@@ -660,7 +660,7 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.not.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.not.include('sortable');
+    expect('' + th!.getAttribute('class')).to.not.include('sortable');
   });
   it('renders a header cell with a cell class', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].cellClass = 'cell-class';
