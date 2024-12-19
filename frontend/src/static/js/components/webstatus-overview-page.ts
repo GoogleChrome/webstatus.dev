@@ -17,7 +17,7 @@
 import {consume} from '@lit/context';
 import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, state, property} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {
@@ -55,8 +55,11 @@ export class OverviewPage extends LitElement {
     data: null,
   };
 
-  @state()
+  @property({type: Object})
   location!: {search: string}; // Set by router.
+
+  @state()
+  currentLocation?: {search: string};
 
   constructor() {
     super();
@@ -67,7 +70,17 @@ export class OverviewPage extends LitElement {
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
-        return this._fetchFeatures(apiClient, routerLocation);
+        if (this.location.search !== this.currentLocation?.search) {
+          // Reset taskTracker here due to a Task data cache issue.
+          this.taskTracker = {
+            status: TaskStatus.INITIAL,
+            error: null,
+            data: null,
+          };
+          this.currentLocation = this.location;
+          return this._fetchFeatures(apiClient, routerLocation);
+        }
+        return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
       },
       onComplete: page => {
         this.taskTracker = {
