@@ -27,6 +27,8 @@ import {
   ColumnOptionKey,
   renderBaselineStatus,
   renderChromiumUsage,
+  renderHeaderCell,
+  CELL_DEFS,
   calcColGroupSpans,
   renderColgroups,
   renderGroupsRow,
@@ -575,5 +577,39 @@ describe('didFeatureCrash', () => {
   it('returns false for undefined metadata', () => {
     const metadata = undefined;
     assert.isFalse(didFeatureCrash(metadata));
+  });
+});
+
+describe('renderHeaderCell', () => {
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('tr');
+  });
+  it('renders a sortable header cell', async () => {
+    const result = renderHeaderCell(
+      {search: '/'},
+      ColumnKey.BaselineStatus,
+      '',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('title')).to.equal('Click to sort');
+    expect(th!.getAttribute('class')).to.equal('sortable');
+  });
+  it('renders an unsortable header cell', async () => {
+    CELL_DEFS[ColumnKey.BaselineStatus].unsortable = true;
+    const result = renderHeaderCell(
+      {search: '/'},
+      ColumnKey.BaselineStatus,
+      '',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('title')).to.not.equal('Click to sort');
+    expect(th!.getAttribute('class')).to.not.equal('sortable');
   });
 });

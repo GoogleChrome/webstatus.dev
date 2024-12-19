@@ -65,7 +65,7 @@ export class WebstatusOverviewTable extends LitElement {
           border-left: var(--default-border);
           border-right: var(--default-border);
         }
-        .header-row th:hover {
+        .header-row th.sortable:hover {
           background: var(--table-header-hover-background);
         }
         .baseline-date-block {
