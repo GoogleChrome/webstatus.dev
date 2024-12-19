@@ -519,7 +519,9 @@ export function renderQueryOrderedHeaderCell(
   }
 
   return html`
-    <th title=${titleDescription}>${sortIndicator} ${colDef?.headerHtml}</th>
+    <th title=${titleDescription} class="query-order">
+      ${sortIndicator} ${colDef?.headerHtml}
+    </th>
   `;
 }
 
