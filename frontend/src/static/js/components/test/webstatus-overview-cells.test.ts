@@ -26,6 +26,7 @@ import {
   DEFAULT_COLUMN_OPTIONS,
   ColumnOptionKey,
   renderBaselineStatus,
+  renderDesktopAvailablity,
   renderChromiumUsage,
   renderHeaderCell,
   CELL_DEFS,
@@ -429,6 +430,55 @@ describe('renderBaselineStatus', () => {
   });
 });
 
+describe('renderDesktopAvailablity', () => {
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('td');
+  });
+  it('renders a full-color icon for an available feature', async () => {
+    const feature: components['schemas']['Feature'] = {
+      feature_id: 'id',
+      name: 'name',
+      browser_implementations: {
+        chrome: {status: 'available', version: '123'},
+      },
+    };
+    const result = renderDesktopAvailablity(
+      feature,
+      {search: ''},
+      {browser: 'chrome'},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const div = el.querySelector('div');
+    expect(div).to.exist;
+    expect(div!.getAttribute('class')).to.equal('browser-impl-available');
+    expect(div!.innerHTML).to.not.include('disabled');
+    expect(div!.innerHTML).to.include('chrome_24x24.png');
+  });
+  it('renders a grayscale icon for an available feature', async () => {
+    const feature: components['schemas']['Feature'] = {
+      feature_id: 'id',
+      name: 'name',
+      browser_implementations: {
+        chrome: {status: 'unavailable'},
+      },
+    };
+    const result = renderDesktopAvailablity(
+      feature,
+      {search: ''},
+      {browser: 'chrome'},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const div = el.querySelector('div');
+    expect(div).to.exist;
+    expect(div!.getAttribute('class')).to.equal('browser-impl-unavailable');
+    expect(div!.innerHTML).to.include('disabled');
+    expect(div!.innerHTML).to.include('chrome_24x24.png');
+  });
+});
+
 describe('calcColGroupSpans', () => {
   const TEST_COLS = [
     ColumnKey.Name,
@@ -596,7 +646,7 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.equal('sortable');
+    expect('' + th!.getAttribute('class')).to.include('sortable');
   });
   it('renders an unsortable header cell', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].unsortable = true;
@@ -610,6 +660,19 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.not.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.not.equal('sortable');
+    expect('' + th!.getAttribute('class')).to.not.include('sortable');
+  });
+  it('renders a header cell with a cell class', async () => {
+    CELL_DEFS[ColumnKey.BaselineStatus].cellClass = 'cell-class';
+    const result = renderHeaderCell(
+      {search: '/'},
+      ColumnKey.BaselineStatus,
+      '',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('class')).to.include('cell-class');
   });
 });
