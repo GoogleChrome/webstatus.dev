@@ -16,7 +16,14 @@
 
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
-import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
+import {
+  LitElement,
+  type TemplateResult,
+  html,
+  CSSResultGroup,
+  css,
+  nothing,
+} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
@@ -29,6 +36,7 @@ import {
   type BrowserReleaseFeatureMetric,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
+import {getFeaturesLaggingFlag} from '../utils/urls.js';
 
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
@@ -528,7 +536,9 @@ export class StatsPage extends LitElement {
     return html`
       <div class="vbox">
         ${this.renderTitleAndControls()} ${this.renderGlobalFeatureSupport()}
-        ${this.renderFeaturesLagging()}
+        ${getFeaturesLaggingFlag(window.location)
+          ? this.renderFeaturesLagging()
+          : nothing}
         <div class="hbox">
           ${this.renderBaselineFeatures()} ${this.renderTimeToAvailability()}
         </div>
