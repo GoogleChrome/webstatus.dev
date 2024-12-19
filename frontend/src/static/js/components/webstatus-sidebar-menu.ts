@@ -229,10 +229,20 @@ export class WebstatusSidebarMenu extends LitElement {
     const bookmarkId = `bookmark${index}`;
     const currentLocation = this.getLocation();
     const currentURL = new URL(currentLocation.href);
-    const bookmarkUrl = formatOverviewPageUrl(currentURL, {
-      q: bookmark.query,
-      start: 0,
-    });
+
+    let bookmarkUrl;
+    if (bookmark.override_num_param) {
+      bookmarkUrl = formatOverviewPageUrl(currentURL, {
+        q: bookmark.query,
+        start: 0,
+        num: bookmark.override_num_param,
+      });
+    } else {
+      bookmarkUrl = formatOverviewPageUrl(currentURL, {
+        q: bookmark.query,
+        start: 0,
+      });
+    }
     // The bookmark should only be active when the path is the FEATURES path
     // and the query is set to the active query.
     const isQueryActive =
