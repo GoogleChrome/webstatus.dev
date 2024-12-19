@@ -440,11 +440,14 @@ describe('renderDesktopAvailablity', () => {
       feature_id: 'id',
       name: 'name',
       browser_implementations: {
-        chrome: {status: 'available', version: '123'}
+        chrome: {status: 'available', version: '123'},
       },
     };
     const result = renderDesktopAvailablity(
-      feature, {search: ''}, {browser: 'chrome'});
+      feature,
+      {search: ''},
+      {browser: 'chrome'},
+    );
     render(result, container);
     const el = await fixture(container);
     const div = el.querySelector('div');
@@ -458,11 +461,14 @@ describe('renderDesktopAvailablity', () => {
       feature_id: 'id',
       name: 'name',
       browser_implementations: {
-        chrome: {status: 'unavailable'}
+        chrome: {status: 'unavailable'},
       },
     };
     const result = renderDesktopAvailablity(
-      feature, {search: ''}, {browser: 'chrome'});
+      feature,
+      {search: ''},
+      {browser: 'chrome'},
+    );
     render(result, container);
     const el = await fixture(container);
     const div = el.querySelector('div');

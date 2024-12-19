@@ -285,8 +285,9 @@ export const renderDesktopAvailablity: CellRenderer = (
       >
         <img src="/public/img/${browser}_24x24.png" />
       </sl-tooltip>
+    </div>
   `;
-}
+};
 
 function renderMissingPercentage(): TemplateResult {
   return html`<span class="missing percent">${MISSING_VALUE}</span>`;

@@ -84,7 +84,8 @@ export class WebstatusOverviewTable extends LitElement {
           width: 6ex;
           text-align: right;
         }
-      .missing.percent, tr .centered {
+        .missing.percent,
+        tr .centered {
           text-align: center;
         }
 
@@ -295,9 +296,9 @@ export class WebstatusOverviewTable extends LitElement {
       <tr>
         ${columns.map(
           col => html`
-          <td class=${CELL_DEFS[col].cellClass}>
-            ${renderFeatureCell(feature, this.location, col)}
-          </td>
+            <td class=${CELL_DEFS[col].cellClass}>
+              ${renderFeatureCell(feature, this.location, col)}
+            </td>
           `,
         )}
       </tr>
