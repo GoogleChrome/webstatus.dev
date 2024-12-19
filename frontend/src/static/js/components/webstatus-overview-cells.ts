@@ -554,7 +554,7 @@ export function renderHeaderCell(
     return html`<th class=${colDef.cellClass || ''}>${colDef?.headerHtml}</th>`;
   } else {
     return html`
-    <th title="Click to sort" class="${colDef.cellClass || ''} sortable">
+      <th title="Click to sort" class="${colDef.cellClass || ''} sortable">
         <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
       </th>
     `;
