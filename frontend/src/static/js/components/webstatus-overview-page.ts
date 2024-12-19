@@ -80,7 +80,7 @@ export class OverviewPage extends LitElement {
           this.currentLocation = this.location;
           return this._fetchFeatures(apiClient, routerLocation);
         }
-        return {} as components['schemas']['FeaturePage'];
+        return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
       },
       onComplete: page => {
         this.taskTracker = {
