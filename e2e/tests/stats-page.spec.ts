@@ -31,6 +31,7 @@ test('matches the screenshot', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+// TODO: Remove this test once the features lagging chart is enabled by default.
 test('matches the screenshot with missing one implementation chart', async ({
   page,
 }) => {
