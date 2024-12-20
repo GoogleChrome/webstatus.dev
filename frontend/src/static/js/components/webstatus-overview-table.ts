@@ -30,6 +30,7 @@ import {
   renderColgroups,
   renderGroupsRow,
   renderHeaderCell,
+  renderQueryOrderedHeaderCell,
 } from './webstatus-overview-cells.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
@@ -175,15 +176,25 @@ export class WebstatusOverviewTable extends LitElement {
     const sortSpec: string =
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
 
+    let headerCells: TemplateResult[] = [];
+    if (this.bookmark !== undefined && this.bookmark?.is_ordered) {
+      const bookmarkName = this.bookmark.name;
+      headerCells = columns.map(
+        col => html`${renderQueryOrderedHeaderCell(col, bookmarkName)}`,
+      );
+    } else {
+      headerCells = columns.map(
+        col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
+      );
+    }
+
     return html`
       <table class="data-table">
         ${renderColgroups(columns)}
         <thead>
           ${renderGroupsRow(columns)}
           <tr class="header-row">
-            ${columns.map(
-              col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
-            )}
+            ${headerCells}
           </tr>
         </thead>
         <tbody>

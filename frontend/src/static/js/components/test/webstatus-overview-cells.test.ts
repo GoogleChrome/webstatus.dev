@@ -29,6 +29,7 @@ import {
   renderDesktopAvailablity,
   renderChromiumUsage,
   renderHeaderCell,
+  renderQueryOrderedHeaderCell,
   CELL_DEFS,
   calcColGroupSpans,
   renderColgroups,
@@ -674,5 +675,28 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('class')).to.include('cell-class');
+  });
+  it('renders the name header cell for query order', async () => {
+    const result = renderQueryOrderedHeaderCell(ColumnKey.Name, 'bookmark1');
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('title')).to.equal(
+      'Sorted by bookmark1 query order',
+    );
+    expect(th!.getAttribute('class')).to.equal('query-order');
+  });
+  it('renders a non-name header cell for query order', async () => {
+    const result = renderQueryOrderedHeaderCell(
+      ColumnKey.BaselineStatus,
+      'bookmark1',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('title')).to.equal('');
+    expect(th!.getAttribute('class')).to.equal('query-order');
   });
 });

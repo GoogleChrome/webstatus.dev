@@ -561,6 +561,26 @@ export function renderHeaderCell(
   }
 }
 
+export function renderQueryOrderedHeaderCell(
+  column: ColumnKey,
+  boomarkTitle: string,
+): TemplateResult {
+  const colDef = CELL_DEFS[column];
+
+  let titleDescription = '';
+  let sortIndicator = html``;
+  if (column === ColumnKey.Name) {
+    titleDescription = `Sorted by ${boomarkTitle} query order`;
+    sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
+  }
+
+  return html`
+    <th title=${titleDescription} class="query-order">
+      ${sortIndicator} ${colDef?.headerHtml}
+    </th>
+  `;
+}
+
 export function renderFeatureCell(
   feature: components['schemas']['Feature'],
   routerLocation: {search: string},
