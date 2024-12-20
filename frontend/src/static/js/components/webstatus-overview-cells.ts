@@ -407,7 +407,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     unsortable: true,
     cellClass: 'centered',
     cellRenderer: renderDesktopAvailablity,
-    options: {browser: 'firefox', channel: 'stable'},
+    options: {browser: 'firefox'},
   },
   [ColumnKey.DesktopAvailabilitySafari]: {
     nameInDialog: 'Availibility in desktop Safari',
