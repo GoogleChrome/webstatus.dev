@@ -29,7 +29,7 @@ import {
   renderColgroups,
   renderGroupsRow,
   renderHeaderCell,
-  renderQueryOrderedHeaderCell,
+  renderBookmarkHeaderCells,
 } from './webstatus-overview-cells.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
@@ -171,11 +171,8 @@ export class WebstatusOverviewTable extends LitElement {
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
 
     let headerCells: TemplateResult[] = [];
-    if (this.bookmark !== undefined && this.bookmark?.is_ordered) {
-      const bookmarkName = this.bookmark.name;
-      headerCells = columns.map(
-        col => html`${renderQueryOrderedHeaderCell(col, bookmarkName)}`,
-      );
+    if (this.bookmark?.is_ordered) {
+      headerCells = renderBookmarkHeaderCells(this.bookmark.name, columns);
     } else {
       headerCells = columns.map(
         col => html`${renderHeaderCell(this.location, col, sortSpec)}`,

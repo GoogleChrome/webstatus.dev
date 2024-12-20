@@ -21,6 +21,7 @@ import {
   getColumnOptions,
 } from '../utils/urls.js';
 import {FeatureSortOrderType} from '../api/client.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
 
 const MISSING_VALUE = html`---`;
 
@@ -473,7 +474,33 @@ export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
   `;
 }
 
+export function renderBookmarkHeaderCells(
+  bookmarkName: string,
+  columns: ColumnKey[],
+): TemplateResult[] {
+  const headerCells: TemplateResult[] = columns.map(col => {
+    if (col == ColumnKey.Name) {
+      const title = `Sorted by ${bookmarkName} query order`;
+      return html`${renderUnsortableHeaderCell(col, title)}`;
+    } else {
+      return html`${renderUnsortableHeaderCell(col)}`;
+    }
+  });
+  return headerCells;
+}
+
 export function renderHeaderCell(
+  routerLocation: {search: string},
+  column: ColumnKey,
+  sortSpec: string,
+): TemplateResult {
+  if (CELL_DEFS[column].unsortable) {
+    return renderUnsortableHeaderCell(column);
+  }
+  return renderSortableHeaderCell(routerLocation, column, sortSpec);
+}
+
+export function renderSortableHeaderCell(
   routerLocation: {search: string},
   column: ColumnKey,
   sortSpec: string,
@@ -493,34 +520,22 @@ export function renderHeaderCell(
     sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
   }
 
-  const colDef = CELL_DEFS[column];
-  if (colDef.unsortable) {
-    return html`<th>${colDef?.headerHtml}</th>`;
-  } else {
-    return html`
-      <th title="Click to sort" class="sortable">
-        <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
-      </th>
-    `;
-  }
+  return html`
+    <th title="Click to sort" class="sortable">
+      <a href=${urlWithSort}>
+        ${sortIndicator} ${CELL_DEFS[column]?.headerHtml}
+      </a>
+    </th>
+  `;
 }
 
-export function renderQueryOrderedHeaderCell(
+export function renderUnsortableHeaderCell(
   column: ColumnKey,
-  boomarkTitle: string,
+  customTitle?: string,
 ): TemplateResult {
-  const colDef = CELL_DEFS[column];
-
-  let titleDescription = '';
-  let sortIndicator = html``;
-  if (column === ColumnKey.Name) {
-    titleDescription = `Sorted by ${boomarkTitle} query order`;
-    sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
-  }
-
   return html`
-    <th title=${titleDescription} class="query-order">
-      ${sortIndicator} ${colDef?.headerHtml}
+    <th title=${ifDefined(customTitle)} class="unsortable">
+      ${CELL_DEFS[column]?.headerHtml}
     </th>
   `;
 }
