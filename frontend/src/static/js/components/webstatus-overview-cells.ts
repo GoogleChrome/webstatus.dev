@@ -416,7 +416,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellClass: 'centered',
     unsortable: true,
     cellRenderer: renderDesktopAvailablity,
-    options: {browser: 'safari', channel: 'stable'},
+    options: {browser: 'safari'},
   },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
