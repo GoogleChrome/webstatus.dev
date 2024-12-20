@@ -389,7 +389,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     unsortable: true,
     cellClass: 'centered',
     cellRenderer: renderDesktopAvailablity,
-    options: {browser: 'chrome', channel: 'stable'},
+    options: {browser: 'chrome'},
   },
   [ColumnKey.DesktopAvailabilityEdge]: {
     nameInDialog: 'Availibility in desktop Edge',
