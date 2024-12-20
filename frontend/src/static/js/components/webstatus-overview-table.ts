@@ -296,7 +296,7 @@ export class WebstatusOverviewTable extends LitElement {
       <tr>
         ${columns.map(
           col => html`
-            <td class=${CELL_DEFS[col].cellClass || ''}>
+            <td class=${CELL_DEFS[col].cellClass ?? ''}>
               ${renderFeatureCell(feature, this.location, col)}
             </td>
           `,
