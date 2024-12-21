@@ -388,10 +388,6 @@ export class StatsPage extends LitElement {
               .valueAsDate="${this.endDate}"
             ></sl-input>
           </label>
-          <sl-radio-group value="WPT">
-            <sl-radio-button value="WPT">WPT</sl-radio-button>
-            <sl-radio-button value="BCD" disabled>BCD</sl-radio-button>
-          </sl-radio-group>
         </div>
       </div>
     `;
