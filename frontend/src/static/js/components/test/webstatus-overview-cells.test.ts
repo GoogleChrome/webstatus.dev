@@ -694,7 +694,7 @@ describe('renderHeaderCell', () => {
     const el = await fixture(container);
     const th = el.querySelector('th');
     expect(th).to.exist;
-    expect(th!.getAttribute('title')).to.equal('');
+    expect(th!.getAttribute('title')).to.not.exist;
     expect(th!.getAttribute('class')).to.include('unsortable');
   });
 });
