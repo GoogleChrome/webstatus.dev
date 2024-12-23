@@ -28,7 +28,7 @@ import {
   renderBaselineStatus,
   renderChromiumUsage,
   renderHeaderCell,
-  renderQueryOrderedHeaderCell,
+  renderUnsortableHeaderCell,
   CELL_DEFS,
   calcColGroupSpans,
   renderColgroups,
@@ -611,29 +611,27 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.not.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.not.equal('sortable');
+    expect(th!.getAttribute('class')).to.equal('unsortable');
   });
   it('renders the name header cell for query order', async () => {
-    const result = renderQueryOrderedHeaderCell(ColumnKey.Name, 'bookmark1');
+    const result = renderUnsortableHeaderCell(
+      ColumnKey.Name,
+      'bookmark1 query order',
+    );
     render(result, container);
     const el = await fixture(container);
     const th = el.querySelector('th');
     expect(th).to.exist;
-    expect(th!.getAttribute('title')).to.equal(
-      'Sorted by bookmark1 query order',
-    );
-    expect(th!.getAttribute('class')).to.equal('query-order');
+    expect(th!.getAttribute('title')).to.equal('bookmark1 query order');
+    expect(th!.getAttribute('class')).to.equal('unsortable');
   });
   it('renders a non-name header cell for query order', async () => {
-    const result = renderQueryOrderedHeaderCell(
-      ColumnKey.BaselineStatus,
-      'bookmark1',
-    );
+    const result = renderUnsortableHeaderCell(ColumnKey.BaselineStatus);
     render(result, container);
     const el = await fixture(container);
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.equal('');
-    expect(th!.getAttribute('class')).to.equal('query-order');
+    expect(th!.getAttribute('class')).to.equal('unsortable');
   });
 });

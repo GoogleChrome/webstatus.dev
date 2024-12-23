@@ -500,7 +500,7 @@ export function renderHeaderCell(
   return renderSortableHeaderCell(routerLocation, column, sortSpec);
 }
 
-export function renderSortableHeaderCell(
+function renderSortableHeaderCell(
   routerLocation: {search: string},
   column: ColumnKey,
   sortSpec: string,
