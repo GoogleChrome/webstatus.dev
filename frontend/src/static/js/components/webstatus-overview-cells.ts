@@ -578,10 +578,8 @@ function renderSortableHeaderCell(
 
   const colDef = CELL_DEFS[column];
   return html`
-    <th title="Click to sort" class="${colDef.cellClass || ''} sortable">
-      <a href=${urlWithSort}>
-        ${sortIndicator} ${colDef?.headerHtml}
-      </a>
+    <th title="Click to sort" class="${colDef?.cellClass || ''} sortable">
+      <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
     </th>
   `;
 }
@@ -592,7 +590,10 @@ export function renderUnsortableHeaderCell(
 ): TemplateResult {
   const colDef = CELL_DEFS[column];
   return html`
-    <th title=${ifDefined(customTitle)} class="${colDef?.cellClass || ''} unsortable">
+    <th
+      title=${ifDefined(customTitle)}
+      class="${colDef?.cellClass || ''} unsortable"
+    >
       ${colDef?.headerHtml}
     </th>
   `;
