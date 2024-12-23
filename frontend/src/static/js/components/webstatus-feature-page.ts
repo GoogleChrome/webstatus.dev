@@ -119,6 +119,9 @@ export class FeaturePage extends LitElement {
   featureSupportChartOptions = {};
 
   @state()
+  featureSupportTotalsLabel = 'Total number of subtests';
+
+  @state()
   featureUsageChartOptions = {};
 
   @state()
@@ -356,11 +359,14 @@ export class FeaturePage extends LitElement {
     }
   }
 
-  // Make a DataTable from the data in featureSupport
-  createFeatureSupportDataFromMap(): WebStatusDataObj {
-    // Get the list of browsers from featureSupport
-    const browsers = this.featureSupportBrowsers;
-    const channel = 'stable';
+  createDataFromMap<T>(
+    data: Map<string, T[]>,
+    browsers: BrowsersParameter[],
+    browserDataExtractor: (data: Map<string, T[]>, browser: BrowsersParameter) => T[] | undefined,
+    valueExtractor: (row: T) => number | undefined,
+    tooltipGenerator: (row: T, browser: BrowsersParameter) => string,
+    totalLabel?: string,
+    ): WebStatusDataObj {
 
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
     dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
@@ -373,17 +379,13 @@ export class FeaturePage extends LitElement {
         role: 'tooltip',
       });
     }
-    dataObj.cols.push({
-      type: 'number',
-      label: 'Total number of subtests',
-      role: 'data',
-    });
-
-    // Map from date to an object with counts for each browser
-    const dateToBrowserDataMap = new Map<
-      number,
-      {[key: string]: {passed: number; tooltip: string}}
-    >();
+    if (totalLabel) {
+      dataObj.cols.push({
+        type: 'number',
+        label: totalLabel,
+        role: 'data',
+      })
+    }
 
     // We build a map from each time slot for which any browser has data.
     // to an array of data for all browsers (in dateToBrowserDataMap)
@@ -397,141 +399,95 @@ export class FeaturePage extends LitElement {
     // So effectively, for each unique time slot, we merge the data
     // for all the browsers while computing the max of the total value for
     // each of the browsers.
-    const dateToTotalTestsCountMap = new Map<number, number>();
+    const dateToTotalMap = new Map<number, number>();
 
-    // Merge data across all browsers into one array of rows.
+    // Map from date to an object with counts for each browser
+    const dateToBrowserDataMap = new Map<
+      number,
+      {[key: string]: {tooltip: string, value: number}}
+    >();
+
     for (const browser of browsers) {
-      const data = this.featureSupport.get(featureSupportKey(browser, channel));
-      if (!data) continue;
-      for (const row of data) {
+      const browserData = browserDataExtractor(data, browser);
+      if (!browserData) continue;
+      for (const row of browserData) {
         if (!row) continue;
-        const timestampMs = new Date(row.run_timestamp).getTime();
+        const timestampMs = new Date((row as any).run_timestamp || (row as any).timestamp).getTime();
         // Round timestamp to the nearest hour.
         const msInHour = 1000 * 60 * 60 * 1;
         const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
-        const passed = row.test_pass_count!;
-        const tooltip =
-          `${BROWSER_ID_TO_LABEL[browser]}: ` +
-          `${row.test_pass_count} of ${row.total_tests_count}`;
+        const tooltip = tooltipGenerator(row, browser);
         if (!dateToBrowserDataMap.has(roundedTimestamp)) {
           dateToBrowserDataMap.set(roundedTimestamp, {});
-          // The following line uses the first browser's total:
-          // dateToTotalTestsCountMap.set(roundedTimestamp, row.total_tests_count!);
         }
-        // This computes the max of the total across all browsers.
-        const total = Math.max(
-          dateToTotalTestsCountMap.get(roundedTimestamp) || 0,
-          row.total_tests_count!,
-        );
-        dateToTotalTestsCountMap.set(roundedTimestamp, total);
+        if (totalLabel) {
+          const total = Math.max(
+            dateToTotalMap.get(roundedTimestamp) || 0,
+            (row as any).total_tests_count || 0
+          );
+          dateToTotalMap.set(roundedTimestamp, total);
+        } else {
+          dateToTotalMap.set(roundedTimestamp, 100);
+        }
         const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
-        browserCounts[browser] = {passed, tooltip};
+        browserCounts[browser] = {tooltip, value: valueExtractor(row)!};
       }
     }
 
     // Create array of dateToBrowserDataMap entries and sort by roundedTimestamp
-    const data = Array.from(dateToBrowserDataMap.entries()).sort(
+    const browserData = Array.from(dateToBrowserDataMap.entries()).sort(
       ([d1], [d2]) => d1 - d2,
     );
 
     // For each date, add a row to the dataObj
-    for (const datum of data) {
+    for (const datum of browserData) {
       const dateMs = datum[0];
       const date = new Date(dateMs);
       const browserCounts = datum[1];
+
       // Make an array of browser counts, in the order of selected browsers.
       // If the browser is not in the browserCounts, add null.
       const browserCountArray: Array<number | string | null> = [];
       browsers.forEach(browser => {
         const countAndTooltip = browserCounts[browser];
         if (countAndTooltip) {
-          browserCountArray.push(countAndTooltip.passed);
+          browserCountArray.push(countAndTooltip.value);
           browserCountArray.push(countAndTooltip.tooltip);
         } else {
           browserCountArray.push(null);
           browserCountArray.push(null);
         }
       });
-      const total = dateToTotalTestsCountMap.get(dateMs)!;
+      let total = null;
+      if (totalLabel) {
+        total = dateToTotalMap.get(dateMs)!;
+      }
       dataObj.rows.push([date, ...browserCountArray, total]);
     }
     return dataObj;
   }
 
+  // Make a DataTable from the data in featureSupport
+  createFeatureSupportDataFromMap(): WebStatusDataObj {
+    return this.createDataFromMap(
+      this.featureSupport,
+      this.featureSupportBrowsers,
+      (data, browser) => data.get(featureSupportKey(browser, 'stable')),
+      row => row.test_pass_count!,
+      (row, browser) => `${BROWSER_ID_TO_LABEL[browser]}: ${row.test_pass_count} of ${row.total_tests_count}`,
+      this.featureSupportTotalsLabel,
+    );
+  }
+
   // Make a DataTable from the data in featureUsage
   createFeatureUsageDataFromMap(): WebStatusDataObj {
-    // Get the list of browsers from featureUsage
-    const browsers = this.featureUsageBrowsers;
-
-    const dataObj: WebStatusDataObj = {cols: [], rows: []};
-    dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
-    for (const browser of browsers) {
-      const browserLabel = BROWSER_ID_TO_LABEL[browser];
-      dataObj.cols.push({type: 'number', label: browserLabel, role: 'data'});
-      dataObj.cols.push({
-        type: 'string',
-        label: `${browserLabel} tooltip`,
-        role: 'tooltip',
-      });
-    }
-
-    // Map from date to an object with counts for each browser
-    const dateToBrowserDataMap = new Map<
-      number,
-      {[key: string]: {usage: number; tooltip: string}}
-    >();
-
-    const dateToTotalTestsCountMap = new Map<number, number>();
-
-    // Merge data across all browsers into one array of rows.
-    for (const browser of browsers) {
-      const data = this.featureUsage.get(browser);
-      if (!data) continue;
-      for (const row of data) {
-        if (!row) continue;
-        const timestampMs = new Date(row.timestamp).getTime();
-        // Round timestamp to the nearest hour.
-        const msInHour = 1000 * 60 * 60 * 1;
-        const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
-        const usage = row.usage ? row.usage * 100 : 0;
-        const tooltip = `${BROWSER_ID_TO_LABEL[browser]}: ${usage}%`;
-        if (!dateToBrowserDataMap.has(roundedTimestamp)) {
-          dateToBrowserDataMap.set(roundedTimestamp, {});
-          // The following line uses the first browser's total:
-          // dateToTotalTestsCountMap.set(roundedTimestamp, row.total_tests_count!);
-        }
-        dateToTotalTestsCountMap.set(roundedTimestamp, 100);
-        const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
-        browserCounts[browser] = {usage, tooltip};
-      }
-    }
-
-    // Create array of dateToBrowserDataMap entries and sort by roundedTimestamp
-    const data = Array.from(dateToBrowserDataMap.entries()).sort(
-      ([d1], [d2]) => d1 - d2,
+    return this.createDataFromMap(
+      this.featureUsage,
+      this.featureUsageBrowsers,
+      (data, browser) => data.get(browser),
+      row => row.usage ? row.usage * 100 : 0,
+      (row, browser) => `${BROWSER_ID_TO_LABEL[browser]}: ${row.usage ? row.usage * 100 : 0}%`,
     );
-
-    // For each date, add a row to the dataObj
-    for (const datum of data) {
-      const dateMs = datum[0];
-      const date = new Date(dateMs);
-      const browserCounts = datum[1];
-      // Make an array of browser counts, in the order of selected browsers.
-      // If the browser is not in the browserCounts, add null.
-      const browserCountArray: Array<number | string | null> = [];
-      browsers.forEach(browser => {
-        const countAndTooltip = browserCounts[browser];
-        if (countAndTooltip) {
-          browserCountArray.push(countAndTooltip.usage);
-          browserCountArray.push(countAndTooltip.tooltip);
-        } else {
-          browserCountArray.push(null);
-          browserCountArray.push(null);
-        }
-      });
-      dataObj.rows.push([date, ...browserCountArray]);
-    }
-    return dataObj;
   }
 
   generateFeatureSupportChartOptions(): google.visualization.ComboChartOptions {
