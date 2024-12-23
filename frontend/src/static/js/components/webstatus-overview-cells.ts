@@ -535,7 +535,7 @@ export function renderBookmarkHeaderCells(
   columns: ColumnKey[],
 ): TemplateResult[] {
   const headerCells: TemplateResult[] = columns.map(col => {
-    if (col == ColumnKey.Name) {
+    if (col === ColumnKey.Name) {
       const title = `Sorted by ${bookmarkName} query order`;
       return html`${renderUnsortableHeaderCell(col, title)}`;
     } else {
