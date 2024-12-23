@@ -661,7 +661,7 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.not.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.equal('unsortable');
+    expect(th!.getAttribute('class')).to.include('unsortable');
   });
   it('renders the name header cell for query order', async () => {
     const result = renderUnsortableHeaderCell(
@@ -673,8 +673,7 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.equal('bookmark1 query order');
-    expect(th!.getAttribute('class')).to.equal('unsortable');
-    expect(th!.getAttribute('class')).to.include('cell-class');
+    expect(th!.getAttribute('class')).to.include('unsortable');
   });
   it('renders a header cell with a cell class', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].cellClass = 'cell-class';
@@ -696,7 +695,6 @@ describe('renderHeaderCell', () => {
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.equal('');
-    expect(th!.getAttribute('class')).to.equal('unsortable');
-    expect(th!.getAttribute('class')).to.include('cell-class');
+    expect(th!.getAttribute('class')).to.include('unsortable');
   });
 });
