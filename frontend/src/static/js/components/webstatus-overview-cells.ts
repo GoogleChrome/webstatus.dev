@@ -23,7 +23,7 @@ import {
 import {FeatureSortOrderType} from '../api/client.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 
-const MISSING_VALUE = html`---`;
+const MISSING_VALUE = html``;
 
 type CellRenderer = {
   (
@@ -41,6 +41,7 @@ type ColumnDefinition = {
   group?: string;
   headerHtml: TemplateResult;
   cellRenderer: CellRenderer;
+  cellClass?: string;
   unsortable?: boolean;
   options: {
     browser?: components['parameters']['browserPathParam'];
@@ -57,6 +58,10 @@ const NEWLY_TO_WIDELY_MONTH_OFFSET = 30;
 export enum ColumnKey {
   Name = 'name',
   BaselineStatus = 'baseline_status',
+  DesktopAvailabilityChrome = 'desktop_availability_chrome',
+  DesktopAvailabilityEdge = 'desktop_availability_edge',
+  DesktopAvailabilityFirefox = 'desktop_availability_firefox',
+  DesktopAvailabilitySafari = 'desktop_availability_safari',
   StableChrome = 'stable_chrome',
   StableEdge = 'stable_edge',
   StableFirefox = 'stable_firefox',
@@ -98,6 +103,10 @@ const columnOptionKeyMapping = Object.entries(ColumnOptionKey).reduce(
 export const DEFAULT_COLUMNS = [
   ColumnKey.Name,
   ColumnKey.BaselineStatus,
+  ColumnKey.DesktopAvailabilityChrome,
+  ColumnKey.DesktopAvailabilityEdge,
+  ColumnKey.DesktopAvailabilityFirefox,
+  ColumnKey.DesktopAvailabilitySafari,
   ColumnKey.StableChrome,
   ColumnKey.StableEdge,
   ColumnKey.StableFirefox,
@@ -261,12 +270,24 @@ export const renderBaselineStatus: CellRenderer = (
   `;
 };
 
-const BROWSER_IMPL_ICONS: Record<
-  NonNullable<components['schemas']['BrowserImplementation']['status']>,
-  string
-> = {
-  unavailable: 'minus-circle',
-  available: 'check-circle',
+export const renderDesktopAvailablity: CellRenderer = (
+  feature,
+  _routerLocation,
+  {browser},
+) => {
+  const browserImpl = feature.browser_implementations?.[browser!];
+  const browserImplStatus = browserImpl?.status || 'unavailable';
+  const browserImplVersion = browserImpl?.version;
+  return html`
+    <div class="browser-impl-${browserImplStatus}">
+      <sl-tooltip
+        ?disabled=${browserImplVersion === undefined}
+        content="Since version ${browserImplVersion}"
+      >
+        <img src="/public/img/${browser}_24x24.png" />
+      </sl-tooltip>
+    </div>
+  `;
 };
 
 function renderMissingPercentage(): TemplateResult {
@@ -293,7 +314,6 @@ export const renderBrowserQuality: CellRenderer = (
   let percentage = renderPercentage(score);
   const browserImpl = feature.browser_implementations?.[browser!];
   const browserImplStatus = browserImpl?.status || 'unavailable';
-  const browserImplVersion = browserImpl?.version;
   if (browserImplStatus === 'unavailable') {
     percentage = renderMissingPercentage();
   }
@@ -306,15 +326,7 @@ export const renderBrowserQuality: CellRenderer = (
   if (didFeatureCrash(feature.wpt?.stable?.[browser!]?.metadata)) {
     percentage = renderFeatureCrash();
   }
-  const iconName = BROWSER_IMPL_ICONS[browserImplStatus];
   return html`
-    <div class="browser-impl-${browserImplStatus}">
-      <sl-tooltip
-        ?disabled=${browserImplVersion === undefined}
-        content="Since version ${browserImplVersion}"
-      >
-        <sl-icon name="${iconName}" library="custom"></sl-icon>
-      </sl-tooltip>
       ${percentage}
     </div>
   `;
@@ -371,10 +383,47 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
       ],
     },
   },
+  [ColumnKey.DesktopAvailabilityChrome]: {
+    nameInDialog: 'Availibility in desktop Chrome',
+    group: 'Availability',
+    headerHtml: html``,
+    unsortable: true,
+    cellClass: 'centered',
+    cellRenderer: renderDesktopAvailablity,
+    options: {browser: 'chrome'},
+  },
+  [ColumnKey.DesktopAvailabilityEdge]: {
+    nameInDialog: 'Availibility in desktop Edge',
+    group: 'Availability',
+    headerHtml: html``,
+    unsortable: true,
+    cellClass: 'centered',
+    cellRenderer: renderDesktopAvailablity,
+    options: {browser: 'edge'},
+  },
+  [ColumnKey.DesktopAvailabilityFirefox]: {
+    nameInDialog: 'Availibility in desktop Firefox',
+    group: 'Availability',
+    headerHtml: html``,
+    unsortable: true,
+    cellClass: 'centered',
+    cellRenderer: renderDesktopAvailablity,
+    options: {browser: 'firefox'},
+  },
+  [ColumnKey.DesktopAvailabilitySafari]: {
+    nameInDialog: 'Availibility in desktop Safari',
+    group: 'Availability',
+    headerHtml: html``,
+    cellClass: 'centered',
+    unsortable: true,
+    cellRenderer: renderDesktopAvailablity,
+    options: {browser: 'safari'},
+  },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
     group: 'WPT',
     headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
     options: {browser: 'chrome', channel: 'stable'},
   },
@@ -382,6 +431,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Edge',
     group: 'WPT',
     headerHtml: html`<img src="/public/img/edge_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
     options: {browser: 'edge', channel: 'stable'},
   },
@@ -389,6 +439,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Firefox',
     group: 'WPT',
     headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
     options: {browser: 'firefox', channel: 'stable'},
   },
@@ -396,6 +447,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Safari',
     group: 'WPT',
     headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
     options: {browser: 'safari', channel: 'stable'},
   },
@@ -403,6 +455,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Chrome Experimental',
     group: 'WPT Experimental',
     headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'chrome', channel: 'experimental'},
   },
@@ -410,6 +463,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Edge Experimental',
     group: 'WPT Experimental',
     headerHtml: html`<img src="/public/img/edge-dev_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'edge', channel: 'experimental'},
   },
@@ -417,6 +471,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Firefox Experimental',
     group: 'WPT Experimental',
     headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'firefox', channel: 'experimental'},
   },
@@ -424,6 +479,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Safari Experimental',
     group: 'WPT Experimental',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
+    cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'safari', channel: 'experimental'},
   },
@@ -520,10 +576,11 @@ function renderSortableHeaderCell(
     sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
   }
 
+  const colDef = CELL_DEFS[column];
   return html`
-    <th title="Click to sort" class="sortable">
+    <th title="Click to sort" class="${colDef.cellClass || ''} sortable">
       <a href=${urlWithSort}>
-        ${sortIndicator} ${CELL_DEFS[column]?.headerHtml}
+        ${sortIndicator} ${colDef?.headerHtml}
       </a>
     </th>
   `;
@@ -533,9 +590,10 @@ export function renderUnsortableHeaderCell(
   column: ColumnKey,
   customTitle?: string,
 ): TemplateResult {
+  const colDef = CELL_DEFS[column];
   return html`
-    <th title=${ifDefined(customTitle)} class="unsortable">
-      ${CELL_DEFS[column]?.headerHtml}
+    <th title=${ifDefined(customTitle)} class="${colDef?.cellClass || ''} unsortable">
+      ${colDef?.headerHtml}
     </th>
   `;
 }

@@ -24,6 +24,7 @@ import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
 import {
   ColumnKey,
   DEFAULT_SORT_SPEC,
+  CELL_DEFS,
   parseColumnsSpec,
   renderFeatureCell,
   renderColgroups,
@@ -62,6 +63,9 @@ export class WebstatusOverviewTable extends LitElement {
         .data-table {
           margin: var(--content-padding) 0;
         }
+        .data-table th {
+          padding: var(--content-padding-quarter) var(--content-padding);
+        }
         .header-row th {
           border-left: var(--default-border);
           border-right: var(--default-border);
@@ -73,14 +77,16 @@ export class WebstatusOverviewTable extends LitElement {
           padding-top: var(--content-padding-quarter);
         }
         .browser-impl-unavailable {
-          color: var(--icon-color-avail-unavailable);
+          filter: grayscale(1);
+          opacity: 50%;
         }
         .percent {
           display: inline-block;
           width: 6ex;
           text-align: right;
         }
-        .missing.percent {
+        .missing.percent,
+        tr .centered {
           text-align: center;
         }
 
@@ -298,7 +304,9 @@ export class WebstatusOverviewTable extends LitElement {
       <tr>
         ${columns.map(
           col => html`
-            <td>${renderFeatureCell(feature, this.location, col)}</td>
+            <td class=${CELL_DEFS[col].cellClass ?? ''}>
+              ${renderFeatureCell(feature, this.location, col)}
+            </td>
           `,
         )}
       </tr>
