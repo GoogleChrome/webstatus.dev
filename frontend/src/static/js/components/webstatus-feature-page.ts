@@ -661,21 +661,19 @@ export class FeaturePage extends LitElement {
     if (typeof apiClient !== 'object') return;
 
     this.featureUsageChartDataObj = this.createFeatureUsageDataFromMap();
-    for (const browser of this.featureUsageBrowsers) {
+    const promises = this.featureUsageBrowsers.map(async browser => {
       for await (const page of apiClient.getChromiumDailyUsageStats(
         featureId,
         startDate,
         endDate,
       )) {
-        // Append the new data to existing data
-        const existingData = this.featureUsage.get(featureId) || [];
+        const existingData = this.featureUsage.get(browser) || [];
         this.featureUsage.set(browser, [...existingData, ...page]);
 
-        this.featureSupportChartDataObj =
-          this.createFeatureSupportDataFromMap();
+        this.featureUsageChartDataObj = this.createFeatureUsageDataFromMap();
       }
-      this.featureUsageChartDataObj = this.createFeatureUsageDataFromMap();
-    }
+    });
+    await Promise.all(promises);
   }
 
   async firstUpdated(): Promise<void> {
