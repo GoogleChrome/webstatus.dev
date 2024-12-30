@@ -148,6 +148,7 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 			},
 			featureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
+					Discouraged: nil,
 					Snapshot: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: []string{"snapshot1", "snapshot2"},
 						String:      nil,
@@ -160,10 +161,11 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 					Group:           nil,
 					Spec:            nil,
 					Status: web_platform_dx__web_features.Status{
+						ByCompatKey:      nil,
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -175,6 +177,7 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 					},
 				},
 				"feature2": {
+					Discouraged: nil,
 					Snapshot: &web_platform_dx__web_features.StringOrStringArray{
 						String:      valuePtr("snapshot1"),
 						StringArray: nil,
@@ -190,7 +193,8 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,

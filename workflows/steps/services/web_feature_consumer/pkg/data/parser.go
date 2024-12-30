@@ -63,6 +63,7 @@ func postProcessFeatureValue(
 			Snapshot:        postProcessStringOrStringArray(value.Snapshot),
 			Spec:            postProcessStringOrStringArray(value.Spec),
 			Status:          postProcessStatus(value.Status),
+			Discouraged:     nil,
 		}
 	}
 }
@@ -86,6 +87,7 @@ func postProcessStatus(value web_platform_dx__web_features.Status) web_platform_
 		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),
 		BaselineLowDate:  postProcessBaselineDates(value.BaselineLowDate),
 		Support:          postProcessBaselineSupport(value.Support),
+		ByCompatKey:      nil,
 	}
 }
 
@@ -119,8 +121,9 @@ func postProcessBaselineSupportBrowser(value *string) *string {
 	return value
 }
 
-func postProcessBaselineSupport(value web_platform_dx__web_features.Support) web_platform_dx__web_features.Support {
-	return web_platform_dx__web_features.Support{
+func postProcessBaselineSupport(
+	value web_platform_dx__web_features.StatusSupport) web_platform_dx__web_features.StatusSupport {
+	return web_platform_dx__web_features.StatusSupport{
 		Chrome:         postProcessBaselineSupportBrowser(value.Chrome),
 		ChromeAndroid:  postProcessBaselineSupportBrowser(value.ChromeAndroid),
 		Edge:           postProcessBaselineSupportBrowser(value.Edge),

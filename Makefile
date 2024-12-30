@@ -142,7 +142,7 @@ JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 
 download-schemas:
 	wget -O jsonschema/web-platform-dx_web-features/defs.schema.json \
-		https://raw.githubusercontent.com/web-platform-dx/feature-set/main/schemas/defs.schema.json
+		https://raw.githubusercontent.com/web-platform-dx/web-features/refs/heads/main/schemas/data.schema.json
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 
