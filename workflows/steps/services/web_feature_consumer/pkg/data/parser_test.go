@@ -96,6 +96,36 @@ func TestPostProcess(t *testing.T) {
 		{
 			name: "catch-all case",
 			featureData: &web_platform_dx__web_features.FeatureData{
+				Browsers: web_platform_dx__web_features.Browsers{
+					Chrome: web_platform_dx__web_features.BrowserData{
+						Name:     "chrome",
+						Releases: nil,
+					},
+					ChromeAndroid: web_platform_dx__web_features.BrowserData{
+						Name:     "chrome_android",
+						Releases: nil,
+					},
+					Edge: web_platform_dx__web_features.BrowserData{
+						Name:     "edge",
+						Releases: nil,
+					},
+					Firefox: web_platform_dx__web_features.BrowserData{
+						Name:     "firefox",
+						Releases: nil,
+					},
+					FirefoxAndroid: web_platform_dx__web_features.BrowserData{
+						Name:     "firefox_android",
+						Releases: nil,
+					},
+					Safari: web_platform_dx__web_features.BrowserData{
+						Name:     "safari",
+						Releases: nil,
+					},
+					SafariIos: web_platform_dx__web_features.BrowserData{
+						Name:     "safari_ios",
+						Releases: nil,
+					},
+				},
 				Groups:    nil,
 				Snapshots: nil,
 				Features: map[string]web_platform_dx__web_features.FeatureValue{
@@ -103,6 +133,7 @@ func TestPostProcess(t *testing.T) {
 						CompatFeatures:  []string{"compat1", "compat2"},
 						Description:     "description",
 						DescriptionHTML: "description html",
+						Discouraged:     nil,
 						Name:            "feature 1 name",
 						Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 							String: valuePtr("caniuse_data"),
@@ -139,7 +170,8 @@ func TestPostProcess(t *testing.T) {
 							},
 							BaselineHighDate: valuePtr("≤2023-01-01"),
 							BaselineLowDate:  valuePtr("≤2022-12-01"),
-							Support: web_platform_dx__web_features.Support{
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
 								Chrome:         valuePtr("≤99"),
 								ChromeAndroid:  valuePtr("≤98"),
 								Firefox:        valuePtr("≤97"),
@@ -156,6 +188,7 @@ func TestPostProcess(t *testing.T) {
 				CompatFeatures:  []string{"compat1", "compat2"},
 				Description:     "description",
 				DescriptionHTML: "description html",
+				Discouraged:     nil,
 				Name:            "feature 1 name",
 				Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 					String: valuePtr("caniuse_data"),
@@ -186,13 +219,14 @@ func TestPostProcess(t *testing.T) {
 					},
 				},
 				Status: web_platform_dx__web_features.Status{
+					ByCompatKey: nil,
 					Baseline: &web_platform_dx__web_features.BaselineUnion{
 						Bool: valuePtr(false),
 						Enum: valuePtr(web_platform_dx__web_features.High),
 					},
 					BaselineHighDate: valuePtr("2023-01-01"),
 					BaselineLowDate:  valuePtr("2022-12-01"),
-					Support: web_platform_dx__web_features.Support{
+					Support: web_platform_dx__web_features.StatusSupport{
 						Chrome:         valuePtr("99"),
 						ChromeAndroid:  valuePtr("98"),
 						Firefox:        valuePtr("97"),

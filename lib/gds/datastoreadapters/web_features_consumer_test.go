@@ -63,11 +63,13 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 						StringArray: nil,
 					},
 					DescriptionHTML: "<html>1",
+					Discouraged:     nil,
 					Status: web_platform_dx__web_features.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -96,6 +98,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					CompatFeatures: nil,
 					Name:           "feature 2",
 					Description:    "Feature 2 description",
+					Discouraged:    nil,
 					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 						String:      nil,
 						StringArray: []string{"caniuse-id2a", "caniuse-id2b"},
@@ -105,7 +108,8 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -140,11 +144,13 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Name:            "feature 3",
 					Description:     "Feature 3 description",
 					DescriptionHTML: "<html>3",
+					Discouraged:     nil,
 					Status: web_platform_dx__web_features.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -173,11 +179,13 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Name:            "feature 4",
 					Description:     "Feature 4 description",
 					DescriptionHTML: "<html>4",
+					Discouraged:     nil,
 					Status: web_platform_dx__web_features.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,

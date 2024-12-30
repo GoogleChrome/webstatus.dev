@@ -59,7 +59,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		{
 			name: "undefined status",
 			input: web_platform_dx__web_features.Status{
-				Support: web_platform_dx__web_features.Support{
+				Support: web_platform_dx__web_features.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -71,6 +71,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 				Baseline:         nil,
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
+				ByCompatKey:      nil,
 			},
 			expected: nil,
 		},
@@ -79,7 +80,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support: web_platform_dx__web_features.Support{
+				ByCompatKey:      nil,
+				Support: web_platform_dx__web_features.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -97,7 +99,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support: web_platform_dx__web_features.Support{
+				ByCompatKey:      nil,
+				Support: web_platform_dx__web_features.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -118,7 +121,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support: web_platform_dx__web_features.Support{
+				ByCompatKey:      nil,
+				Support: web_platform_dx__web_features.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -139,7 +143,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support: web_platform_dx__web_features.Support{
+				ByCompatKey:      nil,
+				Support: web_platform_dx__web_features.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -160,7 +165,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 			input: web_platform_dx__web_features.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
-				Support: web_platform_dx__web_features.Support{
+				ByCompatKey:      nil,
+				Support: web_platform_dx__web_features.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -487,6 +493,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 1",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
@@ -494,7 +501,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -517,6 +525,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 2",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: nil,
 						String:      valuePtr("feature2-link"),
@@ -524,7 +533,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -591,11 +601,13 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 1",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec:           nil,
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -662,11 +674,13 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 1",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec:           nil,
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -748,11 +762,13 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 1",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec:           nil,
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -855,6 +871,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 1",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
@@ -862,7 +879,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -995,6 +1013,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 1",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
@@ -1002,7 +1021,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
 							ChromeAndroid:  nil,
 							Edge:           valuePtr("101"),
@@ -1025,6 +1045,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					Name:           "Feature 2",
 					Caniuse:        nil,
 					CompatFeatures: nil,
+					Discouraged:    nil,
 					Spec: &web_platform_dx__web_features.StringOrStringArray{
 						StringArray: nil,
 						String:      valuePtr("feature2-link"),
@@ -1032,7 +1053,8 @@ func TestInsertWebFeatures(t *testing.T) {
 					Status: web_platform_dx__web_features.Status{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
