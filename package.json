@@ -23,10 +23,16 @@
     "stylelint": "^16.12.0",
     "stylelint-config-standard": "^36.0.1"
   },
-  "resolutions_comments": {
-    "gts": "Can unpin once GTS bumps its version of eslint-plugin-n to a version that supports eslint v9"
+  "overrides": {
+    "@humanwhocodes/config-array": "@eslint/config-array",
+    "@humanwhocodes/object-schema": "@eslint/object-schema",
+    "rimraf": "^6.0.0",
+    "glob": "^11.0.0",
+    "eslint": "^9.17.0",
+    "whatwg-url": "^14.1.0",
+    "uri-js": "uri-js-replace"
   },
-  "resolutions": {
-    "gts/**/eslint-plugin-n": "17.9.0"
+  "vaadin": {
+    "disableUsageStatistics": true
   }
 }
