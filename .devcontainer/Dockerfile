@@ -33,7 +33,7 @@ RUN wget https://www.antlr.org/download/antlr-${ANTLR4_VERSION}-complete.jar
 RUN echo "alias antlr4='java -jar /usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar'" >> ~/.bashrc
 RUN echo "alias grun='java org.antlr.v4.gui.TestRig'" >> ~/.bashrc
 
-ENV CLASSPATH .:/usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar:$CLASSPATH
+ENV CLASSPATH=.:/usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar
 
 # Switch to the default user and append to PATH
 USER vscode

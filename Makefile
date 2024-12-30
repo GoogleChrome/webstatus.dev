@@ -2,6 +2,17 @@ SHELL := /bin/bash
 NPROCS := $(shell nproc)
 GH_REPO := "GoogleChrome/webstatus.dev"
 
+DOCKERFILES := \
+	images/go_service.Dockerfile \
+	images/nodejs_service.Dockerfile \
+	otel/Dockerfile \
+	./.dev/gcs/Dockerfile \
+	./.dev/auth/Dockerfile \
+	./.dev/datastore/Dockerfile \
+	./.dev/spanner/Dockerfile \
+	./.dev/redis/Dockerfile \
+	./.devcontainer/Dockerfile
+
 .PHONY: all \
 		antlr-gen \
 		clean \
@@ -176,7 +187,7 @@ clean-jsonschema:
 golint-version:
 	golangci-lint --version
 
-lint: go-lint node-lint tf-lint shell-lint style-lint
+lint: go-lint node-lint tf-lint shell-lint style-lint dockerfile-lint
 
 go-lint: golint-version go-workspace-setup
 	go list -f '{{.Dir}}/...' -m | xargs golangci-lint run
@@ -202,6 +213,9 @@ lint-fix: node-install
 
 style-lint:
 	npx stylelint "frontend/src/**/*.css"
+
+dockerfile-lint:
+	@$(foreach dockerfile,$(DOCKERFILES),docker build --check -f $(dockerfile) .;)
 
 ################################
 # Test
