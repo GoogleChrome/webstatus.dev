@@ -21,6 +21,7 @@ import {
   getColumnOptions,
 } from '../utils/urls.js';
 import {FeatureSortOrderType} from '../api/client.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
 
 const MISSING_VALUE = html``;
 
@@ -529,7 +530,33 @@ export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
   `;
 }
 
+export function renderBookmarkHeaderCells(
+  bookmarkName: string,
+  columns: ColumnKey[],
+): TemplateResult[] {
+  const headerCells: TemplateResult[] = columns.map(col => {
+    if (col === ColumnKey.Name) {
+      const title = `Sorted by ${bookmarkName} query order`;
+      return html`${renderUnsortableHeaderCell(col, title)}`;
+    } else {
+      return html`${renderUnsortableHeaderCell(col)}`;
+    }
+  });
+  return headerCells;
+}
+
 export function renderHeaderCell(
+  routerLocation: {search: string},
+  column: ColumnKey,
+  sortSpec: string,
+): TemplateResult {
+  if (CELL_DEFS[column].unsortable) {
+    return renderUnsortableHeaderCell(column);
+  }
+  return renderSortableHeaderCell(routerLocation, column, sortSpec);
+}
+
+function renderSortableHeaderCell(
   routerLocation: {search: string},
   column: ColumnKey,
   sortSpec: string,
@@ -550,15 +577,26 @@ export function renderHeaderCell(
   }
 
   const colDef = CELL_DEFS[column];
-  if (colDef.unsortable) {
-    return html`<th class=${colDef.cellClass || ''}>${colDef?.headerHtml}</th>`;
-  } else {
-    return html`
-      <th title="Click to sort" class="${colDef.cellClass || ''} sortable">
-        <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
-      </th>
-    `;
-  }
+  return html`
+    <th title="Click to sort" class="${colDef?.cellClass || ''} sortable">
+      <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
+    </th>
+  `;
+}
+
+export function renderUnsortableHeaderCell(
+  column: ColumnKey,
+  customTitle?: string,
+): TemplateResult {
+  const colDef = CELL_DEFS[column];
+  return html`
+    <th
+      title=${ifDefined(customTitle)}
+      class="${colDef?.cellClass || ''} unsortable"
+    >
+      ${colDef?.headerHtml}
+    </th>
+  `;
 }
 
 export function renderFeatureCell(

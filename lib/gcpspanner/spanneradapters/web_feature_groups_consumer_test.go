@@ -208,6 +208,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					CompatFeatures:  nil,
 					Description:     "",
 					DescriptionHTML: "",
+					Discouraged:     nil,
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
@@ -215,7 +216,8 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -235,6 +237,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					CompatFeatures:  nil,
 					Description:     "",
 					DescriptionHTML: "",
+					Discouraged:     nil,
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
@@ -242,7 +245,8 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.Support{
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
