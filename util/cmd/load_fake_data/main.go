@@ -42,6 +42,9 @@ const releasesPerBrowser = 50
 const runsPerBrowserPerChannel = 100
 const numberOfFeatures = 80
 
+// Feature Key used for feature page tests.
+const featurePageFeatureKey = "odit64"
+
 // Allows us to regenerate the same values between runs.
 const seedValue = 1024
 
@@ -429,18 +432,21 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	if err != nil {
 		return fmt.Errorf("chromium histogram enums generation failed %w", err)
 	}
+	slog.Info("enums generated", "size", len(chromiumHistogramEnumIDMap))
 
 	chromiumHistogramEnumValueToIDMap, err := generateChromiumHistogramEnumValues(
 		ctx, spannerClient, chromiumHistogramEnumIDMap, features)
 	if err != nil {
 		return fmt.Errorf("chromium histogram enum values generation failed %w", err)
 	}
+	slog.Info("enum values generated", "size", len(chromiumHistogramEnumValueToIDMap))
 
 	err = generateWebFeatureChromiumHistogramEnumValues(
 		ctx, spannerClient, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap, features)
 	if err != nil {
 		return fmt.Errorf("web feature chromium histogram enums values generation failed %w", err)
 	}
+	slog.Info("web feature to enum mapping generated")
 
 	chromiumMetricsCount, err := generateChromiumHistogramMetrics(ctx, spannerClient, features)
 	if err != nil {
@@ -668,7 +674,12 @@ func generateChromiumHistogramMetrics(
 			if err != nil {
 				return metricsCount, err
 			}
-			currDate = currDate.AddDate(0, 0, r.Intn(23)+7) // Add up to a month, increasing by at least 7 days.
+			if features[i].FeatureKey == featurePageFeatureKey {
+				// Add more data points to assert pagination of metrics for feature page.
+				currDate = currDate.AddDate(0, 0, 1) // Add 1 day.
+			} else {
+				currDate = currDate.AddDate(0, 0, r.Intn(23)+7) // Add up to a month, increasing by at least 7 days.
+			}
 			metricsCount++
 		}
 	}
