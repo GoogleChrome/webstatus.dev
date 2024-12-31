@@ -12,14 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:22.11.0-alpine3.20 as base
+FROM node:22.11.0-alpine3.20 AS base
 
-FROM base as builder
+FROM base AS builder
 
 WORKDIR /work
 ARG service_dir
 ARG build_env
-ENV BUILD_ENV ${build_env}
+ENV BUILD_ENV=${build_env}
 COPY package.json package.json
 COPY package-lock.json package-lock.json
 COPY ${service_dir}/package.json ${service_dir}/package.json
@@ -32,7 +32,7 @@ RUN npm run postinstall || true
 RUN npm run build
 
 
-FROM base as production
+FROM base AS production
 
 WORKDIR /work
 ARG service_dir
@@ -44,16 +44,16 @@ RUN --mount=type=cache,target=/root/.npm \
     npm install --ignore-scripts --production
 RUN ln -s /work/node_modules /work/${service_dir}/node_modules
 COPY --from=builder /work/${service_dir}/dist /work/${service_dir}/dist
-CMD npm run start
+CMD ["npm", "run", "start"]
 
-FROM nginx:alpine3.19-slim as placeholder
+FROM nginx:alpine3.19-slim AS placeholder
 
 ARG service_dir
 COPY --from=builder /work/${service_dir}/nginx.conf /etc/nginx/nginx.conf
 COPY --from=builder /work/${service_dir}/placeholder/static /usr/share/nginx/html
 COPY --from=builder /work/${service_dir}/scripts/setup_server.sh /docker-entrypoint.d/setup_server.sh
 
-FROM nginx:alpine3.19-slim as static
+FROM nginx:alpine3.19-slim AS static
 
 ARG service_dir
 COPY --from=builder /work/${service_dir}/nginx.conf /etc/nginx/nginx.conf
