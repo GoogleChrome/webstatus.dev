@@ -253,7 +253,7 @@ export class WebstatusSidebarMenu extends LitElement {
     const bookmarkIcon = isQueryActive ? 'bookmark-star' : 'bookmark';
 
     return html`
-      <sl-tree-item id=${bookmarkId} ?selected=${isQueryActive}>
+      <sl-tree-item id=${bookmarkId} ?selected=${isQueryActive} lazy>
         <a class="bookmark-link" href="${bookmarkUrl}">
           <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}
         </a>
@@ -269,7 +269,8 @@ export class WebstatusSidebarMenu extends LitElement {
 
         <sl-tree-item
           id="${NavigationItemKey.FEATURES}"
-          expanded=${this.isFeaturesDropdownExpanded}
+          .expanded=${this.isFeaturesDropdownExpanded}
+          lazy
         >
           <sl-icon name="menu-button"></sl-icon>
           <a
@@ -288,7 +289,7 @@ export class WebstatusSidebarMenu extends LitElement {
 
         <sl-divider aria-hidden="true"></sl-divider>
 
-        <sl-tree-item class="report-issue-item">
+        <sl-tree-item class="report-issue-item" lazy>
           <sl-icon name="github"></sl-icon>
           <a
             class="report-issue-link"
@@ -298,7 +299,7 @@ export class WebstatusSidebarMenu extends LitElement {
           >
         </sl-tree-item>
 
-        <sl-tree-item class="about-item">
+        <sl-tree-item class="about-item" lazy>
           <sl-icon name="info-circle"></sl-icon>
           <a class="about-link" href="${ABOUT_PAGE_LINK}" target="_blank"
             >About</a

@@ -24,13 +24,24 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   },
 
   // in a monorepo you need to set the root dir to resolve modules
-  rootDir: '../../',
+  rootDir: 'build/',
 
   files: [
     // Have to compile tests
     // Taken from https://github.com/open-wc/create/blob/master/src/generators/testing-wtr-ts/templates/static/web-test-runner.config.mjs
-    'build/**/test/*.test.js',
+    '**/test/*.test.js',
   ],
+  testRunnerHtml: testFramework => `
+  <html>
+    <body>
+      <script type="module" src="${testFramework}"></script>
+      <script type="module">
+        import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js';
+        setBasePath('/public/img/shoelace');
+      </script>
+    </body>
+  </html>
+  `,
 
   /** Filter out lit dev mode logs */
   filterBrowserLogs(log) {

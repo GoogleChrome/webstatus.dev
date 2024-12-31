@@ -15,7 +15,7 @@
  */
 
 import {provide} from '@lit/context';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {
   FirebaseApp,
   firebaseAppContext,
@@ -34,7 +34,6 @@ export class WebstatusFirebaseAppService extends ServiceElement {
   settings?: FirebaseSettings;
 
   @provide({context: firebaseAppContext})
-  @state()
   firebaseApp?: FirebaseApp;
 
   protected firstUpdated(): void {

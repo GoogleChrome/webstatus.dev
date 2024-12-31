@@ -133,7 +133,6 @@ export class FeaturePage extends LitElement {
   @state()
   featureMetadata?: {can_i_use?: CanIUseData; description?: string} | undefined;
 
-  @state()
   featureId!: string;
 
   location!: {params: {featureId: string}; search: string}; // Set by router.

@@ -151,7 +151,6 @@ export class WebstatusOverviewFilters extends LitElement {
   @state()
   exportDataStatus: TaskStatus = TaskStatus.INITIAL;
 
-  @state()
   // A function that returns an array of all features via apiClient.getAllFeatures
   allFeaturesFetcher:
     | undefined
