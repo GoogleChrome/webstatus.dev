@@ -269,7 +269,7 @@ export class WebstatusSidebarMenu extends LitElement {
 
         <sl-tree-item
           id="${NavigationItemKey.FEATURES}"
-          expanded=${this.isFeaturesDropdownExpanded}
+          .expanded=${this.isFeaturesDropdownExpanded}
         >
           <sl-icon name="menu-button"></sl-icon>
           <a

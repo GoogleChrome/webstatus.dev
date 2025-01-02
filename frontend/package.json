@@ -8,16 +8,16 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run tsc-clean && tsc && npx rollup -c",
-    "clean": "rm -rf build && rm -rf static && rm -rf dist && rm -rf node_modules && rm -rf .postinstall",
+    "build": "npm run clean && tsc && npm run cp-imgs && npx rollup -c",
+    "clean": "rm -rf build && rm -rf static && rm -rf dist && tsc --build --clean",
     "lint": "cd .. && prettier frontend/ --check && cd frontend && eslint \"**/*.{js,ts}\" && lit-analyzer \"src/**/*.{js,ts}\" && tsc --noEmit",
     "lint-fix": "cd .. && prettier frontend/ --write && cd frontend && eslint \"**/*.{js,ts}\" --fix",
     "local": "npm run build && TODO",
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
-    "test": "npm run tsc-clean && tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
-    "tsc-clean": "tsc --build --clean",
-    "test:watch": "tsc && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage --node-resolve --playwright --browsers chromium firefox webkit\" "
+    "cp-imgs": "mkdir -p build/public/img && cp -v -r src/static/img/* build/public/img && cp -v .postinstall/static/img/* build/public/img",
+    "test": "npm run build && npm run cp-imgs && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
+    "test:watch": "npm run build && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage --node-resolve --playwright --browsers chromium firefox webkit\" "
   },
   "devDependencies": {
     "@browser-logos/chrome": "^2.0.0",

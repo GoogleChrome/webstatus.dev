@@ -14,54 +14,81 @@
  * limitations under the License.
  */
 
-import {assert, fixture, html} from '@open-wc/testing';
+import {assert, html} from '@open-wc/testing';
 import '../../services/webstatus-gcharts-loader-service.js';
 import '../webstatus-gchart.js';
 import {type WebstatusGChart} from '../webstatus-gchart.js';
 import {render} from 'lit';
 import {type WebstatusGChartsLoaderService} from '../../services/webstatus-gcharts-loader-service.js';
+import sinon from 'sinon';
 
 describe('webstatus-gchart', () => {
-  it('can receive loaded state via loader context', async () => {
-    const component = await fixture<WebstatusGChartsLoaderService>(
-      html`<webstatus-gcharts-loader-service>
-        <webstatus-gchart></webstatus-gchart>
-      </webstatus-gcharts-loader-service>`,
-    );
+  let mockResizeObserver: sinon.SinonStub;
+  let component: WebstatusGChart;
+  let loaderComponent: WebstatusGChartsLoaderService;
 
-    assert.exists(component);
-    await component.updateComplete;
-    await component.waitForGChartsLibraryLoaded();
+  beforeEach(async () => {
+    // Mock the ResizeObserver constructor to prevent
+    // "ResizeObserver loop completed with undelivered notifications."
+    // errors that can happen intermittently in tests.
+    // An added benefit is that we can control the resize.
+    mockResizeObserver = sinon.stub(window, 'ResizeObserver').callsFake(() => ({
+      observe: sinon.stub(),
+      disconnect: sinon.stub(),
+    }));
 
-    const childComponent = component.querySelector(
-      'webstatus-gchart',
-    ) as WebstatusGChart;
-    assert.exists(childComponent);
-    await childComponent.updateComplete;
-    assert.equal(childComponent.gchartsLibraryLoaded, true);
-  });
-
-  it('can subscribe to the parent gchart loader', async () => {
-    // This also tests adding components via lit render.
+    // Create a root div and append it to the body
     const root = document.createElement('div');
     document.body.appendChild(root);
+
+    // Use render to create the components
     render(
       html`
         <webstatus-gcharts-loader-service>
-          <webstatus-gchart></webstatus-gchart>
+          <div id="test-container">
+            <webstatus-gchart
+              .containerId="${'test-container'}"
+            ></webstatus-gchart>
+          </div>
         </webstatus-gcharts-loader-service>
       `,
       root,
     );
-    const loader = root.querySelector(
+
+    // Get the components
+    loaderComponent = root.querySelector(
       'webstatus-gcharts-loader-service',
     ) as WebstatusGChartsLoaderService;
-    assert.exists(loader);
-    await loader.updateComplete;
-    await loader.waitForGChartsLibraryLoaded();
+    component = loaderComponent.querySelector(
+      'webstatus-gchart',
+    ) as WebstatusGChart;
 
-    const gchart = root.querySelector('webstatus-gchart') as WebstatusGChart;
-    await gchart.updateComplete;
-    assert.equal(gchart.gchartsLibraryLoaded, true);
+    await loaderComponent.updateComplete;
+    await loaderComponent.waitForGChartsLibraryLoaded();
+    await component.updateComplete;
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('can receive loaded state via loader context', async () => {
+    assert.equal(component.gchartsLibraryLoaded, true);
+  });
+
+  it('redraws the chart on resize', async () => {
+    // Spy on the chartWrapper.draw method (make sure chartWrapper is initialized)
+    const drawSpy = sinon.spy(component.chartWrapper!, 'draw');
+
+    // Simulate a resize
+    const resizeObserverCallback = mockResizeObserver.args[0][0];
+    resizeObserverCallback([
+      {
+        contentRect: {width: 200, height: 100},
+      },
+    ]);
+
+    // Assert that chartWrapper.draw was called
+    assert.isTrue(drawSpy.calledOnce);
   });
 });
