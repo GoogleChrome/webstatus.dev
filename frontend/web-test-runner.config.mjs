@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-const filteredLogs = ['Running in dev mode', 'Lit is in dev mode'];
+const filteredLogs = [
+  'Running in dev mode',
+  'Lit is in dev mode',
+  // sl-tree-item has its own reactivity that we cannot control. Ignore for now.
+  'Element sl-tree-item scheduled an update',
+];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   concurrency: 10,
