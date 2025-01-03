@@ -14,8 +14,14 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
+import {test, expect, Page} from '@playwright/test';
 import {setupFakeNow} from './utils';
+
+async function waitForAllChartsToLoad(page: Page) {
+  // Wait for all charts to finish loading.
+  for (const chartLoading of await page.getByText('Loading stats').all())
+    await expect(chartLoading).toBeHidden();
+}
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
@@ -27,8 +33,7 @@ test('matches the screenshot', async ({page}) => {
   // Wait for the chart container to exist.
   await page.waitForSelector('#global-feature-support-chart-container');
 
-  const locator = page.getByText('Loading stats');
-  await expect(locator).toBeHidden();
+  await waitForAllChartsToLoad(page);
 
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
@@ -46,8 +51,7 @@ test('matches the screenshot with missing one implementation chart', async ({
   // Wait for the missing one implementatoin chart container to exist.
   await page.waitForSelector('#features-lagging');
 
-  const locator = page.getByText('Loading stats');
-  await expect(locator).toBeHidden();
+  await waitForAllChartsToLoad(page);
 
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
