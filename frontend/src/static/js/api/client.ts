@@ -426,4 +426,43 @@ export class APIClient {
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
   }
+
+  // Fetches feature counts for a browser in a date range
+  // via "/v1/stats/features/browsers/{browser}/feature_counts"
+  public async *getMissingOneImplementationCountsForBrowser(
+    browser: BrowsersParameter,
+    otherBrowsers: BrowsersParameter[],
+    startAtDate: Date,
+    endAtDate: Date,
+  ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+
+    let nextPageToken;
+    do {
+      const response = await this.client.GET(
+        '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {
+              startAt,
+              endAt,
+              page_token: nextPageToken,
+              browser: otherBrowsers,
+            },
+            path: {browser},
+          },
+        },
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: BrowserReleaseFeatureMetricsPage =
+        response.data as BrowserReleaseFeatureMetricsPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
+  }
 }
