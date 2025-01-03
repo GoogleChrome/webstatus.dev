@@ -14,11 +14,8 @@
 
 FROM node:22.11.0-slim
 # FIREBASE_CLI_VERSION from https://github.com/firebase/firebase-tools/releases
-ARG FIREBASE_CLI_VERSION=13.20.1
-# Workaround for https://github.com/firebase/firebase-tools/issues/6931 is to install via npm
-RUN npm i firebase-tools@${FIREBASE_CLI_VERSION} -g
-# Once https://github.com/firebase/firebase-tools/issues/6931 is resolved, we can install via ADD instead of npm
-# ADD https://github.com/firebase/firebase-tools/releases/download/v${FIREBASE_CLI_VERSION}/firebase-tools-linux /usr/local/bin/firebase
+ARG FIREBASE_CLI_VERSION=13.29.1
+ADD https://github.com/firebase/firebase-tools/releases/download/v${FIREBASE_CLI_VERSION}/firebase-tools-linux /usr/local/bin/firebase
 RUN chmod +x /usr/local/bin/firebase
 ADD firebase.json firebase.json
 RUN firebase setup:emulators:ui --project=local
