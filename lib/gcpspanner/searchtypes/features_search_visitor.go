@@ -63,7 +63,7 @@ type termMissingRangeValueError struct {
 }
 
 func (e termMissingRangeValueError) Error() string {
-	return fmt.Sprintf("term %s is missing value", e.term)
+	return fmt.Sprintf("term %s is missing value range", e.term)
 }
 
 func (v *FeaturesSearchVisitor) handleOperator(current *SearchNode, operatorCtx *parser.OperatorContext) *SearchNode {
