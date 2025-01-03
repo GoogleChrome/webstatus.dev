@@ -50,6 +50,22 @@ func (v *FeaturesSearchVisitor) addError(err error) {
 	v.err = errors.Join(v.err, err)
 }
 
+type termMissingValueError struct {
+	term SearchIdentifier
+}
+
+func (e termMissingValueError) Error() string {
+	return fmt.Sprintf("term %s is missing value", e.term)
+}
+
+type termMissingRangeValueError struct {
+	term SearchIdentifier
+}
+
+func (e termMissingRangeValueError) Error() string {
+	return fmt.Sprintf("term %s is missing value range", e.term)
+}
+
 func (v *FeaturesSearchVisitor) handleOperator(current *SearchNode, operatorCtx *parser.OperatorContext) *SearchNode {
 	operator := getOperatorType(operatorCtx.GetText())
 
@@ -128,25 +144,31 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 	return rootNode
 }
 
-func (v *FeaturesSearchVisitor) createIDNode(id string) *SearchNode {
-	return v.createSimpleNode(id, IdentifierID)
+func (v *FeaturesSearchVisitor) createIDNode(idNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(idNode, IdentifierID)
 }
 
-func (v *FeaturesSearchVisitor) createSnapshotNode(snapshot string) *SearchNode {
-	return v.createSimpleNode(snapshot, IdentifierSnapshot)
+func (v *FeaturesSearchVisitor) createSnapshotNode(snapshotNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(snapshotNode, IdentifierSnapshot)
 }
 
-func (v *FeaturesSearchVisitor) createGroupNode(group string) *SearchNode {
-	return v.createSimpleNode(group, IdentifierGroup)
+func (v *FeaturesSearchVisitor) createGroupNode(groupNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(groupNode, IdentifierGroup)
 }
 
-func (v *FeaturesSearchVisitor) createNameNode(name string) *SearchNode {
-	return v.createSimpleNode(name, IdentifierName)
+func (v *FeaturesSearchVisitor) createNameNode(nameNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(nameNode, IdentifierName)
 }
 
 func (v *FeaturesSearchVisitor) createSimpleNode(
-	value string,
+	node antlr.TerminalNode,
 	identifier SearchIdentifier) *SearchNode {
+	if node == nil {
+		v.addError(termMissingValueError{term: identifier})
+
+		return nil
+	}
+	value := node.GetText()
 	value = strings.Trim(value, `"`)
 
 	return &SearchNode{
@@ -179,6 +201,12 @@ func (v *FeaturesSearchVisitor) VisitQuery(ctx *parser.QueryContext) interface{}
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_termContext) interface{} {
+	browserNameNode := ctx.BROWSER_NAME()
+	if browserNameNode == nil {
+		v.addError(termMissingValueError{term: IdentifierAvailableOn})
+
+		return nil
+	}
 	browserName := strings.ToLower(ctx.BROWSER_NAME().GetText())
 
 	return &SearchNode{
@@ -194,7 +222,13 @@ func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_status_termContext) interface{} {
-	baselineStatus := ctx.BASELINE_STATUS().GetText()
+	baselineStatusNode := ctx.BASELINE_STATUS()
+	if baselineStatusNode == nil {
+		v.addError(termMissingValueError{term: IdentifierBaselineStatus})
+
+		return nil
+	}
+	baselineStatus := baselineStatusNode.GetText()
 
 	return &SearchNode{
 		Keyword: KeywordNone,
@@ -309,8 +343,17 @@ func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_dat
 // have a date range context. The generated VisitDate_range_query is no longer needed.
 func (v *FeaturesSearchVisitor) VisitDateRangeQuery(ctx parser.IDate_range_queryContext,
 	identifier SearchIdentifier) *SearchNode {
-	startDate := ctx.GetStartDate().GetText()
-	endDate := ctx.GetEndDate().GetText()
+	startDateNode := ctx.GetStartDate()
+	endDateNode := ctx.GetEndDate()
+
+	if startDateNode == nil || endDateNode == nil {
+		v.addError(termMissingRangeValueError{term: identifier})
+
+		return nil
+	}
+
+	startDate := startDateNode.GetText()
+	endDate := endDateNode.GetText()
 
 	return &SearchNode{
 		Keyword: KeywordAND,
@@ -418,22 +461,22 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitId_term(ctx *parser.Id_termContext) interface{} {
-	return v.createIDNode(ctx.ANY_VALUE().GetText())
+	return v.createIDNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitSnapshot_term(ctx *parser.Snapshot_termContext) interface{} {
-	return v.createSnapshotNode(ctx.ANY_VALUE().GetText())
+	return v.createSnapshotNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitGroup_term(ctx *parser.Group_termContext) interface{} {
-	return v.createGroupNode(ctx.ANY_VALUE().GetText())
+	return v.createGroupNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitName_term(ctx *parser.Name_termContext) interface{} {
-	return v.createNameNode(ctx.ANY_VALUE().GetText())
+	return v.createNameNode(ctx.ANY_VALUE())
 }
 
 func (v *FeaturesSearchVisitor) VisitTerm(ctx *parser.TermContext) interface{} {
@@ -469,8 +512,10 @@ func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_sea
 func (v *FeaturesSearchVisitor) VisitSearch_criteria(ctx *parser.Search_criteriaContext) interface{} {
 	// Handle the default ANY_VALUE case.
 	// This is needed for the feature name that does not have the prefix.
+	// Even though createNameNode will return nil if node is nil, it will add an error.
+	// So we proactively check for node.
 	if node := ctx.ANY_VALUE(); node != nil {
-		return v.createNameNode(node.GetText())
+		return v.createNameNode(node)
 	}
 
 	return v.VisitChildren(ctx)
