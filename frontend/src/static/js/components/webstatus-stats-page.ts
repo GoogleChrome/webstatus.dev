@@ -24,7 +24,7 @@ import {
   css,
   nothing,
 } from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
@@ -51,8 +51,14 @@ export class StatsPage extends LitElement {
   @state()
   _loadingGFSTask: Task;
 
+  @state()
+  _loadingMissingOneTask: Task;
+
   @consume({context: apiClientContext})
   apiClient!: APIClient;
+
+  @property({type: Object})
+  location!: {search: string}; // Set by router.
 
   @state()
   supportedBrowsers: BrowsersParameter[] = ALL_BROWSERS;
@@ -193,30 +199,34 @@ export class StatsPage extends LitElement {
     await Promise.all(promises); // Wait for all browsers to finish
   }
 
-  // TODO: Finish this method with real data.
-  async _fetchMissingOneImplemenationCounts() {
-    const browserReleaseFeatureMetric: BrowserReleaseFeatureMetric = {
-      count: 8,
-      timestamp: new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-    const browserReleaseFeatureMetric1: BrowserReleaseFeatureMetric = {
-      count: 5,
-      timestamp: new Date(Date.now() - 150 * 24 * 60 * 60 * 1000).toISOString(),
-    };
-    let count: number = 0;
-    ALL_BROWSERS.map(browser => {
-      browserReleaseFeatureMetric.count = 8 + count;
-      browserReleaseFeatureMetric1.count = 5 + count;
-      count++;
-      this.missingOneImplementationMap.set(statsDataKey(browser), [
-        {...browserReleaseFeatureMetric},
-        {...browserReleaseFeatureMetric1},
-      ]);
+  async _fetchMissingOneImplemenationCounts(
+    apiClient: APIClient,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    if (typeof apiClient !== 'object') return;
+    const promises = ALL_BROWSERS.map(async browser => {
+      const otherBrowsers = ALL_BROWSERS.filter(value => browser !== value);
+      for await (const page of apiClient.getMissingOneImplementationCountsForBrowser(
+        browser,
+        otherBrowsers,
+        startDate,
+        endDate,
+      )) {
+        // Append the new data to existing data
+        const existingData =
+          this.missingOneImplementationMap.get(statsDataKey(browser)) || [];
+        this.missingOneImplementationMap.set(statsDataKey(browser), [
+          ...existingData,
+          ...page,
+        ]);
+      }
+      this.missingOneImplementationChartDataObj = this.createDisplayDataFromMap(
+        this.missingOneImplementationMap,
+        false,
+      );
     });
-    this.missingOneImplementationChartDataObj = this.createDisplayDataFromMap(
-      this.missingOneImplementationMap,
-      false,
-    );
+    await Promise.all(promises); // Wait for all browsers to finish
   }
 
   constructor() {
@@ -239,8 +249,28 @@ export class StatsPage extends LitElement {
           startDate,
           endDate,
         );
-        await this._fetchMissingOneImplemenationCounts();
         return this.globalFeatureSupport;
+      },
+    });
+
+    this._loadingMissingOneTask = new Task(this, {
+      args: () =>
+        [this.apiClient, this.startDate, this.endDate] as [
+          APIClient,
+          Date,
+          Date,
+        ],
+      task: async ([apiClient, startDate, endDate]: [
+        APIClient,
+        Date,
+        Date,
+      ]) => {
+        await this._fetchMissingOneImplemenationCounts(
+          apiClient,
+          startDate,
+          endDate,
+        );
+        return this.missingOneImplementationMap;
       },
     });
   }
@@ -437,11 +467,20 @@ export class StatsPage extends LitElement {
   }
 
   renderMissingOneImplementationChart(): TemplateResult | undefined {
-    return this._loadingGFSTask.render({
+    return this._loadingMissingOneTask.render({
       complete: () => this.renderMissingOneImplementationChartWhenComplete(),
-      error: () => this.renderChartWhenError(),
-      initial: () => this.renderChartWhenInitial(),
-      pending: () => this.renderChartWhenPending(),
+      error: () =>
+        html`<div id="missing-one-implementation-error">
+          ${this.renderChartWhenError()}
+        </div>`,
+      initial: () =>
+        html`<div id="missing-one-implementation-initial">
+          ${this.renderChartWhenInitial()}
+        </div>`,
+      pending: () =>
+        html`<div id="missing-one-implementation-pending">
+          ${this.renderChartWhenPending()}
+        </div>`,
     });
   }
 
@@ -532,7 +571,7 @@ export class StatsPage extends LitElement {
     return html`
       <div class="vbox">
         ${this.renderTitleAndControls()} ${this.renderGlobalFeatureSupport()}
-        ${getFeaturesLaggingFlag(window.location)
+        ${getFeaturesLaggingFlag(this.location)
           ? this.renderFeaturesLagging()
           : nothing}
         <div class="hbox">
