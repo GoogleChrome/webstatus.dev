@@ -121,9 +121,6 @@ export class FeaturePage extends LitElement {
   featureSupportChartOptions = {};
 
   @state()
-  featureSupportTotalsLabel = 'Total number of subtests';
-
-  @state()
   featureUsageChartOptions = {};
 
   @state()
@@ -484,7 +481,7 @@ export class FeaturePage extends LitElement {
       row => row.test_pass_count!,
       (row, browser) =>
         `${BROWSER_ID_TO_LABEL[browser]}: ${row.test_pass_count} of ${row.total_tests_count}`,
-      this.featureSupportTotalsLabel,
+      'Total number of subtests',
     );
   }
 
