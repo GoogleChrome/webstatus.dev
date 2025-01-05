@@ -18,7 +18,7 @@ import {expect, fixture, html} from '@open-wc/testing';
 import {FeaturePage} from '../webstatus-feature-page.js';
 import '../webstatus-feature-page.js';
 import sinon from 'sinon';
-import {WPTRunMetric} from '../../api/client.js';
+import {ChromiumUsageStat, WPTRunMetric} from '../../api/client.js';
 import {render} from 'lit';
 
 describe('webstatus-feature-page', () => {
@@ -44,6 +44,220 @@ describe('webstatus-feature-page', () => {
     expect(link).to.eq(
       'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative',
     );
+  });
+
+  it('generates chart options for the Feature Support chart', async () => {
+    const startDate = new Date('2020-01-01T00:00:00.000Z');
+    const endDate = new Date('2020-12-31T00:00:00.000Z');
+    const dayAfterEndDate = new Date('2020-12-31T00:00:00.000Z');
+    dayAfterEndDate.setUTCDate(dayAfterEndDate.getUTCDate() + 1);
+    el.startDate = startDate;
+    el.endDate = endDate;
+    await el.updateComplete;
+    const result = el.generateFeatureSupportChartOptions();
+    expect(result.hAxis?.viewWindow?.min).eql(startDate);
+    // Chart's end date is set to 1 day after end date.
+    expect(result.hAxis?.viewWindow?.max).eql(dayAfterEndDate);
+    // Check colors based on browsers displayed.
+    expect(result.colors).eql([
+      '#FF0000',
+      '#F48400',
+      '#4285F4',
+      '#0F9D58',
+      '#888888',
+    ]);
+    // Vertical axis should have a chart-specific title.
+    expect(result.vAxis?.title).to.eq('Number of subtests passed');
+  });
+
+  it('generates chart options for the Feature Usage chart', async () => {
+    const startDate = new Date('2020-01-01T00:00:00.000Z');
+    const endDate = new Date('2020-12-31T00:00:00.000Z');
+    const dayAfterEndDate = new Date('2020-12-31T00:00:00.000Z');
+    dayAfterEndDate.setUTCDate(dayAfterEndDate.getUTCDate() + 1);
+    el.startDate = startDate;
+    el.endDate = endDate;
+    await el.updateComplete;
+    const result = el.generateFeatureUsageChartOptions();
+    expect(result.hAxis?.viewWindow?.min).eql(startDate);
+    // Chart's end date is set to 1 day after end date.
+    expect(result.hAxis?.viewWindow?.max).eql(dayAfterEndDate);
+    // Check colors based on browsers displayed.
+    expect(result.colors).eql(['#FF0000', '#888888']);
+    // Vertical axis should have a chart-specific title.
+    expect(result.vAxis?.title).to.eq('Usage (%)');
+  });
+
+  it('organizes data to be used for the Feature Support chart', async () => {
+    el.featureSupport = new Map<string, Array<WPTRunMetric>>();
+    el.featureSupport.set('chrome-stable', [
+      {
+        run_timestamp: '2020-01-01T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 3,
+      },
+      {
+        run_timestamp: '2020-01-02T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 3,
+      },
+      {
+        run_timestamp: '2020-01-03T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 4,
+      },
+      {
+        run_timestamp: '2020-01-04T00:00:00Z',
+        total_tests_count: 5,
+        test_pass_count: 5,
+      },
+    ]);
+    el.featureSupport.set('edge-stable', [
+      {
+        run_timestamp: '2020-01-01T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 2,
+      },
+      {
+        run_timestamp: '2020-01-02T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 4,
+      },
+      {
+        run_timestamp: '2020-01-03T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 3,
+      },
+      {
+        run_timestamp: '2020-01-04T00:00:00Z',
+        total_tests_count: 5,
+        test_pass_count: 4,
+      },
+    ]);
+    el.featureSupport.set('firefox-stable', [
+      {
+        run_timestamp: '2020-01-01T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 1,
+      },
+      {
+        run_timestamp: '2020-01-02T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 4,
+      },
+      {
+        run_timestamp: '2020-01-03T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 4,
+      },
+      {
+        run_timestamp: '2020-01-04T00:00:00Z',
+        total_tests_count: 5,
+        test_pass_count: 5,
+      },
+    ]);
+    el.featureSupport.set('safari-stable', [
+      {
+        run_timestamp: '2020-01-01T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 0,
+      },
+      {
+        run_timestamp: '2020-01-02T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 0,
+      },
+      {
+        run_timestamp: '2020-01-03T00:00:00Z',
+        total_tests_count: 4,
+        test_pass_count: 0,
+      },
+      {
+        run_timestamp: '2020-01-04T00:00:00Z',
+        total_tests_count: 5,
+        test_pass_count: 1,
+      },
+    ]);
+    await el.updateComplete;
+
+    const result = el.createFeatureSupportDataFromMap();
+
+    // Assertions for columns
+    expect(result.cols.length).to.equal(10); // Expecting 10 columns (date + 2 for each browser + total)
+    expect(result.cols[9].label).to.equal('Total number of subtests');
+
+    // Assertions for rows
+    expect(result.rows.length).to.equal(4);
+    // Check data for the first row (timestamp: 2020-01-01T12:00:00.000Z)
+    const firstRow = result.rows[0];
+    expect(firstRow[0]).to.be.instanceOf(Date);
+    expect(firstRow[1]).to.equal(3); // Chrome pass count
+    expect(firstRow[2]).to.equal('Chrome: 3 of 4'); // Chrome tooltip
+    expect(firstRow[3]).to.equal(1); // Firefox pass count
+    expect(firstRow[4]).to.equal('Firefox: 1 of 4'); // Firefox tooltip
+    expect(firstRow[5]).to.equal(0); // Safari pass count
+    expect(firstRow[6]).to.equal('Safari: 0 of 4'); // Safari tooltip
+    expect(firstRow[7]).to.equal(2); // Edge pass count
+    expect(firstRow[8]).to.equal('Edge: 2 of 4'); // Edge tooltip
+    expect(firstRow[9]).to.equal(4); // Total tests count
+
+    // Check data for the first row (timestamp: 2020-01-04T12:00:00.000Z)
+    const lastRow = result.rows[result.rows.length - 1];
+    expect(lastRow[0]).to.be.instanceOf(Date);
+    expect(lastRow[1]).to.equal(5); // Chrome pass count
+    expect(lastRow[2]).to.equal('Chrome: 5 of 5'); // Chrome tooltip
+    expect(lastRow[3]).to.equal(5); // Firefox pass count
+    expect(lastRow[4]).to.equal('Firefox: 5 of 5'); // Firefox tooltip
+    expect(lastRow[5]).to.equal(1); // Safari pass count
+    expect(lastRow[6]).to.equal('Safari: 1 of 5'); // Safari tooltip
+    expect(lastRow[7]).to.equal(4); // Edge pass count
+    expect(lastRow[8]).to.equal('Edge: 4 of 5'); // Edge tooltip
+    expect(lastRow[9]).to.equal(5); // Total tests count
+  });
+
+  it('organizes data to be used for the Feature Usage chart', async () => {
+    el.featureUsage = new Map<string, Array<ChromiumUsageStat>>();
+    el.featureUsage.set('chrome', [
+      {
+        timestamp: '2020-01-01T00:00:00Z',
+        usage: 0.00001,
+      },
+      {
+        timestamp: '2020-01-02T00:00:00Z',
+        usage: 0.0,
+      },
+      {
+        timestamp: '2020-01-03T00:00:00Z',
+        usage: 0.1,
+      },
+      {
+        timestamp: '2020-01-04T00:00:00Z',
+        usage: 0.11,
+      },
+    ]);
+    await el.updateComplete;
+
+    const result = el.createFeatureUsageDataFromMap();
+
+    // Assertions for columns
+    expect(result.cols.length).to.equal(3); // Expecting 3 columns.
+    expect(result.cols[0].label).to.equal('Date');
+    expect(result.cols[1].label).to.equal('Chrome');
+    expect(result.cols[2].label).to.equal('Chrome tooltip');
+
+    // Assertions for rows
+    expect(result.rows.length).to.equal(4);
+    // Check data for the first row (timestamp: 2020-01-01T12:00:00.000Z)
+    const firstRow = result.rows[0];
+    expect(firstRow[0]).to.be.instanceOf(Date);
+    expect(firstRow[1]).to.equal(0.001); // Chrome usage
+    expect(firstRow[2]).to.equal('Chrome: 0.001%'); // Chrome usage tooltip
+
+    // Check data for the first row (timestamp: 2020-01-04T12:00:00.000Z)
+    const lastRow = result.rows[result.rows.length - 1];
+    expect(lastRow[0]).to.be.instanceOf(Date);
+    expect(lastRow[1]).to.equal(11); // Chrome usage
+    expect(lastRow[2]).to.equal('Chrome: 11%'); // Chrome usage tooltip
   });
 
   it('builds a null WPT link correctly when there are no stable metrics', async () => {
