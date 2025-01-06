@@ -553,64 +553,81 @@ export class FeaturePage extends LitElement {
     );
   }
 
-  async _fetchFeatureSupportData(
-    self: FeaturePage,
+  async _fetchAndAggregateData<T>(
     apiClient: APIClient,
-    featureId: string,
-    startDate: Date,
-    endDate: Date,
+    dataFetcher: (
+      browser: BrowsersParameter) => AsyncIterable<T[]>,
+    data: Map<string, T[]>,
+    dataUpdater: () => void,
+    dataReferenceCreator: (browser: BrowsersParameter) => string,
+    browsers: BrowsersParameter[]
   ) {
     if (typeof apiClient !== 'object') return;
 
-    self.featureSupportChartDataObj = self.createFeatureSupportDataFromMap();
-    const channel = STABLE_CHANNEL;
-    const promises = ALL_BROWSERS.map(async browser => {
-      for await (const page of apiClient.getFeatureStatsByBrowserAndChannel(
-        featureId,
-        browser,
-        channel,
-        startDate,
-        endDate,
-      )) {
+    dataUpdater();
+    const promises = browsers.map(async browser => {
+      for await (const page of dataFetcher(browser)) {
         // Append the new data to existing data
         const existingData =
-          self.featureSupport.get(featureSupportKey(browser, channel)) || [];
-        self.featureSupport.set(featureSupportKey(browser, channel), [
+          data.get(dataReferenceCreator(browser)) || [];
+        data.set(dataReferenceCreator(browser), [
           ...existingData,
           ...page,
         ]);
 
-        self.featureSupportChartDataObj =
-          self.createFeatureSupportDataFromMap();
+        dataUpdater();
       }
     });
 
     await Promise.all(promises); // Wait for all browsers to finish
   }
 
-  async _fetchFeatureUsageData(
-    self: FeaturePage,
+  async _fetchFeatureSupportData(
     apiClient: APIClient,
     featureId: string,
     startDate: Date,
     endDate: Date,
   ) {
-    if (typeof apiClient !== 'object') return;
+    await this._fetchAndAggregateData<WPTRunMetric>(
+      apiClient,
+      (browser: BrowsersParameter) =>
+        apiClient.getFeatureStatsByBrowserAndChannel(
+          featureId,
+          browser,
+          STABLE_CHANNEL,
+          startDate,
+          endDate,
+        ),
+      this.featureSupport,
+      () =>
+        (this.featureSupportChartDataObj =
+          this.createFeatureSupportDataFromMap()),
+      (browser) => featureSupportKey(browser, STABLE_CHANNEL),
+      this.featureSupportBrowsers,
+    );
+  }
 
-    self.featureUsageChartDataObj = self.createFeatureUsageDataFromMap();
-    const promises = self.featureUsageBrowsers.map(async browser => {
-      for await (const page of apiClient.getChromiumDailyUsageStats(
-        featureId,
-        startDate,
-        endDate,
-      )) {
-        const existingData = self.featureUsage.get(browser) || [];
-        self.featureUsage.set(browser, [...existingData, ...page]);
-
-        this.featureUsageChartDataObj = self.createFeatureUsageDataFromMap();
-      }
-    });
-    await Promise.all(promises);
+  async _fetchFeatureUsageData(
+    apiClient: APIClient,
+    featureId: string,
+    startDate: Date,
+    endDate: Date,
+  ) {
+    await this._fetchAndAggregateData<ChromiumUsageStat>(
+      apiClient,
+      (_: BrowsersParameter) =>
+        apiClient.getChromiumDailyUsageStats(
+          featureId,
+          startDate,
+          endDate,
+        ),
+      this.featureUsage,
+      () =>
+        (this.featureUsageChartDataObj =
+          this.createFeatureUsageDataFromMap()),
+      browser => browser,
+      this.featureUsageBrowsers,
+    );
   }
 
   async firstUpdated(): Promise<void> {
@@ -1058,7 +1075,6 @@ export class FeaturePage extends LitElement {
   private async _startDataFetchingTask<T extends LoadingTaskType>(
     manualRun: boolean,
     dataFetcher: (
-      self: FeaturePage,
       apiClient: APIClient,
       featureId: string,
       startDate: Date,
@@ -1074,7 +1090,6 @@ export class FeaturePage extends LitElement {
       task: async ([apiClient, featureId]) => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
           await dataFetcher(
-            this,
             apiClient,
             featureId,
             this.startDate,
