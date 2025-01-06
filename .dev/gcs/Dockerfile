@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM fsouza/fake-gcs-server:1.50.2
+FROM fsouza/fake-gcs-server:1.51.0
 
 # Preload a webfeatures bucket
 COPY data/webfeatures /data/webfeatures
