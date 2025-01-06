@@ -61,6 +61,7 @@ import {WebStatusDataObj} from './webstatus-gchart.js';
 import {NotFoundError} from '../api/errors.js';
 
 type LoadingTaskType = '_loadingMetricsTask' | '_loadingUsageTask';
+type FetchTaskType = '_fetchFeatureSupportData' | '_fetchFeatureUsageData';
 
 /** Generate a key for featureSupport. */
 function featureSupportKey(
@@ -1061,16 +1062,10 @@ export class FeaturePage extends LitElement {
     return this.renderWhenComplete();
   }
 
-  private async _startDataFetchingTask<T extends LoadingTaskType>(
-    manualRun: boolean,
-    dataFetcher: (
-      apiClient: APIClient,
-      featureId: string,
-      startDate: Date,
-      endDate: Date,
-    ) => Promise<void>,
-    taskType: T,
-  ) {
+  private async _startDataFetchingTask<
+    T extends LoadingTaskType,
+    F extends FetchTaskType,
+  >(manualRun: boolean, dataFetcher: F, taskType: T) {
     this[taskType]?.abort(); // Access the task property using bracket notation.
 
     this[taskType] = new Task(this, {
@@ -1078,7 +1073,12 @@ export class FeaturePage extends LitElement {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
-          await dataFetcher(apiClient, featureId, this.startDate, this.endDate);
+          await this[dataFetcher](
+            apiClient,
+            featureId,
+            this.startDate,
+            this.endDate,
+          );
         }
       },
     });
@@ -1092,7 +1092,7 @@ export class FeaturePage extends LitElement {
   private async _startFeatureSupportTask(manualRun: boolean) {
     await this._startDataFetchingTask(
       manualRun,
-      this._fetchFeatureSupportData,
+      '_fetchFeatureSupportData',
       '_loadingMetricsTask',
     );
   }
@@ -1100,7 +1100,7 @@ export class FeaturePage extends LitElement {
   private async _startFeatureUsageTask(manualRun: boolean) {
     await this._startDataFetchingTask(
       manualRun,
-      this._fetchFeatureUsageData,
+      '_fetchFeatureUsageData',
       '_loadingUsageTask',
     );
   }
