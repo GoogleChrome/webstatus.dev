@@ -478,7 +478,7 @@ export class FeaturePage extends LitElement {
       (data, browser) => data.get(featureSupportKey(browser, 'stable')),
       row => [row.run_timestamp, row.test_pass_count!, row.total_tests_count!],
       (row, browser) =>
-        `${BROWSER_ID_TO_LABEL[browser]}: ${row.test_pass_count} of {row.total_tests_count}`,
+        `${BROWSER_ID_TO_LABEL[browser]}: ${row.test_pass_count!} of ${row.total_tests_count!}`,
       'Total number of subtests',
     );
   }
