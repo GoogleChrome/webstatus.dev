@@ -555,27 +555,22 @@ export class FeaturePage extends LitElement {
 
   async _fetchAndAggregateData<T>(
     apiClient: APIClient,
-    dataFetcher: (
-      browser: BrowsersParameter) => AsyncIterable<T[]>,
+    fetchFunction: (browser: BrowsersParameter) => AsyncIterable<T[]>,
     data: Map<string, T[]>,
-    dataUpdater: () => void,
-    dataReferenceCreator: (browser: BrowsersParameter) => string,
-    browsers: BrowsersParameter[]
+    createChartData: () => void,
+    browserDataReference: (browser: BrowsersParameter) => string,
+    browsers: BrowsersParameter[],
   ) {
     if (typeof apiClient !== 'object') return;
 
-    dataUpdater();
+    createChartData();
     const promises = browsers.map(async browser => {
-      for await (const page of dataFetcher(browser)) {
+      for await (const page of fetchFunction(browser)) {
         // Append the new data to existing data
-        const existingData =
-          data.get(dataReferenceCreator(browser)) || [];
-        data.set(dataReferenceCreator(browser), [
-          ...existingData,
-          ...page,
-        ]);
+        const existingData = data.get(browserDataReference(browser)) || [];
+        data.set(browserDataReference(browser), [...existingData, ...page]);
 
-        dataUpdater();
+        createChartData();
       }
     });
 
@@ -602,7 +597,7 @@ export class FeaturePage extends LitElement {
       () =>
         (this.featureSupportChartDataObj =
           this.createFeatureSupportDataFromMap()),
-      (browser) => featureSupportKey(browser, STABLE_CHANNEL),
+      browser => featureSupportKey(browser, STABLE_CHANNEL),
       this.featureSupportBrowsers,
     );
   }
@@ -616,15 +611,10 @@ export class FeaturePage extends LitElement {
     await this._fetchAndAggregateData<ChromiumUsageStat>(
       apiClient,
       (_: BrowsersParameter) =>
-        apiClient.getChromiumDailyUsageStats(
-          featureId,
-          startDate,
-          endDate,
-        ),
+        apiClient.getChromiumDailyUsageStats(featureId, startDate, endDate),
       this.featureUsage,
       () =>
-        (this.featureUsageChartDataObj =
-          this.createFeatureUsageDataFromMap()),
+        (this.featureUsageChartDataObj = this.createFeatureUsageDataFromMap()),
       browser => browser,
       this.featureUsageBrowsers,
     );
@@ -1089,12 +1079,7 @@ export class FeaturePage extends LitElement {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
-          await dataFetcher(
-            apiClient,
-            featureId,
-            this.startDate,
-            this.endDate,
-          );
+          await dataFetcher(apiClient, featureId, this.startDate, this.endDate);
         }
       },
     });
