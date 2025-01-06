@@ -188,7 +188,7 @@ describe('webstatus-feature-page', () => {
 
     // Assertions for rows
     expect(result.rows.length).to.equal(4);
-    // Check data for the first row (timestamp: 2020-01-01T12:00:00.000Z)
+    // Check data for the first row (timestamp: 2020-01-01T00:00:00Z)
     const firstRow = result.rows[0];
     expect(firstRow[0]).to.be.instanceOf(Date);
     expect(firstRow[1]).to.equal(3); // Chrome pass count
@@ -201,7 +201,7 @@ describe('webstatus-feature-page', () => {
     expect(firstRow[8]).to.equal('Edge: 2 of 4'); // Edge tooltip
     expect(firstRow[9]).to.equal(4); // Total tests count
 
-    // Check data for the first row (timestamp: 2020-01-04T12:00:00.000Z)
+    // Check data for the last row (timestamp: 2020-01-04T00:00:00Z)
     const lastRow = result.rows[result.rows.length - 1];
     expect(lastRow[0]).to.be.instanceOf(Date);
     expect(lastRow[1]).to.equal(5); // Chrome pass count
@@ -247,13 +247,13 @@ describe('webstatus-feature-page', () => {
 
     // Assertions for rows
     expect(result.rows.length).to.equal(4);
-    // Check data for the first row (timestamp: 2020-01-01T12:00:00.000Z)
+    // Check data for the first row (timestamp: 2020-01-01T00:00:00Z)
     const firstRow = result.rows[0];
     expect(firstRow[0]).to.be.instanceOf(Date);
     expect(firstRow[1]).to.equal(0.001); // Chrome usage
     expect(firstRow[2]).to.equal('Chrome: 0.001%'); // Chrome usage tooltip
 
-    // Check data for the first row (timestamp: 2020-01-04T12:00:00.000Z)
+    // Check data for the last row (timestamp: 2020-01-04T00:00:00Z)
     const lastRow = result.rows[result.rows.length - 1];
     expect(lastRow[0]).to.be.instanceOf(Date);
     expect(lastRow[1]).to.equal(11); // Chrome usage

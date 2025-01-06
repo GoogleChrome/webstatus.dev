@@ -365,7 +365,7 @@ export class FeaturePage extends LitElement {
       data: Map<string, T[]>,
       browser: BrowsersParameter,
     ) => T[] | undefined,
-    valueExtractor: (row: T) => number | undefined,
+    valueExtractor: (row: T) => [string, number?, number?],
     tooltipGenerator: (row: T, browser: BrowsersParameter) => string,
     totalLabel?: string,
   ): WebStatusDataObj {
@@ -413,10 +413,8 @@ export class FeaturePage extends LitElement {
       if (!browserData) continue;
       for (const row of browserData) {
         if (!row) continue;
-        const timestampMs = new Date(
-          /* eslint-disable @typescript-eslint/no-explicit-any */
-          (row as any).run_timestamp || (row as any).timestamp,
-        ).getTime();
+        const [dateString, value, totalValue] = valueExtractor(row);
+        const timestampMs = new Date(dateString).getTime();
         // Round timestamp to the nearest hour.
         const msInHour = 1000 * 60 * 60 * 1;
         const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
@@ -427,14 +425,14 @@ export class FeaturePage extends LitElement {
         if (totalLabel) {
           const total = Math.max(
             dateToTotalMap.get(roundedTimestamp) || 0,
-            (row as any).total_tests_count || 0,
+            totalValue || 0,
           );
           dateToTotalMap.set(roundedTimestamp, total);
         } else {
           dateToTotalMap.set(roundedTimestamp, 100);
         }
         const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
-        browserCounts[browser] = {tooltip, value: valueExtractor(row)!};
+        browserCounts[browser] = {tooltip, value: value!};
       }
     }
 
@@ -478,9 +476,9 @@ export class FeaturePage extends LitElement {
       this.featureSupport,
       this.featureSupportBrowsers,
       (data, browser) => data.get(featureSupportKey(browser, 'stable')),
-      row => row.test_pass_count!,
+      row => [row.run_timestamp, row.test_pass_count!, row.total_tests_count!],
       (row, browser) =>
-        `${BROWSER_ID_TO_LABEL[browser]}: ${row.test_pass_count} of ${row.total_tests_count}`,
+        `${BROWSER_ID_TO_LABEL[browser]}: ${row.test_pass_count} of {row.total_tests_count}`,
       'Total number of subtests',
     );
   }
@@ -491,7 +489,7 @@ export class FeaturePage extends LitElement {
       this.featureUsage,
       this.featureUsageBrowsers,
       (data, browser) => data.get(browser),
-      row => (row.usage ? row.usage * 100 : 0),
+      row => [row.timestamp, row.usage ? row.usage * 100 : 0],
       (row, browser) =>
         `${BROWSER_ID_TO_LABEL[browser]}: ${row.usage ? row.usage * 100 : 0}%`,
     );
@@ -501,7 +499,7 @@ export class FeaturePage extends LitElement {
     browsers: BrowsersParameter[],
     vAxisTitle: string,
   ): google.visualization.ComboChartOptions {
-    // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR\
+    // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
     const seriesColors = [...browsers, 'total'].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
@@ -600,21 +598,19 @@ export class FeaturePage extends LitElement {
     if (typeof apiClient !== 'object') return;
 
     self.featureUsageChartDataObj = self.createFeatureUsageDataFromMap();
-    for (const browser of self.featureUsageBrowsers) {
+    const promises = self.featureUsageBrowsers.map(async browser => {
       for await (const page of apiClient.getChromiumDailyUsageStats(
         featureId,
         startDate,
         endDate,
       )) {
-        // Append the new data to existing data
-        const existingData = self.featureUsage.get(featureId) || [];
+        const existingData = self.featureUsage.get(browser) || [];
         self.featureUsage.set(browser, [...existingData, ...page]);
 
-        self.featureSupportChartDataObj =
-          self.createFeatureSupportDataFromMap();
+        this.featureUsageChartDataObj = self.createFeatureUsageDataFromMap();
       }
-      self.featureUsageChartDataObj = self.createFeatureUsageDataFromMap();
-    }
+    });
+    await Promise.all(promises);
   }
 
   async firstUpdated(): Promise<void> {
