@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM golang:1.23.4-alpine3.20 as builder
+FROM golang:1.23.4-alpine3.20 AS builder
 
 WORKDIR /work
 
@@ -52,4 +52,4 @@ FROM alpine:3.21
 COPY --from=builder /work/program .
 
 # Assuming that service has a binary called server, make that the command to run when the image starts.
-CMD ./program
+CMD ["./program"]

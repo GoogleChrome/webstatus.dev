@@ -8,16 +8,16 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "build": "npm run tsc-clean && tsc && npx rollup -c",
-    "clean": "rm -rf build && rm -rf static && rm -rf dist && rm -rf node_modules && rm -rf .postinstall",
+    "build": "npm run clean && tsc && npm run cp-imgs && npx rollup -c",
+    "clean": "rm -rf build && rm -rf static && rm -rf dist && tsc --build --clean",
     "lint": "cd .. && prettier frontend/ --check && cd frontend && eslint \"**/*.{js,ts}\" && lit-analyzer \"src/**/*.{js,ts}\" && tsc --noEmit",
     "lint-fix": "cd .. && prettier frontend/ --write && cd frontend && eslint \"**/*.{js,ts}\" --fix",
     "local": "npm run build && TODO",
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
-    "test": "npm run tsc-clean && tsc && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
-    "tsc-clean": "tsc --build --clean",
-    "test:watch": "tsc && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage --node-resolve --playwright --browsers chromium firefox webkit\" "
+    "cp-imgs": "mkdir -p build/public/img && cp -v -r src/static/img/* build/public/img && cp -v .postinstall/static/img/* build/public/img",
+    "test": "npm run build && npm run cp-imgs && wtr --coverage --node-resolve --playwright --browsers chromium firefox webkit",
+    "test:watch": "npm run build && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage --node-resolve --playwright --browsers chromium firefox webkit\" "
   },
   "devDependencies": {
     "@browser-logos/chrome": "^2.0.0",
@@ -36,8 +36,8 @@
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.9.0",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
-    "@typescript-eslint/eslint-plugin": "^8.18.2",
-    "@typescript-eslint/parser": "^8.18.2",
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.1",
     "@web/dev-server-esbuild": "^1.0.3",
     "@web/rollup-plugin-html": "^2.0.1",
     "@web/test-runner": "^0.19.0",
@@ -69,6 +69,6 @@
     "@vaadin/router": "^2.0.0",
     "firebase": "^11.1.0",
     "lit": "^3.2.1",
-    "openapi-fetch": "^0.13.3"
+    "openapi-fetch": "^0.13.4"
   }
 }

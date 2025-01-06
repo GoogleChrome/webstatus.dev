@@ -24,8 +24,8 @@ import {render} from 'lit';
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
   let renderDescriptionSpy: sinon.SinonSpy;
+  const location = {params: {featureId: 'some-feature'}, search: ''};
   beforeEach(async () => {
-    const location = {params: {featureId: 'some-feature'}, search: ''};
     el = await fixture<FeaturePage>(
       html`<webstatus-feature-page
         .location=${location}
@@ -358,7 +358,9 @@ describe('webstatus-feature-page', () => {
 
     beforeEach(async () => {
       element = await fixture(
-        html`<webstatus-feature-page></webstatus-feature-page>`,
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
       );
       hostElement = document.createElement('div');
 
@@ -458,7 +460,9 @@ describe('webstatus-feature-page', () => {
 
     beforeEach(async () => {
       element = await fixture(
-        html`<webstatus-feature-page></webstatus-feature-page>`,
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
       );
       element.endDate = new Date('2024-01-01');
       hostElement = document.createElement('div');

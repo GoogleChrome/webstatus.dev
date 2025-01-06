@@ -43,12 +43,8 @@ export default [
       }),
       copy({
         targets: [
-          // Copy all files in img recursively.
-          // Currently copying svg files from https://github.com/mdn/yari/tree/main/client/src/assets/icons/baseline
-          {src: 'src/static/img/**', dest: 'dist/static/public/img'},
           // Copy the img files
-          // Currently copying img files from ./scripts/postinstall.js
-          {src: '.postinstall/static/img/*', dest: 'dist/static/public/img'},
+          {src: 'build/public/img/*', dest: 'dist/static/public/img'},
           // Copy the html file
           {src: 'src/static/index.html', dest: 'dist/static'},
         ],

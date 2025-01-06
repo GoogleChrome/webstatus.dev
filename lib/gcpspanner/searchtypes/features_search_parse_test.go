@@ -1002,6 +1002,39 @@ func TestParseQuery(t *testing.T) {
 				},
 			},
 		},
+		{
+			InputQuery: `name:"has()" OR name:light-dark`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordOR,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierName,
+									Value:      "has()",
+									Operator:   OperatorEq,
+								},
+								Children: nil,
+							},
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierName,
+									Value:      "light-dark",
+									Operator:   OperatorEq,
+								},
+								Children: nil,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -1087,6 +1120,73 @@ func TestParseQueryBadInput(t *testing.T) {
 		},
 		{
 			input: "available_date:2000-01-01..2000-12-31",
+		},
+		// Terms missing colon and values
+		{
+			input: "available_on",
+		},
+		{
+			input: "available_date",
+		},
+		{
+			input: "baseline_status",
+		},
+		{
+			input: "baseline_date",
+		},
+		{
+			input: "name",
+		},
+		{
+			input: "group",
+		},
+		{
+			input: "id",
+		},
+		{
+			input: "snapshot",
+		},
+		// Terms missing values
+		{
+			input: "available_on:",
+		},
+		{
+			input: "available_date:",
+		},
+		{
+			input: "baseline_status:",
+		},
+		{
+			input: "baseline_date:",
+		},
+		{
+			input: "name:",
+		},
+		{
+			input: "group:",
+		},
+		{
+			input: "id:",
+		},
+		{
+			input: "snapshot:",
+		},
+		// Other input from https://github.com/GoogleChrome/webstatus.dev/issues/286
+		{
+			// nolint:lll // WONTFIX. Repro from issue.
+			input: `available_on:chrome available_on:firefox available_on:safari baseline_status:widely name:"a substring" baseline_status:widely -`,
+		},
+		{
+			input: `available_on:chrome available_on Secured AI available_on:safari available_on:firefox`,
+		},
+		{
+			input: `available_on:chrome available_on generative AI available_on:safari available_on:firefox`,
+		},
+		{
+			input: `baseline_date:2023-01-01`,
+		},
+		{
+			input: `baseline_date:12-26-2024..1-2-2025`,
 		},
 	}
 	for _, tc := range testCases {

@@ -14,7 +14,12 @@
  * limitations under the License.
  */
 
-const filteredLogs = ['Running in dev mode', 'Lit is in dev mode'];
+const filteredLogs = [
+  'Running in dev mode',
+  'Lit is in dev mode',
+  // sl-tree-item has its own reactivity that we cannot control. Ignore for now.
+  'Element sl-tree-item scheduled an update',
+];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   concurrency: 10,
@@ -24,13 +29,24 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   },
 
   // in a monorepo you need to set the root dir to resolve modules
-  rootDir: '../../',
+  rootDir: 'build/',
 
   files: [
     // Have to compile tests
     // Taken from https://github.com/open-wc/create/blob/master/src/generators/testing-wtr-ts/templates/static/web-test-runner.config.mjs
-    'build/**/test/*.test.js',
+    '**/test/*.test.js',
   ],
+  testRunnerHtml: testFramework => `
+  <html>
+    <body>
+      <script type="module" src="${testFramework}"></script>
+      <script type="module">
+        import { setBasePath } from '@shoelace-style/shoelace/dist/utilities/base-path.js';
+        setBasePath('/public/img/shoelace');
+      </script>
+    </body>
+  </html>
+  `,
 
   /** Filter out lit dev mode logs */
   filterBrowserLogs(log) {
