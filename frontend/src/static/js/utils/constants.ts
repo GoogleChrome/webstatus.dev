@@ -49,4 +49,13 @@ export const DEFAULT_BOOKMARKS: Bookmark[] = [
     is_ordered: true,
     override_num_param: 25,
   },
+  {
+    name: 'Top HTML Interop issues',
+    query:
+      'id:popover OR id:anchor-positioning OR id:cross-document-view-transitions OR id:dialog OR id:datalist OR id:file-system-access',
+    description:
+      "This list reflects the top 6 interoperability pain points identified by developers in the State of HTML 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
+    is_ordered: true,
+    override_num_param: 25,
+  },
 ];
