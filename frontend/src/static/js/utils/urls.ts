@@ -177,12 +177,13 @@ export function formatFeaturePageUrl(
   return `/features/${feature.feature_id}${qs}`;
 }
 
-/* Update URL for the feature page */
-export function updateFeaturePageUrl(
-  feature: FeatureURLDetails,
+/* Update URL for a page */
+export function updatePageUrl(
+  pathname: string,
   location: {search: string},
   overrides: QueryStringOverrides = {},
 ): void {
-  const url = formatFeaturePageUrl(feature, location, overrides);
+  const qs = getContextualQueryStringParams(location, overrides);
+  const url = `${pathname}${qs}`;
   window.history.replaceState({}, '', url);
 }
