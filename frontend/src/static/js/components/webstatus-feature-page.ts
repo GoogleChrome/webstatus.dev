@@ -47,7 +47,7 @@ import {
   formatOverviewPageUrl,
   getDateRange,
   getWPTMetricView,
-  updateFeaturePageUrl,
+  updatePageUrl,
 } from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {
@@ -308,7 +308,8 @@ export class FeaturePage extends LitElement {
   updateUrl() {
     // Update the URL to include the current date range.
     const overrides = {dateRange: {start: this.startDate, end: this.endDate}};
-    updateFeaturePageUrl({feature_id: this.featureId}, location, overrides);
+    // TODO. This is temporary. All of updateUrl will be removed once it moves to using BaseChartsPage as its base class.
+    updatePageUrl(`/features/${this.featureId}`, location, overrides);
   }
 
   async handleBrowserSelection(event: Event) {
