@@ -119,6 +119,13 @@ export class FeaturePage extends BaseChartsPage {
 
   featureId!: string;
 
+  // Make startDate and endDate reactive so that @lit/task can detect the changes.
+  // TODO: Remove the start and end dates when we move the loading task into a non-page component.
+  @state()
+  override startDate!: Date;
+  @state()
+  override endDate!: Date;
+
   static get styles(): CSSResultGroup {
     return [
       super.styles!,

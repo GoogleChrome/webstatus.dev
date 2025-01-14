@@ -15,17 +15,18 @@
  */
 
 import {CSSResultGroup, LitElement, css, html} from 'lit';
-import {getDateRange, updatePageUrl} from '../utils/urls.js';
+import {DateRange, getDateRange, updatePageUrl} from '../utils/urls.js';
 import {DateChangeEvent} from './webstatus-form-date-range-picker.js';
 import './webstatus-form-date-range-picker.js';
 import {IndexedParams} from '@vaadin/router';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {state} from 'lit/decorators.js';
 
 // Date.now()
-const DEFAULT_END_DATE = new Date(Date.now());
+export const DEFAULT_END_DATE = new Date(Date.now());
 // Date.now() - 1 year.
-const DEFAULT_START_DATE = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000);
+export const DEFAULT_START_DATE = new Date(
+  Date.now() - 365 * 24 * 60 * 60 * 1000,
+);
 
 const DEFAULT_MINIMUM_DATE = new Date(2000, 0, 1);
 
@@ -37,14 +38,18 @@ const DEFAULT_MAXIMUM_DATE = new Date(
 export class BaseChartsPage extends LitElement {
   minDate: Date = DEFAULT_MINIMUM_DATE;
   maxDate: Date = DEFAULT_MAXIMUM_DATE;
-  // Make startDate and endDate reactive so that @lit/task can detect the changes.
-  // TODO: Remove the state decorators this when we move the loading task into a non-page component.
-  @state()
   startDate: Date = DEFAULT_START_DATE;
-  @state()
   endDate: Date = DEFAULT_END_DATE;
 
   location!: {params: IndexedParams; search: string; pathname: string}; // Set by router.
+
+  // Members that are used for testing with sinon.
+  _getDateRange: (options: {search: string}) => DateRange = getDateRange;
+  _updatePageUrl: (
+    pathname: string,
+    location: {search: string},
+    overrides: {dateRange?: DateRange},
+  ) => void = updatePageUrl;
 
   static get styles(): CSSResultGroup {
     return [
@@ -60,7 +65,7 @@ export class BaseChartsPage extends LitElement {
 
   async firstUpdated(): Promise<void> {
     // Get date range from query parameters.
-    const dateRange = getDateRange({search: location.search});
+    const dateRange = this._getDateRange({search: this.location.search});
     if (dateRange) {
       // Use default values if the URL dates are invalid
       this.startDate =
@@ -80,7 +85,7 @@ export class BaseChartsPage extends LitElement {
 
       // Update the URL with the potentially reset dates
       // TODO. We should display a message that we reset the values.
-      updatePageUrl(this.location.pathname, this.location, {
+      this._updatePageUrl(this.location.pathname, this.location, {
         dateRange: {start: this.startDate, end: this.endDate},
       });
     }
@@ -88,14 +93,14 @@ export class BaseChartsPage extends LitElement {
 
   async handleStartDateChange(event: CustomEvent<DateChangeEvent>) {
     this.startDate = event.detail.date;
-    updatePageUrl(this.location.pathname, this.location, {
+    this._updatePageUrl(this.location.pathname, this.location, {
       dateRange: {start: this.startDate, end: this.endDate},
     });
   }
 
   async handleEndDateChange(event: CustomEvent<DateChangeEvent>) {
     this.endDate = event.detail.date;
-    updatePageUrl(this.location.pathname, this.location, {
+    this._updatePageUrl(this.location.pathname, this.location, {
       dateRange: {start: this.startDate, end: this.endDate},
     });
   }
