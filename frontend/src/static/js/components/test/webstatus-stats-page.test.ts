@@ -99,7 +99,11 @@ describe('StatsPage', () => {
       element = await fixture(
         html`<webstatus-stats-page
           .apiClient=${apiClientStub}
-          .location=${{search: ''}}
+          .location=${{
+            params: {},
+            search: '',
+            pathname: '/stats',
+          }}
         ></webstatus-stats-page>`,
       );
     });
@@ -151,7 +155,11 @@ describe('StatsPage', () => {
       element = await fixture(
         html`<webstatus-stats-page
           .apiClient=${apiClientStub}
-          .location=${{search: '?show_features_lagging=true'}}
+          .location=${{
+            params: {},
+            search: '?show_features_lagging=true',
+            pathname: '/stats',
+          }}
         ></webstatus-stats-page>`,
       );
 
@@ -191,7 +199,11 @@ describe('StatsPage', () => {
       element = await fixture(
         html`<webstatus-stats-page
           .apiClient=${apiClientStub}
-          .location=${{search: '?show_features_lagging=true'}}
+          .location=${{
+            params: {},
+            search: '?show_features_lagging=true',
+            pathname: '/stats',
+          }}
         ></webstatus-stats-page>`,
       );
       expect(element._loadingMissingOneTask.status).to.equal(
@@ -221,7 +233,11 @@ describe('StatsPage', () => {
       element = await fixture(
         html`<webstatus-stats-page
           .apiClient=${apiClientStub}
-          .location=${{search: '?show_features_lagging=true'}}
+          .location=${{
+            params: {},
+            search: '?show_features_lagging=true',
+            pathname: '/stats',
+          }}
         ></webstatus-stats-page>`,
       );
 
