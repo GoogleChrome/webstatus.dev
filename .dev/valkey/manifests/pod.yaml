@@ -15,17 +15,17 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: redis
+  name: valkey
   labels:
-    app.kubernetes.io/name: redis
+    app.kubernetes.io/name: valkey
 spec:
   containers:
-    - name: redis
-      image: redis
+    - name: valkey
+      image: valkey
       imagePullPolicy: Never # Need this for pushing directly into minikube
       ports:
         - containerPort: 6379
-          name: redis-port
+          name: valkey-port
       resources:
         limits:
           cpu: 250m

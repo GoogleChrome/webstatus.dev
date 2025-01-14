@@ -89,12 +89,12 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.cors_allowed_origin
       }
       env {
-        name  = "REDISHOST"
-        value = var.redis_env_vars[each.key].host
+        name  = "VALKEYHOST"
+        value = var.valkey_env_vars[each.key].host
       }
       env {
-        name  = "REDISPORT"
-        value = var.redis_env_vars[each.key].port
+        name  = "VALKEYPORT"
+        value = var.valkey_env_vars[each.key].port
       }
       env {
         name  = "CACHE_TTL"

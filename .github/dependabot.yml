@@ -42,7 +42,7 @@ updates:
       interval: 'weekly'
 
   - package-ecosystem: 'docker'
-    directory: '/.dev/redis'
+    directory: '/.dev/valkey'
     schedule:
       interval: 'weekly'
 

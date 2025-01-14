@@ -56,8 +56,9 @@ variable "projects" {
 
 variable "region_to_subnet_info_map" {
   type = map(object({
-    internal = string
-    public   = string
+    internal    = string
+    internal_id = string
+    public      = string
   }))
 }
 

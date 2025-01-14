@@ -21,7 +21,6 @@ import (
 	"net/http"
 	"os"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
@@ -31,7 +30,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
-	"github.com/GoogleChrome/webstatus.dev/lib/rediscache"
+	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
 	"github.com/go-chi/cors"
 )
 
@@ -66,8 +65,8 @@ func main() {
 	// Allowed Origin. Can remove after UbP.
 	allowedOrigin := os.Getenv("CORS_ALLOWED_ORIGIN")
 
-	redisHost := os.Getenv("REDISHOST")
-	redisPort := os.Getenv("REDISPORT")
+	valkeyHost := os.Getenv("VALKEYHOST")
+	valkeyPort := os.Getenv("VALKEYPORT")
 
 	cacheDuration := os.Getenv("CACHE_TTL")
 	duration, err := time.ParseDuration(cacheDuration)
@@ -76,29 +75,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	connectionsStr := os.Getenv("CACHE_CONNECTIONS")
-	connections := 10
-	if connectionsStr != "" {
-		var parseErr error
-		connections, parseErr = strconv.Atoi(connectionsStr)
-		if parseErr != nil {
-			slog.Error("unable to parse cache connections", "input", connectionsStr)
-			os.Exit(1)
-		}
-	}
-
 	cacheKeyPrefix := cmp.Or[string](os.Getenv("K_REVISION"), "test-revision")
-	slog.Info("cache settings", "duration", duration, "prefix", cacheKeyPrefix, "connections", connections)
+	slog.Info("cache settings", "duration", duration, "prefix", cacheKeyPrefix)
 
-	cache, err := rediscache.NewRedisDataCache[string, []byte](
+	cache, err := valkeycache.NewValkeyDataCache[string, []byte](
 		cacheKeyPrefix,
-		redisHost,
-		redisPort,
+		valkeyHost,
+		valkeyPort,
 		duration,
-		connections,
 	)
 	if err != nil {
-		slog.Error("unable to create redis cache instance", "error", err)
+		slog.Error("unable to create valkey cache instance", "error", err)
 		os.Exit(1)
 	}
 	middlewares := []func(http.Handler) http.Handler{

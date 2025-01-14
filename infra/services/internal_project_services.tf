@@ -68,9 +68,9 @@ resource "google_project_service" "internal_scheduler" {
   disable_on_destroy         = false
 }
 
-resource "google_project_service" "internal_redis" {
+resource "google_project_service" "internal_memorystore" {
   provider = google.internal_project
-  service  = "redis.googleapis.com"
+  service  = "memorystore.googleapis.com"
 
   disable_dependent_services = true
   disable_on_destroy         = false
@@ -111,6 +111,14 @@ resource "google_project_service" "internal_trace" {
 resource "google_project_service" "host_private_service_access" {
   provider = google
   service  = "servicenetworking.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
+
+resource "google_project_service" "host_networkconnectivity" {
+  provider = google
+  service  = "networkconnectivity.googleapis.com"
 
   disable_dependent_services = true
   disable_on_destroy         = false

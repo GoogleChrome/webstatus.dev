@@ -16,8 +16,9 @@ output "region_to_subnet_info_map" {
   value = {
     for region, value in var.region_to_subnet_map :
     region => {
-      internal = google_compute_subnetwork.subnetwork_internal[region].name
-      public   = google_compute_subnetwork.subnetwork_public[region].name
+      internal    = google_compute_subnetwork.subnetwork_internal[region].name
+      internal_id = google_compute_subnetwork.subnetwork_internal[region].id
+      public      = google_compute_subnetwork.subnetwork_public[region].name
     }
   }
 }
