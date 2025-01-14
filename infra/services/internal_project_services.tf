@@ -115,3 +115,11 @@ resource "google_project_service" "host_private_service_access" {
   disable_dependent_services = true
   disable_on_destroy         = false
 }
+
+resource "google_project_service" "host_networkconnectivity" {
+  provider = google
+  service  = "networkconnectivity.googleapis.com"
+
+  disable_dependent_services = true
+  disable_on_destroy         = false
+}
