@@ -70,7 +70,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
 
   async handleStartDateChange(_: SlChangeEvent) {
     const currentStartDate = this.startDate;
-    const newStartDate = new Date(this.startDateEl?.value || '');
+    const newStartDate = new Date(this.startDateEl?.valueAsDate || '');
     if (
       !this.isValidDate(newStartDate) ||
       this.minimumDate > newStartDate ||
@@ -82,10 +82,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
       this.startDateEl?.reportValidity();
       return;
     }
-    if (
-      this.isValidDate(newStartDate) &&
-      newStartDate.getTime() !== currentStartDate.getTime()
-    ) {
+    if (newStartDate.getTime() !== currentStartDate.getTime()) {
       this.startDateEl?.setCustomValidity('');
       this.startDateEl?.reportValidity();
       this.startDate = newStartDate;
@@ -103,7 +100,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
 
   async handleEndDateChange(_: SlInputEvent) {
     const currentEndDate = this.endDate;
-    const newEndDate = new Date(this.endDateEl?.value || '');
+    const newEndDate = new Date(this.endDateEl?.valueAsDate || '');
     if (
       !this.isValidDate(newEndDate) ||
       this.startDate > newEndDate ||
