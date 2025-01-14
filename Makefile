@@ -10,7 +10,7 @@ DOCKERFILES := \
 	./.dev/auth/Dockerfile \
 	./.dev/datastore/Dockerfile \
 	./.dev/spanner/Dockerfile \
-	./.dev/redis/Dockerfile \
+	./.dev/valkey/Dockerfile \
 	./.devcontainer/Dockerfile
 
 .PHONY: all \
