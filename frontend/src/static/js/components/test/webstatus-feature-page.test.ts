@@ -24,7 +24,11 @@ import {render} from 'lit';
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
   let renderDescriptionSpy: sinon.SinonSpy;
-  const location = {params: {featureId: 'some-feature'}, search: ''};
+  const location = {
+    params: {featureId: 'some-feature'},
+    search: '',
+    pathname: '/features/some-feature',
+  };
   beforeEach(async () => {
     el = await fixture<FeaturePage>(
       html`<webstatus-feature-page
