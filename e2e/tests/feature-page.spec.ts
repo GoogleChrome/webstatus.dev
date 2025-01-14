@@ -95,6 +95,11 @@ test('date range changes are preserved in the URL', async ({page}) => {
   await page.waitForTimeout(1000);
 
   // Get the current default startDate and endDate from the selectors
+  // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
+  const submitBtnSelector = page.locator('sl-button#date-range-picker-btn');
+  // Can only detect if the button is enabled by getting the raw <button>
+  const submitBtn = submitBtnSelector.locator('button');
+  await expect(submitBtn).toBeDisabled();
   const startDateSelector = page.locator('sl-input#start-date');
   const startDateInputElement = startDateSelector.locator('input');
   const startDate = await startDateInputElement.inputValue();
@@ -105,8 +110,10 @@ test('date range changes are preserved in the URL', async ({page}) => {
   // Change the start date to April 1st, 2020, in yyyy-mm-dd order
   await startDateInputElement.fill('2020-04-01');
 
-  // Blur the input to trigger the change event
-  await startDateInputElement.blur();
+  await expect(submitBtn).toBeEnabled();
+
+  // Submit the change
+  await submitBtn.click();
 
   // Check that the URL includes the startDate and endDate
   const url = page.url();
