@@ -17,12 +17,14 @@
 import {expect, fixture, html} from '@open-wc/testing';
 import {
   WebstatusFormDateRangePicker,
-  DateChangeEvent,
+  DateRangeChangeEvent,
 } from '../webstatus-form-date-range-picker.js';
 import {customElement, property} from 'lit/decorators.js';
 import {LitElement} from 'lit';
 import '../webstatus-form-date-range-picker.js';
 import '@shoelace-style/shoelace/dist/components/input/input.js';
+import '@shoelace-style/shoelace/dist/components/button/button.js';
+import sinon from 'sinon';
 
 // TestComponent to listen for events from WebstatusFormDateRangePicker
 @customElement('test-component')
@@ -30,12 +32,9 @@ class TestComponent extends LitElement {
   @property({type: Object}) startDate: Date | undefined;
   @property({type: Object}) endDate: Date | undefined;
 
-  handleStartDateChange(event: CustomEvent<DateChangeEvent>) {
-    this.startDate = event.detail.date;
-  }
-
-  handleEndDateChange(event: CustomEvent<DateChangeEvent>) {
-    this.endDate = event.detail.date;
+  handleDateRangeChange(event: CustomEvent<DateRangeChangeEvent>) {
+    this.startDate = event.detail.startDate;
+    this.endDate = event.detail.endDate;
   }
 
   render() {
@@ -45,8 +44,7 @@ class TestComponent extends LitElement {
         .maximumDate=${new Date(2024, 11, 31)}
         .startDate=${new Date(2023, 5, 1)}
         .endDate=${new Date(2023, 10, 31)}
-        @webstatus-start-date-change=${this.handleStartDateChange}
-        @webstatus-end-date-change=${this.handleEndDateChange}
+        @webstatus-date-range-change=${this.handleDateRangeChange}
       ></webstatus-form-date-range-picker>
     `;
   }
@@ -72,6 +70,7 @@ describe('WebstatusFormDateRangePicker', () => {
 
     expect(startDateInput).to.exist;
     expect(endDateInput).to.exist;
+    expect(el.submitBtn).to.exist;
     expect(startDateInput.valueAsDate).to.deep.equal(el.startDate);
     expect(endDateInput.valueAsDate).to.deep.equal(el.endDate);
     expect(startDateInput.min).to.equal(el.toIsoDate(el.minimumDate));
@@ -80,102 +79,117 @@ describe('WebstatusFormDateRangePicker', () => {
     expect(endDateInput.max).to.equal(el.toIsoDate(el.maximumDate));
   });
 
-  describe('Start Date Validation and Events', () => {
-    it('should update start date and emit event when valid date is entered', async () => {
-      const newStartDate = new Date(2023, 5, 15);
-
-      el.startDateEl!.valueAsDate = newStartDate;
-      await el.updateComplete;
-      await parent.updateComplete;
-      el.startDateEl!.dispatchEvent(new Event('sl-blur'));
-
-      expect(el.startDate).to.deep.equal(newStartDate);
-      expect(parent.startDate).to.deep.equal(newStartDate);
+  describe('showPicker', () => {
+    it('should call showPicker on the startDateEl when clicked', async () => {
+      // Stub showPicker to avoid the "NotAllowedError" in the unit test
+      // since showPicker requires a user gesture.
+      const showPickerStub = sinon.stub(el.startDateEl!, 'showPicker'); // Stub showPicker on startDateEl
+      el.startDateEl?.click();
+      expect(showPickerStub.calledOnce).to.be.true;
     });
 
-    it('should not update start date if invalid date is entered', async () => {
-      const newStartDate = new Date('invalid-date');
-
-      el.startDateEl!.valueAsDate = newStartDate;
-      await el.updateComplete;
-      await parent.updateComplete;
-      el.startDateEl!.dispatchEvent(new Event('sl-blur'));
-
-      expect(el.startDate).to.deep.equal(el.startDate);
-      expect(parent.startDate).to.be.undefined;
-    });
-
-    it('should not update start date if new date is before minimum date', async () => {
-      const newStartDate = new Date(el.minimumDate.getFullYear() - 1, 0, 1);
-
-      el.startDateEl!.valueAsDate = newStartDate;
-      await el.updateComplete;
-      await parent.updateComplete;
-      el.startDateEl!.dispatchEvent(new Event('sl-blur'));
-
-      expect(el.startDate).to.deep.equal(el.startDate);
-      expect(parent.startDate).to.be.undefined;
-    });
-
-    it('should not update start date if new date is after end date', async () => {
-      const newStartDate = new Date(el.endDate.getFullYear() + 1, 0, 1);
-
-      el.startDateEl!.valueAsDate = newStartDate;
-      await el.updateComplete;
-      await parent.updateComplete;
-      el.startDateEl!.dispatchEvent(new Event('sl-blur'));
-
-      expect(el.startDate).to.deep.equal(el.startDate);
-      expect(parent.startDate).to.be.undefined;
+    it('should call showPicker on the endDateEl when clicked', async () => {
+      // Stub showPicker to avoid the "NotAllowedError" in the unit test
+      // since showPicker requires a user gesture.
+      const showPickerStub = sinon.stub(el.endDateEl!, 'showPicker'); // Stub showPicker on endDateEl
+      el.endDateEl?.click();
+      expect(showPickerStub.calledOnce).to.be.true;
     });
   });
 
-  describe('End Date Validation and Events', () => {
-    it('should update end date and emit event when valid date is entered', async () => {
-      const newEndDate = new Date(2023, 10, 15);
+  describe('Date Range Validation and Events', () => {
+    it('should update both dates and emit a single event when valid dates are entered', async () => {
+      expect(el.submitBtn?.disabled).to.be.true;
+      const newStartDate = new Date(2023, 5, 15);
+      const newEndDate = new Date(2023, 10, 16);
 
+      el.startDateEl!.valueAsDate = newStartDate;
       el.endDateEl!.valueAsDate = newEndDate;
       await el.updateComplete;
       await parent.updateComplete;
-      el.endDateEl!.dispatchEvent(new Event('sl-blur'));
+      el.startDateEl!.dispatchEvent(new Event('sl-change'));
+      el.endDateEl!.dispatchEvent(new Event('sl-change'));
+      await el.updateComplete;
+      await parent.updateComplete;
 
-      expect(el.endDate).to.deep.equal(newEndDate);
+      // Simulate button click to submit
+      expect(el.submitBtn?.disabled).to.be.false;
+      el.submitBtn?.click();
+      await el.updateComplete;
+      await parent.updateComplete;
+      expect(el.submitBtn?.disabled).to.be.true;
+
+      expect(parent.startDate).to.deep.equal(newStartDate);
       expect(parent.endDate).to.deep.equal(newEndDate);
     });
 
-    it('should not update end date if invalid date is entered', async () => {
-      const newEndDate = new Date('invalid-date');
-
-      el.endDateEl!.valueAsDate = newEndDate;
+    it('should not emit an event if no changes were made', async () => {
+      // Button should be disabled.
+      expect(el.submitBtn?.disabled).to.be.true;
+      el.submitBtn?.click();
       await el.updateComplete;
       await parent.updateComplete;
-      el.endDateEl!.dispatchEvent(new Event('sl-blur'));
 
-      expect(el.endDate).to.deep.equal(el.endDate);
+      // Parent's start and end dates should be undefined
+      expect(parent.startDate).to.be.undefined;
       expect(parent.endDate).to.be.undefined;
     });
 
-    it('should not update end date if new date is before start date', async () => {
-      const newEndDate = new Date(el.startDate.getFullYear() - 1, 0, 1);
+    it('should not update if the start date is invalid', async () => {
+      expect(el.submitBtn?.disabled).to.be.true;
+      const newStartDate = new Date('invalid');
 
-      el.endDateEl!.valueAsDate = newEndDate;
+      el.startDateEl!.valueAsDate = newStartDate;
       await el.updateComplete;
       await parent.updateComplete;
-      el.endDateEl!.dispatchEvent(new Event('sl-blur'));
+      el.startDateEl!.dispatchEvent(new Event('sl-change'));
+      el.endDateEl!.dispatchEvent(new Event('sl-change'));
+      await el.updateComplete;
+      await parent.updateComplete;
 
-      expect(el.endDate).to.deep.equal(el.endDate);
+      // Button should still be disabled
+      expect(el.submitBtn?.disabled).to.be.true;
+
+      // Parent's start and end dates should be undefined
+      expect(parent.startDate).to.be.undefined;
       expect(parent.endDate).to.be.undefined;
     });
 
-    it('should not update end date if new date is after maximum date', async () => {
-      const newEndDate = new Date(el.maximumDate.getFullYear() + 1, 0, 1);
+    it('should not update if the end date is invalid', async () => {
+      expect(el.submitBtn?.disabled).to.be.true;
+      const newEndDate = new Date('invalid');
 
       el.endDateEl!.valueAsDate = newEndDate;
       await el.updateComplete;
       await parent.updateComplete;
-      el.endDateEl!.dispatchEvent(new Event('sl-blur'));
+      el.startDateEl!.dispatchEvent(new Event('sl-change'));
+      el.endDateEl!.dispatchEvent(new Event('sl-change'));
+      await el.updateComplete;
+      await parent.updateComplete;
 
-      expect(el.endDate).to.deep.equal(el.endDate);
+      // Button should still be disabled
+      expect(el.submitBtn?.disabled).to.be.true;
+
+      // Parent's start and end dates should be undefined
+      expect(parent.startDate).to.be.undefined;
+      expect(parent.endDate).to.be.undefined;
+    });
+
+    it('should not update if the start date is after the end date', async () => {
+      expect(el.submitBtn?.disabled).to.be.true;
+      const newStartDate = new Date(2024, 10, 15);
+      el.startDateEl!.valueAsDate = newStartDate;
+      await el.updateComplete;
+      await parent.updateComplete;
+      el.startDateEl!.dispatchEvent(new Event('sl-change'));
+      el.endDateEl!.dispatchEvent(new Event('sl-change'));
+      await el.updateComplete;
+      await parent.updateComplete;
+
+      expect(el.submitBtn?.disabled).to.be.true;
+
+      // Parent's start and end dates should be undefined
+      expect(parent.startDate).to.be.undefined;
       expect(parent.endDate).to.be.undefined;
     });
   });

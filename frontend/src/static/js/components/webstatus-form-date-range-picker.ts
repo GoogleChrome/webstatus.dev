@@ -14,19 +14,24 @@
  * limitations under the License.
  */
 
-import {SlChangeEvent, SlInput, SlInputEvent} from '@shoelace-style/shoelace';
+import {
+  SlButton,
+  SlChangeEvent,
+  SlInput,
+  SlInputEvent,
+} from '@shoelace-style/shoelace';
 import {CSSResultGroup, LitElement, css, html} from 'lit';
-import {customElement, property, query} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
-export interface DateChangeEvent {
-  date: Date;
+export interface DateRangeChangeEvent {
+  startDate: Date;
+  endDate: Date;
 }
 
 /**
  * @summary Date range picker
- * @event CustomEvent<DateChangeEvent> webstatus-start-date-change - Emitted when the start date is changed.
- * @event CustomEvent<DateChangeEvent> webstatus-end-date-change - Emitted when the end date is changed.
+ * @event CustomEvent<DateRangeChangeEvent> webstatus-date-range-change - Emitted when the the date range is changed.
  */
 @customElement('webstatus-form-date-range-picker')
 export class WebstatusFormDateRangePicker extends LitElement {
@@ -48,6 +53,15 @@ export class WebstatusFormDateRangePicker extends LitElement {
   @query('#end-date')
   endDateEl?: SlInput;
 
+  @query('#date-range-picker-btn')
+  submitBtn?: SlButton;
+
+  @state()
+  private _pendingStartDate = false;
+
+  @state()
+  private _pendingEndDate = false;
+
   isValidDate(d: Date): boolean {
     return !isNaN(d.getTime());
   }
@@ -64,8 +78,15 @@ export class WebstatusFormDateRangePicker extends LitElement {
         .vbox {
           gap: var(--content-padding-large);
         }
+        #date-range-picker-btn {
+          justify-content: center;
+        }
       `,
     ];
+  }
+
+  showPicker(input?: SlInput) {
+    input?.showPicker();
   }
 
   async handleStartDateChange(_: SlChangeEvent) {
@@ -80,21 +101,14 @@ export class WebstatusFormDateRangePicker extends LitElement {
         `Date range should be ${this.toIsoDate(this.minimumDate)} to ${this.toIsoDate(this.endDate)} inclusive`,
       );
       this.startDateEl?.reportValidity();
+      this._pendingStartDate = false;
       return;
     }
     if (newStartDate.getTime() !== currentStartDate.getTime()) {
       this.startDateEl?.setCustomValidity('');
       this.startDateEl?.reportValidity();
       this.startDate = newStartDate;
-      const event = new CustomEvent<DateChangeEvent>(
-        'webstatus-start-date-change',
-        {
-          detail: {
-            date: this.startDate,
-          },
-        },
-      );
-      this.dispatchEvent(event);
+      this._pendingStartDate = true;
     }
   }
 
@@ -110,22 +124,37 @@ export class WebstatusFormDateRangePicker extends LitElement {
         `Date range should be ${this.toIsoDate(this.startDate)} to ${this.toIsoDate(this.maximumDate)} inclusive`,
       );
       this.endDateEl?.reportValidity();
+      this._pendingEndDate = false;
       return;
     }
     if (newEndDate.getTime() !== currentEndDate.getTime()) {
       this.endDateEl?.setCustomValidity('');
       this.endDateEl?.reportValidity();
       this.endDate = newEndDate;
-      const event = new CustomEvent<DateChangeEvent>(
-        'webstatus-end-date-change',
-        {
-          detail: {
-            date: this.endDate,
-          },
-        },
-      );
-      this.dispatchEvent(event);
+      this._pendingEndDate = true;
     }
+  }
+
+  handleSubmit() {
+    // Reset pending flags
+    this._pendingStartDate = false;
+    this._pendingEndDate = false;
+
+    // Dispatch a single event with both dates
+    const event = new CustomEvent<DateRangeChangeEvent>(
+      'webstatus-date-range-change',
+      {
+        detail: {
+          startDate: this.startDate,
+          endDate: this.endDate,
+        },
+      },
+    );
+    this.dispatchEvent(event);
+  }
+
+  isSubmitButtonEnabled() {
+    return this._pendingStartDate || this._pendingEndDate;
   }
   render() {
     return html`
@@ -134,7 +163,10 @@ export class WebstatusFormDateRangePicker extends LitElement {
           Start date
           <sl-input
             id="start-date"
-            @sl-blur=${this.handleStartDateChange}
+            @sl-change=${this.handleStartDateChange}
+            @click=${() => {
+              this.showPicker(this.startDateEl);
+            }}
             type="date"
             .min=${this.toIsoDate(this.minimumDate)}
             .max=${this.toIsoDate(this.endDate)}
@@ -145,13 +177,26 @@ export class WebstatusFormDateRangePicker extends LitElement {
           End date
           <sl-input
             id="end-date"
-            @sl-blur=${this.handleEndDateChange}
+            @sl-change=${this.handleEndDateChange}
+            @click=${() => {
+              this.showPicker(this.endDateEl);
+            }}
             type="date"
             .min=${this.toIsoDate(this.startDate)}
             .max=${this.toIsoDate(this.maximumDate)}
             .valueAsDate="${this.endDate}"
           ></sl-input>
         </label>
+        <sl-button
+          id="date-range-picker-btn"
+          class="vbox"
+          variant="primary"
+          size="medium"
+          ?disabled=${!this.isSubmitButtonEnabled()}
+          @click=${this.handleSubmit}
+        >
+          <sl-icon name="search" slot="prefix"></sl-icon>
+        </sl-button>
       </div>
     `;
   }
