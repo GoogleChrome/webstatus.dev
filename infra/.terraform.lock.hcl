@@ -2,22 +2,22 @@
 # Manual edits may be lost in future updates.
 
 provider "registry.terraform.io/hashicorp/google" {
-  version     = "6.15.0"
+  version     = "6.16.0"
   constraints = ">= 5.4.0"
   hashes = [
-    "h1:Ayq0lpMcV//QwAJnqsw3aVu3sBdppNIYsb0bTLvNi/U=",
-    "zh:37f6898134c61740f8b6c1dcfc651e934d7d2a42f60d0ba1ad4cce9dc58d3db3",
-    "zh:39a77034c78c144bed972ea9d03e48d2b7226da520a5ed4ebdb9f7f58e094637",
-    "zh:451ae8ad18736fe40293b11c1fc8ba566191d3413568132cedcbf5f200ba4ae8",
-    "zh:5014e5383f805810d78e31e795ff4e1ef91319e297cd12c0cd1b1c0800658f1d",
-    "zh:5814fc2e4fda39a86e3689e2a8a95abf72d9bbd52f3017118a96ff4095f9bc6a",
-    "zh:7054940cab7d58f96e4a73e142cdc359ceaca54e7a589157f86457f50008ffca",
-    "zh:7e1439405bafef7e8fe0d1868e12bd97c21bed222d29c8b6b40fbf170b2f1939",
-    "zh:b6b43936d9c98fcc1f7f7cd638c7c20128319727729e7fd5fc4d2cb4b1e2fa0a",
-    "zh:bb0fbd0c9ef9434d077d1256b8d248a239447b62d320825a52c87f931f45255c",
-    "zh:db6c42a4366b0fb46692dab43c1be28b94dce0dc0aef5263a3db7c78f08975e4",
+    "h1:dVywsjJ17IF+o9c9PQqGrCJiQvCrrWBRt2Gt4OPzTlo=",
+    "zh:1e263d01a64740d550f14c83e91efaf5b3f7ee46163cce58b736da284e488377",
+    "zh:5b0885ee8875b98ef75f558e278ac5f2ba0850e0e6579c898d75a488be227e93",
+    "zh:6eb8d06a5cf9843e7a4dd18bd93fc785bdec9f5aebdef748bfbe349c0e085ce5",
+    "zh:82f57bcccc35271f39a090b687c37489f81ddeec2a792e7f5341c7cdcc51fa5c",
+    "zh:898d7ed728f45c3124e2bfbbde57b762e59c9c54e020453edc9454858d65a8c5",
+    "zh:8effa4a08cc3ffce2048b4e51ad6df0c288ce0c79c161b9716a16b482d2f18be",
+    "zh:ac80c44c9dc0c7016c3422390b17380ad03257abc09a224734ed359b2cd61d0a",
+    "zh:c2e03eba3d9af62948ba82aa1de627c692731b9a7dd46119b932c6fc9514306c",
+    "zh:ca77c67f72e7210112f485ef0fc555fde3ac818de9b7136f0b37142893ba6428",
+    "zh:ea8ccff7fece47be816f3f20fdd61b8ac3a72f515720c579a2560183b1e17658",
     "zh:f569b65999264a9416862bca5cd2a6177d94ccb0424f3a4ef424428912b9cb3c",
-    "zh:fce0b3c09e9802fc3fce1bf914af28344db7aa61c61e5affe3d73255e0d194a1",
+    "zh:f5d626eb6e9015022796849d6ba733627fa9e082302a8658dd83fc74c75db162",
   ]
 }
 
