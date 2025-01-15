@@ -64,6 +64,10 @@ export class WebstatusHeader extends LitElement {
           text-decoration: none;
           color: inherit;
         }
+
+        webstatus-login {
+          padding: var(--content-padding);
+        }
       `,
     ];
   }
