@@ -80,6 +80,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
         }
         #date-range-picker-btn {
           justify-content: center;
+          margin-top: var(--sl-input-label-font-size-medium);
         }
       `,
     ];
