@@ -422,6 +422,7 @@ func (q FeatureSearchQueryBuilder) Build(
 	pageSize int) spanner.Statement {
 
 	var stableBrowserImplDetails, expBrowserImplDetails *SortByBrowserImplDetails
+	var browserFeatureSupportDetails *SortByBrowserFeatureSupportDetails
 
 	switch sort.SortTarget() {
 	case StableImplSort:
@@ -430,6 +431,10 @@ func (q FeatureSearchQueryBuilder) Build(
 		}
 	case ExperimentalImplSort:
 		expBrowserImplDetails = &SortByBrowserImplDetails{
+			BrowserName: sort.BrowserTarget(),
+		}
+	case BrowserFeatureSupportSort:
+		browserFeatureSupportDetails = &SortByBrowserFeatureSupportDetails{
 			BrowserName: sort.BrowserTarget(),
 		}
 	case ChromiumUsageSort, IDSort, NameSort, StatusSort:
@@ -446,8 +451,9 @@ func (q FeatureSearchQueryBuilder) Build(
 		Browsers:    q.browsers,
 		SortClause:  sort.Clause(),
 		// Special Sort Targets.
-		SortByStableBrowserImpl: stableBrowserImplDetails,
-		SortByExpBrowserImpl:    expBrowserImplDetails,
+		SortByStableBrowserImpl:     stableBrowserImplDetails,
+		SortByExpBrowserImpl:        expBrowserImplDetails,
+		SortByBrowserFeatureSupport: browserFeatureSupportDetails,
 	}
 
 	if q.offsetCursor != nil {
@@ -521,7 +527,8 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 		featureSearchHighDateColumn,
 		featureSearchBrowserImplColumn,
 		featureSearchStatusColumn,
-		featureSearchChromiumUsageColumn:
+		featureSearchChromiumUsageColumn,
+		featureSearchBrowserFeatureSupportDateColumn:
 		return string(f)
 	}
 
@@ -533,28 +540,31 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 type FeaturesSearchSortTarget string
 
 const (
-	IDSort               FeaturesSearchSortTarget = "id"
-	NameSort             FeaturesSearchSortTarget = "name"
-	StatusSort           FeaturesSearchSortTarget = "status"
-	StableImplSort       FeaturesSearchSortTarget = "stable_browser_impl"
-	ExperimentalImplSort FeaturesSearchSortTarget = "experimental_browser_impl"
-	ChromiumUsageSort    FeaturesSearchSortTarget = "chromium_usage"
+	IDSort                    FeaturesSearchSortTarget = "id"
+	NameSort                  FeaturesSearchSortTarget = "name"
+	StatusSort                FeaturesSearchSortTarget = "status"
+	StableImplSort            FeaturesSearchSortTarget = "stable_browser_impl"
+	ExperimentalImplSort      FeaturesSearchSortTarget = "experimental_browser_impl"
+	ChromiumUsageSort         FeaturesSearchSortTarget = "chromium_usage"
+	BrowserFeatureSupportSort FeaturesSearchSortTarget = "browser_feature_support"
 )
 
 const (
-	featureSearchFeatureKeyColumn    FeatureSearchColumn = "wf.FeatureKey"
-	featureSearchFeatureNameColumn   FeatureSearchColumn = "wf.Name"
-	featureSearchStatusColumn        FeatureSearchColumn = "Status"
-	featureSearchLowDateColumn       FeatureSearchColumn = "LowDate"
-	featureSearchHighDateColumn      FeatureSearchColumn = "HighDate"
-	featureSearchBrowserMetricColumn FeatureSearchColumn = "sort_metric_calcs.SortMetric"
-	featureSearchBrowserImplColumn   FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
-	featureSearchChromiumUsageColumn FeatureSearchColumn = "chromium_usage_metrics.ChromiumUsage"
+	featureSearchFeatureKeyColumn                FeatureSearchColumn = "wf.FeatureKey"
+	featureSearchFeatureNameColumn               FeatureSearchColumn = "wf.Name"
+	featureSearchStatusColumn                    FeatureSearchColumn = "Status"
+	featureSearchLowDateColumn                   FeatureSearchColumn = "LowDate"
+	featureSearchHighDateColumn                  FeatureSearchColumn = "HighDate"
+	featureSearchBrowserMetricColumn             FeatureSearchColumn = "sort_metric_calcs.SortMetric"
+	featureSearchBrowserImplColumn               FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
+	featureSearchChromiumUsageColumn             FeatureSearchColumn = "chromium_usage_metrics.ChromiumUsage"
+	featureSearchBrowserFeatureSupportDateColumn FeatureSearchColumn = "sort_browser_feature_support_calcs.SortDate"
 )
 
 const (
-	derviedTableSortMetrics = "sort_metric_calcs"
-	derviedTableSortImpl    = "sort_impl_calcs"
+	derviedTableSortMetrics               = "sort_metric_calcs"
+	derviedTableSortImpl                  = "sort_impl_calcs"
+	derivedTableSortBrowserFeatureSupport = "sort_browser_feature_support_calcs"
 )
 
 // NewFeatureNameSort returns a Sortable specifically for the Name column.
@@ -624,5 +634,28 @@ func NewChromiumUsageSort(isAscending bool) Sortable {
 		ascendingOrder: isAscending,
 		sortTarget:     ChromiumUsageSort,
 		browserTarget:  nil,
+	}
+}
+
+// NewBrowserFeatureSupportSort creates a Sortable configuration for ordering Web Features.
+// The primary sorting criterion is the date of when the feature became available.
+//
+// Arguments:
+//   - isAscending: Whether the sorting should be ascending (true) or descending (false).
+//   - browserName: The name of the browser ("chrome", "firefox", etc.).
+func NewBrowserFeatureSupportSort(isAscending bool, browserName string) Sortable {
+	sortTarget := BrowserFeatureSupportSort
+
+	return Sortable{
+		clause: buildFullClause(
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearchBrowserFeatureSupportDateColumn),
+				// TODO. Pass isAscending to buildFullClause so that featureSearchFeatureKeyColumn there gets it.
+				buildSortableOrderClause(isAscending, featureSearchFeatureKeyColumn),
+			},
+		),
+		browserTarget:  &browserName,
+		ascendingOrder: isAscending,
+		sortTarget:     sortTarget,
 	}
 }

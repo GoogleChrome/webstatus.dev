@@ -2012,6 +2012,7 @@ func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
 	testFeatureSearchSortBaselineStatus(ctx, t, client)
 	testFeatureSearchSortBrowserImpl(ctx, t, client)
 	testFeatureSearchChromiumUsage(ctx, t, client)
+	testFeatureSearchSortBrowserFeatureSupport(ctx, t, client)
 }
 
 // nolint: dupl // WONTFIX. Only duplicated because the feature filter test yields similar results.
@@ -2297,6 +2298,65 @@ func testFeatureSearchChromiumUsage(ctx context.Context, t *testing.T, client *C
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
 					// null metric
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
+		})
+	}
+}
+
+func testFeatureSearchSortBrowserFeatureSupport(ctx context.Context, t *testing.T, client *Client) {
+	type BrowserFeatureSupportCase struct {
+		name         string
+		sortable     Sortable
+		expectedPage *FeatureResultPage
+	}
+	testCases := []BrowserFeatureSupportCase{
+		{
+			name:     "BrowserFeatureSupport fooBrowser asc",
+			sortable: NewBrowserFeatureSupportSort(true, "fooBrowser"),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// null feature support
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// null feature support
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// Jan 1, 2000
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// Feb 1, 2000
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+				},
+			},
+		},
+		{
+			name:     "BrowserFeatureSupport fooBrowser desc",
+			sortable: NewBrowserFeatureSupportSort(false, "fooBrowser"),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// Feb 1, 2000
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// Jan 1, 2000
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// null feature support
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// null feature support
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
 				},
 			},
 		},
