@@ -15,7 +15,7 @@
  */
 
 export const GITHUB_REPO_ISSUE_LINK =
-  'https://github.com/GoogleChrome/webstatus.dev/issues/new';
+  'https://github.com/GoogleChrome/webstatus.dev/issues/new/choose';
 export const SEARCH_QUERY_README_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/blob/main/antlr/FeatureSearch.md';
 export const ABOUT_PAGE_LINK =
