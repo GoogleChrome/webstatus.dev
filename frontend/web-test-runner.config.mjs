@@ -19,6 +19,8 @@ const filteredLogs = [
   'Lit is in dev mode',
   // sl-tree-item has its own reactivity that we cannot control. Ignore for now.
   'Element sl-tree-item scheduled an update',
+  // From the date range picker
+  'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
 ];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({

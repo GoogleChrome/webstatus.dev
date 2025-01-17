@@ -79,6 +79,75 @@ describe('WebstatusFormDateRangePicker', () => {
     expect(endDateInput.max).to.equal(el.toIsoDate(el.maximumDate));
   });
 
+  describe('Initialization Validation', () => {
+    it('should throw an error if minimumDate is not provided', async () => {
+      try {
+        await fixture(
+          html`<webstatus-form-date-range-picker
+            .maximumDate="${new Date('2024-01-01')}"
+            .startDate="${new Date('2023-01-01')}"
+            .endDate="${new Date('2023-12-31')}"
+          ></webstatus-form-date-range-picker>`,
+        );
+        throw new Error('Expected an error to be thrown');
+      } catch (error) {
+        expect((error as Error).message).to.eq(
+          'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
+        );
+      }
+    });
+    it('should throw an error if maximumDate is not provided', async () => {
+      try {
+        await fixture(
+          html`<webstatus-form-date-range-picker
+            .minimumDate="${new Date('2023-01-01')}"
+            .startDate="${new Date('2023-01-01')}"
+            .endDate="${new Date('2023-12-31')}"
+          ></webstatus-form-date-range-picker>`,
+        );
+        throw new Error('Expected an error to be thrown');
+      } catch (error: unknown) {
+        expect((error as Error).message).to.eq(
+          'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
+        );
+      }
+    });
+
+    it('should throw an error if startDate is not provided', async () => {
+      try {
+        await fixture(
+          html`<webstatus-form-date-range-picker
+            .minimumDate="${new Date('2023-01-01')}"
+            .maximumDate="${new Date('2024-01-01')}"
+            .endDate="${new Date('2023-12-31')}"
+          ></webstatus-form-date-range-picker>`,
+        );
+        throw new Error('Expected an error to be thrown');
+      } catch (error: unknown) {
+        expect((error as Error).message).to.eq(
+          'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
+        );
+      }
+    });
+
+    it('should throw an error if endDate is not provided', async () => {
+      try {
+        await fixture(
+          html`<webstatus-form-date-range-picker
+            .minimumDate="${new Date('2023-01-01')}"
+            .maximumDate="${new Date('2024-01-01')}"
+            .startDate="${new Date('2023-01-01')}"
+          ></webstatus-form-date-range-picker>`,
+        );
+        throw new Error('Expected an error to be thrown');
+      } catch (error: unknown) {
+        expect((error as Error).message).to.eq(
+          'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
+        );
+      }
+    });
+  });
+
   describe('showPicker', () => {
     it('should call showPicker on the startDateEl when clicked', async () => {
       // Stub showPicker to avoid the "NotAllowedError" in the unit test

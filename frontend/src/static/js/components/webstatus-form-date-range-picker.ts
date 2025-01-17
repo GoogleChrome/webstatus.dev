@@ -20,7 +20,7 @@ import {
   SlInput,
   SlInputEvent,
 } from '@shoelace-style/shoelace';
-import {CSSResultGroup, LitElement, css, html} from 'lit';
+import {CSSResultGroup, LitElement, PropertyValues, css, html} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
@@ -32,29 +32,33 @@ export interface DateRangeChangeEvent {
 /**
  * @summary Date range picker
  * @event CustomEvent<DateRangeChangeEvent> webstatus-date-range-change - Emitted when the the date range is changed.
+ * @property {Date} minimumDate - The minimum selectable date. **Required.**
+ * @property {Date} maximumDate - The maximum selectable date. **Required.**
+ * @property {Date} startDate - The initial start date for the range. **Required.**
+ * @property {Date} endDate - The initial end date for the range. **Required.**
  */
 @customElement('webstatus-form-date-range-picker')
 export class WebstatusFormDateRangePicker extends LitElement {
   @property({type: Object})
-  minimumDate: Date = new Date();
+  minimumDate?: Date;
 
   @property({type: Object})
-  maximumDate: Date = new Date();
+  maximumDate?: Date;
 
   @property({type: Object})
-  startDate: Date = new Date();
+  startDate?: Date;
 
   @property({type: Object})
-  endDate: Date = new Date();
+  endDate?: Date;
 
   @query('#start-date')
-  startDateEl?: SlInput;
+  readonly startDateEl?: SlInput;
 
   @query('#end-date')
-  endDateEl?: SlInput;
+  readonly endDateEl?: SlInput;
 
   @query('#date-range-picker-btn')
-  submitBtn?: SlButton;
+  readonly submitBtn?: SlButton;
 
   @state()
   private _pendingStartDate = false;
@@ -62,12 +66,31 @@ export class WebstatusFormDateRangePicker extends LitElement {
   @state()
   private _pendingEndDate = false;
 
+  updated(changedProperties: PropertyValues<this>) {
+    if (
+      (changedProperties.has('minimumDate') ||
+        changedProperties.has('maximumDate') ||
+        changedProperties.has('startDate') ||
+        changedProperties.has('endDate')) &&
+      (!this.minimumDate ||
+        !this.maximumDate ||
+        !this.startDate ||
+        !this.endDate)
+    ) {
+      const errorMessage =
+        'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.';
+      // Print the error and throw an error.
+      console.error(errorMessage);
+      throw new Error(errorMessage);
+    }
+  }
+
   isValidDate(d: Date): boolean {
     return !isNaN(d.getTime());
   }
 
-  toIsoDate(date: Date): string {
-    return date.toISOString().slice(0, 10);
+  toIsoDate(date?: Date): string {
+    return date?.toISOString().slice(0, 10) ?? '';
   }
 
   static get styles(): CSSResultGroup {
@@ -91,12 +114,11 @@ export class WebstatusFormDateRangePicker extends LitElement {
   }
 
   async handleStartDateChange(_: SlChangeEvent) {
-    const currentStartDate = this.startDate;
     const newStartDate = new Date(this.startDateEl?.valueAsDate || '');
     if (
       !this.isValidDate(newStartDate) ||
-      this.minimumDate > newStartDate ||
-      this.endDate < newStartDate
+      (this.minimumDate && this.minimumDate > newStartDate) ||
+      (this.endDate && this.endDate < newStartDate)
     ) {
       this.startDateEl?.setCustomValidity(
         `Date range should be ${this.toIsoDate(this.minimumDate)} to ${this.toIsoDate(this.endDate)} inclusive`,
@@ -105,7 +127,9 @@ export class WebstatusFormDateRangePicker extends LitElement {
       this._pendingStartDate = false;
       return;
     }
-    if (newStartDate.getTime() !== currentStartDate.getTime()) {
+
+    const currentStartDate = this.startDate;
+    if (newStartDate.getTime() !== currentStartDate?.getTime()) {
       this.startDateEl?.setCustomValidity('');
       this.startDateEl?.reportValidity();
       this.startDate = newStartDate;
@@ -114,12 +138,11 @@ export class WebstatusFormDateRangePicker extends LitElement {
   }
 
   async handleEndDateChange(_: SlInputEvent) {
-    const currentEndDate = this.endDate;
     const newEndDate = new Date(this.endDateEl?.valueAsDate || '');
     if (
       !this.isValidDate(newEndDate) ||
-      this.startDate > newEndDate ||
-      this.maximumDate < newEndDate
+      (this.startDate && this.startDate > newEndDate) ||
+      (this.maximumDate && this.maximumDate < newEndDate)
     ) {
       this.endDateEl?.setCustomValidity(
         `Date range should be ${this.toIsoDate(this.startDate)} to ${this.toIsoDate(this.maximumDate)} inclusive`,
@@ -128,7 +151,9 @@ export class WebstatusFormDateRangePicker extends LitElement {
       this._pendingEndDate = false;
       return;
     }
-    if (newEndDate.getTime() !== currentEndDate.getTime()) {
+
+    const currentEndDate = this.endDate;
+    if (newEndDate.getTime() !== currentEndDate?.getTime()) {
       this.endDateEl?.setCustomValidity('');
       this.endDateEl?.reportValidity();
       this.endDate = newEndDate;
@@ -140,6 +165,8 @@ export class WebstatusFormDateRangePicker extends LitElement {
     // Reset pending flags
     this._pendingStartDate = false;
     this._pendingEndDate = false;
+
+    if (!this.startDate || !this.endDate) return;
 
     // Dispatch a single event with both dates
     const event = new CustomEvent<DateRangeChangeEvent>(
@@ -155,6 +182,8 @@ export class WebstatusFormDateRangePicker extends LitElement {
   }
 
   isSubmitButtonEnabled() {
+    // Only enable the button if there component has validated new date(s) that
+    // are ready to be emitted.
     return this._pendingStartDate || this._pendingEndDate;
   }
   render() {
@@ -171,7 +200,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
             type="date"
             .min=${this.toIsoDate(this.minimumDate)}
             .max=${this.toIsoDate(this.endDate)}
-            .valueAsDate="${this.startDate}"
+            .valueAsDate="${this.startDate ?? null}"
           ></sl-input>
         </label>
         <label>
@@ -185,7 +214,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
             type="date"
             .min=${this.toIsoDate(this.startDate)}
             .max=${this.toIsoDate(this.maximumDate)}
-            .valueAsDate="${this.endDate}"
+            .valueAsDate="${this.endDate ?? null}"
           ></sl-input>
         </label>
         <sl-button
