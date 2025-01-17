@@ -1336,6 +1336,38 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 			input: valuePtr(backend.StableSafariDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "safari", true),
 		},
+		{
+			input: valuePtr(backend.DesktopAvailabilityChromeAsc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "chrome"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilityChromeDesc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "chrome"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilityEdgeAsc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "edge"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilityEdgeDesc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "edge"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilityFirefoxAsc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "firefox"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilityFirefoxDesc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "firefox"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilitySafariAsc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "safari"),
+		},
+		{
+			input: valuePtr(backend.DesktopAvailabilitySafariDesc),
+			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "safari"),
+		},
 	}
 
 	for _, tt := range sortOrderTests {

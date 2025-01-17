@@ -76,6 +76,14 @@ paths:
               - experimental_firefox_desc
               - chromium_usage_asc
               - chromium_usage_desc
+              - desktop_availability_chrome_asc
+              - desktop_availability_chrome_desc
+              - desktop_availability_edge_asc
+              - desktop_availability_edge_desc
+              - desktop_availability_firefox_asc
+              - desktop_availability_firefox_desc
+              - desktop_availability_safari_asc
+              - desktop_availability_safari_desc
       responses:
         '200':
           description: OK
