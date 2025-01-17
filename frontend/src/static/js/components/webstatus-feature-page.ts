@@ -48,7 +48,6 @@ import {
 
 import './webstatus-loading-overlay.js';
 import './webstatus-gchart';
-import './webstatus-base-charts-page.js';
 import {WebStatusDataObj} from './webstatus-gchart.js';
 import {NotFoundError} from '../api/errors.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
