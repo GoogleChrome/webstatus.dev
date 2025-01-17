@@ -37,7 +37,6 @@ describe('BaseChartsPage', () => {
   const mockNow = new Date(2024, 5, 1).getTime(); // June 1, 2024
   const mockDefaultEndDate = new Date(mockNow);
   const mockDefaultStartDate = new Date(2023, 5, 2);
-  // let el: TestBaseChartsPage;
   const location = {
     params: {},
     search: '',
@@ -113,7 +112,7 @@ describe('BaseChartsPage', () => {
     );
   });
 
-  it('should use default end date if start date param is invalid', async () => {
+  it('should use default end date if end date param is invalid', async () => {
     location.search = '?endDate=invalid-date';
 
     getDateRangeStub.returns({start: undefined, end: new Date('invalid-date')});

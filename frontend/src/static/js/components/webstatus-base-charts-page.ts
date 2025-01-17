@@ -45,7 +45,6 @@ const DEFAULT_MAXIMUM_DATE = new Date(
  * Notes:
  * - If a child class overrides firstUpdated, it must call super.firstUpdated() first.
  */
-
 export class BaseChartsPage extends LitElement {
   minDate: Date = DEFAULT_MINIMUM_DATE;
   maxDate: Date = DEFAULT_MAXIMUM_DATE;
@@ -109,6 +108,7 @@ export class BaseChartsPage extends LitElement {
       dateRange: {start: this.startDate, end: this.endDate},
     });
   }
+
   renderDateRangePicker() {
     return html`
       <webstatus-form-date-range-picker
