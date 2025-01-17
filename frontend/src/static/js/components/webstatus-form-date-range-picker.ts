@@ -61,10 +61,10 @@ export class WebstatusFormDateRangePicker extends LitElement {
   readonly submitBtn?: SlButton;
 
   @state()
-  private _pendingStartDate = false;
+  private _startHasChanged = false;
 
   @state()
-  private _pendingEndDate = false;
+  private _endHasChanged = false;
 
   updated(changedProperties: PropertyValues<this>) {
     if (
@@ -124,7 +124,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
         `Date range should be ${this.toIsoDate(this.minimumDate)} to ${this.toIsoDate(this.endDate)} inclusive`,
       );
       this.startDateEl?.reportValidity();
-      this._pendingStartDate = false;
+      this._startHasChanged = false;
       return;
     }
 
@@ -133,7 +133,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
       this.startDateEl?.setCustomValidity('');
       this.startDateEl?.reportValidity();
       this.startDate = newStartDate;
-      this._pendingStartDate = true;
+      this._startHasChanged = true;
     }
   }
 
@@ -148,7 +148,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
         `Date range should be ${this.toIsoDate(this.startDate)} to ${this.toIsoDate(this.maximumDate)} inclusive`,
       );
       this.endDateEl?.reportValidity();
-      this._pendingEndDate = false;
+      this._endHasChanged = false;
       return;
     }
 
@@ -157,14 +157,14 @@ export class WebstatusFormDateRangePicker extends LitElement {
       this.endDateEl?.setCustomValidity('');
       this.endDateEl?.reportValidity();
       this.endDate = newEndDate;
-      this._pendingEndDate = true;
+      this._endHasChanged = true;
     }
   }
 
   handleSubmit() {
     // Reset pending flags
-    this._pendingStartDate = false;
-    this._pendingEndDate = false;
+    this._startHasChanged = false;
+    this._endHasChanged = false;
 
     if (!this.startDate || !this.endDate) return;
 
@@ -184,7 +184,7 @@ export class WebstatusFormDateRangePicker extends LitElement {
   isSubmitButtonEnabled() {
     // Only enable the button if there component has validated new date(s) that
     // are ready to be emitted.
-    return this._pendingStartDate || this._pendingEndDate;
+    return this._startHasChanged || this._endHasChanged;
   }
   render() {
     return html`
