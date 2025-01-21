@@ -46,6 +46,21 @@ export const DEFAULT_BOOKMARKS: Bookmark[] = [
     description: 'All Baseline 2023 features',
   },
   {
+    name: 'Baseline 2022',
+    query: 'baseline_date:2022-01-01..2022-12-31',
+    description: 'All Baseline 2022 features',
+  },
+  {
+    name: 'Baseline 2021',
+    query: 'baseline_date:2021-01-01..2021-12-31',
+    description: 'All Baseline 2021 features',
+  },
+  {
+    name: 'Baseline 2020',
+    query: 'baseline_date:2020-01-01..2020-12-31',
+    description: 'All Baseline 2020 features',
+  },
+  {
     name: 'Top CSS Interop issues',
     query:
       'id:anchor-positioning OR id:container-queries OR id:has OR id:nesting OR id:view-transitions OR id:subgrid OR id:grid OR name:scrollbar OR id:scroll-driven-animations OR id:scope',
