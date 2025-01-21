@@ -25,6 +25,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -307,6 +308,15 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 			expectedPageToken: nil,
 			expectedErr:       errTest,
 		},
+		{
+			name:              "invalid cursor",
+			featureData:       nil,
+			pageToken:         valuePtr(""),
+			err:               gcpspanner.ErrInvalidCursorFormat,
+			expectedOutput:    nil,
+			expectedPageToken: nil,
+			expectedErr:       backendtypes.ErrInvalidPageToken,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -386,6 +396,15 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			},
 			expectedPage: nil,
 			expectedErr:  errTest,
+		},
+		{
+			name: "invalid cursor",
+			cfg: mockListBrowserFeatureCountMetricConfig{
+				result:        nil,
+				returnedError: gcpspanner.ErrInvalidCursorFormat,
+			},
+			expectedPage: nil,
+			expectedErr:  backendtypes.ErrInvalidPageToken,
 		},
 	}
 	for _, tc := range testCases {
@@ -484,6 +503,15 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 			expectedPageToken: nil,
 			expectedErr:       errTest,
 		},
+		{
+			name:              "invalid cursor",
+			aggregatedData:    nil,
+			pageToken:         valuePtr(""),
+			err:               gcpspanner.ErrInvalidCursorFormat,
+			expectedOutput:    nil,
+			expectedPageToken: nil,
+			expectedErr:       backendtypes.ErrInvalidPageToken,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -570,6 +598,15 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			},
 			expectedPage: nil,
 			expectedErr:  errTest,
+		},
+		{
+			name: "invalid cursor",
+			cfg: mockListMissingOneImplCountsConfig{
+				result:        nil,
+				returnedError: gcpspanner.ErrInvalidCursorFormat,
+			},
+			expectedPage: nil,
+			expectedErr:  backendtypes.ErrInvalidPageToken,
 		},
 	}
 	for _, tc := range testCases {

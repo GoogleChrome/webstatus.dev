@@ -16,11 +16,13 @@ package httpserver
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/url"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -65,7 +67,15 @@ func (s *Server) GetV1Features(
 	)
 
 	if err != nil {
-		// TODO check error type
+		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
+			slog.WarnContext(ctx, "invalid page token", "token", req.Params.PageToken, "error", err)
+
+			return backend.GetV1Features400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			}, nil
+		}
+
 		slog.ErrorContext(ctx, "unable to get list of features", "error", err)
 
 		return backend.GetV1Features500JSONResponse{

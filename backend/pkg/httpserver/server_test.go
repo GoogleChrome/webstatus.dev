@@ -237,7 +237,9 @@ func (m *MockWPTMetricsStorer) ListChromiumDailyUsageStats(
 			m.listChromiumDailyUsageStatsCfg, featureID, startAt, endAt, pageSize, pageToken)
 	}
 
-	return m.listChromiumDailyUsageStatsCfg.data, m.featureCfg.pageToken, m.featureCfg.err
+	return m.listChromiumDailyUsageStatsCfg.data,
+		m.listChromiumDailyUsageStatsCfg.pageToken,
+		m.listChromiumDailyUsageStatsCfg.err
 }
 
 func (m *MockWPTMetricsStorer) FeaturesSearch(
@@ -356,5 +358,6 @@ func TestGetPageSizeOrDefault(t *testing.T) {
 var (
 	inputPageToken = valuePtr[string]("input-token")
 	nextPageToken  = valuePtr[string]("next-page-token")
+	badPageToken   = valuePtr[string]("")
 	errTest        = errors.New("test error")
 )

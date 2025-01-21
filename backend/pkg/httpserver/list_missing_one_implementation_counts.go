@@ -16,8 +16,10 @@ package httpserver
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -41,7 +43,15 @@ func (s *Server) ListMissingOneImplemenationCounts(
 		request.Params.PageToken,
 	)
 	if err != nil {
-		// TODO check error type
+		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
+			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
+
+			return backend.ListMissingOneImplemenationCounts400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			}, nil
+		}
+
 		slog.ErrorContext(ctx, "unable to get missing one implementation count", "error", err)
 
 		return backend.ListMissingOneImplemenationCounts500JSONResponse{

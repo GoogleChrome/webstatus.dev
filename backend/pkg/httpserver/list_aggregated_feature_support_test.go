@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -162,6 +163,34 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
 					PageToken: nil,
+					PageSize:  nil,
+				},
+				Browser: backend.Chrome,
+			},
+			expectedError: nil,
+		},
+		{
+			name: "400 case - invalid page token",
+			mockConfig: MockListBrowserFeatureCountMetricConfig{
+				expectedBrowser:   "chrome",
+				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:  100,
+				expectedPageToken: badPageToken,
+				pageToken:         nil,
+				err:               backendtypes.ErrInvalidPageToken,
+				page:              nil,
+			},
+			expectedCallCount: 1,
+			expectedResponse: backend.ListAggregatedFeatureSupport400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			},
+			request: backend.ListAggregatedFeatureSupportRequestObject{
+				Params: backend.ListAggregatedFeatureSupportParams{
+					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
+					PageToken: badPageToken,
 					PageSize:  nil,
 				},
 				Browser: backend.Chrome,

@@ -17,12 +17,14 @@ package spanneradapters
 import (
 	"cmp"
 	"context"
+	"errors"
 	"log/slog"
 	"math/big"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -122,6 +124,10 @@ func (s *Backend) ListBrowserFeatureCountMetric(
 		pageToken,
 	)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
 		return nil, err
 	}
 
@@ -163,6 +169,10 @@ func (s *Backend) ListMetricsOverTimeWithAggregatedTotals(
 		pageToken,
 	)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
 		return nil, nil, err
 	}
 
@@ -201,6 +211,10 @@ func (s *Backend) ListMetricsForFeatureIDBrowserAndChannel(
 		pageToken,
 	)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
 		return nil, nil, err
 	}
 
@@ -233,6 +247,10 @@ func (s *Backend) ListChromiumDailyUsageStats(
 		pageToken,
 	)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
 		return nil, nil, err
 	}
 
@@ -270,6 +288,10 @@ func (s *Backend) ListMissingOneImplCounts(
 		pageToken,
 	)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
 		return nil, err
 	}
 
@@ -508,6 +530,10 @@ func (s *Backend) FeaturesSearch(
 		spannerSortOrder, getSpannerWPTMetricView(wptMetricView),
 		BrowserList(browsers).ToStringList())
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
 		return nil, err
 	}
 

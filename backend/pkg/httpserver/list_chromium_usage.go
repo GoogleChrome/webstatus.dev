@@ -16,8 +16,10 @@ package httpserver
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -36,6 +38,15 @@ func (s *Server) ListChromiumDailyUsageStats(
 		request.Params.PageToken,
 	)
 	if err != nil {
+		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
+			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
+
+			return backend.ListChromiumDailyUsageStats400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			}, nil
+		}
+
 		slog.ErrorContext(ctx, "unable to get feature metrics", "error", err)
 
 		return backend.ListChromiumDailyUsageStats500JSONResponse{

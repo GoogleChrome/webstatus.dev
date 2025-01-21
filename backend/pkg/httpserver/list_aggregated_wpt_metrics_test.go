@@ -21,6 +21,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -156,6 +157,40 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
 					FeatureId: nil,
 					PageToken: nil,
+					PageSize:  nil,
+				},
+				Browser:    backend.Chrome,
+				Channel:    backend.Experimental,
+				MetricView: backend.SubtestCounts,
+			},
+			expectedError: nil,
+		},
+		{
+			name: "400 case - invalid page token",
+			mockConfig: MockListMetricsOverTimeWithAggregatedTotalsConfig{
+				expectedFeatureIDs: []string{},
+				expectedBrowser:    "chrome",
+				expectedChannel:    "experimental",
+				expectedMetric:     backend.SubtestCounts,
+				expectedStartAt:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:      time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:   100,
+				expectedPageToken:  badPageToken,
+				data:               nil,
+				pageToken:          nil,
+				err:                backendtypes.ErrInvalidPageToken,
+			},
+			expectedCallCount: 1,
+			expectedResponse: backend.ListAggregatedWPTMetrics400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			},
+			request: backend.ListAggregatedWPTMetricsRequestObject{
+				Params: backend.ListAggregatedWPTMetricsParams{
+					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
+					FeatureId: nil,
+					PageToken: badPageToken,
 					PageSize:  nil,
 				},
 				Browser:    backend.Chrome,
