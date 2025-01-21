@@ -23,6 +23,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -330,6 +331,39 @@ func TestGetV1Features(t *testing.T) {
 					PageToken:     nil,
 					PageSize:      nil,
 					Q:             valuePtr[string]("%"),
+					Sort:          nil,
+					WptMetricView: nil,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "400 case - invalid page token",
+			mockConfig: MockFeaturesSearchConfig{
+				expectedPageToken:  badPageToken,
+				expectedPageSize:   100,
+				expectedSearchNode: nil,
+				expectedSortBy:     nil,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+				},
+				expectedWPTMetricView: backend.SubtestCounts,
+				page:                  nil,
+				err:                   backendtypes.ErrInvalidPageToken,
+			},
+			expectedCallCount: 1,
+			expectedResponse: backend.GetV1Features400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			},
+			request: backend.GetV1FeaturesRequestObject{
+				Params: backend.GetV1FeaturesParams{
+					PageToken:     badPageToken,
+					PageSize:      nil,
+					Q:             nil,
 					Sort:          nil,
 					WptMetricView: nil,
 				},
