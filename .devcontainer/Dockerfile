@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM mcr.microsoft.com/devcontainers/base:bullseye
+FROM mcr.microsoft.com/devcontainers/base:bookworm
 
-ENV CLOUD_SDK_VERSION=480.0.0
+ENV CLOUD_SDK_VERSION=506.0.0
 # Install gcloud similarly to how it is done in cloud-sdk-docker
 # https://github.com/GoogleCloudPlatform/cloud-sdk-docker/blob/master/debian_component_based/Dockerfile
 RUN if [ `uname -m` = 'x86_64' ]; then echo -n "x86_64" > /tmp/arch; else echo -n "arm" > /tmp/arch; fi;
@@ -26,7 +26,7 @@ RUN /google-cloud-sdk/install.sh --usage-reporting=false \
     --additional-components `cat /tmp/additional_components` && rm -rf /google-cloud-sdk/.install/.backup
 
 # Install ANTLR
-ENV ANTLR4_VERSION=4.13.1
+ENV ANTLR4_VERSION=4.13.2
 WORKDIR /usr/local/lib
 RUN wget https://www.antlr.org/download/antlr-${ANTLR4_VERSION}-complete.jar
 
