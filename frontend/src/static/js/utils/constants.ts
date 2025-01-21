@@ -36,6 +36,11 @@ export interface Bookmark {
 
 export const DEFAULT_BOOKMARKS: Bookmark[] = [
   {
+    name: 'Baseline 2025',
+    query: 'baseline_date:2025-01-01..2025-12-31',
+    description: 'All Baseline 2025 features',
+  },
+  {
     name: 'Baseline 2024',
     query: 'baseline_date:2024-01-01..2024-12-31',
     description: 'All Baseline 2024 features',
@@ -44,6 +49,21 @@ export const DEFAULT_BOOKMARKS: Bookmark[] = [
     name: 'Baseline 2023',
     query: 'baseline_date:2023-01-01..2023-12-31',
     description: 'All Baseline 2023 features',
+  },
+  {
+    name: 'Baseline 2022',
+    query: 'baseline_date:2022-01-01..2022-12-31',
+    description: 'All Baseline 2022 features',
+  },
+  {
+    name: 'Baseline 2021',
+    query: 'baseline_date:2021-01-01..2021-12-31',
+    description: 'All Baseline 2021 features',
+  },
+  {
+    name: 'Baseline 2020',
+    query: 'baseline_date:2020-01-01..2020-12-31',
+    description: 'All Baseline 2020 features',
   },
   {
     name: 'Top CSS Interop issues',
