@@ -19,7 +19,7 @@
     "gts": "^6.0.2",
     "openapi-typescript": "7.5.2",
     "prettier": "3.4.2",
-    "quicktype": "23.0.170",
+    "quicktype": "23.0.171",
     "stylelint": "^16.13.2",
     "stylelint-config-standard": "^37.0.0"
   },
