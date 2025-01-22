@@ -60,14 +60,14 @@ func getSavedSearches() []backend.SavedSearchResponse {
 	}
 }
 
-// GetV1SavedSearches implements backend.StrictServerInterface.
+// ListSavedSearches implements backend.StrictServerInterface.
 // nolint:ireturn // Expected ireturn for openapi generation.
-func (s *Server) GetV1SavedSearches(
-	_ context.Context, _ backend.GetV1SavedSearchesRequestObject) (
-	backend.GetV1SavedSearchesResponseObject, error) {
+func (s *Server) ListSavedSearches(
+	_ context.Context, _ backend.ListSavedSearchesRequestObject) (
+	backend.ListSavedSearchesResponseObject, error) {
 	searches := getSavedSearches()
 
-	return backend.GetV1SavedSearches200JSONResponse{
+	return backend.ListSavedSearches200JSONResponse{
 		Metadata: nil,
 		Data:     &searches,
 	}, nil

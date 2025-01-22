@@ -28,13 +28,13 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-func TestGetV1Features(t *testing.T) {
+func TestListFeatures(t *testing.T) {
 	testCases := []struct {
 		name              string
 		mockConfig        MockFeaturesSearchConfig
 		expectedCallCount int // For the mock method
-		request           backend.GetV1FeaturesRequestObject
-		expectedResponse  backend.GetV1FeaturesResponseObject
+		request           backend.ListFeaturesRequestObject
+		expectedResponse  backend.ListFeaturesResponseObject
 		expectedError     error
 	}{
 		{
@@ -85,7 +85,7 @@ func TestGetV1Features(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1Features200JSONResponse{
+			expectedResponse: backend.ListFeatures200JSONResponse{
 				Data: []backend.Feature{
 					{
 						Baseline: &backend.BaselineInfo{
@@ -116,8 +116,8 @@ func TestGetV1Features(t *testing.T) {
 					Total:         100,
 				},
 			},
-			request: backend.GetV1FeaturesRequestObject{
-				Params: backend.GetV1FeaturesParams{
+			request: backend.ListFeaturesRequestObject{
+				Params: backend.ListFeaturesParams{
 					PageToken:     nil,
 					PageSize:      nil,
 					Q:             nil,
@@ -169,7 +169,7 @@ func TestGetV1Features(t *testing.T) {
 						},
 					},
 				},
-				expectedSortBy: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
+				expectedSortBy: valuePtr[backend.ListFeaturesParamsSort](backend.NameDesc),
 				page: &backend.FeaturePage{
 					Metadata: backend.PageMetadataWithTotal{
 						NextPageToken: nextPageToken,
@@ -205,7 +205,7 @@ func TestGetV1Features(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1Features200JSONResponse{
+			expectedResponse: backend.ListFeatures200JSONResponse{
 				Data: []backend.Feature{
 					{
 						Baseline: &backend.BaselineInfo{
@@ -237,12 +237,12 @@ func TestGetV1Features(t *testing.T) {
 					Total:         100,
 				},
 			},
-			request: backend.GetV1FeaturesRequestObject{
-				Params: backend.GetV1FeaturesParams{
+			request: backend.ListFeaturesRequestObject{
+				Params: backend.ListFeaturesParams{
 					PageToken:     inputPageToken,
 					PageSize:      valuePtr[int](50),
 					Q:             valuePtr(url.QueryEscape("available_on:chrome AND name:grid")),
-					Sort:          valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
+					Sort:          valuePtr[backend.ListFeaturesParamsSort](backend.NameDesc),
 					WptMetricView: valuePtr(backend.TestCounts),
 				},
 			},
@@ -266,12 +266,12 @@ func TestGetV1Features(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1Features500JSONResponse{
+			expectedResponse: backend.ListFeatures500JSONResponse{
 				Code:    500,
 				Message: "unable to get list of features",
 			},
-			request: backend.GetV1FeaturesRequestObject{
-				Params: backend.GetV1FeaturesParams{
+			request: backend.ListFeaturesRequestObject{
+				Params: backend.ListFeaturesParams{
 					PageToken:     nil,
 					PageSize:      nil,
 					Q:             nil,
@@ -294,12 +294,12 @@ func TestGetV1Features(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 0,
-			expectedResponse: backend.GetV1Features400JSONResponse{
+			expectedResponse: backend.ListFeatures400JSONResponse{
 				Code:    400,
 				Message: "query string does not match expected grammar",
 			},
-			request: backend.GetV1FeaturesRequestObject{
-				Params: backend.GetV1FeaturesParams{
+			request: backend.ListFeaturesRequestObject{
+				Params: backend.ListFeaturesParams{
 					PageToken:     nil,
 					PageSize:      nil,
 					Sort:          nil,
@@ -322,12 +322,12 @@ func TestGetV1Features(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 0,
-			expectedResponse: backend.GetV1Features400JSONResponse{
+			expectedResponse: backend.ListFeatures400JSONResponse{
 				Code:    400,
 				Message: "query string cannot be decoded",
 			},
-			request: backend.GetV1FeaturesRequestObject{
-				Params: backend.GetV1FeaturesParams{
+			request: backend.ListFeaturesRequestObject{
+				Params: backend.ListFeaturesParams{
 					PageToken:     nil,
 					PageSize:      nil,
 					Q:             valuePtr[string]("%"),
@@ -355,12 +355,12 @@ func TestGetV1Features(t *testing.T) {
 				err:                   backendtypes.ErrInvalidPageToken,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1Features400JSONResponse{
+			expectedResponse: backend.ListFeatures400JSONResponse{
 				Code:    400,
 				Message: "invalid page token",
 			},
-			request: backend.GetV1FeaturesRequestObject{
-				Params: backend.GetV1FeaturesParams{
+			request: backend.ListFeaturesRequestObject{
+				Params: backend.ListFeaturesParams{
 					PageToken:     badPageToken,
 					PageSize:      nil,
 					Q:             nil,
@@ -381,7 +381,7 @@ func TestGetV1Features(t *testing.T) {
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
 
 			// Call the function under test
-			resp, err := myServer.GetV1Features(context.Background(), tc.request)
+			resp, err := myServer.ListFeatures(context.Background(), tc.request)
 
 			// Assertions
 			if mockStorer.callCountFeaturesSearch != tc.expectedCallCount {

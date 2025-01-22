@@ -14,14 +14,20 @@
 
 openapi: '3.0.2'
 info:
-  title: API Title
-  version: '1.0'
+  title: webstatus.dev API
+  version: 0.1.0
+  description: >
+    A tool to monitor and track the status of all Web Platform features across
+    dimensions that are related to availability and implementation quality
+    across browsers, and adoption by web developers.
 servers:
-  - url: https://api.server.test/v1
+  - url: https://api.webstatus.dev
+    description: Production
 paths:
   /v1/features:
     get:
       summary: List features
+      operationId: listFeatures
       parameters:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
@@ -115,6 +121,7 @@ paths:
           $ref: '#/components/schemas/WPTMetricView'
     get:
       summary: Get Feature
+      operationId: getFeature
       responses:
         '200':
           description: OK
@@ -446,6 +453,7 @@ paths:
   /v1/saved-searches:
     get:
       summary: List saved searches
+      operationId: listSavedSearches
       responses:
         '200':
           description: OK
@@ -463,6 +471,7 @@ paths:
           type: string
     get:
       summary: Get saved search
+      operationId: getSavedSearch
       responses:
         '200':
           description: OK

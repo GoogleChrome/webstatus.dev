@@ -21,19 +21,19 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// GetV1SavedSearchesSearchId implements backend.StrictServerInterface.
+// GetSavedSearch implements backend.StrictServerInterface.
 // nolint:ireturn, revive // Expected ireturn for openapi generation.
-func (s *Server) GetV1SavedSearchesSearchId(
-	_ context.Context, req backend.GetV1SavedSearchesSearchIdRequestObject) (
-	backend.GetV1SavedSearchesSearchIdResponseObject, error) {
+func (s *Server) GetSavedSearch(
+	_ context.Context, req backend.GetSavedSearchRequestObject) (
+	backend.GetSavedSearchResponseObject, error) {
 	savedSearches := getSavedSearches()
 	for _, search := range savedSearches {
 		if req.SearchId == search.Id {
-			return backend.GetV1SavedSearchesSearchId200JSONResponse(search), nil
+			return backend.GetSavedSearch200JSONResponse(search), nil
 		}
 	}
 
-	return backend.GetV1SavedSearchesSearchId404JSONResponse{
+	return backend.GetSavedSearch404JSONResponse{
 		Code:    404,
 		Message: fmt.Sprintf("unable to find search %s", req.SearchId),
 	}, nil

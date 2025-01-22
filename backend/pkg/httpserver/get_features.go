@@ -26,12 +26,12 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// GetV1Features implements backend.StrictServerInterface.
+// ListFeatures implements backend.StrictServerInterface.
 // nolint:ireturn // Expected ireturn for openapi generation.
-func (s *Server) GetV1Features(
+func (s *Server) ListFeatures(
 	ctx context.Context,
-	req backend.GetV1FeaturesRequestObject,
-) (backend.GetV1FeaturesResponseObject, error) {
+	req backend.ListFeaturesRequestObject,
+) (backend.ListFeaturesResponseObject, error) {
 	var node *searchtypes.SearchNode
 	if req.Params.Q != nil {
 		// Try to decode the url.
@@ -39,7 +39,7 @@ func (s *Server) GetV1Features(
 		if err != nil {
 			slog.WarnContext(ctx, "unable to decode string", "input string", *req.Params.Q, "error", err)
 
-			return backend.GetV1Features400JSONResponse{
+			return backend.ListFeatures400JSONResponse{
 				Code:    http.StatusBadRequest,
 				Message: "query string cannot be decoded",
 			}, nil
@@ -50,7 +50,7 @@ func (s *Server) GetV1Features(
 		if err != nil {
 			slog.WarnContext(ctx, "unable to parse query string", "query", decodedStr, "error", err)
 
-			return backend.GetV1Features400JSONResponse{
+			return backend.ListFeatures400JSONResponse{
 				Code:    http.StatusBadRequest,
 				Message: "query string does not match expected grammar",
 			}, nil
@@ -70,7 +70,7 @@ func (s *Server) GetV1Features(
 		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
 			slog.WarnContext(ctx, "invalid page token", "token", req.Params.PageToken, "error", err)
 
-			return backend.GetV1Features400JSONResponse{
+			return backend.ListFeatures400JSONResponse{
 				Code:    400,
 				Message: "invalid page token",
 			}, nil
@@ -78,13 +78,13 @@ func (s *Server) GetV1Features(
 
 		slog.ErrorContext(ctx, "unable to get list of features", "error", err)
 
-		return backend.GetV1Features500JSONResponse{
+		return backend.ListFeatures500JSONResponse{
 			Code:    500,
 			Message: "unable to get list of features",
 		}, nil
 	}
 
-	return backend.GetV1Features200JSONResponse{
+	return backend.ListFeatures200JSONResponse{
 		Metadata: featurePage.Metadata,
 		Data:     featurePage.Data,
 	}, nil
