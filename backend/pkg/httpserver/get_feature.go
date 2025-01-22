@@ -25,19 +25,19 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// GetV1FeaturesFeatureId implements backend.StrictServerInterface.
+// GetFeature implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
-func (s *Server) GetV1FeaturesFeatureId(
+func (s *Server) GetFeature(
 	ctx context.Context,
-	request backend.GetV1FeaturesFeatureIdRequestObject,
-) (backend.GetV1FeaturesFeatureIdResponseObject, error) {
+	request backend.GetFeatureRequestObject,
+) (backend.GetFeatureResponseObject, error) {
 	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
 		getWPTMetricViewOrDefault(request.Params.WptMetricView),
 		defaultBrowsers(),
 	)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
-			return backend.GetV1FeaturesFeatureId404JSONResponse{
+			return backend.GetFeature404JSONResponse{
 				Code:    http.StatusNotFound,
 				Message: fmt.Sprintf("feature id %s is not found", request.FeatureId),
 			}, nil
@@ -45,11 +45,11 @@ func (s *Server) GetV1FeaturesFeatureId(
 		// Catch all for all other errors.
 		slog.ErrorContext(ctx, "unable to get feature", "error", err)
 
-		return backend.GetV1FeaturesFeatureId500JSONResponse{
+		return backend.GetFeature500JSONResponse{
 			Code:    500,
 			Message: "unable to get feature",
 		}, nil
 	}
 
-	return backend.GetV1FeaturesFeatureId200JSONResponse(*feature), nil
+	return backend.GetFeature200JSONResponse(*feature), nil
 }

@@ -26,13 +26,13 @@ import (
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
-func TestGetV1FeaturesFeatureId(t *testing.T) {
+func TestGetFeature(t *testing.T) {
 	testCases := []struct {
 		name              string
 		mockConfig        MockGetFeatureByIDConfig
 		expectedCallCount int // For the mock method
-		request           backend.GetV1FeaturesFeatureIdRequestObject
-		expectedResponse  backend.GetV1FeaturesFeatureIdResponseObject
+		request           backend.GetFeatureRequestObject
+		expectedResponse  backend.GetFeatureResponseObject
 		expectedError     error
 	}{
 		{
@@ -73,7 +73,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
+			expectedResponse: backend.GetFeature200JSONResponse{
 				Baseline: &backend.BaselineInfo{
 					Status: valuePtr(backend.Widely),
 					LowDate: valuePtr(
@@ -96,9 +96,9 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				Usage:     nil,
 				Wpt:       nil,
 			},
-			request: backend.GetV1FeaturesFeatureIdRequestObject{
+			request: backend.GetFeatureRequestObject{
 				FeatureId: "feature1",
-				Params: backend.GetV1FeaturesFeatureIdParams{
+				Params: backend.GetFeatureParams{
 					WptMetricView: nil,
 				},
 			},
@@ -142,7 +142,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesFeatureId200JSONResponse{
+			expectedResponse: backend.GetFeature200JSONResponse{
 				Baseline: &backend.BaselineInfo{
 					Status: valuePtr(backend.Widely),
 					LowDate: valuePtr(
@@ -165,9 +165,9 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				Usage:     nil,
 				Wpt:       nil,
 			},
-			request: backend.GetV1FeaturesFeatureIdRequestObject{
+			request: backend.GetFeatureRequestObject{
 				FeatureId: "feature1",
-				Params: backend.GetV1FeaturesFeatureIdParams{
+				Params: backend.GetFeatureParams{
 					WptMetricView: valuePtr(backend.TestCounts),
 				},
 			},
@@ -188,13 +188,13 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				err:  gcpspanner.ErrQueryReturnedNoResults,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesFeatureId404JSONResponse{
+			expectedResponse: backend.GetFeature404JSONResponse{
 				Code:    404,
 				Message: "feature id feature1 is not found",
 			},
-			request: backend.GetV1FeaturesFeatureIdRequestObject{
+			request: backend.GetFeatureRequestObject{
 				FeatureId: "feature1",
-				Params: backend.GetV1FeaturesFeatureIdParams{
+				Params: backend.GetFeatureParams{
 					WptMetricView: nil,
 				},
 			},
@@ -215,13 +215,13 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 				err:  errTest,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetV1FeaturesFeatureId500JSONResponse{
+			expectedResponse: backend.GetFeature500JSONResponse{
 				Code:    500,
 				Message: "unable to get feature",
 			},
-			request: backend.GetV1FeaturesFeatureIdRequestObject{
+			request: backend.GetFeatureRequestObject{
 				FeatureId: "feature1",
-				Params: backend.GetV1FeaturesFeatureIdParams{
+				Params: backend.GetFeatureParams{
 					WptMetricView: nil,
 				},
 			},
@@ -238,7 +238,7 @@ func TestGetV1FeaturesFeatureId(t *testing.T) {
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
 
 			// Call the function under test
-			resp, err := myServer.GetV1FeaturesFeatureId(context.Background(), tc.request)
+			resp, err := myServer.GetFeature(context.Background(), tc.request)
 
 			// Assertions
 			if mockStorer.callCountGetFeature != tc.expectedCallCount {

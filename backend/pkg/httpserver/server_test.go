@@ -93,7 +93,7 @@ type MockFeaturesSearchConfig struct {
 	expectedPageToken     *string
 	expectedPageSize      int
 	expectedSearchNode    *searchtypes.SearchNode
-	expectedSortBy        *backend.GetV1FeaturesParamsSort
+	expectedSortBy        *backend.ListFeaturesParamsSort
 	expectedWPTMetricView backend.WPTMetricView
 	expectedBrowsers      []backend.BrowserPathParam
 	page                  *backend.FeaturePage
@@ -247,7 +247,7 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 	pageToken *string,
 	pageSize int,
 	node *searchtypes.SearchNode,
-	sortBy *backend.GetV1FeaturesParamsSort,
+	sortBy *backend.ListFeaturesParamsSort,
 	view backend.WPTMetricView,
 	browsers []backend.BrowserPathParam,
 ) (*backend.FeaturePage, error) {

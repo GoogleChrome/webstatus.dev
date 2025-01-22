@@ -521,7 +521,7 @@ func (s *Backend) FeaturesSearch(
 	pageToken *string,
 	pageSize int,
 	searchNode *searchtypes.SearchNode,
-	sortOrder *backend.GetV1FeaturesParamsSort,
+	sortOrder *backend.ListFeaturesParamsSort,
 	wptMetricView backend.WPTMetricView,
 	browsers []backend.BrowserPathParam,
 ) (*backend.FeaturePage, error) {
@@ -556,7 +556,7 @@ func (s *Backend) FeaturesSearch(
 
 // TODO: Pass in context to be used by slog.ErrorContext.
 func getFeatureSearchSortOrder(
-	sortOrder *backend.GetV1FeaturesParamsSort) gcpspanner.Sortable {
+	sortOrder *backend.ListFeaturesParamsSort) gcpspanner.Sortable {
 	if sortOrder == nil {
 		return gcpspanner.NewBaselineStatusSort(false)
 	}

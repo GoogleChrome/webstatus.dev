@@ -749,7 +749,7 @@ func TestFeaturesSearch(t *testing.T) {
 		inputWPTMetricView backend.WPTMetricView
 		inputBrowsers      BrowserList
 		searchNode         *searchtypes.SearchNode
-		sortOrder          *backend.GetV1FeaturesParamsSort
+		sortOrder          *backend.ListFeaturesParamsSort
 		expectedPage       *backend.FeaturePage
 	}{
 		{
@@ -1252,24 +1252,24 @@ func TestGetFeature(t *testing.T) {
 
 func TestGetFeatureSearchSortOrder(t *testing.T) {
 	sortOrderTests := []struct {
-		input *backend.GetV1FeaturesParamsSort
+		input *backend.ListFeaturesParamsSort
 		want  gcpspanner.Sortable
 	}{
 		{input: nil, want: gcpspanner.NewBaselineStatusSort(false)},
 		{
-			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameAsc),
+			input: valuePtr[backend.ListFeaturesParamsSort](backend.NameAsc),
 			want:  gcpspanner.NewFeatureNameSort(true),
 		},
 		{
-			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.NameDesc),
+			input: valuePtr[backend.ListFeaturesParamsSort](backend.NameDesc),
 			want:  gcpspanner.NewFeatureNameSort(false),
 		},
 		{
-			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.BaselineStatusAsc),
+			input: valuePtr[backend.ListFeaturesParamsSort](backend.BaselineStatusAsc),
 			want:  gcpspanner.NewBaselineStatusSort(true),
 		},
 		{
-			input: valuePtr[backend.GetV1FeaturesParamsSort](backend.BaselineStatusDesc),
+			input: valuePtr[backend.ListFeaturesParamsSort](backend.BaselineStatusDesc),
 			want:  gcpspanner.NewBaselineStatusSort(false),
 		},
 		{
