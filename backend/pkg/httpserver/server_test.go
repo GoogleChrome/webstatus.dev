@@ -16,9 +16,14 @@ package httpserver
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -180,7 +185,7 @@ func (m *MockWPTMetricsStorer) ListMetricsForFeatureIDBrowserAndChannel(_ contex
 		!startAt.Equal(m.featureCfg.expectedStartAt) ||
 		!endAt.Equal(m.featureCfg.expectedEndAt) ||
 		pageSize != m.featureCfg.expectedPageSize ||
-		pageToken != m.featureCfg.expectedPageToken {
+		!reflect.DeepEqual(pageToken, m.featureCfg.expectedPageToken) {
 
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %s, %s, %s, %s, %d %v }",
 			m.featureCfg, featureID, browser, channel, metric, startAt, endAt, pageSize, pageToken)
@@ -208,7 +213,7 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 		!startAt.Equal(m.aggregateCfg.expectedStartAt) ||
 		!endAt.Equal(m.aggregateCfg.expectedEndAt) ||
 		pageSize != m.aggregateCfg.expectedPageSize ||
-		pageToken != m.aggregateCfg.expectedPageToken {
+		!reflect.DeepEqual(pageToken, m.aggregateCfg.expectedPageToken) {
 
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %s, %s, %d %v }",
 			m.aggregateCfg, featureIDs, browser, channel, metric, startAt, endAt, pageSize, pageToken)
@@ -231,7 +236,7 @@ func (m *MockWPTMetricsStorer) ListChromiumDailyUsageStats(
 		!startAt.Equal(m.listChromiumDailyUsageStatsCfg.expectedStartAt) ||
 		!endAt.Equal(m.listChromiumDailyUsageStatsCfg.expectedEndAt) ||
 		pageSize != m.listChromiumDailyUsageStatsCfg.expectedPageSize ||
-		pageToken != m.listChromiumDailyUsageStatsCfg.expectedPageToken {
+		!reflect.DeepEqual(pageToken, m.listChromiumDailyUsageStatsCfg.expectedPageToken) {
 
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %s, %d %v }",
 			m.listChromiumDailyUsageStatsCfg, featureID, startAt, endAt, pageSize, pageToken)
@@ -253,7 +258,7 @@ func (m *MockWPTMetricsStorer) FeaturesSearch(
 ) (*backend.FeaturePage, error) {
 	m.callCountFeaturesSearch++
 
-	if pageToken != m.featuresSearchCfg.expectedPageToken ||
+	if !reflect.DeepEqual(pageToken, m.featuresSearchCfg.expectedPageToken) ||
 		pageSize != m.featuresSearchCfg.expectedPageSize ||
 		!reflect.DeepEqual(node, m.featuresSearchCfg.expectedSearchNode) ||
 		!reflect.DeepEqual(sortBy, m.featuresSearchCfg.expectedSortBy) ||
@@ -298,7 +303,7 @@ func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 		!startAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedStartAt) ||
 		!endAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedEndAt) ||
 		pageSize != m.listBrowserFeatureCountMetricCfg.expectedPageSize ||
-		pageToken != m.listBrowserFeatureCountMetricCfg.expectedPageToken {
+		!reflect.DeepEqual(pageToken, m.listBrowserFeatureCountMetricCfg.expectedPageToken) {
 
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %d %v }",
 			m.listBrowserFeatureCountMetricCfg, browser, startAt, endAt, pageSize, pageToken)
@@ -323,7 +328,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 		!startAt.Equal(m.listMissingOneImplCountCfg.expectedStartAt) ||
 		!endAt.Equal(m.listMissingOneImplCountCfg.expectedEndAt) ||
 		pageSize != m.listMissingOneImplCountCfg.expectedPageSize ||
-		pageToken != m.listMissingOneImplCountCfg.expectedPageToken {
+		!reflect.DeepEqual(pageToken, m.listMissingOneImplCountCfg.expectedPageToken) {
 
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %d %v }",
 			m.listMissingOneImplCountCfg, targetBrowser, otherBrowsers, startAt, endAt, pageSize, pageToken)
@@ -361,3 +366,89 @@ var (
 	badPageToken   = valuePtr[string]("")
 	errTest        = errors.New("test error")
 )
+
+func testJSONResponse(statusCode int, body string) *http.Response {
+	// nolint:exhaustruct // WONTFIX - only for test purposes
+	return &http.Response{
+		StatusCode: statusCode,
+		Header: http.Header{
+			"Content-Type": []string{"application/json"},
+		},
+		Body: io.NopCloser(strings.NewReader(body)),
+	}
+}
+
+func assertStatusCode(t *testing.T, actual, expected int) {
+	if actual != expected {
+		t.Errorf("expected status code %d. received %d", expected, actual)
+	}
+}
+
+func assertHeaders(t *testing.T, actual, expected http.Header) {
+	if !reflect.DeepEqual(actual, expected) {
+		t.Errorf("expected headers %+v. received %+v", expected, actual)
+	}
+}
+
+func assertResponseBody(t *testing.T, actual, expected io.Reader) {
+	if actual == nil && expected == nil {
+		// Both nil, no need to compare
+		return
+	}
+
+	if actual == nil && expected != nil {
+		expectedBody, _ := io.ReadAll(expected)
+		t.Errorf("expected a body. received no response body %s", string(expectedBody))
+
+		return
+	}
+
+	if actual != nil && expected == nil {
+		actualBody, _ := io.ReadAll(actual)
+		t.Errorf("expected no body. received response body %s", string(actualBody))
+
+		return
+	}
+
+	actualBody, err := io.ReadAll(actual)
+	if err != nil {
+		t.Fatal("failed to read actual body")
+	}
+
+	expectedBody, err := io.ReadAll(expected)
+	if err != nil {
+		t.Fatal("failed to read expected body")
+	}
+
+	compareJSONBodies(t, actualBody, expectedBody)
+}
+
+func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
+	var actualObj, expectedObj interface{}
+	err := json.Unmarshal(actualBody, &actualObj)
+	if err != nil {
+		t.Fatal("failed to parse json from actual response")
+	}
+	err = json.Unmarshal(expectedBody, &expectedObj)
+	if err != nil {
+		t.Fatal("failed to parse json from expected response")
+	}
+
+	if !reflect.DeepEqual(actualObj, expectedObj) {
+		t.Errorf("expected body %+v. received %+v", string(expectedBody), string(actualBody))
+	}
+}
+
+func assertTestServerRequest(t *testing.T, srv *Server, req *http.Request, expectedResponse *http.Response) {
+	srvStrictHandler := backend.NewStrictHandler(srv, nil)
+	r := http.NewServeMux()
+	h := backend.HandlerFromMux(srvStrictHandler, r)
+	w := httptest.NewRecorder()
+	h.ServeHTTP(w, req)
+
+	resp := w.Result()
+
+	assertStatusCode(t, resp.StatusCode, expectedResponse.StatusCode)
+	assertHeaders(t, resp.Header, expectedResponse.Header)
+	assertResponseBody(t, resp.Body, expectedResponse.Body)
+}

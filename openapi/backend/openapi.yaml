@@ -409,6 +409,7 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
         - in: query
+          # TODO: Create a feature_id version of this parameter
           name: featureId
           description: >
             A list of feature IDs to filter results. TThe list is provided by
@@ -512,6 +513,7 @@ components:
       required: true
       schema:
         $ref: '#/components/schemas/WPTMetricView'
+    # TODO: Create a start_at version of this parameter
     startAtParam:
       in: query
       name: startAt
@@ -520,6 +522,7 @@ components:
         format: date
       description: Start date (RFC 3339, section 5.6, for example, 2017-07-21). The date is inclusive.
       required: true
+    # TODO: Create a end_at version of this parameter
     endAtParam:
       in: query
       name: endAt
