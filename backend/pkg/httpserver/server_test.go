@@ -152,6 +152,7 @@ type MockWPTMetricsStorer struct {
 	getFeatureByIDConfig                              MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
 	t                                                 *testing.T
+	callCountListMissingOneImplCounts                 int
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
 	callCountListChromiumDailyUsageStats              int
@@ -321,7 +322,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	pageSize int,
 	pageToken *string,
 ) (*backend.BrowserReleaseFeatureMetricsPage, error) {
-	m.callCountListBrowserFeatureCountMetric++
+	m.callCountListMissingOneImplCounts++
 
 	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||
 		!slices.Equal(otherBrowsers, m.listMissingOneImplCountCfg.expectedOtherBrowsers) ||
@@ -436,6 +437,13 @@ func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
 
 	if !reflect.DeepEqual(actualObj, expectedObj) {
 		t.Errorf("expected body %+v. received %+v", string(expectedBody), string(actualBody))
+	}
+}
+
+func assertMockCallCount(t *testing.T, expectedCallCount, actualCallCount int, methodName string) {
+	if expectedCallCount != actualCallCount {
+		t.Errorf("expected %s to be called %d times. it was called %d times",
+			methodName, expectedCallCount, actualCallCount)
 	}
 }
 
