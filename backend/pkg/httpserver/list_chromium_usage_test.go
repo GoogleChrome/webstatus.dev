@@ -15,15 +15,13 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func TestListChromiumDailyUsageStats(t *testing.T) {
@@ -31,9 +29,8 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 		name              string
 		mockConfig        MockListChromiumDailyUsageStatsConfig
 		expectedCallCount int // For the mock method
-		request           backend.ListChromiumDailyUsageStatsRequestObject
-		expectedResponse  backend.ListChromiumDailyUsageStatsResponseObject
-		expectedError     error
+		request           *http.Request
+		expectedResponse  *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
@@ -54,27 +51,20 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				},
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListChromiumDailyUsageStats200JSONResponse{
-				Data: []backend.ChromiumUsageStat{
-					{
-						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						Usage:     valuePtr[float64](0.0),
-					},
-				},
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nil,
-				},
-			},
-			request: backend.ListChromiumDailyUsageStatsRequestObject{
-				Params: backend.ListChromiumDailyUsageStatsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: nil,
-					PageSize:  nil,
-				},
-				FeatureId: "feature1",
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"timestamp":"2000-01-01T00:00:00Z",
+			"usage":0
+		}
+	],
+	"metadata":{
+
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/features/feature1/stats/usage/chromium/daily_stats?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "400 case - invalid page token",
@@ -89,20 +79,10 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				data:              nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListChromiumDailyUsageStats400JSONResponse{
-				Code:    400,
-				Message: "invalid page token",
-			},
-			request: backend.ListChromiumDailyUsageStatsRequestObject{
-				Params: backend.ListChromiumDailyUsageStatsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: badPageToken,
-					PageSize:  nil,
-				},
-				FeatureId: "feature1",
-			},
-			expectedError: nil,
+			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/features/feature1/stats/usage/chromium/daily_stats?"+
+					"startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
 		},
 	}
 	for _, tc := range testCases {
@@ -113,24 +93,7 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				t:                              t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
-
-			// Call the function under test
-			resp, err := myServer.ListChromiumDailyUsageStats(context.Background(), tc.request)
-
-			// Assertions
-			if mockStorer.callCountListChromiumDailyUsageStats != tc.expectedCallCount {
-				t.Errorf("Incorrect call count: expected %d, got %d",
-					tc.expectedCallCount,
-					mockStorer.callCountListChromiumDailyUsageStats)
-			}
-
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 		})
 	}
 }

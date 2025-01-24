@@ -15,15 +15,13 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func TestListMissingOneImplemenationCounts(t *testing.T) {
@@ -31,9 +29,8 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 		name              string
 		mockConfig        MockListMissingOneImplCountsConfig
 		expectedCallCount int // For the mock method
-		request           backend.ListMissingOneImplemenationCountsRequestObject
-		expectedResponse  backend.ListMissingOneImplemenationCountsResponseObject
-		expectedError     error
+		request           *http.Request
+		expectedResponse  *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
@@ -63,34 +60,26 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				},
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplemenationCounts200JSONResponse{
-				Data: []backend.BrowserReleaseFeatureMetric{
-					{
-						Count:     valuePtr[int64](10),
-						Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-					},
-					{
-						Count:     valuePtr[int64](9),
-						Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
-					},
-				},
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nil,
-				},
-			},
-			request: backend.ListMissingOneImplemenationCountsRequestObject{
-				Params: backend.ListMissingOneImplemenationCountsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: nil,
-					PageSize:  nil,
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
-				},
-				Browser: backend.Chrome,
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"count":10,
+			"timestamp":"2000-01-10T00:00:00Z"
+		},
+		{
+			"count":9,
+			"timestamp":"2000-01-09T00:00:00Z"
+		}
+	],
+	"metadata":{
+
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "Success Case - include optional params",
@@ -120,34 +109,26 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				pageToken: nextPageToken,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplemenationCounts200JSONResponse{
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nextPageToken,
-				},
-				Data: []backend.BrowserReleaseFeatureMetric{
-					{
-						Count:     valuePtr[int64](10),
-						Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-					},
-					{
-						Count:     valuePtr[int64](9),
-						Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
-					},
-				},
-			},
-			request: backend.ListMissingOneImplemenationCountsRequestObject{
-				Params: backend.ListMissingOneImplemenationCountsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: inputPageToken,
-					PageSize:  valuePtr[int](50),
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
-				},
-				Browser: backend.Chrome,
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"count":10,
+			"timestamp":"2000-01-10T00:00:00Z"
+		},
+		{
+			"count":9,
+			"timestamp":"2000-01-09T00:00:00Z"
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token"
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
 		},
 		{
 			name: "500 case",
@@ -163,23 +144,12 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplemenationCounts500JSONResponse{
-				Code:    500,
-				Message: "unable to get missing one implementation metrics",
-			},
-			request: backend.ListMissingOneImplemenationCountsRequestObject{
-				Params: backend.ListMissingOneImplemenationCountsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: nil,
-					PageSize:  nil,
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
-				},
-				Browser: backend.Chrome,
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(
+				500, `{"code":500,"message":"unable to get missing one implementation metrics"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "400 case - invalid page token",
@@ -195,23 +165,11 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				err:                   backendtypes.ErrInvalidPageToken,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplemenationCounts400JSONResponse{
-				Code:    400,
-				Message: "invalid page token",
-			},
-			request: backend.ListMissingOneImplemenationCountsRequestObject{
-				Params: backend.ListMissingOneImplemenationCountsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: badPageToken,
-					PageSize:  nil,
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
-				},
-				Browser: backend.Chrome,
-			},
-			expectedError: nil,
+			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10&page_token"+*badPageToken, nil),
 		},
 	}
 
@@ -223,24 +181,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				t:                          t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
-
-			// Call the function under test
-			resp, err := myServer.ListMissingOneImplemenationCounts(context.Background(), tc.request)
-
-			// Assertions
-			if mockStorer.callCountListBrowserFeatureCountMetric != tc.expectedCallCount {
-				t.Errorf("Incorrect call count: expected %d, got %d",
-					tc.expectedCallCount,
-					mockStorer.callCountListBrowserFeatureCountMetric)
-			}
-
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 		})
 	}
 }
