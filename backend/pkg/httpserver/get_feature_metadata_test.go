@@ -71,6 +71,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			// TODO: Start tracking call count and assert call count.
 		})
 	}
 }

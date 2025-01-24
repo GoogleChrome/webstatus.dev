@@ -173,6 +173,9 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListBrowserFeatureCountMetric,
+				"ListBrowserFeatureCountMetric")
+
 		})
 	}
 }
