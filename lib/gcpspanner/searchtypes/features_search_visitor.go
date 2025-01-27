@@ -259,8 +259,14 @@ func (v *FeaturesSearchVisitor) VisitAvailable_date_term(ctx *parser.Available_d
 
 func (v *FeaturesSearchVisitor) VisitAvailableBrowserDateTerm(
 	ctx parser.IDate_range_queryContext, browserName string) interface{} {
-	startDate := ctx.GetStartDate().GetText()
-	endDate := ctx.GetEndDate().GetText()
+	startDate := ctx.GetStartDate()
+	endDate := ctx.GetEndDate()
+
+	if startDate == nil || endDate == nil {
+		v.addError(termMissingRangeValueError{term: IdentifierAvailableBrowserDate})
+
+		return nil
+	}
 
 	// Create two nodes for start and end dates
 	startDateNode := &SearchNode{
@@ -284,7 +290,7 @@ func (v *FeaturesSearchVisitor) VisitAvailableBrowserDateTerm(
 				Keyword: KeywordNone,
 				Term: &SearchTerm{
 					Identifier: IdentifierAvailableDate,
-					Value:      startDate,
+					Value:      startDate.GetText(),
 					Operator:   OperatorGtEq,
 				},
 				Children: nil,
@@ -313,7 +319,7 @@ func (v *FeaturesSearchVisitor) VisitAvailableBrowserDateTerm(
 				Keyword: KeywordNone,
 				Term: &SearchTerm{
 					Identifier: IdentifierAvailableDate,
-					Value:      endDate,
+					Value:      endDate.GetText(),
 					Operator:   OperatorLtEq,
 				},
 				Children: nil,
