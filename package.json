@@ -30,7 +30,7 @@
     "glob": "^11.0.0",
     "eslint": "^9.17.0",
     "whatwg-url": "^14.1.0",
-    "uri-js": "uri-js-replace"
+    "uri-js": "npm:uri-js-replace"
   },
   "vaadin": {
     "disableUsageStatistics": true
