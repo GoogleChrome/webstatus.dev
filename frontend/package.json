@@ -52,7 +52,7 @@
     "eslint-plugin-promise": "^7.2.1",
     "lit-analyzer": "^2.0.2",
     "openapi-typescript-helpers": "^0.0.15",
-    "playwright": "^1.47.2",
+    "playwright": "^1.50.0",
     "prettier": "3.4.2",
     "rollup": "^4.32.0",
     "rollup-plugin-copy": "^3.5.0",
