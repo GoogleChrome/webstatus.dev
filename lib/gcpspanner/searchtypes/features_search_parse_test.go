@@ -1171,6 +1171,9 @@ func TestParseQueryBadInput(t *testing.T) {
 		{
 			input: "snapshot:",
 		},
+		{
+			input: "available_date:chrome",
+		},
 		// Other input from https://github.com/GoogleChrome/webstatus.dev/issues/286
 		{
 			// nolint:lll // WONTFIX. Repro from issue.
@@ -1187,6 +1190,10 @@ func TestParseQueryBadInput(t *testing.T) {
 		},
 		{
 			input: `baseline_date:12-26-2024..1-2-2025`,
+		},
+		// Other input from 2025-01-27 weekly review
+		{
+			input: `available_on:chrome -available_date:chrome available_on:safari`,
 		},
 	}
 	for _, tc := range testCases {
