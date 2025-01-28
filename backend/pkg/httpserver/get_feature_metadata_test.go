@@ -15,9 +15,8 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -28,9 +27,8 @@ func TestGetFeatureMetadata(t *testing.T) {
 		name                  string
 		mockGetIDConfig       MockGetIDFromFeatureKeyConfig
 		mockGetMetadataConfig MockGetFeatureMetadataConfig
-		request               backend.GetFeatureMetadataRequestObject
-		expectedResponse      backend.GetFeatureMetadataResponseObject
-		expectedError         error
+		request               *http.Request
+		expectedResponse      *http.Response
 	}{
 		{
 			name: "success",
@@ -53,22 +51,10 @@ func TestGetFeatureMetadata(t *testing.T) {
 				},
 				err: nil,
 			},
-			request: backend.GetFeatureMetadataRequestObject{
-				FeatureId: "key1",
-			},
-			expectedResponse: backend.GetFeatureMetadata200JSONResponse(
-				backend.FeatureMetadata{
-					CanIUse: &backend.CanIUseInfo{
-						Items: &[]backend.CanIUseItem{
-							{
-								Id: valuePtr("caniuse1"),
-							},
-						},
-					},
-					Description: valuePtr("desc"),
-				},
+			request: httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			expectedResponse: testJSONResponse(200,
+				`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
 			),
-			expectedError: nil,
 		},
 		// TODO(jcscottiii). Add more test cases later.
 	}
@@ -84,18 +70,8 @@ func TestGetFeatureMetadata(t *testing.T) {
 				t:                         t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer}
-
-			// Call the function under test
-			resp, err := myServer.GetFeatureMetadata(context.Background(), tc.request)
-
-			// Assertions
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			// TODO: Start tracking call count and assert call count.
 		})
 	}
 }

@@ -15,10 +15,10 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"testing"
 	"time"
 
@@ -33,9 +33,8 @@ func TestListFeatures(t *testing.T) {
 		name              string
 		mockConfig        MockFeaturesSearchConfig
 		expectedCallCount int // For the mock method
-		request           backend.ListFeaturesRequestObject
-		expectedResponse  backend.ListFeaturesResponseObject
-		expectedError     error
+		request           *http.Request
+		expectedResponse  *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
@@ -85,47 +84,31 @@ func TestListFeatures(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListFeatures200JSONResponse{
-				Data: []backend.Feature{
-					{
-						Baseline: &backend.BaselineInfo{
-							Status: valuePtr(backend.Widely),
-							LowDate: valuePtr(
-								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-							),
-							HighDate: valuePtr(
-								openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
-							),
-						},
-						FeatureId: "feature1",
-						Name:      "feature 1",
-						Spec:      nil,
-						Usage:     nil,
-						Wpt:       nil,
-						BrowserImplementations: &map[string]backend.BrowserImplementation{
-							"browser1": {
-								Status:  valuePtr(backend.Available),
-								Date:    nil,
-								Version: valuePtr("101"),
-							},
-						},
-					},
-				},
-				Metadata: backend.PageMetadataWithTotal{
-					NextPageToken: nil,
-					Total:         100,
-				},
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"baseline":{
+				"high_date":"2001-01-01",
+				"low_date":"2000-01-01",
+				"status":"widely"
 			},
-			request: backend.ListFeaturesRequestObject{
-				Params: backend.ListFeaturesParams{
-					PageToken:     nil,
-					PageSize:      nil,
-					Q:             nil,
-					Sort:          nil,
-					WptMetricView: nil,
-				},
+			"browser_implementations":{
+				"browser1":{
+				"status":"available",
+				"version":"101"
+				}
 			},
-			expectedError: nil,
+			"feature_id":"feature1",
+			"name":"feature 1"
+		}
+	],
+	"metadata":{
+		"total":100
+	}
+}`,
+			),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
 		},
 		{
 			name: "Success Case - include optional params",
@@ -205,48 +188,39 @@ func TestListFeatures(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListFeatures200JSONResponse{
-				Data: []backend.Feature{
-					{
-						Baseline: &backend.BaselineInfo{
-							Status: valuePtr(backend.Widely),
-							LowDate: valuePtr(
-								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-							),
-							HighDate: valuePtr(
-								openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
-							),
-						},
-						FeatureId: "feature1",
-						Name:      "feature 1",
-						Spec:      nil,
-						Usage:     nil,
-						Wpt:       nil,
-						BrowserImplementations: &map[string]backend.BrowserImplementation{
-							"chrome": {
-								Status: valuePtr(backend.Available),
-								Date: &openapi_types.Date{
-									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-								Version: valuePtr("101"),
-							},
-						},
-					},
-				},
-				Metadata: backend.PageMetadataWithTotal{
-					NextPageToken: nextPageToken,
-					Total:         100,
-				},
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"baseline":{
+				"high_date":"2001-01-01",
+				"low_date":"2000-01-01",
+				"status":"widely"
 			},
-			request: backend.ListFeaturesRequestObject{
-				Params: backend.ListFeaturesParams{
-					PageToken:     inputPageToken,
-					PageSize:      valuePtr[int](50),
-					Q:             valuePtr(url.QueryEscape("available_on:chrome AND name:grid")),
-					Sort:          valuePtr[backend.ListFeaturesParamsSort](backend.NameDesc),
-					WptMetricView: valuePtr(backend.TestCounts),
-				},
+			"browser_implementations":{
+				"chrome":{
+				"date":"1999-01-01",
+				"status":"available",
+				"version":"101"
+				}
 			},
-			expectedError: nil,
+			"feature_id":"feature1",
+			"name":"feature 1"
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token",
+		"total":100
+	}
+}`,
+			),
+			request: httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=test_counts",
+					*inputPageToken,
+					url.QueryEscape("available_on:chrome AND name:grid"),
+				),
+				nil),
 		},
 		{
 			name: "500 case",
@@ -266,20 +240,10 @@ func TestListFeatures(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to get list of features",
-			},
-			request: backend.ListFeaturesRequestObject{
-				Params: backend.ListFeaturesParams{
-					PageToken:     nil,
-					PageSize:      nil,
-					Q:             nil,
-					Sort:          nil,
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(500,
+				`{"code":500,"message":"unable to get list of features"}`,
+			),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
 		},
 		{
 			name: "400 case - query string does not match grammar",
@@ -294,20 +258,10 @@ func TestListFeatures(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 0,
-			expectedResponse: backend.ListFeatures400JSONResponse{
-				Code:    400,
-				Message: "query string does not match expected grammar",
-			},
-			request: backend.ListFeaturesRequestObject{
-				Params: backend.ListFeaturesParams{
-					PageToken:     nil,
-					PageSize:      nil,
-					Sort:          nil,
-					Q:             valuePtr[string]("badterm:foo"),
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(400,
+				`{"code":400,"message":"query string does not match expected grammar"}`,
+			),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features?q=badterm:foo", nil),
 		},
 		{
 			name: "400 case - query string not safe",
@@ -322,20 +276,10 @@ func TestListFeatures(t *testing.T) {
 				err:                   errTest,
 			},
 			expectedCallCount: 0,
-			expectedResponse: backend.ListFeatures400JSONResponse{
-				Code:    400,
-				Message: "query string cannot be decoded",
-			},
-			request: backend.ListFeaturesRequestObject{
-				Params: backend.ListFeaturesParams{
-					PageToken:     nil,
-					PageSize:      nil,
-					Q:             valuePtr[string]("%"),
-					Sort:          nil,
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(400,
+				`{"code":400,"message":"query string cannot be decoded"}`,
+			),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features?q="+url.QueryEscape("%"), nil),
 		},
 		{
 			name: "400 case - invalid page token",
@@ -355,20 +299,10 @@ func TestListFeatures(t *testing.T) {
 				err:                   backendtypes.ErrInvalidPageToken,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListFeatures400JSONResponse{
-				Code:    400,
-				Message: "invalid page token",
-			},
-			request: backend.ListFeaturesRequestObject{
-				Params: backend.ListFeaturesParams{
-					PageToken:     badPageToken,
-					PageSize:      nil,
-					Q:             nil,
-					Sort:          nil,
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(400,
+				`{"code":400,"message":"invalid page token"}`,
+			),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features?page_token="+*badPageToken, nil),
 		},
 	}
 	for _, tc := range testCases {
@@ -379,24 +313,8 @@ func TestListFeatures(t *testing.T) {
 				t:                 t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
-
-			// Call the function under test
-			resp, err := myServer.ListFeatures(context.Background(), tc.request)
-
-			// Assertions
-			if mockStorer.callCountFeaturesSearch != tc.expectedCallCount {
-				t.Errorf("Incorrect call count: expected %d, got %d",
-					tc.expectedCallCount,
-					mockStorer.callCountFeaturesSearch)
-			}
-
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountFeaturesSearch, "FeaturesSearch")
 		})
 	}
 }

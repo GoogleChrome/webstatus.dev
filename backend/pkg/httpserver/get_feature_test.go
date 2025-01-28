@@ -15,9 +15,8 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -31,13 +30,12 @@ func TestGetFeature(t *testing.T) {
 		name              string
 		mockConfig        MockGetFeatureByIDConfig
 		expectedCallCount int // For the mock method
-		request           backend.GetFeatureRequestObject
-		expectedResponse  backend.GetFeatureResponseObject
-		expectedError     error
+		request           *http.Request
+		expectedResponse  *http.Response
 	}{
+		// nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name: "Success Case - no optional params - use defaults",
-			// nolint:dupl // WONTFIX - being explicit for short list of tests.
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
@@ -73,40 +71,28 @@ func TestGetFeature(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetFeature200JSONResponse{
-				Baseline: &backend.BaselineInfo{
-					Status: valuePtr(backend.Widely),
-					LowDate: valuePtr(
-						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					),
-					HighDate: valuePtr(
-						openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					),
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedResponse: testJSONResponse(200, `
+			{
+				"baseline":{
+				   "high_date":"2001-01-01",
+				   "low_date":"2000-01-01",
+				   "status":"widely"
 				},
-				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"chrome": {
-						Status:  valuePtr(backend.Available),
-						Date:    &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-						Version: valuePtr("100"),
-					},
+				"browser_implementations":{
+				   "chrome":{
+					  "date":"1999-01-01",
+					  "status":"available",
+					  "version":"100"
+				   }
 				},
-				FeatureId: "feature1",
-				Name:      "feature 1",
-				Spec:      nil,
-				Usage:     nil,
-				Wpt:       nil,
-			},
-			request: backend.GetFeatureRequestObject{
-				FeatureId: "feature1",
-				Params: backend.GetFeatureParams{
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+				"feature_id":"feature1",
+				"name":"feature 1"
+			 }`),
 		},
+		// nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name: "Success Case - with optional params",
-			// nolint:dupl // WONTFIX - being explicit for short list of tests.
 			mockConfig: MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
@@ -142,36 +128,25 @@ func TestGetFeature(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetFeature200JSONResponse{
-				Baseline: &backend.BaselineInfo{
-					Status: valuePtr(backend.Widely),
-					LowDate: valuePtr(
-						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					),
-					HighDate: valuePtr(
-						openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					),
-				},
-				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"chrome": {
-						Status:  valuePtr(backend.Available),
-						Date:    &openapi_types.Date{Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-						Version: valuePtr("100"),
-					},
-				},
-				FeatureId: "feature1",
-				Name:      "feature 1",
-				Spec:      nil,
-				Usage:     nil,
-				Wpt:       nil,
-			},
-			request: backend.GetFeatureRequestObject{
-				FeatureId: "feature1",
-				Params: backend.GetFeatureParams{
-					WptMetricView: valuePtr(backend.TestCounts),
-				},
-			},
-			expectedError: nil,
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
+			expectedResponse: testJSONResponse(200, `
+{
+	"baseline":{
+		"high_date":"2001-01-01",
+		"low_date":"2000-01-01",
+		"status":"widely"
+	},
+	"browser_implementations":{
+		"chrome":{
+			"date":"1999-01-01",
+			"status":"available",
+			"version":"100"
+		}
+	},
+	"feature_id":"feature1",
+	"name":"feature 1"
+}`,
+			),
 		},
 		{
 			name: "404",
@@ -188,17 +163,8 @@ func TestGetFeature(t *testing.T) {
 				err:  gcpspanner.ErrQueryReturnedNoResults,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetFeature404JSONResponse{
-				Code:    404,
-				Message: "feature id feature1 is not found",
-			},
-			request: backend.GetFeatureRequestObject{
-				FeatureId: "feature1",
-				Params: backend.GetFeatureParams{
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedResponse:  testJSONResponse(404, `{"code":404,"message":"feature id feature1 is not found"}`),
 		},
 		{
 			name: "500",
@@ -215,17 +181,8 @@ func TestGetFeature(t *testing.T) {
 				err:  errTest,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.GetFeature500JSONResponse{
-				Code:    500,
-				Message: "unable to get feature",
-			},
-			request: backend.GetFeatureRequestObject{
-				FeatureId: "feature1",
-				Params: backend.GetFeatureParams{
-					WptMetricView: nil,
-				},
-			},
-			expectedError: nil,
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature"}`),
 		},
 	}
 	for _, tc := range testCases {
@@ -236,24 +193,9 @@ func TestGetFeature(t *testing.T) {
 				t:                    t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
-
-			// Call the function under test
-			resp, err := myServer.GetFeature(context.Background(), tc.request)
-
-			// Assertions
-			if mockStorer.callCountGetFeature != tc.expectedCallCount {
-				t.Errorf("Incorrect call count: expected %d, got %d",
-					tc.expectedCallCount,
-					mockStorer.callCountGetFeature)
-			}
-
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountGetFeature,
+				"GetFeature")
 		})
 	}
 }

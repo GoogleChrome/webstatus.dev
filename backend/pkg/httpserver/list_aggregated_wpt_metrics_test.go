@@ -15,15 +15,13 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func TestListAggregatedWPTMetrics(t *testing.T) {
@@ -31,9 +29,8 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 		name              string
 		mockConfig        MockListMetricsOverTimeWithAggregatedTotalsConfig
 		expectedCallCount int // For the mock method
-		request           backend.ListAggregatedWPTMetricsRequestObject
-		expectedResponse  backend.ListAggregatedWPTMetricsResponseObject
-		expectedError     error
+		request           *http.Request
+		expectedResponse  *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
@@ -57,31 +54,23 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 				},
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListAggregatedWPTMetrics200JSONResponse{
-				Data: []backend.WPTRunMetric{
-					{
-						RunTimestamp:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						TestPassCount:   valuePtr[int64](2),
-						TotalTestsCount: valuePtr[int64](2),
-					},
-				},
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nil,
-				},
-			},
-			request: backend.ListAggregatedWPTMetricsRequestObject{
-				Params: backend.ListAggregatedWPTMetricsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: nil,
-					PageSize:  nil,
-					FeatureId: nil,
-				},
-				Browser:    backend.Chrome,
-				Channel:    backend.Experimental,
-				MetricView: backend.SubtestCounts,
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"run_timestamp":"2000-01-01T00:00:00Z",
+			"test_pass_count":2,
+			"total_tests_count":2
+		}
+	],
+	"metadata":{
+
+	}
+}
+			`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "Success Case - include optional params",
@@ -105,31 +94,25 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 				pageToken: nextPageToken,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListAggregatedWPTMetrics200JSONResponse{
-				Data: []backend.WPTRunMetric{
-					{
-						RunTimestamp:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						TestPassCount:   valuePtr[int64](2),
-						TotalTestsCount: valuePtr[int64](2),
-					},
-				},
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nextPageToken,
-				},
-			},
-			request: backend.ListAggregatedWPTMetricsRequestObject{
-				Params: backend.ListAggregatedWPTMetricsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					PageToken: inputPageToken,
-					FeatureId: valuePtr[[]string]([]string{"feature1", "feature2"}),
-					PageSize:  valuePtr[int](50),
-				},
-				Browser:    backend.Chrome,
-				Channel:    backend.Experimental,
-				MetricView: backend.SubtestCounts,
-			},
-			expectedError: nil,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"run_timestamp":"2000-01-01T00:00:00Z",
+			"test_pass_count":2,
+			"total_tests_count":2
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token"
+	}
+}
+			`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+					"?startAt=2000-01-01&endAt=2000-01-10&page_size=50&"+
+					"featureId=feature1&featureId=feature2&"+
+					"page_token="+*inputPageToken, nil),
 		},
 		{
 			name: "500 case",
@@ -147,23 +130,10 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 				err:                errTest,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListAggregatedWPTMetrics500JSONResponse{
-				Code:    500,
-				Message: "unable to get aggregated metrics",
-			},
-			request: backend.ListAggregatedWPTMetricsRequestObject{
-				Params: backend.ListAggregatedWPTMetricsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					FeatureId: nil,
-					PageToken: nil,
-					PageSize:  nil,
-				},
-				Browser:    backend.Chrome,
-				Channel:    backend.Experimental,
-				MetricView: backend.SubtestCounts,
-			},
-			expectedError: nil,
+			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get aggregated metrics"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "400 case - invalid page token",
@@ -181,23 +151,10 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 				err:                backendtypes.ErrInvalidPageToken,
 			},
 			expectedCallCount: 1,
-			expectedResponse: backend.ListAggregatedWPTMetrics400JSONResponse{
-				Code:    400,
-				Message: "invalid page token",
-			},
-			request: backend.ListAggregatedWPTMetricsRequestObject{
-				Params: backend.ListAggregatedWPTMetricsParams{
-					StartAt:   openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					EndAt:     openapi_types.Date{Time: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC)},
-					FeatureId: nil,
-					PageToken: badPageToken,
-					PageSize:  nil,
-				},
-				Browser:    backend.Chrome,
-				Channel:    backend.Experimental,
-				MetricView: backend.SubtestCounts,
-			},
-			expectedError: nil,
+			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+					"?startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
 		},
 	}
 
@@ -209,24 +166,9 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 				t:            t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
-
-			// Call the function under test
-			resp, err := myServer.ListAggregatedWPTMetrics(context.Background(), tc.request)
-
-			// Assertions
-			if mockStorer.callCountListMetricsOverTimeWithAggregatedTotals != tc.expectedCallCount {
-				t.Errorf("Incorrect call count: expected %d, got %d",
-					tc.expectedCallCount,
-					mockStorer.callCountListMetricsOverTimeWithAggregatedTotals)
-			}
-
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListMetricsOverTimeWithAggregatedTotals,
+				"ListMetricsOverTimeWithAggregatedTotals")
 		})
 	}
 }
