@@ -20,6 +20,7 @@ import (
 	"encoding/base64"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 )
 
@@ -50,5 +51,12 @@ func TestChromiumCodesearchEnumFetcher_Fetch_Base64Encoded(t *testing.T) {
 	b, err := base64.StdEncoding.DecodeString(fetchedData)
 	if err != nil {
 		t.Errorf("Fetched data is not valid base64: %v\nData:\n%s", err, string(b))
+	}
+
+	// Quick sanity check that it contains the WebDX histogram.
+	// Example of it moving:
+	// https://chromium.googlesource.com/chromium/src/+/5d15720921afb24de54a64b766138c45962cbcef
+	if !strings.Contains(string(b), "WebDXFeatureObserver") {
+		t.Error("enum file does not contain WebDXFeatureObserver histogram")
 	}
 }
