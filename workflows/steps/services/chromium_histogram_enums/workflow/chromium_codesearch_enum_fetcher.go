@@ -42,7 +42,8 @@ type ChromiumCodesearchEnumFetcher struct {
 	enumURL    *url.URL
 }
 
-const enumURL = "https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/enums.xml?format=TEXT"
+const enumURL = "https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/metadata/blink/" +
+	"enums.xml?format=TEXT"
 
 func (f ChromiumCodesearchEnumFetcher) Fetch(ctx context.Context) (io.ReadCloser, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, f.enumURL.String(), nil)
