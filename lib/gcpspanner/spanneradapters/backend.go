@@ -555,12 +555,13 @@ func (s *Backend) FeaturesSearch(
 }
 
 // TODO: Pass in context to be used by slog.ErrorContext.
+// nolint: gocyclo // WONTFIX. Keep all the cases here so that the exhaustive
+// linter can catch a missing case.
 func getFeatureSearchSortOrder(
 	sortOrder *backend.ListFeaturesParamsSort) gcpspanner.Sortable {
 	if sortOrder == nil {
 		return gcpspanner.NewBaselineStatusSort(false)
 	}
-	// nolint: exhaustive // Remove once we support all the cases.
 	switch *sortOrder {
 	case backend.NameAsc:
 		return gcpspanner.NewFeatureNameSort(true)
@@ -606,6 +607,22 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewChromiumUsageSort(true)
 	case backend.ChromiumUsageDesc:
 		return gcpspanner.NewChromiumUsageSort(false)
+	case backend.AvailabilityChromeAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Chrome))
+	case backend.AvailabilityChromeDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Chrome))
+	case backend.AvailabilityEdgeAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Edge))
+	case backend.AvailabilityEdgeDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Edge))
+	case backend.AvailabilityFirefoxAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Firefox))
+	case backend.AvailabilityFirefoxDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Firefox))
+	case backend.AvailabilitySafariAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Safari))
+	case backend.AvailabilitySafariDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Safari))
 	}
 
 	// Unknown sort order
