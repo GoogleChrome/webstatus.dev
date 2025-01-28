@@ -607,21 +607,21 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewChromiumUsageSort(true)
 	case backend.ChromiumUsageDesc:
 		return gcpspanner.NewChromiumUsageSort(false)
-	case backend.DesktopAvailabilityChromeAsc:
+	case backend.AvailabilityChromeAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Chrome))
-	case backend.DesktopAvailabilityChromeDesc:
+	case backend.AvailabilityChromeDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Chrome))
-	case backend.DesktopAvailabilityEdgeAsc:
+	case backend.AvailabilityEdgeAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Edge))
-	case backend.DesktopAvailabilityEdgeDesc:
+	case backend.AvailabilityEdgeDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Edge))
-	case backend.DesktopAvailabilityFirefoxAsc:
+	case backend.AvailabilityFirefoxAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Firefox))
-	case backend.DesktopAvailabilityFirefoxDesc:
+	case backend.AvailabilityFirefoxDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Firefox))
-	case backend.DesktopAvailabilitySafariAsc:
+	case backend.AvailabilitySafariAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Safari))
-	case backend.DesktopAvailabilitySafariDesc:
+	case backend.AvailabilitySafariDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Safari))
 	}
 

@@ -1337,35 +1337,35 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 			want:  gcpspanner.NewBrowserImplSort(false, "safari", true),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilityChromeAsc),
+			input: valuePtr(backend.AvailabilityChromeAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "chrome"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilityChromeDesc),
+			input: valuePtr(backend.AvailabilityChromeDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "chrome"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilityEdgeAsc),
+			input: valuePtr(backend.AvailabilityEdgeAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "edge"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilityEdgeDesc),
+			input: valuePtr(backend.AvailabilityEdgeDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "edge"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilityFirefoxAsc),
+			input: valuePtr(backend.AvailabilityFirefoxAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "firefox"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilityFirefoxDesc),
+			input: valuePtr(backend.AvailabilityFirefoxDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "firefox"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilitySafariAsc),
+			input: valuePtr(backend.AvailabilitySafariAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "safari"),
 		},
 		{
-			input: valuePtr(backend.DesktopAvailabilitySafariDesc),
+			input: valuePtr(backend.AvailabilitySafariDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "safari"),
 		},
 	}
