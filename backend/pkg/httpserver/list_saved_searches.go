@@ -22,52 +22,44 @@ import (
 )
 
 func getSavedSearches() []backend.SavedSearchResponse {
-	ownerStatus1 := backend.SavedSearchResponseOwnerStatusNone
-	subscribeStatus1 := backend.SavedSearchResponseSubscriptionStatusActive
-	ownerStatus2 := backend.SavedSearchResponseOwnerStatusAdmin
-	subscribeStatus2 := backend.SavedSearchResponseSubscriptionStatusNone
-	ownerStatus3 := backend.SavedSearchResponseOwnerStatusNone
-	subscribeStatus3 := backend.SavedSearchResponseSubscriptionStatusNone
+	test1Description := "test"
 
 	return []backend.SavedSearchResponse{
 		{
-			CreatedAt:          time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
-			UpdatedAt:          nil,
-			Id:                 "1",
-			Name:               "a query I subscribe to",
-			Query:              "group:css",
-			OwnerStatus:        &ownerStatus1,
-			SubscriptionStatus: &subscribeStatus1,
+			CreatedAt:   time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
+			Description: &test1Description,
+			Id:          "1",
+			Name:        "a query I subscribe to",
+			Query:       "group:css",
 		},
 		{
-			CreatedAt:          time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
-			UpdatedAt:          nil,
-			Id:                 "2",
-			Name:               "my personal query",
-			Query:              "available_on:chrome AND group:css",
-			OwnerStatus:        &ownerStatus2,
-			SubscriptionStatus: &subscribeStatus2,
+			CreatedAt:   time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
+			Description: nil,
+			Id:          "2",
+			Name:        "my personal query",
+			Query:       "available_on:chrome AND group:css",
 		},
 		{
-			CreatedAt:          time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
-			UpdatedAt:          nil,
-			Id:                 "3",
-			Name:               "a new query",
-			Query:              "available_on:chrome",
-			OwnerStatus:        &ownerStatus3,
-			SubscriptionStatus: &subscribeStatus3,
+			CreatedAt:   time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, time.September, 1, 1, 0, 0, 0, time.UTC),
+			Description: nil,
+			Id:          "3",
+			Name:        "a new query",
+			Query:       "available_on:chrome",
 		},
 	}
 }
 
-// ListSavedSearches implements backend.StrictServerInterface.
+// ListUserSavedSearches implements backend.StrictServerInterface.
 // nolint:ireturn // Expected ireturn for openapi generation.
-func (s *Server) ListSavedSearches(
-	_ context.Context, _ backend.ListSavedSearchesRequestObject) (
-	backend.ListSavedSearchesResponseObject, error) {
+func (s *Server) ListUserSavedSearches(
+	_ context.Context, _ backend.ListUserSavedSearchesRequestObject) (
+	backend.ListUserSavedSearchesResponseObject, error) {
 	searches := getSavedSearches()
 
-	return backend.ListSavedSearches200JSONResponse{
+	return backend.ListUserSavedSearches200JSONResponse{
 		Metadata: nil,
 		Data:     &searches,
 	}, nil

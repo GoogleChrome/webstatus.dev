@@ -103,6 +103,71 @@ type Server struct {
 	wptMetricsStorer WPTMetricsStorer
 }
 
+// RemoveSavedSearch implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) RemoveSavedSearch(
+	ctx context.Context, request backend.RemoveSavedSearchRequestObject) (
+	backend.RemoveSavedSearchResponseObject, error) {
+	return backend.RemoveSavedSearch400JSONResponse{
+		Code:    http.StatusBadRequest,
+		Message: "TODO",
+	}, nil
+}
+
+// UpdateSavedSearch implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) UpdateSavedSearch(
+	ctx context.Context, request backend.UpdateSavedSearchRequestObject) (
+	backend.UpdateSavedSearchResponseObject, error) {
+	return backend.UpdateSavedSearch400JSONResponse{
+		Code:    http.StatusBadRequest,
+		Message: "TODO",
+	}, nil
+}
+
+// CreateSavedSearch implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSavedSearchRequestObject) (
+	backend.CreateSavedSearchResponseObject, error) {
+	return backend.CreateSavedSearch400JSONResponse{
+		Code:    http.StatusBadRequest,
+		Message: "TODO",
+	}, nil
+}
+
+// GetUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) GetUserSavedSearchBookmark(
+	ctx context.Context, request backend.GetUserSavedSearchBookmarkRequestObject) (
+	backend.GetUserSavedSearchBookmarkResponseObject, error) {
+	return backend.GetUserSavedSearchBookmark400JSONResponse{
+		Code:    http.StatusBadRequest,
+		Message: "TODO",
+	}, nil
+}
+
+// PutUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) PutUserSavedSearchBookmark(
+	ctx context.Context, request backend.PutUserSavedSearchBookmarkRequestObject) (
+	backend.PutUserSavedSearchBookmarkResponseObject, error) {
+	return backend.PutUserSavedSearchBookmark400JSONResponse{
+		Code:    http.StatusBadRequest,
+		Message: "TODO",
+	}, nil
+}
+
+// RemoveUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: revive, ireturn // Name generated from openapi
+func (s *Server) RemoveUserSavedSearchBookmark(
+	ctx context.Context, request backend.RemoveUserSavedSearchBookmarkRequestObject) (
+	backend.RemoveUserSavedSearchBookmarkResponseObject, error) {
+	return backend.RemoveUserSavedSearchBookmark400JSONResponse{
+		Code:    http.StatusBadRequest,
+		Message: "TODO",
+	}, nil
+}
+
 func defaultBrowsers() []backend.BrowserPathParam {
 	return []backend.BrowserPathParam{
 		backend.Chrome,
