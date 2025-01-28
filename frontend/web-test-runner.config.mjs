@@ -24,7 +24,8 @@ const filteredLogs = [
 ];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
-  concurrency: 10,
+  concurrency: 4,
+  concurrentBrowsers: 1,
   /** Resolve bare module imports */
   nodeResolve: {
     exportConditions: ['browser', 'development'],
@@ -62,7 +63,6 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
 
   // How long a test file can take to finish.
   testsFinishTimeout: 1000 * 60 * 1, // (1 min)
-  browserStartTimeout: 1000 * 60 * 2,
   // mocha config https://mochajs.org/api/mocha
   testFramework: {config: {timeout: 30000}},
 });
