@@ -47,6 +47,7 @@ export type BrowsersParameter = components['parameters']['browserPathParam'];
 type PageablePath =
   | '/v1/features'
   | '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}'
+  | '/v1/users/me/saved-searches'
   | '/v1/stats/features/browsers/{browser}/feature_counts';
 
 type SuccessResponsePageableData<
@@ -287,6 +288,7 @@ export class APIClient {
     wptMetricView?: FeatureWPTMetricViewType,
     offset?: number,
     pageSize?: number,
+    accessToken?: string,
   ): Promise<components['schemas']['FeaturePage']> {
     const queryParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) queryParams.q = q;
@@ -295,6 +297,11 @@ export class APIClient {
     const pageToken = offset
       ? this.createOffsetPaginationTokenForGetFeatures(offset)
       : undefined;
+
+    if (accessToken)
+      await this.getPageOfData('/v1/users/me/saved-searches', {
+        headers: {Authorization: `Bearer ${accessToken}`},
+      });
 
     return this.getPageOfData(
       '/v1/features',

@@ -17,13 +17,15 @@ package httpserver
 import (
 	"cmp"
 	"context"
-	"fmt"
+	"encoding/json"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
 
 type WebFeatureMetadataStorer interface {
@@ -195,7 +197,27 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
-func applyMiddlewares(mux *http.ServeMux, middlewares []func(http.Handler) http.Handler) http.Handler {
+// GenericErrorFn is a reusable method for the middleware layers that they can use to get well structured JSON output
+// for BasicErrorModel.
+func GenericErrorFn(ctx context.Context, statusCode int, w http.ResponseWriter, err error) {
+
+	var message string
+	if err != nil {
+		message = err.Error()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	encoderErr := json.NewEncoder(w).Encode(backend.BasicErrorModel{
+		Code:    statusCode,
+		Message: message,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "unable to write generic error", "error", encoderErr)
+	}
+}
+
+func applyPreRequestMiddlewares(mux *http.ServeMux, middlewares []func(http.Handler) http.Handler) http.Handler {
 	var next http.Handler
 	next = mux
 	// Apply middlewares in reverse order to ensure they execute in the order they are defined.
@@ -207,38 +229,61 @@ func applyMiddlewares(mux *http.ServeMux, middlewares []func(http.Handler) http.
 	return next
 }
 
+// getMiddlewares adapts a list of standard HTTP middleware to be compatible
+// with the StrictMiddlewareFunc type. The order of middlewares is preserved,
+// ensuring that the first middleware in the input slice is the first to be
+// applied to an incoming request, and the last middleware in the slice is
+// the last to be applied.
+func getMiddlewares(middlewares []func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
+	strictMiddlewares := make([]backend.StrictMiddlewareFunc, len(middlewares))
+
+	for i := range middlewares {
+		// Calculate the reversed index
+		j := len(middlewares) - 1 - i
+		strictMiddlewares[j] = func(f nethttp.StrictHTTPHandlerFunc, _ string) nethttp.StrictHTTPHandlerFunc {
+
+			// This is the adapter function that gets called on each request.
+			return func(ctx context.Context, w http.ResponseWriter,
+				r *http.Request, req interface{}) (response interface{}, err error) {
+				// Create the handler.
+				handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					// Now ctx and req are correctly available.
+					response, err = f(ctx, w, r, req)
+				})
+
+				// Wrap the adapted handler with the standard middleware.
+				wrappedHandler := middlewares[i](handler)
+				wrappedHandler.ServeHTTP(w, r)
+
+				return response, err
+			}
+		}
+	}
+
+	return strictMiddlewares
+}
+
 func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
-	middlewares []func(http.Handler) http.Handler) (*http.Server, error) {
-	_, err := backend.GetSwagger()
-	if err != nil {
-		return nil, fmt.Errorf("error loading swagger spec. %w", err)
-	}
-
+	preRequestMiddlewares, postRequestValidationMiddlewares []func(http.Handler) http.Handler) (*http.Server, error) {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
 		metadataStorer:   metadataStorer,
 		wptMetricsStorer: wptMetricsStorer,
 	}
 
-	srvStrictHandler := backend.NewStrictHandler(srv, nil)
+	srvStrictHandler := backend.NewStrictHandler(srv, getMiddlewares(postRequestValidationMiddlewares))
 
 	// Use standard library router
 	r := http.NewServeMux()
-
-	// Use our validation middleware to check all requests against the
-	// OpenAPI schema.
-	// r.Use(middleware.OapiRequestValidatorWithOptions(swagger, &middleware.Options{
-	// 	SilenceServersWarning: true,
-	// }))
 
 	// We now register our web feature router above as the handler for the interface
 	backend.HandlerFromMux(srvStrictHandler, r)
 
 	// Now wrap the middleware
-	wrappedHandler := applyMiddlewares(r, middlewares)
+	wrappedHandler := applyPreRequestMiddlewares(r, preRequestMiddlewares)
 
 	// nolint:exhaustruct // No need to populate 3rd party struct
 	return &http.Server{

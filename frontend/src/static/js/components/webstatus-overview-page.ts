@@ -39,6 +39,7 @@ import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {toast} from '../utils/toast.js';
 import '../services/webstatus-webfeature-progress-service.js';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -61,12 +62,15 @@ export class OverviewPage extends LitElement {
   @state()
   currentLocation?: {search: string};
 
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user?: User;
+
   constructor() {
     super();
 
     this.loadingTask = new Task(this, {
-      args: () =>
-        [this.apiClient, this.location] as [APIClient, {search: string}],
+      args: () => [this.apiClient, this.location, this.user] as const,
       task: async ([apiClient, routerLocation]): Promise<
         components['schemas']['FeaturePage']
       > => {
@@ -80,7 +84,7 @@ export class OverviewPage extends LitElement {
           this.currentLocation = this.location;
           return this._fetchFeatures(apiClient, routerLocation);
         }
-        return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
+        return this._fetchFeatures(apiClient, routerLocation);
       },
       onComplete: page => {
         this.taskTracker = {
@@ -122,12 +126,17 @@ export class OverviewPage extends LitElement {
     const wptMetricView = getWPTMetricView(
       routerLocation,
     ) as FeatureWPTMetricViewType;
+    let token: string | undefined;
+    if (this.user) {
+      token = await this.user?.getIdToken(true);
+    }
     return apiClient.getFeatures(
       searchQuery,
       sortSpec,
       wptMetricView,
       offset,
       pageSize,
+      token,
     );
   }
 

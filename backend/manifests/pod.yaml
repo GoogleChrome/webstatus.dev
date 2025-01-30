@@ -47,6 +47,12 @@ spec:
           value: '6379'
         - name: CACHE_TTL
           value: 5m # Short TTL locally
+        - name: FIREBASE_AUTH_EMULATOR_URL
+          value: http://localhost:9099
+        - name: FIREBASE_APP_API_KEY
+          value: local
+        - name: FIREBASE_APP_AUTH_DOMAIN
+          value: local
       resources:
         limits:
           cpu: 250m

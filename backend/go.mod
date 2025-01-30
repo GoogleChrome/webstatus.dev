@@ -5,10 +5,21 @@ go 1.22.7
 toolchain go1.23.2
 
 require (
+	firebase.google.com/go/v4 v4.15.1
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20241229174745-146e1a05eafd
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241229174745-146e1a05eafd
 	github.com/go-chi/cors v1.2.1
 	github.com/oapi-codegen/runtime v1.1.1
+)
+
+require (
+	cloud.google.com/go/firestore v1.17.0 // indirect
+	cloud.google.com/go/storage v1.49.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.49.0 // indirect
+	github.com/MicahParks/keyfunc v1.9.0 // indirect
+	github.com/golang-jwt/jwt/v4 v4.5.1 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
+	google.golang.org/appengine/v2 v2.0.2 // indirect
 )
 
 require (

@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -459,4 +460,131 @@ func assertTestServerRequest(t *testing.T, srv *Server, req *http.Request, expec
 	assertStatusCode(t, resp.StatusCode, expectedResponse.StatusCode)
 	assertHeaders(t, resp.Header, expectedResponse.Header)
 	assertResponseBody(t, resp.Body, expectedResponse.Body)
+}
+
+// TODO: Move recoveryMiddleware into the lib directory to actually be used by the real server.
+func recoveryMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		defer func() {
+			if r := recover(); r != nil {
+				slog.ErrorContext(req.Context(), "Panic recovered", "error", r)
+
+				// Return an Internal Server Error (500)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+
+		next.ServeHTTP(w, req)
+	})
+}
+
+func TestMiddlewaresOrder(t *testing.T) {
+	count := 0
+	var middleware1Hit, middleware2Hit, middleware3Hit bool
+	middlewares := []func(http.Handler) http.Handler{
+		recoveryMiddleware,
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				middleware1Hit = true
+				if count != 0 {
+					t.Errorf("Middleware 1: Expected count to be 0, got %d", count)
+				}
+				count++
+				next.ServeHTTP(w, r)
+			})
+		},
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				middleware2Hit = true
+				if count != 1 {
+					t.Errorf("Middleware 2: Expected count to be 1, got %d", count)
+				}
+				count++
+				next.ServeHTTP(w, r)
+			})
+		},
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				middleware3Hit = true
+				if count != 2 {
+					t.Errorf("Middleware 3: Expected count to be 2, got %d", count)
+				}
+				count++
+				next.ServeHTTP(w, r)
+			})
+		},
+	}
+	srv, err := NewHTTPServer("", nil, nil, middlewares)
+	if err != nil {
+		t.Fatalf("unable to get server. error %s", err)
+	}
+	s := httptest.NewServer(srv.Handler)
+	defer s.Close()
+
+	submitRequest(t, s.URL+"/v1/features", http.MethodGet)
+
+	if !middleware1Hit || !middleware2Hit || !middleware3Hit {
+		t.Errorf("expected all middlewares to be hit")
+	}
+}
+
+// This test ensures that the third-party OpenAPI library continues to add
+// Bearer authentication scopes to the request context when the route has
+// security schemes configured.
+func TestAuthScopePresentWhenSecurityConfigured(t *testing.T) {
+	middlewares := []func(http.Handler) http.Handler{
+		recoveryMiddleware,
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if value := r.Context().Value(backend.BearerAuthScopes); value == nil {
+					t.Error("did not find bearer auth scope in a route configured with security schemes")
+				}
+				next.ServeHTTP(w, r)
+			})
+		},
+	}
+	srv, err := NewHTTPServer("", nil, nil, middlewares)
+	if err != nil {
+		t.Fatalf("unable to get server. error %s", err)
+	}
+	s := httptest.NewServer(srv.Handler)
+	defer s.Close()
+
+	submitRequest(t, s.URL+"/v1/users/me/saved-searches", http.MethodGet)
+}
+
+// This test ensures that the third-party OpenAPI library continues to omit
+// Bearer authentication scopes from the request context when the route does
+// not have security schemes configured.
+func TestAuthScopeAbsentWhenSecurityNotConfigured(t *testing.T) {
+	middlewares := []func(http.Handler) http.Handler{
+		recoveryMiddleware,
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if value := r.Context().Value(backend.BearerAuthScopes); value != nil {
+					t.Error("found bearer auth scope in a route not configured with security schemes")
+				}
+				next.ServeHTTP(w, r)
+			})
+		},
+	}
+	srv, err := NewHTTPServer("", nil, nil, middlewares)
+	if err != nil {
+		t.Fatalf("unable to get server. error %s", err)
+	}
+	s := httptest.NewServer(srv.Handler)
+	defer s.Close()
+
+	submitRequest(t, s.URL+"/v1/features", http.MethodGet)
+}
+
+func submitRequest(t *testing.T, url string, method string) {
+	req, err := http.NewRequestWithContext(context.Background(), method, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

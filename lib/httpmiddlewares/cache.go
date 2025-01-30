@@ -53,10 +53,10 @@ type DataCacher[K string, V []byte] interface {
 	Get(context.Context, K) (V, error)
 }
 
-// TODO: Pass in context to be used by slog.ErrorContext.
 func NewCacheMiddleware[K string, V []byte](cacher DataCacher[string, []byte]) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			slog.Info("in cache")
 			if r.Method != http.MethodGet {
 				next.ServeHTTP(w, r)
 
@@ -75,13 +75,13 @@ func NewCacheMiddleware[K string, V []byte](cacher DataCacher[string, []byte]) f
 				w.WriteHeader(http.StatusOK)
 				_, err := w.Write(cachedResponse)
 				if err != nil {
-					slog.Error("unable to write cached response", "cacheKey", cacheKey, "error", err)
+					slog.ErrorContext(r.Context(), "unable to write cached response", "cacheKey", cacheKey, "error", err)
 				}
 
 				return
 			} else if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
 				// Unknown internal error. For now log it.
-				slog.Error("cache fetched failed for unknown reasons", "error", err)
+				slog.ErrorContext(r.Context(), "cache fetched failed for unknown reasons", "error", err)
 			}
 
 			recorder := &responseRecorder{
@@ -96,7 +96,7 @@ func NewCacheMiddleware[K string, V []byte](cacher DataCacher[string, []byte]) f
 			if recorder.statusCode == http.StatusOK {
 				err = cacher.Cache(r.Context(), cacheKey, V(recorder.buffer.Bytes()))
 				if err != nil {
-					slog.Warn("unable to cache value", "cacheKey", cacheKey, "error", err)
+					slog.WarnContext(r.Context(), "unable to cache value", "cacheKey", cacheKey, "error", err)
 				}
 			}
 		})

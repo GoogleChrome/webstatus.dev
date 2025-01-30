@@ -23,11 +23,14 @@ import (
 	"slices"
 	"time"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
+	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
@@ -88,19 +91,32 @@ func main() {
 		slog.Error("unable to create valkey cache instance", "error", err)
 		os.Exit(1)
 	}
-	middlewares := []func(http.Handler) http.Handler{
-		opentelemetry.NewOpenTelemetryChiMiddleware(),
+
+	defaultApp, err := firebase.NewApp(context.Background(), nil)
+	if err != nil {
+		slog.Error("error initializing firebase app", "error", err)
+		os.Exit(1)
+	}
+
+	// Access Auth service from default app
+	defaultClient, err := defaultApp.Auth(context.Background())
+	if err != nil {
+		slog.Error("error getting Auth client", "error", err)
+	}
+	preRequestMiddlewares := []func(http.Handler) http.Handler{
 		cors.Handler(
 			//nolint: exhaustruct // No need to use every option of 3rd party struct.
 			cors.Options{
-				AllowedOrigins: []string{allowedOrigin, "http://*"},
-				// AllowOriginFunc:  func(r *http.Request, origin string) bool { return true },
-				AllowedMethods: []string{"GET", "OPTIONS"},
-				// AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
-				// ExposedHeaders:   []string{"Link"},
+				AllowedOrigins:   []string{allowedOrigin, "http://*"},
+				AllowedMethods:   []string{"GET", "OPTIONS", "PATCH", "DELETE"},
+				AllowedHeaders:   []string{"Authorization"},
 				AllowCredentials: true, // Remove after UbP
 				MaxAge:           300,  // Maximum value not ignored by any of major browsers
 			}),
+	}
+	postRequestValidationMiddlewares := []func(http.Handler) http.Handler{
+		httpmiddlewares.NewBearerTokenAuthenticationMiddleware(
+			auth.NewGCIPAuthenticator(defaultClient), backend.BearerAuthScopes, httpserver.GenericErrorFn),
 		httpmiddlewares.NewCacheMiddleware(cache),
 	}
 
@@ -123,14 +139,15 @@ func main() {
 			}
 		}()
 		// Prepend the opentelemtry middleware
-		middlewares = slices.Insert(middlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
+		preRequestMiddlewares = slices.Insert(preRequestMiddlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
 	}
 
 	srv, err := httpserver.NewHTTPServer(
 		"8080",
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
-		middlewares,
+		preRequestMiddlewares,
+		postRequestValidationMiddlewares,
 	)
 	if err != nil {
 		slog.Error("unable to create server", "error", err.Error())
