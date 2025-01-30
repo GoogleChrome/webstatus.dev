@@ -94,3 +94,8 @@ variable "min_instance_count" {
 variable "max_instance_count" {
   type = number
 }
+
+# variable "dns_zone" {
+#   type     = string
+#   nullable = true
+# }
