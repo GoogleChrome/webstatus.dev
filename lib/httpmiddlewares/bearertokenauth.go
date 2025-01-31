@@ -17,6 +17,7 @@ package httpmiddlewares
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -74,9 +75,12 @@ func NewBearerTokenAuthenticationMiddleware(authenticator BearerTokenAuthenticat
 
 			ctx := r.Context()
 
-			ctx = context.WithValue(ctx, authenticatedUserCtxKey{}, u)
+			ctx = AuthenticatedUserToContext(ctx, u)
 
 			r = r.WithContext(ctx)
+
+			ctxU, found := AuthenticatedUserFromContext(r.Context())
+			slog.Info("authenticated middleware", "user", *u, "found", found, "ctxU", ctxU)
 
 			next.ServeHTTP(w, r)
 		})
@@ -87,4 +91,8 @@ func AuthenticatedUserFromContext(ctx context.Context) (u *auth.User, ok bool) {
 	u, ok = ctx.Value(authenticatedUserCtxKey{}).(*auth.User)
 
 	return
+}
+
+func AuthenticatedUserToContext(ctx context.Context, u *auth.User) context.Context {
+	return context.WithValue(ctx, authenticatedUserCtxKey{}, u)
 }

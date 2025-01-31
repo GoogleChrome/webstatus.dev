@@ -23,8 +23,6 @@ info:
 servers:
   - url: https://api.webstatus.dev
     description: Production
-  - url: http://localhost:8080
-    description: Local
 paths:
   /v1/features:
     get:

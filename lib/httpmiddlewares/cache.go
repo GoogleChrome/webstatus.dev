@@ -57,6 +57,8 @@ func NewCacheMiddleware[K string, V []byte](cacher DataCacher[string, []byte]) f
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			slog.Info("in cache")
+			u, found := AuthenticatedUserFromContext(r.Context())
+			slog.Info("authenticated in cache ?", "user", u, "found", found, "route", r.URL.String())
 			if r.Method != http.MethodGet {
 				next.ServeHTTP(w, r)
 

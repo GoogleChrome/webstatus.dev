@@ -16,9 +16,11 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
 func getSavedSearches() []backend.SavedSearchResponse {
@@ -55,8 +57,11 @@ func getSavedSearches() []backend.SavedSearchResponse {
 // ListUserSavedSearches implements backend.StrictServerInterface.
 // nolint:ireturn // Expected ireturn for openapi generation.
 func (s *Server) ListUserSavedSearches(
-	_ context.Context, _ backend.ListUserSavedSearchesRequestObject) (
+	ctx context.Context, _ backend.ListUserSavedSearchesRequestObject) (
 	backend.ListUserSavedSearchesResponseObject, error) {
+
+	u, found := httpmiddlewares.AuthenticatedUserFromContext(ctx)
+	slog.Info("authenticated?", "user", u, "found", found)
 	searches := getSavedSearches()
 
 	return backend.ListUserSavedSearches200JSONResponse{

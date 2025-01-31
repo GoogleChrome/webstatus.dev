@@ -28,8 +28,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
 func valuePtr[T any](in T) *T { return &in }
@@ -478,16 +480,188 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+type mockServerInterface struct {
+	t                 *testing.T
+	expectedUserInCtx *auth.User
+	callCount         int
+}
+
+// CreateSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) CreateSavedSearch(ctx context.Context, _ backend.CreateSavedSearchRequestObject) (
+	backend.CreateSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetFeature implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetFeature(ctx context.Context, _ backend.GetFeatureRequestObject) (
+	backend.GetFeatureResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetFeatureMetadata implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetFeatureMetadata(ctx context.Context, _ backend.GetFeatureMetadataRequestObject) (
+	backend.GetFeatureMetadataResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetSavedSearch(ctx context.Context, _ backend.GetSavedSearchRequestObject) (
+	backend.GetSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetUserSavedSearchBookmark(ctx context.Context,
+	_ backend.GetUserSavedSearchBookmarkRequestObject) (backend.GetUserSavedSearchBookmarkResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListAggregatedFeatureSupport implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListAggregatedFeatureSupport(ctx context.Context,
+	_ backend.ListAggregatedFeatureSupportRequestObject) (
+	backend.ListAggregatedFeatureSupportResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListAggregatedWPTMetrics implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListAggregatedWPTMetrics(ctx context.Context,
+	_ backend.ListAggregatedWPTMetricsRequestObject) (backend.ListAggregatedWPTMetricsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListChromiumDailyUsageStats implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListChromiumDailyUsageStats(ctx context.Context,
+	_ backend.ListChromiumDailyUsageStatsRequestObject) (
+	backend.ListChromiumDailyUsageStatsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListFeatureWPTMetrics implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListFeatureWPTMetrics(ctx context.Context,
+	_ backend.ListFeatureWPTMetricsRequestObject) (backend.ListFeatureWPTMetricsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListFeatures implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListFeatures(ctx context.Context,
+	_ backend.ListFeaturesRequestObject) (backend.ListFeaturesResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListMissingOneImplemenationCounts implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListMissingOneImplemenationCounts(ctx context.Context,
+	_ backend.ListMissingOneImplemenationCountsRequestObject) (
+	backend.ListMissingOneImplemenationCountsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListUserSavedSearches implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListUserSavedSearches(ctx context.Context,
+	_ backend.ListUserSavedSearchesRequestObject) (backend.ListUserSavedSearchesResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// PutUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) PutUserSavedSearchBookmark(ctx context.Context,
+	_ backend.PutUserSavedSearchBookmarkRequestObject) (backend.PutUserSavedSearchBookmarkResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// RemoveSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) RemoveSavedSearch(ctx context.Context,
+	_ backend.RemoveSavedSearchRequestObject) (backend.RemoveSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// RemoveUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) RemoveUserSavedSearchBookmark(ctx context.Context,
+	_ backend.RemoveUserSavedSearchBookmarkRequestObject) (
+	backend.RemoveUserSavedSearchBookmarkResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// UpdateSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
+	_ backend.UpdateSavedSearchRequestObject) (backend.UpdateSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
+	if m.callCount != expectedCallCount {
+		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)
+	}
+}
+
+func assertUserInCtx(ctx context.Context, t *testing.T, expectedUser *auth.User) {
+	actualUser, _ := httpmiddlewares.AuthenticatedUserFromContext(ctx)
+	if !reflect.DeepEqual(expectedUser, actualUser) {
+		t.Errorf("expected user %+v in context. received %+v", expectedUser, actualUser)
+	}
+}
+
 func TestMiddlewaresOrder(t *testing.T) {
 	count := 0
-	var middleware1Hit, middleware2Hit, middleware3Hit bool
-	middlewares := []func(http.Handler) http.Handler{
+	var preMiddleware1Hit,
+		preMiddleware2Hit,
+		postValidationMiddleware1Hit,
+		postValidationMiddleware2Hit,
+		postValidationMiddleware3Hit bool
+
+	preRequestMiddlewares := []func(http.Handler) http.Handler{
 		recoveryMiddleware,
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				middleware1Hit = true
+				preMiddleware1Hit = true
 				if count != 0 {
-					t.Errorf("Middleware 1: Expected count to be 0, got %d", count)
+					t.Errorf("PreRequest Middleware 1: Expected count to be 0, got %d", count)
 				}
 				count++
 				next.ServeHTTP(w, r)
@@ -495,9 +669,21 @@ func TestMiddlewaresOrder(t *testing.T) {
 		},
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				middleware2Hit = true
+				preMiddleware2Hit = true
 				if count != 1 {
-					t.Errorf("Middleware 2: Expected count to be 1, got %d", count)
+					t.Errorf("PreRequest Middleware 2: Expected count to be 1, got %d", count)
+				}
+				count++
+				next.ServeHTTP(w, r)
+			})
+		},
+	}
+	postRequestValidationMiddlewares := []func(http.Handler) http.Handler{
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				postValidationMiddleware1Hit = true
+				if count != 2 {
+					t.Errorf("postRequestValidation Middleware 1: Expected count to be 2, got %d", count)
 				}
 				count++
 				next.ServeHTTP(w, r)
@@ -505,77 +691,86 @@ func TestMiddlewaresOrder(t *testing.T) {
 		},
 		func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				middleware3Hit = true
-				if count != 2 {
-					t.Errorf("Middleware 3: Expected count to be 2, got %d", count)
+				postValidationMiddleware2Hit = true
+				if count != 3 {
+					t.Errorf("postRequestValidation Middleware 2: Expected count to be 3, got %d", count)
+				}
+				count++
+				next.ServeHTTP(w, r)
+			})
+		},
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				postValidationMiddleware3Hit = true
+				if count != 4 {
+					t.Errorf("postRequestValidation Middleware 3: Expected count to be 4, got %d", count)
 				}
 				count++
 				next.ServeHTTP(w, r)
 			})
 		},
 	}
-	srv, err := NewHTTPServer("", nil, nil, middlewares)
-	if err != nil {
-		t.Fatalf("unable to get server. error %s", err)
-	}
+	mockServer := &mockServerInterface{t: t, expectedUserInCtx: nil, callCount: 0}
+	srv := createHTTPServer("", mockServer, preRequestMiddlewares, postRequestValidationMiddlewares)
 	s := httptest.NewServer(srv.Handler)
 	defer s.Close()
 
 	submitRequest(t, s.URL+"/v1/features", http.MethodGet)
 
-	if !middleware1Hit || !middleware2Hit || !middleware3Hit {
+	if !preMiddleware1Hit ||
+		!preMiddleware2Hit ||
+		!postValidationMiddleware1Hit ||
+		!postValidationMiddleware2Hit ||
+		!postValidationMiddleware3Hit {
 		t.Errorf("expected all middlewares to be hit")
 	}
+
+	mockServer.assertCallCount(1)
+}
+
+func testAuthScope(t *testing.T, path string, method string, shouldBePresent bool, expectedUserInCtx *auth.User) {
+	postRequestValidationMiddlewares := []func(http.Handler) http.Handler{
+		func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				value := r.Context().Value(backend.BearerAuthScopes)
+				if shouldBePresent && value == nil {
+					t.Error("did not find bearer auth scope, expected it")
+				}
+				if !shouldBePresent && value != nil {
+					t.Error("found bearer auth scope, did not expect it")
+				}
+				if shouldBePresent && expectedUserInCtx != nil {
+					ctx := r.Context()
+					ctx = httpmiddlewares.AuthenticatedUserToContext(ctx, expectedUserInCtx)
+					r = r.WithContext(ctx)
+				}
+				next.ServeHTTP(w, r)
+			})
+		},
+	}
+	mockServer := &mockServerInterface{t: t, expectedUserInCtx: expectedUserInCtx, callCount: 0}
+	srv := createHTTPServer("", mockServer, []func(http.Handler) http.Handler{
+		recoveryMiddleware}, postRequestValidationMiddlewares)
+	s := httptest.NewServer(srv.Handler)
+	defer s.Close()
+
+	submitRequest(t, s.URL+path, method)
+	mockServer.assertCallCount(1)
 }
 
 // This test ensures that the third-party OpenAPI library continues to add
 // Bearer authentication scopes to the request context when the route has
 // security schemes configured.
 func TestAuthScopePresentWhenSecurityConfigured(t *testing.T) {
-	middlewares := []func(http.Handler) http.Handler{
-		recoveryMiddleware,
-		func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if value := r.Context().Value(backend.BearerAuthScopes); value == nil {
-					t.Error("did not find bearer auth scope in a route configured with security schemes")
-				}
-				next.ServeHTTP(w, r)
-			})
-		},
-	}
-	srv, err := NewHTTPServer("", nil, nil, middlewares)
-	if err != nil {
-		t.Fatalf("unable to get server. error %s", err)
-	}
-	s := httptest.NewServer(srv.Handler)
-	defer s.Close()
-
-	submitRequest(t, s.URL+"/v1/users/me/saved-searches", http.MethodGet)
+	testUser := &auth.User{ID: "test"}
+	testAuthScope(t, "/v1/users/me/saved-searches", http.MethodGet, true, testUser)
 }
 
 // This test ensures that the third-party OpenAPI library continues to omit
 // Bearer authentication scopes from the request context when the route does
 // not have security schemes configured.
 func TestAuthScopeAbsentWhenSecurityNotConfigured(t *testing.T) {
-	middlewares := []func(http.Handler) http.Handler{
-		recoveryMiddleware,
-		func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if value := r.Context().Value(backend.BearerAuthScopes); value != nil {
-					t.Error("found bearer auth scope in a route not configured with security schemes")
-				}
-				next.ServeHTTP(w, r)
-			})
-		},
-	}
-	srv, err := NewHTTPServer("", nil, nil, middlewares)
-	if err != nil {
-		t.Fatalf("unable to get server. error %s", err)
-	}
-	s := httptest.NewServer(srv.Handler)
-	defer s.Close()
-
-	submitRequest(t, s.URL+"/v1/features", http.MethodGet)
+	testAuthScope(t, "/v1/features", http.MethodGet, false, nil)
 }
 
 func submitRequest(t *testing.T, url string, method string) {

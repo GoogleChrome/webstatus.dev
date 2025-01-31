@@ -81,6 +81,10 @@ resource "google_cloud_run_v2_service" "service" {
         value = var.datastore_info.project_id
       }
       env {
+        name  = "FIREBASE_AUTH_TENANT_ID"
+        value = var.firebase_settings.tenant_id
+      }
+      env {
         name  = "DATASTORE_DATABASE"
         value = var.datastore_info.database_name
       }

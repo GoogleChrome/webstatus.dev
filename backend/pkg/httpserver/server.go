@@ -25,6 +25,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
 
@@ -229,12 +230,37 @@ func applyPreRequestMiddlewares(mux *http.ServeMux, middlewares []func(http.Hand
 	return next
 }
 
-// getMiddlewares adapts a list of standard HTTP middleware to be compatible
+// contextMiddlewareWrapper is a helper function that wraps a StrictHTTPHandlerFunc
+// to ensure that any custom context values set by external middlewares (such as
+// authentication middlewares) are properly propagated to the handler function.
+// This is necessary because the generated OpenAPI code does not automatically
+// pass the modified context to the handler.
+//
+// By using this wrapper, you can keep your middlewares generic and use the standard
+// http.Handler signature without having to know about the OpenAPI-specific
+// nethttp.StrictHTTPHandlerFunc. This wrapper handles the adaptation and ensures
+// that the context is passed correctly.
+func contextMiddlewareWrapper(next nethttp.StrictHTTPHandlerFunc) nethttp.StrictHTTPHandlerFunc {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req interface{}) (interface{}, error) {
+		// Get the authenticated user from the request context
+		user, ok := httpmiddlewares.AuthenticatedUserFromContext(r.Context())
+		if ok {
+			// Set the user in the context that will be passed to the handler
+			ctx = httpmiddlewares.AuthenticatedUserToContext(ctx, user)
+		}
+
+		// Call the next handler with the updated context
+		return next(ctx, w, r, req)
+	}
+}
+
+// wrapPostRequestValidationMiddlewares adapts a list of standard HTTP middleware to be compatible
 // with the StrictMiddlewareFunc type. The order of middlewares is preserved,
 // ensuring that the first middleware in the input slice is the first to be
 // applied to an incoming request, and the last middleware in the slice is
 // the last to be applied.
-func getMiddlewares(middlewares []func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
+func wrapPostRequestValidationMiddlewares(
+	middlewares []func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
 	strictMiddlewares := make([]backend.StrictMiddlewareFunc, len(middlewares))
 
 	for i := range middlewares {
@@ -247,8 +273,7 @@ func getMiddlewares(middlewares []func(http.Handler) http.Handler) []backend.Str
 				r *http.Request, req interface{}) (response interface{}, err error) {
 				// Create the handler.
 				handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					// Now ctx and req are correctly available.
-					response, err = f(ctx, w, r, req)
+					response, err = contextMiddlewareWrapper(f)(ctx, w, r, req)
 				})
 
 				// Wrap the adapted handler with the standard middleware.
@@ -263,18 +288,10 @@ func getMiddlewares(middlewares []func(http.Handler) http.Handler) []backend.Str
 	return strictMiddlewares
 }
 
-func NewHTTPServer(
-	port string,
-	metadataStorer WebFeatureMetadataStorer,
-	wptMetricsStorer WPTMetricsStorer,
-	preRequestMiddlewares, postRequestValidationMiddlewares []func(http.Handler) http.Handler) (*http.Server, error) {
-	// Create an instance of our handler which satisfies the generated interface
-	srv := &Server{
-		metadataStorer:   metadataStorer,
-		wptMetricsStorer: wptMetricsStorer,
-	}
-
-	srvStrictHandler := backend.NewStrictHandler(srv, getMiddlewares(postRequestValidationMiddlewares))
+func createHTTPServer(port string, srv backend.StrictServerInterface,
+	preRequestMiddlewares, postRequestValidationMiddlewares []func(http.Handler) http.Handler) *http.Server {
+	srvStrictHandler := backend.NewStrictHandler(srv,
+		wrapPostRequestValidationMiddlewares(postRequestValidationMiddlewares))
 
 	// Use standard library router
 	r := http.NewServeMux()
@@ -290,5 +307,19 @@ func NewHTTPServer(
 		Handler:           wrappedHandler,
 		Addr:              net.JoinHostPort("0.0.0.0", port),
 		ReadHeaderTimeout: 30 * time.Second,
-	}, nil
+	}
+}
+
+func NewHTTPServer(
+	port string,
+	metadataStorer WebFeatureMetadataStorer,
+	wptMetricsStorer WPTMetricsStorer,
+	preRequestMiddlewares, postRequestValidationMiddlewares []func(http.Handler) http.Handler) *http.Server {
+	// Create an instance of our handler which satisfies the generated interface
+	srv := &Server{
+		metadataStorer:   metadataStorer,
+		wptMetricsStorer: wptMetricsStorer,
+	}
+
+	return createHTTPServer(port, srv, preRequestMiddlewares, postRequestValidationMiddlewares)
 }

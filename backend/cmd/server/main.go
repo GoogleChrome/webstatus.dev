@@ -92,16 +92,33 @@ func main() {
 		os.Exit(1)
 	}
 
-	defaultApp, err := firebase.NewApp(context.Background(), nil)
+	// nolint:exhaustruct // WONTFIX - will rely on the defaults on this third party struct.
+	firebaseApp, err := firebase.NewApp(context.Background(), &firebase.Config{
+		ProjectID: projectID,
+	})
 	if err != nil {
 		slog.Error("error initializing firebase app", "error", err)
 		os.Exit(1)
 	}
 
+	var firebaseAuthClient auth.FirebaseAuthClient
 	// Access Auth service from default app
-	defaultClient, err := defaultApp.Auth(context.Background())
+	firebaseBaseAuthClient, err := firebaseApp.Auth(context.Background())
 	if err != nil {
 		slog.Error("error getting Auth client", "error", err)
+	}
+
+	if firebaseTenantID, found := os.LookupEnv("FIREBASE_AUTH_TENANT_ID"); found {
+		tenantClient, err := firebaseBaseAuthClient.TenantManager.AuthForTenant(firebaseTenantID)
+		if err != nil {
+			slog.Error("error initializing firebase tenant client", "error", err)
+			os.Exit(1)
+		}
+		slog.Info("using tenant firebase auth client")
+		firebaseAuthClient = tenantClient
+	} else {
+		slog.Info("using non tenant firebase auth client")
+		firebaseAuthClient = firebaseBaseAuthClient
 	}
 	preRequestMiddlewares := []func(http.Handler) http.Handler{
 		cors.Handler(
@@ -116,7 +133,7 @@ func main() {
 	}
 	postRequestValidationMiddlewares := []func(http.Handler) http.Handler{
 		httpmiddlewares.NewBearerTokenAuthenticationMiddleware(
-			auth.NewGCIPAuthenticator(defaultClient), backend.BearerAuthScopes, httpserver.GenericErrorFn),
+			auth.NewGCIPAuthenticator(firebaseAuthClient), backend.BearerAuthScopes, httpserver.GenericErrorFn),
 		httpmiddlewares.NewCacheMiddleware(cache),
 	}
 
@@ -142,17 +159,13 @@ func main() {
 		preRequestMiddlewares = slices.Insert(preRequestMiddlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
 	}
 
-	srv, err := httpserver.NewHTTPServer(
+	srv := httpserver.NewHTTPServer(
 		"8080",
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
 		preRequestMiddlewares,
 		postRequestValidationMiddlewares,
 	)
-	if err != nil {
-		slog.Error("unable to create server", "error", err.Error())
-		os.Exit(1)
-	}
 	err = srv.ListenAndServe()
 	if err != nil {
 		slog.Error("unable to start server", "error", err.Error())

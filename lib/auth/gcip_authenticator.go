@@ -21,10 +21,14 @@ import (
 )
 
 type GCIPAuthenticator struct {
-	*firebaseauth.Client
+	FirebaseAuthClient
 }
 
-func NewGCIPAuthenticator(client *firebaseauth.Client) *GCIPAuthenticator {
+type FirebaseAuthClient interface {
+	VerifyIDToken(context.Context, string) (*firebaseauth.Token, error)
+}
+
+func NewGCIPAuthenticator(client FirebaseAuthClient) *GCIPAuthenticator {
 	return &GCIPAuthenticator{
 		client,
 	}
