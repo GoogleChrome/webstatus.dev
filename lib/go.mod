@@ -8,6 +8,7 @@ require (
 	cloud.google.com/go/datastore v1.20.0
 	cloud.google.com/go/spanner v1.73.0
 	cloud.google.com/go/storage v1.49.0
+	firebase.google.com/go/v4 v4.15.1
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20241229174745-146e1a05eafd
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/deckarep/golang-set v1.8.0
@@ -35,6 +36,7 @@ require (
 	github.com/getkin/kin-openapi v0.128.0 // indirect
 	github.com/go-openapi/jsonpointer v0.21.0 // indirect
 	github.com/go-openapi/swag v0.23.0 // indirect
+	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-github/v65 v65.0.0 // indirect
 	github.com/invopop/yaml v0.3.1 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
@@ -51,6 +53,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.9.0 // indirect
 	go.opentelemetry.io/otel/log v0.9.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.9.0 // indirect
+	google.golang.org/appengine/v2 v2.0.2 // indirect
 )
 
 require (
