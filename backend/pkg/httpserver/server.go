@@ -17,7 +17,8 @@ package httpserver
 import (
 	"cmp"
 	"context"
-	"fmt"
+	"encoding/json"
+	"log/slog"
 	"net"
 	"net/http"
 	"time"
@@ -195,55 +196,63 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
-func applyMiddlewares(mux *http.ServeMux, middlewares []func(http.Handler) http.Handler) http.Handler {
-	var next http.Handler
-	next = mux
-	// Apply middlewares in reverse order to ensure they execute in the order they are defined.
-	// This is because each middleware wraps the next one in the chain.
-	for i := len(middlewares) - 1; i >= 0; i-- {
-		next = middlewares[i](next)
-	}
-
-	return next
-}
-
 func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
-	middlewares []func(http.Handler) http.Handler) (*http.Server, error) {
-	_, err := backend.GetSwagger()
-	if err != nil {
-		return nil, fmt.Errorf("error loading swagger spec. %w", err)
-	}
-
+	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
+	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
 		metadataStorer:   metadataStorer,
 		wptMetricsStorer: wptMetricsStorer,
 	}
 
-	srvStrictHandler := backend.NewStrictHandler(srv, nil)
+	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, cacheMiddleware, authMiddleware)
+}
+
+func createOpenAPIServerServer(
+	port string,
+	srv backend.StrictServerInterface,
+	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
+	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) *http.Server {
+
+	srvStrictHandler := backend.NewStrictHandler(srv,
+		wrapPostRequestValidationMiddlewaresForOpenAPIHook(cacheMiddleware, authMiddleware))
 
 	// Use standard library router
 	r := http.NewServeMux()
 
-	// Use our validation middleware to check all requests against the
-	// OpenAPI schema.
-	// r.Use(middleware.OapiRequestValidatorWithOptions(swagger, &middleware.Options{
-	// 	SilenceServersWarning: true,
-	// }))
-
 	// We now register our web feature router above as the handler for the interface
 	backend.HandlerFromMux(srvStrictHandler, r)
 
-	// Now wrap the middleware
-	wrappedHandler := applyMiddlewares(r, middlewares)
+	// Now wrap the middlewares
+	wrappedHandler := applyPreRequestValidationMiddlewares(r, preRequestValidationMiddlewares)
 
 	// nolint:exhaustruct // No need to populate 3rd party struct
 	return &http.Server{
 		Handler:           wrappedHandler,
 		Addr:              net.JoinHostPort("0.0.0.0", port),
 		ReadHeaderTimeout: 30 * time.Second,
-	}, nil
+	}
+}
+
+// GenericErrorFn is a reusable method for the middleware layers that they can use to get well structured JSON output
+// for BasicErrorModel.
+func GenericErrorFn(ctx context.Context, statusCode int, w http.ResponseWriter, err error) {
+
+	var message string
+	if err != nil {
+		message = err.Error()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	encoderErr := json.NewEncoder(w).Encode(backend.BasicErrorModel{
+		Code:    statusCode,
+		Message: message,
+	})
+	if err != nil {
+		slog.WarnContext(ctx, "unable to write generic error", "error", encoderErr)
+	}
 }

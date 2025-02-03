@@ -94,3 +94,9 @@ variable "min_instance_count" {
 variable "max_instance_count" {
   type = number
 }
+
+variable "firebase_settings" {
+  type = object({
+    tenant_id = string
+  })
+}

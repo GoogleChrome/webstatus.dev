@@ -27,8 +27,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
 func valuePtr[T any](in T) *T { return &in }
@@ -459,4 +461,216 @@ func assertTestServerRequest(t *testing.T, srv *Server, req *http.Request, expec
 	assertStatusCode(t, resp.StatusCode, expectedResponse.StatusCode)
 	assertHeaders(t, resp.Header, expectedResponse.Header)
 	assertResponseBody(t, resp.Body, expectedResponse.Body)
+}
+
+type mockServerInterface struct {
+	t                 *testing.T
+	expectedUserInCtx *auth.User
+	callCount         int
+}
+
+// CreateSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) CreateSavedSearch(ctx context.Context, _ backend.CreateSavedSearchRequestObject) (
+	backend.CreateSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetFeature implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetFeature(ctx context.Context, _ backend.GetFeatureRequestObject) (
+	backend.GetFeatureResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetFeatureMetadata implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetFeatureMetadata(ctx context.Context, _ backend.GetFeatureMetadataRequestObject) (
+	backend.GetFeatureMetadataResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetSavedSearch(ctx context.Context, _ backend.GetSavedSearchRequestObject) (
+	backend.GetSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetUserSavedSearchBookmark(ctx context.Context,
+	_ backend.GetUserSavedSearchBookmarkRequestObject) (backend.GetUserSavedSearchBookmarkResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListAggregatedFeatureSupport implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListAggregatedFeatureSupport(ctx context.Context,
+	_ backend.ListAggregatedFeatureSupportRequestObject) (
+	backend.ListAggregatedFeatureSupportResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListAggregatedWPTMetrics implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListAggregatedWPTMetrics(ctx context.Context,
+	_ backend.ListAggregatedWPTMetricsRequestObject) (backend.ListAggregatedWPTMetricsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListChromiumDailyUsageStats implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListChromiumDailyUsageStats(ctx context.Context,
+	_ backend.ListChromiumDailyUsageStatsRequestObject) (
+	backend.ListChromiumDailyUsageStatsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListFeatureWPTMetrics implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListFeatureWPTMetrics(ctx context.Context,
+	_ backend.ListFeatureWPTMetricsRequestObject) (backend.ListFeatureWPTMetricsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListFeatures implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListFeatures(ctx context.Context,
+	_ backend.ListFeaturesRequestObject) (backend.ListFeaturesResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListMissingOneImplemenationCounts implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListMissingOneImplemenationCounts(ctx context.Context,
+	_ backend.ListMissingOneImplemenationCountsRequestObject) (
+	backend.ListMissingOneImplemenationCountsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListUserSavedSearches implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListUserSavedSearches(ctx context.Context,
+	_ backend.ListUserSavedSearchesRequestObject) (backend.ListUserSavedSearchesResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// PutUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) PutUserSavedSearchBookmark(ctx context.Context,
+	_ backend.PutUserSavedSearchBookmarkRequestObject) (backend.PutUserSavedSearchBookmarkResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// RemoveSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) RemoveSavedSearch(ctx context.Context,
+	_ backend.RemoveSavedSearchRequestObject) (backend.RemoveSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// RemoveUserSavedSearchBookmark implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) RemoveUserSavedSearchBookmark(ctx context.Context,
+	_ backend.RemoveUserSavedSearchBookmarkRequestObject) (
+	backend.RemoveUserSavedSearchBookmarkResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// UpdateSavedSearch implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
+	_ backend.UpdateSavedSearchRequestObject) (backend.UpdateSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
+	if m.callCount != expectedCallCount {
+		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)
+	}
+}
+
+func assertUserInCtx(ctx context.Context, t *testing.T, expectedUser *auth.User) {
+	actualUser, _ := httpmiddlewares.AuthenticatedUserFromContext(ctx)
+	if !reflect.DeepEqual(expectedUser, actualUser) {
+		t.Errorf("expected user %+v in context. received %+v", expectedUser, actualUser)
+	}
+}
+
+func submitRequest(t *testing.T, url string, method string) {
+	req, err := http.NewRequestWithContext(context.Background(), method, url, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGenericErrorFn(t *testing.T) {
+	tests := []struct {
+		name         string
+		statusCode   int
+		err          error
+		expectedBody string
+	}{
+		{
+			name:         "With error",
+			statusCode:   http.StatusInternalServerError,
+			err:          errors.New("internal error"),
+			expectedBody: `{"code":500,"message":"internal error"}`,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			rr := httptest.NewRecorder()
+			GenericErrorFn(context.Background(), tc.statusCode, rr, tc.err)
+
+			// Check the status code
+			if rr.Code != tc.statusCode {
+				t.Errorf("Expected status code %d, got %d", tc.statusCode, rr.Code)
+			}
+
+			// Check the response body
+			actualBody := strings.TrimSpace(rr.Body.String())
+			if actualBody != tc.expectedBody {
+				t.Errorf("Expected body '%s', got '%s'", tc.expectedBody, actualBody)
+			}
+		})
+	}
 }
