@@ -159,4 +159,42 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		t.Errorf("unexpected result.\nExpected %+v\nReceived %+v", expectedResult, result)
 	}
 
+	// Test 3. With Excluded Features
+	excludedFeatureKeys := []string{"FeatureY", "FeatureZ"} // Features to exclude
+
+	// Insert excluded feature keys into the ExcludedFeatureKeys table
+	for _, featureKey := range excludedFeatureKeys {
+		err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey)
+		if err != nil {
+			t.Fatalf("Failed to insert excluded feature key: %v", err)
+		}
+	}
+
+	startAt = time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC)
+	endAt = time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
+	pageSize = 2
+
+	result, err = spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, nil)
+	if err != nil {
+		t.Fatalf("Unexpected error with exclusions: %v", err)
+	}
+
+	expectedResult = &BrowserFeatureCountResultPage{
+		NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 1)),
+		Metrics: []BrowserFeatureCountMetric{
+			{
+				ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+				FeatureCount: 1, // FeatureY excluded
+			},
+			{
+				ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+				FeatureCount: 1, // FeatureY and FeatureZ excluded
+			},
+		},
+	}
+
+	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("unexpected result with exclusions.\nExpected %+v\nReceived %+v", expectedResult, result)
+	}
+
 }

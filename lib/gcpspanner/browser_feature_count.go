@@ -54,19 +54,25 @@ func (c *Client) ListBrowserFeatureCountMetric(
 
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	// 1. Calculate initial cumulative count
-	cumulativeCount, err := c.getInitialBrowserFeatureCount(ctx, txn, parsedToken, browser, startAt)
+	// 1. Get excluded feature IDs
+	excludedFeatureIDs, err := c.getFeatureIDsForEachExcludedFeatureKey(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+	// 2. Calculate initial cumulative count
+	cumulativeCount, err := c.getInitialBrowserFeatureCount(ctx, txn, parsedToken, browser, startAt, excludedFeatureIDs)
 	if err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	// 2. Process results and update cumulative count
+	// 3. Process results and update cumulative count
 	stmt := createListBrowserFeatureCountMetricStatement(
 		browser,
 		startAt,
 		endAt,
 		pageSize,
 		parsedToken,
+		excludedFeatureIDs,
 	)
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
@@ -109,28 +115,41 @@ func (c *Client) getInitialBrowserFeatureCount(
 	txn *spanner.ReadOnlyTransaction,
 	parsedToken *BrowserFeatureCountCursor,
 	browser string,
-	startAt time.Time) (int64, error) {
+	startAt time.Time,
+	excludedFeatureIDs []string) (int64, error) {
 	// For pagination, we have the existing count. Return early.
 	if parsedToken != nil {
 		return parsedToken.LastCumulativeCount, nil
 	}
+
+	params := map[string]interface{}{
+		"browserName": browser,
+		"startAt":     startAt,
+	}
+
+	var excludedFeatureFilter string
+	if len(excludedFeatureIDs) > 0 {
+		excludedFeatureFilter = `
+            AND WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)`
+		params["excludedFeatureIDs"] = excludedFeatureIDs
+	}
+
 	// On the initial page, we need to get the sum of all the features before the start.
 	var initialCount int64
 	err := txn.Query(ctx, spanner.Statement{
-		SQL: `SELECT COALESCE(SUM(daily_feature_count), 0)
+		SQL: fmt.Sprintf(`SELECT COALESCE(SUM(daily_feature_count), 0)
 					FROM (
 						SELECT COUNT(DISTINCT WebFeatureID) AS daily_feature_count
-						FROM BrowserFeatureAvailabilities bfa
-						JOIN BrowserReleases
-						ON bfa.BrowserName = BrowserReleases.BrowserName
-						AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
+						FROM BrowserReleases br
+						LEFT JOIN BrowserFeatureAvailabilities bfa
+						ON bfa.BrowserName = br.BrowserName
+						AND bfa.BrowserVersion = br.BrowserVersion
+						%s
 						WHERE bfa.BrowserName = @browserName AND ReleaseDate < @startAt
 						GROUP BY ReleaseDate
 					)`,
-		Params: map[string]interface{}{
-			"browserName": browser,
-			"startAt":     startAt,
-		},
+			excludedFeatureFilter),
+		Params: params,
 	}).Do(func(r *spanner.Row) error {
 		return r.Column(0, &initialCount)
 	})
@@ -144,6 +163,7 @@ func createListBrowserFeatureCountMetricStatement(
 	endAt time.Time,
 	pageSize int,
 	pageToken *BrowserFeatureCountCursor,
+	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{
 		"browserName": browser,
@@ -159,12 +179,18 @@ func createListBrowserFeatureCountMetricStatement(
 		params["lastReleaseDate"] = pageToken.LastReleaseDate
 	}
 
+	var excludedFeatureFilter string
+	if len(excludedFeatureIDs) > 0 {
+		params["excludedFeatureIDs"] = excludedFeatureIDs
+		excludedFeatureFilter = "AND bfa.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+	}
+
 	// Construct the query
 	// This query selects the 'ReleaseDate' and the feature counts for each release date.
 	query := fmt.Sprintf(`
 SELECT
     BrowserReleases.ReleaseDate AS ReleaseDate,
-    COUNT(DISTINCT WebFeatureID) AS FeatureCount
+    COUNT(DISTINCT CASE WHEN bfa.WebFeatureID IS NOT NULL %s THEN bfa.WebFeatureID ELSE NULL END) AS FeatureCount
 FROM BrowserFeatureAvailabilities bfa
 JOIN BrowserReleases
 ON bfa.BrowserName = BrowserReleases.BrowserName
@@ -177,7 +203,7 @@ WHERE
 GROUP BY ReleaseDate
 ORDER BY ReleaseDate ASC
 LIMIT @pageSize
-`, pageFilter)
+`, excludedFeatureFilter, pageFilter)
 
 	stmt := spanner.NewStatement(query)
 	stmt.Params = params
