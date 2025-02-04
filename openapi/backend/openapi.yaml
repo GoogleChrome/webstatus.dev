@@ -460,17 +460,237 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/saved-searches:
+  /v1/users/me/saved-searches:
     get:
-      summary: List saved searches
-      operationId: listSavedSearches
+      summary: List user saved searches
+      operationId: listUserSavedSearches
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+        - in: query
+          name: role
+          schema:
+            type: string
+            enum:
+              - owner
+          description: Filter by role (currently only 'owner' is supported).
+        - in: query
+          name: bookmark_status
+          schema:
+            type: string
+            enum:
+              - active
+          description: Filter by bookmark status (currently only 'active' is supported).
+        - in: query
+          name: sort
+          schema:
+            type: string
+            enum:
+              - search_updated_at_asc
+              - search_updated_at_desc
+          description: Sort order to apply to the results.
+      security:
+        - bearerAuth:
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SavedSearchPage'
+                $ref: '#/components/schemas/UserSavedSearchPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/users/me/saved-searches/{search_id}/bookmark_status:
+    parameters:
+      - name: search_id
+        in: path
+        description: Saved Search ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a user's bookmark status
+      operationId: getUserSavedSearchBookmark
+      security:
+        - bearerAuth:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSavedSearchBookmark'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found (saved search does not exist)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    put:
+      summary: Add bookmark status for a particular saved search.
+      operationId: putUserSavedSearchBookmark
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserSavedSearchBookmark'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found (saved search does not exist)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    delete:
+      summary: Remove bookmark status for a particular saved search.
+      operationId: removeUserSavedSearchBookmark
+      responses:
+        '204':
+          description: No Content
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found (saved search does not exist)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/saved-searches:
+    post:
+      summary: Create a saved search
+      operationId: createSavedSearch
+      security:
+        - bearerAuth:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavedSearch'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedSearchResponse'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/saved-searches/{search_id}:
     parameters:
       - name: search_id
@@ -491,6 +711,84 @@ paths:
                 $ref: '#/components/schemas/SavedSearchResponse'
         '404':
           description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    patch:
+      operationId: updateSavedSearch
+      security:
+        - bearerAuth:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SavedSearchUpdateRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedSearchResponse'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    delete:
+      operationId: removeSavedSearch
+      security:
+        - bearerAuth:
+      responses:
+        '204':
+          description: No Content (successful deletion)
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
           content:
             application/json:
               schema:
@@ -797,39 +1095,57 @@ components:
       required:
         - id
         - created_at
+        - updated_at
     SavedSearch:
       type: object
+      description: |
+        Represents a saved search with a name and a query.
+        Both `name` and `query` are required when creating a new saved search.
       properties:
         name:
           type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
         query:
           type: string
+          minLength: 1
       required:
         - name
         - query
+    SavedSearchUpdateRequest:
+      type: object
+      description: |
+        Represents the data required to update a saved search.
+        Only the fields that need to be modified need to be included in the request.
+      properties:
+        name:
+          type: string
+          minLength: 1
+        description:
+          type: string
+          minLength: 1
+        query:
+          type: string
+          minLength: 1
+    UserSavedSearchBookmark:
+      type: object
+      properties:
+        status:
+          type: string
+          description: |
+            The bookmark status for a saved search for a user.
+          enum:
+            - none
+            - active
+      required:
+        - status
     SavedSearchResponse:
       allOf:
         - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
         - $ref: '#/components/schemas/SavedSearch'
-        - type: object
-          properties:
-            subscription_status:
-              type: string
-              description: |
-                The subscription status for a saved search for a user.
-                This field is only populated when the request is authenticated.
-              enum:
-                - none
-                - active
-            owner_status:
-              type: string
-              description: |
-                The owner status for a saved search for a user.
-                This field is only populated when the request is authenticated.
-              enum:
-                - none
-                - admin
-    SavedSearchPage:
+    UserSavedSearchPage:
       type: object
       properties:
         metadata:
@@ -904,3 +1220,8 @@ components:
           properties:
             rootCause:
               type: string
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
