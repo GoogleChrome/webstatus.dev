@@ -662,6 +662,137 @@ func testMissingOneImplSuite(
 			expectedResult,
 		)
 	})
+
+	//nolint:dupl // WONTFIX - False positive. The counts are different.
+	t.Run("with excluded features", func(t *testing.T) {
+		// Exclude Feature X and Feature Z
+		excludedFeatures := []string{"FeatureX", "FeatureZ"}
+		for _, featureKey := range excludedFeatures {
+			err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey)
+			if err != nil {
+				t.Fatalf("Failed to insert excluded feature key: %v", err)
+			}
+		}
+
+		t.Run("bazBrowser", func(t *testing.T) {
+			targetBrowser := "bazBrowser"
+			otherBrowsers := []string{"fooBrowser", "barBrowser"}
+
+			expectedResult := &MissingOneImplCountPage{
+				NextPageToken: nil,
+				Metrics: []MissingOneImplCount{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY, FeatureW
+					// barBrowser after excluding FeatureX and FeatureZ: FeatureY, FeatureW
+					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// Missing in on for bazBrowser: FeatureW
+					{
+						EventReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
+						Count:            1,
+					},
+					// barBrowser 115 AND bazBrowser 17 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// barBrowser after excluding FeatureX and FeatureZ: FeatureY, FeatureW
+					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// barBrowser 114 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// barBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// fooBrowser 112 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// barBrowser after excluding FeatureX and FeatureZ: None
+					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// bazBrowser 16.5 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: None
+					// barBrowser after excluding FeatureX and FeatureZ: None
+					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// fooBrowser 111 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: None
+					// barBrowser after excluding FeatureX and FeatureZ: None
+					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// bazBrowser 16.4 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: None
+					// barBrowser after excluding FeatureX and FeatureZ: None
+					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// barBrowser 113 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: None
+					// barBrowser after excluding FeatureX and FeatureZ: None
+					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// fooBrowser 110 release
+					// Currently supported features:
+					// fooBrowser after excluding FeatureX and FeatureZ: None
+					// barBrowser after excluding FeatureX and FeatureZ: None
+					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// Missing in on for bazBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+				},
+			}
+			// Assert with excluded features
+			assertListMissingOneImplCounts(
+				ctx,
+				t,
+				startAt,
+				endAt,
+				nil,
+				targetBrowser,
+				otherBrowsers,
+				pageSize,
+				expectedResult,
+			)
+		})
+
+		// Clear the excluded features after the test
+		err := spannerClient.ClearExcludedFeatureKeys(ctx)
+		if err != nil {
+			t.Fatalf("Failed to clear excluded feature keys: %v", err)
+		}
+	})
 }
 
 func TestListMissingOneImplCounts(t *testing.T) {

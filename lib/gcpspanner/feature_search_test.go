@@ -2615,3 +2615,13 @@ func (c *Client) InsertExcludedFeatureKey(ctx context.Context, featureKey string
 
 	return err
 }
+
+func (c *Client) ClearExcludedFeatureKeys(ctx context.Context) error {
+	_, err := c.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+		mutation := spanner.Delete("ExcludedFeatureKeys", spanner.AllKeys())
+
+		return txn.BufferWrite([]*spanner.Mutation{mutation})
+	})
+
+	return err
+}

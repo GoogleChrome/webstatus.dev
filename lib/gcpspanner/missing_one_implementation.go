@@ -79,6 +79,7 @@ WITH TargetBrowserUnsupportedFeatures AS (
     FROM BrowserFeatureSupportEvents bfse
     WHERE bfse.TargetBrowserName = @targetBrowserParam
       AND bfse.SupportStatus = 'unsupported'
+	  {{ .ExcludedFeatureFilter }}
 ),
 OtherBrowsersSupportedFeatures AS (
     SELECT
@@ -89,6 +90,7 @@ OtherBrowsersSupportedFeatures AS (
         BrowserFeatureSupportEvents bfse_other
     WHERE
         bfse_other.SupportStatus = 'supported'
+		{{ .OtherExcludedFeatureFilter }}
     GROUP BY
         bfse_other.WebFeatureID, bfse_other.EventReleaseDate
 )
@@ -130,6 +132,7 @@ SELECT releases.EventReleaseDate,
 			bfse.EventReleaseDate = releases.EventReleaseDate
 			AND bfse.TargetBrowserName = @targetBrowserParam
 			AND bfse.SupportStatus = 'unsupported'
+			{{ .ExcludedFeatureFilter }}
 		{{ range $browserParamName := .OtherBrowsersParamNames }}
 			AND EXISTS (
 				SELECT 1
@@ -138,6 +141,7 @@ SELECT releases.EventReleaseDate,
 				AND bfse_other.TargetBrowserName = @{{ $browserParamName }}
 				AND bfse_other.SupportStatus = 'supported'
 				AND bfse_other.EventReleaseDate = bfse.EventReleaseDate
+				{{ $.OtherExcludedFeatureFilter }}
 			)
 		{{ end }}
 	) AS Count
@@ -157,8 +161,10 @@ LIMIT @limit;
 `
 
 type missingOneImplTemplateData struct {
-	ReleaseDateParam        string
-	OtherBrowsersParamNames []string
+	ReleaseDateParam           string
+	OtherBrowsersParamNames    []string
+	ExcludedFeatureFilter      string
+	OtherExcludedFeatureFilter string
 }
 
 // MissingOneImplementationQuery contains the base query for all missing one implementation
@@ -195,6 +201,7 @@ func buildMissingOneImplTemplate(
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
+	excludedFeatureIDs []string,
 	tmpl MissingOneImplementationQuery,
 ) spanner.Statement {
 	params := map[string]interface{}{}
@@ -218,12 +225,21 @@ func buildMissingOneImplTemplate(
 		params[releaseDateParamName] = cursor.ReleaseDate
 	}
 
+	var excludedFeatureFilter, otherExcludedFeatureFilter string
+	if len(excludedFeatureIDs) > 0 {
+		params["excludedFeatureIDs"] = excludedFeatureIDs
+		excludedFeatureFilter = "AND bfse.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+		otherExcludedFeatureFilter = "AND bfse_other.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+	}
+
 	params["startAt"] = startAt
 	params["endAt"] = endAt
 
 	tmplData := missingOneImplTemplateData{
-		ReleaseDateParam:        releaseDateParamName,
-		OtherBrowsersParamNames: otherBrowsersParamNames,
+		ReleaseDateParam:           releaseDateParamName,
+		OtherBrowsersParamNames:    otherBrowsersParamNames,
+		ExcludedFeatureFilter:      excludedFeatureFilter,
+		OtherExcludedFeatureFilter: otherExcludedFeatureFilter,
 	}
 	sql := tmpl.Query(tmplData)
 	stmt := spanner.NewStatement(sql)
@@ -254,6 +270,12 @@ func (c *Client) ListMissingOneImplCounts(
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
 
+	// Get excluded feature IDs
+	excludedFeatureIDs, err := c.getFeatureIDsForEachExcludedFeatureKey(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := buildMissingOneImplTemplate(
 		cursor,
 		targetBrowser,
@@ -261,6 +283,7 @@ func (c *Client) ListMissingOneImplCounts(
 		startAt,
 		endAt,
 		pageSize,
+		excludedFeatureIDs,
 		c.missingOneImplQuery,
 	)
 
