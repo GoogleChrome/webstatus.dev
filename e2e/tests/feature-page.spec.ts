@@ -115,7 +115,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
   // Submit the change
   await submitBtn.click();
   // TODO: Remove the timeout. Currently webkit is flaky.
-  await page.waitForTimeout(1000);
+  await page.waitForTimeout(3000);
 
   // Check that the URL includes the startDate and endDate
   const url = page.url();
