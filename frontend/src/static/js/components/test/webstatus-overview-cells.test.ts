@@ -454,7 +454,7 @@ describe('renderDesktopAvailablity', () => {
     const div = el.querySelector('div');
     expect(div).to.exist;
     expect(div!.getAttribute('class')).to.equal('browser-impl-available');
-    expect(div!.innerHTML).to.not.include('disabled');
+    expect(div!.innerHTML).to.include('Since ');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
   });
   it('renders a grayscale icon for an available feature', async () => {
@@ -475,7 +475,7 @@ describe('renderDesktopAvailablity', () => {
     const div = el.querySelector('div');
     expect(div).to.exist;
     expect(div!.getAttribute('class')).to.equal('browser-impl-unavailable');
-    expect(div!.innerHTML).to.include('disabled');
+    expect(div!.innerHTML).to.include('Not available');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
   });
 });

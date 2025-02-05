@@ -76,7 +76,7 @@ export class WebstatusOverviewTable extends LitElement {
         .baseline-date-block {
           padding-top: var(--content-padding-quarter);
         }
-        .browser-impl-unavailable {
+        .browser-impl-unavailable img {
           filter: grayscale(1);
           opacity: 50%;
         }
