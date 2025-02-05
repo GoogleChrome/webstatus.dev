@@ -460,6 +460,48 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/stats/baseline_status/low_date_feature_counts:
+    get:
+      summary: >
+        Returns the count of features supported that have reached baseline
+        according to the specified date type (currently only low_date).
+      operationId: listAggregatedBaselineStatusCounts
+      parameters:
+        - $ref: '#/components/parameters/startAtParam'
+        - $ref: '#/components/parameters/endAtParam'
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BaselineStatusMetricsPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/users/me/saved-searches:
     get:
       summary: List user saved searches
@@ -901,6 +943,31 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/BrowserReleaseFeatureMetric'
+      required:
+        - data
+    BaselineStatusMetric:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        count:
+          type: integer
+          description: Total count of features.
+          format: int64
+      required:
+        # For now, only require timestamp in case the definition
+        # of the metric needs to change. Similar to WPTRunMetric.
+        - timestamp
+    BaselineStatusMetricsPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/BaselineStatusMetric'
       required:
         - data
     WPTRunMetric:

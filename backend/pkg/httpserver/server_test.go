@@ -469,6 +469,16 @@ type mockServerInterface struct {
 	callCount         int
 }
 
+// ListAggregatedBaselineStatusCounts implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListAggregatedBaselineStatusCounts(
+	ctx context.Context, _ backend.ListAggregatedBaselineStatusCountsRequestObject) (
+	backend.ListAggregatedBaselineStatusCountsResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 // CreateSavedSearch implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) CreateSavedSearch(ctx context.Context, _ backend.CreateSavedSearchRequestObject) (
