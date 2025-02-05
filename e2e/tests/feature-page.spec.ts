@@ -92,7 +92,7 @@ test('chart width resizes with window', async ({page}) => {
 test('date range changes are preserved in the URL', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
   await page.waitForSelector('#feature-support-chart-container');
-  await page.waitForTimeout(1000);
+  await page.waitForSelector('.spinner-container', {state: 'detached'});
 
   // Get the current default startDate and endDate from the selectors
   // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
