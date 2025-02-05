@@ -159,7 +159,6 @@ export class StatsPage extends BaseChartsPage {
       }
       this.globalFeatureSupportChartDataObj = this.createDisplayDataFromMap(
         this.globalFeatureSupport,
-        true,
       );
     });
     await Promise.all(promises); // Wait for all browsers to finish
@@ -189,7 +188,6 @@ export class StatsPage extends BaseChartsPage {
       }
       this.missingOneImplementationChartDataObj = this.createDisplayDataFromMap(
         this.missingOneImplementationMap,
-        false,
       );
     });
     await Promise.all(promises); // Wait for all browsers to finish
@@ -253,7 +251,6 @@ export class StatsPage extends BaseChartsPage {
   // and stats page, https://github.com/GoogleChrome/webstatus.dev/issues/964.
   createDisplayDataFromMap(
     targetMap: Map<string, Array<BrowserReleaseFeatureMetric>>,
-    addMax: boolean,
   ): WebStatusDataObj {
     // Get the list of supported browsers.
     const browsers = this.supportedBrowsers;
@@ -262,9 +259,6 @@ export class StatsPage extends BaseChartsPage {
     dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
     for (const browser of browsers) {
       dataObj.cols.push({type: 'number', label: browser, role: 'data'});
-    }
-    if (addMax) {
-      dataObj.cols.push({type: 'number', label: 'Max features', role: 'data'});
     }
 
     // Map from date to an object with counts for each browser
@@ -301,17 +295,7 @@ export class StatsPage extends BaseChartsPage {
         browser => browserCounts[browser] || null,
       );
 
-      if (addMax) {
-        let maxCount = 0;
-        for (const count of browserCountArray) {
-          if (count) {
-            maxCount = Math.max(maxCount, count);
-          }
-        }
-        dataObj.rows.push([date, ...browserCountArray, maxCount]);
-      } else {
-        dataObj.rows.push([date, ...browserCountArray]);
-      }
+      dataObj.rows.push([date, ...browserCountArray]);
     }
     return dataObj;
   }
@@ -380,7 +364,7 @@ export class StatsPage extends BaseChartsPage {
     return html`
       <webstatus-gchart
         id="global-feature-support-chart"
-        .hasMax=${true}
+        .hasMax=${false}
         .containerId="${'global-feature-support-chart-container'}"
         .chartType="${'LineChart'}"
         .dataObj="${this.globalFeatureSupportChartDataObj}"
