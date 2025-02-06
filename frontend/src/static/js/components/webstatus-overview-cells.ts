@@ -281,8 +281,9 @@ export const renderDesktopAvailablity: CellRenderer = (
   return html`
     <div class="browser-impl-${browserImplStatus}">
       <sl-tooltip
-        ?disabled=${browserImplVersion === undefined}
-        content="Since version ${browserImplVersion}"
+        content=${browserImplVersion
+          ? `Since version ${browserImplVersion}`
+          : 'Not available'}
       >
         <img src="/public/img/${browser}_24x24.png" />
       </sl-tooltip>
