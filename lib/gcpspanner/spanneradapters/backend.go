@@ -94,6 +94,14 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) (*gcpspanner.MissingOneImplCountPage, error)
+	ListBaselineStatusCounts(
+		ctx context.Context,
+		dateType gcpspanner.BaselineDateType,
+		startAt time.Time,
+		endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*gcpspanner.BaselineStatusCountResultPage, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -305,6 +313,47 @@ func (s *Backend) ListMissingOneImplCounts(
 	}
 
 	return &backend.BrowserReleaseFeatureMetricsPage{
+		Metadata: &backend.PageMetadata{
+			NextPageToken: spannerPage.NextPageToken,
+		},
+		Data: backendData,
+	}, nil
+}
+
+func (s *Backend) ListBaselineStatusCounts(
+	ctx context.Context,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.BaselineStatusMetricsPage, error) {
+	spannerPage, err := s.client.ListBaselineStatusCounts(
+		ctx,
+		// For now, base it on the low date
+		gcpspanner.BaselineDateTypeLow,
+		startAt,
+		endAt,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+
+	// Convert the metric type to backend metrics
+	backendData := make([]backend.BaselineStatusMetric, 0, len(spannerPage.Metrics))
+	for _, metric := range spannerPage.Metrics {
+		backendData = append(backendData, backend.BaselineStatusMetric{
+			Timestamp: metric.Date,
+			Count:     &metric.StatusCount,
+		})
+	}
+
+	return &backend.BaselineStatusMetricsPage{
 		Metadata: &backend.PageMetadata{
 			NextPageToken: spannerPage.NextPageToken,
 		},

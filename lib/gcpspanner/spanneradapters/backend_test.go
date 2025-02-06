@@ -69,6 +69,11 @@ type mockListBrowserFeatureCountMetricConfig struct {
 	returnedError error
 }
 
+type mockListBaselineStatusCountsConfig struct {
+	result        *gcpspanner.BaselineStatusCountResultPage
+	returnedError error
+}
+
 type mockListMissingOneImplCountsConfig struct {
 	result        *gcpspanner.MissingOneImplCountPage
 	returnedError error
@@ -84,6 +89,7 @@ type mockBackendSpannerClient struct {
 	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
 	mockListBrowserFeatureCountMetricCfg mockListBrowserFeatureCountMetricConfig
 	mockListMissingOneImplCountsCfg      mockListMissingOneImplCountsConfig
+	mockListBaselineStatusCountsCfg      mockListBaselineStatusCountsConfig
 	pageToken                            *string
 	err                                  error
 }
@@ -243,6 +249,22 @@ func (c mockBackendSpannerClient) ListMissingOneImplCounts(
 	}
 
 	return c.mockListMissingOneImplCountsCfg.result, c.mockListMissingOneImplCountsCfg.returnedError
+}
+
+// ListBaselineStatusCounts implements BackendSpannerClient.
+func (c mockBackendSpannerClient) ListBaselineStatusCounts(
+	ctx context.Context, dateType gcpspanner.BaselineDateType, startAt time.Time,
+	endAt time.Time, pageSize int, pageToken *string) (*gcpspanner.BaselineStatusCountResultPage, error) {
+	if ctx != context.Background() ||
+		dateType != gcpspanner.BaselineDateTypeLow ||
+		!startAt.Equal(testStart) ||
+		!endAt.Equal(testEnd) ||
+		pageSize != 100 ||
+		pageToken != nonNilInputPageToken {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListBaselineStatusCountsCfg.result, c.mockListBaselineStatusCountsCfg.returnedError
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
@@ -549,6 +571,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 }
 
 func TestListMissingOneImplCounts(t *testing.T) {
+	// nolint:dupl // WONTFIX - not exactly the same as ListBaselineStatusCounts
 	testCases := []struct {
 		name         string
 		cfg          mockListMissingOneImplCountsConfig
@@ -621,6 +644,93 @@ func TestListMissingOneImplCounts(t *testing.T) {
 				context.Background(),
 				"mybrowser",
 				[]string{"browser1", "browser2"},
+				testStart,
+				testEnd,
+				100,
+				nonNilInputPageToken)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(page, tc.expectedPage) {
+				t.Error("unexpected metrics")
+			}
+		})
+	}
+}
+
+func TestListBaselineStatusCounts(t *testing.T) {
+	// nolint:dupl // WONTFIX - not exactly the same as TestListMissingOneImplCounts
+	testCases := []struct {
+		name         string
+		cfg          mockListBaselineStatusCountsConfig
+		expectedPage *backend.BaselineStatusMetricsPage
+		expectedErr  error
+	}{
+		{
+			name: "success",
+			cfg: mockListBaselineStatusCountsConfig{
+				result: &gcpspanner.BaselineStatusCountResultPage{
+					NextPageToken: nonNilNextPageToken,
+					Metrics: []gcpspanner.BaselineStatusCountMetric{
+						{
+							StatusCount: 89,
+							Date:        time.Date(2010, time.January, 10, 0, 0, 0, 0, time.UTC),
+						},
+						{
+							StatusCount: 99,
+							Date:        time.Date(2010, time.January, 9, 0, 0, 0, 0, time.UTC),
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedPage: &backend.BaselineStatusMetricsPage{
+				Metadata: &backend.PageMetadata{
+					NextPageToken: nonNilNextPageToken,
+				},
+				Data: []backend.BaselineStatusMetric{
+					{
+						Count:     valuePtr[int64](89),
+						Timestamp: time.Date(2010, time.January, 10, 0, 0, 0, 0, time.UTC),
+					},
+					{
+						Count:     valuePtr[int64](99),
+						Timestamp: time.Date(2010, time.January, 9, 0, 0, 0, 0, time.UTC),
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "failure",
+			cfg: mockListBaselineStatusCountsConfig{
+				result:        nil,
+				returnedError: errTest,
+			},
+			expectedPage: nil,
+			expectedErr:  errTest,
+		},
+		{
+			name: "invalid cursor",
+			cfg: mockListBaselineStatusCountsConfig{
+				result:        nil,
+				returnedError: gcpspanner.ErrInvalidCursorFormat,
+			},
+			expectedPage: nil,
+			expectedErr:  backendtypes.ErrInvalidPageToken,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                               t,
+				mockListBaselineStatusCountsCfg: tc.cfg,
+			}
+			backend := NewBackend(mock)
+			page, err := backend.ListBaselineStatusCounts(
+				context.Background(),
 				testStart,
 				testEnd,
 				100,
