@@ -144,17 +144,29 @@ type MockListMissingOneImplCountsConfig struct {
 	err                   error
 }
 
+type MockListBaselineStatusCountsConfig struct {
+	expectedStartAt   time.Time
+	expectedEndAt     time.Time
+	expectedPageSize  int
+	expectedPageToken *string
+	pageToken         *string
+	page              *backend.BaselineStatusMetricsPage
+	err               error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
 	featuresSearchCfg                                 MockFeaturesSearchConfig
 	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
 	listMissingOneImplCountCfg                        MockListMissingOneImplCountsConfig
+	listBaselineStatusCountsCfg                       MockListBaselineStatusCountsConfig
 	listChromiumDailyUsageStatsCfg                    MockListChromiumDailyUsageStatsConfig
 	getFeatureByIDConfig                              MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
+	callCountListBaselineStatusCounts                 int
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
 	callCountListChromiumDailyUsageStats              int
@@ -338,6 +350,27 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	}
 
 	return m.listMissingOneImplCountCfg.page, m.listMissingOneImplCountCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListBaselineStatusCounts(
+	_ context.Context,
+	startAt time.Time,
+	endAt time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.BaselineStatusMetricsPage, error) {
+	m.callCountListBaselineStatusCounts++
+
+	if !startAt.Equal(m.listBaselineStatusCountsCfg.expectedStartAt) ||
+		!endAt.Equal(m.listBaselineStatusCountsCfg.expectedEndAt) ||
+		pageSize != m.listBaselineStatusCountsCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, m.listBaselineStatusCountsCfg.expectedPageToken) {
+
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %d %v }",
+			m.listBaselineStatusCountsCfg, startAt, endAt, pageSize, pageToken)
+	}
+
+	return m.listBaselineStatusCountsCfg.page, m.listBaselineStatusCountsCfg.err
 }
 
 func TestGetPageSizeOrDefault(t *testing.T) {

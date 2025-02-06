@@ -97,6 +97,13 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.BrowserReleaseFeatureMetricsPage, error)
+	ListBaselineStatusCounts(
+		ctx context.Context,
+		startAt time.Time,
+		endAt time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*backend.BaselineStatusMetricsPage, error)
 }
 
 type Server struct {

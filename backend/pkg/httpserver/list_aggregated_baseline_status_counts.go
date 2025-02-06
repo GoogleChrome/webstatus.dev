@@ -16,8 +16,10 @@ package httpserver
 
 import (
 	"context"
-	"net/http"
+	"errors"
+	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -26,8 +28,30 @@ import (
 func (s *Server) ListAggregatedBaselineStatusCounts(
 	ctx context.Context, request backend.ListAggregatedBaselineStatusCountsRequestObject) (
 	backend.ListAggregatedBaselineStatusCountsResponseObject, error) {
-	return backend.ListAggregatedBaselineStatusCounts400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-	}, nil
+	page, err := s.wptMetricsStorer.ListBaselineStatusCounts(
+		ctx,
+		request.Params.StartAt.Time,
+		request.Params.EndAt.Time,
+		getPageSizeOrDefault(request.Params.PageSize),
+		request.Params.PageToken,
+	)
+	if err != nil {
+		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
+			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
+
+			return backend.ListAggregatedBaselineStatusCounts400JSONResponse{
+				Code:    400,
+				Message: "invalid page token",
+			}, nil
+		}
+
+		slog.ErrorContext(ctx, "unable to get missing one implementation count", "error", err)
+
+		return backend.ListAggregatedBaselineStatusCounts500JSONResponse{
+			Code:    500,
+			Message: "unable to get missing one implementation metrics",
+		}, nil
+	}
+
+	return backend.ListAggregatedBaselineStatusCounts200JSONResponse(*page), nil
 }
