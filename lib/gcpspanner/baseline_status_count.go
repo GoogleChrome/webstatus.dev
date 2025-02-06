@@ -67,8 +67,8 @@ type fbsColumn string
 
 const fbsColumnLowDate fbsColumn = "fbs.LowDate"
 
-// ListBaselineStatusCount retrieves a cumulative count of baseline features over time.
-func (c *Client) ListBaselineStatusCount(
+// ListBaselineStatusCounts retrieves a cumulative count of baseline features over time.
+func (c *Client) ListBaselineStatusCounts(
 	ctx context.Context,
 	dateType BaselineDateType,
 	startAt time.Time,
@@ -110,7 +110,7 @@ func (c *Client) ListBaselineStatusCount(
 	}
 
 	// 4. Process results and update cumulative count
-	stmt := createListBaselineStatusCountStatement(dateType, startAt, endAt, pageSize, parsedToken, excludedFeatureIDs)
+	stmt := createListBaselineStatusCountsStatement(dateType, startAt, endAt, pageSize, parsedToken, excludedFeatureIDs)
 
 	iter := txn.Query(ctx, stmt)
 	defer iter.Stop()
@@ -199,8 +199,8 @@ func (c *Client) getInitialBaselineStatusCount(
 	return initialCount, err
 }
 
-// createListBaselineStatusCountStatement creates the Spanner statement for the main query.
-func createListBaselineStatusCountStatement(
+// createListBaselineStatusCountsStatement creates the Spanner statement for the main query.
+func createListBaselineStatusCountsStatement(
 	dateType BaselineDateType,
 	startAt time.Time,
 	endAt time.Time,

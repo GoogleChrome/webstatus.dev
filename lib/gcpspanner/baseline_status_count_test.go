@@ -21,10 +21,10 @@ import (
 	"time"
 )
 
-func TestListBaselineStatusCount_LowDate(t *testing.T) {
+func TestListBaselineStatusCounts_LowDate(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	loadDataForListBaselineStatusCount(ctx, t)
+	loadDataForListBaselineStatusCounts(ctx, t)
 
 	startAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	endAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -40,9 +40,9 @@ func TestListBaselineStatusCount_LowDate(t *testing.T) {
 		NextPageToken: nil,
 	}
 
-	result, err := spannerClient.ListBaselineStatusCount(ctx, BaselineDateTypeLow, startAt, endAt, pageSize, nil)
+	result, err := spannerClient.ListBaselineStatusCounts(ctx, BaselineDateTypeLow, startAt, endAt, pageSize, nil)
 	if err != nil {
-		t.Fatalf("ListBaselineStatusCount failed: %v", err)
+		t.Fatalf("ListBaselineStatusCounts failed: %v", err)
 	}
 
 	if !reflect.DeepEqual(result, expected) {
@@ -50,19 +50,19 @@ func TestListBaselineStatusCount_LowDate(t *testing.T) {
 	}
 }
 
-func TestListBaselineStatusCount_Pagination(t *testing.T) {
+func TestListBaselineStatusCounts_Pagination(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	loadDataForListBaselineStatusCount(ctx, t)
+	loadDataForListBaselineStatusCounts(ctx, t)
 
 	startAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	endAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	pageSize := 3
 
 	// First page
-	result1, err := spannerClient.ListBaselineStatusCount(ctx, BaselineDateTypeLow, startAt, endAt, pageSize, nil)
+	result1, err := spannerClient.ListBaselineStatusCounts(ctx, BaselineDateTypeLow, startAt, endAt, pageSize, nil)
 	if err != nil {
-		t.Fatalf("ListBaselineStatusCount failed: %v", err)
+		t.Fatalf("ListBaselineStatusCounts failed: %v", err)
 	}
 
 	expected1 := &BaselineStatusCountResultPage{
@@ -79,10 +79,10 @@ func TestListBaselineStatusCount_Pagination(t *testing.T) {
 	}
 
 	// Second page
-	result2, err := spannerClient.ListBaselineStatusCount(
+	result2, err := spannerClient.ListBaselineStatusCounts(
 		ctx, BaselineDateTypeLow, startAt, endAt, pageSize, result1.NextPageToken)
 	if err != nil {
-		t.Fatalf("ListBaselineStatusCount failed: %v", err)
+		t.Fatalf("ListBaselineStatusCounts failed: %v", err)
 	}
 
 	expected2 := &BaselineStatusCountResultPage{
@@ -97,10 +97,10 @@ func TestListBaselineStatusCount_Pagination(t *testing.T) {
 	}
 }
 
-func TestListBaselineStatusCount_ExcludedFeatures(t *testing.T) {
+func TestListBaselineStatusCounts_ExcludedFeatures(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
-	loadDataForListBaselineStatusCount(ctx, t)
+	loadDataForListBaselineStatusCounts(ctx, t)
 
 	// Exclude "FeatureB" and "FeatureE"
 	excludedFeatures := []string{"FeatureB", "FeatureE"}
@@ -124,9 +124,9 @@ func TestListBaselineStatusCount_ExcludedFeatures(t *testing.T) {
 		NextPageToken: nil,
 	}
 
-	result, err := spannerClient.ListBaselineStatusCount(ctx, BaselineDateTypeLow, startAt, endAt, pageSize, nil)
+	result, err := spannerClient.ListBaselineStatusCounts(ctx, BaselineDateTypeLow, startAt, endAt, pageSize, nil)
 	if err != nil {
-		t.Fatalf("ListBaselineStatusCount failed: %v", err)
+		t.Fatalf("ListBaselineStatusCounts failed: %v", err)
 	}
 
 	if !reflect.DeepEqual(result, expected) {
@@ -134,7 +134,7 @@ func TestListBaselineStatusCount_ExcludedFeatures(t *testing.T) {
 	}
 }
 
-func loadDataForListBaselineStatusCount(ctx context.Context, t *testing.T) {
+func loadDataForListBaselineStatusCounts(ctx context.Context, t *testing.T) {
 	// Insert web features
 	webFeatures := []WebFeature{
 		{FeatureKey: "FeatureA", Name: "Feature A"},
