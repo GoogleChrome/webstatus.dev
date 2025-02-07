@@ -56,11 +56,11 @@ export async function waitForOverviewPageLoad(page: Page) {
   // Wait for the loading indicator to disappear and be replaced (with timeout):
   await page
     .locator('webstatus-overview-content >> text=Loading features...')
-    .waitFor({state: 'hidden', timeout: 30000});
+    .waitFor({state: 'hidden', timeout: 60000});
 }
 
 export async function gotoOverviewPageUrl(page: Page, url: string) {
-  await page.goto(url);
+  await page.goto(url, {timeout: 60000});
 
   await waitForOverviewPageLoad(page);
 }

@@ -58,10 +58,10 @@ const NEWLY_TO_WIDELY_MONTH_OFFSET = 30;
 export enum ColumnKey {
   Name = 'name',
   BaselineStatus = 'baseline_status',
-  DesktopAvailabilityChrome = 'desktop_availability_chrome',
-  DesktopAvailabilityEdge = 'desktop_availability_edge',
-  DesktopAvailabilityFirefox = 'desktop_availability_firefox',
-  DesktopAvailabilitySafari = 'desktop_availability_safari',
+  AvailabilityChrome = 'availability_chrome',
+  AvailabilityEdge = 'availability_edge',
+  AvailabilityFirefox = 'availability_firefox',
+  AvailabilitySafari = 'availability_safari',
   StableChrome = 'stable_chrome',
   StableEdge = 'stable_edge',
   StableFirefox = 'stable_firefox',
@@ -103,10 +103,10 @@ const columnOptionKeyMapping = Object.entries(ColumnOptionKey).reduce(
 export const DEFAULT_COLUMNS = [
   ColumnKey.Name,
   ColumnKey.BaselineStatus,
-  ColumnKey.DesktopAvailabilityChrome,
-  ColumnKey.DesktopAvailabilityEdge,
-  ColumnKey.DesktopAvailabilityFirefox,
-  ColumnKey.DesktopAvailabilitySafari,
+  ColumnKey.AvailabilityChrome,
+  ColumnKey.AvailabilityEdge,
+  ColumnKey.AvailabilityFirefox,
+  ColumnKey.AvailabilitySafari,
   ColumnKey.StableChrome,
   ColumnKey.StableEdge,
   ColumnKey.StableFirefox,
@@ -270,7 +270,7 @@ export const renderBaselineStatus: CellRenderer = (
   `;
 };
 
-export const renderDesktopAvailablity: CellRenderer = (
+export const renderAvailablity: CellRenderer = (
   feature,
   _routerLocation,
   {browser},
@@ -384,40 +384,36 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
       ],
     },
   },
-  [ColumnKey.DesktopAvailabilityChrome]: {
+  [ColumnKey.AvailabilityChrome]: {
     nameInDialog: 'Availibility in desktop Chrome',
     group: 'Availability',
-    headerHtml: html``,
-    unsortable: true,
+    headerHtml: html`<span class="hover-only">Sort</span>`,
     cellClass: 'centered',
-    cellRenderer: renderDesktopAvailablity,
+    cellRenderer: renderAvailablity,
     options: {browser: 'chrome'},
   },
-  [ColumnKey.DesktopAvailabilityEdge]: {
+  [ColumnKey.AvailabilityEdge]: {
     nameInDialog: 'Availibility in desktop Edge',
     group: 'Availability',
-    headerHtml: html``,
-    unsortable: true,
+    headerHtml: html`<span class="hover-only">Sort</span>`,
     cellClass: 'centered',
-    cellRenderer: renderDesktopAvailablity,
+    cellRenderer: renderAvailablity,
     options: {browser: 'edge'},
   },
-  [ColumnKey.DesktopAvailabilityFirefox]: {
+  [ColumnKey.AvailabilityFirefox]: {
     nameInDialog: 'Availibility in desktop Firefox',
     group: 'Availability',
-    headerHtml: html``,
-    unsortable: true,
+    headerHtml: html`<span class="hover-only">Sort</span>`,
     cellClass: 'centered',
-    cellRenderer: renderDesktopAvailablity,
+    cellRenderer: renderAvailablity,
     options: {browser: 'firefox'},
   },
-  [ColumnKey.DesktopAvailabilitySafari]: {
+  [ColumnKey.AvailabilitySafari]: {
     nameInDialog: 'Availibility in desktop Safari',
     group: 'Availability',
-    headerHtml: html``,
+    headerHtml: html`<span class="hover-only">Sort</span>`,
     cellClass: 'centered',
-    unsortable: true,
-    cellRenderer: renderDesktopAvailablity,
+    cellRenderer: renderAvailablity,
     options: {browser: 'safari'},
   },
   [ColumnKey.StableChrome]: {

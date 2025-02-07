@@ -26,7 +26,7 @@ import {
   DEFAULT_COLUMN_OPTIONS,
   ColumnOptionKey,
   renderBaselineStatus,
-  renderDesktopAvailablity,
+  renderAvailablity,
   renderChromiumUsage,
   renderHeaderCell,
   renderUnsortableHeaderCell,
@@ -431,7 +431,7 @@ describe('renderBaselineStatus', () => {
   });
 });
 
-describe('renderDesktopAvailablity', () => {
+describe('renderAvailablity', () => {
   let container: HTMLElement;
   beforeEach(() => {
     container = document.createElement('td');
@@ -444,7 +444,7 @@ describe('renderDesktopAvailablity', () => {
         chrome: {status: 'available', version: '123'},
       },
     };
-    const result = renderDesktopAvailablity(
+    const result = renderAvailablity(
       feature,
       {search: ''},
       {browser: 'chrome'},
@@ -465,7 +465,7 @@ describe('renderDesktopAvailablity', () => {
         chrome: {status: 'unavailable'},
       },
     };
-    const result = renderDesktopAvailablity(
+    const result = renderAvailablity(
       feature,
       {search: ''},
       {browser: 'chrome'},

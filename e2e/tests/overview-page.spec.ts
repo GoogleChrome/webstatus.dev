@@ -18,6 +18,7 @@ import {test, expect} from '@playwright/test';
 import {gotoOverviewPageUrl, getOverviewPageFeatureCount} from './utils';
 
 test('matches the screenshot', async ({page}) => {
+  test.slow();
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();

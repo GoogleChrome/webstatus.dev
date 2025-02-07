@@ -70,8 +70,17 @@ export class WebstatusOverviewTable extends LitElement {
           border-left: var(--default-border);
           border-right: var(--default-border);
         }
+        .header-row th.sortable {
+          min-width: 4em;
+        }
         .header-row th.sortable:hover {
           background: var(--table-header-hover-background);
+        }
+        th span.hover-only {
+          display: none;
+        }
+        th:hover span.hover-only {
+          display: inline;
         }
         .baseline-date-block {
           padding-top: var(--content-padding-quarter);
