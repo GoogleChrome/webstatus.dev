@@ -20,6 +20,7 @@ import {DateRangeChangeEvent} from './webstatus-form-date-range-picker.js';
 import './webstatus-form-date-range-picker.js';
 import {IndexedParams} from '@vaadin/router';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {state} from 'lit/decorators.js';
 
 // Date.now()
 export const DEFAULT_END_DATE = new Date(Date.now());
@@ -48,7 +49,9 @@ const DEFAULT_MAXIMUM_DATE = new Date(
 export class BaseChartsPage extends LitElement {
   minDate: Date = DEFAULT_MINIMUM_DATE;
   maxDate: Date = DEFAULT_MAXIMUM_DATE;
+  @state()
   startDate: Date = DEFAULT_START_DATE;
+  @state()
   endDate: Date = DEFAULT_END_DATE;
 
   location!: {params: IndexedParams; search: string; pathname: string}; // Set by router.

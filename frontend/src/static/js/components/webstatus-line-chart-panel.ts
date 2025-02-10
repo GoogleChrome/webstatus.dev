@@ -22,34 +22,112 @@ import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
+/**
+ * Interface defining the structure of metric data for the line chart.
+ * @template T The type of the data items.
+ */
 export interface LineChartMetricData<T> {
+  /**
+   * The label for the metric (displayed on the chart legend).
+   * @type {string}
+   */
   label: string;
+
+  /**
+   * The array of data points for the metric.
+   * @type {Array<T>}
+   */
   data: Array<T>;
-  getTimestamp: (item: T) => Date; // Function to extract timestamp
-  getData: (item: T) => number | undefined; // Function to extract data
+
+  /**
+   * Function to extract the timestamp from a data item.
+   * @param {T} item The data item.
+   * @returns {Date} The timestamp of the data item.
+   */
+  getTimestamp: (item: T) => Date;
+
+  /**
+   * Function to extract the data value from a data item.
+   * @param {T} item The data item.
+   * @returns {number | undefined} The data value of the data item.
+   */
+  getData: (item: T) => number | undefined;
 }
 
+/**
+ * Abstract base class for creating line chart panels to display web status data.
+ * This class handles data processing, chart rendering using `webstatus-gchart`,
+ * and provides a framework for custom controls and panel-specific logic.
+ * Subclasses must implement abstract methods to define data loading,
+ * panel identification, text display, and chart options.
+ */
 export abstract class WebstatusLineChartPanel extends LitElement {
+  /**
+   * The start date for the data to be displayed in the chart.
+   * @property
+   * @type {Date}
+   */
   @property({type: Object})
   startDate!: Date;
 
+  /**
+   * The end date for the data to be displayed in the chart.
+   * @property
+   * @type {Date}
+   */
   @property({type: Object})
   endDate!: Date;
 
+  /**
+   * The processed data object for the chart, structured for `webstatus-gchart`.
+   * @state
+   * @type {WebStatusDataObj | undefined}
+   */
   @state()
   data?: WebStatusDataObj;
 
+  /**
+   * The API client for fetching web status data. Injected via context.
+   * @consume
+   * @type {APIClient}
+   */
   @consume({context: apiClientContext})
   apiClient!: APIClient;
 
+  /**
+   * The Lit task for managing the asynchronous data loading process.
+   * Subclasses must implement this method to define how data is fetched.
+   * @abstract
+   * @returns {Task} A new Task instance.
+   */
   abstract createLoadingTask(): Task;
 
+  /**
+   * Returns a unique identifier for the panel.
+   * @abstract
+   * @returns {string} The panel ID.
+   */
   abstract getPanelID(): string;
 
+  /**
+   * Returns the text to display in the panel header.
+   * @abstract
+   * @returns {string} The panel text.
+   */
   abstract getPanelText(): string;
 
+  /**
+   * Renders the controls for the panel (e.g., dropdowns, buttons).
+   * @abstract
+   * @returns {TemplateResult} The controls template.
+   */
   abstract renderControls(): TemplateResult;
 
+  /**
+   * Returns the input for generating chart options.
+   * @abstract
+   * @returns {{seriesColors: Array<string>; vAxisTitle: string;}} Chart options input.
+   */
   abstract getDisplayDataChartOptionsInput(): {
     seriesColors: Array<string>;
     vAxisTitle: string;
@@ -88,6 +166,15 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     ];
   }
 
+  /**
+   * Processes the input metric data and formats it into a `WebStatusDataObj`
+   * suitable for the `webstatus-gchart` component.
+   * @param {Array<LineChartMetricData<T>>} metricDataArray Array of metric data objects.
+   * @template T The data type of the metric data.
+   *
+   * TODO(kyleju): refactor this method acorss feature detail page
+   * and stats page, https://github.com/GoogleChrome/webstatus.dev/issues/964.
+   */
   setDisplayDataFromMap<T>(metricDataArray: Array<LineChartMetricData<T>>) {
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
     dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
@@ -136,19 +223,39 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     this.data = dataObj;
   }
 
+  /**
+   * Renders an error message when an error occurs during data loading.
+   * @returns {TemplateResult} The error message template.
+   */
   renderChartWhenError(): TemplateResult {
-    return html`Error when loading stats.`;
+    return html`<div id="${this.getPanelID()}-error">
+      Error when loading stats.
+    </div>`;
   }
 
+  /**
+   * Renders a message before data loading starts.
+   * @returns {TemplateResult} The initial message template.
+   */
   renderChartWhenInitial(): TemplateResult {
-    return html`Preparing request for stats.`;
+    return html`<div id="${this.getPanelID()}-initial">
+      Preparing request for stats.
+    </div>`;
   }
 
+  /**
+   * Renders a message while data is being loaded.
+   * @returns {TemplateResult} The loading message template.
+   */
   renderChartWhenPending(): TemplateResult {
-    return html`Loading stats.`;
+    return html`<div id="${this.getPanelID()}-pending">Loading stats.</div>`;
   }
 
-  renderChart(): TemplateResult | undefined {
+  /**
+   * Renders the chart based on the current state of the data loading task.
+   * @returns {TemplateResult} The chart template or undefined if no task.
+   */
+  renderChart(): TemplateResult {
     if (!this._task) return html``;
     return this._task?.render({
       complete: () => this.renderChartWhenComplete(),
@@ -158,18 +265,24 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     });
   }
 
+  /**
+   * Renders the chart when data loading is complete.
+   * @returns {TemplateResult} The chart template, including the `webstatus-gchart` component.
+   */
   renderChartWhenComplete(): TemplateResult {
     return html`
-      <webstatus-gchart
-        id="${this.getPanelID()}-chart"
-        .hasMax=${false}
-        .containerId="${'global-feature-support-chart-container'}"
-        .chartType="${'LineChart'}"
-        .dataObj="${this.data}"
-        .options="${this.generateDisplayDataChartOptions()}"
-      >
-        Loading chart...
-      </webstatus-gchart>
+      <div id="${this.getPanelID()}-complete">
+        <webstatus-gchart
+          id="${this.getPanelID()}-chart"
+          .hasMax=${false}
+          .containerId="${'global-feature-support-chart-container'}"
+          .chartType="${'LineChart'}"
+          .dataObj="${this.data}"
+          .options="${this.generateDisplayDataChartOptions()}"
+        >
+          Loading chart...
+        </webstatus-gchart>
+      </div>
     `;
   }
 
