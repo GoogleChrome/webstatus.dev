@@ -26,7 +26,8 @@ export const SHARED_STYLES = [
   FLEX_BOX,
   css`
     :host {
-      font-family: ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
+      font-family:
+        ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji',
         'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
       color: var(--default-color);
     }
