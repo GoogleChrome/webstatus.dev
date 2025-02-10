@@ -26,7 +26,6 @@ import {
   type APIClient,
   type BrowsersParameter,
   type BrowserReleaseFeatureMetric,
-  BaselineStatusMetric,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {getFeaturesLaggingFlag} from '../utils/urls.js';
@@ -34,6 +33,8 @@ import {getFeaturesLaggingFlag} from '../utils/urls.js';
 import './webstatus-gchart';
 import {WebStatusDataObj} from './webstatus-gchart.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
+
+import './webstatus-stats-global-feature-count-chart-panel.js';
 
 interface MetricData<T> {
   label: string;
@@ -44,9 +45,6 @@ interface MetricData<T> {
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends BaseChartsPage {
-  @state()
-  _loadingGFSTask: Task;
-
   @state()
   _loadingMissingOneTask: Task;
 
@@ -60,19 +58,12 @@ export class StatsPage extends BaseChartsPage {
   globalFeatureSupportChartOptions = {};
 
   @state()
-  globalFeatureSupportChartDataObj: WebStatusDataObj | undefined;
-
-  @state()
   missingOneImplementationChartDataObj: WebStatusDataObj | undefined;
 
   static get styles(): CSSResultGroup {
     return [
       super.styles!,
       css`
-        .under-construction {
-          min-height: 12em;
-        }
-
         /*  Make the dropdown menu button icon rotate when the menu is open,
             so it looks like sl-select. */
         sl-dropdown > sl-button > sl-icon {
@@ -98,90 +89,6 @@ export class StatsPage extends BaseChartsPage {
       .filter(menuItem => menuItem.checked)
       .map(menuItem => menuItem.value) as BrowsersParameter[];
     // Regenerate data and redraw.  We should instead just filter it.
-  }
-
-  globalFeatureSupportResizeObserver: ResizeObserver | null = null;
-
-  missingOneImplementationResizeObserver: ResizeObserver | null = null;
-
-  setupResizeObserver() {
-    // Set up ResizeObserver one time to redraw chart when container resizes.
-    if (!this.globalFeatureSupportResizeObserver) {
-      const gfsChartElement = this.shadowRoot!.getElementById(
-        'global-feature-support-chart',
-      );
-      if (!gfsChartElement) return;
-      this.globalFeatureSupportResizeObserver = new ResizeObserver(() => {
-        // TODO: trigger update based on resize.
-      });
-      this.globalFeatureSupportResizeObserver.observe(gfsChartElement);
-    }
-
-    if (!this.missingOneImplementationResizeObserver) {
-      const gfsChartElement = this.shadowRoot!.getElementById(
-        'missing-one-implementation-chart',
-      );
-      if (!gfsChartElement) return;
-      this.missingOneImplementationResizeObserver = new ResizeObserver(() => {
-        // TODO: trigger update based on resize.
-      });
-      this.missingOneImplementationResizeObserver.observe(gfsChartElement);
-    }
-  }
-
-  async _fetchGlobalFeatureSupportData(
-    apiClient: APIClient,
-    startDate: Date,
-    endDate: Date,
-  ) {
-    if (typeof apiClient !== 'object') return;
-
-    const browserMetricData: Array<MetricData<BrowserReleaseFeatureMetric>> =
-      ALL_BROWSERS.map(browser => ({
-        label: browser,
-        data: [],
-        getTimestamp: (item: BrowserReleaseFeatureMetric) =>
-          new Date(item.timestamp),
-        getData: (item: BrowserReleaseFeatureMetric) => item.count,
-      }));
-
-    const maxMetricData: MetricData<BaselineStatusMetric> = {
-      label: 'Total number of Baseline features',
-      data: [],
-      getTimestamp: (item: BaselineStatusMetric) => new Date(item.timestamp),
-      getData: (item: BaselineStatusMetric) => item.count,
-    };
-
-    const allMetricData = [...browserMetricData, maxMetricData];
-
-    const browserPromises = ALL_BROWSERS.map(async browser => {
-      const browserData = browserMetricData.find(
-        data => data.label === browser,
-      );
-      if (!browserData) return;
-
-      for await (const page of apiClient.getFeatureCountsForBrowser(
-        browser,
-        startDate,
-        endDate,
-      )) {
-        browserData.data.push(...page);
-      }
-    });
-
-    const maxPromise = (async () => {
-      for await (const page of apiClient.listAggregatedBaselineStatusCounts(
-        startDate,
-        endDate,
-      )) {
-        maxMetricData.data.push(...page);
-      }
-    })();
-
-    await Promise.all([...browserPromises, maxPromise]);
-
-    this.globalFeatureSupportChartDataObj =
-      this.createDisplayDataFromMap(allMetricData);
   }
 
   async _fetchMissingOneImplemenationCounts(
@@ -231,27 +138,6 @@ export class StatsPage extends BaseChartsPage {
 
   constructor() {
     super();
-
-    this._loadingGFSTask = new Task(this, {
-      args: () =>
-        [this.apiClient, this.startDate, this.endDate] as [
-          APIClient,
-          Date,
-          Date,
-        ],
-      task: async ([apiClient, startDate, endDate]: [
-        APIClient,
-        Date,
-        Date,
-      ]) => {
-        await this._fetchGlobalFeatureSupportData(
-          apiClient,
-          startDate,
-          endDate,
-        );
-        return;
-      },
-    });
 
     this._loadingMissingOneTask = new Task(this, {
       args: () =>
@@ -388,32 +274,6 @@ export class StatsPage extends BaseChartsPage {
     `;
   }
 
-  renderGlobalFeatureSupportChartWhenComplete(): TemplateResult {
-    return html`
-      <webstatus-gchart
-        id="global-feature-support-chart"
-        .hasMax=${false}
-        .containerId="${'global-feature-support-chart-container'}"
-        .chartType="${'LineChart'}"
-        .dataObj="${this.globalFeatureSupportChartDataObj}"
-        .options="${this.generatedisplayDataChartOptions(
-          'Number of features supported',
-        )}"
-      >
-        Loading chart...
-      </webstatus-gchart>
-    `;
-  }
-
-  renderGlobalFeatureSupportChart(): TemplateResult | undefined {
-    return this._loadingGFSTask.render({
-      complete: () => this.renderGlobalFeatureSupportChartWhenComplete(),
-      error: () => this.renderChartWhenError(),
-      initial: () => this.renderChartWhenInitial(),
-      pending: () => this.renderChartWhenPending(),
-    });
-  }
-
   renderMissingOneImplementationChartWhenComplete(): TemplateResult {
     return html`
       <webstatus-gchart
@@ -451,36 +311,10 @@ export class StatsPage extends BaseChartsPage {
 
   renderGlobalFeatureSupport(): TemplateResult {
     return html`
-      <sl-card id="global-feature-support">
-        <div slot="header" class="hbox">
-          Global feature support
-          <div class="spacer"></div>
-          <sl-select>
-            <sl-option>All features</sl-option>
-            <sl-option>how to select?</sl-option>
-          </sl-select>
-          <sl-dropdown
-            id="global-feature-support-browser-selector"
-            multiple
-            stay-open-on-select
-            .value="${this.supportedBrowsers.join(' ')}"
-          >
-            <sl-button slot="trigger">
-              <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-              Browsers
-            </sl-button>
-            <sl-menu @sl-select=${this.handleBrowserSelection}>
-              <sl-menu-item type="checkbox" value="chrome">Chrome</sl-menu-item>
-              <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
-              <sl-menu-item type="checkbox" value="firefox"
-                >Firefox</sl-menu-item
-              >
-              <sl-menu-item type="checkbox" value="safari">Safari</sl-menu-item>
-            </sl-menu>
-          </sl-dropdown>
-        </div>
-        <div>${this.renderGlobalFeatureSupportChart()}</div>
-      </sl-card>
+      <webstatus-stats-global-feature-chart-panel
+        .startDate=${this.startDate}
+        .endDate=${this.endDate}
+      ></webstatus-stats-global-feature-chart-panel>
     `;
   }
 
@@ -506,32 +340,6 @@ export class StatsPage extends BaseChartsPage {
     `;
   }
 
-  renderBaselineFeatures(): TemplateResult {
-    return html`
-      <sl-card
-        class="halign-stretch"
-        id="baseline-features"
-        style="display:none"
-      >
-        <div slot="header">Baseline features</div>
-        <p class="under-construction">Small chart goes here...</p>
-      </sl-card>
-    `;
-  }
-
-  renderTimeToAvailability(): TemplateResult {
-    return html`
-      <sl-card
-        class="halign-stretch"
-        id="time-to-availibility"
-        style="display:none"
-      >
-        <div slot="header">Time to availablity</div>
-        <p class="under-construction">Small chart goes here...</p>
-      </sl-card>
-    `;
-  }
-
   render(): TemplateResult {
     return html`
       <div class="vbox">
@@ -539,9 +347,6 @@ export class StatsPage extends BaseChartsPage {
         ${getFeaturesLaggingFlag(this.location)
           ? this.renderFeaturesLagging()
           : nothing}
-        <div class="hbox">
-          ${this.renderBaselineFeatures()} ${this.renderTimeToAvailability()}
-        </div>
       </div>
     `;
   }
