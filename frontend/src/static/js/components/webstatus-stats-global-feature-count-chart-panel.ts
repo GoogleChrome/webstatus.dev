@@ -78,16 +78,17 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     > = ALL_BROWSERS.map(browser => ({
       label: browser,
       data: [],
-      getTimestamp: (item: BrowserReleaseFeatureMetric) =>
-        new Date(item.timestamp),
-      getData: (item: BrowserReleaseFeatureMetric) => item.count,
+      getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>
+        new Date(dataPoint.timestamp),
+      getValue: (dataPoint: BrowserReleaseFeatureMetric) => dataPoint.count,
     }));
 
     const maxMetricData: LineChartMetricData<BaselineStatusMetric> = {
       label: 'Total number of Baseline features',
       data: [],
-      getTimestamp: (item: BaselineStatusMetric) => new Date(item.timestamp),
-      getData: (item: BaselineStatusMetric) => item.count,
+      getTimestamp: (dataPoint: BaselineStatusMetric) =>
+        new Date(dataPoint.timestamp),
+      getValue: (dataPoint: BaselineStatusMetric) => dataPoint.count,
     };
 
     const allMetricData = [...browserMetricData, maxMetricData];
@@ -147,6 +148,9 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     `;
   }
 
+  // TODO(#1104) - Consolidate this into a new common browser specific panel for charts only used on the stats page.
+  // Do not add it to the main base abstract class because that panel will be used for the feature detail page charts
+  // too. And those do not have browser dropdowns.
   handleBrowserSelection(event: Event) {
     const menu = event.target as SlMenu;
     const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(

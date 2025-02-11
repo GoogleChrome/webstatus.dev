@@ -86,9 +86,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     > = ALL_BROWSERS.map(browser => ({
       label: browser,
       data: [],
-      getTimestamp: (item: BrowserReleaseFeatureMetric) =>
-        new Date(item.timestamp),
-      getData: (item: BrowserReleaseFeatureMetric) => item.count,
+      getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>
+        new Date(dataPoint.timestamp),
+      getValue: (dataPoint: BrowserReleaseFeatureMetric) => dataPoint.count,
     }));
     const promises = ALL_BROWSERS.map(async browser => {
       const browserData = browserMetricData.find(
@@ -111,7 +111,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     this.setDisplayDataFromMap(browserMetricData);
   }
   getPanelID(): string {
-    return 'missing-one-implementation-chart';
+    return 'missing-one-implementation';
   }
   getPanelText(): string {
     return 'Features missing in only 1 browser';
@@ -138,6 +138,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     `;
   }
 
+  // TODO(#1104) - Consolidate this into a new common browser specific panel for charts only used on the stats page.
+  // Do not add it to the main base abstract class because that panel will be used for the feature detail page charts
+  // too. And those do not have browser dropdowns.
   handleBrowserSelection(event: Event) {
     const menu = event.target as SlMenu;
     const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(

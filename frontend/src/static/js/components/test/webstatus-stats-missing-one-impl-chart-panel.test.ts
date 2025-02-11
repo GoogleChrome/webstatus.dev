@@ -29,13 +29,7 @@ import {
 } from '../webstatus-line-chart-panel.js';
 
 import '../webstatus-stats-missing-one-impl-chart-panel.js';
-import {createMockIterator} from './test-helpers.test.js';
-
-// Can't use await el.updateComplete.
-// Inspired from the lit/tasks tests themselves:
-// https://github.com/lit/lit/blob/main/packages/task/src/test/task_test.ts
-const taskUpdateComplete = () =>
-  new Promise(resolve => requestAnimationFrame(resolve));
+import {createMockIterator, taskUpdateComplete} from './test-helpers.test.js';
 
 describe('WebstatusStatsMissingOneImplChartPanel', () => {
   let el: WebstatusStatsMissingOneImplChartPanel;
@@ -142,7 +136,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
 
   it('handles browser selection', async () => {
     const dropdown = el.shadowRoot!.querySelector(
-      '#missing-one-implementation-chart-browser-selector', // Updated ID
+      '#missing-one-implementation-browser-selector',
     ) as SlMenu;
     const menuItems = Array.from(dropdown.querySelectorAll('sl-menu-item'));
 
