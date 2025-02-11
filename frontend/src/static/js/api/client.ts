@@ -47,7 +47,8 @@ export type BrowsersParameter = components['parameters']['browserPathParam'];
 type PageablePath =
   | '/v1/features'
   | '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}'
-  | '/v1/stats/features/browsers/{browser}/feature_counts';
+  | '/v1/stats/features/browsers/{browser}/feature_counts'
+  | '/v1/stats/baseline_status/low_date_feature_counts';
 
 type SuccessResponsePageableData<
   T,
@@ -127,6 +128,10 @@ export type BrowserReleaseFeatureMetric =
   components['schemas']['BrowserReleaseFeatureMetric'];
 export type BrowserReleaseFeatureMetricsPage =
   components['schemas']['BrowserReleaseFeatureMetricsPage'];
+export type BaselineStatusMetricsPage =
+  components['schemas']['BaselineStatusMetricsPage'];
+export type BaselineStatusMetric =
+  components['schemas']['BaselineStatusMetric'];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
@@ -422,6 +427,37 @@ export class APIClient {
       }
       const page: BrowserReleaseFeatureMetricsPage =
         response.data as BrowserReleaseFeatureMetricsPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
+  }
+
+  // Returns the count of features supported that have reached baseline
+  // via "/v1/stats/baseline_status/low_date_feature_counts"
+  public async *listAggregatedBaselineStatusCounts(
+    startAtDate: Date,
+    endAtDate: Date,
+  ): AsyncIterable<BaselineStatusMetric[]> {
+    const startAt: string = startAtDate.toISOString().substring(0, 10);
+    const endAt: string = endAtDate.toISOString().substring(0, 10);
+
+    let nextPageToken;
+    do {
+      const response = await this.client.GET(
+        '/v1/stats/baseline_status/low_date_feature_counts',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {startAt, endAt, page_token: nextPageToken},
+          },
+        },
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: BaselineStatusMetricsPage =
+        response.data as BaselineStatusMetricsPage;
       nextPageToken = page?.metadata?.next_page_token;
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
