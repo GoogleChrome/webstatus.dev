@@ -54,17 +54,8 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () =>
-        [this.apiClient, this.startDate, this.endDate] as [
-          APIClient,
-          Date,
-          Date,
-        ],
-      task: async ([apiClient, startDate, endDate]: [
-        APIClient,
-        Date,
-        Date,
-      ]) => {
+      args: () => [this.apiClient, this.startDate, this.endDate] as const,
+      task: async ([apiClient, startDate, endDate]) => {
         await this._fetchGlobalFeatureSupportData(
           apiClient,
           startDate,
@@ -100,7 +91,6 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     };
 
     const allMetricData = [...browserMetricData, maxMetricData];
-
     const browserPromises = ALL_BROWSERS.map(async browser => {
       const browserData = browserMetricData.find(
         data => data.label === browser,
