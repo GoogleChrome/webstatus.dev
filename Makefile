@@ -297,7 +297,11 @@ license-fix:
 ################################
 # Playwright
 ################################
-fresh-env-for-playwright: playwright-install delete-local build deploy-local dev_fake_data dev_fake_users port-forward-manual
+# Set this variable to any non-empty value (e.g., SKIP_FRESH_ENV=1) to skip the
+# fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
+SKIP_FRESH_ENV ?=
+
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local dev_fake_data dev_fake_users port-forward-manual)
 
 playwright-install:
 	npx playwright install --with-deps

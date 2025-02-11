@@ -56,7 +56,28 @@ Some lint errors can be fixed automatically. This command will try to fix all th
 
 Developers may still need to inspect and manually fix the error.
 
-## Run Playwright Tests
+## Playwright Tests
+
+### Note about running Playwright Makefile Targets
+
+If you have a running local development environment
+(established via `make start-local`) with the necessary fake data
+(`make dev_fake_data`), fake users (`make dev_fake_users`), and port forwarding
+(`make port-forward-manual`), you can expedite Playwright testing by skipping
+the environment setup.
+
+To do this, prefix your `make` command with `SKIP_FRESH_ENV=1`. This is
+particularly useful for rapid iteration, as `make start-local` leverages
+Skaffold to rebuild the application on file saves.
+
+For example: `make playwright-test` becomes `SKIP_FRESH_ENV=1 make playwright-test`.
+
+**Important:** Skipping the environment setup assumes your existing local
+environment is in a known good state. If inconsistencies arise, ensure you run
+the Playwright target without `SKIP_FRESH_ENV=1` to create a clean environment.
+This is the default behavior to guarantee a reliable testing environment.
+
+### Running Playwright Tests
 
 Run the following command to run the Playwright tests: `make playwright-test`.
 
