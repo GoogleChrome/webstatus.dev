@@ -26,7 +26,7 @@ import {customElement} from 'lit/decorators.js';
 import {taskUpdateComplete} from './test-helpers.test.js';
 
 // Interface for the data used in LineChartMetricData
-interface MetricDataItem {
+interface MetricDataPoint {
   date: Date;
   value: number;
 }
@@ -101,15 +101,15 @@ describe('WebstatusLineChartPanel', () => {
   });
 
   it('sets display data correctly', () => {
-    const metricDataArray: Array<LineChartMetricData<MetricDataItem>> = [
+    const metricDataArray: Array<LineChartMetricData<MetricDataPoint>> = [
       {
         label: 'Metric 1',
         data: [
           {date: new Date('2024-01-01'), value: 10},
           {date: new Date('2024-01-02'), value: 20},
         ],
-        getTimestamp: (item: MetricDataItem) => item.date,
-        getData: (item: MetricDataItem) => item.value,
+        getTimestamp: (dataPoint: MetricDataPoint) => dataPoint.date,
+        getValue: (dataPoint: MetricDataPoint) => dataPoint.value,
       },
       {
         label: 'Metric 2',
@@ -118,8 +118,8 @@ describe('WebstatusLineChartPanel', () => {
           {date: new Date('2024-01-02'), value: 25},
           {date: new Date('2024-01-03'), value: 30},
         ],
-        getTimestamp: (item: MetricDataItem) => item.date,
-        getData: (item: MetricDataItem) => item.value,
+        getTimestamp: (dataPoint: MetricDataPoint) => dataPoint.date,
+        getValue: (dataPoint: MetricDataPoint) => dataPoint.value,
       },
     ];
 

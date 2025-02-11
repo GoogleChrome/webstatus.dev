@@ -24,7 +24,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 
 /**
  * Interface defining the structure of metric data for the line chart.
- * @template T The type of the data items.
+ * @template T The type of the data points.
  */
 export interface LineChartMetricData<T> {
   /**
@@ -40,18 +40,18 @@ export interface LineChartMetricData<T> {
   data: Array<T>;
 
   /**
-   * Function to extract the timestamp from a data item.
-   * @param {T} item The data item.
-   * @returns {Date} The timestamp of the data item.
+   * Function to extract the timestamp from a data point.
+   * @param {T} dataPoint The data point.
+   * @returns {Date} The timestamp of the data point.
    */
-  getTimestamp: (item: T) => Date;
+  getTimestamp: (dataPoint: T) => Date;
 
   /**
-   * Function to extract the data value from a data item.
-   * @param {T} item The data item.
-   * @returns {number | undefined} The data value of the data item.
+   * Function to extract the data value from a data point.
+   * @param {T} dataPoint The data point.
+   * @returns {number | undefined} The data value of the data point.
    */
-  getData: (item: T) => number | undefined;
+  getValue: (dataPoint: T) => number | undefined;
 }
 
 /**
@@ -191,10 +191,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
     for (const metricData of metricDataArray) {
       if (!Array.isArray(metricData.data)) continue;
-      for (const item of metricData.data) {
-        const timestamp = metricData.getTimestamp(item);
+      for (const dataPoint of metricData.data) {
+        const timestamp = metricData.getTimestamp(dataPoint);
         const dateSeconds = timestamp.getTime();
-        const dataValue = metricData.getData(item);
+        const dataValue = metricData.getValue(dataPoint);
 
         if (!dateToDataMap.has(dateSeconds)) {
           dateToDataMap.set(dateSeconds, {});
