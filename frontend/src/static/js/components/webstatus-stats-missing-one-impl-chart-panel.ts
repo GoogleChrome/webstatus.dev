@@ -23,7 +23,6 @@ import {
 import {
   BrowserReleaseFeatureMetric,
   type APIClient,
-  ALL_BROWSERS,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
 } from '../api/client.js';
@@ -33,7 +32,7 @@ import {customElement, state} from 'lit/decorators.js';
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
   @state()
-  supportedBrowsers: BrowsersParameter[] = ALL_BROWSERS;
+  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   createLoadingTask(): Task {
     return new Task(this, {
@@ -81,22 +80,28 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     endDate: Date,
   ) {
     if (typeof apiClient !== 'object') return;
+
     const browserMetricData: Array<
-      LineChartMetricData<BrowserReleaseFeatureMetric>
-    > = ALL_BROWSERS.map(browser => ({
-      label: browser,
+      LineChartMetricData<BrowserReleaseFeatureMetric> & {
+        browser: BrowsersParameter;
+      }
+    > = this.supportedBrowsers.map(browser => ({
+      label: browser === 'chrome' ? 'chromium' : browser, // Special case for Chrome
+      browser: browser,
       data: [],
       getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>
         new Date(dataPoint.timestamp),
       getValue: (dataPoint: BrowserReleaseFeatureMetric) => dataPoint.count,
     }));
-    const promises = ALL_BROWSERS.map(async browser => {
+    const promises = this.supportedBrowsers.map(async browser => {
       const browserData = browserMetricData.find(
-        data => data.label === browser,
+        data => data.browser === browser,
       );
       if (!browserData) return;
 
-      const otherBrowsers = ALL_BROWSERS.filter(value => browser !== value);
+      const otherBrowsers = this.supportedBrowsers.filter(
+        value => browser !== value,
+      );
       for await (const page of apiClient.getMissingOneImplementationCountsForBrowser(
         browser,
         otherBrowsers,
@@ -129,8 +134,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           Browsers
         </sl-button>
         <sl-menu @sl-select=${this.handleBrowserSelection}>
-          <sl-menu-item type="checkbox" value="chrome">Chrome</sl-menu-item>
-          <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
+          <!-- The API still uses chrome as the browser. But change the text to Chromium -->
+          <sl-menu-item type="checkbox" value="chrome">Chromium</sl-menu-item>
+          <!-- For now, remove edge. Add back in once we add correct interaction in #1104-->
+          <!-- <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item> -->
           <sl-menu-item type="checkbox" value="firefox">Firefox</sl-menu-item>
           <sl-menu-item type="checkbox" value="safari">Safari</sl-menu-item>
         </sl-menu>
