@@ -49,7 +49,7 @@ test('matches the screenshot with missing one implementation chart', async ({
   await page.waitForSelector('#global-feature-support-chart-container');
 
   // Wait for the missing one implementatoin chart container to exist.
-  await page.waitForSelector('#features-lagging');
+  await page.waitForSelector('#missing-one-implementation-chart-container');
 
   await waitForAllChartsToLoad(page);
 

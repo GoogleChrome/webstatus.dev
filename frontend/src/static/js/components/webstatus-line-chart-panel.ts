@@ -275,7 +275,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         <webstatus-gchart
           id="${this.getPanelID()}-chart"
           .hasMax=${false}
-          .containerId="${'global-feature-support-chart-container'}"
+          .containerId="${this.getPanelID()}-chart-container"
           .chartType="${'LineChart'}"
           .dataObj="${this.data}"
           .options="${this.generateDisplayDataChartOptions()}"
