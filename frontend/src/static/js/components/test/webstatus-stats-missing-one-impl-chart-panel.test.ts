@@ -16,10 +16,9 @@
 
 import {fixture, html as testHtml, expect} from '@open-wc/testing';
 import {SinonStub, SinonStubbedInstance, stub} from 'sinon';
-import {WebstatusStatsGlobalFeatureCountChartPanel} from '../webstatus-stats-global-feature-count-chart-panel.js';
+import {WebstatusStatsMissingOneImplChartPanel} from '../webstatus-stats-missing-one-impl-chart-panel.js'; // Path to your component
 import {
   APIClient,
-  BaselineStatusMetric,
   BrowserReleaseFeatureMetric,
   BrowsersParameter,
 } from '../../api/client.js';
@@ -29,11 +28,17 @@ import {
   WebstatusLineChartPanel,
 } from '../webstatus-line-chart-panel.js';
 
-import '../webstatus-stats-global-feature-count-chart-panel.js';
-import {createMockIterator, taskUpdateComplete} from './test-helpers.test.js';
+import '../webstatus-stats-missing-one-impl-chart-panel.js';
+import {createMockIterator} from './test-helpers.test.js';
 
-describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
-  let el: WebstatusStatsGlobalFeatureCountChartPanel;
+// Can't use await el.updateComplete.
+// Inspired from the lit/tasks tests themselves:
+// https://github.com/lit/lit/blob/main/packages/task/src/test/task_test.ts
+const taskUpdateComplete = () =>
+  new Promise(resolve => requestAnimationFrame(resolve));
+
+describe('WebstatusStatsMissingOneImplChartPanel', () => {
+  let el: WebstatusStatsMissingOneImplChartPanel;
   let apiClientStub: SinonStubbedInstance<APIClient>;
   let setDisplayDataFromMapStub: SinonStub;
 
@@ -43,11 +48,12 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
       WebstatusLineChartPanel.prototype,
       'setDisplayDataFromMap',
     );
-    el =
-      await fixture<WebstatusStatsGlobalFeatureCountChartPanel>(testHtml`<webstatus-stats-global-feature-chart-panel
-.startDate=${new Date('2024-01-01')}
-.endDate=${new Date('2024-01-31')}
-    ></webstatus-stats-global-feature-chart-panel>`);
+    el = await fixture<WebstatusStatsMissingOneImplChartPanel>(
+      testHtml`<webstatus-stats-missing-one-impl-chart-panel
+      .startDate=${new Date('2024-01-01')}
+      .endDate=${new Date('2024-01-31')}
+      ></webstatus-stats-missing-one-impl-chart-panel>`,
+    );
     el.apiClient = apiClientStub;
     await el.updateComplete;
   });
@@ -64,7 +70,9 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
   it('renders the panel header', async () => {
     const header = el.shadowRoot!.querySelector('[slot="header"]');
     expect(header).to.exist;
-    expect(header!.textContent).to.contain('Global feature support');
+    expect(header!.textContent).to.contain(
+      'Features missing in only 1 browser',
+    );
   });
 
   it('fetches data and calls setDisplayDataFromMap', async () => {
@@ -72,46 +80,18 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
       BrowsersParameter,
       BrowserReleaseFeatureMetric[]
     >([
-      [
-        'chrome',
-        [
-          {timestamp: '2024-01-01', count: 10},
-          {timestamp: '2024-01-02', count: 12},
-        ],
-      ],
-      [
-        'edge',
-        [
-          {timestamp: '2024-01-01', count: 8},
-          {timestamp: '2024-01-02', count: 11},
-        ],
-      ],
-      [
-        'firefox',
-        [
-          {timestamp: '2024-01-01', count: 9},
-          {timestamp: '2024-01-02', count: 10},
-        ],
-      ],
-      [
-        'safari',
-        [
-          {timestamp: '2024-01-01', count: 7},
-          {timestamp: '2024-01-02', count: 13},
-        ],
-      ],
+      ['chrome', [{timestamp: '2024-01-01', count: 10}]],
+      ['edge', [{timestamp: '2024-01-01', count: 8}]],
+      ['firefox', [{timestamp: '2024-01-01', count: 9}]],
+      ['safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
-    const mockBaselineData: BaselineStatusMetric[] = [
-      {timestamp: '2024-01-01', count: 20},
-    ];
 
-    apiClientStub.getFeatureCountsForBrowser.callsFake(browser => {
-      const data = mockMissingOneCountData.get(browser)?.slice();
-      return createMockIterator(data!);
-    });
-    apiClientStub.listAggregatedBaselineStatusCounts.callsFake(() => {
-      return createMockIterator(mockBaselineData);
-    });
+    apiClientStub.getMissingOneImplementationCountsForBrowser.callsFake(
+      browser => {
+        const data = mockMissingOneCountData.get(browser)?.slice();
+        return createMockIterator(data!);
+      },
+    );
 
     await el._task?.run();
     await el.updateComplete;
@@ -119,7 +99,7 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
 
     expect(setDisplayDataFromMapStub.calledOnce).to.be.true;
     const args = setDisplayDataFromMapStub.firstCall.args;
-    expect(args.length).to.equal(1); // Ensure it has one argument
+    expect(args.length).to.equal(1);
 
     const metricDataArray = args[0] as Array<
       LineChartMetricData<{
@@ -140,55 +120,19 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     });
 
     const expectedMap = new Map([
-      [
-        'chrome',
-        [
-          {timestamp: '2024-01-01', count: 10},
-          {timestamp: '2024-01-02', count: 12},
-        ],
-      ],
-      [
-        'edge',
-        [
-          {timestamp: '2024-01-01', count: 8},
-          {timestamp: '2024-01-02', count: 11},
-        ],
-      ],
-      [
-        'firefox',
-        [
-          {timestamp: '2024-01-01', count: 9},
-          {timestamp: '2024-01-02', count: 10},
-        ],
-      ],
-      [
-        'safari',
-        [
-          {timestamp: '2024-01-01', count: 7},
-          {timestamp: '2024-01-02', count: 13},
-        ],
-      ],
-      [
-        'Total number of Baseline features',
-        [{timestamp: '2024-01-01', count: 20}],
-      ],
+      ['chrome', [{timestamp: '2024-01-01', count: 10}]],
+      ['edge', [{timestamp: '2024-01-01', count: 8}]],
+      ['firefox', [{timestamp: '2024-01-01', count: 9}]],
+      ['safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
     expect(browserToDataMap).to.deep.equal(expectedMap);
   });
 
   it('generates chart options correctly', () => {
     const options = el.generateDisplayDataChartOptions();
-    expect(options.vAxis?.title).to.equal('Number of features supported');
-
-    // Check colors based on browsers displayed.
-    // 4 browsers and total.
-    expect(options.colors).eql([
-      '#FF0000',
-      '#F48400',
-      '#4285F4',
-      '#0F9D58',
-      '#888888',
-    ]);
+    expect(options.vAxis?.title).to.equal('Number of features missing');
+    // Only browsers.
+    expect(options.colors).eql(['#FF0000', '#F48400', '#4285F4', '#0F9D58']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
@@ -198,7 +142,7 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
 
   it('handles browser selection', async () => {
     const dropdown = el.shadowRoot!.querySelector(
-      '#global-feature-support-browser-selector',
+      '#missing-one-implementation-chart-browser-selector', // Updated ID
     ) as SlMenu;
     const menuItems = Array.from(dropdown.querySelectorAll('sl-menu-item'));
 

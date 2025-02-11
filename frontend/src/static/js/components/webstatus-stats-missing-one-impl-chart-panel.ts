@@ -64,7 +64,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
     const selectedBrowsers = this.supportedBrowsers;
-    const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
+    const seriesColors = [...selectedBrowsers].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
     });

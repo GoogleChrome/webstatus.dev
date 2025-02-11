@@ -23,37 +23,29 @@ import {Task} from '@lit/task';
 import {WebStatusDataObj} from '../webstatus-gchart.js';
 import {TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
+import {taskUpdateComplete} from './test-helpers.test.js';
 
-// Can't use await el.updateComplete.
-// Inspired from the lit/tasks tests themselves:
-// https://github.com/lit/lit/blob/main/packages/task/src/test/task_test.ts
-const taskUpdateComplete = () =>
-  new Promise(resolve => requestAnimationFrame(resolve));
+// Interface for the data used in LineChartMetricData
+interface MetricDataItem {
+  date: Date;
+  value: number;
+}
 
 @customElement('test-line-chart-panel')
 class TestLineChartPanel extends WebstatusLineChartPanel {
+  resolveTask!: (value: WebStatusDataObj) => void;
+  rejectTask!: (reason: Error) => void;
+
   createLoadingTask(): Task {
-    let resolveFn: (value: WebStatusDataObj) => void;
-    let rejectFn: (reason?: any) => void;
-
-    const promise = new Promise<WebStatusDataObj>((resolve, reject) => {
-      resolveFn = resolve;
-      rejectFn = reject;
-    });
-
-    const task = new Task(
+    return new Task(
       this,
-      async () => {
-        return promise;
-      },
+      () =>
+        new Promise((resolve, reject) => {
+          this.rejectTask = reject; // Assign the reject function directly
+          this.resolveTask = resolve; // Assign the resolve function directly
+        }),
       () => [this.startDate, this.endDate],
     );
-
-    // Store resolve and reject functions on the task for testing
-    (task as any).resolve = resolveFn!;
-    (task as any).reject = rejectFn!;
-
-    return task;
   }
 
   getPanelID(): string {
@@ -78,7 +70,6 @@ class TestLineChartPanel extends WebstatusLineChartPanel {
 
 describe('WebstatusLineChartPanel', () => {
   let el: TestLineChartPanel;
-  let task: any;
 
   beforeEach(async () => {
     el = await fixture(testHtml`<test-line-chart-panel
@@ -86,7 +77,6 @@ describe('WebstatusLineChartPanel', () => {
     .endDate=${new Date('2024-01-31')}
     ></test-line-chart-panel>`);
     await el.updateComplete;
-    task = el._task;
   });
 
   it('renders the card', async () => {
@@ -101,7 +91,7 @@ describe('WebstatusLineChartPanel', () => {
   });
 
   it('renders the chart container when complete', async () => {
-    task.resolve({cols: [], rows: []});
+    el.resolveTask({cols: [], rows: []});
     await taskUpdateComplete();
     const chartContainer = el.shadowRoot!.querySelector('#test-panel-complete');
     expect(chartContainer).to.exist;
@@ -111,15 +101,15 @@ describe('WebstatusLineChartPanel', () => {
   });
 
   it('sets display data correctly', () => {
-    const metricDataArray: Array<LineChartMetricData<any>> = [
+    const metricDataArray: Array<LineChartMetricData<MetricDataItem>> = [
       {
         label: 'Metric 1',
         data: [
           {date: new Date('2024-01-01'), value: 10},
           {date: new Date('2024-01-02'), value: 20},
         ],
-        getTimestamp: (item: any) => item.date,
-        getData: (item: any) => item.value,
+        getTimestamp: (item: MetricDataItem) => item.date,
+        getData: (item: MetricDataItem) => item.value,
       },
       {
         label: 'Metric 2',
@@ -128,8 +118,8 @@ describe('WebstatusLineChartPanel', () => {
           {date: new Date('2024-01-02'), value: 25},
           {date: new Date('2024-01-03'), value: 30},
         ],
-        getTimestamp: (item: any) => item.date,
-        getData: (item: any) => item.value,
+        getTimestamp: (item: MetricDataItem) => item.date,
+        getData: (item: MetricDataItem) => item.value,
       },
     ];
 
@@ -185,7 +175,7 @@ describe('WebstatusLineChartPanel', () => {
   });
 
   it('renders error state', async () => {
-    task.reject('Test Error');
+    el.rejectTask(new Error('Test Error'));
     await taskUpdateComplete();
     const errorMessage = el.shadowRoot!.querySelector('#test-panel-error');
     expect(errorMessage).to.exist;
