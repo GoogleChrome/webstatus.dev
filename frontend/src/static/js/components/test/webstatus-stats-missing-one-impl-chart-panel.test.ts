@@ -75,7 +75,8 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       BrowserReleaseFeatureMetric[]
     >([
       ['chrome', [{timestamp: '2024-01-01', count: 10}]],
-      ['edge', [{timestamp: '2024-01-01', count: 8}]],
+      // TODO(#1104) - Add edge back in when allow users to dynamically select the range.
+      // ['edge', [{timestamp: '2024-01-01', count: 8}]],
       ['firefox', [{timestamp: '2024-01-01', count: 9}]],
       ['safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
@@ -114,8 +115,8 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     });
 
     const expectedMap = new Map([
-      ['chrome', [{timestamp: '2024-01-01', count: 10}]],
-      ['edge', [{timestamp: '2024-01-01', count: 8}]],
+      ['chromium', [{timestamp: '2024-01-01', count: 10}]],
+      // ['edge', [{timestamp: '2024-01-01', count: 8}]],
       ['firefox', [{timestamp: '2024-01-01', count: 9}]],
       ['safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
@@ -126,7 +127,9 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     const options = el.generateDisplayDataChartOptions();
     expect(options.vAxis?.title).to.equal('Number of features missing');
     // Only browsers.
-    expect(options.colors).eql(['#FF0000', '#F48400', '#4285F4', '#0F9D58']);
+    expect(options.colors).eql(['#FF0000', '#F48400', '#4285F4']);
+    // TODO(#1104) For now exclude edge.
+    // expect(options.colors).eql(['#FF0000', '#F48400', '#4285F4', '#0F9D58']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
