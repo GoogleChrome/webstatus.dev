@@ -21,7 +21,6 @@ import {customElement, state} from 'lit/decorators.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
-import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace/dist/shoelace.js';
 
 import {
   ALL_BROWSERS,
@@ -277,21 +276,6 @@ export class FeaturePage extends BaseChartsPage {
         return this.featureMetadata;
       },
     });
-  }
-
-  async handleBrowserSelection(event: Event) {
-    const menu = event.target as SlMenu;
-    const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
-      child => child instanceof SlMenuItem,
-    ) as Array<SlMenuItem>;
-
-    // Build the list of values of checked menu-items.
-    this.featureSupportBrowsers = menuItemsArray
-      .filter(menuItem => menuItem.checked)
-      .map(menuItem => menuItem.value) as BrowsersParameter[];
-    // Regenerate data and redraw.  We should instead just filter it.
-    await this._startFeatureSupportTask();
-    this.generateFeatureSupportChartOptions();
   }
 
   createDataFromMap<T>(
@@ -820,32 +804,6 @@ export class FeaturePage extends BaseChartsPage {
         <div class="hbox">
           <div slot="header">Implementation progress</div>
           <div class="spacer"></div>
-          <div class="hbox wrap valign-items-end">
-            <sl-dropdown
-              style="display:none"
-              id="feature-support-browser-selector"
-              multiple
-              stay-open-on-select
-              .value="${this.featureSupportBrowsers.join(' ')}"
-            >
-              <sl-button slot="trigger">
-                <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-                Browsers
-              </sl-button>
-              <sl-menu @sl-select=${this.handleBrowserSelection}>
-                <sl-menu-item type="checkbox" value="chrome"
-                  >Chrome</sl-menu-item
-                >
-                <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
-                <sl-menu-item type="checkbox" value="firefox"
-                  >Firefox</sl-menu-item
-                >
-                <sl-menu-item type="checkbox" value="safari"
-                  >Safari</sl-menu-item
-                >
-              </sl-menu>
-            </sl-dropdown>
-          </div>
         </div>
 
         <webstatus-gchart
@@ -873,26 +831,6 @@ export class FeaturePage extends BaseChartsPage {
         <div class="hbox">
           <div slot="header">Feature Usage</div>
           <div class="spacer"></div>
-          <div class="spacer"></div>
-          <div class="hbox wrap valign-items-end">
-            <sl-dropdown
-              style="display:none"
-              id="feature-usage-browser-selector"
-              multiple
-              stay-open-on-select
-              .value="${this.featureUsageBrowsers.join(' ')}"
-            >
-              <sl-button slot="trigger">
-                <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-                Browsers
-              </sl-button>
-              <sl-menu @sl-select=${this.handleBrowserSelection}>
-                <sl-menu-item type="checkbox" value="chrome"
-                  >Chrome</sl-menu-item
-                >
-              </sl-menu>
-            </sl-dropdown>
-          </div>
         </div>
 
         <webstatus-gchart

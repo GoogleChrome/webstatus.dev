@@ -22,7 +22,6 @@ import {
   BrowserReleaseFeatureMetric,
   BrowsersParameter,
 } from '../../api/client.js';
-import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 import {
   LineChartMetricData,
   WebstatusLineChartPanel,
@@ -75,8 +74,6 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       BrowserReleaseFeatureMetric[]
     >([
       ['chrome', [{timestamp: '2024-01-01', count: 10}]],
-      // TODO(#1104) - Add edge back in when allow users to dynamically select the range.
-      // ['edge', [{timestamp: '2024-01-01', count: 8}]],
       ['firefox', [{timestamp: '2024-01-01', count: 9}]],
       ['safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
@@ -116,7 +113,6 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
 
     const expectedMap = new Map([
       ['chromium', [{timestamp: '2024-01-01', count: 10}]],
-      // ['edge', [{timestamp: '2024-01-01', count: 8}]],
       ['firefox', [{timestamp: '2024-01-01', count: 9}]],
       ['safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
@@ -126,36 +122,12 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
   it('generates chart options correctly', () => {
     const options = el.generateDisplayDataChartOptions();
     expect(options.vAxis?.title).to.equal('Number of features missing');
-    // Only browsers.
+    // Only browsers (except Edge).
     expect(options.colors).eql(['#FF0000', '#F48400', '#4285F4']);
-    // TODO(#1104) For now exclude edge.
-    // expect(options.colors).eql(['#FF0000', '#F48400', '#4285F4', '#0F9D58']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
     );
     expect(options.hAxis?.viewWindow?.max).to.deep.equal(expectedEndDate);
-  });
-
-  it('handles browser selection', async () => {
-    const dropdown = el.shadowRoot!.querySelector(
-      '#missing-one-implementation-browser-selector',
-    ) as SlMenu;
-    const menuItems = Array.from(dropdown.querySelectorAll('sl-menu-item'));
-
-    // Simulate selecting Chrome and Firefox
-    const chromeItem = menuItems.find(
-      item => item.value === 'chrome',
-    ) as SlMenuItem;
-    const firefoxItem = menuItems.find(
-      item => item.value === 'firefox',
-    ) as SlMenuItem;
-
-    if (chromeItem) chromeItem.click();
-    if (firefoxItem) firefoxItem.click();
-
-    await el.updateComplete;
-
-    expect(el.supportedBrowsers).to.deep.equal(['chrome', 'firefox']);
   });
 });

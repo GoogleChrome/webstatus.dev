@@ -15,7 +15,7 @@
  */
 
 import {Task} from '@lit/task';
-import {TemplateResult, html} from 'lit';
+import {TemplateResult, html, nothing} from 'lit';
 import {
   LineChartMetricData,
   WebstatusLineChartPanel,
@@ -28,7 +28,6 @@ import {
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
 } from '../api/client.js';
-import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 import {customElement, state} from 'lit/decorators.js';
 
 @customElement('webstatus-stats-global-feature-chart-panel')
@@ -127,40 +126,6 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     return 'Global feature support';
   }
   renderControls(): TemplateResult {
-    return html`
-      <sl-dropdown
-        id="${this.getPanelID()}-browser-selector"
-        multiple
-        stay-open-on-select
-        .value="${this.supportedBrowsers.join(' ')}"
-      >
-        <sl-button slot="trigger">
-          <sl-icon slot="suffix" name="chevron-down"></sl-icon>
-          Browsers
-        </sl-button>
-        <sl-menu @sl-select=${this.handleBrowserSelection}>
-          <sl-menu-item type="checkbox" value="chrome">Chrome</sl-menu-item>
-          <sl-menu-item type="checkbox" value="edge">Edge</sl-menu-item>
-          <sl-menu-item type="checkbox" value="firefox">Firefox</sl-menu-item>
-          <sl-menu-item type="checkbox" value="safari">Safari</sl-menu-item>
-        </sl-menu>
-      </sl-dropdown>
-    `;
-  }
-
-  // TODO(#1104) - Consolidate this into a new common browser specific panel for charts only used on the stats page.
-  // Do not add it to the main base abstract class because that panel will be used for the feature detail page charts
-  // too. And those do not have browser dropdowns.
-  handleBrowserSelection(event: Event) {
-    const menu = event.target as SlMenu;
-    const menuItemsArray: Array<SlMenuItem> = Array.from(menu.children).filter(
-      child => child instanceof SlMenuItem,
-    ) as Array<SlMenuItem>;
-
-    // Build the list of values of checked menu-items.
-    this.supportedBrowsers = menuItemsArray
-      .filter(menuItem => menuItem.checked)
-      .map(menuItem => menuItem.value) as BrowsersParameter[];
-    // Regenerate data and redraw.  We should instead just filter it.
+    return html`${nothing}`;
   }
 }

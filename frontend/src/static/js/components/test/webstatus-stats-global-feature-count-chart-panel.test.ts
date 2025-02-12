@@ -23,7 +23,6 @@ import {
   BrowserReleaseFeatureMetric,
   BrowsersParameter,
 } from '../../api/client.js';
-import {SlMenu, SlMenuItem} from '@shoelace-style/shoelace';
 import {
   LineChartMetricData,
   WebstatusLineChartPanel,
@@ -194,27 +193,5 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
     );
     expect(options.hAxis?.viewWindow?.max).to.deep.equal(expectedEndDate);
-  });
-
-  it('handles browser selection', async () => {
-    const dropdown = el.shadowRoot!.querySelector(
-      '#global-feature-support-browser-selector',
-    ) as SlMenu;
-    const menuItems = Array.from(dropdown.querySelectorAll('sl-menu-item'));
-
-    // Simulate selecting Chrome and Firefox
-    const chromeItem = menuItems.find(
-      item => item.value === 'chrome',
-    ) as SlMenuItem;
-    const firefoxItem = menuItems.find(
-      item => item.value === 'firefox',
-    ) as SlMenuItem;
-
-    if (chromeItem) chromeItem.click();
-    if (firefoxItem) firefoxItem.click();
-
-    await el.updateComplete;
-
-    expect(el.supportedBrowsers).to.deep.equal(['chrome', 'firefox']);
   });
 });

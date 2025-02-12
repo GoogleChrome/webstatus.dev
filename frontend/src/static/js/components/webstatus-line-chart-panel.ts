@@ -148,16 +148,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         .vbox {
           gap: var(--content-padding-large);
         }
-        /*  Make the dropdown menu button icon rotate when the menu is open,
-            so it looks like sl-select. */
-        sl-dropdown > sl-button > sl-icon {
-          rotate: 0deg;
-          transition: var(--sl-transition-medium) rotate ease;
-        }
-        sl-dropdown[open] > sl-button > sl-icon {
-          rotate: -180deg;
-          transition: var(--sl-transition-medium) rotate ease;
-        }
         sl-card {
           display: block;
           width: auto;
