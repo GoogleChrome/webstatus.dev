@@ -24,6 +24,8 @@ import './webstatus-stats-missing-one-impl-chart-panel.js';
 
 @customElement('webstatus-stats-page')
 export class StatsPage extends BaseChartsPage {
+  // Change the default start date to Jan 1, 2020.
+  override startDate: Date = new Date(2020, 0, 1);
   static get styles(): CSSResultGroup {
     return [
       super.styles!,
