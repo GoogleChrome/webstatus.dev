@@ -112,9 +112,9 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     });
 
     const expectedMap = new Map([
-      ['chromium', [{timestamp: '2024-01-01', count: 10}]],
-      ['firefox', [{timestamp: '2024-01-01', count: 9}]],
-      ['safari', [{timestamp: '2024-01-01', count: 7}]],
+      ['Chromium', [{timestamp: '2024-01-01', count: 10}]],
+      ['Firefox', [{timestamp: '2024-01-01', count: 9}]],
+      ['Safari', [{timestamp: '2024-01-01', count: 7}]],
     ]);
     expect(browserToDataMap).to.deep.equal(expectedMap);
   });

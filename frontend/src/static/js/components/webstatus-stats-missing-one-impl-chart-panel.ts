@@ -25,6 +25,7 @@ import {
   type APIClient,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
+  BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
 import {customElement, state} from 'lit/decorators.js';
 
@@ -85,7 +86,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         browser: BrowsersParameter;
       }
     > = this.supportedBrowsers.map(browser => ({
-      label: browser === 'chrome' ? 'chromium' : browser, // Special case for Chrome
+      label: browser === 'chrome' ? 'Chromium' : BROWSER_ID_TO_LABEL[browser], // Special case for Chrome
       browser: browser,
       data: [],
       getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>

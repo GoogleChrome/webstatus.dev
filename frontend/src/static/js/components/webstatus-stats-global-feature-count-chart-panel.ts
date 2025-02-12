@@ -27,6 +27,7 @@ import {
   ALL_BROWSERS,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
+  BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
 import {customElement, state} from 'lit/decorators.js';
 
@@ -73,9 +74,12 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     if (typeof apiClient !== 'object') return;
 
     const browserMetricData: Array<
-      LineChartMetricData<BrowserReleaseFeatureMetric>
+      LineChartMetricData<BrowserReleaseFeatureMetric> & {
+        browser: BrowsersParameter;
+      }
     > = ALL_BROWSERS.map(browser => ({
-      label: browser,
+      label: BROWSER_ID_TO_LABEL[browser],
+      browser: browser,
       data: [],
       getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>
         new Date(dataPoint.timestamp),
@@ -93,7 +97,7 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     const allMetricData = [...browserMetricData, maxMetricData];
     const browserPromises = ALL_BROWSERS.map(async browser => {
       const browserData = browserMetricData.find(
-        data => data.label === browser,
+        data => data.browser === browser,
       );
       if (!browserData) return;
 
