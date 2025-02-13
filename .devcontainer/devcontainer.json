@@ -39,7 +39,10 @@
       // Get version from https://github.com/koalaman/shellcheck/releases
       "version": "v0.10.0"
     },
-    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {},
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      // We don't use helm
+      "helm": "none"
+    },
     "ghcr.io/rio/features/skaffold:2": {},
     // Needed for antlr4.
     "ghcr.io/devcontainers/features/java:1": {
