@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {type TemplateResult, html, CSSResultGroup, css, nothing} from 'lit';
+import {type TemplateResult, html, nothing} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {getFeaturesLaggingFlag} from '../utils/urls.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
@@ -26,23 +26,6 @@ import './webstatus-stats-missing-one-impl-chart-panel.js';
 export class StatsPage extends BaseChartsPage {
   // Change the default start date to Jan 1, 2020.
   override startDate: Date = new Date(2020, 0, 1);
-  static get styles(): CSSResultGroup {
-    return [
-      super.styles!,
-      css`
-        /*  Make the dropdown menu button icon rotate when the menu is open,
-            so it looks like sl-select. */
-        sl-dropdown > sl-button > sl-icon {
-          rotate: 0deg;
-          transition: var(--sl-transition-medium) rotate ease;
-        }
-        sl-dropdown[open] > sl-button > sl-icon {
-          rotate: -180deg;
-          transition: var(--sl-transition-medium) rotate ease;
-        }
-      `,
-    ];
-  }
   constructor() {
     super();
   }
