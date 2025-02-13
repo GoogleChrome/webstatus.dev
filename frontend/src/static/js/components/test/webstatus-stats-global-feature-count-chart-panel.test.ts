@@ -140,28 +140,28 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
 
     const expectedMap = new Map([
       [
-        'chrome',
+        'Chrome',
         [
           {timestamp: '2024-01-01', count: 10},
           {timestamp: '2024-01-02', count: 12},
         ],
       ],
       [
-        'edge',
+        'Edge',
         [
           {timestamp: '2024-01-01', count: 8},
           {timestamp: '2024-01-02', count: 11},
         ],
       ],
       [
-        'firefox',
+        'Firefox',
         [
           {timestamp: '2024-01-01', count: 9},
           {timestamp: '2024-01-02', count: 10},
         ],
       ],
       [
-        'safari',
+        'Safari',
         [
           {timestamp: '2024-01-01', count: 7},
           {timestamp: '2024-01-02', count: 13},
