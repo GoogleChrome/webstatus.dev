@@ -54,6 +54,39 @@ export interface LineChartMetricData<T> {
   getValue: (dataPoint: T) => number | undefined;
 }
 
+// Type for the data fetched event (using type alias)
+// type DataFetchedEvent<T> = CustomEvent<{label: string; data: T[]}>;
+
+// Type for series calculator functions (
+export type SeriesCalculator<T> = (
+  dataPoint: T,
+  metricData: LineChartMetricData<T>,
+  cacheMap: Map<string, T>,
+) => void;
+
+// Type for extracting timestamp from a data point
+type TimestampExtractor<T> = (dataPoint: T) => Date;
+
+// Type for extracting value from a data point
+type ValueExtractor<T> = (dataPoint: T) => number;
+
+// Interface for additional series configuration
+export interface AdditionalSeriesConfig<T> {
+  label: string;
+  calculator: SeriesCalculator<T>;
+  timestampExtractor: TimestampExtractor<T>;
+  valueExtractor: ValueExtractor<T>;
+  cacheMap: Map<string, T>;
+}
+
+// Interface for fetch function configuration
+export interface FetchFunctionConfig<T> {
+  label: string;
+  fetchFunction: () => AsyncIterable<T[]>;
+  timestampExtractor: TimestampExtractor<T>;
+  valueExtractor: ValueExtractor<T>;
+}
+
 /**
  * Abstract base class for creating line chart panels to display web status data.
  * This class handles data processing, chart rendering using `webstatus-gchart`,
@@ -280,7 +313,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput();
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
-    const options = {
+    const options: google.visualization.LineChartOptions = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
       hAxis: {
         title: '',
@@ -298,11 +331,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
       interpolateNulls: true,
 
-      // Multiple selection of points will be summarized in one tooltip.
-      tooltip: {trigger: 'selection'},
-      selectionMode: 'multiple',
-      aggregationTarget: 'category',
-
       // Enable explorer mode
       explorer: {
         actions: ['dragToZoom', 'rightClickToReset'],
@@ -312,9 +340,145 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         maxZoomOut: 4,
         zoomDelta: 0.01,
       },
-    } as google.visualization.LineChartOptions;
+    };
 
     return options;
+  }
+
+  /**
+   * Fetches and aggregates data for the chart.
+   * This method takes an array of fetch function configurations and an optional
+   * array of additional series configurations. It fetches data for each fetch
+   * function configuration concurrently, then applies the additional series
+   * calculators to the fetched data. The processed data is then formatted into
+   * a `LineChartMetricData` array and passed to `setDisplayDataFromMap` for
+   * rendering.
+   *
+   * @param fetchFunctionConfigs An array of fetch function configurations.
+   * @param additionalSeriesConfigs An optional array of additional series configurations.
+   */
+  async _fetchAndAggregateData<T>(
+    fetchFunctionConfigs: FetchFunctionConfig<T>[],
+    additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
+  ) {
+    // Create an array of metric data objects for each fetch function
+    const metricDataArray: Array<LineChartMetricData<T>> =
+      fetchFunctionConfigs.map(
+        ({label, timestampExtractor, valueExtractor}) => ({
+          label,
+          data: [],
+          getTimestamp: timestampExtractor,
+          getValue: valueExtractor,
+        }),
+      );
+
+    // Dispatch an event to signal the start of data fetching
+    const event = new CustomEvent('data-fetch-starting');
+    this.dispatchEvent(event);
+
+    // Fetch data for each configuration concurrently
+    const promises = fetchFunctionConfigs.map(
+      async ({fetchFunction, label}) => {
+        for await (const page of fetchFunction()) {
+          // Find the corresponding metric data object
+          const metricData = metricDataArray.find(data => data.label === label);
+          if (metricData) {
+            metricData.data.push(...page);
+          }
+        }
+      },
+    );
+
+    await Promise.all(promises);
+
+    // Apply additionalSeriesConfigs if provided
+    if (additionalSeriesConfigs) {
+      fetchFunctionConfigs.forEach(({label}) => {
+        const metricData = metricDataArray.find(data => data.label === label);
+
+        if (metricData) {
+          // Create a new cacheMap for each fetch function config
+          const cacheMap = new Map<
+            string,
+            T
+            // {timestamp: string; count: number}
+          >();
+
+          metricData.data.forEach((dataPoint: T) => {
+            additionalSeriesConfigs.forEach(({calculator}) => {
+              calculator(dataPoint, metricData, cacheMap);
+            });
+          });
+
+          // Convert cacheMap to array and create new LineChartMetricData entries
+          additionalSeriesConfigs.forEach(
+            ({label, cacheMap, valueExtractor, timestampExtractor}) => {
+              const newMetricData: LineChartMetricData<T> = {
+                label: label,
+                data: Array.from(cacheMap.values()),
+                getTimestamp: timestampExtractor,
+                getValue: valueExtractor,
+              };
+              metricDataArray.push(newMetricData);
+            },
+          );
+        }
+      });
+    }
+
+    this.setDisplayDataFromMap(metricDataArray);
+  }
+
+  /**
+   * Creates a `DataFetchedEvent` containing the fetched data for each series.
+   *
+   * @param {FetchFunctionConfig<T>} fetchFunctionConfigs The array of fetch function configurations.
+   * @returns {DataFetchedEvent<T>} The custom event containing the fetched data.
+   * @template T The type of the fetched data.
+   */
+  // private _createDataFetchedEvent<T>(
+  //   fetchFunctionConfigs: Array<FetchFunctionConfig<T>>,
+  //   metricDataArray: Array<LineChartMetricData<T>>,
+  // ): DataFetchedEvent<T> {
+  //   return new CustomEvent('data-fetched', {
+  //     detail: fetchFunctionConfigs.map(({label}) => ({
+  //       label,
+  //       // Get the data from the corresponding metricData object
+  //       data: metricDataArray.find(data => data.label === label)?.data || [],
+  //     })),
+  //     bubbles: true,
+  //   });
+  // }
+
+  /**
+   * SeriesCalculator to calculate the maximum value for each timestamp.
+   * This method takes a data point, the metric data for the series,
+   * and a cache map to store and retrieve intermediate calculations.
+   * It calculates the maximum value for each timestamp by comparing the
+   * values of data points with the same timestamp.
+   *
+   * @param dataPoint The data point to process.
+   * @param metricData The metric data for the series.
+   * @param cacheMap The cache map to store and retrieve intermediate calculations.
+   */
+  calculateMax<T>(
+    dataPoint: T,
+    metricData: LineChartMetricData<T>,
+    cacheMap: Map<string, T>,
+  ) {
+    const value = metricData.getValue(dataPoint) || 0;
+    const timestamp = metricData.getTimestamp(dataPoint);
+    const dateString = timestamp.toISOString();
+
+    const existingDataPoint = cacheMap.get(dateString);
+
+    if (existingDataPoint !== undefined) {
+      if (value > (metricData.getValue(existingDataPoint) ?? 0)) {
+        cacheMap.set(dateString, dataPoint);
+      }
+    } else {
+      cacheMap.set(dateString, dataPoint);
+    }
   }
 
   render(): TemplateResult {
