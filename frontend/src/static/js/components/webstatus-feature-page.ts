@@ -51,6 +51,8 @@ import {WebStatusDataObj} from './webstatus-gchart.js';
 import {NotFoundError} from '../api/errors.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
+import './webstatus-feature-wpt-progress-chart-panel.js';
+
 type LoadingTaskType = '_loadingMetricsTask' | '_loadingUsageTask';
 type FetchTaskType = '_fetchFeatureSupportData' | '_fetchFeatureUsageData';
 
@@ -818,6 +820,11 @@ export class FeaturePage extends BaseChartsPage {
           Loading chart...
         </webstatus-gchart>
       </sl-card>
+      <webstatus-feature-wpt-progress-chart-panel
+        .featureId=${this.featureId}
+        .startDate=${this.startDate}
+        .endDate=${this.endDate}
+      ></webstatus-feature-wpt-progress-chart-panel>
     `;
   }
 

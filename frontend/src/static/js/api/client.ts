@@ -335,6 +335,7 @@ export class APIClient {
     channel: ChannelsParameter,
     startAtDate: Date,
     endAtDate: Date,
+    metricView: components['schemas']['WPTMetricView'] = DEFAULT_TEST_VIEW,
   ): AsyncIterable<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
@@ -351,7 +352,7 @@ export class APIClient {
               feature_id: featureId,
               browser,
               channel,
-              metric_view: DEFAULT_TEST_VIEW,
+              metric_view: metricView,
             },
           },
         },

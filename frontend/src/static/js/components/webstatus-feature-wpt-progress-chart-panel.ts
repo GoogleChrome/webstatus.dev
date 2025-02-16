@@ -35,6 +35,13 @@ import {
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
   featureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
   featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
+  readonly testView: 'subtest_counts' | 'test_counts' = 'subtest_counts';
+
+  readonly testViewToString: Record<'subtest_counts' | 'test_counts', string> =
+    {
+      subtest_counts: 'subtests',
+      test_counts: 'tests',
+    };
 
   @property({type: String})
   featureId!: string;
@@ -42,36 +49,41 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
+    featureId: string,
   ): FetchFunctionConfig<WPTRunMetric>[] {
     return this.featureSupportBrowsers.map(browser => ({
       label: BROWSER_ID_TO_LABEL[browser],
       fetchFunction: () =>
         this.apiClient.getFeatureStatsByBrowserAndChannel(
-          this.featureId,
+          featureId,
           browser,
           this.featureSupportChannel,
           startDate,
           endDate,
+          this.testView,
         ),
       timestampExtractor: (dataPoint: WPTRunMetric): Date =>
         new Date(dataPoint.run_timestamp),
       valueExtractor: (dataPoint: WPTRunMetric): number =>
         dataPoint.test_pass_count || 0,
+      tooltipExtractor: (dataPoint: WPTRunMetric): string =>
+        `${BROWSER_ID_TO_LABEL[browser]}: ${dataPoint.test_pass_count!} of ${dataPoint.total_tests_count!}`,
     }));
   }
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () => [this.startDate, this.endDate] as [Date, Date],
-      task: async ([startDate, endDate]: [Date, Date]) => {
+      args: () =>
+        [this.startDate, this.endDate, this.featureId] as [Date, Date, string],
+      task: async ([startDate, endDate, featureId]: [Date, Date, string]) => {
         await this._fetchAndAggregateData<WPTRunMetric>(
-          this._createFetchFunctionConfigs(startDate, endDate),
+          this._createFetchFunctionConfigs(startDate, endDate, featureId),
           [
             // This additional series configuration calculates the "Total" series
             // by using the calculateMax method to find the maximum total_tests_count
             // across all browsers for each timestamp.
             {
-              label: 'Total',
+              label: `Total number of ${this.testViewToString[this.testView]}`,
               calculator: this.calculateMax,
               cacheMap: new Map<string, WPTRunMetric>(),
               timestampExtractor: (dataPoint: WPTRunMetric): Date =>
@@ -93,6 +105,8 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
   renderControls(): TemplateResult {
     return html`${nothing}`;
   }
+
+  override readonly hasMax: boolean = true;
   getDisplayDataChartOptionsInput(): {
     seriesColors: string[];
     vAxisTitle: string;
@@ -107,7 +121,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
 
     return {
       seriesColors: seriesColors,
-      vAxisTitle: 'Number of subtests passed',
+      vAxisTitle: `Number of ${this.testViewToString[this.testView]} passed`,
     };
   }
 }
