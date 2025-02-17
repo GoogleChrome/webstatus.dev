@@ -23,10 +23,8 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {
-  BROWSER_ID_TO_LABEL,
   FeatureWPTMetricViewType,
   type APIClient,
-  type BrowsersParameter,
   type WPTRunMetric,
   BROWSER_LABEL_TO_ID,
 } from '../api/client.js';
@@ -43,7 +41,6 @@ import {
 
 import './webstatus-loading-overlay.js';
 import './webstatus-gchart';
-import {WebStatusDataObj} from './webstatus-gchart.js';
 import {NotFoundError} from '../api/errors.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
@@ -77,13 +74,6 @@ export class FeaturePage extends BaseChartsPage {
   featureMetadata?: {can_i_use?: CanIUseData; description?: string} | undefined;
 
   featureId!: string;
-
-  // Make startDate and endDate reactive so that @lit/task can detect the changes.
-  // TODO: Remove the @state decorator from start and end dates when we move the loading task into a non-page component.
-  @state()
-  override startDate!: Date;
-  @state()
-  override endDate!: Date;
 
   static get styles(): CSSResultGroup {
     return [
@@ -235,118 +225,6 @@ export class FeaturePage extends BaseChartsPage {
         return this.featureMetadata;
       },
     });
-  }
-
-  createDataFromMap<T>(
-    data: Map<string, T[]>,
-    browsers: BrowsersParameter[],
-    browserDataExtractor: (
-      data: Map<string, T[]>,
-      browser: BrowsersParameter,
-    ) => T[] | undefined,
-    valueExtractor: (row: T) => [string, number?, number?],
-    tooltipGenerator: (row: T, browser: BrowsersParameter) => string,
-    totalLabel?: string,
-  ): WebStatusDataObj {
-    const dataObj: WebStatusDataObj = {cols: [], rows: []};
-    dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
-    for (const browser of browsers) {
-      const browserLabel = BROWSER_ID_TO_LABEL[browser];
-      dataObj.cols.push({type: 'number', label: browserLabel, role: 'data'});
-      dataObj.cols.push({
-        type: 'string',
-        label: `${browserLabel} tooltip`,
-        role: 'tooltip',
-      });
-    }
-    if (totalLabel) {
-      dataObj.cols.push({
-        type: 'number',
-        label: totalLabel,
-        role: 'data',
-      });
-    }
-
-    // We build a map from each time slot for which any browser has data.
-    // to an array of data for all browsers (in dateToBrowserDataMap)
-    // along with the total_tests_count for that time.
-    // Since times may be slightly different for data associated with each browser,
-    // we round times to the nearest 1 hour as a compromise.
-    // The total ought to be the same for all browsers,
-    // but this is not the case due to upstream problems.
-    // As a workaround, we will instead use the max of all the
-    // browser's totals for each time slot.
-    // So effectively, for each unique time slot, we merge the data
-    // for all the browsers while computing the max of the total value for
-    // each of the browsers.
-    const dateToTotalMap = new Map<number, number>();
-
-    // Map from date to an object with counts for each browser
-    const dateToBrowserDataMap = new Map<
-      number,
-      {[key: string]: {tooltip: string; value: number}}
-    >();
-
-    for (const browser of browsers) {
-      const browserData = browserDataExtractor(data, browser);
-      if (!browserData) continue;
-      for (const row of browserData) {
-        if (!row) continue;
-        const [dateString, value, totalValue] = valueExtractor(row);
-        const timestampMs = new Date(dateString).getTime();
-        // Round timestamp to the nearest hour.
-        const msInHour = 1000 * 60 * 60 * 1;
-        const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
-        const tooltip = tooltipGenerator(row, browser);
-        if (!dateToBrowserDataMap.has(roundedTimestamp)) {
-          dateToBrowserDataMap.set(roundedTimestamp, {});
-        }
-        if (totalLabel) {
-          const total = Math.max(
-            dateToTotalMap.get(roundedTimestamp) || 0,
-            totalValue || 0,
-          );
-          dateToTotalMap.set(roundedTimestamp, total);
-        } else {
-          dateToTotalMap.set(roundedTimestamp, 100);
-        }
-        const browserCounts = dateToBrowserDataMap.get(roundedTimestamp)!;
-        browserCounts[browser] = {tooltip, value: value!};
-      }
-    }
-
-    // Create array of dateToBrowserDataMap entries and sort by roundedTimestamp
-    const browserData = Array.from(dateToBrowserDataMap.entries()).sort(
-      ([d1], [d2]) => d1 - d2,
-    );
-
-    // For each date, add a row to the dataObj
-    for (const datum of browserData) {
-      const dateMs = datum[0];
-      const date = new Date(dateMs);
-      const browserCounts = datum[1];
-
-      // Make an array of browser counts, in the order of selected browsers.
-      // If the browser is not in the browserCounts, add null.
-      const browserCountArray: Array<number | string | null> = [];
-      browsers.forEach(browser => {
-        const countAndTooltip = browserCounts[browser];
-        if (countAndTooltip) {
-          browserCountArray.push(countAndTooltip.value);
-          browserCountArray.push(countAndTooltip.tooltip);
-        } else {
-          browserCountArray.push(null);
-          browserCountArray.push(null);
-        }
-      });
-      if (totalLabel) {
-        const total = dateToTotalMap.get(dateMs)!;
-        dataObj.rows.push([date, ...browserCountArray, total]);
-      } else {
-        dataObj.rows.push([date, ...browserCountArray]);
-      }
-    }
-    return dataObj;
   }
 
   override async firstUpdated(): Promise<void> {
