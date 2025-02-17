@@ -62,7 +62,8 @@ export interface LineChartMetricData<T> {
 }
 
 // Type for the data fetched event (using type alias)
-// type DataFetchedEvent<T> = CustomEvent<{label: string; data: T[]}>;
+// export type DataFetchedEvent<T> = CustomEvent<{[label: string]: {data: T[]}}>;
+export type DataFetchedEvent<T> = CustomEvent<Map<string, {data: T[]}>>;
 
 // Type for series calculator functions (
 export type SeriesCalculator<T> = (
@@ -299,7 +300,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       id="${this.getPanelID()}-error"
       class="error-chart-panel chart-panel"
     >
-      Error when loading stats: ${error}
+      Error when loading chart: ${error}
     </div>`;
   }
 
@@ -325,7 +326,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       id="${this.getPanelID()}-pending"
       class="pending-chart-panel chart-panel"
     >
-      Loading stats.
+      <div class="spinner-container">
+        <sl-spinner></sl-spinner>
+      </div>
+      <div class="pending-chart-message">Loading chart</div>
     </div>`;
   }
 
@@ -414,6 +418,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    *
    * @param fetchFunctionConfigs An array of fetch function configurations.
    * @param additionalSeriesConfigs An optional array of additional series configurations.
+   * @event CustomEvent data-fetch-starting - Dispatched when data fetching starts.
+   * @event DataFetchedEvent data-fetch-complete - Dispatched when data fetching is complete.
+   *    The `detail` property contains a map of
+   *    `{ [label: string]: { data: T[] } }`.
    */
   async _fetchAndAggregateData<T>(
     fetchFunctionConfigs: FetchFunctionConfig<T>[],
@@ -449,6 +457,12 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     );
 
     await Promise.all(promises);
+
+    const fetchDataEvent = this._createDataFetchedEvent(
+      fetchFunctionConfigs,
+      metricDataArray,
+    );
+    this.dispatchEvent(fetchDataEvent);
 
     // Apply additionalSeriesConfigs if provided
     if (additionalSeriesConfigs) {
@@ -493,19 +507,23 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {DataFetchedEvent<T>} The custom event containing the fetched data.
    * @template T The type of the fetched data.
    */
-  // private _createDataFetchedEvent<T>(
-  //   fetchFunctionConfigs: Array<FetchFunctionConfig<T>>,
-  //   metricDataArray: Array<LineChartMetricData<T>>,
-  // ): DataFetchedEvent<T> {
-  //   return new CustomEvent('data-fetched', {
-  //     detail: fetchFunctionConfigs.map(({label}) => ({
-  //       label,
-  //       // Get the data from the corresponding metricData object
-  //       data: metricDataArray.find(data => data.label === label)?.data || [],
-  //     })),
-  //     bubbles: true,
-  //   });
-  // }
+  private _createDataFetchedEvent<T>(
+    fetchFunctionConfigs: Array<FetchFunctionConfig<T>>,
+    metricDataArray: Array<LineChartMetricData<T>>,
+  ): DataFetchedEvent<T> {
+    const dataMap = new Map<string, {data: T[]}>();
+
+    fetchFunctionConfigs.forEach(config => {
+      const matchingMetricData = metricDataArray.find(
+        data => data.label === config.label,
+      );
+      dataMap.set(config.label, {data: matchingMetricData?.data || []});
+    });
+
+    return new CustomEvent('data-fetch-complete', {
+      detail: dataMap,
+    });
+  }
 
   /**
    * SeriesCalculator to calculate the maximum value for each timestamp.

@@ -33,8 +33,8 @@ import {
 
 @customElement('webstatus-feature-wpt-progress-chart-panel')
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
-  featureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
-  featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
+  readonly featureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
+  readonly featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
   readonly testView: 'subtest_counts' | 'test_counts' = 'subtest_counts';
 
   readonly testViewToString: Record<'subtest_counts' | 'test_counts', string> =
@@ -76,6 +76,12 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
       args: () =>
         [this.startDate, this.endDate, this.featureId] as [Date, Date, string],
       task: async ([startDate, endDate, featureId]: [Date, Date, string]) => {
+        if (
+          featureId === undefined ||
+          startDate === undefined ||
+          endDate === undefined
+        )
+          return;
         await this._fetchAndAggregateData<WPTRunMetric>(
           this._createFetchFunctionConfigs(startDate, endDate, featureId),
           [

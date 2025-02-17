@@ -171,7 +171,7 @@ describe('WebstatusLineChartPanel', () => {
       '#test-panel-pending',
     );
     expect(pendingMessage).to.exist;
-    expect(pendingMessage!.textContent).to.include('Loading stats.');
+    expect(pendingMessage!.textContent).to.include('Loading chart');
   });
 
   it('renders error state', async () => {
@@ -179,6 +179,6 @@ describe('WebstatusLineChartPanel', () => {
     await taskUpdateComplete();
     const errorMessage = el.shadowRoot!.querySelector('#test-panel-error');
     expect(errorMessage).to.exist;
-    expect(errorMessage!.textContent).to.include('Error when loading stats.');
+    expect(errorMessage!.textContent).to.include('Error when loading chart');
   });
 });

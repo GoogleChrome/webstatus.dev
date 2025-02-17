@@ -89,6 +89,15 @@ export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
   edge: 'Edge',
 };
 
+/** Map from label to browser id */
+export const BROWSER_LABEL_TO_ID: Record<string, BrowsersParameter> =
+  Object.fromEntries(
+    Object.entries(BROWSER_ID_TO_LABEL).map(([key, value]) => [
+      value,
+      key as BrowsersParameter,
+    ]),
+  );
+
 export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
   {
     chrome: '#FF0000',
