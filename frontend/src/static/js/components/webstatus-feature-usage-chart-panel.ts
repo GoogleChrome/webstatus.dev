@@ -25,7 +25,7 @@ import {
 } from '../api/client.js';
 
 @customElement('webstatus-feature-usage-chart-panel')
-export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
+export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
   @property({type: String})
   featureId!: string;
   createLoadingTask(): Task {

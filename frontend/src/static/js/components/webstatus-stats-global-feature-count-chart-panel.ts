@@ -17,12 +17,11 @@
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
-  LineChartMetricData,
+  FetchFunctionConfig,
   WebstatusLineChartPanel,
 } from './webstatus-line-chart-panel.js';
 import {
   BrowserReleaseFeatureMetric,
-  type APIClient,
   BaselineStatusMetric,
   ALL_BROWSERS,
   BrowsersParameter,
@@ -52,76 +51,43 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   @state()
   supportedBrowsers: BrowsersParameter[] = ALL_BROWSERS;
 
-  createLoadingTask(): Task {
-    return new Task(this, {
-      args: () => [this.apiClient, this.startDate, this.endDate] as const,
-      task: async ([apiClient, startDate, endDate]) => {
-        await this._fetchGlobalFeatureSupportData(
-          apiClient,
-          startDate,
-          endDate,
-        );
-        return;
-      },
-    });
-  }
-
-  async _fetchGlobalFeatureSupportData(
-    apiClient: APIClient,
+  private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
-  ) {
-    if (typeof apiClient !== 'object') return;
-
-    const browserMetricData: Array<
-      LineChartMetricData<BrowserReleaseFeatureMetric> & {
-        browser: BrowsersParameter;
-      }
-    > = ALL_BROWSERS.map(browser => ({
+  ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
+    return ALL_BROWSERS.map(browser => ({
       label: BROWSER_ID_TO_LABEL[browser],
-      browser: browser,
-      data: [],
-      getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>
+      fetchFunction: () =>
+        this.apiClient.getFeatureCountsForBrowser(browser, startDate, endDate),
+      timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
         new Date(dataPoint.timestamp),
-      getValue: (dataPoint: BrowserReleaseFeatureMetric) => dataPoint.count,
+      valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+        dataPoint.count ?? 0,
     }));
+  }
 
-    const maxMetricData: LineChartMetricData<BaselineStatusMetric> = {
-      label: 'Total number of Baseline features',
-      data: [],
-      getTimestamp: (dataPoint: BaselineStatusMetric) =>
-        new Date(dataPoint.timestamp),
-      getValue: (dataPoint: BaselineStatusMetric) => dataPoint.count,
-    };
-
-    const allMetricData = [...browserMetricData, maxMetricData];
-    const browserPromises = ALL_BROWSERS.map(async browser => {
-      const browserData = browserMetricData.find(
-        data => data.browser === browser,
-      );
-      if (!browserData) return;
-
-      for await (const page of apiClient.getFeatureCountsForBrowser(
-        browser,
-        startDate,
-        endDate,
-      )) {
-        browserData.data.push(...page);
-      }
+  createLoadingTask(): Task {
+    return new Task(this, {
+      args: () => [this.startDate, this.endDate] as [Date, Date],
+      task: async ([startDate, endDate]: [Date, Date]) => {
+        await this._fetchAndAggregateData([
+          ...this._createFetchFunctionConfigs(startDate, endDate),
+          {
+            // Additional fetch function config for the "Total" series
+            label: 'Total number of Baseline features',
+            fetchFunction: () =>
+              this.apiClient.listAggregatedBaselineStatusCounts(
+                startDate,
+                endDate,
+              ),
+            timestampExtractor: (dataPoint: BaselineStatusMetric) =>
+              new Date(dataPoint.timestamp),
+            valueExtractor: (dataPoint: BaselineStatusMetric) =>
+              dataPoint.count ?? 0,
+          },
+        ]);
+      },
     });
-
-    const maxPromise = (async () => {
-      for await (const page of apiClient.listAggregatedBaselineStatusCounts(
-        startDate,
-        endDate,
-      )) {
-        maxMetricData.data.push(...page);
-      }
-    })();
-
-    await Promise.all([...browserPromises, maxPromise]);
-
-    this.setDisplayDataFromMap(allMetricData);
   }
   getPanelID(): string {
     return 'global-feature-support';
