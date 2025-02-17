@@ -39,7 +39,6 @@ import {
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
-import './webstatus-loading-overlay.js';
 import './webstatus-gchart';
 import {NotFoundError} from '../api/errors.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
