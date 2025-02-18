@@ -22,7 +22,7 @@ import {
   AdditionalSeriesConfig,
 } from '../webstatus-line-chart-panel.js';
 import {Task} from '@lit/task';
-import {WebStatusDataObj} from '../webstatus-gchart.js';
+import {WebStatusDataObj, WebstatusGChart} from '../webstatus-gchart.js';
 import {TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {createMockIterator, taskUpdateComplete} from './test-helpers.test.js';
@@ -37,6 +37,8 @@ interface MetricDataPoint {
 class TestLineChartPanel extends WebstatusLineChartPanel {
   resolveTask!: (value: WebStatusDataObj) => void;
   rejectTask!: (reason: Error) => void;
+  resolvePointSelectedTask!: (value: unknown) => void;
+  rejectPointSelectedTask!: (reason: Error) => void;
 
   createLoadingTask(): Task {
     return new Task(
@@ -48,6 +50,26 @@ class TestLineChartPanel extends WebstatusLineChartPanel {
         }),
       () => [this.startDate, this.endDate],
     );
+  }
+
+  createPointSelectedTask(): {
+    task: Task;
+    renderSuccess?: () => TemplateResult;
+  } {
+    return {
+      task: new Task(this, {
+        args: () => [this.startDate, this.endDate],
+        task: async () => {
+          return new Promise((resolve, reject) => {
+            this.resolvePointSelectedTask = resolve;
+            this.rejectPointSelectedTask = reject;
+          });
+        },
+      }),
+      renderSuccess() {
+        return html`Task Success`;
+      },
+    };
   }
 
   getPanelID(): string {
@@ -264,6 +286,117 @@ describe('WebstatusLineChartPanel', () => {
       expect(detail.get('Metric 1')!.data).to.deep.equal([
         {date: new Date('2024-01-01'), value: 10},
       ]);
+    });
+  });
+  describe('Point selection', () => {
+    beforeEach(async () => {
+      // Resolve the main loading task to render the chart
+      el.resolveTask({cols: [], rows: []});
+      await taskUpdateComplete();
+      await el.updateComplete;
+    });
+
+    it('handles point-selected and point-deselected events', async () => {
+      const chart = el.shadowRoot!.querySelector('webstatus-gchart')!;
+
+      // Simulate point-selected event on the chart component
+      chart.dispatchEvent(
+        new CustomEvent('point-selected', {
+          detail: {label: 'Test Label', timestamp: new Date(), value: 123},
+        }),
+      );
+      await el.updateComplete;
+
+      // Assert that the task and renderer are set (no need to wait for the event)
+      expect(el._pointSelectedTask).to.exist;
+      expect(el._renderCustomPointSelectedSuccess).to.exist;
+      await el.updateComplete;
+
+      // Simulate point-deselected event on the chart component
+      chart.dispatchEvent(new CustomEvent('point-deselected'));
+      await el.updateComplete;
+
+      // Assert that the task and renderer are reset (no need to wait for the event)
+      expect(el._pointSelectedTask).to.be.undefined;
+      expect(el._renderCustomPointSelectedSuccess).to.be.undefined;
+    });
+
+    it('renders point selected details with loading states', async () => {
+      // Simulate point-selected event
+      const chart =
+        el.shadowRoot!.querySelector<WebstatusGChart>('webstatus-gchart')!;
+      chart.dispatchEvent(
+        new CustomEvent('point-selected', {
+          detail: {label: 'Test Label', timestamp: new Date(), value: 123},
+        }),
+      );
+      // TODO. For some reason, the task won't start on its own in the unit test.
+      el._pointSelectedTask?.run();
+      await el.updateComplete;
+
+      // TODO check initial state when we figure out how to keep it in the initial state like the other task.
+
+      // Check for pending state
+      expect(
+        el.shadowRoot!.querySelector('#test-panel-datapoint-details-pending'),
+      ).to.exist;
+
+      // Resolve the point selected task
+      el.resolvePointSelectedTask(undefined);
+      await el.updateComplete;
+      await taskUpdateComplete();
+
+      // Check for success state
+      const successMessage = el.shadowRoot!.querySelector(
+        '#test-panel-datapoint-details-complete',
+      );
+      expect(successMessage).to.exist;
+      expect(successMessage!.textContent).to.contain('Task Success');
+      // Verify that the details panel is rendered
+      let detailsPanel = el.shadowRoot!.querySelector(
+        '.datapoint-details-panel',
+      );
+      expect(detailsPanel).to.not.be.null;
+
+      // Simulate point-deselected event to reset
+      chart.dispatchEvent(new CustomEvent('point-deselected'));
+      await el.updateComplete;
+      // Verify that the details panel is no longer rendered
+      detailsPanel = el.shadowRoot!.querySelector('.datapoint-details-panel');
+      expect(detailsPanel).to.be.null;
+    });
+
+    it('renders error state for point selected details', async () => {
+      // Simulate point-selected event
+      const chart =
+        el.shadowRoot!.querySelector<WebstatusGChart>('webstatus-gchart')!;
+      chart.dispatchEvent(
+        new CustomEvent('point-selected', {
+          detail: {label: 'Test Label', timestamp: new Date(), value: 123},
+        }),
+      );
+      // TODO. For some reason, the task won't start on its own in the unit test.
+      el._pointSelectedTask?.run();
+      await el.updateComplete;
+
+      // Check for pending state
+      expect(
+        el.shadowRoot!.querySelector('#test-panel-datapoint-details-pending'),
+      ).to.exist;
+
+      // Reject the point selected task
+      el.rejectPointSelectedTask(new Error('Test Error'));
+      await el.updateComplete;
+      await taskUpdateComplete();
+
+      // Check for error state
+      const errorMessage = el.shadowRoot!.querySelector(
+        '#test-panel-datapoint-details-error',
+      );
+      expect(errorMessage).to.exist;
+      expect(errorMessage!.textContent).to.include(
+        'Error when loading details about selected data point: Error: Test Error',
+      );
     });
   });
 });
