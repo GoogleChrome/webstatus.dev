@@ -193,6 +193,7 @@ describe('WebstatusLineChartPanel', () => {
             createMockIterator<MetricDataPoint>([
               {date: new Date('2024-01-01'), value: 10},
               {date: new Date('2024-01-02'), value: 20},
+              {date: new Date('2024-01-04'), value: 35},
             ]),
           timestampExtractor: (dataPoint: MetricDataPoint) => dataPoint.date,
           valueExtractor: (dataPoint: MetricDataPoint) => dataPoint.value,
@@ -237,7 +238,8 @@ describe('WebstatusLineChartPanel', () => {
       expect(el.data!.rows).to.deep.equal([
         [new Date('2024-01-01'), 10, 15, 15], // Total should be 15 (max of 10 and 15)
         [new Date('2024-01-02'), 20, 25, 25], // Total should be 25 (max of 20 and 25)
-        [new Date('2024-01-03'), null, 30, 30], // Total should be 30
+        [new Date('2024-01-03'), null, 30, 30], // Max should be 30
+        [new Date('2024-01-04'), 35, null, 35], // Max should be 35
       ]);
     });
 

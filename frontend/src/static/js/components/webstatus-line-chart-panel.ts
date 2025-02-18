@@ -486,9 +486,15 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       // Convert cacheMap to array and create new LineChartMetricData entries
       additionalSeriesConfigs.forEach(
         ({label, cacheMap, valueExtractor, timestampExtractor}) => {
+          // Sort the cacheMap values by timestamp while converting to an array
+          const sortedData = Array.from(cacheMap.values()).sort((a, b) => {
+            return (
+              timestampExtractor(a).getTime() - timestampExtractor(b).getTime()
+            );
+          });
           const newMetricData: LineChartMetricData<T> = {
             label: label,
-            data: Array.from(cacheMap.values()),
+            data: sortedData,
             getTimestamp: timestampExtractor,
             getValue: valueExtractor,
           };

@@ -79,7 +79,7 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     expect(chromeConfig.timestampExtractor(chromeTestDataPoint)).to.deep.equal(
       new Date('2024-01-01'),
     );
-    expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(0.5);
+    expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(50);
     expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint)).to.equal(
       'Chrome: 50%',
     );
