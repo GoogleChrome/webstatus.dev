@@ -21,31 +21,33 @@ import {
   APIClient,
   BaselineStatusMetric,
   BrowserReleaseFeatureMetric,
-  BrowsersParameter,
 } from '../../api/client.js';
-import {
-  LineChartMetricData,
-  WebstatusLineChartPanel,
-} from '../webstatus-line-chart-panel.js';
+import {WebstatusLineChartPanel} from '../webstatus-line-chart-panel.js';
 
 import '../webstatus-stats-global-feature-count-chart-panel.js';
-import {createMockIterator, taskUpdateComplete} from './test-helpers.test.js';
 
 describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
   let el: WebstatusStatsGlobalFeatureCountChartPanel;
   let apiClientStub: SinonStubbedInstance<APIClient>;
   let setDisplayDataFromMapStub: SinonStub;
+  let fetchAndAggregateDataStub: SinonStub;
+  const startDate = new Date('2024-01-01');
+  const endDate = new Date('2024-01-31');
 
   beforeEach(async () => {
     apiClientStub = stub(new APIClient(''));
+    fetchAndAggregateDataStub = stub(
+      WebstatusLineChartPanel.prototype,
+      '_fetchAndAggregateData',
+    );
     setDisplayDataFromMapStub = stub(
       WebstatusLineChartPanel.prototype,
       'setDisplayDataFromMap',
     );
     el =
       await fixture<WebstatusStatsGlobalFeatureCountChartPanel>(testHtml`<webstatus-stats-global-feature-chart-panel
-.startDate=${new Date('2024-01-01')}
-.endDate=${new Date('2024-01-31')}
+.startDate=${startDate}
+.endDate=${endDate}
     ></webstatus-stats-global-feature-chart-panel>`);
     el.apiClient = apiClientStub;
     await el.updateComplete;
@@ -53,6 +55,7 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
 
   afterEach(() => {
     setDisplayDataFromMapStub.restore();
+    fetchAndAggregateDataStub.restore();
   });
 
   it('renders the card', async () => {
@@ -66,113 +69,77 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     expect(header!.textContent).to.contain('Global feature support');
   });
 
-  it('fetches data and calls setDisplayDataFromMap', async () => {
-    const mockMissingOneCountData = new Map<
-      BrowsersParameter,
-      BrowserReleaseFeatureMetric[]
-    >([
-      [
-        'chrome',
-        [
-          {timestamp: '2024-01-01', count: 10},
-          {timestamp: '2024-01-02', count: 12},
-        ],
-      ],
-      [
-        'edge',
-        [
-          {timestamp: '2024-01-01', count: 8},
-          {timestamp: '2024-01-02', count: 11},
-        ],
-      ],
-      [
-        'firefox',
-        [
-          {timestamp: '2024-01-01', count: 9},
-          {timestamp: '2024-01-02', count: 10},
-        ],
-      ],
-      [
-        'safari',
-        [
-          {timestamp: '2024-01-01', count: 7},
-          {timestamp: '2024-01-02', count: 13},
-        ],
-      ],
-    ]);
-    const mockBaselineData: BaselineStatusMetric[] = [
-      {timestamp: '2024-01-01', count: 20},
-    ];
+  it('calls _fetchAndAggregateData with correct arguments', async () => {
+    expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
+    const [fetchFunctionConfigs, additionalSeriesConfigs] =
+      fetchAndAggregateDataStub.getCall(0).args;
+    expect(fetchFunctionConfigs.length).to.equal(5); // 4 browsers + total
+    // Test Chrome configuration
+    const chromeConfig = fetchFunctionConfigs[0];
+    expect(chromeConfig.label).to.equal('Chrome');
+    expect(chromeConfig.fetchFunction).to.be.a('function');
+    const chromeTestDataPoint: BrowserReleaseFeatureMetric = {
+      timestamp: '2024-01-01',
+      count: 10,
+    };
+    expect(chromeConfig.timestampExtractor(chromeTestDataPoint)).to.deep.equal(
+      new Date('2024-01-01'),
+    );
+    expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(10);
 
-    apiClientStub.getFeatureCountsForBrowser.callsFake(browser => {
-      const data = mockMissingOneCountData.get(browser)?.slice();
-      return createMockIterator(data!);
-    });
-    apiClientStub.listAggregatedBaselineStatusCounts.callsFake(() => {
-      return createMockIterator(mockBaselineData);
-    });
+    // Test Firefox configuration
+    const firefoxConfig = fetchFunctionConfigs[1];
+    expect(firefoxConfig.label).to.equal('Firefox');
+    expect(firefoxConfig.fetchFunction).to.be.a('function');
+    const firefoxTestDataPoint: BrowserReleaseFeatureMetric = {
+      timestamp: '2024-01-01',
+      count: 9,
+    };
+    expect(
+      firefoxConfig.timestampExtractor(firefoxTestDataPoint),
+    ).to.deep.equal(new Date('2024-01-01'));
+    expect(firefoxConfig.valueExtractor(firefoxTestDataPoint)).to.equal(9);
 
-    await el._task?.run();
-    await el.updateComplete;
-    await taskUpdateComplete();
+    // Test Safari configuration
+    const safariConfig = fetchFunctionConfigs[2];
+    expect(safariConfig.label).to.equal('Safari');
+    expect(safariConfig.fetchFunction).to.be.a('function');
+    const safariTestDataPoint: BrowserReleaseFeatureMetric = {
+      timestamp: '2024-01-01',
+      count: 7,
+    };
+    expect(safariConfig.timestampExtractor(safariTestDataPoint)).to.deep.equal(
+      new Date('2024-01-01'),
+    );
+    expect(safariConfig.valueExtractor(safariTestDataPoint)).to.equal(7);
 
-    expect(setDisplayDataFromMapStub.calledOnce).to.be.true;
-    const args = setDisplayDataFromMapStub.firstCall.args;
-    expect(args.length).to.equal(1); // Ensure it has one argument
+    // Test Edge configuration
+    const edgeConfig = fetchFunctionConfigs[3];
+    expect(edgeConfig.label).to.equal('Edge');
+    expect(edgeConfig.fetchFunction).to.be.a('function');
+    const edgeTestDataPoint: BrowserReleaseFeatureMetric = {
+      timestamp: '2024-01-01',
+      count: 8,
+    };
+    expect(edgeConfig.timestampExtractor(edgeTestDataPoint)).to.deep.equal(
+      new Date('2024-01-01'),
+    );
+    expect(edgeConfig.valueExtractor(edgeTestDataPoint)).to.equal(8);
 
-    const metricDataArray = args[0] as Array<
-      LineChartMetricData<{
-        timestamp: string;
-        count?: number | undefined;
-      }>
-    >;
+    // Test Total configuration
+    const totalConfig = fetchFunctionConfigs[4];
+    expect(totalConfig.label).to.equal('Total number of Baseline features');
+    expect(totalConfig.fetchFunction).to.be.a('function');
+    const totalTestDataPoint: BaselineStatusMetric = {
+      timestamp: '2024-01-01',
+      count: 20,
+    };
+    expect(totalConfig.timestampExtractor(totalTestDataPoint)).to.deep.equal(
+      new Date('2024-01-01'),
+    );
+    expect(totalConfig.valueExtractor(totalTestDataPoint)).to.equal(20);
 
-    const browserToDataMap = new Map<
-      string,
-      {
-        timestamp: string;
-        count?: number | undefined;
-      }[]
-    >();
-    metricDataArray.forEach(item => {
-      browserToDataMap.set(item.label, item.data);
-    });
-
-    const expectedMap = new Map([
-      [
-        'Chrome',
-        [
-          {timestamp: '2024-01-01', count: 10},
-          {timestamp: '2024-01-02', count: 12},
-        ],
-      ],
-      [
-        'Edge',
-        [
-          {timestamp: '2024-01-01', count: 8},
-          {timestamp: '2024-01-02', count: 11},
-        ],
-      ],
-      [
-        'Firefox',
-        [
-          {timestamp: '2024-01-01', count: 9},
-          {timestamp: '2024-01-02', count: 10},
-        ],
-      ],
-      [
-        'Safari',
-        [
-          {timestamp: '2024-01-01', count: 7},
-          {timestamp: '2024-01-02', count: 13},
-        ],
-      ],
-      [
-        'Total number of Baseline features',
-        [{timestamp: '2024-01-01', count: 20}],
-      ],
-    ]);
-    expect(browserToDataMap).to.deep.equal(expectedMap);
+    expect(additionalSeriesConfigs).to.be.undefined;
   });
 
   it('generates chart options correctly', () => {
