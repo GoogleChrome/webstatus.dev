@@ -32,6 +32,16 @@ import {gchartsContext} from '../contexts/gcharts-context.js';
 import {TaskStatus} from '@lit/task';
 import {classMap} from 'lit/directives/class-map.js';
 
+export interface ChartClickEventDetail {
+  label: string;
+  timestamp: Date;
+  value: number;
+}
+
+export type ChartSelectPointEvent = CustomEvent<ChartClickEventDetail>;
+
+export type ChartDeselectPointEvent = CustomEvent<undefined>;
+
 // The dataObj is a subset of the possible data that can be used to
 // generate a google.visualization.DataTable.
 // It assumes the rows are sorted by the 'datetime' in the first column.
@@ -41,6 +51,16 @@ export type WebStatusDataObj = {
   rows: Array<[Date, ...Array<number | string | null>]>;
 };
 
+/**
+ * A web component wrapper around a Google Chart.
+ *
+ * @event ChartSelectPointEvent point-selected - Dispatched when a data point on the chart is clicked.
+ *  The `detail` property contains an object with the `label`, `timestamp`,
+ *  and `value` of the clicked data point.
+ * @event ChartDeselectPointEvent point-deselected - Dispatched when the user deselects a data point on the chart.
+ *  The `detail` property is undefined.
+ *  Note: Since we only support one selected point at a time, we don't need to return the deselected point itself.
+ */
 @customElement('webstatus-gchart')
 export class WebstatusGChart extends LitElement {
   @consume({context: gchartsContext, subscribe: true})
@@ -82,6 +102,8 @@ export class WebstatusGChart extends LitElement {
 
   @state()
   dataLoadingStatus: TaskStatus = TaskStatus.INITIAL;
+
+  private _chartClickListenerAdded = false;
 
   static get styles(): CSSResultGroup {
     return [
@@ -265,7 +287,56 @@ export class WebstatusGChart extends LitElement {
       this.chartWrapper.setDataTable(
         this.dataTable as google.visualization.DataTable,
       );
+      if (!this._chartClickListenerAdded) {
+        // Check the flag
+        google.visualization.events.addListener(
+          this.chartWrapper,
+          'select',
+          () => {
+            this._handleChartClick();
+          },
+        );
+        this._chartClickListenerAdded = true; // Set the flag after adding the listener
+      }
       this.chartWrapper.draw();
+    }
+  }
+  private _handleChartClick() {
+    const selection = this.chartWrapper?.getChart()?.getSelection();
+    if (selection === undefined) return;
+    if (selection.length > 0) {
+      // TODO: For now only look at the first selection since we only configure for one selection at a time.
+      const item = selection[0];
+      const row = item.row;
+      const column = item.column;
+      // row and column both have the type: number|null|undefined
+      if (
+        row !== null &&
+        column !== null &&
+        row !== undefined &&
+        column !== undefined
+      ) {
+        const label = this.dataTable!.getColumnLabel(column);
+        // Assuming timestamp is in the first column
+        const timestamp = this.dataTable!.getValue(row, 0);
+        const value = this.dataTable!.getValue(row, column);
+
+        // Dispatch the chart click event
+        const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
+          'point-selected',
+          {
+            detail: {label, timestamp, value},
+            bubbles: true,
+          },
+        );
+        this.dispatchEvent(chartClickEvent);
+      }
+    } else if (selection.length === 0) {
+      const chartDeselectEvent: ChartDeselectPointEvent = new CustomEvent(
+        'point-deselected',
+        {detail: undefined},
+      );
+      this.dispatchEvent(chartDeselectEvent);
     }
   }
 }
