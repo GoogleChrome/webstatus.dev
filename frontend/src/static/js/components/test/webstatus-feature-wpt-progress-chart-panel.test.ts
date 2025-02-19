@@ -72,12 +72,12 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     expect(chromeConfig.label).to.equal('Chrome');
     expect(chromeConfig.fetchFunction).to.be.a('function');
     const chromeTestDataPoint: WPTRunMetric = {
-      run_timestamp: '2024-01-01',
+      run_timestamp: '2024-01-01T12:34:56.789Z',
       total_tests_count: 10,
       test_pass_count: 5,
     };
     expect(chromeConfig.timestampExtractor(chromeTestDataPoint)).to.deep.equal(
-      new Date('2024-01-01'),
+      new Date('2024-01-01T13:00:00.000Z'), // Expecting the rounded timestamp
     );
     expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(5);
 
@@ -129,12 +129,12 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     expect(totalConfig.label).to.equal('Total number of subtests');
     expect(totalConfig.calculator).to.equal(el.calculateMax);
     const totalTestDataPoint: WPTRunMetric = {
-      run_timestamp: '2024-01-01',
+      run_timestamp: '2024-01-01T12:34:56.789Z',
       total_tests_count: 15,
       test_pass_count: 9,
     };
     expect(totalConfig.timestampExtractor(totalTestDataPoint)).to.deep.equal(
-      new Date('2024-01-01'),
+      new Date('2024-01-01T13:00:00.000Z'), // Expecting the rounded timestamp
     );
     expect(totalConfig.valueExtractor(totalTestDataPoint)).to.equal(15);
   });

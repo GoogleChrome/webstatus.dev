@@ -46,6 +46,27 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
   @property({type: String})
   featureId!: string;
 
+  /**
+   * Extracts and rounds the timestamp from a WPTRunMetric to the nearest hour.
+   * This is necessary because timestamps from different browsers may be slightly
+   * different, and rounding them to the nearest hour provides a consistent
+   * baseline for comparison.
+   *
+   * Additionally, rounding addresses inconsistencies in the reported
+   * total_tests_count across different browsers for the same timestamp, which
+   * can occur due to upstream data issues.
+   *
+   * @param dataPoint The WPTRunMetric data point.
+   * @returns The rounded timestamp as a Date object.
+   */
+  private _timestampExtractor(dataPoint: WPTRunMetric): Date {
+    const timestampMs = new Date(dataPoint.run_timestamp).getTime();
+    // Round timestamp to the nearest hour.
+    const msInHour = 1000 * 60 * 60 * 1;
+    const roundedTimestamp = Math.round(timestampMs / msInHour) * msInHour;
+    return new Date(roundedTimestamp);
+  }
+
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
@@ -62,8 +83,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
           endDate,
           this.testView,
         ),
-      timestampExtractor: (dataPoint: WPTRunMetric): Date =>
-        new Date(dataPoint.run_timestamp),
+      timestampExtractor: this._timestampExtractor,
       valueExtractor: (dataPoint: WPTRunMetric): number =>
         dataPoint.test_pass_count || 0,
       tooltipExtractor: (dataPoint: WPTRunMetric): string =>
@@ -92,8 +112,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
               label: `Total number of ${this.testViewToString[this.testView]}`,
               calculator: this.calculateMax,
               cacheMap: new Map<string, WPTRunMetric>(),
-              timestampExtractor: (dataPoint: WPTRunMetric): Date =>
-                new Date(dataPoint.run_timestamp),
+              timestampExtractor: this._timestampExtractor,
               valueExtractor: (dataPoint: WPTRunMetric): number =>
                 dataPoint.total_tests_count || 0,
             },
