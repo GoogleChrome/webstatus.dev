@@ -14,16 +14,18 @@
  * limitations under the License.
  */
 
-import {fixture, html as testHtml, expect} from '@open-wc/testing';
+import {fixture, html as testHtml, expect, oneEvent} from '@open-wc/testing';
 import {
   WebstatusLineChartPanel,
   LineChartMetricData,
+  FetchFunctionConfig,
+  AdditionalSeriesConfig,
 } from '../webstatus-line-chart-panel.js';
 import {Task} from '@lit/task';
 import {WebStatusDataObj} from '../webstatus-gchart.js';
 import {TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {taskUpdateComplete} from './test-helpers.test.js';
+import {createMockIterator, taskUpdateComplete} from './test-helpers.test.js';
 
 // Interface for the data used in LineChartMetricData
 interface MetricDataPoint {
@@ -171,7 +173,7 @@ describe('WebstatusLineChartPanel', () => {
       '#test-panel-pending',
     );
     expect(pendingMessage).to.exist;
-    expect(pendingMessage!.textContent).to.include('Loading stats.');
+    expect(pendingMessage!.textContent).to.include('Loading chart');
   });
 
   it('renders error state', async () => {
@@ -179,6 +181,89 @@ describe('WebstatusLineChartPanel', () => {
     await taskUpdateComplete();
     const errorMessage = el.shadowRoot!.querySelector('#test-panel-error');
     expect(errorMessage).to.exist;
-    expect(errorMessage!.textContent).to.include('Error when loading stats.');
+    expect(errorMessage!.textContent).to.include('Error when loading chart');
+  });
+
+  describe('_fetchAndAggregateData', () => {
+    it('fetches data and applies additional series calculators', async () => {
+      const fetchFunctionConfigs: FetchFunctionConfig<MetricDataPoint>[] = [
+        {
+          label: 'Metric 1',
+          fetchFunction: () =>
+            createMockIterator<MetricDataPoint>([
+              {date: new Date('2024-01-01'), value: 10},
+              {date: new Date('2024-01-02'), value: 20},
+              {date: new Date('2024-01-04'), value: 35},
+            ]),
+          timestampExtractor: (dataPoint: MetricDataPoint) => dataPoint.date,
+          valueExtractor: (dataPoint: MetricDataPoint) => dataPoint.value,
+        },
+        {
+          label: 'Metric 2',
+          fetchFunction: () =>
+            createMockIterator<MetricDataPoint>([
+              {date: new Date('2024-01-01'), value: 15},
+              {date: new Date('2024-01-02'), value: 25},
+              {date: new Date('2024-01-03'), value: 30},
+            ]),
+          timestampExtractor: (dataPoint: MetricDataPoint) => dataPoint.date,
+          valueExtractor: (dataPoint: MetricDataPoint) => dataPoint.value,
+        },
+      ];
+
+      const additionalSeriesConfigs: AdditionalSeriesConfig<MetricDataPoint>[] =
+        [
+          {
+            label: 'Total',
+            calculator: el.calculateMax,
+            cacheMap: new Map(),
+            timestampExtractor: (dataPoint: MetricDataPoint) => dataPoint.date,
+            valueExtractor: (dataPoint: MetricDataPoint) => dataPoint.value,
+          },
+        ];
+
+      await el._fetchAndAggregateData(
+        fetchFunctionConfigs,
+        additionalSeriesConfigs,
+      );
+      await el.updateComplete;
+
+      expect(el.data).to.exist;
+      expect(el.data!.cols).to.deep.equal([
+        {type: 'date', label: 'Date', role: 'domain'},
+        {type: 'number', label: 'Metric 1', role: 'data'},
+        {type: 'number', label: 'Metric 2', role: 'data'},
+        {type: 'number', label: 'Total', role: 'data'}, // Check for the additional 'Total' column
+      ]);
+      expect(el.data!.rows).to.deep.equal([
+        [new Date('2024-01-01'), 10, 15, 15], // Total should be 15 (max of 10 and 15)
+        [new Date('2024-01-02'), 20, 25, 25], // Total should be 25 (max of 20 and 25)
+        [new Date('2024-01-03'), null, 30, 30], // Max should be 30
+        [new Date('2024-01-04'), 35, null, 35], // Max should be 35
+      ]);
+    });
+
+    it('dispatches data-fetch-starting and data-fetch-complete events', async () => {
+      const fetchFunctionConfigs: FetchFunctionConfig<MetricDataPoint>[] = [
+        {
+          label: 'Metric 1',
+          fetchFunction: () =>
+            createMockIterator([{date: new Date('2024-01-01'), value: 10}]),
+          timestampExtractor: (dataPoint: MetricDataPoint) => dataPoint.date,
+          valueExtractor: (dataPoint: MetricDataPoint) => dataPoint.value,
+        },
+      ];
+
+      const startingListener = oneEvent(el, 'data-fetch-starting');
+      const completeListener = oneEvent(el, 'data-fetch-complete');
+
+      await el._fetchAndAggregateData(fetchFunctionConfigs);
+
+      await startingListener;
+      const {detail} = await completeListener;
+      expect(detail.get('Metric 1')!.data).to.deep.equal([
+        {date: new Date('2024-01-01'), value: 10},
+      ]);
+    });
   });
 });

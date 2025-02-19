@@ -17,12 +17,11 @@
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
-  LineChartMetricData,
+  FetchFunctionConfig,
   WebstatusLineChartPanel,
 } from './webstatus-line-chart-panel.js';
 import {
   BrowserReleaseFeatureMetric,
-  type APIClient,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
@@ -34,25 +33,40 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   @state()
   supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
-  createLoadingTask(): Task {
-    return new Task(this, {
-      args: () =>
-        [this.apiClient, this.startDate, this.endDate] as [
-          APIClient,
-          Date,
-          Date,
-        ],
-      task: async ([apiClient, startDate, endDate]: [
-        APIClient,
-        Date,
-        Date,
-      ]) => {
-        await this._fetchMissingOneImplemenationCounts(
-          apiClient,
+  private _createFetchFunctionConfigs(
+    browsers: BrowsersParameter[],
+    startDate: Date,
+    endDate: Date,
+  ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
+    return browsers.map(browser => ({
+      label: BROWSER_ID_TO_LABEL[browser],
+      fetchFunction: () => {
+        const otherBrowsers = browsers.filter(value => browser !== value);
+        return this.apiClient.getMissingOneImplementationCountsForBrowser(
+          browser,
+          otherBrowsers,
           startDate,
           endDate,
         );
-        return;
+      },
+      timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+        new Date(dataPoint.timestamp),
+      valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+        dataPoint.count ?? 0,
+    }));
+  }
+
+  createLoadingTask(): Task {
+    return new Task(this, {
+      args: () => [this.startDate, this.endDate] as [Date, Date],
+      task: async ([startDate, endDate]: [Date, Date]) => {
+        await this._fetchAndAggregateData(
+          this._createFetchFunctionConfigs(
+            this.supportedBrowsers,
+            startDate,
+            endDate,
+          ),
+        );
       },
     });
   }
@@ -74,47 +88,6 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     };
   }
 
-  async _fetchMissingOneImplemenationCounts(
-    apiClient: APIClient,
-    startDate: Date,
-    endDate: Date,
-  ) {
-    if (typeof apiClient !== 'object') return;
-
-    const browserMetricData: Array<
-      LineChartMetricData<BrowserReleaseFeatureMetric> & {
-        browser: BrowsersParameter;
-      }
-    > = this.supportedBrowsers.map(browser => ({
-      label: browser === 'chrome' ? 'Chromium' : BROWSER_ID_TO_LABEL[browser], // Special case for Chrome
-      browser: browser,
-      data: [],
-      getTimestamp: (dataPoint: BrowserReleaseFeatureMetric) =>
-        new Date(dataPoint.timestamp),
-      getValue: (dataPoint: BrowserReleaseFeatureMetric) => dataPoint.count,
-    }));
-    const promises = this.supportedBrowsers.map(async browser => {
-      const browserData = browserMetricData.find(
-        data => data.browser === browser,
-      );
-      if (!browserData) return;
-
-      const otherBrowsers = this.supportedBrowsers.filter(
-        value => browser !== value,
-      );
-      for await (const page of apiClient.getMissingOneImplementationCountsForBrowser(
-        browser,
-        otherBrowsers,
-        startDate,
-        endDate,
-      )) {
-        browserData.data.push(...page);
-      }
-    });
-    await Promise.all(promises); // Wait for all browsers to finish
-
-    this.setDisplayDataFromMap(browserMetricData);
-  }
   getPanelID(): string {
     return 'missing-one-implementation';
   }

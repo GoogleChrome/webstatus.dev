@@ -52,6 +52,51 @@ export interface LineChartMetricData<T> {
    * @returns {number | undefined} The data value of the data point.
    */
   getValue: (dataPoint: T) => number | undefined;
+
+  /**
+   * Optional function to extract the tooltip from a data point.
+   * @param {T} dataPoint The data point.
+   * @returns {number | undefined} The tooltip of the data point.
+   */
+  getTooltip?: (dataPoint: T) => string;
+}
+
+// Type for the data fetched event (using type alias)
+// export type DataFetchedEvent<T> = CustomEvent<{[label: string]: {data: T[]}}>;
+export type DataFetchedEvent<T> = CustomEvent<Map<string, {data: T[]}>>;
+
+// Type for series calculator functions (
+export type SeriesCalculator<T> = (
+  dataPoint: T,
+  metricData: LineChartMetricData<T>,
+  cacheMap: Map<string, T>,
+) => void;
+
+// Type for extracting timestamp from a data point
+type TimestampExtractor<T> = (dataPoint: T) => Date;
+
+// Type for extracting value from a data point
+type ValueExtractor<T> = (dataPoint: T) => number;
+
+// Type for extracting tooltip from a data point
+type TooltipExtractor<T> = (dataPoint: T) => string;
+
+// Interface for additional series configuration
+export interface AdditionalSeriesConfig<T> {
+  label: string;
+  calculator: SeriesCalculator<T>;
+  timestampExtractor: TimestampExtractor<T>;
+  valueExtractor: ValueExtractor<T>;
+  cacheMap: Map<string, T>;
+}
+
+// Interface for fetch function configuration
+export interface FetchFunctionConfig<T> {
+  label: string;
+  fetchFunction: () => AsyncIterable<T[]>;
+  timestampExtractor: TimestampExtractor<T>;
+  valueExtractor: ValueExtractor<T>;
+  tooltipExtractor?: TooltipExtractor<T>;
 }
 
 /**
@@ -135,6 +180,8 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
   _task?: Task;
 
+  readonly hasMax: boolean = false;
+
   constructor() {
     super();
     this._task = this.createLoadingTask();
@@ -152,6 +199,19 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           display: block;
           width: auto;
         }
+        .chart-panel {
+          min-height: 300px;
+          width: 100%;
+        }
+
+        .error-chart-panel,
+        .pending-chart-panel,
+        .initial-chart-panel {
+          flex-direction: column;
+          justify-content: center;
+          align-items: center;
+          display: inline-flex;
+        }
       `,
     ];
   }
@@ -161,11 +221,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * suitable for the `webstatus-gchart` component.
    * @param {Array<LineChartMetricData<T>>} metricDataArray Array of metric data objects.
    * @template T The data type of the metric data.
-   *
-   * TODO(kyleju): refactor this method acorss feature detail page
-   * and stats page, https://github.com/GoogleChrome/webstatus.dev/issues/964.
    */
   setDisplayDataFromMap<T>(metricDataArray: Array<LineChartMetricData<T>>) {
+    type dataEntryValueType = {value: number | null; tooltip: string | null};
+    type dataEntryType = {[key: string]: dataEntryValueType};
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
     dataObj.cols.push({type: 'date', label: 'Date', role: 'domain'});
 
@@ -175,9 +234,16 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         label: metricData.label,
         role: 'data',
       });
+      if (metricData.getTooltip !== undefined) {
+        dataObj.cols.push({
+          type: 'string',
+          label: `${metricData.label} tooltip`,
+          role: 'tooltip',
+        });
+      }
     }
 
-    const dateToDataMap = new Map<number, {[key: string]: number | null}>();
+    const dateToDataMap = new Map<number, dataEntryType>();
 
     for (const metricData of metricDataArray) {
       if (!Array.isArray(metricData.data)) continue;
@@ -190,7 +256,14 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           dateToDataMap.set(dateSeconds, {});
         }
         const dateData = dateToDataMap.get(dateSeconds)!;
-        dateData[metricData.label] = dataValue || null;
+        const entryValue: dataEntryValueType = {
+          value: dataValue || null,
+          tooltip: null,
+        };
+        if (metricData.getTooltip !== undefined) {
+          entryValue.tooltip = metricData.getTooltip(dataPoint);
+        }
+        dateData[metricData.label] = entryValue;
       }
     }
 
@@ -203,9 +276,11 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       const row: [Date, ...Array<number | string | null>] = [date];
 
       for (const metricData of metricDataArray) {
-        row.push(
-          dateData[metricData.label] ? dateData[metricData.label] : null,
-        );
+        const entry = dateData[metricData.label];
+        row.push(entry?.value ?? null);
+        if (metricData.getTooltip !== undefined) {
+          row.push(entry?.tooltip ?? null);
+        }
       }
       dataObj.rows.push(row);
     }
@@ -217,9 +292,12 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * Renders an error message when an error occurs during data loading.
    * @returns {TemplateResult} The error message template.
    */
-  renderChartWhenError(): TemplateResult {
-    return html`<div id="${this.getPanelID()}-error">
-      Error when loading stats.
+  renderChartWhenError(error: unknown): TemplateResult {
+    return html`<div
+      id="${this.getPanelID()}-error"
+      class="error-chart-panel chart-panel"
+    >
+      Error when loading chart: ${error}
     </div>`;
   }
 
@@ -228,7 +306,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {TemplateResult} The initial message template.
    */
   renderChartWhenInitial(): TemplateResult {
-    return html`<div id="${this.getPanelID()}-initial">
+    return html`<div
+      id="${this.getPanelID()}-initial"
+      class="initial-chart-panel chart-panel"
+    >
       Preparing request for stats.
     </div>`;
   }
@@ -238,7 +319,15 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {TemplateResult} The loading message template.
    */
   renderChartWhenPending(): TemplateResult {
-    return html`<div id="${this.getPanelID()}-pending">Loading stats.</div>`;
+    return html`<div
+      id="${this.getPanelID()}-pending"
+      class="pending-chart-panel chart-panel"
+    >
+      <div class="spinner-container">
+        <sl-spinner></sl-spinner>
+      </div>
+      <div class="pending-chart-message">Loading chart</div>
+    </div>`;
   }
 
   /**
@@ -249,7 +338,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     if (!this._task) return html``;
     return this._task?.render({
       complete: () => this.renderChartWhenComplete(),
-      error: () => this.renderChartWhenError(),
+      error: error => this.renderChartWhenError(error),
       initial: () => this.renderChartWhenInitial(),
       pending: () => this.renderChartWhenPending(),
     });
@@ -261,10 +350,13 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    */
   renderChartWhenComplete(): TemplateResult {
     return html`
-      <div id="${this.getPanelID()}-complete">
+      <div
+        id="${this.getPanelID()}-complete"
+        class="complete-chart-panel chart-panel"
+      >
         <webstatus-gchart
           id="${this.getPanelID()}-chart"
-          .hasMax=${false}
+          .hasMax=${this.hasMax}
           .containerId="${this.getPanelID()}-chart-container"
           .chartType="${'LineChart'}"
           .dataObj="${this.data}"
@@ -280,7 +372,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput();
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
-    const options = {
+    const options: google.visualization.LineChartOptions = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
       hAxis: {
         title: '',
@@ -298,11 +390,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
       interpolateNulls: true,
 
-      // Multiple selection of points will be summarized in one tooltip.
-      tooltip: {trigger: 'selection'},
-      selectionMode: 'multiple',
-      aggregationTarget: 'category',
-
       // Enable explorer mode
       explorer: {
         actions: ['dragToZoom', 'rightClickToReset'],
@@ -312,18 +399,172 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         maxZoomOut: 4,
         zoomDelta: 0.01,
       },
-    } as google.visualization.LineChartOptions;
+    };
 
     return options;
+  }
+
+  /**
+   * Fetches and aggregates data for the chart.
+   * This method takes an array of fetch function configurations and an optional
+   * array of additional series configurations. It fetches data for each fetch
+   * function configuration concurrently, then applies the additional series
+   * calculators to the fetched data. The processed data is then formatted into
+   * a `LineChartMetricData` array and passed to `setDisplayDataFromMap` for
+   * rendering.
+   *
+   * @param fetchFunctionConfigs An array of fetch function configurations.
+   * @param additionalSeriesConfigs An optional array of additional series configurations.
+   * @event CustomEvent data-fetch-starting - Dispatched when data fetching starts.
+   * @event DataFetchedEvent data-fetch-complete - Dispatched when data fetching is complete.
+   *    The `detail` property contains a map of
+   *    `{ [label: string]: { data: T[] } }`.
+   */
+  async _fetchAndAggregateData<T>(
+    fetchFunctionConfigs: FetchFunctionConfig<T>[],
+    additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
+  ) {
+    // Create an array of metric data objects for each fetch function
+    const metricDataArray: Array<LineChartMetricData<T>> =
+      fetchFunctionConfigs.map(
+        ({label, timestampExtractor, valueExtractor, tooltipExtractor}) => ({
+          label,
+          data: [],
+          getTimestamp: timestampExtractor,
+          getValue: valueExtractor,
+          getTooltip: tooltipExtractor,
+        }),
+      );
+
+    // Dispatch an event to signal the start of data fetching
+    const event = new CustomEvent('data-fetch-starting');
+    this.dispatchEvent(event);
+
+    // Fetch data for each configuration concurrently
+    const promises = fetchFunctionConfigs.map(
+      async ({fetchFunction, label}) => {
+        for await (const page of fetchFunction()) {
+          // Find the corresponding metric data object
+          const metricData = metricDataArray.find(data => data.label === label);
+          if (metricData) {
+            metricData.data.push(...page);
+          }
+        }
+      },
+    );
+
+    await Promise.all(promises);
+
+    const fetchDataEvent = this._createDataFetchedEvent(
+      fetchFunctionConfigs,
+      metricDataArray,
+    );
+    this.dispatchEvent(fetchDataEvent);
+
+    // Apply additionalSeriesConfigs if provided
+    if (additionalSeriesConfigs) {
+      // Initialize cacheMaps for each additional series config
+      additionalSeriesConfigs.forEach(config => {
+        if (!config.cacheMap) {
+          config.cacheMap = new Map<string, T>();
+        }
+      });
+      fetchFunctionConfigs.forEach(({label}) => {
+        const metricData = metricDataArray.find(data => data.label === label);
+
+        if (metricData) {
+          metricData.data.forEach((dataPoint: T) => {
+            additionalSeriesConfigs.forEach(({calculator, cacheMap}) => {
+              calculator(dataPoint, metricData, cacheMap);
+            });
+          });
+        }
+      });
+      // Convert cacheMap to array and create new LineChartMetricData entries
+      additionalSeriesConfigs.forEach(
+        ({label, cacheMap, valueExtractor, timestampExtractor}) => {
+          // Sort the cacheMap values by timestamp while converting to an array
+          const sortedData = Array.from(cacheMap.values()).sort((a, b) => {
+            return (
+              timestampExtractor(a).getTime() - timestampExtractor(b).getTime()
+            );
+          });
+          const newMetricData: LineChartMetricData<T> = {
+            label: label,
+            data: sortedData,
+            getTimestamp: timestampExtractor,
+            getValue: valueExtractor,
+          };
+          metricDataArray.push(newMetricData);
+        },
+      );
+    }
+
+    this.setDisplayDataFromMap(metricDataArray);
+  }
+
+  /**
+   * Creates a `DataFetchedEvent` containing the fetched data for each series.
+   *
+   * @param {FetchFunctionConfig<T>} fetchFunctionConfigs The array of fetch function configurations.
+   * @returns {DataFetchedEvent<T>} The custom event containing the fetched data.
+   * @template T The type of the fetched data.
+   */
+  private _createDataFetchedEvent<T>(
+    fetchFunctionConfigs: Array<FetchFunctionConfig<T>>,
+    metricDataArray: Array<LineChartMetricData<T>>,
+  ): DataFetchedEvent<T> {
+    const dataMap = new Map<string, {data: T[]}>();
+
+    fetchFunctionConfigs.forEach(config => {
+      const matchingMetricData = metricDataArray.find(
+        data => data.label === config.label,
+      );
+      dataMap.set(config.label, {data: matchingMetricData?.data || []});
+    });
+
+    return new CustomEvent('data-fetch-complete', {
+      detail: dataMap,
+    });
+  }
+
+  /**
+   * SeriesCalculator to calculate the maximum value for each timestamp.
+   * This method takes a data point, the metric data for the series,
+   * and a cache map to store and retrieve intermediate calculations.
+   * It calculates the maximum value for each timestamp by comparing the
+   * values of data points with the same timestamp.
+   *
+   * @param dataPoint The data point to process.
+   * @param metricData The metric data for the series.
+   * @param cacheMap The cache map to store and retrieve intermediate calculations.
+   */
+  calculateMax<T>(
+    dataPoint: T,
+    metricData: LineChartMetricData<T>,
+    cacheMap: Map<string, T>,
+  ) {
+    const value = metricData.getValue(dataPoint) || 0;
+    const timestamp = metricData.getTimestamp(dataPoint);
+    const dateString = timestamp.toISOString();
+
+    const existingDataPoint = cacheMap.get(dateString);
+
+    if (existingDataPoint !== undefined) {
+      if (value > (metricData.getValue(existingDataPoint) ?? 0)) {
+        cacheMap.set(dateString, dataPoint);
+      }
+    } else {
+      cacheMap.set(dateString, dataPoint);
+    }
   }
 
   render(): TemplateResult {
     return html`
       <sl-card id="${this.getPanelID()}">
-        <div slot="header" class="hbox">
-          ${this.getPanelText()}
+        <div class="hbox">
+          <div slot="header">${this.getPanelText()}</div>
           <div class="spacer"></div>
-          ${this.renderControls()}
         </div>
         <div>${this.renderChart()}</div>
       </sl-card>
