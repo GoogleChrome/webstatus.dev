@@ -2,7 +2,7 @@ module github.com/GoogleChrome/webstatus.dev/workflows/steps/services/bcd_consum
 
 go 1.22.7
 
-toolchain go1.23.2
+toolchain go1.24.0
 
 replace github.com/GoogleChrome/webstatus.dev/lib => ../../../../lib
 
