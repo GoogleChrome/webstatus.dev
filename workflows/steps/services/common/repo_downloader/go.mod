@@ -2,7 +2,7 @@ module github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/rep
 
 go 1.22.7
 
-toolchain go1.23.2
+toolchain go1.24.0
 
 require (
 	cloud.google.com/go/storage v1.50.0

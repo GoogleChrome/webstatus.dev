@@ -2,7 +2,7 @@ module github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_featur
 
 go 1.22.7
 
-toolchain go1.23.2
+toolchain go1.24.0
 
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250210125410-d0879339d9ab

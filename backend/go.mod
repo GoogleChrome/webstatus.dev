@@ -2,7 +2,7 @@ module github.com/GoogleChrome/webstatus.dev/backend
 
 go 1.22.7
 
-toolchain go1.23.2
+toolchain go1.24.0
 
 require (
 	firebase.google.com/go/v4 v4.15.1

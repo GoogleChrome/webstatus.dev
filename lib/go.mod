@@ -2,7 +2,7 @@ module github.com/GoogleChrome/webstatus.dev/lib
 
 go 1.22.7
 
-toolchain go1.23.2
+toolchain go1.24.0
 
 require (
 	cloud.google.com/go/datastore v1.20.0
