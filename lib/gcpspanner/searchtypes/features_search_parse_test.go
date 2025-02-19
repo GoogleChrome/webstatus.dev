@@ -856,6 +856,168 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: `"::backdrop"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "::backdrop",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:"::backdrop"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "::backdrop",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `":has()"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      ":has()",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `<a>`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "<a>",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:<a>`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "<a>",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:"<a>"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "<a>",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `@charset`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "@charset",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:@charset`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "@charset",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:"@charset"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "@charset",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "baseline_date:2000-01-01..2000-12-31",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,

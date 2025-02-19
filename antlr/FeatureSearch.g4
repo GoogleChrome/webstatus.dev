@@ -19,8 +19,8 @@ BASELINE_STATUS: 'limited' | 'newly' | 'widely';
 DATE:
 	[2][0-9][0-9][0-9]'-' [01][0-9]'-' [0-3][0-9]; // YYYY-MM-DD (starting from 2000)
 ANY_VALUE:
-	'"' [a-zA-Z0-9][a-zA-Z0-9_() -]* '"' // Words with spaces.
-	| [a-zA-Z0-9][a-zA-Z0-9_-]*; // Single words
+	'"' ([a-zA-Z0-9:@] | '<') [a-zA-Z0-9_():<> -]* '"' // Words with spaces.
+	| ([a-zA-Z0-9@] | '<') [a-zA-Z0-9_<>-]*; // Single words
 // Terms
 available_on_term: 'available_on' COLON BROWSER_NAME;
 baseline_status_term: 'baseline_status' COLON BASELINE_STATUS;
