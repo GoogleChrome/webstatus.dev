@@ -38,7 +38,7 @@
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
     "@typescript-eslint/eslint-plugin": "^8.24.0",
     "@typescript-eslint/parser": "^8.23.0",
-    "@web/dev-server-esbuild": "^1.0.3",
+    "@web/dev-server-esbuild": "^1.0.4",
     "@web/rollup-plugin-html": "^2.0.1",
     "@web/test-runner": "^0.20.0",
     "@web/test-runner-mocha": "^0.9.0",
@@ -48,7 +48,6 @@
     "eslint": "^9.17.0",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-lit": "^1.15.0",
-    "eslint-plugin-perfectionist": "^4.8.0",
     "eslint-plugin-promise": "^7.2.1",
     "lit-analyzer": "^2.0.2",
     "openapi-typescript-helpers": "^0.0.15",
@@ -67,7 +66,7 @@
     "@shoelace-style/shoelace": "^2.20.0",
     "@types/google.visualization": "^0.0.74",
     "@vaadin/router": "^2.0.0",
-    "firebase": "^11.3.0",
+    "firebase": "^11.3.1",
     "lit": "^3.2.1",
     "openapi-fetch": "^0.13.4"
   }
