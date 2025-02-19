@@ -25,13 +25,10 @@ test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
 
   // Wait for the chart container to exist
-  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
 
   // Wait specifically for the "Baseline since" text
   await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
-
-  // Wait for the loading overlay to disappear
-  await page.waitForSelector('.spinner-container', {state: 'detached'});
 
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
@@ -42,7 +39,7 @@ test('matches the screenshot with usage chart', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64?showUsageChart');
 
   // Wait for the chart container to exist
-  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
 
   // Wait for the usage chart container to exist
   await page.waitForSelector('#feature-usage-chart-container');
@@ -50,21 +47,20 @@ test('matches the screenshot with usage chart', async ({page}) => {
   // Wait specifically for the "Baseline since" text
   await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
 
-  // Wait for the loading overlay to disappear
-  await page.waitForSelector('.spinner-container', {state: 'detached'});
-
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
 });
 
 test('chart width resizes with window', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
-  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
   await page.waitForTimeout(1000);
   const narrowWidth = 1000;
   const wideWidth = 1200;
   const height = 1000;
-  const chartContainer = page.locator('#feature-support-chart-container');
+  const chartContainer = page.locator(
+    '#feature-wpt-implementation-progress-complete',
+  );
 
   // Resize to narrow width
   await page.setViewportSize({width: narrowWidth, height});
@@ -91,8 +87,7 @@ test('chart width resizes with window', async ({page}) => {
 
 test('date range changes are preserved in the URL', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
-  await page.waitForSelector('#feature-support-chart-container');
-  await page.waitForSelector('.spinner-container', {state: 'detached'});
+  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
 
   // Get the current default startDate and endDate from the selectors
   // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
@@ -122,7 +117,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
 
   // Refresh the page with that URL.
   await page.goto(url);
-  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
 
   // Check that the startDate and endDate are still there.
   const url2 = page.url();
@@ -148,7 +143,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
 
   // Go to that URL.
   await page.goto(url3);
-  await page.waitForSelector('#feature-support-chart-container');
+  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
 
   // Check that the startDate and endDate selectors are reset to the initial default.
   const startDateSelector3 = page.locator('sl-input#start-date');

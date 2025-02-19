@@ -89,6 +89,15 @@ export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
   edge: 'Edge',
 };
 
+/** Map from label to browser id */
+export const BROWSER_LABEL_TO_ID: Record<string, BrowsersParameter> =
+  Object.fromEntries(
+    Object.entries(BROWSER_ID_TO_LABEL).map(([key, value]) => [
+      value,
+      key as BrowsersParameter,
+    ]),
+  );
+
 export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
   {
     chrome: '#FF0000',
@@ -335,6 +344,7 @@ export class APIClient {
     channel: ChannelsParameter,
     startAtDate: Date,
     endAtDate: Date,
+    metricView: components['schemas']['WPTMetricView'] = DEFAULT_TEST_VIEW,
   ): AsyncIterable<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
@@ -351,7 +361,7 @@ export class APIClient {
               feature_id: featureId,
               browser,
               channel,
-              metric_view: DEFAULT_TEST_VIEW,
+              metric_view: metricView,
             },
           },
         },
