@@ -14,9 +14,16 @@
  * limitations under the License.
  */
 
-import {CSSResultGroup, LitElement, TemplateResult, css, html} from 'lit';
+import {
+  CSSResultGroup,
+  LitElement,
+  TemplateResult,
+  css,
+  html,
+  nothing,
+} from 'lit';
 import {property, state} from 'lit/decorators.js';
-import {WebStatusDataObj} from './webstatus-gchart.js';
+import {ChartSelectPointEvent, WebStatusDataObj} from './webstatus-gchart.js';
 import {Task} from '@lit/task';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
@@ -180,6 +187,23 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
   _task?: Task;
 
+  /**
+   * Creates a task and optional renderer for handling point-selected events.
+   * Subclasses can override this method to define custom behavior when a
+   * point is selected on the chart.
+   *
+   * @param {ChartSelectPointEvent} _ The point-selected event.
+   * @returns {{ task: Task | undefined; renderSuccess?: () => TemplateResult; }} An object containing the task and an optional renderSuccess function.
+   */
+  createPointSelectedTask(_: ChartSelectPointEvent): {
+    task: Task | undefined;
+    renderSuccess?: () => TemplateResult;
+  } {
+    return {task: undefined, renderSuccess: undefined};
+  }
+  @state()
+  _pointSelectedTask?: Task;
+
   readonly hasMax: boolean = false;
 
   constructor() {
@@ -204,9 +228,15 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           width: 100%;
         }
 
+        .datapoint-details-panel {
+          min-height: 100px;
+          width: 100%;
+        }
+
         .error-chart-panel,
         .pending-chart-panel,
-        .initial-chart-panel {
+        .initial-chart-panel,
+        .datapoint-details-panel {
           flex-direction: column;
           justify-content: center;
           align-items: center;
@@ -319,6 +349,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {TemplateResult} The loading message template.
    */
   renderChartWhenPending(): TemplateResult {
+    this.resetPointSelectedTask();
     return html`<div
       id="${this.getPanelID()}-pending"
       class="pending-chart-panel chart-panel"
@@ -356,6 +387,8 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       >
         <webstatus-gchart
           id="${this.getPanelID()}-chart"
+          @point-selected=${this.handlePointSelected}
+          @point-deselected=${this.handlePointDeselected}
           .hasMax=${this.hasMax}
           .containerId="${this.getPanelID()}-chart-container"
           .chartType="${'LineChart'}"
@@ -559,6 +592,132 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     }
   }
 
+  /**
+   * Handles the point-selected event from the chart.
+   * This method updates the internal state to reflect the selected point and
+   * triggers any associated tasks or rendering logic.
+   *
+   * @param {ChartSelectPointEvent} e The point-selected event.
+   */
+  handlePointSelected(e: ChartSelectPointEvent) {
+    const details = this.createPointSelectedTask(e);
+    this._renderCustomPointSelectedSuccess = details.renderSuccess;
+    this._pointSelectedTask = details.task;
+  }
+
+  /**
+   * Handles the point-deselected event from the chart.
+   * This method resets the internal state to clear any selection.
+   */
+  handlePointDeselected() {
+    this.resetPointSelectedTask();
+  }
+
+  /**
+   * Resets the state associated with the point-selected event.
+   * This clears any selected point information and associated tasks.
+   */
+  resetPointSelectedTask() {
+    // Reset the point selected task
+    this._pointSelectedTask = undefined;
+    this._renderCustomPointSelectedSuccess = undefined;
+  }
+
+  /**
+   * Renders the success state of the point-selected task.
+   * This method delegates the rendering to the `_renderCustomPointSelectedSuccess`
+   * function if it's defined by the subclass.
+   *
+   * @returns {TemplateResult} The rendered content for the success state.
+   */
+  _renderPointSelectedSuccess(): TemplateResult {
+    return html`
+      <div
+        id="${this.getPanelID()}-datapoint-details-complete"
+        class="datapoint-details-panel"
+      >
+        ${this._renderCustomPointSelectedSuccess === undefined
+          ? nothing
+          : this._renderCustomPointSelectedSuccess()}
+      </div>
+    `;
+  }
+
+  /**
+   * Renders a pending state for the point-selected details.
+   *
+   * @returns {TemplateResult} The rendered content for the pending state.
+   */
+  _renderPointSelectPending(): TemplateResult {
+    return html`<div
+      id="${this.getPanelID()}-datapoint-details-pending"
+      class="datapoint-details-panel"
+    >
+      <div class="spinner-container">
+        <sl-spinner></sl-spinner>
+      </div>
+      <div class="pending-chart-message">
+        Loading details about data point...
+      </div>
+    </div>`;
+  }
+
+  /**
+   * Renders an initial state for the point-selected details.
+   *
+   * @returns {TemplateResult} The rendered content for the initial state.
+   */
+  _renderPointSelectInitial(): TemplateResult {
+    return html`<div
+      id="${this.getPanelID()}-datapoint-details-initial"
+      class="datapoint-details-panel"
+    >
+      Preparing request for datapoint details.
+    </div>`;
+  }
+
+  /**
+   * Renders a failure state for the point-selected details.
+   *
+   * @param {unknown} error The error encountered while loading details.
+   * @returns {TemplateResult} The rendered content for the failure state.
+   */
+  _renderPointSelectFailure(error: unknown): TemplateResult {
+    return html`<div
+      id="${this.getPanelID()}-datapoint-details-error"
+      class="datapoint-details-panel"
+    >
+      Error when loading details about selected data point: ${error}
+    </div>`;
+  }
+
+  _renderCustomPointSelectedSuccess?: () => TemplateResult;
+
+  /**
+   * Renders details about the selected point, including loading states.
+   * This method uses the `_pointSelectedTask` to manage the loading and
+   * rendering of the details. It provides different rendering for pending,
+   * initial, error, and complete states.
+   *
+   * @returns {TemplateResult} The rendered content for the selected point details.
+   */
+  renderPointSelectedDetails(): TemplateResult {
+    if (this._pointSelectedTask === undefined) return html`${nothing}`;
+
+    // This renders as a div within the sl-card for the overall chart panel.
+    // See more details at https://shoelace.style/components/card/#card-with-footer
+    return html`
+      <div slot="footer">
+        ${this._pointSelectedTask?.render({
+          complete: () => this._renderPointSelectedSuccess(),
+          error: error => this._renderPointSelectFailure(error),
+          initial: () => this._renderPointSelectInitial(),
+          pending: () => this._renderPointSelectPending(),
+        })};
+      </div>
+    `;
+  }
+
   render(): TemplateResult {
     return html`
       <sl-card id="${this.getPanelID()}">
@@ -567,6 +726,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           <div class="spacer"></div>
         </div>
         <div>${this.renderChart()}</div>
+        ${this.renderPointSelectedDetails()}
       </sl-card>
     `;
   }
