@@ -704,6 +704,8 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   renderPointSelectedDetails(): TemplateResult {
     if (this._pointSelectedTask === undefined) return html`${nothing}`;
 
+    // This renders as a div within the sl-card for the overall chart panel.
+    // See more details at https://shoelace.style/components/card/#card-with-footer
     return html`
       <div slot="footer">
         ${this._pointSelectedTask?.render({
