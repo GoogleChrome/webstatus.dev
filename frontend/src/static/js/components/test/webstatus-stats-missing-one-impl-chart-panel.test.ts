@@ -64,7 +64,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     const header = el.shadowRoot!.querySelector('[slot="header"]');
     expect(header).to.exist;
     expect(header!.textContent).to.contain(
-      'Features missing in only 1 browser',
+      'Features missing in only one browser',
     );
   });
 
@@ -76,7 +76,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
 
     // Test Chrome configuration
     const chromeConfig = fetchFunctionConfigs[0];
-    expect(chromeConfig.label).to.equal('Chrome');
+    expect(chromeConfig.label).to.equal('Chromium');
     expect(chromeConfig.fetchFunction).to.be.a('function');
     const chromeTestDataPoint: BrowserReleaseFeatureMetric = {
       timestamp: '2024-01-01',
