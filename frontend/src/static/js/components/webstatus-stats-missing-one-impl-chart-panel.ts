@@ -39,7 +39,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
     return browsers.map(browser => ({
-      label: BROWSER_ID_TO_LABEL[browser],
+      label: browser === 'chrome' ? 'Chromium' : BROWSER_ID_TO_LABEL[browser], // Special case for Chrome
       fetchFunction: () => {
         const otherBrowsers = browsers.filter(value => browser !== value);
         return this.apiClient.getMissingOneImplementationCountsForBrowser(
@@ -92,7 +92,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     return 'missing-one-implementation';
   }
   getPanelText(): string {
-    return 'Features missing in only 1 browser';
+    return 'Features missing in only one browser';
   }
   renderControls(): TemplateResult {
     return html`${nothing}`;
