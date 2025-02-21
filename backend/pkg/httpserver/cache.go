@@ -1,0 +1,109 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package httpserver
+
+import (
+	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+)
+
+// operationResponseCache caches operation results using a RawBytesDataCacher.
+// It uses the `operationID` as a prefix for all cache keys, enabling
+// logical grouping and potential future deletion by prefix.  It also handles
+// JSON serialization/deserialization of keys and values.
+type operationResponseCache[Key any, Response any] struct {
+	cacher      RawBytesDataCacher
+	operationID string
+}
+
+func (c operationResponseCache[Key, Response]) key(key []byte) string {
+	return c.operationID + "-" + string(key)
+}
+
+// AttemptCache attempts to cache the given value, associated with the given key,
+// within the underlying RawBytesDataCacher. It marshals both the key and value
+// to JSON bytes before attempting to cache them. If any error occurs during
+// the marshaling or caching process, it logs the error and does nothing else.
+//
+// Note: This method does not return an error. This is intentional because
+// caching failures should not prevent the main operation from completing.
+func (c operationResponseCache[Key, Response]) AttemptCache(ctx context.Context, key Key, value *Response) {
+	if value == nil {
+		// Should never reach here
+		slog.ErrorContext(ctx, "unable to cache nil value")
+
+		return
+	}
+
+	jsonBytesKey, err := json.Marshal(key)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to marshal key for cache store",
+			"key", key, "error", err, "operation", c.operationID)
+
+		return
+	}
+	jsonBytesValue, err := json.Marshal(*value)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to marshal value for cache store",
+			"value", value, "error", err, "operation", c.operationID)
+
+		return
+	}
+
+	err = c.cacher.Cache(ctx, c.key(jsonBytesKey), jsonBytesValue)
+	if err != nil {
+		slog.ErrorContext(ctx, "encountered unexpected error when caching",
+			"error", err, "key", key, "operation", c.operationID)
+	}
+}
+
+// Lookup attempts to retrieve a cached value by key. It serializes the key to JSON,
+// fetches the corresponding value from the RawBytesDataCacher, and then attempts to
+// deserialize the result back to the Response type. It returns true if the value is
+// found and successfully deserialized.  Returns false otherwise.  Any errors are logged.
+// Errors are logged as this is a cache and shouldn't interrupt the normal flow of the program.
+func (c operationResponseCache[Key, Response]) Lookup(ctx context.Context, key Key, value *Response) bool {
+	jsonBytesKey, err := json.Marshal(key)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to marshal key for cache lookup",
+			"error", err, "key", key, "operation", c.operationID)
+
+		return false
+	}
+
+	valueBytes, err := c.cacher.Get(ctx, c.key(jsonBytesKey))
+	if err != nil {
+		if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
+			slog.ErrorContext(ctx, "encountered unexpected error from cache",
+				"error", err, "key", key, "operation", c.operationID)
+		}
+
+		return false
+	}
+
+	err = json.Unmarshal(valueBytes, value)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to unmarshal cached data",
+			"error", err, "key", key, "operation", c.operationID, "value", string(valueBytes))
+
+		return false
+	}
+
+	return true
+}
