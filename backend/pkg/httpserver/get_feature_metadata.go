@@ -29,6 +29,10 @@ import (
 // nolint: revive, ireturn // Name generated from openapi
 func (s *Server) GetFeatureMetadata(ctx context.Context,
 	request backend.GetFeatureMetadataRequestObject) (backend.GetFeatureMetadataResponseObject, error) {
+	resp, found := tryToSearchCacheForResponse(ctx, request, s.operationIDCaches.getFeatureMetadataCache)
+	if found {
+		return resp, nil
+	}
 	featureId, err := s.wptMetricsStorer.GetIDFromFeatureKey(ctx, request.FeatureId)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
@@ -57,5 +61,10 @@ func (s *Server) GetFeatureMetadata(ctx context.Context,
 		}, nil
 	}
 
-	return backend.GetFeatureMetadata200JSONResponse(*metadata), nil
+	return cacheAndReturnResponse(
+		ctx,
+		request,
+		backend.GetFeatureMetadata200JSONResponse(*metadata),
+		s.operationIDCaches.getFeatureMetadataCache,
+	), nil
 }

@@ -40,15 +40,12 @@ func applyPreRequestValidationMiddlewares(mux *http.ServeMux,
 // requires post-request validation. The wrapper function adapts the middleware to the signature expected by the
 // OpenAPI generator.
 func wrapPostRequestValidationMiddlewaresForOpenAPIHook(
-	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
-	openAPIMiddlewares := make([]backend.StrictMiddlewareFunc, 2)
+	authMiddleware func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
+	openAPIMiddlewares := make([]backend.StrictMiddlewareFunc, 1)
 	// OpenAPI middlewares need to inserted in reverse order.
-	// Cache middleware is placed at index 0 so it is actually executed last.
 	// This is an implementation detail for the current OpenAPI Generator.
-	openAPIMiddlewares[1] = wrapPostRequestValidationMiddlewareForOpenAPIHook(
-		authMiddleware, authMiddlewareOpenAPIHook)
 	openAPIMiddlewares[0] = wrapPostRequestValidationMiddlewareForOpenAPIHook(
-		cacheMiddleware, cacheMiddlewareOpenAPIHook)
+		authMiddleware, authMiddlewareOpenAPIHook)
 
 	return openAPIMiddlewares
 }
@@ -65,13 +62,6 @@ func authMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.Stric
 		}
 
 		// Call the next handler with the updated context
-		return next(ctx, w, r, req)
-	}
-}
-
-func cacheMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.StrictHTTPHandlerFunc {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req interface{}) (interface{}, error) {
-		// TODO: Selectively supply cache keys depending on the route
 		return next(ctx, w, r, req)
 	}
 }

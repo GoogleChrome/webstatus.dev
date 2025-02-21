@@ -41,12 +41,6 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func noopMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		next.ServeHTTP(w, req)
-	})
-}
-
 func TestMiddlewaresOrder(t *testing.T) {
 	count := 0
 	var preMiddleware1Hit,
@@ -91,20 +85,8 @@ func TestMiddlewaresOrder(t *testing.T) {
 				next.ServeHTTP(w, r)
 			})
 		}
-	cacheMiddleware :=
-		func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				cacheMiddlewareHit = true
-				if count != 3 {
-					t.Errorf("Cache Middleware: Expected count to be 3, got %d", count)
-				}
-				count++
-				next.ServeHTTP(w, r)
-			})
-		}
-
 	mockServer := &mockServerInterface{t: t, expectedUserInCtx: nil, callCount: 0}
-	srv := createOpenAPIServerServer("", mockServer, preRequestMiddlewares, cacheMiddleware, authMiddleware)
+	srv := createOpenAPIServerServer("", mockServer, preRequestMiddlewares, authMiddleware)
 	s := httptest.NewServer(srv.Handler)
 	defer s.Close()
 
@@ -140,7 +122,7 @@ func testAuthScope(t *testing.T, path string, method string, shouldBePresent boo
 	}
 	mockServer := &mockServerInterface{t: t, expectedUserInCtx: expectedUserInCtx, callCount: 0}
 	srv := createOpenAPIServerServer("", mockServer, []func(http.Handler) http.Handler{
-		recoveryMiddleware}, noopMiddleware, authMiddleware)
+		recoveryMiddleware}, authMiddleware)
 	s := httptest.NewServer(srv.Handler)
 	defer s.Close()
 

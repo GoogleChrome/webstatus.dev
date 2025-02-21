@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
@@ -67,6 +68,7 @@ func (c *ValkeyDataCache[K, V]) Cache(
 	key K,
 	in V,
 ) error {
+	slog.Info("here?")
 	err := c.client.Do(ctx, c.client.B().Set().Key(c.cacheKey(key)).
 		Value(valkey.BinaryString(in)).Ex(c.ttl).Build()).Error()
 	if err != nil {
@@ -83,6 +85,7 @@ func (c *ValkeyDataCache[K, V]) Get(
 	ctx context.Context,
 	key K,
 ) (V, error) {
+	slog.Info("there!")
 	defaultValue := *new(V)
 	msg, err := c.client.Do(ctx, c.client.B().Get().Key(c.cacheKey(key)).Build()).ToMessage()
 	if errors.Is(err, valkey.Nil) {

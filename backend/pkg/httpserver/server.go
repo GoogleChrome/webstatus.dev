@@ -18,13 +18,16 @@ import (
 	"cmp"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net"
 	"net/http"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
 type WebFeatureMetadataStorer interface {
@@ -106,9 +109,135 @@ type WPTMetricsStorer interface {
 	) (*backend.BaselineStatusMetricsPage, error)
 }
 
+type RawBytesDataCacher interface {
+	// Cache stores a value associated with a key in the cache.
+	Cache(context.Context, string, []byte) error
+	// Get retrieves a value from the cache by its key.
+	Get(context.Context, string) ([]byte, error)
+}
+
+type ResponseDataCacher[K any, V any] interface {
+	// Cache stores a value associated with a key in the cache.
+	Cache(context.Context, K, V) error
+	// Get retrieves a value from the cache by its key.
+	Lookup(context.Context, K, *V) error
+}
+
 type Server struct {
-	metadataStorer   WebFeatureMetadataStorer
-	wptMetricsStorer WPTMetricsStorer
+	metadataStorer    WebFeatureMetadataStorer
+	wptMetricsStorer  WPTMetricsStorer
+	bytesDataCacher   RawBytesDataCacher
+	operationIDCaches *operationIDCaches
+}
+
+func initOperationIDCaches(dataCacher RawBytesDataCacher) *operationIDCaches {
+	return &operationIDCaches{
+		getFeatureCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.GetFeatureRequestObject,
+			backend.GetFeature200JSONResponse,
+		](
+			dataCacher, "getFeature"),
+		listFeaturesCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListFeaturesRequestObject,
+			backend.ListFeatures200JSONResponse,
+		](
+			dataCacher, "listFeatures"),
+		getFeatureMetadataCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.GetFeatureMetadataRequestObject,
+			backend.GetFeatureMetadata200JSONResponse,
+		](
+			dataCacher, "getFeatureMetadata"),
+		listFeatureWPTMetricsCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListFeatureWPTMetricsRequestObject,
+			backend.ListFeatureWPTMetrics200JSONResponse,
+		](
+			dataCacher, "listFeatureWPTMetrics"),
+		listChromiumDailyUsageStatsCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListChromiumDailyUsageStatsRequestObject,
+			backend.ListChromiumDailyUsageStats200JSONResponse,
+		](
+			dataCacher, "listChromiumDailyUsageStats"),
+		listAggregatedFeatureSupportCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListAggregatedFeatureSupportRequestObject,
+			backend.ListAggregatedFeatureSupport200JSONResponse,
+		](
+			dataCacher, "listAggregatedFeatureSupport"),
+		listMissingOneImplemenationCountsCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListMissingOneImplemenationCountsRequestObject,
+			backend.ListMissingOneImplemenationCounts200JSONResponse,
+		](
+			dataCacher, "listMissingOneImplemenationCounts"),
+		listAggregatedWPTMetricsCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListAggregatedWPTMetricsRequestObject,
+			backend.ListAggregatedWPTMetrics200JSONResponse,
+		](
+			dataCacher, "listAggregatedWPTMetrics"),
+		listAggregatedBaselineStatusCountsCache: httpmiddlewares.NewOperationCacheMiddleware[
+			backend.ListAggregatedBaselineStatusCountsRequestObject,
+			backend.ListAggregatedBaselineStatusCounts200JSONResponse,
+		](
+			dataCacher, "listAggregatedBaselineStatusCounts"),
+	}
+}
+
+type operationIDCaches struct {
+	getFeatureCache ResponseDataCacher[
+		backend.GetFeatureRequestObject,
+		backend.GetFeature200JSONResponse,
+	]
+	listFeaturesCache ResponseDataCacher[
+		backend.ListFeaturesRequestObject,
+		backend.ListFeatures200JSONResponse,
+	]
+	getFeatureMetadataCache ResponseDataCacher[
+		backend.GetFeatureMetadataRequestObject,
+		backend.GetFeatureMetadata200JSONResponse,
+	]
+	listFeatureWPTMetricsCache ResponseDataCacher[
+		backend.ListFeatureWPTMetricsRequestObject,
+		backend.ListFeatureWPTMetrics200JSONResponse,
+	]
+	listChromiumDailyUsageStatsCache ResponseDataCacher[
+		backend.ListChromiumDailyUsageStatsRequestObject,
+		backend.ListChromiumDailyUsageStats200JSONResponse,
+	]
+	listAggregatedFeatureSupportCache ResponseDataCacher[
+		backend.ListAggregatedFeatureSupportRequestObject,
+		backend.ListAggregatedFeatureSupport200JSONResponse,
+	]
+	listMissingOneImplemenationCountsCache ResponseDataCacher[
+		backend.ListMissingOneImplemenationCountsRequestObject,
+		backend.ListMissingOneImplemenationCounts200JSONResponse,
+	]
+	listAggregatedWPTMetricsCache ResponseDataCacher[
+		backend.ListAggregatedWPTMetricsRequestObject,
+		backend.ListAggregatedWPTMetrics200JSONResponse,
+	]
+	listAggregatedBaselineStatusCountsCache ResponseDataCacher[
+		backend.ListAggregatedBaselineStatusCountsRequestObject,
+		backend.ListAggregatedBaselineStatusCounts200JSONResponse,
+	]
+}
+
+// tryToSearchCacheForResponse will try to search the cache for a response. For any unexpected errors, log them.
+func tryToSearchCacheForResponse[K any, V any](ctx context.Context, key K, dataCacher ResponseDataCacher[K, V]) (*V, bool) {
+	var resp V
+	err := dataCacher.Lookup(ctx, key, &resp)
+	if err == nil {
+		return &resp, true
+	}
+	if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
+		slog.ErrorContext(ctx, "cache get failed for an unexpected reason", "error", err)
+	}
+	return nil, false
+}
+
+func cacheAndReturnResponse[K any, V any](ctx context.Context, key K, resp V, dataCacher ResponseDataCacher[K, V]) V {
+	err := dataCacher.Cache(ctx, key, resp)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to cache response", "key", key)
+	}
+	return resp
 }
 
 // RemoveSavedSearch implements backend.StrictServerInterface.
@@ -203,29 +332,36 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
+type CacheableTypes interface {
+	backend.GetFeature200JSONResponse | backend.GetFeatureMetadata200JSONResponse
+}
+
 func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
+	bytesDataCacher RawBytesDataCacher,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
-	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) *http.Server {
+	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
-		metadataStorer:   metadataStorer,
-		wptMetricsStorer: wptMetricsStorer,
+		metadataStorer:    metadataStorer,
+		wptMetricsStorer:  wptMetricsStorer,
+		bytesDataCacher:   bytesDataCacher,
+		operationIDCaches: initOperationIDCaches(bytesDataCacher),
 	}
 
-	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, cacheMiddleware, authMiddleware)
+	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)
 }
 
 func createOpenAPIServerServer(
 	port string,
 	srv backend.StrictServerInterface,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
-	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) *http.Server {
+	authMiddleware func(http.Handler) http.Handler) *http.Server {
 
 	srvStrictHandler := backend.NewStrictHandler(srv,
-		wrapPostRequestValidationMiddlewaresForOpenAPIHook(cacheMiddleware, authMiddleware))
+		wrapPostRequestValidationMiddlewaresForOpenAPIHook(authMiddleware))
 
 	// Use standard library router
 	r := http.NewServeMux()

@@ -17,6 +17,7 @@ package httpmiddlewares
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -51,6 +52,53 @@ type DataCacher[K string, V []byte] interface {
 	Cache(context.Context, K, V) error
 	// Get retrieves a value from the cache by its key.
 	Get(context.Context, K) (V, error)
+}
+
+type OperationIDDataCacher[K any, V any] struct {
+	// Currently, all implementations of cacher use a string key and []bytes value
+	cacher      DataCacher[string, []byte]
+	operationID string
+}
+
+func (c OperationIDDataCacher[K, V]) Cache(ctx context.Context, key K, value V) error {
+	jsonBytesKey, err := json.Marshal(key)
+	if err != nil {
+		return err
+	}
+	jsonBytesValue, err := json.Marshal(value)
+	if err != nil {
+		return err
+	}
+
+	return c.cacher.Cache(ctx, c.key(jsonBytesKey), jsonBytesValue)
+}
+
+func (c OperationIDDataCacher[K, V]) key(jsonBytesKey []byte) string {
+	return c.operationID + "-" + string(jsonBytesKey)
+}
+
+func (c OperationIDDataCacher[K, V]) Lookup(ctx context.Context, key K, value *V) error {
+	jsonBytesKey, err := json.Marshal(key)
+	if err != nil {
+		return err
+	}
+
+	valueBytes, err := c.cacher.Get(ctx, c.key(jsonBytesKey))
+	if err != nil {
+		return err
+	}
+
+	err = json.Unmarshal(valueBytes, value)
+
+	return err
+}
+
+func NewOperationCacheMiddleware[K any, V any](cacher DataCacher[string, []byte], operationID string) *OperationIDDataCacher[K, V] {
+	return &OperationIDDataCacher[K, V]{
+		cacher:      cacher,
+		operationID: operationID,
+	}
+
 }
 
 // TODO: Pass in context to be used by slog.ErrorContext.
@@ -92,6 +140,7 @@ func NewCacheMiddleware[K string, V []byte](cacher DataCacher[string, []byte]) f
 			}
 
 			next.ServeHTTP(recorder, r)
+			slog.Info("status", "code", recorder.statusCode, "Headers", recorder.ResponseWriter.Header())
 
 			if recorder.statusCode == http.StatusOK {
 				err = cacher.Cache(r.Context(), cacheKey, V(recorder.buffer.Bytes()))
