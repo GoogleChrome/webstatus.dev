@@ -155,14 +155,14 @@ type MockListBaselineStatusCountsConfig struct {
 }
 
 type MockWPTMetricsStorer struct {
-	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
-	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
-	featuresSearchCfg                                 MockFeaturesSearchConfig
-	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
-	listMissingOneImplCountCfg                        MockListMissingOneImplCountsConfig
-	listBaselineStatusCountsCfg                       MockListBaselineStatusCountsConfig
-	listChromiumDailyUsageStatsCfg                    MockListChromiumDailyUsageStatsConfig
-	getFeatureByIDConfig                              MockGetFeatureByIDConfig
+	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
+	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
+	featuresSearchCfg                                 *MockFeaturesSearchConfig
+	listBrowserFeatureCountMetricCfg                  *MockListBrowserFeatureCountMetricConfig
+	listMissingOneImplCountCfg                        *MockListMissingOneImplCountsConfig
+	listBaselineStatusCountsCfg                       *MockListBaselineStatusCountsConfig
+	listChromiumDailyUsageStatsCfg                    *MockListChromiumDailyUsageStatsConfig
+	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int

@@ -29,6 +29,12 @@ func (s *Server) ListAggregatedWPTMetrics(
 	ctx context.Context,
 	request backend.ListAggregatedWPTMetricsRequestObject,
 ) (backend.ListAggregatedWPTMetricsResponseObject, error) {
+	var cachedResponse backend.ListAggregatedWPTMetrics200JSONResponse
+	found := s.operationResponseCaches.listAggregatedWPTMetricsCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
+
 	metrics, nextPageToken, err := s.wptMetricsStorer.ListMetricsOverTimeWithAggregatedTotals(
 		ctx,
 		getFeatureIDsOrDefault(request.Params.FeatureId),
@@ -58,10 +64,13 @@ func (s *Server) ListAggregatedWPTMetrics(
 		}, nil
 	}
 
-	return backend.ListAggregatedWPTMetrics200JSONResponse{
+	resp := backend.ListAggregatedWPTMetrics200JSONResponse{
 		Data: metrics,
 		Metadata: &backend.PageMetadata{
 			NextPageToken: nextPageToken,
 		},
-	}, nil
+	}
+	s.operationResponseCaches.listAggregatedWPTMetricsCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }

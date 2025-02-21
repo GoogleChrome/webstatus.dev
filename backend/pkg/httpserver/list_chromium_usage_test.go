@@ -20,21 +20,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
 func TestListChromiumDailyUsageStats(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockListChromiumDailyUsageStatsConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockListChromiumDailyUsageStatsConfig
+		expectedCallCount  int // For the mock method
+		request            *http.Request
+		expectedResponse   *http.Response
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockListChromiumDailyUsageStatsConfig{
+			mockConfig: &MockListChromiumDailyUsageStatsConfig{
 				expectedFeatureID: "feature1",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -48,6 +51,23 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Usage:     valuePtr[float64](0.0),
 					},
+				},
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"timestamp":"2000-01-01T00:00:00Z","usage":0}],"metadata":{}}`,
+					),
 				},
 			},
 			expectedCallCount: 1,
@@ -67,8 +87,38 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				"/v1/features/feature1/stats/usage/chromium/daily_stats?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
+			name:       "Success Case - no optional params - use defaults - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"timestamp":"2000-01-01T00:00:00Z","usage":0}],"metadata":{}}`,
+					),
+					Err: nil,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  0,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"timestamp":"2000-01-01T00:00:00Z",
+			"usage":0
+		}
+	],
+	"metadata":{
+
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/features/feature1/stats/usage/chromium/daily_stats?startAt=2000-01-01&endAt=2000-01-10", nil),
+		},
+		{
 			name: "400 case - invalid page token",
-			mockConfig: MockListChromiumDailyUsageStatsConfig{
+			mockConfig: &MockListChromiumDailyUsageStatsConfig{
 				expectedFeatureID: "feature1",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -80,6 +130,15 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 			},
 			expectedCallCount: 1,
 			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":""}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/features/feature1/stats/usage/chromium/daily_stats?"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
@@ -92,10 +151,13 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				listChromiumDailyUsageStatsCfg: tc.mockConfig,
 				t:                              t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListChromiumDailyUsageStats,
 				"ListChromiumDailyUsageStats")
+			mockCacher.AssertExpectations()
 		})
 	}
 }

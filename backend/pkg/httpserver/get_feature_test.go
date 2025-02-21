@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
@@ -27,16 +28,18 @@ import (
 
 func TestGetFeature(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockGetFeatureByIDConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockGetFeatureByIDConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		// nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockGetFeatureByIDConfig{
+			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
@@ -72,6 +75,23 @@ func TestGetFeature(t *testing.T) {
 			},
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: []byte(
+						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":{"chrome":{"date":"1999-01-01",` +
+							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1"}`,
+					),
+				},
+			},
 			expectedResponse: testJSONResponse(200, `
 			{
 				"baseline":{
@@ -92,8 +112,44 @@ func TestGetFeature(t *testing.T) {
 		},
 		// nolint:dupl // WONTFIX - being explicit for short list of tests.
 		{
+			name:              "Success Case - no optional params - use defaults - cached",
+			mockConfig:        nil,
+			expectedCallCount: 0,
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: []byte(
+						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":{"chrome":{"date":"1999-01-01",` +
+							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1"}`,
+					),
+					Err: nil,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedResponse: testJSONResponse(200, `
+					{
+						"baseline":{
+						   "high_date":"2001-01-01",
+						   "low_date":"2000-01-01",
+						   "status":"widely"
+						},
+						"browser_implementations":{
+						   "chrome":{
+							  "date":"1999-01-01",
+							  "status":"available",
+							  "version":"100"
+						   }
+						},
+						"feature_id":"feature1",
+						"name":"feature 1"
+					 }`),
+		},
+		// nolint:dupl // WONTFIX - being explicit for short list of tests.
+		{
 			name: "Success Case - with optional params",
-			mockConfig: MockGetFeatureByIDConfig{
+			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
@@ -128,7 +184,63 @@ func TestGetFeature(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"test_counts"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"test_counts"}}`,
+					Value: []byte(
+						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":` +
+							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
+							`"feature_id":"feature1","name":"feature 1"}`,
+					),
+				},
+			},
+			request: httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
+			expectedResponse: testJSONResponse(200, `
+{
+	"baseline":{
+		"high_date":"2001-01-01",
+		"low_date":"2000-01-01",
+		"status":"widely"
+	},
+	"browser_implementations":{
+		"chrome":{
+			"date":"1999-01-01",
+			"status":"available",
+			"version":"100"
+		}
+	},
+	"feature_id":"feature1",
+	"name":"feature 1"
+}`,
+			),
+		},
+		// nolint:dupl // WONTFIX - being explicit for short list of tests.
+		{
+			name:              "Success Case - with optional params - cached",
+			mockConfig:        nil,
+			expectedCallCount: 0,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"test_counts"}}`,
+					Value: []byte(
+						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":` +
+							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
+							`"feature_id":"feature1","name":"feature 1"}`,
+					),
+					Err: nil,
+				},
+			},
+			expectedCacheCalls: nil,
+			request:            httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
 			expectedResponse: testJSONResponse(200, `
 {
 	"baseline":{
@@ -150,7 +262,7 @@ func TestGetFeature(t *testing.T) {
 		},
 		{
 			name: "404",
-			mockConfig: MockGetFeatureByIDConfig{
+			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
@@ -165,10 +277,18 @@ func TestGetFeature(t *testing.T) {
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
 			expectedResponse:  testJSONResponse(404, `{"code":404,"message":"feature id feature1 is not found"}`),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
 		},
 		{
 			name: "500",
-			mockConfig: MockGetFeatureByIDConfig{
+			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
@@ -183,6 +303,14 @@ func TestGetFeature(t *testing.T) {
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
 			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature"}`),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
 		},
 	}
 	for _, tc := range testCases {
@@ -192,10 +320,14 @@ func TestGetFeature(t *testing.T) {
 				getFeatureByIDConfig: tc.mockConfig,
 				t:                    t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountGetFeature,
 				"GetFeature")
+			mockCacher.AssertExpectations()
 		})
 	}
 }

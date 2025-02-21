@@ -29,6 +29,12 @@ func (s *Server) ListAggregatedFeatureSupport(
 	ctx context.Context,
 	request backend.ListAggregatedFeatureSupportRequestObject) (
 	backend.ListAggregatedFeatureSupportResponseObject, error) {
+	var cachedResponse backend.ListAggregatedFeatureSupport200JSONResponse
+	found := s.operationResponseCaches.listAggregatedFeatureSupportCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
+
 	page, err := s.wptMetricsStorer.ListBrowserFeatureCountMetric(
 		ctx,
 		string(request.Browser),
@@ -55,8 +61,11 @@ func (s *Server) ListAggregatedFeatureSupport(
 		}, nil
 	}
 
-	return backend.ListAggregatedFeatureSupport200JSONResponse{
+	resp := backend.ListAggregatedFeatureSupport200JSONResponse{
 		Metadata: page.Metadata,
 		Data:     page.Data,
-	}, nil
+	}
+	s.operationResponseCaches.listAggregatedFeatureSupportCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }

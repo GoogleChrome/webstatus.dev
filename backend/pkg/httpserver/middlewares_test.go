@@ -15,12 +15,16 @@
 package httpserver
 
 import (
+	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
@@ -41,18 +45,11 @@ func recoveryMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func noopMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		next.ServeHTTP(w, req)
-	})
-}
-
 func TestMiddlewaresOrder(t *testing.T) {
 	count := 0
 	var preMiddleware1Hit,
 		preMiddleware2Hit,
-		authMiddlewareHit,
-		cacheMiddlewareHit bool
+		authMiddlewareHit bool
 
 	preRequestMiddlewares := []func(http.Handler) http.Handler{
 		recoveryMiddleware,
@@ -84,27 +81,13 @@ func TestMiddlewaresOrder(t *testing.T) {
 				if count != 2 {
 					t.Errorf("Auth Middleware: Expected count to be 2, got %d", count)
 				}
-				if cacheMiddlewareHit {
-					t.Error("cache middleware hit before auth middleware")
-				}
-				count++
-				next.ServeHTTP(w, r)
-			})
-		}
-	cacheMiddleware :=
-		func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				cacheMiddlewareHit = true
-				if count != 3 {
-					t.Errorf("Cache Middleware: Expected count to be 3, got %d", count)
-				}
 				count++
 				next.ServeHTTP(w, r)
 			})
 		}
 
 	mockServer := &mockServerInterface{t: t, expectedUserInCtx: nil, callCount: 0}
-	srv := createOpenAPIServerServer("", mockServer, preRequestMiddlewares, cacheMiddleware, authMiddleware)
+	srv := createOpenAPIServerServer("", mockServer, preRequestMiddlewares, authMiddleware)
 	s := httptest.NewServer(srv.Handler)
 	defer s.Close()
 
@@ -112,8 +95,7 @@ func TestMiddlewaresOrder(t *testing.T) {
 
 	if !preMiddleware1Hit ||
 		!preMiddleware2Hit ||
-		!authMiddlewareHit ||
-		!cacheMiddlewareHit {
+		!authMiddlewareHit {
 		t.Errorf("expected all middlewares to be hit")
 	}
 
@@ -140,7 +122,7 @@ func testAuthScope(t *testing.T, path string, method string, shouldBePresent boo
 	}
 	mockServer := &mockServerInterface{t: t, expectedUserInCtx: expectedUserInCtx, callCount: 0}
 	srv := createOpenAPIServerServer("", mockServer, []func(http.Handler) http.Handler{
-		recoveryMiddleware}, noopMiddleware, authMiddleware)
+		recoveryMiddleware}, authMiddleware)
 	s := httptest.NewServer(srv.Handler)
 	defer s.Close()
 
@@ -161,4 +143,288 @@ func TestAuthScopePresentWhenSecurityConfigured(t *testing.T) {
 // not have security schemes configured.
 func TestAuthScopeAbsentWhenSecurityNotConfigured(t *testing.T) {
 	testAuthScope(t, "/v1/features", http.MethodGet, false, nil)
+}
+
+// MockRawBytesDataCacher is a mock implementation of RawBytesDataCacher for testing.
+type MockRawBytesDataCacher struct {
+	t                   *testing.T
+	expectedCacheCalls  []*ExpectedCacheCall
+	expectedGetCalls    []*ExpectedGetCall
+	actualCacheCalls    []*ActualCacheCall
+	actualGetCalls      []*ActualGetCall
+	currentCacheCallIdx int
+	currentGetCallIdx   int
+}
+
+// NewMockRawBytesDataCacher creates a new MockRawBytesDataCacher.
+func NewMockRawBytesDataCacher(
+	t *testing.T,
+	expectedCacheCalls []*ExpectedCacheCall,
+	expectedGetCalls []*ExpectedGetCall) *MockRawBytesDataCacher {
+	return &MockRawBytesDataCacher{
+		t:                   t,
+		expectedCacheCalls:  expectedCacheCalls,
+		expectedGetCalls:    expectedGetCalls,
+		actualCacheCalls:    []*ActualCacheCall{},
+		actualGetCalls:      []*ActualGetCall{},
+		currentCacheCallIdx: 0,
+		currentGetCallIdx:   0,
+	}
+}
+
+// Cache implements the Cache method of the RawBytesDataCacher interface.
+func (m *MockRawBytesDataCacher) Cache(_ context.Context, key string, value []byte) error {
+	if m.currentCacheCallIdx >= len(m.expectedCacheCalls) {
+		m.t.Errorf("unexpected call to Cache with key: %s", key)
+
+		return nil
+	}
+
+	expectedCall := m.expectedCacheCalls[m.currentCacheCallIdx]
+	if expectedCall.Key != key {
+		m.t.Errorf("expected Cache key: %s, got: %s", expectedCall.Key, key)
+	}
+	if !reflect.DeepEqual(expectedCall.Value, value) {
+		m.t.Errorf("expected Cache value: %v, got: %v", string(expectedCall.Value), string(value))
+	}
+
+	m.actualCacheCalls = append(m.actualCacheCalls, &ActualCacheCall{
+		Key:   key,
+		Value: value,
+	})
+	m.currentCacheCallIdx++
+
+	return nil
+}
+
+// Get implements the Get method of the RawBytesDataCacher interface.
+func (m *MockRawBytesDataCacher) Get(_ context.Context, key string) ([]byte, error) {
+	if m.currentGetCallIdx >= len(m.expectedGetCalls) {
+		m.t.Errorf("unexpected call to Get with key: %s", key)
+
+		return nil, nil
+	}
+
+	expectedCall := m.expectedGetCalls[m.currentGetCallIdx]
+	if expectedCall.Key != key {
+		m.t.Errorf("expected Get key: %s, got: %s", expectedCall.Key, key)
+	}
+
+	m.actualGetCalls = append(m.actualGetCalls, &ActualGetCall{
+		Key: key,
+	})
+
+	m.currentGetCallIdx++
+
+	return expectedCall.Value, expectedCall.Err
+}
+
+// AssertExpectations asserts that all expected calls were made.
+func (m *MockRawBytesDataCacher) AssertExpectations() {
+	if len(m.expectedCacheCalls) != m.currentCacheCallIdx {
+		m.t.Errorf("expected %d Cache calls, got %d", len(m.expectedCacheCalls), m.currentCacheCallIdx)
+		for i, expectedCall := range m.expectedCacheCalls {
+			if i < len(m.actualCacheCalls) {
+				actualCall := m.actualCacheCalls[i]
+				m.t.Errorf("Expected Cache Call: %+v, got: %+v \n", expectedCall, actualCall)
+			} else {
+				m.t.Errorf("Expected Cache Call: %+v\n", expectedCall)
+			}
+		}
+	}
+
+	if len(m.expectedGetCalls) != m.currentGetCallIdx {
+		m.t.Errorf("expected %d Get calls, got %d", len(m.expectedGetCalls), m.currentGetCallIdx)
+		for i, expectedCall := range m.expectedGetCalls {
+			if i < len(m.actualGetCalls) {
+				actualCall := m.actualGetCalls[i]
+				m.t.Errorf("Expected Get Call: %+v, got: %+v \n", expectedCall, actualCall)
+			} else {
+				m.t.Errorf("Expected Get Call: %+v\n", expectedCall)
+			}
+		}
+	}
+}
+
+// ExpectedCacheCall represents an expected call to Cache.
+type ExpectedCacheCall struct {
+	Key   string
+	Value []byte
+}
+
+// ActualCacheCall represents an actual call made to Cache.
+type ActualCacheCall struct {
+	Key   string
+	Value []byte
+}
+
+// ExpectedGetCall represents an expected call to Get.
+type ExpectedGetCall struct {
+	Key   string
+	Value []byte
+	Err   error
+}
+
+// ActualGetCall represents an actual call made to Get.
+type ActualGetCall struct {
+	Key string
+}
+
+// Test Types.
+type TestKey struct {
+	ID    string
+	Param string
+}
+
+type TestValue struct {
+	Name  string
+	Value int
+}
+
+func TestOperationResponseCache_AttemptCache(t *testing.T) {
+	testCases := []struct {
+		name               string
+		key                TestKey
+		value              *TestValue
+		expectedCacheCalls []*ExpectedCacheCall
+	}{
+		{
+			name: "Valid Cache Operation",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			value: &TestValue{
+				Name:  "Test Item",
+				Value: 123,
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key:   `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value: []byte(`{"Name":"Test Item","Value":123}`),
+				},
+			},
+		},
+		{
+			name: "Nil value - should not cache",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			value:              nil,
+			expectedCacheCalls: []*ExpectedCacheCall{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, nil)
+			cache := operationResponseCache[
+				TestKey,
+				TestValue,
+			]{cacher: mockCacher, operationID: "customOperation"}
+
+			cache.AttemptCache(context.Background(), tc.key, tc.value)
+			mockCacher.AssertExpectations()
+		})
+	}
+}
+
+func TestOperationResponseCache_Lookup(t *testing.T) {
+	testCases := []struct {
+		name             string
+		key              TestKey
+		expectedGetCalls []*ExpectedGetCall
+		expectedResult   bool
+		expectedValue    *TestValue
+	}{
+		{
+			name: "Valid Lookup - Data Found",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value: []byte(`{"Name":"Test Item","Value":123}`),
+					Err:   nil,
+				},
+			},
+			expectedResult: true,
+			expectedValue: &TestValue{
+				Name:  "Test Item",
+				Value: 123,
+			},
+		},
+		{
+			name: "Lookup - Data Not Found",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedResult: false,
+			expectedValue:  nil,
+		},
+		{
+			name: "Lookup - Cache Error",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value: nil,
+					Err:   errors.New("some error"),
+				},
+			},
+			expectedResult: false,
+			expectedValue:  nil,
+		},
+		{
+			name: "Lookup - invalid cached value",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value: []byte(`invalid json`),
+					Err:   nil,
+				},
+			},
+			expectedResult: false,
+			expectedValue:  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCacher := NewMockRawBytesDataCacher(t, nil, tc.expectedGetCalls)
+			cache := operationResponseCache[
+				TestKey,
+				TestValue,
+			]{cacher: mockCacher, operationID: "customOperation"}
+
+			var actualValue TestValue
+			result := cache.Lookup(context.Background(), tc.key, &actualValue)
+
+			if result != tc.expectedResult {
+				t.Errorf("Expected result %t, got %t", tc.expectedResult, result)
+			}
+			if tc.expectedResult && !reflect.DeepEqual(&actualValue, tc.expectedValue) {
+				t.Errorf("Expected value %v, got %v", tc.expectedValue, &actualValue)
+			}
+			mockCacher.AssertExpectations()
+		})
+	}
 }

@@ -29,6 +29,11 @@ func (s *Server) ListChromiumDailyUsageStats(
 	ctx context.Context,
 	request backend.ListChromiumDailyUsageStatsRequestObject,
 ) (backend.ListChromiumDailyUsageStatsResponseObject, error) {
+	var cachedResponse backend.ListChromiumDailyUsageStats200JSONResponse
+	found := s.operationResponseCaches.listChromiumDailyUsageStatsCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
 	stats, nextPageToken, err := s.wptMetricsStorer.ListChromiumDailyUsageStats(
 		ctx,
 		request.FeatureId,
@@ -55,10 +60,13 @@ func (s *Server) ListChromiumDailyUsageStats(
 		}, nil
 	}
 
-	return backend.ListChromiumDailyUsageStats200JSONResponse{
+	resp := backend.ListChromiumDailyUsageStats200JSONResponse{
 		Data: stats,
 		Metadata: &backend.PageMetadata{
 			NextPageToken: nextPageToken,
 		},
-	}, nil
+	}
+	s.operationResponseCaches.listChromiumDailyUsageStatsCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }

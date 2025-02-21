@@ -22,6 +22,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -30,15 +31,17 @@ import (
 
 func TestListFeatures(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockFeaturesSearchConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockFeaturesSearchConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockFeaturesSearchConfig{
+			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:     nil,
 				expectedPageSize:      100,
 				expectedSearchNode:    nil,
@@ -83,6 +86,23 @@ func TestListFeatures(t *testing.T) {
 				},
 				err: nil,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listFeatures-{"Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listFeatures-{"Params":{}}`,
+					Value: []byte(
+						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":{"browser1":{"status":"available","version":"101"}},` +
+							`"feature_id":"feature1","name":"feature 1"}],"metadata":{"total":100}}`,
+					),
+				},
+			},
 			expectedCallCount: 1,
 			expectedResponse: testJSONResponse(200, `
 {
@@ -111,8 +131,50 @@ func TestListFeatures(t *testing.T) {
 			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
 		},
 		{
+			name:       "Success Case - no optional params - use defaults - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatures-{"Params":{}}`,
+					Value: []byte(
+						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":{"browser1":{"status":"available","version":"101"}},` +
+							`"feature_id":"feature1","name":"feature 1"}],"metadata":{"total":100}}`,
+					),
+					Err: nil,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  0,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"baseline":{
+				"high_date":"2001-01-01",
+				"low_date":"2000-01-01",
+				"status":"widely"
+			},
+			"browser_implementations":{
+				"browser1":{
+				"status":"available",
+				"version":"101"
+				}
+			},
+			"feature_id":"feature1",
+			"name":"feature 1"
+		}
+	],
+	"metadata":{
+		"total":100
+	}
+}`,
+			),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
+		},
+		{
 			name: "Success Case - include optional params",
-			mockConfig: MockFeaturesSearchConfig{
+			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:     inputPageToken,
 				expectedPageSize:      50,
 				expectedWPTMetricView: backend.TestCounts,
@@ -187,6 +249,27 @@ func TestListFeatures(t *testing.T) {
 				},
 				err: nil,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatures-{"Params":{"page_token":"input-token","page_size":50,` +
+						`"wpt_metric_view":"test_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listFeatures-{"Params":{"page_token":"input-token","page_size":50,` +
+						`"wpt_metric_view":"test_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
+					Value: []byte(
+						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":` +
+							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
+							`"feature_id":"feature1","name":"feature 1"}],` +
+							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
+					),
+				},
+			},
 			expectedCallCount: 1,
 			expectedResponse: testJSONResponse(200, `
 {
@@ -223,8 +306,61 @@ func TestListFeatures(t *testing.T) {
 				nil),
 		},
 		{
+			name:       "Success Case - include optional params - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatures-{"Params":{"page_token":"input-token","page_size":50,` +
+						`"wpt_metric_view":"test_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
+					Value: []byte(
+						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
+							`"browser_implementations":` +
+							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
+							`"feature_id":"feature1","name":"feature 1"}],` +
+							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
+					),
+					Err: nil,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  0,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"baseline":{
+				"high_date":"2001-01-01",
+				"low_date":"2000-01-01",
+				"status":"widely"
+			},
+			"browser_implementations":{
+				"chrome":{
+				"date":"1999-01-01",
+				"status":"available",
+				"version":"101"
+				}
+			},
+			"feature_id":"feature1",
+			"name":"feature 1"
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token",
+		"total":100
+	}
+}`,
+			),
+			request: httptest.NewRequest(
+				http.MethodGet,
+				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=test_counts",
+					*inputPageToken,
+					url.QueryEscape("available_on:chrome AND name:grid"),
+				),
+				nil),
+		},
+		{
 			name: "500 case",
-			mockConfig: MockFeaturesSearchConfig{
+			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:  nil,
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
@@ -239,7 +375,15 @@ func TestListFeatures(t *testing.T) {
 				page:                  nil,
 				err:                   errTest,
 			},
-			expectedCallCount: 1,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listFeatures-{"Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(500,
 				`{"code":500,"message":"unable to get list of features"}`,
 			),
@@ -247,7 +391,7 @@ func TestListFeatures(t *testing.T) {
 		},
 		{
 			name: "400 case - query string does not match grammar",
-			mockConfig: MockFeaturesSearchConfig{
+			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:     nil,
 				expectedPageSize:      100,
 				expectedSearchNode:    nil,
@@ -257,7 +401,15 @@ func TestListFeatures(t *testing.T) {
 				page:                  nil,
 				err:                   errTest,
 			},
-			expectedCallCount: 0,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listFeatures-{"Params":{"q":"badterm:foo"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"query string does not match expected grammar"}`,
 			),
@@ -265,7 +417,7 @@ func TestListFeatures(t *testing.T) {
 		},
 		{
 			name: "400 case - query string not safe",
-			mockConfig: MockFeaturesSearchConfig{
+			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:     nil,
 				expectedPageSize:      100,
 				expectedSearchNode:    nil,
@@ -275,7 +427,15 @@ func TestListFeatures(t *testing.T) {
 				page:                  nil,
 				err:                   errTest,
 			},
-			expectedCallCount: 0,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listFeatures-{"Params":{"q":"%"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"query string cannot be decoded"}`,
 			),
@@ -283,7 +443,7 @@ func TestListFeatures(t *testing.T) {
 		},
 		{
 			name: "400 case - invalid page token",
-			mockConfig: MockFeaturesSearchConfig{
+			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:  badPageToken,
 				expectedPageSize:   100,
 				expectedSearchNode: nil,
@@ -298,7 +458,15 @@ func TestListFeatures(t *testing.T) {
 				page:                  nil,
 				err:                   backendtypes.ErrInvalidPageToken,
 			},
-			expectedCallCount: 1,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listFeatures-{"Params":{"page_token":""}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"invalid page token"}`,
 			),
@@ -312,9 +480,13 @@ func TestListFeatures(t *testing.T) {
 				featuresSearchCfg: tc.mockConfig,
 				t:                 t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountFeaturesSearch, "FeaturesSearch")
+			mockCacher.AssertExpectations()
 		})
 	}
 }

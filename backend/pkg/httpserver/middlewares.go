@@ -16,8 +16,12 @@ package httpserver
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
+	"log/slog"
 	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
@@ -40,15 +44,12 @@ func applyPreRequestValidationMiddlewares(mux *http.ServeMux,
 // requires post-request validation. The wrapper function adapts the middleware to the signature expected by the
 // OpenAPI generator.
 func wrapPostRequestValidationMiddlewaresForOpenAPIHook(
-	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
-	openAPIMiddlewares := make([]backend.StrictMiddlewareFunc, 2)
+	authMiddleware func(http.Handler) http.Handler) []backend.StrictMiddlewareFunc {
+	openAPIMiddlewares := make([]backend.StrictMiddlewareFunc, 1)
 	// OpenAPI middlewares need to inserted in reverse order.
-	// Cache middleware is placed at index 0 so it is actually executed last.
 	// This is an implementation detail for the current OpenAPI Generator.
-	openAPIMiddlewares[1] = wrapPostRequestValidationMiddlewareForOpenAPIHook(
-		authMiddleware, authMiddlewareOpenAPIHook)
 	openAPIMiddlewares[0] = wrapPostRequestValidationMiddlewareForOpenAPIHook(
-		cacheMiddleware, cacheMiddlewareOpenAPIHook)
+		authMiddleware, authMiddlewareOpenAPIHook)
 
 	return openAPIMiddlewares
 }
@@ -65,13 +66,6 @@ func authMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.Stric
 		}
 
 		// Call the next handler with the updated context
-		return next(ctx, w, r, req)
-	}
-}
-
-func cacheMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.StrictHTTPHandlerFunc {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req interface{}) (interface{}, error) {
-		// TODO: Selectively supply cache keys depending on the route
 		return next(ctx, w, r, req)
 	}
 }
@@ -97,4 +91,168 @@ func wrapPostRequestValidationMiddlewareForOpenAPIHook(middleware func(http.Hand
 			return response, err
 		}
 	}
+}
+
+type operationResponseCaches struct {
+	getFeatureCache operationResponseCache[
+		backend.GetFeatureRequestObject,
+		backend.GetFeature200JSONResponse,
+	]
+	listFeaturesCache operationResponseCache[
+		backend.ListFeaturesRequestObject,
+		backend.ListFeatures200JSONResponse,
+	]
+	getFeatureMetadataCache operationResponseCache[
+		backend.GetFeatureMetadataRequestObject,
+		backend.GetFeatureMetadata200JSONResponse,
+	]
+	listFeatureWPTMetricsCache operationResponseCache[
+		backend.ListFeatureWPTMetricsRequestObject,
+		backend.ListFeatureWPTMetrics200JSONResponse,
+	]
+	listChromiumDailyUsageStatsCache operationResponseCache[
+		backend.ListChromiumDailyUsageStatsRequestObject,
+		backend.ListChromiumDailyUsageStats200JSONResponse,
+	]
+	listAggregatedFeatureSupportCache operationResponseCache[
+		backend.ListAggregatedFeatureSupportRequestObject,
+		backend.ListAggregatedFeatureSupport200JSONResponse,
+	]
+	listMissingOneImplemenationCountsCache operationResponseCache[
+		backend.ListMissingOneImplemenationCountsRequestObject,
+		backend.ListMissingOneImplemenationCounts200JSONResponse,
+	]
+	listAggregatedWPTMetricsCache operationResponseCache[
+		backend.ListAggregatedWPTMetricsRequestObject,
+		backend.ListAggregatedWPTMetrics200JSONResponse,
+	]
+	listAggregatedBaselineStatusCountsCache operationResponseCache[
+		backend.ListAggregatedBaselineStatusCountsRequestObject,
+		backend.ListAggregatedBaselineStatusCounts200JSONResponse,
+	]
+}
+
+func initOperationResponseCaches(dataCacher RawBytesDataCacher) *operationResponseCaches {
+	return &operationResponseCaches{
+		getFeatureCache: operationResponseCache[
+			backend.GetFeatureRequestObject,
+			backend.GetFeature200JSONResponse,
+		]{cacher: dataCacher, operationID: "getFeature"},
+
+		listFeaturesCache: operationResponseCache[
+			backend.ListFeaturesRequestObject,
+			backend.ListFeatures200JSONResponse,
+		]{cacher: dataCacher, operationID: "listFeatures"},
+
+		getFeatureMetadataCache: operationResponseCache[
+			backend.GetFeatureMetadataRequestObject,
+			backend.GetFeatureMetadata200JSONResponse,
+		]{cacher: dataCacher, operationID: "getFeatureMetadata"},
+
+		listFeatureWPTMetricsCache: operationResponseCache[
+			backend.ListFeatureWPTMetricsRequestObject,
+			backend.ListFeatureWPTMetrics200JSONResponse,
+		]{cacher: dataCacher, operationID: "listFeatureWPTMetrics"},
+
+		listChromiumDailyUsageStatsCache: operationResponseCache[
+			backend.ListChromiumDailyUsageStatsRequestObject,
+			backend.ListChromiumDailyUsageStats200JSONResponse,
+		]{cacher: dataCacher, operationID: "listChromiumDailyUsageStats"},
+
+		listAggregatedFeatureSupportCache: operationResponseCache[
+			backend.ListAggregatedFeatureSupportRequestObject,
+			backend.ListAggregatedFeatureSupport200JSONResponse,
+		]{cacher: dataCacher, operationID: "listAggregatedFeatureSupport"},
+
+		listMissingOneImplemenationCountsCache: operationResponseCache[
+			backend.ListMissingOneImplemenationCountsRequestObject,
+			backend.ListMissingOneImplemenationCounts200JSONResponse,
+		]{cacher: dataCacher, operationID: "listMissingOneImplemenationCounts"},
+
+		listAggregatedWPTMetricsCache: operationResponseCache[
+			backend.ListAggregatedWPTMetricsRequestObject,
+			backend.ListAggregatedWPTMetrics200JSONResponse,
+		]{cacher: dataCacher, operationID: "listAggregatedWPTMetrics"},
+
+		listAggregatedBaselineStatusCountsCache: operationResponseCache[
+			backend.ListAggregatedBaselineStatusCountsRequestObject,
+			backend.ListAggregatedBaselineStatusCounts200JSONResponse,
+		]{cacher: dataCacher, operationID: "listAggregatedBaselineStatusCounts"},
+	}
+}
+
+type operationResponseCache[Key any, Response any] struct {
+	cacher      RawBytesDataCacher
+	operationID string
+}
+
+func (c operationResponseCache[Key, Response]) key(key []byte) string {
+	return c.operationID + "-" + string(key)
+}
+
+// AttemptCache attempts to cache the given value, associated with the given key,
+// within the underlying RawBytesDataCacher. It marshals both the key and value
+// to JSON bytes before attempting to cache them. If any error occurs during
+// the marshaling or caching process, it logs the error and does nothing else.
+//
+// Note: This method does not return an error. This is intentional because
+// caching failures should not prevent the main operation from completing.
+func (c operationResponseCache[Key, Response]) AttemptCache(ctx context.Context, key Key, value *Response) {
+	if value == nil {
+		// Should never reach here
+		slog.ErrorContext(ctx, "unable to cache nil value")
+
+		return
+	}
+
+	jsonBytesKey, err := json.Marshal(key)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to marshal key for cache store",
+			"key", key, "error", err, "operation", c.operationID)
+
+		return
+	}
+	jsonBytesValue, err := json.Marshal(*value)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to marshal value for cache store",
+			"value", value, "error", err, "operation", c.operationID)
+
+		return
+	}
+
+	err = c.cacher.Cache(ctx, c.key(jsonBytesKey), jsonBytesValue)
+	if err != nil {
+		slog.ErrorContext(ctx, "encountered unexpected error when caching",
+			"error", err, "key", key, "operation", c.operationID)
+	}
+}
+
+func (c operationResponseCache[Key, Response]) Lookup(ctx context.Context, key Key, value *Response) bool {
+	jsonBytesKey, err := json.Marshal(key)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to marshal key for cache lookup",
+			"error", err, "key", key, "operation", c.operationID)
+
+		return false
+	}
+
+	valueBytes, err := c.cacher.Get(ctx, c.key(jsonBytesKey))
+	if err != nil {
+		if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
+			slog.ErrorContext(ctx, "encountered unexpected error from cache",
+				"error", err, "key", key, "operation", c.operationID)
+		}
+
+		return false
+	}
+
+	err = json.Unmarshal(valueBytes, value)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to unmarshal cached data",
+			"error", err, "key", key, "operation", c.operationID, "value", string(valueBytes))
+
+		return false
+	}
+
+	return true
 }

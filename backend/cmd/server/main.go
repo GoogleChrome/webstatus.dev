@@ -92,8 +92,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	cacheMiddleware := httpmiddlewares.NewCacheMiddleware(cache)
-
 	// nolint:exhaustruct // WONTFIX - will rely on the defaults on this third party struct.
 	firebaseApp, err := firebase.NewApp(context.Background(), &firebase.Config{
 		ProjectID: projectID,
@@ -164,8 +162,8 @@ func main() {
 		"8080",
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
+		cache,
 		preRequestMiddlewares,
-		cacheMiddleware,
 		authMiddleware,
 	)
 
