@@ -107,8 +107,9 @@ type WPTMetricsStorer interface {
 }
 
 type Server struct {
-	metadataStorer   WebFeatureMetadataStorer
-	wptMetricsStorer WPTMetricsStorer
+	metadataStorer          WebFeatureMetadataStorer
+	wptMetricsStorer        WPTMetricsStorer
+	operationResponseCaches *operationResponseCaches
 }
 
 // RemoveSavedSearch implements backend.StrictServerInterface.
@@ -220,13 +221,14 @@ func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
-	_ RawBytesDataCacher,
+	rawBytesDataCacher RawBytesDataCacher,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
 	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
-		metadataStorer:   metadataStorer,
-		wptMetricsStorer: wptMetricsStorer,
+		metadataStorer:          metadataStorer,
+		wptMetricsStorer:        wptMetricsStorer,
+		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher),
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

@@ -26,15 +26,17 @@ import (
 
 func TestListFeatureWPTMetrics(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockListMetricsForFeatureIDBrowserAndChannelConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockListMetricsForFeatureIDBrowserAndChannelConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
+			mockConfig: &MockListMetricsForFeatureIDBrowserAndChannelConfig{
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
@@ -54,7 +56,9 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 					},
 				},
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -72,7 +76,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 		},
 		{
 			name: "Success Case - include optional params",
-			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
+			mockConfig: &MockListMetricsForFeatureIDBrowserAndChannelConfig{
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
@@ -92,7 +96,9 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				},
 				pageToken: nextPageToken,
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -113,7 +119,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 		},
 		{
 			name: "500 case",
-			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
+			mockConfig: &MockListMetricsForFeatureIDBrowserAndChannelConfig{
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
@@ -126,15 +132,17 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedPageSize:  100,
 				err:               errTest,
 			},
-			expectedCallCount: 1,
-			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature metrics"}`),
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
+			expectedResponse:   testJSONResponse(500, `{"code":500,"message":"unable to get feature metrics"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "400 case - invalid page token",
-			mockConfig: MockListMetricsForFeatureIDBrowserAndChannelConfig{
+			mockConfig: &MockListMetricsForFeatureIDBrowserAndChannelConfig{
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
@@ -147,8 +155,10 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedPageSize:  100,
 				err:               backendtypes.ErrInvalidPageToken,
 			},
-			expectedCallCount: 1,
-			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
+			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
@@ -162,10 +172,12 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				featureCfg: tc.mockConfig,
 				t:          t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListMetricsForFeatureIDBrowserAndChannel,
-				"ListMetricsForFeatureIDBrowserAndChannel")
+			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMetricsForFeatureIDBrowserAndChannel,
+				"ListMetricsForFeatureIDBrowserAndChannel", mockCacher)
 		})
 	}
 }

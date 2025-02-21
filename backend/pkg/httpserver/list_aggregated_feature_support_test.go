@@ -26,15 +26,17 @@ import (
 
 func TestListAggregatedFeatureSupport(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockListBrowserFeatureCountMetricConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockListBrowserFeatureCountMetricConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockListBrowserFeatureCountMetricConfig{
+			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedBrowser:   "chrome",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -58,7 +60,9 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					},
 				},
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -80,7 +84,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		},
 		{
 			name: "Success Case - include optional params",
-			mockConfig: MockListBrowserFeatureCountMetricConfig{
+			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedBrowser:   "chrome",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -104,7 +108,9 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 				},
 				pageToken: nextPageToken,
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -129,7 +135,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		},
 		{
 			name: "500 case",
-			mockConfig: MockListBrowserFeatureCountMetricConfig{
+			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedBrowser:   "chrome",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -139,14 +145,16 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 				pageToken:         nil,
 				err:               errTest,
 			},
-			expectedCallCount: 1,
-			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature support metrics"}`),
+			expectedCallCount:  1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedResponse:   testJSONResponse(500, `{"code":500,"message":"unable to get feature support metrics"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "400 case - invalid page token",
-			mockConfig: MockListBrowserFeatureCountMetricConfig{
+			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedBrowser:   "chrome",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -156,8 +164,10 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 				err:               backendtypes.ErrInvalidPageToken,
 				page:              nil,
 			},
-			expectedCallCount: 1,
-			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
+			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt=2000-01-01"+
 					"&endAt=2000-01-10&page_token="+*badPageToken, nil),
@@ -171,10 +181,12 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 				listBrowserFeatureCountMetricCfg: tc.mockConfig,
 				t:                                t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListBrowserFeatureCountMetric,
-				"ListBrowserFeatureCountMetric")
+			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListBrowserFeatureCountMetric,
+				"ListBrowserFeatureCountMetric", mockCacher)
 
 		})
 	}

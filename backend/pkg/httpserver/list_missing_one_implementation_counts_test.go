@@ -26,15 +26,17 @@ import (
 
 func TestListMissingOneImplemenationCounts(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockListMissingOneImplCountsConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockListMissingOneImplCountsConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockListMissingOneImplCountsConfig{
+			mockConfig: &MockListMissingOneImplCountsConfig{
 				expectedTargetBrowser: "chrome",
 				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
 				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -59,7 +61,9 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 					},
 				},
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -83,7 +87,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 		},
 		{
 			name: "Success Case - include optional params",
-			mockConfig: MockListMissingOneImplCountsConfig{
+			mockConfig: &MockListMissingOneImplCountsConfig{
 				expectedTargetBrowser: "chrome",
 				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
 				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -108,7 +112,9 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				},
 				pageToken: nextPageToken,
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -132,7 +138,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 		},
 		{
 			name: "500 case",
-			mockConfig: MockListMissingOneImplCountsConfig{
+			mockConfig: &MockListMissingOneImplCountsConfig{
 				expectedTargetBrowser: "chrome",
 				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
 				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -143,7 +149,9 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				pageToken:             nil,
 				err:                   errTest,
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(
 				500, `{"code":500,"message":"unable to get missing one implementation metrics"}`),
 			request: httptest.NewRequest(http.MethodGet,
@@ -153,7 +161,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 		},
 		{
 			name: "400 case - invalid page token",
-			mockConfig: MockListMissingOneImplCountsConfig{
+			mockConfig: &MockListMissingOneImplCountsConfig{
 				expectedTargetBrowser: "chrome",
 				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
 				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -164,8 +172,10 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				pageToken:             nil,
 				err:                   backendtypes.ErrInvalidPageToken,
 			},
-			expectedCallCount: 1,
-			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
+			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
@@ -180,10 +190,12 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				listMissingOneImplCountCfg: tc.mockConfig,
 				t:                          t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListMissingOneImplCounts,
-				"ListMissingOneImplCounts")
+			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMissingOneImplCounts,
+				"ListMissingOneImplCounts", mockCacher)
 		})
 	}
 }

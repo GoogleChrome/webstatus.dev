@@ -21,6 +21,7 @@ import (
 	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
 // operationResponseCache caches operation results using a RawBytesDataCacher.
@@ -106,4 +107,100 @@ func (c operationResponseCache[Key, Response]) Lookup(ctx context.Context, key K
 	}
 
 	return true
+}
+
+// operationResponseCaches is a struct that holds multiple instances of
+// operationResponseCache, each managing caching for a specific API operation.
+// Each operationResponseCache instance wraps the underlying RawBytesDataCacher
+// to provide type-safe caching and retrieval for its associated operation.
+type operationResponseCaches struct {
+	getFeatureCache operationResponseCache[
+		backend.GetFeatureRequestObject,
+		backend.GetFeature200JSONResponse,
+	]
+	listFeaturesCache operationResponseCache[
+		backend.ListFeaturesRequestObject,
+		backend.ListFeatures200JSONResponse,
+	]
+	getFeatureMetadataCache operationResponseCache[
+		backend.GetFeatureMetadataRequestObject,
+		backend.GetFeatureMetadata200JSONResponse,
+	]
+	listFeatureWPTMetricsCache operationResponseCache[
+		backend.ListFeatureWPTMetricsRequestObject,
+		backend.ListFeatureWPTMetrics200JSONResponse,
+	]
+	listChromiumDailyUsageStatsCache operationResponseCache[
+		backend.ListChromiumDailyUsageStatsRequestObject,
+		backend.ListChromiumDailyUsageStats200JSONResponse,
+	]
+	listAggregatedFeatureSupportCache operationResponseCache[
+		backend.ListAggregatedFeatureSupportRequestObject,
+		backend.ListAggregatedFeatureSupport200JSONResponse,
+	]
+	listMissingOneImplemenationCountsCache operationResponseCache[
+		backend.ListMissingOneImplemenationCountsRequestObject,
+		backend.ListMissingOneImplemenationCounts200JSONResponse,
+	]
+	listAggregatedWPTMetricsCache operationResponseCache[
+		backend.ListAggregatedWPTMetricsRequestObject,
+		backend.ListAggregatedWPTMetrics200JSONResponse,
+	]
+	listAggregatedBaselineStatusCountsCache operationResponseCache[
+		backend.ListAggregatedBaselineStatusCountsRequestObject,
+		backend.ListAggregatedBaselineStatusCounts200JSONResponse,
+	]
+}
+
+// initOperationResponseCaches initializes and configures each
+// operationResponseCache instance within the operationResponseCaches struct.
+// While each cache instance uses the same underlying RawBytesDataCacher for storage,
+// they operate independently and are specialized for their respective API operations.
+func initOperationResponseCaches(dataCacher RawBytesDataCacher) *operationResponseCaches {
+	return &operationResponseCaches{
+		getFeatureCache: operationResponseCache[
+			backend.GetFeatureRequestObject,
+			backend.GetFeature200JSONResponse,
+		]{cacher: dataCacher, operationID: "getFeature"},
+
+		listFeaturesCache: operationResponseCache[
+			backend.ListFeaturesRequestObject,
+			backend.ListFeatures200JSONResponse,
+		]{cacher: dataCacher, operationID: "listFeatures"},
+
+		getFeatureMetadataCache: operationResponseCache[
+			backend.GetFeatureMetadataRequestObject,
+			backend.GetFeatureMetadata200JSONResponse,
+		]{cacher: dataCacher, operationID: "getFeatureMetadata"},
+
+		listFeatureWPTMetricsCache: operationResponseCache[
+			backend.ListFeatureWPTMetricsRequestObject,
+			backend.ListFeatureWPTMetrics200JSONResponse,
+		]{cacher: dataCacher, operationID: "listFeatureWPTMetrics"},
+
+		listChromiumDailyUsageStatsCache: operationResponseCache[
+			backend.ListChromiumDailyUsageStatsRequestObject,
+			backend.ListChromiumDailyUsageStats200JSONResponse,
+		]{cacher: dataCacher, operationID: "listChromiumDailyUsageStats"},
+
+		listAggregatedFeatureSupportCache: operationResponseCache[
+			backend.ListAggregatedFeatureSupportRequestObject,
+			backend.ListAggregatedFeatureSupport200JSONResponse,
+		]{cacher: dataCacher, operationID: "listAggregatedFeatureSupport"},
+
+		listMissingOneImplemenationCountsCache: operationResponseCache[
+			backend.ListMissingOneImplemenationCountsRequestObject,
+			backend.ListMissingOneImplemenationCounts200JSONResponse,
+		]{cacher: dataCacher, operationID: "listMissingOneImplemenationCounts"},
+
+		listAggregatedWPTMetricsCache: operationResponseCache[
+			backend.ListAggregatedWPTMetricsRequestObject,
+			backend.ListAggregatedWPTMetrics200JSONResponse,
+		]{cacher: dataCacher, operationID: "listAggregatedWPTMetrics"},
+
+		listAggregatedBaselineStatusCountsCache: operationResponseCache[
+			backend.ListAggregatedBaselineStatusCountsRequestObject,
+			backend.ListAggregatedBaselineStatusCounts200JSONResponse,
+		]{cacher: dataCacher, operationID: "listAggregatedBaselineStatusCounts"},
+	}
 }
