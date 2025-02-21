@@ -203,29 +203,43 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 	return *(cmp.Or[*[]string](featureIDs, &defaultFeatureIDs))
 }
 
+// RawBytesDataCacher defines an interface for caching raw byte data.
+// This interface is intended for use in scenarios where data needs to be
+// cached as raw bytes, rather than structured data types.
+// Implementations of this interface should provide methods to store and
+// retrieve byte slices associated with string keys.
+// Currently implemented by the valkey cache layer.
+type RawBytesDataCacher interface {
+	// Cache stores a value associated with a key in the cache.
+	Cache(context.Context, string, []byte) error
+	// Get retrieves a value from the cache by its key.
+	Get(context.Context, string) ([]byte, error)
+}
+
 func NewHTTPServer(
 	port string,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
+	_ RawBytesDataCacher,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
-	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) *http.Server {
+	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
 		metadataStorer:   metadataStorer,
 		wptMetricsStorer: wptMetricsStorer,
 	}
 
-	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, cacheMiddleware, authMiddleware)
+	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)
 }
 
 func createOpenAPIServerServer(
 	port string,
 	srv backend.StrictServerInterface,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
-	cacheMiddleware, authMiddleware func(http.Handler) http.Handler) *http.Server {
+	authMiddleware func(http.Handler) http.Handler) *http.Server {
 
 	srvStrictHandler := backend.NewStrictHandler(srv,
-		wrapPostRequestValidationMiddlewaresForOpenAPIHook(cacheMiddleware, authMiddleware))
+		wrapPostRequestValidationMiddlewaresForOpenAPIHook(authMiddleware))
 
 	// Use standard library router
 	r := http.NewServeMux()
