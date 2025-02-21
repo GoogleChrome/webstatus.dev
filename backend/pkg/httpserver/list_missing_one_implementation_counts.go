@@ -29,6 +29,11 @@ func (s *Server) ListMissingOneImplemenationCounts(
 	ctx context.Context,
 	request backend.ListMissingOneImplemenationCountsRequestObject) (
 	backend.ListMissingOneImplemenationCountsResponseObject, error) {
+	var cachedResponse backend.ListMissingOneImplemenationCounts200JSONResponse
+	found := s.operationResponseCaches.listMissingOneImplemenationCountsCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
 	otherBrowsers := make([]string, len(request.Params.Browser))
 	for i := 0; i < len(request.Params.Browser); i++ {
 		otherBrowsers[i] = string(request.Params.Browser[i])
@@ -60,8 +65,11 @@ func (s *Server) ListMissingOneImplemenationCounts(
 		}, nil
 	}
 
-	return backend.ListMissingOneImplemenationCounts200JSONResponse{
+	resp := backend.ListMissingOneImplemenationCounts200JSONResponse{
 		Metadata: page.Metadata,
 		Data:     page.Data,
-	}, nil
+	}
+	s.operationResponseCaches.listMissingOneImplemenationCountsCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }
