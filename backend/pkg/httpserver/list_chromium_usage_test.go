@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -29,10 +30,10 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 		name               string
 		mockConfig         *MockListChromiumDailyUsageStatsConfig
 		expectedCallCount  int // For the mock method
-		expectedCacheCalls []*ExpectedCacheCall
-		expectedGetCalls   []*ExpectedGetCall
 		request            *http.Request
 		expectedResponse   *http.Response
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
@@ -52,9 +53,54 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 					},
 				},
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"timestamp":"2000-01-01T00:00:00Z","usage":0}],"metadata":{}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"timestamp":"2000-01-01T00:00:00Z",
+			"usage":0
+		}
+	],
+	"metadata":{
+
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/features/feature1/stats/usage/chromium/daily_stats?startAt=2000-01-01&endAt=2000-01-10", nil),
+		},
+		{
+			name:       "Success Case - no optional params - use defaults - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"timestamp":"2000-01-01T00:00:00Z","usage":0}],"metadata":{}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -82,10 +128,17 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				err:               backendtypes.ErrInvalidPageToken,
 				data:              nil,
 			},
+			expectedCallCount: 1,
+			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listChromiumDailyUsageStats-{"feature_id":"feature1","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":""}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
-			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/features/feature1/stats/usage/chromium/daily_stats?"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
