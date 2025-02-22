@@ -19,6 +19,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -53,9 +54,45 @@ func TestGetFeatureMetadata(t *testing.T) {
 				},
 				err: nil,
 			},
+			request: httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeatureMetadata-{"feature_id":"key1"}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `getFeatureMetadata-{"feature_id":"key1"}`,
+					Value: []byte(
+						`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
+					),
+				},
+			},
+			expectedResponse: testJSONResponse(200,
+				`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
+			),
+		},
+		{
+			name:            "success (cached)",
+			mockGetIDConfig: nil,
+			mockGetMetadataConfig: MockGetFeatureMetadataConfig{
+				expectedFeatureID: "id1",
+				result:            nil,
+				err:               nil,
+			},
+			request: httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `getFeatureMetadata-{"feature_id":"key1"}`,
+					Value: []byte(
+						`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			request:            httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
 			expectedResponse: testJSONResponse(200,
 				`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
 			),
@@ -77,8 +114,8 @@ func TestGetFeatureMetadata(t *testing.T) {
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer,
 				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			// TODO: Start tracking call count and assert call count. Then we can use assertMocksExpectations
 			mockCacher.AssertExpectations()
+			// TODO: Start tracking call count and assert call count.
 		})
 	}
 }
