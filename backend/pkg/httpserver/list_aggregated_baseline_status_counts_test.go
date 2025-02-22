@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -59,9 +60,58 @@ func TestListAggregatedBaselineStatusCounts(t *testing.T) {
 					},
 				},
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"count":10,
+			"timestamp":"2000-01-10T00:00:00Z"
+		},
+		{
+			"count":9,
+			"timestamp":"2000-01-09T00:00:00Z"
+		}
+	],
+	"metadata":{
+
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/baseline_status/low_date_feature_counts?"+
+					"startAt=2000-01-01&endAt=2000-01-10", nil),
+		},
+		{
+			name:       "Success Case - no optional params - use defaults - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -107,9 +157,61 @@ func TestListAggregatedBaselineStatusCounts(t *testing.T) {
 				},
 				pageToken: nextPageToken,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10",` +
+						`"page_token":"input-token","page_size":50}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10",` +
+						`"page_token":"input-token","page_size":50}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
+							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{"next_page_token":"next-page-token"}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"count":10,
+			"timestamp":"2000-01-10T00:00:00Z"
+		},
+		{
+			"count":9,
+			"timestamp":"2000-01-09T00:00:00Z"
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token"
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/baseline_status/low_date_feature_counts?"+
+					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
+		},
+		{
+			name:       "Success Case - include optional params - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10",` +
+						`"page_token":"input-token","page_size":50}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
+							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{"next_page_token":"next-page-token"}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -141,9 +243,15 @@ func TestListAggregatedBaselineStatusCounts(t *testing.T) {
 				pageToken:         nil,
 				err:               errTest,
 			},
+			expectedCallCount: 1,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(
 				500, `{"code":500,"message":"unable to get missing one implementation metrics"}`),
 			request: httptest.NewRequest(http.MethodGet,
@@ -161,9 +269,16 @@ func TestListAggregatedBaselineStatusCounts(t *testing.T) {
 				pageToken:         nil,
 				err:               backendtypes.ErrInvalidPageToken,
 			},
+			expectedCallCount: 1,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listAggregatedBaselineStatusCounts-{"Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":""}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/baseline_status/low_date_feature_counts?"+

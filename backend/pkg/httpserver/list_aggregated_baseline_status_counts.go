@@ -28,6 +28,11 @@ import (
 func (s *Server) ListAggregatedBaselineStatusCounts(
 	ctx context.Context, request backend.ListAggregatedBaselineStatusCountsRequestObject) (
 	backend.ListAggregatedBaselineStatusCountsResponseObject, error) {
+	var cachedResponse backend.ListAggregatedBaselineStatusCounts200JSONResponse
+	found := s.operationResponseCaches.listAggregatedBaselineStatusCountsCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
 	page, err := s.wptMetricsStorer.ListBaselineStatusCounts(
 		ctx,
 		request.Params.StartAt.Time,
@@ -53,5 +58,8 @@ func (s *Server) ListAggregatedBaselineStatusCounts(
 		}, nil
 	}
 
-	return backend.ListAggregatedBaselineStatusCounts200JSONResponse(*page), nil
+	resp := backend.ListAggregatedBaselineStatusCounts200JSONResponse(*page)
+	s.operationResponseCaches.listAggregatedBaselineStatusCountsCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }
