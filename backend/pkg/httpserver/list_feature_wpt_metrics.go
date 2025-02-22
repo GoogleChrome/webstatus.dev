@@ -29,6 +29,11 @@ func (s *Server) ListFeatureWPTMetrics(
 	ctx context.Context,
 	request backend.ListFeatureWPTMetricsRequestObject,
 ) (backend.ListFeatureWPTMetricsResponseObject, error) {
+	var cachedResponse backend.ListFeatureWPTMetrics200JSONResponse
+	found := s.operationResponseCaches.listFeatureWPTMetricsCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
 	// TODO. Check if the feature exists and return a 404 if it does not.
 	metrics, nextPageToken, err := s.wptMetricsStorer.ListMetricsForFeatureIDBrowserAndChannel(
 		ctx,
@@ -59,10 +64,13 @@ func (s *Server) ListFeatureWPTMetrics(
 		}, nil
 	}
 
-	return backend.ListFeatureWPTMetrics200JSONResponse{
+	resp := backend.ListFeatureWPTMetrics200JSONResponse{
 		Data: metrics,
 		Metadata: &backend.PageMetadata{
 			NextPageToken: nextPageToken,
 		},
-	}, nil
+	}
+	s.operationResponseCaches.listFeatureWPTMetricsCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }
