@@ -31,6 +31,11 @@ func (s *Server) GetFeature(
 	ctx context.Context,
 	request backend.GetFeatureRequestObject,
 ) (backend.GetFeatureResponseObject, error) {
+	var cachedResponse backend.GetFeature200JSONResponse
+	found := s.operationResponseCaches.getFeatureCache.Lookup(ctx, request, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
 	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
 		getWPTMetricViewOrDefault(request.Params.WptMetricView),
 		defaultBrowsers(),
@@ -51,5 +56,8 @@ func (s *Server) GetFeature(
 		}, nil
 	}
 
-	return backend.GetFeature200JSONResponse(*feature), nil
+	resp := backend.GetFeature200JSONResponse(*feature)
+	s.operationResponseCaches.getFeatureCache.AttemptCache(ctx, request, &resp)
+
+	return resp, nil
 }
