@@ -32,6 +32,12 @@ func (s *Server) ListFeatures(
 	ctx context.Context,
 	req backend.ListFeaturesRequestObject,
 ) (backend.ListFeaturesResponseObject, error) {
+	var cachedResponse backend.ListFeatures200JSONResponse
+	found := s.operationResponseCaches.listFeaturesCache.Lookup(ctx, req, &cachedResponse)
+	if found {
+		return cachedResponse, nil
+	}
+
 	var node *searchtypes.SearchNode
 	if req.Params.Q != nil {
 		// Try to decode the url.
@@ -84,10 +90,13 @@ func (s *Server) ListFeatures(
 		}, nil
 	}
 
-	return backend.ListFeatures200JSONResponse{
+	resp := backend.ListFeatures200JSONResponse{
 		Metadata: featurePage.Metadata,
 		Data:     featurePage.Data,
-	}, nil
+	}
+	s.operationResponseCaches.listFeaturesCache.AttemptCache(ctx, req, &resp)
+
+	return resp, nil
 }
 
 func getWPTMetricViewOrDefault(in *backend.WPTMetricView) backend.WPTMetricView {
