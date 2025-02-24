@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -61,9 +62,62 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 					},
 				},
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"count":10,
+			"timestamp":"2000-01-10T00:00:00Z"
+		},
+		{
+			"count":9,
+			"timestamp":"2000-01-09T00:00:00Z"
+		}
+	],
+	"metadata":{
+
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10", nil),
+		},
+		{
+			name:       "Success Case - no optional params - use defaults - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -112,9 +166,67 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				},
 				pageToken: nextPageToken,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"input-token",` +
+						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"input-token",` +
+						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],` +
+							`"metadata":{"next_page_token":"next-page-token"}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"count":10,
+			"timestamp":"2000-01-10T00:00:00Z"
+		},
+		{
+			"count":9,
+			"timestamp":"2000-01-09T00:00:00Z"
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token"
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
+		},
+		{
+			name:       "Success Case - include optional params - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"input-token",` +
+						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+					Value: []byte(
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],` +
+							`"metadata":{"next_page_token":"next-page-token"}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -149,8 +261,15 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				pageToken:             nil,
 				err:                   errTest,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
 			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(
 				500, `{"code":500,"message":"unable to get missing one implementation metrics"}`),
@@ -172,8 +291,15 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 				pageToken:             nil,
 				err:                   backendtypes.ErrInvalidPageToken,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"","browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
