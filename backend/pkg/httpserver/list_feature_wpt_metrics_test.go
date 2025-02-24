@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -56,9 +57,59 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 					},
 				},
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
+							`"total_tests_count":2}],"metadata":{}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"run_timestamp":"2000-01-01T00:00:00Z",
+			"test_pass_count":2,
+			"total_tests_count":2
+		}
+	],
+	"metadata":{}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+					"?startAt=2000-01-01&endAt=2000-01-10", nil),
+		},
+		{
+			name:       "Success Case - no optional params - use defaults - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: []byte(
+						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
+							`"total_tests_count":2}],"metadata":{}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -96,9 +147,62 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				},
 				pageToken: nextPageToken,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
+					Value: []byte(
+						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
+							`"total_tests_count":2}],"metadata":{"next_page_token":"next-page-token"}}`,
+					),
+				},
+			},
+			expectedCallCount: 1,
+			expectedResponse: testJSONResponse(200, `
+{
+	"data":[
+		{
+			"run_timestamp":"2000-01-01T00:00:00Z",
+			"test_pass_count":2,
+			"total_tests_count":2
+		}
+	],
+	"metadata":{
+		"next_page_token":"next-page-token"
+	}
+}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+					"?startAt=2000-01-01&endAt=2000-01-10&"+
+					"page_size=50&page_token="+*inputPageToken, nil),
+		},
+		{
+			name:       "Success Case - include optional params - cached",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
+					Value: []byte(
+						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
+							`"total_tests_count":2}],"metadata":{"next_page_token":"next-page-token"}}`,
+					),
+					Err: nil,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
-			expectedCallCount:  1,
+			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -132,8 +236,16 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedPageSize:  100,
 				err:               errTest,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(500, `{"code":500,"message":"unable to get feature metrics"}`),
 			request: httptest.NewRequest(http.MethodGet,
@@ -155,8 +267,16 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedPageSize:  100,
 				err:               backendtypes.ErrInvalidPageToken,
 			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
+						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10","page_token":""}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
 			expectedCacheCalls: nil,
-			expectedGetCalls:   nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
