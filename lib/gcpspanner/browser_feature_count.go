@@ -192,11 +192,11 @@ SELECT
     BrowserReleases.ReleaseDate AS ReleaseDate,
     COUNT(DISTINCT CASE WHEN bfa.WebFeatureID IS NOT NULL %s THEN bfa.WebFeatureID ELSE NULL END) AS FeatureCount
 FROM BrowserFeatureAvailabilities bfa
-JOIN BrowserReleases
+RIGHT JOIN BrowserReleases
 ON bfa.BrowserName = BrowserReleases.BrowserName
 AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
 WHERE
-    bfa.BrowserName = @browserName
+    BrowserReleases.BrowserName = @browserName
     AND BrowserReleases.ReleaseDate >= @startAt
     AND BrowserReleases.ReleaseDate < @endAt
 	%s

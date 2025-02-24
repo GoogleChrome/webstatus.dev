@@ -44,6 +44,7 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		// barBrowser Releases
 		{BrowserName: "barBrowser", BrowserVersion: "80", ReleaseDate: time.Date(2023, 11, 15, 0, 0, 0, 0, time.UTC)},
 		{BrowserName: "barBrowser", BrowserVersion: "81", ReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: "barBrowser", BrowserVersion: "82", ReleaseDate: time.Date(2024, 2, 20, 0, 0, 0, 0, time.UTC)},
 	}
 	for _, release := range browserReleases {
 		err := client.InsertBrowserRelease(ctx, release)
@@ -95,106 +96,157 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 
 	loadDataForListBrowserFeatureCountMetric(ctx, t, spannerClient)
 
-	// Test 1a. First Page
-	browser := "fooBrowser"
-	startAt := time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC)
-	endAt := time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
-	pageSize := 2
-
-	result, err := spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, nil)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	expectedResult := &BrowserFeatureCountResultPage{
-		NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 3)),
-		Metrics: []BrowserFeatureCountMetric{
-			{
-				ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-				FeatureCount: 2,
+	// TODO Currently we are not clearing the tables between test cases.
+	// We should change this in the future. Be careful.
+	// In the meantime, be careful with the order of the test cases.
+	testCases := []struct {
+		testName                    string
+		browser                     string
+		startAt                     time.Time
+		endAt                       time.Time
+		pageSize                    int
+		excludedFeatureKeysToInsert []string
+		inputCursor                 *string
+		expectedResult              *BrowserFeatureCountResultPage
+	}{
+		{
+			testName:                    "Test 1a. First Page",
+			browser:                     "fooBrowser",
+			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert: nil,
+			pageSize:                    2,
+			inputCursor:                 nil,
+			expectedResult: &BrowserFeatureCountResultPage{
+				NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(
+					time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 2)),
+				Metrics: []BrowserFeatureCountMetric{
+					{
+						ReleaseDate:  time.Date(2023, 12, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 0,
+					},
+					{
+						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 2,
+					},
+				},
 			},
-			{
-				ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-				FeatureCount: 3,
+		},
+		{
+			testName:                    "Test 1b. Second Page",
+			browser:                     "fooBrowser",
+			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert: nil,
+			pageSize:                    3,
+			inputCursor: valuePtr(encodeBrowserFeatureCountCursor(
+				time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 2)),
+			expectedResult: &BrowserFeatureCountResultPage{
+				NextPageToken: nil,
+				Metrics: []BrowserFeatureCountMetric{
+					{
+						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 3,
+					},
+				},
+			},
+		},
+		{
+			testName:                    "Test 2. Get the point but still count all the features beforehand.",
+			browser:                     "fooBrowser",
+			startAt:                     time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert: nil,
+			pageSize:                    100,
+			inputCursor:                 nil,
+			expectedResult: &BrowserFeatureCountResultPage{
+				NextPageToken: nil,
+				Metrics: []BrowserFeatureCountMetric{
+					{
+						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 3,
+					},
+				},
+			},
+		},
+		// Ensure that the `ListBrowserFeatureCountMetric` query correctly handles a scenario where a browser
+		// (`barBrowser` in this case) *has* releases within the specified date range but *does not have any new*
+		// `BrowserFeatureAvailabilities` entries for those releases within that range.
+		{
+			testName:                    "Test 3. No availabilities for one browser.",
+			browser:                     "barBrowser",
+			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert: nil,
+			pageSize:                    3,
+			inputCursor:                 nil,
+			expectedResult: &BrowserFeatureCountResultPage{
+				NextPageToken: nil,
+				Metrics: []BrowserFeatureCountMetric{
+					{
+						ReleaseDate:  time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 2,
+					},
+					// No increase
+					{
+						ReleaseDate:  time.Date(2024, 2, 20, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 2,
+					},
+				},
+			},
+		},
+		{
+			testName:                    "Test 4. With Excluded Features",
+			browser:                     "fooBrowser",
+			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			pageSize:                    3,
+			inputCursor:                 nil,
+			excludedFeatureKeysToInsert: []string{"FeatureY", "FeatureZ"},
+			expectedResult: &BrowserFeatureCountResultPage{
+				NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(
+					time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 1)),
+				Metrics: []BrowserFeatureCountMetric{
+					{
+						ReleaseDate:  time.Date(2023, 12, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 0,
+					},
+					{
+						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 1, // FeatureY excluded
+					},
+					{
+						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 1, // FeatureY and FeatureZ excluded
+					},
+				},
 			},
 		},
 	}
 
-	if !reflect.DeepEqual(expectedResult, result) {
-		t.Errorf("unexpected result.\nExpected %+v\nReceived %+v", expectedResult, result)
-	}
+	for _, tc := range testCases {
+		t.Run(tc.testName, func(t *testing.T) {
+			var result *BrowserFeatureCountResultPage
+			var err error
 
-	// Test 1b. Second Page
-	result, err = spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, result.NextPageToken)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	expectedResult = &BrowserFeatureCountResultPage{
-		NextPageToken: nil,
-		Metrics:       nil,
-	}
+			// Insert excluded feature keys into the ExcludedFeatureKeys table
+			for _, featureKey := range tc.excludedFeatureKeysToInsert {
+				if err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey); err != nil {
+					t.Fatalf("Failed to insert excluded feature key: %v", err)
+				}
+			}
 
-	if !reflect.DeepEqual(expectedResult, result) {
-		t.Errorf("unexpected result.\nExpected %+v\nReceived %+v", expectedResult, result)
-	}
+			result, err = spannerClient.ListBrowserFeatureCountMetric(
+				ctx, tc.browser, tc.startAt, tc.endAt, tc.pageSize, tc.inputCursor)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
 
-	// Test 2. Let's try to get the last one and it should get one point but still count all the features beforehand.
-	startAt = time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)
-	endAt = time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
+			if !reflect.DeepEqual(tc.expectedResult, result) {
+				t.Errorf("unexpected result.\nExpected %+v\nReceived %+v", tc.expectedResult, result)
+			}
 
-	result, err = spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, 100, nil)
-	if err != nil {
-		t.Errorf("Unexpected error: %v", err)
-	}
-	expectedResult = &BrowserFeatureCountResultPage{
-		NextPageToken: nil,
-		Metrics: []BrowserFeatureCountMetric{
-			{
-				ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-				FeatureCount: 3,
-			},
-		},
-	}
-
-	if !reflect.DeepEqual(expectedResult, result) {
-		t.Errorf("unexpected result.\nExpected %+v\nReceived %+v", expectedResult, result)
-	}
-
-	// Test 3. With Excluded Features
-	excludedFeatureKeys := []string{"FeatureY", "FeatureZ"} // Features to exclude
-
-	// Insert excluded feature keys into the ExcludedFeatureKeys table
-	for _, featureKey := range excludedFeatureKeys {
-		err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey)
-		if err != nil {
-			t.Fatalf("Failed to insert excluded feature key: %v", err)
-		}
-	}
-
-	startAt = time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC)
-	endAt = time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC)
-	pageSize = 2
-
-	result, err = spannerClient.ListBrowserFeatureCountMetric(ctx, browser, startAt, endAt, pageSize, nil)
-	if err != nil {
-		t.Fatalf("Unexpected error with exclusions: %v", err)
-	}
-
-	expectedResult = &BrowserFeatureCountResultPage{
-		NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 1)),
-		Metrics: []BrowserFeatureCountMetric{
-			{
-				ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-				FeatureCount: 1, // FeatureY excluded
-			},
-			{
-				ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-				FeatureCount: 1, // FeatureY and FeatureZ excluded
-			},
-		},
-	}
-
-	if !reflect.DeepEqual(expectedResult, result) {
-		t.Errorf("unexpected result with exclusions.\nExpected %+v\nReceived %+v", expectedResult, result)
+		})
 	}
 
 }
