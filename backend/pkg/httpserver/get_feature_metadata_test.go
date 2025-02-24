@@ -25,14 +25,16 @@ import (
 func TestGetFeatureMetadata(t *testing.T) {
 	testCases := []struct {
 		name                  string
-		mockGetIDConfig       MockGetIDFromFeatureKeyConfig
+		mockGetIDConfig       *MockGetIDFromFeatureKeyConfig
 		mockGetMetadataConfig MockGetFeatureMetadataConfig
+		expectedCacheCalls    []*ExpectedCacheCall
+		expectedGetCalls      []*ExpectedGetCall
 		request               *http.Request
 		expectedResponse      *http.Response
 	}{
 		{
 			name: "success",
-			mockGetIDConfig: MockGetIDFromFeatureKeyConfig{
+			mockGetIDConfig: &MockGetIDFromFeatureKeyConfig{
 				expectedFeatureKey: "key1",
 				result:             valuePtr("id1"),
 				err:                nil,
@@ -51,7 +53,9 @@ func TestGetFeatureMetadata(t *testing.T) {
 				},
 				err: nil,
 			},
-			request: httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			request:            httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
 			expectedResponse: testJSONResponse(200,
 				`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
 			),
@@ -69,9 +73,12 @@ func TestGetFeatureMetadata(t *testing.T) {
 				mockGetFeatureMetadataCfg: tc.mockGetMetadataConfig,
 				t:                         t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			// TODO: Start tracking call count and assert call count.
+			// TODO: Start tracking call count and assert call count. Then we can use assertMocksExpectations
+			mockCacher.AssertExpectations()
 		})
 	}
 }

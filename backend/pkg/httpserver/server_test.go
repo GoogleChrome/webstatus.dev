@@ -155,15 +155,15 @@ type MockListBaselineStatusCountsConfig struct {
 }
 
 type MockWPTMetricsStorer struct {
-	featureCfg                                        MockListMetricsForFeatureIDBrowserAndChannelConfig
-	aggregateCfg                                      MockListMetricsOverTimeWithAggregatedTotalsConfig
-	featuresSearchCfg                                 MockFeaturesSearchConfig
-	listBrowserFeatureCountMetricCfg                  MockListBrowserFeatureCountMetricConfig
-	listMissingOneImplCountCfg                        MockListMissingOneImplCountsConfig
-	listBaselineStatusCountsCfg                       MockListBaselineStatusCountsConfig
-	listChromiumDailyUsageStatsCfg                    MockListChromiumDailyUsageStatsConfig
-	getFeatureByIDConfig                              MockGetFeatureByIDConfig
-	getIDFromFeatureKeyConfig                         MockGetIDFromFeatureKeyConfig
+	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
+	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
+	featuresSearchCfg                                 *MockFeaturesSearchConfig
+	listBrowserFeatureCountMetricCfg                  *MockListBrowserFeatureCountMetricConfig
+	listMissingOneImplCountCfg                        *MockListMissingOneImplCountsConfig
+	listBaselineStatusCountsCfg                       *MockListBaselineStatusCountsConfig
+	listChromiumDailyUsageStatsCfg                    *MockListChromiumDailyUsageStatsConfig
+	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
+	getIDFromFeatureKeyConfig                         *MockGetIDFromFeatureKeyConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListBaselineStatusCounts                 int
@@ -475,11 +475,13 @@ func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
 	}
 }
 
-func assertMockCallCount(t *testing.T, expectedCallCount, actualCallCount int, methodName string) {
+func assertMocksExpectations(t *testing.T, expectedCallCount, actualCallCount int, methodName string,
+	mockCacher *MockRawBytesDataCacher) {
 	if expectedCallCount != actualCallCount {
 		t.Errorf("expected %s to be called %d times. it was called %d times",
 			methodName, expectedCallCount, actualCallCount)
 	}
+	mockCacher.AssertExpectations()
 }
 
 func assertTestServerRequest(t *testing.T, srv *Server, req *http.Request, expectedResponse *http.Response) {

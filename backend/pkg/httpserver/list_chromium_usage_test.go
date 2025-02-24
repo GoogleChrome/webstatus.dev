@@ -26,15 +26,17 @@ import (
 
 func TestListChromiumDailyUsageStats(t *testing.T) {
 	testCases := []struct {
-		name              string
-		mockConfig        MockListChromiumDailyUsageStatsConfig
-		expectedCallCount int // For the mock method
-		request           *http.Request
-		expectedResponse  *http.Response
+		name               string
+		mockConfig         *MockListChromiumDailyUsageStatsConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
-			mockConfig: MockListChromiumDailyUsageStatsConfig{
+			mockConfig: &MockListChromiumDailyUsageStatsConfig{
 				expectedFeatureID: "feature1",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -50,7 +52,9 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 					},
 				},
 			},
-			expectedCallCount: 1,
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -68,7 +72,7 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 		},
 		{
 			name: "400 case - invalid page token",
-			mockConfig: MockListChromiumDailyUsageStatsConfig{
+			mockConfig: &MockListChromiumDailyUsageStatsConfig{
 				expectedFeatureID: "feature1",
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -78,8 +82,10 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				err:               backendtypes.ErrInvalidPageToken,
 				data:              nil,
 			},
-			expectedCallCount: 1,
-			expectedResponse:  testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			expectedCacheCalls: nil,
+			expectedGetCalls:   nil,
+			expectedCallCount:  1,
+			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/features/feature1/stats/usage/chromium/daily_stats?"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
@@ -92,10 +98,12 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 				listChromiumDailyUsageStatsCfg: tc.mockConfig,
 				t:                              t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
+			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
-			assertMockCallCount(t, tc.expectedCallCount, mockStorer.callCountListChromiumDailyUsageStats,
-				"ListChromiumDailyUsageStats")
+			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListChromiumDailyUsageStats,
+				"ListChromiumDailyUsageStats", mockCacher)
 		})
 	}
 }
