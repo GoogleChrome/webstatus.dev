@@ -32,6 +32,8 @@ type WebFeatureSpannerClient interface {
 		featureID string,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
 	UpsertFeatureSpec(ctx context.Context, webFeatureID string, input gcpspanner.FeatureSpec) error
+	UpsertFeatureDiscouragedDetails(ctx context.Context, featureID string,
+		in gcpspanner.FeatureDiscouragedDetails) error
 	PrecalculateBrowserFeatureSupportEvents(ctx context.Context, startAt, endAt time.Time) error
 }
 
@@ -95,6 +97,21 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		err = consumeFeatureSpecInformation(ctx, c.client, featureID, featureData)
 		if err != nil {
 			return nil, err
+		}
+
+		if featureData.Discouraged != nil {
+			err = c.client.UpsertFeatureDiscouragedDetails(ctx, featureID, gcpspanner.FeatureDiscouragedDetails{
+				AccordingTo:  featureData.Discouraged.AccordingTo,
+				Alternatives: featureData.Discouraged.Alternatives,
+			})
+			if err != nil {
+				slog.ErrorContext(ctx, "unable to insert Discouraged Details",
+					"discoruagedDetails", featureData.Discouraged,
+					"featureID", featureID,
+				)
+
+				return nil, err
+			}
 		}
 
 		ret[featureID] = *id
