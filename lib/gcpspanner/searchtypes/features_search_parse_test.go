@@ -1018,6 +1018,78 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: `intl.segmenter`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "intl.segmenter",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `"intl.segmenter"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "intl.segmenter",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:"intl.segmenter"`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "intl.segmenter",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: `name:intl.segmenter`,
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierName,
+							Value:      "intl.segmenter",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "baseline_date:2000-01-01..2000-12-31",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,
