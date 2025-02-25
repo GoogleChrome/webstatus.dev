@@ -270,8 +270,8 @@ func (c *Client) ListMissingOneImplCounts(
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
 
-	// Get excluded feature IDs
-	excludedFeatureIDs, err := c.getFeatureIDsForEachExcludedFeatureKey(ctx, txn)
+	// Get ignored feature IDs
+	ignoredFeatureIDs, err := c.getIgnoredFeatureIDsForStats(ctx, txn)
 	if err != nil {
 		return nil, err
 	}
@@ -283,7 +283,7 @@ func (c *Client) ListMissingOneImplCounts(
 		startAt,
 		endAt,
 		pageSize,
-		excludedFeatureIDs,
+		ignoredFeatureIDs,
 		c.missingOneImplQuery,
 	)
 

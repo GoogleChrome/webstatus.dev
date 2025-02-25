@@ -100,23 +100,25 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 	// We should change this in the future. Be careful.
 	// In the meantime, be careful with the order of the test cases.
 	testCases := []struct {
-		testName                    string
-		browser                     string
-		startAt                     time.Time
-		endAt                       time.Time
-		pageSize                    int
-		excludedFeatureKeysToInsert []string
-		inputCursor                 *string
-		expectedResult              *BrowserFeatureCountResultPage
+		testName                       string
+		browser                        string
+		startAt                        time.Time
+		endAt                          time.Time
+		pageSize                       int
+		excludedFeatureKeysToInsert    []string
+		discouragedFeatureKeysToInsert []string
+		inputCursor                    *string
+		expectedResult                 *BrowserFeatureCountResultPage
 	}{
 		{
-			testName:                    "Test 1a. First Page",
-			browser:                     "fooBrowser",
-			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
-			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
-			excludedFeatureKeysToInsert: nil,
-			pageSize:                    2,
-			inputCursor:                 nil,
+			testName:                       "Test 1a. First Page",
+			browser:                        "fooBrowser",
+			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert:    nil,
+			discouragedFeatureKeysToInsert: nil,
+			pageSize:                       2,
+			inputCursor:                    nil,
 			expectedResult: &BrowserFeatureCountResultPage{
 				NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(
 					time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 2)),
@@ -133,12 +135,13 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			},
 		},
 		{
-			testName:                    "Test 1b. Second Page",
-			browser:                     "fooBrowser",
-			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
-			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
-			excludedFeatureKeysToInsert: nil,
-			pageSize:                    3,
+			testName:                       "Test 1b. Second Page",
+			browser:                        "fooBrowser",
+			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert:    nil,
+			discouragedFeatureKeysToInsert: nil,
+			pageSize:                       3,
 			inputCursor: valuePtr(encodeBrowserFeatureCountCursor(
 				time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 2)),
 			expectedResult: &BrowserFeatureCountResultPage{
@@ -152,13 +155,14 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			},
 		},
 		{
-			testName:                    "Test 2. Get the point but still count all the features beforehand.",
-			browser:                     "fooBrowser",
-			startAt:                     time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
-			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
-			excludedFeatureKeysToInsert: nil,
-			pageSize:                    100,
-			inputCursor:                 nil,
+			testName:                       "Test 2. Get the point but still count all the features beforehand.",
+			browser:                        "fooBrowser",
+			startAt:                        time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert:    nil,
+			discouragedFeatureKeysToInsert: nil,
+			pageSize:                       100,
+			inputCursor:                    nil,
 			expectedResult: &BrowserFeatureCountResultPage{
 				NextPageToken: nil,
 				Metrics: []BrowserFeatureCountMetric{
@@ -173,13 +177,14 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		// (`barBrowser` in this case) *has* releases within the specified date range but *does not have any new*
 		// `BrowserFeatureAvailabilities` entries for those releases within that range.
 		{
-			testName:                    "Test 3. No availabilities for one browser.",
-			browser:                     "barBrowser",
-			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
-			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
-			excludedFeatureKeysToInsert: nil,
-			pageSize:                    3,
-			inputCursor:                 nil,
+			testName:                       "Test 3. No availabilities for one browser.",
+			browser:                        "barBrowser",
+			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
+			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
+			excludedFeatureKeysToInsert:    nil,
+			discouragedFeatureKeysToInsert: nil,
+			pageSize:                       3,
+			inputCursor:                    nil,
 			expectedResult: &BrowserFeatureCountResultPage{
 				NextPageToken: nil,
 				Metrics: []BrowserFeatureCountMetric{
@@ -203,6 +208,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			pageSize:                    3,
 			inputCursor:                 nil,
 			excludedFeatureKeysToInsert: []string{"FeatureY", "FeatureZ"},
+			// Have overlap between excludedFeatureKeysToInsert and discouragedFeatureKeysToInsert
+			discouragedFeatureKeysToInsert: []string{"FeatureZ"},
 			expectedResult: &BrowserFeatureCountResultPage{
 				NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(
 					time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 1)),
@@ -213,11 +220,11 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 					},
 					{
 						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 1, // FeatureY excluded
+						FeatureCount: 1, // FeatureY excluded / discouraged
 					},
 					{
 						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 1, // FeatureY and FeatureZ excluded
+						FeatureCount: 1, // FeatureY and FeatureZ excluded / discouraged
 					},
 				},
 			},
@@ -233,6 +240,17 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			for _, featureKey := range tc.excludedFeatureKeysToInsert {
 				if err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey); err != nil {
 					t.Fatalf("Failed to insert excluded feature key: %v", err)
+				}
+			}
+
+			// Insert discouraged feature keys into the FeatureDiscouragedDetails table
+			for _, featureKey := range tc.discouragedFeatureKeysToInsert {
+				if err := spannerClient.UpsertFeatureDiscouragedDetails(
+					ctx, featureKey, FeatureDiscouragedDetails{
+						AccordingTo:  nil,
+						Alternatives: nil,
+					}); err != nil {
+					t.Fatalf("Failed to insert feature discouraged details: %v", err)
 				}
 			}
 

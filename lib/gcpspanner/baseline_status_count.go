@@ -96,21 +96,21 @@ func (c *Client) ListBaselineStatusCounts(
 		return nil, errors.Join(ErrInternalQueryFailure, fmt.Errorf("invalid BaselineDateType: %s", dateType))
 	}
 
-	// 2. Get excluded feature IDs
-	excludedFeatureIDs, err := c.getFeatureIDsForEachExcludedFeatureKey(ctx, txn)
+	// 2. Get ignored feature IDs
+	ignoredFeatureIDs, err := c.getIgnoredFeatureIDsForStats(ctx, txn)
 	if err != nil {
 		return nil, err
 	}
 
 	// 3. Calculate initial cumulative count
 	cumulativeCount, err := c.getInitialBaselineStatusCount(
-		ctx, txn, parsedToken, startAt, excludedFeatureIDs, dateType)
+		ctx, txn, parsedToken, startAt, ignoredFeatureIDs, dateType)
 	if err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
 	// 4. Process results and update cumulative count
-	stmt := createListBaselineStatusCountsStatement(dateType, startAt, endAt, pageSize, parsedToken, excludedFeatureIDs)
+	stmt := createListBaselineStatusCountsStatement(dateType, startAt, endAt, pageSize, parsedToken, ignoredFeatureIDs)
 
 	iter := txn.Query(ctx, stmt)
 	defer iter.Stop()

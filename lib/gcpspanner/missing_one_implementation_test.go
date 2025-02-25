@@ -664,13 +664,25 @@ func testMissingOneImplSuite(
 	})
 
 	//nolint:dupl // WONTFIX - False positive. The counts are different.
-	t.Run("with excluded features", func(t *testing.T) {
-		// Exclude Feature X and Feature Z
-		excludedFeatures := []string{"FeatureX", "FeatureZ"}
+	t.Run("with excluded/discouraged features", func(t *testing.T) {
+		// Exclude Feature X
+		excludedFeatures := []string{"FeatureX"}
 		for _, featureKey := range excludedFeatures {
 			err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey)
 			if err != nil {
 				t.Fatalf("Failed to insert excluded feature key: %v", err)
+			}
+		}
+
+		// Discourage FeatureZ
+		discouragedFeatures := []string{"FeatureZ"}
+		for _, featureKey := range discouragedFeatures {
+			err := spannerClient.UpsertFeatureDiscouragedDetails(ctx, featureKey, FeatureDiscouragedDetails{
+				AccordingTo:  nil,
+				Alternatives: nil,
+			})
+			if err != nil {
+				t.Fatalf("Failed to upsert feature discouraged details: %v", err)
 			}
 		}
 
@@ -683,9 +695,9 @@ func testMissingOneImplSuite(
 				Metrics: []MissingOneImplCount{
 					// fooBrowser 113 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY, FeatureW
-					// barBrowser after excluding FeatureX and FeatureZ: FeatureY, FeatureW
-					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY, FeatureW
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY, FeatureW
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
 					// Missing in on for bazBrowser: FeatureW
 					{
 						EventReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
@@ -693,9 +705,9 @@ func testMissingOneImplSuite(
 					},
 					// barBrowser 115 AND bazBrowser 17 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY
-					// barBrowser after excluding FeatureX and FeatureZ: FeatureY, FeatureW
-					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY, FeatureW
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
@@ -703,9 +715,9 @@ func testMissingOneImplSuite(
 					},
 					// barBrowser 114 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY
-					// barBrowser after excluding FeatureX and FeatureZ: FeatureY
-					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC),
@@ -713,9 +725,9 @@ func testMissingOneImplSuite(
 					},
 					// fooBrowser 112 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: FeatureY
-					// barBrowser after excluding FeatureX and FeatureZ: None
-					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
@@ -723,9 +735,9 @@ func testMissingOneImplSuite(
 					},
 					// bazBrowser 16.5 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: None
-					// barBrowser after excluding FeatureX and FeatureZ: None
-					// bazBrowser after excluding FeatureX and FeatureZ: FeatureY
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: FeatureY
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC),
@@ -733,9 +745,9 @@ func testMissingOneImplSuite(
 					},
 					// fooBrowser 111 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: None
-					// barBrowser after excluding FeatureX and FeatureZ: None
-					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: None
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
@@ -743,9 +755,9 @@ func testMissingOneImplSuite(
 					},
 					// bazBrowser 16.4 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: None
-					// barBrowser after excluding FeatureX and FeatureZ: None
-					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: None
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC),
@@ -753,9 +765,9 @@ func testMissingOneImplSuite(
 					},
 					// barBrowser 113 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: None
-					// barBrowser after excluding FeatureX and FeatureZ: None
-					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: None
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
@@ -763,9 +775,9 @@ func testMissingOneImplSuite(
 					},
 					// fooBrowser 110 release
 					// Currently supported features:
-					// fooBrowser after excluding FeatureX and FeatureZ: None
-					// barBrowser after excluding FeatureX and FeatureZ: None
-					// bazBrowser after excluding FeatureX and FeatureZ: None
+					// fooBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// barBrowser after excluding/discouraging FeatureX and FeatureZ: None
+					// bazBrowser after excluding/discouraging FeatureX and FeatureZ: None
 					// Missing in on for bazBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
@@ -773,7 +785,7 @@ func testMissingOneImplSuite(
 					},
 				},
 			}
-			// Assert with excluded features
+			// Assert with excluded/discouraged features
 			assertListMissingOneImplCounts(
 				ctx,
 				t,
@@ -787,10 +799,15 @@ func testMissingOneImplSuite(
 			)
 		})
 
-		// Clear the excluded features after the test
+		// Clear the excluded and discouraged features after the test
 		err := spannerClient.ClearExcludedFeatureKeys(ctx)
 		if err != nil {
 			t.Fatalf("Failed to clear excluded feature keys: %v", err)
+		}
+
+		err = spannerClient.ClearFeatureDiscouragedDetails(ctx)
+		if err != nil {
+			t.Fatalf("Failed to clear feature discouraged details: %v", err)
 		}
 	})
 }
