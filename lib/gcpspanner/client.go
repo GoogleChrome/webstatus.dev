@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -126,6 +127,45 @@ type searchConfig struct {
 const defaultMaxOwnedSearchesPerUser = 25
 const defaultBatchSize = 10000
 const defaultBatchWriters = 8
+
+func combineAndDeduplicate(excluded []string, discouraged []string) []string {
+	if excluded == nil && discouraged == nil {
+		return nil
+	}
+
+	if excluded == nil {
+		return discouraged
+	}
+
+	if discouraged == nil {
+		return excluded
+	}
+
+	totalLen := len(excluded) + len(discouraged)
+	combined := make([]string, 0, totalLen)
+
+	combined = append(combined, excluded...)
+	combined = append(combined, discouraged...)
+
+	slices.Sort(combined)
+	combined = slices.Compact(combined)
+
+	return combined
+}
+
+func (c *Client) getIgnoredFeatureIDsForStats(ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]string, error) {
+	excludedFeatureIDs, err := c.getFeatureIDsForEachExcludedFeatureKey(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+
+	discouragedFeatureIDs, err := c.getAllDiscouragedFeatureIDs(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+
+	return combineAndDeduplicate(excludedFeatureIDs, discouragedFeatureIDs), nil
+}
 
 // NewSpannerClient returns a Client for the Google Spanner service.
 func NewSpannerClient(projectID string, instanceID string, name string) (*Client, error) {

@@ -16,9 +16,11 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
 )
 
 const featureDiscouragedDetailsTable = "FeatureDiscouragedDetails"
@@ -85,4 +87,32 @@ func (c *Client) UpsertFeatureDiscouragedDetails(
 		WebFeatureID:              *id,
 		FeatureDiscouragedDetails: in,
 	})
+}
+
+func (c *Client) getAllDiscouragedFeatureIDs(ctx context.Context, txn *spanner.ReadOnlyTransaction) (
+	[]string, error) {
+	var featureIDs []string
+	stmt := spanner.NewStatement(`SELECT WebFeatureID FROM ` + featureDiscouragedDetailsTable)
+
+	iter := txn.Query(ctx, stmt)
+	defer iter.Stop()
+
+	for {
+		row, err := iter.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+
+		var featureID string
+		if err := row.Columns(&featureID); err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+
+		featureIDs = append(featureIDs, featureID)
+	}
+
+	return featureIDs, nil
 }

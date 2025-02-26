@@ -102,13 +102,19 @@ func TestListBaselineStatusCounts_ExcludedFeatures(t *testing.T) {
 	ctx := context.Background()
 	loadDataForListBaselineStatusCounts(ctx, t)
 
-	// Exclude "FeatureB" and "FeatureE"
-	excludedFeatures := []string{"FeatureB", "FeatureE"}
-	for _, featureKey := range excludedFeatures {
-		err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey)
-		if err != nil {
-			t.Fatalf("Failed to insert excluded feature key: %v", err)
-		}
+	// Exclude "FeatureB"
+	err := spannerClient.InsertExcludedFeatureKey(ctx, "FeatureB")
+	if err != nil {
+		t.Fatalf("Failed to insert excluded feature key: %v", err)
+	}
+
+	// Discourage FeatureE
+	err = spannerClient.UpsertFeatureDiscouragedDetails(ctx, "FeatureE", FeatureDiscouragedDetails{
+		AccordingTo:  nil,
+		Alternatives: nil,
+	})
+	if err != nil {
+		t.Fatalf("UpsertFeatureDiscouragedDetails failed: %v", err)
 	}
 
 	startAt := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)

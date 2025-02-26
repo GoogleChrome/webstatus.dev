@@ -54,13 +54,13 @@ func (c *Client) ListBrowserFeatureCountMetric(
 
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
-	// 1. Get excluded feature IDs
-	excludedFeatureIDs, err := c.getFeatureIDsForEachExcludedFeatureKey(ctx, txn)
+	// 1. Get ignored feature IDs
+	ignoredFeatureIDs, err := c.getIgnoredFeatureIDsForStats(ctx, txn)
 	if err != nil {
 		return nil, err
 	}
 	// 2. Calculate initial cumulative count
-	cumulativeCount, err := c.getInitialBrowserFeatureCount(ctx, txn, parsedToken, browser, startAt, excludedFeatureIDs)
+	cumulativeCount, err := c.getInitialBrowserFeatureCount(ctx, txn, parsedToken, browser, startAt, ignoredFeatureIDs)
 	if err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
@@ -72,7 +72,7 @@ func (c *Client) ListBrowserFeatureCountMetric(
 		endAt,
 		pageSize,
 		parsedToken,
-		excludedFeatureIDs,
+		ignoredFeatureIDs,
 	)
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
