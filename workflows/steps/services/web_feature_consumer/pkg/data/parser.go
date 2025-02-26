@@ -63,7 +63,7 @@ func postProcessFeatureValue(
 			Snapshot:        postProcessStringOrStringArray(value.Snapshot),
 			Spec:            postProcessStringOrStringArray(value.Spec),
 			Status:          postProcessStatus(value.Status),
-			Discouraged:     nil,
+			Discouraged:     value.Discouraged,
 		}
 	}
 }
