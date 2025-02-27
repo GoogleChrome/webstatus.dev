@@ -32,7 +32,7 @@ func TestParse(t *testing.T) {
 		path string
 	}{
 		{
-			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v1.0.0",
+			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v2.25.0",
 			path: path.Join("testdata", "data.json"),
 		},
 	}
@@ -133,8 +133,17 @@ func TestPostProcess(t *testing.T) {
 						CompatFeatures:  []string{"compat1", "compat2"},
 						Description:     "description",
 						DescriptionHTML: "description html",
-						Discouraged:     nil,
-						Name:            "feature 1 name",
+						Discouraged: &web_platform_dx__web_features.Discouraged{
+							AccordingTo: []string{
+								"discouraged1",
+								"discouraged2",
+							},
+							Alternatives: []string{
+								"feature2",
+								"feature3",
+							},
+						},
+						Name: "feature 1 name",
 						Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 							String: valuePtr("caniuse_data"),
 							StringArray: []string{
@@ -188,8 +197,17 @@ func TestPostProcess(t *testing.T) {
 				CompatFeatures:  []string{"compat1", "compat2"},
 				Description:     "description",
 				DescriptionHTML: "description html",
-				Discouraged:     nil,
-				Name:            "feature 1 name",
+				Discouraged: &web_platform_dx__web_features.Discouraged{
+					AccordingTo: []string{
+						"discouraged1",
+						"discouraged2",
+					},
+					Alternatives: []string{
+						"feature2",
+						"feature3",
+					},
+				},
+				Name: "feature 1 name",
 				Caniuse: &web_platform_dx__web_features.StringOrStringArray{
 					String: valuePtr("caniuse_data"),
 					StringArray: []string{
