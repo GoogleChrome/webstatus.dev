@@ -17,6 +17,7 @@
 import {
   CSSResultGroup,
   LitElement,
+  PropertyValueMap,
   TemplateResult,
   css,
   html,
@@ -115,12 +116,44 @@ export interface FetchFunctionConfig<T> {
  */
 export abstract class WebstatusLineChartPanel extends LitElement {
   /**
+   * The start date used to fetch data.
+   * Currently, we fetch more data so that the chart has more data.
+   * It is calculated by adding dataFetchStartDateOffsetMsec to startDate
+   * @property
+   * @type {Date}
+   */
+  dataFetchStartDate!: Date;
+
+  /**
+   * The number of milliseconds to offset the start date when fetching data.
+   * Implementers of the class can change this value as needed.
+   * By default, go back 1 month.
+   * @type {number}
+   */
+  dataFetchStartDateOffsetMsec: number = -1000 * 60 * 60 * 24 * 30;
+
+  /**
    * The start date for the data to be displayed in the chart.
    * @property
    * @type {Date}
    */
   @property({type: Object})
   startDate!: Date;
+
+  /**
+   * The end date used to fetch data.
+   * @property
+   * @type {Date}
+   */
+  dataFetchEndDate!: Date;
+
+  /**
+   * The number of milliseconds to offset the end date when fetching data.
+   * Implementers of the class can change this value as needed.
+   * By default, set to 0.
+   * @type {number}
+   */
+  dataFetchEndDateOffsetMsec: number = 0;
 
   /**
    * The end date for the data to be displayed in the chart.
@@ -209,6 +242,19 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   constructor() {
     super();
     this._task = this.createLoadingTask();
+  }
+
+  protected willUpdate(changedProperties: PropertyValueMap<this>) {
+    if (changedProperties.has('startDate')) {
+      this.dataFetchStartDate = new Date(
+        this.startDate.getTime() + this.dataFetchStartDateOffsetMsec,
+      );
+    }
+    if (changedProperties.has('endDate')) {
+      this.dataFetchEndDate = new Date(
+        this.endDate.getTime() + this.dataFetchEndDateOffsetMsec,
+      );
+    }
   }
 
   static get styles(): CSSResultGroup {

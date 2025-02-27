@@ -31,7 +31,11 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
   createLoadingTask(): Task {
     return new Task(this, {
       args: () =>
-        [this.startDate, this.endDate, this.featureId] as [Date, Date, string],
+        [this.dataFetchStartDate, this.dataFetchEndDate, this.featureId] as [
+          Date,
+          Date,
+          string,
+        ],
       task: async ([startDate, endDate, featureId]: [Date, Date, string]) => {
         if (
           featureId === undefined ||

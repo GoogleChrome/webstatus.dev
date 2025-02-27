@@ -58,7 +58,8 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () => [this.startDate, this.endDate] as [Date, Date],
+      args: () =>
+        [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
         await this._fetchAndAggregateData(
           this._createFetchFunctionConfigs(

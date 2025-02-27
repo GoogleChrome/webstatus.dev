@@ -60,6 +60,14 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     expect(header!.textContent).to.contain('Implementation progress');
   });
 
+  it('uses the correct dataFetchStartDate and dataFetchEndDate', async () => {
+    // Start date should use the default dataFetchStartDateOffsetMsec and dataFetchEndDateOffsetMsec
+    // Default dataFetchStartDateOffsetMsec is 30 days
+    // Default dataFetchEndDateOffsetMsec is 0 days
+    expect(el.dataFetchStartDate).to.deep.equal(new Date('2023-12-02'));
+    expect(el.dataFetchEndDate).to.deep.equal(new Date('2024-01-31'));
+  });
+
   it('calls _fetchAndAggregateData with correct configurations', async () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
