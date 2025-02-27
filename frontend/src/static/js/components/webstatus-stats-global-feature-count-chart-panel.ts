@@ -32,6 +32,10 @@ import {customElement, state} from 'lit/decorators.js';
 
 @customElement('webstatus-stats-global-feature-chart-panel')
 export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineChartPanel {
+  // Worst case there are 470 days between releases for Edge
+  // https://github.com/mdn/browser-compat-data/blob/92d6876b420b0e6e69eb61256ed04827c9889063/browsers/edge.json#L53-L66
+  // Set offset to -500 days.
+  override dataFetchStartDateOffsetMsec: number = -500 * 24 * 60 * 60 * 1000;
   getDisplayDataChartOptionsInput(): {
     seriesColors: string[];
     vAxisTitle: string;
@@ -68,7 +72,8 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () => [this.startDate, this.endDate] as [Date, Date],
+      args: () =>
+        [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
         await this._fetchAndAggregateData([
           ...this._createFetchFunctionConfigs(startDate, endDate),

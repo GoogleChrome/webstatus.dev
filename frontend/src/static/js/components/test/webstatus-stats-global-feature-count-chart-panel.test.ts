@@ -69,6 +69,14 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     expect(header!.textContent).to.contain('Global feature support');
   });
 
+  it('uses the correct dataFetchStartDate and dataFetchEndDate', async () => {
+    // Start date should use the overridden dataFetchStartDateOffsetMsec and default dataFetchEndDateOffsetMsec
+    // Default dataFetchStartDateOffsetMsec is 500 days
+    // Default dataFetchEndDateOffsetMsec is 0 days
+    expect(el.dataFetchStartDate).to.deep.equal(new Date('2022-08-19'));
+    expect(el.dataFetchEndDate).to.deep.equal(new Date('2024-01-31'));
+  });
+
   it('calls _fetchAndAggregateData with correct arguments', async () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
