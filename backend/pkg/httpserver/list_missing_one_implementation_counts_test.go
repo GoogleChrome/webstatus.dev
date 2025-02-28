@@ -78,6 +78,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
 							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
 					),
+					CacheCfg: getTestAggregatedCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -185,6 +186,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],` +
 							`"metadata":{"next_page_token":"next-page-token"}}`,
 					),
+					CacheCfg: getTestAggregatedCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -318,7 +320,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMissingOneImplCounts,
 				"ListMissingOneImplCounts", mockCacher)

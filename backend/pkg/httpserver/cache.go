@@ -29,8 +29,9 @@ import (
 // logical grouping and potential future deletion by prefix.  It also handles
 // JSON serialization/deserialization of keys and values.
 type operationResponseCache[Key any, Response any] struct {
-	cacher      RawBytesDataCacher
-	operationID string
+	cacher               RawBytesDataCacher
+	operationID          string
+	overrideCacheOptions []cachetypes.CacheOption
 }
 
 func (c operationResponseCache[Key, Response]) key(key []byte) string {
@@ -67,7 +68,7 @@ func (c operationResponseCache[Key, Response]) AttemptCache(ctx context.Context,
 		return
 	}
 
-	err = c.cacher.Cache(ctx, c.key(jsonBytesKey), jsonBytesValue)
+	err = c.cacher.Cache(ctx, c.key(jsonBytesKey), jsonBytesValue, c.overrideCacheOptions...)
 	if err != nil {
 		slog.ErrorContext(ctx, "encountered unexpected error when caching",
 			"error", err, "key", key, "operation", c.operationID)
@@ -156,51 +157,55 @@ type operationResponseCaches struct {
 // operationResponseCache instance within the operationResponseCaches struct.
 // While each cache instance uses the same underlying RawBytesDataCacher for storage,
 // they operate independently and are specialized for their respective API operations.
-func initOperationResponseCaches(dataCacher RawBytesDataCacher) *operationResponseCaches {
+func initOperationResponseCaches(dataCacher RawBytesDataCacher,
+	routeCacheOptions RouteCacheOptions) *operationResponseCaches {
 	return &operationResponseCaches{
 		getFeatureCache: operationResponseCache[
 			backend.GetFeatureRequestObject,
 			backend.GetFeature200JSONResponse,
-		]{cacher: dataCacher, operationID: "getFeature"},
+		]{cacher: dataCacher, operationID: "getFeature", overrideCacheOptions: nil},
 
 		listFeaturesCache: operationResponseCache[
 			backend.ListFeaturesRequestObject,
 			backend.ListFeatures200JSONResponse,
-		]{cacher: dataCacher, operationID: "listFeatures"},
+		]{cacher: dataCacher, operationID: "listFeatures", overrideCacheOptions: nil},
 
 		getFeatureMetadataCache: operationResponseCache[
 			backend.GetFeatureMetadataRequestObject,
 			backend.GetFeatureMetadata200JSONResponse,
-		]{cacher: dataCacher, operationID: "getFeatureMetadata"},
+		]{cacher: dataCacher, operationID: "getFeatureMetadata", overrideCacheOptions: nil},
 
 		listFeatureWPTMetricsCache: operationResponseCache[
 			backend.ListFeatureWPTMetricsRequestObject,
 			backend.ListFeatureWPTMetrics200JSONResponse,
-		]{cacher: dataCacher, operationID: "listFeatureWPTMetrics"},
+		]{cacher: dataCacher, operationID: "listFeatureWPTMetrics", overrideCacheOptions: nil},
 
 		listChromiumDailyUsageStatsCache: operationResponseCache[
 			backend.ListChromiumDailyUsageStatsRequestObject,
 			backend.ListChromiumDailyUsageStats200JSONResponse,
-		]{cacher: dataCacher, operationID: "listChromiumDailyUsageStats"},
+		]{cacher: dataCacher, operationID: "listChromiumDailyUsageStats", overrideCacheOptions: nil},
 
 		listAggregatedFeatureSupportCache: operationResponseCache[
 			backend.ListAggregatedFeatureSupportRequestObject,
 			backend.ListAggregatedFeatureSupport200JSONResponse,
-		]{cacher: dataCacher, operationID: "listAggregatedFeatureSupport"},
+		]{cacher: dataCacher, operationID: "listAggregatedFeatureSupport",
+			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
 
 		listMissingOneImplemenationCountsCache: operationResponseCache[
 			backend.ListMissingOneImplemenationCountsRequestObject,
 			backend.ListMissingOneImplemenationCounts200JSONResponse,
-		]{cacher: dataCacher, operationID: "listMissingOneImplemenationCounts"},
+		]{cacher: dataCacher, operationID: "listMissingOneImplemenationCounts",
+			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
 
 		listAggregatedWPTMetricsCache: operationResponseCache[
 			backend.ListAggregatedWPTMetricsRequestObject,
 			backend.ListAggregatedWPTMetrics200JSONResponse,
-		]{cacher: dataCacher, operationID: "listAggregatedWPTMetrics"},
+		]{cacher: dataCacher, operationID: "listAggregatedWPTMetrics", overrideCacheOptions: nil},
 
 		listAggregatedBaselineStatusCountsCache: operationResponseCache[
 			backend.ListAggregatedBaselineStatusCountsRequestObject,
 			backend.ListAggregatedBaselineStatusCounts200JSONResponse,
-		]{cacher: dataCacher, operationID: "listAggregatedBaselineStatusCounts"},
+		]{cacher: dataCacher, operationID: "listAggregatedBaselineStatusCounts",
+			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
 	}
 }

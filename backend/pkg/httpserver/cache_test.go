@@ -50,8 +50,25 @@ func NewMockRawBytesDataCacher(
 	}
 }
 
+func getDefaultCacheConfig() *cachetypes.CacheConfig {
+	return cachetypes.NewCacheConfig(0)
+}
+
+func getTestAggregatedCacheConfig() *cachetypes.CacheConfig {
+	return cachetypes.NewCacheConfig(10)
+}
+
+func getTestRouteCacheOptions() RouteCacheOptions {
+	return RouteCacheOptions{
+		AggregatedFeatureStatsOptions: []cachetypes.CacheOption{
+			cachetypes.WithTTL(10),
+		},
+	}
+}
+
 // Cache implements the Cache method of the RawBytesDataCacher interface.
-func (m *MockRawBytesDataCacher) Cache(_ context.Context, key string, value []byte) error {
+func (m *MockRawBytesDataCacher) Cache(_ context.Context, key string, value []byte,
+	options ...cachetypes.CacheOption) error {
 	if m.currentCacheCallIdx >= len(m.expectedCacheCalls) {
 		m.t.Errorf("unexpected call to Cache with key: %s", key)
 
@@ -66,9 +83,20 @@ func (m *MockRawBytesDataCacher) Cache(_ context.Context, key string, value []by
 		m.t.Errorf("expected Cache value: %v, got: %v", string(expectedCall.Value), string(value))
 	}
 
+	cacheCfg := getDefaultCacheConfig()
+
+	for _, opt := range options {
+		opt(cacheCfg)
+	}
+
+	if !reflect.DeepEqual(expectedCall.CacheCfg, cacheCfg) {
+		m.t.Errorf("expected Cache config: %v, got: %v", expectedCall.CacheCfg, cacheCfg)
+	}
+
 	m.actualCacheCalls = append(m.actualCacheCalls, &ActualCacheCall{
-		Key:   key,
-		Value: value,
+		Key:      key,
+		Value:    value,
+		CacheCfg: cacheCfg,
 	})
 	m.currentCacheCallIdx++
 
@@ -126,14 +154,16 @@ func (m *MockRawBytesDataCacher) AssertExpectations() {
 
 // ExpectedCacheCall represents an expected call to Cache.
 type ExpectedCacheCall struct {
-	Key   string
-	Value []byte
+	Key      string
+	Value    []byte
+	CacheCfg *cachetypes.CacheConfig
 }
 
 // ActualCacheCall represents an actual call made to Cache.
 type ActualCacheCall struct {
-	Key   string
-	Value []byte
+	Key      string
+	Value    []byte
+	CacheCfg *cachetypes.CacheConfig
 }
 
 // ExpectedGetCall represents an expected call to Get.
@@ -165,6 +195,7 @@ func TestOperationResponseCache_AttemptCache(t *testing.T) {
 		key                TestKey
 		value              *TestValue
 		expectedCacheCalls []*ExpectedCacheCall
+		cacheOptions       []cachetypes.CacheOption
 	}{
 		{
 			name: "Valid Cache Operation",
@@ -178,9 +209,32 @@ func TestOperationResponseCache_AttemptCache(t *testing.T) {
 			},
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
-					Key:   `customOperation-{"ID":"test-id","Param":"test-param"}`,
-					Value: []byte(`{"Name":"Test Item","Value":123}`),
+					Key:      `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value:    []byte(`{"Name":"Test Item","Value":123}`),
+					CacheCfg: getDefaultCacheConfig(),
 				},
+			},
+			cacheOptions: nil,
+		},
+		{
+			name: "Valid Cache Operation with option",
+			key: TestKey{
+				ID:    "test-id",
+				Param: "test-param",
+			},
+			value: &TestValue{
+				Name:  "Test Item",
+				Value: 123,
+			},
+			expectedCacheCalls: []*ExpectedCacheCall{
+				{
+					Key:      `customOperation-{"ID":"test-id","Param":"test-param"}`,
+					Value:    []byte(`{"Name":"Test Item","Value":123}`),
+					CacheCfg: cachetypes.NewCacheConfig(10),
+				},
+			},
+			cacheOptions: []cachetypes.CacheOption{
+				cachetypes.WithTTL(10),
 			},
 		},
 		{
@@ -191,6 +245,7 @@ func TestOperationResponseCache_AttemptCache(t *testing.T) {
 			},
 			value:              nil,
 			expectedCacheCalls: []*ExpectedCacheCall{},
+			cacheOptions:       nil,
 		},
 	}
 
@@ -200,7 +255,7 @@ func TestOperationResponseCache_AttemptCache(t *testing.T) {
 			cache := operationResponseCache[
 				TestKey,
 				TestValue,
-			]{cacher: mockCacher, operationID: "customOperation"}
+			]{cacher: mockCacher, operationID: "customOperation", overrideCacheOptions: tc.cacheOptions}
 
 			cache.AttemptCache(context.Background(), tc.key, tc.value)
 			mockCacher.AssertExpectations()
@@ -291,7 +346,7 @@ func TestOperationResponseCache_Lookup(t *testing.T) {
 			cache := operationResponseCache[
 				TestKey,
 				TestValue,
-			]{cacher: mockCacher, operationID: "customOperation"}
+			]{cacher: mockCacher, operationID: "customOperation", overrideCacheOptions: nil}
 
 			var actualValue TestValue
 			result := cache.Lookup(context.Background(), tc.key, &actualValue)

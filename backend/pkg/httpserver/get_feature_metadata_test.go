@@ -68,6 +68,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 					Value: []byte(
 						`{"can_i_use":{"items":[{"id":"caniuse1"}]},"description":"desc"}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedResponse: testJSONResponse(200,
@@ -112,7 +113,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			mockCacher.AssertExpectations()
 			// TODO: Start tracking call count and assert call count.
