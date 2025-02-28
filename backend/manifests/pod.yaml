@@ -47,6 +47,8 @@ spec:
           value: '6379'
         - name: CACHE_TTL
           value: 5m # Short TTL locally
+        - name: AGGREGATED_FEATURE_STATS_TTL
+          value: 5m # Short TTL locally
         # FIREBASE_AUTH_EMULATOR_HOST is needed by the Admin SDK to skip verification
         - name: FIREBASE_AUTH_EMULATOR_HOST
           value: auth:9099

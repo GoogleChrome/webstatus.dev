@@ -66,9 +66,18 @@ func (c *ValkeyDataCache[K, V]) Cache(
 	ctx context.Context,
 	key K,
 	in V,
+	options ...cachetypes.CacheOption,
 ) error {
+	// Build default config for cache operation
+	cacheCfg := cachetypes.NewCacheConfig(c.ttl)
+
+	// Apply options to config
+	for _, opt := range options {
+		opt(cacheCfg)
+	}
+
 	err := c.client.Do(ctx, c.client.B().Set().Key(c.cacheKey(key)).
-		Value(valkey.BinaryString(in)).Ex(c.ttl).Build()).Error()
+		Value(valkey.BinaryString(in)).Ex(cacheCfg.GetTTL()).Build()).Error()
 	if err != nil {
 		return err
 	}

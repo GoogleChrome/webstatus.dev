@@ -120,4 +120,41 @@ func TestValkeyDataCache(t *testing.T) {
 
 	})
 
+	t.Run("cache hit with custom ttl", func(t *testing.T) {
+		// Store result with custom ttl
+		err := cache.Cache(ctx, testKey1, testValue1, cachetypes.WithTTL(getDefatulTTL()*4))
+		if !errors.Is(err, nil) {
+			t.Errorf("invalid error storing value %v", err)
+		}
+
+		// Get result.
+		result, err := cache.Get(ctx, testKey1)
+		if !errors.Is(err, nil) {
+			t.Errorf("invalid error getting value %v", err)
+		}
+		if !reflect.DeepEqual(result, testValue1) {
+			t.Error("expected result")
+		}
+
+		// Wait normally and should still get the result
+		time.Sleep(getDefatulTTL() * 2)
+		result, err = cache.Get(ctx, testKey1)
+		if !errors.Is(err, nil) {
+			t.Errorf("invalid error getting value %v", err)
+		}
+		if !reflect.DeepEqual(result, testValue1) {
+			t.Error("expected result")
+		}
+
+		// Waiting again should allow the custom TTL to expire
+		time.Sleep(getDefatulTTL() * 4)
+		result, err = cache.Get(ctx, testKey1)
+		if !errors.Is(err, cachetypes.ErrCachedDataNotFound) {
+			t.Errorf("invalid error getting expired result %v", err)
+		}
+		if result != nil {
+			t.Error("expected null result")
+		}
+
+	})
 }

@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
@@ -212,9 +213,16 @@ func getFeatureIDsOrDefault(featureIDs *[]string) []string {
 // Currently implemented by the valkey cache layer.
 type RawBytesDataCacher interface {
 	// Cache stores a value associated with a key in the cache.
-	Cache(context.Context, string, []byte) error
+	Cache(context.Context, string, []byte, ...cachetypes.CacheOption) error
 	// Get retrieves a value from the cache by its key.
 	Get(context.Context, string) ([]byte, error)
+}
+
+// RouteCacheOptions contains options for caching routes.
+type RouteCacheOptions struct {
+	// AggregatedFeatureStatsOptions applies cache options for routes that only contain stats on features.
+	// Any routes with multiple data sources are not included (e.g. WPT Metrics)
+	AggregatedFeatureStatsOptions []cachetypes.CacheOption
 }
 
 func NewHTTPServer(
@@ -222,13 +230,14 @@ func NewHTTPServer(
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
 	rawBytesDataCacher RawBytesDataCacher,
+	routeCacheOptions RouteCacheOptions,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
 	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
 	srv := &Server{
 		metadataStorer:          metadataStorer,
 		wptMetricsStorer:        wptMetricsStorer,
-		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher),
+		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher, routeCacheOptions),
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

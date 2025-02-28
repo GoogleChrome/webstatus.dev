@@ -118,9 +118,12 @@ variable "backend_domains" {
   description = "List of domains for the backend"
 }
 
-variable "cache_duration" {
-  type        = string
-  description = "TTL for entries that are cached"
+variable "backend_cache_settings" {
+  type = object({
+    default_duration                  = string
+    aggregated_feature_stats_duration = string
+  })
+  description = "Various cache settings for backend"
 }
 
 variable "backend_cors_allowed_origin" {
