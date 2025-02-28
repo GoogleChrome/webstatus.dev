@@ -298,7 +298,7 @@ func TestListAggregatedWPTMetrics(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMetricsOverTimeWithAggregatedTotals,
 				"ListMetricsOverTimeWithAggregatedTotals", mockCacher)

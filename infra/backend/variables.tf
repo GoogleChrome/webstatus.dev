@@ -75,8 +75,11 @@ variable "valkey_env_vars" {
   description = "Map of Valkey host and port per region"
 }
 
-variable "cache_duration" {
-  type = string
+variable "cache_settings" {
+  type = object({
+    default_duration                  = string
+    aggregated_feature_stats_duration = string
+  })
 }
 
 variable "cors_allowed_origin" {
