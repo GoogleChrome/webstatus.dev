@@ -75,6 +75,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
 							`"total_tests_count":2}],"metadata":{}}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -165,6 +166,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
 							`"total_tests_count":2}],"metadata":{"next_page_token":"next-page-token"}}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -294,7 +296,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMetricsForFeatureIDBrowserAndChannel,
 				"ListMetricsForFeatureIDBrowserAndChannel", mockCacher)

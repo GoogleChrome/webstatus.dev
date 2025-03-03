@@ -101,6 +101,7 @@ func TestListFeatures(t *testing.T) {
 							`"browser_implementations":{"browser1":{"status":"available","version":"101"}},` +
 							`"feature_id":"feature1","name":"feature 1"}],"metadata":{"total":100}}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -268,6 +269,7 @@ func TestListFeatures(t *testing.T) {
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -482,7 +484,7 @@ func TestListFeatures(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountFeaturesSearch,
 				"FeaturesSearch", mockCacher)

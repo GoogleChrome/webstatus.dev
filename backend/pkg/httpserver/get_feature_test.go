@@ -90,6 +90,7 @@ func TestGetFeature(t *testing.T) {
 							`"browser_implementations":{"chrome":{"date":"1999-01-01",` +
 							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1"}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedResponse: testJSONResponse(200, `
@@ -200,6 +201,7 @@ func TestGetFeature(t *testing.T) {
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			request: httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
@@ -322,7 +324,7 @@ func TestGetFeature(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountGetFeature,
 				"GetFeature", mockCacher)

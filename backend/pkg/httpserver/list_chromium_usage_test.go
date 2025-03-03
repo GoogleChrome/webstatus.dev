@@ -68,6 +68,7 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 					Value: []byte(
 						`{"data":[{"timestamp":"2000-01-01T00:00:00Z","usage":0}],"metadata":{}}`,
 					),
+					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
 			expectedCallCount: 1,
@@ -153,7 +154,7 @@ func TestListChromiumDailyUsageStats(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher)}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListChromiumDailyUsageStats,
 				"ListChromiumDailyUsageStats", mockCacher)

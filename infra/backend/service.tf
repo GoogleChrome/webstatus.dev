@@ -102,7 +102,11 @@ resource "google_cloud_run_v2_service" "service" {
       }
       env {
         name  = "CACHE_TTL"
-        value = var.cache_duration
+        value = var.cache_settings.default_duration
+      }
+      env {
+        name  = "AGGREGATED_FEATURE_STATS_TTL"
+        value = var.cache_settings.aggregated_feature_stats_duration
       }
       env {
         name  = "OTEL_EXPORTER_OTLP_ENDPOINT"

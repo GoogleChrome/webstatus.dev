@@ -45,7 +45,10 @@ frontend_domains = ["website-webstatus-dev.corp.goog"]
 custom_ssl_certificates_for_frontend = ["ub-self-sign"]
 custom_ssl_certificates_for_backend  = ["ub-self-sign"]
 
-cache_duration = "5m"
+backend_cache_settings = {
+  default_duration                  = "1h"
+  aggregated_feature_stats_duration = "3h"
+}
 
 # Needed for UbP.
 backend_cors_allowed_origin = "https://website-webstatus-dev.corp.goog"

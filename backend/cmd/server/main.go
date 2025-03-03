@@ -26,6 +26,7 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
+	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
@@ -36,6 +37,17 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
 	"github.com/go-chi/cors"
 )
+
+func parseEnvVarDuration(key string) time.Duration {
+	cacheDuration := os.Getenv(key)
+	duration, err := time.ParseDuration(cacheDuration)
+	if err != nil {
+		slog.Error("unable to parse duration", "key", key, "input value", cacheDuration)
+		os.Exit(1)
+	}
+
+	return duration
+}
 
 func main() {
 	var datastoreDB *string
@@ -71,21 +83,23 @@ func main() {
 	valkeyHost := os.Getenv("VALKEYHOST")
 	valkeyPort := os.Getenv("VALKEYPORT")
 
-	cacheDuration := os.Getenv("CACHE_TTL")
-	duration, err := time.ParseDuration(cacheDuration)
-	if err != nil {
-		slog.Error("unable to parse CACHE_TTL duration", "input value", cacheDuration)
-		os.Exit(1)
-	}
+	cacheTTL := parseEnvVarDuration("CACHE_TTL")
 
 	cacheKeyPrefix := cmp.Or[string](os.Getenv("K_REVISION"), "test-revision")
-	slog.Info("cache settings", "duration", duration, "prefix", cacheKeyPrefix)
+	aggregatedFeaturesStatsTTL := parseEnvVarDuration("AGGREGATED_FEATURE_STATS_TTL")
+	routeCacheOptions := httpserver.RouteCacheOptions{
+		AggregatedFeatureStatsOptions: []cachetypes.CacheOption{
+			cachetypes.WithTTL(aggregatedFeaturesStatsTTL),
+		},
+	}
+	slog.Info("cache settings", "duration", cacheTTL, "prefix", cacheKeyPrefix,
+		"aggregatedFeaturesStatsTTL", aggregatedFeaturesStatsTTL)
 
 	cache, err := valkeycache.NewValkeyDataCache[string, []byte](
 		cacheKeyPrefix,
 		valkeyHost,
 		valkeyPort,
-		duration,
+		cacheTTL,
 	)
 	if err != nil {
 		slog.Error("unable to create valkey cache instance", "error", err)
@@ -163,6 +177,7 @@ func main() {
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
 		cache,
+		routeCacheOptions,
 		preRequestMiddlewares,
 		authMiddleware,
 	)
