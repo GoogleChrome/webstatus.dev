@@ -403,6 +403,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features:
+    get:
+      summary: >
+        Returns the list of feature IDs that were counted as missing one
+        implementation on a specific date for the given browser.
+      operationId: listMissingOneImplementationFeatures
+      parameters:
+        - $ref: '#/components/parameters/browserPathParam'
+        - in: path
+          name: date
+          schema:
+            type: string
+            format: date
+          required: true
+          description: The date for which to retrieve the feature IDs.
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+        - in: query # Add otherBrowsers parameter
+          name: browser
+          description: >
+            A list of browsers to check if {browser} is lagging behind on
+            features. The list is provided by specifying repeating query parameters.
+            Example:?browser=fooBrowser&browser=bazBrowser
+          required: true
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/SupportedBrowsers'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MissingOneImplFeaturesPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}:
     parameters:
       - $ref: '#/components/parameters/browserPathParam'
@@ -1287,6 +1346,23 @@ components:
           properties:
             rootCause:
               type: string
+    MissingOneImplFeature: # Schema for a single feature object
+      type: object
+      properties:
+        feature_id:
+          type: string
+          description: The ID of a feature.
+    MissingOneImplFeaturesPage: # Schema for the paginated response
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MissingOneImplFeature'
+      required:
+        - data
   securitySchemes:
     bearerAuth:
       type: http
