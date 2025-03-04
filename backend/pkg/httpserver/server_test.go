@@ -662,6 +662,16 @@ func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
 	panic("unimplemented")
 }
 
+// ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListMissingOneImplementationFeatures(ctx context.Context,
+	_ backend.ListMissingOneImplementationFeaturesRequestObject) (
+	backend.ListMissingOneImplementationFeaturesResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
 	if m.callCount != expectedCallCount {
 		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)
