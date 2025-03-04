@@ -133,4 +133,46 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     );
     expect(options.hAxis?.viewWindow?.max).to.deep.equal(expectedEndDate);
   });
+
+  it('renders missing one implementation features footer', async () => {
+    const chart = el.shadowRoot!.querySelector(
+      '#missing-one-implementation-chart',
+    )!;
+
+    // Simulate point-selected event on the chart component
+    chart.dispatchEvent(
+      new CustomEvent('point-selected', {
+        detail: {label: 'Test Label', timestamp: new Date(), value: 123},
+      }),
+    );
+    await el.updateComplete;
+
+    // Assert that the task and renderer are set (no need to wait for the event)
+    expect(el._pointSelectedTask).to.exist;
+    expect(el._renderCustomPointSelectedSuccess).to.exist;
+    await el.updateComplete;
+
+    const header = el.shadowRoot!.querySelector(
+      '#missing-one-implementation-list-header',
+    );
+    expect(header).to.exist;
+    // Note: \n before chrome due to a complaint from lint in the html.
+    expect(header!.textContent?.trim()).to.contain(
+      'The missing feature IDs on 2024-08-20 for\n        chrome',
+    );
+
+    const table = el.shadowRoot!.querySelector('.missing-features-table');
+    expect(table).to.exist;
+
+    const rows = table!
+      .getElementsByTagName('tbody')[0]
+      .getElementsByTagName('tr');
+    expect(rows.length).to.equal(10, 'should have 10 rows');
+
+    const firstRowCells = rows[0].querySelectorAll('td');
+    expect(firstRowCells[0].textContent?.trim()).to.equal(
+      'css',
+      'first row ID',
+    );
+  });
 });
