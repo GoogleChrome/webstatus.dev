@@ -23,14 +23,14 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// ListMissingOneImplemenationCounts implements backend.StrictServerInterface.
+// ListMissingOneImplementationCounts implements backend.StrictServerInterface.
 // nolint: ireturn // Signature generated from openapi
-func (s *Server) ListMissingOneImplemenationCounts(
+func (s *Server) ListMissingOneImplementationCounts(
 	ctx context.Context,
-	request backend.ListMissingOneImplemenationCountsRequestObject) (
-	backend.ListMissingOneImplemenationCountsResponseObject, error) {
-	var cachedResponse backend.ListMissingOneImplemenationCounts200JSONResponse
-	found := s.operationResponseCaches.listMissingOneImplemenationCountsCache.Lookup(ctx, request, &cachedResponse)
+	request backend.ListMissingOneImplementationCountsRequestObject) (
+	backend.ListMissingOneImplementationCountsResponseObject, error) {
+	var cachedResponse backend.ListMissingOneImplementationCounts200JSONResponse
+	found := s.operationResponseCaches.ListMissingOneImplementationCountsCache.Lookup(ctx, request, &cachedResponse)
 	if found {
 		return cachedResponse, nil
 	}
@@ -51,7 +51,7 @@ func (s *Server) ListMissingOneImplemenationCounts(
 		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
 			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
 
-			return backend.ListMissingOneImplemenationCounts400JSONResponse{
+			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
 				Message: "invalid page token",
 			}, nil
@@ -59,17 +59,17 @@ func (s *Server) ListMissingOneImplemenationCounts(
 
 		slog.ErrorContext(ctx, "unable to get missing one implementation count", "error", err)
 
-		return backend.ListMissingOneImplemenationCounts500JSONResponse{
+		return backend.ListMissingOneImplementationCounts500JSONResponse{
 			Code:    500,
 			Message: "unable to get missing one implementation metrics",
 		}, nil
 	}
 
-	resp := backend.ListMissingOneImplemenationCounts200JSONResponse{
+	resp := backend.ListMissingOneImplementationCounts200JSONResponse{
 		Metadata: page.Metadata,
 		Data:     page.Data,
 	}
-	s.operationResponseCaches.listMissingOneImplemenationCountsCache.AttemptCache(ctx, request, &resp)
+	s.operationResponseCaches.ListMissingOneImplementationCountsCache.AttemptCache(ctx, request, &resp)
 
 	return resp, nil
 }

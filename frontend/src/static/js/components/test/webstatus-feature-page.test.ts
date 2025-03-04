@@ -259,7 +259,7 @@ describe('webstatus-feature-page', () => {
       hostElement = document.createElement('div');
     });
 
-    it('renders nothing when there is no implemenation', async () => {
+    it('renders nothing when there is no implementation', async () => {
       const browserImpl = undefined;
       const actual = element.renderBrowserImpl(browserImpl);
       render(actual, hostElement);

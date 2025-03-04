@@ -355,7 +355,7 @@ paths:
         comparison browsers but not supported by the specified target browser,
         as of each browser's (target browser or comparison browser) release
         date.
-      operationId: listMissingOneImplemenationCounts
+      operationId: listMissingOneImplementationCounts
       parameters:
         - $ref: '#/components/parameters/startAtParam'
         - $ref: '#/components/parameters/endAtParam'

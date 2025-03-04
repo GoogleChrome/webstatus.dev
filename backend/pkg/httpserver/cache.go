@@ -139,9 +139,9 @@ type operationResponseCaches struct {
 		backend.ListAggregatedFeatureSupportRequestObject,
 		backend.ListAggregatedFeatureSupport200JSONResponse,
 	]
-	listMissingOneImplemenationCountsCache operationResponseCache[
-		backend.ListMissingOneImplemenationCountsRequestObject,
-		backend.ListMissingOneImplemenationCounts200JSONResponse,
+	ListMissingOneImplementationCountsCache operationResponseCache[
+		backend.ListMissingOneImplementationCountsRequestObject,
+		backend.ListMissingOneImplementationCounts200JSONResponse,
 	]
 	listAggregatedWPTMetricsCache operationResponseCache[
 		backend.ListAggregatedWPTMetricsRequestObject,
@@ -191,10 +191,10 @@ func initOperationResponseCaches(dataCacher RawBytesDataCacher,
 		]{cacher: dataCacher, operationID: "listAggregatedFeatureSupport",
 			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
 
-		listMissingOneImplemenationCountsCache: operationResponseCache[
-			backend.ListMissingOneImplemenationCountsRequestObject,
-			backend.ListMissingOneImplemenationCounts200JSONResponse,
-		]{cacher: dataCacher, operationID: "listMissingOneImplemenationCounts",
+		ListMissingOneImplementationCountsCache: operationResponseCache[
+			backend.ListMissingOneImplementationCountsRequestObject,
+			backend.ListMissingOneImplementationCounts200JSONResponse,
+		]{cacher: dataCacher, operationID: "ListMissingOneImplementationCounts",
 			overrideCacheOptions: routeCacheOptions.AggregatedFeatureStatsOptions},
 
 		listAggregatedWPTMetricsCache: operationResponseCache[

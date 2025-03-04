@@ -606,11 +606,11 @@ func (m *mockServerInterface) ListFeatures(ctx context.Context,
 	panic("unimplemented")
 }
 
-// ListMissingOneImplemenationCounts implements backend.StrictServerInterface.
+// ListMissingOneImplementationCounts implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
-func (m *mockServerInterface) ListMissingOneImplemenationCounts(ctx context.Context,
-	_ backend.ListMissingOneImplemenationCountsRequestObject) (
-	backend.ListMissingOneImplemenationCountsResponseObject, error) {
+func (m *mockServerInterface) ListMissingOneImplementationCounts(ctx context.Context,
+	_ backend.ListMissingOneImplementationCountsRequestObject) (
+	backend.ListMissingOneImplementationCountsResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")
