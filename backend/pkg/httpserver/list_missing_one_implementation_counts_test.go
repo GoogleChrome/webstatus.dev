@@ -25,7 +25,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-func TestListMissingOneImplemenationCounts(t *testing.T) {
+func TestListMissingOneImplementationCounts(t *testing.T) {
 	testCases := []struct {
 		name               string
 		mockConfig         *MockListMissingOneImplCountsConfig
@@ -64,7 +64,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
@@ -72,7 +72,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			},
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
 					Value: []byte(
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
@@ -108,7 +108,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			mockConfig: nil,
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
 					Value: []byte(
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
@@ -169,7 +169,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
 						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
 					Value: nil,
@@ -178,7 +178,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			},
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
 						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
 					Value: []byte(
@@ -216,7 +216,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			mockConfig: nil,
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
 						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
 					Value: []byte(
@@ -265,7 +265,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","browser":["edge","firefox","safari"]}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
@@ -295,7 +295,7 @@ func TestListMissingOneImplemenationCounts(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `listMissingOneImplemenationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
+					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"","browser":["edge","firefox","safari"]}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
