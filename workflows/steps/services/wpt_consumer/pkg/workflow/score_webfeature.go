@@ -37,6 +37,7 @@ const (
 	WPTStatusCrash              WPTStatusAbbreviation = "C"
 	WPTStatusTimeout            WPTStatusAbbreviation = "T"
 	WPTStatusPreconditionFailed WPTStatusAbbreviation = "PF"
+	WPTStatusEmpty              WPTStatusAbbreviation = ""
 )
 
 // Score calculates web feature metrics from a V2 results summary file.
@@ -90,6 +91,12 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 	if webFeatures, found = (*testToWebFeatures)[test]; !found {
 		return
 	}
+
+	// If the test has missing results, skip it.
+	if isTestMissing(testStatus, numberofSubtests) {
+		return
+	}
+
 	// In the event of a crash, wpt records the incorrect number of subtests (but not tests).
 	// Ignore subtest metrics for now. And mark the web feature as a whole as one to not update the subtest metrics
 	if WPTStatusAbbreviation(testStatus) == WPTStatusCrash {
@@ -147,6 +154,24 @@ func getScoreForFeature(
 	return score
 }
 
+func isPassingViewTest(testStatus string, subtests, total int) bool {
+	return isPassingViewTestStatus(testStatus) &&
+		subtests == total && !isTestMissing(testStatus, total)
+}
+
+func isTestMissing(testStatus string, total int) bool {
+	return WPTStatusAbbreviation(testStatus) == WPTStatusEmpty &&
+		total == 0
+}
+
+func isPassingViewTestStatus(testStatus string) bool {
+	return WPTStatusAbbreviation(testStatus) == WPTStatusOK ||
+		WPTStatusAbbreviation(testStatus) == WPTStatusPass ||
+		// Should handle the status == empty case.
+		// Background: https://github.com/web-platform-tests/wpt.fyi/pull/4290
+		WPTStatusAbbreviation(testStatus) == WPTStatusEmpty
+}
+
 // scoreTest updates web feature metrics for a single test
 // based on provided subtest results and web features data.
 func (s ResultsSummaryFileV2) scoreTest(
@@ -165,16 +190,8 @@ func (s ResultsSummaryFileV2) scoreTest(
 		return
 	}
 	// Calculate the value early so we can re-use for multiple web features.
-	// Logic for zero subtests
-	var countsAsPassing bool
-	if numberofSubtests == 0 {
-		// Determine the appropriate logic based on the status, as done in JavaScript
-		if WPTStatusAbbreviation(testStatus) == WPTStatusOK || WPTStatusAbbreviation(testStatus) == WPTStatusPass {
-			countsAsPassing = true // Treat as passing if status is OK or Pass
-		}
-	} else {
-		countsAsPassing = numberOfSubtestPassing == numberofSubtests
-	}
+	countsAsPassing := isPassingViewTest(testStatus, numberOfSubtestPassing, numberofSubtests)
+
 	for webFeature := range webFeatures {
 		webFeatureScore := getScoreForFeature(webFeature, webFeatureScoreMap)
 		*webFeatureScore.TotalTests++
