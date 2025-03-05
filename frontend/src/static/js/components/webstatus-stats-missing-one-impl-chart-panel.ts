@@ -26,6 +26,7 @@ import {
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
+import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
@@ -87,6 +88,32 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       seriesColors: seriesColors,
       vAxisTitle: 'Number of features missing',
     };
+  }
+
+  /**
+   * Creates a task and a renderer for handling point-selected events.
+   * Overrides createPointSelectedTask() in the parent class when an point is
+   * selected on the chart.
+   *
+   * @param {ChartSelectPointEvent} _ The point-selected event.
+   * @returns {{ task: Task | undefined; renderSuccess?: () => TemplateResult; }}
+   */
+  createPointSelectedTask(_: ChartSelectPointEvent): {
+    task: Task | undefined;
+    renderSuccess?: () => TemplateResult;
+  } {
+    return {task: undefined, renderSuccess: undefined};
+  }
+
+  /**
+   * Renders the success state of the createPointSelectedTask above.
+   * This method implements the _renderCustomPointSelectedSuccess
+   * in the parent class.
+   *
+   * @returns {TemplateResult} The rendered content for the success state.
+   */
+  pointSelectedTaskRenderOnSuccess(): TemplateResult {
+    return html`${nothing}`;
   }
 
   getPanelID(): string {
