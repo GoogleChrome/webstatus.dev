@@ -99,6 +99,9 @@ func getComplexWebFeaturesData() shared.WebFeaturesData {
 		"dir/tentative/test10.html": {
 			"feature1": nil,
 		},
+		"test11-missing.html": {
+			"feature1": nil,
+		},
 	}
 }
 
@@ -159,6 +162,12 @@ func getComplexSummary() ResultsSummaryFileV2 {
 			Status: string(WPTStatusPass),
 			Counts: []int{111, 111},
 		},
+		// Missing tests should not increment subtest counts or TestPass count.
+		// It should only increment TotalTests by one for a given feature.
+		"test11-missing.html": query.SummaryResult{
+			Status: string(WPTStatusEmpty),
+			Counts: []int{0, 0},
+		},
 	}
 }
 
@@ -189,7 +198,7 @@ func TestScore(t *testing.T) {
 			summary:           getComplexSummary(),
 			expectedOutput: map[string]wptconsumertypes.WPTFeatureMetric{
 				"feature1": {
-					TotalTests:        valuePtr[int64](2),
+					TotalTests:        valuePtr[int64](3),
 					TestPass:          valuePtr[int64](2),
 					TotalSubtests:     valuePtr[int64](101),
 					SubtestPass:       valuePtr[int64](101),
@@ -225,7 +234,7 @@ func TestScore(t *testing.T) {
 				},
 				"feature6": {
 					TotalTests:    valuePtr[int64](5),
-					TestPass:      valuePtr[int64](4),
+					TestPass:      valuePtr[int64](2),
 					TotalSubtests: nil,
 					SubtestPass:   nil,
 					FeatureRunDetails: map[string]interface{}{
