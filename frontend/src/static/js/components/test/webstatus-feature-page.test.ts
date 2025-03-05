@@ -54,7 +54,7 @@ describe('webstatus-feature-page', () => {
       wpt: {stable: {}},
     });
     expect(link).to.eq(
-      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=test',
+      'https://wpt.fyi/results?label=master&label=stable&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=test',
     );
   });
 
@@ -66,7 +66,7 @@ describe('webstatus-feature-page', () => {
       wpt: {stable: {}},
     });
     expect(link).to.eq(
-      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=subtest',
+      'https://wpt.fyi/results?label=master&label=stable&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=subtest',
     );
   });
 
@@ -78,7 +78,7 @@ describe('webstatus-feature-page', () => {
       wpt: {stable: {}},
     });
     expect(link).to.eq(
-      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=test',
+      'https://wpt.fyi/results?label=master&label=stable&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=test',
     );
   });
 

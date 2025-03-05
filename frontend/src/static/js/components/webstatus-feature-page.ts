@@ -332,7 +332,6 @@ export class FeaturePage extends BaseChartsPage {
     const query = `feature:${feature.feature_id} !is:tentative`;
     wptLinkURL.searchParams.append('label', 'master');
     wptLinkURL.searchParams.append('label', 'stable');
-    wptLinkURL.searchParams.append('aligned', '');
     wptLinkURL.searchParams.append('q', query);
     wptLinkURL.searchParams.append('view', this.wptLinkMetricView());
     return wptLinkURL.toString();
