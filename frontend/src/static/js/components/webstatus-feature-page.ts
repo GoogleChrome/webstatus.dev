@@ -27,6 +27,9 @@ import {
   type APIClient,
   type WPTRunMetric,
   BROWSER_LABEL_TO_ID,
+  TEST_COUNT_METRIC_VIEW,
+  SUBTEST_COUNT_METRIC_VIEW,
+  DEFAULT_TEST_VIEW,
 } from '../api/client.js';
 import {
   formatFeaturePageUrl,
@@ -73,6 +76,9 @@ export class FeaturePage extends BaseChartsPage {
   featureMetadata?: {can_i_use?: CanIUseData; description?: string} | undefined;
 
   featureId!: string;
+
+  // Members that are used for testing with sinon.
+  _getWPTMetricView: (options: {search: string}) => string = getWPTMetricView;
 
   static get styles(): CSSResultGroup {
     return [
@@ -295,6 +301,28 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
+  wptLinkMetricView(): string {
+    const view = this._getWPTMetricView(this.location);
+    switch (view) {
+      case SUBTEST_COUNT_METRIC_VIEW:
+        return 'subtest';
+      case TEST_COUNT_METRIC_VIEW:
+      default:
+        return 'test';
+    }
+  }
+
+  metricViewForRequests(): FeatureWPTMetricViewType {
+    const view = this._getWPTMetricView(this.location);
+    switch (view) {
+      case SUBTEST_COUNT_METRIC_VIEW:
+      case TEST_COUNT_METRIC_VIEW:
+        return view;
+      default:
+        return DEFAULT_TEST_VIEW;
+    }
+  }
+
   buildWPTLink(feature?: {
     feature_id: string;
     wpt?: {stable?: object; experimental?: object};
@@ -306,6 +334,7 @@ export class FeaturePage extends BaseChartsPage {
     wptLinkURL.searchParams.append('label', 'stable');
     wptLinkURL.searchParams.append('aligned', '');
     wptLinkURL.searchParams.append('q', query);
+    wptLinkURL.searchParams.append('view', this.wptLinkMetricView());
     return wptLinkURL.toString();
   }
 
@@ -462,6 +491,7 @@ export class FeaturePage extends BaseChartsPage {
     return html`
       <webstatus-feature-wpt-progress-chart-panel
         .featureId=${this.featureId}
+        .testView=${this.metricViewForRequests()}
         .startDate=${this.startDate}
         .endDate=${this.endDate}
         @data-fetch-complete=${this.handleWPTScoresFetched}

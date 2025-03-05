@@ -107,6 +107,6 @@ func getWPTMetricViewOrDefault(in *backend.WPTMetricView) backend.WPTMetricView 
 		}
 	}
 
-	// Default to subtest count if not specified or invalid metric view.
-	return backend.SubtestCounts
+	// Default to test count if not specified or invalid metric view.
+	return backend.TestCounts
 }

@@ -41,7 +41,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
-				expectedMetric:    backend.SubtestCounts,
+				expectedMetric:    backend.TestCounts,
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:  100,
@@ -60,7 +60,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"channel":"experimental","metric_view":"test_counts",` +
 						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
@@ -69,7 +69,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"channel":"experimental","metric_view":"test_counts",` +
 						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
 					Value: []byte(
 						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
@@ -91,7 +91,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 	"metadata":{}
 }`),
 			request: httptest.NewRequest(http.MethodGet,
-				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -100,7 +100,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"channel":"experimental","metric_view":"test_counts",` +
 						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
 					Value: []byte(
 						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
@@ -123,7 +123,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 	"metadata":{}
 }`),
 			request: httptest.NewRequest(http.MethodGet,
-				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -132,7 +132,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
-				expectedMetric:    backend.SubtestCounts,
+				expectedMetric:    backend.TestCounts,
 				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:  50,
@@ -151,7 +151,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts","Params":{"startAt":"2000-01-01",` +
+						`"channel":"experimental","metric_view":"test_counts","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
@@ -160,7 +160,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts","Params":{"startAt":"2000-01-01",` +
+						`"channel":"experimental","metric_view":"test_counts","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
 					Value: []byte(
 						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
@@ -184,7 +184,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 	}
 }`),
 			request: httptest.NewRequest(http.MethodGet,
-				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&"+
 					"page_size=50&page_token="+*inputPageToken, nil),
 		},
@@ -194,7 +194,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts","Params":{"startAt":"2000-01-01",` +
+						`"channel":"experimental","metric_view":"test_counts","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
 					Value: []byte(
 						`{"data":[{"run_timestamp":"2000-01-01T00:00:00Z","test_pass_count":2,` +
@@ -219,7 +219,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 	}
 }`),
 			request: httptest.NewRequest(http.MethodGet,
-				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&"+
 					"page_size=50&page_token="+*inputPageToken, nil),
 		},
@@ -229,7 +229,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
-				expectedMetric:    backend.SubtestCounts,
+				expectedMetric:    backend.TestCounts,
 				expectedPageToken: nil,
 				data:              nil,
 				pageToken:         nil,
@@ -241,7 +241,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"channel":"experimental","metric_view":"test_counts",` +
 						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10"}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
@@ -251,7 +251,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(500, `{"code":500,"message":"unable to get feature metrics"}`),
 			request: httptest.NewRequest(http.MethodGet,
-				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -260,7 +260,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				expectedFeatureID: "feature1",
 				expectedBrowser:   "chrome",
 				expectedChannel:   "experimental",
-				expectedMetric:    backend.SubtestCounts,
+				expectedMetric:    backend.TestCounts,
 				expectedPageToken: badPageToken,
 				data:              nil,
 				pageToken:         nil,
@@ -272,7 +272,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatureWPTMetrics-{"feature_id":"feature1","browser":"chrome",` +
-						`"channel":"experimental","metric_view":"subtest_counts",` +
+						`"channel":"experimental","metric_view":"test_counts",` +
 						`"Params":{"startAt":"2000-01-01","endAt":"2000-01-10","page_token":""}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
@@ -282,7 +282,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 			request: httptest.NewRequest(http.MethodGet,
-				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/subtest_counts"+
+				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
 		},
 	}
