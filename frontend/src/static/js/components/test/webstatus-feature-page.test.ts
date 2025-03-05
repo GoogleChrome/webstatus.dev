@@ -24,6 +24,7 @@ import {render} from 'lit';
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
   let renderDescriptionSpy: sinon.SinonSpy;
+  let getWPTMetricViewStub: sinon.SinonStub;
   const location = {
     params: {featureId: 'some-feature'},
     search: '',
@@ -38,15 +39,46 @@ describe('webstatus-feature-page', () => {
 
     renderDescriptionSpy = sinon.spy(el, 'renderDescription');
 
+    getWPTMetricViewStub = sinon.stub(el, '_getWPTMetricView');
+    // Returns nothing by default.
+    getWPTMetricViewStub.returns('');
+
     await el.updateComplete;
   });
-  it('builds the WPT link correctly when there are stable metrics', async () => {
+  afterEach(() => {
+    sinon.restore();
+  });
+  it('builds the WPT link correctly when there are stable metrics with default metric view', async () => {
     const link = el.buildWPTLink({
       feature_id: 'declarative-shadow-dom',
       wpt: {stable: {}},
     });
     expect(link).to.eq(
-      'https://wpt.fyi/results?label=master&label=stable&aligned=&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative',
+      'https://wpt.fyi/results?label=master&label=stable&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=test',
+    );
+  });
+
+  it('builds the WPT link correctly when there are stable metrics with metric view = subtest_counts', async () => {
+    getWPTMetricViewStub.returns('subtest_counts');
+    await el.updateComplete;
+    const link = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+      wpt: {stable: {}},
+    });
+    expect(link).to.eq(
+      'https://wpt.fyi/results?label=master&label=stable&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=subtest',
+    );
+  });
+
+  it('builds the WPT link correctly when there are stable metrics with metric view = subtest_counts', async () => {
+    getWPTMetricViewStub.returns('test_counts');
+    await el.updateComplete;
+    const link = el.buildWPTLink({
+      feature_id: 'declarative-shadow-dom',
+      wpt: {stable: {}},
+    });
+    expect(link).to.eq(
+      'https://wpt.fyi/results?label=master&label=stable&q=feature%3Adeclarative-shadow-dom+%21is%3Atentative&view=test',
     );
   });
 

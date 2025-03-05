@@ -17,16 +17,36 @@
 import {fixture, html as testHtml, expect} from '@open-wc/testing';
 import {SinonStub, SinonStubbedInstance, stub} from 'sinon';
 import {WebstatusFeatureWPTProgressChartPanel} from '../webstatus-feature-wpt-progress-chart-panel.js';
-import {APIClient, WPTRunMetric} from '../../api/client.js';
+import {
+  APIClient,
+  DEFAULT_TEST_VIEW,
+  FeatureWPTMetricViewType,
+  WPTRunMetric,
+} from '../../api/client.js';
 import {WebstatusLineChartPanel} from '../webstatus-line-chart-panel.js';
 import '../webstatus-feature-wpt-progress-chart-panel.js';
+
+const startDate = new Date('2024-01-01');
+const endDate = new Date('2024-01-31');
+async function createFixtureElement(
+  startDate: Date,
+  endDate: Date,
+  testView: FeatureWPTMetricViewType,
+) {
+  return await fixture<WebstatusFeatureWPTProgressChartPanel>(
+    testHtml`<webstatus-feature-wpt-progress-chart-panel
+    .startDate=${startDate}
+    .endDate=${endDate}
+    .testView=${testView}
+      featureId="test-feature-id"
+    ></webstatus-feature-wpt-progress-chart-panel>`,
+  );
+}
 
 describe('WebstatusFeatureWPTProgressChartPanel', () => {
   let el: WebstatusFeatureWPTProgressChartPanel;
   let apiClientStub: SinonStubbedInstance<APIClient>;
   let fetchAndAggregateDataStub: SinonStub;
-  const startDate = new Date('2024-01-01');
-  const endDate = new Date('2024-01-31');
 
   beforeEach(async () => {
     apiClientStub = stub(new APIClient(''));
@@ -34,13 +54,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       WebstatusLineChartPanel.prototype,
       '_fetchAndAggregateData',
     );
-    el = await fixture<WebstatusFeatureWPTProgressChartPanel>(
-      testHtml`<webstatus-feature-wpt-progress-chart-panel
-      .startDate=${startDate}
-      .endDate=${endDate}
-        featureId="test-feature-id"
-      ></webstatus-feature-wpt-progress-chart-panel>`,
-    );
+    el = await createFixtureElement(startDate, endDate, DEFAULT_TEST_VIEW);
     el.apiClient = apiClientStub;
     await el.updateComplete;
   });
@@ -134,7 +148,6 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     // Check additional series configurations
     expect(additionalSeriesConfigs).to.have.lengthOf(1);
     const totalConfig = additionalSeriesConfigs[0];
-    expect(totalConfig.label).to.equal('Total number of subtests');
     expect(totalConfig.calculator).to.equal(el.calculateMax);
     const totalTestDataPoint: WPTRunMetric = {
       run_timestamp: '2024-01-01T12:34:56.789Z',
@@ -149,8 +162,6 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
 
   it('generates chart options correctly', () => {
     const options = el.generateDisplayDataChartOptions();
-    expect(options.vAxis?.title).to.equal('Number of subtests passed');
-
     // Check colors based on browsers displayed.
     // 4 browsers and total.
     expect(options.colors).eql([
@@ -165,5 +176,38 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
     );
     expect(options.hAxis?.viewWindow?.max).to.deep.equal(expectedEndDate);
+  });
+
+  describe('metric view specific tests', () => {
+    it('generates metric view specific chart options correctly when view=test', async () => {
+      fetchAndAggregateDataStub.reset();
+      el = await createFixtureElement(startDate, endDate, 'test_counts');
+      el.apiClient = apiClientStub;
+      await el.updateComplete;
+      const options = el.generateDisplayDataChartOptions();
+      expect(options.vAxis?.title).to.equal('Number of tests passed');
+      expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
+      const additionalSeriesConfigs =
+        fetchAndAggregateDataStub.getCall(0).args[1];
+      // Check additional series configurations
+      expect(additionalSeriesConfigs).to.have.lengthOf(1);
+      const totalConfig = additionalSeriesConfigs[0];
+      expect(totalConfig.label).to.equal('Total number of tests');
+    });
+    it('generates metric view specific chart options correctly when view=subtest', async () => {
+      fetchAndAggregateDataStub.reset();
+      el = await createFixtureElement(startDate, endDate, 'subtest_counts');
+      el.apiClient = apiClientStub;
+      await el.updateComplete;
+      const options = el.generateDisplayDataChartOptions();
+      expect(options.vAxis?.title).to.equal('Number of subtests passed');
+      expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
+      const additionalSeriesConfigs =
+        fetchAndAggregateDataStub.getCall(0).args[1];
+      // Check additional series configurations
+      expect(additionalSeriesConfigs).to.have.lengthOf(1);
+      const totalConfig = additionalSeriesConfigs[0];
+      expect(totalConfig.label).to.equal('Total number of subtests');
+    });
   });
 });

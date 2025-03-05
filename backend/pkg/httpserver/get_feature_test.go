@@ -41,7 +41,7 @@ func TestGetFeature(t *testing.T) {
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
 					backend.Chrome,
 					backend.Edge,
@@ -152,7 +152,7 @@ func TestGetFeature(t *testing.T) {
 			name: "Success Case - with optional params",
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.TestCounts,
+				expectedWPTMetricView: backend.SubtestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
 					backend.Chrome,
 					backend.Edge,
@@ -187,14 +187,14 @@ func TestGetFeature(t *testing.T) {
 			expectedCallCount: 1,
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key:   `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"test_counts"}}`,
+					Key:   `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"subtest_counts"}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
 				},
 			},
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
-					Key: `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"test_counts"}}`,
+					Key: `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"subtest_counts"}}`,
 					Value: []byte(
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
@@ -204,7 +204,7 @@ func TestGetFeature(t *testing.T) {
 					CacheCfg: getDefaultCacheConfig(),
 				},
 			},
-			request: httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
+			request: httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=subtest_counts", nil),
 			expectedResponse: testJSONResponse(200, `
 {
 	"baseline":{
@@ -231,7 +231,7 @@ func TestGetFeature(t *testing.T) {
 			expectedCallCount: 0,
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"test_counts"}}`,
+					Key: `getFeature-{"feature_id":"feature1","Params":{"wpt_metric_view":"subtest_counts"}}`,
 					Value: []byte(
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
@@ -242,7 +242,7 @@ func TestGetFeature(t *testing.T) {
 				},
 			},
 			expectedCacheCalls: nil,
-			request:            httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=test_counts", nil),
+			request:            httptest.NewRequest(http.MethodGet, "/v1/features/feature1?wpt_metric_view=subtest_counts", nil),
 			expectedResponse: testJSONResponse(200, `
 {
 	"baseline":{
@@ -266,7 +266,7 @@ func TestGetFeature(t *testing.T) {
 			name: "404",
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
 					backend.Chrome,
 					backend.Edge,
@@ -292,7 +292,7 @@ func TestGetFeature(t *testing.T) {
 			name: "500",
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
 					backend.Chrome,
 					backend.Edge,

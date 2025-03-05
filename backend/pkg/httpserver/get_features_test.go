@@ -46,7 +46,7 @@ func TestListFeatures(t *testing.T) {
 				expectedPageSize:      100,
 				expectedSearchNode:    nil,
 				expectedSortBy:        nil,
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
 					backend.Chrome,
 					backend.Edge,
@@ -178,7 +178,7 @@ func TestListFeatures(t *testing.T) {
 			mockConfig: &MockFeaturesSearchConfig{
 				expectedPageToken:     inputPageToken,
 				expectedPageSize:      50,
-				expectedWPTMetricView: backend.TestCounts,
+				expectedWPTMetricView: backend.SubtestCounts,
 				expectedBrowsers: []backend.BrowserPathParam{
 					backend.Chrome,
 					backend.Edge,
@@ -253,7 +253,7 @@ func TestListFeatures(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatures-{"Params":{"page_token":"input-token","page_size":50,` +
-						`"wpt_metric_view":"test_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
+						`"wpt_metric_view":"subtest_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
 				},
@@ -261,7 +261,7 @@ func TestListFeatures(t *testing.T) {
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
 					Key: `listFeatures-{"Params":{"page_token":"input-token","page_size":50,` +
-						`"wpt_metric_view":"test_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
+						`"wpt_metric_view":"subtest_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
 					Value: []byte(
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
@@ -301,7 +301,7 @@ func TestListFeatures(t *testing.T) {
 			),
 			request: httptest.NewRequest(
 				http.MethodGet,
-				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=test_counts",
+				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
 					*inputPageToken,
 					url.QueryEscape("available_on:chrome AND name:grid"),
 				),
@@ -313,7 +313,7 @@ func TestListFeatures(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listFeatures-{"Params":{"page_token":"input-token","page_size":50,` +
-						`"wpt_metric_view":"test_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
+						`"wpt_metric_view":"subtest_counts","q":"available_on:chrome AND name:grid","sort":"name_desc"}}`,
 					Value: []byte(
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
@@ -354,7 +354,7 @@ func TestListFeatures(t *testing.T) {
 			),
 			request: httptest.NewRequest(
 				http.MethodGet,
-				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=test_counts",
+				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
 					*inputPageToken,
 					url.QueryEscape("available_on:chrome AND name:grid"),
 				),
@@ -373,7 +373,7 @@ func TestListFeatures(t *testing.T) {
 					backend.Firefox,
 					backend.Safari,
 				},
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				page:                  nil,
 				err:                   errTest,
 			},
@@ -398,7 +398,7 @@ func TestListFeatures(t *testing.T) {
 				expectedPageSize:      100,
 				expectedSearchNode:    nil,
 				expectedSortBy:        nil,
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers:      nil,
 				page:                  nil,
 				err:                   errTest,
@@ -424,7 +424,7 @@ func TestListFeatures(t *testing.T) {
 				expectedPageSize:      100,
 				expectedSearchNode:    nil,
 				expectedSortBy:        nil,
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				expectedBrowsers:      nil,
 				page:                  nil,
 				err:                   errTest,
@@ -456,7 +456,7 @@ func TestListFeatures(t *testing.T) {
 					backend.Firefox,
 					backend.Safari,
 				},
-				expectedWPTMetricView: backend.SubtestCounts,
+				expectedWPTMetricView: backend.TestCounts,
 				page:                  nil,
 				err:                   backendtypes.ErrInvalidPageToken,
 			},

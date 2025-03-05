@@ -23,6 +23,7 @@ import {
   BROWSER_ID_TO_LABEL,
   BrowsersParameter,
   ChannelsParameter,
+  FeatureWPTMetricViewType,
   STABLE_CHANNEL,
   WPTRunMetric,
 } from '../api/client.js';
@@ -35,13 +36,13 @@ import {
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
   readonly featureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
   readonly featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
-  readonly testView: 'subtest_counts' | 'test_counts' = 'subtest_counts';
+  @property({type: String})
+  testView!: FeatureWPTMetricViewType;
 
-  readonly testViewToString: Record<'subtest_counts' | 'test_counts', string> =
-    {
-      subtest_counts: 'subtests',
-      test_counts: 'tests',
-    };
+  readonly testViewToString: Record<FeatureWPTMetricViewType, string> = {
+    subtest_counts: 'subtests',
+    test_counts: 'tests',
+  };
 
   @property({type: String})
   featureId!: string;
@@ -71,6 +72,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
     startDate: Date,
     endDate: Date,
     featureId: string,
+    testView: FeatureWPTMetricViewType,
   ): FetchFunctionConfig<WPTRunMetric>[] {
     return this.featureSupportBrowsers.map(browser => ({
       label: BROWSER_ID_TO_LABEL[browser],
@@ -81,7 +83,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
           this.featureSupportChannel,
           startDate,
           endDate,
-          this.testView,
+          testView,
         ),
       timestampExtractor: this._timestampExtractor,
       valueExtractor: (dataPoint: WPTRunMetric): number =>
@@ -94,26 +96,38 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
   createLoadingTask(): Task {
     return new Task(this, {
       args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate, this.featureId] as [
-          Date,
-          Date,
-          string,
-        ],
-      task: async ([startDate, endDate, featureId]: [Date, Date, string]) => {
+        [
+          this.dataFetchStartDate,
+          this.dataFetchEndDate,
+          this.featureId,
+          this.testView,
+        ] as [Date, Date, string, FeatureWPTMetricViewType],
+      task: async ([startDate, endDate, featureId, testView]: [
+        Date,
+        Date,
+        string,
+        FeatureWPTMetricViewType,
+      ]) => {
         if (
           featureId === undefined ||
           startDate === undefined ||
-          endDate === undefined
+          endDate === undefined ||
+          testView === undefined
         )
           return;
         await this._fetchAndAggregateData<WPTRunMetric>(
-          this._createFetchFunctionConfigs(startDate, endDate, featureId),
+          this._createFetchFunctionConfigs(
+            startDate,
+            endDate,
+            featureId,
+            testView,
+          ),
           [
             // This additional series configuration calculates the "Total" series
             // by using the calculateMax method to find the maximum total_tests_count
             // across all browsers for each timestamp.
             {
-              label: `Total number of ${this.testViewToString[this.testView]}`,
+              label: `Total number of ${this.testViewToString[testView]}`,
               calculator: this.calculateMax,
               cacheMap: new Map<string, WPTRunMetric>(),
               timestampExtractor: this._timestampExtractor,

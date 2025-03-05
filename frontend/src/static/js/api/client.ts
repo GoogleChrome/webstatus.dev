@@ -38,9 +38,12 @@ export type FeatureSearchType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
 >['q'];
 
-export type FeatureWPTMetricViewType = NonNullable<
-  paths['/v1/features']['get']['parameters']['query']
->['wpt_metric_view'];
+export type FeatureWPTMetricViewType = Exclude<
+  NonNullable<
+    paths['/v1/features']['get']['parameters']['query']
+  >['wpt_metric_view'],
+  undefined
+>;
 
 export type BrowsersParameter = components['parameters']['browserPathParam'];
 
@@ -125,8 +128,12 @@ export const ALL_CHANNELS: ChannelsParameter[] = [
   EXPERIMENTAL_CHANNEL,
 ];
 
-const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
+export const TEST_COUNT_METRIC_VIEW: components['schemas']['WPTMetricView'] =
+  'test_counts';
+export const SUBTEST_COUNT_METRIC_VIEW: components['schemas']['WPTMetricView'] =
   'subtest_counts';
+export const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
+  TEST_COUNT_METRIC_VIEW;
 
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
@@ -344,7 +351,7 @@ export class APIClient {
     channel: ChannelsParameter,
     startAtDate: Date,
     endAtDate: Date,
-    metricView: components['schemas']['WPTMetricView'] = DEFAULT_TEST_VIEW,
+    metricView: components['schemas']['WPTMetricView'],
   ): AsyncIterable<WPTRunMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
