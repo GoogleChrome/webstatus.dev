@@ -141,6 +141,10 @@ export type BaselineStatusMetricsPage =
   components['schemas']['BaselineStatusMetricsPage'];
 export type BaselineStatusMetric =
   components['schemas']['BaselineStatusMetric'];
+export type MissingOneImplFeaturesPage =
+  components['schemas']['MissingOneImplFeaturesPage'];
+export type MissingOneImplFeaturesList =
+  components['schemas']['MissingOneImplFeature'][];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {

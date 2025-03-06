@@ -759,7 +759,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           error: error => this._renderPointSelectFailure(error),
           initial: () => this._renderPointSelectInitial(),
           pending: () => this._renderPointSelectPending(),
-        })};
+        })}
       </div>
     `;
   }

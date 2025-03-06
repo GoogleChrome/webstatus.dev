@@ -25,6 +25,7 @@ import {
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
+  MissingOneImplFeaturesList,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
@@ -33,6 +34,8 @@ import {customElement, state} from 'lit/decorators.js';
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
   @state()
   supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+  @state()
+  missingFeaturesList: MissingOneImplFeaturesList = [];
 
   private _createFetchFunctionConfigs(
     browsers: BrowsersParameter[],
@@ -102,7 +105,35 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     task: Task | undefined;
     renderSuccess?: () => TemplateResult;
   } {
-    return {task: undefined, renderSuccess: undefined};
+    const task = new Task(this, {
+      task: async () => {
+        // TODO(https://github.com/GoogleChrome/webstatus.dev/issues/1181):
+        // implement the adapter logic to retrieve feature IDs.
+        const pageData = {
+          data: [
+            {
+              feature_id: 'css',
+            },
+            {
+              feature_id: 'html',
+            },
+            {
+              feature_id: 'javascript',
+            },
+            {
+              feature_id: 'bluetooth',
+            },
+          ],
+          metadata: {
+            total: 4,
+          },
+        };
+        this.missingFeaturesList = pageData.data;
+        return this.missingFeaturesList;
+      },
+      args: () => [],
+    });
+    return {task: task, renderSuccess: this.pointSelectedTaskRenderOnSuccess};
   }
 
   /**
@@ -113,7 +144,11 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
    * @returns {TemplateResult} The rendered content for the success state.
    */
   pointSelectedTaskRenderOnSuccess(): TemplateResult {
-    return html`${nothing}`;
+    return html`
+      ${this.missingFeaturesList.map(
+        ({feature_id}) => html`<li>${feature_id}</li>`,
+      )}
+    `;
   }
 
   getPanelID(): string {
