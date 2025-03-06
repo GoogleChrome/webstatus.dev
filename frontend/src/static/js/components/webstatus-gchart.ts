@@ -91,6 +91,11 @@ export class WebstatusGChart extends LitElement {
   })
   hasMax = true;
 
+  // Selected data points on the chart.
+  // If the chart ever re-draws due to resize or the encompassing component
+  // re-drawing, we need to manually set the current selection.
+  currentSelection: google.visualization.ChartSelection[] | undefined;
+
   @property({state: true, type: Object})
   dataTable:
     | google.visualization.DataTable
@@ -129,13 +134,18 @@ export class WebstatusGChart extends LitElement {
 
   private _resizeObserver: ResizeObserver | undefined;
 
+  draw() {
+    if (this.chartWrapper) {
+      this.chartWrapper.draw();
+      this.chartWrapper?.getChart()?.setSelection(this.currentSelection);
+    }
+  }
+
   firstUpdated() {
     // 1. Create the ResizeObserver
     this._resizeObserver = new ResizeObserver(() => {
       // 2. Redraw the chart when a resize occurs
-      if (this.chartWrapper) {
-        this.chartWrapper.draw();
-      }
+      this.draw();
     });
 
     // 3. Start observing the chart container element
@@ -298,13 +308,17 @@ export class WebstatusGChart extends LitElement {
         );
         this._chartClickListenerAdded = true; // Set the flag after adding the listener
       }
-      this.chartWrapper.draw();
+      this.draw();
     }
   }
   private _handleChartClick() {
     const selection = this.chartWrapper?.getChart()?.getSelection();
-    if (selection === undefined) return;
+    if (selection === undefined) {
+      this.currentSelection = undefined;
+      return;
+    }
     if (selection.length > 0) {
+      this.currentSelection = selection;
       // TODO: For now only look at the first selection since we only configure for one selection at a time.
       const item = selection[0];
       const row = item.row;
@@ -332,6 +346,7 @@ export class WebstatusGChart extends LitElement {
         this.dispatchEvent(chartClickEvent);
       }
     } else if (selection.length === 0) {
+      this.currentSelection = [];
       const chartDeselectEvent: ChartDeselectPointEvent = new CustomEvent(
         'point-deselected',
         {detail: undefined},

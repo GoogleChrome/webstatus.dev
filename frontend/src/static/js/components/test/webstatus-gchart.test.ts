@@ -63,6 +63,8 @@ describe('webstatus-gchart', () => {
       'webstatus-gchart',
     ) as WebstatusGChart;
 
+    component.currentSelection = [{row: 0, column: 1}];
+
     await loaderComponent.updateComplete;
     await loaderComponent.waitForGChartsLibraryLoaded();
     await component.updateComplete;
@@ -77,8 +79,10 @@ describe('webstatus-gchart', () => {
   });
 
   it('redraws the chart on resize', async () => {
-    // Spy on the chartWrapper.draw method (make sure chartWrapper is initialized)
+    // Spy on the chartWrapper.draw and setSelection methods (make sure chartWrapper is initialized)
     const drawSpy = sinon.spy(component.chartWrapper!, 'draw');
+    const mockChart = sinon.createStubInstance(google.visualization.LineChart);
+    sinon.stub(component.chartWrapper!, 'getChart').returns(mockChart);
 
     // Simulate a resize
     const resizeObserverCallback = mockResizeObserver.args[0][0];
@@ -90,6 +94,7 @@ describe('webstatus-gchart', () => {
 
     // Assert that chartWrapper.draw was called
     assert.isTrue(drawSpy.calledOnce);
+    assert.isTrue(mockChart.setSelection.calledOnceWith([{row: 0, column: 1}]));
   });
 
   describe('Selection events', () => {
