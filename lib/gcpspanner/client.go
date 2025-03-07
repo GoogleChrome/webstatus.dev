@@ -612,8 +612,10 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) updateWith
 
 // removableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
 type removableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	GetKey(ExternalStruct) ExternalKey
 	DeleteKey(ExternalKey) spanner.Key
+	Table() string
 }
 
 // entityRemover is a basic client for removing any row from the database.

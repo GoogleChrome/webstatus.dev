@@ -79,5 +79,5 @@ func (c *Client) AddUserSearchBookmark(ctx context.Context, req UserSavedSearchB
 }
 
 func (c *Client) DeleteUserSearchBookmark(ctx context.Context, req UserSavedSearchBookmark) error {
-	return newEntityRemover[userSavedSearchBookmarkMapper](c).remove(ctx, req)
+	return newEntityRemover[userSavedSearchBookmarkMapper, UserSavedSearchBookmark](c).remove(ctx, req)
 }
