@@ -19,6 +19,7 @@ import {SinonStub, SinonStubbedInstance, stub} from 'sinon';
 import {WebstatusStatsMissingOneImplChartPanel} from '../webstatus-stats-missing-one-impl-chart-panel.js'; // Path to your component
 import {APIClient, BrowserReleaseFeatureMetric} from '../../api/client.js';
 import {WebstatusLineChartPanel} from '../webstatus-line-chart-panel.js';
+import {ChartSelectPointEvent} from '../webstatus-gchart.js';
 
 import '../webstatus-stats-missing-one-impl-chart-panel.js';
 
@@ -139,12 +140,15 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       '#missing-one-implementation-chart',
     )!;
 
-    // Simulate point-selected event on the chart component
-    chart.dispatchEvent(
-      new CustomEvent('point-selected', {
+    const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
+      'point-selected',
+      {
         detail: {label: 'Test Label', timestamp: new Date(), value: 123},
-      }),
+        bubbles: true,
+      },
     );
+    // Simulate point-selected event on the chart component
+    chart.dispatchEvent(chartClickEvent);
     await el.updateComplete;
 
     // Assert that the task and renderer are set (no need to wait for the event)
