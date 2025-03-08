@@ -773,7 +773,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BasicErrorModel'
+                $ref: '#/components/schemas/ExtendedErrorModel'
         '401':
           description: Unauthorized
           content:
@@ -1231,12 +1231,15 @@ components:
         name:
           type: string
           minLength: 1
+          maxLength: 32
         description:
           type: string
           minLength: 1
+          maxLength: 1024
         query:
           type: string
           minLength: 1
+          maxLength: 256
       required:
         - name
         - query
@@ -1342,10 +1345,12 @@ components:
         - $ref: '#/components/schemas/BasicErrorModel'
         - type: object
           required:
-            - rootCause
+            - errors
           properties:
-            rootCause:
-              type: string
+            errors:
+              type: object
+              additionalProperties:
+                type: string
     MissingOneImplFeature: # Schema for a single feature object
       type: object
       properties:
