@@ -229,11 +229,16 @@ export class WebstatusOverviewFilters extends LitElement {
   };
 
   gotoFilterQueryString(): void {
-    const newUrl = formatOverviewPageUrl(this.location, {
+    const oldPath = window.location.pathname + window.location.search;
+
+    const newPath = formatOverviewPageUrl(this.location, {
       q: (this.typeaheadRef.value as WebstatusTypeahead).value,
       start: 0,
     });
-    window.location.href = newUrl;
+
+    if (oldPath !== newPath) {
+      window.location.href = newPath;
+    }
   }
 
   protected firstUpdated(): void {
