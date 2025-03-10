@@ -25,7 +25,7 @@ import {Task} from '@lit/task';
 import {WebStatusDataObj, WebstatusGChart} from '../webstatus-gchart.js';
 import {TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {createMockIterator, taskUpdateComplete} from './test-helpers.test.js';
+import {createMockIterator, taskUpdateComplete} from './test-helpers.js';
 
 // Interface for the data used in LineChartMetricData
 interface MetricDataPoint {

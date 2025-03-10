@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
+import {playwrightLauncher} from '@web/test-runner-playwright';
 const filteredLogs = [
   'Running in dev mode',
   'Lit is in dev mode',
@@ -25,7 +25,6 @@ const filteredLogs = [
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   concurrency: 4,
-  concurrentBrowsers: 1,
   /** Resolve bare module imports */
   nodeResolve: {
     exportConditions: ['browser', 'development'],
@@ -65,4 +64,18 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   testsFinishTimeout: 1000 * 60 * 1, // (1 min)
   // mocha config https://mochajs.org/api/mocha
   testFramework: {config: {timeout: 30000}},
+
+  browsers: [
+    playwrightLauncher({
+      product: 'chromium',
+    }),
+    playwrightLauncher({
+      product: 'firefox',
+      // For some we need to limit the concurrency for Firefox to ensure test stability.
+      concurrency: 1,
+    }),
+    playwrightLauncher({
+      product: 'webkit',
+    }),
+  ],
 });
