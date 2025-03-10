@@ -29,7 +29,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/lib/wptfyi"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
-	"github.com/google/go-github/v65/github"
+	"github.com/google/go-github/v69/github"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 

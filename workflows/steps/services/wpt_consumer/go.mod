@@ -10,7 +10,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250310151938-41442aba41c5
-	github.com/google/go-github/v65 v65.0.0
+	github.com/google/go-github/v69 v69.2.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20250310154101-9f8c3184b14e
 )
 
@@ -46,7 +46,6 @@ require (
 	github.com/go-openapi/swag v0.23.0 // indirect
 	github.com/golang/groupcache v0.0.0-20241129210726-2c02b8208cf8 // indirect
 	github.com/gomodule/redigo v1.9.2 // indirect
-	github.com/google/go-github/v69 v69.2.0 // indirect
 	github.com/google/go-querystring v1.1.0 // indirect
 	github.com/google/s2a-go v0.1.9 // indirect
 	github.com/google/uuid v1.6.0 // indirect
