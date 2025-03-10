@@ -18,6 +18,7 @@ import {assert, fixture, html} from '@open-wc/testing';
 
 import {type AppSettings} from '../../contexts/settings-context.js';
 import {type WebstatusApp} from '../webstatus-app.js';
+import '../webstatus-app.js';
 
 describe('webstatus-app', () => {
   it('can be added to the page with the settings', async () => {
