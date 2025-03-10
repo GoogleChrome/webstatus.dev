@@ -79,6 +79,19 @@ type mockListMissingOneImplCountsConfig struct {
 	returnedError error
 }
 
+type mockCreateNewUserSavedSearchConfig struct {
+	expectedNewSearch gcpspanner.CreateUserSavedSearchRequest
+	result            *string
+	returnedError     error
+}
+
+type mockGetUserSavedSearchConfig struct {
+	expectedSavedSearchID       string
+	expectedAuthenticatedUserID *string
+	result                      *gcpspanner.UserSavedSearch
+	returnedError               error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -90,8 +103,19 @@ type mockBackendSpannerClient struct {
 	mockListBrowserFeatureCountMetricCfg mockListBrowserFeatureCountMetricConfig
 	mockListMissingOneImplCountsCfg      mockListMissingOneImplCountsConfig
 	mockListBaselineStatusCountsCfg      mockListBaselineStatusCountsConfig
+	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
+	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
 	pageToken                            *string
 	err                                  error
+}
+
+func (c mockBackendSpannerClient) CreateNewUserSavedSearch(
+	_ context.Context, newSearch gcpspanner.CreateUserSavedSearchRequest) (*string, error) {
+	if !reflect.DeepEqual(newSearch, c.mockCreateNewUserSavedSearchCfg.expectedNewSearch) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockCreateNewUserSavedSearchCfg.result, c.mockCreateNewUserSavedSearchCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) GetFeature(
@@ -265,6 +289,18 @@ func (c mockBackendSpannerClient) ListBaselineStatusCounts(
 	}
 
 	return c.mockListBaselineStatusCountsCfg.result, c.mockListBaselineStatusCountsCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) GetUserSavedSearch(
+	_ context.Context, id string, authenticatedUserID *string) (
+	*gcpspanner.UserSavedSearch, error) {
+	if id != c.mockGetUserSavedSearchCfg.expectedSavedSearchID ||
+		!reflect.DeepEqual(authenticatedUserID, c.mockGetUserSavedSearchCfg.expectedAuthenticatedUserID) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockGetUserSavedSearchCfg.result, c.mockGetUserSavedSearchCfg.returnedError
+
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
@@ -1356,6 +1392,157 @@ func TestGetFeature(t *testing.T) {
 				t.Error("unexpected feature")
 			}
 
+		})
+	}
+}
+
+func TestCreateUserSavedSearch(t *testing.T) {
+	testError := errors.New("test error")
+	testCases := []struct {
+		name           string
+		createCfg      *mockCreateNewUserSavedSearchConfig
+		getCfg         *mockGetUserSavedSearchConfig
+		inputUserID    string
+		savedSearch    backend.SavedSearch
+		expectedOutput *backend.SavedSearchResponse
+		expectedError  error
+	}{
+		{
+			name:        "success",
+			inputUserID: "user1",
+			savedSearch: backend.SavedSearch{
+				Name:        "test search",
+				Description: valuePtr("test description"),
+				Query:       "test query",
+			},
+			createCfg: &mockCreateNewUserSavedSearchConfig{
+				expectedNewSearch: gcpspanner.CreateUserSavedSearchRequest{
+					OwnerUserID: "user1",
+					Query:       "test query",
+					Name:        "test search",
+					Description: valuePtr("test description"),
+				},
+				result:        valuePtr("saved-search-id"),
+				returnedError: nil,
+			},
+			getCfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: valuePtr("user1"),
+				expectedSavedSearchID:       "saved-search-id",
+				result: &gcpspanner.UserSavedSearch{
+					SavedSearch: gcpspanner.SavedSearch{
+						Name:        "test search",
+						Description: valuePtr("test description"),
+						Query:       "test query",
+						Scope:       gcpspanner.UserPublicScope,
+						AuthorID:    "user1",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						ID:          "saved-search-id",
+					},
+					Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
+					IsBookmarked: valuePtr(true),
+				},
+				returnedError: nil,
+			},
+			expectedOutput: &backend.SavedSearchResponse{
+				Id:          "saved-search-id",
+				CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Name:        "test search",
+				Description: valuePtr("test description"),
+				Query:       "test query",
+			},
+			expectedError: nil,
+		},
+		{
+			name:        "limit failure",
+			inputUserID: "user1",
+			savedSearch: backend.SavedSearch{
+				Name:        "test search",
+				Description: valuePtr("test description"),
+				Query:       "test query",
+			},
+			createCfg: &mockCreateNewUserSavedSearchConfig{
+				expectedNewSearch: gcpspanner.CreateUserSavedSearchRequest{
+					OwnerUserID: "user1",
+					Query:       "test query",
+					Name:        "test search",
+					Description: valuePtr("test description"),
+				},
+				result:        nil,
+				returnedError: gcpspanner.ErrOwnerSavedSearchLimitExceeded,
+			},
+			getCfg:         nil,
+			expectedOutput: nil,
+			expectedError:  backendtypes.ErrUserMaxSavedSearches,
+		},
+		{
+			name:        "general create failure",
+			inputUserID: "user1",
+			savedSearch: backend.SavedSearch{
+				Name:        "test search",
+				Description: valuePtr("test description"),
+				Query:       "test query",
+			},
+			createCfg: &mockCreateNewUserSavedSearchConfig{
+				expectedNewSearch: gcpspanner.CreateUserSavedSearchRequest{
+					OwnerUserID: "user1",
+					Query:       "test query",
+					Name:        "test search",
+					Description: valuePtr("test description"),
+				},
+				result:        nil,
+				returnedError: testError,
+			},
+			getCfg:         nil,
+			expectedOutput: nil,
+			expectedError:  testError,
+		},
+		{
+			name:        "general get failure",
+			inputUserID: "user1",
+			savedSearch: backend.SavedSearch{
+				Name:        "test search",
+				Description: valuePtr("test description"),
+				Query:       "test query",
+			},
+			createCfg: &mockCreateNewUserSavedSearchConfig{
+				expectedNewSearch: gcpspanner.CreateUserSavedSearchRequest{
+					OwnerUserID: "user1",
+					Query:       "test query",
+					Name:        "test search",
+					Description: valuePtr("test description"),
+				},
+				result:        valuePtr("saved-search-id"),
+				returnedError: nil,
+			},
+			getCfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: valuePtr("user1"),
+				expectedSavedSearchID:       "saved-search-id",
+				result:                      nil,
+				returnedError:               testError,
+			},
+			expectedOutput: nil,
+			expectedError:  testError,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                               t,
+				mockCreateNewUserSavedSearchCfg: tc.createCfg,
+				mockGetUserSavedSearchCfg:       tc.getCfg,
+			}
+			bk := NewBackend(mock)
+			output, err := bk.CreateUserSavedSearch(context.Background(), tc.inputUserID, tc.savedSearch)
+			if !errors.Is(err, tc.expectedError) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(output, tc.expectedOutput) {
+				t.Error("unexpected output")
+			}
 		})
 	}
 }

@@ -21,4 +21,8 @@ var (
 	// Raised by the adapter layer to let the server layer know that the
 	// page token did not meet the expected encoding in the database layer.
 	ErrInvalidPageToken = errors.New("invalid page token")
+
+	// ErrUserMaxSavedSearches indicates the user has reached the maximum
+	// number of allowed saved searches.
+	ErrUserMaxSavedSearches = errors.New("user has reached the maximum number of allowed saved searches")
 )
