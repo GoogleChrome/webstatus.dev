@@ -22,6 +22,7 @@ import (
 	"net/http"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
@@ -117,6 +118,13 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 
 	output, err := s.wptMetricsStorer.CreateUserSavedSearch(ctx, user.ID, *request.Body)
 	if err != nil {
+		if errors.Is(err, backendtypes.ErrUserMaxSavedSearches) {
+			return backend.CreateSavedSearch403JSONResponse{
+				Code:    http.StatusForbidden,
+				Message: "user has reached the maximum number of allowed saved searches",
+			}, nil
+		}
+
 		slog.ErrorContext(ctx, "unable to create user saved search", "error", err)
 
 		return backend.CreateSavedSearch500JSONResponse{

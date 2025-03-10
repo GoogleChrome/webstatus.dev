@@ -15,6 +15,7 @@
 package httpserver
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -22,6 +23,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -190,6 +192,56 @@ func TestCreateSavedSearch(t *testing.T) {
 					},
 					"message":"input validation errors"
 				}`),
+		},
+		{
+			name: "general creation error",
+			mockCreateUserSavedSearchConfig: &MockCreateUserSavedSearchConfig{
+				expectedSavedSearch: backend.SavedSearch{
+					Name:        "test name",
+					Query:       `name:"test"`,
+					Description: nil,
+				},
+				expectedUserID: "testID1",
+				output:         nil,
+				err:            errTest,
+			},
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequest(
+				http.MethodPost,
+				"/v1/saved-searches",
+				strings.NewReader(`{"query": "name:\"test\"", "name" : "test name"}`),
+			),
+			expectedResponse: testJSONResponse(500,
+				`{
+					"code":500,
+					"message":"unable to create user saved search"
+				}`,
+			),
+		},
+		{
+			name: "user limit exceeded error",
+			mockCreateUserSavedSearchConfig: &MockCreateUserSavedSearchConfig{
+				expectedSavedSearch: backend.SavedSearch{
+					Name:        "test name",
+					Query:       `name:"test"`,
+					Description: nil,
+				},
+				expectedUserID: "testID1",
+				output:         nil,
+				err:            errors.Join(backendtypes.ErrUserMaxSavedSearches, errTest),
+			},
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequest(
+				http.MethodPost,
+				"/v1/saved-searches",
+				strings.NewReader(`{"query": "name:\"test\"", "name" : "test name"}`),
+			),
+			expectedResponse: testJSONResponse(403,
+				`{
+					"code":403,
+					"message":"user has reached the maximum number of allowed saved searches"
+				}`,
+			),
 		},
 		{
 			name: "successful with name and query",
