@@ -154,6 +154,13 @@ type MockListBaselineStatusCountsConfig struct {
 	err               error
 }
 
+type MockCreateUserSavedSearchConfig struct {
+	expectedSavedSearch backend.SavedSearch
+	expectedUserID      string
+	output              *backend.SavedSearchResponse
+	err                 error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
@@ -164,6 +171,7 @@ type MockWPTMetricsStorer struct {
 	listChromiumDailyUsageStatsCfg                    *MockListChromiumDailyUsageStatsConfig
 	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         *MockGetIDFromFeatureKeyConfig
+	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListBaselineStatusCounts                 int
@@ -173,6 +181,7 @@ type MockWPTMetricsStorer struct {
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
 	callCountGetFeature                               int
+	callCountCreateUserSavedSearch                    int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -373,6 +382,22 @@ func (m *MockWPTMetricsStorer) ListBaselineStatusCounts(
 	return m.listBaselineStatusCountsCfg.page, m.listBaselineStatusCountsCfg.err
 }
 
+func (m *MockWPTMetricsStorer) CreateUserSavedSearch(
+	_ context.Context,
+	userID string,
+	savedSearch backend.SavedSearch,
+) (*backend.SavedSearchResponse, error) {
+	m.callCountCreateUserSavedSearch++
+
+	if !reflect.DeepEqual(savedSearch, m.createUserSavedSearchCfg.expectedSavedSearch) ||
+		userID != m.createUserSavedSearchCfg.expectedUserID {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v %s }",
+			m.createUserSavedSearchCfg.expectedSavedSearch, savedSearch, userID)
+	}
+
+	return m.createUserSavedSearchCfg.output, m.createUserSavedSearchCfg.err
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -484,12 +509,39 @@ func assertMocksExpectations(t *testing.T, expectedCallCount, actualCallCount in
 	mockCacher.AssertExpectations()
 }
 
-func assertTestServerRequest(t *testing.T, srv *Server, req *http.Request, expectedResponse *http.Response) {
-	srvStrictHandler := backend.NewStrictHandler(srv, nil)
-	r := http.NewServeMux()
-	h := backend.HandlerFromMux(srvStrictHandler, r)
+type testServerConfig struct {
+	authMiddleware func(http.Handler) http.Handler
+}
+
+type testServerOption func(*testServerConfig)
+
+func withAuthMiddleware(middleware func(http.Handler) http.Handler) testServerOption {
+	return func(c *testServerConfig) {
+		c.authMiddleware = middleware
+	}
+}
+
+func noopMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		next.ServeHTTP(w, req)
+	})
+}
+
+func assertTestServerRequest(t *testing.T, testServer *Server, req *http.Request, expectedResponse *http.Response,
+	options ...testServerOption) {
+	testServerConfig := &testServerConfig{
+		authMiddleware: noopMiddleware,
+	}
+
+	for _, option := range options {
+		option(testServerConfig)
+	}
+
+	srv := createOpenAPIServerServer("", testServer, []func(http.Handler) http.Handler{
+		recoveryMiddleware}, testServerConfig.authMiddleware)
+
 	w := httptest.NewRecorder()
-	h.ServeHTTP(w, req)
+	srv.Handler.ServeHTTP(w, req)
 
 	resp := w.Result()
 
