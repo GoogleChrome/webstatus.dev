@@ -140,3 +140,14 @@ func TestAuthScopePresentWhenSecurityConfigured(t *testing.T) {
 func TestAuthScopeAbsentWhenSecurityNotConfigured(t *testing.T) {
 	testAuthScope(t, "/v1/features", http.MethodGet, false, nil)
 }
+
+func mockAuthMiddleware(u *auth.User) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if u != nil {
+				r = r.WithContext(httpmiddlewares.AuthenticatedUserToContext(r.Context(), u))
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}

@@ -105,6 +105,8 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.BaselineStatusMetricsPage, error)
+	CreateUserSavedSearch(ctx context.Context, userID string,
+		savedSearch backend.SavedSearch) (*backend.SavedSearchResponse, error)
 }
 
 type Server struct {
@@ -130,16 +132,6 @@ func (s *Server) UpdateSavedSearch(
 	ctx context.Context, request backend.UpdateSavedSearchRequestObject) (
 	backend.UpdateSavedSearchResponseObject, error) {
 	return backend.UpdateSavedSearch400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-	}, nil
-}
-
-// CreateSavedSearch implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSavedSearchRequestObject) (
-	backend.CreateSavedSearchResponseObject, error) {
-	return backend.CreateSavedSearch400JSONResponse{
 		Code:    http.StatusBadRequest,
 		Message: "TODO",
 	}, nil
