@@ -102,6 +102,13 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) (*gcpspanner.BaselineStatusCountResultPage, error)
+	CreateNewUserSavedSearch(
+		ctx context.Context,
+		newSearch gcpspanner.CreateUserSavedSearchRequest) (*string, error)
+	GetUserSavedSearch(
+		ctx context.Context,
+		savedSearchID string,
+		authenticatedUserID *string) (*gcpspanner.UserSavedSearch, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -358,6 +365,37 @@ func (s *Backend) ListBaselineStatusCounts(
 			NextPageToken: spannerPage.NextPageToken,
 		},
 		Data: backendData,
+	}, nil
+}
+
+func (s *Backend) CreateUserSavedSearch(ctx context.Context, userID string,
+	savedSearch backend.SavedSearch) (*backend.SavedSearchResponse, error) {
+	output, err := s.client.CreateNewUserSavedSearch(ctx, gcpspanner.CreateUserSavedSearchRequest{
+		OwnerUserID: userID,
+		Query:       savedSearch.Query,
+		Name:        savedSearch.Name,
+		Description: savedSearch.Description,
+	})
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrOwnerSavedSearchLimitExceeded) {
+			return nil, errors.Join(err, backendtypes.ErrUserMaxSavedSearches)
+		}
+
+		return nil, err
+	}
+
+	createdSavedSearch, err := s.client.GetUserSavedSearch(ctx, *output, &userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &backend.SavedSearchResponse{
+		Id:          *output,
+		CreatedAt:   createdSavedSearch.CreatedAt,
+		UpdatedAt:   createdSavedSearch.UpdatedAt,
+		Name:        createdSavedSearch.Name,
+		Query:       createdSavedSearch.Query,
+		Description: createdSavedSearch.Description,
 	}, nil
 }
 
