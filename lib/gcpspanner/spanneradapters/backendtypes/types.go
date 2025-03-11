@@ -25,4 +25,10 @@ var (
 	// ErrUserMaxSavedSearches indicates the user has reached the maximum
 	// number of allowed saved searches.
 	ErrUserMaxSavedSearches = errors.New("user has reached the maximum number of allowed saved searches")
+
+	// ErrUserNotAuthorizedForAction indicates the user is not authorized to execute the requested action.
+	ErrUserNotAuthorizedForAction = errors.New("user not authorized to execute action")
+
+	// ErrEntityDoesNotExist indicates the entity does not exist.
+	ErrEntityDoesNotExist = errors.New("entity does not exist")
 )

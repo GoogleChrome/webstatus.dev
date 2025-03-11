@@ -56,8 +56,19 @@ type DeleteUserSavedSearchRequest struct {
 // DeleteUserSavedSearch deletes a user's saved search.
 func (c *Client) DeleteUserSavedSearch(ctx context.Context, req DeleteUserSavedSearchRequest) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		// 1. Check if the user has permission to delete (OWNER role)
-		err := c.checkForSavedSearchRole(ctx, txn, SavedSearchOwner, req.RequestingUserID, req.SavedSearchID)
+		// 1. Check if the saved search exists
+		_, err := newEntityReader[
+			authenticatedUserSavedSearchMapper, UserSavedSearch, authenticatedUserSavedSearchMapperKey](c).
+			readRowByKeyWithTransaction(ctx, authenticatedUserSavedSearchMapperKey{
+				UserID: req.RequestingUserID,
+				ID:     req.SavedSearchID,
+			}, txn)
+		if err != nil {
+			return err
+		}
+
+		// 2. Check if the user has permission to delete (OWNER role)
+		err = c.checkForSavedSearchRole(ctx, txn, SavedSearchOwner, req.RequestingUserID, req.SavedSearchID)
 		if err != nil {
 			return err
 		}

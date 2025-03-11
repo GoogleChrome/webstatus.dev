@@ -85,4 +85,14 @@ func TestDeleteUserSavedSearch(t *testing.T) {
 			t.Errorf("expected ErrQueryReturnedNoResults. received %s", err)
 		}
 	})
+
+	t.Run("non existent search returns ErrQueryReturnedNoResults", func(t *testing.T) {
+		err := spannerClient.DeleteUserSavedSearch(ctx, DeleteUserSavedSearchRequest{
+			RequestingUserID: "userID1",
+			SavedSearchID:    "bad-id",
+		})
+		if !errors.Is(err, ErrQueryReturnedNoResults) {
+			t.Errorf("expected ErrQueryReturnedNoResults. received %s", err)
+		}
+	})
 }

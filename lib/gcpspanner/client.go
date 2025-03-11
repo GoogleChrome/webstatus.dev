@@ -386,16 +386,31 @@ func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalK
 	return id, nil
 }
 
-// readRowByKey retrieves the row of an entity based on its external key.
+// transaction implements the transaction interface that either
+// ReadWriteTransaction or ReadOnlyTransaction implement.
+type transaction interface {
+	Query(ctx context.Context, statement spanner.Statement) *spanner.RowIterator
+}
+
 func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByKey(
 	ctx context.Context,
 	key ExternalKey,
 ) (*SpannerStruct, error) {
+	txn := c.Single()
+	defer txn.Close()
+
+	return c.readRowByKeyWithTransaction(ctx, key, txn)
+}
+
+// readRowByKey retrieves the row of an entity based on its external key with transaction.
+func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByKeyWithTransaction(
+	ctx context.Context,
+	key ExternalKey,
+	txn transaction,
+) (*SpannerStruct, error) {
 	var mapper M
 	stmt := mapper.SelectOne(key)
 	// Attempt to query for the row.
-	txn := c.Single()
-	defer txn.Close()
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 	row, err := it.Next()

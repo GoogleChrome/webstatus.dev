@@ -92,6 +92,11 @@ type mockGetUserSavedSearchConfig struct {
 	returnedError               error
 }
 
+type mockDeleteUserSavedSearchConfig struct {
+	expectedDeleteRequest gcpspanner.DeleteUserSavedSearchRequest
+	returnedError         error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -105,6 +110,7 @@ type mockBackendSpannerClient struct {
 	mockListBaselineStatusCountsCfg      mockListBaselineStatusCountsConfig
 	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
 	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
+	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
 	pageToken                            *string
 	err                                  error
 }
@@ -301,6 +307,15 @@ func (c mockBackendSpannerClient) GetUserSavedSearch(
 
 	return c.mockGetUserSavedSearchCfg.result, c.mockGetUserSavedSearchCfg.returnedError
 
+}
+
+func (c mockBackendSpannerClient) DeleteUserSavedSearch(
+	_ context.Context, req gcpspanner.DeleteUserSavedSearchRequest) error {
+	if !reflect.DeepEqual(req, c.mockDeleteUserSavedSearchCfg.expectedDeleteRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockDeleteUserSavedSearchCfg.returnedError
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
@@ -1542,6 +1557,84 @@ func TestCreateUserSavedSearch(t *testing.T) {
 
 			if !reflect.DeepEqual(output, tc.expectedOutput) {
 				t.Error("unexpected output")
+			}
+		})
+	}
+}
+
+func TestDeleteUserSavedSearch(t *testing.T) {
+	testCases := []struct {
+		name          string
+		cfg           *mockDeleteUserSavedSearchConfig
+		userID        string
+		savedSearchID string
+		expectedErr   error
+	}{
+		{
+			name: "success",
+			cfg: &mockDeleteUserSavedSearchConfig{
+				expectedDeleteRequest: gcpspanner.DeleteUserSavedSearchRequest{
+					RequestingUserID: "user1",
+					SavedSearchID:    "saved-search-id",
+				},
+				returnedError: nil,
+			},
+			userID:        "user1",
+			savedSearchID: "saved-search-id",
+			expectedErr:   nil,
+		},
+		{
+			name: "general failure",
+			cfg: &mockDeleteUserSavedSearchConfig{
+				expectedDeleteRequest: gcpspanner.DeleteUserSavedSearchRequest{
+					RequestingUserID: "user1",
+					SavedSearchID:    "saved-search-id",
+				},
+				returnedError: errTest,
+			},
+			userID:        "user1",
+			savedSearchID: "saved-search-id",
+			expectedErr:   errTest,
+		},
+		{
+			name: "missing required role error",
+			cfg: &mockDeleteUserSavedSearchConfig{
+				expectedDeleteRequest: gcpspanner.DeleteUserSavedSearchRequest{
+					RequestingUserID: "user1",
+					SavedSearchID:    "saved-search-id",
+				},
+				returnedError: gcpspanner.ErrMissingRequiredRole,
+			},
+			userID:        "user1",
+			savedSearchID: "saved-search-id",
+			expectedErr:   backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "entity does not exist error",
+			cfg: &mockDeleteUserSavedSearchConfig{
+				expectedDeleteRequest: gcpspanner.DeleteUserSavedSearchRequest{
+					RequestingUserID: "user1",
+					SavedSearchID:    "saved-search-id",
+				},
+				returnedError: gcpspanner.ErrQueryReturnedNoResults,
+			},
+			userID:        "user1",
+			savedSearchID: "saved-search-id",
+			expectedErr:   backendtypes.ErrEntityDoesNotExist,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                            t,
+				mockDeleteUserSavedSearchCfg: tc.cfg,
+			}
+			bk := NewBackend(mock)
+			err := bk.DeleteUserSavedSearch(context.Background(), tc.userID, tc.savedSearchID)
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("unexpected error %s", err)
 			}
 		})
 	}
