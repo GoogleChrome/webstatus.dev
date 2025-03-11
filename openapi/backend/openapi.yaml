@@ -888,6 +888,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found (saved search does not exist)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
         '500':
           description: Internal Service Error
           content:
