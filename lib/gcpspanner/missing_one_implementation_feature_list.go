@@ -68,6 +68,7 @@ EXISTS (
 AND
 {{ end }}
 1=1
+ORDER BY KEY ASC
 `
 
 type missingOneImplFeatureListTemplateData struct {

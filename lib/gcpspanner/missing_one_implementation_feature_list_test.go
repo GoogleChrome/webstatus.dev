@@ -150,7 +150,7 @@ func testMissingOneImplFeatureListSuite(
 	ctx context.Context,
 	t *testing.T,
 ) {
-	t.Run("bazBrowser ", func(t *testing.T) {
+	t.Run("bazBrowser", func(t *testing.T) {
 		const targetBrowser = "bazBrowser"
 		otherBrowsers := []string{
 			"fooBrowser",
