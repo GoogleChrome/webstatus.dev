@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// nolint:dupl // WONTFIX - false positive
+// nolint:dupl // WONTFIX
 func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T, client *Client) {
 	webFeatures := []WebFeature{
 		{FeatureKey: "FeatureX", Name: "Cool API"},
