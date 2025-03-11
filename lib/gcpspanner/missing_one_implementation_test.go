@@ -22,6 +22,7 @@ import (
 	"time"
 )
 
+// nolint:dupl // WONTFIX
 func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, client *Client) {
 	webFeatures := []WebFeature{
 		{FeatureKey: "FeatureX", Name: "Cool API"},
