@@ -107,23 +107,13 @@ type WPTMetricsStorer interface {
 	) (*backend.BaselineStatusMetricsPage, error)
 	CreateUserSavedSearch(ctx context.Context, userID string,
 		savedSearch backend.SavedSearch) (*backend.SavedSearchResponse, error)
+	DeleteUserSavedSearch(ctx context.Context, userID, savedSearchID string) error
 }
 
 type Server struct {
 	metadataStorer          WebFeatureMetadataStorer
 	wptMetricsStorer        WPTMetricsStorer
 	operationResponseCaches *operationResponseCaches
-}
-
-// RemoveSavedSearch implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) RemoveSavedSearch(
-	ctx context.Context, request backend.RemoveSavedSearchRequestObject) (
-	backend.RemoveSavedSearchResponseObject, error) {
-	return backend.RemoveSavedSearch400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-	}, nil
 }
 
 // UpdateSavedSearch implements backend.StrictServerInterface.

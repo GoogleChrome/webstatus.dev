@@ -161,6 +161,12 @@ type MockCreateUserSavedSearchConfig struct {
 	err                 error
 }
 
+type MockDeleteUserSavedSearchConfig struct {
+	expectedSavedSearchID string
+	expectedUserID        string
+	err                   error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
@@ -172,6 +178,7 @@ type MockWPTMetricsStorer struct {
 	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         *MockGetIDFromFeatureKeyConfig
 	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
+	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListBaselineStatusCounts                 int
@@ -182,6 +189,7 @@ type MockWPTMetricsStorer struct {
 	callCountListMetricsOverTimeWithAggregatedTotals  int
 	callCountGetFeature                               int
 	callCountCreateUserSavedSearch                    int
+	callCountDeleteUserSavedSearch                    int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -398,6 +406,23 @@ func (m *MockWPTMetricsStorer) CreateUserSavedSearch(
 	return m.createUserSavedSearchCfg.output, m.createUserSavedSearchCfg.err
 }
 
+func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(
+	_ context.Context,
+	userID string,
+	savedSearchID string,
+) error {
+	m.callCountDeleteUserSavedSearch++
+
+	if userID != m.deleteUserSavedSearchCfg.expectedUserID ||
+		savedSearchID != m.deleteUserSavedSearchCfg.expectedSavedSearchID {
+		m.t.Errorf("Incorrect arguments. Expected: ( %s %s ), Got: { %s %s }",
+			m.deleteUserSavedSearchCfg.expectedUserID, m.deleteUserSavedSearchCfg.expectedSavedSearchID,
+			userID, savedSearchID)
+	}
+
+	return m.deleteUserSavedSearchCfg.err
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -459,14 +484,14 @@ func assertResponseBody(t *testing.T, actual, expected io.Reader) {
 
 	if actual == nil && expected != nil {
 		expectedBody, _ := io.ReadAll(expected)
-		t.Errorf("expected a body. received no response body %s", string(expectedBody))
+		t.Errorf("expected a body. received no response body (%s)", string(expectedBody))
 
 		return
 	}
 
 	if actual != nil && expected == nil {
 		actualBody, _ := io.ReadAll(actual)
-		t.Errorf("expected no body. received response body %s", string(actualBody))
+		t.Errorf("expected no body. received response body (%s)", string(actualBody))
 
 		return
 	}
@@ -479,6 +504,11 @@ func assertResponseBody(t *testing.T, actual, expected io.Reader) {
 	expectedBody, err := io.ReadAll(expected)
 	if err != nil {
 		t.Fatal("failed to read expected body")
+	}
+
+	if string(actualBody) == "" && string(expectedBody) == "" {
+		// Both empty, no need to compare
+		return
 	}
 
 	compareJSONBodies(t, actualBody, expectedBody)
