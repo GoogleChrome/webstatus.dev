@@ -257,8 +257,14 @@ func TestCreateSavedSearch(t *testing.T) {
 					Name:        "test name",
 					Query:       `name:"test"`,
 					Description: nil,
-					CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-					UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Permissions: &backend.UserSavedSearchPermissions{
+						Role: valuePtr(backend.SavedSearchOwner),
+					},
+					BookmarkStatus: &backend.UserSavedSearchBookmark{
+						Status: backend.BookmarkActive,
+					},
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				err: nil,
 			},
@@ -274,7 +280,9 @@ func TestCreateSavedSearch(t *testing.T) {
 					"id":"searchID1",
 					"name":"test name",
 					"query":"name:\"test\"",
-					"updated_at":"2000-01-01T00:00:00Z"
+					"updated_at":"2000-01-01T00:00:00Z",
+					"bookmark_status":{"status":"bookmark_active"},
+					"permissions":{"role":"saved_search_owner"}
 				}`,
 			),
 		},
@@ -292,8 +300,14 @@ func TestCreateSavedSearch(t *testing.T) {
 					Name:        "test name",
 					Query:       `name:"test"`,
 					Description: valuePtr("test description"),
-					CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-					UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					Permissions: &backend.UserSavedSearchPermissions{
+						Role: valuePtr(backend.SavedSearchOwner),
+					},
+					BookmarkStatus: &backend.UserSavedSearchBookmark{
+						Status: backend.BookmarkActive,
+					},
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				err: nil,
 			},
@@ -316,7 +330,9 @@ func TestCreateSavedSearch(t *testing.T) {
 					"name":"test name",
 					"description" : "test description",
 					"query":"name:\"test\"",
-					"updated_at":"2000-01-01T00:00:00Z"
+					"updated_at":"2000-01-01T00:00:00Z",
+					"bookmark_status":{"status":"bookmark_active"},
+					"permissions":{"role":"saved_search_owner"}
 				}`,
 			),
 		},

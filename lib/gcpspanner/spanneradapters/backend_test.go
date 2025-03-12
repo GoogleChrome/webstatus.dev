@@ -1466,6 +1466,12 @@ func TestCreateUserSavedSearch(t *testing.T) {
 				Name:        "test search",
 				Description: valuePtr("test description"),
 				Query:       "test query",
+				Permissions: &backend.UserSavedSearchPermissions{
+					Role: valuePtr(backend.SavedSearchOwner),
+				},
+				BookmarkStatus: &backend.UserSavedSearchBookmark{
+					Status: backend.BookmarkActive,
+				},
 			},
 			expectedError: nil,
 		},

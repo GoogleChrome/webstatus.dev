@@ -568,28 +568,6 @@ paths:
       parameters:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
-        - in: query
-          name: role
-          schema:
-            type: string
-            enum:
-              - owner
-          description: Filter by role (currently only 'owner' is supported).
-        - in: query
-          name: bookmark_status
-          schema:
-            type: string
-            enum:
-              - active
-          description: Filter by bookmark status (currently only 'active' is supported).
-        - in: query
-          name: sort
-          schema:
-            type: string
-            enum:
-              - search_updated_at_asc
-              - search_updated_at_desc
-          description: Sort order to apply to the results.
       security:
         - bearerAuth:
       responses:
@@ -1264,22 +1242,39 @@ components:
         query:
           type: string
           minLength: 1
+    UserSavedSearchBookmarkStatus:
+      type: string
+      description: |
+        The bookmark status for a saved search for a user.
+      enum:
+        - bookmark_none
+        - bookmark_active
     UserSavedSearchBookmark:
       type: object
       properties:
         status:
-          type: string
-          description: |
-            The bookmark status for a saved search for a user.
-          enum:
-            - none
-            - active
+          $ref: '#/components/schemas/UserSavedSearchBookmarkStatus'
       required:
         - status
     SavedSearchResponse:
       allOf:
         - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
         - $ref: '#/components/schemas/SavedSearch'
+        - type: object
+          properties:
+            permissions:
+              $ref: '#/components/schemas/UserSavedSearchPermissions'
+            bookmark_status:
+              $ref: '#/components/schemas/UserSavedSearchBookmark'
+    UserSavedSearchRole:
+      type: string
+      enum:
+        - saved_search_owner
+    UserSavedSearchPermissions:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/UserSavedSearchRole'
     UserSavedSearchPage:
       type: object
       properties:

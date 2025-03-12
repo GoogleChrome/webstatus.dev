@@ -391,13 +391,46 @@ func (s *Backend) CreateUserSavedSearch(ctx context.Context, userID string,
 	}
 
 	return &backend.SavedSearchResponse{
-		Id:          *output,
-		CreatedAt:   createdSavedSearch.CreatedAt,
-		UpdatedAt:   createdSavedSearch.UpdatedAt,
-		Name:        createdSavedSearch.Name,
-		Query:       createdSavedSearch.Query,
-		Description: createdSavedSearch.Description,
+		Id:             *output,
+		CreatedAt:      createdSavedSearch.CreatedAt,
+		UpdatedAt:      createdSavedSearch.UpdatedAt,
+		Name:           createdSavedSearch.Name,
+		Query:          createdSavedSearch.Query,
+		Description:    createdSavedSearch.Description,
+		BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(createdSavedSearch.IsBookmarked),
+		Permissions:    convertSavedSearchRoleFromGCP(createdSavedSearch.Role),
 	}, nil
+}
+
+func convertSavedSearchIsBookmarkedFromGCP(isBookmarked *bool) *backend.UserSavedSearchBookmark {
+	if isBookmarked == nil {
+		return nil
+	}
+
+	status := backend.BookmarkNone
+	if *isBookmarked {
+		status = backend.BookmarkActive
+	}
+
+	return &backend.UserSavedSearchBookmark{
+		Status: status,
+	}
+}
+
+// Roles can be found in lib/gcpspanner/saved_search_user_roles.go.
+func convertSavedSearchRoleFromGCP(role *string) *backend.UserSavedSearchPermissions {
+	if role == nil {
+		return nil
+	}
+
+	switch gcpspanner.SavedSearchRole(*role) {
+	case gcpspanner.SavedSearchOwner:
+		return &backend.UserSavedSearchPermissions{
+			Role: valuePtr(backend.SavedSearchOwner),
+		}
+	}
+
+	return nil
 }
 
 func (s *Backend) DeleteUserSavedSearch(ctx context.Context, userID, savedSearchID string) error {
