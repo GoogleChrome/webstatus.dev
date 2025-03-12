@@ -55,9 +55,9 @@ export const navigateToUrl = (url: string, event?: MouseEvent) => {
     return;
   }
 
-  const oldPath = window.location.pathname + window.location.search;
-  if (oldPath === url) {
-    return; // Prevents unnecessary navigation
+  const currentUrl = window.location.href;
+  if (currentUrl === url) {
+    return;
   }
 
   // TODO. We should use the vaadin router and use the navigate method there.
