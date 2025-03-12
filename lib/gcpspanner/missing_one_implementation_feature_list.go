@@ -46,13 +46,13 @@ type missingOneImplFeatureListCursor struct {
 	Offset int `json:"offset"`
 }
 
-// decodemissingOneImplFeatureListCursor provides a wrapper around the generic decodeCursor.
-func decodemissingOneImplFeatureListCursor(cursor string) (*missingOneImplFeatureListCursor, error) {
+// decodeMissingOneImplFeatureListCursor provides a wrapper around the generic decodeCursor.
+func decodeMissingOneImplFeatureListCursor(cursor string) (*missingOneImplFeatureListCursor, error) {
 	return decodeCursor[missingOneImplFeatureListCursor](cursor)
 }
 
-// encodemissingOneImplFeatureListCursor provides a wrapper around the generic encodeCursor.
-func encodemissingOneImplFeatureListCursor(offset int) string {
+// encodeMissingOneImplFeatureListCursor provides a wrapper around the generic encodeCursor.
+func encodeMissingOneImplFeatureListCursor(offset int) string {
 	return encodeCursor(missingOneImplFeatureListCursor{
 		Offset: offset,
 	})
@@ -143,7 +143,7 @@ func (c *Client) MissingOneImplFeatureList(
 	var cursor *missingOneImplFeatureListCursor
 	var err error
 	if pageToken != nil {
-		cursor, err = decodemissingOneImplFeatureListCursor(*pageToken)
+		cursor, err = decodeMissingOneImplFeatureListCursor(*pageToken)
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
@@ -189,7 +189,7 @@ func (c *Client) MissingOneImplFeatureList(
 		if cursor != nil {
 			previousOffset = cursor.Offset
 		}
-		token := encodemissingOneImplFeatureListCursor(previousOffset + pageSize)
+		token := encodeMissingOneImplFeatureListCursor(previousOffset + pageSize)
 		page.NextPageToken = &token
 	}
 

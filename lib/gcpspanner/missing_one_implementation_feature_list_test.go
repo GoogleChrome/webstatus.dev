@@ -161,7 +161,7 @@ func testMissingOneImplFeatureListSuite(
 		}
 		targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
 		pageSize := 25
-		token := encodemissingOneImplFeatureListCursor(0)
+		token := encodeMissingOneImplFeatureListCursor(0)
 
 		t.Run("simple successful query", func(t *testing.T) {
 			expectedResult := &MissingOneImplFeatureListPage{
@@ -246,7 +246,7 @@ func testMissingOneImplFeatureListSuite(
 		})
 
 		t.Run("simple successful query with pagination", func(t *testing.T) {
-			pageToken := encodemissingOneImplFeatureListCursor(1)
+			pageToken := encodeMissingOneImplFeatureListCursor(1)
 			expectedResult := &MissingOneImplFeatureListPage{
 				NextPageToken: nil,
 				FeatureList: []MissingOneImplFeature{
@@ -275,7 +275,7 @@ func testMissingOneImplFeatureListSuite(
 
 		t.Run("Return a page token with page size 1", func(t *testing.T) {
 			onePerPage := 1
-			returnToken := encodemissingOneImplFeatureListCursor(1)
+			returnToken := encodeMissingOneImplFeatureListCursor(1)
 			expectedResult := &MissingOneImplFeatureListPage{
 				NextPageToken: &returnToken,
 				FeatureList: []MissingOneImplFeature{
@@ -301,7 +301,7 @@ func testMissingOneImplFeatureListSuite(
 				onePerPage,
 			)
 
-			pageTwoToken := encodemissingOneImplFeatureListCursor(2)
+			pageTwoToken := encodeMissingOneImplFeatureListCursor(2)
 			expectedResultPageTwo := &MissingOneImplFeatureListPage{
 				NextPageToken: &pageTwoToken,
 				FeatureList: []MissingOneImplFeature{
