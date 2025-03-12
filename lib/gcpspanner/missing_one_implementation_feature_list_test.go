@@ -127,13 +127,17 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 	}
 }
 
+// nolint:unparam // WONTFIX
 func assertMissingOneImplFeatureList(ctx context.Context, t *testing.T, targetDate time.Time,
-	targetBrowser string, otherBrowsers []string, expectedPage *MissingOneImplFeatureListPage) {
+	targetBrowser string, otherBrowsers []string, expectedPage *MissingOneImplFeatureListPage, token *string,
+	pageSize int) {
 	result, err := spannerClient.MissingOneImplFeatureList(
 		ctx,
 		targetBrowser,
 		otherBrowsers,
 		targetDate,
+		pageSize,
+		token,
 	)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
@@ -157,6 +161,8 @@ func testMissingOneImplFeatureListSuite(
 			"barBrowser",
 		}
 		targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
+		pageSize := 25
+		token := encodeMissingOneImplFeatureListCursor(0)
 
 		t.Run("simple successful query", func(t *testing.T) {
 			expectedResult := &MissingOneImplFeatureListPage{
@@ -183,6 +189,8 @@ func testMissingOneImplFeatureListSuite(
 				targetBrowser,
 				otherBrowsers,
 				expectedResult,
+				&token,
+				pageSize,
 			)
 		})
 
@@ -199,6 +207,8 @@ func testMissingOneImplFeatureListSuite(
 				targetBrowser,
 				otherBrowsers,
 				expectedResult,
+				&token,
+				pageSize,
 			)
 		})
 
@@ -231,8 +241,94 @@ func testMissingOneImplFeatureListSuite(
 				targetBrowser,
 				subsetBrowsers,
 				expectedResult,
+				&token,
+				pageSize,
 			)
 		})
+
+		t.Run("simple successful query with pagination", func(t *testing.T) {
+			pageToken := encodeMissingOneImplFeatureListCursor(1)
+			expectedResult := &MissingOneImplFeatureListPage{
+				NextPageToken: nil,
+				FeatureList: []MissingOneImplFeature{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					{
+						WebFeatureID: "FeatureZ",
+					},
+				},
+			}
+			assertMissingOneImplFeatureList(
+				ctx,
+				t,
+				targetDate,
+				targetBrowser,
+				otherBrowsers,
+				expectedResult,
+				&pageToken,
+				pageSize,
+			)
+		})
+
+		t.Run("Return a page token with page size 1", func(t *testing.T) {
+			onePerPage := 1
+			returnToken := encodeMissingOneImplFeatureListCursor(1)
+			expectedResult := &MissingOneImplFeatureListPage{
+				NextPageToken: &returnToken,
+				FeatureList: []MissingOneImplFeature{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					{
+						WebFeatureID: "FeatureW",
+					},
+				},
+			}
+			assertMissingOneImplFeatureList(
+				ctx,
+				t,
+				targetDate,
+				targetBrowser,
+				otherBrowsers,
+				expectedResult,
+				&token,
+				onePerPage,
+			)
+
+			pageTwoToken := encodeMissingOneImplFeatureListCursor(2)
+			expectedResultPageTwo := &MissingOneImplFeatureListPage{
+				NextPageToken: &pageTwoToken,
+				FeatureList: []MissingOneImplFeature{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					{
+						WebFeatureID: "FeatureZ",
+					},
+				},
+			}
+			assertMissingOneImplFeatureList(
+				ctx,
+				t,
+				targetDate,
+				targetBrowser,
+				otherBrowsers,
+				expectedResultPageTwo,
+				&returnToken,
+				onePerPage,
+			)
+		})
+
 	})
 }
 

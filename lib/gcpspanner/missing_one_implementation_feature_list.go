@@ -40,6 +40,24 @@ type MissingOneImplFeatureListPage struct {
 	FeatureList   []MissingOneImplFeature
 }
 
+// missingOneImplFeatureListCursor: Represents a point for resuming queries based on the
+// numerical offset from the start of the result set. Useful for pagination.
+type missingOneImplFeatureListCursor struct {
+	Offset int `json:"offset"`
+}
+
+// decodeMissingOneImplFeatureListCursor provides a wrapper around the generic decodeCursor.
+func decodeMissingOneImplFeatureListCursor(cursor string) (*missingOneImplFeatureListCursor, error) {
+	return decodeCursor[missingOneImplFeatureListCursor](cursor)
+}
+
+// encodeMissingOneImplFeatureListCursor provides a wrapper around the generic encodeCursor.
+func encodeMissingOneImplFeatureListCursor(offset int) string {
+	return encodeCursor(missingOneImplFeatureListCursor{
+		Offset: offset,
+	})
+}
+
 // MissingOneImplFeature contains information regarding the list of features implemented in all other browsers but not
 // in the target browser.
 type MissingOneImplFeature struct {
@@ -69,16 +87,23 @@ AND
 {{ end }}
 1=1
 ORDER BY KEY ASC
+LIMIT @limit
+{{ if .Offset }}
+OFFSET {{ .Offset }}
+{{ end }}
 `
 
 type missingOneImplFeatureListTemplateData struct {
 	OtherBrowsersParamNames []string
+	Offset                  int
 }
 
 func buildMissingOneImplFeatureListTemplate(
 	targetBrowser string,
 	otherBrowsers []string,
 	targetDate time.Time,
+	cursor *missingOneImplFeatureListCursor,
+	pageSize int,
 ) spanner.Statement {
 	params := map[string]interface{}{}
 	allBrowsers := make([]string, len(otherBrowsers)+1)
@@ -93,9 +118,11 @@ func buildMissingOneImplFeatureListTemplate(
 	}
 
 	params["targetDate"] = targetDate
+	params["limit"] = pageSize
 
 	tmplData := missingOneImplFeatureListTemplateData{
 		OtherBrowsersParamNames: otherBrowsersParamNames,
+		Offset:                  cursor.Offset,
 	}
 
 	sql := missingOneImplFeatureListTemplate.Execute(tmplData)
@@ -110,7 +137,18 @@ func (c *Client) MissingOneImplFeatureList(
 	targetBrowser string,
 	otherBrowsers []string,
 	targetDate time.Time,
+	pageSize int,
+	pageToken *string,
 ) (*MissingOneImplFeatureListPage, error) {
+	var cursor *missingOneImplFeatureListCursor
+	var err error
+	if pageToken != nil {
+		cursor, err = decodeMissingOneImplFeatureListCursor(*pageToken)
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+	}
+
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
 
@@ -118,6 +156,8 @@ func (c *Client) MissingOneImplFeatureList(
 		targetBrowser,
 		otherBrowsers,
 		targetDate,
+		cursor,
+		pageSize,
 	)
 
 	it := txn.Query(ctx, stmt)
@@ -142,6 +182,15 @@ func (c *Client) MissingOneImplFeatureList(
 	page := MissingOneImplFeatureListPage{
 		FeatureList:   results,
 		NextPageToken: nil,
+	}
+
+	if len(results) == pageSize {
+		previousOffset := 0
+		if cursor != nil {
+			previousOffset = cursor.Offset
+		}
+		token := encodeMissingOneImplFeatureListCursor(previousOffset + pageSize)
+		page.NextPageToken = &token
 	}
 
 	return &page, nil
