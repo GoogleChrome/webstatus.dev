@@ -55,6 +55,9 @@ COPY --from=builder /work/${service_dir}/scripts/setup_server.sh /docker-entrypo
 
 FROM nginx:1.27.4-alpine-slim AS static
 
+# Install coreutils to install basenc
+RUN apk add coreutils
+
 ARG service_dir
 COPY --from=builder /work/${service_dir}/nginx.conf /etc/nginx/nginx.conf
 COPY --from=production /work/${service_dir}/dist/static /usr/share/nginx/html

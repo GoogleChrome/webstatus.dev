@@ -42,6 +42,8 @@ spec:
           value: local
         - name: FIREBASE_APP_AUTH_DOMAIN
           value: local
+        - name: K_REVISION
+          value: local
       resources:
         limits:
           cpu: 250m
