@@ -154,7 +154,7 @@ func testMissingOneImplFeatureListSuite(
 	ctx context.Context,
 	t *testing.T,
 ) {
-	t.Run("bazBrowser", func(t *testing.T) {
+	t.Run("Query bazBrowser without exclusions", func(t *testing.T) {
 		const targetBrowser = "bazBrowser"
 		otherBrowsers := []string{
 			"fooBrowser",
@@ -329,6 +329,74 @@ func testMissingOneImplFeatureListSuite(
 			)
 		})
 
+	})
+
+	t.Run("with excluded/discouraged features", func(t *testing.T) {
+		// Exclude Feature X
+		excludedFeatures := []string{"FeatureX"}
+		for _, featureKey := range excludedFeatures {
+			err := spannerClient.InsertExcludedFeatureKey(ctx, featureKey)
+			if err != nil {
+				t.Fatalf("Failed to insert excluded feature key: %v", err)
+			}
+		}
+
+		// Discourage FeatureZ
+		discouragedFeatures := []string{"FeatureZ"}
+		for _, featureKey := range discouragedFeatures {
+			err := spannerClient.UpsertFeatureDiscouragedDetails(ctx, featureKey, FeatureDiscouragedDetails{
+				AccordingTo:  nil,
+				Alternatives: nil,
+			})
+			if err != nil {
+				t.Fatalf("Failed to upsert feature discouraged details: %v", err)
+			}
+		}
+
+		t.Run("simple query", func(t *testing.T) {
+			targetBrowser := "bazBrowser"
+			otherBrowsers := []string{"fooBrowser", "barBrowser"}
+			targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
+			pageSize := 25
+			token := encodeMissingOneImplFeatureListCursor(0)
+
+			expectedResult := &MissingOneImplFeatureListPage{
+				NextPageToken: nil,
+				FeatureList: []MissingOneImplFeature{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					{
+						WebFeatureID: "FeatureW",
+					},
+				},
+			}
+			// Assert with excluded/discouraged features
+			assertMissingOneImplFeatureList(
+				ctx,
+				t,
+				targetDate,
+				targetBrowser,
+				otherBrowsers,
+				expectedResult,
+				&token,
+				pageSize,
+			)
+		})
+
+		// Clear the excluded and discouraged features after the test
+		err := spannerClient.ClearExcludedFeatureKeys(ctx)
+		if err != nil {
+			t.Fatalf("Failed to clear excluded feature keys: %v", err)
+		}
+
+		err = spannerClient.ClearFeatureDiscouragedDetails(ctx)
+		if err != nil {
+			t.Fatalf("Failed to clear feature discouraged details: %v", err)
+		}
 	})
 }
 

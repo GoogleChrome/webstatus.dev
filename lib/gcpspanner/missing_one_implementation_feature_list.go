@@ -86,6 +86,7 @@ EXISTS (
 AND
 {{ end }}
 1=1
+{{ .ExcludedFeatureFilter }}
 ORDER BY KEY ASC
 LIMIT @limit
 {{ if .Offset }}
@@ -96,6 +97,7 @@ OFFSET {{ .Offset }}
 type missingOneImplFeatureListTemplateData struct {
 	OtherBrowsersParamNames []string
 	Offset                  int
+	ExcludedFeatureFilter   string
 }
 
 func buildMissingOneImplFeatureListTemplate(
@@ -104,6 +106,7 @@ func buildMissingOneImplFeatureListTemplate(
 	targetDate time.Time,
 	cursor *missingOneImplFeatureListCursor,
 	pageSize int,
+	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
 	allBrowsers := make([]string, len(otherBrowsers)+1)
@@ -117,12 +120,19 @@ func buildMissingOneImplFeatureListTemplate(
 		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
 	}
 
+	var excludedFeatureFilter string
+	if len(excludedFeatureIDs) > 0 {
+		params["excludedFeatureIDs"] = excludedFeatureIDs
+		excludedFeatureFilter = "AND wf.ID NOT IN UNNEST(@excludedFeatureIDs)"
+	}
+
 	params["targetDate"] = targetDate
 	params["limit"] = pageSize
 
 	tmplData := missingOneImplFeatureListTemplateData{
 		OtherBrowsersParamNames: otherBrowsersParamNames,
 		Offset:                  cursor.Offset,
+		ExcludedFeatureFilter:   excludedFeatureFilter,
 	}
 
 	sql := missingOneImplFeatureListTemplate.Execute(tmplData)
@@ -152,12 +162,19 @@ func (c *Client) MissingOneImplFeatureList(
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
 
+	// Get ignored feature IDs
+	ignoredFeatureIDs, err := c.getIgnoredFeatureIDsForStats(ctx, txn)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := buildMissingOneImplFeatureListTemplate(
 		targetBrowser,
 		otherBrowsers,
 		targetDate,
 		cursor,
 		pageSize,
+		ignoredFeatureIDs,
 	)
 
 	it := txn.Query(ctx, stmt)
