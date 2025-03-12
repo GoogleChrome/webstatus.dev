@@ -127,6 +127,7 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 	}
 }
 
+// nolint:unparam // WONTFIX
 func assertMissingOneImplFeatureList(ctx context.Context, t *testing.T, targetDate time.Time,
 	targetBrowser string, otherBrowsers []string, expectedPage *MissingOneImplFeatureListPage, token *string,
 	pageSize int) {
