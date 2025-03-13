@@ -369,7 +369,7 @@ func testMissingOneImplFeatureListSuite(
 					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
-					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					// Missing in on for bazBrowser: FeatureW (FeatureZ is excluded/discouraged)
 					{
 						WebFeatureID: "FeatureW",
 					},
