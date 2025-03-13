@@ -353,6 +353,7 @@ func testMissingOneImplFeatureListSuite(
 			}
 		}
 
+		// nolint:goconst // WONTFIX
 		t.Run("simple query", func(t *testing.T) {
 			targetBrowser := "bazBrowser"
 			otherBrowsers := []string{"fooBrowser", "barBrowser"}
