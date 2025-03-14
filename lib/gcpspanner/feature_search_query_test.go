@@ -241,23 +241,38 @@ var (
 									Keyword:  searchtypes.KeywordNone,
 									Children: nil,
 									Term: &searchtypes.SearchTerm{
-										Identifier: searchtypes.IdentifierAvailableOn, Value: "chrome", Operator: searchtypes.OperatorEq},
+										Identifier: searchtypes.IdentifierAvailableOn,
+										Value:      "chrome",
+										Operator:   searchtypes.OperatorEq,
+									},
 								},
 								{
-									Keyword: searchtypes.KeywordOR,
+									Keyword: searchtypes.KeywordParens,
 									Term:    nil,
 									Children: []*searchtypes.SearchNode{
 										{
-											Keyword:  searchtypes.KeywordNone,
-											Children: nil,
-											Term: &searchtypes.SearchTerm{
-												Identifier: searchtypes.IdentifierBaselineStatus, Value: "widely", Operator: searchtypes.OperatorEq},
-										},
-										{
-											Keyword:  searchtypes.KeywordNone,
-											Children: nil,
-											Term: &searchtypes.SearchTerm{
-												Identifier: searchtypes.IdentifierName, Value: "avif", Operator: searchtypes.OperatorEq},
+											Keyword: searchtypes.KeywordOR,
+											Term:    nil,
+											Children: []*searchtypes.SearchNode{
+												{
+													Keyword:  searchtypes.KeywordNone,
+													Children: nil,
+													Term: &searchtypes.SearchTerm{
+														Identifier: searchtypes.IdentifierBaselineStatus,
+														Value:      "widely",
+														Operator:   searchtypes.OperatorEq,
+													},
+												},
+												{
+													Keyword:  searchtypes.KeywordNone,
+													Children: nil,
+													Term: &searchtypes.SearchTerm{
+														Identifier: searchtypes.IdentifierName,
+														Value:      "avif",
+														Operator:   searchtypes.OperatorEq,
+													},
+												},
+											},
 										},
 									},
 								},
@@ -277,6 +292,70 @@ var (
 			},
 		},
 	}
+
+	repeatedSimpleTermQuery = TestTree{
+		Query: "id:html OR id:css OR id:typescript OR id:javascript",
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Term:    nil,
+					Keyword: searchtypes.KeywordOR,
+					Children: []*searchtypes.SearchNode{
+						{
+							Term:    nil,
+							Keyword: searchtypes.KeywordOR,
+							Children: []*searchtypes.SearchNode{
+								{
+									Term:    nil,
+									Keyword: searchtypes.KeywordOR,
+									Children: []*searchtypes.SearchNode{
+										{
+											Keyword: searchtypes.KeywordNone,
+											Term: &searchtypes.SearchTerm{
+												Identifier: searchtypes.IdentifierID,
+												Value:      "html",
+												Operator:   searchtypes.OperatorEq,
+											},
+											Children: nil,
+										},
+										{
+											Keyword: searchtypes.KeywordNone,
+											Term: &searchtypes.SearchTerm{
+												Identifier: searchtypes.IdentifierID,
+												Value:      "css",
+												Operator:   searchtypes.OperatorEq,
+											},
+											Children: nil,
+										},
+									},
+								},
+								{
+									Keyword: searchtypes.KeywordNone,
+									Term: &searchtypes.SearchTerm{
+										Identifier: searchtypes.IdentifierID,
+										Value:      "typescript",
+										Operator:   searchtypes.OperatorEq,
+									},
+									Children: nil,
+								},
+							},
+						},
+						{
+							Keyword: searchtypes.KeywordNone,
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierID,
+								Value:      "javascript",
+								Operator:   searchtypes.OperatorEq,
+							},
+							Children: nil,
+						},
+					},
+				},
+			},
+		},
+	}
 )
 
 // nolint:lll // Some queries will be long lines.
@@ -288,30 +367,30 @@ func TestBuild(t *testing.T) {
 	}{
 		{
 			inputTestTree: simpleAvailableOnQuery,
-			expectedClauses: []string{`(wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0))`},
+			expectedClauses: []string{`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0)`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 			},
 		},
 		{
 			inputTestTree:   simpleNameQuery,
-			expectedClauses: []string{`((wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0))`},
+			expectedClauses: []string{`(wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0)`},
 			expectedParams: map[string]interface{}{
 				"param0": "%" + "css grid" + "%",
 			},
 		},
 		{
 			inputTestTree:   simpleNameByIDQuery,
-			expectedClauses: []string{`((wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0))`},
+			expectedClauses: []string{`(wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0)`},
 			expectedParams: map[string]interface{}{
 				"param0": "%" + "grid" + "%",
 			},
 		},
 		{
 			inputTestTree: availableOnBaselineStatus,
-			expectedClauses: []string{`((wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
+			expectedClauses: []string{`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0) AND fbs.Status = @param1`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -319,8 +398,8 @@ WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 		},
 		{
 			inputTestTree: availableOnBaselineStatusWithNegation,
-			expectedClauses: []string{`((wf.ID NOT IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
+			expectedClauses: []string{`wf.ID NOT IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0) AND fbs.Status = @param1`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -328,8 +407,8 @@ WHERE BrowserName = @param0)) AND (fbs.Status = @param1))`},
 		},
 		{
 			inputTestTree: complexQuery,
-			expectedClauses: []string{`(((wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
-WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase LIKE @param2 OR wf.FeatureKey_Lowercase LIKE @param2)))) OR ((wf.Name_Lowercase LIKE @param3 OR wf.FeatureKey_Lowercase LIKE @param3)))`},
+			expectedClauses: []string{`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIKE @param2 OR wf.FeatureKey_Lowercase LIKE @param2)) OR (wf.Name_Lowercase LIKE @param3 OR wf.FeatureKey_Lowercase LIKE @param3)`},
 			expectedParams: map[string]interface{}{
 				"param0": "chrome",
 				"param1": "high",
@@ -340,7 +419,7 @@ WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase
 		{
 			inputTestTree: baselineDateRange,
 			expectedClauses: []string{
-				`((LowDate >= @param0) AND (LowDate <= @param1))`,
+				`LowDate >= @param0 AND LowDate <= @param1`,
 			},
 			expectedParams: map[string]interface{}{
 				"param0": time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
@@ -350,11 +429,21 @@ WHERE BrowserName = @param0)) AND ((fbs.Status = @param1) OR ((wf.Name_Lowercase
 		{
 			inputTestTree: baselineDateRangeNegation,
 			expectedClauses: []string{
-				`((LowDate < @param0) OR (LowDate > @param1))`,
+				`LowDate < @param0 OR LowDate > @param1`,
 			},
 			expectedParams: map[string]interface{}{
 				"param0": time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 				"param1": time.Date(2000, 12, 31, 0, 0, 0, 0, time.UTC),
+			},
+		},
+		{
+			inputTestTree:   repeatedSimpleTermQuery,
+			expectedClauses: []string{`(wf.FeatureKey_Lowercase = @param0) OR (wf.FeatureKey_Lowercase = @param1) OR (wf.FeatureKey_Lowercase = @param2) OR (wf.FeatureKey_Lowercase = @param3)`},
+			expectedParams: map[string]interface{}{
+				"param0": "html",
+				"param1": "css",
+				"param2": "typescript",
+				"param3": "javascript",
 			},
 		},
 	}

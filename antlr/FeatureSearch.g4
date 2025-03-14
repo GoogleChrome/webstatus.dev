@@ -52,16 +52,18 @@ search_criteria:
 	generic_search_term
 	| ANY_VALUE; // Default to ANY_VALUE search without "name:" prefix.
 
+parenthesizedCriteria: '(' combined_search_criteria ')';
+
 // Combined search criteria
 combined_search_criteria:
 	// Single term or grouped expression
-	(search_criteria | '(' combined_search_criteria ')')
+	(search_criteria | parenthesizedCriteria)
 	// Optional chaining with implicit AND or explicit operators
 	(
 		(operator)? // Optional explicit operator
 		(
 			search_criteria
-			| '(' combined_search_criteria ')'
+			| parenthesizedCriteria
 		) // Next search term or group
 	)*;
 

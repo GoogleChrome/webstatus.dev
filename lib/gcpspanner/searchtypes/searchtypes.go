@@ -17,9 +17,10 @@ package searchtypes
 type SearchKeyword string
 
 const (
-	KeywordAND  SearchKeyword = "AND"
-	KeywordOR   SearchKeyword = "OR"
-	KeywordRoot SearchKeyword = "ROOT"
+	KeywordAND    SearchKeyword = "AND"
+	KeywordOR     SearchKeyword = "OR"
+	KeywordRoot   SearchKeyword = "ROOT"
+	KeywordParens SearchKeyword = "PARENS"
 	// Placeholder for nil.
 	KeywordNone SearchKeyword = "NONE"
 )
@@ -30,7 +31,7 @@ func (k *SearchKeyword) Invert() {
 		*k = KeywordOR
 	case KeywordOR:
 		*k = KeywordAND
-	case KeywordRoot, KeywordNone:
+	case KeywordRoot, KeywordNone, KeywordParens:
 		// Do nothing
 		return
 	}
