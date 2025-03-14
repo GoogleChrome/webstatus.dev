@@ -131,7 +131,7 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 func assertMissingOneImplFeatureList(ctx context.Context, t *testing.T, targetDate time.Time,
 	targetBrowser string, otherBrowsers []string, expectedPage *MissingOneImplFeatureListPage, token *string,
 	pageSize int) {
-	result, err := spannerClient.MissingOneImplFeatureList(
+	result, err := spannerClient.ListMissingOneImplementationFeatures(
 		ctx,
 		targetBrowser,
 		otherBrowsers,

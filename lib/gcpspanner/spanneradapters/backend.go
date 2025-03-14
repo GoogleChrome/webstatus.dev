@@ -94,6 +94,14 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) (*gcpspanner.MissingOneImplCountPage, error)
+	ListMissingOneImplementationFeatures(
+		ctx context.Context,
+		targetBrowser string,
+		otherBrowsers []string,
+		targetDate time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*gcpspanner.MissingOneImplFeatureListPage, error)
 	ListBaselineStatusCounts(
 		ctx context.Context,
 		dateType gcpspanner.BaselineDateType,
@@ -326,6 +334,47 @@ func (s *Backend) ListMissingOneImplCounts(
 		},
 		Data: backendData,
 	}, nil
+}
+
+func (s *Backend) ListMissingOneImplementationFeatures(
+	ctx context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	targetDate time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.MissingOneImplFeaturesPage, error) {
+	spannerPage, err := s.client.ListMissingOneImplementationFeatures(
+		ctx,
+		targetBrowser,
+		otherBrowsers,
+		targetDate,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+
+	// Convert it to backend []MissingOneImplFeature
+	backendData := make([]backend.MissingOneImplFeature, 0, len(spannerPage.FeatureList))
+	for _, featureID := range spannerPage.FeatureList {
+		backendData = append(backendData, backend.MissingOneImplFeature{
+			FeatureId: &featureID.WebFeatureID,
+		})
+	}
+
+	return &backend.MissingOneImplFeaturesPage{
+		Metadata: &backend.PageMetadata{
+			NextPageToken: spannerPage.NextPageToken,
+		},
+		Data: backendData,
+	}, nil
+
 }
 
 func (s *Backend) ListBaselineStatusCounts(
