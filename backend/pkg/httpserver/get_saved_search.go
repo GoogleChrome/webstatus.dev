@@ -16,25 +16,44 @@ package httpserver
 
 import (
 	"context"
-	"fmt"
+	"errors"
+	"log/slog"
+	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
 // GetSavedSearch implements backend.StrictServerInterface.
 // nolint:ireturn, revive // Expected ireturn for openapi generation.
 func (s *Server) GetSavedSearch(
-	_ context.Context, req backend.GetSavedSearchRequestObject) (
+	ctx context.Context, req backend.GetSavedSearchRequestObject) (
 	backend.GetSavedSearchResponseObject, error) {
-	savedSearches := getSavedSearches()
-	for _, search := range savedSearches {
-		if req.SearchId == search.Id {
-			return backend.GetSavedSearch200JSONResponse(search), nil
-		}
+	// At this point, the user should be authenticated and in the context.
+	// If for some reason the user is not in the context, treat it as an unauthenticated user
+	var userID *string
+	user, found := httpmiddlewares.AuthenticatedUserFromContext(ctx)
+	if found {
+		userID = &user.ID
 	}
 
-	return backend.GetSavedSearch404JSONResponse{
-		Code:    404,
-		Message: fmt.Sprintf("unable to find search %s", req.SearchId),
-	}, nil
+	search, err := s.wptMetricsStorer.GetSavedSearch(ctx, req.SearchId, userID)
+	if err != nil {
+		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
+			return backend.GetSavedSearch404JSONResponse{
+				Code:    http.StatusNotFound,
+				Message: "saved search not found",
+			}, nil
+		}
+
+		slog.ErrorContext(ctx, "unable to get saved search", "error", err)
+
+		return backend.GetSavedSearch500JSONResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to get saved search",
+		}, nil
+	}
+
+	return backend.GetSavedSearch200JSONResponse(*search), nil
 }
