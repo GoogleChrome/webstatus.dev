@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-openapi: '3.0.2'
+openapi: '3.0.4'
 info:
   title: webstatus.dev API
   version: 0.1.0
@@ -569,7 +569,7 @@ paths:
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
       security:
-        - bearerAuth:
+        - bearerAuth: []
       responses:
         '200':
           description: OK
@@ -613,7 +613,7 @@ paths:
       summary: Get a user's bookmark status
       operationId: getUserSavedSearchBookmark
       security:
-        - bearerAuth:
+        - bearerAuth: []
       responses:
         '200':
           description: OK
@@ -732,7 +732,7 @@ paths:
       summary: Create a saved search
       operationId: createSavedSearch
       security:
-        - bearerAuth:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -781,6 +781,11 @@ paths:
     get:
       summary: Get saved search
       operationId: getSavedSearch
+      security:
+        - bearerAuth: []
+        # User can opt out of providing a bearer token.
+        # They just won't get bookmark and role information.
+        - noAuth: []
       responses:
         '200':
           description: OK
@@ -803,7 +808,7 @@ paths:
     patch:
       operationId: updateSavedSearch
       security:
-        - bearerAuth:
+        - bearerAuth: []
       requestBody:
         required: true
         content:
@@ -844,7 +849,7 @@ paths:
     delete:
       operationId: removeSavedSearch
       security:
-        - bearerAuth:
+        - bearerAuth: []
       responses:
         '204':
           description: No Content (successful deletion)
