@@ -161,6 +161,7 @@ func (c mockBackendSpannerClient) ListBrowserFeatureCountMetric(
 	pageSize int,
 	pageToken *string,
 ) (*gcpspanner.BrowserFeatureCountResultPage, error) {
+	//nolint: goconst
 	if ctx != context.Background() ||
 		browser != "mybrowser" ||
 		!startAt.Equal(testStart) ||

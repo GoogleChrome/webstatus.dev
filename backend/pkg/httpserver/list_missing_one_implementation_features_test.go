@@ -178,6 +178,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				listMissingOneImplFeaturesCfg: &tc.mockConfig,
 				t:                             t,
 			}
+			// nolint: exhaustruct
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
 
 			// Call the function under test
