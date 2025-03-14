@@ -144,6 +144,17 @@ type MockListMissingOneImplCountsConfig struct {
 	err                   error
 }
 
+type MockListMissingOneImplFeaturesConfig struct {
+	expectedTargetBrowser string
+	expectedOtherBrowsers []string
+	expectedtargetDate    time.Time
+	expectedPageSize      int
+	expectedPageToken     *string
+	pageToken             *string
+	page                  *backend.MissingOneImplFeaturesPage
+	err                   error
+}
+
 type MockListBaselineStatusCountsConfig struct {
 	expectedStartAt   time.Time
 	expectedEndAt     time.Time
@@ -173,6 +184,7 @@ type MockWPTMetricsStorer struct {
 	featuresSearchCfg                                 *MockFeaturesSearchConfig
 	listBrowserFeatureCountMetricCfg                  *MockListBrowserFeatureCountMetricConfig
 	listMissingOneImplCountCfg                        *MockListMissingOneImplCountsConfig
+	listMissingOneImplFeaturesCfg                     *MockListMissingOneImplFeaturesConfig
 	listBaselineStatusCountsCfg                       *MockListBaselineStatusCountsConfig
 	listChromiumDailyUsageStatsCfg                    *MockListChromiumDailyUsageStatsConfig
 	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
@@ -181,6 +193,7 @@ type MockWPTMetricsStorer struct {
 	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
+	callCountListMissingOneImplFeatures               int
 	callCountListBaselineStatusCounts                 int
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
@@ -367,6 +380,29 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	}
 
 	return m.listMissingOneImplCountCfg.page, m.listMissingOneImplCountCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
+	_ context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	targetDate time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.MissingOneImplFeaturesPage, error) {
+	m.callCountListMissingOneImplFeatures++
+
+	if targetBrowser != m.listMissingOneImplFeaturesCfg.expectedTargetBrowser ||
+		!slices.Equal(otherBrowsers, m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers) ||
+		!targetDate.Equal(m.listMissingOneImplFeaturesCfg.expectedtargetDate) ||
+		pageSize != m.listMissingOneImplFeaturesCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, m.listMissingOneImplFeaturesCfg.expectedPageToken) {
+
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %d %v }",
+			m.listMissingOneImplFeaturesCfg, targetBrowser, otherBrowsers, targetDate, pageSize, pageToken)
+	}
+
+	return m.listMissingOneImplFeaturesCfg.page, m.listMissingOneImplFeaturesCfg.err
 }
 
 func (m *MockWPTMetricsStorer) ListBaselineStatusCounts(
