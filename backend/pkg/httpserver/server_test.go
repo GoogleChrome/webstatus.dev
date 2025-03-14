@@ -167,6 +167,13 @@ type MockDeleteUserSavedSearchConfig struct {
 	err                   error
 }
 
+type MockGetSavedSearchConfig struct {
+	expectedSavedSearchID string
+	expectedUserID        *string
+	output                *backend.SavedSearchResponse
+	err                   error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
@@ -179,6 +186,7 @@ type MockWPTMetricsStorer struct {
 	getIDFromFeatureKeyConfig                         *MockGetIDFromFeatureKeyConfig
 	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
 	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
+	getSavedSearchCfg                                 *MockGetSavedSearchConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListBaselineStatusCounts                 int
@@ -190,6 +198,7 @@ type MockWPTMetricsStorer struct {
 	callCountGetFeature                               int
 	callCountCreateUserSavedSearch                    int
 	callCountDeleteUserSavedSearch                    int
+	callCountGetSavedSearch                           int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -404,6 +413,22 @@ func (m *MockWPTMetricsStorer) CreateUserSavedSearch(
 	}
 
 	return m.createUserSavedSearchCfg.output, m.createUserSavedSearchCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetSavedSearch(
+	_ context.Context,
+	savedSearchID string,
+	userID *string) (*backend.SavedSearchResponse, error) {
+	m.callCountGetSavedSearch++
+
+	if savedSearchID != m.getSavedSearchCfg.expectedSavedSearchID ||
+		!reflect.DeepEqual(userID, m.getSavedSearchCfg.expectedUserID) {
+		m.t.Errorf("Incorrect arguments. Expected: { %s %v }, Got: { %s %v }",
+			m.getSavedSearchCfg.expectedSavedSearchID, m.getSavedSearchCfg.expectedUserID,
+			savedSearchID, userID)
+	}
+
+	return m.getSavedSearchCfg.output, m.getSavedSearchCfg.err
 }
 
 func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(
