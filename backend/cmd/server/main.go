@@ -136,7 +136,11 @@ func main() {
 	}
 
 	authMiddleware := httpmiddlewares.NewBearerTokenAuthenticationMiddleware(
-		auth.NewGCIPAuthenticator(firebaseAuthClient), backend.BearerAuthScopes, httpserver.GenericErrorFn)
+		auth.NewGCIPAuthenticator(firebaseAuthClient),
+		backend.BearerAuthScopes,
+		backend.NoAuthScopes,
+		httpserver.GenericErrorFn,
+	)
 
 	preRequestMiddlewares := []func(http.Handler) http.Handler{
 		cors.Handler(
