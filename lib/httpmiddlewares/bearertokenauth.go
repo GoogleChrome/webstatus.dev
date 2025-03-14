@@ -35,31 +35,42 @@ type BearerTokenAuthenticator interface {
 }
 
 // NewBearerTokenAuthenticationMiddleware returns a middleware that can be used to authenticate requests.
-// It detects if a route requires authentication by checking if a field is set in the request context.
-// If the field is set, the middleware verifies the Authorization header and sets the authenticated user in the context.
+// It detects if a route requires authentication by checking if a field (authCtxKey) is set in the request context.
+// If the authCtxKey field is set and the Authorization header is present, the middleware authenticates the user and
+// sets the authenticated user in the context. If both authCtxKey and optionalAuthCtxKey fields are set and the
+// Authorization header is not present, it allows the request to proceed without authentication.
 //
 // The errorFn parameter allows the caller to customize the error response returned when authentication fails.
 // This makes the middleware more generic and adaptable to different error handling requirements.
 //
-// It is the responsibility of the caller of this middleware to ensure that the `ctxKey` is set in the request context
-// whenever authentication is needed. This can be done using a wrapper middleware that knows about the OpenAPI
+// It is the responsibility of the caller of this middleware to ensure that the `authCtxKey` is set in the request
+// context whenever authentication is needed. This can be done using a wrapper middleware that knows about the OpenAPI
 // generator's security semantics.
 //
 // See https://github.com/oapi-codegen/oapi-codegen/issues/518 for details on the lack of per-endpoint middleware
 // support.
-func NewBearerTokenAuthenticationMiddleware(authenticator BearerTokenAuthenticator, ctxKey any,
+func NewBearerTokenAuthenticationMiddleware(authenticator BearerTokenAuthenticator,
+	authCtxKey any, optionalAuthCtxKey any,
 	errorFn func(context.Context, int, http.ResponseWriter, error)) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			value := r.Context().Value(ctxKey)
+			value := r.Context().Value(authCtxKey)
 			if value == nil {
 				// The route does not have any security requirements set for it.
 				next.ServeHTTP(w, r)
 
 				return
 			}
+			optionalAuthValue := r.Context().Value(optionalAuthCtxKey)
 			authHdr := r.Header.Get("Authorization")
 			// Check for the Authorization header.
+			if authHdr == "" && optionalAuthValue != nil {
+				// optionalAuthCtxKey is set and no Authorization header, proceed without authentication.
+				next.ServeHTTP(w, r)
+
+				return
+			}
+
 			if authHdr == "" {
 				errorFn(r.Context(), http.StatusUnauthorized, w, ErrMissingAuthHeader)
 
