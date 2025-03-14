@@ -451,6 +451,29 @@ func (s *Backend) DeleteUserSavedSearch(ctx context.Context, userID, savedSearch
 	return nil
 }
 
+func (s *Backend) GetSavedSearch(ctx context.Context, savedSearchID string, userID *string) (
+	*backend.SavedSearchResponse, error) {
+	savedSearch, err := s.client.GetUserSavedSearch(ctx, savedSearchID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return &backend.SavedSearchResponse{
+		Id:             savedSearch.ID,
+		CreatedAt:      savedSearch.CreatedAt,
+		UpdatedAt:      savedSearch.UpdatedAt,
+		Name:           savedSearch.Name,
+		Query:          savedSearch.Query,
+		Description:    savedSearch.Description,
+		BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(savedSearch.IsBookmarked),
+		Permissions:    convertSavedSearchRoleFromGCP(savedSearch.Role),
+	}, nil
+}
+
 func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gcpspanner.BaselineStatus {
 	switch status {
 	case backend.Widely:

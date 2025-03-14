@@ -1646,6 +1646,137 @@ func TestDeleteUserSavedSearch(t *testing.T) {
 	}
 }
 
+func TestGetSavedSearch(t *testing.T) {
+	testCases := []struct {
+		name           string
+		cfg            *mockGetUserSavedSearchConfig
+		userID         *string
+		savedSearchID  string
+		expectedOutput *backend.SavedSearchResponse
+		expectedError  error
+	}{
+		{
+			name:          "success authenticated user",
+			userID:        valuePtr("user1"),
+			savedSearchID: "saved-search-id",
+			cfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: valuePtr("user1"),
+				expectedSavedSearchID:       "saved-search-id",
+				result: &gcpspanner.UserSavedSearch{
+					SavedSearch: gcpspanner.SavedSearch{
+						Name:        "test search",
+						Description: valuePtr("test description"),
+						Query:       "test query",
+						Scope:       gcpspanner.UserPublicScope,
+						AuthorID:    "user1",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						ID:          "saved-search-id",
+					},
+					Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
+					IsBookmarked: valuePtr(true),
+				},
+				returnedError: nil,
+			},
+			expectedOutput: &backend.SavedSearchResponse{
+				Id:          "saved-search-id",
+				CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Name:        "test search",
+				Query:       "test query",
+				Description: valuePtr("test description"),
+				BookmarkStatus: &backend.UserSavedSearchBookmark{
+					Status: backend.BookmarkActive,
+				},
+				Permissions: &backend.UserSavedSearchPermissions{
+					Role: valuePtr(backend.SavedSearchOwner),
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name:          "success unauthenticated user",
+			userID:        nil,
+			savedSearchID: "saved-search-id",
+			cfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: nil,
+				expectedSavedSearchID:       "saved-search-id",
+				result: &gcpspanner.UserSavedSearch{
+					SavedSearch: gcpspanner.SavedSearch{
+						Name:        "test search",
+						Description: valuePtr("test description"),
+						Query:       "test query",
+						Scope:       gcpspanner.UserPublicScope,
+						AuthorID:    "user1",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						ID:          "saved-search-id",
+					},
+					Role:         nil,
+					IsBookmarked: nil,
+				},
+				returnedError: nil,
+			},
+			expectedOutput: &backend.SavedSearchResponse{
+				Id:             "saved-search-id",
+				CreatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Name:           "test search",
+				Query:          "test query",
+				Description:    valuePtr("test description"),
+				BookmarkStatus: nil,
+				Permissions:    nil,
+			},
+			expectedError: nil,
+		},
+		{
+			name:          "search not found error",
+			userID:        nil,
+			savedSearchID: "saved-search-id",
+			cfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: nil,
+				expectedSavedSearchID:       "saved-search-id",
+				result:                      nil,
+				returnedError:               gcpspanner.ErrQueryReturnedNoResults,
+			},
+			expectedOutput: nil,
+			expectedError:  backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name:          "general error",
+			userID:        nil,
+			savedSearchID: "saved-search-id",
+			cfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: nil,
+				expectedSavedSearchID:       "saved-search-id",
+				result:                      nil,
+				returnedError:               errTest,
+			},
+			expectedOutput: nil,
+			expectedError:  errTest,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                         t,
+				mockGetUserSavedSearchCfg: tc.cfg,
+			}
+			bk := NewBackend(mock)
+			output, err := bk.GetSavedSearch(context.Background(), tc.savedSearchID, tc.userID)
+
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error %s", err)
+			}
+
+			if !reflect.DeepEqual(output, tc.expectedOutput) {
+				t.Errorf("unexpected output %v", output)
+			}
+		})
+	}
+}
+
 func TestGetFeatureSearchSortOrder(t *testing.T) {
 	sortOrderTests := []struct {
 		input *backend.ListFeaturesParamsSort
