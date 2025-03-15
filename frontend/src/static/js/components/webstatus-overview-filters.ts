@@ -230,13 +230,10 @@ export class WebstatusOverviewFilters extends LitElement {
   };
 
   gotoFilterQueryString(): void {
-    const newUrl = `${window.location.origin}${formatOverviewPageUrl(
-      this.location,
-      {
-        q: (this.typeaheadRef.value as WebstatusTypeahead).value,
-        start: 0,
-      },
-    )}`;
+    const newUrl = formatOverviewPageUrl(this.location, {
+      q: (this.typeaheadRef.value as WebstatusTypeahead).value,
+      start: 0,
+    });
     navigateToUrl(newUrl);
   }
 
