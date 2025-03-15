@@ -522,4 +522,46 @@ export class APIClient {
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
   }
+
+  // Fetches missing feature list for a browser for a give date
+  // via "/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features"
+  public async getMissingOneImplementationFeatures(
+    targetBrowser: BrowsersParameter,
+    otherBrowsers: BrowsersParameter[],
+    date: Date,
+  ): Promise<MissingOneImplFeaturesList> {
+    const targetDate: string = date.toISOString().substring(0, 10);
+    let nextPageToken: string | undefined;
+    const allFeatures: MissingOneImplFeaturesList = [];
+
+    do {
+      const response = await this.client.GET(
+        '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features',
+        {
+          ...temporaryFetchOptions,
+          params: {
+            query: {
+              page_token: nextPageToken,
+              browser: otherBrowsers,
+            },
+            path: {browser: targetBrowser, date: targetDate},
+          },
+        },
+      );
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: MissingOneImplFeaturesPage =
+        response.data as MissingOneImplFeaturesPage;
+
+      if (page?.data) {
+        allFeatures.push(...page.data);
+      }
+
+      nextPageToken = page?.metadata?.next_page_token;
+    } while (nextPageToken !== undefined);
+
+    return allFeatures;
+  }
 }
