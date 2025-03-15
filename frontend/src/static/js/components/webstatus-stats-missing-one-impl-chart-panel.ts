@@ -119,42 +119,27 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
    * @param {ChartSelectPointEvent} _ The point-selected event.
    * @returns {{ task: Task | undefined; renderSuccess?: () => TemplateResult; }}
    */
-  createPointSelectedTask(_: ChartSelectPointEvent): {
+  createPointSelectedTask(event: ChartSelectPointEvent): {
     task: Task | undefined;
     renderSuccess?: () => TemplateResult;
   } {
     const task = new Task(this, {
       task: async () => {
-        // TODO(https://github.com/GoogleChrome/webstatus.dev/issues/1181):
-        // implement the adapter logic to retrieve feature IDs.
-        const pageData = {
-          data: [
-            {
-              feature_id: 'css',
-            },
-            {
-              feature_id: 'html',
-            },
-            {
-              feature_id: 'javascript',
-            },
-            {
-              feature_id: 'bluetooth',
-            },
-          ],
-          metadata: {
-            total: 4,
-          },
-        };
-        for (let i = 0; i < 80; i++) {
-          pageData.data.push({
-            feature_id: 'item' + i,
-          });
-        }
-        this.missingFeaturesList = pageData.data;
-        // TODO:(kyleju) return these data from the API.
-        this.selectedDate = '2024-08-20';
-        this.selectedBrowser = 'chrome';
+        const targetDate = event.detail.timestamp;
+        // TODO:
+        const targetBrowser = event.detail.label as BrowsersParameter;
+        const otherBrowsers = this.supportedBrowsers.filter(
+          value => targetBrowser !== value,
+        );
+        // TODO:
+        this.missingFeaturesList =
+          await this.apiClient.getMissingOneImplementationFeatures(
+            targetBrowser,
+            otherBrowsers,
+            targetDate,
+          );
+        this.selectedDate = targetDate.toString();
+        this.selectedBrowser = targetBrowser;
         return this.missingFeaturesList;
       },
       args: () => [],
