@@ -55,6 +55,14 @@ export const navigateToUrl = (url: string, event?: MouseEvent) => {
     return;
   }
 
+  // Construct a full URL to handle relative paths correctly
+  const fullNewUrl = new URL(url, window.location.origin).href; // TODO for future - handle try/catch case until we use AppLocation
+
+  const currentUrl = window.location.href;
+  if (currentUrl === fullNewUrl) {
+    return;
+  }
+
   // TODO. We should use the vaadin router and use the navigate method there.
   window.location.href = url;
 };

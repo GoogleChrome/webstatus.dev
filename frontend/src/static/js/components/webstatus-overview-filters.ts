@@ -54,6 +54,7 @@ import {
 
 import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
+import {navigateToUrl} from '../utils/app-router.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
@@ -233,7 +234,7 @@ export class WebstatusOverviewFilters extends LitElement {
       q: (this.typeaheadRef.value as WebstatusTypeahead).value,
       start: 0,
     });
-    window.location.href = newUrl;
+    navigateToUrl(newUrl);
   }
 
   protected firstUpdated(): void {
