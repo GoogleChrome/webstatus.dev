@@ -293,6 +293,79 @@ var (
 		},
 	}
 
+	complexNestedQuery = TestTree{
+		Query: "(available_on:chrome AND (baseline_status:widely OR baseline_status:limited)) OR name:grid",
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Keyword: searchtypes.KeywordOR,
+					Term:    nil,
+					Children: []*searchtypes.SearchNode{
+						{
+							Keyword: searchtypes.KeywordParens,
+							Term:    nil,
+							Children: []*searchtypes.SearchNode{
+								{
+									Keyword: searchtypes.KeywordAND,
+									Children: []*searchtypes.SearchNode{
+										{
+											Term: &searchtypes.SearchTerm{
+												Identifier: searchtypes.IdentifierAvailableOn,
+												Value:      "chrome",
+												Operator:   searchtypes.OperatorEq,
+											},
+											Keyword: searchtypes.KeywordNone,
+										},
+										{
+											Term:    nil,
+											Keyword: searchtypes.KeywordParens,
+											Children: []*searchtypes.SearchNode{
+												{
+													Keyword: searchtypes.KeywordOR,
+													Term:    nil,
+													Children: []*searchtypes.SearchNode{
+														{
+															Children: nil,
+															Term: &searchtypes.SearchTerm{
+																Identifier: searchtypes.IdentifierBaselineStatus,
+																Value:      "widely",
+																Operator:   searchtypes.OperatorEq,
+															},
+															Keyword: searchtypes.KeywordNone,
+														},
+														{
+															Children: nil,
+															Term: &searchtypes.SearchTerm{
+																Identifier: searchtypes.IdentifierBaselineStatus,
+																Value:      "limited",
+																Operator:   searchtypes.OperatorEq,
+															},
+															Keyword: searchtypes.KeywordNone,
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+						{
+							Term: &searchtypes.SearchTerm{
+								Identifier: searchtypes.IdentifierName,
+								Value:      "grid",
+								Operator:   searchtypes.OperatorEq,
+							},
+							Keyword: searchtypes.KeywordNone,
+						},
+					},
+				},
+			},
+		},
+	}
+
 	repeatedSimpleTermQuery = TestTree{
 		Query: "id:html OR id:css OR id:typescript OR id:javascript",
 		InputTree: &searchtypes.SearchNode{
@@ -444,6 +517,18 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIK
 				"param1": "css",
 				"param2": "typescript",
 				"param3": "javascript",
+			},
+		},
+		{
+			inputTestTree: complexNestedQuery,
+			expectedClauses: []string{`(wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
+WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2)) OR (wf.Name_Lowercase LIKE @param3 OR wf.FeatureKey_Lowercase LIKE @param3)`,
+			},
+			expectedParams: map[string]interface{}{
+				"param0": "chrome",
+				"param1": "high",
+				"param2": "none",
+				"param3": "%" + "grid" + "%",
 			},
 		},
 	}

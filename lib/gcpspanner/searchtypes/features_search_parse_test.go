@@ -473,6 +473,78 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "(available_on:chrome AND (baseline_status:widely OR baseline_status:limited)) OR name:grid",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordOR,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordParens,
+								Term:    nil,
+								Children: []*SearchNode{
+									{
+										Keyword: KeywordAND,
+										Children: []*SearchNode{
+											{
+												Term: &SearchTerm{
+													Identifier: IdentifierAvailableOn,
+													Value:      "chrome",
+													Operator:   OperatorEq,
+												},
+												Keyword: KeywordNone,
+											},
+											{
+												Term:    nil,
+												Keyword: KeywordParens,
+												Children: []*SearchNode{
+													{
+														Keyword: KeywordOR,
+														Term:    nil,
+														Children: []*SearchNode{
+															{
+																Children: nil,
+																Term: &SearchTerm{
+																	Identifier: IdentifierBaselineStatus,
+																	Value:      "widely",
+																	Operator:   OperatorEq,
+																},
+																Keyword: KeywordNone,
+															},
+															{
+																Children: nil,
+																Term: &SearchTerm{
+																	Identifier: IdentifierBaselineStatus,
+																	Value:      "limited",
+																	Operator:   OperatorEq,
+																},
+																Keyword: KeywordNone,
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
+							},
+							{
+								Term: &SearchTerm{
+									Identifier: IdentifierName,
+									Value:      "grid",
+									Operator:   OperatorEq,
+								},
+								Keyword: KeywordNone,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "(available_on:chrome AND baseline_status:widely OR name:avif) OR name:grid",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,
