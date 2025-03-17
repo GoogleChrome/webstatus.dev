@@ -425,6 +425,27 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 	return tree.Accept(v)
 }
 
+func (v *FeaturesSearchVisitor) VisitParenthesizedCriteria(ctx *parser.ParenthesizedCriteriaContext) interface{} {
+	combinedCtx, ok := ctx.Combined_search_criteria().(*parser.Combined_search_criteriaContext)
+	if !ok {
+		return nil
+	}
+	node := &SearchNode{
+		Keyword:  KeywordParens,
+		Term:     nil,
+		Children: nil,
+	}
+
+	// Recursively visit the combined_search_criteria inside the parentheses.
+	if subTree, ok := v.VisitCombined_search_criteria(combinedCtx).(*SearchNode); ok {
+		node.Children = append(node.Children, subTree)
+	} else {
+		v.addError(fmt.Errorf("VisitParenthesizedCriteria did not receive SearchNode for visit"))
+	}
+
+	return node
+}
+
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combined_search_criteriaContext) interface{} {
 	var root *SearchNode
@@ -454,7 +475,13 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 			} else {
 				v.addError(fmt.Errorf("VisitCombined_search_criteria did not receive SearchNode for visit"))
 			}
-
+		case *parser.ParenthesizedCriteriaContext:
+			// Handle parenthesized criteria.
+			if subTree, ok := v.VisitParenthesizedCriteria(node).(*SearchNode); ok {
+				current = v.chainWithImplicitAND(current, subTree)
+			} else {
+				v.addError(fmt.Errorf("VisitCombined_search_criteria did not receive SearchNode for visit"))
+			}
 		default:
 			// Future cases will call into the default.
 		}

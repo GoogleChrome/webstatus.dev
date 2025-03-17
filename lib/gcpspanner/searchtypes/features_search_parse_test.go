@@ -433,23 +433,101 @@ func TestParseQuery(t *testing.T) {
 						Term:    nil,
 						Children: []*SearchNode{
 							{
-								Keyword: KeywordAND,
+								Keyword: KeywordParens,
+								Term:    nil,
 								Children: []*SearchNode{
 									{
-										Term: &SearchTerm{
-											Identifier: IdentifierAvailableOn,
-											Value:      "chrome",
-											Operator:   OperatorEq,
+										Keyword: KeywordAND,
+										Children: []*SearchNode{
+											{
+												Term: &SearchTerm{
+													Identifier: IdentifierAvailableOn,
+													Value:      "chrome",
+													Operator:   OperatorEq,
+												},
+												Keyword: KeywordNone,
+											},
+											{
+												Term: &SearchTerm{
+													Identifier: IdentifierBaselineStatus,
+													Value:      "widely",
+													Operator:   OperatorEq,
+												},
+												Keyword: KeywordNone,
+											},
 										},
-										Keyword: KeywordNone,
 									},
+								},
+							},
+							{
+								Term: &SearchTerm{
+									Identifier: IdentifierName,
+									Value:      "grid",
+									Operator:   OperatorEq,
+								},
+								Keyword: KeywordNone,
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "(available_on:chrome AND (baseline_status:widely OR baseline_status:limited)) OR name:grid",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Keyword: KeywordOR,
+						Term:    nil,
+						Children: []*SearchNode{
+							{
+								Keyword: KeywordParens,
+								Term:    nil,
+								Children: []*SearchNode{
 									{
-										Term: &SearchTerm{
-											Identifier: IdentifierBaselineStatus,
-											Value:      "widely",
-											Operator:   OperatorEq,
+										Keyword: KeywordAND,
+										Children: []*SearchNode{
+											{
+												Term: &SearchTerm{
+													Identifier: IdentifierAvailableOn,
+													Value:      "chrome",
+													Operator:   OperatorEq,
+												},
+												Keyword: KeywordNone,
+											},
+											{
+												Term:    nil,
+												Keyword: KeywordParens,
+												Children: []*SearchNode{
+													{
+														Keyword: KeywordOR,
+														Term:    nil,
+														Children: []*SearchNode{
+															{
+																Children: nil,
+																Term: &SearchTerm{
+																	Identifier: IdentifierBaselineStatus,
+																	Value:      "widely",
+																	Operator:   OperatorEq,
+																},
+																Keyword: KeywordNone,
+															},
+															{
+																Children: nil,
+																Term: &SearchTerm{
+																	Identifier: IdentifierBaselineStatus,
+																	Value:      "limited",
+																	Operator:   OperatorEq,
+																},
+																Keyword: KeywordNone,
+															},
+														},
+													},
+												},
+											},
 										},
-										Keyword: KeywordNone,
 									},
 								},
 							},
@@ -477,40 +555,46 @@ func TestParseQuery(t *testing.T) {
 						Term:    nil,
 						Children: []*SearchNode{
 							{
-								Keyword: KeywordOR,
+								Keyword: KeywordParens,
 								Term:    nil,
 								Children: []*SearchNode{
 									{
-										Keyword: KeywordAND,
+										Keyword: KeywordOR,
 										Term:    nil,
 										Children: []*SearchNode{
 											{
-												Keyword:  KeywordNone,
-												Children: nil,
-												Term: &SearchTerm{
-													Identifier: IdentifierAvailableOn,
-													Value:      "chrome",
-													Operator:   OperatorEq,
+												Keyword: KeywordAND,
+												Term:    nil,
+												Children: []*SearchNode{
+													{
+														Keyword:  KeywordNone,
+														Children: nil,
+														Term: &SearchTerm{
+															Identifier: IdentifierAvailableOn,
+															Value:      "chrome",
+															Operator:   OperatorEq,
+														},
+													},
+													{
+														Keyword:  KeywordNone,
+														Children: nil,
+														Term: &SearchTerm{
+															Identifier: IdentifierBaselineStatus,
+															Value:      "widely",
+															Operator:   OperatorEq,
+														},
+													},
 												},
 											},
 											{
 												Keyword:  KeywordNone,
 												Children: nil,
 												Term: &SearchTerm{
-													Identifier: IdentifierBaselineStatus,
-													Value:      "widely",
+													Identifier: IdentifierName,
+													Value:      "avif",
 													Operator:   OperatorEq,
 												},
 											},
-										},
-									},
-									{
-										Keyword:  KeywordNone,
-										Children: nil,
-										Term: &SearchTerm{
-											Identifier: IdentifierName,
-											Value:      "avif",
-											Operator:   OperatorEq,
 										},
 									},
 								},
@@ -549,25 +633,31 @@ func TestParseQuery(t *testing.T) {
 										},
 									},
 									{
-										Keyword: KeywordOR,
+										Keyword: KeywordParens,
 										Term:    nil,
 										Children: []*SearchNode{
 											{
-												Keyword:  KeywordNone,
-												Children: nil,
-												Term: &SearchTerm{
-													Identifier: IdentifierBaselineStatus,
-													Value:      "widely",
-													Operator:   OperatorEq,
-												},
-											},
-											{
-												Keyword:  KeywordNone,
-												Children: nil,
-												Term: &SearchTerm{
-													Identifier: IdentifierName,
-													Value:      "avif",
-													Operator:   OperatorEq,
+												Keyword: KeywordOR,
+												Term:    nil,
+												Children: []*SearchNode{
+													{
+														Keyword:  KeywordNone,
+														Children: nil,
+														Term: &SearchTerm{
+															Identifier: IdentifierBaselineStatus,
+															Value:      "widely",
+															Operator:   OperatorEq,
+														},
+													},
+													{
+														Keyword:  KeywordNone,
+														Children: nil,
+														Term: &SearchTerm{
+															Identifier: IdentifierName,
+															Value:      "avif",
+															Operator:   OperatorEq,
+														},
+													},
 												},
 											},
 										},
@@ -748,6 +838,69 @@ func TestParseQuery(t *testing.T) {
 							Operator:   OperatorEq,
 						},
 						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "id:html OR id:css OR id:typescript OR id:javascript",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term:    nil,
+						Keyword: KeywordOR,
+						Children: []*SearchNode{
+							{
+								Term:    nil,
+								Keyword: KeywordOR,
+								Children: []*SearchNode{
+									{
+										Term:    nil,
+										Keyword: KeywordOR,
+										Children: []*SearchNode{
+											{
+												Keyword: KeywordNone,
+												Term: &SearchTerm{
+													Identifier: IdentifierID,
+													Value:      "html",
+													Operator:   OperatorEq,
+												},
+												Children: nil,
+											},
+											{
+												Keyword: KeywordNone,
+												Term: &SearchTerm{
+													Identifier: IdentifierID,
+													Value:      "css",
+													Operator:   OperatorEq,
+												},
+												Children: nil,
+											},
+										},
+									},
+									{
+										Keyword: KeywordNone,
+										Term: &SearchTerm{
+											Identifier: IdentifierID,
+											Value:      "typescript",
+											Operator:   OperatorEq,
+										},
+										Children: nil,
+									},
+								},
+							},
+							{
+								Keyword: KeywordNone,
+								Term: &SearchTerm{
+									Identifier: IdentifierID,
+									Value:      "javascript",
+									Operator:   OperatorEq,
+								},
+								Children: nil,
+							},
+						},
 					},
 				},
 			},
@@ -1311,8 +1464,14 @@ func printNode(builder *strings.Builder, node *SearchNode, indent string) {
 	builder.WriteString(indent + termStr + operatorStr + "\n")
 
 	newIndent := indent + "  "
+	if node.Keyword == KeywordParens {
+		builder.WriteString(newIndent + "(\n")
+	}
 	for _, child := range node.Children {
 		printNode(builder, child, newIndent)
+	}
+	if node.Keyword == KeywordParens {
+		builder.WriteString(newIndent + "}\n")
 	}
 }
 
