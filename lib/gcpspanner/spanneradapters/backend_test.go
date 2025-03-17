@@ -79,6 +79,11 @@ type mockListMissingOneImplCountsConfig struct {
 	returnedError error
 }
 
+type mockListMissingOneImplFeaturesConfig struct {
+	result        *gcpspanner.MissingOneImplFeatureListPage
+	returnedError error
+}
+
 type mockCreateNewUserSavedSearchConfig struct {
 	expectedNewSearch gcpspanner.CreateUserSavedSearchRequest
 	result            *string
@@ -107,6 +112,7 @@ type mockBackendSpannerClient struct {
 	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
 	mockListBrowserFeatureCountMetricCfg mockListBrowserFeatureCountMetricConfig
 	mockListMissingOneImplCountsCfg      mockListMissingOneImplCountsConfig
+	mockListMissingOneImplFeaturesCfg    mockListMissingOneImplFeaturesConfig
 	mockListBaselineStatusCountsCfg      mockListBaselineStatusCountsConfig
 	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
 	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
@@ -155,6 +161,7 @@ func (c mockBackendSpannerClient) ListBrowserFeatureCountMetric(
 	pageSize int,
 	pageToken *string,
 ) (*gcpspanner.BrowserFeatureCountResultPage, error) {
+	//nolint: goconst
 	if ctx != context.Background() ||
 		browser != "mybrowser" ||
 		!startAt.Equal(testStart) ||
@@ -279,6 +286,26 @@ func (c mockBackendSpannerClient) ListMissingOneImplCounts(
 	}
 
 	return c.mockListMissingOneImplCountsCfg.result, c.mockListMissingOneImplCountsCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) ListMissingOneImplementationFeatures(
+	ctx context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	targetDate time.Time,
+	pageSize int,
+	pageToken *string,
+) (*gcpspanner.MissingOneImplFeatureListPage, error) {
+	if ctx != context.Background() ||
+		targetBrowser != "mybrowser" ||
+		!slices.Equal(otherBrowsers, []string{"browser1", "browser2"}) ||
+		!targetDate.Equal(testStart) ||
+		pageSize != 100 ||
+		pageToken != nonNilInputPageToken {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListMissingOneImplFeaturesCfg.result, c.mockListMissingOneImplFeaturesCfg.returnedError
 }
 
 // ListBaselineStatusCounts implements BackendSpannerClient.
@@ -697,6 +724,90 @@ func TestListMissingOneImplCounts(t *testing.T) {
 				[]string{"browser1", "browser2"},
 				testStart,
 				testEnd,
+				100,
+				nonNilInputPageToken)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(page, tc.expectedPage) {
+				t.Error("unexpected metrics")
+			}
+		})
+	}
+}
+
+func TestListMissingOneImplementationFeatures(t *testing.T) {
+	// nolint:dupl // WONTFIX
+	testCases := []struct {
+		name         string
+		cfg          mockListMissingOneImplFeaturesConfig
+		expectedPage *backend.MissingOneImplFeaturesPage
+		expectedErr  error
+	}{
+		{
+			name: "success",
+			cfg: mockListMissingOneImplFeaturesConfig{
+				result: &gcpspanner.MissingOneImplFeatureListPage{
+					NextPageToken: nonNilNextPageToken,
+					FeatureList: []gcpspanner.MissingOneImplFeature{
+						{
+							WebFeatureID: "foo",
+						},
+						{
+							WebFeatureID: "bar",
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedPage: &backend.MissingOneImplFeaturesPage{
+				Metadata: &backend.PageMetadata{
+					NextPageToken: nonNilNextPageToken,
+				},
+				Data: []backend.MissingOneImplFeature{
+					{
+						FeatureId: valuePtr("foo"),
+					},
+					{
+						FeatureId: valuePtr("bar"),
+					},
+				},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "failure",
+			cfg: mockListMissingOneImplFeaturesConfig{
+				result:        nil,
+				returnedError: errTest,
+			},
+			expectedPage: nil,
+			expectedErr:  errTest,
+		},
+		{
+			name: "invalid cursor",
+			cfg: mockListMissingOneImplFeaturesConfig{
+				result:        nil,
+				returnedError: gcpspanner.ErrInvalidCursorFormat,
+			},
+			expectedPage: nil,
+			expectedErr:  backendtypes.ErrInvalidPageToken,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                                 t,
+				mockListMissingOneImplFeaturesCfg: tc.cfg,
+			}
+			backend := NewBackend(mock)
+			page, err := backend.ListMissingOneImplementationFeatures(
+				context.Background(),
+				"mybrowser",
+				[]string{"browser1", "browser2"},
+				testStart,
 				100,
 				nonNilInputPageToken)
 			if !errors.Is(err, tc.expectedErr) {

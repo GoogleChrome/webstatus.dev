@@ -142,7 +142,7 @@ func buildMissingOneImplFeatureListTemplate(
 	return stmt
 }
 
-func (c *Client) MissingOneImplFeatureList(
+func (c *Client) ListMissingOneImplementationFeatures(
 	ctx context.Context,
 	targetBrowser string,
 	otherBrowsers []string,
