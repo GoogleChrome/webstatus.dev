@@ -738,8 +738,6 @@ func TestListMissingOneImplCounts(t *testing.T) {
 }
 
 func TestListMissingOneImplementationFeatures(t *testing.T) {
-	featureOne := "foo"
-	featureTwo := "bar"
 	// nolint:dupl // WONTFIX
 	testCases := []struct {
 		name         string
@@ -754,10 +752,10 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 					NextPageToken: nonNilNextPageToken,
 					FeatureList: []gcpspanner.MissingOneImplFeature{
 						{
-							WebFeatureID: featureOne,
+							WebFeatureID: "foo",
 						},
 						{
-							WebFeatureID: featureTwo,
+							WebFeatureID: "bar",
 						},
 					},
 				},
@@ -769,10 +767,10 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				},
 				Data: []backend.MissingOneImplFeature{
 					{
-						FeatureId: &featureOne,
+						FeatureId: valuePtr("foo"),
 					},
 					{
-						FeatureId: &featureTwo,
+						FeatureId: valuePtr("bar"),
 					},
 				},
 			},

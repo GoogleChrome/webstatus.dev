@@ -15,27 +15,24 @@
 package httpserver
 
 import (
-	"context"
-	"errors"
-	"reflect"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-
-	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
 func TestListMissingOneImplementationFeatures(t *testing.T) {
-	foo := "foo"
-	bar := "bar"
 	testCases := []struct {
-		name              string
-		mockConfig        MockListMissingOneImplFeaturesConfig
-		expectedCallCount int // For the mock method
-		request           backend.ListMissingOneImplementationFeaturesRequestObject
-		expectedResponse  backend.ListMissingOneImplementationFeaturesResponseObject
-		expectedError     error
+		name               string
+		mockConfig         MockListMissingOneImplFeaturesConfig
+		expectedCallCount  int // For the mock method
+		expectedCacheCalls []*ExpectedCacheCall
+		expectedGetCalls   []*ExpectedGetCall
+		request            *http.Request
+		expectedResponse   *http.Response
 	}{
 		{
 			name: "Success Case - no optional params - use defaults",
@@ -53,40 +50,34 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 					},
 					Data: []backend.MissingOneImplFeature{
 						{
-							FeatureId: &foo,
+							FeatureId: valuePtr("foo"),
 						},
 						{
-							FeatureId: &bar,
+							FeatureId: valuePtr("bar"),
 						},
 					},
 				},
 			},
-			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplementationFeatures200JSONResponse{
-				Data: []backend.MissingOneImplFeature{
-					{
-						FeatureId: &foo,
-					},
-					{
-						FeatureId: &bar,
-					},
-				},
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
+						`"browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   nil,
 				},
 			},
-			request: backend.ListMissingOneImplementationFeaturesRequestObject{
-				Params: backend.ListMissingOneImplementationFeaturesParams{
-					PageToken: nil,
-					PageSize:  nil,
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
-				},
-				Browser: backend.Chrome,
-				Date:    openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-			},
-			expectedError: nil,
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
+			expectedResponse: testJSONResponse(200, `
+			{
+				"data":[{"feature_id":"foo"},{"feature_id":"bar"}],
+				"metadata":{
+
+				}
+			}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts/2000-01-01/features?"+
+					"browser=edge&browser=firefox&browser=safari", nil),
 		},
 		{
 			name: "Success Case - include optional params",
@@ -103,41 +94,37 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 					},
 					Data: []backend.MissingOneImplFeature{
 						{
-							FeatureId: &foo,
+							FeatureId: valuePtr("foo"),
 						},
 						{
-							FeatureId: &bar,
+							FeatureId: valuePtr("bar"),
 						},
 					},
 				},
 				pageToken: nextPageToken,
 			},
-			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplementationFeatures200JSONResponse{
-				Metadata: &backend.PageMetadata{
-					NextPageToken: nextPageToken,
-				},
-				Data: []backend.MissingOneImplFeature{
-					{
-						FeatureId: &foo,
-					},
-					{
-						FeatureId: &bar,
-					},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
+						`"page_token":"input-token",` +
+						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   nil,
 				},
 			},
-			request: backend.ListMissingOneImplementationFeaturesRequestObject{
-				Params: backend.ListMissingOneImplementationFeaturesParams{
-					PageToken: inputPageToken,
-					PageSize:  valuePtr[int](50),
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
-				},
-				Browser: backend.Chrome,
-				Date:    openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-			},
-			expectedError: nil,
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
+			expectedResponse: testJSONResponse(200, `
+			{
+				"data":[{"feature_id":"foo"},{"feature_id":"bar"}],
+				"metadata":{
+					"next_page_token":"next-page-token"
+				}
+			}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts/2000-01-01/features?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"page_size=50&page_token="+*inputPageToken, nil),
 		},
 		{
 			name: "500 case",
@@ -151,23 +138,49 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				pageToken:             nil,
 				err:                   errTest,
 			},
-			expectedCallCount: 1,
-			expectedResponse: backend.ListMissingOneImplementationFeatures500JSONResponse{
-				Code:    500,
-				Message: "unable to get missing one implementation feature list",
-			},
-			request: backend.ListMissingOneImplementationFeaturesRequestObject{
-				Params: backend.ListMissingOneImplementationFeaturesParams{
-					PageToken: nil,
-					PageSize:  nil,
-					Browser: []backend.SupportedBrowsers{
-						backend.Edge, backend.Firefox, backend.Safari,
-					},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
+						`"browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   nil,
 				},
-				Browser: backend.Chrome,
-				Date:    openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 			},
-			expectedError: nil,
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
+			expectedResponse: testJSONResponse(
+				500, `{"code":500,"message":"unable to get missing one implementation feature list"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts/2000-01-01/features?"+
+					"browser=edge&browser=firefox&browser=safari", nil),
+		},
+		{
+			name: "400 case - invalid page token",
+			mockConfig: MockListMissingOneImplFeaturesConfig{
+				expectedTargetBrowser: "chrome",
+				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
+				expectedtargetDate:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:      100,
+				expectedPageToken:     badPageToken,
+				page:                  nil,
+				pageToken:             nil,
+				err:                   backendtypes.ErrInvalidPageToken,
+			},
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
+						`"browser":["edge","firefox","safari"]}}`,
+					Value: nil,
+					Err:   nil,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  1,
+			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts/2000-01-01/features?"+
+					"browser=edge&browser=firefox&browser=safari&"+
+					"page_token"+*badPageToken, nil),
 		},
 	}
 
@@ -178,26 +191,12 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				listMissingOneImplFeaturesCfg: &tc.mockConfig,
 				t:                             t,
 			}
-			// nolint: exhaustruct
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil}
-
-			// Call the function under test
-			resp, err := myServer.ListMissingOneImplementationFeatures(context.Background(), tc.request)
-
-			// Assertions
-			if mockStorer.callCountListMissingOneImplFeatures != tc.expectedCallCount {
-				t.Errorf("Incorrect call count: expected %d, got %d",
-					tc.expectedCallCount,
-					mockStorer.callCountListMissingOneImplFeatures)
-			}
-
-			if !errors.Is(err, tc.expectedError) {
-				t.Errorf("Unexpected error: %v", err)
-			}
-
-			if !reflect.DeepEqual(tc.expectedResponse, resp) {
-				t.Errorf("Unexpected response: %v", resp)
-			}
+			mockCacher := NewMockRawBytesDataCacher(t, nil, nil)
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
+			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
+			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMissingOneImplFeatures,
+				"ListMissingOneImplementationFeatures", mockCacher)
 		})
 	}
 }
