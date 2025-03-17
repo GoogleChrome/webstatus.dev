@@ -27,11 +27,14 @@ import (
 
 type authCtxKey struct{}
 
+type optionalAuthCtxKey struct{}
+
 func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 	const testID = "id"
 	tests := []struct {
 		name               string
-		ctxKey             any
+		authCtxKey         any
+		optionalAuthCtxKey any
 		authHeader         string
 		mockAuthenticator  func(ctx context.Context, token string) (*auth.User, error)
 		mockErrorFn        func(context.Context, int, http.ResponseWriter, error)
@@ -40,9 +43,10 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 		expectedUser       *auth.User
 	}{
 		{
-			name:       "No security requirements",
-			ctxKey:     nil,
-			authHeader: "",
+			name:               "No security requirements",
+			authCtxKey:         nil,
+			optionalAuthCtxKey: nil,
+			authHeader:         "",
 			mockAuthenticator: func(_ context.Context, _ string) (*auth.User, error) {
 				t.Fatal("authenticate should not have been called")
 
@@ -57,9 +61,10 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 			expectedUser:       nil,
 		},
 		{
-			name:       "Missing Authorization header",
-			ctxKey:     authCtxKey{},
-			authHeader: "",
+			name:               "Missing Authorization header",
+			authCtxKey:         authCtxKey{},
+			authHeader:         "",
+			optionalAuthCtxKey: nil,
 			mockAuthenticator: func(_ context.Context, _ string) (*auth.User, error) {
 				t.Fatal("authenticate should not have been called")
 
@@ -80,9 +85,10 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 			expectedBody:       "",
 		},
 		{
-			name:       "Invalid Authorization header",
-			ctxKey:     authCtxKey{},
-			authHeader: "Invalid Auth",
+			name:               "Invalid Authorization header",
+			authCtxKey:         authCtxKey{},
+			optionalAuthCtxKey: nil,
+			authHeader:         "Invalid Auth",
 			mockAuthenticator: func(_ context.Context, _ string) (*auth.User, error) {
 				t.Fatal("authenticate should not have been called")
 
@@ -103,9 +109,10 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 			expectedBody:       "",
 		},
 		{
-			name:       "Authentication failure",
-			ctxKey:     authCtxKey{},
-			authHeader: "Bearer my-token",
+			name:               "Authentication failure without optional auth context",
+			authCtxKey:         authCtxKey{},
+			optionalAuthCtxKey: nil,
+			authHeader:         "Bearer my-token",
 			mockAuthenticator: func(_ context.Context, _ string) (*auth.User, error) {
 				return nil, errors.New("authentication failed")
 			},
@@ -123,9 +130,49 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 			expectedBody:       "",
 		},
 		{
-			name:       "Successful authentication",
-			ctxKey:     authCtxKey{},
-			authHeader: "Bearer my-token",
+			name:               "Authentication failure with optional auth context",
+			authCtxKey:         authCtxKey{},
+			optionalAuthCtxKey: optionalAuthCtxKey{},
+			authHeader:         "Bearer my-token",
+			mockAuthenticator: func(_ context.Context, _ string) (*auth.User, error) {
+				return nil, errors.New("authentication failed")
+			},
+			mockErrorFn: func(_ context.Context, code int, w http.ResponseWriter, err error) {
+				if code != http.StatusUnauthorized {
+					t.Errorf("expected status code %d, got %d", http.StatusUnauthorized, code)
+				}
+				if err == nil || err.Error() != "authentication failed" {
+					t.Errorf("expected error 'authentication failed', got %v", err)
+				}
+				w.WriteHeader(code)
+			},
+			expectedStatusCode: http.StatusUnauthorized,
+			expectedUser:       nil,
+			expectedBody:       "",
+		},
+		{
+			name:               "Successful request with optional auth context set",
+			authCtxKey:         authCtxKey{},
+			optionalAuthCtxKey: optionalAuthCtxKey{},
+			authHeader:         "",
+			mockAuthenticator: func(_ context.Context, _ string) (*auth.User, error) {
+				t.Fatal("authenticate should not have been called")
+
+				// nolint:nilnil // WONTFIX - should not reach this.
+				return nil, nil
+			},
+			mockErrorFn: func(_ context.Context, _ int, _ http.ResponseWriter, _ error) {
+				t.Fatal("errorFn should not have been called")
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedBody:       "next handler was called",
+			expectedUser:       nil,
+		},
+		{
+			name:               "Successful authentication",
+			authCtxKey:         authCtxKey{},
+			optionalAuthCtxKey: nil,
+			authHeader:         "Bearer my-token",
 			mockAuthenticator: func(_ context.Context, token string) (*auth.User, error) {
 				if token != "my-token" {
 					t.Errorf("expected token 'my-token', got %s", token)
@@ -161,19 +208,14 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 
 			middleware := NewBearerTokenAuthenticationMiddleware(
 				&mockBearerTokenAuthenticator{tc.mockAuthenticator},
-				tc.ctxKey,
+				tc.authCtxKey,
+				tc.optionalAuthCtxKey,
 				tc.mockErrorFn,
 			)
 
 			handler := middleware(nextHandler)
 
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			if tc.authHeader != "" {
-				req.Header.Set("Authorization", tc.authHeader)
-			}
-			if tc.ctxKey != nil {
-				req = req.WithContext(context.WithValue(req.Context(), tc.ctxKey, "authCtxValue"))
-			}
+			req := createTestRequest(tc.authHeader, tc.authCtxKey, tc.optionalAuthCtxKey)
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
@@ -194,6 +236,21 @@ func (m *mockBearerTokenAuthenticator) Authenticate(ctx context.Context, token s
 	}
 
 	return m.authenticateFn(ctx, token)
+}
+
+func createTestRequest(authHeader string, authCtxKey any, optionalAuthCtxKey any) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	if authHeader != "" {
+		req.Header.Set("Authorization", authHeader)
+	}
+	if authCtxKey != nil {
+		req = req.WithContext(context.WithValue(req.Context(), authCtxKey, "authCtxValue"))
+	}
+	if optionalAuthCtxKey != nil {
+		req = req.WithContext(context.WithValue(req.Context(), optionalAuthCtxKey, "optionalAuthCtxValue"))
+	}
+
+	return req
 }
 
 func assertStatusCode(t *testing.T, rr *httptest.ResponseRecorder, expectedCode int) {
