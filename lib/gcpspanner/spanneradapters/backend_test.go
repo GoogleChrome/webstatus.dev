@@ -102,6 +102,14 @@ type mockDeleteUserSavedSearchConfig struct {
 	returnedError         error
 }
 
+type mockListUserSavedSearchesConfig struct {
+	expectedUserID    string
+	expectedPageSize  int
+	expectedPageToken *string
+	result            *gcpspanner.UserSavedSearchesPage
+	returnedError     error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -117,8 +125,20 @@ type mockBackendSpannerClient struct {
 	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
 	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
 	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
+	mockListUserSavedSearchesCfg         *mockListUserSavedSearchesConfig
 	pageToken                            *string
 	err                                  error
+}
+
+func (c mockBackendSpannerClient) ListUserSavedSearches(
+	_ context.Context, userID string, pageSize int, pageToken *string) (*gcpspanner.UserSavedSearchesPage, error) {
+	if userID != c.mockListUserSavedSearchesCfg.expectedUserID ||
+		pageSize != c.mockListUserSavedSearchesCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, c.mockListUserSavedSearchesCfg.expectedPageToken) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListUserSavedSearchesCfg.result, c.mockListUserSavedSearchesCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) CreateNewUserSavedSearch(
@@ -1883,6 +1903,196 @@ func TestGetSavedSearch(t *testing.T) {
 
 			if !reflect.DeepEqual(output, tc.expectedOutput) {
 				t.Errorf("unexpected output %v", output)
+			}
+		})
+	}
+}
+
+func TestListUserSavedSearches(t *testing.T) {
+	testCases := []struct {
+		name          string
+		userID        string
+		pageSize      int
+		pageToken     *string
+		cfg           *mockListUserSavedSearchesConfig
+		expectedPage  *backend.UserSavedSearchPage
+		expectedError error
+	}{
+		{
+			name:      "success",
+			userID:    "user1",
+			pageSize:  10,
+			pageToken: nil,
+			cfg: &mockListUserSavedSearchesConfig{
+				expectedUserID:    "user1",
+				expectedPageSize:  10,
+				expectedPageToken: nil,
+				result: &gcpspanner.UserSavedSearchesPage{
+					NextPageToken: nil,
+					Searches: []gcpspanner.UserSavedSearch{
+						{
+							SavedSearch: gcpspanner.SavedSearch{
+								Name:        "z",
+								Description: valuePtr("test description"),
+								Query:       "test query",
+								Scope:       gcpspanner.UserPublicScope,
+								AuthorID:    "user1",
+								CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+								UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+								ID:          "saved-search-id-2",
+							},
+							IsBookmarked: valuePtr(true),
+							Role:         nil,
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedPage: &backend.UserSavedSearchPage{
+				Metadata: nil,
+				Data: valuePtr([]backend.SavedSearchResponse{
+					{
+						Id:          "saved-search-id-2",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						Name:        "z",
+						Description: valuePtr("test description"),
+						Query:       "test query",
+						Permissions: nil,
+						BookmarkStatus: &backend.UserSavedSearchBookmark{
+							Status: backend.BookmarkActive,
+						},
+					},
+				}),
+			},
+			expectedError: nil,
+		},
+		{
+			name:      "success w/ page token",
+			userID:    "user1",
+			pageSize:  10,
+			pageToken: valuePtr("inputToken"),
+			cfg: &mockListUserSavedSearchesConfig{
+				expectedUserID:    "user1",
+				expectedPageSize:  10,
+				expectedPageToken: valuePtr("inputToken"),
+				result: &gcpspanner.UserSavedSearchesPage{
+					NextPageToken: valuePtr("nextToken"),
+					Searches: []gcpspanner.UserSavedSearch{
+						{
+							SavedSearch: gcpspanner.SavedSearch{
+								Name:        "test search",
+								Description: valuePtr("test description"),
+								Query:       "test query",
+								Scope:       gcpspanner.UserPublicScope,
+								AuthorID:    "user1",
+								CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+								UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+								ID:          "saved-search-id",
+							},
+							Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
+							IsBookmarked: valuePtr(true),
+						},
+						{
+							SavedSearch: gcpspanner.SavedSearch{
+								Name:        "z",
+								Description: valuePtr("test description"),
+								Query:       "test query",
+								Scope:       gcpspanner.UserPublicScope,
+								AuthorID:    "user1",
+								CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+								UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+								ID:          "saved-search-id-2",
+							},
+							IsBookmarked: valuePtr(true),
+							Role:         nil,
+						},
+					},
+				},
+				returnedError: nil,
+			},
+			expectedPage: &backend.UserSavedSearchPage{
+				Metadata: &backend.PageMetadata{
+					NextPageToken: valuePtr("nextToken"),
+				},
+				Data: valuePtr([]backend.SavedSearchResponse{
+					{
+						Id:          "saved-search-id",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						Name:        "test search",
+						Description: valuePtr("test description"),
+						Query:       "test query",
+						Permissions: &backend.UserSavedSearchPermissions{
+							Role: valuePtr(backend.SavedSearchOwner),
+						},
+						BookmarkStatus: &backend.UserSavedSearchBookmark{
+							Status: backend.BookmarkActive,
+						},
+					},
+					{
+						Id:          "saved-search-id-2",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						Name:        "z",
+						Description: valuePtr("test description"),
+						Query:       "test query",
+						Permissions: nil,
+						BookmarkStatus: &backend.UserSavedSearchBookmark{
+							Status: backend.BookmarkActive,
+						},
+					},
+				}),
+			},
+			expectedError: nil,
+		},
+		{
+			name:      "general error",
+			userID:    "user1",
+			pageSize:  10,
+			pageToken: nil,
+			cfg: &mockListUserSavedSearchesConfig{
+				expectedUserID:    "user1",
+				expectedPageSize:  10,
+				expectedPageToken: nil,
+				result:            nil,
+				returnedError:     errTest,
+			},
+			expectedPage:  nil,
+			expectedError: errTest,
+		},
+		{
+			name:      "invalid cursor",
+			userID:    "user1",
+			pageSize:  10,
+			pageToken: nil,
+			cfg: &mockListUserSavedSearchesConfig{
+				expectedUserID:    "user1",
+				expectedPageSize:  10,
+				expectedPageToken: nil,
+				result:            nil,
+				returnedError:     gcpspanner.ErrInvalidCursorFormat,
+			},
+			expectedPage:  nil,
+			expectedError: backendtypes.ErrInvalidPageToken,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                            t,
+				mockListUserSavedSearchesCfg: tc.cfg,
+			}
+			backend := NewBackend(mock)
+			page, err := backend.ListUserSavedSearches(context.Background(), tc.userID, tc.pageSize, tc.pageToken)
+			if !errors.Is(err, tc.expectedError) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(page, tc.expectedPage) {
+				t.Error("unexpected page")
 			}
 		})
 	}
