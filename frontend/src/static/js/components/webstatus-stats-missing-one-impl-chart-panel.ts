@@ -25,6 +25,7 @@ import {
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
+  BROWSER_LABEL_TO_ID,
   MissingOneImplFeaturesList,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
@@ -119,45 +120,31 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
    * @param {ChartSelectPointEvent} _ The point-selected event.
    * @returns {{ task: Task | undefined; renderSuccess?: () => TemplateResult; }}
    */
-  createPointSelectedTask(_: ChartSelectPointEvent): {
+  createPointSelectedTask(event: ChartSelectPointEvent): {
     task: Task | undefined;
     renderSuccess?: () => TemplateResult;
   } {
+    const targetDate = event.detail.timestamp;
+    const label = event.detail.label;
+    const targetBrowser =
+      label === 'Chromium' ? 'chrome' : BROWSER_LABEL_TO_ID[label];
+    const otherBrowsers = this.supportedBrowsers.filter(
+      value => targetBrowser !== value,
+    );
     const task = new Task(this, {
-      task: async () => {
-        // TODO(https://github.com/GoogleChrome/webstatus.dev/issues/1181):
-        // implement the adapter logic to retrieve feature IDs.
-        const pageData = {
-          data: [
-            {
-              feature_id: 'css',
-            },
-            {
-              feature_id: 'html',
-            },
-            {
-              feature_id: 'javascript',
-            },
-            {
-              feature_id: 'bluetooth',
-            },
-          ],
-          metadata: {
-            total: 4,
-          },
-        };
-        for (let i = 0; i < 80; i++) {
-          pageData.data.push({
-            feature_id: 'item' + i,
-          });
-        }
-        this.missingFeaturesList = pageData.data;
-        // TODO:(kyleju) return these data from the API.
-        this.selectedDate = '2024-08-20';
-        this.selectedBrowser = 'chrome';
-        return this.missingFeaturesList;
+      task: async ([date, browser]) => {
+        const features =
+          await this.apiClient.getMissingOneImplementationFeatures(
+            browser,
+            otherBrowsers,
+            date,
+          );
+        this.missingFeaturesList = features;
+        this.selectedDate = targetDate.toISOString().substring(0, 10);
+        this.selectedBrowser = targetBrowser;
+        return features;
       },
-      args: () => [],
+      args: () => [targetDate, targetBrowser],
     });
     return {task: task, renderSuccess: this.pointSelectedTaskRenderOnSuccess};
   }
