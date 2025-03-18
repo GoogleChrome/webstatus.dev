@@ -271,7 +271,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       'point-selected',
       {
         detail: {
-          label: 'Chrome',
+          label: 'Chromium',
           timestamp: new Date('2024-01-01'),
           value: 123,
         },
