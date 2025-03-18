@@ -104,10 +104,26 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filterString := strings.Join(childFilters, joiner)
 
 			if strings.TrimSpace(filterString) != "" {
-				filters = append(filters, "("+filterString+")")
+				filters = append(filters, filterString)
 			}
 
 		}
+
+	case node.Keyword == searchtypes.KeywordParens:
+		// Handle parenthesized sub-expressions.
+		var childFilters []string
+		for _, child := range node.Children {
+			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
+		}
+
+		// Join without spaces because if there are multiple terms, they will
+		// currently fall under a parent keyword node (AND/OR), which
+		// takes care of adding the necessary spaces.
+		filter := strings.Join(childFilters, "")
+
+		filter = "(" + filter + ")"
+
+		filters = append(filters, filter)
 
 	case node.Term != nil && (node.Keyword == searchtypes.KeywordNone):
 		var filter string
@@ -133,7 +149,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filter = b.handleIdentifierAvailableBrowserDateTerm(node)
 		}
 		if filter != "" {
-			filters = append(filters, "("+filter+")")
+			filters = append(filters, filter)
 		}
 	}
 

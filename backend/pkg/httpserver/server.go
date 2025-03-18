@@ -98,6 +98,14 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.BrowserReleaseFeatureMetricsPage, error)
+	ListMissingOneImplementationFeatures(
+		ctx context.Context,
+		targetBrowser string,
+		otherBrowsers []string,
+		targetDate time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*backend.MissingOneImplFeaturesPage, error)
 	ListBaselineStatusCounts(
 		ctx context.Context,
 		startAt time.Time,
@@ -108,6 +116,7 @@ type WPTMetricsStorer interface {
 	CreateUserSavedSearch(ctx context.Context, userID string,
 		savedSearch backend.SavedSearch) (*backend.SavedSearchResponse, error)
 	DeleteUserSavedSearch(ctx context.Context, userID, savedSearchID string) error
+	GetSavedSearch(ctx context.Context, savedSearchID string, userID *string) (*backend.SavedSearchResponse, error)
 }
 
 type Server struct {

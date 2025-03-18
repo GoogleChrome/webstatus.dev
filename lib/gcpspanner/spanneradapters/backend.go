@@ -94,6 +94,14 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) (*gcpspanner.MissingOneImplCountPage, error)
+	ListMissingOneImplementationFeatures(
+		ctx context.Context,
+		targetBrowser string,
+		otherBrowsers []string,
+		targetDate time.Time,
+		pageSize int,
+		pageToken *string,
+	) (*gcpspanner.MissingOneImplFeatureListPage, error)
 	ListBaselineStatusCounts(
 		ctx context.Context,
 		dateType gcpspanner.BaselineDateType,
@@ -328,6 +336,47 @@ func (s *Backend) ListMissingOneImplCounts(
 	}, nil
 }
 
+func (s *Backend) ListMissingOneImplementationFeatures(
+	ctx context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	targetDate time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.MissingOneImplFeaturesPage, error) {
+	spannerPage, err := s.client.ListMissingOneImplementationFeatures(
+		ctx,
+		targetBrowser,
+		otherBrowsers,
+		targetDate,
+		pageSize,
+		pageToken,
+	)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+
+	// Convert it to backend []MissingOneImplFeature
+	backendData := make([]backend.MissingOneImplFeature, 0, len(spannerPage.FeatureList))
+	for _, featureID := range spannerPage.FeatureList {
+		backendData = append(backendData, backend.MissingOneImplFeature{
+			FeatureId: &featureID.WebFeatureID,
+		})
+	}
+
+	return &backend.MissingOneImplFeaturesPage{
+		Metadata: &backend.PageMetadata{
+			NextPageToken: spannerPage.NextPageToken,
+		},
+		Data: backendData,
+	}, nil
+
+}
+
 func (s *Backend) ListBaselineStatusCounts(
 	ctx context.Context,
 	startAt time.Time,
@@ -449,6 +498,29 @@ func (s *Backend) DeleteUserSavedSearch(ctx context.Context, userID, savedSearch
 	}
 
 	return nil
+}
+
+func (s *Backend) GetSavedSearch(ctx context.Context, savedSearchID string, userID *string) (
+	*backend.SavedSearchResponse, error) {
+	savedSearch, err := s.client.GetUserSavedSearch(ctx, savedSearchID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return &backend.SavedSearchResponse{
+		Id:             savedSearch.ID,
+		CreatedAt:      savedSearch.CreatedAt,
+		UpdatedAt:      savedSearch.UpdatedAt,
+		Name:           savedSearch.Name,
+		Query:          savedSearch.Query,
+		Description:    savedSearch.Description,
+		BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(savedSearch.IsBookmarked),
+		Permissions:    convertSavedSearchRoleFromGCP(savedSearch.Role),
+	}, nil
 }
 
 func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gcpspanner.BaselineStatus {

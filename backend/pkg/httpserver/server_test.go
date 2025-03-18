@@ -144,6 +144,17 @@ type MockListMissingOneImplCountsConfig struct {
 	err                   error
 }
 
+type MockListMissingOneImplFeaturesConfig struct {
+	expectedTargetBrowser string
+	expectedOtherBrowsers []string
+	expectedtargetDate    time.Time
+	expectedPageSize      int
+	expectedPageToken     *string
+	pageToken             *string
+	page                  *backend.MissingOneImplFeaturesPage
+	err                   error
+}
+
 type MockListBaselineStatusCountsConfig struct {
 	expectedStartAt   time.Time
 	expectedEndAt     time.Time
@@ -167,20 +178,30 @@ type MockDeleteUserSavedSearchConfig struct {
 	err                   error
 }
 
+type MockGetSavedSearchConfig struct {
+	expectedSavedSearchID string
+	expectedUserID        *string
+	output                *backend.SavedSearchResponse
+	err                   error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
 	featuresSearchCfg                                 *MockFeaturesSearchConfig
 	listBrowserFeatureCountMetricCfg                  *MockListBrowserFeatureCountMetricConfig
 	listMissingOneImplCountCfg                        *MockListMissingOneImplCountsConfig
+	listMissingOneImplFeaturesCfg                     *MockListMissingOneImplFeaturesConfig
 	listBaselineStatusCountsCfg                       *MockListBaselineStatusCountsConfig
 	listChromiumDailyUsageStatsCfg                    *MockListChromiumDailyUsageStatsConfig
 	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         *MockGetIDFromFeatureKeyConfig
 	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
 	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
+	getSavedSearchCfg                                 *MockGetSavedSearchConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
+	callCountListMissingOneImplFeatures               int
 	callCountListBaselineStatusCounts                 int
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
@@ -190,6 +211,7 @@ type MockWPTMetricsStorer struct {
 	callCountGetFeature                               int
 	callCountCreateUserSavedSearch                    int
 	callCountDeleteUserSavedSearch                    int
+	callCountGetSavedSearch                           int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -369,6 +391,29 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	return m.listMissingOneImplCountCfg.page, m.listMissingOneImplCountCfg.err
 }
 
+func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
+	_ context.Context,
+	targetBrowser string,
+	otherBrowsers []string,
+	targetDate time.Time,
+	pageSize int,
+	pageToken *string,
+) (*backend.MissingOneImplFeaturesPage, error) {
+	m.callCountListMissingOneImplFeatures++
+
+	if targetBrowser != m.listMissingOneImplFeaturesCfg.expectedTargetBrowser ||
+		!slices.Equal(otherBrowsers, m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers) ||
+		!targetDate.Equal(m.listMissingOneImplFeaturesCfg.expectedtargetDate) ||
+		pageSize != m.listMissingOneImplFeaturesCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, m.listMissingOneImplFeaturesCfg.expectedPageToken) {
+
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %d %v }",
+			m.listMissingOneImplFeaturesCfg, targetBrowser, otherBrowsers, targetDate, pageSize, pageToken)
+	}
+
+	return m.listMissingOneImplFeaturesCfg.page, m.listMissingOneImplFeaturesCfg.err
+}
+
 func (m *MockWPTMetricsStorer) ListBaselineStatusCounts(
 	_ context.Context,
 	startAt time.Time,
@@ -404,6 +449,22 @@ func (m *MockWPTMetricsStorer) CreateUserSavedSearch(
 	}
 
 	return m.createUserSavedSearchCfg.output, m.createUserSavedSearchCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetSavedSearch(
+	_ context.Context,
+	savedSearchID string,
+	userID *string) (*backend.SavedSearchResponse, error) {
+	m.callCountGetSavedSearch++
+
+	if savedSearchID != m.getSavedSearchCfg.expectedSavedSearchID ||
+		!reflect.DeepEqual(userID, m.getSavedSearchCfg.expectedUserID) {
+		m.t.Errorf("Incorrect arguments. Expected: { %s %v }, Got: { %s %v }",
+			m.getSavedSearchCfg.expectedSavedSearchID, m.getSavedSearchCfg.expectedUserID,
+			savedSearchID, userID)
+	}
+
+	return m.getSavedSearchCfg.output, m.getSavedSearchCfg.err
 }
 
 func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(
