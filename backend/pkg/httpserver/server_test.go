@@ -185,6 +185,14 @@ type MockGetSavedSearchConfig struct {
 	err                   error
 }
 
+type MockListUserSavedSeachesConfig struct {
+	expectedUserID    string
+	expectedPageSize  int
+	expectedPageToken *string
+	output            *backend.UserSavedSearchPage
+	err               error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
@@ -199,6 +207,7 @@ type MockWPTMetricsStorer struct {
 	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
 	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
 	getSavedSearchCfg                                 *MockGetSavedSearchConfig
+	listUserSavedSearchesCfg                          *MockListUserSavedSeachesConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -212,6 +221,7 @@ type MockWPTMetricsStorer struct {
 	callCountCreateUserSavedSearch                    int
 	callCountDeleteUserSavedSearch                    int
 	callCountGetSavedSearch                           int
+	callCountListUserSavedSearches                    int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -484,6 +494,29 @@ func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(
 	return m.deleteUserSavedSearchCfg.err
 }
 
+func (m *MockWPTMetricsStorer) ListUserSavedSearches(
+	_ context.Context,
+	userID string,
+	pageSize int,
+	pageToken *string) (*backend.UserSavedSearchPage, error) {
+	m.callCountListUserSavedSearches++
+
+	if userID != m.listUserSavedSearchesCfg.expectedUserID ||
+		pageSize != m.listUserSavedSearchesCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, m.listUserSavedSearchesCfg.expectedPageToken) {
+		m.t.Errorf("Incorrect arguments. Expected: ( %s %d %v ), Got: { %s %d %v }",
+			m.listUserSavedSearchesCfg.expectedUserID,
+			m.listUserSavedSearchesCfg.expectedPageSize,
+			m.listUserSavedSearchesCfg.expectedPageToken,
+			userID,
+			pageSize,
+			pageToken,
+		)
+	}
+
+	return m.listUserSavedSearchesCfg.output, m.listUserSavedSearchesCfg.err
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -597,7 +630,9 @@ func assertMocksExpectations(t *testing.T, expectedCallCount, actualCallCount in
 		t.Errorf("expected %s to be called %d times. it was called %d times",
 			methodName, expectedCallCount, actualCallCount)
 	}
-	mockCacher.AssertExpectations()
+	if mockCacher != nil {
+		mockCacher.AssertExpectations()
+	}
 }
 
 type testServerConfig struct {
