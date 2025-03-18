@@ -30,6 +30,7 @@ import {
   TEST_COUNT_METRIC_VIEW,
   SUBTEST_COUNT_METRIC_VIEW,
   DEFAULT_TEST_VIEW,
+  FeatureSortOrderType,
 } from '../api/client.js';
 import {
   formatFeaturePageUrl,
@@ -238,17 +239,36 @@ export class FeaturePage extends BaseChartsPage {
       this.location.params['featureId']?.toString() || 'undefined';
   }
 
+  private async handleNotFound(featureId: string): Promise<void> {
+    try {
+      const response = await this.apiClient.getFeatures(
+        featureId,
+        '' as FeatureSortOrderType,
+        undefined,
+        0,
+        1,
+      );
+
+      const data = response.data;
+
+      // TODO: cannot use navigateToUrl because it creates a
+      // circular dependency.
+      // For now use the window href and revisit when navigateToUrl
+      // is move to another location.
+      const queryParam = Array.isArray(data) && data.length > 0 ? `?q=${featureId}` : "";
+      window.location.href = `/errors-404/feature-not-found${queryParam}`;
+    } catch (error) {
+      window.location.href = `/errors-404/feature-not-found`;
+    }
+  }
+
   render(): TemplateResult {
     return html`
       ${this._loadingTask?.render({
         complete: () => this.renderWhenComplete(),
         error: error => {
           if (error instanceof NotFoundError) {
-            // TODO: cannot use navigateToUrl because it creates a
-            // circular dependency.
-            // For now use the window href and revisit when navigateToUrl
-            // is move to another location.
-            window.location.href = '/errors-404/feature-not-found';
+            this.handleNotFound(this.featureId);
           }
           return this.renderWhenError();
         },

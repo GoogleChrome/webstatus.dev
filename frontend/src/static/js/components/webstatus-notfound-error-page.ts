@@ -97,6 +97,10 @@ export class WebstatusNotFoundErrorPage extends LitElement {
     ];
   }
   protected render(): TemplateResult {
+    // Extract query params
+    const params = new URLSearchParams(window.location.search);
+    const badId = params.get('q');
+
     return html`
       <div id="error-container">
         <div id="error-header">
@@ -108,16 +112,34 @@ export class WebstatusNotFoundErrorPage extends LitElement {
         </div>
 
         <div id="error-actions">
-          <div id="error-action-home">
-            <sl-button id="error-action-home-btn" variant="primary" href="/"
-              >Go back home</sl-button
-            >
-          </div>
+          ${badId
+            ? html`
+                <div id="error-action-search">
+                  <sl-button
+                    id="error-action-search-btn"
+                    variant="primary"
+                    href="/?q=${badId}"
+                  >
+                    Search for Similar names
+                  </sl-button>
+                </div>
+              `
+            : html`
+                <div id="error-action-home">
+                  <sl-button
+                    id="error-action-home-btn"
+                    variant="primary"
+                    href="/"
+                  >
+                    Go back home
+                  </sl-button>
+                </div>
+              `}
           <div id="error-action-report">
             <sl-icon name="github"></sl-icon>
-            <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
-              >Report an issue</a
-            >
+            <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank">
+              Report an issue
+            </a>
           </div>
         </div>
       </div>
