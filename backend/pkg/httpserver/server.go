@@ -117,6 +117,12 @@ type WPTMetricsStorer interface {
 		savedSearch backend.SavedSearch) (*backend.SavedSearchResponse, error)
 	DeleteUserSavedSearch(ctx context.Context, userID, savedSearchID string) error
 	GetSavedSearch(ctx context.Context, savedSearchID string, userID *string) (*backend.SavedSearchResponse, error)
+	ListUserSavedSearches(
+		ctx context.Context,
+		userID string,
+		pageSize int,
+		pageToken *string,
+	) (*backend.UserSavedSearchPage, error)
 }
 
 type Server struct {
