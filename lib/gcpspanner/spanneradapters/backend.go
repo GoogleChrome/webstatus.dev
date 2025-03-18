@@ -118,6 +118,11 @@ type BackendSpannerClient interface {
 		savedSearchID string,
 		authenticatedUserID *string) (*gcpspanner.UserSavedSearch, error)
 	DeleteUserSavedSearch(ctx context.Context, req gcpspanner.DeleteUserSavedSearchRequest) error
+	ListUserSavedSearches(
+		ctx context.Context,
+		userID string,
+		pageSize int,
+		pageToken *string) (*gcpspanner.UserSavedSearchesPage, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -448,6 +453,50 @@ func (s *Backend) CreateUserSavedSearch(ctx context.Context, userID string,
 		Description:    createdSavedSearch.Description,
 		BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(createdSavedSearch.IsBookmarked),
 		Permissions:    convertSavedSearchRoleFromGCP(createdSavedSearch.Role),
+	}, nil
+}
+
+func (s *Backend) ListUserSavedSearches(
+	ctx context.Context,
+	userID string,
+	pageSize int,
+	pageToken *string,
+) (*backend.UserSavedSearchPage, error) {
+	page, err := s.client.ListUserSavedSearches(ctx, userID, pageSize, pageToken)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+	var metadata *backend.PageMetadata
+	if page.NextPageToken != nil {
+		metadata = &backend.PageMetadata{
+			NextPageToken: page.NextPageToken,
+		}
+	}
+	var results *[]backend.SavedSearchResponse
+	if len(page.Searches) > 0 {
+		data := make([]backend.SavedSearchResponse, 0, len(page.Searches))
+		for _, savedSearch := range page.Searches {
+			data = append(data, backend.SavedSearchResponse{
+				Id:             savedSearch.ID,
+				CreatedAt:      savedSearch.CreatedAt,
+				UpdatedAt:      savedSearch.UpdatedAt,
+				Name:           savedSearch.Name,
+				Query:          savedSearch.Query,
+				Description:    savedSearch.Description,
+				BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(savedSearch.IsBookmarked),
+				Permissions:    convertSavedSearchRoleFromGCP(savedSearch.Role),
+			})
+		}
+		results = &data
+	}
+
+	return &backend.UserSavedSearchPage{
+		Metadata: metadata,
+		Data:     results,
 	}, nil
 }
 
