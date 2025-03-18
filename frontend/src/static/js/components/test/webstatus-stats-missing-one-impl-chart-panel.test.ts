@@ -158,7 +158,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       'point-selected',
       {
         detail: {
-          label: 'Test Label',
+          label: 'Chromium',
           timestamp: new Date('2024-01-01'),
           value: 123,
         },
@@ -183,7 +183,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(header).to.exist;
     // Note: \n before chrome due to a complaint from lint in the html.
     expect(header!.textContent?.trim()).to.contain(
-      'The missing feature IDs on 2024-01-01 for\n        Test Label',
+      'The missing feature IDs on 2024-01-01 for\n        chrome',
     );
 
     const table = el.shadowRoot!.querySelector('.missing-features-table');
@@ -198,6 +198,96 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(firstRowCells[0].textContent?.trim()).to.equal(
       'css',
       'first row ID',
+    );
+  });
+
+  it('assert correct getMissingOneImplementationFeatures calls', async () => {
+    apiClientStub.getMissingOneImplementationFeatures.resolves([
+      {
+        feature_id: 'css',
+      },
+      {
+        feature_id: 'html',
+      },
+      {
+        feature_id: 'js',
+      },
+      {
+        feature_id: 'bluetooth',
+      },
+    ]);
+    const chart = el.shadowRoot!.querySelector(
+      '#missing-one-implementation-chart',
+    )!;
+
+    const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
+      'point-selected',
+      {
+        detail: {
+          label: 'Safari',
+          timestamp: new Date('2024-01-01'),
+          value: 123,
+        },
+        bubbles: true,
+      },
+    );
+    // Simulate point-selected event on the chart component
+    chart.dispatchEvent(chartClickEvent);
+    await el.updateComplete;
+
+    expect(el._pointSelectedTask).to.exist;
+    expect(
+      apiClientStub.getMissingOneImplementationFeatures,
+    ).to.have.been.calledWith(
+      'safari',
+      ['chrome', 'firefox'],
+      new Date('2024-01-01'),
+    );
+
+    const chartClickEventOne: ChartSelectPointEvent = new CustomEvent(
+      'point-selected',
+      {
+        detail: {
+          label: 'Firefox',
+          timestamp: new Date('2024-01-01'),
+          value: 123,
+        },
+        bubbles: true,
+      },
+    );
+    chart.dispatchEvent(chartClickEventOne);
+    await el.updateComplete;
+
+    expect(el._pointSelectedTask).to.exist;
+    expect(
+      apiClientStub.getMissingOneImplementationFeatures,
+    ).to.have.been.calledWith(
+      'firefox',
+      ['chrome', 'safari'],
+      new Date('2024-01-01'),
+    );
+
+    const chartClickEventTwo: ChartSelectPointEvent = new CustomEvent(
+      'point-selected',
+      {
+        detail: {
+          label: 'Chrome',
+          timestamp: new Date('2024-01-01'),
+          value: 123,
+        },
+        bubbles: true,
+      },
+    );
+    chart.dispatchEvent(chartClickEventTwo);
+    await el.updateComplete;
+
+    expect(el._pointSelectedTask).to.exist;
+    expect(
+      apiClientStub.getMissingOneImplementationFeatures,
+    ).to.have.been.calledWith(
+      'chrome',
+      ['firefox', 'safari'],
+      new Date('2024-01-01'),
     );
   });
 });

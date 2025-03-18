@@ -25,6 +25,7 @@ import {
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
+  BROWSER_LABEL_TO_ID,
   MissingOneImplFeaturesList,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
@@ -124,7 +125,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     renderSuccess?: () => TemplateResult;
   } {
     const targetDate = event.detail.timestamp;
-    const targetBrowser = event.detail.label as BrowsersParameter;
+    const label = event.detail.label;
+    const targetBrowser =
+      label === 'Chromium' ? 'chrome' : BROWSER_LABEL_TO_ID[label];
     const otherBrowsers = this.supportedBrowsers.filter(
       value => targetBrowser !== value,
     );
