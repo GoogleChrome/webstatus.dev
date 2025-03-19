@@ -131,8 +131,11 @@ func buildMissingOneImplFeatureListTemplate(
 
 	tmplData := missingOneImplFeatureListTemplateData{
 		OtherBrowsersParamNames: otherBrowsersParamNames,
-		Offset:                  cursor.Offset,
 		ExcludedFeatureFilter:   excludedFeatureFilter,
+	}
+
+	if cursor != nil {
+		tmplData.Offset = cursor.Offset
 	}
 
 	sql := missingOneImplFeatureListTemplate.Execute(tmplData)
