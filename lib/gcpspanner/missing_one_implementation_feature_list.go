@@ -131,6 +131,7 @@ func buildMissingOneImplFeatureListTemplate(
 
 	tmplData := missingOneImplFeatureListTemplateData{
 		OtherBrowsersParamNames: otherBrowsersParamNames,
+		Offset:                  0,
 		ExcludedFeatureFilter:   excludedFeatureFilter,
 	}
 
