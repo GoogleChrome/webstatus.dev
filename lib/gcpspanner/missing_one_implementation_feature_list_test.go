@@ -329,6 +329,35 @@ func testMissingOneImplFeatureListSuite(
 			)
 		})
 
+		t.Run("simple query without a token", func(t *testing.T) {
+			expectedResult := &MissingOneImplFeatureListPage{
+				NextPageToken: nil,
+				FeatureList: []MissingOneImplFeature{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					{
+						WebFeatureID: "FeatureZ",
+					},
+					{
+						WebFeatureID: "FeatureW",
+					},
+				},
+			}
+			assertMissingOneImplFeatureList(
+				ctx,
+				t,
+				targetDate,
+				targetBrowser,
+				otherBrowsers,
+				expectedResult,
+				nil,
+				pageSize,
+			)
+		})
 	})
 
 	t.Run("with excluded/discouraged features", func(t *testing.T) {
