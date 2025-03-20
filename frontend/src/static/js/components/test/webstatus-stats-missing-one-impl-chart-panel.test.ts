@@ -87,6 +87,16 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     const chromeConfig = fetchFunctionConfigs[0];
     expect(chromeConfig.label).to.equal('Chromium');
     expect(chromeConfig.fetchFunction).to.be.a('function');
+    // Call the fetch function and assert apiClient call
+    await chromeConfig.fetchFunction();
+    expect(
+      apiClientStub.getMissingOneImplementationCountsForBrowser,
+    ).to.have.been.calledWith(
+      'chrome',
+      ['firefox', 'safari'],
+      new Date('2023-12-02'),
+      new Date('2024-01-31'),
+    );
     const chromeTestDataPoint: BrowserReleaseFeatureMetric = {
       timestamp: '2024-01-01',
       count: 10,
@@ -100,6 +110,16 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     const firefoxConfig = fetchFunctionConfigs[1];
     expect(firefoxConfig.label).to.equal('Firefox');
     expect(firefoxConfig.fetchFunction).to.be.a('function');
+    // Call the fetch function and assert apiClient call
+    await firefoxConfig.fetchFunction();
+    expect(
+      apiClientStub.getMissingOneImplementationCountsForBrowser,
+    ).to.have.been.calledWith(
+      'firefox',
+      ['chrome', 'safari'],
+      new Date('2023-12-02'),
+      new Date('2024-01-31'),
+    );
     const firefoxTestDataPoint: BrowserReleaseFeatureMetric = {
       timestamp: '2024-01-01',
       count: 9,
@@ -113,6 +133,16 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     const safariConfig = fetchFunctionConfigs[2];
     expect(safariConfig.label).to.equal('Safari');
     expect(safariConfig.fetchFunction).to.be.a('function');
+    // Call the fetch function and assert apiClient call
+    await safariConfig.fetchFunction();
+    expect(
+      apiClientStub.getMissingOneImplementationCountsForBrowser,
+    ).to.have.been.calledWith(
+      'safari',
+      ['chrome', 'firefox'],
+      new Date('2023-12-02'),
+      new Date('2024-01-31'),
+    );
     const safariTestDataPoint: BrowserReleaseFeatureMetric = {
       timestamp: '2024-01-01',
       count: 7,
