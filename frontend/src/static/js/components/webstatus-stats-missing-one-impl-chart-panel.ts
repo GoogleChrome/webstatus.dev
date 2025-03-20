@@ -115,15 +115,16 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   }
 
   updateFeatureListHref(featureList: MissingOneImplFeaturesList) {
-    if (!featureList.length) {
+    if (featureList.length === 0) {
       this.featureListHref = '';
+      return;
     }
     let query = 'id:' + featureList[0].feature_id;
     for (let i = 1; i < featureList.length; i++) {
       query += ' OR id:' + featureList[i].feature_id;
     }
 
-    this.featureListHref = formatOverviewPageUrl({search: '?q=' + query});
+    this.featureListHref = formatOverviewPageUrl({search: ''}, {q: query});
   }
 
   /**
@@ -172,9 +173,16 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
    * @returns {TemplateResult} The rendered content for the success state.
    */
   pointSelectedTaskRenderOnSuccess(): TemplateResult {
+    if (this.missingFeaturesList.length === 0) {
+      return html`<div slot="header" id="${this.getPanelID()}-list-header">
+        No missing features for on ${this.selectedDate} for
+        ${this.selectedBrowser}:
+      </div> `;
+    }
+
     return html`
       <div slot="header" id="${this.getPanelID()}-list-header">
-        <a href="${this.featureListHref}">
+        <a href="${this.featureListHref}" target="_blank">
           The missing feature IDs on ${this.selectedDate} for
           ${this.selectedBrowser}:
         </a>

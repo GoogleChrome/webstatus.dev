@@ -207,6 +207,48 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     );
   });
 
+  it('renders empty features footer', async () => {
+    apiClientStub.getMissingOneImplementationFeatures.resolves([]);
+    const chart = el.shadowRoot!.querySelector(
+      '#missing-one-implementation-chart',
+    )!;
+
+    const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
+      'point-selected',
+      {
+        detail: {
+          label: 'Chromium',
+          timestamp: new Date('2024-01-01'),
+          value: 123,
+        },
+        bubbles: true,
+      },
+    );
+    // Simulate point-selected event on the chart component
+    chart.dispatchEvent(chartClickEvent);
+    await el.updateComplete;
+
+    // Assert that the task and renderer are set (no need to wait for the event)
+    expect(el._pointSelectedTask).to.exist;
+    await el._pointSelectedTask?.taskComplete;
+    await el.updateComplete;
+
+    expect(el._renderCustomPointSelectedSuccess).to.exist;
+    await el.updateComplete;
+
+    const header = el.shadowRoot!.querySelector(
+      '#missing-one-implementation-list-header',
+    );
+    expect(header).to.exist;
+    // Note: \n before chrome due to a complaint from lint in the html.
+    expect(header!.textContent?.trim()).to.contain(
+      'No missing features for on 2024-01-01 for\n        chrome',
+    );
+
+    const table = el.shadowRoot!.querySelector('.missing-features-table');
+    expect(table).to.not.exist;
+  });
+
   it('assert correct getMissingOneImplementationFeatures calls', async () => {
     apiClientStub.getMissingOneImplementationFeatures.resolves([
       {
