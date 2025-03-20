@@ -184,7 +184,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       <div slot="header" id="${this.getPanelID()}-list-header">
         <a href="${this.featureListHref}" target="_blank">
           The missing feature IDs on ${this.selectedDate} for
-          ${this.selectedBrowser}:
+          ${this.selectedBrowser}
         </a>
       </div>
       ${this.renderMissingFeaturesTable()}
