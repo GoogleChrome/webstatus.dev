@@ -30,6 +30,7 @@ import {
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
+import {formatOverviewPageUrl} from '../utils/urls.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
@@ -39,6 +40,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
   selectedDate: string = '';
+  featureListHref: string = '';
 
   static get styles() {
     return [
@@ -112,6 +114,19 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     };
   }
 
+  updateFeatureListHref(featureList: MissingOneImplFeaturesList) {
+    if (featureList.length === 0) {
+      this.featureListHref = '';
+      return;
+    }
+    let query = 'id:' + featureList[0].feature_id;
+    for (let i = 1; i < featureList.length; i++) {
+      query += ' OR id:' + featureList[i].feature_id;
+    }
+
+    this.featureListHref = formatOverviewPageUrl({search: ''}, {q: query});
+  }
+
   /**
    * Creates a task and a renderer for handling point-selected events.
    * Overrides createPointSelectedTask() in the parent class when an point is
@@ -142,6 +157,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         this.missingFeaturesList = features;
         this.selectedDate = targetDate.toISOString().substring(0, 10);
         this.selectedBrowser = targetBrowser;
+        this.updateFeatureListHref(features);
         return features;
       },
       args: () => [targetDate, targetBrowser],
@@ -157,10 +173,19 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
    * @returns {TemplateResult} The rendered content for the success state.
    */
   pointSelectedTaskRenderOnSuccess(): TemplateResult {
+    if (this.missingFeaturesList.length === 0) {
+      return html`<div slot="header" id="${this.getPanelID()}-list-header">
+        No missing features for on ${this.selectedDate} for
+        ${this.selectedBrowser}:
+      </div> `;
+    }
+
     return html`
       <div slot="header" id="${this.getPanelID()}-list-header">
-        The missing feature IDs on ${this.selectedDate} for
-        ${this.selectedBrowser}:
+        <a href="${this.featureListHref}" target="_blank">
+          The missing feature IDs on ${this.selectedDate} for
+          ${this.selectedBrowser}
+        </a>
       </div>
       ${this.renderMissingFeaturesTable()}
     `;
