@@ -35,7 +35,12 @@ import {formatOverviewPageUrl} from '../utils/urls.js';
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
   @state()
-  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+  supportedBrowsers: BrowsersParameter[] = [
+    'chrome',
+    'edge',
+    'firefox',
+    'safari',
+  ];
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
@@ -58,15 +63,24 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     ];
   }
 
+  getOtherBrowsersFromTargetBrowser(
+    browser: BrowsersParameter,
+  ): BrowsersParameter[] {
+    if (browser === 'safari' || browser === 'firefox') {
+      return this.supportedBrowsers.filter(value => browser !== value);
+    }
+    return ['firefox', 'safari'];
+  }
+
   private _createFetchFunctionConfigs(
     browsers: BrowsersParameter[],
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
     return browsers.map(browser => ({
-      label: browser === 'chrome' ? 'Chromium' : BROWSER_ID_TO_LABEL[browser], // Special case for Chrome
+      label: BROWSER_ID_TO_LABEL[browser], // Special case for Chrome
       fetchFunction: () => {
-        const otherBrowsers = browsers.filter(value => browser !== value);
+        const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(browser);
         return this.apiClient.getMissingOneImplementationCountsForBrowser(
           browser,
           otherBrowsers,
@@ -141,11 +155,8 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   } {
     const targetDate = event.detail.timestamp;
     const label = event.detail.label;
-    const targetBrowser =
-      label === 'Chromium' ? 'chrome' : BROWSER_LABEL_TO_ID[label];
-    const otherBrowsers = this.supportedBrowsers.filter(
-      value => targetBrowser !== value,
-    );
+    const targetBrowser = BROWSER_LABEL_TO_ID[label];
+    const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(targetBrowser);
     const task = new Task(this, {
       task: async ([date, browser]) => {
         const features =
