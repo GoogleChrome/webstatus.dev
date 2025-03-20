@@ -78,7 +78,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
     return browsers.map(browser => ({
-      label: BROWSER_ID_TO_LABEL[browser], // Special case for Chrome
+      label: BROWSER_ID_TO_LABEL[browser],
       fetchFunction: () => {
         const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(browser);
         return this.apiClient.getMissingOneImplementationCountsForBrowser(

@@ -385,5 +385,28 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       ['firefox', 'safari'],
       new Date('2024-01-01'),
     );
+
+    const chartClickEventThree: ChartSelectPointEvent = new CustomEvent(
+      'point-selected',
+      {
+        detail: {
+          label: 'Chrome',
+          timestamp: new Date('2024-01-01'),
+          value: 123,
+        },
+        bubbles: true,
+      },
+    );
+    chart.dispatchEvent(chartClickEventThree);
+    await el.updateComplete;
+
+    expect(el._pointSelectedTask).to.exist;
+    expect(
+      apiClientStub.getMissingOneImplementationFeatures,
+    ).to.have.been.calledWith(
+      'chrome',
+      ['firefox', 'safari'],
+      new Date('2024-01-01'),
+    );
   });
 });
