@@ -28,6 +28,8 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -363,7 +365,72 @@ func generateSnapshots(ctx context.Context,
 	return snapshotKeys, nil
 }
 
-func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client) error {
+func findUserIDByEmail(ctx context.Context, email string, authClient *auth.Client) (string, error) {
+	record, err := authClient.GetUserByEmail(ctx, email)
+	if err != nil {
+		slog.ErrorContext(ctx, "error trying to get user", "error", err, "email", email)
+		return "", err
+	}
+
+	return record.UID, nil
+}
+
+func valuePtr[T any](in T) *T { return &in }
+
+func generateSavedSearches(ctx context.Context, spannerClient *gcpspanner.Client, authClient *auth.Client) (int, error) {
+	findUserIDByEmail(ctx, "test.user.1@example.com", authClient)
+	savedSearchesToInsert := []struct {
+		Email       string
+		Name        string
+		Query       string
+		Description *string
+	}{
+		{
+			Email:       "test.user.1@example.com",
+			Name:        "my first project query",
+			Query:       "baseline_status:newly",
+			Description: nil,
+		},
+		{
+			Email: "test.user.1@example.com",
+			Name:  "I like queries",
+			Query: "baseline_status:limited AND available_on:chrome",
+			Description: valuePtr(
+				"a really long description that I would like to show off how run on sentences work but in reality" +
+					" I just really like to show how word wrapping will work. Let's take a moment to take a break." +
+					" Breathe in, breathe out." +
+					" Ok, let's continue shall we? "),
+		},
+	}
+
+	for _, savedSearch := range savedSearchesToInsert {
+		userID, err := findUserIDByEmail(ctx, savedSearch.Email, authClient)
+		if err != nil {
+			return 0, nil
+		}
+		_, err = spannerClient.CreateNewUserSavedSearch(ctx, gcpspanner.CreateUserSavedSearchRequest{
+			OwnerUserID: userID,
+			Name:        savedSearch.Name,
+			Query:       savedSearch.Query,
+			Description: savedSearch.Description,
+		})
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return len(savedSearchesToInsert), nil
+}
+
+func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client,
+	authClient *auth.Client) error {
+	savedSearchesCount, err := generateSavedSearches(ctx, spannerClient, authClient)
+	if err != nil {
+		return fmt.Errorf("saved searches generation failed %w", err)
+	}
+	slog.Info("saved searches generated",
+		"amount of releases created", savedSearchesCount)
+
 	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)
@@ -687,6 +754,26 @@ func generateChromiumHistogramMetrics(
 	return metricsCount, nil
 }
 
+func initFirebaseAuthClient(ctx context.Context, projectID string) *auth.Client {
+	// nolint:exhaustruct // WONTFIX - will rely on the defaults on this third party struct.
+	firebaseApp, err := firebase.NewApp(context.Background(), &firebase.Config{
+		ProjectID: projectID,
+	})
+	if err != nil {
+		slog.Error("error initializing firebase app", "error", err)
+		os.Exit(1)
+	}
+
+	// Access Auth service from default app
+	firebaseAuthClient, err := firebaseApp.Auth(context.Background())
+	if err != nil {
+		slog.Error("error getting Auth client", "error", err)
+		os.Exit(1)
+	}
+
+	return firebaseAuthClient
+}
+
 func main() {
 	// Use the grpc port from spanner in .dev/spanner/skaffold.yaml
 	// Describe the command line flags and parse the flags
@@ -720,11 +807,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Use the same project as spanner
+	slog.Info("establishing firebase auth client", "project", *spannerProject)
+
+	firebaseAuthClient := initFirebaseAuthClient(context.Background(), *spannerProject)
+
 	gofakeit.GlobalFaker = gofakeit.New(seedValue)
 
 	ctx := context.Background()
 
-	err = generateData(ctx, spannerClient, datastoreClient)
+	err = generateData(ctx, spannerClient, datastoreClient, firebaseAuthClient)
 	if err != nil {
 		slog.Error("unable to generate data", "error", err)
 		os.Exit(1)

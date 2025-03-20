@@ -152,6 +152,9 @@ export type MissingOneImplFeaturesPage =
   components['schemas']['MissingOneImplFeaturesPage'];
 export type MissingOneImplFeaturesList =
   components['schemas']['MissingOneImplFeature'][];
+export type UserSavedSearchPage = components['schemas']['UserSavedSearchPage'];
+export type SavedSearchResponseList =
+  components['schemas']['SavedSearchResponse'][];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
@@ -563,5 +566,41 @@ export class APIClient {
     } while (nextPageToken !== undefined);
 
     return allFeatures;
+  }
+
+  async *getUserSavedSearches(
+    token: string,
+  ): AsyncIterable<SavedSearchResponseList | undefined> {
+    let nextPageToken;
+    do {
+      const response = await this.client.GET('/v1/users/me/saved-searches', {
+        ...temporaryFetchOptions,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          query: {
+            page_token: nextPageToken,
+          },
+        },
+      });
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: UserSavedSearchPage = response.data as UserSavedSearchPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
+  }
+
+  public async getAllUserSavedSearches(
+    token: string,
+  ): Promise<SavedSearchResponseList> {
+    const list: SavedSearchResponseList = [];
+    for await (const page of this.getUserSavedSearches(token)) {
+      if (page) list.push(...page);
+    }
+    return list;
   }
 }

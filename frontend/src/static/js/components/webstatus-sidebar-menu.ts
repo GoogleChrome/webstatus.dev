@@ -37,6 +37,10 @@ import {
   Bookmark,
 } from '../utils/constants.js';
 
+import './webstatus-sidebar-global-bookmark-section.js';
+import './webstatus-sidebar-menu-saved-searches-section.js';
+import './webstatus-sidebar-nav-tree-item.js';
+
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
   FEATURES = 'features-item',
@@ -101,6 +105,9 @@ export class WebstatusSidebarMenu extends LitElement {
         .about-link {
           color: inherit;
           text-decoration: none;
+        }
+        sl-skeleton {
+          width: 10rem;
         }
       `,
     ];
@@ -281,6 +288,22 @@ export class WebstatusSidebarMenu extends LitElement {
             this.renderBookmark(bookmark, index),
           )}
         </sl-tree-item>
+        <sl-divider aria-hidden="true"></sl-divider>
+        <webstatus-sidebar-menu-saved-searches-section></webstatus-sidebar-menu-saved-searches-section>
+        <sl-divider aria-hidden="true"></sl-divider>
+        <webstatus-sidebar-nav-tree-item
+          .id=${NavigationItemKey.FEATURES}
+          .startExpanded=${true}
+          .path=${navigationMap[NavigationItemKey.FEATURES].path}
+        >
+          <webstatus-sidebar-global-bookmark-section></webstatus-sidebar-global-bookmark-section>
+        </webstatus-sidebar-nav-tree-item>
+        <sl-divider aria-hidden="true"></sl-divider>
+        <sl-tree-item>
+          Bookmarked Searches
+          <webstatus-sidebar-global-bookmark-section></webstatus-sidebar-global-bookmark-section>
+        </sl-tree-item>
+
         <!-- commented out rather than merely hidden, to avoid breaking sl-tree
         <sl-tree-item id="{NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
