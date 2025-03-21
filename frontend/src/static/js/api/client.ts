@@ -152,6 +152,10 @@ export type MissingOneImplFeaturesPage =
   components['schemas']['MissingOneImplFeaturesPage'];
 export type MissingOneImplFeaturesList =
   components['schemas']['MissingOneImplFeature'][];
+export type UserSavedSearchPage = components['schemas']['UserSavedSearchPage'];
+
+export type SavedSearchResponse = components['schemas']['SavedSearchResponse'];
+export type SavedSearchResponseList = SavedSearchResponse[];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
@@ -563,5 +567,71 @@ export class APIClient {
     } while (nextPageToken !== undefined);
 
     return allFeatures;
+  }
+
+  public async getSavedSearchByID(
+    searchID: string,
+    token?: string,
+  ): Promise<SavedSearchResponse> {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+    };
+    // If the token is there, add it to the options
+    if (token) {
+      options.headers = {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+    const response = await this.client.GET(
+      '/v1/saved-searches/{search_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  async *getUserSavedSearches(
+    token: string,
+  ): AsyncIterable<SavedSearchResponseList | undefined> {
+    let nextPageToken;
+    do {
+      const response = await this.client.GET('/v1/users/me/saved-searches', {
+        ...temporaryFetchOptions,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          query: {
+            page_token: nextPageToken,
+          },
+        },
+      });
+      const error = response.error;
+      if (error !== undefined) {
+        throw createAPIError(error);
+      }
+      const page: UserSavedSearchPage = response.data as UserSavedSearchPage;
+      nextPageToken = page?.metadata?.next_page_token;
+      yield page.data; // Yield the entire page
+    } while (nextPageToken !== undefined);
+  }
+
+  public async getAllUserSavedSearches(
+    token: string,
+  ): Promise<SavedSearchResponseList> {
+    const list: SavedSearchResponseList = [];
+    for await (const page of this.getUserSavedSearches(token)) {
+      if (page) list.push(...page);
+    }
+    return list;
   }
 }

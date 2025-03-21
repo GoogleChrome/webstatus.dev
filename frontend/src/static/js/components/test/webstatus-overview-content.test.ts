@@ -124,18 +124,18 @@ describe('webstatus-overview-content', () => {
       ) as WebstatusOverviewContent;
       // Set location to one of the DEFAULT_BOOKMARKS.
       element.location = {search: '?q=test_query_1'};
-      element.bookmarks = [
-        {
-          name: 'Test Bookmark 1',
-          query: 'test_query_1',
-          description: 'test description1',
-        },
-        {
-          name: 'Test Bookmark 2',
-          query: 'test_query_2',
-          description: 'test description2',
-        },
-      ];
+      // element.bookmarks = [
+      //   {
+      //     name: 'Test Bookmark 1',
+      //     query: 'test_query_1',
+      //     description: 'test description1',
+      //   },
+      //   {
+      //     name: 'Test Bookmark 2',
+      //     query: 'test_query_2',
+      //     description: 'test description2',
+      //   },
+      // ];
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;
@@ -168,12 +168,12 @@ describe('webstatus-overview-content', () => {
       ) as WebstatusOverviewContent;
       // Set location to one of the DEFAULT_BOOKMARKS.
       element.location = {search: '?q=test_query_1'};
-      element.bookmarks = [
-        {
-          name: 'Test Bookmark 1',
-          query: 'test_query_1',
-        },
-      ];
+      // element.bookmarks = [
+      //   {
+      //     name: 'Test Bookmark 1',
+      //     query: 'test_query_1',
+      //   },
+      // ];
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;

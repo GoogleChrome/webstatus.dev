@@ -21,8 +21,9 @@ import {
   css,
   html,
   nothing,
+  PropertyValues,
 } from 'lit';
-import {TaskStatus} from '@lit/task';
+import {Task, TaskStatus} from '@lit/task';
 import {customElement, property, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
@@ -38,8 +39,13 @@ import {
   webFeatureProgressContext,
 } from '../contexts/webfeature-progress-context.js';
 import {Toast} from '../utils/toast.js';
-import {getSearchQuery} from '../utils/urls.js';
-import {DEFAULT_BOOKMARKS, Bookmark} from '../utils/constants.js';
+import {getSearchID, getSearchQuery} from '../utils/urls.js';
+import {Bookmark} from '../utils/constants.js';
+import {
+  AppBookmarkInfo,
+  appBookmarkInfoContext,
+} from '../contexts/app-bookmark-info-context.js';
+import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 
 const webFeaturesRepoUrl = 'https://github.com/web-platform-dx/web-features';
 
@@ -59,8 +65,47 @@ export class WebstatusOverviewContent extends LitElement {
   @state()
   webFeaturesProgress?: WebFeatureProgress;
 
+  @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
-  bookmarks: Bookmark[] = DEFAULT_BOOKMARKS;
+  appBookmarkInfo: AppBookmarkInfo = {};
+
+  @state()
+  currentBookmark?: Bookmark;
+
+  @consume({context: apiClientContext})
+  apiClient?: APIClient;
+
+  savedSearchTask: Task = new Task(this, {
+    args: () => [this.location, this.apiClient] as const,
+    task: async ([location, apiClient]) => {
+      const searchID = getSearchID(location);
+      if (!searchID || !apiClient) {
+        return;
+      }
+      return await apiClient.getSavedSearchByID(searchID);
+    },
+    onError: async (error: unknown) => {
+      let msg: string;
+      if (error instanceof ApiError) {
+        msg = error.message;
+      } else {
+        msg = 'Unknown message. Check console for details.';
+        console.error(error);
+      }
+      const searchID = getSearchID(location);
+      await new Toast().toast(
+        `Error fetching saved search ID ${searchID}: ${msg}`,
+        'danger',
+        'exclamation-triangle',
+      );
+    },
+    onComplete: async search => {
+      if (!search) {
+        return;
+      }
+      this.currentBookmark = search;
+    },
+  });
 
   static get styles(): CSSResultGroup {
     return [
@@ -81,9 +126,39 @@ export class WebstatusOverviewContent extends LitElement {
     ];
   }
 
+  willUpdate(changedProperties: PropertyValues<this>) {
+    if (changedProperties.has('appBookmarkInfo')) {
+      // If we have a search ID, check the user saved searches first
+      const searchID = getSearchID(this.location);
+      if (searchID) {
+        if (
+          this.appBookmarkInfo.userSavedBookmarks?.status ===
+          TaskStatus.COMPLETE
+        ) {
+          // Search for the search ID in the user saved searches
+          const bookmark = this.appBookmarkInfo.userSavedBookmarks.data?.find(
+            bookmark => bookmark.id === searchID,
+          );
+          if (bookmark) {
+            this.currentBookmark = bookmark;
+            return;
+          }
+          //
+        }
+        // TODO: Handle the status == ERROR case.
+      }
+    }
+    if (this.currentBookmark === undefined) {
+      // Otherwise, try to find the bookmark by query as long as it wasn't updated itself
+      this.currentBookmark = this.getBookmarkFromQuery();
+    }
+  }
+
   getBookmarkFromQuery(): Bookmark | undefined {
     const currentQuery = getSearchQuery(this.location);
-    return this.bookmarks.find(bookmark => bookmark.query === currentQuery);
+    return this.appBookmarkInfo?.globalBookmarks?.find(
+      bookmark => bookmark.query === currentQuery,
+    );
   }
 
   renderMappingPercentage(): TemplateResult {
@@ -129,7 +204,7 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   render(): TemplateResult {
-    const bookmark = this.getBookmarkFromQuery();
+    const bookmark = this.currentBookmark;
     const pageTitle = bookmark ? bookmark.name : 'Features overview';
     const pageDescription = bookmark?.description;
     return html`
@@ -158,7 +233,7 @@ export class WebstatusOverviewContent extends LitElement {
         <webstatus-overview-table
           .location=${this.location}
           .taskTracker=${this.taskTracker}
-          .bookmark=${this.getBookmarkFromQuery()}
+          .bookmark=${bookmark}
         >
         </webstatus-overview-table>
         <webstatus-overview-pagination
