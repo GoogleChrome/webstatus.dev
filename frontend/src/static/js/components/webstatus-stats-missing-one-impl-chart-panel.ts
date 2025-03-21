@@ -191,6 +191,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       </div> `;
     }
 
+    // prettier-ignore
     return html`
       <div slot="header" id="${this.getPanelID()}-list-header">
         The missing feature IDs on ${this.selectedDate} for
