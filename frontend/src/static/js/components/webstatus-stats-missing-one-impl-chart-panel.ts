@@ -59,6 +59,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           overflow-x: auto;
           white-space: nowrap;
         }
+        .missing-feature-id-link {
+          padding-right: 1em;
+        }
       `,
     ];
   }
@@ -191,13 +194,11 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       </div> `;
     }
 
-    // prettier-ignore
     return html`
       <div slot="header" id="${this.getPanelID()}-list-header">
         The missing feature IDs on ${this.selectedDate} for
-        ${this.selectedBrowser}: <a
-          href="${this.featureListHref}"
-          target="_blank"
+        ${this.selectedBrowser}:
+        <a href="${this.featureListHref}" target="_blank"
           >${this.missingFeaturesList.length} features</a
         >
       </div>
@@ -228,7 +229,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           const feature_id = this.missingFeaturesList[featureIndex].feature_id;
           cells.push(
             html` <td>
-              <a href="/features/${feature_id}" style="padding-right: 1em;"
+              <a href="/features/${feature_id}" class="missing-feature-id-link"
                 >${feature_id}</a
               >
             </td>`,

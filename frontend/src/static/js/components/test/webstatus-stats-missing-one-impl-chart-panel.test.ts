@@ -229,16 +229,14 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       '#missing-one-implementation-list-header',
     );
     expect(header).to.exist;
-    // Note: \n before chrome due to a complaint from lint in the html.
-    expect(header!.textContent?.trim()).to.contain(
-      'The missing feature IDs on 2024-01-01 for\n        Chrome: 4 features',
-    );
-
-    const anchor = header!.querySelector('a');
-    expect(anchor).to.exist;
-    expect(anchor?.getAttribute('href')).to.equal(
-      '/?q=id%3Acss+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth',
-    );
+    const expectedHeader = `
+      <div slot="header" id="missing-one-implementation-list-header">
+        The missing feature IDs on 2024-01-01 for
+        Chrome:
+        <a target="_blank" href="/?q=id%3Acss+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
+      </div>
+    `;
+    expect(header).dom.to.equal(expectedHeader);
 
     const table = el.shadowRoot!.querySelector('.missing-features-table');
     expect(table).to.exist;
@@ -288,10 +286,13 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       '#missing-one-implementation-list-header',
     );
     expect(header).to.exist;
-    // Note: \n before chrome due to a complaint from lint in the html.
-    expect(header!.textContent?.trim()).to.contain(
-      'No missing features for on 2024-01-01 for\n        Chrome',
-    );
+    const expectedHeader = `
+      <div slot="header" id="missing-one-implementation-list-header">
+        No missing features for on 2024-01-01 for
+        Chrome
+      </div>
+    `;
+    expect(header).dom.to.equal(expectedHeader);
 
     const table = el.shadowRoot!.querySelector('.missing-features-table');
     expect(table).to.not.exist;
