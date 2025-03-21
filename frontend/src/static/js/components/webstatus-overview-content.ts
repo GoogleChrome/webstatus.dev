@@ -227,6 +227,7 @@ export class WebstatusOverviewContent extends LitElement {
         <br />
         <webstatus-overview-filters
           .location=${this.location}
+          .bookmark=${bookmark}
         ></webstatus-overview-filters>
         <br />
 
