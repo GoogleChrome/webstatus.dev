@@ -231,7 +231,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(header).to.exist;
     // Note: \n before chrome due to a complaint from lint in the html.
     expect(header!.textContent?.trim()).to.contain(
-      'The missing feature IDs on 2024-01-01 for\n          chrome',
+      'The missing feature IDs on 2024-01-01 for\n        Chrome: 4 features',
     );
 
     const anchor = header!.querySelector('a');
@@ -290,7 +290,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(header).to.exist;
     // Note: \n before chrome due to a complaint from lint in the html.
     expect(header!.textContent?.trim()).to.contain(
-      'No missing features for on 2024-01-01 for\n        chrome',
+      'No missing features for on 2024-01-01 for\n        Chrome',
     );
 
     const table = el.shadowRoot!.querySelector('.missing-features-table');

@@ -167,7 +167,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           );
         this.missingFeaturesList = features;
         this.selectedDate = targetDate.toISOString().substring(0, 10);
-        this.selectedBrowser = targetBrowser;
+        this.selectedBrowser = label;
         this.updateFeatureListHref(features);
         return features;
       },
@@ -187,16 +187,18 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     if (this.missingFeaturesList.length === 0) {
       return html`<div slot="header" id="${this.getPanelID()}-list-header">
         No missing features for on ${this.selectedDate} for
-        ${this.selectedBrowser}:
+        ${this.selectedBrowser}
       </div> `;
     }
 
     return html`
       <div slot="header" id="${this.getPanelID()}-list-header">
-        <a href="${this.featureListHref}" target="_blank">
-          The missing feature IDs on ${this.selectedDate} for
-          ${this.selectedBrowser}
-        </a>
+        The missing feature IDs on ${this.selectedDate} for
+        ${this.selectedBrowser}: <a
+          href="${this.featureListHref}"
+          target="_blank"
+          >${this.missingFeaturesList.length} features</a
+        >
       </div>
       ${this.renderMissingFeaturesTable()}
     `;
@@ -225,7 +227,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           const feature_id = this.missingFeaturesList[featureIndex].feature_id;
           cells.push(
             html` <td>
-              <a href="/features/${feature_id}">${feature_id}</a>
+              <a href="/features/${feature_id}" style="padding-right: 1em;"
+                >${feature_id}</a
+              >
             </td>`,
           );
         } else {
