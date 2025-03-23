@@ -23,13 +23,21 @@ import {
 } from '../../contexts/settings-context.js';
 import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
 import '../webstatus-overview-content.js';
-import {assert, expect} from '@open-wc/testing';
+import {expect} from '@open-wc/testing';
+import {
+  AppBookmarkInfo,
+  appBookmarkInfoContext,
+} from '../../contexts/app-bookmark-info-context.js';
 
 @customElement('fake-parent-element')
 class FakeParentElement extends LitElement {
   @provide({context: appSettingsContext})
   @property({type: Object})
   settings!: AppSettings;
+
+  @provide({context: appBookmarkInfoContext})
+  @property({type: Object})
+  appBookmarkInfo: AppBookmarkInfo = {};
 
   render(): TemplateResult {
     return html`<slot></slot>`;
@@ -57,25 +65,30 @@ describe('webstatus-overview-content', () => {
       const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
-      // Set location to one of the DEFAULT_BOOKMARKS.
+      // Set location to one of the globalBookmarks.
       element.location = {search: '?q=test_query_1'};
-      element.bookmarks = [
-        {
+      parent.appBookmarkInfo = {
+        globalBookmarks: [
+          {
+            name: 'Test Bookmark 1',
+            query: 'test_query_1',
+            description: 'test description1',
+          },
+          {
+            name: 'Test Bookmark 2',
+            query: 'test_query_2',
+            description: 'test description2',
+          },
+        ],
+        currentGlobalBookmark: {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
           description: 'test description1',
         },
-        {
-          name: 'Test Bookmark 2',
-          query: 'test_query_2',
-          description: 'test description2',
-        },
-      ];
+      };
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;
-
-      assert.exists(element.getBookmarkFromQuery());
 
       const title = element?.shadowRoot?.querySelector('#overview-title');
       expect(title).to.exist;
@@ -101,19 +114,23 @@ describe('webstatus-overview-content', () => {
       const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
-      // Set location to one of the DEFAULT_BOOKMARKS.
+      // Set location to one of the globalBookmarks.
       element.location = {search: '?q=test_query_1'};
-      element.bookmarks = [
-        {
+      parent.appBookmarkInfo = {
+        globalBookmarks: [
+          {
+            name: 'Test Bookmark 1',
+            query: 'test_query_1',
+          },
+        ],
+        currentGlobalBookmark: {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
         },
-      ];
+      };
       document.body.appendChild(container);
       await parent.updateComplete;
       await element.updateComplete;
-
-      assert.exists(element.getBookmarkFromQuery());
 
       const title = element?.shadowRoot?.querySelector('#overview-title');
       expect(title).to.exist;
