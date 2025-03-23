@@ -8,9 +8,9 @@ require (
 	cloud.google.com/go v0.119.0
 	cloud.google.com/go/spanner v1.77.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250313171535-078beb7fecb7
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250313171535-078beb7fecb7
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
 	github.com/brianvoe/gofakeit/v7 v7.2.1
-	github.com/golang-jwt/jwt/v5 v5.2.1
+	github.com/golang-jwt/jwt/v5 v5.2.2
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20250312133425-17e2192e740d
 	golang.org/x/text v0.23.0
 )
