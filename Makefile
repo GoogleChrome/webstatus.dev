@@ -66,15 +66,18 @@ port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
 	kubectl wait --for=condition=ready pod/auth
+	kubectl wait --for=condition=ready pod/gcs
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/gcs 4443:4443 2>&1 >/dev/null &
 	curl -s -o /dev/null -m 5 http://localhost:8080 || true
 	curl -s -o /dev/null -m 5 http://localhost:5555 || true
 	curl -s -o /dev/null -m 5 http://localhost:8092 || true
 	curl -s -o /dev/null -m 5 http://localhost:9099 || true
 	curl -s -o /dev/null -m 5 http://localhost:9100 || true
+	curl -s -o /dev/null -m 5 http://localhost:4443 || true
 
 port-forward-terminate:
 	fuser -k 5555/tcp || true
@@ -82,6 +85,7 @@ port-forward-terminate:
 	fuser -k 8092/tcp || true
 	fuser -k 9099/tcp || true
 	fuser -k 9100/tcp || true
+	fuser -k 4443/tcp || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:
@@ -402,7 +406,10 @@ dev_fake_data: build is_local_migration_ready
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
 	fuser -k 8086/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
-	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local -datastore_project=local
+	fuser -k 9099/tcp || true
+	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
+	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local -datastore_project=local
+	fuser -k 9099/tcp || true
 	fuser -k 9010/tcp || true
 	fuser -k 8086/tcp || true
 is_local_migration_ready:

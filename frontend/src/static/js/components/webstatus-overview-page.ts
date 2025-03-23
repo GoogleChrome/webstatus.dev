@@ -50,8 +50,8 @@ export class OverviewPage extends LitElement {
   @state()
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
-    error: null,
-    data: null,
+    error: undefined,
+    data: undefined,
   };
 
   @property({type: Object})
@@ -73,8 +73,8 @@ export class OverviewPage extends LitElement {
           // Reset taskTracker here due to a Task data cache issue.
           this.taskTracker = {
             status: TaskStatus.INITIAL,
-            error: null,
-            data: null,
+            error: undefined,
+            data: undefined,
           };
           this.currentLocation = this.location;
           return this._fetchFeatures(apiClient, routerLocation);
@@ -84,7 +84,7 @@ export class OverviewPage extends LitElement {
       onComplete: page => {
         this.taskTracker = {
           status: TaskStatus.COMPLETE,
-          error: null,
+          error: undefined,
           data: page,
         };
       },
@@ -93,7 +93,7 @@ export class OverviewPage extends LitElement {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: error,
-            data: null,
+            data: undefined,
           };
           await toast(`${error.message}`, 'danger', 'exclamation-triangle');
         } else {
@@ -101,7 +101,7 @@ export class OverviewPage extends LitElement {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: new UnknownError('unknown error fetching features'),
-            data: null,
+            data: undefined,
           };
         }
       },

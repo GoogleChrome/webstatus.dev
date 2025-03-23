@@ -48,6 +48,7 @@ class FakeBookmarkParentElement extends LitElement {
   appBookmarkInfo: AppBookmarkInfo = {
     globalBookmarks: testBookmarks,
     currentGlobalBookmark: undefined,
+    userSavedSearchBookmarkTask: undefined,
   };
 
   render(): TemplateResult {
@@ -133,6 +134,7 @@ describe('webstatus-sidebar-menu', () => {
     parent.appBookmarkInfo = {
       globalBookmarks: testBookmarks,
       currentGlobalBookmark: testBookmarks[1],
+      userSavedSearchBookmarkTask: undefined,
     };
 
     el.updateActiveStatus();
@@ -170,6 +172,7 @@ describe('webstatus-sidebar-menu', () => {
     parent.appBookmarkInfo = {
       globalBookmarks: testBookmarks,
       currentGlobalBookmark: testBookmarks[0],
+      userSavedSearchBookmarkTask: undefined,
     };
     await parent.updateComplete;
     await el.updateComplete;

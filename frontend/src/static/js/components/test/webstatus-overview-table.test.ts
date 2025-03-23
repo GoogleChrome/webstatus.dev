@@ -63,7 +63,7 @@ describe('webstatus-overview-table', () => {
     ApiError
   > = {
     status: TaskStatus.COMPLETE,
-    error: null,
+    error: undefined,
     data: page,
   };
   it('renders with no data', async () => {
@@ -169,7 +169,7 @@ describe('webstatus-overview-table', () => {
       ApiError
     > = {
       status: TaskStatus.COMPLETE,
-      error: null,
+      error: undefined,
       data: cssPage,
     };
     const location = {search: `?q=${cssQuery}`};

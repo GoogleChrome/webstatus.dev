@@ -16,10 +16,29 @@
 
 import {createContext} from '@lit/context';
 import {Bookmark} from '../utils/constants.js';
+import {TaskTracker} from '../utils/task-tracker.js';
+import {TaskStatus} from '@lit/task';
 
 export interface AppBookmarkInfo {
   globalBookmarks?: Bookmark[];
   currentGlobalBookmark?: Bookmark;
+  userSavedSearchBookmarkTask?: TaskTracker<
+    Bookmark,
+    Error & {message: string}
+  >;
+}
+
+export function getCurrentBookmark(
+  info?: AppBookmarkInfo,
+): Bookmark | undefined {
+  if (
+    info?.userSavedSearchBookmarkTask?.status === TaskStatus.COMPLETE &&
+    info?.userSavedSearchBookmarkTask.data
+  ) {
+    return info.userSavedSearchBookmarkTask.data;
+  }
+
+  return info?.currentGlobalBookmark;
 }
 
 export const appBookmarkInfoContext =
