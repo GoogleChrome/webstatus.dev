@@ -32,32 +32,37 @@ import './webstatus-overview-table.js';
 import './webstatus-overview-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
-import {ApiError} from '../api/errors.js';
+import {ApiError, UnknownError} from '../api/errors.js';
 import {consume} from '@lit/context';
 import {
   WebFeatureProgress,
   webFeatureProgressContext,
 } from '../contexts/webfeature-progress-context.js';
-import {Toast} from '../utils/toast.js';
-import {getSearchID, getSearchQuery} from '../utils/urls.js';
+import {Toast, toast} from '../utils/toast.js';
+import {
+  getPageSize,
+  getPaginationStart,
+  getSearchID,
+  getSearchQuery,
+  getSortSpec,
+  getWPTMetricView,
+} from '../utils/urls.js';
 import {Bookmark} from '../utils/constants.js';
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
+import {
+  FeatureSearchType,
+  FeatureSortOrderType,
+  FeatureWPTMetricViewType,
+} from '../api/client.js';
 
 const webFeaturesRepoUrl = 'https://github.com/web-platform-dx/web-features';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
-  @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
-    status: TaskStatus.INITIAL, // Initial state
-    error: null,
-    data: null,
-  };
-
   @property({type: Object})
   location!: {search: string}; // Set by parent.
 
@@ -74,6 +79,82 @@ export class WebstatusOverviewContent extends LitElement {
 
   @consume({context: apiClientContext})
   apiClient?: APIClient;
+
+  @state()
+  currentLocation?: {search: string};
+
+  async _fetchFeatures(
+    apiClient: APIClient | undefined,
+    routerLocation: {search: string},
+  ): Promise<components['schemas']['FeaturePage']> {
+    if (typeof apiClient !== 'object')
+      return Promise.reject(new Error('APIClient is not initialized.'));
+    const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
+    const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
+    const offset = getPaginationStart(routerLocation);
+    const pageSize = getPageSize(routerLocation);
+    const wptMetricView = getWPTMetricView(
+      routerLocation,
+    ) as FeatureWPTMetricViewType;
+    return apiClient.getFeatures(
+      searchQuery,
+      sortSpec,
+      wptMetricView,
+      offset,
+      pageSize,
+    );
+  }
+
+  loadingTask: Task = new Task(this, {
+    args: () =>
+      [this.apiClient, this.location] as [APIClient, {search: string}],
+    task: async ([apiClient, routerLocation]): Promise<
+      components['schemas']['FeaturePage']
+    > => {
+      if (this.location.search !== this.currentLocation?.search) {
+        // Reset taskTracker here due to a Task data cache issue.
+        this.taskTracker = {
+          status: TaskStatus.INITIAL,
+          error: null,
+          data: null,
+        };
+        this.currentLocation = this.location;
+        return this._fetchFeatures(apiClient, routerLocation);
+      }
+      return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
+    },
+    onComplete: page => {
+      this.taskTracker = {
+        status: TaskStatus.COMPLETE,
+        error: null,
+        data: page,
+      };
+    },
+    onError: async (error: unknown) => {
+      if (error instanceof ApiError) {
+        this.taskTracker = {
+          status: TaskStatus.ERROR,
+          error: error,
+          data: null,
+        };
+        await toast(`${error.message}`, 'danger', 'exclamation-triangle');
+      } else {
+        // Should never reach here but let's handle it.
+        this.taskTracker = {
+          status: TaskStatus.ERROR,
+          error: new UnknownError('unknown error fetching features'),
+          data: null,
+        };
+      }
+    },
+  });
+
+  @state()
+  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+    status: TaskStatus.INITIAL, // Initial state
+    error: null,
+    data: null,
+  };
 
   savedSearchTask: Task = new Task(this, {
     args: () => [this.location, this.apiClient] as const,

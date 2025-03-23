@@ -155,12 +155,6 @@ function getContextualQueryStringParams(
     searchParams.set('endDate', endDate);
   }
 
-  const searchID =
-    'search_id' in overrides ? overrides.search_id : getSearchID(location);
-  if (searchID) {
-    searchParams.set('search_id', searchID);
-  }
-
   return searchParams.toString() ? '?' + searchParams.toString() : '';
 }
 
