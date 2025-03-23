@@ -32,8 +32,11 @@ import './webstatus-overview-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
-import {getSearchQuery} from '../utils/urls.js';
-import {DEFAULT_BOOKMARKS, Bookmark} from '../utils/constants.js';
+import {
+  AppBookmarkInfo,
+  appBookmarkInfoContext,
+} from '../contexts/app-bookmark-info-context.js';
+import {consume} from '@lit/context';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -47,8 +50,9 @@ export class WebstatusOverviewContent extends LitElement {
   @property({type: Object})
   location!: {search: string}; // Set by parent.
 
+  @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
-  bookmarks: Bookmark[] = DEFAULT_BOOKMARKS;
+  appBookmarkInfo?: AppBookmarkInfo;
 
   static get styles(): CSSResultGroup {
     return [
@@ -69,11 +73,6 @@ export class WebstatusOverviewContent extends LitElement {
     ];
   }
 
-  getBookmarkFromQuery(): Bookmark | undefined {
-    const currentQuery = getSearchQuery(this.location);
-    return this.bookmarks.find(bookmark => bookmark.query === currentQuery);
-  }
-
   renderCount(): TemplateResult {
     switch (this.taskTracker.status) {
       case TaskStatus.INITIAL:
@@ -91,7 +90,7 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   render(): TemplateResult {
-    const bookmark = this.getBookmarkFromQuery();
+    const bookmark = this.appBookmarkInfo?.currentGlobalBookmark;
     const pageTitle = bookmark ? bookmark.name : 'Features overview';
     const pageDescription = bookmark?.description;
     return html`
@@ -114,7 +113,7 @@ export class WebstatusOverviewContent extends LitElement {
         <webstatus-overview-table
           .location=${this.location}
           .taskTracker=${this.taskTracker}
-          .bookmark=${this.getBookmarkFromQuery()}
+          .bookmark=${bookmark}
         >
         </webstatus-overview-table>
         <webstatus-overview-pagination
