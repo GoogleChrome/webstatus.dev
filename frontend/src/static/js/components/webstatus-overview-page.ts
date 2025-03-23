@@ -38,7 +38,6 @@ import './webstatus-overview-content.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {toast} from '../utils/toast.js';
-import '../services/webstatus-webfeature-progress-service.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -133,13 +132,11 @@ export class OverviewPage extends LitElement {
 
   render(): TemplateResult {
     return html`
-      <webstatus-webfeature-progress-service>
-        <webstatus-overview-content
-          .location=${this.location}
-          .taskTracker=${this.taskTracker}
-        >
-        </webstatus-overview-content>
-      </webstatus-webfeature-progress-service>
+      <webstatus-overview-content
+        .location=${this.location}
+        .taskTracker=${this.taskTracker}
+      >
+      </webstatus-overview-content>
     `;
   }
 }

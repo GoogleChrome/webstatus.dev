@@ -86,5 +86,3 @@ auth_github_config_locations = {
 
 backend_min_instance_count  = 1
 frontend_min_instance_count = 1
-
-web_features_progress_url = "https://storage.googleapis.com/web-features-progress-prod/progress.json"

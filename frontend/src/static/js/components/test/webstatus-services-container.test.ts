@@ -24,7 +24,6 @@ import {ServiceElement} from '../../services/service-element.js';
 describe('WebstatusServiceContainer', () => {
   const settings: AppSettings = {
     apiUrl: 'http://localhost',
-    webFeaturesProgressUrl: 'url',
     firebase: {
       app: {
         apiKey: 'testapikey',

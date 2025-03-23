@@ -83,7 +83,3 @@ variable "min_instance_count" {
 variable "max_instance_count" {
   type = number
 }
-
-variable "web_features_progress_url" {
-  type = string
-}

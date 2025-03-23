@@ -141,7 +141,6 @@ module "frontend" {
   domains                   = var.frontend_domains
   custom_ssl_certificates   = var.custom_ssl_certificates_for_frontend
   projects                  = var.projects
-  web_features_progress_url = var.web_features_progress_url
   firebase_settings = {
     api_key     = local.firebase_api_key
     auth_domain = "${var.projects.internal}.firebaseapp.com"
