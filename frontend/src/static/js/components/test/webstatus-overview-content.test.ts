@@ -24,8 +24,6 @@ import {
 import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
 import '../webstatus-overview-content.js';
 import {assert, expect} from '@open-wc/testing';
-import {Toast} from '../../utils/toast.js';
-import sinon from 'sinon';
 
 @customElement('fake-parent-element')
 class FakeParentElement extends LitElement {
@@ -39,69 +37,6 @@ class FakeParentElement extends LitElement {
 }
 
 describe('webstatus-overview-content', () => {
-  describe('renderMappingPercentage', () => {
-    let parent: FakeParentElement;
-    let element: WebstatusOverviewContent;
-    let container: HTMLElement;
-    let testContainer: HTMLElement;
-    beforeEach(async () => {
-      container = document.createElement('div');
-      container.innerHTML = `
-        <fake-parent-element>
-          <webstatus-overview-content>
-          </webstatus-overview-content>
-        </fake-parent-element>
-      `;
-      parent = container.querySelector(
-        'fake-parent-element',
-      ) as FakeParentElement;
-
-      element = container.querySelector(
-        'webstatus-overview-content',
-      ) as WebstatusOverviewContent;
-      // Set location to one of the DEFAULT_BOOKMARKS.
-      element.location = {search: '?q=baseline_date:2023-01-01..2023-12-31'};
-      document.body.appendChild(container);
-      await parent.updateComplete;
-      await element.updateComplete;
-      testContainer = element?.shadowRoot?.querySelector(
-        '#mapping-percentage',
-      ) as HTMLElement;
-      assert.exists(testContainer);
-    });
-    afterEach(() => {
-      document.body.removeChild(container);
-    });
-    it('should return an empty TemplateResult when webFeaturesProgress is undefined', () => {
-      expect(testContainer.textContent?.trim()).to.equal('');
-    });
-    it('should return an empty TemplateResult when webFeaturesProgress is disabled', async () => {
-      element.webFeaturesProgress = {isDisabled: true};
-      await element.updateComplete;
-      expect(testContainer.textContent?.trim()).to.equal('');
-    });
-
-    it('should call toast with the error message when webFeaturesProgress has an error', async () => {
-      const toastStub = sinon.stub(Toast.prototype, 'toast');
-      element.webFeaturesProgress = {error: 'Test error'};
-
-      await element.updateComplete;
-      expect(toastStub.calledOnce).to.be.true;
-      expect(
-        toastStub.calledWith('Test error', 'danger', 'exclamation-triangle'),
-      ).to.be.true;
-
-      expect(testContainer.textContent?.trim()).to.equal('');
-    });
-
-    it('should render the mapping percentage when available', async () => {
-      element.webFeaturesProgress = {bcdMapProgress: 75};
-      await element.updateComplete;
-      expect(testContainer.textContent?.trim()).to.match(
-        /Percentage of features mapped:\s*75%/,
-      );
-    });
-  });
   describe('RenderBookmarkUI', () => {
     let container: HTMLElement;
     afterEach(() => {

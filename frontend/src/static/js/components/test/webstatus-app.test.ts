@@ -24,7 +24,6 @@ describe('webstatus-app', () => {
   it('can be added to the page with the settings', async () => {
     const settings: AppSettings = {
       apiUrl: 'http://localhost',
-      webFeaturesProgressUrl: 'url',
       firebase: {
         app: {
           apiKey: 'testapikey',

@@ -32,16 +32,8 @@ import './webstatus-overview-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
-import {consume} from '@lit/context';
-import {
-  WebFeatureProgress,
-  webFeatureProgressContext,
-} from '../contexts/webfeature-progress-context.js';
-import {Toast} from '../utils/toast.js';
 import {getSearchQuery} from '../utils/urls.js';
 import {DEFAULT_BOOKMARKS, Bookmark} from '../utils/constants.js';
-
-const webFeaturesRepoUrl = 'https://github.com/web-platform-dx/web-features';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -54,10 +46,6 @@ export class WebstatusOverviewContent extends LitElement {
 
   @property({type: Object})
   location!: {search: string}; // Set by parent.
-
-  @consume({context: webFeatureProgressContext, subscribe: true})
-  @state()
-  webFeaturesProgress?: WebFeatureProgress;
 
   @state()
   bookmarks: Bookmark[] = DEFAULT_BOOKMARKS;
@@ -84,32 +72,6 @@ export class WebstatusOverviewContent extends LitElement {
   getBookmarkFromQuery(): Bookmark | undefined {
     const currentQuery = getSearchQuery(this.location);
     return this.bookmarks.find(bookmark => bookmark.query === currentQuery);
-  }
-
-  renderMappingPercentage(): TemplateResult {
-    if (
-      this.webFeaturesProgress === undefined ||
-      this.webFeaturesProgress.isDisabled
-    ) {
-      return html``;
-    }
-    if (this.webFeaturesProgress.error) {
-      // Temporarily to avoid the no-floating-promises error.
-      void new Toast().toast(
-        this.webFeaturesProgress.error,
-        'danger',
-        'exclamation-triangle',
-      );
-      return html``;
-    }
-    return html`Percentage of features mapped:&nbsp;
-      <a href="${webFeaturesRepoUrl}">
-        ${
-          this.webFeaturesProgress.bcdMapProgress
-            ? this.webFeaturesProgress.bcdMapProgress
-            : 0 // The else case that returns 0 should not happen.
-        }%
-      </a>`;
   }
 
   renderCount(): TemplateResult {
@@ -142,13 +104,7 @@ export class WebstatusOverviewContent extends LitElement {
               <h3>${pageDescription}</h3>
             </div>`
           : nothing}
-        <div class="hbox wrap">
-          ${this.renderCount()}
-          <div class="spacer"></div>
-          <div id="mapping-percentage" class="hbox wrap">
-            ${this.renderMappingPercentage()}
-          </div>
-        </div>
+        <div class="hbox">${this.renderCount()}</div>
         <br />
         <webstatus-overview-filters
           .location=${this.location}
