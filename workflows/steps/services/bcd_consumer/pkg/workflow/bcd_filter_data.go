@@ -75,7 +75,7 @@ func (f BCDDataFilter) FilterData(
 	}
 	var ret []bcdconsumertypes.BrowserRelease
 	for _, browser := range filteredBrowsers {
-		browserData, found := in.BrowserData.Browsers[browser]
+		browserData, found := in.Browsers[browser]
 		if !found {
 			return nil, errors.Join(ErrMissingBrowser, fmt.Errorf("unable to find browser %s", browser))
 		}

@@ -63,7 +63,7 @@ func (d *Downloader) Download(
 	}
 
 	statusCode := resp.StatusCode
-	if !(statusCode >= 200 && statusCode <= 299) {
+	if statusCode < 200 || statusCode > 299 {
 		err := fmt.Errorf("bad status code:%d, unable to download wpt-metadata", statusCode)
 		resp.Body.Close()
 

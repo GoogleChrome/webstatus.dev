@@ -100,7 +100,7 @@ func calculateBrowserSupportEvents(
 
 // PrecalculateBrowserFeatureSupportEvents populates the BrowserFeatureSupportEvents table with pre-calculated data.
 func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context, startAt, endAt time.Time) error {
-	txn := c.Client.ReadOnlyTransaction()
+	txn := c.ReadOnlyTransaction()
 	// 1. Fetch all BrowserFeatureAvailabilities
 	availabilities, err := c.fetchAllBrowserAvailabilitiesWithTransaction(ctx, txn)
 	if err != nil {

@@ -124,7 +124,7 @@ func TestParse(t *testing.T) {
 				t.Errorf("unable to parse file err %s", err.Error())
 			}
 
-			if len(result.BrowserData.Browsers) == 0 {
+			if len(result.Browsers) == 0 {
 				t.Error("unexpected empty map")
 			}
 		})

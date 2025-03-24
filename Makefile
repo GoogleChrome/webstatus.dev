@@ -186,7 +186,7 @@ golint-version:
 lint: go-lint node-lint tf-lint shell-lint style-lint dockerfile-lint
 
 go-lint: golint-version go-workspace-setup
-	go list -f '{{.Dir}}/...' -m | xargs -t golangci-lint run --go=$$(go version | awk '{print $$3}' | cut -c 3-)
+	go list -f '{{.Dir}}/...' -m | xargs -t golangci-lint run
 
 node-lint: node-install
 	npm run lint -w frontend
