@@ -20,6 +20,13 @@ import {WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
 import {SlTreeItem} from '@shoelace-style/shoelace';
 import '../webstatus-sidebar-menu.js';
 import {Bookmark} from '../../utils/constants.js';
+import {customElement, property} from 'lit/decorators.js';
+import {provide} from '@lit/context';
+import {LitElement, TemplateResult} from 'lit';
+import {
+  AppBookmarkInfo,
+  appBookmarkInfoContext,
+} from '../../contexts/app-bookmark-info-context.js';
 
 const testBookmarks: Bookmark[] = [
   {
@@ -33,13 +40,48 @@ const testBookmarks: Bookmark[] = [
     description: 'test description2',
   },
 ];
+
+@customElement('fake-bookmark-parent-element')
+class FakeBookmarkParentElement extends LitElement {
+  @provide({context: appBookmarkInfoContext})
+  @property({type: Object})
+  appBookmarkInfo: AppBookmarkInfo = {
+    globalBookmarks: testBookmarks,
+    currentGlobalBookmark: undefined,
+  };
+
+  render(): TemplateResult {
+    return html`<slot></slot>`;
+  }
+}
+
+function createTestContainer(): HTMLElement {
+  const container = document.createElement('div');
+  container.innerHTML = `
+  <fake-bookmark-parent-element>
+    <webstatus-sidebar-menu>
+    </webstatus-sidebar-menu>
+  </fake-bookmark-parent-element>
+`;
+  return container;
+}
+
 describe('webstatus-sidebar-menu', () => {
   let el: WebstatusSidebarMenu;
+  let parent: FakeBookmarkParentElement;
+  let container: HTMLElement;
 
   beforeEach(async () => {
-    el = await fixture<WebstatusSidebarMenu>(
-      '<webstatus-sidebar-menu></webstatus-sidebar-menu>',
-    );
+    container = createTestContainer();
+
+    parent = container.querySelector<FakeBookmarkParentElement>(
+      'fake-bookmark-parent-element',
+    )!;
+    el = container.querySelector<WebstatusSidebarMenu>(
+      'webstatus-sidebar-menu',
+    )!;
+    expect(parent).to.exist;
+    expect(el).to.exist;
 
     // Mock router utility functions and initial location
     el.getLocation = sinon.stub().returns({
@@ -47,15 +89,14 @@ describe('webstatus-sidebar-menu', () => {
       href: 'http://localhost/',
     });
     el.navigate = sinon.stub();
-
-    // Set up test bookmarks
-    el.setBookmarks(testBookmarks);
+    document.body.appendChild(container);
 
     await el.updateComplete; // Wait for the component to update with the new bookmarks
   });
 
   afterEach(() => {
     sinon.restore();
+    document.body.removeChild(container);
   });
 
   it('renders the correct structure with features and statistics sections', async () => {
@@ -86,14 +127,21 @@ describe('webstatus-sidebar-menu', () => {
   it('updates the active bookmark query when the URL changes', async () => {
     // Set mock location to match a test bookmark
     (el.getLocation as sinon.SinonStub).returns({
-      search: `?q=${el.bookmarks[1].query}`,
-      href: `http://localhost/?q=${el.bookmarks[1].query}`,
+      search: `?q=${el.appBookmarkInfo?.globalBookmarks?.[1].query}`,
+      href: `http://localhost/?q=${el.appBookmarkInfo?.globalBookmarks?.[1].query}`,
     });
+    parent.appBookmarkInfo = {
+      globalBookmarks: testBookmarks,
+      currentGlobalBookmark: testBookmarks[1],
+    };
 
     el.updateActiveStatus();
+    await parent.updateComplete;
     await el.updateComplete;
     expect(el.getLocation as sinon.SinonStub).to.be.called;
-    expect(el.getActiveBookmarkQuery()).to.equal(el.bookmarks[1].query);
+    expect(el.getActiveBookmarkQuery()).to.equal(
+      el.appBookmarkInfo?.globalBookmarks?.[1].query,
+    );
   });
 
   it('correctly handles bookmark clicks', async () => {
@@ -110,27 +158,27 @@ describe('webstatus-sidebar-menu', () => {
     expect(el.getActiveBookmarkQuery()).to.be.null;
 
     (el.getLocation as sinon.SinonStub).returns({
-      search: `?q=${el.bookmarks[0].query}`,
-      href: `http://localhost/?q=${el.bookmarks[0].query}`,
+      search: `?q=${el.appBookmarkInfo?.globalBookmarks?.[0].query}`,
+      href: `http://localhost/?q=${el.appBookmarkInfo?.globalBookmarks?.[0].query}`,
     });
 
     // Stub the click method to prevent default behavior
     const clickStub = sinon.stub(bookmarkAnchor, 'click');
 
-    // Click the anchor
+    // Click the anchor. The parent element handles updating the currentGlobalBookmark
     bookmarkAnchor.click();
-    await el.updateComplete;
-
-    // Simulate popstate event.
-    const popStateEvent = new PopStateEvent('popstate', {
-      state: {},
-    });
-    window.dispatchEvent(popStateEvent);
+    parent.appBookmarkInfo = {
+      globalBookmarks: testBookmarks,
+      currentGlobalBookmark: testBookmarks[0],
+    };
+    await parent.updateComplete;
     await el.updateComplete;
 
     // Assertions
     expect(clickStub.calledOnce).to.be.true;
-    expect(el.getActiveBookmarkQuery()).to.equal(el.bookmarks[0].query);
+    expect(el.getActiveBookmarkQuery()).to.equal(
+      el.appBookmarkInfo?.globalBookmarks?.[0].query,
+    );
 
     const bookmarkItems = el.shadowRoot
       ?.querySelector('sl-tree')
@@ -165,7 +213,10 @@ describe('webstatus-sidebar-menu', () => {
       <webstatus-sidebar-menu
         .getLocation=${getCurrentLocationStub}
         .navigate=${navigateToUrlStub}
-        .bookmarks=${testBookmarks}
+        .appBookmarkInfo=${{
+          globalBookmarks: testBookmarks,
+          currentGlobalBookmark: testBookmarks[0],
+        }}
       ></webstatus-sidebar-menu>
     `);
 

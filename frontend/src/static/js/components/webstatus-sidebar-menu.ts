@@ -20,6 +20,7 @@ import {
   type TemplateResult,
   css,
   html,
+  PropertyValueMap,
 } from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
@@ -33,9 +34,14 @@ import {
 import {
   GITHUB_REPO_ISSUE_LINK,
   ABOUT_PAGE_LINK,
-  DEFAULT_BOOKMARKS,
   Bookmark,
 } from '../utils/constants.js';
+import {consume} from '@lit/context';
+import {
+  AppBookmarkInfo,
+  appBookmarkInfoContext,
+  getCurrentBookmark,
+} from '../contexts/app-bookmark-info-context.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
@@ -111,12 +117,10 @@ export class WebstatusSidebarMenu extends LitElement {
 
   constructor() {
     super();
-    window.addEventListener('popstate', this.handlePopState.bind(this));
   }
 
   connectedCallback(): void {
     super.connectedCallback();
-    this.downloadBookmarks();
     this.updateActiveStatus();
   }
 
@@ -124,15 +128,16 @@ export class WebstatusSidebarMenu extends LitElement {
     super.disconnectedCallback();
   }
 
-  private handlePopState() {
+  private handleBookmarkInfoUpdate() {
     this.updateActiveStatus();
   }
 
   @state()
-  bookmarks: Bookmark[] = [];
-
-  @state()
   private activeBookmarkQuery: string | null = null;
+
+  @consume({context: appBookmarkInfoContext, subscribe: true})
+  @state()
+  appBookmarkInfo?: AppBookmarkInfo;
 
   // For now, unconditionally open the features dropdown.
   @state()
@@ -140,13 +145,9 @@ export class WebstatusSidebarMenu extends LitElement {
 
   updateActiveStatus(): void {
     this.highlightNavigationItem(this.getNavTree());
-    const location = this.getLocation();
-    const queryParams = new URLSearchParams(location.search);
-    const currentQuery = queryParams.get('q');
-
     // Check if activeBookmarkQuery needs to be updated
     const newActiveBookmarkQuery =
-      this.bookmarks.find(bookmark => bookmark.query === currentQuery)?.query ||
+      getCurrentBookmark(this.appBookmarkInfo, this.getLocation())?.query ||
       null;
 
     this.activeBookmarkQuery = newActiveBookmarkQuery;
@@ -159,19 +160,6 @@ export class WebstatusSidebarMenu extends LitElement {
 
   getNavTree(): SlTree | undefined {
     return this.shadowRoot!.querySelector('sl-tree') as SlTree;
-  }
-
-  downloadBookmarks() {
-    // If we did not set any bookmarks, "download" (future) and add the default bookmarks.
-    // The future downloaded bookmarks would be saved bookmarks for an individual user.
-    if (this.bookmarks.length === 0) {
-      // In the future, we can get more bookmarks from the backend and combine with the default list here.
-      this.setBookmarks(DEFAULT_BOOKMARKS);
-    }
-  }
-
-  setBookmarks(newBookmarks: Bookmark[]) {
-    this.bookmarks = newBookmarks;
   }
 
   private highlightNavigationItem(tree: SlTree | undefined) {
@@ -192,6 +180,12 @@ export class WebstatusSidebarMenu extends LitElement {
       if (itemToSelect) {
         itemToSelect.selected = true;
       }
+    }
+  }
+
+  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
+    if (changedProperties.has('appBookmarkInfo')) {
+      this.handleBookmarkInfoUpdate();
     }
   }
 
@@ -277,7 +271,7 @@ export class WebstatusSidebarMenu extends LitElement {
             href="${navigationMap[NavigationItemKey.FEATURES].path}"
             >Features</a
           >
-          ${this.bookmarks.map((bookmark, index) =>
+          ${this.appBookmarkInfo?.globalBookmarks?.map((bookmark, index) =>
             this.renderBookmark(bookmark, index),
           )}
         </sl-tree-item>
