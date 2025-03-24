@@ -19,6 +19,10 @@ import {ServiceElement} from './service-element.js';
 import {consume, provide} from '@lit/context';
 import {
   AppBookmarkInfo,
+  SavedSearchError,
+  SavedSearchInternalError,
+  SavedSearchNotFoundError,
+  SavedSearchUnknownError,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
 import {Bookmark, DEFAULT_BOOKMARKS} from '../utils/constants.js';
@@ -29,9 +33,8 @@ import {User} from 'firebase/auth';
 import {APIClient} from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {firebaseUserContext} from '../contexts/firebase-user-context.js';
-import {ApiError} from '../api/errors.js';
+import {ApiError, NotFoundError} from '../api/errors.js';
 import {TaskTracker} from '../utils/task-tracker.js';
-import {PropertyValueMap} from 'lit';
 
 interface GetLocationFunction {
   (): AppLocation;
@@ -52,10 +55,8 @@ export class WebstatusBookmarksService extends ServiceElement {
   _globalBookmarks: Bookmark[];
   _currentGlobalBookmark?: Bookmark;
   _currentUserSavedBookmark?: Bookmark;
-  _userSavedBookmarkByIDTaskTracker?: TaskTracker<
-    Bookmark,
-    Error & {message: string}
-  > = undefined;
+  _userSavedBookmarkByIDTaskTracker?: TaskTracker<Bookmark, SavedSearchError> =
+    undefined;
 
   loadingUserSavedBookmarkByIDTask = new Task(this, {
     args: () => [this.currentLocation, this.apiClient, this.user] as const,
@@ -73,6 +74,7 @@ export class WebstatusBookmarksService extends ServiceElement {
         data: undefined,
         error: undefined,
       };
+      this._evaluatingLocation = location;
       this.refreshAppBookmarkInfo();
 
       return await apiClient.getSavedSearchByID(searchID, token);
@@ -86,18 +88,19 @@ export class WebstatusBookmarksService extends ServiceElement {
       this.refreshAppBookmarkInfo();
     },
     onError: async (error: unknown) => {
-      let msg: string;
-      if (error instanceof ApiError) {
-        msg = error.message;
+      const searchID = getSearchID(location ?? {search: ''});
+      let err: SavedSearchError;
+      if (error instanceof NotFoundError) {
+        err = new SavedSearchNotFoundError(searchID);
+      } else if (error instanceof ApiError) {
+        err = new SavedSearchInternalError(searchID, error.message);
       } else {
-        msg = 'Unknown message. Check console for details.';
-        console.error(error);
+        err = new SavedSearchUnknownError(searchID, error);
       }
 
-      const searchID = getSearchID(location ?? {search: ''});
       this._userSavedBookmarkByIDTaskTracker = {
         status: TaskStatus.ERROR,
-        error: new Error(`Error fetching saved search ID ${searchID}: ${msg}`),
+        error: err,
         data: undefined,
       };
       this.refreshAppBookmarkInfo();
@@ -105,6 +108,8 @@ export class WebstatusBookmarksService extends ServiceElement {
   });
 
   currentLocation?: AppLocation;
+
+  _evaluatingLocation?: AppLocation;
 
   // Helper for testing.
   getLocation: GetLocationFunction = getCurrentLocation;
@@ -126,6 +131,22 @@ export class WebstatusBookmarksService extends ServiceElement {
     this._currentGlobalBookmark = this.findCurrentBookmarkByQuery(
       this.appBookmarkInfo.globalBookmarks,
     );
+    // If there is no search id, we should reset the task tracker back to undefined.
+    const searchID = getSearchID(location ?? {search: ''});
+    if (!searchID) {
+      this._userSavedBookmarkByIDTaskTracker = undefined;
+      this._evaluatingLocation = undefined;
+    } else {
+      if (this._userSavedBookmarkByIDTaskTracker?.data?.id !== searchID) {
+        // Item not cached, we need to get the item from the server.
+        this._userSavedBookmarkByIDTaskTracker = {
+          status: TaskStatus.PENDING,
+          data: undefined,
+          error: undefined,
+        };
+      }
+      this._evaluatingLocation = location;
+    }
     this.refreshAppBookmarkInfo();
   }
 
@@ -145,14 +166,16 @@ export class WebstatusBookmarksService extends ServiceElement {
 
   // Assign the appBookmarkInfo object to trigger a refresh of subscribed contexts
   refreshAppBookmarkInfo() {
+    const location = {
+      search: this._evaluatingLocation
+        ? this._evaluatingLocation.search
+        : (this.currentLocation?.search ?? ''),
+    };
     this.appBookmarkInfo = {
       globalBookmarks: this._globalBookmarks,
       currentGlobalBookmark: this._currentGlobalBookmark,
       userSavedSearchBookmarkTask: this._userSavedBookmarkByIDTaskTracker,
+      currentLocation: location,
     };
-  }
-
-  protected willUpdate(_changedProperties: PropertyValueMap<this>) {
-    console.log(_changedProperties);
   }
 }

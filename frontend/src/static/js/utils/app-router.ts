@@ -68,5 +68,7 @@ export const navigateToUrl = (url: string, event?: MouseEvent) => {
 };
 
 export const getCurrentLocation = (): AppLocation => {
-  return window.location;
+  // Return a copy of the location object to avoid modifying the original and
+  // to have more control over when our copy is updated.
+  return {...window.location};
 };

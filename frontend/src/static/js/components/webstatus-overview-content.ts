@@ -91,7 +91,7 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   render(): TemplateResult {
-    const bookmark = getCurrentBookmark(this.appBookmarkInfo);
+    const bookmark = getCurrentBookmark(this.appBookmarkInfo, this.location);
     const pageTitle = bookmark ? bookmark.name : 'Features overview';
     const pageDescription = bookmark?.description;
     return html`
