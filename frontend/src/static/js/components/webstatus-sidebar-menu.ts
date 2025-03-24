@@ -20,6 +20,7 @@ import {
   type TemplateResult,
   css,
   html,
+  PropertyValueMap,
 } from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
@@ -39,6 +40,7 @@ import {consume} from '@lit/context';
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
+  getCurrentBookmark,
 } from '../contexts/app-bookmark-info-context.js';
 
 // Map from sl-tree-item ids to paths.
@@ -115,7 +117,6 @@ export class WebstatusSidebarMenu extends LitElement {
 
   constructor() {
     super();
-    window.addEventListener('popstate', this.handlePopState.bind(this));
   }
 
   connectedCallback(): void {
@@ -127,7 +128,7 @@ export class WebstatusSidebarMenu extends LitElement {
     super.disconnectedCallback();
   }
 
-  private handlePopState() {
+  private handleBookmarkInfoUpdate() {
     this.updateActiveStatus();
   }
 
@@ -146,7 +147,8 @@ export class WebstatusSidebarMenu extends LitElement {
     this.highlightNavigationItem(this.getNavTree());
     // Check if activeBookmarkQuery needs to be updated
     const newActiveBookmarkQuery =
-      this.appBookmarkInfo?.currentGlobalBookmark?.query || null;
+      getCurrentBookmark(this.appBookmarkInfo, this.getLocation())?.query ||
+      null;
 
     this.activeBookmarkQuery = newActiveBookmarkQuery;
     this.requestUpdate();
@@ -178,6 +180,12 @@ export class WebstatusSidebarMenu extends LitElement {
       if (itemToSelect) {
         itemToSelect.selected = true;
       }
+    }
+  }
+
+  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
+    if (changedProperties.has('appBookmarkInfo')) {
+      this.handleBookmarkInfoUpdate();
     }
   }
 

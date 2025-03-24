@@ -165,20 +165,13 @@ describe('webstatus-sidebar-menu', () => {
     // Stub the click method to prevent default behavior
     const clickStub = sinon.stub(bookmarkAnchor, 'click');
 
-    // Click the anchor
+    // Click the anchor. The parent element handles updating the currentGlobalBookmark
     bookmarkAnchor.click();
     parent.appBookmarkInfo = {
       globalBookmarks: testBookmarks,
       currentGlobalBookmark: testBookmarks[0],
     };
     await parent.updateComplete;
-    await el.updateComplete;
-
-    // Simulate popstate event.
-    const popStateEvent = new PopStateEvent('popstate', {
-      state: {},
-    });
-    window.dispatchEvent(popStateEvent);
     await el.updateComplete;
 
     // Assertions
