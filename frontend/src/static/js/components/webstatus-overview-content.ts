@@ -44,8 +44,8 @@ export class WebstatusOverviewContent extends LitElement {
   @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
-    error: null,
-    data: null,
+    error: undefined,
+    data: undefined,
   };
 
   @property({type: Object})

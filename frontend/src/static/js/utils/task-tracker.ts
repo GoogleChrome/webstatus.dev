@@ -25,9 +25,9 @@ export interface TaskTracker<T, E> {
   /** Status of the task */
   status: TaskStatus;
 
-  /** Stores the error object if an error occurred, or null if no error. */
-  error: E | Error | null;
+  /** Stores the error object if an error occurred, or undefined if no error. */
+  error: E | Error | undefined;
 
-  /** Stores the result data of the completed task, or null if not complete or in error state. */
-  data: T | null;
+  /** Stores the result data of the completed task, or undefined if not complete or in error state. */
+  data: T | undefined;
 }
