@@ -229,10 +229,15 @@ func (b *FeatureSearchFilterBuilder) handleIdentifierAvailableBrowserDateTerm(no
 	}
 	var browserNode, dateNode *searchtypes.SearchNode
 	for idx := range node.Children {
-		if node.Children[idx].Term.Identifier == searchtypes.IdentifierAvailableOn {
+		term := node.Children[idx].Term
+		if term.Identifier == searchtypes.IdentifierAvailableOn {
 			browserNode = node.Children[idx]
-		} else if node.Children[idx].Term.Identifier == searchtypes.IdentifierAvailableDate {
+
+			continue
+		} else if term.Identifier == searchtypes.IdentifierAvailableDate {
 			dateNode = node.Children[idx]
+
+			continue
 		}
 	}
 	if browserNode == nil || dateNode == nil {

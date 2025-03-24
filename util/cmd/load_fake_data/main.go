@@ -655,13 +655,16 @@ func generateChromiumHistogramMetrics(
 		for currDate.Before(time.Date(2020, time.December, 1, 0, 0, 0, 0, time.UTC)) {
 			var usage *big.Rat
 			var modifier = r.Intn(4)
-			if modifier == 0 {
+
+			switch modifier {
+			case 0:
 				usage = big.NewRat(0, 1) // explicitly zero usage.
-			} else if modifier == 1 {
+			case 1:
 				usage = big.NewRat(1, 100000) // very tiny amount (<0.1%).
-			} else {
+			default:
 				usage = big.NewRat(r.Int63n(10000), 10000) // Generate usage between 0-100%
 			}
+
 			err := client.UpsertDailyChromiumHistogramMetric(
 				ctx,
 				metricdatatypes.WebDXFeatureEnum,

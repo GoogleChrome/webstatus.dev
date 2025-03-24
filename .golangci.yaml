@@ -1,4 +1,4 @@
-# Copyright 2023 Google LLC
+# Copyright 2025 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,38 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+version: '2'
 linters:
-  # Disable all linters enabled by default.
-  # See: https://golangci-lint.run/usage/linters
-  disable-all: true
-  # Enabling specified linters.
-  # See: https://github.com/web-platform-tests/wpt.fyi/issues/2983
+  default: none
   enable:
-    - staticcheck
-    - errcheck
-    - gosimple
-    - govet
-    - typecheck
-    - unused
-    - ineffassign
     - containedctx
-    - dupl
+    - copyloopvar
     - dogsled
+    - dupl
+    - errcheck
     - errname
     - errorlint
     - exhaustive
     - exhaustruct
-    - copyloopvar
     - gochecknoglobals
     - gocognit
     - goconst
     - gocyclo
     - godot
-    - gofmt
     - goheader
     - gomoddirectives
     - gosec
+    - govet
     - importas
+    - ineffassign
     - ireturn
     - lll
     - misspell
@@ -55,27 +47,32 @@ linters:
     - noctx
     - prealloc
     - revive
+    - staticcheck
     - unparam
+    - unused
     - usestdlibvars
-issues:
-  #   max-issues-per-linter: 0
-  #   max-same-issues: 0
-  exclude-dirs:
-    - lib/gen
-linters-settings:
-  #   exhaustruct:
-  #     # List of regular expressions to exclude struct packages and names from check.
-  #     # We exclude third-party structs with entirely optional (omitempty) fields.
-  #     exclude:
-  #       - 'github\.com/google/go-github/v65/github\.CheckRunOutput'
-  #       - 'github\.com/google/go-github/v65/github\.ListCheckRunsOptions'
-  #       - 'github\.com/google/go-github/v65/github\.ListOptions'
-  #       - 'github\.com/golang-jwt/jwt\.StandardClaims'
-  #       - 'net/http\.Client'
-  gomoddirectives:
-    # Allow local `replace` directives. Default is false.
-    replace-local: true
-run:
-  # Locally, it won't take this long. This is to prevent CI from failing in
-  # case of a bad run.
-  timeout: 5m
+  settings:
+    gomoddirectives:
+      replace-local: true
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - lib/gen
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofmt
+  exclusions:
+    generated: lax
+    paths:
+      - lib/gen
+      - third_party$
+      - builtin$
+      - examples$
