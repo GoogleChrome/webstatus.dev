@@ -26,7 +26,6 @@ export const appBookmarkInfoContext =
   createContext<AppBookmarkInfo>('app-bookmark-info');
 
 /**
- * /**
  * Returns the current bookmark based on the provided AppBookmarkInfo and location.
  * Currently, it only returns the current global bookmark.
  * In the future, it can be extended to return other bookmarks based on the search parameters.
