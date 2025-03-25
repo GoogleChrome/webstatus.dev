@@ -23,6 +23,7 @@ import {
   formatFeaturePageUrl,
   getWPTMetricView,
   getColumnOptions,
+  getSearchID,
 } from '../urls.js';
 
 describe('getSearchQuery', () => {
@@ -112,6 +113,23 @@ describe('getWPTMetricView', () => {
   });
 });
 
+describe('getSearchID', () => {
+  it('returns empty string when there was no search_id= param', () => {
+    const cs = getSearchID({search: ''});
+    assert.equal(cs, '');
+  });
+
+  it('returns empty string when the search_id= param has no value', () => {
+    const cs = getSearchID({search: '?search_id='});
+    assert.equal(cs, '');
+  });
+
+  it('returns the string when the search_id= param was set', () => {
+    const cs = getSearchID({search: '?search_id=fake_uuid'});
+    assert.equal(cs, 'fake_uuid');
+  });
+});
+
 describe('formatOverviewPageUrl', () => {
   it('returns a plain URL when no location is passed', () => {
     const url = formatOverviewPageUrl();
@@ -183,6 +201,11 @@ describe('formatOverviewPageUrl', () => {
       {column_options: []},
     );
     assert.equal(url, '/?q=css');
+  });
+
+  it('returns a URL with navigational params when search_id param is set', () => {
+    const url = formatOverviewPageUrl({search: ''}, {search_id: 'fake_uuid'});
+    assert.equal(url, '/?search_id=fake_uuid');
   });
 });
 
