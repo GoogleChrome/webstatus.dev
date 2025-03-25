@@ -230,11 +230,17 @@ export class WebstatusSidebarMenu extends LitElement {
         q: bookmark.query,
         start: 0,
         num: bookmark.override_num_param,
+        // If the user is on a saved search and clicks on a global bookmark,
+        // we should clear the search id parameter.
+        search_id: '',
       });
     } else {
       bookmarkUrl = formatOverviewPageUrl(currentURL, {
         q: bookmark.query,
         start: 0,
+        // If the user is on a saved search and clicks on a global bookmark,
+        // we should clear the search id parameter.
+        search_id: '',
       });
     }
     // The bookmark should only be active when the path is the FEATURES path

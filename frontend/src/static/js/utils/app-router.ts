@@ -47,6 +47,7 @@ export const initRouter = async (element: HTMLElement): Promise<Router> => {
 export interface AppLocation {
   search: string;
   href: string;
+  pathname: string;
 }
 
 export const navigateToUrl = (url: string, event?: MouseEvent) => {

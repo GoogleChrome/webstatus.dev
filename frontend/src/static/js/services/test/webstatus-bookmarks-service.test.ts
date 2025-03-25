@@ -42,11 +42,12 @@ describe('webstatus-bookmarks-service', () => {
       html`<webstatus-bookmarks-service> </webstatus-bookmarks-service>`,
     );
     expect(component).to.exist;
-    const expectedInfo: AppBookmarkInfo = {
-      globalBookmarks: DEFAULT_BOOKMARKS,
-      currentGlobalBookmark: undefined,
-    };
-    expect(component!.appBookmarkInfo).to.deep.equal(expectedInfo);
+    expect(component!.appBookmarkInfo.globalBookmarks).to.deep.equal(
+      DEFAULT_BOOKMARKS,
+    );
+    expect(component!.appBookmarkInfo.currentGlobalBookmark).to.deep.equal(
+      undefined,
+    );
   });
   it('provides appBookmarkInfo to consuming components', async () => {
     const el = await fixture<WebstatusBookmarksService>(html`
@@ -54,19 +55,20 @@ describe('webstatus-bookmarks-service', () => {
         <test-bookmark-consumer></test-bookmark-consumer>
       </webstatus-bookmarks-service>
     `);
-    const expectedInfo: AppBookmarkInfo = {
-      globalBookmarks: DEFAULT_BOOKMARKS,
-      currentGlobalBookmark: undefined,
-    };
     const consumer = el.querySelector<TestBookmarkConsumer>(
       'test-bookmark-consumer',
     );
     el.getLocation = () => {
-      return {search: '', href: ''};
+      return {search: '', href: '', pathname: ''};
     };
     expect(el).to.exist;
     expect(consumer).to.exist;
-    expect(el.appBookmarkInfo).to.deep.equal(expectedInfo);
+    expect(consumer!.appBookmarkInfo!.globalBookmarks).to.deep.equal(
+      DEFAULT_BOOKMARKS,
+    );
+    expect(consumer!.appBookmarkInfo!.currentGlobalBookmark).to.deep.equal(
+      undefined,
+    );
   });
 
   it('updates appBookmarkInfo on popstate event', async () => {
@@ -109,7 +111,7 @@ describe('webstatus-bookmarks-service', () => {
 
     // Simulate popstate event with a query
     el.getLocation = () => {
-      return {search: '?q=test_query_1', href: '?q=test_query_1'};
+      return {search: '?q=test_query_1', href: '?q=test_query_1', pathname: ''};
     };
     const popStateEvent = new PopStateEvent('popstate', {
       state: {},
@@ -119,17 +121,15 @@ describe('webstatus-bookmarks-service', () => {
     await consumer!.updateComplete;
 
     // Updated state
-    expect(consumer!.appBookmarkInfo).to.deep.equal({
-      globalBookmarks: [
-        {
-          name: 'Test Bookmark 1',
-          query: 'test_query_1',
-        },
-      ],
-      currentGlobalBookmark: {
+    expect(consumer!.appBookmarkInfo!.globalBookmarks).to.deep.equal([
+      {
         name: 'Test Bookmark 1',
         query: 'test_query_1',
       },
+    ]);
+    expect(consumer!.appBookmarkInfo!.currentGlobalBookmark).to.deep.equal({
+      name: 'Test Bookmark 1',
+      query: 'test_query_1',
     });
   });
 });
