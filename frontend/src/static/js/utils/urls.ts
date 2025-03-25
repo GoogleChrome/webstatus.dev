@@ -47,6 +47,10 @@ export function getFeaturesLaggingFlag(location: {search: string}): boolean {
   return Boolean(getQueryParam(location.search, 'show_features_lagging'));
 }
 
+export function getSearchID(location: {search: string}): string {
+  return getQueryParam(location.search, 'search_id');
+}
+
 export interface DateRange {
   start?: Date;
   end?: Date;
@@ -80,6 +84,7 @@ type QueryStringOverrides = {
   wpt_metric_view?: string;
   dateRange?: DateRange;
   column_options?: string[];
+  search_id?: string;
 };
 
 /* Given the router location object, return a query string with
@@ -148,6 +153,12 @@ function getContextualQueryStringParams(
     // format endDate as yyyy-mm-dd
     const endDate = dateRange.end.toISOString().split('T')[0];
     searchParams.set('endDate', endDate);
+  }
+
+  const searchID =
+    'search_id' in overrides ? overrides.search_id : getSearchID(location);
+  if (searchID) {
+    searchParams.set('search_id', searchID);
   }
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';
