@@ -625,6 +625,93 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) updateWith
 	return nil
 }
 
+// uniquieWriteableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
+type uniquieWriteableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
+	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
+	GetKey(ExternalStruct) ExternalKey
+	Table() string
+	DeleteKey(ExternalKey) spanner.Key
+}
+
+// entityUniqueWriter is a basic client for writing a row to the database where this a unique constraint for a key.
+type entityUniqueWriter[
+	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any] struct {
+	*Client
+}
+
+// upsertUniqueKey performs an upsert (insert or update) operation on an entity with a unique key.
+// This means that the given key can only exist once. If the entity exists, it
+// must be removed before inserting. This is essentially a compare and swap due to the key.
+func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertUniqueKey(ctx context.Context,
+	input ExternalStruct) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		return c.upsertUniqueKeyWithTransaction(ctx, txn, input)
+	})
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return nil
+}
+
+// createInsertMutation simply creates a spanner mutation from the struct to the table.
+func (c *entityUniqueWriter[M, ExternalStruct, S, ExternalKey]) createInsertMutation(
+	mapper M, input ExternalStruct) (*spanner.Mutation, error) {
+	m, err := spanner.InsertStruct(mapper.Table(), input)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return m, nil
+}
+
+// upsertUniqueKeyWithTransaction performs an upsertUniqueKey operation on an entity using the existing transaction.
+func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertUniqueKeyWithTransaction(
+	ctx context.Context,
+	txn *spanner.ReadWriteTransaction,
+	input ExternalStruct) error {
+	var mapper M
+	key := mapper.GetKey(input)
+	stmt := mapper.SelectOne(key)
+	// Attempt to query for the row.
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	var ms []*spanner.Mutation
+
+	_, err := it.Next()
+	if err != nil {
+		// Check if an unexpected error occurred.
+		if !errors.Is(err, iterator.Done) {
+			return errors.Join(ErrInternalQueryFailure, err)
+		}
+
+		// No rows returned. Act as if this is an insertion.
+		m, err := c.createInsertMutation(mapper, input)
+		if err != nil {
+			return err
+		}
+		ms = append(ms, m)
+	} else {
+		m1 := spanner.Delete(mapper.Table(), mapper.DeleteKey(key))
+		ms = append(ms, m1)
+		m2, err := c.createInsertMutation(mapper, input)
+		if err != nil {
+			return err
+		}
+		ms = append(ms, m2)
+	}
+	// Buffer the mutation to be committed.
+	err = txn.BufferWrite(ms)
+	if err != nil {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return nil
+}
+
 // removableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
 type removableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
 	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
@@ -703,6 +790,14 @@ func newEntityWriter[
 	SpannerStruct any,
 	ExternalKey any](c *Client) *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey] {
 	return &entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+}
+
+func newUniqueEntityWriter[
+	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	ExternalStruct any,
+	SpannerStruct any,
+	ExternalKey any](c *Client) *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey] {
+	return &entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
 }
 
 func newEntityReader[

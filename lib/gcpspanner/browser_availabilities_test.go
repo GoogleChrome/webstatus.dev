@@ -42,7 +42,7 @@ func getSampleBrowserAvailabilities() []struct {
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{
 				BrowserName:    "barBrowser",
-				BrowserVersion: "1.0.0",
+				BrowserVersion: "0.0.0",
 			},
 			FeatureKey: "feature1",
 		},
@@ -60,14 +60,6 @@ func getSampleBrowserAvailabilities() []struct {
 			},
 
 			FeatureKey: "feature2",
-		},
-		// Should not actually insert this one due to UniqueFeatureBrowser index
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
-				BrowserName:    "barBrowser",
-				BrowserVersion: "2.0.0",
-			},
-			FeatureKey: "feature1",
 		},
 	}
 }
@@ -117,13 +109,13 @@ func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]Bro
 	return ret, nil
 }
 
-func TestInsertBrowserFeatureAvailability(t *testing.T) {
+func TestUpsertBrowserFeatureAvailability(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 	setupRequiredTablesForBrowserFeatureAvailability(ctx, spannerClient, t)
 	sampleAvailabilities := getSampleBrowserAvailabilities()
 	for _, availability := range sampleAvailabilities {
-		err := spannerClient.InsertBrowserFeatureAvailability(
+		err := spannerClient.UpsertBrowserFeatureAvailability(
 			ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
@@ -131,13 +123,14 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 	}
 
 	expectedPage := []BrowserFeatureAvailability{
+		// We will update this availability info for barBrowser later.
 		{
-			BrowserName:    "fooBrowser",
+			BrowserName:    "barBrowser",
 			BrowserVersion: "0.0.0",
 		},
 		{
-			BrowserName:    "barBrowser",
-			BrowserVersion: "1.0.0",
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
 		},
 		{
 			BrowserName:    "fooBrowser",
@@ -153,7 +146,44 @@ func TestInsertBrowserFeatureAvailability(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
-	if !slices.Equal[[]BrowserFeatureAvailability](expectedPage, availabilities) {
+	if !slices.Equal(expectedPage, availabilities) {
+		t.Errorf("unequal availabilities.\nexpected %+v\nreceived %+v", expectedPage, availabilities)
+	}
+
+	// Update the availability info for feature1 on barBrowser to a later version
+	err = spannerClient.UpsertBrowserFeatureAvailability(ctx, "feature1", BrowserFeatureAvailability{
+		BrowserName:    "barBrowser",
+		BrowserVersion: "1.0.0",
+	})
+	if err != nil {
+		t.Errorf("unexpected error during update. %s", err.Error())
+	}
+
+	expectedPage = []BrowserFeatureAvailability{
+		{
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+		},
+		// This is the updated availability info for feature1 on barBrowser
+
+		{
+			BrowserName:    "barBrowser",
+			BrowserVersion: "1.0.0",
+		},
+		{
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "1.0.0",
+		},
+		{
+			BrowserName:    "barBrowser",
+			BrowserVersion: "2.0.0",
+		},
+	}
+	availabilities, err = spannerClient.ReadAllAvailabilities(ctx, t)
+	if err != nil {
+		t.Errorf("unexpected error during read all. %s", err.Error())
+	}
+	if !slices.Equal(expectedPage, availabilities) {
 		t.Errorf("unequal availabilities.\nexpected %+v\nreceived %+v", expectedPage, availabilities)
 	}
 }

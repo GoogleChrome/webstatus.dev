@@ -81,7 +81,7 @@ func setupTablesForPrecalculateBrowserFeatureSupportEvents(
 		},
 	}
 	for _, availability := range availabilities {
-		err := spannerClient.InsertBrowserFeatureAvailability(ctx, availability.WebFeatureKey,
+		err := spannerClient.UpsertBrowserFeatureAvailability(ctx, availability.WebFeatureKey,
 			availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Fatalf("Failed to insert BrowserFeatureAvailability: %v", err)

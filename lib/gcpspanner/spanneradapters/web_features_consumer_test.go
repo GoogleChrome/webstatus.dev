@@ -206,7 +206,7 @@ type mockUpsertFeatureBaselineStatusConfig struct {
 	expectedCount  int
 }
 
-type mockInsertBrowserFeatureAvailabilityConfig struct {
+type mockUpsertBrowserFeatureAvailabilityConfig struct {
 	expectedInputs          map[string][]gcpspanner.BrowserFeatureAvailability
 	outputs                 map[string][]error
 	expectedCountPerFeature map[string]int
@@ -236,7 +236,7 @@ type mockWebFeatureSpannerClient struct {
 	upsertFeatureBaselineStatusCount                int
 	mockUpsertFeatureBaselineStatusCfg              mockUpsertFeatureBaselineStatusConfig
 	insertBrowserFeatureAvailabilityCountPerFeature map[string]int
-	mockInsertBrowserFeatureAvailabilityCfg         mockInsertBrowserFeatureAvailabilityConfig
+	mockUpsertBrowserFeatureAvailabilityCfg         mockUpsertBrowserFeatureAvailabilityConfig
 	mockUpsertFeatureSpecCfg                        mockUpsertFeatureSpecConfig
 	upsertFeatureSpecCount                          int
 	mockPrecalculateBrowserFeatureSupportEventsCfg  mockPrecalculateBrowserFeatureSupportEventsConfig
@@ -305,21 +305,21 @@ func (c *mockWebFeatureSpannerClient) UpsertFeatureSpec(
 	return c.mockUpsertFeatureSpecCfg.outputs[featureID]
 }
 
-func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
+func (c *mockWebFeatureSpannerClient) UpsertBrowserFeatureAvailability(
 	_ context.Context, featureID string, featureAvailability gcpspanner.BrowserFeatureAvailability) error {
 	expectedCountForFeature := c.insertBrowserFeatureAvailabilityCountPerFeature[featureID]
-	if len(c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureID]) <=
+	if len(c.mockUpsertBrowserFeatureAvailabilityCfg.expectedInputs[featureID]) <=
 		expectedCountForFeature {
-		c.t.Fatal("no more expected input for InsertBrowserFeatureAvailability")
+		c.t.Fatal("no more expected input for UpsertBrowserFeatureAvailability")
 	}
-	if len(c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureID]) <=
+	if len(c.mockUpsertBrowserFeatureAvailabilityCfg.outputs[featureID]) <=
 		expectedCountForFeature {
-		c.t.Fatal("no more configured outputs for InsertBrowserFeatureAvailability")
+		c.t.Fatal("no more configured outputs for UpsertBrowserFeatureAvailability")
 	}
 
 	idx := expectedCountForFeature
 
-	expectedInputs, found := c.mockInsertBrowserFeatureAvailabilityCfg.expectedInputs[featureID]
+	expectedInputs, found := c.mockUpsertBrowserFeatureAvailabilityCfg.expectedInputs[featureID]
 	if !found {
 		c.t.Errorf("unexpected input %v", featureAvailability)
 	}
@@ -331,7 +331,7 @@ func (c *mockWebFeatureSpannerClient) InsertBrowserFeatureAvailability(
 	}
 	c.insertBrowserFeatureAvailabilityCountPerFeature[featureID]++
 
-	return c.mockInsertBrowserFeatureAvailabilityCfg.outputs[featureID][idx]
+	return c.mockUpsertBrowserFeatureAvailabilityCfg.outputs[featureID][idx]
 }
 
 func (c *mockWebFeatureSpannerClient) PrecalculateBrowserFeatureSupportEvents(_ context.Context,
@@ -371,7 +371,7 @@ func newMockmockWebFeatureSpannerClient(
 	t *testing.T,
 	mockUpsertWebFeatureCfg mockUpsertWebFeatureConfig,
 	mockUpsertFeatureBaselineStatusCfg mockUpsertFeatureBaselineStatusConfig,
-	mockInsertBrowserFeatureAvailabilityCfg mockInsertBrowserFeatureAvailabilityConfig,
+	mockUpsertBrowserFeatureAvailabilityCfg mockUpsertBrowserFeatureAvailabilityConfig,
 	mockUpsertFeatureSpecCfg mockUpsertFeatureSpecConfig,
 	mocmockPrecalculateBrowserFeatureSupportEventsCfg mockPrecalculateBrowserFeatureSupportEventsConfig,
 	mockUpsertFeatureDiscouragedDetailsCfg mockUpsertFeatureDiscouragedDetailsConfig,
@@ -380,7 +380,7 @@ func newMockmockWebFeatureSpannerClient(
 		t:                                       t,
 		mockUpsertWebFeatureCfg:                 mockUpsertWebFeatureCfg,
 		mockUpsertFeatureBaselineStatusCfg:      mockUpsertFeatureBaselineStatusCfg,
-		mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityCfg,
+		mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityCfg,
 		mockUpsertFeatureSpecCfg:                mockUpsertFeatureSpecCfg,
 		upsertWebFeatureCount:                   0,
 		upsertFeatureBaselineStatusCount:        0,
@@ -412,7 +412,7 @@ func TestInsertWebFeatures(t *testing.T) {
 		name                                           string
 		mockUpsertWebFeatureCfg                        mockUpsertWebFeatureConfig
 		mockUpsertFeatureBaselineStatusCfg             mockUpsertFeatureBaselineStatusConfig
-		mockInsertBrowserFeatureAvailabilityCfg        mockInsertBrowserFeatureAvailabilityConfig
+		mockUpsertBrowserFeatureAvailabilityCfg        mockUpsertBrowserFeatureAvailabilityConfig
 		mockUpsertFeatureSpecCfg                       mockUpsertFeatureSpecConfig
 		mockPrecalculateBrowserFeatureSupportEventsCfg mockPrecalculateBrowserFeatureSupportEventsConfig
 		mockUpsertFeatureDiscouragedDetailsCfg         mockUpsertFeatureDiscouragedDetailsConfig
@@ -461,7 +461,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
-			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
 				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
 					"feature1": {
 						{
@@ -628,7 +628,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        nil,
 				expectedCount:  0,
 			},
-			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
 				expectedInputs:          map[string][]gcpspanner.BrowserFeatureAvailability{},
 				outputs:                 map[string][]error{},
 				expectedCountPerFeature: map[string]int{},
@@ -710,7 +710,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
-			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
 				expectedInputs:          map[string][]gcpspanner.BrowserFeatureAvailability{},
 				outputs:                 map[string][]error{},
 				expectedCountPerFeature: map[string]int{},
@@ -763,7 +763,7 @@ func TestInsertWebFeatures(t *testing.T) {
 			expectedError: ErrBaselineStatusTest,
 		},
 		{
-			name: "InsertBrowserFeatureAvailability error",
+			name: "UpsertBrowserFeatureAvailability error",
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
@@ -792,7 +792,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
-			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
 				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
 					"feature1": {
 						{
@@ -885,7 +885,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
-			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
 				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
 					"feature1": {
 						{
@@ -1014,7 +1014,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
-			mockInsertBrowserFeatureAvailabilityCfg: mockInsertBrowserFeatureAvailabilityConfig{
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
 				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
 					"feature1": {
 						{
@@ -1159,7 +1159,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				t,
 				tc.mockUpsertWebFeatureCfg,
 				tc.mockUpsertFeatureBaselineStatusCfg,
-				tc.mockInsertBrowserFeatureAvailabilityCfg,
+				tc.mockUpsertBrowserFeatureAvailabilityCfg,
 				tc.mockUpsertFeatureSpecCfg,
 				tc.mockPrecalculateBrowserFeatureSupportEventsCfg,
 				tc.mockUpsertFeatureDiscouragedDetailsCfg,
@@ -1194,9 +1194,9 @@ func TestInsertWebFeatures(t *testing.T) {
 			}
 
 			if !reflect.DeepEqual(mockClient.insertBrowserFeatureAvailabilityCountPerFeature,
-				tc.mockInsertBrowserFeatureAvailabilityCfg.expectedCountPerFeature) {
-				t.Errorf("Unexpected call counts for InsertBrowserFeatureAvailability. Expected: %v, Got: %v",
-					tc.mockInsertBrowserFeatureAvailabilityCfg.expectedCountPerFeature,
+				tc.mockUpsertBrowserFeatureAvailabilityCfg.expectedCountPerFeature) {
+				t.Errorf("Unexpected call counts for UpsertBrowserFeatureAvailability. Expected: %v, Got: %v",
+					tc.mockUpsertBrowserFeatureAvailabilityCfg.expectedCountPerFeature,
 					mockClient.insertBrowserFeatureAvailabilityCountPerFeature)
 			}
 

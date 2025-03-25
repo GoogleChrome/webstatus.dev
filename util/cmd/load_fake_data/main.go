@@ -240,7 +240,7 @@ func generateFeatureAvailability(
 	// Insert the availabilities into Spanner
 	for _, browser := range browsers {
 		for featureKey, releaseNumber := range featureAvailability[browser] {
-			err := client.InsertBrowserFeatureAvailability(
+			err := client.UpsertBrowserFeatureAvailability(
 				ctx,
 				featureKey,
 				gcpspanner.BrowserFeatureAvailability{

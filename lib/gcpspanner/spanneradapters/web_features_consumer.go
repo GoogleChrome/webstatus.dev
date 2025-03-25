@@ -27,7 +27,7 @@ import (
 type WebFeatureSpannerClient interface {
 	UpsertWebFeature(ctx context.Context, feature gcpspanner.WebFeature) (*string, error)
 	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
-	InsertBrowserFeatureAvailability(
+	UpsertBrowserFeatureAvailability(
 		ctx context.Context,
 		featureID string,
 		featureAvailability gcpspanner.BrowserFeatureAvailability) error
@@ -81,7 +81,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		// Read the browser support data.
 		fba := extractBrowserAvailability(featureData)
 		for _, browserAvailability := range fba {
-			err := c.client.InsertBrowserFeatureAvailability(ctx, featureID, browserAvailability)
+			err := c.client.UpsertBrowserFeatureAvailability(ctx, featureID, browserAvailability)
 			if err != nil {
 				slog.ErrorContext(ctx, "unable to insert BrowserFeatureAvailability",
 					"browserName", browserAvailability.BrowserName,

@@ -51,17 +51,15 @@ func (m browserFeatureAvailabilityMapper) SelectOne(key browserFeatureAvailabili
 	return stmt
 }
 
-func (m browserFeatureAvailabilityMapper) Merge(
-	_ spannerBrowserFeatureAvailability, existing spannerBrowserFeatureAvailability) spannerBrowserFeatureAvailability {
-	// If the feature availability exists, it currently does nothing and keeps the existing as-is.
-	return existing
-}
-
 func (m browserFeatureAvailabilityMapper) GetKey(in spannerBrowserFeatureAvailability) browserFeatureAvailabilityKey {
 	return browserFeatureAvailabilityKey{
 		WebFeatureID: in.WebFeatureID,
 		BrowserName:  in.BrowserName,
 	}
+}
+
+func (m browserFeatureAvailabilityMapper) DeleteKey(key browserFeatureAvailabilityKey) spanner.Key {
+	return spanner.Key{key.WebFeatureID, key.BrowserName}
 }
 
 // spannerBrowserFeatureAvailability is a wrapper for the browser availability
@@ -78,8 +76,8 @@ type BrowserFeatureAvailability struct {
 	BrowserVersion string
 }
 
-// InsertBrowserFeatureAvailability will insert the given browser feature availability.
-func (c *Client) InsertBrowserFeatureAvailability(
+// UpsertBrowserFeatureAvailability will upsert the given browser feature availability.
+func (c *Client) UpsertBrowserFeatureAvailability(
 	ctx context.Context,
 	webFeatureID string,
 	input BrowserFeatureAvailability) error {
@@ -95,7 +93,10 @@ func (c *Client) InsertBrowserFeatureAvailability(
 		BrowserFeatureAvailability: input,
 	}
 
-	return newEntityWriter[browserFeatureAvailabilityMapper](c).upsert(ctx, featureAvailability)
+	return newUniqueEntityWriter[
+		browserFeatureAvailabilityMapper,
+		spannerBrowserFeatureAvailability,
+		spannerBrowserFeatureAvailability](c).upsertUniqueKey(ctx, featureAvailability)
 }
 
 func (c *Client) fetchAllBrowserAvailabilitiesWithTransaction(

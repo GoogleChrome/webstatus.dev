@@ -155,7 +155,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		},
 	}
 	for _, availability := range sampleBrowserAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
+		err := client.UpsertBrowserFeatureAvailability(ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
 		}
