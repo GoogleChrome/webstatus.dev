@@ -28,6 +28,8 @@ import (
 
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
+	firebase "firebase.google.com/go/v4"
+	"firebase.google.com/go/v4/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -363,7 +365,95 @@ func generateSnapshots(ctx context.Context,
 	return snapshotKeys, nil
 }
 
-func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client) error {
+func findUserIDByEmail(ctx context.Context, email string, authClient *auth.Client) (string, error) {
+	record, err := authClient.GetUserByEmail(ctx, email)
+	if err != nil {
+		slog.ErrorContext(ctx, "error trying to get user", "error", err, "email", email)
+
+		return "", err
+	}
+
+	return record.UID, nil
+}
+
+func valuePtr[T any](in T) *T { return &in }
+
+func generateSavedSearches(ctx context.Context,
+	spannerClient *gcpspanner.Client,
+	authClient *auth.Client) (int, error) {
+	savedSearchesToInsert := []struct {
+		Email       string
+		Name        string
+		Query       string
+		Description *string
+		UUID        string
+	}{
+		{
+			Email:       "test.user.1@example.com",
+			Name:        "my first project query",
+			Query:       "baseline_status:newly",
+			Description: nil,
+			UUID:        "74bdb85f-59d3-43b0-8061-20d5818e8c97",
+		},
+		{
+			Email: "test.user.1@example.com",
+			Name:  "I like queries",
+			Query: "baseline_status:limited OR available_on:chrome",
+			Description: valuePtr(
+				"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. " +
+					"Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. " +
+					"Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod " +
+					"non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum " +
+					"diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, " +
+					"pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras " +
+					"vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. " +
+					"Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus " +
+					"orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede " +
+					"pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit. Ut velit " +
+					"mauris, egestas sed, gravida nec, ornare ut, mi. Aenean ut orci vel massa suscipit " +
+					"pulvinar. Nulla sollicitudin. Fusce varius, ligula non tempus aliquam, nunc turpis " +
+					"ullamcorper nibh, in tempus sapien eros vitae ligula. Pellentesque rhoncus nunc et augue. " +
+					"Integer id felis. Curabitur aliquet pellentesque diam. Integer quis metus vitae elit " +
+					"lobortis egestas. Integer egestas risus ut lectus. Nam viverra, erat vitae porta " +
+					"sodales, nulla diam tincidunt sem, et dictum felis nunc nec ligula. Sed nec lectus. " +
+					"Donec in velit. Curabitur tempus. Sed consequat, leo eget bibendum sodales, augue velit " +
+					"cursus nunc, quis gravida magna mi a libero. Duis vulputate elit eu elit. Donec interdum, " +
+					"metus et hendrerit aliquet, dolor diam sagittis ligula, eget egestas libero turpis vel " +
+					"mi. Nunc nulla. Maecenas vitae neque. Vivamus ultrices luctus nunc. Vivamus cursus, metus " +
+					"quis ullamcorper sodales, lectus lectus tempor enim, vitae gravida nibh purus ut nibh. " +
+					"Duis in augue. Cras nulla. Vivamus laoreet. Curabitur suscipit suscipit tellus."),
+			UUID: "a09386fe-65f1-4640-b28d-3cf2f2de69c9",
+		},
+	}
+
+	for _, savedSearch := range savedSearchesToInsert {
+		userID, err := findUserIDByEmail(ctx, savedSearch.Email, authClient)
+		if err != nil {
+			return 0, err
+		}
+		id, err := spannerClient.CreateNewUserSavedSearchWithUUID(ctx, gcpspanner.CreateUserSavedSearchRequest{
+			OwnerUserID: userID,
+			Name:        savedSearch.Name,
+			Query:       savedSearch.Query,
+			Description: savedSearch.Description,
+		}, savedSearch.UUID)
+		if err != nil {
+			return 0, err
+		}
+		slog.InfoContext(ctx, "saved search created", "id", *id)
+	}
+
+	return len(savedSearchesToInsert), nil
+}
+
+func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client,
+	authClient *auth.Client) error {
+	savedSearchesCount, err := generateSavedSearches(ctx, spannerClient, authClient)
+	if err != nil {
+		return fmt.Errorf("saved searches generation failed %w", err)
+	}
+	slog.Info("saved searches generated",
+		"amount of searches created", savedSearchesCount)
 	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)
@@ -690,6 +780,26 @@ func generateChromiumHistogramMetrics(
 	return metricsCount, nil
 }
 
+func initFirebaseAuthClient(ctx context.Context, projectID string) *auth.Client {
+	// nolint:exhaustruct // WONTFIX - will rely on the defaults on this third party struct.
+	firebaseApp, err := firebase.NewApp(context.Background(), &firebase.Config{
+		ProjectID: projectID,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "error initializing firebase app", "error", err)
+		os.Exit(1)
+	}
+
+	// Access Auth service from default app
+	firebaseAuthClient, err := firebaseApp.Auth(context.Background())
+	if err != nil {
+		slog.Error("error getting Auth client", "error", err)
+		os.Exit(1)
+	}
+
+	return firebaseAuthClient
+}
+
 func main() {
 	// Use the grpc port from spanner in .dev/spanner/skaffold.yaml
 	// Describe the command line flags and parse the flags
@@ -723,11 +833,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Use the same project as spanner
+	slog.Info("establishing firebase auth client", "project", *spannerProject)
+
+	firebaseAuthClient := initFirebaseAuthClient(context.Background(), *spannerProject)
+
 	gofakeit.GlobalFaker = gofakeit.New(seedValue)
 
 	ctx := context.Background()
 
-	err = generateData(ctx, spannerClient, datastoreClient)
+	err = generateData(ctx, spannerClient, datastoreClient, firebaseAuthClient)
 	if err != nil {
 		slog.Error("unable to generate data", "error", err)
 		os.Exit(1)

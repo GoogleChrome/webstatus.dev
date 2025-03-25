@@ -61,8 +61,8 @@ Developers may still need to inspect and manually fix the error.
 ### Note about running Playwright Makefile Targets
 
 If you have a running local development environment
-(established via `make start-local`) with the necessary fake data
-(`make dev_fake_data`), fake users (`make dev_fake_users`), and port forwarding
+(established via `make start-local`) with the necessary fake users (`make dev_fake_users`),
+fake data (`make dev_fake_data`), and port forwarding
 (`make port-forward-manual`), you can expedite Playwright testing by skipping
 the environment setup.
 
