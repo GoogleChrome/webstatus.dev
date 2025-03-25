@@ -43,6 +43,14 @@ func (c *Client) CreateNewUserSavedSearch(
 	ctx context.Context,
 	newSearch CreateUserSavedSearchRequest) (*string, error) {
 	id := uuid.NewString()
+
+	return c.CreateNewUserSavedSearchWithUUID(ctx, newSearch, id)
+}
+
+// CreateNewUserSavedSearchWithUUID creates a new user-owned saved search with the given UUID.
+// Useful for tests and utils. Typically, you should use CreateNewUserSavedSearch instead.
+func (c *Client) CreateNewUserSavedSearchWithUUID(
+	ctx context.Context, newSearch CreateUserSavedSearchRequest, id string) (*string, error) {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// 1. Read the current count of owned searches
 		var count int64

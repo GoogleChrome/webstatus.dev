@@ -98,6 +98,16 @@ _In the event the servers are not responsive, make a temporary change to a file_
 _in a watched directory (e.g. backend). This will rebuild and expose the_
 _services._
 
+## Populate Users Locally
+
+After doing an initial deployment, we need to set up users in the auth emulator.
+
+```sh
+make dev_fake_users
+```
+
+The output of the command will indicate if it is successful.
+
 ## Populate Data Locally
 
 After doing an initial deployment, the databases will be empty. Currently, you
@@ -146,16 +156,6 @@ from the latest snapshot from the web-features repo.
 | Resource | Location                                                     |
 | -------- | ------------------------------------------------------------ |
 | backend  | [openapi/backend/openapi.yaml](openapi/backend/openapi.yaml) |
-
-## Populate Users Locally
-
-After doing an initial deployment, we need to set up users in the auth emulator.
-
-```sh
-make dev_fake_users
-```
-
-The output of the command will indicate if it is successful.
 
 ## Generating Code
 
