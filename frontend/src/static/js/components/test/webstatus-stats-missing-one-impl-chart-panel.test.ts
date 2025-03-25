@@ -231,9 +231,11 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(header).to.exist;
     const expectedHeader = `
       <div slot="header" id="missing-one-implementation-list-header">
-        The missing feature IDs on 2024-01-01 for
-        Chrome:
-        <a href="/?q=id%3Acss+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
+        <h3>
+          The missing feature IDs on 2024-01-01 for
+          Chrome:
+          <a href="/?q=id%3Acss+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
+        </h3>
       </div>
     `;
     expect(header).dom.to.equal(expectedHeader);
@@ -288,8 +290,10 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(header).to.exist;
     const expectedHeader = `
       <div slot="header" id="missing-one-implementation-list-header">
-        No missing features for on 2024-01-01 for
-        Chrome
+        <h3>
+          No missing features for on 2024-01-01 for
+          Chrome
+        </h3>
       </div>
     `;
     expect(header).dom.to.equal(expectedHeader);
