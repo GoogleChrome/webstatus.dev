@@ -30,7 +30,6 @@ import {
   TEST_COUNT_METRIC_VIEW,
   SUBTEST_COUNT_METRIC_VIEW,
   DEFAULT_TEST_VIEW,
-  FeatureSortOrderType,
 } from '../api/client.js';
 import {
   formatFeaturePageUrl,
@@ -44,12 +43,12 @@ import {
 } from './webstatus-overview-cells.js';
 
 import './webstatus-gchart';
-import {NotFoundError} from '../api/errors.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
 import './webstatus-feature-wpt-progress-chart-panel.js';
 import './webstatus-feature-usage-chart-panel.js';
 import {DataFetchedEvent} from './webstatus-line-chart-panel.js';
+import {NotFoundError} from '../api/errors.js';
 // CanIUseData is a slimmed down interface of the data returned from the API.
 interface CanIUseData {
   items?: {
@@ -220,6 +219,19 @@ export class FeaturePage extends BaseChartsPage {
         }
         return Promise.reject('api client and/or featureId not set');
       },
+      onError: async error => {
+        if (error instanceof NotFoundError) {
+          const queryParam = this.featureId ? `?q=${this.featureId}` : '';
+
+          // TODO: cannot use navigateToUrl because it creates a
+          // circular dependency.
+          // For now use the window href and revisit when navigateToUrl
+          // is move to another location.
+          window.location.href = `/errors-404/feature-not-found${queryParam}`;
+        } else {
+          console.error('Unexpected error in _loadingTask:', error);
+        }
+      },
     });
 
     this._loadingMetadataTask = new Task(this, {
@@ -239,39 +251,11 @@ export class FeaturePage extends BaseChartsPage {
       this.location.params['featureId']?.toString() || 'undefined';
   }
 
-  private async handleNotFound(featureId: string): Promise<void> {
-    try {
-      const response = await this.apiClient.getFeatures(
-        featureId,
-        '' as FeatureSortOrderType,
-        undefined,
-        0,
-        1,
-      );
-
-      const data = response.data;
-
-      // TODO: cannot use navigateToUrl because it creates a
-      // circular dependency.
-      // For now use the window href and revisit when navigateToUrl
-      // is move to another location.
-      const queryParam = Array.isArray(data) && data.length > 0 ? `?q=${featureId}` : "";
-      window.location.href = `/errors-404/feature-not-found${queryParam}`;
-    } catch (error) {
-      window.location.href = `/errors-404/feature-not-found`;
-    }
-  }
-
   render(): TemplateResult {
     return html`
       ${this._loadingTask?.render({
         complete: () => this.renderWhenComplete(),
-        error: error => {
-          if (error instanceof NotFoundError) {
-            this.handleNotFound(this.featureId);
-          }
-          return this.renderWhenError();
-        },
+        error: () => this.renderWhenError(),
         initial: () => this.renderWhenInitial(),
         pending: () => this.renderWhenPending(),
       })}
