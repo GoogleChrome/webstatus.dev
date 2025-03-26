@@ -32,6 +32,8 @@ export interface Bookmark {
   is_ordered?: boolean;
   // Override the num parameter value, if provided.
   override_num_param?: number;
+  // Server side id for bookmark
+  id?: string;
 }
 
 export const DEFAULT_BOOKMARKS: Bookmark[] = [
