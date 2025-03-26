@@ -39,8 +39,7 @@ import {toast} from '../utils/toast.js';
 import {
   appBookmarkInfoContext,
   AppBookmarkInfo,
-  isBusyLoadingBookmarkInfo,
-  getCurrentQuery,
+  bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-page')
@@ -78,7 +77,12 @@ export class OverviewPage extends LitElement {
         components['schemas']['FeaturePage']
       > => {
         // If we are still loading the saved search details, don't make the request yet.
-        if (isBusyLoadingBookmarkInfo(appBookmarkInfo, routerLocation)) {
+        if (
+          bookmarkHelpers.isBusyLoadingBookmarkInfo(
+            appBookmarkInfo,
+            routerLocation,
+          )
+        ) {
           throw new TaskNotReadyError();
         }
         if (this.location.search !== this.currentLocation?.search) {
@@ -136,7 +140,10 @@ export class OverviewPage extends LitElement {
       return Promise.reject(new Error('APIClient is not initialized.'));
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     let searchQuery: string = '';
-    const query = getCurrentQuery(appBookmarkInfo, routerLocation);
+    const query = bookmarkHelpers.getCurrentQuery(
+      appBookmarkInfo,
+      routerLocation,
+    );
     if (query) {
       searchQuery = query;
     }

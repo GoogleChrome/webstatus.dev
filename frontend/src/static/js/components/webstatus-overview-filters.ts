@@ -28,7 +28,6 @@ import {type components} from 'webstatus.dev-backend';
 import {ref, createRef} from 'lit/directives/ref.js';
 import {
   formatOverviewPageUrl,
-  getSearchQuery,
   getColumnsSpec,
   getSortSpec,
   getWPTMetricView,
@@ -45,7 +44,6 @@ import {TaskStatus} from '@lit/task';
 import {
   type APIClient,
   type FeatureSortOrderType,
-  type FeatureSearchType,
   FeatureWPTMetricViewType,
   BROWSER_ID_TO_LABEL,
   CHANNEL_ID_TO_LABEL,
@@ -65,7 +63,7 @@ import {navigateToUrl} from '../utils/app-router.js';
 import {
   appBookmarkInfoContext,
   AppBookmarkInfo,
-  getCurrentQuery,
+  bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
@@ -237,7 +235,10 @@ export class WebstatusOverviewFilters extends LitElement {
       changedProperties.has('location') ||
       changedProperties.has('appBookmarkInfo')
     ) {
-      this._activeQuery = getCurrentQuery(this.appBookmarkInfo, this.location);
+      this._activeQuery = bookmarkHelpers.getCurrentQuery(
+        this.appBookmarkInfo,
+        this.location,
+      );
     }
   }
 
@@ -270,7 +271,7 @@ export class WebstatusOverviewFilters extends LitElement {
       // TODO. allFeaturesFetcher should be moved to a separate task.
       this.allFeaturesFetcher = () => {
         return this.apiClient!.getAllFeatures(
-          getSearchQuery(this.location) as FeatureSearchType,
+          bookmarkHelpers.getCurrentQuery(this.appBookmarkInfo, this.location),
           getSortSpec(this.location) as FeatureSortOrderType,
           getWPTMetricView(this.location) as FeatureWPTMetricViewType,
         );

@@ -18,12 +18,20 @@ import {customElement, state} from 'lit/decorators.js';
 import {consume} from '@lit/context';
 import {
   AppBookmarkInfo,
+  SavedSearchInternalError,
+  SavedSearchNotFoundError,
+  SavedSearchUnknownError,
   appBookmarkInfoContext,
 } from '../../contexts/app-bookmark-info-context.js';
 import {WebstatusBookmarksService} from '../webstatus-bookmarks-service.js';
-import {fixture, expect} from '@open-wc/testing';
+import {fixture, expect, waitUntil} from '@open-wc/testing';
 import '../webstatus-bookmarks-service.js';
 import {DEFAULT_BOOKMARKS} from '../../utils/constants.js';
+import {APIClient} from '../../api/client.js';
+import {SinonStubbedInstance} from 'sinon';
+import {TaskStatus} from '@lit/task';
+import sinon from 'sinon';
+import {NotFoundError, ApiError} from '../../api/errors.js';
 
 @customElement('test-bookmark-consumer')
 class TestBookmarkConsumer extends LitElement {
@@ -131,5 +139,248 @@ describe('webstatus-bookmarks-service', () => {
       name: 'Test Bookmark 1',
       query: 'test_query_1',
     });
+  });
+  describe('loadingUserSavedBookmarkByIDTask', () => {
+    let apiClientStub: SinonStubbedInstance<APIClient>;
+
+    beforeEach(async () => {
+      apiClientStub = sinon.stub(new APIClient(''));
+    });
+
+    it('should handle NotFoundError', async () => {
+      apiClientStub = sinon.stub(new APIClient(''));
+      apiClientStub.getSavedSearchByID.rejects(new NotFoundError(''));
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .getSearchID=${() => 'test'}
+          .getLocation=${() => {
+            return {
+              search: '?search_id=test',
+              href: '?search_id=test',
+              pathname: '',
+            };
+          }}
+        ></webstatus-bookmarks-service>`,
+      );
+
+      await waitUntil(
+        () =>
+          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          TaskStatus.PENDING,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+      ).to.be.instanceOf(SavedSearchNotFoundError);
+    });
+
+    it('should handle ApiError', async () => {
+      apiClientStub.getSavedSearchByID.rejects(new ApiError('', 500));
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .getSearchID=${() => 'test'}
+          .getLocation=${() => {
+            return {
+              search: '?search_id=test',
+              href: '?search_id=test',
+              pathname: '',
+            };
+          }}
+        ></webstatus-bookmarks-service>`,
+      );
+      await waitUntil(
+        () =>
+          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          TaskStatus.PENDING,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+      ).to.be.instanceOf(SavedSearchInternalError);
+    });
+
+    it('should handle unknown errors', async () => {
+      apiClientStub.getSavedSearchByID.rejects(new Error(''));
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .getSearchID=${() => 'test'}
+          .getLocation=${() => {
+            return {
+              search: '?search_id=test',
+              href: '?search_id=test',
+              pathname: '',
+            };
+          }}
+        ></webstatus-bookmarks-service>`,
+      );
+      await waitUntil(
+        () =>
+          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          TaskStatus.PENDING,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+      ).to.be.instanceOf(SavedSearchUnknownError);
+    });
+
+    it.skip('should complete successfully if searchID is not found', async () => {
+      apiClientStub.getSavedSearchByID.resolves(undefined);
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .getSearchID=${() => 'test'}
+          .getLocation=${() => {
+            return {
+              search: '?search_id=test',
+              href: '?search_id=test',
+              pathname: '',
+            };
+          }}
+        ></webstatus-bookmarks-service>`,
+      );
+      await waitUntil(
+        () =>
+          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          TaskStatus.PENDING,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
+      ).to.equal(TaskStatus.COMPLETE);
+      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.data).to.be
+        .undefined;
+    });
+
+    it('should complete successfully with bookmark data', async () => {
+      const mockBookmark = {
+        id: '123',
+        query: 'test',
+        name: 'Test Bookmark',
+        description: 'Test Description',
+        created_at: '2023-08-13',
+        updated_at: '2023-08-13',
+      };
+      apiClientStub.getSavedSearchByID.resolves(mockBookmark);
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .getSearchID=${() => 'test'}
+          .getLocation=${() => {
+            return {
+              search: '?search_id=test',
+              href: '?search_id=test',
+              pathname: '',
+            };
+          }}
+        ></webstatus-bookmarks-service>`,
+      );
+      await waitUntil(
+        () =>
+          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          TaskStatus.PENDING,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
+      ).to.equal(TaskStatus.COMPLETE);
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.data,
+      ).to.deep.equal(mockBookmark);
+    });
+  });
+
+  describe('findCurrentBookmarkByQuery', () => {
+    it('should return undefined for empty bookmarks', () => {
+      const service = new WebstatusBookmarksService();
+      expect(service.findCurrentBookmarkByQuery()).to.be.undefined;
+    });
+
+    it('should find a matching bookmark', () => {
+      const service = new WebstatusBookmarksService();
+      service._currentLocation = {
+        search: '?q=test',
+        href: '?q=test',
+        pathname: '',
+      };
+      const bookmarks = [{query: 'test', name: 'Test'}];
+      expect(service.findCurrentBookmarkByQuery(bookmarks)).to.deep.equal({
+        query: 'test',
+        name: 'Test',
+      });
+    });
+
+    it('should return undefined if no bookmark matches', () => {
+      const service = new WebstatusBookmarksService();
+      service._currentLocation = {
+        search: '?q=test',
+        href: '?q=test',
+        pathname: '',
+      };
+      const bookmarks = [{query: 'other', name: 'Other'}];
+      expect(service.findCurrentBookmarkByQuery(bookmarks)).to.be.undefined;
+    });
+  });
+
+  it('should refresh appBookmarkInfo correctly', () => {
+    const service = new WebstatusBookmarksService();
+    service._globalBookmarks = [{query: 'global', name: 'Global'}];
+    service._currentGlobalBookmark = {query: 'global', name: 'Global'};
+    service._userSavedBookmarkByIDTaskTracker = {
+      status: TaskStatus.COMPLETE,
+      data: {query: 'saved', name: 'Saved'},
+      error: undefined,
+    };
+    service._currentLocation = {
+      search: '?q=test',
+      href: '?q=test',
+      pathname: '',
+    };
+    service.refreshAppBookmarkInfo();
+    expect(service.appBookmarkInfo).to.deep.equal({
+      globalBookmarks: [{query: 'global', name: 'Global'}],
+      currentGlobalBookmark: {query: 'global', name: 'Global'},
+      userSavedSearchBookmarkTask: {
+        status: TaskStatus.COMPLETE,
+        data: {query: 'saved', name: 'Saved'},
+        error: undefined,
+      },
+      currentLocation: {search: '?q=test', href: '?q=test', pathname: ''},
+    });
+  });
+
+  it('should handle apiClient.getSavedSearchByID rejection in loadingUserSavedBookmarkByIDTask', async () => {
+    const apiClient = new APIClient('');
+    const getSavedSearchByIDStub = sinon.stub(apiClient, 'getSavedSearchByID');
+    getSavedSearchByIDStub.rejects(new Error('API error'));
+    const service = await fixture<WebstatusBookmarksService>(
+      html`<webstatus-bookmarks-service
+        .apiClient=${apiClient}
+        .getSearchID=${() => 'test'}
+        .getLocation=${() => {
+          return {
+            search: '?search_id=test',
+            href: '?search_id=test',
+            pathname: '',
+          };
+        }}
+      ></webstatus-bookmarks-service>`,
+    );
+    await waitUntil(
+      () =>
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+        TaskStatus.PENDING,
+    );
+    expect(
+      service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+    ).to.be.instanceOf(SavedSearchUnknownError);
+    getSavedSearchByIDStub.restore();
+  });
+
+  it('getLocation should return the current location', () => {
+    const service = new WebstatusBookmarksService();
+    const location = service.getLocation();
+    expect(location).to.be.an('object');
+    expect(location).to.have.property('search');
+    expect(location).to.have.property('href');
+    expect(location).to.have.property('pathname');
   });
 });

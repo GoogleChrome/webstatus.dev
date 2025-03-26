@@ -57,7 +57,9 @@ export class WebstatusBookmarksService extends ServiceElement {
   loadingUserSavedBookmarkByIDTask = new Task(this, {
     args: () => [this._currentLocation, this.apiClient, this.user] as const,
     task: async ([location, apiClient, user]) => {
-      const searchID = getSearchID(location ?? {search: ''});
+      const searchID = this.getSearchID(
+        location ?? {search: '', pathname: '', href: ''},
+      );
       if (!searchID || !apiClient) {
         return;
       }
@@ -99,7 +101,9 @@ export class WebstatusBookmarksService extends ServiceElement {
       this.refreshAppBookmarkInfo();
     },
     onError: async (error: unknown) => {
-      const searchID = getSearchID(this._currentLocation ?? {search: ''});
+      const searchID = this.getSearchID(
+        this._currentLocation ?? {search: '', pathname: '', href: ''},
+      );
       let err: SavedSearchError;
       if (error instanceof NotFoundError) {
         err = new SavedSearchNotFoundError(searchID);
@@ -128,6 +132,7 @@ export class WebstatusBookmarksService extends ServiceElement {
 
   // Helper for testing.
   getLocation: GetLocationFunction = getCurrentLocation;
+  getSearchID: (location: AppLocation) => string = getSearchID;
 
   constructor() {
     super();

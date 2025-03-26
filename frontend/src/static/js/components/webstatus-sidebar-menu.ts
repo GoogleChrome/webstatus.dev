@@ -40,7 +40,7 @@ import {consume} from '@lit/context';
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
-  getCurrentBookmark,
+  bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 
 // Map from sl-tree-item ids to paths.
@@ -147,8 +147,10 @@ export class WebstatusSidebarMenu extends LitElement {
     this.highlightNavigationItem(this.getNavTree());
     // Check if activeBookmarkQuery needs to be updated
     const newActiveBookmarkQuery =
-      getCurrentBookmark(this.appBookmarkInfo, this.getLocation())?.query ||
-      null;
+      bookmarkHelpers.getCurrentBookmark(
+        this.appBookmarkInfo,
+        this.getLocation(),
+      )?.query || null;
 
     this.activeBookmarkQuery = newActiveBookmarkQuery;
     this.requestUpdate();
