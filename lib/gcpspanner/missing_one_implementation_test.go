@@ -112,7 +112,7 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 		}, // Available from bazBrowser 16.5
 	}
 	for _, availability := range browserFeatureAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx,
+		err := client.UpsertBrowserFeatureAvailability(ctx,
 			availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())

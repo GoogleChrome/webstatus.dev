@@ -82,7 +82,7 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		}, // Available from barBrowser 81
 	}
 	for _, availability := range browserFeatureAvailabilities {
-		err := client.InsertBrowserFeatureAvailability(ctx,
+		err := client.UpsertBrowserFeatureAvailability(ctx,
 			availability.FeatureKey, availability.BrowserFeatureAvailability)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
