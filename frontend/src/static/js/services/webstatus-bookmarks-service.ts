@@ -23,17 +23,29 @@ import {
   SavedSearchInternalError,
   SavedSearchNotFoundError,
   SavedSearchUnknownError,
+  UserSavedSearchesInternalError,
+  UserSavedSearchesUnknownError,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
 import {Bookmark, DEFAULT_BOOKMARKS} from '../utils/constants.js';
-import {getSearchID, getSearchQuery, updatePageUrl} from '../utils/urls.js';
+import {
+  QueryStringOverrides,
+  getSearchID,
+  getSearchQuery,
+  updatePageUrl,
+} from '../utils/urls.js';
 import {AppLocation, getCurrentLocation} from '../utils/app-router.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {User} from 'firebase/auth';
 import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 import {Task, TaskStatus} from '@lit/task';
 import {NotFoundError, ApiError} from '../api/errors.js';
-import {TaskTracker} from '../utils/task-tracker.js';
+import {
+  DuplicateTaskFailedError,
+  DuplicateTaskPendingError,
+  TaskNotReadyError,
+  TaskTracker,
+} from '../utils/task-tracker.js';
 import {Toast} from '../utils/toast.js';
 
 interface GetLocationFunction {
@@ -50,28 +62,60 @@ export class WebstatusBookmarksService extends ServiceElement {
   apiClient?: APIClient;
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user?: User;
+  user: User | null | undefined;
 
-  _userSavedBookmarkByIDTaskTracker?: TaskTracker<Bookmark, SavedSearchError> =
+  _userSavedBookmarkByIDTaskTracker?: TaskTracker<
+    Bookmark,
+    SavedSearchError
+  > & {taskLocation: AppLocation} = undefined;
+
+  _userSavedBookmarksTaskTracker?: TaskTracker<Bookmark[], SavedSearchError> =
     undefined;
 
   loadingUserSavedBookmarkByIDTask = new Task(this, {
     args: () => [this._currentLocation, this.apiClient, this.user] as const,
-    task: async ([location, apiClient, user]) => {
-      const searchID = this.getSearchID(
-        location ?? {search: '', pathname: '', href: ''},
+    task: async ([currentLocation, apiClient, user]) => {
+      if (!apiClient || !currentLocation) {
+        throw new TaskNotReadyError();
+      }
+      // Derive a unique search ID from the current location. This ID is used
+      // to identify the specific bookmark being requested.
+      const searchID = this.getSearchID(currentLocation);
+      if (!searchID) {
+        throw new TaskNotReadyError();
+      }
+
+      // Get the search ID of the previously executed task (if any).
+      const previousTaskSearchID = this.getSearchID(
+        this._userSavedBookmarkByIDTaskTracker?.taskLocation ?? {
+          search: '',
+          pathname: '',
+          href: '',
+        },
       );
-      if (!searchID || !apiClient) {
-        return;
+
+      // Check if the current request is for the same bookmark (same searchID)
+      // as a previously initiated task.
+      if (searchID === previousTaskSearchID) {
+        // If the previous task was successful, return the cached data to avoid
+        // redundant API calls.
+        switch (this._userSavedBookmarkByIDTaskTracker?.status) {
+          case TaskStatus.COMPLETE:
+            return {
+              search: this._userSavedBookmarkByIDTaskTracker.data,
+              taskLocation:
+                this._userSavedBookmarkByIDTaskTracker?.taskLocation,
+            };
+          case TaskStatus.PENDING:
+            throw new DuplicateTaskPendingError();
+          case TaskStatus.ERROR:
+            throw new DuplicateTaskFailedError();
+          default:
+            // Fallback to DuplicateTaskPendingError. Should not get here.
+            throw new DuplicateTaskPendingError();
+        }
       }
-      if (
-        this.appBookmarkInfo.userSavedSearchBookmarkTask?.status ===
-          TaskStatus.COMPLETE &&
-        this.appBookmarkInfo.userSavedSearchBookmarkTask.data?.id === searchID
-      ) {
-        // If we already have the data, return it.
-        return this.appBookmarkInfo.userSavedSearchBookmarkTask.data;
-      }
+
       let token: string | undefined;
       if (user) {
         token = await user.getIdToken();
@@ -80,31 +124,48 @@ export class WebstatusBookmarksService extends ServiceElement {
         status: TaskStatus.PENDING,
         data: undefined,
         error: undefined,
+        taskLocation: currentLocation,
       };
       this.refreshAppBookmarkInfo();
 
-      return await apiClient.getSavedSearchByID(searchID, token);
+      const savedSearch = await apiClient.getSavedSearchByID(searchID, token);
+      return {search: savedSearch, taskLocation: currentLocation};
     },
     onComplete: data => {
+      const taskLocation = data?.taskLocation ?? {
+        search: '',
+        pathname: '',
+        href: '',
+      };
       this._userSavedBookmarkByIDTaskTracker = {
         status: TaskStatus.COMPLETE,
-        data: data,
+        data: data.search,
         error: undefined,
+        taskLocation: data.taskLocation,
       };
-      const q = getSearchQuery(location ?? {search: ''});
-      if (this._currentLocation && q && data?.query === q) {
+
+      const q = getSearchQuery(taskLocation ?? {search: ''});
+      if (taskLocation && q && data.search?.query === q) {
         // Clear out the "q" query parameter if it is the same as the bookmark.
         // Only keep the "q" query parameter if it is different from the bookmark which indicates we are doing an edit.
-        updatePageUrl(this._currentLocation.pathname, this._currentLocation, {
+        this.updatePageUrl(taskLocation.pathname, taskLocation, {
           q: '',
         });
       }
       this.refreshAppBookmarkInfo();
     },
     onError: async (error: unknown) => {
-      const searchID = this.getSearchID(
-        this._currentLocation ?? {search: '', pathname: '', href: ''},
-      );
+      if (
+        error instanceof TaskNotReadyError ||
+        error instanceof DuplicateTaskFailedError ||
+        error instanceof DuplicateTaskPendingError
+      ) {
+        // Don't touch the task tracker
+        return;
+      }
+      const taskLocation = this._userSavedBookmarkByIDTaskTracker
+        ?.taskLocation ?? {search: '', pathname: '', href: ''};
+      const searchID = this.getSearchID(taskLocation);
       let err: SavedSearchError;
       if (error instanceof NotFoundError) {
         err = new SavedSearchNotFoundError(searchID);
@@ -118,14 +179,78 @@ export class WebstatusBookmarksService extends ServiceElement {
         status: TaskStatus.ERROR,
         error: err,
         data: undefined,
+        taskLocation: this._userSavedBookmarkByIDTaskTracker?.taskLocation ?? {
+          search: '',
+          pathname: '',
+          href: '',
+        },
       };
       this.refreshAppBookmarkInfo();
-      if (this._currentLocation) {
-        // Clear out the bad "search_id" query parameter.
-        updatePageUrl(this._currentLocation.pathname, this._currentLocation, {
-          search_id: '',
-        });
+      // Clear out the bad "search_id" query parameter.
+      this.updatePageUrl(taskLocation.pathname, taskLocation, {
+        search_id: '',
+      });
+
+      // TODO: Reconsider showing the toast in one of the UI components once we have one central
+      // UI component that reads the bookmark info instead of the current multiple locations.
+      // This will keep the service as purely logical and let the UI component handle the error.
+      await new Toast().toast(err.message, 'danger', 'exclamation-triangle');
+    },
+  });
+
+  loadingUserSavedBookmarksTask = new Task(this, {
+    args: () => [this.apiClient, this.user] as const,
+    task: async ([apiClient, user]) => {
+      if (user === undefined || !apiClient) {
+        this._userSavedBookmarksTaskTracker = {
+          status: TaskStatus.PENDING,
+          data: undefined,
+          error: undefined,
+        };
+        this.refreshAppBookmarkInfo();
+        throw new TaskNotReadyError();
       }
+      if (user === null) {
+        return undefined;
+      }
+      const token = await user.getIdToken();
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.PENDING,
+        data: undefined,
+        error: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+
+      return await apiClient.getAllUserSavedSearches(token);
+    },
+    onComplete: data => {
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: data,
+        error: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+    },
+    onError: async (error: unknown) => {
+      if (error instanceof TaskNotReadyError) {
+        // Don't touch the task tracker
+        return;
+      }
+
+      let err: SavedSearchError;
+
+      if (error instanceof ApiError) {
+        err = new UserSavedSearchesInternalError(error.message);
+      } else {
+        err = new UserSavedSearchesUnknownError(error);
+      }
+
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.ERROR,
+        error: err,
+        data: undefined,
+      };
+      this.refreshAppBookmarkInfo();
 
       // TODO: Reconsider showing the toast in one of the UI components once we have one central
       // UI component that reads the bookmark info instead of the current multiple locations.
@@ -145,16 +270,18 @@ export class WebstatusBookmarksService extends ServiceElement {
   // Helper for testing.
   getLocation: GetLocationFunction = getCurrentLocation;
   getSearchID: (location: AppLocation) => string = getSearchID;
+  updatePageUrl: (
+    pathname: string,
+    location: {search: string},
+    overrides: QueryStringOverrides,
+  ) => void = updatePageUrl;
 
   constructor() {
     super();
-    this._currentLocation = this.getLocation();
     this._globalBookmarks = DEFAULT_BOOKMARKS;
     this._currentGlobalBookmark = this.findCurrentBookmarkByQuery(
       this._globalBookmarks,
     );
-
-    window.addEventListener('popstate', this.handlePopState.bind(this));
   }
 
   private handlePopState() {
@@ -167,11 +294,14 @@ export class WebstatusBookmarksService extends ServiceElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this._currentLocation = this.getLocation();
+    window.addEventListener('popstate', this.handlePopState.bind(this));
     this.refreshAppBookmarkInfo();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    window.removeEventListener('popstate', this.handlePopState.bind(this));
   }
 
   findCurrentBookmarkByQuery(bookmarks?: Bookmark[]): Bookmark | undefined {
@@ -184,8 +314,16 @@ export class WebstatusBookmarksService extends ServiceElement {
     this.appBookmarkInfo = {
       globalBookmarks: this._globalBookmarks,
       currentGlobalBookmark: this._currentGlobalBookmark,
-      userSavedSearchBookmarkTask: this._userSavedBookmarkByIDTaskTracker,
       currentLocation: this._currentLocation,
+      userSavedSearchBookmarksTask: this._userSavedBookmarksTaskTracker,
+      // Exclude the taskLocation property from the tracker object
+      userSavedSearchBookmarkTask: this._userSavedBookmarkByIDTaskTracker
+        ? {
+            status: this._userSavedBookmarkByIDTaskTracker?.status,
+            data: this._userSavedBookmarkByIDTaskTracker?.data,
+            error: this._userSavedBookmarkByIDTaskTracker?.error,
+          }
+        : undefined,
     };
   }
 }

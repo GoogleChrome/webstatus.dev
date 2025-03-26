@@ -34,10 +34,10 @@ export class WebstatusLogin extends LitElement {
 
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user?: User;
+  user: User | null | undefined;
 
   handleLogInClick(authConfig: AuthConfig) {
-    if (this.user === undefined) {
+    if (this.user === undefined || this.user === null) {
       authConfig.signIn().catch(async error => {
         await toast(
           `Failed to login: ${error.message ?? 'unknown'}`,
@@ -97,7 +97,7 @@ export class WebstatusLogin extends LitElement {
     }
 
     // Unauthenticated user.
-    if (this.user === undefined) {
+    if (this.user === undefined || this.user === null) {
       return this.renderLoginButton(this.firebaseAuthConfig);
     }
 

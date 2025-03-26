@@ -162,7 +162,7 @@ describe('webstatus-firebase-auth-service', () => {
     class FakeChildElement extends LitElement {
       @consume({context: firebaseUserContext, subscribe: true})
       @property({attribute: false})
-      user?: User;
+      user: User | null | undefined;
     }
     const root = document.createElement('div');
     document.body.appendChild(root);

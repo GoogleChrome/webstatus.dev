@@ -20,6 +20,8 @@ import {
   SavedSearchInternalError,
   SavedSearchUnknownError,
   AppBookmarkInfo,
+  UserSavedSearchesInternalError,
+  UserSavedSearchesUnknownError,
 } from '../app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
 import {expect} from '@open-wc/testing';
@@ -28,6 +30,41 @@ import sinon from 'sinon';
 describe('app-bookmark-info-context', () => {
   describe('bookmarkHelpers', () => {
     describe('getCurrentBookmark', () => {
+      it('should return the data from userSavedSearchBookmarksTask if available and complete', () => {
+        const info = {
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.COMPLETE,
+            data: [{query: 'test', name: 'Test Bookmark', id: '123'}],
+            error: undefined,
+          },
+        };
+        expect(
+          bookmarkHelpers.getCurrentBookmark(info, {search: '?search_id=123'}),
+        ).to.deep.equal({query: 'test', name: 'Test Bookmark', id: '123'});
+      });
+
+      it('should return undefined if userSavedSearchBookmarksTask is not complete', () => {
+        const info = {
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.PENDING,
+            data: undefined,
+            error: undefined,
+          },
+        };
+        expect(bookmarkHelpers.getCurrentBookmark(info)).to.be.undefined;
+      });
+
+      it('should return undefined if userSavedSearchBookmarksTask data is empty', () => {
+        const info = {
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.COMPLETE,
+            data: [],
+            error: undefined,
+          },
+        };
+        expect(bookmarkHelpers.getCurrentBookmark(info)).to.be.undefined;
+      });
+
       it('should return undefined if no info is provided', () => {
         expect(bookmarkHelpers.getCurrentBookmark()).to.be.undefined;
       });
@@ -228,6 +265,22 @@ describe('app-bookmark-info-context', () => {
       );
       expect(error.message).to.equal(
         'Unknown error fetching saved search ID 123. Check console for details.',
+      );
+    });
+
+    it('UserSavedSearchesInternalError should create correct error message', () => {
+      const error = new UserSavedSearchesInternalError('Server Error');
+      expect(error.message).to.equal(
+        'Internal error fetching list of bookmarked saved searches for user: Server Error',
+      );
+    });
+
+    it('UserSavedSearchesUnknownError should create correct error message and log error to console', () => {
+      const error = new UserSavedSearchesUnknownError(
+        new Error('User Saved Searches Unknown Test Error'),
+      );
+      expect(error.message).to.equal(
+        'Unknown error fetching list of bookmarked saved searches for user. Check console for details.',
       );
     });
   });

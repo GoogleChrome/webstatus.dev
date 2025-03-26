@@ -21,10 +21,15 @@ import {
   css,
   html,
   PropertyValueMap,
+  nothing,
 } from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
-import {formatOverviewPageUrl} from '../utils/urls.js';
+import {
+  formatOverviewPageUrl,
+  getSearchID,
+  getSearchQuery,
+} from '../utils/urls.js';
 import {
   AppLocation,
   getCurrentLocation,
@@ -42,6 +47,7 @@ import {
   appBookmarkInfoContext,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
+import {TaskStatus} from '@lit/task';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
@@ -77,6 +83,8 @@ interface NavigateToUrlFunction {
   (url: string, event?: MouseEvent): void;
 }
 
+type bookmarkType = 'global' | 'user';
+
 @customElement('webstatus-sidebar-menu')
 export class WebstatusSidebarMenu extends LitElement {
   static get styles(): CSSResultGroup {
@@ -107,6 +115,9 @@ export class WebstatusSidebarMenu extends LitElement {
         .about-link {
           color: inherit;
           text-decoration: none;
+        }
+        sl-skeleton {
+          width: 10rem;
         }
       `,
     ];
@@ -221,13 +232,25 @@ export class WebstatusSidebarMenu extends LitElement {
     });
   }
 
-  renderBookmark(bookmark: Bookmark, index: number): TemplateResult {
-    const bookmarkId = `bookmark${index}`;
+  renderBookmark(
+    bookmark: Bookmark,
+    index: number,
+    type: bookmarkType,
+  ): TemplateResult {
+    const bookmarkId = `${type}bookmark${index}`;
     const currentLocation = this.getLocation();
     const currentURL = new URL(currentLocation.href);
 
     let bookmarkUrl;
-    if (bookmark.override_num_param) {
+    if (bookmark.id) {
+      bookmarkUrl = formatOverviewPageUrl(currentURL, {
+        start: 0,
+        search_id: bookmark.id,
+        // If the user is on a saved search and clicks on a global bookmark,
+        // we should clear the q parameter.
+        q: '',
+      });
+    } else if (bookmark.override_num_param) {
       bookmarkUrl = formatOverviewPageUrl(currentURL, {
         q: bookmark.query,
         start: 0,
@@ -249,8 +272,9 @@ export class WebstatusSidebarMenu extends LitElement {
     // and the query is set to the active query.
     const isQueryActive =
       currentURL.pathname === navigationMap[NavigationItemKey.FEATURES].path &&
-      new URLSearchParams(currentLocation.search).get('q') ===
-        this.activeBookmarkQuery &&
+      (getSearchQuery(currentLocation) === this.activeBookmarkQuery ||
+        (bookmark.id !== undefined &&
+          bookmark.id === getSearchID(currentLocation))) &&
       bookmark.query === this.activeBookmarkQuery;
     const bookmarkIcon = isQueryActive ? 'bookmark-star' : 'bookmark';
 
@@ -259,6 +283,48 @@ export class WebstatusSidebarMenu extends LitElement {
         <a class="bookmark-link" href="${bookmarkUrl}">
           <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}
         </a>
+      </sl-tree-item>
+    `;
+  }
+
+  renderUserSavedBookmarks(): TemplateResult {
+    if (this.appBookmarkInfo?.userSavedSearchBookmarksTask === undefined) {
+      return html``;
+    }
+    // If there is no data, render nothing
+    if (
+      this.appBookmarkInfo.userSavedSearchBookmarksTask.status ===
+        TaskStatus.COMPLETE &&
+      !this.appBookmarkInfo?.userSavedSearchBookmarksTask.data
+    ) {
+      return html`${nothing}`;
+    }
+    let section: TemplateResult = html``;
+    if (
+      this.appBookmarkInfo?.userSavedSearchBookmarksTask.status ===
+        TaskStatus.INITIAL ||
+      this.appBookmarkInfo?.userSavedSearchBookmarksTask.status ===
+        TaskStatus.PENDING
+    ) {
+      section = html`
+        <sl-tree-item><sl-skeleton effect="sheen"></sl-skeleton></sl-tree-item>
+        <sl-tree-item><sl-skeleton effect="sheen"></sl-skeleton></sl-tree-item>
+        <sl-tree-item><sl-skeleton effect="sheen"></sl-skeleton></sl-tree-item>
+      `;
+    }
+    if (
+      this.appBookmarkInfo.userSavedSearchBookmarksTask.status ===
+        TaskStatus.COMPLETE &&
+      this.appBookmarkInfo?.userSavedSearchBookmarksTask.data
+    ) {
+      section = html` ${this.appBookmarkInfo?.userSavedSearchBookmarksTask.data?.map(
+        (bookmark, index) => this.renderBookmark(bookmark, index, 'user'),
+      )}`;
+    }
+    return html`
+      <sl-divider aria-hidden="true"></sl-divider>
+      <sl-tree-item id="your-bookmarks-list" .expanded=${true}>
+        Your Bookmarks ${section}
       </sl-tree-item>
     `;
   }
@@ -280,13 +346,14 @@ export class WebstatusSidebarMenu extends LitElement {
             >Features</a
           >
           ${this.appBookmarkInfo?.globalBookmarks?.map((bookmark, index) =>
-            this.renderBookmark(bookmark, index),
+            this.renderBookmark(bookmark, index, 'global'),
           )}
         </sl-tree-item>
         <!-- commented out rather than merely hidden, to avoid breaking sl-tree
         <sl-tree-item id="{NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item> -->
+        ${this.renderUserSavedBookmarks()}
 
         <sl-divider aria-hidden="true"></sl-divider>
 
