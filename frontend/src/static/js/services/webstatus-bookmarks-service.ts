@@ -34,6 +34,7 @@ import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 import {Task, TaskStatus} from '@lit/task';
 import {NotFoundError, ApiError} from '../api/errors.js';
 import {TaskTracker} from '../utils/task-tracker.js';
+import {Toast} from '../utils/toast.js';
 
 interface GetLocationFunction {
   (): AppLocation;
@@ -119,6 +120,10 @@ export class WebstatusBookmarksService extends ServiceElement {
         data: undefined,
       };
       this.refreshAppBookmarkInfo();
+      // TODO: Reconsider showing the toast in one of the UI components once we have one central
+      // UI component that reads the bookmark info instead of the current multiple locations.
+      // This will keep the service as purely logical and let the UI component handle the error.
+      await new Toast().toast(err.message, 'danger', 'exclamation-triangle');
     },
   });
 

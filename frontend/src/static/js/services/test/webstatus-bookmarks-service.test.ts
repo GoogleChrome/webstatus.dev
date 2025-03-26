@@ -32,6 +32,7 @@ import {SinonStubbedInstance} from 'sinon';
 import {TaskStatus} from '@lit/task';
 import sinon from 'sinon';
 import {NotFoundError, ApiError} from '../../api/errors.js';
+import {Toast} from '../../utils/toast.js';
 
 @customElement('test-bookmark-consumer')
 class TestBookmarkConsumer extends LitElement {
@@ -45,6 +46,13 @@ class TestBookmarkConsumer extends LitElement {
 }
 
 describe('webstatus-bookmarks-service', () => {
+  let toastStub: SinonStubbedInstance<Toast>;
+  beforeEach(() => {
+    toastStub = sinon.stub(Toast.prototype);
+  });
+  afterEach(() => {
+    sinon.restore();
+  });
   it('can be added to the page with the defaults', async () => {
     const component = await fixture<WebstatusBookmarksService>(
       html`<webstatus-bookmarks-service> </webstatus-bookmarks-service>`,
@@ -172,10 +180,17 @@ describe('webstatus-bookmarks-service', () => {
       expect(
         service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
       ).to.be.instanceOf(SavedSearchNotFoundError);
+      expect(toastStub.toast).to.have.been.calledOnceWithExactly(
+        'Saved search with id test not found',
+        'danger',
+        'exclamation-triangle',
+      );
     });
 
     it('should handle ApiError', async () => {
-      apiClientStub.getSavedSearchByID.rejects(new ApiError('', 500));
+      apiClientStub.getSavedSearchByID.rejects(
+        new ApiError('Something went wrong', 500),
+      );
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
@@ -197,10 +212,17 @@ describe('webstatus-bookmarks-service', () => {
       expect(
         service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
       ).to.be.instanceOf(SavedSearchInternalError);
+      expect(toastStub.toast).to.have.been.calledOnceWithExactly(
+        'Error fetching saved search ID test: Something went wrong',
+        'danger',
+        'exclamation-triangle',
+      );
     });
 
     it('should handle unknown errors', async () => {
-      apiClientStub.getSavedSearchByID.rejects(new Error(''));
+      apiClientStub.getSavedSearchByID.rejects(
+        new Error('Saved Search Unknown Test Error'),
+      );
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
@@ -222,6 +244,11 @@ describe('webstatus-bookmarks-service', () => {
       expect(
         service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
       ).to.be.instanceOf(SavedSearchUnknownError);
+      expect(toastStub.toast).to.have.been.calledOnceWithExactly(
+        'Unknown error fetching saved search ID test. Check console for details.',
+        'danger',
+        'exclamation-triangle',
+      );
     });
 
     it.skip('should complete successfully if searchID is not found', async () => {
@@ -350,7 +377,9 @@ describe('webstatus-bookmarks-service', () => {
   it('should handle apiClient.getSavedSearchByID rejection in loadingUserSavedBookmarkByIDTask', async () => {
     const apiClient = new APIClient('');
     const getSavedSearchByIDStub = sinon.stub(apiClient, 'getSavedSearchByID');
-    getSavedSearchByIDStub.rejects(new Error('API error'));
+    getSavedSearchByIDStub.rejects(
+      new Error('Saved Search Unknown Test Error'),
+    );
     const service = await fixture<WebstatusBookmarksService>(
       html`<webstatus-bookmarks-service
         .apiClient=${apiClient}
@@ -372,6 +401,11 @@ describe('webstatus-bookmarks-service', () => {
     expect(
       service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
     ).to.be.instanceOf(SavedSearchUnknownError);
+    expect(toastStub.toast).to.have.been.calledOnceWithExactly(
+      'Unknown error fetching saved search ID test. Check console for details.',
+      'danger',
+      'exclamation-triangle',
+    );
     getSavedSearchByIDStub.restore();
   });
 

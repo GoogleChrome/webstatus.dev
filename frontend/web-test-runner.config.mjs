@@ -21,6 +21,8 @@ const filteredLogs = [
   'Element sl-tree-item scheduled an update',
   // From the date range picker
   'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
+  // Unknown errors print to console for users to send us.
+  'Saved Search Unknown Test Error',
 ];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
