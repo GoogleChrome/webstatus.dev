@@ -120,6 +120,13 @@ export class WebstatusBookmarksService extends ServiceElement {
         data: undefined,
       };
       this.refreshAppBookmarkInfo();
+      if (this._currentLocation) {
+        // Clear out the bad "search_id" query parameter.
+        updatePageUrl(this._currentLocation.pathname, this._currentLocation, {
+          search_id: '',
+        });
+      }
+
       // TODO: Reconsider showing the toast in one of the UI components once we have one central
       // UI component that reads the bookmark info instead of the current multiple locations.
       // This will keep the service as purely logical and let the UI component handle the error.
