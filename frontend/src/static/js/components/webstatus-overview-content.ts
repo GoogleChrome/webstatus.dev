@@ -35,7 +35,7 @@ import {ApiError} from '../api/errors.js';
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
-  getCurrentBookmark,
+  bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {consume} from '@lit/context';
 
@@ -91,7 +91,10 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   render(): TemplateResult {
-    const bookmark = getCurrentBookmark(this.appBookmarkInfo, this.location);
+    const bookmark = bookmarkHelpers.getCurrentBookmark(
+      this.appBookmarkInfo,
+      this.location,
+    );
     const pageTitle = bookmark ? bookmark.name : 'Features overview';
     const pageDescription = bookmark?.description;
     return html`

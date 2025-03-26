@@ -152,6 +152,7 @@ export type MissingOneImplFeaturesPage =
   components['schemas']['MissingOneImplFeaturesPage'];
 export type MissingOneImplFeaturesList =
   components['schemas']['MissingOneImplFeature'][];
+export type SavedSearchResponse = components['schemas']['SavedSearchResponse'];
 
 // TODO. Remove once not behind UbP
 const temporaryFetchOptions: FetchOptions<unknown> = {
@@ -563,5 +564,35 @@ export class APIClient {
     } while (nextPageToken !== undefined);
 
     return allFeatures;
+  }
+
+  public async getSavedSearchByID(
+    searchID: string,
+    token?: string,
+  ): Promise<SavedSearchResponse> {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+    };
+    // If the token is there, add it to the options
+    if (token) {
+      options.headers = {
+        Authorization: `Bearer ${token}`,
+      };
+    }
+    const response = await this.client.GET(
+      '/v1/saved-searches/{search_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
   }
 }

@@ -40,7 +40,7 @@ import {consume} from '@lit/context';
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
-  getCurrentBookmark,
+  bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 
 // Map from sl-tree-item ids to paths.
@@ -147,8 +147,10 @@ export class WebstatusSidebarMenu extends LitElement {
     this.highlightNavigationItem(this.getNavTree());
     // Check if activeBookmarkQuery needs to be updated
     const newActiveBookmarkQuery =
-      getCurrentBookmark(this.appBookmarkInfo, this.getLocation())?.query ||
-      null;
+      bookmarkHelpers.getCurrentBookmark(
+        this.appBookmarkInfo,
+        this.getLocation(),
+      )?.query || null;
 
     this.activeBookmarkQuery = newActiveBookmarkQuery;
     this.requestUpdate();
@@ -230,11 +232,17 @@ export class WebstatusSidebarMenu extends LitElement {
         q: bookmark.query,
         start: 0,
         num: bookmark.override_num_param,
+        // If the user is on a saved search and clicks on a global bookmark,
+        // we should clear the search id parameter.
+        search_id: '',
       });
     } else {
       bookmarkUrl = formatOverviewPageUrl(currentURL, {
         q: bookmark.query,
         start: 0,
+        // If the user is on a saved search and clicks on a global bookmark,
+        // we should clear the search id parameter.
+        search_id: '',
       });
     }
     // The bookmark should only be active when the path is the FEATURES path
