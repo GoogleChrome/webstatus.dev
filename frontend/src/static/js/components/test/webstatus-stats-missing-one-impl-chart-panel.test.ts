@@ -231,8 +231,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(header).to.exist;
     const expectedHeader = `
       <div slot="header" id="missing-one-implementation-list-header">
-        The missing feature IDs on 2024-01-01 for
-        Chrome:
+        Missing features on 2024-01-01 for Chrome:
         <a href="/?q=id%3Acss+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
       </div>
     `;

@@ -54,6 +54,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         #missing-one-implementation-datapoint-details-complete {
           display: block;
         }
+        #missing-one-implementation-list-header {
+          margin-bottom: 1em;
+          font-size: large;
+        }
         .missing-features-table {
           width: 100%;
           overflow-x: auto;
@@ -196,8 +200,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
 
     return html`
       <div slot="header" id="${this.getPanelID()}-list-header">
-        The missing feature IDs on ${this.selectedDate} for
-        ${this.selectedBrowser}:
+        Missing features on ${this.selectedDate} for ${this.selectedBrowser}:
         <a href="${this.featureListHref}"
           >${this.missingFeaturesList.length} features</a
         >
