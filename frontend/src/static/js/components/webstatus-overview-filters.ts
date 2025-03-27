@@ -15,13 +15,19 @@
  */
 
 import {consume} from '@lit/context';
-import {LitElement, type TemplateResult, CSSResultGroup, css, html} from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {
+  LitElement,
+  type TemplateResult,
+  CSSResultGroup,
+  css,
+  html,
+  PropertyValueMap,
+} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 import {ref, createRef} from 'lit/directives/ref.js';
 import {
   formatOverviewPageUrl,
-  getSearchQuery,
   getColumnsSpec,
   getSortSpec,
   getWPTMetricView,
@@ -38,7 +44,6 @@ import {TaskStatus} from '@lit/task';
 import {
   type APIClient,
   type FeatureSortOrderType,
-  type FeatureSearchType,
   FeatureWPTMetricViewType,
   BROWSER_ID_TO_LABEL,
   CHANNEL_ID_TO_LABEL,
@@ -55,6 +60,11 @@ import {
 import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
+import {
+  appBookmarkInfoContext,
+  AppBookmarkInfo,
+  bookmarkHelpers,
+} from '../contexts/app-bookmark-info-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
@@ -145,8 +155,14 @@ export class WebstatusOverviewFilters extends LitElement {
   @state()
   apiClient?: APIClient;
 
+  @property({type: Object})
+  location!: {search: string};
+
+  @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
-  location!: {search: string}; // Set by parent.
+  appBookmarkInfo?: AppBookmarkInfo;
+
+  _activeQuery: string = '';
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -214,6 +230,18 @@ export class WebstatusOverviewFilters extends LitElement {
     document.removeEventListener('keyup', this.handleDocumentKeyUp);
   }
 
+  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
+    if (
+      changedProperties.has('location') ||
+      changedProperties.has('appBookmarkInfo')
+    ) {
+      this._activeQuery = bookmarkHelpers.getCurrentQuery(
+        this.appBookmarkInfo,
+        this.location,
+      );
+    }
+  }
+
   handleDocumentKeyUp = (e: KeyboardEvent) => {
     const inInputContext = e
       .composedPath()
@@ -243,7 +271,7 @@ export class WebstatusOverviewFilters extends LitElement {
       // TODO. allFeaturesFetcher should be moved to a separate task.
       this.allFeaturesFetcher = () => {
         return this.apiClient!.getAllFeatures(
-          getSearchQuery(this.location) as FeatureSearchType,
+          bookmarkHelpers.getCurrentQuery(this.appBookmarkInfo, this.location),
           getSortSpec(this.location) as FeatureSortOrderType,
           getWPTMetricView(this.location) as FeatureWPTMetricViewType,
         );
@@ -450,12 +478,11 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   render(): TemplateResult {
-    const query = getSearchQuery(this.location);
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          ${this.renderFilterInputBox(query)} ${this.renderColumnButton()}
-          ${this.renderExportButton()}
+          ${this.renderFilterInputBox(this._activeQuery)}
+          ${this.renderColumnButton()} ${this.renderExportButton()}
         </div>
       </div>
     `;

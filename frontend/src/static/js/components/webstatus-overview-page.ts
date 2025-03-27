@@ -23,21 +23,24 @@ import {type components} from 'webstatus.dev-backend';
 import {
   getPageSize,
   getPaginationStart,
-  getSearchQuery,
   getSortSpec,
   getWPTMetricView,
 } from '../utils/urls.js';
 import {
   type APIClient,
   type FeatureSortOrderType,
-  type FeatureSearchType,
   FeatureWPTMetricViewType,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
-import {TaskTracker} from '../utils/task-tracker.js';
+import {TaskNotReadyError, TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {toast} from '../utils/toast.js';
+import {
+  appBookmarkInfoContext,
+  AppBookmarkInfo,
+  bookmarkHelpers,
+} from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -60,15 +63,28 @@ export class OverviewPage extends LitElement {
   @state()
   currentLocation?: {search: string};
 
+  @consume({context: appBookmarkInfoContext, subscribe: true})
+  @state()
+  appBookmarkInfo?: AppBookmarkInfo;
+
   constructor() {
     super();
 
     this.loadingTask = new Task(this, {
       args: () =>
-        [this.apiClient, this.location] as [APIClient, {search: string}],
-      task: async ([apiClient, routerLocation]): Promise<
+        [this.apiClient, this.location, this.appBookmarkInfo] as const,
+      task: async ([apiClient, routerLocation, appBookmarkInfo]): Promise<
         components['schemas']['FeaturePage']
       > => {
+        // If we are still loading the saved search details, don't make the request yet.
+        if (
+          bookmarkHelpers.isBusyLoadingBookmarkInfo(
+            appBookmarkInfo,
+            routerLocation,
+          )
+        ) {
+          throw new TaskNotReadyError();
+        }
         if (this.location.search !== this.currentLocation?.search) {
           // Reset taskTracker here due to a Task data cache issue.
           this.taskTracker = {
@@ -77,7 +93,11 @@ export class OverviewPage extends LitElement {
             data: undefined,
           };
           this.currentLocation = this.location;
-          return this._fetchFeatures(apiClient, routerLocation);
+          return this._fetchFeatures(
+            apiClient,
+            routerLocation,
+            appBookmarkInfo,
+          );
         }
         return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
       },
@@ -89,7 +109,10 @@ export class OverviewPage extends LitElement {
         };
       },
       onError: async (error: unknown) => {
-        if (error instanceof ApiError) {
+        if (error instanceof TaskNotReadyError) {
+          // Don't touch the task tracker
+          return;
+        } else if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: error,
@@ -111,11 +134,19 @@ export class OverviewPage extends LitElement {
   async _fetchFeatures(
     apiClient: APIClient | undefined,
     routerLocation: {search: string},
+    appBookmarkInfo?: AppBookmarkInfo,
   ): Promise<components['schemas']['FeaturePage']> {
     if (typeof apiClient !== 'object')
       return Promise.reject(new Error('APIClient is not initialized.'));
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
-    const searchQuery = getSearchQuery(routerLocation) as FeatureSearchType;
+    let searchQuery: string = '';
+    const query = bookmarkHelpers.getCurrentQuery(
+      appBookmarkInfo,
+      routerLocation,
+    );
+    if (query) {
+      searchQuery = query;
+    }
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
     const wptMetricView = getWPTMetricView(

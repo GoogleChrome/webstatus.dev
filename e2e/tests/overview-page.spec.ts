@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
+import {test, expect, Request} from '@playwright/test';
 import {gotoOverviewPageUrl, getOverviewPageFeatureCount} from './utils';
 
 test('matches the screenshot', async ({page}) => {
@@ -271,4 +271,129 @@ test('Typing slash focuses on searchbox', async ({page}) => {
   // The slash focuses on the searchbox.
   // Later characters, including slashes, go in the searchbox.
   await expect(searchbox).toHaveAttribute('value', 'def/ghi');
+});
+
+test.describe('saved searches', () => {
+  test('unauthenticated user can load a public saved search and navigate pages', async ({
+    page,
+  }) => {
+    let featuresRequests: Request[] = [];
+    let savedSearchesRequests: Request[] = [];
+
+    page.on('request', req => {
+      if (req.url().startsWith('http://localhost:8080/v1/features')) {
+        featuresRequests.push(req);
+      }
+      if (req.url().startsWith('http://localhost:8080/v1/saved-searches')) {
+        savedSearchesRequests.push(req);
+      }
+    });
+
+    async function verifyFeaturesRequest(expectedQuery: string) {
+      expect(
+        featuresRequests.length,
+        'Should have made one features request',
+      ).toBe(1);
+      expect(
+        new URL(featuresRequests[0].url()).searchParams.get('q'),
+        'Features request query should match',
+      ).toBe(expectedQuery);
+    }
+
+    async function verifySavedSearchesRequest(
+      expectedLength: number,
+      expectedUrl?: string,
+    ) {
+      expect(
+        savedSearchesRequests.length,
+        'Saved searches request length should match',
+      ).toBe(expectedLength);
+      if (expectedUrl) {
+        expect(
+          savedSearchesRequests[0].url(),
+          'Saved searches request URL should match',
+        ).toBe(expectedUrl);
+      }
+    }
+
+    async function verifyTableRowCount(expectedCount: number) {
+      const rowCount = await page.locator('table tbody tr').count();
+      expect(rowCount, 'Table row count should match').toBe(expectedCount);
+    }
+
+    async function clickNextPage() {
+      featuresRequests = [];
+      savedSearchesRequests = [];
+      await page.getByText('Next').click();
+      await page.waitForLoadState('networkidle');
+    }
+
+    await test.step('Load saved search', async () => {
+      await gotoOverviewPageUrl(
+        page,
+        'http://localhost:5555/?search_id=a09386fe-65f1-4640-b28d-3cf2f2de69c9',
+      );
+      const featureCount = await getOverviewPageFeatureCount(page);
+      expect(featureCount, 'Feature count should be 74').toEqual(74);
+
+      const searchbox = page.locator('#inputfield');
+      await expect(searchbox, 'Search box value should match').toHaveAttribute(
+        'value',
+        'baseline_status:limited OR available_on:chrome',
+      );
+
+      const description = page.locator('#overview-description');
+      await expect(
+        description,
+        'Description should contain text',
+      ).toContainText(
+        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi. Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue. Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit. Ut velit mauris, egestas sed, gravida nec, ornare ut, mi. Aenean ut orci vel massa suscipit pulvinar. Nulla sollicitudin. Fusce varius, ligula non tempus aliquam, nunc turpis ullamcorper nibh, in tempus sapien eros vitae ligula. Pellentesque rhoncus nunc et augue. Integer id felis. Curabitur aliquet pellentesque diam. Integer quis metus vitae elit lobortis egestas. Integer egestas risus ut lectus. Nam viverra, erat vitae porta sodales, nulla diam tincidunt sem, et dictum felis nunc nec ligula. Sed nec lectus. Donec in velit. Curabitur tempus. Sed consequat, leo eget bibendum sodales, augue velit cursus nunc, quis gravida magna mi a libero. Duis vulputate elit eu elit. Donec interdum, metus et hendrerit aliquet, dolor diam sagittis ligula, eget egestas libero turpis vel mi. Nunc nulla. Maecenas vitae neque. Vivamus ultrices luctus nunc. Vivamus cursus, metus quis ullamcorper sodales, lectus lectus tempor enim, vitae gravida nibh purus ut nibh. Duis in augue. Cras nulla. Vivamus laoreet. Curabitur suscipit suscipit tellus.',
+      );
+
+      const title = page.locator('#overview-title');
+      await expect(title, 'Title should contain text').toContainText(
+        'I like queries',
+      );
+
+      await verifyFeaturesRequest(
+        'baseline_status:limited OR available_on:chrome',
+      );
+      await verifySavedSearchesRequest(
+        1,
+        'http://localhost:8080/v1/saved-searches/a09386fe-65f1-4640-b28d-3cf2f2de69c9',
+      );
+      await verifyTableRowCount(25);
+    });
+
+    await test.step('Navigate to next page (1)', async () => {
+      await clickNextPage();
+      const featureCount = await getOverviewPageFeatureCount(page);
+      expect(featureCount, 'Feature count should be 74').toEqual(74);
+      await verifyTableRowCount(25);
+      await verifyFeaturesRequest(
+        'baseline_status:limited OR available_on:chrome',
+      );
+      await verifySavedSearchesRequest(0);
+    });
+
+    await test.step('Navigate to next page (2)', async () => {
+      await clickNextPage();
+      const featureCount = await getOverviewPageFeatureCount(page);
+      expect(featureCount, 'Feature count should be 74').toEqual(74);
+      await verifyTableRowCount(24);
+      await verifyFeaturesRequest(
+        'baseline_status:limited OR available_on:chrome',
+      );
+      await verifySavedSearchesRequest(0);
+    });
+  });
+
+  test('Bad search id shows an error', async ({page}) => {
+    await gotoOverviewPageUrl(page, 'http://localhost:5555/?search_id=bad-id');
+
+    // Assert toast is visible
+    const toast = page.locator('.toast');
+    await toast.waitFor({state: 'visible'});
+    // TODO: we need to figure out a way to assert toast message.
+  });
 });
