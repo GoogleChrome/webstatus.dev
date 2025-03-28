@@ -37,6 +37,11 @@ describe('app-bookmark-info-context', () => {
             data: [{query: 'test', name: 'Test Bookmark', id: '123'}],
             error: undefined,
           },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         expect(
           bookmarkHelpers.getCurrentBookmark(info, {search: '?search_id=123'}),
@@ -50,6 +55,11 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         expect(bookmarkHelpers.getCurrentBookmark(info)).to.be.undefined;
       });
@@ -59,6 +69,11 @@ describe('app-bookmark-info-context', () => {
           userSavedSearchBookmarksTask: {
             status: TaskStatus.COMPLETE,
             data: [],
+            error: undefined,
+          },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
             error: undefined,
           },
         };
@@ -74,6 +89,11 @@ describe('app-bookmark-info-context', () => {
           userSavedSearchBookmarkTask: {
             status: TaskStatus.COMPLETE,
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
+            error: undefined,
+          },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
             error: undefined,
           },
         };
@@ -97,6 +117,11 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         expect(bookmarkHelpers.getCurrentBookmark(info)).to.deep.equal({
           query: 'global',
@@ -105,7 +130,18 @@ describe('app-bookmark-info-context', () => {
       });
 
       it('should return undefined if no bookmark is found', () => {
-        const info: AppBookmarkInfo = {};
+        const info: AppBookmarkInfo = {
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
+        };
         expect(bookmarkHelpers.getCurrentBookmark(info)).to.be.undefined;
       });
 
@@ -114,6 +150,11 @@ describe('app-bookmark-info-context', () => {
           userSavedSearchBookmarkTask: {
             status: TaskStatus.COMPLETE,
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
+            error: undefined,
+          },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
             error: undefined,
           },
         };
@@ -139,6 +180,11 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         const location = {search: '?q=test'};
         expect(bookmarkHelpers.getCurrentQuery(info, location)).to.equal(
@@ -151,6 +197,11 @@ describe('app-bookmark-info-context', () => {
           userSavedSearchBookmarkTask: {
             status: TaskStatus.COMPLETE,
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
+            error: undefined,
+          },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
             error: undefined,
           },
         };
@@ -181,6 +232,16 @@ describe('app-bookmark-info-context', () => {
             query: 'global',
             name: 'Global Bookmark',
           },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         expect(bookmarkHelpers.getCurrentQuery(info)).to.equal('global');
       });
@@ -194,6 +255,11 @@ describe('app-bookmark-info-context', () => {
           userSavedSearchBookmarkTask: {
             status: TaskStatus.COMPLETE,
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
+            error: undefined,
+          },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
             error: undefined,
           },
         };
@@ -212,12 +278,29 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         expect(bookmarkHelpers.isBusyLoadingBookmarkInfo(info)).to.equal(true);
       });
 
       it('should return true if currentLocation search is different from location search', () => {
-        const info: AppBookmarkInfo = {currentLocation: {search: '?q=old'}};
+        const info: AppBookmarkInfo = {
+          currentLocation: {search: '?q=old'},
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
+        };
         const location = {search: '?q=new'};
         expect(
           bookmarkHelpers.isBusyLoadingBookmarkInfo(info, location),
@@ -232,6 +315,11 @@ describe('app-bookmark-info-context', () => {
             error: undefined,
           },
           currentLocation: {search: '?q=test'},
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         };
         const location = {search: '?q=test'};
         expect(

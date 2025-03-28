@@ -61,6 +61,11 @@ class FakeBookmarkParentElement extends LitElement {
       data: testUserSavedBookmarks,
       error: undefined,
     },
+    userSavedSearchBookmarkTask: {
+      status: TaskStatus.INITIAL,
+      data: undefined,
+      error: undefined,
+    },
   };
 
   render(): TemplateResult {
@@ -179,6 +184,16 @@ describe('webstatus-sidebar-menu', () => {
     parent.appBookmarkInfo = {
       globalBookmarks: testBookmarks,
       currentGlobalBookmark: testBookmarks[1],
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.INITIAL,
+        data: undefined,
+        error: undefined,
+      },
+      userSavedSearchBookmarkTask: {
+        status: TaskStatus.INITIAL,
+        data: undefined,
+        error: undefined,
+      },
     };
 
     el.updateActiveStatus();
@@ -242,6 +257,16 @@ describe('webstatus-sidebar-menu', () => {
     parent.appBookmarkInfo = {
       globalBookmarks: testBookmarks,
       currentGlobalBookmark: testBookmarks[0],
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.INITIAL,
+        data: undefined,
+        error: undefined,
+      },
+      userSavedSearchBookmarkTask: {
+        status: TaskStatus.INITIAL,
+        data: undefined,
+        error: undefined,
+      },
     };
     await parent.updateComplete;
     await el.updateComplete;
@@ -445,6 +470,16 @@ describe('webstatus-sidebar-menu', () => {
         .appBookmarkInfo=${{
           globalBookmarks: testBookmarks,
           currentGlobalBookmark: testBookmarks[0],
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.INITIAL,
+            data: undefined,
+            error: undefined,
+          },
         }}
       ></webstatus-sidebar-menu>
     `);

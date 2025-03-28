@@ -83,16 +83,19 @@ export class OverviewPage extends LitElement {
             routerLocation,
           )
         ) {
-          throw new TaskNotReadyError();
+          console.log(`loading task not ready`);
+          console.log(appBookmarkInfo);
+          // throw new TaskNotReadyError();
         }
-        if (this.location.search !== this.currentLocation?.search) {
+        console.log(`loading task IS ready`);
+        console.log(appBookmarkInfo);
+        if (routerLocation.search !== this.currentLocation?.search) {
           // Reset taskTracker here due to a Task data cache issue.
           this.taskTracker = {
             status: TaskStatus.INITIAL,
             error: undefined,
             data: undefined,
           };
-          this.currentLocation = this.location;
           return this._fetchFeatures(
             apiClient,
             routerLocation,
@@ -102,6 +105,7 @@ export class OverviewPage extends LitElement {
         return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
       },
       onComplete: page => {
+        this.currentLocation = this.location;
         this.taskTracker = {
           status: TaskStatus.COMPLETE,
           error: undefined,

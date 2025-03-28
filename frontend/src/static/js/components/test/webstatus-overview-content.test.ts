@@ -28,6 +28,7 @@ import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
 } from '../../contexts/app-bookmark-info-context.js';
+import {TaskStatus} from '@lit/task';
 
 @customElement('fake-parent-element')
 class FakeParentElement extends LitElement {
@@ -37,7 +38,18 @@ class FakeParentElement extends LitElement {
 
   @provide({context: appBookmarkInfoContext})
   @property({type: Object})
-  appBookmarkInfo: AppBookmarkInfo = {};
+  appBookmarkInfo: AppBookmarkInfo = {
+    userSavedSearchBookmarksTask: {
+      status: TaskStatus.INITIAL,
+      data: undefined,
+      error: undefined,
+    },
+    userSavedSearchBookmarkTask: {
+      status: TaskStatus.INITIAL,
+      data: undefined,
+      error: undefined,
+    },
+  };
 
   render(): TemplateResult {
     return html`<slot></slot>`;
@@ -85,6 +97,16 @@ describe('webstatus-overview-content', () => {
           query: 'test_query_1',
           description: 'test description1',
         },
+        userSavedSearchBookmarksTask: {
+          status: TaskStatus.INITIAL,
+          data: undefined,
+          error: undefined,
+        },
+        userSavedSearchBookmarkTask: {
+          status: TaskStatus.INITIAL,
+          data: undefined,
+          error: undefined,
+        },
       };
       document.body.appendChild(container);
       await parent.updateComplete;
@@ -126,6 +148,16 @@ describe('webstatus-overview-content', () => {
         currentGlobalBookmark: {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
+        },
+        userSavedSearchBookmarksTask: {
+          status: TaskStatus.INITIAL,
+          data: undefined,
+          error: undefined,
+        },
+        userSavedSearchBookmarkTask: {
+          status: TaskStatus.INITIAL,
+          data: undefined,
+          error: undefined,
         },
       };
       document.body.appendChild(container);

@@ -55,7 +55,18 @@ interface GetLocationFunction {
 @customElement('webstatus-bookmarks-service')
 export class WebstatusBookmarksService extends ServiceElement {
   @provide({context: appBookmarkInfoContext})
-  appBookmarkInfo: AppBookmarkInfo = {};
+  appBookmarkInfo: AppBookmarkInfo = {
+    userSavedSearchBookmarkTask: {
+      status: TaskStatus.INITIAL,
+      data: undefined,
+      error: undefined,
+    },
+    userSavedSearchBookmarksTask: {
+      status: TaskStatus.INITIAL,
+      data: undefined,
+      error: undefined,
+    },
+  };
 
   @consume({context: apiClientContext, subscribe: true})
   @state()
@@ -64,17 +75,24 @@ export class WebstatusBookmarksService extends ServiceElement {
   @state()
   user: User | null | undefined;
 
-  _userSavedBookmarkByIDTaskTracker?: TaskTracker<
-    Bookmark,
-    SavedSearchError
-  > & {taskLocation: AppLocation} = undefined;
+  _userSavedBookmarkByIDTaskTracker: TaskTracker<Bookmark, SavedSearchError> & {
+    taskLocation?: AppLocation;
+  } = {
+    status: TaskStatus.INITIAL,
+    data: undefined,
+    error: undefined,
+    taskLocation: undefined,
+  };
 
-  _userSavedBookmarksTaskTracker?: TaskTracker<Bookmark[], SavedSearchError> =
-    undefined;
+  _userSavedBookmarksTaskTracker: TaskTracker<Bookmark[], SavedSearchError> = {
+    status: TaskStatus.INITIAL,
+    data: undefined,
+    error: undefined,
+  };
 
   loadingUserSavedBookmarkByIDTask = new Task(this, {
     args: () => [this._currentLocation, this.apiClient, this.user] as const,
-    task: async ([currentLocation, apiClient, user]) => {
+    task: async ([currentLocation, apiClient, user], {signal}) => {
       if (!apiClient || !currentLocation) {
         throw new TaskNotReadyError();
       }
@@ -82,7 +100,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       // to identify the specific bookmark being requested.
       const searchID = this.getSearchID(currentLocation);
       if (!searchID) {
-        throw new TaskNotReadyError();
+        return undefined;
       }
 
       // Get the search ID of the previously executed task (if any).
@@ -120,23 +138,39 @@ export class WebstatusBookmarksService extends ServiceElement {
       if (user) {
         token = await user.getIdToken();
       }
+      console.log('_userSavedBookmarkByIDTaskTracker PENDING');
       this._userSavedBookmarkByIDTaskTracker = {
         status: TaskStatus.PENDING,
         data: undefined,
         error: undefined,
         taskLocation: currentLocation,
       };
+      signal.throwIfAborted();
       this.refreshAppBookmarkInfo();
 
       const savedSearch = await apiClient.getSavedSearchByID(searchID, token);
+      signal.throwIfAborted();
       return {search: savedSearch, taskLocation: currentLocation};
     },
     onComplete: data => {
+      if (data === undefined) {
+        console.log('_userSavedBookmarkByIDTaskTracker COMPLETE undefined');
+        this._userSavedBookmarkByIDTaskTracker = {
+          status: TaskStatus.COMPLETE,
+          data: undefined,
+          error: undefined,
+          taskLocation: undefined,
+        };
+        this.refreshAppBookmarkInfo();
+        return;
+      }
+      console.log('hellolooo');
       const taskLocation = data?.taskLocation ?? {
         search: '',
         pathname: '',
         href: '',
       };
+      console.log('_userSavedBookmarkByIDTaskTracker COMPLETE');
       this._userSavedBookmarkByIDTaskTracker = {
         status: TaskStatus.COMPLETE,
         data: data.search,
@@ -152,15 +186,37 @@ export class WebstatusBookmarksService extends ServiceElement {
           q: '',
         });
       }
+      console.log('FINSIHED GETTING THI');
       this.refreshAppBookmarkInfo();
     },
     onError: async (error: unknown) => {
+      if (error instanceof TaskNotReadyError) {
+        console.log('_userSavedBookmarkByIDTaskTracker ERR1');
+        this._userSavedBookmarkByIDTaskTracker = {
+          status: TaskStatus.ERROR,
+          error: error,
+          data: undefined,
+          taskLocation: undefined,
+        };
+        this.refreshAppBookmarkInfo();
+        return;
+      }
       if (
-        error instanceof TaskNotReadyError ||
         error instanceof DuplicateTaskFailedError ||
         error instanceof DuplicateTaskPendingError
       ) {
-        // Don't touch the task tracker
+        // this._userSavedBookmarkByIDTaskTracker = {
+        //   status: TaskStatus.ERROR,
+        //   error: error,
+        //   data: undefined,
+        //   taskLocation: this._userSavedBookmarkByIDTaskTracker
+        //     ?.taskLocation ?? {
+        //     search: '',
+        //     pathname: '',
+        //     href: '',
+        //   },
+        // };
+        // this.refreshAppBookmarkInfo();
         return;
       }
       const taskLocation = this._userSavedBookmarkByIDTaskTracker
@@ -175,6 +231,7 @@ export class WebstatusBookmarksService extends ServiceElement {
         err = new SavedSearchUnknownError(searchID, error);
       }
 
+      console.log('_userSavedBookmarkByIDTaskTracker ERR23');
       this._userSavedBookmarkByIDTaskTracker = {
         status: TaskStatus.ERROR,
         error: err,
@@ -202,12 +259,6 @@ export class WebstatusBookmarksService extends ServiceElement {
     args: () => [this.apiClient, this.user] as const,
     task: async ([apiClient, user]) => {
       if (user === undefined || !apiClient) {
-        this._userSavedBookmarksTaskTracker = {
-          status: TaskStatus.PENDING,
-          data: undefined,
-          error: undefined,
-        };
-        this.refreshAppBookmarkInfo();
         throw new TaskNotReadyError();
       }
       if (user === null) {
@@ -233,7 +284,12 @@ export class WebstatusBookmarksService extends ServiceElement {
     },
     onError: async (error: unknown) => {
       if (error instanceof TaskNotReadyError) {
-        // Don't touch the task tracker
+        this._userSavedBookmarksTaskTracker = {
+          status: TaskStatus.ERROR,
+          error: error,
+          data: undefined,
+        };
+        this.refreshAppBookmarkInfo();
         return;
       }
 
@@ -317,13 +373,12 @@ export class WebstatusBookmarksService extends ServiceElement {
       currentLocation: this._currentLocation,
       userSavedSearchBookmarksTask: this._userSavedBookmarksTaskTracker,
       // Exclude the taskLocation property from the tracker object
-      userSavedSearchBookmarkTask: this._userSavedBookmarkByIDTaskTracker
-        ? {
-            status: this._userSavedBookmarkByIDTaskTracker?.status,
-            data: this._userSavedBookmarkByIDTaskTracker?.data,
-            error: this._userSavedBookmarkByIDTaskTracker?.error,
-          }
-        : undefined,
+      userSavedSearchBookmarkTask: {
+        status: this._userSavedBookmarkByIDTaskTracker?.status,
+        data: this._userSavedBookmarkByIDTaskTracker?.data,
+        error: this._userSavedBookmarkByIDTaskTracker?.error,
+      },
     };
+    // this.requestUpdate();
   }
 }

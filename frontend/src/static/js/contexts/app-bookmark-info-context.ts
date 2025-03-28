@@ -16,15 +16,19 @@
 
 import {createContext} from '@lit/context';
 import {Bookmark} from '../utils/constants.js';
-import {TaskTracker} from '../utils/task-tracker.js';
+import {
+  DuplicateTaskFailedError,
+  TaskNotReadyError,
+  TaskTracker,
+} from '../utils/task-tracker.js';
 import {TaskStatus} from '@lit/task';
 import {getSearchID, getSearchQuery} from '../utils/urls.js';
 
 export interface AppBookmarkInfo {
   globalBookmarks?: Bookmark[];
   currentGlobalBookmark?: Bookmark;
-  userSavedSearchBookmarkTask?: TaskTracker<Bookmark, SavedSearchError>;
-  userSavedSearchBookmarksTask?: TaskTracker<Bookmark[], SavedSearchError>;
+  userSavedSearchBookmarkTask: TaskTracker<Bookmark, SavedSearchError>;
+  userSavedSearchBookmarksTask: TaskTracker<Bookmark[], SavedSearchError>;
   currentLocation?: {search: string};
 }
 
@@ -59,7 +63,7 @@ export const bookmarkHelpers = {
     if (
       // There's a chance that the context has not been updated so we should check the search ID in the location.
       searchID &&
-      info?.userSavedSearchBookmarkTask?.status === TaskStatus.COMPLETE &&
+      info?.userSavedSearchBookmarkTask.status === TaskStatus.COMPLETE &&
       info?.userSavedSearchBookmarkTask.data
     ) {
       return info.userSavedSearchBookmarkTask.data;
@@ -119,11 +123,28 @@ export const bookmarkHelpers = {
     info?: AppBookmarkInfo,
     location?: {search: string},
   ): boolean => {
+    console.log('hellooo');
     return (
-      info?.userSavedSearchBookmarksTask?.status === TaskStatus.PENDING ||
-      info?.userSavedSearchBookmarkTask?.status === TaskStatus.PENDING ||
+      bookmarkHelpers.hasNoopError(info?.userSavedSearchBookmarksTask.error) ||
+      bookmarkHelpers.hasNoopError(info?.userSavedSearchBookmarkTask.error) ||
+      bookmarkHelpers.hasNoopStatus(
+        info?.userSavedSearchBookmarksTask.status,
+      ) ||
+      bookmarkHelpers.hasNoopStatus(info?.userSavedSearchBookmarkTask.status) ||
       info?.currentLocation?.search !== location?.search
     );
+  },
+
+  hasNoopError(error?: Error): boolean {
+    return (
+      error instanceof TaskNotReadyError ||
+      error instanceof DuplicateTaskFailedError ||
+      error instanceof DuplicateTaskFailedError
+    );
+  },
+
+  hasNoopStatus(status?: TaskStatus) {
+    return status === TaskStatus.PENDING || status === TaskStatus.INITIAL;
   },
 };
 
