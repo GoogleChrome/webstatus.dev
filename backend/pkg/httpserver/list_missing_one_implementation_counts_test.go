@@ -46,11 +46,11 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				expectedPageToken:     nil,
 				pageToken:             nil,
 				err:                   nil,
-				page: &backend.BrowserReleaseFeatureMetricsPage{
+				page: &backend.MissingOneImplMetricsPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nil,
 					},
-					Data: []backend.BrowserReleaseFeatureMetric{
+					Data: []backend.MissingOneImplMetric{
 						{
 							Count:     valuePtr[int64](10),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -150,11 +150,11 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				expectedPageSize:      50,
 				expectedPageToken:     inputPageToken,
 				err:                   nil,
-				page: &backend.BrowserReleaseFeatureMetricsPage{
+				page: &backend.MissingOneImplMetricsPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nextPageToken,
 					},
-					Data: []backend.BrowserReleaseFeatureMetric{
+					Data: []backend.MissingOneImplMetric{
 						{
 							Count:     valuePtr[int64](10),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),

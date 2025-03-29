@@ -21,12 +21,12 @@ import {
   WebstatusLineChartPanel,
 } from './webstatus-line-chart-panel.js';
 import {
-  BrowserReleaseFeatureMetric,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
   BROWSER_LABEL_TO_ID,
   MissingOneImplFeaturesList,
+  MissingOneImplMetric,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
@@ -83,7 +83,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     browsers: BrowsersParameter[],
     startDate: Date,
     endDate: Date,
-  ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
+  ): FetchFunctionConfig<MissingOneImplMetric>[] {
     return browsers.map(browser => ({
       label: BROWSER_ID_TO_LABEL[browser],
       fetchFunction: () => {
@@ -95,10 +95,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           endDate,
         );
       },
-      timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+      timestampExtractor: (dataPoint: MissingOneImplMetric) =>
         new Date(dataPoint.timestamp),
-      valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        dataPoint.count ?? 0,
+      valueExtractor: (dataPoint: MissingOneImplMetric) => dataPoint.count ?? 0,
     }));
   }
 

@@ -378,7 +378,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BrowserReleaseFeatureMetricsPage'
+                $ref: '#/components/schemas/MissingOneImplMetricsPage'
         '400':
           description: Bad Input
           content:
@@ -960,7 +960,7 @@ components:
       enum:
         - test_counts
         - subtest_counts
-    BrowserReleaseFeatureMetric:
+    MissingOneImplMetric:
       type: object
       properties:
         timestamp:
@@ -982,6 +982,37 @@ components:
         # For now, only require timestamp in case the definition
         # of the metric needs to change. Similar to WPTRunMetric.
         - timestamp
+    MissingOneImplMetricsPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/MissingOneImplMetric'
+      required:
+        - data
+    BrowserReleaseFeatureMetric:
+      type: object
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+          description: >
+            The date that browser released
+        count:
+          type: integer
+          description: Total count of features.
+          format: int64
+        version:
+          type: string
+          description: Browser version
+      required:
+        # For now, only require timestamp in case the definition
+        # of the metric needs to change. Similar to WPTRunMetric.
+        - timestamp
+        - version
     BrowserReleaseFeatureMetricsPage:
       type: object
       properties:

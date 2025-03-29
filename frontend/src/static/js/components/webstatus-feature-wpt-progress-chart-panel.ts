@@ -85,6 +85,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
           endDate,
           testView,
         ),
+      toChartDataPoint: (dataPoint: WPTRunMetric):
       timestampExtractor: this._timestampExtractor,
       valueExtractor: (dataPoint: WPTRunMetric): number =>
         dataPoint.test_pass_count || 0,

@@ -144,6 +144,10 @@ export type BrowserReleaseFeatureMetric =
   components['schemas']['BrowserReleaseFeatureMetric'];
 export type BrowserReleaseFeatureMetricsPage =
   components['schemas']['BrowserReleaseFeatureMetricsPage'];
+export type MissingOneImplMetric =
+  components['schemas']['MissingOneImplMetric'];
+export type MissingOneImplMetricsPage =
+  components['schemas']['MissingOneImplMetricsPage'];
 export type BaselineStatusMetricsPage =
   components['schemas']['BaselineStatusMetricsPage'];
 export type BaselineStatusMetric =
@@ -447,8 +451,7 @@ export class APIClient {
       if (error !== undefined) {
         throw createAPIError(error);
       }
-      const page: BrowserReleaseFeatureMetricsPage =
-        response.data as BrowserReleaseFeatureMetricsPage;
+      const page: BrowserReleaseFeatureMetricsPage = response.data;
       nextPageToken = page?.metadata?.next_page_token;
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);
@@ -492,7 +495,7 @@ export class APIClient {
     otherBrowsers: BrowsersParameter[],
     startAtDate: Date,
     endAtDate: Date,
-  ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
+  ): AsyncIterable<MissingOneImplMetric[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
 
@@ -517,8 +520,7 @@ export class APIClient {
       if (error !== undefined) {
         throw createAPIError(error);
       }
-      const page: BrowserReleaseFeatureMetricsPage =
-        response.data as BrowserReleaseFeatureMetricsPage;
+      const page: MissingOneImplMetricsPage = response.data;
       nextPageToken = page?.metadata?.next_page_token;
       yield page.data; // Yield the entire page
     } while (nextPageToken !== undefined);

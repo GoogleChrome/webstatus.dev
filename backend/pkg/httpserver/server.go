@@ -97,7 +97,7 @@ type WPTMetricsStorer interface {
 		startAt, endAt time.Time,
 		pageSize int,
 		pageToken *string,
-	) (*backend.BrowserReleaseFeatureMetricsPage, error)
+	) (*backend.MissingOneImplMetricsPage, error)
 	ListMissingOneImplementationFeatures(
 		ctx context.Context,
 		targetBrowser string,

@@ -26,8 +26,9 @@ import (
 
 // BrowserFeatureCountMetric contains a row of data returned by the feature count query.
 type BrowserFeatureCountMetric struct {
-	ReleaseDate  time.Time `spanner:"ReleaseDate"`
-	FeatureCount int64     `spanner:"FeatureCount"`
+	ReleaseDate    time.Time `spanner:"ReleaseDate"`
+	FeatureCount   int64     `spanner:"FeatureCount"`
+	BrowserVersion string    `spanner:"BrowserVersion"`
 }
 
 type BrowserFeatureCountResultPage struct {
@@ -186,10 +187,11 @@ func createListBrowserFeatureCountMetricStatement(
 	}
 
 	// Construct the query
-	// This query selects the 'ReleaseDate' and the feature counts for each release date.
+	// This query selects the 'ReleaseDate', 'BrowserVersion', and the feature counts for each release date.
 	query := fmt.Sprintf(`
 SELECT
     BrowserReleases.ReleaseDate AS ReleaseDate,
+	BrowserReleases.BrowserVersion AS BrowserVersion,
     COUNT(DISTINCT CASE WHEN bfa.WebFeatureID IS NOT NULL %s THEN bfa.WebFeatureID ELSE NULL END) AS FeatureCount
 FROM BrowserFeatureAvailabilities bfa
 RIGHT JOIN BrowserReleases
@@ -200,7 +202,7 @@ WHERE
     AND BrowserReleases.ReleaseDate >= @startAt
     AND BrowserReleases.ReleaseDate < @endAt
 	%s
-GROUP BY ReleaseDate
+GROUP BY ReleaseDate, BrowserVersion
 ORDER BY ReleaseDate ASC
 LIMIT @pageSize
 `, excludedFeatureFilter, pageFilter)

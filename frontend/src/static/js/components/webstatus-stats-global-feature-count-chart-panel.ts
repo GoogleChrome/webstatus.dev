@@ -17,6 +17,7 @@
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
+  ChartDataPoint,
   FetchFunctionConfig,
   WebstatusLineChartPanel,
 } from './webstatus-line-chart-panel.js';
@@ -58,15 +59,19 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
-  ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
+  ): FetchFunctionConfig<ChartDataPoint, BrowserReleaseFeatureMetric>[] {
     return ALL_BROWSERS.map(browser => ({
       label: BROWSER_ID_TO_LABEL[browser],
       fetchFunction: () =>
         this.apiClient.getFeatureCountsForBrowser(browser, startDate, endDate),
-      timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        new Date(dataPoint.timestamp),
-      valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        dataPoint.count ?? 0,
+      toChartDataPoint: (
+        dataPoint: BrowserReleaseFeatureMetric,
+      ): ChartDataPoint => {
+        return {
+          value: dataPoint.count ?? 0,
+          timestamp: new Date(dataPoint.timestamp),
+        };
+      },
     }));
   }
 
@@ -75,22 +80,47 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        await this._fetchAndAggregateData([
-          ...this._createFetchFunctionConfigs(startDate, endDate),
-          {
-            // Additional fetch function config for the "Total" series
-            label: 'Total number of Baseline features',
-            fetchFunction: () =>
-              this.apiClient.listAggregatedBaselineStatusCounts(
-                startDate,
-                endDate,
-              ),
-            timestampExtractor: (dataPoint: BaselineStatusMetric) =>
-              new Date(dataPoint.timestamp),
-            valueExtractor: (dataPoint: BaselineStatusMetric) =>
-              dataPoint.count ?? 0,
+        const baselineConfig: FetchFunctionConfig<
+          ChartDataPoint,
+          BaselineStatusMetric
+        > = {
+          label: 'Total number of Baseline features',
+          fetchFunction: () =>
+            this.apiClient.listAggregatedBaselineStatusCounts(
+              startDate,
+              endDate,
+            ),
+          toChartDataPoint: (
+            dataPoint: BaselineStatusMetric,
+          ): ChartDataPoint => {
+            return {
+              value: dataPoint.count ?? 0,
+              timestamp: new Date(dataPoint.timestamp),
+            };
           },
+        };
+        await this._fetchAndAggregateData<ChartDataPoint, unknown>([
+          ...this._createFetchFunctionConfigs(startDate, endDate),
+          baselineConfig,
         ]);
+        // await this._fetchAndAggregateData<ChartDataPoint, BrowserReleaseFeatureMetric|BaselineStatusMetric>([
+        //   ...this._createFetchFunctionConfigs(startDate, endDate),
+        //   {
+        //     // Additional fetch function config for the "Total" series
+        //     label: 'Total number of Baseline features',
+        //     fetchFunction: () =>
+        //       this.apiClient.listAggregatedBaselineStatusCounts(
+        //         startDate,
+        //         endDate,
+        //       ),
+        //     toChartDataPoint: (dataPoint: BaselineStatusMetric):ChartDataPoint => {
+        //       return {
+        //         value: dataPoint.count ?? 0,
+        //         timestamp: new Date(dataPoint.timestamp),
+        //       };
+        //     },
+        //   },
+        // ]);
       },
     });
   }

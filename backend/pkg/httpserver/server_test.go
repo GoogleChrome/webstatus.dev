@@ -140,7 +140,7 @@ type MockListMissingOneImplCountsConfig struct {
 	expectedPageSize      int
 	expectedPageToken     *string
 	pageToken             *string
-	page                  *backend.BrowserReleaseFeatureMetricsPage
+	page                  *backend.MissingOneImplMetricsPage
 	err                   error
 }
 
@@ -384,7 +384,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
-) (*backend.BrowserReleaseFeatureMetricsPage, error) {
+) (*backend.MissingOneImplMetricsPage, error) {
 	m.callCountListMissingOneImplCounts++
 
 	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||

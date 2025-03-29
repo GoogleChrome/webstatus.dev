@@ -53,10 +53,12 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 						{
 							Count:     valuePtr[int64](10),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+							Version:   "100",
 						},
 						{
 							Count:     valuePtr[int64](9),
 							Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
+							Version:   "99",
 						},
 					},
 				},
@@ -74,8 +76,8 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10"}}`,
 					Value: []byte(
-						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
-							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z","version":"100"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z","version":"99"}],"metadata":{}}`,
 					),
 					CacheCfg: getTestAggregatedCacheConfig(),
 				},
@@ -86,11 +88,13 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 	"data":[
 		{
 			"count":10,
-			"timestamp":"2000-01-10T00:00:00Z"
+			"timestamp":"2000-01-10T00:00:00Z",
+			"version":"100"
 		},
 		{
 			"count":9,
-			"timestamp":"2000-01-09T00:00:00Z"
+			"timestamp":"2000-01-09T00:00:00Z",
+			"version":"99"
 		}
 	],
 	"metadata":{
@@ -108,8 +112,8 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10"}}`,
 					Value: []byte(
-						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
-							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{}}`,
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z","version":"100"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z","version":"99"}],"metadata":{}}`,
 					),
 					Err: nil,
 				},
@@ -121,11 +125,13 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 	"data":[
 		{
 			"count":10,
-			"timestamp":"2000-01-10T00:00:00Z"
+			"timestamp":"2000-01-10T00:00:00Z",
+			"version":"100"
 		},
 		{
 			"count":9,
-			"timestamp":"2000-01-09T00:00:00Z"
+			"timestamp":"2000-01-09T00:00:00Z",
+			"version":"99"
 		}
 	],
 	"metadata":{
@@ -152,10 +158,12 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 						{
 							Count:     valuePtr[int64](10),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+							Version:   "100",
 						},
 						{
 							Count:     valuePtr[int64](9),
 							Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
+							Version:   "99",
 						},
 					},
 				},
@@ -174,8 +182,9 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
 					Value: []byte(
-						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
-							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{"next_page_token":"next-page-token"}}`,
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z","version":"100"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z","version":"99"}],` +
+							`"metadata":{"next_page_token":"next-page-token"}}`,
 					),
 					CacheCfg: getTestAggregatedCacheConfig(),
 				},
@@ -186,11 +195,13 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 	"data":[
 		{
 			"count":10,
-			"timestamp":"2000-01-10T00:00:00Z"
+			"timestamp":"2000-01-10T00:00:00Z",
+			"version":"100"
 		},
 		{
 			"count":9,
-			"timestamp":"2000-01-09T00:00:00Z"
+			"timestamp":"2000-01-09T00:00:00Z",
+			"version":"99"
 		}
 	],
 	"metadata":{
@@ -211,8 +222,9 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
 					Value: []byte(
-						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
-							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{"next_page_token":"next-page-token"}}`,
+						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z","version":"100"},` +
+							`{"count":9,"timestamp":"2000-01-09T00:00:00Z","version":"99"}],` +
+							`"metadata":{"next_page_token":"next-page-token"}}`,
 					),
 					Err: nil,
 				},
@@ -224,11 +236,13 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 	"data":[
 		{
 			"count":10,
-			"timestamp":"2000-01-10T00:00:00Z"
+			"timestamp":"2000-01-10T00:00:00Z",
+			"version":"100"
 		},
 		{
 			"count":9,
-			"timestamp":"2000-01-09T00:00:00Z"
+			"timestamp":"2000-01-09T00:00:00Z",
+			"version":"99"
 		}
 	],
 	"metadata":{

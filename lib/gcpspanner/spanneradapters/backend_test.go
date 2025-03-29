@@ -480,12 +480,14 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 					NextPageToken: nonNilNextPageToken,
 					Metrics: []gcpspanner.BrowserFeatureCountMetric{
 						{
-							ReleaseDate:  time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-							FeatureCount: 10,
+							ReleaseDate:    time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+							FeatureCount:   10,
+							BrowserVersion: "100",
 						},
 						{
-							ReleaseDate:  time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
-							FeatureCount: 9,
+							ReleaseDate:    time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
+							FeatureCount:   9,
+							BrowserVersion: "99",
 						},
 					},
 				},
@@ -499,10 +501,12 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 					{
 						Count:     valuePtr[int64](10),
 						Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+						Version:   "100",
 					},
 					{
 						Count:     valuePtr[int64](9),
 						Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
+						Version:   "99",
 					},
 				},
 			},

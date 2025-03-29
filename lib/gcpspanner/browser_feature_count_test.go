@@ -124,12 +124,14 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 					time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 2)),
 				Metrics: []BrowserFeatureCountMetric{
 					{
-						ReleaseDate:  time.Date(2023, 12, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 0,
+						ReleaseDate:    time.Date(2023, 12, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   0,
+						BrowserVersion: "99",
 					},
 					{
-						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 2,
+						ReleaseDate:    time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   2,
+						BrowserVersion: "100",
 					},
 				},
 			},
@@ -148,8 +150,9 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 				NextPageToken: nil,
 				Metrics: []BrowserFeatureCountMetric{
 					{
-						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 3,
+						ReleaseDate:    time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   3,
+						BrowserVersion: "101",
 					},
 				},
 			},
@@ -167,8 +170,9 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 				NextPageToken: nil,
 				Metrics: []BrowserFeatureCountMetric{
 					{
-						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 3,
+						ReleaseDate:    time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   3,
+						BrowserVersion: "101",
 					},
 				},
 			},
@@ -189,13 +193,15 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 				NextPageToken: nil,
 				Metrics: []BrowserFeatureCountMetric{
 					{
-						ReleaseDate:  time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 2,
+						ReleaseDate:    time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   2,
+						BrowserVersion: "81",
 					},
 					// No increase
 					{
-						ReleaseDate:  time.Date(2024, 2, 20, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 2,
+						ReleaseDate:    time.Date(2024, 2, 20, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   2,
+						BrowserVersion: "82",
 					},
 				},
 			},
@@ -215,16 +221,19 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 					time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 1)),
 				Metrics: []BrowserFeatureCountMetric{
 					{
-						ReleaseDate:  time.Date(2023, 12, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 0,
+						ReleaseDate:    time.Date(2023, 12, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   0,
+						BrowserVersion: "99",
 					},
 					{
-						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 1, // FeatureY excluded / discouraged
+						ReleaseDate:    time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   1, // FeatureY excluded / discouraged
+						BrowserVersion: "100",
 					},
 					{
-						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 1, // FeatureY and FeatureZ excluded / discouraged
+						ReleaseDate:    time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
+						FeatureCount:   1, // FeatureY and FeatureZ excluded / discouraged
+						BrowserVersion: "101",
 					},
 				},
 			},

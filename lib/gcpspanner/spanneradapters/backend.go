@@ -165,6 +165,7 @@ func (s *Backend) ListBrowserFeatureCountMetric(
 		results = append(results, backend.BrowserReleaseFeatureMetric{
 			Timestamp: page.Metrics[idx].ReleaseDate,
 			Count:     &(page.Metrics[idx].FeatureCount),
+			Version:   page.Metrics[idx].BrowserVersion,
 		})
 	}
 
@@ -306,7 +307,7 @@ func (s *Backend) ListMissingOneImplCounts(
 	startAt, endAt time.Time,
 	pageSize int,
 	pageToken *string,
-) (*backend.BrowserReleaseFeatureMetricsPage, error) {
+) (*backend.MissingOneImplMetricsPage, error) {
 	spannerPage, err := s.client.ListMissingOneImplCounts(
 		ctx,
 		targetBrowser,
@@ -325,15 +326,15 @@ func (s *Backend) ListMissingOneImplCounts(
 	}
 
 	// Convert the feature metric type to backend metrics
-	backendData := make([]backend.BrowserReleaseFeatureMetric, 0, len(spannerPage.Metrics))
+	backendData := make([]backend.MissingOneImplMetric, 0, len(spannerPage.Metrics))
 	for _, metric := range spannerPage.Metrics {
-		backendData = append(backendData, backend.BrowserReleaseFeatureMetric{
+		backendData = append(backendData, backend.MissingOneImplMetric{
 			Timestamp: metric.EventReleaseDate,
 			Count:     &metric.Count,
 		})
 	}
 
-	return &backend.BrowserReleaseFeatureMetricsPage{
+	return &backend.MissingOneImplMetricsPage{
 		Metadata: &backend.PageMetadata{
 			NextPageToken: spannerPage.NextPageToken,
 		},
