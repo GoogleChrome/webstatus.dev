@@ -40,7 +40,7 @@ import {User} from 'firebase/auth';
 import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 import {Task, TaskStatus} from '@lit/task';
 import {NotFoundError, ApiError} from '../api/errors.js';
-import {TaskNotReadyError, TaskTracker} from '../utils/task-tracker.js';
+import {TaskTracker} from '../utils/task-tracker.js';
 import {Toast} from '../utils/toast.js';
 import {PropertyValueMap} from 'lit';
 
@@ -51,7 +51,18 @@ interface GetLocationFunction {
 @customElement('webstatus-bookmarks-service')
 export class WebstatusBookmarksService extends ServiceElement {
   @provide({context: appBookmarkInfoContext})
-  appBookmarkInfo: AppBookmarkInfo = {};
+  appBookmarkInfo: AppBookmarkInfo = {
+    userSavedSearchBookmarksTask: {
+      status: TaskStatus.INITIAL,
+      error: undefined,
+      data: undefined,
+    },
+    userSavedSearchBookmarkTask: {
+      status: TaskStatus.INITIAL,
+      error: undefined,
+      data: undefined,
+    },
+  };
 
   @consume({context: apiClientContext, subscribe: true})
   @state()
@@ -80,6 +91,9 @@ export class WebstatusBookmarksService extends ServiceElement {
         this.user,
       ] as const,
     task: async ([searchID, searchQuery, apiClient, user]) => {
+      if (searchID === '') {
+        return undefined;
+      }
       // Get the search ID of the previously executed task (if any).
       const previousTaskSearchID =
         this._userSavedBookmarkByIDTaskTracker?.data?.id;
@@ -111,9 +125,16 @@ export class WebstatusBookmarksService extends ServiceElement {
     onComplete: data => {
       this._userSavedBookmarkByIDTaskTracker = {
         status: TaskStatus.COMPLETE,
-        data: data.search,
+        data: undefined,
         error: undefined,
       };
+
+      if (data === undefined) {
+        this.refreshAppBookmarkInfo();
+        return;
+      }
+
+      this._userSavedBookmarkByIDTaskTracker.data = data.search;
 
       const q = data.query;
       if (q && data.search?.query === q) {
@@ -130,10 +151,6 @@ export class WebstatusBookmarksService extends ServiceElement {
       this.refreshAppBookmarkInfo();
     },
     onError: async (error: unknown) => {
-      if (error instanceof TaskNotReadyError) {
-        // Don't touch the task tracker
-        return;
-      }
       const searchID = this._currentSearchID!;
       let err: SavedSearchError;
       if (error instanceof NotFoundError) {
@@ -172,40 +189,43 @@ export class WebstatusBookmarksService extends ServiceElement {
       changedProperties.has('_currentLocation') ||
       changedProperties.has('apiClient')
     ) {
-      const incomingSearchID = getSearchID(
-        this._currentLocation ?? {search: ''},
+      const incomingSearchID = this.getSearchID(
+        this._currentLocation ?? {search: '', href: '', pathname: ''},
       );
-      const incomingSearchQuery = getSearchQuery(
+      const incomingSearchQuery = this.getSearchQuery(
         this._currentLocation ?? {search: ''},
       );
       if (
-        incomingSearchID !== '' &&
-        (this._currentSearchID !== incomingSearchID ||
-          incomingSearchQuery !== this._currentSearchQuery)
+        // If the there's a new search id we need to search
+        this._currentSearchID !== incomingSearchID ||
+        // If the search id is empty, allow the task to run as it will quickly return undefined to mark it as complete
+        incomingSearchID === '' ||
+        // If there's a new search query that we may need to consider during edit mode
+        incomingSearchQuery !== this._currentSearchQuery
       ) {
         this._currentSearchQuery = incomingSearchQuery;
         this._currentSearchID = incomingSearchID;
         void this.loadingUserSavedBookmarkByIDTask.run();
       }
     }
+
+    if (
+      (changedProperties.has('apiClient') || changedProperties.has('user')) &&
+      this.apiClient !== undefined &&
+      this.user !== undefined
+    ) {
+      void this.loadingUserSavedBookmarksTask.run();
+    }
   }
 
   loadingUserSavedBookmarksTask = new Task(this, {
+    autoRun: false,
     args: () => [this.apiClient, this.user] as const,
     task: async ([apiClient, user]) => {
-      if (user === undefined || !apiClient) {
-        this._userSavedBookmarksTaskTracker = {
-          status: TaskStatus.PENDING,
-          data: undefined,
-          error: undefined,
-        };
-        this.refreshAppBookmarkInfo();
-        throw new TaskNotReadyError();
-      }
       if (user === null) {
         return undefined;
       }
-      const token = await user.getIdToken();
+      const token = await user!.getIdToken();
       this._userSavedBookmarksTaskTracker = {
         status: TaskStatus.PENDING,
         data: undefined,
@@ -213,7 +233,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       };
       this.refreshAppBookmarkInfo();
 
-      return await apiClient.getAllUserSavedSearches(token);
+      return await apiClient!.getAllUserSavedSearches(token);
     },
     onComplete: data => {
       this._userSavedBookmarksTaskTracker = {
@@ -224,13 +244,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       this.refreshAppBookmarkInfo();
     },
     onError: async (error: unknown) => {
-      if (error instanceof TaskNotReadyError) {
-        // Don't touch the task tracker
-        return;
-      }
-
       let err: SavedSearchError;
-
       if (error instanceof ApiError) {
         err = new UserSavedSearchesInternalError(error.message);
       } else {
@@ -262,6 +276,7 @@ export class WebstatusBookmarksService extends ServiceElement {
   // Helper for testing.
   getLocation: GetLocationFunction = getCurrentLocation;
   getSearchID: (location: AppLocation) => string = getSearchID;
+  getSearchQuery: (location: {search: string}) => string = getSearchQuery;
   updatePageUrl: (
     pathname: string,
     location: {search: string},
@@ -297,7 +312,9 @@ export class WebstatusBookmarksService extends ServiceElement {
   }
 
   findCurrentBookmarkByQuery(bookmarks?: Bookmark[]): Bookmark | undefined {
-    const currentQuery = getSearchQuery(this._currentLocation ?? {search: ''});
+    const currentQuery = this.getSearchQuery(
+      this._currentLocation ?? {search: ''},
+    );
     return bookmarks?.find(bookmark => bookmark.query === currentQuery);
   }
 

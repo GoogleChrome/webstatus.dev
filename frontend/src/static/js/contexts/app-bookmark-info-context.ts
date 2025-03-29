@@ -120,7 +120,11 @@ export const bookmarkHelpers = {
     location?: {search: string},
   ): boolean => {
     return (
+      info?.userSavedSearchBookmarksTask === undefined ||
+      info?.userSavedSearchBookmarksTask?.status === TaskStatus.INITIAL ||
       info?.userSavedSearchBookmarksTask?.status === TaskStatus.PENDING ||
+      info?.userSavedSearchBookmarkTask === undefined ||
+      info?.userSavedSearchBookmarkTask?.status === TaskStatus.INITIAL ||
       info?.userSavedSearchBookmarkTask?.status === TaskStatus.PENDING ||
       info?.currentLocation?.search !== location?.search
     );

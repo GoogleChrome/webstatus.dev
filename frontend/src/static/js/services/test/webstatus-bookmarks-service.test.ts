@@ -247,6 +247,7 @@ describe('webstatus-bookmarks-service', () => {
         href: '?search_id=test',
         pathname: '',
       });
+      getSearchIDStub.returns('test');
 
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
@@ -256,18 +257,20 @@ describe('webstatus-bookmarks-service', () => {
         ></webstatus-bookmarks-service>`,
       );
 
-      // First call to trigger the task
-      await waitUntil(
-        () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
-          undefined,
-      ); // Wait for the task to start
-
       // Assert that getSavedSearchByID was only called once
       expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
       expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.status).to.eq(
         TaskStatus.COMPLETE,
       );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarkTask?.data,
+      ).to.deep.eq({
+        created_at: '',
+        id: 'test',
+        query: 'test',
+        name: 'test',
+        updated_at: '',
+      });
 
       // Manually trigger a re-run
       service.loadingUserSavedBookmarkByIDTask.run();

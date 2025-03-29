@@ -181,6 +181,16 @@ describe('app-bookmark-info-context', () => {
             query: 'global',
             name: 'Global Bookmark',
           },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.COMPLETE,
+            data: undefined,
+            error: undefined,
+          },
+          userSavedSearchBookmarkTask: {
+            status: TaskStatus.COMPLETE,
+            data: undefined,
+            error: undefined,
+          },
         };
         expect(bookmarkHelpers.getCurrentQuery(info)).to.equal('global');
       });
@@ -231,6 +241,11 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          userSavedSearchBookmarksTask: {
+            status: TaskStatus.COMPLETE,
+            data: undefined,
+            error: undefined,
+          },
           currentLocation: {search: '?q=test'},
         };
         const location = {search: '?q=test'};
@@ -239,8 +254,8 @@ describe('app-bookmark-info-context', () => {
         ).to.equal(false);
       });
 
-      it('should return false if no info is provided', () => {
-        expect(bookmarkHelpers.isBusyLoadingBookmarkInfo()).to.equal(false);
+      it('should return true if no info is provided', () => {
+        expect(bookmarkHelpers.isBusyLoadingBookmarkInfo()).to.equal(true);
       });
     });
   });
