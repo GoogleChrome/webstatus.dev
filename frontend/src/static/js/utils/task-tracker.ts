@@ -40,21 +40,3 @@ export class TaskNotReadyError extends Error {
     super('Task not ready');
   }
 }
-
-/**
- * Represents an error that occurs when a task with the same arguments is already pending.
- */
-export class DuplicateTaskPendingError extends Error {
-  constructor() {
-    super('A task with the same arguments is already pending.');
-  }
-}
-
-/**
- * Represents an error that occurs when a task with the same arguments has already failed.
- */
-export class DuplicateTaskFailedError extends Error {
-  constructor() {
-    super('A task with the same arguments has already failed.');
-  }
-}

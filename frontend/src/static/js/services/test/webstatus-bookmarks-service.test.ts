@@ -29,7 +29,7 @@ import {WebstatusBookmarksService} from '../webstatus-bookmarks-service.js';
 import {fixture, expect, waitUntil} from '@open-wc/testing';
 import '../webstatus-bookmarks-service.js';
 import {DEFAULT_BOOKMARKS} from '../../utils/constants.js';
-import {APIClient, SavedSearchResponse} from '../../api/client.js';
+import {APIClient} from '../../api/client.js';
 import {SinonStubbedInstance} from 'sinon';
 import {TaskStatus} from '@lit/task';
 import sinon from 'sinon';
@@ -242,10 +242,6 @@ describe('webstatus-bookmarks-service', () => {
         created_at: '',
         updated_at: '',
       });
-      getSearchIDStub.onCall(0).returns('test');
-      getSearchIDStub.onCall(1).returns('');
-      getSearchIDStub.onCall(2).returns('test');
-      getSearchIDStub.onCall(3).returns('test');
       getLocationStub.returns({
         search: '?search_id=test',
         href: '?search_id=test',
@@ -269,128 +265,19 @@ describe('webstatus-bookmarks-service', () => {
 
       // Assert that getSavedSearchByID was only called once
       expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(getSearchIDStub.callCount).to.equal(2);
-
-      // Manually trigger a re-run
-      service.loadingUserSavedBookmarkByIDTask.run();
-      await service.updateComplete;
-
-      // Assert that getSavedSearchByID was only called once still
-      expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(getSearchIDStub.callCount).to.equal(4);
-    });
-
-    it('should handle DuplicateTaskPendingError', async () => {
-      const delayedPromise = sinon.promise<SavedSearchResponse>();
-      apiClientStub.getSavedSearchByID.returns(delayedPromise);
-      getSearchIDStub.onCall(0).returns('test');
-      getSearchIDStub.onCall(1).returns('');
-      getSearchIDStub.onCall(2).returns('test');
-      getSearchIDStub.onCall(3).returns('test');
-      getLocationStub.returns({
-        search: '?search_id=test',
-        href: '?search_id=test',
-        pathname: '',
-      });
-
-      const service = await fixture<WebstatusBookmarksService>(
-        html`<webstatus-bookmarks-service
-          .apiClient=${apiClientStub}
-          .getSearchID=${getSearchIDStub}
-          .getLocation=${getLocationStub}
-        ></webstatus-bookmarks-service>`,
+      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.status).to.eq(
+        TaskStatus.COMPLETE,
       );
 
-      // First call to trigger the task
-      await waitUntil(
-        () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
-          undefined,
-      ); // Wait for the task to start
-
-      // Assert that getSavedSearchByID was only called once
-      expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(getSearchIDStub.callCount).to.equal(2);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.PENDING);
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.error).to.be
-        .undefined;
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.data).to.be
-        .undefined;
-
       // Manually trigger a re-run
       service.loadingUserSavedBookmarkByIDTask.run();
       await service.updateComplete;
-      delayedPromise.reject(new NotFoundError(''));
 
       // Assert that getSavedSearchByID was only called once still
       expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(getSearchIDStub.callCount).to.equal(4);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.PENDING);
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.error).to.be
-        .undefined;
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.data).to.be
-        .undefined;
-    });
-
-    it('should handle DuplicateTaskFailedError', async () => {
-      apiClientStub.getSavedSearchByID.rejects(new NotFoundError(''));
-      getSearchIDStub.onCall(0).returns('test');
-      getSearchIDStub.onCall(1).returns('');
-      getSearchIDStub.onCall(2).returns('test');
-      getSearchIDStub.onCall(3).returns('test');
-      getSearchIDStub.onCall(4).returns('test');
-      getLocationStub.returns({
-        search: '?search_id=test',
-        href: '?search_id=test',
-        pathname: '',
-      });
-
-      const service = await fixture<WebstatusBookmarksService>(
-        html`<webstatus-bookmarks-service
-          .apiClient=${apiClientStub}
-          .getSearchID=${getSearchIDStub}
-          .getLocation=${getLocationStub}
-        ></webstatus-bookmarks-service>`,
+      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.status).to.eq(
+        TaskStatus.COMPLETE,
       );
-
-      // First call to trigger the task
-      await waitUntil(
-        () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
-          undefined,
-      ); // Wait for the task to start
-
-      // Assert that getSavedSearchByID was only called once
-      expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(getSearchIDStub.callCount).to.equal(3);
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.data).to.be
-        .undefined;
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.ERROR);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
-      ).to.be.instanceOf(SavedSearchNotFoundError);
-
-      // Manually trigger a re-run
-      service.loadingUserSavedBookmarkByIDTask.run();
-      await service.updateComplete;
-
-      // Assert that getSavedSearchByID was only called once still
-      expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(getSearchIDStub.callCount).to.equal(5);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.ERROR);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
-      ).to.be.instanceOf(SavedSearchNotFoundError);
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.data).to.be
-        .undefined;
     });
 
     it('should handle ApiError', async () => {
@@ -732,7 +619,6 @@ describe('webstatus-bookmarks-service', () => {
       status: TaskStatus.COMPLETE,
       data: {id: 'uuid', query: 'saved', name: 'Saved'},
       error: undefined,
-      taskLocation: {search: '?search_id=uuid', pathname: '', href: ''},
     };
     service._userSavedBookmarksTaskTracker = {
       status: TaskStatus.COMPLETE,

@@ -359,12 +359,8 @@ test.describe('saved searches', () => {
       await verifyFeaturesRequest(
         'baseline_status:limited OR available_on:chrome',
       );
-      let expectedCount = 1;
-      // TODO: For some reason, Firefox makes the call twice. Must be something in Lit on Firefox.
-      // Other browsers only do 1 request.
-      if (browserName === 'firefox') expectedCount = 2;
       await verifySavedSearchesRequest(
-        expectedCount,
+        1,
         'http://localhost:8080/v1/saved-searches/a09386fe-65f1-4640-b28d-3cf2f2de69c9',
       );
       await verifyTableRowCount(25);
