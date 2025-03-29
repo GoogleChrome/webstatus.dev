@@ -73,3 +73,16 @@ export async function getOverviewPageFeatureCount(page: Page): Promise<number> {
   const text = await statsSummary.innerText();
   return parseInt(text.match(regex)![1]);
 }
+
+export async function loginAsUser(page: Page, username: string) {
+  // Clicking the log in button will create a popup that we need to capture.
+  const popupPromise = page.waitForEvent('popup');
+  await page.goto('http://localhost:5555/');
+  await page.getByText('Log in').click();
+  const popup = await popupPromise;
+
+  await popup.getByText(username).waitFor({timeout: 2000});
+  await popup.getByText(username).hover(); // Needed for Firefox for some reason.
+  await popup.getByText(username).click();
+  await popup.waitForEvent('close');
+}

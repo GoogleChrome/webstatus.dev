@@ -23,6 +23,7 @@ const filteredLogs = [
   'WebstatusFormDateRangePicker: minimumDate, maximumDate, startDate, and endDate are required properties.',
   // Unknown errors print to console for users to send us.
   'Saved Search Unknown Test Error',
+  'User Saved Searches Unknown Test Error',
 ];
 
 export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({

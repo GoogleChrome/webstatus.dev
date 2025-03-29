@@ -75,7 +75,7 @@ export function getPageSize(location: {search: string}): number {
   return Math.min(100, Math.max(num, 1));
 }
 
-type QueryStringOverrides = {
+export type QueryStringOverrides = {
   q?: string;
   start?: number;
   num?: number;

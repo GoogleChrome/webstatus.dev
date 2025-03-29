@@ -31,12 +31,3 @@ export interface TaskTracker<T, E> {
   /** Stores the result data of the completed task, or undefined if not complete or in error state. */
   data: T | undefined;
 }
-
-/**
- * Represents an error that occurs when a task is not ready to execute.
- */
-export class TaskNotReadyError extends Error {
-  constructor() {
-    super('Task not ready');
-  }
-}

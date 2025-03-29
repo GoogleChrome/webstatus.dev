@@ -52,7 +52,7 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   firebaseAuthConfig?: AuthConfig;
 
   @provide({context: firebaseUserContext})
-  user?: User;
+  user: User | null | undefined;
 
   // Useful for testing
   authInitializer: (app: FirebaseApp | undefined) => Auth = getAuth;
@@ -85,7 +85,7 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       // 1. The user first logs in
       // 2. Resuming a session
       this.firebaseAuthConfig.auth.onAuthStateChanged(user => {
-        this.user = user ? user : undefined;
+        this.user = user ? user : null;
       });
     }
   }

@@ -15,6 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
+import {loginAsUser} from './utils';
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
@@ -22,4 +23,13 @@ test('matches the screenshot', async ({page}) => {
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
   await expect(sidebar).toHaveScreenshot('sidebar.png');
+});
+
+test('matches the screenshot for an authenticated user', async ({page}) => {
+  await loginAsUser(page, 'test user 1');
+  await page.goto('http://localhost:5555/');
+
+  // The sidebar menu should be shown by default.
+  const sidebar = page.locator('webstatus-sidebar');
+  await expect(sidebar).toHaveScreenshot('sidebar-authenticated.png');
 });

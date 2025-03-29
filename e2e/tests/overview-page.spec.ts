@@ -276,6 +276,7 @@ test('Typing slash focuses on searchbox', async ({page}) => {
 test.describe('saved searches', () => {
   test('unauthenticated user can load a public saved search and navigate pages', async ({
     page,
+    browserName,
   }) => {
     let featuresRequests: Request[] = [];
     let savedSearchesRequests: Request[] = [];

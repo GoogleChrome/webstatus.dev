@@ -48,6 +48,26 @@ describe('webstatus-login', () => {
     ).to.equal('Log in');
   });
 
+  it('renders the login button when user is null', async () => {
+    const authConfigStub: AuthConfig = {
+      auth: {} as Auth,
+      signIn: sinon.stub(),
+      provider: {} as AuthProvider,
+      icon: 'github',
+    };
+
+    const component = await fixture<WebstatusLogin>(
+      html`<webstatus-login
+        .firebaseAuthConfig=${authConfigStub}
+        .user=${null}
+      ></webstatus-login>`,
+    );
+
+    expect(
+      component.shadowRoot?.querySelector('sl-button')?.textContent?.trim(),
+    ).to.equal('Log in');
+  });
+
   it('triggers signIn when login button is clicked', async () => {
     const authConfigStub: AuthConfig = {
       auth: {} as Auth,
