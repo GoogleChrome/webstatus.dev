@@ -24,6 +24,7 @@ export interface AppBookmarkInfo {
   globalBookmarks?: Bookmark[];
   currentGlobalBookmark?: Bookmark;
   userSavedSearchBookmarkTask?: TaskTracker<Bookmark, SavedSearchError>;
+  userSavedSearchBookmarksTask?: TaskTracker<Bookmark[], SavedSearchError>;
   currentLocation?: {search: string};
 }
 
@@ -42,6 +43,19 @@ export const bookmarkHelpers = {
     location?: {search: string},
   ): Bookmark | undefined {
     const searchID = getSearchID(location ?? {search: ''});
+    if (
+      // There's a chance that the context has not been updated so we should check the search ID in the location.
+      searchID &&
+      info?.userSavedSearchBookmarksTask?.status === TaskStatus.COMPLETE &&
+      info?.userSavedSearchBookmarksTask.data
+    ) {
+      const userBookmark = info.userSavedSearchBookmarksTask.data?.find(
+        item => item.id === searchID,
+      );
+      if (userBookmark !== undefined) {
+        return userBookmark;
+      }
+    }
     if (
       // There's a chance that the context has not been updated so we should check the search ID in the location.
       searchID &&
@@ -109,6 +123,9 @@ export const bookmarkHelpers = {
       info?.userSavedSearchBookmarkTask === undefined ||
       info?.userSavedSearchBookmarkTask?.status === TaskStatus.INITIAL ||
       info?.userSavedSearchBookmarkTask?.status === TaskStatus.PENDING ||
+      info?.userSavedSearchBookmarksTask === undefined ||
+      info?.userSavedSearchBookmarksTask?.status === TaskStatus.INITIAL ||
+      info?.userSavedSearchBookmarksTask?.status === TaskStatus.PENDING ||
       info?.currentLocation?.search !== location?.search
     );
   },
@@ -158,6 +175,37 @@ export class SavedSearchUnknownError extends Error {
   constructor(id: string, err: unknown) {
     super(
       `Unknown error fetching saved search ID ${id}. Check console for details.`,
+    );
+    console.error(err);
+  }
+}
+
+/**
+ * Represents an internal error that occurred while fetching a user's list of bookmaked saved searches.
+ */
+export class UserSavedSearchesInternalError extends Error {
+  /**
+   * Creates a new UserSavedSearchesInternalError.
+   * @param {string} msg - The error message.
+   */
+  constructor(msg: string) {
+    super(
+      `Internal error fetching list of bookmarked saved searches for user: ${msg}`,
+    );
+  }
+}
+
+/**
+ * Represents an unknown error that occurred while fetching a user's list of bookmaked saved searches.
+ */
+export class UserSavedSearchesUnknownError extends Error {
+  /**
+   * Creates a new UserSavedSearchesUnknownError.
+   * @param {unknown} err - The unknown error.
+   */
+  constructor(err: unknown) {
+    super(
+      'Unknown error fetching list of bookmarked saved searches for user. Check console for details.',
     );
     console.error(err);
   }
