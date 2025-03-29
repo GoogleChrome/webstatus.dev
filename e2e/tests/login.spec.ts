@@ -15,6 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
+import {loginAsUser} from './utils';
 
 test('matches the screenshot for unauthenticated user', async ({page}) => {
   await page.goto('http://localhost:5555/');
@@ -27,16 +28,7 @@ test('matches the screenshot for unauthenticated user', async ({page}) => {
 });
 
 test('can sign in and sign out user', async ({page}) => {
-  // Clicking the log in button will create a popup that we need to capture.
-  const popupPromise = page.waitForEvent('popup');
-  await page.goto('http://localhost:5555/');
-  await page.getByText('Log in').click();
-  const popup = await popupPromise;
-
-  await popup.getByText('test user 1').waitFor();
-  await popup.getByText('test user 1').hover(); // Needed for Firefox for some reason.
-  await popup.getByText('test user 1').click();
-  await popup.waitForEvent('close');
+  await loginAsUser(page, 'test user 1');
   const login = page.locator('webstatus-login');
 
   const expectedEmail = 'test.user.1@example.com';

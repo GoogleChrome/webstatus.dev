@@ -22,11 +22,13 @@ import '../webstatus-sidebar-menu.js';
 import {Bookmark} from '../../utils/constants.js';
 import {customElement, property} from 'lit/decorators.js';
 import {provide} from '@lit/context';
-import {LitElement, TemplateResult} from 'lit';
+import {LitElement, TemplateResult, render} from 'lit';
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
 } from '../../contexts/app-bookmark-info-context.js';
+import {TaskStatus} from '@lit/task';
+import {AppLocation} from '../../utils/app-router.js';
 
 const testBookmarks: Bookmark[] = [
   {
@@ -41,6 +43,12 @@ const testBookmarks: Bookmark[] = [
   },
 ];
 
+const testUserSavedBookmarks: Bookmark[] = [
+  {id: 'saved1', name: 'Saved 1', query: 'saved_query_1'},
+  {id: 'saved2', name: 'Saved 2', query: 'saved_query_2'},
+  {id: 'saved3', name: 'Saved 3', query: 'saved_query_3'},
+];
+
 @customElement('fake-bookmark-parent-element')
 class FakeBookmarkParentElement extends LitElement {
   @provide({context: appBookmarkInfoContext})
@@ -48,6 +56,11 @@ class FakeBookmarkParentElement extends LitElement {
   appBookmarkInfo: AppBookmarkInfo = {
     globalBookmarks: testBookmarks,
     currentGlobalBookmark: undefined,
+    userSavedSearchBookmarksTask: {
+      status: TaskStatus.COMPLETE,
+      data: testUserSavedBookmarks,
+      error: undefined,
+    },
   };
 
   render(): TemplateResult {
@@ -106,6 +119,7 @@ describe('webstatus-sidebar-menu', () => {
     const featuresItem = tree?.querySelector('#features-item');
     // const statsItem = tree?.querySelector('#statistics-item');
     const bookmarkItems = featuresItem?.querySelectorAll('sl-tree-item');
+    const userBookmarksItem = tree?.querySelector('#your-bookmarks-list');
 
     expect(tree).to.exist;
     expect(featuresItem).to.exist;
@@ -122,6 +136,38 @@ describe('webstatus-sidebar-menu', () => {
     expect(bookmarkItems![1].querySelector('sl-icon')?.name).to.equal(
       'bookmark',
     );
+
+    const userBookmarkItems =
+      userBookmarksItem?.querySelectorAll('sl-tree-item');
+    expect(userBookmarksItem).to.exist;
+    expect(userBookmarkItems).to.have.lengthOf(3);
+    expect(userBookmarkItems![0].selected).to.be.false;
+    expect(userBookmarkItems![1].selected).to.be.false;
+    expect(userBookmarkItems![2].selected).to.be.false;
+
+    expect(userBookmarkItems![0].querySelector('sl-icon')?.name).to.equal(
+      'bookmark',
+    );
+    expect(userBookmarkItems![1].querySelector('sl-icon')?.name).to.equal(
+      'bookmark',
+    );
+    expect(userBookmarkItems![2].querySelector('sl-icon')?.name).to.equal(
+      'bookmark',
+    );
+  });
+
+  it('renders user saved bookmarks correctly', async () => {
+    const userSavedBookmarksItems = el.shadowRoot?.querySelectorAll(
+      'sl-tree-item[id^="userbookmark"]',
+    );
+    expect(userSavedBookmarksItems).to.have.lengthOf(
+      testUserSavedBookmarks.length,
+    );
+    testUserSavedBookmarks.forEach((bookmark, index) => {
+      const item = userSavedBookmarksItems![index] as SlTreeItem;
+      expect(item.id).to.equal(`userbookmark${index}`);
+      expect(item.textContent).to.contain(bookmark.name);
+    });
   });
 
   it('updates the active bookmark query when the URL changes', async () => {
@@ -144,10 +190,36 @@ describe('webstatus-sidebar-menu', () => {
     );
   });
 
-  it('correctly handles bookmark clicks', async () => {
+  it('renders global bookmarks correctly without IDs', async () => {
+    const bookmarkItems = el.shadowRoot?.querySelectorAll(
+      'sl-tree-item[id^="globalbookmark"]',
+    );
+    expect(bookmarkItems).to.have.lengthOf(testBookmarks.length);
+    testBookmarks.forEach((bookmark, index) => {
+      const item = bookmarkItems![index] as SlTreeItem;
+      expect(item.id).to.equal(`globalbookmark${index}`);
+      expect(item.textContent).to.contain(bookmark.name);
+    });
+  });
+
+  it('renders user saved bookmarks correctly with IDs', async () => {
+    const userSavedBookmarksItems = el.shadowRoot?.querySelectorAll(
+      'sl-tree-item[id^="userbookmark"]',
+    );
+    expect(userSavedBookmarksItems).to.have.lengthOf(
+      testUserSavedBookmarks.length,
+    );
+    testUserSavedBookmarks.forEach((bookmark, index) => {
+      const item = userSavedBookmarksItems![index] as SlTreeItem;
+      expect(item.id).to.equal(`userbookmark${index}`);
+      expect(item.textContent).to.contain(bookmark.name);
+    });
+  });
+
+  it('correctly handles bookmark clicks correctly for global bookmarks', async () => {
     // Get the whole tree item
     const bookmarkItem = el.shadowRoot?.querySelector(
-      'sl-tree-item[id="bookmark0"]',
+      'sl-tree-item[id="globalbookmark0"]',
     ) as SlTreeItem;
     expect(bookmarkItem).to.exist;
 
@@ -198,6 +270,163 @@ describe('webstatus-sidebar-menu', () => {
 
     // Restore
     clickStub.restore();
+  });
+
+  it('correctly handles bookmark clicks for user saved bookmarks, verifying isQueryActive', async () => {
+    // Set up the URL to match the first user bookmark
+    const mockLocation: AppLocation = {
+      href: `http://localhost/?search_id=${testUserSavedBookmarks[0].id}`,
+      search: `?search_id=${testUserSavedBookmarks[0].id}`,
+      pathname: '/',
+    };
+    (el.getLocation as sinon.SinonStub).returns(mockLocation);
+    el.updateActiveStatus();
+    await el.updateComplete;
+
+    const bookmarkItem = el.shadowRoot?.querySelector(
+      'sl-tree-item[id="userbookmark0"]',
+    ) as SlTreeItem;
+    expect(bookmarkItem).to.exist;
+    const bookmarkAnchor = bookmarkItem.querySelector('a') as HTMLAnchorElement;
+    expect(bookmarkAnchor).to.exist;
+
+    const clickStub = sinon.stub(bookmarkAnchor, 'click');
+    bookmarkAnchor.click();
+
+    await el.updateComplete; // Allow the component to update after the click
+
+    expect(clickStub.calledOnce).to.be.true;
+    expect(el.getActiveBookmarkQuery()).to.equal(
+      testUserSavedBookmarks[0].query,
+    );
+
+    // Assertions to check the selected state of other bookmarks
+    const userBookmarkItems = el.shadowRoot?.querySelectorAll(
+      'sl-tree-item[id^="userbookmark"]',
+    ) as NodeListOf<SlTreeItem>;
+    expect(userBookmarkItems[0].selected).to.be.true;
+    expect(userBookmarkItems[1].selected).to.be.false;
+    expect(userBookmarkItems[2].selected).to.be.false;
+
+    // Check the icon name based on the selected state
+    expect(userBookmarkItems[0].querySelector('sl-icon')?.name).to.equal(
+      'bookmark-star',
+    );
+    expect(userBookmarkItems[1].querySelector('sl-icon')?.name).to.equal(
+      'bookmark',
+    );
+    expect(userBookmarkItems[2].querySelector('sl-icon')?.name).to.equal(
+      'bookmark',
+    );
+
+    clickStub.restore();
+  });
+
+  it('renders user saved bookmarks section correctly - pending state', async () => {
+    const userBookmarksSection = el.shadowRoot?.querySelector(
+      '#your-bookmarks-list',
+    );
+    expect(userBookmarksSection).to.exist;
+    expect(userBookmarksSection?.textContent).to.contain('Your Bookmarks');
+
+    parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.PENDING,
+        data: undefined,
+        error: undefined,
+      },
+    };
+    await el.updateComplete;
+    const userBookmarkItems = userBookmarksSection?.querySelectorAll(
+      'sl-tree-item sl-skeleton',
+    );
+    expect(userBookmarkItems).to.have.lengthOf(3); // Should show 3 skeletons while pending
+  });
+
+  it('renders user saved bookmarks section correctly - complete with data', async () => {
+    const userBookmarksSection = el.shadowRoot?.querySelector(
+      '#your-bookmarks-list',
+    );
+    expect(userBookmarksSection).to.exist;
+    expect(userBookmarksSection?.textContent).to.contain('Your Bookmarks');
+
+    parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.COMPLETE,
+        data: testUserSavedBookmarks,
+        error: undefined,
+      },
+    };
+    await el.updateComplete;
+    const userBookmarkItems =
+      userBookmarksSection?.querySelectorAll('sl-tree-item');
+    expect(userBookmarkItems).to.have.lengthOf(testUserSavedBookmarks.length);
+  });
+
+  it('renders user saved bookmarks section correctly - complete with empty data', async () => {
+    const userBookmarksSection = el.shadowRoot?.querySelector(
+      '#your-bookmarks-list',
+    );
+    expect(userBookmarksSection).to.exist;
+    expect(userBookmarksSection?.textContent).to.contain('Your Bookmarks');
+
+    parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.COMPLETE,
+        data: [],
+        error: undefined,
+      },
+    };
+    await el.updateComplete;
+    const userBookmarkItems =
+      userBookmarksSection?.querySelectorAll('sl-tree-item');
+    expect(userBookmarkItems).to.have.lengthOf(0);
+  });
+
+  it('renders user saved bookmarks section correctly - error state', async () => {
+    const userBookmarksSection = el.shadowRoot?.querySelector(
+      '#your-bookmarks-list',
+    );
+    expect(userBookmarksSection).to.exist;
+    expect(userBookmarksSection?.textContent).to.contain('Your Bookmarks');
+
+    parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.ERROR,
+        data: undefined,
+        error: new Error('Failed to load bookmarks'),
+      },
+    };
+    await el.updateComplete;
+    const userBookmarkItems =
+      userBookmarksSection?.querySelectorAll('sl-tree-item');
+    expect(userBookmarkItems).to.have.lengthOf(0); // Should show nothing in rejected state
+  });
+
+  it('renders renderBookmark correctly with user bookmark ID', async () => {
+    const bookmark = testUserSavedBookmarks[0];
+    const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
+    const container = document.createElement('div');
+    render(renderedBookmark, container);
+    expect(container.querySelector('sl-tree-item')?.id).to.equal(
+      'userbookmark0',
+    );
+    expect(container.textContent).to.contain(bookmark.name);
+  });
+
+  it('renders renderBookmark correctly without ID for global bookmark', async () => {
+    const bookmark = testBookmarks[0];
+    const renderedBookmark = el.renderBookmark(bookmark, 0, 'global');
+    const container = document.createElement('div');
+    render(renderedBookmark, container);
+    expect(container.querySelector('sl-tree-item')?.id).to.equal(
+      'globalbookmark0',
+    );
+    expect(container.textContent).to.contain(bookmark.name);
   });
 
   it('marks the active bookmark item as selected on first load', async () => {
