@@ -40,6 +40,7 @@ import {
   GITHUB_REPO_ISSUE_LINK,
   ABOUT_PAGE_LINK,
   Bookmark,
+  BookmarkOwnerRole,
 } from '../utils/constants.js';
 import {consume} from '@lit/context';
 import {
@@ -242,6 +243,7 @@ export class WebstatusSidebarMenu extends LitElement {
     const currentURL = new URL(currentLocation.href);
 
     let bookmarkUrl;
+    let bookmarkEditUrl;
     if (bookmark.id) {
       bookmarkUrl = formatOverviewPageUrl(currentURL, {
         start: 0,
@@ -250,6 +252,16 @@ export class WebstatusSidebarMenu extends LitElement {
         // we should clear the q parameter.
         q: '',
       });
+      if (bookmark.permissions?.role === BookmarkOwnerRole) {
+        bookmarkEditUrl = formatOverviewPageUrl(currentURL, {
+          start: 0,
+          search_id: bookmark.id,
+          edit_bookmark: true,
+          // If the user is on a saved search and clicks on a global bookmark,
+          // we should clear the q parameter.
+          q: '',
+        });
+      }
     } else if (bookmark.override_num_param) {
       bookmarkUrl = formatOverviewPageUrl(currentURL, {
         q: bookmark.query,
@@ -283,6 +295,14 @@ export class WebstatusSidebarMenu extends LitElement {
         <a class="bookmark-link" href="${bookmarkUrl}">
           <sl-icon name="${bookmarkIcon}"></sl-icon> ${bookmark.name}
         </a>
+        ${bookmarkEditUrl
+          ? html` <sl-icon-button
+              name="pencil"
+              label="Edit"
+              class="bookmark-edit-link"
+              href="${bookmarkEditUrl}"
+            ></sl-icon-button>`
+          : nothing}
       </sl-tree-item>
     `;
   }
