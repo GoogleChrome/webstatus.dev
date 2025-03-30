@@ -104,6 +104,42 @@ func getUsers() []User {
 			EmailVerified: true,
 			UserID:        "abcdedf1234567890",
 		},
+		{
+			Name:          "test user 2",
+			Email:         "test.user.2@example.com",
+			EmailVerified: true,
+			UserID:        "abcdedf1234567891",
+		},
+		{
+			Name:          "test user 3",
+			Email:         "test.user.3@example.com",
+			EmailVerified: true,
+			UserID:        "abcdedf1234567892",
+		},
+		{
+			Name:          "test user 3",
+			Email:         "test.user.3@example.com",
+			EmailVerified: true,
+			UserID:        "abcdedf1234567893",
+		},
+		{
+			Name:          "chromium user",
+			Email:         "chromium.user@example.com",
+			EmailVerified: true,
+			UserID:        "abcdedf1234567894",
+		},
+		{
+			Name:          "firefox user",
+			Email:         "firefox.user@example.com",
+			EmailVerified: true,
+			UserID:        "abcdedf1234567895",
+		},
+		{
+			Name:          "webkit user",
+			Email:         "webkit.user@example.com",
+			EmailVerified: true,
+			UserID:        "abcdedf1234567896",
+		},
 	}
 }
 
