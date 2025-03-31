@@ -21,8 +21,8 @@ import {
   appSettingsContext,
   AppSettings,
 } from '../../contexts/settings-context.js';
-import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
-import '../webstatus-overview-content.js';
+import {WebstatusOverviewHeader} from '../webstatus-overview-header.js';
+import '../webstatus-overview-header.js';
 import {expect} from '@open-wc/testing';
 import {
   AppBookmarkInfo,
@@ -44,7 +44,7 @@ class FakeParentElement extends LitElement {
   }
 }
 
-describe('webstatus-overview-content', () => {
+describe('webstatus-overview-header', () => {
   describe('RenderBookmarkUI', () => {
     let container: HTMLElement;
     afterEach(() => {
@@ -55,16 +55,16 @@ describe('webstatus-overview-content', () => {
       container = document.createElement('div');
       container.innerHTML = `
         <fake-parent-element>
-          <webstatus-overview-content>
-          </webstatus-overview-content>
+          <webstatus-overview-header>
+          </webstatus-overview-header>
         </fake-parent-element>
       `;
       const parent: FakeParentElement = container.querySelector(
         'fake-parent-element',
       ) as FakeParentElement;
-      const element: WebstatusOverviewContent = container.querySelector(
-        'webstatus-overview-content',
-      ) as WebstatusOverviewContent;
+      const element: WebstatusOverviewHeader = container.querySelector(
+        'webstatus-overview-header',
+      ) as WebstatusOverviewHeader;
       // Set location to one of the globalBookmarks.
       element.location = {search: '?q=test_query_1'};
       parent.appBookmarkInfo = {
@@ -104,16 +104,16 @@ describe('webstatus-overview-content', () => {
       container = document.createElement('div');
       container.innerHTML = `
         <fake-parent-element>
-          <webstatus-overview-content>
-          </webstatus-overview-content>
+          <webstatus-overview-header>
+          </webstatus-overview-header>
         </fake-parent-element>
       `;
       const parent: FakeParentElement = container.querySelector(
         'fake-parent-element',
       ) as FakeParentElement;
-      const element: WebstatusOverviewContent = container.querySelector(
-        'webstatus-overview-content',
-      ) as WebstatusOverviewContent;
+      const element: WebstatusOverviewHeader = container.querySelector(
+        'webstatus-overview-header',
+      ) as WebstatusOverviewHeader;
       // Set location to one of the globalBookmarks.
       element.location = {search: '?q=test_query_1'};
       parent.appBookmarkInfo = {

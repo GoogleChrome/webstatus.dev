@@ -27,8 +27,6 @@ import {customElement, property, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-filters.js';
-import './webstatus-overview-table.js';
-import './webstatus-overview-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
@@ -39,8 +37,8 @@ import {
 } from '../contexts/app-bookmark-info-context.js';
 import {consume} from '@lit/context';
 
-@customElement('webstatus-overview-content')
-export class WebstatusOverviewContent extends LitElement {
+@customElement('webstatus-overview-header')
+export class WebstatusOverviewHeader extends LitElement {
   @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
@@ -113,17 +111,6 @@ export class WebstatusOverviewContent extends LitElement {
           .location=${this.location}
         ></webstatus-overview-filters>
         <br />
-
-        <webstatus-overview-table
-          .location=${this.location}
-          .taskTracker=${this.taskTracker}
-          .bookmark=${bookmark}
-        >
-        </webstatus-overview-table>
-        <webstatus-overview-pagination
-          .location=${this.location}
-          .totalCount=${this.taskTracker.data?.metadata.total ?? 0}
-        ></webstatus-overview-pagination>
       </div>
     `;
   }

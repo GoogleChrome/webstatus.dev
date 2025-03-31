@@ -616,4 +616,29 @@ export class APIClient {
 
     return response.data;
   }
+
+  public async createSavedSearch(
+    savedSearch: components['schemas']['SavedSearch'],
+    token: string,
+  ) {
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/saved-searches'], 'post'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: savedSearch,
+    };
+    // TODO: For now, I couldn't figure out how to use the spread operator for temporaryFetchOptions without tsc complaining.
+    // In the future, we should do the same thing as the other client methods.
+    options.credentials = temporaryFetchOptions.credentials;
+
+    const response = await this.client.POST('/v1/saved-searches', options);
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
 }

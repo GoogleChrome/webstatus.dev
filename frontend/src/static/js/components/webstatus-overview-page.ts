@@ -16,15 +16,24 @@
 
 import {consume} from '@lit/context';
 import {Task, TaskStatus} from '@lit/task';
-import {LitElement, type TemplateResult, html, PropertyValueMap} from 'lit';
+import {
+  LitElement,
+  type TemplateResult,
+  html,
+  PropertyValueMap,
+  nothing,
+} from 'lit';
 import {customElement, state, property} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {
+  getEditBookmark,
   getPageSize,
   getPaginationStart,
+  getSearchID,
   getSortSpec,
   getWPTMetricView,
+  updatePageUrl,
 } from '../utils/urls.js';
 import {
   type APIClient,
@@ -32,7 +41,7 @@ import {
   FeatureWPTMetricViewType,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
-import './webstatus-overview-content.js';
+import './webstatus-overview-header.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {toast} from '../utils/toast.js';
@@ -41,6 +50,12 @@ import {
   AppBookmarkInfo,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+
+import './webstatus-overview-table.js';
+import './webstatus-overview-pagination.js';
+import './webstatus-bookmark-editor.js';
+import {Bookmark, BookmarkOwnerRole} from '../utils/constants.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -66,6 +81,40 @@ export class OverviewPage extends LitElement {
   @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
   appBookmarkInfo?: AppBookmarkInfo;
+
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user?: User | null;
+
+  @state()
+  bookmarkToEdit?: Bookmark;
+
+  @state()
+  isEditBookmark: boolean = false;
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('bookmark-saved', this.handleBookmarkSaved);
+    this.addEventListener('bookmark-canceled', this.handleBookmarkCanceled);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('bookmark-saved', this.handleBookmarkSaved);
+    this.removeEventListener('bookmark-canceled', this.handleBookmarkCanceled);
+  }
+
+  handleBookmarkSaved = () => {
+    this.removeEditBookmarkParam();
+  };
+
+  handleBookmarkCanceled = () => {
+    this.removeEditBookmarkParam();
+  };
+
+  removeEditBookmarkParam() {
+    updatePageUrl('', this.location, {edit_bookmark: undefined});
+  }
 
   constructor() {
     super();
@@ -135,6 +184,16 @@ export class OverviewPage extends LitElement {
       ) {
         void this.loadingTask.run();
       }
+      const editBookmarkFlag = getEditBookmark(this.location);
+      const searchID = getSearchID(this.location);
+      const currentBookmark = bookmarkHelpers.getCurrentBookmark(
+        this.appBookmarkInfo,
+        this.location,
+      );
+      if (editBookmarkFlag && searchID && currentBookmark?.id === searchID) {
+        this.bookmarkToEdit = currentBookmark;
+      }
+      this.isEditBookmark = editBookmarkFlag;
     }
   }
 
@@ -169,12 +228,35 @@ export class OverviewPage extends LitElement {
   }
 
   render(): TemplateResult {
+    const canEditBookmark =
+      this.user && this.bookmarkToEdit?.permissions?.role === BookmarkOwnerRole;
+
     return html`
-      <webstatus-overview-content
+      <webstatus-overview-header
         .location=${this.location}
         .taskTracker=${this.taskTracker}
       >
-      </webstatus-overview-content>
+      </webstatus-overview-header>
+      <webstatus-overview-table
+        .location=${this.location}
+        .taskTracker=${this.taskTracker}
+      >
+      </webstatus-overview-table>
+      <webstatus-overview-pagination
+        .location=${this.location}
+        .totalCount=${this.taskTracker.data?.metadata.total ?? 0}
+      ></webstatus-overview-pagination>
+      ${canEditBookmark
+        ? html`
+            <webstatus-bookmark-editor
+              .location=${this.location}
+              .apiClient=${this.apiClient}
+              .bookmark=${this.bookmarkToEdit}
+              .user=${this.user}
+              .showDialog=${this.isEditBookmark}
+            ></webstatus-bookmark-editor>
+          `
+        : nothing}
     `;
   }
 }

@@ -55,7 +55,7 @@ export async function setupFakeNow(
 export async function waitForOverviewPageLoad(page: Page) {
   // Wait for the loading indicator to disappear and be replaced (with timeout):
   await page
-    .locator('webstatus-overview-content >> text=Loading features...')
+    .locator('webstatus-overview-header >> text=Loading features...')
     .waitFor({state: 'hidden', timeout: 15000});
 }
 
