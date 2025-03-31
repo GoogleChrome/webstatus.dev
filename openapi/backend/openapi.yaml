@@ -840,6 +840,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
         '500':
           description: Internal Service Error
           content:
