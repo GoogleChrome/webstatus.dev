@@ -16,7 +16,7 @@
 
 import {consume} from '@lit/context';
 import {Task, TaskStatus} from '@lit/task';
-import {LitElement, type TemplateResult, html} from 'lit';
+import {LitElement, type TemplateResult, html, PropertyValueMap} from 'lit';
 import {customElement, state, property} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
@@ -33,7 +33,7 @@ import {
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
-import {TaskNotReadyError, TaskTracker} from '../utils/task-tracker.js';
+import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, UnknownError} from '../api/errors.js';
 import {toast} from '../utils/toast.js';
 import {
@@ -71,20 +71,12 @@ export class OverviewPage extends LitElement {
     super();
 
     this.loadingTask = new Task(this, {
+      autoRun: false,
       args: () =>
         [this.apiClient, this.location, this.appBookmarkInfo] as const,
       task: async ([apiClient, routerLocation, appBookmarkInfo]): Promise<
         components['schemas']['FeaturePage']
       > => {
-        // If we are still loading the saved search details, don't make the request yet.
-        if (
-          bookmarkHelpers.isBusyLoadingBookmarkInfo(
-            appBookmarkInfo,
-            routerLocation,
-          )
-        ) {
-          throw new TaskNotReadyError();
-        }
         if (this.location.search !== this.currentLocation?.search) {
           // Reset taskTracker here due to a Task data cache issue.
           this.taskTracker = {
@@ -109,10 +101,7 @@ export class OverviewPage extends LitElement {
         };
       },
       onError: async (error: unknown) => {
-        if (error instanceof TaskNotReadyError) {
-          // Don't touch the task tracker
-          return;
-        } else if (error instanceof ApiError) {
+        if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
             error: error,
@@ -129,6 +118,24 @@ export class OverviewPage extends LitElement {
         }
       },
     });
+  }
+  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
+    if (
+      changedProperties.has('apiClient') ||
+      changedProperties.has('location') ||
+      changedProperties.has('appBookmarkInfo')
+    ) {
+      if (
+        this.apiClient !== undefined &&
+        this.currentLocation?.search !== this.location.search &&
+        !bookmarkHelpers.isBusyLoadingBookmarkInfo(
+          this.appBookmarkInfo,
+          this.location,
+        )
+      ) {
+        void this.loadingTask.run();
+      }
+    }
   }
 
   async _fetchFeatures(
