@@ -1250,7 +1250,7 @@ components:
         update_mask:
           type: array
           description: >
-            A list of fields to update.  Required. Allowed values are: `name`, `description`, `query`.
+            A list of fields to update. Required. Allowed values are: `name`, `description`, `query`.
           items:
             type: string
             enum:
