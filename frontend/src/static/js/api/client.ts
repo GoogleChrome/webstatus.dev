@@ -47,6 +47,13 @@ export type FeatureWPTMetricViewType = Exclude<
 
 export type BrowsersParameter = components['parameters']['browserPathParam'];
 
+export type UpdateSavedSearchInput = {
+  id: string;
+  name?: string;
+  description?: string;
+  query?: string;
+};
+
 type PageablePath =
   | '/v1/features'
   | '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}'
@@ -634,6 +641,55 @@ export class APIClient {
     options.credentials = temporaryFetchOptions.credentials;
 
     const response = await this.client.POST('/v1/saved-searches', options);
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  public async updateSavedSearch(
+    savedSearch: UpdateSavedSearchInput,
+    token: string,
+  ) {
+    const req: components['schemas']['SavedSearchUpdateRequest'] = {
+      update_mask: [],
+    };
+    if (savedSearch.name !== undefined) {
+      req.update_mask.push('name');
+      req.name = savedSearch.name;
+    }
+    if (savedSearch.description !== undefined) {
+      req.update_mask.push('description');
+      req.description = savedSearch.description;
+    }
+    if (savedSearch.query !== undefined) {
+      req.update_mask.push('query');
+      req.query = savedSearch.query;
+    }
+
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/saved-searches/{search_id}'], 'patch'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        path: {
+          search_id: savedSearch.id,
+        },
+      },
+      body: req,
+    };
+    // TODO: For now, I couldn't figure out how to use the spread operator for temporaryFetchOptions without tsc complaining.
+    // In the future, we should do the same thing as the other client methods.
+    options.credentials = temporaryFetchOptions.credentials;
+
+    const response = await this.client.PATCH(
+      '/v1/saved-searches/{search_id}',
+      options,
+    );
     const error = response.error;
     if (error !== undefined) {
       throw createAPIError(error);

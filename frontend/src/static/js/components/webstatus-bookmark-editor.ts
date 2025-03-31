@@ -19,14 +19,16 @@ import {customElement, property, state, query} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
-import {formatOverviewPageUrl} from '../utils/urls.js';
-import {navigateToUrl} from '../utils/app-router.js';
-import {SavedSearchResponse, type APIClient} from '../api/client.js';
+import {
+  SavedSearchResponse,
+  type APIClient,
+  UpdateSavedSearchInput,
+} from '../api/client.js';
 import {User} from 'firebase/auth';
 import {toast} from '../utils/toast.js';
 import {Task, TaskStatus} from '@lit/task';
 import {type Bookmark} from '../utils/constants.js';
-import {SlDialog} from '@shoelace-style/shoelace';
+import {SlDialog, SlInput, SlTextarea} from '@shoelace-style/shoelace';
 
 @customElement('webstatus-bookmark-editor')
 export class WebstatusBookmarkEditor extends LitElement {
@@ -45,43 +47,46 @@ export class WebstatusBookmarkEditor extends LitElement {
   @property({type: Boolean})
   showDialog = false;
 
-  @state()
-  title = '';
-
-  @state()
-  description = '';
-
-  @state()
-  query = '';
-
   @query('webstatus-typeahead')
-  typeahead!: WebstatusTypeahead;
+  queryField!: WebstatusTypeahead;
+
+  @query('sl-input')
+  nameField!: SlInput;
+
+  @query('sl-textarea')
+  descriptionField!: SlTextarea;
 
   @state()
-  saveTask = new Task(this, {
+  updateTask = new Task(this, {
     autoRun: false,
     args: () =>
       [
         this.apiClient,
-        this.title,
-        this.description,
-        this.query,
+        this.nameField.value,
+        this.descriptionField.value,
+        this.queryField.value,
         this.user,
+        this.bookmark,
       ] as const,
     task: async ([
       apiClient,
-      title,
+      name,
       description,
       query,
       user,
+      bookmark,
     ]): Promise<SavedSearchResponse> => {
-      const newBookmark = {
-        name: title,
-        description: description,
-        query: query,
+      const updatedBookmark: UpdateSavedSearchInput = {
+        id: bookmark?.id!,
       };
+      if (name !== undefined && name !== bookmark?.name)
+        updatedBookmark.name = name;
+      if (description !== undefined && description !== bookmark?.description)
+        updatedBookmark.description = description;
+      if (query !== undefined && query !== bookmark?.query)
+        updatedBookmark.query = query;
       const token = await user!.getIdToken();
-      return apiClient!.createSavedSearch(newBookmark, token);
+      return apiClient!.updateSavedSearch(updatedBookmark, token);
     },
     onComplete: bookmark => {
       this.dispatchEvent(
@@ -122,9 +127,27 @@ export class WebstatusBookmarkEditor extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this.title = this.bookmark?.name || '';
-    this.description = this.bookmark?.description || '';
-    this.query = this.bookmark?.query || '';
+    window.addEventListener('beforeunload', this.handleBeforeUnload);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('beforeunload', this.handleBeforeUnload);
+  }
+
+  handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (this.hasUnsavedChanges()) {
+      event.preventDefault();
+      event.returnValue = '';
+    }
+  };
+
+  hasUnsavedChanges(): boolean {
+    return (
+      this.nameField.value !== this.bookmark?.name ||
+      this.descriptionField.value !== this.bookmark?.description ||
+      this.queryField.value !== this.bookmark?.query
+    );
   }
 
   protected firstUpdated(): void {
@@ -139,18 +162,6 @@ export class WebstatusBookmarkEditor extends LitElement {
     }
   }
 
-  handleTitleChange(event: Event) {
-    this.title = (event.target as HTMLInputElement).value;
-  }
-
-  handleDescriptionChange(event: Event) {
-    this.description = (event.target as HTMLInputElement).value;
-  }
-
-  handleQueryChange(_: Event) {
-    this.query = this.typeahead.value;
-  }
-
   @query('sl-dialog')
   dialog?: SlDialog;
 
@@ -163,12 +174,18 @@ export class WebstatusBookmarkEditor extends LitElement {
   }
 
   handlePreview() {
-    // Update the location object with the new query
-    const newUrl = formatOverviewPageUrl(this.location, {
-      q: this.query,
-      start: 0,
-    });
-    navigateToUrl(newUrl);
+    // // Update the location object with the new query
+    // updatePageUrl('', this.location, {
+    //   q: this.queryField.value,
+    //   start: 0,
+    // });
+    this.dispatchEvent(
+      new CustomEvent('bookmark-preview', {
+        detail: {query: this.queryField.value},
+        bubbles: true,
+        composed: true,
+      }),
+    );
   }
 
   async handleSave() {
@@ -180,7 +197,7 @@ export class WebstatusBookmarkEditor extends LitElement {
       );
       return;
     }
-    void this.saveTask.run();
+    void this.updateTask.run();
   }
 
   async closeModal() {
@@ -198,34 +215,33 @@ export class WebstatusBookmarkEditor extends LitElement {
     return html`
       <sl-dialog label="Bookmark Editor">
         <div class="vbox">
-          <sl-input
-            label="Title"
-            value=${this.title}
-            @sl-input=${this.handleTitleChange}
-          ></sl-input>
-          <sl-textarea
-            label="Description"
-            value=${this.description}
-            @sl-input=${this.handleDescriptionChange}
-          ></sl-textarea>
-          <webstatus-typeahead
-            label="Query"
-            value=${this.query}
-            @sl-change=${this.handleQueryChange}
-          ></webstatus-typeahead>
-          <div class="hbox">
-            <sl-button @click=${this.handlePreview}>Preview</sl-button>
-            <sl-button
-              variant="primary"
-              ?disabled=${this.saveTask.status === TaskStatus.PENDING}
-              @click=${this.handleSave}
-            >
-              ${this.saveTask.status === TaskStatus.PENDING
-                ? 'Saving...'
-                : 'Save'}
-            </sl-button>
-            <sl-button @click=${this.closeModal}>Cancel</sl-button>
-          </div>
+          <form>
+            <sl-input
+              label="Name"
+              value=${this.bookmark?.name ?? ''}
+            ></sl-input>
+            <sl-textarea
+              label="Description"
+              value=${this.bookmark?.description ?? ''}
+            ></sl-textarea>
+            <webstatus-typeahead
+              label="Query"
+              value=${this.bookmark?.query ?? ''}
+            ></webstatus-typeahead>
+            <div class="hbox">
+              <sl-button @click=${this.handlePreview}>Preview</sl-button>
+              <sl-button
+                variant="primary"
+                ?disabled=${this.updateTask.status === TaskStatus.PENDING}
+                @click=${this.handleSave}
+              >
+                ${this.updateTask.status === TaskStatus.PENDING
+                  ? 'Saving...'
+                  : 'Save'}
+              </sl-button>
+              <sl-button @click=${this.closeModal}>Cancel</sl-button>
+            </div>
+          </form>
         </div>
       </sl-dialog>
     `;

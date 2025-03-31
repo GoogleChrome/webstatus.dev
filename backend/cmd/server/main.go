@@ -147,7 +147,7 @@ func main() {
 			//nolint: exhaustruct // No need to use every option of 3rd party struct.
 			cors.Options{
 				AllowedOrigins:   []string{allowedOrigin, "http://*"},
-				AllowedMethods:   []string{"GET", "OPTIONS", "PATCH", "DELETE"},
+				AllowedMethods:   []string{"GET", "OPTIONS", "PATCH", "DELETE", "POST"},
 				AllowedHeaders:   []string{"Authorization"},
 				AllowCredentials: true, // Remove after UbP
 				MaxAge:           300,  // Maximum value not ignored by any of major browsers
