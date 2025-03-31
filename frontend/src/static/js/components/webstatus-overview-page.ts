@@ -92,18 +92,13 @@ export class OverviewPage extends LitElement {
   @state()
   isEditBookmark: boolean = false;
 
-  handleBookmarkSaved = () => {
+  handleSearchSaved = () => {
     this.removeEditBookmarkParam();
   };
 
-  handleBookmarkCanceled = () => {
+  handleSearchCancelled = () => {
     this.removeEditBookmarkParam();
   };
-
-  handleBookmarkPreview(event: CustomEvent) {
-    updatePageUrl('', this.location, {q: event.detail.query});
-    void this.loadingTask.run();
-  }
 
   removeEditBookmarkParam() {
     updatePageUrl('', this.location, {edit_bookmark: undefined});
@@ -242,9 +237,8 @@ export class OverviewPage extends LitElement {
       ${canEditBookmark
         ? html`
             <webstatus-bookmark-editor
-              @bookmark-preview=${this.handleBookmarkPreview}
-              @bookmark-saved=${this.handleBookmarkSaved}
-              @bookmark-canceled=${this.handleBookmarkCanceled}
+              @search-saved=${this.handleSearchSaved}
+              @search-canceled=${this.handleSearchCancelled}
               .location=${this.location}
               .apiClient=${this.apiClient}
               .bookmark=${this.bookmarkToEdit}

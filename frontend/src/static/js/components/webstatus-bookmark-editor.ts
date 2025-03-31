@@ -90,7 +90,7 @@ export class WebstatusBookmarkEditor extends LitElement {
     },
     onComplete: bookmark => {
       this.dispatchEvent(
-        new CustomEvent('bookmark-saved', {
+        new CustomEvent('search-saved', {
           detail: {bookmark},
           bubbles: true,
           composed: true,
@@ -173,21 +173,6 @@ export class WebstatusBookmarkEditor extends LitElement {
     if (this.dialog?.open === true) this.dialog?.hide();
   }
 
-  handlePreview() {
-    // // Update the location object with the new query
-    // updatePageUrl('', this.location, {
-    //   q: this.queryField.value,
-    //   start: 0,
-    // });
-    this.dispatchEvent(
-      new CustomEvent('bookmark-preview', {
-        detail: {query: this.queryField.value},
-        bubbles: true,
-        composed: true,
-      }),
-    );
-  }
-
   async handleSave() {
     if (this.user === undefined || this.user === null) {
       await toast(
@@ -204,7 +189,7 @@ export class WebstatusBookmarkEditor extends LitElement {
     const dialog = this.shadowRoot?.querySelector('sl-dialog');
     if (dialog?.hide) await dialog.hide();
     this.dispatchEvent(
-      new CustomEvent('bookmark-canceled', {
+      new CustomEvent('search-canceled', {
         bubbles: true,
         composed: true,
       }),
@@ -229,7 +214,6 @@ export class WebstatusBookmarkEditor extends LitElement {
               value=${this.bookmark?.query ?? ''}
             ></webstatus-typeahead>
             <div class="hbox">
-              <sl-button @click=${this.handlePreview}>Preview</sl-button>
               <sl-button
                 variant="primary"
                 ?disabled=${this.updateTask.status === TaskStatus.PENDING}
