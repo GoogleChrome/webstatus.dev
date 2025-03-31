@@ -139,6 +139,7 @@ func (s *Server) UpdateSavedSearch(
 	return backend.UpdateSavedSearch400JSONResponse{
 		Code:    http.StatusBadRequest,
 		Message: "TODO",
+		Errors:  nil,
 	}, nil
 }
 

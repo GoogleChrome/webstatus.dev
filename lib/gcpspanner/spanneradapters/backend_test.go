@@ -110,6 +110,11 @@ type mockListUserSavedSearchesConfig struct {
 	returnedError     error
 }
 
+type mockUpdateUserSavedSearchConfig struct {
+	expectedRequest gcpspanner.UpdateSavedSearchRequest
+	returnedError   error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -126,6 +131,7 @@ type mockBackendSpannerClient struct {
 	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
 	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
 	mockListUserSavedSearchesCfg         *mockListUserSavedSearchesConfig
+	mockUpdateUserSavedSearchCfg         *mockUpdateUserSavedSearchConfig
 	pageToken                            *string
 	err                                  error
 }
@@ -363,6 +369,16 @@ func (c mockBackendSpannerClient) DeleteUserSavedSearch(
 	}
 
 	return c.mockDeleteUserSavedSearchCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) UpdateUserSavedSearch(
+	_ context.Context, req gcpspanner.UpdateSavedSearchRequest) error {
+	if !reflect.DeepEqual(req, c.mockUpdateUserSavedSearchCfg.expectedRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockUpdateUserSavedSearchCfg.returnedError
+
 }
 
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
@@ -2093,6 +2109,366 @@ func TestListUserSavedSearches(t *testing.T) {
 
 			if !reflect.DeepEqual(page, tc.expectedPage) {
 				t.Error("unexpected page")
+			}
+		})
+	}
+}
+
+func TestUpdateUserSavedSearch(t *testing.T) {
+	testSavedSearchID := "test-id"
+	testUserID := "test-user"
+
+	testCases := []struct {
+		name          string
+		updateRequest *backend.SavedSearchUpdateRequest
+		mockUpdateCfg *mockUpdateUserSavedSearchConfig
+		mockGetCfg    *mockGetUserSavedSearchConfig
+		expectedResp  *backend.SavedSearchResponse
+		expectedError error
+	}{
+		{
+			name: "success",
+			updateRequest: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test search name"),
+				Description: valuePtr("test desc"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			mockUpdateCfg: &mockUpdateUserSavedSearchConfig{
+				expectedRequest: gcpspanner.UpdateSavedSearchRequest{
+					ID:       "test-id",
+					AuthorID: "test-user",
+					Name: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test search name",
+					},
+					Description: gcpspanner.OptionallySet[*string]{
+						IsSet: true,
+						Value: valuePtr("test desc"),
+					},
+					Query: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test query",
+					},
+				},
+				returnedError: nil,
+			},
+			mockGetCfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: valuePtr("test-user"),
+				expectedSavedSearchID:       "test-id",
+				result: &gcpspanner.UserSavedSearch{
+					SavedSearch: gcpspanner.SavedSearch{
+						ID:          "test-id",
+						Name:        "test search name",
+						Description: valuePtr("test desc"),
+						Query:       "test query",
+						Scope:       gcpspanner.UserPublicScope,
+						AuthorID:    "test-user",
+						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					},
+					Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
+					IsBookmarked: valuePtr(true),
+				},
+				returnedError: nil,
+			},
+			expectedResp: &backend.SavedSearchResponse{
+				Id:          "test-id",
+				CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Name:        "test search name",
+				Description: valuePtr("test desc"),
+				Query:       "test query",
+				Permissions: &backend.UserSavedSearchPermissions{
+					Role: valuePtr(backend.SavedSearchOwner),
+				},
+				BookmarkStatus: &backend.UserSavedSearchBookmark{
+					Status: backend.BookmarkActive,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "get user saved search return no results",
+			updateRequest: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test search name"),
+				Description: valuePtr("test desc"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			mockUpdateCfg: &mockUpdateUserSavedSearchConfig{
+				expectedRequest: gcpspanner.UpdateSavedSearchRequest{
+					ID:       "test-id",
+					AuthorID: "test-user",
+					Name: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test search name",
+					},
+					Description: gcpspanner.OptionallySet[*string]{
+						IsSet: true,
+						Value: valuePtr("test desc"),
+					},
+					Query: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test query",
+					},
+				},
+				returnedError: nil,
+			},
+			mockGetCfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: valuePtr("test-user"),
+				expectedSavedSearchID:       "test-id",
+				result:                      nil,
+				returnedError:               gcpspanner.ErrQueryReturnedNoResults,
+			},
+			expectedResp:  nil,
+			expectedError: backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name: "get user saved search returns other error",
+			updateRequest: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test search name"),
+				Description: valuePtr("test desc"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			mockUpdateCfg: &mockUpdateUserSavedSearchConfig{
+				expectedRequest: gcpspanner.UpdateSavedSearchRequest{
+					ID:       "test-id",
+					AuthorID: "test-user",
+					Name: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test search name",
+					},
+					Description: gcpspanner.OptionallySet[*string]{
+						IsSet: true,
+						Value: valuePtr("test desc"),
+					},
+					Query: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test query",
+					},
+				},
+				returnedError: nil,
+			},
+			mockGetCfg: &mockGetUserSavedSearchConfig{
+				expectedAuthenticatedUserID: valuePtr("test-user"),
+				expectedSavedSearchID:       "test-id",
+				result:                      nil,
+				returnedError:               errTest,
+			},
+			expectedResp:  nil,
+			expectedError: errTest,
+		},
+		{
+			name: "update user saved search return no results",
+			updateRequest: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test search name"),
+				Description: valuePtr("test desc"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			mockUpdateCfg: &mockUpdateUserSavedSearchConfig{
+				expectedRequest: gcpspanner.UpdateSavedSearchRequest{
+					ID:       "test-id",
+					AuthorID: "test-user",
+					Name: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test search name",
+					},
+					Description: gcpspanner.OptionallySet[*string]{
+						IsSet: true,
+						Value: valuePtr("test desc"),
+					},
+					Query: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test query",
+					},
+				},
+				returnedError: gcpspanner.ErrQueryReturnedNoResults,
+			},
+			mockGetCfg:    nil,
+			expectedResp:  nil,
+			expectedError: backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name: "update user saved search return no required role error",
+			updateRequest: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test search name"),
+				Description: valuePtr("test desc"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			mockUpdateCfg: &mockUpdateUserSavedSearchConfig{
+				expectedRequest: gcpspanner.UpdateSavedSearchRequest{
+					ID:       "test-id",
+					AuthorID: "test-user",
+					Name: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test search name",
+					},
+					Description: gcpspanner.OptionallySet[*string]{
+						IsSet: true,
+						Value: valuePtr("test desc"),
+					},
+					Query: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test query",
+					},
+				},
+				returnedError: gcpspanner.ErrMissingRequiredRole,
+			},
+			mockGetCfg:    nil,
+			expectedResp:  nil,
+			expectedError: backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "update user saved search return other error",
+			updateRequest: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test search name"),
+				Description: valuePtr("test desc"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			mockUpdateCfg: &mockUpdateUserSavedSearchConfig{
+				expectedRequest: gcpspanner.UpdateSavedSearchRequest{
+					ID:       "test-id",
+					AuthorID: "test-user",
+					Name: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test search name",
+					},
+					Description: gcpspanner.OptionallySet[*string]{
+						IsSet: true,
+						Value: valuePtr("test desc"),
+					},
+					Query: gcpspanner.OptionallySet[string]{
+						IsSet: true,
+						Value: "test query",
+					},
+				},
+				returnedError: errTest,
+			},
+			mockGetCfg:    nil,
+			expectedResp:  nil,
+			expectedError: errTest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                            t,
+				mockGetUserSavedSearchCfg:    tc.mockGetCfg,
+				mockUpdateUserSavedSearchCfg: tc.mockUpdateCfg,
+			}
+
+			backend := NewBackend(mock)
+			resp, err := backend.UpdateUserSavedSearch(context.Background(), testSavedSearchID, testUserID, tc.updateRequest)
+			if !errors.Is(err, tc.expectedError) {
+				t.Error("unexpected error")
+			}
+
+			if !reflect.DeepEqual(resp, tc.expectedResp) {
+				t.Error("unexpected response")
+			}
+		})
+	}
+}
+
+func TestBuildUpdateSavedSearchRequestForGCP(t *testing.T) {
+	testSavedSearchID := "test-id"
+	testUserID := "test-user"
+	testCases := []struct {
+		name string
+		req  *backend.SavedSearchUpdateRequest
+		want gcpspanner.UpdateSavedSearchRequest
+	}{
+		{
+			name: "empty mask gives no update",
+			req: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test name"),
+				Description: valuePtr("test description"),
+				Query:       valuePtr("test query"),
+				UpdateMask:  []backend.SavedSearchUpdateRequestUpdateMask{},
+			},
+			want: gcpspanner.UpdateSavedSearchRequest{
+				ID:       "test-id",
+				AuthorID: "test-user",
+				Name: gcpspanner.OptionallySet[string]{
+					IsSet: false,
+					Value: "",
+				},
+				Description: gcpspanner.OptionallySet[*string]{
+					IsSet: false,
+					Value: nil,
+				},
+				Query: gcpspanner.OptionallySet[string]{
+					IsSet: false,
+					Value: "",
+				},
+			},
+		},
+		{
+			name: "update mask contains all fields updates all fields",
+			req: &backend.SavedSearchUpdateRequest{
+				Name:        valuePtr("test name"),
+				Description: valuePtr("test description"),
+				Query:       valuePtr("test query"),
+				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
+					backend.SavedSearchUpdateRequestMaskName,
+					backend.SavedSearchUpdateRequestMaskDescription,
+					backend.SavedSearchUpdateRequestMaskQuery,
+				},
+			},
+			want: gcpspanner.UpdateSavedSearchRequest{
+				ID:       "test-id",
+				AuthorID: "test-user",
+				Name: gcpspanner.OptionallySet[string]{
+					IsSet: true,
+					Value: "test name",
+				},
+				Description: gcpspanner.OptionallySet[*string]{
+					IsSet: true,
+					Value: valuePtr("test description"),
+				},
+				Query: gcpspanner.OptionallySet[string]{
+					IsSet: true,
+					Value: "test query",
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			req := buildUpdateSavedSearchRequestForGCP(testSavedSearchID, testUserID, tc.req)
+			if !reflect.DeepEqual(req, tc.want) {
+				t.Errorf("unexpected request %v", req)
 			}
 		})
 	}

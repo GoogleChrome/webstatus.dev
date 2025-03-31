@@ -20,6 +20,7 @@ import (
 	"errors"
 	"log/slog"
 	"math/big"
+	"slices"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -123,6 +124,7 @@ type BackendSpannerClient interface {
 		userID string,
 		pageSize int,
 		pageToken *string) (*gcpspanner.UserSavedSearchesPage, error)
+	UpdateUserSavedSearch(ctx context.Context, req gcpspanner.UpdateSavedSearchRequest) error
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -444,16 +446,7 @@ func (s *Backend) CreateUserSavedSearch(ctx context.Context, userID string,
 		return nil, err
 	}
 
-	return &backend.SavedSearchResponse{
-		Id:             *output,
-		CreatedAt:      createdSavedSearch.CreatedAt,
-		UpdatedAt:      createdSavedSearch.UpdatedAt,
-		Name:           createdSavedSearch.Name,
-		Query:          createdSavedSearch.Query,
-		Description:    createdSavedSearch.Description,
-		BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(createdSavedSearch.IsBookmarked),
-		Permissions:    convertSavedSearchRoleFromGCP(createdSavedSearch.Role),
-	}, nil
+	return convertUserSavedSearchToSavedSearchResponse(createdSavedSearch), nil
 }
 
 func (s *Backend) ListUserSavedSearches(
@@ -480,16 +473,8 @@ func (s *Backend) ListUserSavedSearches(
 	if len(page.Searches) > 0 {
 		data := make([]backend.SavedSearchResponse, 0, len(page.Searches))
 		for _, savedSearch := range page.Searches {
-			data = append(data, backend.SavedSearchResponse{
-				Id:             savedSearch.ID,
-				CreatedAt:      savedSearch.CreatedAt,
-				UpdatedAt:      savedSearch.UpdatedAt,
-				Name:           savedSearch.Name,
-				Query:          savedSearch.Query,
-				Description:    savedSearch.Description,
-				BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(savedSearch.IsBookmarked),
-				Permissions:    convertSavedSearchRoleFromGCP(savedSearch.Role),
-			})
+			resp := convertUserSavedSearchToSavedSearchResponse(&savedSearch)
+			data = append(data, *resp)
 		}
 		results = &data
 	}
@@ -560,6 +545,79 @@ func (s *Backend) GetSavedSearch(ctx context.Context, savedSearchID string, user
 		return nil, err
 	}
 
+	return convertUserSavedSearchToSavedSearchResponse(savedSearch), nil
+}
+
+func buildUpdateSavedSearchRequestForGCP(savedSearchID string,
+	userID string,
+	updateRequest *backend.SavedSearchUpdateRequest) gcpspanner.UpdateSavedSearchRequest {
+	req := gcpspanner.UpdateSavedSearchRequest{
+		ID:       savedSearchID,
+		AuthorID: userID,
+		Query: gcpspanner.OptionallySet[string]{
+			IsSet: false,
+			Value: "",
+		},
+		Name: gcpspanner.OptionallySet[string]{
+			IsSet: false,
+			Value: "",
+		},
+		Description: gcpspanner.OptionallySet[*string]{
+			IsSet: false,
+			Value: nil,
+		},
+	}
+	if slices.Contains(updateRequest.UpdateMask, backend.SavedSearchUpdateRequestMaskName) {
+		req.Name.IsSet = true
+		req.Name.Value = *updateRequest.Name
+	}
+	if slices.Contains(updateRequest.UpdateMask, backend.SavedSearchUpdateRequestMaskQuery) {
+		req.Query.IsSet = true
+		req.Query.Value = *updateRequest.Query
+	}
+
+	if slices.Contains(updateRequest.UpdateMask, backend.SavedSearchUpdateRequestMaskDescription) {
+		req.Description.IsSet = true
+		req.Description.Value = updateRequest.Description
+	}
+
+	return req
+
+}
+func (s *Backend) UpdateUserSavedSearch(
+	ctx context.Context,
+	savedSearchID string,
+	userID string,
+	updateRequest *backend.SavedSearchUpdateRequest,
+) (*backend.SavedSearchResponse, error) {
+	req := buildUpdateSavedSearchRequestForGCP(savedSearchID, userID, updateRequest)
+
+	err := s.client.UpdateUserSavedSearch(ctx, req)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	savedSearch, err := s.client.GetUserSavedSearch(ctx, savedSearchID, &userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			// Highly unlikely that another user would delete it in this small time frame but rather be thorough
+			// with the possible errors from GetUserSavedSearch.
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return convertUserSavedSearchToSavedSearchResponse(savedSearch), nil
+}
+
+func convertUserSavedSearchToSavedSearchResponse(savedSearch *gcpspanner.UserSavedSearch) *backend.SavedSearchResponse {
 	return &backend.SavedSearchResponse{
 		Id:             savedSearch.ID,
 		CreatedAt:      savedSearch.CreatedAt,
@@ -569,7 +627,7 @@ func (s *Backend) GetSavedSearch(ctx context.Context, savedSearchID string, user
 		Description:    savedSearch.Description,
 		BookmarkStatus: convertSavedSearchIsBookmarkedFromGCP(savedSearch.IsBookmarked),
 		Permissions:    convertSavedSearchRoleFromGCP(savedSearch.Role),
-	}, nil
+	}
 }
 
 func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gcpspanner.BaselineStatus {
