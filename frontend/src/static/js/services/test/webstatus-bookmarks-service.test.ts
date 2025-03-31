@@ -21,6 +21,8 @@ import {
   SavedSearchInternalError,
   SavedSearchNotFoundError,
   SavedSearchUnknownError,
+  UserSavedSearchesInternalError,
+  UserSavedSearchesUnknownError,
   appBookmarkInfoContext,
 } from '../../contexts/app-bookmark-info-context.js';
 import {WebstatusBookmarksService} from '../webstatus-bookmarks-service.js';
@@ -33,6 +35,7 @@ import {TaskStatus} from '@lit/task';
 import sinon from 'sinon';
 import {NotFoundError, ApiError} from '../../api/errors.js';
 import {Toast} from '../../utils/toast.js';
+import {User} from '../../contexts/firebase-user-context.js';
 
 @customElement('test-bookmark-consumer')
 class TestBookmarkConsumer extends LitElement {
@@ -416,6 +419,104 @@ describe('webstatus-bookmarks-service', () => {
     });
   });
 
+  describe('loadingUserSavedBookmarksTask', () => {
+    let apiClientStub: SinonStubbedInstance<APIClient>;
+    beforeEach(async () => {
+      apiClientStub = sinon.stub(new APIClient(''));
+    });
+
+    it('should handle ApiError', async () => {
+      apiClientStub.getAllUserSavedSearches.rejects(
+        new ApiError('Something went wrong', 500),
+      );
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .user=${{
+            getIdToken: async () => 'test-token',
+          } as User}
+        ></webstatus-bookmarks-service>`,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
+      ).to.eq(TaskStatus.ERROR);
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.error,
+      ).to.be.instanceOf(UserSavedSearchesInternalError);
+      expect(toastStub.toast).to.have.been.calledOnceWithExactly(
+        'Internal error fetching list of bookmarked saved searches for user: Something went wrong',
+        'danger',
+        'exclamation-triangle',
+      );
+    });
+
+    it('should handle unknown errors', async () => {
+      apiClientStub.getAllUserSavedSearches.rejects(
+        new Error('User Saved Searches Unknown Test Error'),
+      );
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .user=${{
+            getIdToken: async () => 'test-token',
+          } as User}
+        ></webstatus-bookmarks-service>`,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
+      ).to.eq(TaskStatus.ERROR);
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.error,
+      ).to.be.instanceOf(UserSavedSearchesUnknownError);
+      expect(toastStub.toast).to.have.been.calledOnceWithExactly(
+        'Unknown error fetching list of bookmarked saved searches for user. Check console for details.',
+        'danger',
+        'exclamation-triangle',
+      );
+    });
+
+    it('should complete successfully with bookmark data', async () => {
+      const mockBookmarks = [
+        {
+          id: '123',
+          query: 'test',
+          name: 'Test Bookmark',
+          created_at: '2023-08-13',
+          updated_at: '2023-08-13',
+        },
+      ];
+      apiClientStub.getAllUserSavedSearches.resolves(mockBookmarks);
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .user=${{
+            getIdToken: async () => 'test-token',
+          } as User}
+        ></webstatus-bookmarks-service>`,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
+      ).to.equal(TaskStatus.COMPLETE);
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.data,
+      ).to.deep.equal(mockBookmarks);
+    });
+
+    it('should handle null user', async () => {
+      const service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .apiClient=${apiClientStub}
+          .user=${null}
+        ></webstatus-bookmarks-service>`,
+      );
+      expect(
+        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
+      ).to.eq(TaskStatus.COMPLETE);
+      expect(service.appBookmarkInfo.userSavedSearchBookmarksTask?.data).to.be
+        .undefined;
+    });
+  });
+
   describe('findCurrentBookmarkByQuery', () => {
     it('should return undefined for empty bookmarks', () => {
       const service = new WebstatusBookmarksService();
@@ -454,7 +555,15 @@ describe('webstatus-bookmarks-service', () => {
     service._currentGlobalBookmark = {query: 'global', name: 'Global'};
     service._userSavedBookmarkByIDTaskTracker = {
       status: TaskStatus.COMPLETE,
-      data: {query: 'saved', name: 'Saved'},
+      data: {id: 'uuid', query: 'saved', name: 'Saved'},
+      error: undefined,
+    };
+    service._userSavedBookmarksTaskTracker = {
+      status: TaskStatus.COMPLETE,
+      data: [
+        {id: 'uuid1', query: 'saved', name: 'Saved'},
+        {id: 'uuid2', query: 'saved', name: 'Saved'},
+      ],
       error: undefined,
     };
     service._currentLocation = {
@@ -468,10 +577,18 @@ describe('webstatus-bookmarks-service', () => {
       currentGlobalBookmark: {query: 'global', name: 'Global'},
       userSavedSearchBookmarkTask: {
         status: TaskStatus.COMPLETE,
-        data: {query: 'saved', name: 'Saved'},
+        data: {id: 'uuid', query: 'saved', name: 'Saved'},
         error: undefined,
       },
       currentLocation: {search: '?q=test', href: '?q=test', pathname: ''},
+      userSavedSearchBookmarksTask: {
+        status: TaskStatus.COMPLETE,
+        data: [
+          {id: 'uuid1', query: 'saved', name: 'Saved'},
+          {id: 'uuid2', query: 'saved', name: 'Saved'},
+        ],
+        error: undefined,
+      },
     });
   });
 

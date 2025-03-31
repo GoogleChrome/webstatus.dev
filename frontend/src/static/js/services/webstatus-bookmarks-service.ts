@@ -23,6 +23,8 @@ import {
   SavedSearchInternalError,
   SavedSearchNotFoundError,
   SavedSearchUnknownError,
+  UserSavedSearchesInternalError,
+  UserSavedSearchesUnknownError,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
 import {Bookmark, DEFAULT_BOOKMARKS} from '../utils/constants.js';
@@ -55,6 +57,11 @@ export class WebstatusBookmarksService extends ServiceElement {
       error: undefined,
       data: undefined,
     },
+    userSavedSearchBookmarksTask: {
+      status: TaskStatus.INITIAL,
+      error: undefined,
+      data: undefined,
+    },
   };
 
   @consume({context: apiClientContext, subscribe: true})
@@ -70,6 +77,9 @@ export class WebstatusBookmarksService extends ServiceElement {
   > & {query?: string} = undefined;
   _currentSearchID: string = '';
   _currentSearchQuery: string = '';
+
+  _userSavedBookmarksTaskTracker?: TaskTracker<Bookmark[], SavedSearchError> =
+    undefined;
 
   loadingUserSavedBookmarkByIDTask = new Task(this, {
     autoRun: false,
@@ -175,6 +185,53 @@ export class WebstatusBookmarksService extends ServiceElement {
     },
   });
 
+  loadingUserSavedBookmarksTask = new Task(this, {
+    autoRun: false,
+    args: () => [this.apiClient, this.user] as const,
+    task: async ([apiClient, user]) => {
+      if (user === null) {
+        return undefined;
+      }
+      const token = await user!.getIdToken();
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.PENDING,
+        data: undefined,
+        error: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+
+      return await apiClient!.getAllUserSavedSearches(token);
+    },
+    onComplete: data => {
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: data,
+        error: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+    },
+    onError: async (error: unknown) => {
+      let err: SavedSearchError;
+      if (error instanceof ApiError) {
+        err = new UserSavedSearchesInternalError(error.message);
+      } else {
+        err = new UserSavedSearchesUnknownError(error);
+      }
+
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.ERROR,
+        error: err,
+        data: undefined,
+      };
+      this.refreshAppBookmarkInfo();
+
+      // TODO: Reconsider showing the toast in one of the UI components once we have one central
+      // UI component that reads the bookmark info instead of the current multiple locations.
+      // This will keep the service as purely logical and let the UI component handle the error.
+      await new Toast().toast(err.message, 'danger', 'exclamation-triangle');
+    },
+  });
+
   _globalBookmarks: Bookmark[];
   _currentGlobalBookmark?: Bookmark;
   // A snapshot of the current location that relates to the bookmark
@@ -206,6 +263,14 @@ export class WebstatusBookmarksService extends ServiceElement {
         this._currentSearchID = incomingSearchID;
         void this.loadingUserSavedBookmarkByIDTask.run();
       }
+    }
+
+    if (
+      (changedProperties.has('apiClient') || changedProperties.has('user')) &&
+      this.apiClient !== undefined &&
+      this.user !== undefined
+    ) {
+      void this.loadingUserSavedBookmarksTask.run();
     }
   }
 
@@ -261,6 +326,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       currentGlobalBookmark: this._currentGlobalBookmark,
       userSavedSearchBookmarkTask: this._userSavedBookmarkByIDTaskTracker,
       currentLocation: this._currentLocation,
+      userSavedSearchBookmarksTask: this._userSavedBookmarksTaskTracker,
     };
   }
 }
