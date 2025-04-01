@@ -51,13 +51,13 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string,
 	) ([]gcpspanner.WPTRunAggregationMetricWithTime, *string, error)
-	ListChromiumDailyUsageStatsForFeatureID(
+	ListChromeDailyUsageStatsForFeatureID(
 		ctx context.Context,
 		featureID string,
 		startAt, endAt time.Time,
 		pageSize int,
 		pageToken *string,
-	) ([]gcpspanner.ChromiumDailyUsageStatWithDate, *string, error)
+	) ([]gcpspanner.ChromeDailyUsageStatWithDate, *string, error)
 	FeaturesSearch(
 		ctx context.Context,
 		pageToken *string,
@@ -260,14 +260,14 @@ func (s *Backend) ListMetricsForFeatureIDBrowserAndChannel(
 	return backendMetrics, nextPageToken, nil
 }
 
-func (s *Backend) ListChromiumDailyUsageStats(
+func (s *Backend) ListChromeDailyUsageStats(
 	ctx context.Context,
 	featureID string,
 	startAt, endAt time.Time,
 	pageSize int,
 	pageToken *string,
-) ([]backend.ChromiumUsageStat, *string, error) {
-	metrics, nextPageToken, err := s.client.ListChromiumDailyUsageStatsForFeatureID(
+) ([]backend.ChromeUsageStat, *string, error) {
+	metrics, nextPageToken, err := s.client.ListChromeDailyUsageStatsForFeatureID(
 		ctx,
 		featureID,
 		startAt,
@@ -284,13 +284,13 @@ func (s *Backend) ListChromiumDailyUsageStats(
 	}
 
 	// Convert the feature metric type to backend metrics
-	backendStats := make([]backend.ChromiumUsageStat, 0, len(metrics))
+	backendStats := make([]backend.ChromeUsageStat, 0, len(metrics))
 	for _, stat := range metrics {
 		var usage float64
 		if stat.Usage != nil {
 			usage, _ = stat.Usage.Float64()
 		}
-		backendStats = append(backendStats, backend.ChromiumUsageStat{
+		backendStats = append(backendStats, backend.ChromeUsageStat{
 			Timestamp: stat.Date.In(time.UTC),
 			Usage:     &usage,
 		})
@@ -624,12 +624,12 @@ func convertBaselineSpannerToBackend(strStatus *string,
 	return ret
 }
 
-func convertChromiumUsageToBackend(chromiumUsage *big.Rat) *backend.ChromiumUsageInfo {
-	ret := &backend.ChromiumUsageInfo{
+func convertChromeUsageToBackend(chromeUsage *big.Rat) *backend.ChromeUsageInfo {
+	ret := &backend.ChromeUsageInfo{
 		Daily: nil,
 	}
-	if chromiumUsage != nil {
-		usage, _ := chromiumUsage.Float64()
+	if chromeUsage != nil {
+		usage, _ := chromeUsage.Float64()
 		ret.Daily = &usage
 	}
 
@@ -705,7 +705,7 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		Wpt:  nil,
 		Spec: nil,
 		Usage: &backend.BrowserUsage{
-			Chromium: convertChromiumUsageToBackend(featureResult.ChromiumUsage),
+			Chrome: convertChromeUsageToBackend(featureResult.ChromiumUsage),
 		},
 		BrowserImplementations: nil,
 	}
@@ -864,8 +864,12 @@ func getFeatureSearchSortOrder(
 	case backend.StableSafariDesc:
 		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), true)
 	case backend.ChromeUsageAsc:
+		// TODO: If we change the table in GCP from DailyChromiumHistogramMetrics, we should change the sort name
+
 		return gcpspanner.NewChromiumUsageSort(true)
 	case backend.ChromeUsageDesc:
+		// TODO: If we change the table in GCP from DailyChromiumHistogramMetrics, we should change the sort name
+
 		return gcpspanner.NewChromiumUsageSort(false)
 	case backend.AvailabilityChromeAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Chrome))

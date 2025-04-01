@@ -23,18 +23,18 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// ListChromiumDailyUsageStats implements backend.StrictServerInterface.
+// ListChromeDailyUsageStats implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
-func (s *Server) ListChromiumDailyUsageStats(
+func (s *Server) ListChromeDailyUsageStats(
 	ctx context.Context,
-	request backend.ListChromiumDailyUsageStatsRequestObject,
-) (backend.ListChromiumDailyUsageStatsResponseObject, error) {
-	var cachedResponse backend.ListChromiumDailyUsageStats200JSONResponse
-	found := s.operationResponseCaches.listChromiumDailyUsageStatsCache.Lookup(ctx, request, &cachedResponse)
+	request backend.ListChromeDailyUsageStatsRequestObject,
+) (backend.ListChromeDailyUsageStatsResponseObject, error) {
+	var cachedResponse backend.ListChromeDailyUsageStats200JSONResponse
+	found := s.operationResponseCaches.listChromeDailyUsageStatsCache.Lookup(ctx, request, &cachedResponse)
 	if found {
 		return cachedResponse, nil
 	}
-	stats, nextPageToken, err := s.wptMetricsStorer.ListChromiumDailyUsageStats(
+	stats, nextPageToken, err := s.wptMetricsStorer.ListChromeDailyUsageStats(
 		ctx,
 		request.FeatureId,
 		request.Params.StartAt.Time,
@@ -46,7 +46,7 @@ func (s *Server) ListChromiumDailyUsageStats(
 		if errors.Is(err, backendtypes.ErrInvalidPageToken) {
 			slog.WarnContext(ctx, "invalid page token", "token", request.Params.PageToken, "error", err)
 
-			return backend.ListChromiumDailyUsageStats400JSONResponse{
+			return backend.ListChromeDailyUsageStats400JSONResponse{
 				Code:    400,
 				Message: "invalid page token",
 			}, nil
@@ -54,19 +54,19 @@ func (s *Server) ListChromiumDailyUsageStats(
 
 		slog.ErrorContext(ctx, "unable to get feature metrics", "error", err)
 
-		return backend.ListChromiumDailyUsageStats500JSONResponse{
+		return backend.ListChromeDailyUsageStats500JSONResponse{
 			Code:    500,
 			Message: "unable to get feature metrics",
 		}, nil
 	}
 
-	resp := backend.ListChromiumDailyUsageStats200JSONResponse{
+	resp := backend.ListChromeDailyUsageStats200JSONResponse{
 		Data: stats,
 		Metadata: &backend.PageMetadata{
 			NextPageToken: nextPageToken,
 		},
 	}
-	s.operationResponseCaches.listChromiumDailyUsageStatsCache.AttemptCache(ctx, request, &resp)
+	s.operationResponseCaches.listChromeDailyUsageStatsCache.AttemptCache(ctx, request, &resp)
 
 	return resp, nil
 }

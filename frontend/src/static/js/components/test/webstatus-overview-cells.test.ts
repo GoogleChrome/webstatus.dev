@@ -38,7 +38,7 @@ import {
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
 
-describe('renderChromiumUsage', () => {
+describe('renderChromeUsage', () => {
   let container: HTMLElement;
   let feature: components['schemas']['Feature'];
   beforeEach(() => {
@@ -57,7 +57,7 @@ describe('renderChromiumUsage', () => {
   });
   it('does render usage as a percentage', async () => {
     // 10.3% Chrome usage.
-    feature.usage = {chromium: {daily: 0.1034}};
+    feature.usage = {chrome: {daily: 0.1034}};
     const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
@@ -67,7 +67,7 @@ describe('renderChromiumUsage', () => {
   });
   it('does render usage as a percentage, and rounds correctly', async () => {
     // Should round to 10.4% Chrome usage.
-    feature.usage = {chromium: {daily: 0.1036}};
+    feature.usage = {chrome: {daily: 0.1036}};
     const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
@@ -77,7 +77,7 @@ describe('renderChromiumUsage', () => {
   });
   it('does render 0 usage amounts as "0.0%"', async () => {
     // Explicitly 0 Chrome usage.
-    feature.usage = {chromium: {daily: 0.0}};
+    feature.usage = {chrome: {daily: 0.0}};
     const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
@@ -87,7 +87,7 @@ describe('renderChromiumUsage', () => {
   });
   it('does render 100% usage amounts as "100%"', async () => {
     // Explicitly 100% Chrome usage.
-    feature.usage = {chromium: {daily: 1.0}};
+    feature.usage = {chrome: {daily: 1.0}};
     const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
@@ -97,7 +97,7 @@ describe('renderChromiumUsage', () => {
   });
   it('does render very small usage amounts as "<0.1%"', async () => {
     // 0.0003%.
-    feature.usage = {chromium: {daily: 0.000003}};
+    feature.usage = {chrome: {daily: 0.000003}};
     const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);

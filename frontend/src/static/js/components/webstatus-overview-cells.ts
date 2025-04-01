@@ -166,21 +166,18 @@ export const renderChromeUsage: CellRenderer = (
   _options,
 ) => {
   let usage = 'N/A';
-  if (feature.usage?.chromium?.daily && feature.usage.chromium.daily > 0) {
+  if (feature.usage?.chrome?.daily && feature.usage.chrome.daily > 0) {
     // If the feature has some usage, but the usage is less than 0.1%,
     // display it as "<0.1%".
-    if (feature.usage.chromium.daily < 0.001) {
+    if (feature.usage.chrome.daily < 0.001) {
       usage = '<0.1%';
     } else {
       // Format to display percentage with single decimal e.g. 0.8371 -> 83.7%.
-      usage = `${(feature.usage.chromium.daily * 100).toFixed(1)}%`;
+      usage = `${(feature.usage.chrome.daily * 100).toFixed(1)}%`;
     }
-  } else if (feature.usage?.chromium?.daily === 0) {
+  } else if (feature.usage?.chrome?.daily === 0) {
     usage = '0.0%';
-  } else if (
-    feature.usage?.chromium?.daily &&
-    feature.usage.chromium.daily >= 1
-  ) {
+  } else if (feature.usage?.chrome?.daily && feature.usage.chrome.daily >= 1) {
     usage = '100%';
   }
   return html`<span id="chrome-usage">${usage}</span>`;

@@ -114,7 +114,7 @@ type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
 	featureData                          []gcpspanner.WPTRunFeatureMetricWithTime
-	chromiumDailyUsageData               []gcpspanner.ChromiumDailyUsageStatWithDate
+	chromeDailyUsageData                 []gcpspanner.ChromeDailyUsageStatWithDate
 	mockFeaturesSearchCfg                mockFeaturesSearchConfig
 	mockGetFeatureCfg                    mockGetFeatureConfig
 	mockGetIDByFeaturesIDCfg             mockGetIDByFeaturesIDConfig
@@ -220,14 +220,14 @@ func (c mockBackendSpannerClient) ListMetricsForFeatureIDBrowserAndChannel(
 	return c.featureData, c.pageToken, c.err
 }
 
-func (c mockBackendSpannerClient) ListChromiumDailyUsageStatsForFeatureID(
+func (c mockBackendSpannerClient) ListChromeDailyUsageStatsForFeatureID(
 	ctx context.Context,
 	featureID string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
-) ([]gcpspanner.ChromiumDailyUsageStatWithDate, *string, error) {
+) ([]gcpspanner.ChromeDailyUsageStatWithDate, *string, error) {
 	if ctx != context.Background() ||
 		featureID != "feature" ||
 		!startAt.Equal(testStart) ||
@@ -237,7 +237,7 @@ func (c mockBackendSpannerClient) ListChromiumDailyUsageStatsForFeatureID(
 		c.t.Error("unexpected input to mock")
 	}
 
-	return c.chromiumDailyUsageData, c.pageToken, c.err
+	return c.chromeDailyUsageData, c.pageToken, c.err
 }
 
 func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(
@@ -1187,7 +1187,7 @@ func TestFeaturesSearch(t *testing.T) {
 						Name:      "feature 1",
 						Spec:      nil,
 						Usage: &backend.BrowserUsage{
-							Chromium: &backend.ChromiumUsageInfo{
+							Chrome: &backend.ChromeUsageInfo{
 								Daily: valuePtr[float64](0.91),
 							},
 						},
@@ -1237,7 +1237,7 @@ func TestFeaturesSearch(t *testing.T) {
 							},
 						},
 						Usage: &backend.BrowserUsage{
-							Chromium: &backend.ChromiumUsageInfo{
+							Chrome: &backend.ChromeUsageInfo{
 								Daily: valuePtr[float64](0.1),
 							},
 						},
@@ -1339,7 +1339,7 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 		return false
 	}
 
-	if !compareChromiumUsage(*f1.Usage.Chromium, *f2.Usage.Chromium) {
+	if !compareChromeUsage(*f1.Usage.Chrome, *f2.Usage.Chrome) {
 		return false
 	}
 
@@ -1347,7 +1347,7 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 	return true
 }
 
-func compareChromiumUsage(c1, c2 backend.ChromiumUsageInfo) bool {
+func compareChromeUsage(c1, c2 backend.ChromeUsageInfo) bool {
 	return reflect.DeepEqual(c1.Daily, c2.Daily)
 }
 
@@ -1489,7 +1489,7 @@ func TestGetFeature(t *testing.T) {
 					},
 				},
 				Usage: &backend.BrowserUsage{
-					Chromium: &backend.ChromiumUsageInfo{
+					Chrome: &backend.ChromeUsageInfo{
 						Daily: nil,
 					},
 				},
@@ -2271,7 +2271,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				Name:      "feature 1",
 				Spec:      nil,
 				Usage: &backend.BrowserUsage{
-					Chromium: &backend.ChromiumUsageInfo{
+					Chrome: &backend.ChromeUsageInfo{
 						Daily: valuePtr[float64](0.08),
 					},
 				},
