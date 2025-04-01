@@ -74,8 +74,8 @@ paths:
               - experimental_edge_desc
               - experimental_firefox_asc
               - experimental_firefox_desc
-              - chromium_usage_asc
-              - chromium_usage_desc
+              - chrome_usage_asc
+              - chrome_usage_desc
               # availability_{browser}_{direction}
               - availability_chrome_asc
               - availability_chrome_desc
@@ -254,7 +254,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/features/{feature_id}/stats/usage/chromium/daily_stats:
+  /v1/features/{feature_id}/stats/usage/chrome/daily_stats:
     parameters:
       - name: feature_id
         in: path
@@ -263,8 +263,8 @@ paths:
         schema:
           type: string
     get:
-      summary: Get Chromium daily usage metrics for a given feature
-      operationId: listChromiumDailyUsageStats
+      summary: Get Chrome daily usage metrics for a given feature
+      operationId: listChromeDailyUsageStats
       parameters:
         - $ref: '#/components/parameters/startAtParam'
         - $ref: '#/components/parameters/endAtParam'
@@ -276,7 +276,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChromiumDailyStatsPage'
+                $ref: '#/components/schemas/ChromeDailyStatsPage'
         '400':
           description: Bad Input
           content:
@@ -1035,7 +1035,7 @@ components:
           format: int64
       required:
         - run_timestamp
-    ChromiumUsageStat:
+    ChromeUsageStat:
       type: object
       properties:
         timestamp:
@@ -1062,7 +1062,7 @@ components:
             $ref: '#/components/schemas/WPTRunMetric'
       required:
         - data
-    ChromiumDailyStatsPage:
+    ChromeDailyStatsPage:
       type: object
       properties:
         metadata:
@@ -1070,7 +1070,7 @@ components:
         data:
           type: array
           items:
-            $ref: '#/components/schemas/ChromiumUsageStat'
+            $ref: '#/components/schemas/ChromeUsageStat'
       required:
         - data
     WPTFeatureData:
@@ -1322,9 +1322,9 @@ components:
     BrowserUsage:
       type: object
       properties:
-        chromium:
-          $ref: '#/components/schemas/ChromiumUsageInfo'
-    ChromiumUsageInfo:
+        chrome:
+          $ref: '#/components/schemas/ChromeUsageInfo'
+    ChromeUsageInfo:
       type: object
       properties:
         daily:

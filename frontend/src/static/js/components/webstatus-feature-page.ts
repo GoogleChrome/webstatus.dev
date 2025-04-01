@@ -508,10 +508,6 @@ export class FeaturePage extends BaseChartsPage {
   }
 
   renderFeatureUsage(): TemplateResult {
-    const urlParams = new URLSearchParams(this.location.search);
-    if (urlParams.get('showUsageChart') === null) {
-      return html``;
-    }
     return html`
       <webstatus-feature-usage-chart-panel
         .featureId=${this.featureId}

@@ -26,7 +26,7 @@ import (
 )
 
 const (
-	getChromiumDailyUsageBaseRawTemplate = `
+	getChromeDailyUsageBaseRawTemplate = `
 	SELECT
 		dchm.Day as Date,
 		dchm.Rate as Usage
@@ -42,40 +42,40 @@ const (
 {{ end }}
  	ORDER BY Date DESC LIMIT @pageSize`
 
-	commonChromiumDailyUsagePaginationRawTemplate = `
+	commonChromeDailyUsagePaginationRawTemplate = `
 		AND dchm.Day < @lastDate`
 )
 
 func init() {
-	getChromiumDailyUsageBaseTemplate = NewQueryTemplate(getChromiumDailyUsageBaseRawTemplate)
+	getChromeDailyUsageBaseTemplate = NewQueryTemplate(getChromeDailyUsageBaseRawTemplate)
 }
 
 // nolint: gochecknoglobals // WONTFIX. Compile the template once at startup. Startup fails if invalid.
 var (
-	// getChromiumDailyUsageBaseTemplate is the compiled version of getChromiumDailyUsageBaseRawTemplate.
-	getChromiumDailyUsageBaseTemplate BaseQueryTemplate
+	// getChromeDailyUsageBaseTemplate is the compiled version of getChromeDailyUsageBaseRawTemplate.
+	getChromeDailyUsageBaseTemplate BaseQueryTemplate
 )
 
-// ChromiumDailyUsageStatsWithDate contains usage stats for a feature at a given date.
-type ChromiumDailyUsageStatWithDate struct {
+// ChromeDailyUsageStatsWithDate contains usage stats for a feature at a given date.
+type ChromeDailyUsageStatWithDate struct {
 	Date  civil.Date `spanner:"Date"`
 	Usage *big.Rat   `spanner:"Usage"`
 }
 
-// ChromiumDailyUsageTemplateData contains the variables for getChromiumDailyUsageBaseRawTemplate.
-type ChromiumDailyUsageTemplateData struct {
+// ChromeDailyUsageTemplateData contains the variables for getChromeDailyUsageBaseRawTemplate.
+type ChromeDailyUsageTemplateData struct {
 	PageFilter string
 }
 
 // nolint: revive
-func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
+func (c *Client) ListChromeDailyUsageStatsForFeatureID(
 	ctx context.Context,
 	featureKey string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
-) ([]ChromiumDailyUsageStatWithDate, *string, error) {
+) ([]ChromeDailyUsageStatWithDate, *string, error) {
 
 	params := map[string]interface{}{
 		"featureKey": featureKey,
@@ -84,19 +84,19 @@ func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 		"pageSize":   pageSize,
 	}
 
-	tmplData := ChromiumDailyUsageTemplateData{
+	tmplData := ChromeDailyUsageTemplateData{
 		PageFilter: "",
 	}
 
 	if pageToken != nil {
-		cursor, err := decodeChromiumDailyUsageCursor(*pageToken)
+		cursor, err := decodeChromeDailyUsageCursor(*pageToken)
 		if err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 		params["lastDate"] = cursor.LastDate
-		tmplData.PageFilter = commonChromiumDailyUsagePaginationRawTemplate
+		tmplData.PageFilter = commonChromeDailyUsagePaginationRawTemplate
 	}
-	tmpl := getChromiumDailyUsageBaseTemplate.Execute(tmplData)
+	tmpl := getChromeDailyUsageBaseTemplate.Execute(tmplData)
 	stmt := spanner.NewStatement(tmpl)
 	stmt.Params = params
 
@@ -105,7 +105,7 @@ func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 
-	var usageStats []ChromiumDailyUsageStatWithDate
+	var usageStats []ChromeDailyUsageStatWithDate
 	for {
 		row, err := it.Next()
 		if errors.Is(err, iterator.Done) {
@@ -114,7 +114,7 @@ func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 		if err != nil {
 			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var usageStat ChromiumDailyUsageStatWithDate
+		var usageStat ChromeDailyUsageStatWithDate
 		if err := row.ToStruct(&usageStat); err != nil {
 			return nil, nil, err
 		}
@@ -123,7 +123,7 @@ func (c *Client) ListChromiumDailyUsageStatsForFeatureID(
 
 	if len(usageStats) == pageSize {
 		lastUsageStat := usageStats[len(usageStats)-1]
-		newCursor := encodeChromiumDailyUsageCursor(lastUsageStat.Date)
+		newCursor := encodeChromeDailyUsageCursor(lastUsageStat.Date)
 
 		return usageStats, &newCursor, nil
 	}

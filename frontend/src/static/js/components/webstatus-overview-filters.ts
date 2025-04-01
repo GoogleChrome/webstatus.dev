@@ -323,7 +323,7 @@ export class WebstatusOverviewFilters extends LitElement {
         case ColumnKey.BaselineStatus:
           columns.push(name);
           break;
-        case ColumnKey.ChromiumUsage:
+        case ColumnKey.ChromeUsage:
           columns.push(name);
           break;
         case ColumnKey.StableChrome:
@@ -345,7 +345,7 @@ export class WebstatusOverviewFilters extends LitElement {
       const baselineStatus = feature.baseline?.status || '';
       const browserImpl = feature.browser_implementations!;
       const wptData = feature.wpt;
-      const chromiumUsage = feature.usage?.chromium?.daily?.toString() || '';
+      const chromeUsage = feature.usage?.chrome?.daily?.toString() || '';
       const row: string[] = [];
 
       const pushBrowserChannelValue = (
@@ -370,8 +370,8 @@ export class WebstatusOverviewFilters extends LitElement {
           case ColumnKey.BaselineStatus:
             row.push(baselineStatus);
             break;
-          case ColumnKey.ChromiumUsage:
-            row.push(chromiumUsage);
+          case ColumnKey.ChromeUsage:
+            row.push(chromeUsage);
             break;
           case ColumnKey.StableChrome:
           case ColumnKey.StableEdge:

@@ -215,7 +215,7 @@ type WPTRunCursor struct {
 	LastRunID     int64     `json:"last_run_id"`
 }
 
-type ChromiumDailyUsageCursor struct {
+type ChromeDailyUsageCursor struct {
 	LastDate civil.Date `json:"last_date"`
 }
 
@@ -248,10 +248,10 @@ func decodeInputFeatureResultCursor(
 	return offsetCursor, nil
 }
 
-// decodeChromiumDailyUsageCursor provides a wrapper around the generic decodeCursor.
-func decodeChromiumDailyUsageCursor(
-	cursor string) (*ChromiumDailyUsageCursor, error) {
-	return decodeCursor[ChromiumDailyUsageCursor](cursor)
+// decodeChromeDailyUsageCursor provides a wrapper around the generic decodeCursor.
+func decodeChromeDailyUsageCursor(
+	cursor string) (*ChromeDailyUsageCursor, error) {
+	return decodeCursor[ChromeDailyUsageCursor](cursor)
 }
 
 // decodeCursor: Decodes a base64-encoded cursor string into a Cursor struct.
@@ -298,8 +298,8 @@ func encodeWPTRunCursor(timeStart time.Time, id int64) string {
 	return encodeCursor[WPTRunCursor](WPTRunCursor{LastTimeStart: timeStart, LastRunID: id})
 }
 
-func encodeChromiumDailyUsageCursor(date civil.Date) string {
-	return encodeCursor[ChromiumDailyUsageCursor](ChromiumDailyUsageCursor{LastDate: date})
+func encodeChromeDailyUsageCursor(date civil.Date) string {
+	return encodeCursor[ChromeDailyUsageCursor](ChromeDailyUsageCursor{LastDate: date})
 }
 
 // encodeCursor: Encodes a Cursor into a base64-encoded string.

@@ -26,7 +26,7 @@ import (
 )
 
 func testGetAllStats(ctx context.Context, c *Client, t *testing.T) {
-	stats, token, err := c.ListChromiumDailyUsageStatsForFeatureID(
+	stats, token, err := c.ListChromeDailyUsageStatsForFeatureID(
 		ctx,
 		"feature2",
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -41,7 +41,7 @@ func testGetAllStats(ctx context.Context, c *Client, t *testing.T) {
 	if token != nil {
 		t.Error("expected null token")
 	}
-	expectedStats := []ChromiumDailyUsageStatWithDate{
+	expectedStats := []ChromeDailyUsageStatWithDate{
 		{
 			Date: civil.Date{
 				Year:  2000,
@@ -74,7 +74,7 @@ func testGetAllStats(ctx context.Context, c *Client, t *testing.T) {
 }
 
 func testGetSubsetStats(ctx context.Context, c *Client, t *testing.T) {
-	stats, token, err := c.ListChromiumDailyUsageStatsForFeatureID(
+	stats, token, err := c.ListChromeDailyUsageStatsForFeatureID(
 		ctx,
 		"feature2",
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -89,7 +89,7 @@ func testGetSubsetStats(ctx context.Context, c *Client, t *testing.T) {
 	if token != nil {
 		t.Error("expected null token")
 	}
-	expectedStats := []ChromiumDailyUsageStatWithDate{
+	expectedStats := []ChromeDailyUsageStatWithDate{
 		{
 			Date: civil.Date{
 				Year:  2000,
@@ -114,7 +114,7 @@ func testGetSubsetStats(ctx context.Context, c *Client, t *testing.T) {
 }
 
 func testGetStatsPages(ctx context.Context, c *Client, t *testing.T) {
-	stats, token, err := c.ListChromiumDailyUsageStatsForFeatureID(
+	stats, token, err := c.ListChromeDailyUsageStatsForFeatureID(
 		ctx,
 		"feature2",
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -129,7 +129,7 @@ func testGetStatsPages(ctx context.Context, c *Client, t *testing.T) {
 	if token == nil {
 		t.Error("expected token")
 	}
-	expectedStats := []ChromiumDailyUsageStatWithDate{
+	expectedStats := []ChromeDailyUsageStatWithDate{
 		{
 			Date: civil.Date{
 				Year:  2000,
@@ -151,7 +151,7 @@ func testGetStatsPages(ctx context.Context, c *Client, t *testing.T) {
 		t.Errorf("unequal stats. expected (%+v) received (%+v) ", expectedStats, stats)
 	}
 
-	stats, token, err = spannerClient.ListChromiumDailyUsageStatsForFeatureID(
+	stats, token, err = spannerClient.ListChromeDailyUsageStatsForFeatureID(
 		ctx,
 		"feature2",
 		time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -166,7 +166,7 @@ func testGetStatsPages(ctx context.Context, c *Client, t *testing.T) {
 		t.Error("expected no token")
 	}
 
-	expectedStats = []ChromiumDailyUsageStatWithDate{
+	expectedStats = []ChromeDailyUsageStatWithDate{
 		{
 			Date: civil.Date{
 				Year:  2000,
@@ -181,7 +181,7 @@ func testGetStatsPages(ctx context.Context, c *Client, t *testing.T) {
 	}
 }
 
-func TestListChromiumDailyUsageStatsForFeatureID(t *testing.T) {
+func TestListChromeDailyUsageStatsForFeatureID(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 	// Load up features.

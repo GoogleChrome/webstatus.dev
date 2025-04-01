@@ -131,9 +131,9 @@ type operationResponseCaches struct {
 		backend.ListFeatureWPTMetricsRequestObject,
 		backend.ListFeatureWPTMetrics200JSONResponse,
 	]
-	listChromiumDailyUsageStatsCache operationResponseCache[
-		backend.ListChromiumDailyUsageStatsRequestObject,
-		backend.ListChromiumDailyUsageStats200JSONResponse,
+	listChromeDailyUsageStatsCache operationResponseCache[
+		backend.ListChromeDailyUsageStatsRequestObject,
+		backend.ListChromeDailyUsageStats200JSONResponse,
 	]
 	listAggregatedFeatureSupportCache operationResponseCache[
 		backend.ListAggregatedFeatureSupportRequestObject,
@@ -180,10 +180,10 @@ func initOperationResponseCaches(dataCacher RawBytesDataCacher,
 			backend.ListFeatureWPTMetrics200JSONResponse,
 		]{cacher: dataCacher, operationID: "listFeatureWPTMetrics", overrideCacheOptions: nil},
 
-		listChromiumDailyUsageStatsCache: operationResponseCache[
-			backend.ListChromiumDailyUsageStatsRequestObject,
-			backend.ListChromiumDailyUsageStats200JSONResponse,
-		]{cacher: dataCacher, operationID: "listChromiumDailyUsageStats", overrideCacheOptions: nil},
+		listChromeDailyUsageStatsCache: operationResponseCache[
+			backend.ListChromeDailyUsageStatsRequestObject,
+			backend.ListChromeDailyUsageStats200JSONResponse,
+		]{cacher: dataCacher, operationID: "listChromeDailyUsageStats", overrideCacheOptions: nil},
 
 		listAggregatedFeatureSupportCache: operationResponseCache[
 			backend.ListAggregatedFeatureSupportRequestObject,

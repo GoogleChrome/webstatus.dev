@@ -85,13 +85,13 @@ type MockListMetricsOverTimeWithAggregatedTotalsConfig struct {
 	err                error
 }
 
-type MockListChromiumDailyUsageStatsConfig struct {
+type MockListChromeDailyUsageStatsConfig struct {
 	expectedFeatureID string
 	expectedStartAt   time.Time
 	expectedEndAt     time.Time
 	expectedPageSize  int
 	expectedPageToken *string
-	data              []backend.ChromiumUsageStat
+	data              []backend.ChromeUsageStat
 	pageToken         *string
 	err               error
 }
@@ -201,7 +201,7 @@ type MockWPTMetricsStorer struct {
 	listMissingOneImplCountCfg                        *MockListMissingOneImplCountsConfig
 	listMissingOneImplFeaturesCfg                     *MockListMissingOneImplFeaturesConfig
 	listBaselineStatusCountsCfg                       *MockListBaselineStatusCountsConfig
-	listChromiumDailyUsageStatsCfg                    *MockListChromiumDailyUsageStatsConfig
+	listChromeDailyUsageStatsCfg                      *MockListChromeDailyUsageStatsConfig
 	getFeatureByIDConfig                              *MockGetFeatureByIDConfig
 	getIDFromFeatureKeyConfig                         *MockGetIDFromFeatureKeyConfig
 	createUserSavedSearchCfg                          *MockCreateUserSavedSearchConfig
@@ -214,7 +214,7 @@ type MockWPTMetricsStorer struct {
 	callCountListBaselineStatusCounts                 int
 	callCountListBrowserFeatureCountMetric            int
 	callCountFeaturesSearch                           int
-	callCountListChromiumDailyUsageStats              int
+	callCountListChromeDailyUsageStats                int
 	callCountListMetricsForFeatureIDBrowserAndChannel int
 	callCountListMetricsOverTimeWithAggregatedTotals  int
 	callCountGetFeature                               int
@@ -286,29 +286,29 @@ func (m *MockWPTMetricsStorer) ListMetricsOverTimeWithAggregatedTotals(
 	return m.aggregateCfg.data, m.aggregateCfg.pageToken, m.aggregateCfg.err
 }
 
-func (m *MockWPTMetricsStorer) ListChromiumDailyUsageStats(
+func (m *MockWPTMetricsStorer) ListChromeDailyUsageStats(
 	_ context.Context,
 	featureID string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
-) ([]backend.ChromiumUsageStat, *string, error) {
-	m.callCountListChromiumDailyUsageStats++
+) ([]backend.ChromeUsageStat, *string, error) {
+	m.callCountListChromeDailyUsageStats++
 
-	if featureID != m.listChromiumDailyUsageStatsCfg.expectedFeatureID ||
-		!startAt.Equal(m.listChromiumDailyUsageStatsCfg.expectedStartAt) ||
-		!endAt.Equal(m.listChromiumDailyUsageStatsCfg.expectedEndAt) ||
-		pageSize != m.listChromiumDailyUsageStatsCfg.expectedPageSize ||
-		!reflect.DeepEqual(pageToken, m.listChromiumDailyUsageStatsCfg.expectedPageToken) {
+	if featureID != m.listChromeDailyUsageStatsCfg.expectedFeatureID ||
+		!startAt.Equal(m.listChromeDailyUsageStatsCfg.expectedStartAt) ||
+		!endAt.Equal(m.listChromeDailyUsageStatsCfg.expectedEndAt) ||
+		pageSize != m.listChromeDailyUsageStatsCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, m.listChromeDailyUsageStatsCfg.expectedPageToken) {
 
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %s, %s, %s, %d %v }",
-			m.listChromiumDailyUsageStatsCfg, featureID, startAt, endAt, pageSize, pageToken)
+			m.listChromeDailyUsageStatsCfg, featureID, startAt, endAt, pageSize, pageToken)
 	}
 
-	return m.listChromiumDailyUsageStatsCfg.data,
-		m.listChromiumDailyUsageStatsCfg.pageToken,
-		m.listChromiumDailyUsageStatsCfg.err
+	return m.listChromeDailyUsageStatsCfg.data,
+		m.listChromeDailyUsageStatsCfg.pageToken,
+		m.listChromeDailyUsageStatsCfg.err
 }
 
 func (m *MockWPTMetricsStorer) FeaturesSearch(
@@ -756,11 +756,11 @@ func (m *mockServerInterface) ListAggregatedWPTMetrics(ctx context.Context,
 	panic("unimplemented")
 }
 
-// ListChromiumDailyUsageStats implements backend.StrictServerInterface.
+// ListChromeDailyUsageStats implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
-func (m *mockServerInterface) ListChromiumDailyUsageStats(ctx context.Context,
-	_ backend.ListChromiumDailyUsageStatsRequestObject) (
-	backend.ListChromiumDailyUsageStatsResponseObject, error) {
+func (m *mockServerInterface) ListChromeDailyUsageStats(ctx context.Context,
+	_ backend.ListChromeDailyUsageStatsRequestObject) (
+	backend.ListChromeDailyUsageStatsResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")

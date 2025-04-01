@@ -21,7 +21,7 @@ import {TemplateResult, html, nothing} from 'lit';
 import {
   BROWSER_ID_TO_COLOR,
   BrowsersParameter,
-  ChromiumUsageStat,
+  ChromeUsageStat,
 } from '../api/client.js';
 
 @customElement('webstatus-feature-usage-chart-panel')
@@ -43,20 +43,20 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
           endDate === undefined
         )
           return;
-        await this._fetchAndAggregateData<ChromiumUsageStat>([
+        await this._fetchAndAggregateData<ChromeUsageStat>([
           {
             label: 'Chrome',
             fetchFunction: () =>
-              this.apiClient.getChromiumDailyUsageStats(
+              this.apiClient.getChromeDailyUsageStats(
                 featureId,
                 startDate,
                 endDate,
               ),
-            timestampExtractor: (dataPoint: ChromiumUsageStat): Date =>
+            timestampExtractor: (dataPoint: ChromeUsageStat): Date =>
               new Date(dataPoint.timestamp),
-            valueExtractor: (dataPoint: ChromiumUsageStat): number =>
+            valueExtractor: (dataPoint: ChromeUsageStat): number =>
               dataPoint.usage ? dataPoint.usage * 100 : 0,
-            tooltipExtractor: (dataPoint: ChromiumUsageStat): string =>
+            tooltipExtractor: (dataPoint: ChromeUsageStat): string =>
               `Chrome: ${dataPoint.usage ? dataPoint.usage * 100 : 0}%`,
           },
         ]);

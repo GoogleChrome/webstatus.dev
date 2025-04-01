@@ -43,10 +43,6 @@ export function getWPTMetricView(location: {search: string}): string {
   return getQueryParam(location.search, 'wpt_metric_view');
 }
 
-export function getFeaturesLaggingFlag(location: {search: string}): boolean {
-  return Boolean(getQueryParam(location.search, 'show_features_lagging'));
-}
-
 export function getSearchID(location: {search: string}): string {
   return getQueryParam(location.search, 'search_id');
 }

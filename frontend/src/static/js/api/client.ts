@@ -138,9 +138,9 @@ export const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
 
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
-export type ChromiumUsageStat = components['schemas']['ChromiumUsageStat'];
-export type ChromiumDailyUsageStatsPage =
-  components['schemas']['ChromiumDailyStatsPage'];
+export type ChromeUsageStat = components['schemas']['ChromeUsageStat'];
+export type ChromeDailyUsageStatsPage =
+  components['schemas']['ChromeDailyStatsPage'];
 export type BrowserReleaseFeatureMetric =
   components['schemas']['BrowserReleaseFeatureMetric'];
 export type BrowserReleaseFeatureMetricsPage =
@@ -410,17 +410,17 @@ export class APIClient {
     } while (nextPageToken !== undefined);
   }
 
-  public async *getChromiumDailyUsageStats(
+  public async *getChromeDailyUsageStats(
     featureId: string,
     startAtDate: Date,
     endAtDate: Date,
-  ): AsyncIterable<ChromiumUsageStat[]> {
+  ): AsyncIterable<ChromeUsageStat[]> {
     const startAt: string = startAtDate.toISOString().substring(0, 10);
     const endAt: string = endAtDate.toISOString().substring(0, 10);
     let nextPageToken;
     do {
       const response = await this.client.GET(
-        '/v1/features/{feature_id}/stats/usage/chromium/daily_stats',
+        '/v1/features/{feature_id}/stats/usage/chrome/daily_stats',
         {
           ...temporaryFetchOptions,
           params: {
@@ -435,8 +435,8 @@ export class APIClient {
       if (error !== undefined) {
         throw createAPIError(error);
       }
-      const page: ChromiumDailyUsageStatsPage =
-        response.data as ChromiumDailyUsageStatsPage;
+      const page: ChromeDailyUsageStatsPage =
+        response.data as ChromeDailyUsageStatsPage;
       nextPageToken = page?.metadata?.next_page_token;
       yield page.data;
     } while (nextPageToken !== undefined);

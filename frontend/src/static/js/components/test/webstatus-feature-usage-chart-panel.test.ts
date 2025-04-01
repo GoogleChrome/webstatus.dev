@@ -17,7 +17,7 @@
 import {fixture, html as testHtml, expect} from '@open-wc/testing';
 import {SinonStub, SinonStubbedInstance, stub} from 'sinon';
 import {WebstatusFeatureUsageChartPanel} from '../webstatus-feature-usage-chart-panel.js';
-import {APIClient, ChromiumUsageStat} from '../../api/client.js';
+import {APIClient, ChromeUsageStat} from '../../api/client.js';
 import {WebstatusLineChartPanel} from '../webstatus-line-chart-panel.js';
 
 import '../webstatus-feature-usage-chart-panel.js';
@@ -80,7 +80,7 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     const chromeConfig = fetchFunctionConfigs[0];
     expect(chromeConfig.label).to.equal('Chrome');
     expect(chromeConfig.fetchFunction).to.be.a('function');
-    const chromeTestDataPoint: ChromiumUsageStat = {
+    const chromeTestDataPoint: ChromeUsageStat = {
       timestamp: '2024-01-01',
       usage: 0.5,
     };
