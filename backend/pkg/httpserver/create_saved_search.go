@@ -86,14 +86,17 @@ func validateSavedSearchQuery(query *string, fieldErrors *fieldValidationErrors)
 
 	if len(*query) < savedSearchQueryMinLength || len(*query) > savedSearchQueryMaxLength {
 		fieldErrors.addFieldError("query", errSavedSearchInvalidQueryLength)
-	} else {
-		// Only parse if length is okay
-		parser := searchtypes.FeaturesSearchQueryParser{}
-		_, err := parser.Parse(*query)
-		if err != nil {
-			fieldErrors.addFieldError("query", errQueryDoesNotMatchGrammar)
-		}
+
+		return
 	}
+
+	// Only parse if length is okay
+	parser := searchtypes.FeaturesSearchQueryParser{}
+	_, err := parser.Parse(*query)
+	if err != nil {
+		fieldErrors.addFieldError("query", errQueryDoesNotMatchGrammar)
+	}
+
 }
 
 // validateSavedSearchDescription checks the validity of the saved search description.
