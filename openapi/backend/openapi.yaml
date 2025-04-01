@@ -827,7 +827,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/BasicErrorModel'
+                $ref: '#/components/schemas/ExtendedErrorModel'
         '401':
           description: Unauthorized
           content:
@@ -1237,16 +1237,39 @@ components:
       description: |
         Represents the data required to update a saved search.
         Only the fields that need to be modified need to be included in the request.
+        To clear a field, include the field in `update_mask` and set the corresponding value to null.
+        Only fields with nullable set to true can be cleared.
       properties:
         name:
           type: string
           minLength: 1
         description:
           type: string
+          nullable: true
           minLength: 1
         query:
           type: string
           minLength: 1
+        update_mask:
+          type: array
+          description: >
+            A list of fields to update. Required. Allowed values are: `name`, `description`, `query`.
+          items:
+            type: string
+            enum:
+              - name
+              - description
+              - query
+            # Custom field used by https://github.com/oapi-codegen/oapi-codegen
+            # Otherwise, the constant name will be Name, Description and Query
+            x-enumNames:
+              - SavedSearchUpdateRequestMaskName
+              - SavedSearchUpdateRequestMaskDescription
+              - SavedSearchUpdateRequestMaskQuery
+          minItems: 1
+          uniqueItems: true
+      required:
+        - update_mask
     UserSavedSearchBookmarkStatus:
       type: string
       description: |
