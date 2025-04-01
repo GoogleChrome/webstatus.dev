@@ -99,12 +99,16 @@ func validateSavedSearchQuery(query *string, fieldErrors *fieldValidationErrors)
 // validateSavedSearchDescription checks the validity of the saved search description.
 // Description is optional, so nil is allowed. Validation only occurs if non-nil.
 func validateSavedSearchDescription(description *string, fieldErrors *fieldValidationErrors) {
+	// If description is nil, it's considered valid (optional field).
+	if description == nil {
+		return
+	}
+
 	// If description is provided (non-nil), validate its length.
-	if description != nil && (len(*description) < savedSearchNameDescriptionMinLength ||
-		len(*description) > savedSearchNameDescriptionMaxLength) {
+	if len(*description) < savedSearchNameDescriptionMinLength ||
+		len(*description) > savedSearchNameDescriptionMaxLength {
 		fieldErrors.addFieldError("description", errSavedSearchInvalidDescriptionLength)
 	}
-	// If description is nil, it's considered valid (optional field).
 }
 
 func validateSavedSearch(input *backend.SavedSearch) *fieldValidationErrors {
