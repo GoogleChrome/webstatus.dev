@@ -38,21 +38,3 @@ test('matches the screenshot', async ({page}) => {
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
 });
-
-// TODO: Remove this test once the features lagging chart is enabled by default.
-test('matches the screenshot with missing one implementation chart', async ({
-  page,
-}) => {
-  await page.goto('http://localhost:5555/stats?show_features_lagging=true');
-
-  // Wait for the global feature support chart container to exist.
-  await page.waitForSelector('#global-feature-support-chart-container');
-
-  // Wait for the missing one implementatoin chart container to exist.
-  await page.waitForSelector('#missing-one-implementation-chart-container');
-
-  await waitForAllChartsToLoad(page);
-
-  const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
-});

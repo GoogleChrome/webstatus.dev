@@ -47,7 +47,7 @@ custom_ssl_certificates_for_backend  = ["ub-self-sign"]
 
 backend_cache_settings = {
   default_duration                  = "1h"
-  aggregated_feature_stats_duration = "3h"
+  aggregated_feature_stats_duration = "24h"
 }
 
 # Needed for UbP.

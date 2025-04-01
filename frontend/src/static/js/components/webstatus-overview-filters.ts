@@ -323,7 +323,7 @@ export class WebstatusOverviewFilters extends LitElement {
         case ColumnKey.BaselineStatus:
           columns.push(name);
           break;
-        case ColumnKey.ChromiumUsage:
+        case ColumnKey.ChromeUsage:
           columns.push(name);
           break;
         case ColumnKey.StableChrome:
@@ -370,7 +370,7 @@ export class WebstatusOverviewFilters extends LitElement {
           case ColumnKey.BaselineStatus:
             row.push(baselineStatus);
             break;
-          case ColumnKey.ChromiumUsage:
+          case ColumnKey.ChromeUsage:
             row.push(chromiumUsage);
             break;
           case ColumnKey.StableChrome:

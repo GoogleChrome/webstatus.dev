@@ -74,8 +74,8 @@ paths:
               - experimental_edge_desc
               - experimental_firefox_asc
               - experimental_firefox_desc
-              - chromium_usage_asc
-              - chromium_usage_desc
+              - chrome_usage_asc
+              - chrome_usage_desc
               # availability_{browser}_{direction}
               - availability_chrome_asc
               - availability_chrome_desc

@@ -70,7 +70,7 @@ export enum ColumnKey {
   ExpEdge = 'experimental_edge',
   ExpFirefox = 'experimental_firefox',
   ExpSafari = 'experimental_safari',
-  ChromiumUsage = 'chromium_usage',
+  ChromeUsage = 'chrome_usage',
 }
 
 const columnKeyMapping = Object.entries(ColumnKey).reduce(
@@ -111,6 +111,7 @@ export const DEFAULT_COLUMNS = [
   ColumnKey.StableEdge,
   ColumnKey.StableFirefox,
   ColumnKey.StableSafari,
+  ColumnKey.ChromeUsage,
 ];
 
 export const DEFAULT_COLUMN_OPTIONS: ColumnOptionKey[] = [
@@ -159,7 +160,7 @@ const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   return html` <a href=${featureUrl}>${feature.name}</a> `;
 };
 
-export const renderChromiumUsage: CellRenderer = (
+export const renderChromeUsage: CellRenderer = (
   feature,
   _routerLocation,
   _options,
@@ -182,7 +183,7 @@ export const renderChromiumUsage: CellRenderer = (
   ) {
     usage = '100%';
   }
-  return html`<span id="chromium-usage">${usage}</span>`;
+  return html`<span id="chrome-usage">${usage}</span>`;
 };
 
 function formatDateString(dateString: string): string {
@@ -480,10 +481,10 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'safari', channel: 'experimental'},
   },
-  [ColumnKey.ChromiumUsage]: {
-    nameInDialog: 'Chromium Usage',
+  [ColumnKey.ChromeUsage]: {
+    nameInDialog: 'Chrome Usage',
     headerHtml: html`Usage`,
-    cellRenderer: renderChromiumUsage,
+    cellRenderer: renderChromeUsage,
     options: {},
   },
 };

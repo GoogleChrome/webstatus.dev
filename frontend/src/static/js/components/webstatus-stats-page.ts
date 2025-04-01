@@ -14,9 +14,8 @@
  * limitations under the License.
  */
 
-import {type TemplateResult, html, nothing} from 'lit';
+import {type TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
-import {getFeaturesLaggingFlag} from '../utils/urls.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
 import './webstatus-stats-global-feature-count-chart-panel.js';
@@ -63,9 +62,7 @@ export class StatsPage extends BaseChartsPage {
     return html`
       <div class="vbox">
         ${this.renderTitleAndControls()} ${this.renderGlobalFeatureSupport()}
-        ${getFeaturesLaggingFlag(this.location)
-          ? this.renderFeaturesLagging()
-          : nothing}
+        ${this.renderFeaturesLagging()}
       </div>
     `;
   }

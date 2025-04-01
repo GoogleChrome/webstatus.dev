@@ -27,7 +27,7 @@ import {
   ColumnOptionKey,
   renderBaselineStatus,
   renderAvailablity,
-  renderChromiumUsage,
+  renderChromeUsage,
   renderHeaderCell,
   renderUnsortableHeaderCell,
   CELL_DEFS,
@@ -56,62 +56,62 @@ describe('renderChromiumUsage', () => {
     };
   });
   it('does render usage as a percentage', async () => {
-    // 10.3% Chromium usage.
+    // 10.3% Chrome usage.
     feature.usage = {chromium: {daily: 0.1034}};
-    const result = renderChromiumUsage(feature, {search: ''}, {});
+    const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
-    const usageEl = el.querySelector('#chromium-usage');
+    const usageEl = el.querySelector('#chrome-usage');
     expect(usageEl).to.exist;
     expect(usageEl!.textContent!.trim()).to.equal('10.3%');
   });
   it('does render usage as a percentage, and rounds correctly', async () => {
-    // Should round to 10.4% Chromium usage.
+    // Should round to 10.4% Chrome usage.
     feature.usage = {chromium: {daily: 0.1036}};
-    const result = renderChromiumUsage(feature, {search: ''}, {});
+    const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
-    const usageEl = el.querySelector('#chromium-usage');
+    const usageEl = el.querySelector('#chrome-usage');
     expect(usageEl).to.exist;
     expect(usageEl!.textContent!.trim()).to.equal('10.4%');
   });
   it('does render 0 usage amounts as "0.0%"', async () => {
-    // Explicitly 0 Chromium usage.
+    // Explicitly 0 Chrome usage.
     feature.usage = {chromium: {daily: 0.0}};
-    const result = renderChromiumUsage(feature, {search: ''}, {});
+    const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
-    const usageEl = el.querySelector('#chromium-usage');
+    const usageEl = el.querySelector('#chrome-usage');
     expect(usageEl).to.exist;
     expect(usageEl!.textContent!.trim()).to.equal('0.0%');
   });
   it('does render 100% usage amounts as "100%"', async () => {
-    // Explicitly 100% Chromium usage.
+    // Explicitly 100% Chrome usage.
     feature.usage = {chromium: {daily: 1.0}};
-    const result = renderChromiumUsage(feature, {search: ''}, {});
+    const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
-    const usageEl = el.querySelector('#chromium-usage');
+    const usageEl = el.querySelector('#chrome-usage');
     expect(usageEl).to.exist;
     expect(usageEl!.textContent!.trim()).to.equal('100.0%');
   });
   it('does render very small usage amounts as "<0.1%"', async () => {
     // 0.0003%.
     feature.usage = {chromium: {daily: 0.000003}};
-    const result = renderChromiumUsage(feature, {search: ''}, {});
+    const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
-    const usageEl = el.querySelector('#chromium-usage');
+    const usageEl = el.querySelector('#chrome-usage');
     expect(usageEl).to.exist;
     expect(usageEl!.textContent!.trim()).to.equal('<0.1%');
   });
   it('does render null usage amounts as "N/A"', async () => {
     // No usage found.
     feature.usage = undefined;
-    const result = renderChromiumUsage(feature, {search: ''}, {});
+    const result = renderChromeUsage(feature, {search: ''}, {});
     render(result, container);
     const el = await fixture(container);
-    const usageEl = el.querySelector('#chromium-usage');
+    const usageEl = el.querySelector('#chrome-usage');
     expect(usageEl).to.exist;
     expect(usageEl!.textContent!.trim()).to.equal('N/A');
   });

@@ -863,9 +863,9 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), true)
 	case backend.StableSafariDesc:
 		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), true)
-	case backend.ChromiumUsageAsc:
+	case backend.ChromeUsageAsc:
 		return gcpspanner.NewChromiumUsageSort(true)
-	case backend.ChromiumUsageDesc:
+	case backend.ChromeUsageDesc:
 		return gcpspanner.NewChromiumUsageSort(false)
 	case backend.AvailabilityChromeAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Chrome))
