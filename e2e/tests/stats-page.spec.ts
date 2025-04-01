@@ -30,8 +30,11 @@ test.beforeEach(async ({page}) => {
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/stats');
 
-  // Wait for the chart container to exist.
+  // Wait for the global feature support chart container to exist.
   await page.waitForSelector('#global-feature-support-chart-container');
+
+  // Wait for the missing one implementatoin chart container to exist.
+  await page.waitForSelector('#missing-one-implementation-chart-container');
 
   await waitForAllChartsToLoad(page);
 
