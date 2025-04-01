@@ -424,6 +424,13 @@ func generateSavedSearches(ctx context.Context,
 					"Duis in augue. Cras nulla. Vivamus laoreet. Curabitur suscipit suscipit tellus."),
 			UUID: "a09386fe-65f1-4640-b28d-3cf2f2de69c9",
 		},
+		{
+			Email:       "test.user.2@example.com",
+			Name:        "test user 2's query",
+			Query:       "baseline_status:limited",
+			Description: valuePtr("other users can create queries too"),
+			UUID:        "bb85baf7-aa1e-42bf-ada0-cf9d2811dd42",
+		},
 	}
 
 	for _, savedSearch := range savedSearchesToInsert {
@@ -446,6 +453,34 @@ func generateSavedSearches(ctx context.Context,
 	return len(savedSearchesToInsert), nil
 }
 
+func generateSavedSearchBookmarks(ctx context.Context, spannerClient *gcpspanner.Client,
+	authClient *auth.Client) (int, error) {
+	bookmarksToInsert := []struct {
+		UUID  string
+		Email string
+	}{
+		{
+			UUID:  "bb85baf7-aa1e-42bf-ada0-cf9d2811dd42",
+			Email: "test.user.1@example.com",
+		},
+	}
+	for _, bookmarkToInsert := range bookmarksToInsert {
+		userID, err := findUserIDByEmail(ctx, bookmarkToInsert.Email, authClient)
+		if err != nil {
+			return 0, err
+		}
+		err = spannerClient.AddUserSearchBookmark(ctx, gcpspanner.UserSavedSearchBookmark{
+			UserID:        userID,
+			SavedSearchID: bookmarkToInsert.UUID,
+		})
+		if err != nil {
+			return 0, err
+		}
+	}
+
+	return len(bookmarksToInsert), nil
+}
+
 func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client,
 	authClient *auth.Client) error {
 	savedSearchesCount, err := generateSavedSearches(ctx, spannerClient, authClient)
@@ -454,6 +489,14 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.Info("saved searches generated",
 		"amount of searches created", savedSearchesCount)
+
+	bookmarkCount, err := generateSavedSearchBookmarks(ctx, spannerClient, authClient)
+	if err != nil {
+		return fmt.Errorf("saved search bookmarks generation failed %w", err)
+
+	}
+	slog.Info("saved search bookmarks generated",
+		"amount of bookmarks created", bookmarkCount)
 	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)

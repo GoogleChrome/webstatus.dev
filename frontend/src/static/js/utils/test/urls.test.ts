@@ -24,6 +24,7 @@ import {
   getWPTMetricView,
   getColumnOptions,
   getSearchID,
+  getEditBookmark,
 } from '../urls.js';
 
 describe('getSearchQuery', () => {
@@ -130,6 +131,23 @@ describe('getSearchID', () => {
   });
 });
 
+describe('getEditBookmark', () => {
+  it('returns false when there was no edit_bookmark= param', () => {
+    const cs = getEditBookmark({search: ''});
+    assert.equal(cs, false);
+  });
+
+  it('returns false when the edit_bookmark= param has no value', () => {
+    const cs = getEditBookmark({search: '?edit_bookmark='});
+    assert.equal(cs, false);
+  });
+
+  it('returns the string when the edit_bookmark= param was set', () => {
+    const cs = getEditBookmark({search: '?edit_bookmark=true'});
+    assert.equal(cs, true);
+  });
+});
+
 describe('formatOverviewPageUrl', () => {
   it('returns a plain URL when no location is passed', () => {
     const url = formatOverviewPageUrl();
@@ -206,6 +224,11 @@ describe('formatOverviewPageUrl', () => {
   it('returns a URL with navigational params when search_id param is set', () => {
     const url = formatOverviewPageUrl({search: ''}, {search_id: 'fake_uuid'});
     assert.equal(url, '/?search_id=fake_uuid');
+  });
+
+  it('returns a URL with navigational params when edit_bookmark param is set', () => {
+    const url = formatOverviewPageUrl({search: ''}, {edit_bookmark: true});
+    assert.equal(url, '/?edit_bookmark=true');
   });
 });
 

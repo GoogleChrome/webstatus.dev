@@ -14,12 +14,18 @@
  * limitations under the License.
  */
 
+import {type components} from 'webstatus.dev-backend';
 export const GITHUB_REPO_ISSUE_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/issues/new/choose';
 export const SEARCH_QUERY_README_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/blob/main/antlr/FeatureSearch.md';
 export const ABOUT_PAGE_LINK =
   'https://github.com/GoogleChrome/webstatus.dev/wiki/About-Web-Platform-Status';
+
+export type BookmarkPermissions =
+  components['schemas']['UserSavedSearchPermissions'];
+export const BookmarkOwnerRole: components['schemas']['UserSavedSearchPermissions']['role'] =
+  'saved_search_owner';
 
 export interface Bookmark {
   // Bookmark display name
@@ -34,6 +40,8 @@ export interface Bookmark {
   override_num_param?: number;
   // Server side id for bookmark
   id?: string;
+  // Permissions
+  permissions?: BookmarkPermissions;
 }
 
 export const DEFAULT_BOOKMARKS: Bookmark[] = [

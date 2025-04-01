@@ -407,7 +407,7 @@ describe('webstatus-sidebar-menu', () => {
     expect(userBookmarkItems).to.have.lengthOf(0); // Should show nothing in rejected state
   });
 
-  it('renders renderBookmark correctly with user bookmark ID', async () => {
+  it('renders renderBookmark correctly with user bookmark ID without ownership', async () => {
     const bookmark = testUserSavedBookmarks[0];
     const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
     const container = document.createElement('div');
@@ -416,6 +416,28 @@ describe('webstatus-sidebar-menu', () => {
       'userbookmark0',
     );
     expect(container.textContent).to.contain(bookmark.name);
+    expect(
+      container
+        .querySelector('sl-tree-item')
+        ?.querySelector('.bookmark-edit-link'),
+    ).to.be.null;
+  });
+
+  it('renders renderBookmark correctly with user bookmark ID with ownership', async () => {
+    const bookmark = testUserSavedBookmarks[0];
+    bookmark.permissions = {role: 'saved_search_owner'};
+    const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
+    const container = document.createElement('div');
+    render(renderedBookmark, container);
+    expect(container.querySelector('sl-tree-item')?.id).to.equal(
+      'userbookmark0',
+    );
+    expect(container.textContent).to.contain(bookmark.name);
+    expect(
+      container
+        .querySelector('sl-tree-item')
+        ?.querySelector('.bookmark-edit-link'),
+    ).exist;
   });
 
   it('renders renderBookmark correctly without ID for global bookmark', async () => {
