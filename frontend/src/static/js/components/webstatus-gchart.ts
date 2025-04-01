@@ -173,6 +173,15 @@ export class WebstatusGChart extends LitElement {
     dataObj.rows.forEach(row => {
       dataTable.addRow(row);
     });
+
+    // Display in UTC timezone.
+    const dateFormat = new google.visualization.DateFormat({
+      formatType: 'long',
+      timeZone: 0,
+    });
+
+    // Format the Date column in the table.
+    dateFormat.format(dataTable, 0);
     return dataTable;
   }
 
