@@ -115,6 +115,16 @@ type mockUpdateUserSavedSearchConfig struct {
 	returnedError   error
 }
 
+type mockAddUserSearchBookmarkConfig struct {
+	expectedRequest gcpspanner.UserSavedSearchBookmark
+	returnedError   error
+}
+
+type mockDeleteUserSearchBookmarkConfig struct {
+	expectedRequest gcpspanner.UserSavedSearchBookmark
+	returnedError   error
+}
+
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -132,8 +142,30 @@ type mockBackendSpannerClient struct {
 	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
 	mockListUserSavedSearchesCfg         *mockListUserSavedSearchesConfig
 	mockUpdateUserSavedSearchCfg         *mockUpdateUserSavedSearchConfig
+	mockAddUserSearchBookmarkCfg         *mockAddUserSearchBookmarkConfig
+	mockDeleteUserSearchBookmarkCfg      *mockDeleteUserSearchBookmarkConfig
 	pageToken                            *string
 	err                                  error
+}
+
+// AddUserSearchBookmark implements BackendSpannerClient.
+func (c mockBackendSpannerClient) AddUserSearchBookmark(
+	_ context.Context, req gcpspanner.UserSavedSearchBookmark) error {
+	if !reflect.DeepEqual(req, c.mockAddUserSearchBookmarkCfg.expectedRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockAddUserSearchBookmarkCfg.returnedError
+}
+
+// DeleteUserSearchBookmark implements BackendSpannerClient.
+func (c mockBackendSpannerClient) DeleteUserSearchBookmark(
+	_ context.Context, req gcpspanner.UserSavedSearchBookmark) error {
+	if !reflect.DeepEqual(req, c.mockDeleteUserSearchBookmarkCfg.expectedRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockDeleteUserSearchBookmarkCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) ListUserSavedSearches(
@@ -2396,6 +2428,134 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 
 			if !reflect.DeepEqual(resp, tc.expectedResp) {
 				t.Error("unexpected response")
+			}
+		})
+	}
+}
+
+// nolint: dupl // WONTFIX
+func TestAddUserSavedSearchBookmark(t *testing.T) {
+	userID := "test-add-user"
+	savedSearchID := "test-add-id"
+	bookmark := gcpspanner.UserSavedSearchBookmark{
+		UserID:        "test-add-user",
+		SavedSearchID: "test-add-id",
+	}
+	testCases := []struct {
+		name        string
+		cfg         *mockAddUserSearchBookmarkConfig
+		expectedErr error
+	}{
+		{
+			name: "success",
+			cfg: &mockAddUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   nil,
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "limit exceeded error",
+			cfg: &mockAddUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   gcpspanner.ErrUserSearchBookmarkLimitExceeded,
+			},
+			expectedErr: backendtypes.ErrUserMaxBookmarks,
+		},
+		{
+			name: "not found error",
+			cfg: &mockAddUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   gcpspanner.ErrQueryReturnedNoResults,
+			},
+			expectedErr: backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name: "unknown error",
+			cfg: &mockAddUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   errTest,
+			},
+			expectedErr: errTest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                            t,
+				mockAddUserSearchBookmarkCfg: tc.cfg,
+			}
+			bk := NewBackend(mock)
+			err := bk.PutUserSavedSearchBookmark(context.Background(), userID, savedSearchID)
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("unexpected error %s", err)
+			}
+		})
+	}
+}
+
+// nolint: dupl // WONTFIX
+func TestRemoveUserSavedSearchBookmark(t *testing.T) {
+	userID := "test-remove-user"
+	savedSearchID := "test-remove-id"
+	bookmark := gcpspanner.UserSavedSearchBookmark{
+		UserID:        "test-remove-user",
+		SavedSearchID: "test-remove-id",
+	}
+	testCases := []struct {
+		name        string
+		cfg         *mockDeleteUserSearchBookmarkConfig
+		expectedErr error
+	}{
+		{
+			name: "success",
+			cfg: &mockDeleteUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   nil,
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "owner cannot delete bookmark error",
+			cfg: &mockDeleteUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   gcpspanner.ErrOwnerCannotDeleteBookmark,
+			},
+			expectedErr: backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "not found error",
+			cfg: &mockDeleteUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   gcpspanner.ErrQueryReturnedNoResults,
+			},
+			expectedErr: backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name: "unknown error",
+			cfg: &mockDeleteUserSearchBookmarkConfig{
+				expectedRequest: bookmark,
+				returnedError:   errTest,
+			},
+			expectedErr: errTest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                               t,
+				mockDeleteUserSearchBookmarkCfg: tc.cfg,
+			}
+			bk := NewBackend(mock)
+			err := bk.RemoveUserSavedSearchBookmark(context.Background(), userID, savedSearchID)
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("unexpected error %s", err)
 			}
 		})
 	}

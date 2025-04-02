@@ -125,6 +125,8 @@ type BackendSpannerClient interface {
 		pageSize int,
 		pageToken *string) (*gcpspanner.UserSavedSearchesPage, error)
 	UpdateUserSavedSearch(ctx context.Context, req gcpspanner.UpdateSavedSearchRequest) error
+	AddUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
+	DeleteUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -615,6 +617,50 @@ func (s *Backend) UpdateUserSavedSearch(
 	}
 
 	return convertUserSavedSearchToSavedSearchResponse(savedSearch), nil
+}
+
+func (s *Backend) PutUserSavedSearchBookmark(
+	ctx context.Context,
+	userID string,
+	savedSearchID string,
+) error {
+	err := s.client.AddUserSearchBookmark(ctx, gcpspanner.UserSavedSearchBookmark{
+		UserID:        userID,
+		SavedSearchID: savedSearchID,
+	})
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrUserSearchBookmarkLimitExceeded) {
+			return errors.Join(err, backendtypes.ErrUserMaxBookmarks)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (s *Backend) RemoveUserSavedSearchBookmark(
+	ctx context.Context,
+	userID string,
+	savedSearchID string,
+) error {
+	err := s.client.DeleteUserSearchBookmark(ctx, gcpspanner.UserSavedSearchBookmark{
+		UserID:        userID,
+		SavedSearchID: savedSearchID,
+	})
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrOwnerCannotDeleteBookmark) {
+			return errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 func convertUserSavedSearchToSavedSearchResponse(savedSearch *gcpspanner.UserSavedSearch) *backend.SavedSearchResponse {
