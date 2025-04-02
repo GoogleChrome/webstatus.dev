@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"cloud.google.com/go/spanner"
@@ -74,10 +75,111 @@ func (m userSavedSearchBookmarkMapper) DeleteKey(key userSavedSearchBookmarkKey)
 	return spanner.Key{key.UserID, key.SavedSearchID}
 }
 
+var (
+	// ErrUserSearchBookmarkLimitExceeded indicates that the user already has
+	// reached the limit of saved searches that a given user can bookmark.
+	ErrUserSearchBookmarkLimitExceeded = errors.New("user bookmark limit reached")
+	// ErrOwnerCannotDeleteBookmark indicates that the user is the owner of the
+	// saved search and cannot delete the bookmark.
+	ErrOwnerCannotDeleteBookmark = errors.New("user is the owner of the saved search and cannot delete the bookmark")
+)
+
 func (c *Client) AddUserSearchBookmark(ctx context.Context, req UserSavedSearchBookmark) error {
-	return newEntityWriter[userSavedSearchBookmarkMapper](c).upsert(ctx, req)
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// 1. Check if search id exists for this user
+		_, err := newEntityReader[
+			authenticatedUserSavedSearchMapper,
+			UserSavedSearch,
+			authenticatedUserSavedSearchMapperKey,
+		](c).readRowByKeyWithTransaction(ctx, authenticatedUserSavedSearchMapperKey{
+			UserID: req.UserID,
+			ID:     req.SavedSearchID,
+		}, txn)
+		if err != nil {
+			return err
+		}
+
+		// 2. Read the current count of bookmarks where the user is not the owner
+		var count int64
+		stmt := spanner.Statement{
+			SQL: fmt.Sprintf(`
+			SELECT COUNT(us.SavedSearchID)
+			FROM %s us
+			LEFT JOIN %s sr ON us.SavedSearchID = sr.SavedSearchID AND us.UserID = sr.UserID
+			WHERE us.UserID = @UserID AND (sr.UserRole != @Role OR sr.UserRole IS NULL);
+		`, userSavedSearchBookmarksTable, savedSearchUserRolesTable),
+			Params: map[string]interface{}{
+				"UserID": req.UserID,
+				"Role":   SavedSearchOwner,
+			},
+		}
+		row, err := txn.Query(ctx, stmt).Next()
+		if err != nil {
+			return err
+		}
+		if err := row.Columns(&count); err != nil {
+			return err
+		}
+
+		// 3. Check against the limit
+		if count >= int64(c.searchCfg.maxBookmarksPerUser) {
+			return ErrUserSearchBookmarkLimitExceeded
+		}
+
+		// 4. Insert the bookmark
+		return newEntityWriter[userSavedSearchBookmarkMapper](c).upsertWithTransaction(ctx, txn, req)
+	})
+
+	return err
 }
 
 func (c *Client) DeleteUserSearchBookmark(ctx context.Context, req UserSavedSearchBookmark) error {
-	return newEntityRemover[userSavedSearchBookmarkMapper, UserSavedSearchBookmark](c).remove(ctx, req)
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// 1. Check if search id exists for this user
+		_, err := newEntityReader[
+			authenticatedUserSavedSearchMapper,
+			UserSavedSearch,
+			authenticatedUserSavedSearchMapperKey,
+		](c).readRowByKeyWithTransaction(ctx, authenticatedUserSavedSearchMapperKey{
+			UserID: req.UserID,
+			ID:     req.SavedSearchID,
+		}, txn)
+		if err != nil {
+			return err
+		}
+
+		// 2. Check if the user is the owner of the saved search
+		var isOwner bool
+		stmt := spanner.Statement{
+			SQL: fmt.Sprintf(`
+				SELECT EXISTS(
+					SELECT 1
+					FROM %s
+					WHERE UserID = @UserID AND SavedSearchID = @SavedSearchID AND UserRole = @Role
+				)
+			`, savedSearchUserRolesTable),
+			Params: map[string]interface{}{
+				"UserID":        req.UserID,
+				"SavedSearchID": req.SavedSearchID,
+				"Role":          SavedSearchOwner,
+			},
+		}
+		row, err := txn.Query(ctx, stmt).Next()
+		if err != nil {
+			return err
+		}
+		if err := row.Columns(&isOwner); err != nil {
+			return err
+		}
+
+		if isOwner {
+			return ErrOwnerCannotDeleteBookmark
+		}
+
+		// 3. Delete the bookmark
+		return newEntityRemover[userSavedSearchBookmarkMapper, UserSavedSearchBookmark](c).
+			removeWithTransaction(ctx, txn, req)
+	})
+
+	return err
 }

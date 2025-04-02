@@ -121,10 +121,14 @@ func (w LocalBatchWriter) BatchWriteMutations(
 
 // searchConfig holds the application configuation for the saved search feature.
 type searchConfig struct {
+	// Max number saved searches per user.
 	maxOwnedSearchesPerUser uint32
+	// Max number of bookmarks per user (excluding the saved searches they own)
+	maxBookmarksPerUser uint32
 }
 
 const defaultMaxOwnedSearchesPerUser = 25
+const defaultMaxBookmarksPerUser = 25
 const defaultBatchSize = 10000
 const defaultBatchWriters = 8
 
@@ -193,7 +197,10 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		client,
 		GCPFeatureSearchBaseQuery{},
 		GCPMissingOneImplementationQuery{},
-		searchConfig{maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser},
+		searchConfig{
+			maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser,
+			maxBookmarksPerUser:     defaultMaxBookmarksPerUser,
+		},
 		bw,
 		defaultBatchSize,
 		defaultBatchWriters,
@@ -730,6 +737,7 @@ type entityRemover[
 }
 
 // remove performs an delete operation on an entity.
+// nolint: unused // TODO: Remove nolint directive once the method is used.
 func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) remove(ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
