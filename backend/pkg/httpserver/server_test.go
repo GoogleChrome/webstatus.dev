@@ -761,15 +761,6 @@ func (m *mockServerInterface) GetSavedSearch(ctx context.Context, _ backend.GetS
 	panic("unimplemented")
 }
 
-// GetUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: ireturn // WONTFIX - generated method signature
-func (m *mockServerInterface) GetUserSavedSearchBookmark(ctx context.Context,
-	_ backend.GetUserSavedSearchBookmarkRequestObject) (backend.GetUserSavedSearchBookmarkResponseObject, error) {
-	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
-	m.callCount++
-	panic("unimplemented")
-}
-
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListAggregatedFeatureSupport(ctx context.Context,

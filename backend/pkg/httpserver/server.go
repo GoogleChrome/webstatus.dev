@@ -137,17 +137,6 @@ type Server struct {
 	operationResponseCaches *operationResponseCaches
 }
 
-// GetUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) GetUserSavedSearchBookmark(
-	ctx context.Context, request backend.GetUserSavedSearchBookmarkRequestObject) (
-	backend.GetUserSavedSearchBookmarkResponseObject, error) {
-	return backend.GetUserSavedSearchBookmark400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-	}, nil
-}
-
 // PutUserSavedSearchBookmark implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
 func (s *Server) PutUserSavedSearchBookmark(

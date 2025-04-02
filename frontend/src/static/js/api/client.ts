@@ -72,6 +72,13 @@ type PageMetadataWithTotal = components['schemas']['PageMetadataWithTotal'];
 
 type ManualOffsetPagination = (offset: number) => string;
 
+export type UpdateSavedSearchInput = {
+  id: string;
+  name?: string;
+  description?: string | null;
+  query?: string;
+};
+
 /**
  * Iterable list of browsers we have data for.
  * This is the same as the items in the BrowsersParameter enum,
@@ -614,6 +621,143 @@ export class APIClient {
       throw createAPIError(error);
     }
 
+    return response.data;
+  }
+
+  public async removeSavedSearchByID(searchID: string, token: string) {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const response = await this.client.DELETE(
+      '/v1/saved-searches/{search_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  public async putUserSavedSearchBookmark(searchID: string, token: string) {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const response = await this.client.PUT(
+      '/v1/users/me/saved-searches/{search_id}/bookmark_status',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  public async removeUserSavedSearchBookmark(searchID: string, token: string) {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const response = await this.client.DELETE(
+      '/v1/users/me/saved-searches/{search_id}/bookmark_status',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  public async createSavedSearch(
+    token: string,
+    savedSearch: components['schemas']['SavedSearch'],
+  ): Promise<components['schemas']['SavedSearchResponse']> {
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/saved-searches'], 'post'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: savedSearch,
+      credentials: temporaryFetchOptions.credentials,
+    };
+    const response = await this.client.POST('/v1/saved-searches', options);
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+    return response.data;
+  }
+
+  public async updateSavedSearch(
+    savedSearch: UpdateSavedSearchInput,
+    token: string,
+  ): Promise<components['schemas']['SavedSearchResponse']> {
+    const req: components['schemas']['SavedSearchUpdateRequest'] = {
+      update_mask: [],
+    };
+    if (savedSearch.name !== undefined) {
+      req.update_mask.push('name');
+      req.name = savedSearch.name;
+    }
+    if (savedSearch.description !== undefined) {
+      req.update_mask.push('description');
+      req.description = savedSearch.description;
+    }
+    if (savedSearch.query !== undefined) {
+      req.update_mask.push('query');
+      req.query = savedSearch.query;
+    }
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/saved-searches/{search_id}'], 'patch'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        path: {
+          search_id: savedSearch.id,
+        },
+      },
+      body: req,
+      credentials: temporaryFetchOptions.credentials,
+    };
+    const response = await this.client.PATCH(
+      '/v1/saved-searches/{search_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
     return response.data;
   }
 }
