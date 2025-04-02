@@ -26,6 +26,10 @@ var (
 	// number of allowed saved searches.
 	ErrUserMaxSavedSearches = errors.New("user has reached the maximum number of allowed saved searches")
 
+	// ErrUserMaxBookmarks indicates the user has reached the maximum
+	// number of allowed bookmarks.
+	ErrUserMaxBookmarks = errors.New("user has reached the maximum number of allowed bookmarks")
+
 	// ErrUserNotAuthorizedForAction indicates the user is not authorized to execute the requested action.
 	ErrUserNotAuthorizedForAction = errors.New("user not authorized to execute action")
 
