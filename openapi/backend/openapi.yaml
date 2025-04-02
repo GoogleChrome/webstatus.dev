@@ -609,58 +609,12 @@ paths:
         required: true
         schema:
           type: string
-    get:
-      summary: Get a user's bookmark status
-      operationId: getUserSavedSearchBookmark
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserSavedSearchBookmark'
-        '400':
-          description: Bad Input
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BasicErrorModel'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BasicErrorModel'
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BasicErrorModel'
-        '404':
-          description: Not Found (saved search does not exist)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BasicErrorModel'
-        '500':
-          description: Internal Service Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/BasicErrorModel'
     put:
       summary: Add bookmark status for a particular saved search.
       operationId: putUserSavedSearchBookmark
       responses:
         '200':
           description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserSavedSearchBookmark'
         '400':
           description: Bad Input
           content:
