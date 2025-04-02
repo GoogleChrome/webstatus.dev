@@ -123,24 +123,18 @@ type WPTMetricsStorer interface {
 		pageSize int,
 		pageToken *string,
 	) (*backend.UserSavedSearchPage, error)
+	UpdateUserSavedSearch(
+		ctx context.Context,
+		savedSearchID string,
+		userID string,
+		savedSearch *backend.SavedSearchUpdateRequest,
+	) (*backend.SavedSearchResponse, error)
 }
 
 type Server struct {
 	metadataStorer          WebFeatureMetadataStorer
 	wptMetricsStorer        WPTMetricsStorer
 	operationResponseCaches *operationResponseCaches
-}
-
-// UpdateSavedSearch implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) UpdateSavedSearch(
-	ctx context.Context, request backend.UpdateSavedSearchRequestObject) (
-	backend.UpdateSavedSearchResponseObject, error) {
-	return backend.UpdateSavedSearch400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-		Errors:  nil,
-	}, nil
 }
 
 // GetUserSavedSearchBookmark implements backend.StrictServerInterface.

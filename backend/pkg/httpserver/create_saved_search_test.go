@@ -194,6 +194,26 @@ func TestCreateSavedSearch(t *testing.T) {
 				}`),
 		},
 		{
+			name:                            "missing body creation error",
+			mockCreateUserSavedSearchConfig: nil,
+			authMiddlewareOption:            withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequest(
+				http.MethodPost,
+				"/v1/saved-searches",
+				strings.NewReader(`{}`),
+			),
+			expectedResponse: testJSONResponse(400,
+				`{
+					"code":400,
+					"errors":{
+						"name":"name must be between 1 and 32 characters long",
+						"query":"query must be between 1 and 256 characters long"
+					},
+					"message":"input validation errors"
+				}`,
+			),
+		},
+		{
 			name: "general creation error",
 			mockCreateUserSavedSearchConfig: &MockCreateUserSavedSearchConfig{
 				expectedSavedSearch: backend.SavedSearch{

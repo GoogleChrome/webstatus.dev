@@ -61,28 +61,71 @@ func (f fieldValidationErrors) hasErrors() bool {
 	return len(f.fieldErrorMap) > 0
 }
 
+// validateSavedSearchName checks the validity of the saved search name.
+// It expects a pointer to handle potential nil values during updates.
+func validateSavedSearchName(name *string, fieldErrors *fieldValidationErrors) {
+	if name == nil {
+		// Treat nil as invalid if validation is requested
+		fieldErrors.addFieldError("name", errSavedSearchInvalidNameLength)
+
+		return
+	}
+	if len(*name) < savedSearchNameMinLength || len(*name) > savedSearchNameMaxLength {
+		fieldErrors.addFieldError("name", errSavedSearchInvalidNameLength)
+	}
+}
+
+// validateSavedSearchQuery checks the validity of the saved search query.
+// It expects a pointer to handle potential nil values during updates.
+func validateSavedSearchQuery(query *string, fieldErrors *fieldValidationErrors) {
+	if query == nil {
+		fieldErrors.addFieldError("query", errSavedSearchInvalidQueryLength)
+
+		return
+	}
+
+	if len(*query) < savedSearchQueryMinLength || len(*query) > savedSearchQueryMaxLength {
+		fieldErrors.addFieldError("query", errSavedSearchInvalidQueryLength)
+
+		return
+	}
+
+	// Only parse if length is okay
+	parser := searchtypes.FeaturesSearchQueryParser{}
+	_, err := parser.Parse(*query)
+	if err != nil {
+		fieldErrors.addFieldError("query", errQueryDoesNotMatchGrammar)
+	}
+
+}
+
+// validateSavedSearchDescription checks the validity of the saved search description.
+// Description is optional, so nil is allowed. Validation only occurs if non-nil.
+func validateSavedSearchDescription(description *string, fieldErrors *fieldValidationErrors) {
+	// If description is nil, it's considered valid (optional field).
+	if description == nil {
+		return
+	}
+
+	// If description is provided (non-nil), validate its length.
+	if len(*description) < savedSearchNameDescriptionMinLength ||
+		len(*description) > savedSearchNameDescriptionMaxLength {
+		fieldErrors.addFieldError("description", errSavedSearchInvalidDescriptionLength)
+	}
+}
+
 func validateSavedSearch(input *backend.SavedSearch) *fieldValidationErrors {
 	fieldErrors := &fieldValidationErrors{fieldErrorMap: nil}
 
-	if len(input.Name) < savedSearchNameMinLength || len(input.Name) > savedSearchNameMaxLength {
-		fieldErrors.addFieldError("name", errSavedSearchInvalidNameLength)
-	}
+	// Validate Name (using address of the string field)
+	validateSavedSearchName(&input.Name, fieldErrors)
 
-	if len(input.Query) < savedSearchQueryMinLength || len(input.Query) > savedSearchQueryMaxLength {
-		fieldErrors.addFieldError("query", errSavedSearchInvalidQueryLength)
-	} else {
-		parser := searchtypes.FeaturesSearchQueryParser{}
-		_, err := parser.Parse(input.Query)
-		if err != nil {
-			fieldErrors.addFieldError("query", errQueryDoesNotMatchGrammar)
-		}
+	// Validate Query (using address of the string field)
+	validateSavedSearchQuery(&input.Query, fieldErrors)
 
-	}
+	// Validate Description (already a pointer)
+	validateSavedSearchDescription(input.Description, fieldErrors)
 
-	if input.Description != nil && (len(*input.Description) < savedSearchNameDescriptionMinLength ||
-		len(*input.Description) > savedSearchNameDescriptionMaxLength) {
-		fieldErrors.addFieldError("description", errSavedSearchInvalidDescriptionLength)
-	}
 	if fieldErrors.hasErrors() {
 		return fieldErrors
 	}

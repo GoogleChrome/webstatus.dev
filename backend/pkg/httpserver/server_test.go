@@ -193,6 +193,14 @@ type MockListUserSavedSeachesConfig struct {
 	err               error
 }
 
+type MockUpdateUserSavedSearchConfig struct {
+	expectedSavedSearchID string
+	expectedUserID        string
+	expectedUpdateRequest *backend.SavedSearchUpdateRequest
+	output                *backend.SavedSearchResponse
+	err                   error
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
@@ -208,6 +216,7 @@ type MockWPTMetricsStorer struct {
 	deleteUserSavedSearchCfg                          *MockDeleteUserSavedSearchConfig
 	getSavedSearchCfg                                 *MockGetSavedSearchConfig
 	listUserSavedSearchesCfg                          *MockListUserSavedSeachesConfig
+	updateUserSavedSearchCfg                          *MockUpdateUserSavedSearchConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -222,6 +231,7 @@ type MockWPTMetricsStorer struct {
 	callCountDeleteUserSavedSearch                    int
 	callCountGetSavedSearch                           int
 	callCountListUserSavedSearches                    int
+	callCountUpdateUserSavedSearch                    int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -492,6 +502,29 @@ func (m *MockWPTMetricsStorer) DeleteUserSavedSearch(
 	}
 
 	return m.deleteUserSavedSearchCfg.err
+}
+
+func (m *MockWPTMetricsStorer) UpdateUserSavedSearch(
+	_ context.Context,
+	savedSearchID string,
+	userID string,
+	req *backend.SavedSearchUpdateRequest,
+) (*backend.SavedSearchResponse, error) {
+	m.callCountUpdateUserSavedSearch++
+
+	if savedSearchID != m.updateUserSavedSearchCfg.expectedSavedSearchID ||
+		userID != m.updateUserSavedSearchCfg.expectedUserID ||
+		!reflect.DeepEqual(req, m.updateUserSavedSearchCfg.expectedUpdateRequest) {
+		m.t.Errorf("Incorrect arguments. Expected: ( %s %s %v ), Got: { %s %s %v}",
+			m.updateUserSavedSearchCfg.expectedSavedSearchID,
+			m.updateUserSavedSearchCfg.expectedUserID,
+			m.updateUserSavedSearchCfg.expectedUpdateRequest,
+			savedSearchID,
+			userID,
+			req)
+	}
+
+	return m.updateUserSavedSearchCfg.output, m.updateUserSavedSearchCfg.err
 }
 
 func (m *MockWPTMetricsStorer) ListUserSavedSearches(
