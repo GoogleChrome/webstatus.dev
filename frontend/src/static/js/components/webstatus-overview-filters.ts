@@ -22,10 +22,10 @@ import {
   css,
   html,
   PropertyValueMap,
+  nothing,
 } from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
-import {ref, createRef} from 'lit/directives/ref.js';
 import {
   formatOverviewPageUrl,
   getColumnsSpec,
@@ -65,92 +65,33 @@ import {
   AppBookmarkInfo,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
+import {SlPopup} from '@shoelace-style/shoelace';
+import {
+  Bookmark,
+  BookmarkOwnerRole,
+  BookmarkStatusActive,
+  VOCABULARY,
+} from '../utils/constants.js';
+import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
+
+import './webstatus-saved-search-editor.js';
+import {User} from 'firebase/auth';
+import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
 
-const VOCABULARY = [
-  {
-    name: 'available_date:chrome:2023-01-01..2024-01-01',
-    doc: 'Became available on Chrome between the given dates',
-  },
-  {
-    name: 'available_date:edge:2023-01-01..2024-01-01',
-    doc: 'Became available on Edge between the given dates',
-  },
-  {
-    name: 'available_date:firefox:2023-01-01..2024-01-01',
-    doc: 'Became available on Firefox between the given dates',
-  },
-  {
-    name: 'available_date:safari:2023-01-01..2024-01-01',
-    doc: 'Became available on Safari between the given dates',
-  },
-  {
-    name: 'available_on:chrome',
-    doc: 'Features available on Chrome',
-  },
-  {
-    name: 'available_on:edge',
-    doc: 'Features available on Edge',
-  },
-  {
-    name: 'available_on:firefox',
-    doc: 'Features available on Firefox',
-  },
-  {
-    name: 'available_on:safari',
-    doc: 'Features available on Safari',
-  },
-  {
-    name: 'baseline_date:2023-01-01..2024-01-01',
-    doc: 'Reached baseline between the given dates',
-  },
-  {
-    name: 'baseline_status:limited',
-    doc: 'Features that are not yet in baseline',
-  },
-  {
-    name: 'baseline_status:newly',
-    doc: 'Features newly added to baseline',
-  },
-  {
-    name: 'baseline_status:widely',
-    doc: 'Features in baseline and widely available',
-  },
-  {
-    name: 'group:',
-    doc: 'Features in a group or its descendants. E.g., group:css',
-  },
-  {
-    name: 'snapshot:',
-    doc: 'Features in a snapshot. E.g., snapshot:ecmascript-5',
-  },
-  {
-    name: 'name:',
-    doc: 'Find by substring of the name. E.g., name:grid',
-  },
-  {
-    name: 'name:"a substring"',
-    doc: 'Find by substring of the name. E.g., name:"CSS Grid"',
-  },
-  {
-    name: 'id:',
-    doc: 'Find by its feature identifier . E.g., id:html',
-  },
-  {
-    name: 'OR',
-    doc: 'Combine query terms with a logical-OR',
-  },
-  {
-    name: '-',
-    doc: 'Negate search term with a leading minus',
-  },
-];
-
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
-  typeaheadRef = createRef();
+  @query('webstatus-typeahead')
+  typeaheadRef!: WebstatusTypeahead;
+
+  @query('sl-popup')
+  popup!: SlPopup;
+
+  @query('webstatus-saved-search-editor')
+  savedSearchEditor!: WebstatusSavedSearchEditor;
+
   @consume({context: apiClientContext})
   @state()
   apiClient?: APIClient;
@@ -162,7 +103,13 @@ export class WebstatusOverviewFilters extends LitElement {
   @state()
   appBookmarkInfo?: AppBookmarkInfo;
 
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user: User | null | undefined;
+
   _activeQuery: string = '';
+
+  _activeBookmark?: Bookmark | undefined;
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -239,6 +186,10 @@ export class WebstatusOverviewFilters extends LitElement {
         this.appBookmarkInfo,
         this.location,
       );
+      this._activeBookmark = bookmarkHelpers.getCurrentBookmark(
+        this.appBookmarkInfo,
+        this.location,
+      );
     }
   }
 
@@ -253,13 +204,13 @@ export class WebstatusOverviewFilters extends LitElement {
     if (e.key === '/' && !inInputContext) {
       e.preventDefault();
       e.stopPropagation();
-      (this.typeaheadRef?.value as WebstatusTypeahead).focus();
+      this.typeaheadRef?.focus();
     }
   };
 
   gotoFilterQueryString(): void {
     const newUrl = formatOverviewPageUrl(this.location, {
-      q: (this.typeaheadRef.value as WebstatusTypeahead).value,
+      q: this.typeaheadRef.value,
       start: 0,
     });
     navigateToUrl(newUrl);
@@ -423,7 +374,6 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <webstatus-typeahead
         id="filter-input-input"
-        ${ref(this.typeaheadRef)}
         class="halign-stretch"
         placeholder="Filter by ..."
         value="${input}"
@@ -444,7 +394,110 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-icon slot="prefix" name="search"></sl-icon>
         </sl-button>
       </webstatus-typeahead>
+      ${this.user ? this.renderSavedSearchControls() : nothing}
     `;
+  }
+
+  renderSavedSearchControls(): TemplateResult {
+    let bookmarkStatusIcon: 'star-fill' | 'star' = 'star';
+    let bookmarkTooltipText: string = 'Bookmark the saved search';
+    let bookmarkTooltipLabel: string = 'Bookmark';
+    let bookmarkButtonDisabled: boolean = false;
+    if (
+      this._activeBookmark?.bookmark_status?.status === BookmarkStatusActive
+    ) {
+      bookmarkStatusIcon = 'star-fill';
+      bookmarkTooltipText = 'Unbookmark the saved search';
+      bookmarkTooltipLabel = 'Unbookmark';
+    }
+    const isOwner =
+      this._activeBookmark?.permissions?.role === BookmarkOwnerRole;
+    if (isOwner) {
+      bookmarkButtonDisabled = true;
+      bookmarkTooltipText =
+        'Users cannot remove the bookmark for saved searches they own';
+    }
+    return html`
+      <sl-popup
+        placement="top-end"
+        autoSize="horizontal"
+        distance="5"
+        active
+        .anchor=${this.typeaheadRef}
+      >
+        <div slot="anchor" class="popup-anchor saved-search-controls"></div>
+        <div class="popup-content">
+          <sl-tooltip content="Create a new saved search">
+            <sl-icon-button
+              name="floppy"
+              label="Save"
+              @click=${() => this.openNewSavedSearchDialog()}
+            ></sl-icon-button>
+          </sl-tooltip>
+          <sl-tooltip content="Copy saved search URL to clipboard">
+            <sl-icon-button name="share" label="Share"></sl-icon-button>
+          </sl-tooltip>
+          <sl-tooltip content="${bookmarkTooltipText}">
+            <sl-icon-button
+              name="${bookmarkStatusIcon}"
+              label="${bookmarkTooltipLabel}"
+              .disabled=${bookmarkButtonDisabled}
+            ></sl-icon-button>
+          </sl-tooltip>
+          ${isOwner
+            ? html`
+                <sl-tooltip content="Edit current saved search">
+                  <sl-icon-button
+                    name="pencil"
+                    label="Edit"
+                    @click=${() => this.openEditSavedSearchDialog()}
+                  ></sl-icon-button>
+                </sl-tooltip>
+                <sl-tooltip content="Delete saved search">
+                  <sl-icon-button
+                    name="trash"
+                    label="Delete"
+                    @click=${() => this.openDeleteSavedSearchDialog()}
+                  ></sl-icon-button>
+                </sl-tooltip>
+              `
+            : nothing}
+        </div>
+      </sl-popup>
+      <webstatus-saved-search-editor
+        @bookmark-saved=${this.handleBookmarkSaved}
+        @bookmark-deleted=${this.handleBookmarkDeleted}
+        @bookmark-cancelled=${this.handleBookmarkCancelled}
+      ></webstatus-saved-search-editor>
+    `;
+  }
+
+  handleBookmarkSaved(event: CustomEvent<Bookmark>) {
+    const savedBookmark = event.detail;
+    console.log('Bookmark saved:', savedBookmark);
+    // Update your bookmark list here
+  }
+
+  handleBookmarkDeleted(event: CustomEvent<string>) {
+    const deletedBookmarkId = event.detail;
+    console.log('Bookmark deleted:', deletedBookmarkId);
+    // Update your bookmark list here
+  }
+
+  handleBookmarkCancelled() {
+    console.log('Bookmark operation cancelled.');
+  }
+
+  async openNewSavedSearchDialog() {
+    await this.savedSearchEditor.open('save', undefined);
+  }
+
+  async openEditSavedSearchDialog() {
+    await this.savedSearchEditor.open('edit', this._activeBookmark);
+  }
+
+  async openDeleteSavedSearchDialog() {
+    await this.savedSearchEditor.open('delete', this._activeBookmark);
   }
 
   renderExportButton(): TemplateResult {

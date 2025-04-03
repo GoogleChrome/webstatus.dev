@@ -26,6 +26,9 @@ export type BookmarkPermissions =
   components['schemas']['UserSavedSearchPermissions'];
 export const BookmarkOwnerRole: components['schemas']['UserSavedSearchPermissions']['role'] =
   'saved_search_owner';
+export type BookmarkStatus = components['schemas']['UserSavedSearchBookmark'];
+export const BookmarkStatusActive: components['schemas']['UserSavedSearchBookmark']['status'] =
+  'bookmark_active';
 
 export interface Bookmark {
   // Bookmark display name
@@ -42,6 +45,8 @@ export interface Bookmark {
   id?: string;
   // Permissions
   permissions?: BookmarkPermissions;
+  // Bookmark status
+  bookmark_status?: BookmarkStatus;
 }
 
 export const DEFAULT_BOOKMARKS: Bookmark[] = [
@@ -92,5 +97,84 @@ export const DEFAULT_BOOKMARKS: Bookmark[] = [
       "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements.",
     is_ordered: true,
     override_num_param: 25,
+  },
+];
+
+export const VOCABULARY = [
+  {
+    name: 'available_date:chrome:2023-01-01..2024-01-01',
+    doc: 'Became available on Chrome between the given dates',
+  },
+  {
+    name: 'available_date:edge:2023-01-01..2024-01-01',
+    doc: 'Became available on Edge between the given dates',
+  },
+  {
+    name: 'available_date:firefox:2023-01-01..2024-01-01',
+    doc: 'Became available on Firefox between the given dates',
+  },
+  {
+    name: 'available_date:safari:2023-01-01..2024-01-01',
+    doc: 'Became available on Safari between the given dates',
+  },
+  {
+    name: 'available_on:chrome',
+    doc: 'Features available on Chrome',
+  },
+  {
+    name: 'available_on:edge',
+    doc: 'Features available on Edge',
+  },
+  {
+    name: 'available_on:firefox',
+    doc: 'Features available on Firefox',
+  },
+  {
+    name: 'available_on:safari',
+    doc: 'Features available on Safari',
+  },
+  {
+    name: 'baseline_date:2023-01-01..2024-01-01',
+    doc: 'Reached baseline between the given dates',
+  },
+  {
+    name: 'baseline_status:limited',
+    doc: 'Features that are not yet in baseline',
+  },
+  {
+    name: 'baseline_status:newly',
+    doc: 'Features newly added to baseline',
+  },
+  {
+    name: 'baseline_status:widely',
+    doc: 'Features in baseline and widely available',
+  },
+  {
+    name: 'group:',
+    doc: 'Features in a group or its descendants. E.g., group:css',
+  },
+  {
+    name: 'snapshot:',
+    doc: 'Features in a snapshot. E.g., snapshot:ecmascript-5',
+  },
+  {
+    name: 'name:',
+    doc: 'Find by substring of the name. E.g., name:grid',
+  },
+  {
+    name: 'name:"a substring"',
+    doc: 'Find by substring of the name. E.g., name:"CSS Grid"',
+  },
+  {
+    name: 'id:',
+    doc: 'Find by its feature identifier . E.g., id:html',
+  },
+  {
+    name: 'OR',
+    doc: 'Combine query terms with a logical-OR',
+  },
+  {
+    name: '-',
+    doc: 'Negate search term with a leading minus',
   },
 ];

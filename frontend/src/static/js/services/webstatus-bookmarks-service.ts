@@ -243,8 +243,13 @@ export class WebstatusBookmarksService extends ServiceElement {
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('_currentLocation') ||
-      changedProperties.has('apiClient')
+      changedProperties.has('apiClient') ||
+      changedProperties.has('user')
     ) {
+      // If the user's status has not been decided yet, wait
+      if (this.user === undefined) {
+        return;
+      }
       const incomingSearchID = this.getSearchID(
         this._currentLocation ?? {search: '', href: '', pathname: ''},
       );
