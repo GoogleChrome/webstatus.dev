@@ -116,9 +116,10 @@ func getUsers() []User {
 			EmailVerified: true,
 			UserID:        "abcdedf1234567892",
 		},
+		// This user should have no data and should be used to replicate the experience of a newly logged in user.
 		{
-			Name:          "test user 3",
-			Email:         "test.user.3@example.com",
+			Name:          "fresh user",
+			Email:         "fresh.user@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567893",
 		},
