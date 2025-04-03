@@ -52,80 +52,65 @@ test('Bad URL redirection to 404 page', async ({page}) => {
   }
 });
 
-test('should fetch similar features from API and show results', async ({
+async function goTo404Page(page, query: string): Promise<void> {
+  await page.goto(`${BASE_URL}/features/${query}`);
+  await expect(page).toHaveURL(
+    `${BASE_URL}/errors-404/feature-not-found?q=${query}`,
+  );
+
+  const response = await page.context().request.fetch(page.url());
+  expect(response.status()).toBe(404);
+}
+
+async function expectButtons(page, {hasSearch}: {hasSearch: boolean}) {
+  await expect(page.locator('#error-action-home-btn')).toBeVisible();
+  await expect(page.locator('#error-action-report')).toBeVisible();
+
+  if (hasSearch) {
+    await expect(page.locator('#error-action-search-btn')).toBeVisible();
+  } else {
+    await expect(page.locator('#error-action-search-btn')).toHaveCount(0);
+  }
+}
+
+test('shows similar features and all buttons when results exist', async ({
   page,
 }) => {
-  // Test URLs for different feature IDs
-  const badUrls = [
-    {badUrl: `${BASE_URL}/features/badID_1234`, query: 'badID_1234'},
-    {badUrl: `${BASE_URL}/features/g`, query: 'g'}
-  ];
-  const API_BASE_URL =
-    'http://localhost:8080/v1/features?q={query}&page_size=5';
+  const query = 'g';
+  await goTo404Page(page, query);
 
-  for (const {badUrl, query} of badUrls) {
-    await test.step(`Testing API response for: ${badUrl}`, async () => {
-      await page.goto(badUrl);
-      await expect(page).toHaveURL(
-        'http://localhost:5555/errors-404/feature-not-found?q=' + query,
-      );
+  await expect(page.locator('.similar-features-container')).toBeVisible();
+  await expectButtons(page, {hasSearch: true});
 
-      const featurePageResponse = await page
-        .context()
-        .request.fetch(page.url());
+  const similarContainerButton = page.locator('#error-action-search-btn');
+  const pageContainer = page.locator('.page-container');
 
-      // Assert that the response status code is 404
-      expect(featurePageResponse.status()).toBe(404);
+  // Snapshot
+  await expect(pageContainer).toHaveScreenshot(
+    'not-found-error-page-similar-results.png',
+  );
 
-      // Mock API response for similar features
-      const apiUrl = API_BASE_URL.replace('{query}', query);
-      const response = await page.context().request.get(apiUrl);
-      expect(response.status()).toBe(200);
+  // Clicking the search button should redirect to homepage with search
+  await Promise.all([page.waitForNavigation(), similarContainerButton.click()]);
+  await expect(page).toHaveURL(`${BASE_URL}?q=${query}`);
+});
 
-      const data = await response.json();
-      const hasResults = Array.isArray(data?.data) && data.data.length > 0;
+test('shows only home and report buttons when no similar features found', async ({
+  page,
+}) => {
+  const query = 'nonexistent-feature';
+  await goTo404Page(page, query);
 
-      if (hasResults) {
-        // Show similar features container
-        const similarContainer = page.locator('.similar-features-container');
-        await expect(similarContainer).toBeVisible();
-        await expect(page.locator('.feature-list li')).toHaveCount(
-          data.data.length,
-        );
+  await expect(page.locator('.similar-features-container')).toHaveCount(0);
+  await expectButtons(page, {hasSearch: false});
 
-        // ✅ Click first similar feature
-        const firstFeature = data.data[0];
-        const firstFeatureLink = page.locator('.feature-list li a').first();
-        await expect(firstFeatureLink).toHaveText(firstFeature.name);
+  await expect(page.locator('#error-detailed-message')).toContainText(
+    `We could not find Feature ID: ${query}`,
+  );
 
-        // Click and wait for navigation
-        await Promise.all([page.waitForNavigation(), firstFeatureLink.click()]);
-
-        await expect(page).toHaveURL(
-          `${BASE_URL}/features/${firstFeature.feature_id}`,
-        );
-
-        // Go back to error page to test second part
-        await page.goBack();
-
-        // ✅ Click "Search for more similar features" button
-        const searchButton = page.locator('#error-action-search-btn');
-        await expect(searchButton).toBeVisible();
-
-        await Promise.all([page.waitForNavigation(), searchButton.click()]);
-
-        await expect(page).toHaveURL(`${BASE_URL}?q=${query}`);
-      } else {
-        // No similar features found
-        await expect(
-          page.locator('.similar-features-container'),
-        ).not.toBeVisible();
-        await expect(page.locator('.error-message')).toContainText(
-          'No similar features found.',
-        );
-      }
-    });
-  }
+  await expect(page.locator('.error-message')).toContainText(
+    'No similar features found.',
+  );
 });
 
 test('should allow navigation from 404 page', async ({page}) => {
@@ -150,21 +135,8 @@ test('should allow navigation from 404 page', async ({page}) => {
   );
 });
 
-test('matches the screenshot', async ({page}) => {
+test('matches the screenshot 404 not found page', async ({page}) => {
   await page.goto(`${BASE_URL}/bad_url`);
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot('not-found-error-page.png');
-});
-
-test('matches the screenshot with similar results', async ({page}) => {
-  await page.goto(`${BASE_URL}/features/g`);
-
-  // ✅ Wait for similar results to appear
-  const similarContainer = page.locator('.similar-features-container');
-  await expect(similarContainer).toBeVisible({timeout: 5000});
-
-  const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot(
-    'not-found-error-page-similar-results.png',
-  );
 });

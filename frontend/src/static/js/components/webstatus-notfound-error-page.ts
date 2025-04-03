@@ -21,12 +21,15 @@ import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 import {getSearchQuery, formatFeaturePageUrl} from '../utils/urls.js';
 import {consume} from '@lit/context';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
-import {Task, TaskStatus} from '@lit/task';
+import {Task} from '@lit/task';
 import {FeatureSortOrderType} from '../api/client.js';
+import {Toast} from '../utils/toast.js';
+
+type SimilarFeature = {name: string; url: string};
 
 @customElement('webstatus-not-found-error-page')
 export class WebstatusNotFoundErrorPage extends LitElement {
-  _loadingSimilarResults?: Task;
+  _similarResults?: Task<[APIClient, string], SimilarFeature[]>;
 
   @property({type: Object})
   location!: {search: string}; // Set by router.
@@ -35,39 +38,40 @@ export class WebstatusNotFoundErrorPage extends LitElement {
   @state()
   apiClient!: APIClient;
 
-  @state()
-  similarFeatures: {name: string; url: string}[] = [];
-
   constructor() {
     super();
-    this._loadingSimilarResults = new Task(this, {
-      args: () => [this.apiClient, getSearchQuery(this.location)],
-      task: async ([apiClient, featureId]) => {
-        if (!featureId) {
-          this.similarFeatures = [];
-          return;
-        }
-        try {
-          const response = await apiClient.getFeatures(
-            featureId,
-            '' as FeatureSortOrderType,
-            undefined,
-            0,
-            5,
-          );
-          const data = response.data;
-          this.similarFeatures = Array.isArray(data)
-            ? data.map(f => ({
-                name: f.name,
-                url: formatFeaturePageUrl(f),
-              }))
-            : [];
-        } catch (fetchError) {
-          console.error('Error fetching similar features:', fetchError);
-          this.similarFeatures = [];
-        }
+    this._similarResults = new Task<[APIClient, string], SimilarFeature[]>(
+      this,
+      {
+        args: () => [this.apiClient, getSearchQuery(this.location)],
+        task: async ([apiClient, featureId]) => {
+          if (!featureId) return [];
+          try {
+            const response = await apiClient.getFeatures(
+              featureId,
+              '' as FeatureSortOrderType,
+              undefined,
+              0,
+              5,
+            );
+            const data = response.data;
+            return Array.isArray(data)
+              ? data.map(f => ({
+                  name: f.name,
+                  url: formatFeaturePageUrl(f),
+                }))
+              : [];
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : 'An unknown error occurred';
+            await new Toast().toast(message, 'danger', 'exclamation-triangle');
+            return [];
+          }
+        },
       },
-    });
+    );
   }
 
   static get styles(): CSSResultGroup {
@@ -146,20 +150,29 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           text-decoration: underline;
           color: #0056b3;
         }
+        .gap-16 {
+          gap: 16px;
+        }
+        .gap-32 {
+          gap: 32px;
+        }
+        .gap-48 {
+          gap: 48px;
+        }
       `,
     ];
   }
 
   protected render(): TemplateResult {
     const featureId = getSearchQuery(this.location);
+    const taskState = this._similarResults?.value;
+    const hasSimilar = Array.isArray(taskState) && taskState.length > 0;
 
-    console.log('hello', featureId);
+    const containerGapClass = hasSimilar ? 'gap-32' : 'gap-48';
+    const actionsGapClass = featureId && hasSimilar ? 'gap-16' : 'gap-32';
 
     return html`
-      <div
-        id="error-container"
-        style="gap: ${this.similarFeatures.length > 0 ? '32px' : '48px'};"
-      >
+      <div id="error-container" class=${containerGapClass}>
         <div id="error-header">
           <div id="error-status-code">404</div>
           <div id="error-headline">Page not found</div>
@@ -175,19 +188,22 @@ export class WebstatusNotFoundErrorPage extends LitElement {
         </div>
 
         ${featureId
-          ? html`
-              ${this._loadingSimilarResults?.status === TaskStatus.PENDING
-                ? html`<p class="loading-message">
-                    Loading similar features...
-                  </p>`
-                : this.similarFeatures.length > 0
+          ? this._similarResults?.render({
+              initial: () =>
+                html`<p class="loading-message">Preparing search...</p>`,
+              pending: () =>
+                html`<p class="loading-message">
+                  Loading similar features...
+                </p>`,
+              complete: features =>
+                features?.length > 0
                   ? html`
                       <div class="similar-features-container">
                         <p class="similar-results-header">
                           Here are some similar features:
                         </p>
                         <ul class="feature-list">
-                          ${this.similarFeatures.map(
+                          ${features.map(
                             f =>
                               html`<li><a href="${f.url}">${f.name}</a></li>`,
                           )}
@@ -196,17 +212,16 @@ export class WebstatusNotFoundErrorPage extends LitElement {
                     `
                   : html`<p class="error-message">
                       No similar features found.
-                    </p>`}
-            `
+                    </p>`,
+              error: error =>
+                html`<p class="error-message">
+                  Oops, something went wrong: ${error}
+                </p>`,
+            })
           : ''}
 
-        <div
-          id="error-actions"
-          style="gap: ${featureId && this.similarFeatures.length > 0
-            ? '16px'
-            : '32px'};"
-        >
-          ${featureId && this.similarFeatures.length > 0
+        <div id="error-actions" class=${actionsGapClass}>
+          ${featureId && hasSimilar
             ? html`
                 <sl-button
                   id="error-action-search-btn"
@@ -217,7 +232,11 @@ export class WebstatusNotFoundErrorPage extends LitElement {
                 </sl-button>
               `
             : ''}
-          <sl-button id="error-action-home-btn" variant="default" href="/">
+          <sl-button
+            id="error-action-home-btn"
+            variant=${!hasSimilar ? 'primary' : 'default'}
+            href="/"
+          >
             Go back home
           </sl-button>
           <sl-button
