@@ -269,7 +269,7 @@ export class APIClient {
       );
 
       nextPageToken = page?.metadata?.next_page_token;
-      allData.push(...page.data);
+      allData.push(...(page.data ?? []));
       offset += (page.data || []).length;
     } while (nextPageToken !== undefined);
 

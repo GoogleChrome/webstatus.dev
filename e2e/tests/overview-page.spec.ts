@@ -15,7 +15,11 @@
  */
 
 import {test, expect, Request} from '@playwright/test';
-import {gotoOverviewPageUrl, getOverviewPageFeatureCount} from './utils';
+import {
+  gotoOverviewPageUrl,
+  getOverviewPageFeatureCount,
+  loginAsUser,
+} from './utils';
 
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
@@ -256,6 +260,12 @@ test('Typing slash focuses on searchbox', async ({page}) => {
   // The slash focuses on the searchbox.
   // Later characters, including slashes, go in the searchbox.
   await expect(searchbox).toHaveAttribute('value', 'def/ghi');
+});
+
+test('newly logged in user should see no errors (toasts)', async ({page}) => {
+  await loginAsUser(page, 'fresh user');
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  await expect(page.locator('.toast')).toHaveCount(0);
 });
 
 test.describe('saved searches', () => {
