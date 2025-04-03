@@ -25,6 +25,12 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
+func createTestID1User() *auth.User {
+	return &auth.User{
+		ID: "testID1",
+	}
+}
+
 // TODO: Move recoveryMiddleware into the lib directory to actually be used by the real server.
 func recoveryMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {

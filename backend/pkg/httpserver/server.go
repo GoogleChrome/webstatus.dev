@@ -129,34 +129,22 @@ type WPTMetricsStorer interface {
 		userID string,
 		savedSearch *backend.SavedSearchUpdateRequest,
 	) (*backend.SavedSearchResponse, error)
+	PutUserSavedSearchBookmark(
+		ctx context.Context,
+		userID string,
+		savedSearchID string,
+	) error
+	RemoveUserSavedSearchBookmark(
+		ctx context.Context,
+		userID string,
+		savedSearchID string,
+	) error
 }
 
 type Server struct {
 	metadataStorer          WebFeatureMetadataStorer
 	wptMetricsStorer        WPTMetricsStorer
 	operationResponseCaches *operationResponseCaches
-}
-
-// PutUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) PutUserSavedSearchBookmark(
-	ctx context.Context, request backend.PutUserSavedSearchBookmarkRequestObject) (
-	backend.PutUserSavedSearchBookmarkResponseObject, error) {
-	return backend.PutUserSavedSearchBookmark400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-	}, nil
-}
-
-// RemoveUserSavedSearchBookmark implements backend.StrictServerInterface.
-// nolint: revive, ireturn // Name generated from openapi
-func (s *Server) RemoveUserSavedSearchBookmark(
-	ctx context.Context, request backend.RemoveUserSavedSearchBookmarkRequestObject) (
-	backend.RemoveUserSavedSearchBookmarkResponseObject, error) {
-	return backend.RemoveUserSavedSearchBookmark400JSONResponse{
-		Code:    http.StatusBadRequest,
-		Message: "TODO",
-	}, nil
 }
 
 func defaultBrowsers() []backend.BrowserPathParam {
