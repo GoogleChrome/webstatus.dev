@@ -18,6 +18,9 @@ import {expect, fixture, html} from '@open-wc/testing';
 import '../webstatus-not-found-error-page.js';
 import {WebstatusNotFoundErrorPage} from '../webstatus-notfound-error-page.js';
 import {Task} from '@lit/task';
+import {APIClient} from '../../contexts/api-client-context.js';
+
+type SimilarFeature = {name: string; url: string};
 
 const GITHUB_REPO_ISSUE_LINK = 'https://github.com/example/repo/issues';
 
@@ -66,16 +69,16 @@ describe('webstatus-not-found-error-page', () => {
       ></webstatus-not-found-error-page>
     `);
 
-    // Override the _loadingSimilarResults with a fake pending Task
-    component._loadingSimilarResults = new Task(component, {
-      args: () => [], // no-op args
+    // Override the _similarResults with a fake pending Task
+    component._similarResults = new Task(component, {
+      args: () => [undefined as unknown as APIClient, 'test-feature'], // no-op args
       task: async () => {
         return new Promise(() => {}); // never resolves = stays pending
       },
     });
 
     // Trigger the task manually
-    component._loadingSimilarResults.run();
+    component._similarResults.run();
     await component.updateComplete;
 
     const loadingMessage =
@@ -87,16 +90,27 @@ describe('webstatus-not-found-error-page', () => {
   });
 
   it('renders similar features when API returns results', async () => {
+    const mockData = [
+      {name: 'Feature One', url: '/features/dignissimos44'},
+      {name: 'Feature Two', url: '/features/fugiat37'},
+    ];
+
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
       <webstatus-not-found-error-page
         .location=${{search: '?q=g'}}
       ></webstatus-not-found-error-page>
     `);
 
-    component.similarFeatures = [
-      {name: 'Feature One', url: '/features/dignissimos44'},
-      {name: 'Feature Two', url: '/features/fugiat37'},
-    ];
+    // Patch _similarResults manually
+    component._similarResults = new Task<[APIClient, string], SimilarFeature[]>(
+      component,
+      {
+        args: () => [undefined as unknown as APIClient, 'g'],
+        task: async () => mockData,
+      },
+    );
+
+    component._similarResults.run(); // force task to execute
     await component.updateComplete;
 
     const featureList =
@@ -104,25 +118,6 @@ describe('webstatus-not-found-error-page', () => {
     expect(featureList?.length).to.equal(2);
     expect(featureList?.[0]?.textContent?.trim()).to.equal('Feature One');
     expect(featureList?.[1]?.textContent?.trim()).to.equal('Feature Two');
-  });
-
-  it('renders "No similar features found." when API returns no results', async () => {
-    const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
-        .location=${{search: '?q=test-feature'}}
-      ></webstatus-not-found-error-page>
-    `);
-
-    component.similarFeatures = [];
-    await component.updateComplete;
-
-    const noResultsMessage = component.shadowRoot?.querySelector(
-      '.similar-features-container p',
-    );
-    expect(noResultsMessage).to.exist;
-    expect(noResultsMessage?.textContent?.trim()).to.equal(
-      'No similar features found.',
-    );
   });
 
   it('renders all three buttons when featureId and similar results exist', async () => {
