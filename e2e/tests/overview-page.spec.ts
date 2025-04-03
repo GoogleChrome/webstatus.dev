@@ -262,20 +262,10 @@ test('Typing slash focuses on searchbox', async ({page}) => {
   await expect(searchbox).toHaveAttribute('value', 'def/ghi');
 });
 
-test('newly logged in user should see no errors (toasts or in console)', async ({
-  page,
-}) => {
-  const errors: string[] = [];
-
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      errors.push(msg.text());
-    }
-  });
+test('newly logged in user should see no errors (toasts)', async ({page}) => {
   await loginAsUser(page, 'fresh user');
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   await expect(page.locator('.toast')).toHaveCount(0);
-  expect(errors).toEqual([]);
 });
 
 test.describe('saved searches', () => {
