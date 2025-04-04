@@ -30,6 +30,21 @@ export type BookmarkStatus = components['schemas']['UserSavedSearchBookmark'];
 export const BookmarkStatusActive: components['schemas']['UserSavedSearchBookmark']['status'] =
   'bookmark_active';
 
+export interface UserSavedSearch {
+  id: string;
+  name: string;
+  query: string;
+  description?: string;
+  // Permissions
+  permissions?: BookmarkPermissions;
+  // Bookmark status
+  bookmark_status?: BookmarkStatus;
+  // Updated At
+  updated_at?: string;
+  // Created At
+  created_at?: string;
+}
+
 export interface Bookmark {
   // Bookmark display name
   name: string;
@@ -43,10 +58,6 @@ export interface Bookmark {
   override_num_param?: number;
   // Server side id for bookmark
   id?: string;
-  // Permissions
-  permissions?: BookmarkPermissions;
-  // Bookmark status
-  bookmark_status?: BookmarkStatus;
 }
 
 export const DEFAULT_BOOKMARKS: Bookmark[] = [

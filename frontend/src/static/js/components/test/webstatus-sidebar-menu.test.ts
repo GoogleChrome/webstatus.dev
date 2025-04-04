@@ -19,7 +19,7 @@ import sinon from 'sinon';
 import {WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
 import {SlTreeItem} from '@shoelace-style/shoelace';
 import '../webstatus-sidebar-menu.js';
-import {Bookmark} from '../../utils/constants.js';
+import {Bookmark, UserSavedSearch} from '../../utils/constants.js';
 import {customElement, property} from 'lit/decorators.js';
 import {provide} from '@lit/context';
 import {LitElement, TemplateResult, render} from 'lit';
@@ -43,7 +43,7 @@ const testBookmarks: Bookmark[] = [
   },
 ];
 
-const testUserSavedBookmarks: Bookmark[] = [
+const testUserSavedBookmarks: UserSavedSearch[] = [
   {id: 'saved1', name: 'Saved 1', query: 'saved_query_1'},
   {id: 'saved2', name: 'Saved 2', query: 'saved_query_2'},
   {id: 'saved3', name: 'Saved 3', query: 'saved_query_3'},
@@ -407,9 +407,9 @@ describe('webstatus-sidebar-menu', () => {
     expect(userBookmarkItems).to.have.lengthOf(0); // Should show nothing in rejected state
   });
 
-  it('renders renderBookmark correctly with user bookmark ID without ownership', async () => {
+  it('renders renderUserSavedSearch correctly with user bookmark ID without ownership', async () => {
     const bookmark = testUserSavedBookmarks[0];
-    const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
+    const renderedBookmark = el.renderUserSavedSearch(bookmark, 0);
     const container = document.createElement('div');
     render(renderedBookmark, container);
     expect(container.querySelector('sl-tree-item')?.id).to.equal(
@@ -423,10 +423,10 @@ describe('webstatus-sidebar-menu', () => {
     ).to.be.null;
   });
 
-  it('renders renderBookmark correctly with user bookmark ID with ownership', async () => {
+  it('renders renderUserSavedSearch correctly with user bookmark ID with ownership', async () => {
     const bookmark = testUserSavedBookmarks[0];
     bookmark.permissions = {role: 'saved_search_owner'};
-    const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
+    const renderedBookmark = el.renderUserSavedSearch(bookmark, 0);
     const container = document.createElement('div');
     render(renderedBookmark, container);
     expect(container.querySelector('sl-tree-item')?.id).to.equal(
@@ -442,7 +442,7 @@ describe('webstatus-sidebar-menu', () => {
 
   it('renders renderBookmark correctly without ID for global bookmark', async () => {
     const bookmark = testBookmarks[0];
-    const renderedBookmark = el.renderBookmark(bookmark, 0, 'global');
+    const renderedBookmark = el.renderBookmark(bookmark, 0);
     const container = document.createElement('div');
     render(renderedBookmark, container);
     expect(container.querySelector('sl-tree-item')?.id).to.equal(

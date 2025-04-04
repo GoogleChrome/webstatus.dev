@@ -61,15 +61,14 @@ import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {
-  appBookmarkInfoContext,
   AppBookmarkInfo,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {SlPopup} from '@shoelace-style/shoelace';
 import {
-  Bookmark,
   BookmarkOwnerRole,
   BookmarkStatusActive,
+  UserSavedSearch,
   VOCABULARY,
 } from '../utils/constants.js';
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
@@ -99,8 +98,7 @@ export class WebstatusOverviewFilters extends LitElement {
   @property({type: Object})
   location!: {search: string};
 
-  @consume({context: appBookmarkInfoContext, subscribe: true})
-  @state()
+  @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
 
   @consume({context: firebaseUserContext, subscribe: true})
@@ -109,7 +107,7 @@ export class WebstatusOverviewFilters extends LitElement {
 
   _activeQuery: string = '';
 
-  _activeBookmark?: Bookmark | undefined;
+  _activeUserSavedSearch?: UserSavedSearch | undefined;
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -186,7 +184,7 @@ export class WebstatusOverviewFilters extends LitElement {
         this.appBookmarkInfo,
         this.location,
       );
-      this._activeBookmark = bookmarkHelpers.getCurrentBookmark(
+      this._activeUserSavedSearch = bookmarkHelpers.getCurrentUserSavedSearch(
         this.appBookmarkInfo,
         this.location,
       );
@@ -394,24 +392,27 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-icon slot="prefix" name="search"></sl-icon>
         </sl-button>
       </webstatus-typeahead>
-      ${this.user ? this.renderSavedSearchControls() : nothing}
+      ${this.user && this.apiClient
+        ? this.renderSavedSearchControls(this.user, this.apiClient)
+        : nothing}
     `;
   }
 
-  renderSavedSearchControls(): TemplateResult {
+  renderSavedSearchControls(user: User, apiClient: APIClient): TemplateResult {
     let bookmarkStatusIcon: 'star-fill' | 'star' = 'star';
     let bookmarkTooltipText: string = 'Bookmark the saved search';
     let bookmarkTooltipLabel: string = 'Bookmark';
     let bookmarkButtonDisabled: boolean = false;
     if (
-      this._activeBookmark?.bookmark_status?.status === BookmarkStatusActive
+      this._activeUserSavedSearch?.bookmark_status?.status ===
+      BookmarkStatusActive
     ) {
       bookmarkStatusIcon = 'star-fill';
       bookmarkTooltipText = 'Unbookmark the saved search';
       bookmarkTooltipLabel = 'Unbookmark';
     }
     const isOwner =
-      this._activeBookmark?.permissions?.role === BookmarkOwnerRole;
+      this._activeUserSavedSearch?.permissions?.role === BookmarkOwnerRole;
     if (isOwner) {
       bookmarkButtonDisabled = true;
       bookmarkTooltipText =
@@ -465,26 +466,29 @@ export class WebstatusOverviewFilters extends LitElement {
         </div>
       </sl-popup>
       <webstatus-saved-search-editor
-        @bookmark-saved=${this.handleBookmarkSaved}
-        @bookmark-deleted=${this.handleBookmarkDeleted}
-        @bookmark-cancelled=${this.handleBookmarkCancelled}
+        .apiClient=${apiClient}
+        .user=${user}
+        .savedSearch=${this._activeUserSavedSearch}
+        @saved-search-saved=${this.handleSavedSearchSaved}
+        @saved-search-deleted=${this.handleSavedSearchDeleted}
+        @saved-search-cancelled=${this.handleSavedSearchCancelled}
       ></webstatus-saved-search-editor>
     `;
   }
 
-  handleBookmarkSaved(event: CustomEvent<Bookmark>) {
+  handleSavedSearchSaved(event: CustomEvent<UserSavedSearch>) {
     const savedBookmark = event.detail;
     console.log('Bookmark saved:', savedBookmark);
     // Update your bookmark list here
   }
 
-  handleBookmarkDeleted(event: CustomEvent<string>) {
+  handleSavedSearchDeleted(event: CustomEvent<string>) {
     const deletedBookmarkId = event.detail;
     console.log('Bookmark deleted:', deletedBookmarkId);
     // Update your bookmark list here
   }
 
-  handleBookmarkCancelled() {
+  handleSavedSearchCancelled() {
     console.log('Bookmark operation cancelled.');
   }
 
@@ -493,11 +497,11 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   async openEditSavedSearchDialog() {
-    await this.savedSearchEditor.open('edit', this._activeBookmark);
+    await this.savedSearchEditor.open('edit', this._activeUserSavedSearch);
   }
 
   async openDeleteSavedSearchDialog() {
-    await this.savedSearchEditor.open('delete', this._activeBookmark);
+    await this.savedSearchEditor.open('delete', this._activeUserSavedSearch);
   }
 
   renderExportButton(): TemplateResult {

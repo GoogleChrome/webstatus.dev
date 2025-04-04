@@ -27,7 +27,11 @@ import {
   UserSavedSearchesUnknownError,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
-import {Bookmark, DEFAULT_BOOKMARKS} from '../utils/constants.js';
+import {
+  Bookmark,
+  DEFAULT_BOOKMARKS,
+  UserSavedSearch,
+} from '../utils/constants.js';
 import {
   QueryStringOverrides,
   getSearchID,
@@ -72,14 +76,16 @@ export class WebstatusBookmarksService extends ServiceElement {
   user: User | null | undefined;
 
   _userSavedBookmarkByIDTaskTracker?: TaskTracker<
-    Bookmark,
+    UserSavedSearch,
     SavedSearchError
   > & {query?: string} = undefined;
   _currentSearchID: string = '';
   _currentSearchQuery: string = '';
 
-  _userSavedBookmarksTaskTracker?: TaskTracker<Bookmark[], SavedSearchError> =
-    undefined;
+  _userSavedBookmarksTaskTracker?: TaskTracker<
+    UserSavedSearch[],
+    SavedSearchError
+  > = undefined;
 
   loadingUserSavedBookmarkByIDTask = new Task(this, {
     autoRun: false,
@@ -309,11 +315,26 @@ export class WebstatusBookmarksService extends ServiceElement {
     super.connectedCallback();
     this._currentLocation = this.getLocation();
     window.addEventListener('popstate', this.handlePopState.bind(this));
+    this.addEventListener('saved-search-saved', this.handleSavedSearchSaved);
+    this.addEventListener('saved-search-edited', this.handleSavedSearchEdited);
+    this.addEventListener(
+      'saved-search-deleted',
+      this.handleSavedSearchDeleted,
+    );
     this.refreshAppBookmarkInfo();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener('saved-search-saved', this.handleSavedSearchSaved);
+    this.removeEventListener(
+      'saved-search-edited',
+      this.handleSavedSearchEdited,
+    );
+    this.removeEventListener(
+      'saved-search-deleted',
+      this.handleSavedSearchDeleted,
+    );
     window.removeEventListener('popstate', this.handlePopState.bind(this));
   }
 
@@ -323,6 +344,100 @@ export class WebstatusBookmarksService extends ServiceElement {
     );
     return bookmarks?.find(bookmark => bookmark.query === currentQuery);
   }
+
+  handleSavedSearchSaved = (e: Event) => {
+    // TODO: we should figure out a way to avoid the type assertion here.
+    const event = e as CustomEvent<UserSavedSearch>;
+    const savedSearch = event.detail;
+
+    if (
+      this._userSavedBookmarksTaskTracker === undefined ||
+      this._userSavedBookmarksTaskTracker?.data === undefined
+    ) {
+      this._userSavedBookmarksTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [savedSearch],
+        error: undefined,
+      };
+    } else {
+      this._userSavedBookmarksTaskTracker.data = [
+        ...this._userSavedBookmarksTaskTracker.data,
+        savedSearch,
+      ];
+    }
+
+    if (
+      this._userSavedBookmarkByIDTaskTracker === undefined ||
+      this._userSavedBookmarkByIDTaskTracker?.data === undefined
+    ) {
+      this._userSavedBookmarkByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: savedSearch,
+        error: undefined,
+      };
+    } else {
+      this._userSavedBookmarkByIDTaskTracker.data = savedSearch;
+    }
+
+    this.updatePageUrl(
+      this._currentLocation!.pathname,
+      this._currentLocation!,
+      {
+        search_id: savedSearch.id,
+      },
+    );
+    this.refreshAppBookmarkInfo();
+  };
+
+  handleSavedSearchEdited = (e: Event) => {
+    // TODO: we should figure out a way to avoid the type assertion here.
+    const event = e as CustomEvent<UserSavedSearch>;
+    const editedSearch = event.detail;
+
+    if (this._userSavedBookmarksTaskTracker?.data) {
+      this._userSavedBookmarksTaskTracker.data =
+        this._userSavedBookmarksTaskTracker?.data?.map(search => {
+          if (search.id === editedSearch.id) {
+            return editedSearch;
+          }
+          return search;
+        });
+    }
+
+    if (
+      this._userSavedBookmarkByIDTaskTracker &&
+      this._userSavedBookmarkByIDTaskTracker?.data?.id === editedSearch.id
+    ) {
+      this._userSavedBookmarkByIDTaskTracker.data = editedSearch;
+    }
+
+    this.refreshAppBookmarkInfo();
+  };
+
+  handleSavedSearchDeleted = (e: Event) => {
+    // TODO: we should figure out a way to avoid the type assertion here.
+    const event = e as CustomEvent<string>;
+    const deletedSearchId = event.detail;
+    if (this._userSavedBookmarksTaskTracker?.data) {
+      this._userSavedBookmarksTaskTracker.data =
+        this._userSavedBookmarksTaskTracker?.data?.filter(
+          search => search.id !== deletedSearchId,
+        );
+    }
+    if (
+      this._userSavedBookmarkByIDTaskTracker &&
+      this._userSavedBookmarkByIDTaskTracker?.data?.id === deletedSearchId
+    ) {
+      this._userSavedBookmarkByIDTaskTracker.data = undefined;
+    }
+
+    this.refreshAppBookmarkInfo();
+  };
+
+  handleSavedSearchCancelled = () => {
+    // Handle cancellation if needed
+    console.log('Saved Search Cancelled');
+  };
 
   // Assign the appBookmarkInfo object to trigger a refresh of subscribed contexts
   refreshAppBookmarkInfo() {
