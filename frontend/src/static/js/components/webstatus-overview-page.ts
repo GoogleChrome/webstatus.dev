@@ -41,6 +41,7 @@ import {
   AppBookmarkInfo,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
+import {UserSavedSearch} from '../utils/constants.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -67,6 +68,8 @@ export class OverviewPage extends LitElement {
   @state()
   appBookmarkInfo?: AppBookmarkInfo;
 
+  _activeUserSavedSearch?: UserSavedSearch;
+
   constructor() {
     super();
 
@@ -77,21 +80,14 @@ export class OverviewPage extends LitElement {
       task: async ([apiClient, routerLocation, appBookmarkInfo]): Promise<
         components['schemas']['FeaturePage']
       > => {
-        if (this.location.search !== this.currentLocation?.search) {
-          // Reset taskTracker here due to a Task data cache issue.
-          this.taskTracker = {
-            status: TaskStatus.INITIAL,
-            error: undefined,
-            data: undefined,
-          };
-          this.currentLocation = this.location;
-          return this._fetchFeatures(
-            apiClient,
-            routerLocation,
-            appBookmarkInfo,
-          );
-        }
-        return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
+        // Reset taskTracker here due to a Task data cache issue.
+        this.taskTracker = {
+          status: TaskStatus.INITIAL,
+          error: undefined,
+          data: undefined,
+        };
+        this.currentLocation = this.location;
+        return this._fetchFeatures(apiClient, routerLocation, appBookmarkInfo);
       },
       onComplete: page => {
         this.taskTracker = {
@@ -119,6 +115,16 @@ export class OverviewPage extends LitElement {
       },
     });
   }
+  areUserSavedSearchesDifferent(
+    current?: UserSavedSearch,
+    incoming?: UserSavedSearch,
+  ): boolean {
+    // Could be a completely different search or a more recently updated search
+    return (
+      current?.id !== incoming?.id ||
+      current?.updated_at !== incoming?.updated_at
+    );
+  }
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('apiClient') ||
@@ -127,12 +133,23 @@ export class OverviewPage extends LitElement {
     ) {
       if (
         this.apiClient !== undefined &&
-        this.currentLocation?.search !== this.location.search &&
+        (this.currentLocation?.search !== this.location.search ||
+          this.areUserSavedSearchesDifferent(
+            this._activeUserSavedSearch,
+            bookmarkHelpers.getCurrentUserSavedSearch(
+              this.appBookmarkInfo,
+              this.location,
+            ),
+          )) &&
         !bookmarkHelpers.isBusyLoadingBookmarkInfo(
           this.appBookmarkInfo,
           this.location,
         )
       ) {
+        this._activeUserSavedSearch = bookmarkHelpers.getCurrentUserSavedSearch(
+          this.appBookmarkInfo,
+          this.location,
+        );
         void this.loadingTask.run();
       }
     }
@@ -173,6 +190,7 @@ export class OverviewPage extends LitElement {
       <webstatus-overview-content
         .location=${this.location}
         .taskTracker=${this.taskTracker}
+        .appBookmarkInfo=${this.appBookmarkInfo}
       >
       </webstatus-overview-content>
     `;

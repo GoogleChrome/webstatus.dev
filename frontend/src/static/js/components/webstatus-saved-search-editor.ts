@@ -1,22 +1,23 @@
-import {LitElement, html, css, type TemplateResult} from 'lit';
+import {LitElement, html, css, type TemplateResult, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
-import {SlDialog, SlInput} from '@shoelace-style/shoelace';
-import {Bookmark, VOCABULARY} from '../utils/constants.js';
+import {SlButton, SlDialog, SlInput} from '@shoelace-style/shoelace';
+import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
 import './webstatus-typeahead.js';
 import {WebstatusTypeahead} from './webstatus-typeahead.js';
-import {Task} from '@lit/task';
+import {Task, TaskStatus} from '@lit/task';
 import {APIClient, UpdateSavedSearchInput} from '../api/client.js';
-import {apiClientContext} from '../contexts/api-client-context.js';
 import {Toast} from '../utils/toast.js';
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
-import {consume} from '@lit/context';
+import {User} from '../contexts/firebase-user-context.js';
+import {ApiError} from '../api/errors.js';
 
 type OperationType = 'save' | 'edit' | 'delete';
 
 interface OperationConfig {
   label: string;
-  render: () => TemplateResult;
-  actionHandler: (bookmark?: Bookmark) => Promise<void>;
+  render: (inProgress: boolean) => TemplateResult;
+  actionHandler: () => Promise<void>;
+  primaryButtonText: string;
+  buttonVariant: SlButton['variant'];
 }
 
 @customElement('webstatus-saved-search-editor')
@@ -33,13 +34,16 @@ export class WebstatusSavedSearchEditor extends LitElement {
   `;
 
   @property({type: Object})
-  bookmark?: Bookmark;
-
-  @property({type: Boolean, reflect: true})
-  isOpen = false;
+  savedSearch?: UserSavedSearch;
 
   @property({type: String})
   operation: OperationType = 'save';
+
+  @property({type: Object})
+  apiClient!: APIClient;
+
+  @property({type: Object})
+  user!: User;
 
   @query('sl-input#name')
   nameInput!: SlInput;
@@ -50,96 +54,92 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @query('webstatus-typeahead')
   queryInput!: WebstatusTypeahead;
 
-  @consume({context: apiClientContext, subscribe: true})
-  @state()
-  apiClient?: APIClient;
-
-  @consume({context: firebaseUserContext, subscribe: true})
-  @state()
-  user: User | null | undefined;
-
   @query('sl-dialog')
   private _dialog?: SlDialog;
 
+  @state()
   private _currentTask?: Task;
 
   private operationConfigMap: {[key in OperationType]: OperationConfig} = {
     save: {
-      label: 'Save New Bookmark',
-      render: () => this.renderForm(),
+      label: 'Save New Search',
+      render: (inProgress: boolean) => this.renderForm(inProgress),
       actionHandler: this.handleSave.bind(this),
+      primaryButtonText: 'Save',
+      buttonVariant: 'primary',
     },
     edit: {
-      label: 'Edit Bookmark',
-      render: () => this.renderForm(),
+      label: 'Edit Saved Search',
+      render: (inProgress: boolean) => this.renderForm(inProgress),
       actionHandler: this.handleEdit.bind(this),
+      primaryButtonText: 'Save',
+      buttonVariant: 'primary',
     },
     delete: {
-      label: 'Delete Bookmark',
-      render: () => html`<p>Are you sure you want to delete this bookmark?</p>`,
+      label: 'Delete Saved Search',
+      render: (_: boolean) =>
+        html`<p>Are you sure you want to delete this search?</p>`,
       actionHandler: this.handleDelete.bind(this),
+      primaryButtonText: 'Delete',
+      buttonVariant: 'danger',
     },
   };
 
-  async open(operation: OperationType, bookmark?: Bookmark) {
-    this.bookmark = bookmark;
+  async open(operation: OperationType, savedSearch?: UserSavedSearch) {
+    this.savedSearch = savedSearch;
     this.operation = operation;
-    this.isOpen = true;
     await this._dialog?.show();
   }
 
   async close() {
-    this.isOpen = false;
+    this.nameInput.value = '';
+    this.descriptionInput.value = '';
+    this.queryInput.value = '';
+    this._currentTask = undefined;
     await this._dialog?.hide();
   }
 
   async handleSave() {
     const isNameValid = this.nameInput.reportValidity();
     const isDescriptionValid = this.descriptionInput.reportValidity();
-
     if (isNameValid && isDescriptionValid) {
-      const currentBookmark: Bookmark = {
-        id: this.bookmark?.id,
-        name: this.nameInput.value,
-        description: this.descriptionInput.value,
-        query: this.queryInput.value,
-      };
       this._currentTask = new Task(this, {
-        task: async ([bookmark, user, apiClient]) => {
-          if (!apiClient) {
-            throw new Error('API client not available.');
-          }
-
-          const token = await user?.getIdToken();
-          if (!token) {
-            throw new Error('User token not available.');
-          }
-          if (!bookmark) {
-            throw new Error('Bookmark is required for save operation.');
-          }
-          return apiClient.createSavedSearch(token, {
-            name: bookmark.name,
-            description: bookmark.description,
-            query: bookmark.query,
+        autoRun: false,
+        task: async ([name, description, query, user, apiClient]) => {
+          const token = await user!.getIdToken();
+          return apiClient!.createSavedSearch(token, {
+            name: name,
+            description: description !== '' ? description : undefined,
+            query: query,
           });
         },
-        args: () => [currentBookmark, this.user, this.apiClient],
+        args: () => [
+          this.nameInput.value,
+          this.descriptionInput.value,
+          this.queryInput.value,
+          this.user,
+          this.apiClient,
+        ],
         onComplete: async result => {
           this.dispatchEvent(
-            new CustomEvent('bookmark-saved', {detail: result}),
+            new CustomEvent('saved-search-saved', {
+              detail: result,
+              bubbles: true,
+              composed: true,
+            }),
           );
           await this.close();
         },
         onError: async (error: unknown) => {
-          if (error instanceof Error) {
-            await new Toast().toast(
-              error?.message,
-              'danger',
-              'exclamation-triangle',
-            );
+          let message: string;
+          if (error instanceof ApiError) {
+            message = error.message;
           } else {
+            message =
+              'Unknown error saving saved search. Check console for details.';
             console.error(error);
           }
+          await new Toast().toast(message, 'danger', 'exclamation-triangle');
         },
       });
       await this._currentTask.run();
@@ -150,51 +150,57 @@ export class WebstatusSavedSearchEditor extends LitElement {
     const isNameValid = this.nameInput.reportValidity();
     const isDescriptionValid = this.descriptionInput.reportValidity();
 
-    if (isNameValid && isDescriptionValid) {
-      const currentBookmark: Bookmark = {
-        id: this.bookmark?.id,
-        name: this.nameInput.value,
-        description: this.descriptionInput.value,
-        query: this.queryInput.value,
-      };
+    if (isNameValid && isDescriptionValid && this.savedSearch) {
       this._currentTask = new Task(this, {
-        task: async ([bookmark, user, apiClient]) => {
-          if (!apiClient) {
-            throw new Error('API client not available.');
-          }
-
-          const token = await user?.getIdToken();
-          if (!token) {
-            throw new Error('User token not available.');
-          }
-          if (!bookmark?.id) {
-            throw new Error('Bookmark ID is required for edit operation.');
-          }
+        autoRun: false,
+        task: async ([
+          savedSearch,
+          name,
+          description,
+          query,
+          user,
+          apiClient,
+        ]) => {
+          const token = await user.getIdToken();
           const update: UpdateSavedSearchInput = {
-            id: bookmark.id,
-            name: bookmark.name,
-            description: bookmark.description,
-            query: bookmark.query,
+            id: savedSearch.id,
+            name: name !== savedSearch.name ? name : undefined,
+            description:
+              description !== savedSearch.description && description !== ''
+                ? description
+                : undefined,
+            query: query !== savedSearch.query ? query : undefined,
           };
-          return apiClient.updateSavedSearch(update, token);
+          return apiClient!.updateSavedSearch(update, token);
         },
-        args: () => [currentBookmark, this.user, this.apiClient],
+        args: () => [
+          this.savedSearch!,
+          this.nameInput.value,
+          this.descriptionInput.value,
+          this.queryInput.value,
+          this.user,
+          this.apiClient,
+        ],
         onComplete: async result => {
           this.dispatchEvent(
-            new CustomEvent('bookmark-saved', {detail: result}),
+            new CustomEvent('saved-search-edited', {
+              detail: result,
+              bubbles: true,
+              composed: true,
+            }),
           );
           await this.close();
         },
         onError: async (error: unknown) => {
-          if (error instanceof Error) {
-            await new Toast().toast(
-              error?.message,
-              'danger',
-              'exclamation-triangle',
-            );
+          let message: string;
+          if (error instanceof ApiError) {
+            message = error.message;
           } else {
+            message =
+              'Unknown error editing saved search. Check console for details.';
             console.error(error);
           }
+          await new Toast().toast(message, 'danger', 'exclamation-triangle');
         },
       });
       await this._currentTask.run();
@@ -202,78 +208,75 @@ export class WebstatusSavedSearchEditor extends LitElement {
   }
 
   async handleDelete() {
-    if (!this.bookmark?.id) {
-      console.error('Cannot delete a bookmark without an ID.');
-      return;
-    }
     this._currentTask = new Task(this, {
-      task: async ([bookmark, user, apiClient]) => {
-        if (!apiClient) {
-          throw new Error('API client not available.');
-        }
-
-        const token = await user?.getIdToken();
-        if (!token) {
-          throw new Error('User token not available.');
-        }
-        if (!bookmark?.id) {
-          throw new Error('Bookmark ID is required for delete operation.');
-        }
-        return apiClient.removeSavedSearchByID(bookmark.id, token);
+      autoRun: false,
+      task: async ([savedSearchID, user, apiClient]) => {
+        const token = await user!.getIdToken();
+        await apiClient!.removeSavedSearchByID(savedSearchID!, token);
+        return savedSearchID!;
       },
-      args: () => [this.bookmark, this.user, this.apiClient],
-      onComplete: async () => {
+      args: () => [this.savedSearch?.id, this.user, this.apiClient],
+      onComplete: async savedSearchID => {
         this.dispatchEvent(
-          new CustomEvent('bookmark-deleted', {
-            detail: this.bookmark?.id,
+          new CustomEvent('saved-search-deleted', {
+            detail: savedSearchID,
+            bubbles: true,
+            composed: true,
           }),
         );
         await this.close();
       },
       onError: async (error: unknown) => {
-        if (error instanceof Error) {
-          await new Toast().toast(
-            error?.message,
-            'danger',
-            'exclamation-triangle',
-          );
+        let message: string;
+        if (error instanceof ApiError) {
+          message = error.message;
         } else {
+          message =
+            'Unknown error deleting saved search. Check console for details.';
           console.error(error);
         }
+        await new Toast().toast(message, 'danger', 'exclamation-triangle');
       },
     });
     await this._currentTask.run();
   }
 
   async handleCancel() {
-    this.dispatchEvent(new CustomEvent('bookmark-cancelled'));
+    this.dispatchEvent(
+      new CustomEvent('saved-search-cancelled', {
+        bubbles: true,
+        composed: true,
+      }),
+    );
     await this.close();
   }
 
-  renderForm(): TemplateResult {
+  renderForm(inProgress: boolean): TemplateResult {
     return html`
       <sl-input
         id="name"
         label="Name"
-        .value=${this.bookmark?.name ?? ''}
+        .value=${this.savedSearch?.name ?? ''}
         required
+        .disabled=${inProgress}
       ></sl-input>
       <sl-input
         id="description"
         label="Description"
         placeholder="Optional Description"
-        .value=${this.bookmark?.description ?? ''}
+        .value=${this.savedSearch?.description ?? ''}
       ></sl-input>
       <webstatus-typeahead
         .vocabulary=${VOCABULARY}
         label="Query"
-        .value=${this.bookmark?.query ?? ''}
+        .value=${this.savedSearch?.query ?? ''}
       ></webstatus-typeahead>
     `;
   }
 
   render() {
     const config = this.operationConfigMap[this.operation];
+    const inProgress = this._currentTask?.status === TaskStatus.PENDING;
     return html`
       <sl-dialog
         label="${config.label}"
@@ -282,20 +285,16 @@ export class WebstatusSavedSearchEditor extends LitElement {
           await this.handleCancel();
         }}
       >
-        ${this._currentTask?.render({
-          pending: () =>
-            html`<sl-spinner
-              style="font-size: var(--sl-font-size-xx-large);"
-            ></sl-spinner>`,
-          complete: () => html``,
-          error: () => html``,
-        }) ?? config.render()}
+        ${inProgress ? html`<sl-spinner></sl-spinner>` : nothing}
+        ${config.render(inProgress)}
         <div class="dialog-buttons">
           <sl-button @click=${this.handleCancel}>Cancel</sl-button>
           <sl-button
-            variant="primary"
-            @click=${() => config.actionHandler(this.bookmark)}
-            >${this.operation === 'delete' ? 'Delete' : 'Save'}</sl-button
+            variant="${config.buttonVariant}"
+            @click=${() => config.actionHandler()}
+            .disabled=${inProgress}
+            .loading=${inProgress}
+            >${config.primaryButtonText}</sl-button
           >
         </div>
       </sl-dialog>
