@@ -201,6 +201,25 @@ type MockUpdateUserSavedSearchConfig struct {
 	err                   error
 }
 
+type MockPutUserSavedSearchBookmarkConfig struct {
+	expectedSavedSearchID string
+	expectedUserID        string
+	err                   error
+}
+
+type MockRemoveUserSavedSearchBookmarkConfig struct {
+	expectedSavedSearchID string
+	expectedUserID        string
+	err                   error
+}
+
+type basicHTTPTestCase[T any] struct {
+	name             string
+	cfg              *T
+	request          *http.Request
+	expectedResponse *http.Response
+}
+
 type MockWPTMetricsStorer struct {
 	featureCfg                                        *MockListMetricsForFeatureIDBrowserAndChannelConfig
 	aggregateCfg                                      *MockListMetricsOverTimeWithAggregatedTotalsConfig
@@ -217,6 +236,8 @@ type MockWPTMetricsStorer struct {
 	getSavedSearchCfg                                 *MockGetSavedSearchConfig
 	listUserSavedSearchesCfg                          *MockListUserSavedSeachesConfig
 	updateUserSavedSearchCfg                          *MockUpdateUserSavedSearchConfig
+	putUserSavedSearchBookmarkCfg                     *MockPutUserSavedSearchBookmarkConfig
+	removeUserSavedSearchBookmarkCfg                  *MockRemoveUserSavedSearchBookmarkConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -232,6 +253,8 @@ type MockWPTMetricsStorer struct {
 	callCountGetSavedSearch                           int
 	callCountListUserSavedSearches                    int
 	callCountUpdateUserSavedSearch                    int
+	callCountPutUserSavedSearchBookmark               int
+	callCountRemoveUserSavedSearchBookmark            int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -550,6 +573,44 @@ func (m *MockWPTMetricsStorer) ListUserSavedSearches(
 	return m.listUserSavedSearchesCfg.output, m.listUserSavedSearchesCfg.err
 }
 
+func (m *MockWPTMetricsStorer) PutUserSavedSearchBookmark(
+	_ context.Context,
+	userID string,
+	savedSearchID string,
+) error {
+	m.callCountPutUserSavedSearchBookmark++
+
+	if savedSearchID != m.putUserSavedSearchBookmarkCfg.expectedSavedSearchID ||
+		userID != m.putUserSavedSearchBookmarkCfg.expectedUserID {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
+			m.putUserSavedSearchBookmarkCfg.expectedSavedSearchID,
+			m.putUserSavedSearchBookmarkCfg.expectedUserID,
+			savedSearchID,
+			userID)
+	}
+
+	return m.putUserSavedSearchBookmarkCfg.err
+}
+
+func (m *MockWPTMetricsStorer) RemoveUserSavedSearchBookmark(
+	_ context.Context,
+	userID string,
+	savedSearchID string,
+) error {
+	m.callCountRemoveUserSavedSearchBookmark++
+
+	if savedSearchID != m.removeUserSavedSearchBookmarkCfg.expectedSavedSearchID ||
+		userID != m.removeUserSavedSearchBookmarkCfg.expectedUserID {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
+			m.removeUserSavedSearchBookmarkCfg.expectedSavedSearchID,
+			m.removeUserSavedSearchBookmarkCfg.expectedUserID,
+			savedSearchID,
+			userID)
+	}
+
+	return m.removeUserSavedSearchBookmarkCfg.err
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -569,6 +630,17 @@ func TestGetPageSizeOrDefault(t *testing.T) {
 				t.Errorf("Expected %d, got %d", tc.expected, result)
 			}
 		})
+	}
+}
+
+func createEmptyBodyResponse(status int) *http.Response {
+	// nolint:exhaustruct // WONTFIX - only for test purposes
+	return &http.Response{
+		StatusCode: status,
+		// For no content, the openapi library currently just returns an
+		// empty string and empty headers
+		Body:   io.NopCloser(strings.NewReader("")),
+		Header: make(http.Header),
 	}
 }
 

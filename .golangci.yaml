@@ -54,6 +54,9 @@ linters:
   settings:
     gomoddirectives:
       replace-local: true
+    dupl:
+      # The default is 150
+      threshold: 175
   exclusions:
     generated: lax
     presets:

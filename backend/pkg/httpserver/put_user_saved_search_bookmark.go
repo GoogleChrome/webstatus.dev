@@ -24,14 +24,14 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// RemoveSavedSearch implements backend.StrictServerInterface.
+// PutUserSavedSearchBookmark implements backend.StrictServerInterface.
 // nolint: ireturn // Name generated from openapi
-func (s *Server) RemoveSavedSearch(
-	ctx context.Context, request backend.RemoveSavedSearchRequestObject) (
-	backend.RemoveSavedSearchResponseObject, error) {
-	userCheckResult := CheckAuthenticatedUser(ctx, "RemoveSavedSearch",
-		func(code int, message string) backend.RemoveSavedSearch500JSONResponse {
-			return backend.RemoveSavedSearch500JSONResponse{
+func (s *Server) PutUserSavedSearchBookmark(
+	ctx context.Context, request backend.PutUserSavedSearchBookmarkRequestObject) (
+	backend.PutUserSavedSearchBookmarkResponseObject, error) {
+	userCheckResult := CheckAuthenticatedUser(ctx, "PutUserSavedSearchBookmark",
+		func(code int, message string) backend.PutUserSavedSearchBookmark500JSONResponse {
+			return backend.PutUserSavedSearchBookmark500JSONResponse{
 				Code:    code,
 				Message: message,
 			}
@@ -40,27 +40,27 @@ func (s *Server) RemoveSavedSearch(
 		return userCheckResult.Response, nil
 	}
 
-	err := s.wptMetricsStorer.DeleteUserSavedSearch(ctx, userCheckResult.User.ID, request.SearchId)
+	err := s.wptMetricsStorer.PutUserSavedSearchBookmark(ctx, userCheckResult.User.ID, request.SearchId)
 	if err != nil {
 		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
-			return backend.RemoveSavedSearch404JSONResponse{
+			return backend.PutUserSavedSearchBookmark404JSONResponse{
 				Code:    http.StatusNotFound,
-				Message: "saved search not found",
+				Message: "saved search to bookmark not found",
 			}, nil
-		} else if errors.Is(err, backendtypes.ErrUserNotAuthorizedForAction) {
-			return backend.RemoveSavedSearch403JSONResponse{
+		} else if errors.Is(err, backendtypes.ErrUserMaxBookmarks) {
+			return backend.PutUserSavedSearchBookmark403JSONResponse{
 				Code:    http.StatusForbidden,
-				Message: "forbidden",
+				Message: "user has reached the maximum number of allowed bookmarks",
 			}, nil
 		}
+		slog.ErrorContext(ctx, "unable to add bookmark", "error", err)
 
-		slog.ErrorContext(ctx, "unknown error deleting saved search", "error", err)
-
-		return backend.RemoveSavedSearch500JSONResponse{
+		return backend.PutUserSavedSearchBookmark500JSONResponse{
 			Code:    http.StatusInternalServerError,
-			Message: "unable to delete saved search",
+			Message: "unable to add bookmark",
 		}, nil
+
 	}
 
-	return backend.RemoveSavedSearch204Response{}, nil
+	return backend.PutUserSavedSearchBookmark200Response{}, nil
 }

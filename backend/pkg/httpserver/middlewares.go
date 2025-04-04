@@ -16,12 +16,50 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
 	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/oapi-codegen/runtime/strictmiddleware/nethttp"
 )
+
+// UserCheckResult represents either a successful user retrieval or an error response.
+type UserCheckResult[T any] struct {
+	User     *auth.User
+	Response T
+}
+
+// CheckAuthenticatedUser retrieves the authenticated user from the context.
+// If the user is not found, it returns an error response.
+func CheckAuthenticatedUser[T any](
+	ctx context.Context,
+	operation string,
+	newErrorResponse func(code int, message string) T) UserCheckResult[T] {
+	// At this point, the user should be authenticated and in the context.
+	// If for some reason the user is not in the context, it is a library or
+	// internal issue and not an user issue. Return 500 error in that case.
+	user, found := httpmiddlewares.AuthenticatedUserFromContext(ctx)
+	if !found {
+		slog.ErrorContext(ctx, "user not found in context. middleware failure", "operation", operation)
+
+		return UserCheckResult[T]{
+			User: nil,
+			Response: newErrorResponse(
+				http.StatusInternalServerError,
+				"internal server error",
+			),
+		}
+	}
+
+	var zeroT T
+
+	return UserCheckResult[T]{
+		User:     user,
+		Response: zeroT,
+	}
+}
 
 // applyPreRequestValidationMiddlewares applies a list of middleware functions to a given http.Handler.
 // The middlewares are applied in reverse order to ensure they execute in the order they are defined.
