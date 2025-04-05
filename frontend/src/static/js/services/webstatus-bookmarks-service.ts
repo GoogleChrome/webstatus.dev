@@ -321,6 +321,16 @@ export class WebstatusBookmarksService extends ServiceElement {
       'saved-search-deleted',
       this.handleSavedSearchDeleted,
     );
+    // saved-search-bookmarked and saved-search-unbookmarked both return UserSavedSearch in the event detail
+    // We can use the same event listener as the general handleSavedSearchEdited event listener
+    this.addEventListener(
+      'saved-search-bookmarked',
+      this.handleSavedSearchEdited,
+    );
+    this.addEventListener(
+      'saved-search-unbookmarked',
+      this.handleSavedSearchEdited,
+    );
     this.refreshAppBookmarkInfo();
   }
 

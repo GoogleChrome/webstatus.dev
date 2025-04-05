@@ -71,6 +71,9 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @property({type: Object})
   user!: User;
 
+  @property({type: Object})
+  location!: {search: string};
+
   @query('sl-alert#editor-alert')
   editorAlert?: SlAlert;
 

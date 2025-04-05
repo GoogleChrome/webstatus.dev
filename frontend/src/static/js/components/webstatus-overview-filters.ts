@@ -405,6 +405,7 @@ export class WebstatusOverviewFilters extends LitElement {
             .user=${user}
             .apiClient=${apiClient}
             .savedSearch=${this._activeUserSavedSearch}
+            .location=${this.location}
           ></webstatus-saved-search-controls>
         </div>
       </sl-popup>
