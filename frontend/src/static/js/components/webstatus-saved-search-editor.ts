@@ -1,6 +1,6 @@
 import {LitElement, html, css, type TemplateResult, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
-import {SlButton, SlDialog, SlInput} from '@shoelace-style/shoelace';
+import {SlAlert, SlButton, SlDialog, SlInput} from '@shoelace-style/shoelace';
 import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
 import './webstatus-typeahead.js';
 import {WebstatusTypeahead} from './webstatus-typeahead.js';
@@ -19,6 +19,16 @@ interface OperationConfig {
   primaryButtonText: string;
   buttonVariant: SlButton['variant'];
 }
+
+// SavedSearchInputConstraints come from components/schemas/SavedSearch in the openapi document.
+const SavedSearchInputConstraints = {
+  NameMinLength: 1,
+  NameMaxLength: 32,
+  // We drop the description if it is an empty string.
+  DescriptionMaxLength: 256,
+  QueryMinLength: 1,
+  QueryMaxLength: 256,
+};
 
 @customElement('webstatus-saved-search-editor')
 export class WebstatusSavedSearchEditor extends LitElement {
@@ -45,14 +55,17 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @property({type: Object})
   user!: User;
 
+  @query('sl-alert#editor-alert')
+  editorAlert?: SlAlert;
+
   @query('sl-input#name')
-  nameInput!: SlInput;
+  nameInput?: SlInput;
 
   @query('sl-input#description')
-  descriptionInput!: SlInput;
+  descriptionInput?: SlInput;
 
   @query('webstatus-typeahead')
-  queryInput!: WebstatusTypeahead;
+  queryInput?: WebstatusTypeahead;
 
   @query('sl-dialog')
   private _dialog?: SlDialog;
@@ -92,17 +105,26 @@ export class WebstatusSavedSearchEditor extends LitElement {
   }
 
   async close() {
-    this.nameInput.value = '';
-    this.descriptionInput.value = '';
-    this.queryInput.value = '';
+    if (this.nameInput) {
+      this.nameInput.value = '';
+    }
+    if (this.queryInput) {
+      this.queryInput.value = '';
+    }
+    if (this.descriptionInput) {
+      this.descriptionInput.value = '';
+    }
+
     this._currentTask = undefined;
     await this._dialog?.hide();
   }
 
   async handleSave() {
-    const isNameValid = this.nameInput.reportValidity();
-    const isDescriptionValid = this.descriptionInput.reportValidity();
-    if (isNameValid && isDescriptionValid) {
+    const isNameValid = this.nameInput!.reportValidity();
+    const isDescriptionValid = this.descriptionInput!.reportValidity();
+    const isQueryValid = this.isQueryValid();
+    if (isNameValid && isDescriptionValid && isQueryValid) {
+      await this.editorAlert?.hide();
       this._currentTask = new Task(this, {
         autoRun: false,
         task: async ([name, description, query, user, apiClient]) => {
@@ -114,9 +136,9 @@ export class WebstatusSavedSearchEditor extends LitElement {
           });
         },
         args: () => [
-          this.nameInput.value,
-          this.descriptionInput.value,
-          this.queryInput.value,
+          this.nameInput!.value,
+          this.descriptionInput!.value,
+          this.queryInput!.value,
           this.user,
           this.apiClient,
         ],
@@ -143,14 +165,40 @@ export class WebstatusSavedSearchEditor extends LitElement {
         },
       });
       await this._currentTask.run();
+    } else {
+      await this.editorAlert?.show();
     }
   }
 
-  async handleEdit() {
-    const isNameValid = this.nameInput.reportValidity();
-    const isDescriptionValid = this.descriptionInput.reportValidity();
+  isQueryValid(): boolean {
+    if (this.queryInput) {
+      // TODO: Figure out a way to configure the form constraints on typeahead constraint
+      // I also tried to set the constraints up in the firstUpdated callback but the child is not rendered yet.
+      if (
+        this.queryInput.value.length <
+          SavedSearchInputConstraints.QueryMinLength ||
+        this.queryInput.value.length >
+          SavedSearchInputConstraints.QueryMaxLength
+      ) {
+        this.queryInput.slInputRef.setCustomValidity(
+          `Query should be between ${SavedSearchInputConstraints.QueryMinLength} and ${SavedSearchInputConstraints.QueryMaxLength} characters long.}`,
+        );
+        return false;
+      } else {
+        this.queryInput.slInputRef.setCustomValidity('');
+        return true;
+      }
+    }
 
-    if (isNameValid && isDescriptionValid && this.savedSearch) {
+    return false;
+  }
+
+  async handleEdit() {
+    const isNameValid = this.nameInput!.reportValidity();
+    const isDescriptionValid = this.descriptionInput!.reportValidity();
+    const isQueryValid = this.isQueryValid();
+    if (isNameValid && isDescriptionValid && isQueryValid && this.savedSearch) {
+      await this.editorAlert?.hide();
       this._currentTask = new Task(this, {
         autoRun: false,
         task: async ([
@@ -175,9 +223,9 @@ export class WebstatusSavedSearchEditor extends LitElement {
         },
         args: () => [
           this.savedSearch!,
-          this.nameInput.value,
-          this.descriptionInput.value,
-          this.queryInput.value,
+          this.nameInput!.value,
+          this.descriptionInput!.value,
+          this.queryInput!.value,
           this.user,
           this.apiClient,
         ],
@@ -204,6 +252,8 @@ export class WebstatusSavedSearchEditor extends LitElement {
         },
       });
       await this._currentTask.run();
+    } else {
+      await this.editorAlert?.show();
     }
   }
 
@@ -257,20 +307,32 @@ export class WebstatusSavedSearchEditor extends LitElement {
         id="name"
         label="Name"
         .value=${this.savedSearch?.name ?? ''}
+        helpText="Title of the search"
         required
+        minlength=${SavedSearchInputConstraints.NameMinLength}
+        maxlength=${SavedSearchInputConstraints.NameMaxLength}
         .disabled=${inProgress}
       ></sl-input>
       <sl-input
         id="description"
         label="Description"
-        placeholder="Optional Description"
+        placeholder="Description"
+        helpText="Optional Description"
+        maxlength=${SavedSearchInputConstraints.DescriptionMaxLength}
         .value=${this.savedSearch?.description ?? ''}
       ></sl-input>
       <webstatus-typeahead
         .vocabulary=${VOCABULARY}
-        label="Query"
+        .label=${'Query'}
         .value=${this.savedSearch?.query ?? ''}
       ></webstatus-typeahead>
+      <div class="editor-alert">
+        <sl-alert id="editor-alert" variant="danger" duration="3000" closable>
+          <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
+          Please check that you provided at least a name and query before
+          submitting
+        </sl-alert>
+      </div>
     `;
   }
 
@@ -285,18 +347,26 @@ export class WebstatusSavedSearchEditor extends LitElement {
           await this.handleCancel();
         }}
       >
-        ${inProgress ? html`<sl-spinner></sl-spinner>` : nothing}
-        ${config.render(inProgress)}
-        <div class="dialog-buttons">
-          <sl-button @click=${this.handleCancel}>Cancel</sl-button>
-          <sl-button
-            variant="${config.buttonVariant}"
-            @click=${() => config.actionHandler()}
-            .disabled=${inProgress}
-            .loading=${inProgress}
-            >${config.primaryButtonText}</sl-button
-          >
-        </div>
+        <form
+          id="editor-form"
+          @submit=${async (e: Event) => {
+            e.preventDefault();
+            await config.actionHandler();
+          }}
+        >
+          ${inProgress ? html`<sl-spinner></sl-spinner>` : nothing}
+          ${config.render(inProgress)}
+          <div class="dialog-buttons">
+            <sl-button @click=${this.handleCancel}>Cancel</sl-button>
+            <sl-button
+              variant="${config.buttonVariant}"
+              type="submit"
+              .disabled=${inProgress}
+              .loading=${inProgress}
+              >${config.primaryButtonText}</sl-button
+            >
+          </div>
+        </form>
       </sl-dialog>
     `;
   }
