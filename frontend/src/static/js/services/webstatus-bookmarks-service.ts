@@ -321,15 +321,14 @@ export class WebstatusBookmarksService extends ServiceElement {
       'saved-search-deleted',
       this.handleSavedSearchDeleted,
     );
-    // saved-search-bookmarked and saved-search-unbookmarked both return UserSavedSearch in the event detail
-    // We can use the same event listener as the general handleSavedSearchEdited event listener
+    // saved-search-bookmarked return UserSavedSearch. Use the same event handler as saved-search-saved
     this.addEventListener(
       'saved-search-bookmarked',
-      this.handleSavedSearchEdited,
+      this.handleSavedSearchSaved,
     );
     this.addEventListener(
       'saved-search-unbookmarked',
-      this.handleSavedSearchEdited,
+      this.handleSavedSearchUnbookmarked,
     );
     this.refreshAppBookmarkInfo();
   }
@@ -424,6 +423,17 @@ export class WebstatusBookmarksService extends ServiceElement {
     this.refreshAppBookmarkInfo();
   };
 
+  handleSavedSearchUnbookmarked = (e: Event) => {
+    const event = e as CustomEvent<UserSavedSearch>;
+    // Create a CustomEvent<string> with the saved search id then use handleSavedSearchDeleted
+    const deletedSearchId = event.detail.id;
+    this.handleSavedSearchDeleted(
+      new CustomEvent('saved-search-deleted', {
+        detail: deletedSearchId,
+      }),
+    );
+  };
+
   handleSavedSearchDeleted = (e: Event) => {
     // TODO: we should figure out a way to avoid the type assertion here.
     const event = e as CustomEvent<string>;
@@ -433,6 +443,14 @@ export class WebstatusBookmarksService extends ServiceElement {
         this._userSavedBookmarksTaskTracker?.data?.filter(
           search => search.id !== deletedSearchId,
         );
+      // Clear out the search id from the URL
+      this.updatePageUrl(
+        this._currentLocation!.pathname,
+        this._currentLocation!,
+        {
+          search_id: '',
+        },
+      );
     }
     if (
       this._userSavedBookmarkByIDTaskTracker &&

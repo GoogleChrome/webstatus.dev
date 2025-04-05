@@ -119,6 +119,7 @@ export class WebstatusSavedSearchControls extends LitElement {
             new CustomEvent('saved-search-bookmarked', {
               detail: savedSearch,
               bubbles: true,
+              composed: true,
             }),
           );
         } else {
@@ -127,6 +128,7 @@ export class WebstatusSavedSearchControls extends LitElement {
             new CustomEvent('saved-search-unbookmarked', {
               detail: savedSearch,
               bubbles: true,
+              composed: true,
             }),
           );
         }

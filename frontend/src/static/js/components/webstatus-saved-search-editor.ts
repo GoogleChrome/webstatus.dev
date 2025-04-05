@@ -52,10 +52,13 @@ export class WebstatusSavedSearchEditor extends LitElement {
     .dialog-buttons {
       display: flex;
       justify-content: end;
-      gap: 1rem;
+      gap: 1em;
     }
     sl-input {
-      margin-bottom: 1rem;
+      padding-bottom: 1em;
+    }
+    webstatus-typeahead {
+      padding-bottom: 1em;
     }
   `;
 
