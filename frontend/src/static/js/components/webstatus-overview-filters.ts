@@ -40,6 +40,7 @@ import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
 import {TaskStatus} from '@lit/task';
+import './webstatus-saved-search-controls.js';
 
 import {
   type APIClient,
@@ -65,13 +66,7 @@ import {
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {SlPopup} from '@shoelace-style/shoelace';
-import {
-  BookmarkOwnerRole,
-  BookmarkStatusActive,
-  UserSavedSearch,
-  VOCABULARY,
-} from '../utils/constants.js';
-import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
+import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
 
 import './webstatus-saved-search-editor.js';
 import {User} from 'firebase/auth';
@@ -87,9 +82,6 @@ export class WebstatusOverviewFilters extends LitElement {
 
   @query('sl-popup')
   popup!: SlPopup;
-
-  @query('webstatus-saved-search-editor')
-  savedSearchEditor!: WebstatusSavedSearchEditor;
 
   @consume({context: apiClientContext})
   @state()
@@ -399,25 +391,6 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   renderSavedSearchControls(user: User, apiClient: APIClient): TemplateResult {
-    let bookmarkStatusIcon: 'star-fill' | 'star' = 'star';
-    let bookmarkTooltipText: string = 'Bookmark the saved search';
-    let bookmarkTooltipLabel: string = 'Bookmark';
-    let bookmarkButtonDisabled: boolean = false;
-    if (
-      this._activeUserSavedSearch?.bookmark_status?.status ===
-      BookmarkStatusActive
-    ) {
-      bookmarkStatusIcon = 'star-fill';
-      bookmarkTooltipText = 'Unbookmark the saved search';
-      bookmarkTooltipLabel = 'Unbookmark';
-    }
-    const isOwner =
-      this._activeUserSavedSearch?.permissions?.role === BookmarkOwnerRole;
-    if (isOwner) {
-      bookmarkButtonDisabled = true;
-      bookmarkTooltipText =
-        'Users cannot remove the bookmark for saved searches they own';
-    }
     return html`
       <sl-popup
         placement="top-end"
@@ -428,61 +401,14 @@ export class WebstatusOverviewFilters extends LitElement {
       >
         <div slot="anchor" class="popup-anchor saved-search-controls"></div>
         <div class="popup-content">
-          <sl-tooltip content="Create a new saved search">
-            <sl-icon-button
-              name="floppy"
-              label="Save"
-              @click=${() => this.openNewSavedSearchDialog()}
-            ></sl-icon-button>
-          </sl-tooltip>
-          <sl-tooltip content="Copy saved search URL to clipboard">
-            <sl-icon-button name="share" label="Share"></sl-icon-button>
-          </sl-tooltip>
-          <sl-tooltip content="${bookmarkTooltipText}">
-            <sl-icon-button
-              name="${bookmarkStatusIcon}"
-              label="${bookmarkTooltipLabel}"
-              .disabled=${bookmarkButtonDisabled}
-            ></sl-icon-button>
-          </sl-tooltip>
-          ${isOwner
-            ? html`
-                <sl-tooltip content="Edit current saved search">
-                  <sl-icon-button
-                    name="pencil"
-                    label="Edit"
-                    @click=${() => this.openEditSavedSearchDialog()}
-                  ></sl-icon-button>
-                </sl-tooltip>
-                <sl-tooltip content="Delete saved search">
-                  <sl-icon-button
-                    name="trash"
-                    label="Delete"
-                    @click=${() => this.openDeleteSavedSearchDialog()}
-                  ></sl-icon-button>
-                </sl-tooltip>
-              `
-            : nothing}
+          <webstatus-saved-search-controls
+            .user=${user}
+            .apiClient=${apiClient}
+            .savedSearch=${this._activeUserSavedSearch}
+          ></webstatus-saved-search-controls>
         </div>
       </sl-popup>
-      <webstatus-saved-search-editor
-        .apiClient=${apiClient}
-        .user=${user}
-        .savedSearch=${this._activeUserSavedSearch}
-      ></webstatus-saved-search-editor>
     `;
-  }
-
-  async openNewSavedSearchDialog() {
-    await this.savedSearchEditor.open('save', undefined);
-  }
-
-  async openEditSavedSearchDialog() {
-    await this.savedSearchEditor.open('edit', this._activeUserSavedSearch);
-  }
-
-  async openDeleteSavedSearchDialog() {
-    await this.savedSearchEditor.open('delete', this._activeUserSavedSearch);
   }
 
   renderExportButton(): TemplateResult {
