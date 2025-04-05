@@ -15,7 +15,7 @@
  */
 
 import {createContext} from '@lit/context';
-import {Bookmark} from '../utils/constants.js';
+import {Bookmark, UserSavedSearch} from '../utils/constants.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {TaskStatus} from '@lit/task';
 import {getSearchID, getSearchQuery} from '../utils/urls.js';
@@ -23,8 +23,11 @@ import {getSearchID, getSearchQuery} from '../utils/urls.js';
 export interface AppBookmarkInfo {
   globalBookmarks?: Bookmark[];
   currentGlobalBookmark?: Bookmark;
-  userSavedSearchBookmarkTask?: TaskTracker<Bookmark, SavedSearchError>;
-  userSavedSearchBookmarksTask?: TaskTracker<Bookmark[], SavedSearchError>;
+  userSavedSearchBookmarkTask?: TaskTracker<UserSavedSearch, SavedSearchError>;
+  userSavedSearchBookmarksTask?: TaskTracker<
+    UserSavedSearch[],
+    SavedSearchError
+  >;
   currentLocation?: {search: string};
 }
 
@@ -33,15 +36,15 @@ export const appBookmarkInfoContext =
 
 export const bookmarkHelpers = {
   /**
-   * Returns the current bookmark based on the provided AppBookmarkInfo and location.
+   * Returns the current user saved search based on the provided AppBookmarkInfo and location.
    *
    * @param {AppBookmarkInfo?} info  - The AppBookmarkInfo object.
    * @param {{search: string}?} location - The location object containing the search parameters.
    */
-  getCurrentBookmark(
+  getCurrentUserSavedSearch(
     info?: AppBookmarkInfo,
     location?: {search: string},
-  ): Bookmark | undefined {
+  ): UserSavedSearch | undefined {
     const searchID = getSearchID(location ?? {search: ''});
     if (
       // There's a chance that the context has not been updated so we should check the search ID in the location.
@@ -65,6 +68,24 @@ export const bookmarkHelpers = {
       return info.userSavedSearchBookmarkTask.data;
     }
 
+    return undefined;
+  },
+  /**
+   * Returns the current bookmark based on the provided AppBookmarkInfo and location.
+   *
+   * @param {AppBookmarkInfo?} info  - The AppBookmarkInfo object.
+   * @param {{search: string}?} location - The location object containing the search parameters.
+   */
+  getCurrentBookmark(
+    info?: AppBookmarkInfo,
+    location?: {search: string},
+  ): UserSavedSearch | Bookmark | undefined {
+    // First, search among the user saved searches
+    const userSavedSearch = this.getCurrentUserSavedSearch(info, location);
+    if (userSavedSearch !== undefined) {
+      return userSavedSearch;
+    }
+    // If there's no user saved search that matches, search among the global bookmarks
     return info?.currentGlobalBookmark;
   },
 

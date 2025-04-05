@@ -22,10 +22,10 @@ import {
   css,
   html,
   PropertyValueMap,
+  nothing,
 } from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
-import {ref, createRef} from 'lit/directives/ref.js';
 import {
   formatOverviewPageUrl,
   getColumnsSpec,
@@ -40,6 +40,7 @@ import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 import './webstatus-overview-table.js';
 import {TaskStatus} from '@lit/task';
+import './webstatus-saved-search-controls.js';
 
 import {
   type APIClient,
@@ -61,96 +62,27 @@ import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {
-  appBookmarkInfoContext,
   AppBookmarkInfo,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
+import {SlPopup} from '@shoelace-style/shoelace';
+import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
+
+import './webstatus-saved-search-editor.js';
+import {User} from 'firebase/auth';
+import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
 
-const VOCABULARY = [
-  {
-    name: 'available_date:chrome:2023-01-01..2024-01-01',
-    doc: 'Became available on Chrome between the given dates',
-  },
-  {
-    name: 'available_date:edge:2023-01-01..2024-01-01',
-    doc: 'Became available on Edge between the given dates',
-  },
-  {
-    name: 'available_date:firefox:2023-01-01..2024-01-01',
-    doc: 'Became available on Firefox between the given dates',
-  },
-  {
-    name: 'available_date:safari:2023-01-01..2024-01-01',
-    doc: 'Became available on Safari between the given dates',
-  },
-  {
-    name: 'available_on:chrome',
-    doc: 'Features available on Chrome',
-  },
-  {
-    name: 'available_on:edge',
-    doc: 'Features available on Edge',
-  },
-  {
-    name: 'available_on:firefox',
-    doc: 'Features available on Firefox',
-  },
-  {
-    name: 'available_on:safari',
-    doc: 'Features available on Safari',
-  },
-  {
-    name: 'baseline_date:2023-01-01..2024-01-01',
-    doc: 'Reached baseline between the given dates',
-  },
-  {
-    name: 'baseline_status:limited',
-    doc: 'Features that are not yet in baseline',
-  },
-  {
-    name: 'baseline_status:newly',
-    doc: 'Features newly added to baseline',
-  },
-  {
-    name: 'baseline_status:widely',
-    doc: 'Features in baseline and widely available',
-  },
-  {
-    name: 'group:',
-    doc: 'Features in a group or its descendants. E.g., group:css',
-  },
-  {
-    name: 'snapshot:',
-    doc: 'Features in a snapshot. E.g., snapshot:ecmascript-5',
-  },
-  {
-    name: 'name:',
-    doc: 'Find by substring of the name. E.g., name:grid',
-  },
-  {
-    name: 'name:"a substring"',
-    doc: 'Find by substring of the name. E.g., name:"CSS Grid"',
-  },
-  {
-    name: 'id:',
-    doc: 'Find by its feature identifier . E.g., id:html',
-  },
-  {
-    name: 'OR',
-    doc: 'Combine query terms with a logical-OR',
-  },
-  {
-    name: '-',
-    doc: 'Negate search term with a leading minus',
-  },
-];
-
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
-  typeaheadRef = createRef();
+  @query('webstatus-typeahead')
+  typeaheadRef!: WebstatusTypeahead;
+
+  @query('sl-popup')
+  popup!: SlPopup;
+
   @consume({context: apiClientContext})
   @state()
   apiClient?: APIClient;
@@ -158,11 +90,16 @@ export class WebstatusOverviewFilters extends LitElement {
   @property({type: Object})
   location!: {search: string};
 
-  @consume({context: appBookmarkInfoContext, subscribe: true})
-  @state()
+  @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
 
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user: User | null | undefined;
+
   _activeQuery: string = '';
+
+  _activeUserSavedSearch?: UserSavedSearch | undefined;
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -239,6 +176,10 @@ export class WebstatusOverviewFilters extends LitElement {
         this.appBookmarkInfo,
         this.location,
       );
+      this._activeUserSavedSearch = bookmarkHelpers.getCurrentUserSavedSearch(
+        this.appBookmarkInfo,
+        this.location,
+      );
     }
   }
 
@@ -253,13 +194,13 @@ export class WebstatusOverviewFilters extends LitElement {
     if (e.key === '/' && !inInputContext) {
       e.preventDefault();
       e.stopPropagation();
-      (this.typeaheadRef?.value as WebstatusTypeahead).focus();
+      this.typeaheadRef?.focus();
     }
   };
 
   gotoFilterQueryString(): void {
     const newUrl = formatOverviewPageUrl(this.location, {
-      q: (this.typeaheadRef.value as WebstatusTypeahead).value,
+      q: this.typeaheadRef.value,
       start: 0,
     });
     navigateToUrl(newUrl);
@@ -423,7 +364,6 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <webstatus-typeahead
         id="filter-input-input"
-        ${ref(this.typeaheadRef)}
         class="halign-stretch"
         placeholder="Filter by ..."
         value="${input}"
@@ -444,6 +384,30 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-icon slot="prefix" name="search"></sl-icon>
         </sl-button>
       </webstatus-typeahead>
+      ${this.user && this.apiClient
+        ? this.renderSavedSearchControls(this.user, this.apiClient)
+        : nothing}
+    `;
+  }
+
+  renderSavedSearchControls(user: User, apiClient: APIClient): TemplateResult {
+    return html`
+      <sl-popup
+        placement="top-end"
+        autoSize="horizontal"
+        distance="5"
+        active
+        .anchor=${this.typeaheadRef}
+      >
+        <div slot="anchor" class="popup-anchor saved-search-controls"></div>
+        <div class="popup-content">
+          <webstatus-saved-search-controls
+            .user=${user}
+            .apiClient=${apiClient}
+            .savedSearch=${this._activeUserSavedSearch}
+          ></webstatus-saved-search-controls>
+        </div>
+      </sl-popup>
     `;
   }
 
