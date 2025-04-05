@@ -469,27 +469,8 @@ export class WebstatusOverviewFilters extends LitElement {
         .apiClient=${apiClient}
         .user=${user}
         .savedSearch=${this._activeUserSavedSearch}
-        @saved-search-saved=${this.handleSavedSearchSaved}
-        @saved-search-deleted=${this.handleSavedSearchDeleted}
-        @saved-search-cancelled=${this.handleSavedSearchCancelled}
       ></webstatus-saved-search-editor>
     `;
-  }
-
-  handleSavedSearchSaved(event: CustomEvent<UserSavedSearch>) {
-    const savedBookmark = event.detail;
-    console.log('Bookmark saved:', savedBookmark);
-    // Update your bookmark list here
-  }
-
-  handleSavedSearchDeleted(event: CustomEvent<string>) {
-    const deletedBookmarkId = event.detail;
-    console.log('Bookmark deleted:', deletedBookmarkId);
-    // Update your bookmark list here
-  }
-
-  handleSavedSearchCancelled() {
-    console.log('Bookmark operation cancelled.');
   }
 
   async openNewSavedSearchDialog() {
