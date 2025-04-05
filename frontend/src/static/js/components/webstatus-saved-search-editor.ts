@@ -74,13 +74,17 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @property({type: Object})
   location!: {search: string};
 
+  // This is the typehead from the overview page so that we can carry over the user's existing query.
+  @state()
+  overviewPageQueryInput?: WebstatusTypeahead;
+
   @query('sl-alert#editor-alert')
   editorAlert?: SlAlert;
 
   @query('sl-input#name')
   nameInput?: SlInput;
 
-  @query('sl-input#description')
+  @query('sl-textarea#description')
   descriptionInput?: SlInput;
 
   @query('webstatus-typeahead')
@@ -117,24 +121,21 @@ export class WebstatusSavedSearchEditor extends LitElement {
     },
   };
 
-  async open(operation: OperationType, savedSearch?: UserSavedSearch) {
+  async open(
+    operation: OperationType,
+    savedSearch?: UserSavedSearch,
+    overviewPageQueryInput?: WebstatusTypeahead,
+  ) {
     this.savedSearch = savedSearch;
     this.operation = operation;
+    this.overviewPageQueryInput = overviewPageQueryInput;
     await this._dialog?.show();
   }
 
   async close() {
-    if (this.nameInput) {
-      this.nameInput.value = '';
-    }
-    if (this.queryInput) {
-      this.queryInput.value = '';
-    }
-    if (this.descriptionInput) {
-      this.descriptionInput.value = '';
-    }
-
     this._currentTask = undefined;
+    this.overviewPageQueryInput = undefined;
+    this.savedSearch = undefined;
     await this._dialog?.hide();
   }
 
@@ -193,18 +194,18 @@ export class WebstatusSavedSearchEditor extends LitElement {
     if (this.queryInput) {
       // TODO: Figure out a way to configure the form constraints on typeahead constraint
       // I also tried to set the constraints up in the firstUpdated callback but the child is not rendered yet.
+      // Also, setting the custom validity message does not work because the typeahead renders the sl-input in a shadow DOM.
+      // Moving the typeahead to the light dom with createRenderRoot messes up the style of the dropdown.
+      // Until then, check manually.
+      // Once that is resolved, we can get rid of the sl-alert component below.
       if (
         this.queryInput.value.length <
           SavedSearchInputConstraints.QueryMinLength ||
         this.queryInput.value.length >
           SavedSearchInputConstraints.QueryMaxLength
       ) {
-        this.queryInput.slInputRef.setCustomValidity(
-          `Query should be between ${SavedSearchInputConstraints.QueryMinLength} and ${SavedSearchInputConstraints.QueryMaxLength} characters long.}`,
-        );
         return false;
       } else {
-        this.queryInput.slInputRef.setCustomValidity('');
         return true;
       }
     }
@@ -321,6 +322,14 @@ export class WebstatusSavedSearchEditor extends LitElement {
   }
 
   renderForm(inProgress: boolean): TemplateResult {
+    let query: string;
+    if (this.overviewPageQueryInput && this.overviewPageQueryInput.value) {
+      query = this.overviewPageQueryInput.value;
+    } else if (this.savedSearch) {
+      query = this.savedSearch.query;
+    } else {
+      query = '';
+    }
     return html`
       <sl-input
         id="name"
@@ -332,24 +341,29 @@ export class WebstatusSavedSearchEditor extends LitElement {
         maxlength=${SavedSearchInputConstraints.NameMaxLength}
         .disabled=${inProgress}
       ></sl-input>
-      <sl-input
+      <sl-textarea
         id="description"
         label="Description"
         placeholder="Description"
         helpText="Optional Description"
         maxlength=${SavedSearchInputConstraints.DescriptionMaxLength}
         .value=${this.savedSearch?.description ?? ''}
-      ></sl-input>
+      ></sl-textarea>
       <webstatus-typeahead
         .vocabulary=${VOCABULARY}
         .label=${'Query'}
-        .value=${this.savedSearch?.query ?? ''}
+        value=${query}
       ></webstatus-typeahead>
+      <!-- TODO: See comment in isQueryValid. Until then we show our own validation message -->
       <div class="editor-alert">
         <sl-alert id="editor-alert" variant="danger" duration="3000" closable>
           <sl-icon slot="icon" name="exclamation-octagon"></sl-icon>
           Please check that you provided at least a name and query before
-          submitting
+          submitting. The name must be between
+          ${SavedSearchInputConstraints.NameMinLength} and
+          ${SavedSearchInputConstraints.NameMaxLength} characters long, and the
+          query must be between ${SavedSearchInputConstraints.QueryMinLength}
+          and ${SavedSearchInputConstraints.QueryMaxLength} characters long.
         </sl-alert>
       </div>
     `;

@@ -31,6 +31,7 @@ import {ifDefined} from 'lit/directives/if-defined.js';
 import {Task, TaskStatus} from '@lit/task';
 import {ApiError} from '../api/errors.js';
 import {Toast} from '../utils/toast.js';
+import {type WebstatusTypeahead} from './webstatus-typeahead.js';
 
 @customElement('webstatus-saved-search-controls')
 export class WebstatusSavedSearchControls extends LitElement {
@@ -42,6 +43,9 @@ export class WebstatusSavedSearchControls extends LitElement {
 
   @property({type: Object})
   savedSearch?: UserSavedSearch;
+
+  @property({type: Object})
+  overviewPageQueryInput?: WebstatusTypeahead;
 
   @property({type: Object})
   location!: {search: string};
@@ -59,11 +63,19 @@ export class WebstatusSavedSearchControls extends LitElement {
   `;
 
   async openNewSavedSearchDialog() {
-    await this.savedSearchEditor.open('save', undefined);
+    await this.savedSearchEditor.open(
+      'save',
+      undefined,
+      this.overviewPageQueryInput,
+    );
   }
 
   async openEditSavedSearchDialog() {
-    await this.savedSearchEditor.open('edit', this.savedSearch);
+    await this.savedSearchEditor.open(
+      'edit',
+      this.savedSearch,
+      this.overviewPageQueryInput,
+    );
   }
 
   async openDeleteSavedSearchDialog() {
@@ -155,7 +167,7 @@ export class WebstatusSavedSearchControls extends LitElement {
       bookmarkTooltipText =
         'Users cannot remove the bookmark for saved searches they own';
     }
-    const inProgress = this._bookmarkTask?.status == TaskStatus.PENDING;
+    const inProgress = this._bookmarkTask?.status === TaskStatus.PENDING;
     return html`
       <sl-tooltip content="${bookmarkTooltipText}">
         <sl-icon-button

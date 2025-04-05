@@ -406,6 +406,7 @@ export class WebstatusOverviewFilters extends LitElement {
             .apiClient=${apiClient}
             .savedSearch=${this._activeUserSavedSearch}
             .location=${this.location}
+            .overviewPageQueryInput=${this.typeaheadRef}
           ></webstatus-saved-search-controls>
         </div>
       </sl-popup>
