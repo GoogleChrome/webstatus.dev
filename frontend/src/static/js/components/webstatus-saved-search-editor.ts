@@ -123,7 +123,9 @@ export class WebstatusSavedSearchEditor extends LitElement {
       buttonVariant: 'danger',
     },
   };
-
+  isOpen(): boolean {
+    return this._dialog?.open ?? false;
+  }
   async open(
     operation: OperationType,
     savedSearch?: UserSavedSearch,

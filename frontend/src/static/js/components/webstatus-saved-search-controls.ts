@@ -14,7 +14,14 @@
  * limitations under the License.
  */
 
-import {LitElement, TemplateResult, css, html, nothing} from 'lit';
+import {
+  LitElement,
+  PropertyValueMap,
+  TemplateResult,
+  css,
+  html,
+  nothing,
+} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {APIClient} from '../contexts/api-client-context.js';
 import {User} from '../contexts/firebase-user-context.js';
@@ -26,7 +33,12 @@ import {
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 
 import './webstatus-saved-search-editor.js';
-import {formatOverviewPageUrl, getOrigin} from '../utils/urls.js';
+import {
+  formatOverviewPageUrl,
+  getEditBookmark,
+  getOrigin,
+  updatePageUrl,
+} from '../utils/urls.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {Task, TaskStatus} from '@lit/task';
 import {ApiError} from '../api/errors.js';
@@ -233,6 +245,17 @@ export class WebstatusSavedSearchControls extends LitElement {
           `
         : nothing}
     `;
+  }
+
+  protected updated(_changedProperties: PropertyValueMap<this>): void {
+    if (
+      getEditBookmark(this.location) &&
+      !this.savedSearchEditor.isOpen() &&
+      this.savedSearch
+    ) {
+      this.openEditSavedSearchDialog();
+      updatePageUrl('', this.location, {edit_bookmark: undefined});
+    }
   }
 
   render() {
