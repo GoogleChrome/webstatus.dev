@@ -89,7 +89,17 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     );
     expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(50);
     expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint)).to.equal(
-      'Chrome: 50%',
+      'Chrome: 50.0%',
+    );
+
+    // Test rounding to 1 decimal place
+    const chromeTestDataPoint2: ChromeUsageStat = {
+      timestamp: '2024-01-01',
+      usage: 0.12345,
+    };
+    expect(chromeConfig.valueExtractor(chromeTestDataPoint2)).to.equal(12.3);
+    expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint2)).to.equal(
+      'Chrome: 12.3%',
     );
 
     // Assert that there are no additional series configurations
