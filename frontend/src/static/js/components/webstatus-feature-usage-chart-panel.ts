@@ -55,9 +55,9 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
             timestampExtractor: (dataPoint: ChromeUsageStat): Date =>
               new Date(dataPoint.timestamp),
             valueExtractor: (dataPoint: ChromeUsageStat): number =>
-              dataPoint.usage ? dataPoint.usage * 100 : 0,
+              dataPoint.usage ? Number((dataPoint.usage * 100).toFixed(1)) : 0,
             tooltipExtractor: (dataPoint: ChromeUsageStat): string =>
-              `Chrome: ${dataPoint.usage ? dataPoint.usage * 100 : 0}%`,
+              `Chrome: ${dataPoint.usage ? (dataPoint.usage * 100).toFixed(1) : 0}%`,
           },
         ]);
       },
