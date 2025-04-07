@@ -15,8 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-
-const BASE_URL = 'http://localhost:5555';
+import { BASE_URL, expect404PageButtons, goTo404Page } from './utils';
 
 test('Bad URL redirection to 404 page', async ({page}) => {
   const badUrls = [
@@ -52,27 +51,6 @@ test('Bad URL redirection to 404 page', async ({page}) => {
   }
 });
 
-async function goTo404Page(page, query: string): Promise<void> {
-  await page.goto(`${BASE_URL}/features/${query}`);
-  await expect(page).toHaveURL(
-    `${BASE_URL}/errors-404/feature-not-found?q=${query}`,
-  );
-
-  const response = await page.context().request.fetch(page.url());
-  expect(response.status()).toBe(404);
-}
-
-async function expectButtons(page, {hasSearch}: {hasSearch: boolean}) {
-  await expect(page.locator('#error-action-home-btn')).toBeVisible();
-  await expect(page.locator('#error-action-report')).toBeVisible();
-
-  if (hasSearch) {
-    await expect(page.locator('#error-action-search-btn')).toBeVisible();
-  } else {
-    await expect(page.locator('#error-action-search-btn')).toHaveCount(0);
-  }
-}
-
 test('shows similar features and all buttons when results exist', async ({
   page,
 }) => {
@@ -80,7 +58,7 @@ test('shows similar features and all buttons when results exist', async ({
   await goTo404Page(page, query);
 
   await expect(page.locator('.similar-features-container')).toBeVisible();
-  await expectButtons(page, {hasSearch: true});
+  await expect404PageButtons(page, {hasSearch: true});
 
   const similarContainerButton = page.locator('#error-action-search-btn');
   const pageContainer = page.locator('.page-container');
@@ -102,7 +80,7 @@ test('shows only home and report buttons when no similar features found', async 
   await goTo404Page(page, query);
 
   await expect(page.locator('.similar-features-container')).toHaveCount(0);
-  await expectButtons(page, {hasSearch: false});
+  await expect404PageButtons(page, {hasSearch: false});
 
   await expect(page.locator('#error-detailed-message')).toContainText(
     `We could not find Feature ID: ${query}`,
