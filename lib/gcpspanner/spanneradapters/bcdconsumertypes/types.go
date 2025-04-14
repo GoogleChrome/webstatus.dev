@@ -33,10 +33,13 @@ type BrowserRelease struct {
 type BrowserName string
 
 const (
-	Chrome  BrowserName = "chrome"
-	Edge    BrowserName = "edge"
-	Firefox BrowserName = "firefox"
-	Safari  BrowserName = "safari"
+	Chrome         BrowserName = "chrome"
+	Edge           BrowserName = "edge"
+	Firefox        BrowserName = "firefox"
+	Safari         BrowserName = "safari"
+	ChromeAndroid  BrowserName = "chrome_android"
+	FirefoxAndroid BrowserName = "firefox_android"
+	SafariIos      BrowserName = "safari_ios"
 )
 
 // ErrUnableToStoreBrowserRelease indicates that the storage layer was unable to save

@@ -191,6 +191,24 @@ func extractBrowserAvailability(
 			BrowserVersion: *support.Safari,
 		})
 	}
+	if support.ChromeAndroid != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "chrome_android",
+			BrowserVersion: *support.ChromeAndroid,
+		})
+	}
+	if support.FirefoxAndroid != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "firefox_android",
+			BrowserVersion: *support.FirefoxAndroid,
+		})
+	}
+	if support.SafariIos != nil {
+		fba = append(fba, gcpspanner.BrowserFeatureAvailability{
+			BrowserName:    "safari_ios",
+			BrowserVersion: *support.SafariIos,
+		})
+	}
 
 	return fba
 }
