@@ -30,6 +30,10 @@ import {
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
+import {
+  TOP_CSS_INTEROP_ISSUES,
+  TOP_HTML_INTEROP_ISSUES,
+} from '../utils/constants.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
@@ -65,6 +69,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         }
         .missing-feature-id-link {
           padding-right: 1em;
+        }
+        .survey-result {
+          cursor: help;
         }
       `,
     ];
@@ -241,9 +248,27 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         const featureIndex = j * 10 + i;
         if (featureIndex < this.missingFeaturesList.length) {
           const feature_id = this.missingFeaturesList[featureIndex].feature_id;
+          let extraIdentifier: TemplateResult | symbol = nothing;
+          if (feature_id && feature_id in TOP_CSS_INTEROP_ISSUES) {
+            extraIdentifier = html`<div
+              class="survey-result"
+              title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
+            >
+              <span>*</span>
+            </div>`;
+          } else if (feature_id && feature_id in TOP_HTML_INTEROP_ISSUES) {
+            extraIdentifier = html`<div
+              class="survey-result"
+              title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
+            >
+              <span>*</span>
+            </div>`;
+          }
           cells.push(
             html` <td>
-              <a href="/features/${feature_id}" class="missing-feature-id-link"
+              ${extraIdentifier}<a
+                href="/features/${feature_id}"
+                class="missing-feature-id-link"
                 >${feature_id}</a
               >
             </td>`,
