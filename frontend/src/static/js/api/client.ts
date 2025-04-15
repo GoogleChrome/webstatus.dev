@@ -163,11 +163,15 @@ export type MissingOneImplFeaturesList =
 export type SavedSearchResponse = components['schemas']['SavedSearchResponse'];
 
 // TODO. Remove once not behind UbP
-const temporaryFetchOptions: FetchOptions<unknown> = {credentials: 'include'};
+const temporaryFetchOptions: FetchOptions<unknown> = {
+  credentials: 'include',
+};
 
 // TODO. Remove once not behind UbP
 // https://github.com/drwpow/openapi-typescript/issues/1431
-const temporaryHeaders: HeadersOptions = {'Content-Type': null};
+const temporaryHeaders: HeadersOptions = {
+  'Content-Type': null,
+};
 
 // Create a base64 string that is URL safe.
 function base64urlEncode(str: string): string {
@@ -180,7 +184,10 @@ function base64urlEncode(str: string): string {
 export class APIClient {
   private readonly client: ReturnType<typeof createClient<paths>>;
   constructor(baseUrl: string) {
-    this.client = createClient<paths>({baseUrl, headers: temporaryHeaders});
+    this.client = createClient<paths>({
+      baseUrl,
+      headers: temporaryHeaders,
+    });
   }
 
   // Internal client detail for constructing a FeatureResultOffsetCursor pagination token.
@@ -216,7 +223,10 @@ export class APIClient {
     params.params.query.page_token = pageToken;
     params.params.query.page_size = pageSize;
 
-    const options = {...temporaryFetchOptions, ...params};
+    const options = {
+      ...temporaryFetchOptions,
+      ...params,
+    };
     const {data, error} = await this.client.GET(path, options);
 
     if (error !== undefined) {
@@ -275,7 +285,10 @@ export class APIClient {
     if (wptMetricView) qsParams.wpt_metric_view = wptMetricView;
     const {data, error} = await this.client.GET('/v1/features/{feature_id}', {
       ...temporaryFetchOptions,
-      params: {path: {feature_id: featureId}, query: qsParams},
+      params: {
+        path: {feature_id: featureId},
+        query: qsParams,
+      },
     });
     if (error !== undefined) {
       throw createAPIError(error);
@@ -288,7 +301,12 @@ export class APIClient {
   ): Promise<components['schemas']['FeatureMetadata']> {
     const {data, error} = await this.client.GET(
       '/v1/features/{feature_id}/feature-metadata',
-      {...temporaryFetchOptions, params: {path: {feature_id: featureId}}},
+      {
+        ...temporaryFetchOptions,
+        params: {
+          path: {feature_id: featureId},
+        },
+      },
     );
     if (error !== undefined) {
       throw createAPIError(error);
@@ -354,7 +372,9 @@ export class APIClient {
       '/v1/users/me/saved-searches',
       SavedSearchResponsePage
     >('/v1/users/me/saved-searches', {
-      headers: {Authorization: `Bearer ${token}`},
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     });
   }
 
@@ -412,7 +432,9 @@ export class APIClient {
           ...temporaryFetchOptions,
           params: {
             query: {startAt, endAt, page_token: nextPageToken},
-            path: {feature_id: featureId},
+            path: {
+              feature_id: featureId,
+            },
           },
         },
       );
@@ -475,7 +497,9 @@ export class APIClient {
         '/v1/stats/baseline_status/low_date_feature_counts',
         {
           ...temporaryFetchOptions,
-          params: {query: {startAt, endAt, page_token: nextPageToken}},
+          params: {
+            query: {startAt, endAt, page_token: nextPageToken},
+          },
         },
       );
       const error = response.error;
@@ -545,7 +569,10 @@ export class APIClient {
         {
           ...temporaryFetchOptions,
           params: {
-            query: {page_token: nextPageToken, browser: otherBrowsers},
+            query: {
+              page_token: nextPageToken,
+              browser: otherBrowsers,
+            },
             path: {browser: targetBrowser, date: targetDate},
           },
         },
@@ -573,11 +600,17 @@ export class APIClient {
   ): Promise<SavedSearchResponse> {
     const options = {
       ...temporaryFetchOptions,
-      params: {path: {search_id: searchID}},
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
     };
     // If the token is there, add it to the options
     if (token) {
-      options.headers = {Authorization: `Bearer ${token}`};
+      options.headers = {
+        Authorization: `Bearer ${token}`,
+      };
     }
     const response = await this.client.GET(
       '/v1/saved-searches/{search_id}',
@@ -594,8 +627,14 @@ export class APIClient {
   public async removeSavedSearchByID(searchID: string, token: string) {
     const options = {
       ...temporaryFetchOptions,
-      params: {path: {search_id: searchID}},
-      headers: {Authorization: `Bearer ${token}`},
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     };
     const response = await this.client.DELETE(
       '/v1/saved-searches/{search_id}',
@@ -612,8 +651,14 @@ export class APIClient {
   public async putUserSavedSearchBookmark(searchID: string, token: string) {
     const options = {
       ...temporaryFetchOptions,
-      params: {path: {search_id: searchID}},
-      headers: {Authorization: `Bearer ${token}`},
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     };
     const response = await this.client.PUT(
       '/v1/users/me/saved-searches/{search_id}/bookmark_status',
@@ -630,8 +675,14 @@ export class APIClient {
   public async removeUserSavedSearchBookmark(searchID: string, token: string) {
     const options = {
       ...temporaryFetchOptions,
-      params: {path: {search_id: searchID}},
-      headers: {Authorization: `Bearer ${token}`},
+      params: {
+        path: {
+          search_id: searchID,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
     };
     const response = await this.client.DELETE(
       '/v1/users/me/saved-searches/{search_id}/bookmark_status',
@@ -652,7 +703,9 @@ export class APIClient {
     const options: FetchOptions<
       FilterKeys<paths['/v1/saved-searches'], 'post'>
     > = {
-      headers: {Authorization: `Bearer ${token}`},
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: savedSearch,
       credentials: temporaryFetchOptions.credentials,
     };
@@ -686,8 +739,14 @@ export class APIClient {
     const options: FetchOptions<
       FilterKeys<paths['/v1/saved-searches/{search_id}'], 'patch'>
     > = {
-      headers: {Authorization: `Bearer ${token}`},
-      params: {path: {search_id: savedSearch.id}},
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        path: {
+          search_id: savedSearch.id,
+        },
+      },
       body: req,
       credentials: temporaryFetchOptions.credentials,
     };
