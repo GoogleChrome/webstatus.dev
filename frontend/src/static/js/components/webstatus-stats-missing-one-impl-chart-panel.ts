@@ -249,14 +249,17 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         if (featureIndex < this.missingFeaturesList.length) {
           const feature_id = this.missingFeaturesList[featureIndex].feature_id;
           let extraIdentifier: TemplateResult | symbol = nothing;
-          if (feature_id && feature_id in TOP_CSS_INTEROP_ISSUES) {
+          if (feature_id && TOP_CSS_INTEROP_ISSUES.includes(feature_id)) {
             extraIdentifier = html`<div
               class="survey-result"
               title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
             >
               <span>*</span>
             </div>`;
-          } else if (feature_id && feature_id in TOP_HTML_INTEROP_ISSUES) {
+          } else if (
+            feature_id &&
+            TOP_HTML_INTEROP_ISSUES.includes(feature_id)
+          ) {
             extraIdentifier = html`<div
               class="survey-result"
               title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
