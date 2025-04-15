@@ -85,6 +85,7 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           justify-content: center;
           align-items: center;
           display: inline-flex;
+          gap: 32px;
         }
         #error-header {
           align-self: stretch;
@@ -106,6 +107,7 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           display: flex;
           flex-wrap: wrap;
           justify-content: center;
+          gap: var(--content-padding);
         }
         #error-headline {
           color: #1d2430;
@@ -150,43 +152,81 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           text-decoration: underline;
           color: #0056b3;
         }
-        .gap-16 {
-          gap: 16px;
-        }
-        .gap-32 {
-          gap: 32px;
-        }
-        .gap-48 {
-          gap: 48px;
-        }
       `,
     ];
   }
 
+  private _renderErrorHeader(featureId: string | undefined): TemplateResult {
+    return html`
+      <div id="error-header">
+        <div id="error-status-code">404</div>
+        <div id="error-headline">Page not found</div>
+        <div id="error-detailed-message">
+          ${featureId
+            ? html`We could not find Feature ID: <strong>${featureId}</strong>`
+            : html`<span class="error-message"
+                >We couldn't find the page you're looking for.</span
+              >`}
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderSimilarFeatures(
+    features: SimilarFeature[] | undefined,
+  ): TemplateResult {
+    if (!features?.length) {
+      return html`<p class="error-message">No similar features found.</p>`;
+    }
+    return html`
+      <div class="similar-features-container">
+        <p class="similar-results-header">Here are some similar features:</p>
+        <ul class="feature-list">
+          ${features.map(f => html`<li><a href="${f.url}">${f.name}</a></li>`)}
+        </ul>
+      </div>
+    `;
+  }
+
+  private _renderActionButtons(
+    showSearchMore: boolean = false,
+    featureId?: string,
+  ): TemplateResult {
+    return html`
+      <div id="error-actions">
+        ${showSearchMore && featureId
+          ? html`
+              <sl-button
+                id="error-action-search-btn"
+                variant="primary"
+                href="/?q=${featureId}"
+              >
+                Search for more similar features
+              </sl-button>
+            `
+          : ''}
+        <sl-button id="error-action-home-btn" variant="primary" href="/">
+          Go back home
+        </sl-button>
+        <sl-button
+          id="error-action-report"
+          variant="default"
+          href="${GITHUB_REPO_ISSUE_LINK}"
+          target="_blank"
+        >
+          <sl-icon name="github"></sl-icon>
+          Report an issue
+        </sl-button>
+      </div>
+    `;
+  }
+
   protected render(): TemplateResult {
     const featureId = getSearchQuery(this.location);
-    const taskState = this._similarResults?.value;
-    const hasSimilar = Array.isArray(taskState) && taskState.length > 0;
-
-    const containerGapClass = hasSimilar ? 'gap-32' : 'gap-48';
-    const actionsGapClass = featureId && hasSimilar ? 'gap-16' : 'gap-32';
 
     return html`
-      <div id="error-container" class=${containerGapClass}>
-        <div id="error-header">
-          <div id="error-status-code">404</div>
-          <div id="error-headline">Page not found</div>
-          <div id="error-detailed-message">
-            ${featureId
-              ? html`
-                  We could not find Feature ID: <strong>${featureId}</strong>
-                `
-              : html`<span class="error-message"
-                  >We couldn't find the page you're looking for.</span
-                >`}
-          </div>
-        </div>
-
+      <div id="error-container">
+        ${this._renderErrorHeader(featureId)}
         ${featureId
           ? this._similarResults?.render({
               initial: () =>
@@ -196,59 +236,14 @@ export class WebstatusNotFoundErrorPage extends LitElement {
                   Loading similar features...
                 </p>`,
               complete: features =>
-                features?.length > 0
-                  ? html`
-                      <div class="similar-features-container">
-                        <p class="similar-results-header">
-                          Here are some similar features:
-                        </p>
-                        <ul class="feature-list">
-                          ${features.map(
-                            f =>
-                              html`<li><a href="${f.url}">${f.name}</a></li>`,
-                          )}
-                        </ul>
-                      </div>
-                    `
-                  : html`<p class="error-message">
-                      No similar features found.
-                    </p>`,
+                html` ${this._renderSimilarFeatures(features)}
+                ${this._renderActionButtons(features?.length > 0, featureId)}`,
               error: error =>
                 html`<p class="error-message">
                   Oops, something went wrong: ${error}
                 </p>`,
             })
-          : ''}
-
-        <div id="error-actions" class=${actionsGapClass}>
-          ${featureId && hasSimilar
-            ? html`
-                <sl-button
-                  id="error-action-search-btn"
-                  variant="primary"
-                  href="/?q=${featureId}"
-                >
-                  Search for more similar features
-                </sl-button>
-              `
-            : ''}
-          <sl-button
-            id="error-action-home-btn"
-            variant=${!hasSimilar ? 'primary' : 'default'}
-            href="/"
-          >
-            Go back home
-          </sl-button>
-          <sl-button
-            id="error-action-report"
-            variant="default"
-            href="${GITHUB_REPO_ISSUE_LINK}"
-            target="_blank"
-          >
-            <sl-icon name="github"></sl-icon>
-            Report an issue
-          </sl-button>
-        </div>
+          : this._renderActionButtons(false)}
       </div>
     `;
   }
