@@ -47,9 +47,6 @@ func TestGetFeature(t *testing.T) {
 					backend.Edge,
 					backend.Firefox,
 					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
 				},
 				data: &backend.Feature{
 					Baseline: &backend.BaselineInfo{
@@ -161,9 +158,6 @@ func TestGetFeature(t *testing.T) {
 					backend.Edge,
 					backend.Firefox,
 					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
 				},
 				data: &backend.Feature{
 					Baseline: &backend.BaselineInfo{
@@ -278,9 +272,6 @@ func TestGetFeature(t *testing.T) {
 					backend.Edge,
 					backend.Firefox,
 					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
 				},
 				data: nil,
 				err:  gcpspanner.ErrQueryReturnedNoResults,
@@ -307,9 +298,6 @@ func TestGetFeature(t *testing.T) {
 					backend.Edge,
 					backend.Firefox,
 					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
 				},
 				data: nil,
 				err:  errTest,

@@ -98,9 +98,6 @@ export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
   firefox: 'Firefox',
   safari: 'Safari',
   edge: 'Edge',
-  chrome_android: 'Chrome Android',
-  firefox_android: 'Firefox Android',
-  safari_ios: 'Safari iOS',
 };
 
 /** Map from label to browser id */
@@ -115,11 +112,8 @@ export const BROWSER_LABEL_TO_ID: Record<string, BrowsersParameter> =
 export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
   {
     chrome: '#FF0000',
-    chrome_android: '#FF0000',
     firefox: '#F48400',
-    firefox_android: '#F48400',
     safari: '#4285F4',
-    safari_ios: '#4285F4',
     edge: '#0F9D58',
     total: '#888888',
   };
