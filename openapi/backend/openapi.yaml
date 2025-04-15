@@ -914,9 +914,6 @@ components:
         - firefox
         - safari
         - edge
-        - chrome_android
-        - firefox_android
-        - safari_ios
     WPTMetricView:
       type: string
       description: The desired view of the WPT Data
