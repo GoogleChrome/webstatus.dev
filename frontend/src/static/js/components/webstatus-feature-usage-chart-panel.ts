@@ -29,8 +29,8 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
   @property({type: String})
   featureId!: string;
 
-  private formatUsagePercentage(usage: number | undefined): number {
-    return usage ? Number((usage * 100).toFixed(1)) : 0;
+  private formatUsagePercentage(usage: number | undefined): string {
+    return usage ? (usage * 100).toFixed(1) : '0.0';
   }
 
   createLoadingTask(): Task {
@@ -60,7 +60,7 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
             timestampExtractor: (dataPoint: ChromeUsageStat): Date =>
               new Date(dataPoint.timestamp),
             valueExtractor: (dataPoint: ChromeUsageStat): number =>
-              this.formatUsagePercentage(dataPoint.usage),
+              Number(this.formatUsagePercentage(dataPoint.usage)),
             tooltipExtractor: (dataPoint: ChromeUsageStat): string =>
               `Chrome: ${this.formatUsagePercentage(dataPoint.usage)}%`,
           },
