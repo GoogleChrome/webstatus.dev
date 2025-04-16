@@ -21,7 +21,7 @@ import {
   css,
   html,
 } from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {ref, createRef} from 'lit/directives/ref.js';
 import {live} from 'lit/directives/live.js';
@@ -31,6 +31,7 @@ import {
   SlMenu,
   SlMenuItem,
 } from '@shoelace-style/shoelace';
+import {ifDefined} from 'lit/directives/if-defined.js';
 
 /* This file consists of 3 classes that together implement a "typeahead"
    text field with autocomplete:
@@ -56,13 +57,17 @@ interface VocabularyItem {
 @customElement('webstatus-typeahead')
 export class WebstatusTypeahead extends LitElement {
   slDropdownRef = createRef();
-  slInputRef = createRef();
+  @query('sl-input#inputfield')
+  slInputRef!: SlInput;
 
   @property()
   value: string;
 
   @property()
   placeholder: string;
+
+  @property({type: String})
+  label?: string;
 
   @state()
   candidates: Array<VocabularyItem>;
@@ -122,8 +127,7 @@ export class WebstatusTypeahead extends LitElement {
     if (event) {
       event.stopPropagation();
     }
-    const slInput: SlInput = this.slInputRef.value as SlInput;
-    this.value = slInput.value;
+    this.value = this.slInputRef.value;
   }
 
   async hide() {
@@ -135,17 +139,15 @@ export class WebstatusTypeahead extends LitElement {
   }
 
   focus() {
-    const slInput: SlInput = this.slInputRef.value as SlInput;
-    slInput?.focus();
+    this.slInputRef.focus();
   }
 
   blur() {
-    const slInput: SlInput = this.slInputRef.value as SlInput;
-    slInput?.blur();
+    this.slInputRef.blur();
   }
 
   findPrefix() {
-    const inputEl = (this.slInputRef.value as SlInput).input;
+    const inputEl = this.slInputRef.input;
     const wholeStr = inputEl!.value;
     const caret = inputEl.selectionStart;
     if (caret === null || caret !== inputEl.selectionEnd) {
@@ -180,14 +182,14 @@ export class WebstatusTypeahead extends LitElement {
 
   async handleCandidateSelected(e: {detail: {item: SlMenuItem}}) {
     const candidateValue = e.detail!.item!.value;
-    const inputEl = (this.slInputRef.value as SlInput).input;
+    const inputEl = this.slInputRef.input;
     const wholeStr = inputEl.value;
     // Don't add a space after the completed value: let the user type it.
     const newWholeStr =
       wholeStr.substring(0, this.chunkStart) +
       candidateValue +
       wholeStr.substring(this.chunkEnd, wholeStr.length);
-    (this.slInputRef.value as SlInput).value = newWholeStr;
+    this.slInputRef.value = newWholeStr;
     this.reflectValue();
     // Wait for the sl-input to propagate its new value to its <input> before
     // setting or accessing the text selection.
@@ -260,9 +262,9 @@ export class WebstatusTypeahead extends LitElement {
       <sl-input
         id="inputfield"
         slot="trigger"
+        label=${ifDefined(this.label)}
         placeholder=${this.placeholder}
         value=${live(this.value)}
-        ${ref(this.slInputRef)}
         autocomplete="off"
         spellcheck="false"
         @keydown="${this.handleInputFieldKeyDown}"

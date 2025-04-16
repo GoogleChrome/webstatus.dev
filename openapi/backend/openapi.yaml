@@ -612,6 +612,8 @@ paths:
     put:
       summary: Add bookmark status for a particular saved search.
       operationId: putUserSavedSearchBookmark
+      security:
+        - bearerAuth: []
       responses:
         '200':
           description: OK
@@ -648,6 +650,8 @@ paths:
     delete:
       summary: Remove bookmark status for a particular saved search.
       operationId: removeUserSavedSearchBookmark
+      security:
+        - bearerAuth: []
       responses:
         '204':
           description: No Content
