@@ -14,35 +14,9 @@
  * limitations under the License.
  */
 
-import {provide} from '@lit/context';
-import {LitElement, TemplateResult, html} from 'lit';
-import {customElement, property} from 'lit/decorators.js';
-import {
-  appSettingsContext,
-  AppSettings,
-} from '../../contexts/settings-context.js';
 import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
 import '../webstatus-overview-content.js';
 import {expect} from '@open-wc/testing';
-import {
-  AppBookmarkInfo,
-  appBookmarkInfoContext,
-} from '../../contexts/app-bookmark-info-context.js';
-
-@customElement('fake-parent-element')
-class FakeParentElement extends LitElement {
-  @provide({context: appSettingsContext})
-  @property({type: Object})
-  settings!: AppSettings;
-
-  @provide({context: appBookmarkInfoContext})
-  @property({type: Object})
-  appBookmarkInfo: AppBookmarkInfo = {};
-
-  render(): TemplateResult {
-    return html`<slot></slot>`;
-  }
-}
 
 describe('webstatus-overview-content', () => {
   describe('RenderBookmarkUI', () => {
@@ -54,20 +28,15 @@ describe('webstatus-overview-content', () => {
     it('should display the bookmark title and description when query is matched', async () => {
       container = document.createElement('div');
       container.innerHTML = `
-        <fake-parent-element>
           <webstatus-overview-content>
           </webstatus-overview-content>
-        </fake-parent-element>
       `;
-      const parent: FakeParentElement = container.querySelector(
-        'fake-parent-element',
-      ) as FakeParentElement;
       const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
       // Set location to one of the globalBookmarks.
       element.location = {search: '?q=test_query_1'};
-      parent.appBookmarkInfo = {
+      element.appBookmarkInfo = {
         globalBookmarks: [
           {
             name: 'Test Bookmark 1',
@@ -87,7 +56,6 @@ describe('webstatus-overview-content', () => {
         },
       };
       document.body.appendChild(container);
-      await parent.updateComplete;
       await element.updateComplete;
 
       const title = element?.shadowRoot?.querySelector('#overview-title');
@@ -103,20 +71,15 @@ describe('webstatus-overview-content', () => {
     it('should not display description UI when it is empty', async () => {
       container = document.createElement('div');
       container.innerHTML = `
-        <fake-parent-element>
           <webstatus-overview-content>
           </webstatus-overview-content>
-        </fake-parent-element>
       `;
-      const parent: FakeParentElement = container.querySelector(
-        'fake-parent-element',
-      ) as FakeParentElement;
       const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
       // Set location to one of the globalBookmarks.
       element.location = {search: '?q=test_query_1'};
-      parent.appBookmarkInfo = {
+      element.appBookmarkInfo = {
         globalBookmarks: [
           {
             name: 'Test Bookmark 1',
@@ -129,7 +92,6 @@ describe('webstatus-overview-content', () => {
         },
       };
       document.body.appendChild(container);
-      await parent.updateComplete;
       await element.updateComplete;
 
       const title = element?.shadowRoot?.querySelector('#overview-title');
