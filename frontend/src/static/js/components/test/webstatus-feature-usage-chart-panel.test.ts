@@ -89,7 +89,37 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     );
     expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(50);
     expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint)).to.equal(
-      'Chrome: 50%',
+      'Chrome: 50.0%',
+    );
+
+    // Test rounding to 1 decimal place
+    const chromeTestDataPoint2: ChromeUsageStat = {
+      timestamp: '2024-01-01',
+      usage: 0.12345,
+    };
+    expect(chromeConfig.valueExtractor(chromeTestDataPoint2)).to.equal(12.3);
+    expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint2)).to.equal(
+      'Chrome: 12.3%',
+    );
+
+    // Test rounding to 100%
+    const chromeTestDataPoint3: ChromeUsageStat = {
+      timestamp: '2024-01-01',
+      usage: 1.0,
+    };
+    expect(chromeConfig.valueExtractor(chromeTestDataPoint3)).to.equal(100);
+    expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint3)).to.equal(
+      'Chrome: 100%',
+    );
+
+    // Test undefined usage
+    const chromeTestDataPoint4: ChromeUsageStat = {
+      timestamp: '2024-01-01',
+      usage: undefined,
+    };
+    expect(chromeConfig.valueExtractor(chromeTestDataPoint4)).to.equal(0);
+    expect(chromeConfig.tooltipExtractor!(chromeTestDataPoint4)).to.equal(
+      'Chrome: 0.0%',
     );
 
     // Assert that there are no additional series configurations
