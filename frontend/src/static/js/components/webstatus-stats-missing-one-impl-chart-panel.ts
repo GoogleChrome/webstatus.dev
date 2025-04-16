@@ -212,9 +212,20 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   getPanelID(): string {
     return 'missing-one-implementation';
   }
+
   getPanelText(): string {
     return 'Features missing in only one browser';
   }
+
+  getPanelDescription(): TemplateResult {
+    return html`This chart displays the number of features that are missing in
+      exactly one major browser, for each browser. The counted features are
+      present in all browsers except that browser. Each of the features would be
+      considered Baseline once the feature is supported in the corresponding
+      browser. <br />Click on a line in the chart to see the exact number at any
+      given time and the list of specific features missing in that browser. `;
+  }
+
   renderControls(): TemplateResult {
     return html`${nothing}`;
   }

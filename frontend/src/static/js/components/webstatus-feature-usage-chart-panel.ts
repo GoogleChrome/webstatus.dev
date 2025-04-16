@@ -88,9 +88,16 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
   getPanelID(): string {
     return 'feature-usage';
   }
+
   getPanelText(): string {
     return 'Feature Usage';
   }
+
+  getPanelDescription(): TemplateResult {
+    return html`This chart displays the percentage of page loads that include
+    this feature in participating Chrome installs.`;
+  }
+
   renderControls(): TemplateResult {
     return html`${nothing}`;
   }
