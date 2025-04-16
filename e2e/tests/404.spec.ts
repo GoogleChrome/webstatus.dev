@@ -15,7 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-import { BASE_URL, expect404PageButtons, goTo404Page } from './utils';
+import {BASE_URL, expect404PageButtons, goTo404Page} from './utils';
 
 test('Bad URL redirection to 404 page', async ({page}) => {
   const badUrls = [

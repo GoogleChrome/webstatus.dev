@@ -99,7 +99,10 @@ export async function goTo404Page(page, query: string): Promise<void> {
   expect(response.status()).toBe(404);
 }
 
-export async function expect404PageButtons(page, {hasSearch}: {hasSearch: boolean}) {
+export async function expect404PageButtons(
+  page,
+  {hasSearch}: {hasSearch: boolean},
+) {
   await expect(page.locator('#error-action-home-btn')).toBeVisible();
   await expect(page.locator('#error-action-report')).toBeVisible();
 
