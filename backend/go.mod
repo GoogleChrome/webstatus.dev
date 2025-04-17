@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	firebase.google.com/go/v4 v4.15.2
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250313171535-078beb7fecb7
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250313171535-078beb7fecb7
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
 	github.com/go-chi/cors v1.2.1
 	github.com/oapi-codegen/runtime v1.1.1
 )
@@ -114,7 +114,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.36.0 // indirect
 	golang.org/x/exp v0.0.0-20250305212735-054e65f0b394 // indirect
-	golang.org/x/net v0.37.0 // indirect
+	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
