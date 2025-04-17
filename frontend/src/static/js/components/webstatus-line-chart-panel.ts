@@ -202,6 +202,13 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   abstract getPanelText(): string;
 
   /**
+   * Returns the description text to display in the panel.
+   * @abstract
+   * @returns {TemplateResult} The panel description text.
+   */
+  abstract getPanelDescription(): TemplateResult;
+
+  /**
    * Renders the controls for the panel (e.g., dropdowns, buttons).
    * @abstract
    * @returns {TemplateResult} The controls template.
@@ -264,6 +271,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         .hbox,
         .vbox {
           gap: var(--content-padding-large);
+          margin-bottom: 8px;
         }
         sl-card {
           display: block;
@@ -272,6 +280,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         .chart-panel {
           min-height: 300px;
           width: 100%;
+        }
+        .chart-description {
+          font-size: 14px;
+          font-style: italic;
         }
 
         .datapoint-details-panel {
@@ -771,6 +783,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           <div slot="header">${this.getPanelText()}</div>
           <div class="spacer"></div>
         </div>
+        <div class="chart-description">${this.getPanelDescription()}</div>
         <div>${this.renderChart()}</div>
         ${this.renderPointSelectedDetails()}
       </sl-card>

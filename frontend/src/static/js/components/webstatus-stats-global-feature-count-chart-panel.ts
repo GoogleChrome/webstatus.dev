@@ -97,9 +97,19 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   getPanelID(): string {
     return 'global-feature-support';
   }
+
   getPanelText(): string {
     return 'Global feature support';
   }
+
+  getPanelDescription(): TemplateResult {
+    return html`This chart displays the number of web features that are
+      available in each browser, including the total Baseline features (newly or
+      widely available on all major browsers). <br />Click on a line in the
+      chart to see the exact number for the current browser version at any given
+      time.`;
+  }
+
   renderControls(): TemplateResult {
     return html`${nothing}`;
   }

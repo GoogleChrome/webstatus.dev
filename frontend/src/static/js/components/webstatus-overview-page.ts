@@ -173,6 +173,7 @@ export class OverviewPage extends LitElement {
       <webstatus-overview-content
         .location=${this.location}
         .taskTracker=${this.taskTracker}
+        .appBookmarkInfo=${this.appBookmarkInfo}
       >
       </webstatus-overview-content>
     `;

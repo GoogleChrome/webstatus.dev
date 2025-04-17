@@ -52,7 +52,10 @@ func (f BCDDataFilter) checkBrowserFilters(filteredBrowsers []string) error {
 		case bcdconsumertypes.Chrome,
 			bcdconsumertypes.Edge,
 			bcdconsumertypes.Firefox,
-			bcdconsumertypes.Safari:
+			bcdconsumertypes.Safari,
+			bcdconsumertypes.ChromeAndroid,
+			bcdconsumertypes.FirefoxAndroid,
+			bcdconsumertypes.SafariIos:
 			continue
 		default:
 			return errors.Join(ErrUnknownBrowserFilter)

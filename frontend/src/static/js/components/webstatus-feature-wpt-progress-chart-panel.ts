@@ -142,9 +142,20 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
   getPanelID(): string {
     return 'feature-wpt-implementation-progress';
   }
+
   getPanelText(): string {
     return 'Implementation progress';
   }
+
+  getPanelDescription(): TemplateResult {
+    return html`This chart displays the number of
+      <a href="https://web-platform-tests.org/" target="_blank"
+        >Web Platform Tests</a
+      >
+      that are available to measure the support of this feature, as well as the
+      pass rates of the feature in each major browser.`;
+  }
+
   renderControls(): TemplateResult {
     return html`${nothing}`;
   }

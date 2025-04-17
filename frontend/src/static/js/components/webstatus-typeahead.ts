@@ -55,8 +55,8 @@ interface VocabularyItem {
 
 @customElement('webstatus-typeahead')
 export class WebstatusTypeahead extends LitElement {
-  slDropdownRef = createRef();
-  slInputRef = createRef();
+  slDropdownRef = createRef<WebstatusTypeaheadDropdown>();
+  slInputRef = createRef<SlInput>();
 
   @property()
   value: string;
@@ -122,30 +122,27 @@ export class WebstatusTypeahead extends LitElement {
     if (event) {
       event.stopPropagation();
     }
-    const slInput: SlInput = this.slInputRef.value as SlInput;
-    this.value = slInput.value;
+    this.value = this.slInputRef.value!.value;
   }
 
   async hide() {
-    await (this.slDropdownRef.value as SlDropdown).hide();
+    await this.slDropdownRef.value?.hide();
   }
 
   async show() {
-    await (this.slDropdownRef.value as SlDropdown).show();
+    await this.slDropdownRef.value?.show();
   }
 
   focus() {
-    const slInput: SlInput = this.slInputRef.value as SlInput;
-    slInput?.focus();
+    this.slInputRef.value?.focus();
   }
 
   blur() {
-    const slInput: SlInput = this.slInputRef.value as SlInput;
-    slInput?.blur();
+    this.slInputRef.value?.blur();
   }
 
   findPrefix() {
-    const inputEl = (this.slInputRef.value as SlInput).input;
+    const inputEl = this.slInputRef.value!.input;
     const wholeStr = inputEl!.value;
     const caret = inputEl.selectionStart;
     if (caret === null || caret !== inputEl.selectionEnd) {
@@ -180,14 +177,14 @@ export class WebstatusTypeahead extends LitElement {
 
   async handleCandidateSelected(e: {detail: {item: SlMenuItem}}) {
     const candidateValue = e.detail!.item!.value;
-    const inputEl = (this.slInputRef.value as SlInput).input;
+    const inputEl = this.slInputRef.value!.input;
     const wholeStr = inputEl.value;
     // Don't add a space after the completed value: let the user type it.
     const newWholeStr =
       wholeStr.substring(0, this.chunkStart) +
       candidateValue +
       wholeStr.substring(this.chunkEnd, wholeStr.length);
-    (this.slInputRef.value as SlInput).value = newWholeStr;
+    this.slInputRef.value!.value = newWholeStr;
     this.reflectValue();
     // Wait for the sl-input to propagate its new value to its <input> before
     // setting or accessing the text selection.
@@ -211,7 +208,7 @@ export class WebstatusTypeahead extends LitElement {
   // on keyDown so that the handler is run before the dropdown keyDown is run.
   handleInputFieldKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
-      const slDropdown = this.slDropdownRef.value as WebstatusTypeaheadDropdown;
+      const slDropdown = this.slDropdownRef.value!;
       if (!slDropdown.open || !slDropdown.getCurrentItem()) {
         this._fireEvent('sl-change', this);
         event.stopPropagation();
@@ -243,7 +240,7 @@ export class WebstatusTypeahead extends LitElement {
     this.candidates = this.vocabulary.filter(c =>
       this.shouldShowCandidate(c, this.prefix),
     );
-    const slDropdown = this.slDropdownRef.value as SlDropdown;
+    const slDropdown = this.slDropdownRef.value!;
     if (
       this.candidates.length > 0 &&
       !this.wasDismissed &&

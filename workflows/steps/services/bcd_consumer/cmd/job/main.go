@@ -83,6 +83,9 @@ func main() {
 				string(bcdconsumertypes.Edge),
 				string(bcdconsumertypes.Firefox),
 				string(bcdconsumertypes.Safari),
+				string(bcdconsumertypes.ChromeAndroid),
+				string(bcdconsumertypes.FirefoxAndroid),
+				string(bcdconsumertypes.SafariIos),
 			},
 		),
 	}

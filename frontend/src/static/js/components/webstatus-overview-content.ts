@@ -23,7 +23,7 @@ import {
   nothing,
 } from 'lit';
 import {TaskStatus} from '@lit/task';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-filters.js';
@@ -34,10 +34,8 @@ import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
 import {
   AppBookmarkInfo,
-  appBookmarkInfoContext,
   bookmarkHelpers,
 } from '../contexts/app-bookmark-info-context.js';
-import {consume} from '@lit/context';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -51,8 +49,7 @@ export class WebstatusOverviewContent extends LitElement {
   @property({type: Object})
   location!: {search: string}; // Set by parent.
 
-  @consume({context: appBookmarkInfoContext, subscribe: true})
-  @state()
+  @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
 
   static get styles(): CSSResultGroup {
@@ -111,6 +108,7 @@ export class WebstatusOverviewContent extends LitElement {
         <br />
         <webstatus-overview-filters
           .location=${this.location}
+          .appBookmarkInfo=${this.appBookmarkInfo}
         ></webstatus-overview-filters>
         <br />
 

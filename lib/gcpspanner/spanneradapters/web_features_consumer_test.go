@@ -480,6 +480,10 @@ func TestInsertWebFeatures(t *testing.T) {
 							BrowserName:    "safari",
 							BrowserVersion: "103",
 						},
+						{
+							BrowserName:    "chrome_android",
+							BrowserVersion: "104",
+						},
 					},
 					"feature2": {
 						{
@@ -490,15 +494,19 @@ func TestInsertWebFeatures(t *testing.T) {
 							BrowserName:    "safari",
 							BrowserVersion: "203",
 						},
+						{
+							BrowserName:    "safari_ios",
+							BrowserVersion: "106",
+						},
 					},
 				},
 				outputs: map[string][]error{
-					"feature1": {nil, nil, nil, nil},
-					"feature2": {nil, nil},
+					"feature1": {nil, nil, nil, nil, nil},
+					"feature2": {nil, nil, nil},
 				},
 				expectedCountPerFeature: map[string]int{
-					"feature1": 4,
-					"feature2": 2,
+					"feature1": 5,
+					"feature2": 3,
 				},
 			},
 			mockUpsertFeatureSpecCfg: mockUpsertFeatureSpecConfig{
@@ -540,7 +548,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						ByCompatKey:      nil,
 						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
-							ChromeAndroid:  nil,
+							ChromeAndroid:  valuePtr("104"),
 							Edge:           valuePtr("101"),
 							Firefox:        valuePtr("102"),
 							FirefoxAndroid: nil,
@@ -577,7 +585,7 @@ func TestInsertWebFeatures(t *testing.T) {
 							Firefox:        valuePtr("202"),
 							FirefoxAndroid: nil,
 							Safari:         valuePtr("203"),
-							SafariIos:      nil,
+							SafariIos:      valuePtr("106"),
 						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.Low),
@@ -904,13 +912,25 @@ func TestInsertWebFeatures(t *testing.T) {
 							BrowserName:    "safari",
 							BrowserVersion: "103",
 						},
+						{
+							BrowserName:    "chrome_android",
+							BrowserVersion: "104",
+						},
+						{
+							BrowserName:    "firefox_android",
+							BrowserVersion: "105",
+						},
+						{
+							BrowserName:    "safari_ios",
+							BrowserVersion: "106",
+						},
 					},
 				},
 				outputs: map[string][]error{
-					"feature1": {nil, nil, nil, nil},
+					"feature1": {nil, nil, nil, nil, nil, nil, nil},
 				},
 				expectedCountPerFeature: map[string]int{
-					"feature1": 4,
+					"feature1": 7,
 				},
 			},
 			mockUpsertFeatureSpecCfg: mockUpsertFeatureSpecConfig{
@@ -943,12 +963,12 @@ func TestInsertWebFeatures(t *testing.T) {
 						ByCompatKey:      nil,
 						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
-							ChromeAndroid:  nil,
+							ChromeAndroid:  valuePtr("104"),
 							Edge:           valuePtr("101"),
 							Firefox:        valuePtr("102"),
-							FirefoxAndroid: nil,
+							FirefoxAndroid: valuePtr("105"),
 							Safari:         valuePtr("103"),
-							SafariIos:      nil,
+							SafariIos:      valuePtr("106"),
 						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.High),
@@ -1033,6 +1053,10 @@ func TestInsertWebFeatures(t *testing.T) {
 							BrowserName:    "safari",
 							BrowserVersion: "103",
 						},
+						{
+							BrowserName:    "chrome_android",
+							BrowserVersion: "104",
+						},
 					},
 					"feature2": {
 						{
@@ -1043,15 +1067,19 @@ func TestInsertWebFeatures(t *testing.T) {
 							BrowserName:    "safari",
 							BrowserVersion: "203",
 						},
+						{
+							BrowserName:    "safari_ios",
+							BrowserVersion: "106",
+						},
 					},
 				},
 				outputs: map[string][]error{
-					"feature1": {nil, nil, nil, nil},
-					"feature2": {nil, nil},
+					"feature1": {nil, nil, nil, nil, nil},
+					"feature2": {nil, nil, nil},
 				},
 				expectedCountPerFeature: map[string]int{
-					"feature1": 4,
-					"feature2": 2,
+					"feature1": 5,
+					"feature2": 3,
 				},
 			},
 			mockUpsertFeatureSpecCfg: mockUpsertFeatureSpecConfig{
@@ -1090,7 +1118,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						ByCompatKey:      nil,
 						Support: web_platform_dx__web_features.StatusSupport{
 							Chrome:         valuePtr("100"),
-							ChromeAndroid:  nil,
+							ChromeAndroid:  valuePtr("104"),
 							Edge:           valuePtr("101"),
 							Firefox:        valuePtr("102"),
 							FirefoxAndroid: nil,
@@ -1127,7 +1155,7 @@ func TestInsertWebFeatures(t *testing.T) {
 							Firefox:        valuePtr("202"),
 							FirefoxAndroid: nil,
 							Safari:         valuePtr("203"),
-							SafariIos:      nil,
+							SafariIos:      valuePtr("106"),
 						},
 						Baseline: &web_platform_dx__web_features.BaselineUnion{
 							Enum: valuePtr(web_platform_dx__web_features.Low),
