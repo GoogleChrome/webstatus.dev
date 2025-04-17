@@ -28,6 +28,26 @@ import {
 export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
   @property({type: String})
   featureId!: string;
+
+  private roundUsagePercentage(usage: number | undefined): number {
+    if (usage === undefined) {
+      return 0.0;
+    }
+    const percentage = usage * 100;
+    if (percentage >= 100) {
+      return 100;
+    }
+    // Round to one decimal place.
+    return Math.round(percentage * 10) / 10;
+  }
+
+  private formatPercentageForDisplay(percentage: number): string {
+    if (percentage === 100) {
+      return '100';
+    }
+    return percentage.toFixed(1);
+  }
+
   createLoadingTask(): Task {
     return new Task(this, {
       args: () =>
@@ -55,9 +75,11 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
             timestampExtractor: (dataPoint: ChromeUsageStat): Date =>
               new Date(dataPoint.timestamp),
             valueExtractor: (dataPoint: ChromeUsageStat): number =>
-              dataPoint.usage ? dataPoint.usage * 100 : 0,
-            tooltipExtractor: (dataPoint: ChromeUsageStat): string =>
-              `Chrome: ${dataPoint.usage ? dataPoint.usage * 100 : 0}%`,
+              this.roundUsagePercentage(dataPoint.usage),
+            tooltipExtractor: (dataPoint: ChromeUsageStat): string => {
+              const percentage = this.roundUsagePercentage(dataPoint.usage);
+              return `Chrome: ${this.formatPercentageForDisplay(percentage)}%`;
+            },
           },
         ]);
       },

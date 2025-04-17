@@ -180,7 +180,7 @@ resource "google_project_iam_member" "gcp_datastore_user" {
 }
 
 resource "google_project_iam_member" "gcp_spanner_user" {
-  role     = "roles/spanner.databaseReader"
+  role     = "roles/spanner.databaseUser"
   provider = google.internal_project
   project  = var.datastore_info.project_id
   member   = google_service_account.backend.member
