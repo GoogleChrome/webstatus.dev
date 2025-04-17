@@ -67,11 +67,27 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           overflow-x: auto;
           white-space: nowrap;
         }
-        .missing-feature-id-link {
+        .missing-feature-id {
           padding-right: 1em;
         }
-        .survey-result {
+        .survey-result,
+        .survey-result:hover,
+        .survey-result a {
+          display: inline;
+          font-size: 10px;
+          text-decoration: none;
+          border-radius: 12px;
+          padding: 0.2em;
+          color: rgb(255, 255, 255);
           cursor: help;
+        }
+        .survey-result-css {
+          border: 1px solid #15a445;
+          background-color: #15a445;
+        }
+        .survey-result-html {
+          border: 1px solid #0180c5;
+          background-color: #0180c5;
         }
       `,
     ];
@@ -251,29 +267,34 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           let extraIdentifier: TemplateResult | symbol = nothing;
           if (feature_id && TOP_CSS_INTEROP_ISSUES.includes(feature_id)) {
             extraIdentifier = html`<div
-              class="survey-result"
+              class="survey-result survey-result-css"
               title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
             >
-              <span>*</span>
+              <span href="https://2024.stateofcss.com/" target="_blank"
+                >TOP CSS</span
+              >
             </div>`;
           } else if (
             feature_id &&
             TOP_HTML_INTEROP_ISSUES.includes(feature_id)
           ) {
             extraIdentifier = html`<div
-              class="survey-result"
+              class="survey-result survey-result-html"
               title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
             >
-              <span>*</span>
+              <span
+                ><a href="https://2024.stateofhtml.com/" target="_blank"
+                  >TOP HTML</a
+                ></span
+              >
             </div>`;
           }
           cells.push(
             html` <td>
-              ${extraIdentifier}<a
-                href="/features/${feature_id}"
-                class="missing-feature-id-link"
-                >${feature_id}</a
-              >
+              <div class="missing-feature-id">
+                <a href="/features/${feature_id}">${feature_id}</a>
+                ${extraIdentifier}
+              </div>
             </td>`,
           );
         } else {
