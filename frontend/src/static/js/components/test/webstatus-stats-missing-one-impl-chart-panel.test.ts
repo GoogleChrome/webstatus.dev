@@ -186,7 +186,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
   it('renders missing one implementation features footer', async () => {
     apiClientStub.getMissingOneImplementationFeatures.resolves([
       {
-        feature_id: 'css',
+        feature_id: 'grid',
       },
       {
         feature_id: 'html',
@@ -232,7 +232,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     const expectedHeader = `
       <div slot="header" id="missing-one-implementation-list-header">
         Missing features on 2024-01-01 for Chrome:
-        <a href="/?q=id%3Acss+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
+        <a href="/?q=id%3Agrid+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
       </div>
     `;
     expect(header).dom.to.equal(expectedHeader);
@@ -246,10 +246,12 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(rows.length).to.equal(10, 'should have 10 rows');
 
     const firstRowCells = rows[0].querySelectorAll('td');
-    expect(firstRowCells[0].textContent?.trim()).to.equal(
-      'css',
-      'first row ID',
-    );
+    const textContent = firstRowCells[0].textContent
+      ?.split('\n')
+      .map(word => word.trim())
+      .filter(word => word.length > 0)
+      .join(' ');
+    expect(textContent).to.equal('grid TOP CSS', 'first row ID');
   });
 
   it('renders empty features footer', async () => {
