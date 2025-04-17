@@ -80,6 +80,10 @@ class TestLineChartPanel extends WebstatusLineChartPanel {
     return 'Test Panel';
   }
 
+  getPanelDescription(): TemplateResult {
+    return html`Test Description`;
+  }
+
   renderControls(): TemplateResult {
     return html``;
   }
