@@ -62,7 +62,7 @@ import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {
   AppBookmarkInfo,
-  bookmarkHelpers,
+  savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {VOCABULARY} from '../utils/constants.js';
 
@@ -155,7 +155,7 @@ export class WebstatusOverviewFilters extends LitElement {
       changedProperties.has('location') ||
       changedProperties.has('appBookmarkInfo')
     ) {
-      this._activeQuery = bookmarkHelpers.getCurrentQuery(
+      this._activeQuery = savedSearchHelpers.getCurrentQuery(
         this.appBookmarkInfo,
         this.location,
       );
@@ -191,7 +191,10 @@ export class WebstatusOverviewFilters extends LitElement {
       // TODO. allFeaturesFetcher should be moved to a separate task.
       this.allFeaturesFetcher = () => {
         return this.apiClient!.getAllFeatures(
-          bookmarkHelpers.getCurrentQuery(this.appBookmarkInfo, this.location),
+          savedSearchHelpers.getCurrentQuery(
+            this.appBookmarkInfo,
+            this.location,
+          ),
           getSortSpec(this.location) as FeatureSortOrderType,
           getWPTMetricView(this.location) as FeatureWPTMetricViewType,
         );

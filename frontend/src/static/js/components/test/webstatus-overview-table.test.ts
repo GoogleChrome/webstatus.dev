@@ -21,19 +21,29 @@ import {ApiError} from '../../api/errors.js';
 import {TaskStatus} from '@lit/task';
 import {WebstatusOverviewTable} from '../webstatus-overview-table.js';
 import '../webstatus-overview-table.js';
+import {
+  CurrentSavedSearch,
+  SavedSearchScope,
+} from '../../contexts/app-bookmark-info-context.js';
 
 describe('webstatus-overview-table', () => {
-  const orderedBookmark = {
-    name: 'Ordered Bookmark 1',
-    query: 'name:test3 OR id:test1 OR id:test2',
-    description: 'test description1',
-    is_ordered: true,
+  const orderedSavedSearch: CurrentSavedSearch = {
+    scope: SavedSearchScope.GlobalSavedSearch,
+    value: {
+      name: 'Ordered Bookmark 1',
+      query: 'name:test3 OR id:test1 OR id:test2',
+      description: 'test description1',
+      is_ordered: true,
+    },
   };
-  const defaultOrderBookmark = {
-    name: 'No order Bookmark 2',
-    query: 'id:nothing',
-    description: 'test description1',
-    is_ordered: false,
+  const defaultOrderSavedSearch: CurrentSavedSearch = {
+    scope: SavedSearchScope.GlobalSavedSearch,
+    value: {
+      name: 'No order Bookmark 2',
+      query: 'id:nothing',
+      description: 'test description1',
+      is_ordered: false,
+    },
   };
   const page = {
     data: [
@@ -82,7 +92,7 @@ describe('webstatus-overview-table', () => {
       await fixture<WebstatusOverviewTable>(
         html`<webstatus-overview-table
           .location=${location}
-          .bookmark=${orderedBookmark}
+          .savedSearch=${orderedSavedSearch}
           .taskTracker=${taskTracker}
         ></webstatus-overview-table>`,
       );
@@ -100,14 +110,17 @@ describe('webstatus-overview-table', () => {
     expect(sortedFeatures[3].feature_id).to.equal('test2');
   });
 
-  it('reorderByQueryTerms() sorts correctly with DEFAULT_BOOKMARKS', async () => {
+  it('reorderByQueryTerms() sorts correctly with DEFAULT_GLOBAL_SAVED_SEARCHES', async () => {
     const cssQuery =
       'id:anchor-positioning OR id:container-queries OR id:has OR id:nesting OR id:view-transitions OR id:subgrid OR id:grid OR name:scrollbar OR id:scroll-driven-animations OR id:scope';
-    const cssBookmark = {
-      name: 'css',
-      query: cssQuery,
-      description: 'test description1',
-      is_ordered: true,
+    const cssSavedSearch: CurrentSavedSearch = {
+      scope: SavedSearchScope.GlobalSavedSearch,
+      value: {
+        name: 'css',
+        query: cssQuery,
+        description: 'test description1',
+        is_ordered: true,
+      },
     };
     const cssPage = {
       data: [
@@ -177,7 +190,7 @@ describe('webstatus-overview-table', () => {
       await fixture<WebstatusOverviewTable>(
         html`<webstatus-overview-table
           .location=${location}
-          .bookmark=${cssBookmark}
+          .savedSearch=${cssSavedSearch}
           .taskTracker=${cssTaskTracker}
         ></webstatus-overview-table>`,
       );
@@ -208,7 +221,7 @@ describe('webstatus-overview-table', () => {
     const component = await fixture<WebstatusOverviewTable>(
       html`<webstatus-overview-table
         .location=${location}
-        .bookmark=${defaultOrderBookmark}
+        .savedSearch=${defaultOrderSavedSearch}
         .taskTracker=${taskTracker}
       ></webstatus-overview-table>`,
     );

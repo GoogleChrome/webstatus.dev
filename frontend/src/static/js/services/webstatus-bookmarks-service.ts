@@ -27,7 +27,12 @@ import {
   UserSavedSearchesUnknownError,
   appBookmarkInfoContext,
 } from '../contexts/app-bookmark-info-context.js';
-import {Bookmark, DEFAULT_BOOKMARKS} from '../utils/constants.js';
+import {
+  DEFAULT_GLOBAL_SAVED_SEARCHES,
+  GlobalSavedSearch,
+  SavedSearch,
+  UserSavedSearch,
+} from '../utils/constants.js';
 import {
   QueryStringOverrides,
   getSearchID,
@@ -52,12 +57,12 @@ interface GetLocationFunction {
 export class WebstatusBookmarksService extends ServiceElement {
   @provide({context: appBookmarkInfoContext})
   appBookmarkInfo: AppBookmarkInfo = {
-    userSavedSearchBookmarkTask: {
+    userSavedSearchTask: {
       status: TaskStatus.INITIAL,
       error: undefined,
       data: undefined,
     },
-    userSavedSearchBookmarksTask: {
+    userSavedSearchesTask: {
       status: TaskStatus.INITIAL,
       error: undefined,
       data: undefined,
@@ -71,17 +76,19 @@ export class WebstatusBookmarksService extends ServiceElement {
   @state()
   user: User | null | undefined;
 
-  _userSavedBookmarkByIDTaskTracker?: TaskTracker<
-    Bookmark,
+  _userSavedSearchByIDTaskTracker?: TaskTracker<
+    UserSavedSearch,
     SavedSearchError
   > & {query?: string} = undefined;
   _currentSearchID: string = '';
   _currentSearchQuery: string = '';
 
-  _userSavedBookmarksTaskTracker?: TaskTracker<Bookmark[], SavedSearchError> =
-    undefined;
+  _userSavedSearchesTaskTracker?: TaskTracker<
+    UserSavedSearch[],
+    SavedSearchError
+  > = undefined;
 
-  loadingUserSavedBookmarkByIDTask = new Task(this, {
+  loadingUserSavedSearchByIDTask = new Task(this, {
     autoRun: false,
     args: () =>
       [
@@ -97,14 +104,14 @@ export class WebstatusBookmarksService extends ServiceElement {
 
       // Get the search ID of the previously executed task (if any).
       const previousTaskSearchID =
-        this._userSavedBookmarkByIDTaskTracker?.data?.id;
+        this._userSavedSearchByIDTaskTracker?.data?.id;
 
-      // Check if the current request is for the same bookmark (same searchID)
+      // Check if the current request is for the same saved search (same searchID)
       // as a previously initiated task.
       if (searchID === previousTaskSearchID) {
         // Return the previous request's data
         return {
-          search: this._userSavedBookmarkByIDTaskTracker?.data,
+          search: this._userSavedSearchByIDTaskTracker?.data,
           query: searchQuery,
         };
       }
@@ -112,7 +119,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       if (user) {
         token = await user.getIdToken();
       }
-      this._userSavedBookmarkByIDTaskTracker = {
+      this._userSavedSearchByIDTaskTracker = {
         status: TaskStatus.PENDING,
         data: undefined,
         error: undefined,
@@ -123,7 +130,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       return {search: savedSearch, query: searchQuery};
     },
     onComplete: data => {
-      this._userSavedBookmarkByIDTaskTracker = {
+      this._userSavedSearchByIDTaskTracker = {
         status: TaskStatus.COMPLETE,
         data: undefined,
         error: undefined,
@@ -134,12 +141,12 @@ export class WebstatusBookmarksService extends ServiceElement {
         return;
       }
 
-      this._userSavedBookmarkByIDTaskTracker.data = data.search;
+      this._userSavedSearchByIDTaskTracker.data = data.search;
 
       const q = data.query;
       if (q && data.search?.query === q) {
-        // Clear out the "q" query parameter if it is the same as the bookmark.
-        // Only keep the "q" query parameter if it is different from the bookmark which indicates we are doing an edit.
+        // Clear out the "q" query parameter if it is the same as the saved search.
+        // Only keep the "q" query parameter if it is different from the saved search which indicates we are doing an edit.
         this.updatePageUrl(
           this._currentLocation!.pathname,
           this._currentLocation!,
@@ -162,11 +169,11 @@ export class WebstatusBookmarksService extends ServiceElement {
         err = new SavedSearchUnknownError(searchID, error);
       }
 
-      this._userSavedBookmarkByIDTaskTracker = {
+      this._userSavedSearchByIDTaskTracker = {
         status: TaskStatus.ERROR,
         error: err,
         data: undefined,
-        query: this._userSavedBookmarkByIDTaskTracker?.query,
+        query: this._userSavedSearchByIDTaskTracker?.query,
       };
       this.refreshAppBookmarkInfo();
       // Clear out the bad "search_id" query parameter.
@@ -185,7 +192,7 @@ export class WebstatusBookmarksService extends ServiceElement {
     },
   });
 
-  loadingUserSavedBookmarksTask = new Task(this, {
+  loadingUserSavedSearchesTask = new Task(this, {
     autoRun: false,
     args: () => [this.apiClient, this.user] as const,
     task: async ([apiClient, user]) => {
@@ -193,7 +200,7 @@ export class WebstatusBookmarksService extends ServiceElement {
         return undefined;
       }
       const token = await user!.getIdToken();
-      this._userSavedBookmarksTaskTracker = {
+      this._userSavedSearchesTaskTracker = {
         status: TaskStatus.PENDING,
         data: undefined,
         error: undefined,
@@ -203,7 +210,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       return await apiClient!.getAllUserSavedSearches(token);
     },
     onComplete: data => {
-      this._userSavedBookmarksTaskTracker = {
+      this._userSavedSearchesTaskTracker = {
         status: TaskStatus.COMPLETE,
         data: data,
         error: undefined,
@@ -218,7 +225,7 @@ export class WebstatusBookmarksService extends ServiceElement {
         err = new UserSavedSearchesUnknownError(error);
       }
 
-      this._userSavedBookmarksTaskTracker = {
+      this._userSavedSearchesTaskTracker = {
         status: TaskStatus.ERROR,
         error: err,
         data: undefined,
@@ -232,9 +239,9 @@ export class WebstatusBookmarksService extends ServiceElement {
     },
   });
 
-  _globalBookmarks: Bookmark[];
-  _currentGlobalBookmark?: Bookmark;
-  // A snapshot of the current location that relates to the bookmark
+  _globalSavedSearches: GlobalSavedSearch[];
+  _currentGlobalSavedSearch?: GlobalSavedSearch;
+  // A snapshot of the current location that relates to the saved search
   // information currently loaded by the service.
   // Typically, we should only update this on navigation events which indicates
   // that we should probably refresh the bookmark information.
@@ -261,7 +268,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       ) {
         this._currentSearchQuery = incomingSearchQuery;
         this._currentSearchID = incomingSearchID;
-        void this.loadingUserSavedBookmarkByIDTask.run();
+        void this.loadingUserSavedSearchByIDTask.run();
       }
     }
 
@@ -270,7 +277,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       this.apiClient !== undefined &&
       this.user !== undefined
     ) {
-      void this.loadingUserSavedBookmarksTask.run();
+      void this.loadingUserSavedSearchesTask.run();
     }
   }
 
@@ -286,16 +293,16 @@ export class WebstatusBookmarksService extends ServiceElement {
 
   constructor() {
     super();
-    this._globalBookmarks = DEFAULT_BOOKMARKS;
-    this._currentGlobalBookmark = this.findCurrentBookmarkByQuery(
-      this._globalBookmarks,
+    this._globalSavedSearches = DEFAULT_GLOBAL_SAVED_SEARCHES;
+    this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
+      this._globalSavedSearches,
     );
   }
 
   private handlePopState() {
     this._currentLocation = this.getLocation();
-    this._currentGlobalBookmark = this.findCurrentBookmarkByQuery(
-      this.appBookmarkInfo.globalBookmarks,
+    this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
+      this.appBookmarkInfo.globalSavedSearches,
     );
     this.refreshAppBookmarkInfo();
   }
@@ -312,21 +319,23 @@ export class WebstatusBookmarksService extends ServiceElement {
     window.removeEventListener('popstate', this.handlePopState.bind(this));
   }
 
-  findCurrentBookmarkByQuery(bookmarks?: Bookmark[]): Bookmark | undefined {
+  findCurrentSavedSearchByQuery(
+    savedSearches?: SavedSearch[],
+  ): SavedSearch | undefined {
     const currentQuery = this.getSearchQuery(
       this._currentLocation ?? {search: ''},
     );
-    return bookmarks?.find(bookmark => bookmark.query === currentQuery);
+    return savedSearches?.find(search => search.query === currentQuery);
   }
 
   // Assign the appBookmarkInfo object to trigger a refresh of subscribed contexts
   refreshAppBookmarkInfo() {
     this.appBookmarkInfo = {
-      globalBookmarks: this._globalBookmarks,
-      currentGlobalBookmark: this._currentGlobalBookmark,
-      userSavedSearchBookmarkTask: this._userSavedBookmarkByIDTaskTracker,
+      globalSavedSearches: this._globalSavedSearches,
+      currentGlobalSavedSearch: this._currentGlobalSavedSearch,
+      userSavedSearchTask: this._userSavedSearchByIDTaskTracker,
       currentLocation: this._currentLocation,
-      userSavedSearchBookmarksTask: this._userSavedBookmarksTaskTracker,
+      userSavedSearchesTask: this._userSavedSearchesTaskTracker,
     };
   }
 }

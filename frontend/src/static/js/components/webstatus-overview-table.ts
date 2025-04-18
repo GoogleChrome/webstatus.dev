@@ -30,16 +30,19 @@ import {
   renderColgroups,
   renderGroupsRow,
   renderHeaderCell,
-  renderBookmarkHeaderCells,
+  renderSavedSearchHeaderCells,
 } from './webstatus-overview-cells.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
 import {
   GITHUB_REPO_ISSUE_LINK,
   SEARCH_QUERY_README_LINK,
-  Bookmark,
 } from '../utils/constants.js';
 import {Toast} from '../utils/toast.js';
+import {
+  CurrentSavedSearch,
+  SavedSearchScope,
+} from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -54,7 +57,7 @@ export class WebstatusOverviewTable extends LitElement {
   location!: {search: string}; // Set by parent.
 
   @property({type: Object})
-  bookmark: Bookmark | undefined;
+  savedSearch: CurrentSavedSearch;
 
   static get styles(): CSSResultGroup {
     return [
@@ -153,11 +156,15 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
-    if (!this.bookmark || !this.bookmark.is_ordered) {
+    if (
+      !this.savedSearch ||
+      this.savedSearch.scope !== SavedSearchScope.GlobalSavedSearch ||
+      !this.savedSearch.value.is_ordered
+    ) {
       return undefined;
     }
 
-    const atoms: string[] = this.bookmark.query.trim().split('OR');
+    const atoms: string[] = this.savedSearch.value.query.trim().split('OR');
     const features = [];
     for (const atom of atoms) {
       const terms = atom.trim().split(':');
@@ -169,7 +176,7 @@ export class WebstatusOverviewTable extends LitElement {
 
     if (features.length !== this.taskTracker?.data?.data?.length) {
       void new Toast().toast(
-        `Unable to apply custom sorting to bookmark "${this.bookmark.name}". Defaulting to normal sorting.`,
+        `Unable to apply custom sorting to saved search "${this.savedSearch.value.name}". Defaulting to normal sorting.`,
         'warning',
         'exclamation-triangle',
       );
@@ -186,8 +193,14 @@ export class WebstatusOverviewTable extends LitElement {
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
 
     let headerCells: TemplateResult[] = [];
-    if (this.bookmark?.is_ordered) {
-      headerCells = renderBookmarkHeaderCells(this.bookmark.name, columns);
+    if (
+      this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
+      this.savedSearch.value?.is_ordered
+    ) {
+      headerCells = renderSavedSearchHeaderCells(
+        this.savedSearch.value.name,
+        columns,
+      );
     } else {
       headerCells = columns.map(
         col => html`${renderHeaderCell(this.location, col, sortSpec)}`,

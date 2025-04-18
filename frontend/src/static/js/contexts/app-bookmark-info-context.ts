@@ -15,71 +15,93 @@
  */
 
 import {createContext} from '@lit/context';
-import {Bookmark} from '../utils/constants.js';
+import {GlobalSavedSearch, UserSavedSearch} from '../utils/constants.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {TaskStatus} from '@lit/task';
 import {getSearchID, getSearchQuery} from '../utils/urls.js';
 
 export interface AppBookmarkInfo {
-  globalBookmarks?: Bookmark[];
-  currentGlobalBookmark?: Bookmark;
-  userSavedSearchBookmarkTask?: TaskTracker<Bookmark, SavedSearchError>;
-  userSavedSearchBookmarksTask?: TaskTracker<Bookmark[], SavedSearchError>;
+  globalSavedSearches?: GlobalSavedSearch[];
+  currentGlobalSavedSearch?: GlobalSavedSearch;
+  userSavedSearchTask?: TaskTracker<UserSavedSearch, SavedSearchError>;
+  userSavedSearchesTask?: TaskTracker<UserSavedSearch[], SavedSearchError>;
   currentLocation?: {search: string};
 }
 
 export const appBookmarkInfoContext =
   createContext<AppBookmarkInfo>('app-bookmark-info');
 
-export const bookmarkHelpers = {
+export enum SavedSearchScope {
+  GlobalSavedSearch,
+  UserSavedSearch,
+}
+
+export type CurrentSavedSearch =
+  | {scope: SavedSearchScope.GlobalSavedSearch; value: GlobalSavedSearch}
+  | {scope: SavedSearchScope.UserSavedSearch; value: UserSavedSearch}
+  | undefined;
+export const savedSearchHelpers = {
   /**
-   * Returns the current bookmark based on the provided AppBookmarkInfo and location.
+   * Returns the current saved search based on the provided AppBookmarkInfo and location.
    *
    * @param {AppBookmarkInfo?} info  - The AppBookmarkInfo object.
    * @param {{search: string}?} location - The location object containing the search parameters.
    */
-  getCurrentBookmark(
+  getCurrentSavedSearch(
     info?: AppBookmarkInfo,
     location?: {search: string},
-  ): Bookmark | undefined {
+  ): CurrentSavedSearch {
     const searchID = getSearchID(location ?? {search: ''});
     if (
       // There's a chance that the context has not been updated so we should check the search ID in the location.
       searchID &&
-      info?.userSavedSearchBookmarksTask?.status === TaskStatus.COMPLETE &&
-      info?.userSavedSearchBookmarksTask.data
+      info?.userSavedSearchesTask?.status === TaskStatus.COMPLETE &&
+      info?.userSavedSearchesTask.data
     ) {
-      const userBookmark = info.userSavedSearchBookmarksTask.data?.find(
+      const userSavedSearch = info.userSavedSearchesTask.data?.find(
         item => item.id === searchID,
       );
-      if (userBookmark !== undefined) {
-        return userBookmark;
+      if (userSavedSearch !== undefined) {
+        return {
+          scope: SavedSearchScope.UserSavedSearch,
+          value: userSavedSearch,
+        };
       }
     }
     if (
       // There's a chance that the context has not been updated so we should check the search ID in the location.
       searchID &&
-      info?.userSavedSearchBookmarkTask?.status === TaskStatus.COMPLETE &&
-      info?.userSavedSearchBookmarkTask.data
+      info?.userSavedSearchTask?.status === TaskStatus.COMPLETE &&
+      info?.userSavedSearchTask.data
     ) {
-      return info.userSavedSearchBookmarkTask.data;
+      return {
+        scope: SavedSearchScope.UserSavedSearch,
+        value: info.userSavedSearchTask.data,
+      };
     }
 
-    return info?.currentGlobalBookmark;
+    if (info?.currentGlobalSavedSearch) {
+      return {
+        scope: SavedSearchScope.GlobalSavedSearch,
+        value: info.currentGlobalSavedSearch,
+      };
+    }
+
+    return undefined;
   },
 
   /**
    * Returns the current query based on the provided AppBookmarkInfo and location.
    *
    * This function determines the active query string by considering both global
-   * and user-saved bookmarks, as well as the current location's search parameters.
+   * and user saved searches, as well as the current location's search parameters.
    *
-   * - If a user-saved bookmark is active (indicated by a matching `search_id` in
+   * - If a user saved search is active (indicated by a matching `search_id` in
    *   the location), its query is used unless the location's `q` parameter is
    *   different, which indicates the user is editing the query.
-   * - If a global bookmark is active, its query is used.
-   * - If no bookmark is active, the query from the location's `q` parameter is used.
-   * - If the bookmark information is still loading, the query from the location's `q` parameter is used.
+   * - If a global saved search is active, its query is used.
+   * - If no saved search is active, the query from the location's `q` parameter is used.
+   * - If the saved search information is still loading, the query from the location's `q` parameter is used.
    *
    * @param {AppBookmarkInfo?} info - The AppBookmarkInfo object.
    * @param {{search: string}?} location - The location object containing the search parameters.
@@ -90,18 +112,23 @@ export const bookmarkHelpers = {
     location?: {search: string},
   ): string => {
     const q = getSearchQuery(location ?? {search: ''});
-    if (bookmarkHelpers.isBusyLoadingBookmarkInfo(info, location)) {
+    if (savedSearchHelpers.isBusyLoadingSavedSearchInfo(info, location)) {
       return q;
     }
-    const bookmark = bookmarkHelpers.getCurrentBookmark(info, location);
-    // User saved bookmarks can be edited. And those have IDs
-    if (bookmark !== undefined && bookmark.id !== undefined) {
-      // If there's a bookmark, prioritize its query unless q is different.
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
+      info,
+      location,
+    );
+    // User saved searches can be edited. And those have IDs
+    if (savedSearch?.scope === SavedSearchScope.UserSavedSearch) {
+      // If there's a saved search, prioritize its query unless q is different.
       // If they are different, this could mean we are trying to edit.
-      return q !== bookmark.query && q !== '' ? q : bookmark.query;
-    } else if (bookmark !== undefined && bookmark.id === undefined) {
-      // If there's a global bookmark, use its query.
-      return bookmark.query;
+      return q !== savedSearch.value.query && q !== ''
+        ? q
+        : savedSearch.value.query;
+    } else if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
+      // If there's a global saved search, use its query.
+      return savedSearch.value.query;
     }
 
     return q;
@@ -115,17 +142,17 @@ export const bookmarkHelpers = {
    * @param {{search: string}?} location - The location object containing the search parameters.
    * @returns {boolean} True if the bookmark info is loading or the location has changed, false otherwise.
    */
-  isBusyLoadingBookmarkInfo: (
+  isBusyLoadingSavedSearchInfo: (
     info?: AppBookmarkInfo,
     location?: {search: string},
   ): boolean => {
     return (
-      info?.userSavedSearchBookmarkTask === undefined ||
-      info?.userSavedSearchBookmarkTask?.status === TaskStatus.INITIAL ||
-      info?.userSavedSearchBookmarkTask?.status === TaskStatus.PENDING ||
-      info?.userSavedSearchBookmarksTask === undefined ||
-      info?.userSavedSearchBookmarksTask?.status === TaskStatus.INITIAL ||
-      info?.userSavedSearchBookmarksTask?.status === TaskStatus.PENDING ||
+      info?.userSavedSearchTask === undefined ||
+      info?.userSavedSearchTask?.status === TaskStatus.INITIAL ||
+      info?.userSavedSearchTask?.status === TaskStatus.PENDING ||
+      info?.userSavedSearchesTask === undefined ||
+      info?.userSavedSearchesTask?.status === TaskStatus.INITIAL ||
+      info?.userSavedSearchesTask?.status === TaskStatus.PENDING ||
       info?.currentLocation?.search !== location?.search
     );
   },
@@ -181,7 +208,7 @@ export class SavedSearchUnknownError extends Error {
 }
 
 /**
- * Represents an internal error that occurred while fetching a user's list of bookmaked saved searches.
+ * Represents an internal error that occurred while fetching a user's list of saved searches.
  */
 export class UserSavedSearchesInternalError extends Error {
   /**
@@ -189,14 +216,12 @@ export class UserSavedSearchesInternalError extends Error {
    * @param {string} msg - The error message.
    */
   constructor(msg: string) {
-    super(
-      `Internal error fetching list of bookmarked saved searches for user: ${msg}`,
-    );
+    super(`Internal error fetching list of saved searches for user: ${msg}`);
   }
 }
 
 /**
- * Represents an unknown error that occurred while fetching a user's list of bookmaked saved searches.
+ * Represents an unknown error that occurred while fetching a user's list of saved searches.
  */
 export class UserSavedSearchesUnknownError extends Error {
   /**
@@ -205,7 +230,7 @@ export class UserSavedSearchesUnknownError extends Error {
    */
   constructor(err: unknown) {
     super(
-      'Unknown error fetching list of bookmarked saved searches for user. Check console for details.',
+      'Unknown error fetching list of saved searches for user. Check console for details.',
     );
     console.error(err);
   }

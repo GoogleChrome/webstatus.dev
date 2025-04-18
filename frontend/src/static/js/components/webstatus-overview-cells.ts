@@ -525,13 +525,13 @@ export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
   `;
 }
 
-export function renderBookmarkHeaderCells(
-  bookmarkName: string,
+export function renderSavedSearchHeaderCells(
+  name: string,
   columns: ColumnKey[],
 ): TemplateResult[] {
   const headerCells: TemplateResult[] = columns.map(col => {
     if (col === ColumnKey.Name) {
-      const title = `Sorted by ${bookmarkName} query order`;
+      const title = `Sorted by ${name} query order`;
       return html`${renderUnsortableHeaderCell(col, title)}`;
     } else {
       return html`${renderUnsortableHeaderCell(col)}`;

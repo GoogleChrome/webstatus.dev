@@ -19,7 +19,7 @@ import sinon from 'sinon';
 import {WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
 import {SlTreeItem} from '@shoelace-style/shoelace';
 import '../webstatus-sidebar-menu.js';
-import {Bookmark} from '../../utils/constants.js';
+import {GlobalSavedSearch, UserSavedSearch} from '../../utils/constants.js';
 import {customElement, property} from 'lit/decorators.js';
 import {provide} from '@lit/context';
 import {LitElement, TemplateResult, render} from 'lit';
@@ -30,7 +30,7 @@ import {
 import {TaskStatus} from '@lit/task';
 import {AppLocation} from '../../utils/app-router.js';
 
-const testBookmarks: Bookmark[] = [
+const testGlobalSavedSearches: GlobalSavedSearch[] = [
   {
     name: 'Test Bookmark 1',
     query: 'test_query_1',
@@ -43,22 +43,27 @@ const testBookmarks: Bookmark[] = [
   },
 ];
 
-const testUserSavedBookmarks: Bookmark[] = [
+const testUserSavedSearches: UserSavedSearch[] = [
   {id: 'saved1', name: 'Saved 1', query: 'saved_query_1'},
   {id: 'saved2', name: 'Saved 2', query: 'saved_query_2'},
   {id: 'saved3', name: 'Saved 3', query: 'saved_query_3'},
 ];
 
-@customElement('fake-bookmark-parent-element')
-class FakeBookmarkParentElement extends LitElement {
+@customElement('fake-saved-search-parent-element')
+class FakeSavedSearchParentElement extends LitElement {
   @provide({context: appBookmarkInfoContext})
   @property({type: Object})
   appBookmarkInfo: AppBookmarkInfo = {
-    globalBookmarks: testBookmarks,
-    currentGlobalBookmark: undefined,
-    userSavedSearchBookmarksTask: {
+    globalSavedSearches: testGlobalSavedSearches,
+    currentGlobalSavedSearch: undefined,
+    userSavedSearchesTask: {
       status: TaskStatus.COMPLETE,
-      data: testUserSavedBookmarks,
+      data: testUserSavedSearches,
+      error: undefined,
+    },
+    userSavedSearchTask: {
+      status: TaskStatus.COMPLETE,
+      data: undefined,
       error: undefined,
     },
   };
@@ -71,24 +76,24 @@ class FakeBookmarkParentElement extends LitElement {
 function createTestContainer(): HTMLElement {
   const container = document.createElement('div');
   container.innerHTML = `
-  <fake-bookmark-parent-element>
+  <fake-saved-search-parent-element>
     <webstatus-sidebar-menu>
     </webstatus-sidebar-menu>
-  </fake-bookmark-parent-element>
+  </fake-saved-search-parent-element>
 `;
   return container;
 }
 
 describe('webstatus-sidebar-menu', () => {
   let el: WebstatusSidebarMenu;
-  let parent: FakeBookmarkParentElement;
+  let parent: FakeSavedSearchParentElement;
   let container: HTMLElement;
 
   beforeEach(async () => {
     container = createTestContainer();
 
-    parent = container.querySelector<FakeBookmarkParentElement>(
-      'fake-bookmark-parent-element',
+    parent = container.querySelector<FakeSavedSearchParentElement>(
+      'fake-saved-search-parent-element',
     )!;
     el = container.querySelector<WebstatusSidebarMenu>(
       'webstatus-sidebar-menu',
@@ -104,7 +109,7 @@ describe('webstatus-sidebar-menu', () => {
     el.navigate = sinon.stub();
     document.body.appendChild(container);
 
-    await el.updateComplete; // Wait for the component to update with the new bookmarks
+    await el.updateComplete; // Wait for the component to update with the new searches
   });
 
   afterEach(() => {
@@ -156,14 +161,14 @@ describe('webstatus-sidebar-menu', () => {
     );
   });
 
-  it('renders user saved bookmarks correctly', async () => {
+  it('renders user saved searches correctly', async () => {
     const userSavedBookmarksItems = el.shadowRoot?.querySelectorAll(
       'sl-tree-item[id^="userbookmark"]',
     );
     expect(userSavedBookmarksItems).to.have.lengthOf(
-      testUserSavedBookmarks.length,
+      testUserSavedSearches.length,
     );
-    testUserSavedBookmarks.forEach((bookmark, index) => {
+    testUserSavedSearches.forEach((bookmark, index) => {
       const item = userSavedBookmarksItems![index] as SlTreeItem;
       expect(item.id).to.equal(`userbookmark${index}`);
       expect(item.textContent).to.contain(bookmark.name);
@@ -173,20 +178,20 @@ describe('webstatus-sidebar-menu', () => {
   it('updates the active bookmark query when the URL changes', async () => {
     // Set mock location to match a test bookmark
     (el.getLocation as sinon.SinonStub).returns({
-      search: `?q=${el.appBookmarkInfo?.globalBookmarks?.[1].query}`,
-      href: `http://localhost/?q=${el.appBookmarkInfo?.globalBookmarks?.[1].query}`,
+      search: `?q=${el.appBookmarkInfo?.globalSavedSearches?.[1].query}`,
+      href: `http://localhost/?q=${el.appBookmarkInfo?.globalSavedSearches?.[1].query}`,
     });
     parent.appBookmarkInfo = {
-      globalBookmarks: testBookmarks,
-      currentGlobalBookmark: testBookmarks[1],
+      globalSavedSearches: testGlobalSavedSearches,
+      currentGlobalSavedSearch: testGlobalSavedSearches[1],
     };
 
     el.updateActiveStatus();
     await parent.updateComplete;
     await el.updateComplete;
     expect(el.getLocation as sinon.SinonStub).to.be.called;
-    expect(el.getActiveBookmarkQuery()).to.equal(
-      el.appBookmarkInfo?.globalBookmarks?.[1].query,
+    expect(el.activeQuery).to.equal(
+      el.appBookmarkInfo?.globalSavedSearches?.[1].query,
     );
   });
 
@@ -194,22 +199,22 @@ describe('webstatus-sidebar-menu', () => {
     const bookmarkItems = el.shadowRoot?.querySelectorAll(
       'sl-tree-item[id^="globalbookmark"]',
     );
-    expect(bookmarkItems).to.have.lengthOf(testBookmarks.length);
-    testBookmarks.forEach((bookmark, index) => {
+    expect(bookmarkItems).to.have.lengthOf(testGlobalSavedSearches.length);
+    testGlobalSavedSearches.forEach((bookmark, index) => {
       const item = bookmarkItems![index] as SlTreeItem;
       expect(item.id).to.equal(`globalbookmark${index}`);
       expect(item.textContent).to.contain(bookmark.name);
     });
   });
 
-  it('renders user saved bookmarks correctly with IDs', async () => {
+  it('renders user saved searches correctly with IDs', async () => {
     const userSavedBookmarksItems = el.shadowRoot?.querySelectorAll(
       'sl-tree-item[id^="userbookmark"]',
     );
     expect(userSavedBookmarksItems).to.have.lengthOf(
-      testUserSavedBookmarks.length,
+      testUserSavedSearches.length,
     );
-    testUserSavedBookmarks.forEach((bookmark, index) => {
+    testUserSavedSearches.forEach((bookmark, index) => {
       const item = userSavedBookmarksItems![index] as SlTreeItem;
       expect(item.id).to.equal(`userbookmark${index}`);
       expect(item.textContent).to.contain(bookmark.name);
@@ -227,29 +232,29 @@ describe('webstatus-sidebar-menu', () => {
     const bookmarkAnchor = bookmarkItem.querySelector('a') as HTMLAnchorElement;
     expect(bookmarkAnchor).to.exist;
 
-    expect(el.getActiveBookmarkQuery()).to.be.null;
+    expect(el.activeQuery).to.be.null;
 
     (el.getLocation as sinon.SinonStub).returns({
-      search: `?q=${el.appBookmarkInfo?.globalBookmarks?.[0].query}`,
-      href: `http://localhost/?q=${el.appBookmarkInfo?.globalBookmarks?.[0].query}`,
+      search: `?q=${el.appBookmarkInfo?.globalSavedSearches?.[0].query}`,
+      href: `http://localhost/?q=${el.appBookmarkInfo?.globalSavedSearches?.[0].query}`,
     });
 
     // Stub the click method to prevent default behavior
     const clickStub = sinon.stub(bookmarkAnchor, 'click');
 
-    // Click the anchor. The parent element handles updating the currentGlobalBookmark
+    // Click the anchor. The parent element handles updating the currentGlobalSavedSearch
     bookmarkAnchor.click();
     parent.appBookmarkInfo = {
-      globalBookmarks: testBookmarks,
-      currentGlobalBookmark: testBookmarks[0],
+      globalSavedSearches: testGlobalSavedSearches,
+      currentGlobalSavedSearch: testGlobalSavedSearches[0],
     };
     await parent.updateComplete;
     await el.updateComplete;
 
     // Assertions
     expect(clickStub.calledOnce).to.be.true;
-    expect(el.getActiveBookmarkQuery()).to.equal(
-      el.appBookmarkInfo?.globalBookmarks?.[0].query,
+    expect(el.activeQuery).to.equal(
+      el.appBookmarkInfo?.globalSavedSearches?.[0].query,
     );
 
     const bookmarkItems = el.shadowRoot
@@ -272,14 +277,18 @@ describe('webstatus-sidebar-menu', () => {
     clickStub.restore();
   });
 
-  it('correctly handles bookmark clicks for user saved bookmarks, verifying isQueryActive', async () => {
+  it('correctly handles bookmark clicks for user saved searches, verifying isQueryActive', async () => {
     // Set up the URL to match the first user bookmark
     const mockLocation: AppLocation = {
-      href: `http://localhost/?search_id=${testUserSavedBookmarks[0].id}`,
-      search: `?search_id=${testUserSavedBookmarks[0].id}`,
+      href: `http://localhost/?search_id=${testUserSavedSearches[0].id}`,
+      search: `?search_id=${testUserSavedSearches[0].id}`,
       pathname: '/',
     };
     (el.getLocation as sinon.SinonStub).returns(mockLocation);
+    parent.appBookmarkInfo = {
+      ...parent.appBookmarkInfo,
+      currentLocation: mockLocation,
+    };
     el.updateActiveStatus();
     await el.updateComplete;
 
@@ -296,9 +305,7 @@ describe('webstatus-sidebar-menu', () => {
     await el.updateComplete; // Allow the component to update after the click
 
     expect(clickStub.calledOnce).to.be.true;
-    expect(el.getActiveBookmarkQuery()).to.equal(
-      testUserSavedBookmarks[0].query,
-    );
+    expect(el.activeQuery).to.equal(testUserSavedSearches[0].query);
 
     // Assertions to check the selected state of other bookmarks
     const userBookmarkItems = el.shadowRoot?.querySelectorAll(
@@ -322,7 +329,7 @@ describe('webstatus-sidebar-menu', () => {
     clickStub.restore();
   });
 
-  it('renders user saved bookmarks section correctly - pending state', async () => {
+  it('renders user saved searches section correctly - pending state', async () => {
     const userBookmarksSection = el.shadowRoot?.querySelector(
       '#your-bookmarks-list',
     );
@@ -331,7 +338,7 @@ describe('webstatus-sidebar-menu', () => {
 
     parent.appBookmarkInfo = {
       ...parent.appBookmarkInfo,
-      userSavedSearchBookmarksTask: {
+      userSavedSearchesTask: {
         status: TaskStatus.PENDING,
         data: undefined,
         error: undefined,
@@ -344,7 +351,7 @@ describe('webstatus-sidebar-menu', () => {
     expect(userBookmarkItems).to.have.lengthOf(3); // Should show 3 skeletons while pending
   });
 
-  it('renders user saved bookmarks section correctly - complete with data', async () => {
+  it('renders user saved searches section correctly - complete with data', async () => {
     const userBookmarksSection = el.shadowRoot?.querySelector(
       '#your-bookmarks-list',
     );
@@ -353,19 +360,19 @@ describe('webstatus-sidebar-menu', () => {
 
     parent.appBookmarkInfo = {
       ...parent.appBookmarkInfo,
-      userSavedSearchBookmarksTask: {
+      userSavedSearchesTask: {
         status: TaskStatus.COMPLETE,
-        data: testUserSavedBookmarks,
+        data: testUserSavedSearches,
         error: undefined,
       },
     };
     await el.updateComplete;
     const userBookmarkItems =
       userBookmarksSection?.querySelectorAll('sl-tree-item');
-    expect(userBookmarkItems).to.have.lengthOf(testUserSavedBookmarks.length);
+    expect(userBookmarkItems).to.have.lengthOf(testUserSavedSearches.length);
   });
 
-  it('renders user saved bookmarks section correctly - complete with empty data', async () => {
+  it('renders user saved searches section correctly - complete with empty data', async () => {
     const userBookmarksSection = el.shadowRoot?.querySelector(
       '#your-bookmarks-list',
     );
@@ -374,7 +381,7 @@ describe('webstatus-sidebar-menu', () => {
 
     parent.appBookmarkInfo = {
       ...parent.appBookmarkInfo,
-      userSavedSearchBookmarksTask: {
+      userSavedSearchesTask: {
         status: TaskStatus.COMPLETE,
         data: [],
         error: undefined,
@@ -386,7 +393,7 @@ describe('webstatus-sidebar-menu', () => {
     expect(userBookmarkItems).to.have.lengthOf(0);
   });
 
-  it('renders user saved bookmarks section correctly - error state', async () => {
+  it('renders user saved searches section correctly - error state', async () => {
     const userBookmarksSection = el.shadowRoot?.querySelector(
       '#your-bookmarks-list',
     );
@@ -395,7 +402,7 @@ describe('webstatus-sidebar-menu', () => {
 
     parent.appBookmarkInfo = {
       ...parent.appBookmarkInfo,
-      userSavedSearchBookmarksTask: {
+      userSavedSearchesTask: {
         status: TaskStatus.ERROR,
         data: undefined,
         error: new Error('Failed to load bookmarks'),
@@ -407,55 +414,55 @@ describe('webstatus-sidebar-menu', () => {
     expect(userBookmarkItems).to.have.lengthOf(0); // Should show nothing in rejected state
   });
 
-  it('renders renderBookmark correctly with user bookmark ID without ownership', async () => {
-    const bookmark = testUserSavedBookmarks[0];
-    const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
+  it('renders renderUserSavedSearch correctly with user search ID without ownership', async () => {
+    const search = testUserSavedSearches[0];
+    const renderedSearch = el.renderUserSavedSearch(search, 0);
     const container = document.createElement('div');
-    render(renderedBookmark, container);
+    render(renderedSearch, container);
     expect(container.querySelector('sl-tree-item')?.id).to.equal(
       'userbookmark0',
     );
-    expect(container.textContent).to.contain(bookmark.name);
+    expect(container.textContent).to.contain(search.name);
     expect(
       container
         .querySelector('sl-tree-item')
-        ?.querySelector('.bookmark-edit-link'),
+        ?.querySelector('.saved-search-edit-link'),
     ).to.be.null;
   });
 
-  it('renders renderBookmark correctly with user bookmark ID with ownership', async () => {
-    const bookmark = testUserSavedBookmarks[0];
-    bookmark.permissions = {role: 'saved_search_owner'};
-    const renderedBookmark = el.renderBookmark(bookmark, 0, 'user');
+  it('renders renderUserSavedSearch correctly with user search ID with ownership', async () => {
+    const search = testUserSavedSearches[0];
+    search.permissions = {role: 'saved_search_owner'};
+    const renderedSearch = el.renderUserSavedSearch(search, 0);
     const container = document.createElement('div');
-    render(renderedBookmark, container);
+    render(renderedSearch, container);
     expect(container.querySelector('sl-tree-item')?.id).to.equal(
       'userbookmark0',
     );
-    expect(container.textContent).to.contain(bookmark.name);
+    expect(container.textContent).to.contain(search.name);
     expect(
       container
         .querySelector('sl-tree-item')
-        ?.querySelector('.bookmark-edit-link'),
+        ?.querySelector('.saved-search-edit-link'),
     ).exist;
   });
 
-  it('renders renderBookmark correctly without ID for global bookmark', async () => {
-    const bookmark = testBookmarks[0];
-    const renderedBookmark = el.renderBookmark(bookmark, 0, 'global');
+  it('renders renderGlobalSavedSearch correctly without ID for global saved search', async () => {
+    const bookmark = testGlobalSavedSearches[0];
+    const renderedSearch = el.renderGlobalSavedSearch(bookmark, 0);
     const container = document.createElement('div');
-    render(renderedBookmark, container);
+    render(renderedSearch, container);
     expect(container.querySelector('sl-tree-item')?.id).to.equal(
       'globalbookmark0',
     );
     expect(container.textContent).to.contain(bookmark.name);
   });
 
-  it('marks the active bookmark item as selected on first load', async () => {
-    // Mock the location to match the first bookmark BEFORE the fixture is created
+  it('marks the active search item as selected on first load', async () => {
+    // Mock the location to match the first search BEFORE the fixture is created
     const getCurrentLocationStub = sinon.stub().returns({
-      search: `?q=${testBookmarks[0].query}`,
-      href: `http://localhost/?q=${testBookmarks[0].query}`,
+      search: `?q=${testGlobalSavedSearches[0].query}`,
+      href: `http://localhost/?q=${testGlobalSavedSearches[0].query}`,
     });
     const navigateToUrlStub = sinon.stub();
 
@@ -465,8 +472,8 @@ describe('webstatus-sidebar-menu', () => {
         .getLocation=${getCurrentLocationStub}
         .navigate=${navigateToUrlStub}
         .appBookmarkInfo=${{
-          globalBookmarks: testBookmarks,
-          currentGlobalBookmark: testBookmarks[0],
+          globalSavedSearches: testGlobalSavedSearches,
+          currentGlobalSavedSearch: testGlobalSavedSearches[0],
         }}
       ></webstatus-sidebar-menu>
     `);

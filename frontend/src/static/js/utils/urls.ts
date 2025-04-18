@@ -47,8 +47,8 @@ export function getSearchID(location: {search: string}): string {
   return getQueryParam(location.search, 'search_id');
 }
 
-export function getEditBookmark(location: {search: string}): boolean {
-  return Boolean(getQueryParam(location.search, 'edit_bookmark'));
+export function getEditSavedSearch(location: {search: string}): boolean {
+  return Boolean(getQueryParam(location.search, 'edit_saved_search'));
 }
 
 export interface DateRange {
@@ -85,7 +85,7 @@ export type QueryStringOverrides = {
   dateRange?: DateRange;
   column_options?: string[];
   search_id?: string;
-  edit_bookmark?: boolean;
+  edit_saved_search?: boolean;
 };
 
 /* Given the router location object, return a query string with
@@ -163,9 +163,9 @@ function getContextualQueryStringParams(
   }
 
   const editBookmark =
-    'edit_bookmark' in overrides ? overrides.edit_bookmark : undefined;
+    'edit_saved_search' in overrides ? overrides.edit_saved_search : undefined;
   if (editBookmark) {
-    searchParams.set('edit_bookmark', '' + editBookmark);
+    searchParams.set('edit_saved_search', '' + editBookmark);
   }
 
   return searchParams.toString() ? '?' + searchParams.toString() : '';
