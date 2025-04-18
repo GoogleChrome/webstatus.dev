@@ -23,7 +23,7 @@ import {
   UserSavedSearchesInternalError,
   UserSavedSearchesUnknownError,
   CurrentSavedSearch,
-  SavedSearchType,
+  SavedSearchScope,
 } from '../app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
 import {expect} from '@open-wc/testing';
@@ -49,7 +49,7 @@ describe('app-bookmark-info-context', () => {
             search: '?search_id=123',
           }),
         ).to.deep.equal({
-          type: SavedSearchType.UserSavedSearch,
+          scope: SavedSearchScope.UserSavedSearch,
           value: {
             query: 'test',
             name: 'Test Bookmark',
@@ -60,7 +60,7 @@ describe('app-bookmark-info-context', () => {
 
       it('should return the currentGlobalSavedSearch if userSavedSearchTask is not complete', () => {
         const expectedData: CurrentSavedSearch = {
-          type: SavedSearchType.GlobalSavedSearch,
+          scope: SavedSearchScope.GlobalSavedSearch,
           value: {
             query: 'global',
             name: 'Global Bookmark',
@@ -126,7 +126,7 @@ describe('app-bookmark-info-context', () => {
         expect(
           savedSearchHelpers.getCurrentSavedSearch(info, location),
         ).to.deep.equal({
-          type: SavedSearchType.UserSavedSearch,
+          scope: SavedSearchScope.UserSavedSearch,
           value: {query: 'test', name: 'Test Bookmark', id: '123'},
         });
       });
@@ -144,7 +144,7 @@ describe('app-bookmark-info-context', () => {
             search: '?search_id=123',
           }),
         ).to.deep.equal({
-          type: SavedSearchType.UserSavedSearch,
+          scope: SavedSearchScope.UserSavedSearch,
           value: {query: 'test', name: 'Test Bookmark', id: '123'},
         });
       });
@@ -173,7 +173,7 @@ describe('app-bookmark-info-context', () => {
 
       it('should return the currentGlobalSavedSearch if userSavedSearchesTask is not complete', () => {
         const expectedData: CurrentSavedSearch = {
-          type: SavedSearchType.GlobalSavedSearch,
+          scope: SavedSearchScope.GlobalSavedSearch,
           value: {
             query: 'global',
             name: 'Global Bookmark',
@@ -294,7 +294,7 @@ describe('app-bookmark-info-context', () => {
           'getCurrentSavedSearch',
         );
         getCurrentBookmarkStub.returns({
-          type: SavedSearchType.UserSavedSearch,
+          scope: SavedSearchScope.UserSavedSearch,
           value: {
             query: 'test',
             name: 'Test Bookmark',

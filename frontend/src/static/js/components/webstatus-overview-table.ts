@@ -41,7 +41,7 @@ import {
 import {Toast} from '../utils/toast.js';
 import {
   CurrentSavedSearch,
-  SavedSearchType,
+  SavedSearchScope,
 } from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-table')
@@ -158,7 +158,7 @@ export class WebstatusOverviewTable extends LitElement {
   reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
     if (
       !this.savedSearch ||
-      this.savedSearch.type !== SavedSearchType.GlobalSavedSearch ||
+      this.savedSearch.scope !== SavedSearchScope.GlobalSavedSearch ||
       !this.savedSearch.value.is_ordered
     ) {
       return undefined;
@@ -194,7 +194,7 @@ export class WebstatusOverviewTable extends LitElement {
 
     let headerCells: TemplateResult[] = [];
     if (
-      this.savedSearch?.type === SavedSearchType.GlobalSavedSearch &&
+      this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
       this.savedSearch.value?.is_ordered
     ) {
       headerCells = renderSavedSearchHeaderCells(

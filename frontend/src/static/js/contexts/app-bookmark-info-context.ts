@@ -31,14 +31,14 @@ export interface AppBookmarkInfo {
 export const appBookmarkInfoContext =
   createContext<AppBookmarkInfo>('app-bookmark-info');
 
-export enum SavedSearchType {
+export enum SavedSearchScope {
   GlobalSavedSearch,
   UserSavedSearch,
 }
 
 export type CurrentSavedSearch =
-  | {type: SavedSearchType.GlobalSavedSearch; value: GlobalSavedSearch}
-  | {type: SavedSearchType.UserSavedSearch; value: UserSavedSearch}
+  | {scope: SavedSearchScope.GlobalSavedSearch; value: GlobalSavedSearch}
+  | {scope: SavedSearchScope.UserSavedSearch; value: UserSavedSearch}
   | undefined;
 export const savedSearchHelpers = {
   /**
@@ -62,7 +62,10 @@ export const savedSearchHelpers = {
         item => item.id === searchID,
       );
       if (userSavedSearch !== undefined) {
-        return {type: SavedSearchType.UserSavedSearch, value: userSavedSearch};
+        return {
+          scope: SavedSearchScope.UserSavedSearch,
+          value: userSavedSearch,
+        };
       }
     }
     if (
@@ -72,14 +75,14 @@ export const savedSearchHelpers = {
       info?.userSavedSearchTask.data
     ) {
       return {
-        type: SavedSearchType.UserSavedSearch,
+        scope: SavedSearchScope.UserSavedSearch,
         value: info.userSavedSearchTask.data,
       };
     }
 
     if (info?.currentGlobalSavedSearch) {
       return {
-        type: SavedSearchType.GlobalSavedSearch,
+        scope: SavedSearchScope.GlobalSavedSearch,
         value: info.currentGlobalSavedSearch,
       };
     }
@@ -117,13 +120,13 @@ export const savedSearchHelpers = {
       location,
     );
     // User saved searches can be edited. And those have IDs
-    if (savedSearch?.type === SavedSearchType.UserSavedSearch) {
+    if (savedSearch?.scope === SavedSearchScope.UserSavedSearch) {
       // If there's a saved search, prioritize its query unless q is different.
       // If they are different, this could mean we are trying to edit.
       return q !== savedSearch.value.query && q !== ''
         ? q
         : savedSearch.value.query;
-    } else if (savedSearch?.type === SavedSearchType.GlobalSavedSearch) {
+    } else if (savedSearch?.scope === SavedSearchScope.GlobalSavedSearch) {
       // If there's a global saved search, use its query.
       return savedSearch.value.query;
     }

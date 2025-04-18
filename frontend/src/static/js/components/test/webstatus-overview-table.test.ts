@@ -23,12 +23,12 @@ import {WebstatusOverviewTable} from '../webstatus-overview-table.js';
 import '../webstatus-overview-table.js';
 import {
   CurrentSavedSearch,
-  SavedSearchType,
+  SavedSearchScope,
 } from '../../contexts/app-bookmark-info-context.js';
 
 describe('webstatus-overview-table', () => {
   const orderedSavedSearch: CurrentSavedSearch = {
-    type: SavedSearchType.GlobalSavedSearch,
+    scope: SavedSearchScope.GlobalSavedSearch,
     value: {
       name: 'Ordered Bookmark 1',
       query: 'name:test3 OR id:test1 OR id:test2',
@@ -37,7 +37,7 @@ describe('webstatus-overview-table', () => {
     },
   };
   const defaultOrderSavedSearch: CurrentSavedSearch = {
-    type: SavedSearchType.GlobalSavedSearch,
+    scope: SavedSearchScope.GlobalSavedSearch,
     value: {
       name: 'No order Bookmark 2',
       query: 'id:nothing',
@@ -114,7 +114,7 @@ describe('webstatus-overview-table', () => {
     const cssQuery =
       'id:anchor-positioning OR id:container-queries OR id:has OR id:nesting OR id:view-transitions OR id:subgrid OR id:grid OR name:scrollbar OR id:scroll-driven-animations OR id:scope';
     const cssSavedSearch: CurrentSavedSearch = {
-      type: SavedSearchType.GlobalSavedSearch,
+      scope: SavedSearchScope.GlobalSavedSearch,
       value: {
         name: 'css',
         query: cssQuery,
