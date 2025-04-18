@@ -28,7 +28,10 @@ import {
 import {WebstatusBookmarksService} from '../webstatus-bookmarks-service.js';
 import {fixture, expect, waitUntil} from '@open-wc/testing';
 import '../webstatus-bookmarks-service.js';
-import {DEFAULT_GLOBAL_SAVED_SEARCHES} from '../../utils/constants.js';
+import {
+  DEFAULT_GLOBAL_SAVED_SEARCHES,
+  UserSavedSearch,
+} from '../../utils/constants.js';
 import {APIClient} from '../../api/client.js';
 import {SinonStubbedInstance} from 'sinon';
 import {TaskStatus} from '@lit/task';
@@ -66,7 +69,8 @@ describe('webstatus-bookmarks-service', () => {
   });
   it('can be added to the page with the defaults', async () => {
     const component = await fixture<WebstatusBookmarksService>(
-      html`<webstatus-bookmarks-service> </webstatus-bookmarks-service>`,
+      html`<webstatus-bookmarks-service .user=${null}>
+      </webstatus-bookmarks-service>`,
     );
     expect(component).to.exist;
     expect(component!.appBookmarkInfo.globalSavedSearches).to.deep.equal(
@@ -79,7 +83,10 @@ describe('webstatus-bookmarks-service', () => {
   it('provides appBookmarkInfo to consuming components', async () => {
     getLocationStub.returns({search: '', href: '', pathname: ''});
     const el = await fixture<WebstatusBookmarksService>(html`
-      <webstatus-bookmarks-service .getLocation=${getLocationStub}>
+      <webstatus-bookmarks-service
+        .getLocation=${getLocationStub}
+        .user=${null}
+      >
         <test-bookmark-consumer></test-bookmark-consumer>
       </webstatus-bookmarks-service>
     `);
@@ -104,7 +111,10 @@ describe('webstatus-bookmarks-service', () => {
       pathname: '',
     });
     const el = await fixture<WebstatusBookmarksService>(html`
-      <webstatus-bookmarks-service .getLocation=${getLocationStub}>
+      <webstatus-bookmarks-service
+        .getLocation=${getLocationStub}
+        .user=${null}
+      >
         <test-bookmark-consumer></test-bookmark-consumer>
       </webstatus-bookmarks-service>
     `);
@@ -174,6 +184,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
+          .user=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -207,6 +218,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
+          .user=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -239,6 +251,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
+          .user=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -269,6 +282,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
+          .user=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -303,6 +317,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
+          .user=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -350,6 +365,7 @@ describe('webstatus-bookmarks-service', () => {
           .getSearchID=${getSearchIDStub}
           .updatePageUrl=${updatePageUrlStub}
           .getLocation=${getLocationStub}
+          .user=${null}
         ></webstatus-bookmarks-service>`,
       );
       await waitUntil(
@@ -390,6 +406,7 @@ describe('webstatus-bookmarks-service', () => {
           .apiClient=${apiClientStub}
           .getSearchID=${getSearchIDStub}
           .getLocation=${getLocationStub}
+          .user=${null}
         ></webstatus-bookmarks-service>`,
       );
 
@@ -601,5 +618,293 @@ describe('webstatus-bookmarks-service', () => {
     expect(location).to.have.property('search');
     expect(location).to.have.property('href');
     expect(location).to.have.property('pathname');
+  });
+
+  describe('Event Handlers', () => {
+    let service: WebstatusBookmarksService;
+    const mockLocation = {
+      search: '?q=initial',
+      href: '?q=initial',
+      pathname: '/features',
+    };
+    const mockSavedSearch1: UserSavedSearch = {
+      id: 'uuid1',
+      query: 'query1',
+      name: 'Saved 1',
+      created_at: '2024-01-01',
+      updated_at: '2024-01-01',
+    };
+    const mockSavedSearch2: UserSavedSearch = {
+      id: 'uuid2',
+      query: 'query2',
+      name: 'Saved 2',
+      created_at: '2024-01-02',
+      updated_at: '2024-01-02',
+    };
+    const mockNewSavedSearch: UserSavedSearch = {
+      id: 'uuid-new',
+      query: 'query-new',
+      name: 'New Saved',
+      created_at: '2024-01-03',
+      updated_at: '2024-01-03',
+    };
+
+    beforeEach(async () => {
+      getLocationStub.returns(mockLocation);
+      service = await fixture<WebstatusBookmarksService>(
+        html`<webstatus-bookmarks-service
+          .getLocation=${getLocationStub}
+          .updatePageUrl=${updatePageUrlStub}
+          .user=${null}
+        ></webstatus-bookmarks-service>`,
+      );
+      // Ensure initial state is set for handlers
+      service._currentLocation = mockLocation;
+    });
+
+    it('handleSavedSearchSaved should add new search and update URL', () => {
+      // Initial state (empty)
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.be
+        .undefined;
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.be.undefined;
+
+      const event = new CustomEvent<UserSavedSearch>('saved-search-saved', {
+        detail: mockNewSavedSearch,
+      });
+      service.dispatchEvent(event);
+
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [mockNewSavedSearch],
+      );
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockNewSavedSearch,
+      );
+      expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
+        mockLocation.pathname,
+        mockLocation,
+        {search_id: mockNewSavedSearch.id},
+      );
+    });
+
+    it('handleSavedSearchSaved should append to existing searches', () => {
+      // Set initial state with one search
+      service._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [mockSavedSearch1],
+        error: undefined,
+      };
+
+      const event = new CustomEvent<UserSavedSearch>('saved-search-saved', {
+        detail: mockNewSavedSearch,
+      });
+      service.dispatchEvent(event);
+
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [mockSavedSearch1, mockNewSavedSearch],
+      );
+      // It should also update the current single search tracker
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockNewSavedSearch,
+      );
+      expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
+        mockLocation.pathname,
+        mockLocation,
+        {search_id: mockNewSavedSearch.id},
+      );
+    });
+
+    it('handleSavedSearchEdited should update existing search', () => {
+      // Set initial state
+      service._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [mockSavedSearch1, mockSavedSearch2],
+        error: undefined,
+      };
+      service._userSavedSearchByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: mockSavedSearch1, // Currently viewing mockSavedSearch1
+        error: undefined,
+      };
+
+      const editedSearch: UserSavedSearch = {
+        ...mockSavedSearch1,
+        name: 'Edited Name',
+        query: 'edited-query',
+      };
+      const event = new CustomEvent<UserSavedSearch>('saved-search-edited', {
+        detail: editedSearch,
+      });
+      service.dispatchEvent(event);
+
+      // Check list update
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [editedSearch, mockSavedSearch2],
+      );
+      // Check current search update
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        editedSearch,
+      );
+      // URL should not change on edit
+      expect(updatePageUrlStub).not.to.have.been.called;
+    });
+
+    it('handleSavedSearchEdited should only update list if current search is different', () => {
+      // Set initial state
+      service._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [mockSavedSearch1, mockSavedSearch2],
+        error: undefined,
+      };
+      service._userSavedSearchByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: mockSavedSearch2, // Currently viewing mockSavedSearch2
+        error: undefined,
+      };
+
+      const editedSearch: UserSavedSearch = {
+        ...mockSavedSearch1, // Editing search 1
+        name: 'Edited Name',
+      };
+      const event = new CustomEvent<UserSavedSearch>('saved-search-edited', {
+        detail: editedSearch,
+      });
+      service.dispatchEvent(event);
+
+      // Check list update
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [editedSearch, mockSavedSearch2],
+      );
+      // Check current search (should NOT be updated)
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockSavedSearch2,
+      );
+      expect(updatePageUrlStub).not.to.have.been.called;
+    });
+
+    it('handleSavedSearchDeleted should remove search and clear URL', () => {
+      // Set initial state
+      service._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [mockSavedSearch1, mockSavedSearch2],
+        error: undefined,
+      };
+      service._userSavedSearchByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: mockSavedSearch1, // Currently viewing the one to be deleted
+        error: undefined,
+      };
+
+      const event = new CustomEvent<string>('saved-search-deleted', {
+        detail: mockSavedSearch1.id, // Delete search 1
+      });
+      service.dispatchEvent(event);
+
+      // Check list update
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [mockSavedSearch2],
+      );
+      // Check current search update (should be cleared)
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.be.undefined;
+      // Check URL update
+      expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
+        mockLocation.pathname,
+        mockLocation,
+        {search_id: ''},
+      );
+    });
+
+    it('handleSavedSearchDeleted should only remove from list if current search is different', () => {
+      // Set initial state
+      service._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [mockSavedSearch1, mockSavedSearch2],
+        error: undefined,
+      };
+      service._userSavedSearchByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: mockSavedSearch2, // Currently viewing search 2
+        error: undefined,
+      };
+
+      const event = new CustomEvent<string>('saved-search-deleted', {
+        detail: mockSavedSearch1.id, // Delete search 1
+      });
+      service.dispatchEvent(event);
+
+      // Check list update
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [mockSavedSearch2],
+      );
+      // Check current search (should NOT be cleared)
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockSavedSearch2,
+      );
+      // Check URL update (still called to clear potential search_id)
+      expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
+        mockLocation.pathname,
+        mockLocation,
+        {search_id: ''},
+      );
+    });
+    it('saved-search-bookmarked event should add search and update URL (like saved)', () => {
+      // Initial state (empty)
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.be
+        .undefined;
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.be.undefined;
+
+      const event = new CustomEvent<UserSavedSearch>(
+        'saved-search-bookmarked',
+        {
+          detail: mockNewSavedSearch,
+        },
+      );
+      service.dispatchEvent(event);
+
+      // Verify it behaves like 'saved-search-saved'
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [mockNewSavedSearch],
+      );
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockNewSavedSearch,
+      );
+      expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
+        mockLocation.pathname,
+        mockLocation,
+        {search_id: mockNewSavedSearch.id},
+      );
+    });
+    it('saved-search-unbookmarked event should not clear current search if unbookmarking a different search', () => {
+      // Set initial state
+      service._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [mockSavedSearch1, mockSavedSearch2],
+        error: undefined,
+      };
+      service._userSavedSearchByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: mockSavedSearch2, // Currently viewing search 2
+        error: undefined,
+      };
+
+      const event = new CustomEvent<string>('saved-search-unbookmarked', {
+        detail: mockSavedSearch1.id, // Unbookmark search 1
+      });
+      service.dispatchEvent(event);
+
+      // Verify list update
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        [mockSavedSearch2], // Search 1 removed
+      );
+      // Verify current search is NOT cleared
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockSavedSearch2,
+      );
+      // Verify URL is still cleared
+      expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
+        mockLocation.pathname,
+        mockLocation,
+        {search_id: ''},
+      );
+    });
   });
 });

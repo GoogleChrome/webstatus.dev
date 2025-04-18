@@ -40,7 +40,9 @@ import {
   appBookmarkInfoContext,
   AppBookmarkInfo,
   savedSearchHelpers,
+  SavedSearchScope,
 } from '../contexts/app-bookmark-info-context.js';
+import {UserSavedSearch} from '../utils/constants.js';
 
 @customElement('webstatus-overview-page')
 export class OverviewPage extends LitElement {
@@ -66,6 +68,8 @@ export class OverviewPage extends LitElement {
   @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
   appBookmarkInfo?: AppBookmarkInfo;
+
+  _lastUserSavedSearch?: UserSavedSearch;
 
   constructor() {
     super();
@@ -119,20 +123,48 @@ export class OverviewPage extends LitElement {
       },
     });
   }
+
+  areUserSavedSearchesDifferent(
+    current?: UserSavedSearch,
+    incoming?: UserSavedSearch,
+  ): boolean {
+    // Could be a completely different search or a more recently updated search
+    return (
+      current?.id !== incoming?.id ||
+      current?.updated_at !== incoming?.updated_at
+    );
+  }
+
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('apiClient') ||
       changedProperties.has('location') ||
       changedProperties.has('appBookmarkInfo')
     ) {
+      if (this.apiClient === undefined) {
+        return;
+      }
+      const incomingCurrentSavedSearch =
+        savedSearchHelpers.getCurrentSavedSearch(
+          this.appBookmarkInfo,
+          this.location,
+        );
+      const userSavedSearch =
+        incomingCurrentSavedSearch?.scope === SavedSearchScope.UserSavedSearch
+          ? incomingCurrentSavedSearch.value
+          : undefined;
       if (
-        this.apiClient !== undefined &&
-        this.currentLocation?.search !== this.location.search &&
+        (this.currentLocation?.search !== this.location.search ||
+          this.areUserSavedSearchesDifferent(
+            this._lastUserSavedSearch,
+            userSavedSearch,
+          )) &&
         !savedSearchHelpers.isBusyLoadingSavedSearchInfo(
           this.appBookmarkInfo,
           this.location,
         )
       ) {
+        this._lastUserSavedSearch = userSavedSearch;
         void this.loadingTask.run();
       }
     }
