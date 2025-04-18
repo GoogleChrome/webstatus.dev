@@ -18,6 +18,8 @@ import {Page, expect} from '@playwright/test';
 
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
+export const BASE_URL = 'http://localhost:5555';
+
 export async function setupFakeNow(
   page: Page,
   fakeNowDateString = DEFAULT_FAKE_NOW,
@@ -85,4 +87,28 @@ export async function loginAsUser(page: Page, username: string) {
   await popup.getByText(username).hover(); // Needed for Firefox for some reason.
   await popup.getByText(username).click();
   await popup.waitForEvent('close');
+}
+
+export async function goTo404Page(page, query: string): Promise<void> {
+  await page.goto(`${BASE_URL}/features/${query}`);
+  await expect(page).toHaveURL(
+    `${BASE_URL}/errors-404/feature-not-found?q=${query}`,
+  );
+
+  const response = await page.context().request.fetch(page.url());
+  expect(response.status()).toBe(404);
+}
+
+export async function expect404PageButtons(
+  page,
+  {hasSearch}: {hasSearch: boolean},
+) {
+  await expect(page.locator('#error-action-home-btn')).toBeVisible();
+  await expect(page.locator('#error-action-report')).toBeVisible();
+
+  if (hasSearch) {
+    await expect(page.locator('#error-action-search-btn')).toBeVisible();
+  } else {
+    await expect(page.locator('#error-action-search-btn')).toHaveCount(0);
+  }
 }

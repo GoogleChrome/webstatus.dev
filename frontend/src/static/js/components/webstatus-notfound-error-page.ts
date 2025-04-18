@@ -15,12 +15,65 @@
  */
 
 import {LitElement, html, type TemplateResult, CSSResultGroup, css} from 'lit';
-import {customElement} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
+import {getSearchQuery, formatFeaturePageUrl} from '../utils/urls.js';
+import {consume} from '@lit/context';
+import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
+import {Task} from '@lit/task';
+import {FeatureSortOrderType} from '../api/client.js';
+import {Toast} from '../utils/toast.js';
 
-@customElement('webstatus-not-found-error-page')
+type SimilarFeature = {name: string; url: string};
+
+@customElement('webstatus-notfound-error-page')
 export class WebstatusNotFoundErrorPage extends LitElement {
+  _similarResults?: Task<[APIClient, string], SimilarFeature[]>;
+
+  @property({type: Object})
+  location!: {search: string}; // Set by router.
+
+  @consume({context: apiClientContext})
+  @state()
+  apiClient!: APIClient;
+
+  constructor() {
+    super();
+    this._similarResults = new Task<[APIClient, string], SimilarFeature[]>(
+      this,
+      {
+        args: () => [this.apiClient, getSearchQuery(this.location)],
+        task: async ([apiClient, featureId]) => {
+          if (!featureId) return [];
+          try {
+            const response = await apiClient.getFeatures(
+              featureId,
+              '' as FeatureSortOrderType,
+              undefined,
+              0,
+              5,
+            );
+            const data = response.data;
+            return Array.isArray(data)
+              ? data.map(f => ({
+                  name: f.name,
+                  url: formatFeaturePageUrl(f),
+                }))
+              : [];
+          } catch (error) {
+            const message =
+              error instanceof Error
+                ? error.message
+                : 'An unknown error occurred';
+            await new Toast().toast(message, 'danger', 'exclamation-triangle');
+            return [];
+          }
+        },
+      },
+    );
+  }
+
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
@@ -31,8 +84,8 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           flex-direction: column;
           justify-content: center;
           align-items: center;
-          gap: 48px;
           display: inline-flex;
+          gap: 32px;
         }
         #error-header {
           align-self: stretch;
@@ -50,6 +103,12 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           line-height: 22.5px;
           word-wrap: break-word;
         }
+        #error-actions {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: center;
+          gap: var(--content-padding);
+        }
         #error-headline {
           color: #1d2430;
           font-size: 32px;
@@ -57,69 +116,134 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           word-wrap: break-word;
         }
         #error-detailed-message {
-          color: #6c7381;
           font-size: 15px;
           font-weight: 400;
           line-height: 22.5px;
           word-wrap: break-word;
         }
-        #error-actions {
-          justify-content: center;
-          align-items: center;
-          gap: 24px;
-          display: inline-flex;
-        }
-        #error-action-home {
-          width: 136px;
-          padding-left: 16px;
-          padding-right: 16px;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
-          display: flex;
-        }
-        #error-action-report {
-          width: 145px;
-          padding-left: 16px;
-          padding-right: 16px;
-          border-radius: 4px;
-          justify-content: center;
-          align-items: center;
-          gap: 8px;
-          display: flex;
-        }
 
-        #error-action-report a {
-          color: inherit;
+        .error-message {
+          color: #6c7381;
+        }
+        .similar-features-container {
+          text-align: left;
+          padding: 12px;
+          max-width: 400px;
+        }
+        .similar-results-header {
+          color: #1a1a1a;
+          font-weight: 500;
+          margin-bottom: 6px;
+        }
+        .feature-list {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+        }
+        .feature-list li {
+          padding: 6px 0;
+        }
+        .feature-list li a {
           text-decoration: none;
+          color: #007bff;
+          font-weight: 500;
+        }
+        .feature-list li a:hover {
+          text-decoration: underline;
+          color: #0056b3;
         }
       `,
     ];
   }
+
+  private _renderErrorHeader(featureId: string | undefined): TemplateResult {
+    return html`
+      <div id="error-header">
+        <div id="error-status-code">404</div>
+        <div id="error-headline">Page not found</div>
+        <div id="error-detailed-message">
+          ${featureId
+            ? html`We could not find Feature ID: <strong>${featureId}</strong>`
+            : html`<span class="error-message"
+                >We couldn't find the page you're looking for.</span
+              >`}
+        </div>
+      </div>
+    `;
+  }
+
+  private _renderSimilarFeatures(
+    features: SimilarFeature[] | undefined,
+  ): TemplateResult {
+    if (!features?.length) {
+      return html`<p class="error-message">No similar features found.</p>`;
+    }
+    return html`
+      <div class="similar-features-container">
+        <p class="similar-results-header">Here are some similar features:</p>
+        <ul class="feature-list">
+          ${features.map(f => html`<li><a href="${f.url}">${f.name}</a></li>`)}
+        </ul>
+      </div>
+    `;
+  }
+
+  private _renderActionButtons(
+    showSearchMore: boolean = false,
+    featureId?: string,
+  ): TemplateResult {
+    return html`
+      <div id="error-actions">
+        ${showSearchMore && featureId
+          ? html`
+              <sl-button
+                id="error-action-search-btn"
+                variant="primary"
+                href="/?q=${featureId}"
+              >
+                Search for more similar features
+              </sl-button>
+            `
+          : ''}
+        <sl-button id="error-action-home-btn" variant="primary" href="/">
+          Go back home
+        </sl-button>
+        <sl-button
+          id="error-action-report"
+          variant="default"
+          href="${GITHUB_REPO_ISSUE_LINK}"
+          target="_blank"
+        >
+          <sl-icon name="github"></sl-icon>
+          Report an issue
+        </sl-button>
+      </div>
+    `;
+  }
+
   protected render(): TemplateResult {
+    const featureId = getSearchQuery(this.location);
+
     return html`
       <div id="error-container">
-        <div id="error-header">
-          <div id="error-status-code">404</div>
-          <div id="error-headline">Page not found</div>
-          <div id="error-detailed-message">
-            We couldn't find the page you're looking for.
-          </div>
-        </div>
-
-        <div id="error-actions">
-          <div id="error-action-home">
-            <sl-button id="error-action-home-btn" variant="primary" href="/"
-              >Go back home</sl-button
-            >
-          </div>
-          <div id="error-action-report">
-            <sl-icon name="github"></sl-icon>
-            <a href="${GITHUB_REPO_ISSUE_LINK}" target="_blank"
-              >Report an issue</a
-            >
-          </div>
-        </div>
+        ${this._renderErrorHeader(featureId)}
+        ${featureId
+          ? this._similarResults?.render({
+              initial: () =>
+                html`<p class="loading-message">Preparing search...</p>`,
+              pending: () =>
+                html`<p class="loading-message">
+                  Loading similar features...
+                </p>`,
+              complete: features =>
+                html` ${this._renderSimilarFeatures(features)}
+                ${this._renderActionButtons(features?.length > 0, featureId)}`,
+              error: error =>
+                html`<p class="error-message">
+                  Oops, something went wrong: ${error}
+                </p>`,
+            })
+          : this._renderActionButtons(false)}
       </div>
     `;
   }
