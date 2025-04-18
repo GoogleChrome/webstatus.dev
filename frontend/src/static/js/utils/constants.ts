@@ -27,24 +27,39 @@ export type BookmarkPermissions =
 export const BookmarkOwnerRole: components['schemas']['UserSavedSearchPermissions']['role'] =
   'saved_search_owner';
 
-export interface Bookmark {
-  // Bookmark display name
+export type BookmarkStatus = components['schemas']['UserSavedSearchBookmark'];
+export const BookmarkStatusActive: components['schemas']['UserSavedSearchBookmark']['status'] =
+  'bookmark_active';
+
+export interface UserSavedSearch extends SavedSearch {
+  // Make id required
+  id: string;
+  // Permissions
+  permissions?: BookmarkPermissions;
+  // Bookmark status
+  bookmark_status?: BookmarkStatus;
+  // Updated At
+  updated_at?: string;
+  // Created At
+  created_at?: string;
+}
+
+export interface GlobalSavedSearch extends SavedSearch {
+  // Should display query results in query's order.
+  is_ordered?: boolean;
+  // Override the num parameter value, if provided.
+  override_num_param?: number;
+}
+export interface SavedSearch {
+  // Saved search display name
   name: string;
   // Query for filtering
   query: string;
   // Overview page description
   description?: string;
-  // Should display query results in query's order.
-  is_ordered?: boolean;
-  // Override the num parameter value, if provided.
-  override_num_param?: number;
-  // Server side id for bookmark
-  id?: string;
-  // Permissions
-  permissions?: BookmarkPermissions;
 }
 
-export const DEFAULT_BOOKMARKS: Bookmark[] = [
+export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   {
     name: 'Baseline 2025',
     query: 'baseline_date:2025-01-01..2025-12-31',

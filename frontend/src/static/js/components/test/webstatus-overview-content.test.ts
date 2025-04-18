@@ -34,10 +34,10 @@ describe('webstatus-overview-content', () => {
       const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
-      // Set location to one of the globalBookmarks.
+      // Set location to one of the globalSavedSearches.
       element.location = {search: '?q=test_query_1'};
       element.appBookmarkInfo = {
-        globalBookmarks: [
+        globalSavedSearches: [
           {
             name: 'Test Bookmark 1',
             query: 'test_query_1',
@@ -49,7 +49,7 @@ describe('webstatus-overview-content', () => {
             description: 'test description2',
           },
         ],
-        currentGlobalBookmark: {
+        currentGlobalSavedSearch: {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
           description: 'test description1',
@@ -77,16 +77,16 @@ describe('webstatus-overview-content', () => {
       const element: WebstatusOverviewContent = container.querySelector(
         'webstatus-overview-content',
       ) as WebstatusOverviewContent;
-      // Set location to one of the globalBookmarks.
+      // Set location to one of the globalSavedSearches.
       element.location = {search: '?q=test_query_1'};
       element.appBookmarkInfo = {
-        globalBookmarks: [
+        globalSavedSearches: [
           {
             name: 'Test Bookmark 1',
             query: 'test_query_1',
           },
         ],
-        currentGlobalBookmark: {
+        currentGlobalSavedSearch: {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
         },

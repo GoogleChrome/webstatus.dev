@@ -31,13 +31,13 @@ import {WebstatusOverviewFilters} from '../webstatus-overview-filters.js';
 import {APIClient} from '../../api/client.js';
 
 import {stub} from 'sinon'; // Make sure you have sinon installed
-import {bookmarkHelpers} from '../../contexts/app-bookmark-info-context.js';
+import {savedSearchHelpers} from '../../contexts/app-bookmark-info-context.js';
 
 it('should correctly update _activeQuery based on getCurrentQuery return value', async () => {
   const apiClient = new APIClient('');
   const location = {search: ''};
 
-  const getCurrentQueryStub = stub(bookmarkHelpers, 'getCurrentQuery');
+  const getCurrentQueryStub = stub(savedSearchHelpers, 'getCurrentQuery');
 
   // Test case 1: Empty query
   getCurrentQueryStub.returns('');

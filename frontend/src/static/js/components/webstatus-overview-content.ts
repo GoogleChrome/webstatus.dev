@@ -34,7 +34,7 @@ import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
 import {
   AppBookmarkInfo,
-  bookmarkHelpers,
+  savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-content')
@@ -88,12 +88,14 @@ export class WebstatusOverviewContent extends LitElement {
   }
 
   render(): TemplateResult {
-    const bookmark = bookmarkHelpers.getCurrentBookmark(
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
       this.appBookmarkInfo,
       this.location,
     );
-    const pageTitle = bookmark ? bookmark.name : 'Features overview';
-    const pageDescription = bookmark?.description;
+    const pageTitle = savedSearch
+      ? savedSearch.value.name
+      : 'Features overview';
+    const pageDescription = savedSearch?.value.description;
     return html`
       <div class="main">
         <div class="hbox halign-items-space-between header-line">
@@ -115,7 +117,7 @@ export class WebstatusOverviewContent extends LitElement {
         <webstatus-overview-table
           .location=${this.location}
           .taskTracker=${this.taskTracker}
-          .bookmark=${bookmark}
+          .savedSearch=${savedSearch}
         >
         </webstatus-overview-table>
         <webstatus-overview-pagination

@@ -39,7 +39,7 @@ import {toast} from '../utils/toast.js';
 import {
   appBookmarkInfoContext,
   AppBookmarkInfo,
-  bookmarkHelpers,
+  savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-page')
@@ -128,7 +128,7 @@ export class OverviewPage extends LitElement {
       if (
         this.apiClient !== undefined &&
         this.currentLocation?.search !== this.location.search &&
-        !bookmarkHelpers.isBusyLoadingBookmarkInfo(
+        !savedSearchHelpers.isBusyLoadingSavedSearchInfo(
           this.appBookmarkInfo,
           this.location,
         )
@@ -147,7 +147,7 @@ export class OverviewPage extends LitElement {
       return Promise.reject(new Error('APIClient is not initialized.'));
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     let searchQuery: string = '';
-    const query = bookmarkHelpers.getCurrentQuery(
+    const query = savedSearchHelpers.getCurrentQuery(
       appBookmarkInfo,
       routerLocation,
     );

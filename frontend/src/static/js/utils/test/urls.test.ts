@@ -24,7 +24,7 @@ import {
   getWPTMetricView,
   getColumnOptions,
   getSearchID,
-  getEditBookmark,
+  getEditSavedSearch,
 } from '../urls.js';
 
 describe('getSearchQuery', () => {
@@ -131,19 +131,19 @@ describe('getSearchID', () => {
   });
 });
 
-describe('getEditBookmark', () => {
-  it('returns false when there was no edit_bookmark= param', () => {
-    const cs = getEditBookmark({search: ''});
+describe('getEditSavedSearch', () => {
+  it('returns false when there was no edit_saved_search= param', () => {
+    const cs = getEditSavedSearch({search: ''});
     assert.equal(cs, false);
   });
 
-  it('returns false when the edit_bookmark= param has no value', () => {
-    const cs = getEditBookmark({search: '?edit_bookmark='});
+  it('returns false when the edit_saved_search= param has no value', () => {
+    const cs = getEditSavedSearch({search: '?edit_saved_search='});
     assert.equal(cs, false);
   });
 
-  it('returns the string when the edit_bookmark= param was set', () => {
-    const cs = getEditBookmark({search: '?edit_bookmark=true'});
+  it('returns the string when the edit_saved_search= param was set', () => {
+    const cs = getEditSavedSearch({search: '?edit_saved_search=true'});
     assert.equal(cs, true);
   });
 });
@@ -226,9 +226,9 @@ describe('formatOverviewPageUrl', () => {
     assert.equal(url, '/?search_id=fake_uuid');
   });
 
-  it('returns a URL with navigational params when edit_bookmark param is set', () => {
-    const url = formatOverviewPageUrl({search: ''}, {edit_bookmark: true});
-    assert.equal(url, '/?edit_bookmark=true');
+  it('returns a URL with navigational params when edit_saved_search param is set', () => {
+    const url = formatOverviewPageUrl({search: ''}, {edit_saved_search: true});
+    assert.equal(url, '/?edit_saved_search=true');
   });
 });
 

@@ -28,7 +28,7 @@ import {
 import {WebstatusBookmarksService} from '../webstatus-bookmarks-service.js';
 import {fixture, expect, waitUntil} from '@open-wc/testing';
 import '../webstatus-bookmarks-service.js';
-import {DEFAULT_BOOKMARKS} from '../../utils/constants.js';
+import {DEFAULT_GLOBAL_SAVED_SEARCHES} from '../../utils/constants.js';
 import {APIClient} from '../../api/client.js';
 import {SinonStubbedInstance} from 'sinon';
 import {TaskStatus} from '@lit/task';
@@ -44,7 +44,9 @@ class TestBookmarkConsumer extends LitElement {
   appBookmarkInfo?: AppBookmarkInfo;
 
   render() {
-    return html`<div>${this.appBookmarkInfo?.globalBookmarks?.length}</div>`;
+    return html`<div>
+      ${this.appBookmarkInfo?.globalSavedSearches?.length}
+    </div>`;
   }
 }
 
@@ -67,10 +69,10 @@ describe('webstatus-bookmarks-service', () => {
       html`<webstatus-bookmarks-service> </webstatus-bookmarks-service>`,
     );
     expect(component).to.exist;
-    expect(component!.appBookmarkInfo.globalBookmarks).to.deep.equal(
-      DEFAULT_BOOKMARKS,
+    expect(component!.appBookmarkInfo.globalSavedSearches).to.deep.equal(
+      DEFAULT_GLOBAL_SAVED_SEARCHES,
     );
-    expect(component!.appBookmarkInfo.currentGlobalBookmark).to.deep.equal(
+    expect(component!.appBookmarkInfo.currentGlobalSavedSearch).to.deep.equal(
       undefined,
     );
   });
@@ -86,10 +88,10 @@ describe('webstatus-bookmarks-service', () => {
     );
     expect(el).to.exist;
     expect(consumer).to.exist;
-    expect(consumer!.appBookmarkInfo!.globalBookmarks).to.deep.equal(
-      DEFAULT_BOOKMARKS,
+    expect(consumer!.appBookmarkInfo!.globalSavedSearches).to.deep.equal(
+      DEFAULT_GLOBAL_SAVED_SEARCHES,
     );
-    expect(consumer!.appBookmarkInfo!.currentGlobalBookmark).to.deep.equal(
+    expect(consumer!.appBookmarkInfo!.currentGlobalSavedSearch).to.deep.equal(
       undefined,
     );
   });
@@ -109,33 +111,33 @@ describe('webstatus-bookmarks-service', () => {
     const consumer = el.querySelector<TestBookmarkConsumer>(
       'test-bookmark-consumer',
     );
-    el._globalBookmarks = [
+    el._globalSavedSearches = [
       {
         name: 'Test Bookmark 1',
         query: 'test_query_1',
       },
     ];
     el.appBookmarkInfo = {
-      globalBookmarks: [
+      globalSavedSearches: [
         {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
         },
       ],
-      currentGlobalBookmark: undefined,
+      currentGlobalSavedSearch: undefined,
     };
     await el.updateComplete;
     await consumer!.updateComplete;
 
     // Initial state
     expect(consumer!.appBookmarkInfo).to.deep.equal({
-      globalBookmarks: [
+      globalSavedSearches: [
         {
           name: 'Test Bookmark 1',
           query: 'test_query_1',
         },
       ],
-      currentGlobalBookmark: undefined,
+      currentGlobalSavedSearch: undefined,
     });
 
     // Simulate popstate event with a query
@@ -147,13 +149,13 @@ describe('webstatus-bookmarks-service', () => {
     await consumer!.updateComplete;
 
     // Updated state
-    expect(consumer!.appBookmarkInfo!.globalBookmarks).to.deep.equal([
+    expect(consumer!.appBookmarkInfo!.globalSavedSearches).to.deep.equal([
       {
         name: 'Test Bookmark 1',
         query: 'test_query_1',
       },
     ]);
-    expect(consumer!.appBookmarkInfo!.currentGlobalBookmark).to.deep.equal({
+    expect(consumer!.appBookmarkInfo!.currentGlobalSavedSearch).to.deep.equal({
       name: 'Test Bookmark 1',
       query: 'test_query_1',
     });
@@ -184,11 +186,11 @@ describe('webstatus-bookmarks-service', () => {
 
       await waitUntil(
         () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          service.appBookmarkInfo.userSavedSearchTask?.status !==
           TaskStatus.PENDING,
       );
       expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+        service.appBookmarkInfo.userSavedSearchTask?.error,
       ).to.be.instanceOf(SavedSearchNotFoundError);
       expect(toastStub.toast).to.have.been.calledOnceWithExactly(
         'Saved search with id test not found',
@@ -216,11 +218,11 @@ describe('webstatus-bookmarks-service', () => {
       );
       await waitUntil(
         () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          service.appBookmarkInfo.userSavedSearchTask?.status !==
           TaskStatus.PENDING,
       );
       expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+        service.appBookmarkInfo.userSavedSearchTask?.error,
       ).to.be.instanceOf(SavedSearchInternalError);
       expect(toastStub.toast).to.have.been.calledOnceWithExactly(
         'Error fetching saved search ID test: Something went wrong',
@@ -248,11 +250,11 @@ describe('webstatus-bookmarks-service', () => {
       );
       await waitUntil(
         () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          service.appBookmarkInfo.userSavedSearchTask?.status !==
           TaskStatus.PENDING,
       );
       expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.error,
+        service.appBookmarkInfo.userSavedSearchTask?.error,
       ).to.be.instanceOf(SavedSearchUnknownError);
       expect(toastStub.toast).to.have.been.calledOnceWithExactly(
         'Unknown error fetching saved search ID test. Check console for details.',
@@ -278,14 +280,13 @@ describe('webstatus-bookmarks-service', () => {
       );
       await waitUntil(
         () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          service.appBookmarkInfo.userSavedSearchTask?.status !==
           TaskStatus.PENDING,
       );
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.COMPLETE);
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.data).to.be
-        .undefined;
+      expect(service.appBookmarkInfo.userSavedSearchTask?.status).to.equal(
+        TaskStatus.COMPLETE,
+      );
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.be.undefined;
     });
 
     it('should complete successfully with bookmark data', async () => {
@@ -313,19 +314,19 @@ describe('webstatus-bookmarks-service', () => {
       );
       await waitUntil(
         () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          service.appBookmarkInfo.userSavedSearchTask?.status !==
           TaskStatus.PENDING,
       );
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.COMPLETE);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.data,
-      ).to.deep.equal(mockBookmark);
+      expect(service.appBookmarkInfo.userSavedSearchTask?.status).to.equal(
+        TaskStatus.COMPLETE,
+      );
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockBookmark,
+      );
     });
 
-    it('should complete successfully with bookmark data and update page url when "q" is the same as the bookmark\'s query', async () => {
-      const mockBookmark = {
+    it('should complete successfully with saved searches data and update page url when "q" is the same as the saved search\'s query', async () => {
+      const mockSavedSearch = {
         id: '123',
         query: 'foo',
         name: 'Test Bookmark',
@@ -336,7 +337,7 @@ describe('webstatus-bookmarks-service', () => {
       // First call is for the current search ID, second call is for the previous search ID
       getSearchIDStub.onCall(0).returns('test');
       getSearchIDStub.onCall(1).returns('');
-      apiClientStub.getSavedSearchByID.resolves(mockBookmark);
+      apiClientStub.getSavedSearchByID.resolves(mockSavedSearch);
       const mockLocation = {
         search: '?search_id=test&q=foo',
         href: '?search_id=test&q=foo',
@@ -353,18 +354,18 @@ describe('webstatus-bookmarks-service', () => {
       );
       await waitUntil(
         () =>
-          service.appBookmarkInfo.userSavedSearchBookmarkTask?.status !==
+          service.appBookmarkInfo.userSavedSearchTask?.status !==
           TaskStatus.PENDING,
         '',
         {timeout: 5000},
       );
       expect(apiClientStub.getSavedSearchByID).to.have.been.calledOnce;
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.status,
-      ).to.equal(TaskStatus.COMPLETE);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.data,
-      ).to.deep.equal(mockBookmark);
+      expect(service.appBookmarkInfo.userSavedSearchTask?.status).to.equal(
+        TaskStatus.COMPLETE,
+      );
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.equal(
+        mockSavedSearch,
+      );
       expect(getLocationStub.callCount).to.eq(1);
       expect(updatePageUrlStub).to.have.been.calledOnce;
     });
@@ -394,12 +395,10 @@ describe('webstatus-bookmarks-service', () => {
 
       // Assert that getSavedSearchByID was only called once
       expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.status).to.eq(
+      expect(service.appBookmarkInfo.userSavedSearchTask?.status).to.eq(
         TaskStatus.COMPLETE,
       );
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarkTask?.data,
-      ).to.deep.eq({
+      expect(service.appBookmarkInfo.userSavedSearchTask?.data).to.deep.eq({
         created_at: '',
         id: 'test',
         query: 'test',
@@ -408,18 +407,18 @@ describe('webstatus-bookmarks-service', () => {
       });
 
       // Manually trigger a re-run
-      service.loadingUserSavedBookmarkByIDTask.run();
+      service.loadingUserSavedSearchByIDTask.run();
       await service.updateComplete;
 
       // Assert that getSavedSearchByID was only called once still
       expect(apiClientStub.getSavedSearchByID.calledOnce).to.be.true;
-      expect(service.appBookmarkInfo.userSavedSearchBookmarkTask?.status).to.eq(
+      expect(service.appBookmarkInfo.userSavedSearchTask?.status).to.eq(
         TaskStatus.COMPLETE,
       );
     });
   });
 
-  describe('loadingUserSavedBookmarksTask', () => {
+  describe('loadingUserSavedSearchesTask', () => {
     let apiClientStub: SinonStubbedInstance<APIClient>;
     beforeEach(async () => {
       apiClientStub = sinon.stub(new APIClient(''));
@@ -437,14 +436,14 @@ describe('webstatus-bookmarks-service', () => {
           } as User}
         ></webstatus-bookmarks-service>`,
       );
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
+        TaskStatus.ERROR,
+      );
       expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
-      ).to.eq(TaskStatus.ERROR);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.error,
+        service.appBookmarkInfo.userSavedSearchesTask?.error,
       ).to.be.instanceOf(UserSavedSearchesInternalError);
       expect(toastStub.toast).to.have.been.calledOnceWithExactly(
-        'Internal error fetching list of bookmarked saved searches for user: Something went wrong',
+        'Internal error fetching list of saved searches for user: Something went wrong',
         'danger',
         'exclamation-triangle',
       );
@@ -462,21 +461,21 @@ describe('webstatus-bookmarks-service', () => {
           } as User}
         ></webstatus-bookmarks-service>`,
       );
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
+        TaskStatus.ERROR,
+      );
       expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
-      ).to.eq(TaskStatus.ERROR);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.error,
+        service.appBookmarkInfo.userSavedSearchesTask?.error,
       ).to.be.instanceOf(UserSavedSearchesUnknownError);
       expect(toastStub.toast).to.have.been.calledOnceWithExactly(
-        'Unknown error fetching list of bookmarked saved searches for user. Check console for details.',
+        'Unknown error fetching list of saved searches for user. Check console for details.',
         'danger',
         'exclamation-triangle',
       );
     });
 
     it('should complete successfully with bookmark data', async () => {
-      const mockBookmarks = [
+      const mockSavedSearches = [
         {
           id: '123',
           query: 'test',
@@ -485,7 +484,7 @@ describe('webstatus-bookmarks-service', () => {
           updated_at: '2023-08-13',
         },
       ];
-      apiClientStub.getAllUserSavedSearches.resolves(mockBookmarks);
+      apiClientStub.getAllUserSavedSearches.resolves(mockSavedSearches);
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
@@ -494,12 +493,12 @@ describe('webstatus-bookmarks-service', () => {
           } as User}
         ></webstatus-bookmarks-service>`,
       );
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
-      ).to.equal(TaskStatus.COMPLETE);
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.data,
-      ).to.deep.equal(mockBookmarks);
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.equal(
+        TaskStatus.COMPLETE,
+      );
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.deep.equal(
+        mockSavedSearches,
+      );
     });
 
     it('should handle null user', async () => {
@@ -509,56 +508,59 @@ describe('webstatus-bookmarks-service', () => {
           .user=${null}
         ></webstatus-bookmarks-service>`,
       );
-      expect(
-        service.appBookmarkInfo.userSavedSearchBookmarksTask?.status,
-      ).to.eq(TaskStatus.COMPLETE);
-      expect(service.appBookmarkInfo.userSavedSearchBookmarksTask?.data).to.be
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
+        TaskStatus.COMPLETE,
+      );
+      expect(service.appBookmarkInfo.userSavedSearchesTask?.data).to.be
         .undefined;
     });
   });
 
   describe('findCurrentBookmarkByQuery', () => {
-    it('should return undefined for empty bookmarks', () => {
+    it('should return undefined for empty saved searches', () => {
       const service = new WebstatusBookmarksService();
-      expect(service.findCurrentBookmarkByQuery()).to.be.undefined;
+      expect(service.findCurrentSavedSearchByQuery()).to.be.undefined;
     });
 
-    it('should find a matching bookmark', () => {
+    it('should find a matching saved search', () => {
       const service = new WebstatusBookmarksService();
       service._currentLocation = {
         search: '?q=test',
         href: '?q=test',
         pathname: '',
       };
-      const bookmarks = [{query: 'test', name: 'Test'}];
-      expect(service.findCurrentBookmarkByQuery(bookmarks)).to.deep.equal({
+      const savedSearches = [{query: 'test', name: 'Test'}];
+      expect(
+        service.findCurrentSavedSearchByQuery(savedSearches),
+      ).to.deep.equal({
         query: 'test',
         name: 'Test',
       });
     });
 
-    it('should return undefined if no bookmark matches', () => {
+    it('should return undefined if no saved search matches', () => {
       const service = new WebstatusBookmarksService();
       service._currentLocation = {
         search: '?q=test',
         href: '?q=test',
         pathname: '',
       };
-      const bookmarks = [{query: 'other', name: 'Other'}];
-      expect(service.findCurrentBookmarkByQuery(bookmarks)).to.be.undefined;
+      const savedSearches = [{query: 'other', name: 'Other'}];
+      expect(service.findCurrentSavedSearchByQuery(savedSearches)).to.be
+        .undefined;
     });
   });
 
   it('should refresh appBookmarkInfo correctly', () => {
     const service = new WebstatusBookmarksService();
-    service._globalBookmarks = [{query: 'global', name: 'Global'}];
-    service._currentGlobalBookmark = {query: 'global', name: 'Global'};
-    service._userSavedBookmarkByIDTaskTracker = {
+    service._globalSavedSearches = [{query: 'global', name: 'Global'}];
+    service._currentGlobalSavedSearch = {query: 'global', name: 'Global'};
+    service._userSavedSearchByIDTaskTracker = {
       status: TaskStatus.COMPLETE,
       data: {id: 'uuid', query: 'saved', name: 'Saved'},
       error: undefined,
     };
-    service._userSavedBookmarksTaskTracker = {
+    service._userSavedSearchesTaskTracker = {
       status: TaskStatus.COMPLETE,
       data: [
         {id: 'uuid1', query: 'saved', name: 'Saved'},
@@ -573,15 +575,15 @@ describe('webstatus-bookmarks-service', () => {
     };
     service.refreshAppBookmarkInfo();
     expect(service.appBookmarkInfo).to.deep.equal({
-      globalBookmarks: [{query: 'global', name: 'Global'}],
-      currentGlobalBookmark: {query: 'global', name: 'Global'},
-      userSavedSearchBookmarkTask: {
+      globalSavedSearches: [{query: 'global', name: 'Global'}],
+      currentGlobalSavedSearch: {query: 'global', name: 'Global'},
+      userSavedSearchTask: {
         status: TaskStatus.COMPLETE,
         data: {id: 'uuid', query: 'saved', name: 'Saved'},
         error: undefined,
       },
       currentLocation: {search: '?q=test', href: '?q=test', pathname: ''},
-      userSavedSearchBookmarksTask: {
+      userSavedSearchesTask: {
         status: TaskStatus.COMPLETE,
         data: [
           {id: 'uuid1', query: 'saved', name: 'Saved'},
