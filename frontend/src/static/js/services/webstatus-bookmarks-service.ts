@@ -250,8 +250,13 @@ export class WebstatusBookmarksService extends ServiceElement {
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('_currentLocation') ||
-      changedProperties.has('apiClient')
+      changedProperties.has('apiClient') ||
+      changedProperties.has('user')
     ) {
+      // If the user's status has not been decided yet, wait
+      if (this.user === undefined) {
+        return;
+      }
       const incomingSearchID = this.getSearchID(
         this._currentLocation ?? {search: '', href: '', pathname: ''},
       );
@@ -311,11 +316,44 @@ export class WebstatusBookmarksService extends ServiceElement {
     super.connectedCallback();
     this._currentLocation = this.getLocation();
     window.addEventListener('popstate', this.handlePopState.bind(this));
+    this.addEventListener('saved-search-saved', this.handleSavedSearchSaved);
+    this.addEventListener('saved-search-edited', this.handleSavedSearchEdited);
+    this.addEventListener(
+      'saved-search-deleted',
+      this.handleSavedSearchDeleted,
+    );
+    // saved-search-bookmarked return UserSavedSearch. Use the same event handler as saved-search-saved
+    this.addEventListener(
+      'saved-search-bookmarked',
+      this.handleSavedSearchSaved,
+    );
+    // saved-search-unbookmarked return the id. Use the same event handler as saved-search-deleted
+    this.addEventListener(
+      'saved-search-unbookmarked',
+      this.handleSavedSearchDeleted,
+    );
     this.refreshAppBookmarkInfo();
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    this.removeEventListener('saved-search-saved', this.handleSavedSearchSaved);
+    this.removeEventListener(
+      'saved-search-edited',
+      this.handleSavedSearchEdited,
+    );
+    this.removeEventListener(
+      'saved-search-deleted',
+      this.handleSavedSearchDeleted,
+    );
+    this.removeEventListener(
+      'saved-search-bookmarked',
+      this.handleSavedSearchSaved,
+    );
+    this.removeEventListener(
+      'saved-search-unbookmarked',
+      this.handleSavedSearchDeleted,
+    );
     window.removeEventListener('popstate', this.handlePopState.bind(this));
   }
 
@@ -327,6 +365,103 @@ export class WebstatusBookmarksService extends ServiceElement {
     );
     return savedSearches?.find(search => search.query === currentQuery);
   }
+
+  handleSavedSearchSaved = (e: Event) => {
+    // TODO: we should figure out a way to avoid the type assertion here.
+    const event = e as CustomEvent<UserSavedSearch>;
+    const savedSearch = event.detail;
+
+    if (
+      this._userSavedSearchesTaskTracker === undefined ||
+      this._userSavedSearchesTaskTracker?.data === undefined
+    ) {
+      this._userSavedSearchesTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: [savedSearch],
+        error: undefined,
+      };
+    } else {
+      this._userSavedSearchesTaskTracker.data = [
+        ...this._userSavedSearchesTaskTracker.data,
+        savedSearch,
+      ];
+    }
+
+    if (
+      this._userSavedSearchByIDTaskTracker === undefined ||
+      this._userSavedSearchByIDTaskTracker?.data === undefined
+    ) {
+      this._userSavedSearchByIDTaskTracker = {
+        status: TaskStatus.COMPLETE,
+        data: savedSearch,
+        error: undefined,
+      };
+    } else {
+      this._userSavedSearchByIDTaskTracker.data = savedSearch;
+    }
+
+    this.updatePageUrl(
+      this._currentLocation!.pathname,
+      this._currentLocation!,
+      {
+        search_id: savedSearch.id,
+      },
+    );
+    this.refreshAppBookmarkInfo();
+  };
+
+  handleSavedSearchEdited = (e: Event) => {
+    // TODO: we should figure out a way to avoid the type assertion here.
+    const event = e as CustomEvent<UserSavedSearch>;
+    const editedSearch = event.detail;
+
+    if (this._userSavedSearchesTaskTracker?.data) {
+      this._userSavedSearchesTaskTracker.data =
+        this._userSavedSearchesTaskTracker?.data?.map(search => {
+          if (search.id === editedSearch.id) {
+            return editedSearch;
+          }
+          return search;
+        });
+    }
+
+    if (
+      this._userSavedSearchByIDTaskTracker &&
+      this._userSavedSearchByIDTaskTracker?.data?.id === editedSearch.id
+    ) {
+      this._userSavedSearchByIDTaskTracker.data = editedSearch;
+    }
+
+    this.refreshAppBookmarkInfo();
+  };
+
+  handleSavedSearchDeleted = (e: Event) => {
+    // TODO: we should figure out a way to avoid the type assertion here.
+    const event = e as CustomEvent<string>;
+    const deletedSearchId = event.detail;
+    if (this._userSavedSearchesTaskTracker?.data) {
+      this._userSavedSearchesTaskTracker.data =
+        this._userSavedSearchesTaskTracker?.data?.filter(
+          search => search.id !== deletedSearchId,
+        );
+      // Clear out the search id from the URL
+      this.updatePageUrl(
+        this._currentLocation!.pathname,
+        this._currentLocation!,
+        {
+          search_id: '',
+        },
+      );
+    }
+    if (
+      this._userSavedSearchByIDTaskTracker &&
+      this._userSavedSearchByIDTaskTracker?.data?.id === deletedSearchId
+    ) {
+      this._userSavedSearchByIDTaskTracker.data = undefined;
+    }
+
+    this.refreshAppBookmarkInfo();
+  };
 
   // Assign the appBookmarkInfo object to trigger a refresh of subscribed contexts
   refreshAppBookmarkInfo() {
