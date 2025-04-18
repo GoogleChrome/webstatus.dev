@@ -38,7 +38,7 @@ export const initRouter = async (element: HTMLElement): Promise<Router> => {
     },
     {
       path: '(.*)',
-      component: 'webstatus-not-found-error-page',
+      component: 'webstatus-notfound-error-page',
     },
   ]);
   return router;

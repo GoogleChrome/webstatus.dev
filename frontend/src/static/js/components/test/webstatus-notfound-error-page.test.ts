@@ -15,19 +15,26 @@
  */
 
 import {expect, fixture, html} from '@open-wc/testing';
-import '../webstatus-not-found-error-page.js';
+import '../webstatus-notfound-error-page.js';
 import {WebstatusNotFoundErrorPage} from '../webstatus-notfound-error-page.js';
 import {Task} from '@lit/task';
 import {APIClient} from '../../contexts/api-client-context.js';
+import {GITHUB_REPO_ISSUE_LINK} from '../../utils/constants.js';
 
 type SimilarFeature = {name: string; url: string};
 
-const GITHUB_REPO_ISSUE_LINK = 'https://github.com/example/repo/issues';
+describe('webstatus-notfound-error-page', () => {
+  const featureIdWithMockResults = 'g';
+  const mockSimilarFeatures: SimilarFeature[] = [
+    {name: 'Feature One', url: '/features/dignissimos44'},
+    {name: 'Feature Two', url: '/features/fugiat37'},
+  ];
 
-describe('webstatus-not-found-error-page', () => {
   it('renders the correct error message when featureId is missing', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(
-      html`<webstatus-not-found-error-page></webstatus-not-found-error-page>`,
+      html`<webstatus-notfound-error-page
+        .location=${{search: ''}}
+      ></webstatus-notfound-error-page>`,
     );
 
     expect(
@@ -49,11 +56,11 @@ describe('webstatus-not-found-error-page', () => {
     ).to.equal("We couldn't find the page you're looking for.");
   });
 
-  it('renders the correct error message when featureId is provided', async () => {
+  it('renders correct message when featureId is provided', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
+      <webstatus-notfound-error-page
         .location=${{search: '?q=test-feature'}}
-      ></webstatus-not-found-error-page>
+      ></webstatus-notfound-error-page>
     `);
 
     expect(
@@ -63,23 +70,11 @@ describe('webstatus-not-found-error-page', () => {
   });
 
   it('displays "Loading similar features..." when the API request is pending', async () => {
-    const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
-        .location=${{search: '?q=test-feature'}}
-      ></webstatus-not-found-error-page>
-    `);
-
-    // Override the _similarResults with a fake pending Task
-    component._similarResults = new Task(component, {
-      args: () => [undefined as unknown as APIClient, 'test-feature'], // no-op args
-      task: async () => {
-        return new Promise(() => {}); // never resolves = stays pending
-      },
-    });
-
-    // Trigger the task manually
-    component._similarResults.run();
-    await component.updateComplete;
+    const component = await createComponentWithMockedSimilarFeatures(
+      'test-feature',
+      [],
+      {stayPending: true},
+    );
 
     const loadingMessage =
       component.shadowRoot?.querySelector('.loading-message');
@@ -90,28 +85,10 @@ describe('webstatus-not-found-error-page', () => {
   });
 
   it('renders similar features when API returns results', async () => {
-    const mockData = [
-      {name: 'Feature One', url: '/features/dignissimos44'},
-      {name: 'Feature Two', url: '/features/fugiat37'},
-    ];
-
-    const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
-        .location=${{search: '?q=g'}}
-      ></webstatus-not-found-error-page>
-    `);
-
-    // Patch _similarResults manually
-    component._similarResults = new Task<[APIClient, string], SimilarFeature[]>(
-      component,
-      {
-        args: () => [undefined as unknown as APIClient, 'g'],
-        task: async () => mockData,
-      },
+    const component = await createComponentWithMockedSimilarFeatures(
+      featureIdWithMockResults,
+      mockSimilarFeatures,
     );
-
-    component._similarResults.run(); // force task to execute
-    await component.updateComplete;
 
     const featureList =
       component.shadowRoot?.querySelectorAll('.feature-list li');
@@ -120,26 +97,11 @@ describe('webstatus-not-found-error-page', () => {
     expect(featureList?.[1]?.textContent?.trim()).to.equal('Feature Two');
   });
 
-  it('renders all three buttons when featureId and similar results exist', async () => {
-    const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
-        .location=${{search: '?q=g'}}
-      ></webstatus-not-found-error-page>
-    `);
-
-    expect(component.shadowRoot?.querySelector('#error-action-search-btn')).to
-      .exist;
-    expect(component.shadowRoot?.querySelector('#error-action-home-btn')).to
-      .exist;
-    expect(component.shadowRoot?.querySelector('#error-action-report')).to
-      .exist;
-  });
-
   it('renders only two buttons when featureId does not exist', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
+      <webstatus-notfound-error-page
         .location=${{search: ''}}
-      ></webstatus-not-found-error-page>
+      ></webstatus-notfound-error-page>
     `);
 
     expect(component.shadowRoot?.querySelector('#error-action-search-btn')).to
@@ -150,22 +112,39 @@ describe('webstatus-not-found-error-page', () => {
       .exist;
   });
 
-  it('search button contains the correct query parameter', async () => {
-    const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page
-        .location=${{search: '?q=correct-query'}}
-      ></webstatus-not-found-error-page>
-    `);
+  it('renders all three buttons when featureId and similar results exist', async () => {
+    const component = await createComponentWithMockedSimilarFeatures(
+      featureIdWithMockResults,
+      mockSimilarFeatures,
+    );
+
+    expect(component.shadowRoot?.querySelector('#error-action-search-btn')).to
+      .exist;
+    expect(component.shadowRoot?.querySelector('#error-action-home-btn')).to
+      .exist;
+    expect(component.shadowRoot?.querySelector('#error-action-report')).to
+      .exist;
+  });
+
+  it('search button contains the correct query parameter when similar results exist', async () => {
+    const component = await createComponentWithMockedSimilarFeatures(
+      featureIdWithMockResults,
+      mockSimilarFeatures,
+    );
 
     const searchButton = component.shadowRoot?.querySelector(
       '#error-action-search-btn',
     );
-    expect(searchButton?.getAttribute('href')).to.equal('/?q=correct-query');
+    expect(searchButton?.getAttribute('href')).to.equal(
+      `/?q=${featureIdWithMockResults}`,
+    );
   });
 
   it('report issue button links to GitHub', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
-      <webstatus-not-found-error-page></webstatus-not-found-error-page>
+      <webstatus-notfound-error-page
+        .location=${{search: ''}}
+      ></webstatus-notfound-error-page>
     `);
 
     const reportButton = component.shadowRoot?.querySelector(
@@ -173,4 +152,31 @@ describe('webstatus-not-found-error-page', () => {
     );
     expect(reportButton?.getAttribute('href')).to.equal(GITHUB_REPO_ISSUE_LINK);
   });
+
+  async function createComponentWithMockedSimilarFeatures(
+    featureId: string,
+    mockData: SimilarFeature[],
+    options: {stayPending?: boolean} = {},
+  ): Promise<WebstatusNotFoundErrorPage> {
+    const component = await fixture<WebstatusNotFoundErrorPage>(html`
+      <webstatus-notfound-error-page
+        .location=${{search: `?q=${featureId}`}}
+      ></webstatus-notfound-error-page>
+    `);
+
+    component._similarResults = new Task<[APIClient, string], SimilarFeature[]>(
+      component,
+      {
+        args: () => [undefined as unknown as APIClient, featureId],
+        task: async () => {
+          if (options.stayPending) return new Promise(() => {});
+          return mockData;
+        },
+      },
+    );
+
+    component._similarResults.run();
+    await component.updateComplete;
+    return component;
+  }
 });

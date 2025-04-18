@@ -27,7 +27,7 @@ import {Toast} from '../utils/toast.js';
 
 type SimilarFeature = {name: string; url: string};
 
-@customElement('webstatus-not-found-error-page')
+@customElement('webstatus-notfound-error-page')
 export class WebstatusNotFoundErrorPage extends LitElement {
   _similarResults?: Task<[APIClient, string], SimilarFeature[]>;
 
