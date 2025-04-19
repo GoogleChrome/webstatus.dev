@@ -30,6 +30,10 @@ import {
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
+import {
+  TOP_CSS_INTEROP_ISSUES,
+  TOP_HTML_INTEROP_ISSUES,
+} from '../utils/constants.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
@@ -63,8 +67,27 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           overflow-x: auto;
           white-space: nowrap;
         }
-        .missing-feature-id-link {
+        .missing-feature-id {
           padding-right: 1em;
+        }
+        .survey-result,
+        .survey-result:hover,
+        .survey-result a {
+          display: inline;
+          font-size: 10px;
+          text-decoration: none;
+          border-radius: 12px;
+          padding: 0.2em;
+          color: rgb(255, 255, 255);
+          cursor: help;
+        }
+        .survey-result-css {
+          border: 1px solid #15a445;
+          background-color: #15a445;
+        }
+        .survey-result-html {
+          border: 1px solid #0180c5;
+          background-color: #0180c5;
         }
       `,
     ];
@@ -241,11 +264,37 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         const featureIndex = j * 10 + i;
         if (featureIndex < this.missingFeaturesList.length) {
           const feature_id = this.missingFeaturesList[featureIndex].feature_id;
+          let extraIdentifier: TemplateResult | symbol = nothing;
+          if (feature_id && TOP_CSS_INTEROP_ISSUES.includes(feature_id)) {
+            extraIdentifier = html`<div
+              class="survey-result survey-result-css"
+              title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
+            >
+              <span href="https://2024.stateofcss.com/" target="_blank"
+                >TOP CSS</span
+              >
+            </div>`;
+          } else if (
+            feature_id &&
+            TOP_HTML_INTEROP_ISSUES.includes(feature_id)
+          ) {
+            extraIdentifier = html`<div
+              class="survey-result survey-result-html"
+              title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
+            >
+              <span
+                ><a href="https://2024.stateofhtml.com/" target="_blank"
+                  >TOP HTML</a
+                ></span
+              >
+            </div>`;
+          }
           cells.push(
             html` <td>
-              <a href="/features/${feature_id}" class="missing-feature-id-link"
-                >${feature_id}</a
-              >
+              <div class="missing-feature-id">
+                <a href="/features/${feature_id}">${feature_id}</a>
+                ${extraIdentifier}
+              </div>
             </td>`,
           );
         } else {

@@ -188,3 +188,31 @@ export const VOCABULARY = [
     doc: 'Negate search term with a leading minus',
   },
 ];
+
+export const TOP_CSS_INTEROP_ISSUES: string[] = [
+  'anchor-positioning',
+  'container-queries',
+  'grid',
+  'has',
+  'nesting',
+  'scrollbar',
+  'scrollbar-gutter',
+  'scrollbar-width',
+  'scroll-driven-animations',
+  'scope',
+  'subgrid',
+  'view-transitions',
+];
+
+export const TOP_HTML_INTEROP_ISSUES: string[] = [
+  'anchor-positioning',
+  'cross-document-view-transitions',
+  'customized-built-in-elements',
+  'datalist',
+  'dialog',
+  'file-system-access',
+  'notifications',
+  'popover',
+  'scroll-driven-animations',
+  'web-bluetooth',
+];
