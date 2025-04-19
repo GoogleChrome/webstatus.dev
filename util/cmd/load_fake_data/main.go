@@ -60,6 +60,9 @@ var (
 		string(backend.Firefox),
 		string(backend.Edge),
 		string(backend.Safari),
+		string(backend.ChromeAndroid),
+		string(backend.FirefoxAndroid),
+		string(backend.SafariIos),
 	}
 )
 
