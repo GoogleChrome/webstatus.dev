@@ -316,7 +316,7 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe('Cancel Button', () => {
+  describe('Cancel Button', async () => {
     it('dispatches "saved-search-cancelled" event when cancel button is clicked', async () => {
       el = await setupComponent('edit', existingSearch);
       const cancelButton = el.shadowRoot?.querySelector<HTMLButtonElement>(
