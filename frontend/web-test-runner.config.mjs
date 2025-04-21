@@ -68,6 +68,9 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   // mocha config https://mochajs.org/api/mocha
   testFramework: {config: {timeout: 30000}},
 
+  concurrentBrowsers: 1,
+  debug: true,
+
   browsers: [
     playwrightLauncher({
       product: 'chromium',

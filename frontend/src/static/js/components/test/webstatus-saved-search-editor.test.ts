@@ -55,12 +55,14 @@ describe('webstatus-saved-search-editor', () => {
     apiClientStub = sinon.createStubInstance(APIClient);
     toastStub = sinon.stub(Toast.prototype, 'toast');
 
+    console.log('Pre step 1');
     const component = await fixture<WebstatusSavedSearchEditor>(html`
       <webstatus-saved-search-editor
         .user=${mockUser}
         .apiClient=${apiClientStub}
       ></webstatus-saved-search-editor>
     `);
+    console.log('Pre step 2');
     // Manually open the dialog after fixture creation
     await component.open(operation, savedSearch, overviewPageQueryInput);
     await component.updateComplete;
