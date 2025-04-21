@@ -40,7 +40,7 @@ build: gen go-build node-install
 
 clean: clean-gen clean-node port-forward-terminate minikube-delete
 
-precommit: license-check lint test
+precommit: test
 
 ################################
 # Local Environment

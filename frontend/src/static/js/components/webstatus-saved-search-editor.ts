@@ -74,9 +74,6 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @property({type: Object})
   user!: User;
 
-  @property({type: Object})
-  location!: {search: string};
-
   // This is the typeahead from the overview page so that we can carry over the user's existing query.
   @state()
   overviewPageQueryInput?: WebstatusTypeahead;

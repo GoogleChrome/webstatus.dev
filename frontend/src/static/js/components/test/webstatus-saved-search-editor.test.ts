@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {expect, oneEvent, waitUntil} from '@open-wc/testing';
+import {expect, fixture, html, oneEvent, waitUntil} from '@open-wc/testing';
 import sinon from 'sinon';
 import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
 import '../webstatus-saved-search-editor.js';
@@ -55,31 +55,22 @@ describe('webstatus-saved-search-editor', () => {
     apiClientStub = sinon.createStubInstance(APIClient);
     toastStub = sinon.stub(Toast.prototype, 'toast');
 
-    console.log('Creating element manually');
-    const component = document.createElement(
-      'webstatus-saved-search-editor',
-    ) as WebstatusSavedSearchEditor;
-    component.user = mockUser;
-    component.apiClient = apiClientStub;
-
-    console.log('Appending element to body');
-    document.body.appendChild(component);
-    // Wait for the component to potentially render/initialize minimally after being added to DOM
-    await component.updateComplete;
-
-    console.log('Calling component.open()');
-    // Manually open the dialog after creation and appending
+    console.log('Pre step 1');
+    const component = await fixture<WebstatusSavedSearchEditor>(html`
+      <webstatus-saved-search-editor
+        .user=${mockUser}
+        .apiClient=${apiClientStub}
+      ></webstatus-saved-search-editor>
+    `);
+    console.log('Pre step 2');
+    // Manually open the dialog after fixture creation
     await component.open(operation, savedSearch, overviewPageQueryInput);
-    console.log('component.open() finished');
-    // Wait for updates triggered by open()
     await component.updateComplete;
-    console.log('setupComponent finished');
     return component;
   }
 
   afterEach(() => {
     sinon.restore();
-    document.body.removeChild(el);
   });
 
   describe.skip('Rendering', () => {
@@ -350,7 +341,16 @@ describe('webstatus-saved-search-editor', () => {
 
   it('sums up 2 numbers', async () => {
     expect(2).to.equal(2);
-    el = await setupComponent('edit', existingSearch);
-    expect(el).to.be.exist;
+    console.log('about to create component');
+    apiClientStub = sinon.createStubInstance(APIClient);
+    const component = await fixture<WebstatusSavedSearchEditor>(html`
+      <webstatus-saved-search-editor
+        .user=${mockUser}
+        .apiClient=${apiClientStub}
+        .savedSearch=${undefined}
+      ></webstatus-saved-search-editor>
+    `);
+    console.log('component created');
+    expect(component).to.exist;
   });
 });
