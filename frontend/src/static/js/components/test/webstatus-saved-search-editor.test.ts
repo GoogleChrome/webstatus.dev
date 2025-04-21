@@ -339,7 +339,7 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  it.only('sums up 2 numbers', () => {
+  it('sums up 2 numbers', () => {
     expect(2).to.equal(2);
   });
 });
