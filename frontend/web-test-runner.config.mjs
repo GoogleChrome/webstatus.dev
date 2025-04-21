@@ -71,6 +71,8 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   browsers: [
     playwrightLauncher({
       product: 'chromium',
+      // For some we need to limit the concurrency for Chromium to ensure test stability.
+      concurrency: 1,
     }),
     playwrightLauncher({
       product: 'firefox',
@@ -79,6 +81,8 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
     }),
     playwrightLauncher({
       product: 'webkit',
+      // For some we need to limit the concurrency for Safari to ensure test stability.
+      concurrency: 1,
     }),
   ],
 });

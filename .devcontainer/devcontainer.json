@@ -75,7 +75,12 @@
     // gcloud CLI
     8085
   ],
-  "runArgs": ["--env-file", ".devcontainer/devcontainer.env"],
+  "runArgs": [
+    "--env-file",
+    ".devcontainer/devcontainer.env",
+    "--init",
+    "--ipc=host"
+  ],
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
   // Use 'postCreateCommand' to run commands after the container is created.
