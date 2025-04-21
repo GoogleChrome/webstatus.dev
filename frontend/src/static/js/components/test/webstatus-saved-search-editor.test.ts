@@ -65,7 +65,6 @@ describe('webstatus-saved-search-editor', () => {
     console.log('Pre step 2');
     // Manually open the dialog after fixture creation
     await component.open(operation, savedSearch, overviewPageQueryInput);
-    await component.updateComplete;
     return component;
   }
 
@@ -316,8 +315,8 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe.skip('Cancel Button', async () => {
-    it('dispatches "saved-search-cancelled" event when cancel button is clicked', async done => {
+  describe('Cancel Button', () => {
+    it('dispatches "saved-search-cancelled" event when cancel button is clicked', async () => {
       el = await setupComponent('edit', existingSearch);
       const cancelButton = el.shadowRoot?.querySelector<HTMLButtonElement>(
         'sl-button[variant="default"]',
@@ -334,8 +333,6 @@ describe('webstatus-saved-search-editor', () => {
       // No specific detail expected for cancel event
       expect(el.isOpen()).to.eq(false);
       console.log('Step 5');
-      done();
-      console.log('Step 6');
     });
   });
 
