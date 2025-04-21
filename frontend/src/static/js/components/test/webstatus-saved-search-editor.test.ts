@@ -319,15 +319,19 @@ describe('webstatus-saved-search-editor', () => {
       el = await setupComponent('edit', existingSearch);
       const cancelButton = el.shadowRoot?.querySelector<HTMLButtonElement>(
         'sl-button[variant="default"]',
-      ); // Assuming cancel is the default button
+      );
+      console.log('Step 1');
+      // Assuming cancel is the default button
       const cancelEventPromise = oneEvent(el, 'saved-search-cancelled');
-
-      cancelButton?.click();
-
+      console.log('Step 2');
+      cancelButton!.click();
+      console.log('Step 3');
       // Just ensure the event is fired
       await cancelEventPromise;
+      console.log('Step 4');
       // No specific detail expected for cancel event
-      expect(el.isOpen()).to.be.false;
+      expect(el.isOpen()).to.eq(false);
+      console.log('Step 5');
     });
   });
 });
