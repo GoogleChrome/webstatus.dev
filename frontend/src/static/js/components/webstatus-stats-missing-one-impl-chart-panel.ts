@@ -40,6 +40,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     'edge',
     'firefox',
     'safari',
+    'chrome_android',
+    'firefox_android',
+    'safari_ios',
   ];
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
@@ -73,10 +76,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   getOtherBrowsersFromTargetBrowser(
     browser: BrowsersParameter,
   ): BrowsersParameter[] {
-    if (browser === 'safari' || browser === 'firefox') {
-      return this.supportedBrowsers.filter(value => browser !== value);
+    if (browser !== 'chrome' && browser !== 'edge') {
+      return this.supportedBrowsers.filter(v => browser !== v);
     }
-    return ['firefox', 'safari'];
+    return this.supportedBrowsers.filter(v => v !== 'chrome' && v !== 'edge');
   }
 
   private _createFetchFunctionConfigs(

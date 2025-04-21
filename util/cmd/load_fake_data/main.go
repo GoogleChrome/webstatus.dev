@@ -60,6 +60,9 @@ var (
 		string(backend.Firefox),
 		string(backend.Edge),
 		string(backend.Safari),
+		string(backend.ChromeAndroid),
+		string(backend.FirefoxAndroid),
+		string(backend.SafariIos),
 	}
 )
 
@@ -158,35 +161,26 @@ func generateMissingOneImplementations(
 		for j, browser := range browsers {
 			// This browser will be the "missing one"
 			if j == missingOneBrowserIndex {
+				delete(featureAvailability[browser], missingOneFeatureKey)
 				continue
 			}
 
 			// Make all browsers except the chosen one support the chosen feature
 			// Only mark it as supported if it hasn't been marked before.
-			// The browser has a 70% chance of supporting it.
-			if _, ok := featureAvailability[browser][missingOneFeatureKey]; !ok && r.Intn(10) < 7 {
+			// The browser has a 90% chance of supporting it.
+			if _, ok := featureAvailability[browser][missingOneFeatureKey]; !ok && r.Intn(10) < 9 {
 				// Mark as supported from this release onwards
 				featureAvailability[browser][missingOneFeatureKey] = i + 1
 			}
 
-			// For the remaining features, given a 10% chance, assign support status to the current browser
+			// For the remaining features, given a 20% chance, assign support status to the current browser
 			// only if it hasn't been assigned before
 			for k, feature := range features {
 				if k != missingOneFeatureIndex { // Skip the "missing one" feature
-					if _, ok := featureAvailability[browser][feature.FeatureKey]; !ok && r.Intn(10) == 0 {
+					if _, ok := featureAvailability[browser][feature.FeatureKey]; !ok && r.Intn(10) < 2 {
 						featureAvailability[browser][feature.FeatureKey] = i + 1
 					}
 				}
-			}
-		}
-
-		// Mark the "missing one" feature as supported by the "missing one" browser on the next release
-		// (if it's not the last release AND it's not already supported AND given a 10% chance)
-		if i < releasesPerBrowser-1 {
-			missingOneBrowser := browsers[missingOneBrowserIndex]
-			if _, ok := featureAvailability[missingOneBrowser][missingOneFeatureKey]; !ok && r.Intn(10) == 0 {
-				// Mark as supported from the next release onwards
-				featureAvailability[missingOneBrowser][missingOneFeatureKey] = i + 2
 			}
 		}
 	}
