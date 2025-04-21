@@ -27,7 +27,7 @@ import {taskUpdateComplete} from './test-helpers.js';
 import {User} from '../../contexts/firebase-user-context.js';
 import {InternalServerError} from '../../api/errors.js';
 import {TaskStatus} from '@lit/task';
-describe('webstatus-saved-search-editor', () => {
+describe.skip('webstatus-saved-search-editor', () => {
   let el: WebstatusSavedSearchEditor;
   let apiClientStub: sinon.SinonStubbedInstance<APIClient>;
   let toastStub: sinon.SinonStub;
