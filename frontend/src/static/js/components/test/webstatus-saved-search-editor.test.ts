@@ -339,7 +339,9 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  it('sums up 2 numbers', () => {
+  it('sums up 2 numbers', async () => {
     expect(2).to.equal(2);
+    el = await setupComponent('edit', existingSearch);
+    expect(el).to.be.exist;
   });
 });
