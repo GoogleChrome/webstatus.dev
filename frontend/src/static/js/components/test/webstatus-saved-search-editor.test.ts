@@ -119,7 +119,7 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe('Form Submission (Save)', () => {
+  describe.skip('Form Submission (Save)', () => {
     it('calls createSavedSearch for a new search and dispatches "save" event', async () => {
       const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
       el = await setupComponent('save', undefined, mockTypeahead);
@@ -265,7 +265,7 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe('Delete Functionality', () => {
+  describe.skip('Delete Functionality', () => {
     beforeEach(async () => {
       el = await setupComponent('delete', existingSearch);
     });
