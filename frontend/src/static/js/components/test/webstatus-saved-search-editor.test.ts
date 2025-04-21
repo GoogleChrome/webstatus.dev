@@ -317,7 +317,7 @@ describe('webstatus-saved-search-editor', () => {
   });
 
   describe('Cancel Button', async () => {
-    it('dispatches "saved-search-cancelled" event when cancel button is clicked', async () => {
+    it('dispatches "saved-search-cancelled" event when cancel button is clicked', async done => {
       el = await setupComponent('edit', existingSearch);
       const cancelButton = el.shadowRoot?.querySelector<HTMLButtonElement>(
         'sl-button[variant="default"]',
@@ -334,6 +334,8 @@ describe('webstatus-saved-search-editor', () => {
       // No specific detail expected for cancel event
       expect(el.isOpen()).to.eq(false);
       console.log('Step 5');
+      done();
+      console.log('Step 6');
     });
   });
 });

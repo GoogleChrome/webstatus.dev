@@ -69,7 +69,6 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   testFramework: {config: {timeout: 30000}},
 
   concurrentBrowsers: 1,
-  debug: true,
 
   browsers: [
     playwrightLauncher({
