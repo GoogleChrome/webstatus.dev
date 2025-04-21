@@ -27,7 +27,7 @@ import {taskUpdateComplete} from './test-helpers.js';
 import {User} from '../../contexts/firebase-user-context.js';
 import {InternalServerError} from '../../api/errors.js';
 import {TaskStatus} from '@lit/task';
-describe.skip('webstatus-saved-search-editor', () => {
+describe('webstatus-saved-search-editor', () => {
   let el: WebstatusSavedSearchEditor;
   let apiClientStub: sinon.SinonStubbedInstance<APIClient>;
   let toastStub: sinon.SinonStub;
@@ -71,7 +71,7 @@ describe.skip('webstatus-saved-search-editor', () => {
     sinon.restore();
   });
 
-  describe('Rendering', () => {
+  describe.skip('Rendering', () => {
     it('renders correctly for a new search (save operation)', async () => {
       const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
       el = await setupComponent('save', undefined, mockTypeahead);
@@ -119,7 +119,7 @@ describe.skip('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe.skip('Form Submission (Save)', () => {
+  describe('Form Submission (Save)', () => {
     it('calls createSavedSearch for a new search and dispatches "save" event', async () => {
       const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
       el = await setupComponent('save', undefined, mockTypeahead);
