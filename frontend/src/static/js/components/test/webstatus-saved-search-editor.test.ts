@@ -73,7 +73,7 @@ describe('webstatus-saved-search-editor', () => {
     sinon.restore();
   });
 
-  describe.skip('Rendering', () => {
+  describe('Rendering', () => {
     it('renders correctly for a new search (save operation)', async () => {
       const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
       el = await setupComponent('save', undefined, mockTypeahead);
@@ -121,7 +121,7 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe.skip('Form Submission (Save)', () => {
+  describe('Form Submission (Save)', () => {
     it('calls createSavedSearch for a new search and dispatches "save" event', async () => {
       const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
       el = await setupComponent('save', undefined, mockTypeahead);
@@ -267,7 +267,7 @@ describe('webstatus-saved-search-editor', () => {
     });
   });
 
-  describe.skip('Delete Functionality', () => {
+  describe('Delete Functionality', () => {
     beforeEach(async () => {
       el = await setupComponent('delete', existingSearch);
     });
