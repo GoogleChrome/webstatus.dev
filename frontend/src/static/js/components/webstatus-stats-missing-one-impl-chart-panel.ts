@@ -77,9 +77,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           font-size: 10px;
           text-decoration: none;
           border-radius: 12px;
-          padding: 0.2em;
+          padding: 0 0 0.1em 0.2em;
           color: rgb(255, 255, 255);
           cursor: help;
+          margin-right: 0.5em;
         }
         .survey-result-css {
           border: 1px solid #15a445;
@@ -264,36 +265,40 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         const featureIndex = j * 10 + i;
         if (featureIndex < this.missingFeaturesList.length) {
           const feature_id = this.missingFeaturesList[featureIndex].feature_id;
-          let extraIdentifier: TemplateResult | symbol = nothing;
+          const extraIdentifiers: (TemplateResult | symbol)[] = [];
           if (feature_id && TOP_CSS_INTEROP_ISSUES.includes(feature_id)) {
-            extraIdentifier = html`<div
-              class="survey-result survey-result-css"
-              title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
-            >
-              <span href="https://2024.stateofcss.com/" target="_blank"
-                >TOP CSS</span
+            extraIdentifiers.push(
+              html`<div
+                class="survey-result survey-result-css"
+                title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
               >
-            </div>`;
-          } else if (
-            feature_id &&
-            TOP_HTML_INTEROP_ISSUES.includes(feature_id)
-          ) {
-            extraIdentifier = html`<div
-              class="survey-result survey-result-html"
-              title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
-            >
-              <span
-                ><a href="https://2024.stateofhtml.com/" target="_blank"
-                  >TOP HTML</a
-                ></span
+                <span class="survey-result-span"
+                  ><a href="https://2024.stateofcss.com/" target="_blank"
+                    >TOP CSS</a
+                  ></span
+                >
+              </div>`,
+            );
+          }
+          if (feature_id && TOP_HTML_INTEROP_ISSUES.includes(feature_id)) {
+            extraIdentifiers.push(
+              html`<div
+                class="survey-result survey-result-html"
+                title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
               >
-            </div>`;
+                <span class="survey-result-span"
+                  ><a href="https://2024.stateofhtml.com/" target="_blank"
+                    >TOP HTML</a
+                  ></span
+                >
+              </div>`,
+            );
           }
           cells.push(
             html` <td>
               <div class="missing-feature-id">
                 <a href="/features/${feature_id}">${feature_id}</a>
-                ${extraIdentifier}
+                ${extraIdentifiers}
               </div>
             </td>`,
           );
