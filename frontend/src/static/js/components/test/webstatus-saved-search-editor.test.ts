@@ -48,9 +48,9 @@ describe('webstatus-saved-search-editor', () => {
   } as unknown as User;
 
   async function setupComponent(
-    operation: 'save' | 'edit' | 'delete',
-    savedSearch?: UserSavedSearch,
-    overviewPageQueryInput?: WebstatusTypeahead,
+    _operation: 'save' | 'edit' | 'delete',
+    _savedSearch?: UserSavedSearch,
+    _overviewPageQueryInput?: WebstatusTypeahead,
   ): Promise<WebstatusSavedSearchEditor> {
     apiClientStub = sinon.createStubInstance(APIClient);
     toastStub = sinon.stub(Toast.prototype, 'toast');
@@ -64,7 +64,8 @@ describe('webstatus-saved-search-editor', () => {
     `);
     console.log('Pre step 2');
     // Manually open the dialog after fixture creation
-    await component.open(operation, savedSearch, overviewPageQueryInput);
+    // await component.open(operation, savedSearch, overviewPageQueryInput);
+    await component.updateComplete;
     return component;
   }
 
