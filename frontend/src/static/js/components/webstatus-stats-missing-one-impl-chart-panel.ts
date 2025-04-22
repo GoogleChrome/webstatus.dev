@@ -30,11 +30,11 @@ import {
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
-import {
-  TOP_CSS_INTEROP_ISSUES,
-  TOP_HTML_INTEROP_ISSUES,
-} from '../utils/constants.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
+import {
+  getTopCssIdentifierTemplate,
+  getTopHtmlIdentifierTemplate,
+} from './utils.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
@@ -68,27 +68,14 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           white-space: nowrap;
         }
         .missing-feature-id {
-          padding-right: 1em;
+          padding: 0.5em 1em 0 0;
         }
         .survey-result,
         .survey-result:hover,
         .survey-result a {
-          display: inline;
           font-size: 10px;
           text-decoration: none;
-          border-radius: 12px;
-          padding: 0 0 0.1em 0.2em;
-          color: rgb(255, 255, 255);
           cursor: help;
-          margin-right: 0.5em;
-        }
-        .survey-result-css {
-          border: 1px solid #15a445;
-          background-color: #15a445;
-        }
-        .survey-result-html {
-          border: 1px solid #0180c5;
-          background-color: #0180c5;
         }
       `,
     ];
@@ -264,40 +251,20 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       for (let j = 0; j < numCols; j++) {
         const featureIndex = j * 10 + i;
         if (featureIndex < this.missingFeaturesList.length) {
-          const feature_id = this.missingFeaturesList[featureIndex].feature_id;
-          const extraIdentifiers: (TemplateResult | symbol)[] = [];
-          if (feature_id && TOP_CSS_INTEROP_ISSUES.includes(feature_id)) {
-            extraIdentifiers.push(
-              html`<div
-                class="survey-result survey-result-css"
-                title="This feature was listed as a top interoperability pain point in the recent State of CSS survey."
-              >
-                <span class="survey-result-span"
-                  ><a href="https://2024.stateofcss.com/" target="_blank"
-                    >TOP CSS</a
-                  ></span
-                >
-              </div>`,
-            );
+          const featureId = this.missingFeaturesList[featureIndex].feature_id;
+          const extraIdentifiers: TemplateResult[] = [];
+          const cssIdentifier = getTopCssIdentifierTemplate(featureId);
+          if (cssIdentifier) {
+            extraIdentifiers.push(cssIdentifier);
           }
-          if (feature_id && TOP_HTML_INTEROP_ISSUES.includes(feature_id)) {
-            extraIdentifiers.push(
-              html`<div
-                class="survey-result survey-result-html"
-                title="This feature was listed as a top interoperability pain point in the recent State of HTML survey."
-              >
-                <span class="survey-result-span"
-                  ><a href="https://2024.stateofhtml.com/" target="_blank"
-                    >TOP HTML</a
-                  ></span
-                >
-              </div>`,
-            );
+          const htmlIdentifier = getTopHtmlIdentifierTemplate(featureId);
+          if (htmlIdentifier) {
+            extraIdentifiers.push(htmlIdentifier);
           }
           cells.push(
             html` <td>
               <div class="missing-feature-id">
-                <a href="/features/${feature_id}">${feature_id}</a>
+                <a href="/features/${featureId}">${featureId}</a>
                 ${extraIdentifiers}
               </div>
             </td>`,
