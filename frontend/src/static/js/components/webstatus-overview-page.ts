@@ -81,21 +81,13 @@ export class OverviewPage extends LitElement {
       task: async ([apiClient, routerLocation, appBookmarkInfo]): Promise<
         components['schemas']['FeaturePage']
       > => {
-        if (this.location.search !== this.currentLocation?.search) {
-          // Reset taskTracker here due to a Task data cache issue.
-          this.taskTracker = {
-            status: TaskStatus.INITIAL,
-            error: undefined,
-            data: undefined,
-          };
-          this.currentLocation = this.location;
-          return this._fetchFeatures(
-            apiClient,
-            routerLocation,
-            appBookmarkInfo,
-          );
-        }
-        return this.taskTracker.data ?? {metadata: {total: 0}, data: []};
+        this.taskTracker = {
+          status: TaskStatus.INITIAL,
+          error: undefined,
+          data: undefined,
+        };
+        this.currentLocation = this.location;
+        return this._fetchFeatures(apiClient, routerLocation, appBookmarkInfo);
       },
       onComplete: page => {
         this.taskTracker = {
@@ -145,10 +137,7 @@ export class OverviewPage extends LitElement {
         return;
       }
       const incomingCurrentSavedSearch =
-        savedSearchHelpers.getCurrentSavedSearch(
-          this.appBookmarkInfo,
-          this.location,
-        );
+        savedSearchHelpers.getCurrentSavedSearch(this.appBookmarkInfo);
       const userSavedSearch =
         incomingCurrentSavedSearch?.scope === SavedSearchScope.UserSavedSearch
           ? incomingCurrentSavedSearch.value
@@ -159,10 +148,7 @@ export class OverviewPage extends LitElement {
             this._lastUserSavedSearch,
             userSavedSearch,
           )) &&
-        !savedSearchHelpers.isBusyLoadingSavedSearchInfo(
-          this.appBookmarkInfo,
-          this.location,
-        )
+        !savedSearchHelpers.isBusyLoadingSavedSearchInfo(this.appBookmarkInfo)
       ) {
         this._lastUserSavedSearch = userSavedSearch;
         void this.loadingTask.run();
@@ -179,10 +165,7 @@ export class OverviewPage extends LitElement {
       return Promise.reject(new Error('APIClient is not initialized.'));
     const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
     let searchQuery: string = '';
-    const query = savedSearchHelpers.getCurrentQuery(
-      appBookmarkInfo,
-      routerLocation,
-    );
+    const query = savedSearchHelpers.getCurrentQuery(appBookmarkInfo);
     if (query) {
       searchQuery = query;
     }

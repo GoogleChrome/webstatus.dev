@@ -15,6 +15,9 @@
  */
 
 import {Page, expect} from '@playwright/test';
+import {execSync} from 'child_process';
+import path from 'node:path';
+import {fileURLToPath} from 'node:url';
 
 const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
@@ -110,5 +113,30 @@ export async function expect404PageButtons(
     await expect(page.locator('#error-action-search-btn')).toBeVisible();
   } else {
     await expect(page.locator('#error-action-search-btn')).toHaveCount(0);
+  }
+}
+
+export async function resetUserData() {
+  const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
+  const __dirname = path.dirname(__filename);
+  const projectRootDir = path.resolve(__dirname, '../..');
+
+  try {
+    const cmd1 = `make dev_fake_data -o build -o is_local_migration_ready LOAD_FAKE_DATA_FLAGS='-scope=user -reset'`;
+
+    console.log(`Executing command: ${cmd1} in ${projectRootDir}`);
+    execSync(cmd1, {cwd: projectRootDir, stdio: 'inherit'});
+
+    console.log('Reset command finished successfully.');
+
+    const cmd2 = 'make port-forward-manual';
+    console.log(`Executing command: ${cmd2} in ${projectRootDir}`);
+    execSync(cmd2, {
+      cwd: projectRootDir,
+      stdio: 'inherit',
+    });
+  } catch (error) {
+    console.error('Error reset command (make dev_fake_data):', error);
+    throw new Error('Reset command finished, halting tests.');
   }
 }

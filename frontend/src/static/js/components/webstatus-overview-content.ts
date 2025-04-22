@@ -90,7 +90,6 @@ export class WebstatusOverviewContent extends LitElement {
   render(): TemplateResult {
     const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
       this.appBookmarkInfo,
-      this.location,
     );
     const pageTitle = savedSearch
       ? savedSearch.value.name

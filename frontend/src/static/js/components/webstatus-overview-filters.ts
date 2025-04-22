@@ -22,6 +22,7 @@ import {
   css,
   html,
   PropertyValueMap,
+  nothing,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
@@ -56,15 +57,18 @@ import {
   parseColumnsSpec,
   BrowserChannelColumnKeys,
 } from './webstatus-overview-cells.js';
+import './webstatus-saved-search-controls.js';
 
 import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {
   AppBookmarkInfo,
+  SavedSearchScope,
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
-import {VOCABULARY} from '../utils/constants.js';
+import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
@@ -82,7 +86,13 @@ export class WebstatusOverviewFilters extends LitElement {
   @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
 
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user: User | null | undefined;
+
   _activeQuery: string = '';
+
+  _activeUserSavedSearch?: UserSavedSearch | undefined;
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -157,8 +167,18 @@ export class WebstatusOverviewFilters extends LitElement {
     ) {
       this._activeQuery = savedSearchHelpers.getCurrentQuery(
         this.appBookmarkInfo,
-        this.location,
       );
+      const search = savedSearchHelpers.getCurrentSavedSearch(
+        this.appBookmarkInfo,
+      );
+      // Allow resetting of active search.
+      if (search === undefined) {
+        this._activeUserSavedSearch = undefined;
+      }
+      // If the search is a user search, store it. Ignore Global Saved Searches
+      if (search?.scope === SavedSearchScope.UserSavedSearch) {
+        this._activeUserSavedSearch = search.value;
+      }
     }
   }
 
@@ -191,10 +211,7 @@ export class WebstatusOverviewFilters extends LitElement {
       // TODO. allFeaturesFetcher should be moved to a separate task.
       this.allFeaturesFetcher = () => {
         return this.apiClient!.getAllFeatures(
-          savedSearchHelpers.getCurrentQuery(
-            this.appBookmarkInfo,
-            this.location,
-          ),
+          savedSearchHelpers.getCurrentQuery(this.appBookmarkInfo),
           getSortSpec(this.location) as FeatureSortOrderType,
           getWPTMetricView(this.location) as FeatureWPTMetricViewType,
         );
@@ -350,6 +367,7 @@ export class WebstatusOverviewFilters extends LitElement {
         class="halign-stretch"
         placeholder="Filter by ..."
         value="${input}"
+        data-testid="overview-query-input"
         .vocabulary=${VOCABULARY}
         @sl-change=${() => this.gotoFilterQueryString()}
       >
@@ -367,6 +385,35 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-icon slot="prefix" name="search"></sl-icon>
         </sl-button>
       </webstatus-typeahead>
+      ${this.user && this.apiClient
+        ? this.renderSavedSearchControls(this.user, this.apiClient)
+        : nothing}
+    `;
+  }
+
+  renderSavedSearchControls(user: User, apiClient: APIClient): TemplateResult {
+    if (this.typeaheadRef.value === undefined) {
+      return html``;
+    }
+    return html`
+      <sl-popup
+        placement="top-end"
+        autoSize="horizontal"
+        distance="5"
+        active
+        .anchor=${this.typeaheadRef.value}
+      >
+        <div slot="anchor" class="popup-anchor saved-search-controls"></div>
+        <div class="popup-content">
+          <webstatus-saved-search-controls
+            .user=${user}
+            .apiClient=${apiClient}
+            .savedSearch=${this._activeUserSavedSearch}
+            .location=${this.location}
+            .overviewPageQueryInput=${this.typeaheadRef.value}
+          ></webstatus-saved-search-controls>
+        </div>
+      </sl-popup>
     `;
   }
 

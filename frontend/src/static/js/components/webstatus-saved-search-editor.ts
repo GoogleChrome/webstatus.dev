@@ -53,6 +53,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
       display: flex;
       justify-content: end;
       gap: 1em;
+      margin-top: 1em;
     }
     sl-input {
       padding-bottom: 1em;
@@ -355,6 +356,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
         .vocabulary=${VOCABULARY}
         .label=${'Query'}
         value=${query}
+        data-testid="saved-search-editor-query-input"
       ></webstatus-typeahead>
       <!-- TODO: See comment in isQueryValid. Until then we show our own validation message -->
       <div class="editor-alert">

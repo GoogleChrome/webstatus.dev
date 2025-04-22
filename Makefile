@@ -404,7 +404,13 @@ dev_fake_data: build is_local_migration_ready
 	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
 	fuser -k 9099/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
-	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 go run ./util/cmd/load_fake_data/main.go -spanner_project=local -spanner_instance=local -spanner_database=local -datastore_project=local
+	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
+		go run ./util/cmd/load_fake_data/main.go \
+			-spanner_project=local \
+			-spanner_instance=local \
+			-spanner_database=local \
+			-datastore_project=local \
+			$(LOAD_FAKE_DATA_FLAGS)
 	fuser -k 9099/tcp || true
 	fuser -k 9010/tcp || true
 	fuser -k 8086/tcp || true
