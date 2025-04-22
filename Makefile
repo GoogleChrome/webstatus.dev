@@ -216,7 +216,7 @@ dockerfile-lint:
 ################################
 # Test
 ################################
-test: node-test go-test
+test: go-test node-test
 
 # Clean up any dangling test containers
 clean-up-go-testcontainers:

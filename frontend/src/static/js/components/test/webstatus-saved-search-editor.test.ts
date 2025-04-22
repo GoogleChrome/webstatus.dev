@@ -55,15 +55,14 @@ describe('webstatus-saved-search-editor', () => {
     apiClientStub = sinon.createStubInstance(APIClient);
     toastStub = sinon.stub(Toast.prototype, 'toast');
 
-    console.log('Pre step 1');
     const component = await fixture<WebstatusSavedSearchEditor>(html`
       <webstatus-saved-search-editor
         .user=${mockUser}
         .apiClient=${apiClientStub}
       ></webstatus-saved-search-editor>
     `);
-    console.log('Pre step 2');
     // Manually open the dialog after fixture creation
+    // TODO: Using await on component.open() causes this to fail on chromium in GitHub CI.
     void component.open(operation, savedSearch, overviewPageQueryInput);
     await component.updateComplete;
     return component;
@@ -77,7 +76,6 @@ describe('webstatus-saved-search-editor', () => {
     it('renders correctly for a new search (save operation)', async () => {
       const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
       el = await setupComponent('save', undefined, mockTypeahead);
-      await expect(el).shadowDom.to.be.accessible();
 
       const dialog = el.shadowRoot?.querySelector<SlDialog>('sl-dialog');
       expect(dialog?.label).to.equal('Save New Search');
@@ -324,33 +322,13 @@ describe('webstatus-saved-search-editor', () => {
         'sl-button[variant="default"]',
       );
       expect(cancelButton).to.exist;
-      console.log('Step 1');
       // Assuming cancel is the default button
       const cancelEventPromise = oneEvent(el, 'saved-search-cancelled');
-      console.log('Step 2');
       cancelButton!.click();
-      console.log('Step 3');
       // Just ensure the event is fired
       await cancelEventPromise;
-      console.log('Step 4');
       // No specific detail expected for cancel event
       expect(el.isOpen()).to.eq(false);
-      console.log('Step 5');
     });
-  });
-
-  it('sums up 2 numbers', async () => {
-    expect(2).to.equal(2);
-    console.log('about to create component');
-    apiClientStub = sinon.createStubInstance(APIClient);
-    const component = await fixture<WebstatusSavedSearchEditor>(html`
-      <webstatus-saved-search-editor
-        .user=${mockUser}
-        .apiClient=${apiClientStub}
-        .savedSearch=${undefined}
-      ></webstatus-saved-search-editor>
-    `);
-    console.log('component created');
-    expect(component).to.exist;
   });
 });

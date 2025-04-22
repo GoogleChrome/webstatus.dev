@@ -64,11 +64,9 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   },
 
   // How long a test file can take to finish.
-  testsFinishTimeout: 1000 * 90, // (90 seconds)
+  testsFinishTimeout: 1000 * 60 * 1, // (1 min)
   // mocha config https://mochajs.org/api/mocha
   testFramework: {config: {timeout: 30000}},
-
-  concurrentBrowsers: 1,
 
   browsers: [
     playwrightLauncher({
