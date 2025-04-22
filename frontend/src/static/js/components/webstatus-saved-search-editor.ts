@@ -74,9 +74,9 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @property({type: Object})
   user!: User;
 
-  // This is the typeahead from the overview page so that we can carry over the user's existing query.
+  // This is the value from the typeahead on the overview page so that we can carry over the user's existing query.
   @state()
-  overviewPageQueryInput?: WebstatusTypeahead;
+  existingOverviewPageQuery?: string;
 
   @query('sl-alert#editor-alert')
   editorAlert?: SlAlert;
@@ -126,17 +126,17 @@ export class WebstatusSavedSearchEditor extends LitElement {
   async open(
     operation: OperationType,
     savedSearch?: UserSavedSearch,
-    overviewPageQueryInput?: WebstatusTypeahead,
+    overviewPageQueryInput?: string,
   ) {
     this.savedSearch = savedSearch;
     this.operation = operation;
-    this.overviewPageQueryInput = overviewPageQueryInput;
+    this.existingOverviewPageQuery = overviewPageQueryInput;
     await this._dialog?.show();
   }
 
   async close() {
     this._currentTask = undefined;
-    this.overviewPageQueryInput = undefined;
+    this.existingOverviewPageQuery = undefined;
     this.savedSearch = undefined;
     await this._dialog?.hide();
   }
@@ -325,8 +325,8 @@ export class WebstatusSavedSearchEditor extends LitElement {
 
   renderForm(inProgress: boolean): TemplateResult {
     let query: string;
-    if (this.overviewPageQueryInput && this.overviewPageQueryInput.value) {
-      query = this.overviewPageQueryInput.value;
+    if (this.existingOverviewPageQuery !== undefined) {
+      query = this.existingOverviewPageQuery;
     } else if (this.savedSearch) {
       query = this.savedSearch.query;
     } else {

@@ -22,7 +22,7 @@ import {APIClient} from '../../api/client.js';
 import {UserSavedSearch} from '../../utils/constants.js';
 import {SlAlert, SlDialog, SlInput, SlTextarea} from '@shoelace-style/shoelace';
 import {Toast} from '../../utils/toast.js';
-import {WebstatusTypeahead} from '../webstatus-typeahead.js';
+import {type WebstatusTypeahead} from '../webstatus-typeahead.js';
 import {taskUpdateComplete} from './test-helpers.js';
 import {User} from '../../contexts/firebase-user-context.js';
 import {InternalServerError} from '../../api/errors.js';
@@ -50,7 +50,7 @@ describe('webstatus-saved-search-editor', () => {
   async function setupComponent(
     operation: 'save' | 'edit' | 'delete',
     savedSearch?: UserSavedSearch,
-    overviewPageQueryInput?: WebstatusTypeahead,
+    existingOverviewPageQuery?: string,
   ): Promise<WebstatusSavedSearchEditor> {
     apiClientStub = sinon.createStubInstance(APIClient);
     toastStub = sinon.stub(Toast.prototype, 'toast');
@@ -63,7 +63,7 @@ describe('webstatus-saved-search-editor', () => {
     `);
     // Manually open the dialog after fixture creation
     // TODO: Using await on component.open() causes this to fail on chromium in GitHub CI.
-    void component.open(operation, savedSearch, overviewPageQueryInput);
+    void component.open(operation, savedSearch, existingOverviewPageQuery);
     await component.updateComplete;
     return component;
   }
@@ -74,8 +74,7 @@ describe('webstatus-saved-search-editor', () => {
 
   describe('Rendering', () => {
     it('renders correctly for a new search (save operation)', async () => {
-      const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
-      el = await setupComponent('save', undefined, mockTypeahead);
+      el = await setupComponent('save', undefined, newSearchQuery);
 
       const dialog = el.shadowRoot?.querySelector<SlDialog>('sl-dialog');
       expect(dialog?.label).to.equal('Save New Search');
@@ -119,8 +118,7 @@ describe('webstatus-saved-search-editor', () => {
 
   describe('Form Submission (Save)', () => {
     it('calls createSavedSearch for a new search and dispatches "save" event', async () => {
-      const mockTypeahead = {value: newSearchQuery} as WebstatusTypeahead;
-      el = await setupComponent('save', undefined, mockTypeahead);
+      el = await setupComponent('save', undefined, newSearchQuery);
       const savedSearchData = {
         ...existingSearch,
         id: 'new123',
@@ -210,9 +208,7 @@ describe('webstatus-saved-search-editor', () => {
     });
 
     it('shows an error toast if saving fails', async () => {
-      el = await setupComponent('save', undefined, {
-        value: newSearchQuery,
-      } as WebstatusTypeahead);
+      el = await setupComponent('save', undefined, newSearchQuery);
       const error = new InternalServerError('Save failed');
       apiClientStub.createSavedSearch.rejects(error);
 
@@ -239,9 +235,7 @@ describe('webstatus-saved-search-editor', () => {
     });
 
     it('shows alert and prevents submission if name is empty', async () => {
-      el = await setupComponent('save', undefined, {
-        value: newSearchQuery,
-      } as WebstatusTypeahead);
+      el = await setupComponent('save', undefined, newSearchQuery);
       const form =
         el.shadowRoot?.querySelector<HTMLFormElement>('#editor-form');
       const alert = el.shadowRoot?.querySelector<SlAlert>(
