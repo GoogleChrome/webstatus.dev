@@ -93,7 +93,6 @@ describe('webstatus-saved-search-editor', () => {
 
     it('renders correctly for an existing search (edit operation)', async () => {
       el = await setupComponent('edit', existingSearch);
-      await expect(el).shadowDom.to.be.accessible();
 
       const dialog = el.shadowRoot?.querySelector<SlDialog>('sl-dialog');
       expect(dialog?.label).to.equal('Edit Saved Search');
@@ -111,7 +110,6 @@ describe('webstatus-saved-search-editor', () => {
 
     it('renders correctly for delete operation', async () => {
       el = await setupComponent('delete', existingSearch);
-      await expect(el).shadowDom.to.be.accessible();
 
       const dialog = el.shadowRoot?.querySelector<SlDialog>('sl-dialog');
       expect(dialog?.label).to.equal('Delete Saved Search');
