@@ -48,9 +48,9 @@ describe('webstatus-saved-search-editor', () => {
   } as unknown as User;
 
   async function setupComponent(
-    _operation: 'save' | 'edit' | 'delete',
-    _savedSearch?: UserSavedSearch,
-    _overviewPageQueryInput?: WebstatusTypeahead,
+    operation: 'save' | 'edit' | 'delete',
+    savedSearch?: UserSavedSearch,
+    overviewPageQueryInput?: WebstatusTypeahead,
   ): Promise<WebstatusSavedSearchEditor> {
     apiClientStub = sinon.createStubInstance(APIClient);
     toastStub = sinon.stub(Toast.prototype, 'toast');
@@ -64,7 +64,7 @@ describe('webstatus-saved-search-editor', () => {
     `);
     console.log('Pre step 2');
     // Manually open the dialog after fixture creation
-    // await component.open(operation, savedSearch, overviewPageQueryInput);
+    void component.open(operation, savedSearch, overviewPageQueryInput);
     await component.updateComplete;
     return component;
   }
@@ -319,8 +319,6 @@ describe('webstatus-saved-search-editor', () => {
   describe('Cancel Button', () => {
     it('dispatches "saved-search-cancelled" event when cancel button is clicked', async () => {
       el = await setupComponent('edit', existingSearch);
-      await el.open('edit', existingSearch);
-      await el.updateComplete;
 
       const cancelButton = el.shadowRoot?.querySelector<HTMLButtonElement>(
         'sl-button[variant="default"]',
