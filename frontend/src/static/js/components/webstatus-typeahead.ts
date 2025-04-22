@@ -31,6 +31,7 @@ import {
   SlMenu,
   SlMenuItem,
 } from '@shoelace-style/shoelace';
+import {ifDefined} from 'lit/directives/if-defined.js';
 
 /* This file consists of 3 classes that together implement a "typeahead"
    text field with autocomplete:
@@ -58,11 +59,14 @@ export class WebstatusTypeahead extends LitElement {
   slDropdownRef = createRef<WebstatusTypeaheadDropdown>();
   slInputRef = createRef<SlInput>();
 
-  @property()
+  @property({type: String})
   value: string;
 
-  @property()
+  @property({type: String})
   placeholder: string;
+
+  @property({type: String})
+  label?: string;
 
   @state()
   candidates: Array<VocabularyItem>;
@@ -257,6 +261,7 @@ export class WebstatusTypeahead extends LitElement {
       <sl-input
         id="inputfield"
         slot="trigger"
+        label=${ifDefined(this.label)}
         placeholder=${this.placeholder}
         value=${live(this.value)}
         ${ref(this.slInputRef)}
