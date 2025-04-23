@@ -43,12 +43,9 @@ describe('app-bookmark-info-context', () => {
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
+          currentLocation: {search: '?search_id=123'},
         };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(info, {
-            search: '?search_id=123',
-          }),
-        ).to.deep.equal({
+        expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.deep.equal({
           scope: SavedSearchScope.UserSavedSearch,
           value: {
             query: 'test',
@@ -121,11 +118,9 @@ describe('app-bookmark-info-context', () => {
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
+          currentLocation: {search: '?search_id=123'},
         };
-        const location = {search: '?search_id=123'};
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(info, location),
-        ).to.deep.equal({
+        expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.deep.equal({
           scope: SavedSearchScope.UserSavedSearch,
           value: {query: 'test', name: 'Test Bookmark', id: '123'},
         });
@@ -138,12 +133,9 @@ describe('app-bookmark-info-context', () => {
             data: [{query: 'test', name: 'Test Bookmark', id: '123'}],
             error: undefined,
           },
+          currentLocation: {search: '?search_id=123'},
         };
-        expect(
-          savedSearchHelpers.getCurrentSavedSearch(info, {
-            search: '?search_id=123',
-          }),
-        ).to.deep.equal({
+        expect(savedSearchHelpers.getCurrentSavedSearch(info)).to.deep.equal({
           scope: SavedSearchScope.UserSavedSearch,
           value: {query: 'test', name: 'Test Bookmark', id: '123'},
         });
@@ -224,10 +216,10 @@ describe('app-bookmark-info-context', () => {
     });
 
     describe('getCurrentQuery', () => {
-      it('should return the query from the location if info is undefined', () => {
+      it('should return the query from the location if all the other info is undefined', () => {
         const location = {search: '?q=test'};
         expect(
-          savedSearchHelpers.getCurrentQuery(undefined, location),
+          savedSearchHelpers.getCurrentQuery({currentLocation: location}),
         ).to.equal('test');
       });
 
@@ -246,10 +238,11 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          currentLocation: location,
         };
-        expect(
-          savedSearchHelpers.getCurrentQuery(pendingInfo, location),
-        ).to.equal(expectedQuery);
+        expect(savedSearchHelpers.getCurrentQuery(pendingInfo)).to.equal(
+          expectedQuery,
+        );
         // Initial
         const initialInfo: AppBookmarkInfo = {
           userSavedSearchTask: {
@@ -262,18 +255,11 @@ describe('app-bookmark-info-context', () => {
             data: undefined,
             error: undefined,
           },
+          currentLocation: location,
         };
-        expect(
-          savedSearchHelpers.getCurrentQuery(initialInfo, location),
-        ).to.equal(expectedQuery);
-        // Undefined
-        const undefinedInfo: AppBookmarkInfo = {
-          userSavedSearchTask: undefined,
-          userSavedSearchesTask: undefined,
-        };
-        expect(
-          savedSearchHelpers.getCurrentQuery(undefinedInfo, location),
-        ).to.equal(expectedQuery);
+        expect(savedSearchHelpers.getCurrentQuery(initialInfo)).to.equal(
+          expectedQuery,
+        );
       });
 
       it('should return the query from the userSavedSearchTask if available and complete', () => {
@@ -283,6 +269,7 @@ describe('app-bookmark-info-context', () => {
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
+          currentLocation: {search: '?search_id=123'},
         };
         const isBusyStub = sinon.stub(
           savedSearchHelpers,
@@ -301,9 +288,7 @@ describe('app-bookmark-info-context', () => {
             id: '123',
           },
         });
-        expect(
-          savedSearchHelpers.getCurrentQuery(info, {search: '?search_id=123'}),
-        ).to.equal('test');
+        expect(savedSearchHelpers.getCurrentQuery(info)).to.equal('test');
         getCurrentBookmarkStub.restore();
         isBusyStub.restore();
       });
@@ -339,11 +324,9 @@ describe('app-bookmark-info-context', () => {
             data: {query: 'test', name: 'Test Bookmark', id: '123'},
             error: undefined,
           },
+          currentLocation: {search: '?q=edited'},
         };
-        const location = {search: '?q=edited'};
-        expect(savedSearchHelpers.getCurrentQuery(info, location)).to.equal(
-          'edited',
-        );
+        expect(savedSearchHelpers.getCurrentQuery(info)).to.equal('edited');
       });
     });
 
@@ -377,14 +360,6 @@ describe('app-bookmark-info-context', () => {
         ).to.equal(true);
       });
 
-      it('should return true if currentLocation search is different from location search', () => {
-        const info: AppBookmarkInfo = {currentLocation: {search: '?q=old'}};
-        const location = {search: '?q=new'};
-        expect(
-          savedSearchHelpers.isBusyLoadingSavedSearchInfo(info, location),
-        ).to.equal(true);
-      });
-
       it('should return false if userSavedSearchTask is complete and locations match', () => {
         const info: AppBookmarkInfo = {
           userSavedSearchTask: {
@@ -399,10 +374,9 @@ describe('app-bookmark-info-context', () => {
           },
           currentLocation: {search: '?q=test'},
         };
-        const location = {search: '?q=test'};
-        expect(
-          savedSearchHelpers.isBusyLoadingSavedSearchInfo(info, location),
-        ).to.equal(false);
+        expect(savedSearchHelpers.isBusyLoadingSavedSearchInfo(info)).to.equal(
+          false,
+        );
       });
     });
   });

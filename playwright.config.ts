@@ -55,17 +55,31 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: {...devices['Desktop Chrome']},
+      use: {
+        ...devices['Desktop Chrome'],
+        contextOptions: {
+          // Needed for copying saved search URLs to clipboard.
+          permissions: ['clipboard-read', 'clipboard-write'],
+        },
+      },
     },
 
     {
       name: 'firefox',
+      // Firefox currently needs no custom permissions
       use: {...devices['Desktop Firefox']},
     },
 
     {
       name: 'webkit',
-      use: {...devices['Desktop Safari']},
+      use: {
+        ...devices['Desktop Safari'],
+        contextOptions: {
+          // Needed for copying saved search URLs to clipboard.
+          // Safari does not have a clipboard-write permission to grant
+          permissions: ['clipboard-read'],
+        },
+      },
     },
 
     /* Test against mobile viewports. */

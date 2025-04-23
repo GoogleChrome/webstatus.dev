@@ -42,16 +42,12 @@ export type CurrentSavedSearch =
   | undefined;
 export const savedSearchHelpers = {
   /**
-   * Returns the current saved search based on the provided AppBookmarkInfo and location.
+   * Returns the current saved search based on the provided AppBookmarkInfo.
    *
    * @param {AppBookmarkInfo?} info  - The AppBookmarkInfo object.
-   * @param {{search: string}?} location - The location object containing the search parameters.
    */
-  getCurrentSavedSearch(
-    info?: AppBookmarkInfo,
-    location?: {search: string},
-  ): CurrentSavedSearch {
-    const searchID = getSearchID(location ?? {search: ''});
+  getCurrentSavedSearch(info?: AppBookmarkInfo): CurrentSavedSearch {
+    const searchID = getSearchID(info?.currentLocation ?? {search: ''});
     if (
       // There's a chance that the context has not been updated so we should check the search ID in the location.
       searchID &&
@@ -91,7 +87,7 @@ export const savedSearchHelpers = {
   },
 
   /**
-   * Returns the current query based on the provided AppBookmarkInfo and location.
+   * Returns the current query based on the provided AppBookmarkInfo.
    *
    * This function determines the active query string by considering both global
    * and user saved searches, as well as the current location's search parameters.
@@ -104,21 +100,15 @@ export const savedSearchHelpers = {
    * - If the saved search information is still loading, the query from the location's `q` parameter is used.
    *
    * @param {AppBookmarkInfo?} info - The AppBookmarkInfo object.
-   * @param {{search: string}?} location - The location object containing the search parameters.
    * @returns {string} The current query string.
    */
-  getCurrentQuery: (
-    info?: AppBookmarkInfo,
-    location?: {search: string},
-  ): string => {
-    const q = getSearchQuery(location ?? {search: ''});
-    if (savedSearchHelpers.isBusyLoadingSavedSearchInfo(info, location)) {
+  getCurrentQuery: (info?: AppBookmarkInfo): string => {
+    const currentLocation = info?.currentLocation ?? {search: ''};
+    const q = getSearchQuery(currentLocation);
+    if (savedSearchHelpers.isBusyLoadingSavedSearchInfo(info)) {
       return q;
     }
-    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
-      info,
-      location,
-    );
+    const savedSearch = savedSearchHelpers.getCurrentSavedSearch(info);
     // User saved searches can be edited. And those have IDs
     if (savedSearch?.scope === SavedSearchScope.UserSavedSearch) {
       // If there's a saved search, prioritize its query unless q is different.
@@ -135,25 +125,19 @@ export const savedSearchHelpers = {
   },
 
   /**
-   * Checks if the bookmark information is currently being loaded or if the
-   * current location has changed.
+   * Checks if the bookmark information is currently being loaded.
    *
    * @param {AppBookmarkInfo?} info - The AppBookmarkInfo object.
-   * @param {{search: string}?} location - The location object containing the search parameters.
    * @returns {boolean} True if the bookmark info is loading or the location has changed, false otherwise.
    */
-  isBusyLoadingSavedSearchInfo: (
-    info?: AppBookmarkInfo,
-    location?: {search: string},
-  ): boolean => {
+  isBusyLoadingSavedSearchInfo: (info?: AppBookmarkInfo): boolean => {
     return (
       info?.userSavedSearchTask === undefined ||
       info?.userSavedSearchTask?.status === TaskStatus.INITIAL ||
       info?.userSavedSearchTask?.status === TaskStatus.PENDING ||
       info?.userSavedSearchesTask === undefined ||
       info?.userSavedSearchesTask?.status === TaskStatus.INITIAL ||
-      info?.userSavedSearchesTask?.status === TaskStatus.PENDING ||
-      info?.currentLocation?.search !== location?.search
+      info?.userSavedSearchesTask?.status === TaskStatus.PENDING
     );
   },
 };

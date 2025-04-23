@@ -682,7 +682,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: mockNewSavedSearch.id},
+        {search_id: mockNewSavedSearch.id, q: undefined},
       );
     });
 
@@ -709,7 +709,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: mockNewSavedSearch.id},
+        {search_id: mockNewSavedSearch.id, q: undefined},
       );
     });
 
@@ -870,7 +870,7 @@ describe('webstatus-bookmarks-service', () => {
       expect(updatePageUrlStub).to.have.been.calledOnceWithExactly(
         mockLocation.pathname,
         mockLocation,
-        {search_id: mockNewSavedSearch.id},
+        {search_id: mockNewSavedSearch.id, q: undefined},
       );
     });
     it('saved-search-unbookmarked event should not clear current search if unbookmarking a different search', () => {

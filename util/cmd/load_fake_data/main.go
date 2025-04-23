@@ -16,6 +16,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -62,6 +63,63 @@ var (
 		string(backend.Safari),
 	}
 )
+
+// List of test user emails whose data should be reset.
+// nolint: gochecknoglobals
+var testUserEmails = []string{
+	"test.user.1@example.com",
+	"test.user.2@example.com",
+	"test.user.3@example.com",
+	"fresh.user@example.com",
+	"chromium.user@example.com",
+	"firefox.user@example.com",
+	"webkit.user@example.com",
+}
+
+func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authClient *auth.Client) error {
+	slog.InfoContext(ctx, "Resetting test user saved searches and bookmarks...")
+	userIDs := make([]string, len(testUserEmails))
+	for idx, email := range testUserEmails {
+		userID, err := findUserIDByEmail(ctx, email, authClient)
+		// It's okay if a user doesn't exist yet, just log it
+		if err != nil {
+			slog.WarnContext(ctx, "Could not find user for reset, skipping", "email", email, "error", err)
+
+			continue
+		}
+		userIDs[idx] = userID
+	}
+
+	if len(userIDs) == 0 {
+		slog.InfoContext(ctx, "No test user IDs found to reset data for.")
+
+		return nil
+	}
+
+	for _, userID := range userIDs {
+		page, err := spannerClient.ListUserSavedSearches(ctx, userID, 1000, nil)
+		if err != nil {
+			return fmt.Errorf("failed to list test user saved searches: %w", err)
+		}
+		for _, savedSearch := range page.Searches {
+			if savedSearch.Role != nil && *savedSearch.Role == string(gcpspanner.SavedSearchOwner) {
+				// Delete the owned saved searches (which will also clear out the saved search bookmarks on cascade)
+				err := spannerClient.DeleteUserSavedSearch(ctx, gcpspanner.DeleteUserSavedSearchRequest{
+					RequestingUserID: userID,
+					SavedSearchID:    savedSearch.ID,
+				})
+				if err != nil {
+					return fmt.Errorf("failed to delete test user saved search: %w", err)
+				}
+			}
+		}
+	}
+	slog.InfoContext(ctx, "Deleted saved searches for test users", "count", len(userIDs))
+
+	slog.InfoContext(ctx, "Test user data reset complete.")
+
+	return nil
+}
 
 func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
 	releasesGenerated := 0
@@ -481,7 +539,7 @@ func generateSavedSearchBookmarks(ctx context.Context, spannerClient *gcpspanner
 	return len(bookmarksToInsert), nil
 }
 
-func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client,
+func generateUserData(ctx context.Context, spannerClient *gcpspanner.Client,
 	authClient *auth.Client) error {
 	savedSearchesCount, err := generateSavedSearches(ctx, spannerClient, authClient)
 	if err != nil {
@@ -497,6 +555,10 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.Info("saved search bookmarks generated",
 		"amount of bookmarks created", bookmarkCount)
+
+	return nil
+}
+func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client) error {
 	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)
@@ -852,6 +914,8 @@ func main() {
 		spannerDatabase   = flag.String("spanner_database", "", "Spanner Database")
 		datastoreProject  = flag.String("datastore_project", "", "Datastore Project")
 		datastoreDatabase = flag.String("datastore_database", "", "Datastore Database")
+		scope             = flag.String("scope", "all", "Scope of data generation: all, user")
+		resetFlag         = flag.Bool("reset", false, "Reset test user data before loading")
 	)
 	flag.Parse()
 
@@ -885,9 +949,41 @@ func main() {
 
 	ctx := context.Background()
 
-	err = generateData(ctx, spannerClient, datastoreClient, firebaseAuthClient)
-	if err != nil {
-		slog.Error("unable to generate data", "error", err)
+	var finalErr error
+
+	switch *scope {
+	case "user":
+		if *resetFlag {
+			err := resetTestData(ctx, spannerClient, firebaseAuthClient)
+			if err != nil {
+				finalErr = fmt.Errorf("failed during test user data reset: %w", err)
+
+				break
+			}
+		}
+		err := generateUserData(ctx, spannerClient, firebaseAuthClient)
+		if err != nil {
+			finalErr = fmt.Errorf("failed during user data generation: %w", err)
+		}
+	case "all":
+		slog.InfoContext(ctx, "Generating all data (base + user)...")
+		errUser := generateUserData(ctx, spannerClient, firebaseAuthClient)
+		if errUser != nil {
+			finalErr = errUser
+
+			break
+		}
+		errBase := generateData(ctx, spannerClient, datastoreClient)
+		if errBase != nil {
+			finalErr = errors.Join(finalErr, errBase)
+		}
+
+	default:
+		finalErr = fmt.Errorf("invalid scope specified: %s", *scope)
+	}
+
+	if finalErr != nil {
+		slog.ErrorContext(ctx, "Data generation failed", "scope", *scope, "reset", *resetFlag, "error", finalErr)
 		os.Exit(1)
 	}
 	slog.Info("loading fake data successful")

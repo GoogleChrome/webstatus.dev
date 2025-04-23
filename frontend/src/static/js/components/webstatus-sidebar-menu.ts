@@ -160,10 +160,7 @@ export class WebstatusSidebarMenu extends LitElement {
     this.highlightNavigationItem(this.getNavTree());
     // Check if activeQuery needs to be updated
     const newActiveQuery =
-      savedSearchHelpers.getCurrentQuery(
-        this.appBookmarkInfo,
-        this.getLocation(),
-      ) || null;
+      savedSearchHelpers.getCurrentQuery(this.appBookmarkInfo) || null;
 
     this.activeQuery = newActiveQuery;
     this.requestUpdate();

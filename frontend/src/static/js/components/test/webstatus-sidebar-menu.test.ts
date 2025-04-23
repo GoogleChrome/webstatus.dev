@@ -177,13 +177,15 @@ describe('webstatus-sidebar-menu', () => {
 
   it('updates the active bookmark query when the URL changes', async () => {
     // Set mock location to match a test bookmark
-    (el.getLocation as sinon.SinonStub).returns({
+    const mockLocation = {
       search: `?q=${el.appBookmarkInfo?.globalSavedSearches?.[1].query}`,
       href: `http://localhost/?q=${el.appBookmarkInfo?.globalSavedSearches?.[1].query}`,
-    });
+    };
+    (el.getLocation as sinon.SinonStub).returns(mockLocation);
     parent.appBookmarkInfo = {
       globalSavedSearches: testGlobalSavedSearches,
       currentGlobalSavedSearch: testGlobalSavedSearches[1],
+      currentLocation: mockLocation,
     };
 
     el.updateActiveStatus();
@@ -234,10 +236,11 @@ describe('webstatus-sidebar-menu', () => {
 
     expect(el.activeQuery).to.be.null;
 
-    (el.getLocation as sinon.SinonStub).returns({
+    const mockLocation = {
       search: `?q=${el.appBookmarkInfo?.globalSavedSearches?.[0].query}`,
       href: `http://localhost/?q=${el.appBookmarkInfo?.globalSavedSearches?.[0].query}`,
-    });
+    };
+    (el.getLocation as sinon.SinonStub).returns(mockLocation);
 
     // Stub the click method to prevent default behavior
     const clickStub = sinon.stub(bookmarkAnchor, 'click');
@@ -247,6 +250,7 @@ describe('webstatus-sidebar-menu', () => {
     parent.appBookmarkInfo = {
       globalSavedSearches: testGlobalSavedSearches,
       currentGlobalSavedSearch: testGlobalSavedSearches[0],
+      currentLocation: mockLocation,
     };
     await parent.updateComplete;
     await el.updateComplete;
@@ -460,10 +464,11 @@ describe('webstatus-sidebar-menu', () => {
 
   it('marks the active search item as selected on first load', async () => {
     // Mock the location to match the first search BEFORE the fixture is created
-    const getCurrentLocationStub = sinon.stub().returns({
+    const mockLocation = {
       search: `?q=${testGlobalSavedSearches[0].query}`,
       href: `http://localhost/?q=${testGlobalSavedSearches[0].query}`,
-    });
+    };
+    const getCurrentLocationStub = sinon.stub().returns(mockLocation);
     const navigateToUrlStub = sinon.stub();
 
     // create the element after the stub is created
@@ -474,6 +479,7 @@ describe('webstatus-sidebar-menu', () => {
         .appBookmarkInfo=${{
           globalSavedSearches: testGlobalSavedSearches,
           currentGlobalSavedSearch: testGlobalSavedSearches[0],
+          currentLocation: mockLocation,
         }}
       ></webstatus-sidebar-menu>
     `);

@@ -39,7 +39,11 @@ import {
   getSearchQuery,
   updatePageUrl,
 } from '../utils/urls.js';
-import {AppLocation, getCurrentLocation} from '../utils/app-router.js';
+import {
+  AppLocation,
+  getCurrentLocation,
+  navigateToUrl,
+} from '../utils/app-router.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {User} from 'firebase/auth';
 import {firebaseUserContext} from '../contexts/firebase-user-context.js';
@@ -295,6 +299,7 @@ export class WebstatusBookmarksService extends ServiceElement {
     location: {search: string},
     overrides: QueryStringOverrides,
   ) => void = updatePageUrl;
+  navigateToUrl: (url: string, event?: MouseEvent) => void = navigateToUrl;
 
   constructor() {
     super();
@@ -405,8 +410,11 @@ export class WebstatusBookmarksService extends ServiceElement {
       this._currentLocation!,
       {
         search_id: savedSearch.id,
+        // Clear out q query parameter if present
+        q: undefined,
       },
     );
+    this._currentLocation = this.getLocation();
     this.refreshAppBookmarkInfo();
   };
 
@@ -460,6 +468,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       this._userSavedSearchByIDTaskTracker.data = undefined;
     }
 
+    this._currentLocation = this.getLocation();
     this.refreshAppBookmarkInfo();
   };
 

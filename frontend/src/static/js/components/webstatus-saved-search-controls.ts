@@ -280,6 +280,7 @@ export class WebstatusSavedSearchControls extends LitElement {
         <sl-tooltip content="Create a new saved search">
           <sl-icon-button
             name="floppy"
+            data-testid="saved-search-save-button"
             label="Save"
             @click=${() => this.openNewSavedSearchDialog()}
           ></sl-icon-button>
