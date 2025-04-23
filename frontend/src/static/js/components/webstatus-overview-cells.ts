@@ -22,6 +22,10 @@ import {
 } from '../utils/urls.js';
 import {FeatureSortOrderType} from '../api/client.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
+import {
+  getTopCssIdentifierTemplate,
+  getTopHtmlIdentifierTemplate,
+} from './utils.js';
 
 const MISSING_VALUE = html``;
 
@@ -157,7 +161,18 @@ export const BASELINE_CHIP_CONFIGS: Record<
 
 const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   const featureUrl = formatFeaturePageUrl(feature, routerLocation);
-  return html` <a href=${featureUrl}>${feature.name}</a> `;
+  const extraIdentifiers: TemplateResult[] = [];
+  const cssIdentifier = getTopCssIdentifierTemplate(feature.feature_id);
+  if (cssIdentifier) {
+    extraIdentifiers.push(cssIdentifier);
+  }
+  const htmlIdentifier = getTopHtmlIdentifierTemplate(feature.feature_id);
+  if (htmlIdentifier) {
+    extraIdentifiers.push(htmlIdentifier);
+  }
+  return html`<div class="feature-name-cell">
+    <a href=${featureUrl}>${feature.name}</a>${extraIdentifiers}
+  </div>`;
 };
 
 export const renderChromeUsage: CellRenderer = (
