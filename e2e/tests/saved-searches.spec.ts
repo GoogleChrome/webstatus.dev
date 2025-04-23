@@ -343,7 +343,16 @@ test.describe('Saved Searches on Overview Page', () => {
     await expect(bookmarkFilledIconLocator(page)).not.toBeVisible();
   });
 
-  test('Share button copies correct URL to clipboard', async ({page}) => {
+  test('Share button copies correct URL to clipboard', async ({
+    page,
+    browserName,
+  }) => {
+    // Skip if it is WebKit
+    // https://github.com/microsoft/playwright/issues/13037
+    if (browserName === 'webkit') {
+      test.skip();
+    }
+
     await loginAsUser(page, USER1.username);
     await gotoOverviewPageUrl(
       page,

@@ -76,7 +76,7 @@ export default defineConfig({
         ...devices['Desktop Safari'],
         contextOptions: {
           // Needed for copying saved search URLs to clipboard.
-          // Safari does not have a clipboard-write permission to gran
+          // Safari does not have a clipboard-write permission to grant
           permissions: ['clipboard-read'],
         },
       },
