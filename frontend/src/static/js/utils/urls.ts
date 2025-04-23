@@ -205,3 +205,8 @@ export function updatePageUrl(
   const url = `${pathname}${qs}`;
   window.history.replaceState({}, '', url);
 }
+
+/* Return the origin of the current page. */
+export function getOrigin(): string {
+  return window.location.origin;
+}
