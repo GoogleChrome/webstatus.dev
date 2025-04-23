@@ -31,6 +31,10 @@ import {
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
+import {
+  getTopCssIdentifierTemplate,
+  getTopHtmlIdentifierTemplate,
+} from './utils.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
@@ -63,8 +67,15 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           overflow-x: auto;
           white-space: nowrap;
         }
-        .missing-feature-id-link {
-          padding-right: 1em;
+        .missing-feature-id {
+          padding: 0.5em 1em 0 0;
+        }
+        .survey-result,
+        .survey-result:hover,
+        .survey-result a {
+          font-size: 10px;
+          text-decoration: none;
+          cursor: help;
         }
       `,
     ];
@@ -240,12 +251,22 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       for (let j = 0; j < numCols; j++) {
         const featureIndex = j * 10 + i;
         if (featureIndex < this.missingFeaturesList.length) {
-          const feature_id = this.missingFeaturesList[featureIndex].feature_id;
+          const featureId = this.missingFeaturesList[featureIndex].feature_id;
+          const extraIdentifiers: TemplateResult[] = [];
+          const cssIdentifier = getTopCssIdentifierTemplate(featureId);
+          if (cssIdentifier) {
+            extraIdentifiers.push(cssIdentifier);
+          }
+          const htmlIdentifier = getTopHtmlIdentifierTemplate(featureId);
+          if (htmlIdentifier) {
+            extraIdentifiers.push(htmlIdentifier);
+          }
           cells.push(
             html` <td>
-              <a href="/features/${feature_id}" class="missing-feature-id-link"
-                >${feature_id}</a
-              >
+              <div class="missing-feature-id">
+                <a href="/features/${featureId}">${featureId}</a>
+                ${extraIdentifiers}
+              </div>
             </td>`,
           );
         } else {

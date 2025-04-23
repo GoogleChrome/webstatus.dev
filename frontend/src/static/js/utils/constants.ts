@@ -59,6 +59,34 @@ export interface SavedSearch {
   description?: string;
 }
 
+export const TOP_CSS_INTEROP_ISSUES: string[] = [
+  'anchor-positioning',
+  'container-queries',
+  'has',
+  'nesting',
+  'view-transitions',
+  'subgrid',
+  'grid',
+  'scrollbar-gutter',
+  'scrollbar-width',
+  'scrollbar-color',
+  'scroll-driven-animations',
+  'scope',
+];
+
+export const TOP_HTML_INTEROP_ISSUES: string[] = [
+  'popover',
+  'anchor-positioning',
+  'cross-document-view-transitions',
+  'dialog',
+  'datalist',
+  'customized-built-in-elements',
+  'file-system-access',
+  'scroll-driven-animations',
+  'notifications',
+  'web-bluetooth',
+];
+
 export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   {
     name: 'Baseline 2025',
@@ -92,8 +120,7 @@ export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   },
   {
     name: 'Top CSS Interop issues',
-    query:
-      'id:anchor-positioning OR id:container-queries OR id:has OR id:nesting OR id:view-transitions OR id:subgrid OR id:grid OR name:scrollbar OR id:scroll-driven-animations OR id:scope',
+    query: `id:${TOP_CSS_INTEROP_ISSUES.join(' OR id:')}`,
     description:
       "This list reflects the top 10 interoperability pain points identified by developers in the State of CSS 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
     is_ordered: true,
@@ -101,8 +128,7 @@ export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   },
   {
     name: 'Top HTML Interop issues',
-    query:
-      'id:popover OR id:anchor-positioning OR id:cross-document-view-transitions OR id:dialog OR id:datalist OR id:customized-built-in-elements OR id:file-system-access OR id:scroll-driven-animations OR id:notifications OR id:web-bluetooth',
+    query: `id:${TOP_HTML_INTEROP_ISSUES.join(' OR id:')}`,
     description:
       "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements.",
     is_ordered: true,
