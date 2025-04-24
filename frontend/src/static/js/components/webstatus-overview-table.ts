@@ -130,6 +130,19 @@ export class WebstatusOverviewTable extends LitElement {
         tr:nth-of-type(even) sl-skeleton.col-baseline_status {
           width: 7em;
         }
+
+        .feature-name-cell {
+          display: inline-flex;
+          gap: 4px;
+        }
+
+        .survey-result,
+        .survey-result:hover,
+        .survey-result a {
+          font-size: 10px;
+          text-decoration: none;
+          cursor: help;
+        }
       `,
     ];
   }
