@@ -95,8 +95,8 @@ func (p ChromiumCodesearchEnumParser) Parse(
 			if bucketIDToSkip != nil && *bucketIDToSkip == value.Value {
 				continue
 			}
-			// Skip labels with DRAFT_ or OBSOLETE_ prefix
-			if strings.HasPrefix(value.Label, "DRAFT_") || strings.HasPrefix(value.Label, "OBSOLETE_") {
+			// Skip labels with DRAFT_ prefix
+			if strings.HasPrefix(value.Label, "DRAFT_") {
 				continue
 			}
 
