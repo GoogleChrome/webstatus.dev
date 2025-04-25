@@ -132,7 +132,7 @@ describe('WebstatusFeatureUsageChartPanel', () => {
 
     // Check colors based on browsers displayed.
     // Only Chrome.
-    expect(options.colors).eql(['#FF0000']);
+    expect(options.colors).eql(['#34A853']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,

@@ -18,7 +18,6 @@ import {customElement, property} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
-  ALL_BROWSERS,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
   BrowsersParameter,
@@ -34,7 +33,12 @@ import {
 
 @customElement('webstatus-feature-wpt-progress-chart-panel')
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
-  readonly featureSupportBrowsers: BrowsersParameter[] = ALL_BROWSERS;
+  readonly featureSupportBrowsers: BrowsersParameter[] = [
+    'chrome',
+    'edge',
+    'firefox',
+    'safari',
+  ];
   readonly featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
   @property({type: String})
   testView!: FeatureWPTMetricViewType;

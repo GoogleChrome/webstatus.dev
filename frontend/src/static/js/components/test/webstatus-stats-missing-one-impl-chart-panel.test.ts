@@ -175,7 +175,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
   it('generates chart options correctly', () => {
     const options = el.generateDisplayDataChartOptions();
     expect(options.vAxis?.title).to.equal('Number of features missing');
-    expect(options.colors).eql(['#FF0000', '#0F9D58', '#F48400', '#4285F4']);
+    expect(options.colors).eql(['#34A853', '#F48400', '#4285F4', '#888888']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
