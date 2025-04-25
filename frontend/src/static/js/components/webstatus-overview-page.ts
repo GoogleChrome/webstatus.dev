@@ -130,7 +130,6 @@ export class OverviewPage extends LitElement {
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('apiClient') ||
-      changedProperties.has('location') ||
       changedProperties.has('appBookmarkInfo')
     ) {
       if (this.apiClient === undefined) {

@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-import {test, expect, Request} from '@playwright/test';
+import {test, expect, Request, Response} from '@playwright/test';
 import {
   gotoOverviewPageUrl,
   getOverviewPageFeatureCount,
   loginAsUser,
+  waitForOverviewPageLoad,
 } from './utils';
 
 test('matches the screenshot', async ({page}) => {
@@ -390,5 +391,71 @@ test.describe('saved searches', () => {
     const toast = page.locator('.toast');
     await toast.waitFor({state: 'visible'});
     // TODO: we need to figure out a way to assert toast message.
+  });
+
+  test('Clicking on a global saved search bookmark with custom order renders correctly', async ({
+    page,
+  }) => {
+    await gotoOverviewPageUrl(page, 'http://localhost:5555');
+    let featuresRequests: Request[] = [];
+    let featuresResponses: Response[] = [];
+
+    page.on('request', req => {
+      if (req.url().startsWith('http://localhost:8080/v1/features')) {
+        featuresRequests.push(req);
+      }
+    });
+
+    page.on('response', res => {
+      if (res.url().startsWith('http://localhost:8080/v1/features')) {
+        featuresResponses.push(res);
+      }
+    });
+
+    await page.getByRole('link', {name: 'Top HTML Interop issues'}).click();
+    await waitForOverviewPageLoad(page);
+    expect(featuresRequests.length).toBe(1);
+    expect(featuresResponses.length).toBe(1);
+    // Check that the ids in the request are in the same order as the rows in the table.
+    // Get the 'q' query parameter from the url in the first request.
+    const query = new URL(featuresRequests[0].url()).searchParams.get('q');
+    // Split by 'OR' and remove the `id:` prefix from each element after splitting
+    const ids = query?.split('OR').map(id => id.replace('id:', '').trim());
+
+    // Get all the rows from the table minus the header and get the links from each of the first cells and extract the
+    // ID from the anchor tag http://localhost:5555/features/<FEATURE_ID>(Ignore query)
+    const anchorElements = await page
+      .locator('.feature-name-cell a.feature-page-link')
+      .all();
+    // Extract the feature IDs from the href from each anchor element.
+    const rowIDs = await Promise.all(
+      anchorElements.map(async anchor => {
+        const href = await anchor.getAttribute('href');
+        if (!href) {
+          throw new Error('No href found');
+        }
+        const url = new URL('http://localhost:8080' + href);
+        return url.pathname.split('/').pop();
+      }),
+    );
+    expect(rowIDs.length).toBe(10);
+    // rowIDs should match ids in the same order.
+    expect(rowIDs).toStrictEqual(ids);
+    await expect(
+      page.getByRole('heading', {name: 'Top HTML Interop issues'}),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {name: 'This list reflects the top 10'}),
+    ).toBeVisible();
+
+    // Reload the page to ensure the bookmark details are still there.
+    page.reload();
+    await waitForOverviewPageLoad(page);
+    await expect(
+      page.getByRole('heading', {name: 'Top HTML Interop issues'}),
+    ).toBeVisible();
+    await expect(
+      page.getByRole('heading', {name: 'This list reflects the top 10'}),
+    ).toBeVisible();
   });
 });

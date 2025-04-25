@@ -304,9 +304,6 @@ export class WebstatusBookmarksService extends ServiceElement {
   constructor() {
     super();
     this._globalSavedSearches = DEFAULT_GLOBAL_SAVED_SEARCHES;
-    this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
-      this._globalSavedSearches,
-    );
   }
 
   private handlePopState() {
@@ -320,6 +317,11 @@ export class WebstatusBookmarksService extends ServiceElement {
   connectedCallback(): void {
     super.connectedCallback();
     this._currentLocation = this.getLocation();
+    // findCurrentSavedSearchByQuery depends on an updated location.
+    // The location is not in the constructor. So we use the connectedCallback
+    this._currentGlobalSavedSearch = this.findCurrentSavedSearchByQuery(
+      this._globalSavedSearches,
+    );
     window.addEventListener('popstate', this.handlePopState.bind(this));
     this.addEventListener('saved-search-saved', this.handleSavedSearchSaved);
     this.addEventListener('saved-search-edited', this.handleSavedSearchEdited);
