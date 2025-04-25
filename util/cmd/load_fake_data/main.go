@@ -76,6 +76,58 @@ var testUserEmails = []string{
 	"webkit.user@example.com",
 }
 
+func getRealFeatureDetails() []struct {
+	name string
+	id   string
+} {
+	// Top HTML Interop Issues
+	return []struct {
+		name string
+		id   string
+	}{
+		{
+			name: "Popover",
+			id:   "popover",
+		},
+		{
+			name: "Anchor Positioning",
+			id:   "anchor-positioning",
+		},
+		{
+			name: "Cross-Document View Transitions",
+			id:   "cross-document-view-transitions",
+		},
+		{
+			name: "Dialog",
+			id:   "dialog",
+		},
+		{
+			name: "Data List",
+			id:   "datalist",
+		},
+		{
+			name: "Customized Built-in Elements",
+			id:   "customized-built-in-elements",
+		},
+		{
+			name: "File System Access",
+			id:   "file-system-access",
+		},
+		{
+			name: "Scroll-Driven Animations",
+			id:   "scroll-driven-animations",
+		},
+		{
+			name: "Notifications",
+			id:   "notifications",
+		},
+		{
+			name: "Web Bluetooth",
+			id:   "web-bluetooth",
+		},
+	}
+}
+
 func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authClient *auth.Client) error {
 	slog.InfoContext(ctx, "Resetting test user saved searches and bookmarks...")
 	userIDs := make([]string, len(testUserEmails))
@@ -154,10 +206,17 @@ func generateFeatures(
 	featureIDMap := make(map[string]interface{})
 	webFeatureKeyToInternalFeatureID := map[string]string{}
 
-	for len(featureIDMap) < numberOfFeatures {
+	realFeatureDetails := getRealFeatureDetails()
+	for idx := 0; idx < numberOfFeatures; idx++ {
 		word := fmt.Sprintf("%s%d", gofakeit.LoremIpsumWord(), len(featureIDMap))
 		featureName := cases.Title(language.English).String(word)
 		featureID := strings.ToLower(featureName)
+		if idx < len(realFeatureDetails) {
+			word = realFeatureDetails[idx].name
+			featureID = realFeatureDetails[idx].id
+			featureName = realFeatureDetails[idx].name
+		}
+
 		// Check if we already generated this ID.
 		if _, alreadyUsed := featureIDMap[word]; alreadyUsed {
 			continue

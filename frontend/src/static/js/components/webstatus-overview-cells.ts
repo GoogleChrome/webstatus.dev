@@ -171,7 +171,8 @@ const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
     extraIdentifiers.push(htmlIdentifier);
   }
   return html`<div class="feature-name-cell">
-    <a href=${featureUrl}>${feature.name}</a>${extraIdentifiers}
+    <a class="feature-page-link" href=${featureUrl}>${feature.name}</a
+    >${extraIdentifiers}
   </div>`;
 };
 
