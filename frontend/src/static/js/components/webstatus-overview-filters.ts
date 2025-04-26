@@ -270,10 +270,16 @@ export class WebstatusOverviewFilters extends LitElement {
         case ColumnKey.StableEdge:
         case ColumnKey.StableFirefox:
         case ColumnKey.StableSafari:
+        case ColumnKey.StableChromeAndroid:
+        case ColumnKey.StableFirefoxAndroid:
+        case ColumnKey.StableSafariIos:
         case ColumnKey.ExpChrome:
         case ColumnKey.ExpEdge:
         case ColumnKey.ExpFirefox:
         case ColumnKey.ExpSafari:
+        case ColumnKey.ExpChromeAndroid:
+        case ColumnKey.ExpFirefoxAndroid:
+        case ColumnKey.ExpSafariIos:
           pushBrowserChannelName(columnKey);
           break;
       }

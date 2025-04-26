@@ -20,7 +20,7 @@ import {
   formatOverviewPageUrl,
   getColumnOptions,
 } from '../utils/urls.js';
-import {FeatureSortOrderType} from '../api/client.js';
+import {BROWSER_ID_TO_ICON_NAME, FeatureSortOrderType} from '../api/client.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {
   getTopCssIdentifierTemplate,
@@ -44,6 +44,7 @@ type ColumnDefinition = {
   nameInDialog: string;
   group?: string;
   headerHtml: TemplateResult;
+  iconName?: string;
   cellRenderer: CellRenderer;
   cellClass?: string;
   unsortable?: boolean;
@@ -314,7 +315,7 @@ export const renderAvailablity: CellRenderer = (
           ? `Since version ${browserImplVersion}`
           : 'Not available'}
       >
-        <img src="/public/img/${browser}_24x24.png" />
+        <img src="/public/img/${BROWSER_ID_TO_ICON_NAME[browser!]}_24x24.png" />
       </sl-tooltip>
     </div>
   `;
@@ -417,6 +418,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in desktop Chrome',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'chrome'},
@@ -425,6 +427,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in desktop Edge',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'edge',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'edge'},
@@ -433,6 +436,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in desktop Firefox',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'firefox'},
@@ -441,6 +445,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in desktop Safari',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'safari'},
@@ -449,6 +454,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in mobile Chrome (Android)',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'chrome_android'},
@@ -457,6 +463,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in mobile Firefox (Android)',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'firefox_android'},
@@ -465,6 +472,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Availibility in mobile Safari (iOS)',
     group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
+    iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
     options: {browser: 'safari_ios'},
