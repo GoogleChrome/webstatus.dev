@@ -66,14 +66,23 @@ export enum ColumnKey {
   AvailabilityEdge = 'availability_edge',
   AvailabilityFirefox = 'availability_firefox',
   AvailabilitySafari = 'availability_safari',
+  AvailabilityChromeAndroid = 'availability_chrome_android',
+  AvailabilityFirefoxAndroid = 'availability_firefox_android',
+  AvailabilitySafariIos = 'availability_safari_ios',
   StableChrome = 'stable_chrome',
   StableEdge = 'stable_edge',
   StableFirefox = 'stable_firefox',
   StableSafari = 'stable_safari',
+  StableChromeAndroid = 'stable_chrome_android',
+  StableFirefoxAndroid = 'stable_firefox_android',
+  StableSafariIos = 'stable_safari_ios',
   ExpChrome = 'experimental_chrome',
   ExpEdge = 'experimental_edge',
   ExpFirefox = 'experimental_firefox',
   ExpSafari = 'experimental_safari',
+  ExpChromeAndroid = 'experimental_chrome_android',
+  ExpFirefoxAndroid = 'experimental_firefox_android',
+  ExpSafariIos = 'experimental_safari_ios',
   ChromeUsage = 'chrome_usage',
 }
 
@@ -129,10 +138,16 @@ export type BrowserChannelColumnKeys =
   | ColumnKey.StableEdge
   | ColumnKey.StableFirefox
   | ColumnKey.StableSafari
+  | ColumnKey.StableChromeAndroid
+  | ColumnKey.StableFirefoxAndroid
+  | ColumnKey.StableSafariIos
   | ColumnKey.ExpChrome
   | ColumnKey.ExpEdge
   | ColumnKey.ExpFirefox
-  | ColumnKey.ExpSafari;
+  | ColumnKey.ExpSafari
+  | ColumnKey.ExpChromeAndroid
+  | ColumnKey.ExpFirefoxAndroid
+  | ColumnKey.ExpSafariIos;
 
 export const DEFAULT_SORT_SPEC: FeatureSortOrderType = 'baseline_status_desc';
 
@@ -430,6 +445,30 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellRenderer: renderAvailablity,
     options: {browser: 'safari'},
   },
+  [ColumnKey.AvailabilityChromeAndroid]: {
+    nameInDialog: 'Availibility in mobile Chrome (Android)',
+    group: 'Availability',
+    headerHtml: html`<span class="hover-only">Sort</span>`,
+    cellClass: 'centered',
+    cellRenderer: renderAvailablity,
+    options: {browser: 'chrome_android'},
+  },
+  [ColumnKey.AvailabilityFirefoxAndroid]: {
+    nameInDialog: 'Availibility in mobile Firefox (Android)',
+    group: 'Availability',
+    headerHtml: html`<span class="hover-only">Sort</span>`,
+    cellClass: 'centered',
+    cellRenderer: renderAvailablity,
+    options: {browser: 'firefox_android'},
+  },
+  [ColumnKey.AvailabilitySafariIos]: {
+    nameInDialog: 'Availibility in mobile Safari (iOS)',
+    group: 'Availability',
+    headerHtml: html`<span class="hover-only">Sort</span>`,
+    cellClass: 'centered',
+    cellRenderer: renderAvailablity,
+    options: {browser: 'safari_ios'},
+  },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
     group: 'WPT',
@@ -462,6 +501,30 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellRenderer: renderBrowserQuality,
     options: {browser: 'safari', channel: 'stable'},
   },
+  [ColumnKey.StableChromeAndroid]: {
+    nameInDialog: 'Browser Implementation in Chrome (Android)',
+    group: 'WPT',
+    headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
+    cellClass: 'centered',
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'chrome_android', channel: 'stable'},
+  },
+  [ColumnKey.StableFirefoxAndroid]: {
+    nameInDialog: 'Browser Implementation in Firefox (Android)',
+    group: 'WPT',
+    headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
+    cellClass: 'centered',
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'firefox_android', channel: 'stable'},
+  },
+  [ColumnKey.StableSafariIos]: {
+    nameInDialog: 'Browser Implementation in Safari (iOS)',
+    group: 'WPT',
+    headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
+    cellClass: 'centered',
+    cellRenderer: renderBrowserQuality,
+    options: {browser: 'safari_ios', channel: 'stable'},
+  },
   [ColumnKey.ExpChrome]: {
     nameInDialog: 'Browser Implementation in Chrome Experimental',
     group: 'WPT Experimental',
@@ -493,6 +556,30 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'safari', channel: 'experimental'},
+  },
+  [ColumnKey.ExpChromeAndroid]: {
+    nameInDialog: 'Browser Implementation in Chrome Experimental (Android)',
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />`,
+    cellClass: 'centered',
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'chrome_android', channel: 'experimental'},
+  },
+  [ColumnKey.ExpFirefoxAndroid]: {
+    nameInDialog: 'Browser Implementation in Firefox Experimental (Android)',
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
+    cellClass: 'centered',
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'chrome_android', channel: 'experimental'},
+  },
+  [ColumnKey.ExpSafariIos]: {
+    nameInDialog: 'Browser Implementation in Safari Experimental (iOS)',
+    group: 'WPT Experimental',
+    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
+    cellClass: 'centered',
+    cellRenderer: renderBrowserQualityExp,
+    options: {browser: 'safari_ios', channel: 'experimental'},
   },
   [ColumnKey.ChromeUsage]: {
     nameInDialog: 'Chrome Usage',
