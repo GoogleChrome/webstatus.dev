@@ -376,7 +376,7 @@ test.describe('saved searches', () => {
       await clickNextPage();
       const featureCount = await getOverviewPageFeatureCount(page);
       expect(featureCount, 'Feature count should be 72').toEqual(72);
-      await verifyTableRowCount(24);
+      await verifyTableRowCount(22);
       await verifyFeaturesRequest(
         'baseline_status:limited OR available_on:chrome',
       );
