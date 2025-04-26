@@ -81,7 +81,7 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
       fetchAndAggregateDataStub.getCall(0).args;
-    expect(fetchFunctionConfigs.length).to.equal(5); // 4 browsers + total
+    expect(fetchFunctionConfigs.length).to.equal(8); // 7 browsers + total
     // Test Chrome configuration
     const chromeConfig = fetchFunctionConfigs[0];
     expect(chromeConfig.label).to.equal('Chrome');
@@ -135,7 +135,7 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     expect(edgeConfig.valueExtractor(edgeTestDataPoint)).to.equal(8);
 
     // Test Total configuration
-    const totalConfig = fetchFunctionConfigs[4];
+    const totalConfig = fetchFunctionConfigs[7];
     expect(totalConfig.label).to.equal('Total number of Baseline features');
     expect(totalConfig.fetchFunction).to.be.a('function');
     const totalTestDataPoint: BaselineStatusMetric = {
@@ -161,6 +161,9 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
       '#F48400',
       '#4285F4',
       '#0F9D58',
+      '#FF0000',
+      '#F48400',
+      '#4285F4',
       '#888888',
     ]);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);

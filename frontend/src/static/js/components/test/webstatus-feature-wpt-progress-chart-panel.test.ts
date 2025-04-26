@@ -87,7 +87,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
       fetchAndAggregateDataStub.getCall(0).args;
 
-    expect(fetchFunctionConfigs.length).to.equal(4); // 4 browsers
+    expect(fetchFunctionConfigs.length).to.equal(7); // 7 browsers
 
     // Test Chrome configuration
     const chromeConfig = fetchFunctionConfigs[0];
@@ -169,6 +169,9 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       '#F48400',
       '#4285F4',
       '#0F9D58',
+      '#FF0000',
+      '#F48400',
+      '#4285F4',
       '#888888',
     ]);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
