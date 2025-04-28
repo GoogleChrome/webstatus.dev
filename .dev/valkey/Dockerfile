@@ -13,4 +13,4 @@
 # limitations under the License.
 
 # Ensure the version matches what GCP supports https://cloud.google.com/memorystore/docs/valkey/supported-versions
-FROM valkey/valkey:8.0.2-alpine3.21
+FROM valkey/valkey:8.1.1-alpine3.21
