@@ -62,6 +62,24 @@ deploy-local: configure-skaffold
 delete-local:
 	skaffold delete $(SKAFFOLD_FLAGS) || true
 
+# TODO: In the future, we should install netcat
+define wait_for_port
+    @echo "Waiting for $(2) on port $(1) to respond..."
+    @for i in $$(seq 1 5); do \
+        if curl -s -f -o /dev/null -m 2 http://localhost:$(1)$(3); then \
+            echo "$(2) on port $(1) is responding."; \
+            exit 0; \
+        fi; \
+        if [ $$i -lt 5 ]; then \
+            echo "Port $(1) ($(2)) not responding (attempt $$i/5). Retrying in 3 seconds..."; \
+            sleep 3; \
+        else \
+            echo "Error: $(2) on port $(1) did not respond after 5 attempts."; \
+            exit 1; \
+        fi; \
+    done
+endef
+
 port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
@@ -70,16 +88,14 @@ port-forward-manual: port-forward-terminate
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
-	curl -s -o /dev/null -m 5 http://localhost:8080 || true
-	curl -s -o /dev/null -m 5 http://localhost:5555 || true
-	curl -s -o /dev/null -m 5 http://localhost:8092 || true
-	curl -s -o /dev/null -m 5 http://localhost:9099 || true
-	curl -s -o /dev/null -m 5 http://localhost:9100 || true
+	$(call wait_for_port,5555,frontend,/)
+	$(call wait_for_port,8080,backend,/v1/features)
+	$(call wait_for_port,9099,auth-main,/)
+	$(call wait_for_port,9100,auth-aux,/)
 
 port-forward-terminate:
 	fuser -k 5555/tcp || true
 	fuser -k 8080/tcp || true
-	fuser -k 8092/tcp || true
 	fuser -k 9099/tcp || true
 	fuser -k 9100/tcp || true
 
@@ -399,10 +415,13 @@ dev_fake_users: build
 	go run util/cmd/load_test_users/main.go -project=local
 dev_fake_data: build is_local_migration_ready
 	fuser -k 9010/tcp || true
+	kubectl wait --for=condition=ready pod/spanner
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
 	fuser -k 8086/tcp || true
+	kubectl wait --for=condition=ready pod/datastore
 	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
 	fuser -k 9099/tcp || true
+	kubectl wait --for=condition=ready pod/auth
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 		go run ./util/cmd/load_fake_data/main.go \

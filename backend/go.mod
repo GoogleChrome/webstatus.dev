@@ -6,8 +6,8 @@ toolchain go1.24.1
 
 require (
 	firebase.google.com/go/v4 v4.15.2
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250421155132-bf74acce168c
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250421155132-bf74acce168c
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250426033842-b13707e03db3
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250426033842-b13707e03db3
 	github.com/go-chi/cors v1.2.1
 	github.com/oapi-codegen/runtime v1.1.1
 )
@@ -15,7 +15,7 @@ require (
 require (
 	cel.dev/expr v0.23.1 // indirect
 	cloud.google.com/go v0.120.1 // indirect
-	cloud.google.com/go/auth v0.16.0 // indirect
+	cloud.google.com/go/auth v0.16.1 // indirect
 	cloud.google.com/go/auth/oauth2adapt v0.2.8 // indirect
 	cloud.google.com/go/cloudtasks v1.13.6 // indirect
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
@@ -26,8 +26,8 @@ require (
 	cloud.google.com/go/longrunning v0.6.7 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
 	cloud.google.com/go/secretmanager v1.14.7 // indirect
-	cloud.google.com/go/spanner v1.79.0 // indirect
-	cloud.google.com/go/storage v1.51.0 // indirect
+	cloud.google.com/go/spanner v1.80.0 // indirect
+	cloud.google.com/go/storage v1.52.0 // indirect
 	cloud.google.com/go/trace v1.11.6 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.2 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.27.0 // indirect
@@ -80,7 +80,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
 	github.com/valkey-io/valkey-go v1.0.57 // indirect
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20250422153308-f6a02a1f7020 // indirect
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20250422162906-9db4c26eff38 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
@@ -122,11 +122,11 @@ require (
 	golang.org/x/sys v0.32.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
-	google.golang.org/api v0.229.0 // indirect
+	google.golang.org/api v0.230.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
-	google.golang.org/genproto v0.0.0-20250421163800-61c742ae3ef0 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250421163800-61c742ae3ef0 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250421163800-61c742ae3ef0 // indirect
+	google.golang.org/genproto v0.0.0-20250428153025-10db94c68c34 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250428153025-10db94c68c34 // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250428153025-10db94c68c34 // indirect
 	google.golang.org/grpc v1.72.0 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

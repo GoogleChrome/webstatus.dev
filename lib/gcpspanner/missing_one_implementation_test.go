@@ -22,6 +22,12 @@ import (
 	"time"
 )
 
+const (
+	fooBrowser = "fooBrowser"
+	barBrowser = "barBrowser"
+	bazBrowser = "bazBrowser"
+)
+
 // nolint:dupl // WONTFIX
 func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, client *Client) {
 	webFeatures := []WebFeature{
@@ -39,20 +45,20 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 
 	browserReleases := []BrowserRelease{
 		// fooBrowser Releases
-		{BrowserName: "fooBrowser", BrowserVersion: "110", ReleaseDate: time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "fooBrowser", BrowserVersion: "111", ReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "fooBrowser", BrowserVersion: "112", ReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "fooBrowser", BrowserVersion: "113", ReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: fooBrowser, BrowserVersion: "110", ReleaseDate: time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: fooBrowser, BrowserVersion: "111", ReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: fooBrowser, BrowserVersion: "112", ReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: fooBrowser, BrowserVersion: "113", ReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)},
 
 		// barBrowser Releases
-		{BrowserName: "barBrowser", BrowserVersion: "113", ReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "barBrowser", BrowserVersion: "114", ReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "barBrowser", BrowserVersion: "115", ReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: barBrowser, BrowserVersion: "113", ReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: barBrowser, BrowserVersion: "114", ReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: barBrowser, BrowserVersion: "115", ReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)},
 
 		// bazBrowser Releases
-		{BrowserName: "bazBrowser", BrowserVersion: "16.4", ReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "bazBrowser", BrowserVersion: "16.5", ReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC)},
-		{BrowserName: "bazBrowser", BrowserVersion: "17", ReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: bazBrowser, BrowserVersion: "16.4", ReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: bazBrowser, BrowserVersion: "16.5", ReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: bazBrowser, BrowserVersion: "17", ReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)},
 	}
 	for _, release := range browserReleases {
 		err := client.InsertBrowserRelease(ctx, release)
@@ -67,47 +73,47 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 	}{
 		// fooBrowser Availabilities
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "111"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "111"},
 			FeatureKey:                 "FeatureX",
 		}, // Available from fooBrowser 111
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "112"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "112"},
 			FeatureKey:                 "FeatureY",
 		}, // Available from fooBrowser 112
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "112"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "112"},
 			FeatureKey:                 "FeatureZ",
 		}, // Available from fooBrowser 112
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "fooBrowser", BrowserVersion: "113"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "113"},
 			FeatureKey:                 "FeatureW",
 		}, // Available from fooBrowser 113
 
 		// barBrowser Availabilities
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "113"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "113"},
 			FeatureKey:                 "FeatureX",
 		}, // Available from barBrowser 113
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "113"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "113"},
 			FeatureKey:                 "FeatureZ",
 		}, // Available from barBrowser 113
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "114"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "114"},
 			FeatureKey:                 "FeatureY",
 		}, // Available from barBrowser 114
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "barBrowser", BrowserVersion: "115"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "115"},
 			FeatureKey:                 "FeatureW",
 		}, // Available from barBrowser 115
 
 		// bazBrowser Availabilities
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "bazBrowser", BrowserVersion: "16.4"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: bazBrowser, BrowserVersion: "16.4"},
 			FeatureKey:                 "FeatureX",
 		}, // Available from bazBrowser 16.4
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "bazBrowser", BrowserVersion: "16.5"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: bazBrowser, BrowserVersion: "16.5"},
 			FeatureKey:                 "FeatureY",
 		}, // Available from bazBrowser 16.5
 	}
@@ -152,10 +158,10 @@ func testMissingOneImplSuite(
 	pageSize int,
 ) {
 	t.Run("bazBrowser ", func(t *testing.T) {
-		targetBrowser := "bazBrowser"
+		targetBrowser := bazBrowser
 		otherBrowsers := []string{
-			"fooBrowser",
-			"barBrowser",
+			fooBrowser,
+			barBrowser,
 		}
 
 		// nolint:dupl // WONTFIX - false positive
@@ -478,7 +484,7 @@ func testMissingOneImplSuite(
 
 		t.Run("should show less data points when looking at a smaller subset of browsers", func(t *testing.T) {
 			otherBrowsers := []string{
-				"barBrowser",
+				barBrowser,
 			}
 
 			expectedResult := &MissingOneImplCountPage{
@@ -549,10 +555,10 @@ func testMissingOneImplSuite(
 	// Misc tests just to make sure we can get other browser info.
 	// nolint:dupl // WONTFIX - false positive
 	t.Run("all fooBrowser data", func(t *testing.T) {
-		targetBrowser := "fooBrowser"
+		targetBrowser := fooBrowser
 		otherBrowsers := []string{
-			"barBrowser",
-			"bazBrowser",
+			barBrowser,
+			bazBrowser,
 		}
 
 		expectedResult := &MissingOneImplCountPage{
@@ -687,9 +693,9 @@ func testMissingOneImplSuite(
 			}
 		}
 
-		t.Run("bazBrowser", func(t *testing.T) {
-			targetBrowser := "bazBrowser"
-			otherBrowsers := []string{"fooBrowser", "barBrowser"}
+		t.Run(bazBrowser, func(t *testing.T) {
+			targetBrowser := bazBrowser
+			otherBrowsers := []string{fooBrowser, barBrowser}
 
 			expectedResult := &MissingOneImplCountPage{
 				NextPageToken: nil,
