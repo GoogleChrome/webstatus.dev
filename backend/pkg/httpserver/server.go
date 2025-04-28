@@ -153,6 +153,9 @@ func defaultBrowsers() []backend.BrowserPathParam {
 		backend.Edge,
 		backend.Firefox,
 		backend.Safari,
+		backend.ChromeAndroid,
+		backend.FirefoxAndroid,
+		backend.SafariIos,
 	}
 }
 

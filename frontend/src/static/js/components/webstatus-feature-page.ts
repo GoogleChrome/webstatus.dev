@@ -27,6 +27,7 @@ import {
   type APIClient,
   type WPTRunMetric,
   BROWSER_LABEL_TO_ID,
+  BROWSER_ID_TO_LABEL,
   TEST_COUNT_METRIC_VIEW,
   SUBTEST_COUNT_METRIC_VIEW,
   DEFAULT_TEST_VIEW,
@@ -101,25 +102,19 @@ export class FeaturePage extends BaseChartsPage {
         }
 
         .wptScore {
-          width: 16%;
+          width: 22%;
         }
         .wptScore.baseline {
-          width: 20%;
+          width: 22%;
         }
         @media (max-width: 1100px) {
           .wptScore {
             width: 32%;
           }
-          .wptScore.baseline {
-            width: 50%;
-          }
         }
         @media (max-width: 800px) {
           .wptScore {
             width: 60%;
-          }
-          .wptScore.baseline {
-            width: 80%;
           }
         }
 
@@ -426,7 +421,7 @@ export class FeaturePage extends BaseChartsPage {
     return html`
       <sl-card class="halign-stretch wptScore">
         <img height="32" src="/public/img/${icon}" class="icon" />
-        <div>${browser[0].toUpperCase() + browser.slice(1)}</div>
+        <div>${BROWSER_ID_TO_LABEL[browser]}</div>
         <div class="score">${scorePart} ${this.renderDeltaChip(browser)}</div>
         ${this.renderBrowserImpl(browserImpl)}
       </sl-card>
@@ -484,6 +479,9 @@ export class FeaturePage extends BaseChartsPage {
           ${this.renderOneWPTCard('edge', 'edge_32x32.png')}
           ${this.renderOneWPTCard('firefox', 'firefox_32x32.png')}
           ${this.renderOneWPTCard('safari', 'safari_32x32.png')}
+          ${this.renderOneWPTCard('chrome_android', 'chrome_32x32.png')}
+          ${this.renderOneWPTCard('firefox_android', 'firefox_32x32.png')}
+          ${this.renderOneWPTCard('safari_ios', 'safari_32x32.png')}
           ${this.renderBaselineCard()}
         </div>
       </section>
