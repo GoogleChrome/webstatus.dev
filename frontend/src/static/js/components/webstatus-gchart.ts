@@ -96,6 +96,11 @@ export class WebstatusGChart extends LitElement {
   // re-drawing, we need to manually set the current selection.
   currentSelection: google.visualization.ChartSelection[] | undefined;
 
+  @property({attribute: false})
+  updatePoint: (
+    selection: google.visualization.ChartSelection[] | undefined,
+  ) => void = () => {};
+
   @property({state: true, type: Object})
   dataTable:
     | google.visualization.DataTable
@@ -323,44 +328,46 @@ export class WebstatusGChart extends LitElement {
   private _handleChartClick() {
     const selection = this.chartWrapper?.getChart()?.getSelection();
     if (selection === undefined) {
-      this.currentSelection = undefined;
+      this.updatePoint(undefined);
       return;
     }
-    if (selection.length > 0) {
-      this.currentSelection = selection;
-      // TODO: For now only look at the first selection since we only configure for one selection at a time.
-      const item = selection[0];
-      const row = item.row;
-      const column = item.column;
-      // row and column both have the type: number|null|undefined
-      if (
-        row !== null &&
-        column !== null &&
-        row !== undefined &&
-        column !== undefined
-      ) {
-        const label = this.dataTable!.getColumnLabel(column);
-        // Assuming timestamp is in the first column
-        const timestamp = this.dataTable!.getValue(row, 0);
-        const value = this.dataTable!.getValue(row, column);
 
-        // Dispatch the chart click event
-        const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
-          'point-selected',
-          {
-            detail: {label, timestamp, value},
-            bubbles: true,
-          },
-        );
-        this.dispatchEvent(chartClickEvent);
-      }
-    } else if (selection.length === 0) {
-      this.currentSelection = [];
+    if (selection.length === 0) {
+      this.updatePoint([]);
       const chartDeselectEvent: ChartDeselectPointEvent = new CustomEvent(
         'point-deselected',
         {detail: undefined},
       );
       this.dispatchEvent(chartDeselectEvent);
+      return;
+    }
+
+    this.updatePoint(selection);
+    // TODO: For now only look at the first selection since we only configure for one selection at a time.
+    const item = selection[0];
+    const row = item.row;
+    const column = item.column;
+    // row and column both have the type: number|null|undefined
+    if (
+      row !== null &&
+      column !== null &&
+      row !== undefined &&
+      column !== undefined
+    ) {
+      const label = this.dataTable!.getColumnLabel(column);
+      // Assuming timestamp is in the first column
+      const timestamp = this.dataTable!.getValue(row, 0);
+      const value = this.dataTable!.getValue(row, column);
+
+      // Dispatch the chart click event
+      const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
+        'point-selected',
+        {
+          detail: {label, timestamp, value},
+          bubbles: true,
+        },
+      );
+      this.dispatchEvent(chartClickEvent);
     }
   }
 }

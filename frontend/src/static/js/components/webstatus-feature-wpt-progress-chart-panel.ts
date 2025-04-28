@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {customElement, property} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
@@ -33,13 +33,16 @@ import {
 
 @customElement('webstatus-feature-wpt-progress-chart-panel')
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
-  readonly featureSupportBrowsers: BrowsersParameter[] = [
-    'chrome',
-    'firefox',
-    'safari',
-    'edge',
+  readonly browsersByView: BrowsersParameter[][] = [
+    ['chrome', 'firefox', 'safari', 'edge'],
+    ['chrome_android', 'firefox_android', 'safari_ios'],
   ];
+
+  @state()
+  tabViews = ['Desktop', 'Mobile'];
+
   readonly featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
+
   @property({type: String})
   testView!: FeatureWPTMetricViewType;
 
@@ -77,24 +80,26 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
     endDate: Date,
     featureId: string,
     testView: FeatureWPTMetricViewType,
-  ): FetchFunctionConfig<WPTRunMetric>[] {
-    return this.featureSupportBrowsers.map(browser => ({
-      label: BROWSER_ID_TO_LABEL[browser],
-      fetchFunction: () =>
-        this.apiClient.getFeatureStatsByBrowserAndChannel(
-          featureId,
-          browser,
-          this.featureSupportChannel,
-          startDate,
-          endDate,
-          testView,
-        ),
-      timestampExtractor: this._timestampExtractor,
-      valueExtractor: (dataPoint: WPTRunMetric): number =>
-        dataPoint.test_pass_count || 0,
-      tooltipExtractor: (dataPoint: WPTRunMetric): string =>
-        `${BROWSER_ID_TO_LABEL[browser]}: ${dataPoint.test_pass_count!} of ${dataPoint.total_tests_count!}`,
-    }));
+  ): FetchFunctionConfig<WPTRunMetric>[][] {
+    return this.browsersByView.map(browsers =>
+      browsers.map(browser => ({
+        label: BROWSER_ID_TO_LABEL[browser],
+        fetchFunction: () =>
+          this.apiClient.getFeatureStatsByBrowserAndChannel(
+            featureId,
+            browser,
+            this.featureSupportChannel,
+            startDate,
+            endDate,
+            testView,
+          ),
+        timestampExtractor: this._timestampExtractor,
+        valueExtractor: (dataPoint: WPTRunMetric): number =>
+          dataPoint.test_pass_count || 0,
+        tooltipExtractor: (dataPoint: WPTRunMetric): string =>
+          `${BROWSER_ID_TO_LABEL[browser]}: ${dataPoint.test_pass_count!} of ${dataPoint.total_tests_count!}`,
+      })),
+    );
   }
 
   createLoadingTask(): Task {
@@ -119,26 +124,28 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
           testView === undefined
         )
           return;
-        await this._fetchAndAggregateData<WPTRunMetric>(
-          this._createFetchFunctionConfigs(
-            startDate,
-            endDate,
-            featureId,
-            testView,
+        const fetchFunctionConfigs = this._createFetchFunctionConfigs(
+          startDate,
+          endDate,
+          featureId,
+          testView,
+        );
+        await Promise.all(
+          fetchFunctionConfigs.map((configs, i) =>
+            this._fetchAndAggregateData(configs, i, [
+              // This additional series configuration calculates the "Total" series
+              // by using the calculateMax method to find the maximum total_tests_count
+              // across all browsers for each timestamp.
+              {
+                label: `Total number of ${this.testViewToString[testView]}`,
+                calculator: this.calculateMax,
+                cacheMap: new Map<string, WPTRunMetric>(),
+                timestampExtractor: this._timestampExtractor,
+                valueExtractor: (dataPoint: WPTRunMetric): number =>
+                  dataPoint.total_tests_count || 0,
+              },
+            ]),
           ),
-          [
-            // This additional series configuration calculates the "Total" series
-            // by using the calculateMax method to find the maximum total_tests_count
-            // across all browsers for each timestamp.
-            {
-              label: `Total number of ${this.testViewToString[testView]}`,
-              calculator: this.calculateMax,
-              cacheMap: new Map<string, WPTRunMetric>(),
-              timestampExtractor: this._timestampExtractor,
-              valueExtractor: (dataPoint: WPTRunMetric): number =>
-                dataPoint.total_tests_count || 0,
-            },
-          ],
         );
       },
     });
@@ -170,12 +177,13 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const seriesColors = [...this.featureSupportBrowsers, 'total'].map(
-      browser => {
-        const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
-        return BROWSER_ID_TO_COLOR[browserKey];
-      },
-    );
+    const seriesColors = [
+      ...this.browsersByView[this.currentView],
+      'total',
+    ].map(browser => {
+      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
+      return BROWSER_ID_TO_COLOR[browserKey];
+    });
 
     return {
       seriesColors: seriesColors,

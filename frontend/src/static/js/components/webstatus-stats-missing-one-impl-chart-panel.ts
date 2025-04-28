@@ -114,11 +114,12 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        await this._fetchAndAggregateData(
-          this._createFetchFunctionConfigs(
-            this.supportedBrowsers,
-            startDate,
-            endDate,
+        const fetchFunctionConfigs = this.browsersByView.map(browsers =>
+          this._createFetchFunctionConfigs(browsers, startDate, endDate),
+        );
+        await Promise.all(
+          fetchFunctionConfigs.map((configs, i) =>
+            this._fetchAndAggregateData(configs, i),
           ),
         );
       },
@@ -130,7 +131,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.supportedBrowsers;
+    const selectedBrowsers = this.browsersByView[this.currentView];
     const seriesColors = [...selectedBrowsers].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];

@@ -40,7 +40,7 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.supportedBrowsers;
+    const selectedBrowsers = this.browsersByView[this.currentView];
     const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
@@ -54,27 +54,38 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   @state()
   supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
+  @state()
+  browsersByView: Array<Array<BrowsersParameter>> = [
+    ['chrome', 'firefox', 'safari'],
+    ['chrome_android', 'firefox_android', 'safari_ios'],
+  ];
+
+  @state()
+  tabViews: Array<string> = ['Desktop', 'Mobile'];
+
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
-  ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return this.supportedBrowsers.map(browser => {
-      const label =
-        browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
-      return {
-        label,
-        fetchFunction: () =>
-          this.apiClient.getFeatureCountsForBrowser(
-            browser,
-            startDate,
-            endDate,
-          ),
-        timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-          new Date(dataPoint.timestamp),
-        valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-          dataPoint.count ?? 0,
-      };
-    });
+  ): Array<FetchFunctionConfig<BrowserReleaseFeatureMetric>[]> {
+    return this.browsersByView.map(browsers =>
+      browsers.map(browser => {
+        const label =
+          browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
+        return {
+          label,
+          fetchFunction: () =>
+            this.apiClient.getFeatureCountsForBrowser(
+              browser,
+              startDate,
+              endDate,
+            ),
+          timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+            new Date(dataPoint.timestamp),
+          valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+            dataPoint.count ?? 0,
+        };
+      }),
+    );
   }
 
   createLoadingTask(): Task {
@@ -82,22 +93,32 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        await this._fetchAndAggregateData([
-          ...this._createFetchFunctionConfigs(startDate, endDate),
-          {
-            // Additional fetch function config for the "Total" series
-            label: 'Total number of Baseline features',
-            fetchFunction: () =>
-              this.apiClient.listAggregatedBaselineStatusCounts(
-                startDate,
-                endDate,
-              ),
-            timestampExtractor: (dataPoint: BaselineStatusMetric) =>
-              new Date(dataPoint.timestamp),
-            valueExtractor: (dataPoint: BaselineStatusMetric) =>
-              dataPoint.count ?? 0,
-          },
-        ]);
+        const fetchFunctionConfigs = this._createFetchFunctionConfigs(
+          startDate,
+          endDate,
+        );
+        const promises = fetchFunctionConfigs.map((configs, i) => {
+          return this._fetchAndAggregateData(
+            [
+              ...configs,
+              {
+                // Additional fetch function config for the "Total" series
+                label: 'Total number of Baseline features',
+                fetchFunction: () =>
+                  this.apiClient.listAggregatedBaselineStatusCounts(
+                    startDate,
+                    endDate,
+                  ),
+                timestampExtractor: (dataPoint: BaselineStatusMetric) =>
+                  new Date(dataPoint.timestamp),
+                valueExtractor: (dataPoint: BaselineStatusMetric) =>
+                  dataPoint.count ?? 0,
+              },
+            ],
+            i,
+          );
+        });
+        await Promise.all(promises);
       },
     });
   }

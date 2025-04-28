@@ -29,6 +29,7 @@ import {Task} from '@lit/task';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {BrowsersParameter} from '../api/client.js';
 
 /**
  * Interface defining the structure of metric data for the line chart.
@@ -42,7 +43,7 @@ export interface LineChartMetricData<T> {
   label: string;
 
   /**
-   * The array of data points for the metric.
+   * The array of data points for the metric, indexed by view.
    * @type {Array<T>}
    */
   data: Array<T>;
@@ -108,7 +109,7 @@ export interface FetchFunctionConfig<T> {
 }
 
 /**
- * Abstract base class for creating line chart panels to display web status data.
+ * Abstract base class for creating line `chart` panels to display web status data.
  * This class handles data processing, chart rendering using `webstatus-gchart`,
  * and provides a framework for custom controls and panel-specific logic.
  * Subclasses must implement abstract methods to define data loading,
@@ -169,7 +170,45 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @type {WebStatusDataObj | undefined}
    */
   @state()
-  data?: WebStatusDataObj;
+  data?: Array<WebStatusDataObj>;
+
+  /**
+   * Names of the tabs to be displayed in the panel.
+   * @state
+   * @type {Array<string>}
+   */
+  @state()
+  tabViews: Array<string> = [];
+
+  /**
+   * Indicates which tabbed view is active.
+   * @state
+   * @type {number}
+   */
+  @state()
+  currentView: number = 0;
+
+  /**
+   * The list of supported browsers for each tab of the chart.
+   * @state
+   * @type {ArrayArray<<BrowsersParameter>>}
+   */
+  @state()
+  browsersByView: Array<Array<BrowsersParameter>> = [];
+
+  /**
+   * The data object for the tabbed view, structured for `webstatus-gchart`.
+   * @state
+   * @type {Array<Array<WebStatusDataObj>>}
+   */
+  @state()
+  tabbedData: Array<Array<WebStatusDataObj>> = [];
+
+  // Selected data points on the chart.
+  // If the chart ever re-draws due to resize or the encompassing component
+  // re-drawing, we need to manually set the current selection.
+  @state()
+  chartSelection?: google.visualization.ChartSelection[];
 
   /**
    * The API client for fetching web status data. Injected via context.
@@ -207,6 +246,37 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {TemplateResult} The panel description text.
    */
   abstract getPanelDescription(): TemplateResult;
+
+  _handleTabClick(_: Event, index: number) {
+    this.resetPointSelectedTask();
+    this.currentView = index;
+  }
+
+  /**
+   * Returns the tabs present for the panel.
+   * @abstract
+   * @returns {TemplateResult} The mobile toggle element if enabled.
+   */
+  getTabs(): TemplateResult {
+    if (this.tabViews.length === 0) {
+      return html``;
+    }
+    return html`<sl-tab-group
+      >${this.tabViews.map(
+        (tab, index) =>
+          html`<sl-tab
+            slot="nav"
+            panel="${tab.toLowerCase()}"
+            @click=${(e: Event) => this._handleTabClick(e, index)}
+            >${tab}</sl-tab
+          >`,
+      )}</sl-tab-group
+    >`;
+  }
+
+  updatePoint(newPoint: google.visualization.ChartSelection[] | undefined) {
+    this.chartSelection = newPoint;
+  }
 
   /**
    * Renders the controls for the panel (e.g., dropdowns, buttons).
@@ -310,7 +380,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @param {Array<LineChartMetricData<T>>} metricDataArray Array of metric data objects.
    * @template T The data type of the metric data.
    */
-  setDisplayDataFromMap<T>(metricDataArray: Array<LineChartMetricData<T>>) {
+  setDisplayDataFromMap<T>(
+    metricDataArray: Array<LineChartMetricData<T>>,
+    dataIndex: number,
+  ) {
     type dataEntryValueType = {value: number | null; tooltip: string | null};
     type dataEntryType = {[key: string]: dataEntryValueType};
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
@@ -373,7 +446,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       dataObj.rows.push(row);
     }
 
-    this.data = dataObj;
+    if (this.data === undefined) {
+      this.data = new Array(this.tabViews.length);
+    }
+    this.data[dataIndex] = dataObj;
   }
 
   /**
@@ -447,10 +523,12 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           id="${this.getPanelID()}-chart"
           @point-selected=${this.handlePointSelected}
           @point-deselected=${this.handlePointDeselected}
+          .updatePoint=${this.updatePoint}
           .hasMax=${this.hasMax}
           .containerId="${this.getPanelID()}-chart-container"
+          .currentSelection=${this.chartSelection}
           .chartType="${'LineChart'}"
-          .dataObj="${this.data}"
+          .dataObj="${this.data![this.currentView] || {}}"
           .options="${this.generateDisplayDataChartOptions()}"
         >
           Loading chart...
@@ -513,6 +591,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    */
   async _fetchAndAggregateData<T>(
     fetchFunctionConfigs: FetchFunctionConfig<T>[],
+    dataIndex: number,
     additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
   ) {
     // Create an array of metric data objects for each fetch function
@@ -591,7 +670,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       );
     }
 
-    this.setDisplayDataFromMap(metricDataArray);
+    this.setDisplayDataFromMap(metricDataArray, dataIndex);
   }
 
   /**
@@ -678,6 +757,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   resetPointSelectedTask() {
     // Reset the point selected task
     this._pointSelectedTask = undefined;
+    this.chartSelection = [];
     this._renderCustomPointSelectedSuccess = undefined;
   }
 
@@ -784,6 +864,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           <div class="spacer"></div>
         </div>
         <div class="chart-description">${this.getPanelDescription()}</div>
+        <div>${this.getTabs()}</div>
         <div>${this.renderChart()}</div>
         ${this.renderPointSelectedDetails()}
       </sl-card>
