@@ -415,10 +415,13 @@ dev_fake_users: build
 	go run util/cmd/load_test_users/main.go -project=local
 dev_fake_data: build is_local_migration_ready
 	fuser -k 9010/tcp || true
+	kubectl wait --for=condition=ready pod/spanner
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
 	fuser -k 8086/tcp || true
+	kubectl wait --for=condition=ready pod/datastore
 	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
 	fuser -k 9099/tcp || true
+	kubectl wait --for=condition=ready pod/auth
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 		go run ./util/cmd/load_fake_data/main.go \
