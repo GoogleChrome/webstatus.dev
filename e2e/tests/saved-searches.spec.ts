@@ -92,17 +92,19 @@ const editorAlertLocator = (page: Page) =>
   editorLocator(page).locator('sl-alert#editor-alert');
 
 test.describe('Saved Searches on Overview Page', () => {
+  test.beforeAll(async () => {
+    await resetUserData();
+  });
+  test.afterAll(async () => {
+    await resetUserData();
+  });
+
   test.beforeEach(async ({page}) => {
-    await resetUserData(page);
     page.on('dialog', dialog => dialog.accept());
     // Navigate and potentially clear state if needed
     await gotoOverviewPageUrl(page, 'http://localhost:5555');
     // Ensure no search_id is present initially for some tests
     await page.waitForURL(url => !url.searchParams.has('search_id'));
-  });
-
-  test.afterEach(async ({page}) => {
-    await resetUserData(page);
   });
 
   test('User 1 can save a new search', async ({page}) => {

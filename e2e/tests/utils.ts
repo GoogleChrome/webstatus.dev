@@ -116,7 +116,7 @@ export async function expect404PageButtons(
   }
 }
 
-export async function resetUserData(page: Page) {
+export async function resetUserData() {
   const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
   const __dirname = path.dirname(__filename);
   const projectRootDir = path.resolve(__dirname, '../..');
@@ -129,16 +129,12 @@ export async function resetUserData(page: Page) {
 
     console.log('Reset command finished successfully.');
 
-    await page.waitForTimeout(2000);
-
     const cmd2 = 'make port-forward-manual';
     console.log(`Executing command: ${cmd2} in ${projectRootDir}`);
     execSync(cmd2, {
       cwd: projectRootDir,
       stdio: 'inherit',
     });
-
-    await page.waitForTimeout(2000);
   } catch (error) {
     console.error('Error reset command (make dev_fake_data):', error);
     throw new Error('Reset command finished, halting tests.');
