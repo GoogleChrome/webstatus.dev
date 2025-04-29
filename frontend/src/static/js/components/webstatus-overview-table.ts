@@ -33,16 +33,17 @@ import {
   SEARCH_QUERY_README_LINK,
 } from '../utils/constants.js';
 import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
-import {TaskTracker} from '../utils/task-tracker.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
-  @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
-    status: TaskStatus.INITIAL, // Initial state
-    error: undefined,
-    data: undefined,
-  };
+  @property({type: Number})
+  taskStatus: TaskStatus = TaskStatus.INITIAL;
+
+  @property({attribute: false})
+  taskError?: ApiError | Error;
+
+  @property({type: Array})
+  data?: components['schemas']['Feature'][];
 
   @property({attribute: false})
   columns: ColumnKey[] = [];
@@ -162,13 +163,13 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
-    switch (this.taskTracker.status) {
+    switch (this.taskStatus) {
       case TaskStatus.INITIAL:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.PENDING:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.COMPLETE:
-        return this.taskTracker.data?.data?.length === 0
+        return this.data?.length === 0
           ? this.renderBodyWhenNoResults(columns)
           : this.renderBodyWhenComplete(columns);
       case TaskStatus.ERROR:
@@ -177,11 +178,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    return html`
-      ${this.taskTracker.data?.data?.map(f =>
-        this.renderFeatureRow(f, columns),
-      )}
-    `;
+    return html` ${this.data?.map(f => this.renderFeatureRow(f, columns))} `;
   }
 
   renderBodyWhenNoResults(columns: ColumnKey[]): TemplateResult {
@@ -196,7 +193,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
-    if (this.taskTracker.error instanceof BadRequestError) {
+    if (this.taskError instanceof BadRequestError) {
       return html`
         <tr>
           <td class="message" colspan=${columns.length}>
@@ -233,8 +230,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
     const DEFAULT_SKELETON_ROWS = 10;
-    const skeleton_rows =
-      this.taskTracker.data?.data?.length || DEFAULT_SKELETON_ROWS;
+    const skeleton_rows = this.data?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
         range(skeleton_rows),
