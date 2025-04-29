@@ -951,6 +951,18 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), false)
 	case backend.ExperimentalSafariDesc:
 		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), false)
+	case backend.ExperimentalChromeAndroidAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.ChromeAndroid), false)
+	case backend.ExperimentalChromeAndroidDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.ChromeAndroid), false)
+	case backend.ExperimentalFirefoxAndroidAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.FirefoxAndroid), false)
+	case backend.ExperimentalFirefoxAndroidDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.FirefoxAndroid), false)
+	case backend.ExperimentalSafariIosAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.SafariIos), false)
+	case backend.ExperimentalSafariIosDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.SafariIos), false)
 	case backend.StableChromeAsc:
 		return gcpspanner.NewBrowserImplSort(true, string(backend.Chrome), true)
 	case backend.StableChromeDesc:
@@ -967,6 +979,18 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserImplSort(true, string(backend.Safari), true)
 	case backend.StableSafariDesc:
 		return gcpspanner.NewBrowserImplSort(false, string(backend.Safari), true)
+	case backend.StableChromeAndroidAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.ChromeAndroid), true)
+	case backend.StableChromeAndroidDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.ChromeAndroid), true)
+	case backend.StableFirefoxAndroidAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.FirefoxAndroid), true)
+	case backend.StableFirefoxAndroidDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.FirefoxAndroid), true)
+	case backend.StableSafariIosAsc:
+		return gcpspanner.NewBrowserImplSort(true, string(backend.SafariIos), true)
+	case backend.StableSafariIosDesc:
+		return gcpspanner.NewBrowserImplSort(false, string(backend.SafariIos), true)
 	case backend.ChromeUsageAsc:
 		// TODO: If we change the table in GCP from DailyChromiumHistogramMetrics, we should change the sort name
 
@@ -991,6 +1015,16 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.Safari))
 	case backend.AvailabilitySafariDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.Safari))
+	case backend.AvailabilityChromeAndroidAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.ChromeAndroid))
+	case backend.AvailabilityChromeAndroidDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.ChromeAndroid))
+	case backend.AvailabilityFirefoxAndroidAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.FirefoxAndroid))
+	case backend.AvailabilityFirefoxAndroidDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.FirefoxAndroid))
+	case backend.AvailabilitySafariIosAsc:
+		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.SafariIos))
 	}
 
 	// Unknown sort order
