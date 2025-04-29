@@ -1025,6 +1025,8 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.FirefoxAndroid))
 	case backend.AvailabilitySafariIosAsc:
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.SafariIos))
+	case backend.AvailabilitySafariIosDesc:
+		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.SafariIos))
 	}
 
 	// Unknown sort order
