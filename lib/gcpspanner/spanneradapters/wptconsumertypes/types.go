@@ -39,3 +39,16 @@ var ErrUnableToStoreWPTRun = errors.New("unable to store wpt run data")
 // ErrUnableToStoreWPTRunFeatureMetrics indicates that the storage layer was
 // unable to save the wpt run feature metrics.
 var ErrUnableToStoreWPTRunFeatureMetrics = errors.New("unable to store wpt run feature metrics")
+
+// BrowserName is an enumeration of the supported browsers for WPT runs.
+type BrowserName string
+
+const (
+	Chrome         BrowserName = "chrome"
+	Edge           BrowserName = "edge"
+	Firefox        BrowserName = "firefox"
+	Safari         BrowserName = "safari"
+	ChromeAndroid  BrowserName = "chrome_android"
+	FirefoxAndroid BrowserName = "firefox_android"
+	SafariIos      BrowserName = "safari_ios"
+)

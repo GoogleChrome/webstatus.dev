@@ -24,6 +24,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/localcache"
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
@@ -105,7 +106,15 @@ func main() {
 	// Job Generation
 	jobs := []workflow.JobArguments{}
 	startAt := time.Now().UTC().Add(-duration)
-	browsers := shared.GetDefaultBrowserNames()
+	browsers := []string{
+		string(wptconsumertypes.Chrome),
+		string(wptconsumertypes.Edge),
+		string(wptconsumertypes.Firefox),
+		string(wptconsumertypes.Safari),
+		string(wptconsumertypes.ChromeAndroid),
+		string(wptconsumertypes.FirefoxAndroid),
+		string(wptconsumertypes.SafariIos),
+	}
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	for _, browser := range browsers {
 		for _, channel := range channels {
