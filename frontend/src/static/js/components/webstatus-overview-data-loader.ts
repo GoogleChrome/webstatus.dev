@@ -137,7 +137,10 @@ export class WebstatusOverviewDataLoader extends LitElement {
       .columns=${columns}
       .headerCells=${headerCells}
       .location=${this.location}
-      .taskTracker=${this.taskTracker}
+      .isLoading=${this.taskTracker.status === TaskStatus.PENDING ||
+      this.taskTracker.status === TaskStatus.INITIAL}
+      .dataError=${this.taskTracker.error}
+      .data=${this.taskTracker?.data?.data}
     ></webstatus-overview-table>`;
   }
 }

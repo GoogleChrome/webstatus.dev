@@ -33,10 +33,24 @@ import {
   SEARCH_QUERY_README_LINK,
 } from '../utils/constants.js';
 import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
-import {TaskTracker} from '../utils/task-tracker.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
+  @property({type: Boolean})
+  isLoading = false;
+
+  @property({attribute: false})
+  data?: components['schemas']['Feature'][];
+
+  @property({attribute: false})
+  dataError?: ApiError | Error;
+
+  @property({attribute: false})
+  columns: ColumnKey[] = [];
+
+  @property({attribute: false})
+  headerCells: TemplateResult[] = [];
+
   @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
@@ -177,11 +191,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    return html`
-      ${this.taskTracker.data?.data?.map(f =>
-        this.renderFeatureRow(f, columns),
-      )}
-    `;
+    return html` ${this.data?.map(f => this.renderFeatureRow(f, columns))} `;
   }
 
   renderBodyWhenNoResults(columns: ColumnKey[]): TemplateResult {
@@ -196,7 +206,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
-    if (this.taskTracker.error instanceof BadRequestError) {
+    if (this.dataError instanceof BadRequestError) {
       return html`
         <tr>
           <td class="message" colspan=${columns.length}>
@@ -233,8 +243,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
     const DEFAULT_SKELETON_ROWS = 10;
-    const skeleton_rows =
-      this.taskTracker.data?.data?.length || DEFAULT_SKELETON_ROWS;
+    const skeleton_rows = this.data?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
         range(skeleton_rows),
