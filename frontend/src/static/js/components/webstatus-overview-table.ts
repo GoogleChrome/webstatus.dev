@@ -20,17 +20,12 @@ import {map} from 'lit/directives/map.js';
 import {customElement, property} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
-import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
 import {
   ColumnKey,
-  DEFAULT_SORT_SPEC,
   CELL_DEFS,
-  parseColumnsSpec,
   renderFeatureCell,
   renderColgroups,
   renderGroupsRow,
-  renderHeaderCell,
-  renderSavedSearchHeaderCells,
 } from './webstatus-overview-cells.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
@@ -38,14 +33,25 @@ import {
   GITHUB_REPO_ISSUE_LINK,
   SEARCH_QUERY_README_LINK,
 } from '../utils/constants.js';
-import {Toast} from '../utils/toast.js';
-import {
-  CurrentSavedSearch,
-  SavedSearchScope,
-} from '../contexts/app-bookmark-info-context.js';
+import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
+  @property({type: Boolean})
+  isLoading = false;
+
+  @property({attribute: false})
+  data?: components['schemas']['Feature'][];
+
+  @property({attribute: false})
+  dataError?: ApiError | Error;
+
+  @property({attribute: false})
+  columns: ColumnKey[] = [];
+
+  @property({attribute: false})
+  headerCells: TemplateResult[] = [];
+
   @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
@@ -147,122 +153,38 @@ export class WebstatusOverviewTable extends LitElement {
     ];
   }
 
-  findFeaturesFromAtom(
-    searchKey: string,
-    searchValue: string,
-  ): components['schemas']['Feature'][] {
-    if (!this.taskTracker.data?.data) {
-      return [];
-    }
-
-    const features: components['schemas']['Feature'][] = [];
-    for (const feature of this.taskTracker.data.data) {
-      if (searchKey === 'id' && feature?.feature_id === searchValue) {
-        features.push(feature);
-        break;
-      } else if (
-        searchKey === 'name' &&
-        (feature?.feature_id.includes(searchValue) ||
-          feature?.name.includes(searchValue))
-      ) {
-        features.push(feature);
-      }
-    }
-    return features;
-  }
-
-  reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
-    if (
-      !this.savedSearch ||
-      this.savedSearch.scope !== SavedSearchScope.GlobalSavedSearch ||
-      !this.savedSearch.value.is_ordered
-    ) {
-      return undefined;
-    }
-
-    const atoms: string[] = this.savedSearch.value.query.trim().split('OR');
-    const features = [];
-    for (const atom of atoms) {
-      const terms = atom.trim().split(':');
-      const foundFeatures = this.findFeaturesFromAtom(terms[0], terms[1]);
-      if (foundFeatures) {
-        features.push(...foundFeatures);
-      }
-    }
-
-    if (features.length !== this.taskTracker?.data?.data?.length) {
-      void new Toast().toast(
-        `Unable to apply custom sorting to saved search "${this.savedSearch.value.name}". Defaulting to normal sorting.`,
-        'warning',
-        'exclamation-triangle',
-      );
-      return undefined;
-    }
-    return features;
-  }
-
   render(): TemplateResult {
-    const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location),
-    );
-    const sortSpec: string =
-      getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
-
-    let headerCells: TemplateResult[] = [];
-    if (
-      this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
-      this.savedSearch.value?.is_ordered
-    ) {
-      headerCells = renderSavedSearchHeaderCells(
-        this.savedSearch.value.name,
-        columns,
-      );
-    } else {
-      headerCells = columns.map(
-        col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
-      );
-    }
-
     return html`
       <table class="data-table">
-        ${renderColgroups(columns)}
+        ${renderColgroups(this.columns)}
         <thead>
-          ${renderGroupsRow(columns)}
+          ${renderGroupsRow(this.columns)}
           <tr class="header-row">
-            ${headerCells}
+            ${this.headerCells}
           </tr>
         </thead>
         <tbody>
-          ${this.renderTableBody(columns)}
+          ${this.renderTableBody(this.columns)}
         </tbody>
       </table>
     `;
   }
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
-    switch (this.taskTracker.status) {
-      case TaskStatus.COMPLETE:
-        return this.taskTracker.data?.data?.length === 0
-          ? this.renderBodyWhenNoResults(columns)
-          : this.renderBodyWhenComplete(columns);
-      case TaskStatus.ERROR:
-        return this.renderBodyWhenError(columns);
-      case TaskStatus.INITIAL:
-        // Do the same thing as pending.
-        return this.renderBodyWhenPending(columns);
-      case TaskStatus.PENDING:
-        return this.renderBodyWhenPending(columns);
+    if (this.isLoading) {
+      return this.renderBodyWhenPending(columns);
     }
+    if (this.data === undefined) {
+      return this.renderBodyWhenError(columns);
+    }
+    if (this.data.length === 0) {
+      return this.renderBodyWhenNoResults(columns);
+    }
+    return this.renderBodyWhenComplete(columns);
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    let renderFeatures = this.reorderByQueryTerms();
-    if (!renderFeatures) {
-      renderFeatures = this.taskTracker.data?.data;
-    }
-    return html`
-      ${renderFeatures?.map(f => this.renderFeatureRow(f, columns))}
-    `;
+    return html` ${this.data?.map(f => this.renderFeatureRow(f, columns))} `;
   }
 
   renderBodyWhenNoResults(columns: ColumnKey[]): TemplateResult {
@@ -277,7 +199,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
-    if (this.taskTracker.error instanceof BadRequestError) {
+    if (this.dataError instanceof BadRequestError) {
       return html`
         <tr>
           <td class="message" colspan=${columns.length}>
@@ -314,8 +236,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
     const DEFAULT_SKELETON_ROWS = 10;
-    const skeleton_rows =
-      this.taskTracker.data?.data?.length || DEFAULT_SKELETON_ROWS;
+    const skeleton_rows = this.data?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
         range(skeleton_rows),

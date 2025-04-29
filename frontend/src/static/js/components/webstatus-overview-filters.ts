@@ -39,7 +39,6 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 
 import './webstatus-typeahead.js';
 import {type WebstatusTypeahead} from './webstatus-typeahead.js';
-import './webstatus-overview-table.js';
 import {TaskStatus} from '@lit/task';
 
 import {

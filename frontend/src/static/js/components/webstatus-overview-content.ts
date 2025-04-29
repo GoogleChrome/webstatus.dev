@@ -26,8 +26,8 @@ import {TaskStatus} from '@lit/task';
 import {customElement, property} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
+import './webstatus-overview-data-loader.js';
 import './webstatus-overview-filters.js';
-import './webstatus-overview-table.js';
 import './webstatus-overview-pagination.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
@@ -113,12 +113,12 @@ export class WebstatusOverviewContent extends LitElement {
         ></webstatus-overview-filters>
         <br />
 
-        <webstatus-overview-table
+        <webstatus-overview-data-loader
           .location=${this.location}
           .taskTracker=${this.taskTracker}
           .savedSearch=${savedSearch}
         >
-        </webstatus-overview-table>
+        </webstatus-overview-data-loader>
         <webstatus-overview-pagination
           .location=${this.location}
           .totalCount=${this.taskTracker.data?.metadata.total ?? 0}
