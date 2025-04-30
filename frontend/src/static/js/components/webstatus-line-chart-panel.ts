@@ -109,7 +109,7 @@ export interface FetchFunctionConfig<T> {
 }
 
 /**
- * Abstract base class for creating line `chart` panels to display web status data.
+ * Abstract base class for creating line chart panels to display web status data.
  * This class handles data processing, chart rendering using `webstatus-gchart`,
  * and provides a framework for custom controls and panel-specific logic.
  * Subclasses must implement abstract methods to define data loading,
@@ -165,9 +165,9 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   endDate!: Date;
 
   /**
-   * The processed data object for the chart, structured for `webstatus-gchart`.
+   * The processed data objects for each view of the chart, structured for `webstatus-gchart`.
    * @state
-   * @type {WebStatusDataObj | undefined}
+   * @type {Array<WebStatusDataObj | undefined>}
    */
   @state()
   data?: Array<WebStatusDataObj>;
@@ -189,20 +189,12 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   currentView: number = 0;
 
   /**
-   * The list of supported browsers for each tab of the chart.
+   * The list of supported browsers for each view of the chart.
    * @state
    * @type {ArrayArray<<BrowsersParameter>>}
    */
   @state()
   browsersByView: Array<Array<BrowsersParameter>> = [];
-
-  /**
-   * The data object for the tabbed view, structured for `webstatus-gchart`.
-   * @state
-   * @type {Array<Array<WebStatusDataObj>>}
-   */
-  @state()
-  tabbedData: Array<Array<WebStatusDataObj>> = [];
 
   // Selected data points on the chart.
   // If the chart ever re-draws due to resize or the encompassing component
@@ -253,8 +245,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   /**
-   * Returns the tabs present for the panel.
-   * @abstract
+   * Returns the view tabs to render for the panel.
    * @returns {TemplateResult} The mobile toggle element if enabled.
    */
   getTabs(): TemplateResult {
@@ -274,6 +265,9 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     >`;
   }
 
+  /**
+   * Update the selected point when selected/deselected, or the view has been changed.
+   */
   updatePoint(newPoint: google.visualization.ChartSelection[] | undefined) {
     this.chartSelection = newPoint;
   }
@@ -378,6 +372,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * Processes the input metric data and formats it into a `WebStatusDataObj`
    * suitable for the `webstatus-gchart` component.
    * @param {Array<LineChartMetricData<T>>} metricDataArray Array of metric data objects.
+   * @param {number} dataIndex Index of the data array to update.
    * @template T The data type of the metric data.
    */
   setDisplayDataFromMap<T>(
@@ -583,6 +578,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * rendering.
    *
    * @param fetchFunctionConfigs An array of fetch function configurations.
+   * @param dataIndex The index of the data array to update.
    * @param additionalSeriesConfigs An optional array of additional series configurations.
    * @event CustomEvent data-fetch-starting - Dispatched when data fetching starts.
    * @event DataFetchedEvent data-fetch-complete - Dispatched when data fetching is complete.
