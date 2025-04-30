@@ -35,9 +35,9 @@ import {
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
   readonly featureSupportBrowsers: BrowsersParameter[] = [
     'chrome',
-    'edge',
     'firefox',
     'safari',
+    'edge',
   ];
   readonly featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
   @property({type: String})

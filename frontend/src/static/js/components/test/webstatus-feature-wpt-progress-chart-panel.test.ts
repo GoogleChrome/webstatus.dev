@@ -166,10 +166,9 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     // 4 browsers and total.
     expect(options.colors).eql([
       '#34A853',
-      ,
-      '#0F9D58',
       '#F48400',
       '#4285F4',
+      '#7851A9',
       '#888888',
     ]);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);

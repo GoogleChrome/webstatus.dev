@@ -123,7 +123,7 @@ export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
     firefox_android: '#F48400',
     safari: '#4285F4',
     safari_ios: '#4285F4',
-    edge: '#0F9D58',
+    edge: '#7851A9',
     total: '#888888',
   };
 
