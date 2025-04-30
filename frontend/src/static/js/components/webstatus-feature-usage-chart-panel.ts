@@ -89,7 +89,7 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
           endDate === undefined
         )
           return;
-        this._populateDataForChart<ChromeUsageStat>(
+        await this._populateDataForChart<ChromeUsageStat>(
           this._createFetchFunctionConfigs(featureId, startDate, endDate),
         );
       },

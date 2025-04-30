@@ -55,9 +55,6 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   @state()
   browsers: BrowsersParameter[] = ALL_BROWSERS;
 
-  @state()
-  tabViews: Array<string> = ['Desktop', 'Mobile'];
-
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
@@ -88,29 +85,22 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        const fetchFunctionConfigs = this._createFetchFunctionConfigs(
-          startDate,
-          endDate,
-        );
-        const promises = fetchFunctionConfigs.map(configs => {
-          return this._populateDataForChart([
-            configs,
-            {
-              // Additional fetch function config for the "Total" series
-              label: 'Total number of Baseline features',
-              fetchFunction: () =>
-                this.apiClient.listAggregatedBaselineStatusCounts(
-                  startDate,
-                  endDate,
-                ),
-              timestampExtractor: (dataPoint: BaselineStatusMetric) =>
-                new Date(dataPoint.timestamp),
-              valueExtractor: (dataPoint: BaselineStatusMetric) =>
-                dataPoint.count ?? 0,
-            },
-          ]);
-        });
-        await Promise.all(promises);
+        await this._populateDataForChart([
+          ...this._createFetchFunctionConfigs(startDate, endDate),
+          {
+            // Additional fetch function config for the "Total" series
+            label: 'Total number of Baseline features',
+            fetchFunction: () =>
+              this.apiClient.listAggregatedBaselineStatusCounts(
+                startDate,
+                endDate,
+              ),
+            timestampExtractor: (dataPoint: BaselineStatusMetric) =>
+              new Date(dataPoint.timestamp),
+            valueExtractor: (dataPoint: BaselineStatusMetric) =>
+              dataPoint.count ?? 0,
+          },
+        ]);
       },
     });
   }
