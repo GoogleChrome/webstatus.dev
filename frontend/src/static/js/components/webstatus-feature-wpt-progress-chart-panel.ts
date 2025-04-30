@@ -26,13 +26,11 @@ import {
   STABLE_CHANNEL,
   WPTRunMetric,
 } from '../api/client.js';
-import {
-  FetchFunctionConfig,
-  WebstatusLineChartPanel,
-} from './webstatus-line-chart-panel.js';
+import {FetchFunctionConfig} from './webstatus-line-chart-panel.js';
+import {WebstatusLineChartTabbedPanel} from './webstatus-line-chart-tabbed-panel.js';
 
 @customElement('webstatus-feature-wpt-progress-chart-panel')
-export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPanel {
+export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTabbedPanel {
   readonly browsersByView: BrowsersParameter[][] = [
     ['chrome', 'firefox', 'safari', 'edge'],
     ['chrome_android', 'firefox_android', 'safari_ios'],
@@ -132,7 +130,7 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartPan
         );
         await Promise.all(
           fetchFunctionConfigs.map((configs, i) =>
-            this._fetchAndAggregateData(configs, i, [
+            this._populateDataForChartByView(configs, i, [
               // This additional series configuration calculates the "Total" series
               // by using the calculateMax method to find the maximum total_tests_count
               // across all browsers for each timestamp.

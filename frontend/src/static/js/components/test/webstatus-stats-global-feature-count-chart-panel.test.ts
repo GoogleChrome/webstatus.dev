@@ -38,11 +38,11 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     apiClientStub = stub(new APIClient(''));
     fetchAndAggregateDataStub = stub(
       WebstatusLineChartPanel.prototype,
-      '_fetchAndAggregateData',
+      '_populateDataForChart',
     );
     setDisplayDataFromMapStub = stub(
       WebstatusLineChartPanel.prototype,
-      'setDisplayDataFromMap',
+      'processDisplayDataFromMap',
     );
     el =
       await fixture<WebstatusStatsGlobalFeatureCountChartPanel>(testHtml`<webstatus-stats-global-feature-chart-panel

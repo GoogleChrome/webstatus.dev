@@ -39,7 +39,7 @@ import {
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
   @state()
-  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+  browsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
@@ -79,11 +79,11 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   getOtherBrowsersFromTargetBrowser(
     browser: BrowsersParameter,
   ): BrowsersParameter[] {
-    return this.supportedBrowsers.filter(value => browser !== value);
+    return this.browsers.filter(value => browser !== value);
   }
 
   private _createFetchFunctionConfigs(
-    browsers: BrowsersParameter[],
+    browser: BrowsersParameter,
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
@@ -114,14 +114,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        const fetchFunctionConfigs = this.browsersByView.map(browsers =>
-          this._createFetchFunctionConfigs(browsers, startDate, endDate),
+        const fetchFunctionConfigs = this.browsers.map(browser =>
+          this._createFetchFunctionConfigs(browser, startDate, endDate),
         );
-        await Promise.all(
-          fetchFunctionConfigs.map((configs, i) =>
-            this._fetchAndAggregateData(configs, i),
-          ),
-        );
+        return this._populateDataForChart(fetchFunctionConfigs);
       },
     });
   }
@@ -131,7 +127,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.browsersByView[this.currentView];
+    const selectedBrowsers = this.browsers;
     const seriesColors = [...selectedBrowsers].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];

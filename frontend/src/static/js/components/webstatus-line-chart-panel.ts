@@ -29,7 +29,6 @@ import {Task} from '@lit/task';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {BrowsersParameter} from '../api/client.js';
 
 /**
  * Interface defining the structure of metric data for the line chart.
@@ -167,34 +166,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   /**
    * The processed data objects for each view of the chart, structured for `webstatus-gchart`.
    * @state
-   * @type {Array<WebStatusDataObj | undefined>}
+   * @type {WebStatusDataObj | undefined}
    */
   @state()
-  data?: Array<WebStatusDataObj>;
-
-  /**
-   * Names of the tabs to be displayed in the panel.
-   * @state
-   * @type {Array<string>}
-   */
-  @state()
-  tabViews: Array<string> = [];
-
-  /**
-   * Indicates which tabbed view is active.
-   * @state
-   * @type {number}
-   */
-  @state()
-  currentView: number = 0;
-
-  /**
-   * The list of supported browsers for each view of the chart.
-   * @state
-   * @type {ArrayArray<<BrowsersParameter>>}
-   */
-  @state()
-  browsersByView: Array<Array<BrowsersParameter>> = [];
+  data?: WebStatusDataObj;
 
   // Selected data points on the chart.
   // If the chart ever re-draws due to resize or the encompassing component
@@ -238,32 +213,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {TemplateResult} The panel description text.
    */
   abstract getPanelDescription(): TemplateResult;
-
-  _handleTabClick(_: Event, index: number) {
-    this.resetPointSelectedTask();
-    this.currentView = index;
-  }
-
-  /**
-   * Returns the view tabs to render for the panel.
-   * @returns {TemplateResult} The mobile toggle element if enabled.
-   */
-  getTabs(): TemplateResult {
-    if (this.tabViews.length === 0) {
-      return html``;
-    }
-    return html`<sl-tab-group
-      >${this.tabViews.map(
-        (tab, index) =>
-          html`<sl-tab
-            slot="nav"
-            panel="${tab.toLowerCase()}"
-            @click=${(e: Event) => this._handleTabClick(e, index)}
-            >${tab}</sl-tab
-          >`,
-      )}</sl-tab-group
-    >`;
-  }
 
   /**
    * Update the selected point when selected/deselected, or the view has been changed.
@@ -369,16 +318,22 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   /**
+   * Update the formatted chart data.
+   * @param dataObj The new formatted chart data.
+   */
+  updateData(dataObj: WebStatusDataObj) {
+    this.data = dataObj;
+  }
+
+  /**
    * Processes the input metric data and formats it into a `WebStatusDataObj`
    * suitable for the `webstatus-gchart` component.
    * @param {Array<LineChartMetricData<T>>} metricDataArray Array of metric data objects.
-   * @param {number} dataIndex Index of the data array to update.
    * @template T The data type of the metric data.
    */
-  setDisplayDataFromMap<T>(
+  processDisplayDataFromMap<T>(
     metricDataArray: Array<LineChartMetricData<T>>,
-    dataIndex: number,
-  ) {
+  ): WebStatusDataObj {
     type dataEntryValueType = {value: number | null; tooltip: string | null};
     type dataEntryType = {[key: string]: dataEntryValueType};
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
@@ -441,10 +396,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       dataObj.rows.push(row);
     }
 
-    if (this.data === undefined) {
-      this.data = new Array(this.tabViews.length);
-    }
-    this.data[dataIndex] = dataObj;
+    return dataObj;
   }
 
   /**
@@ -523,7 +475,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           .containerId="${this.getPanelID()}-chart-container"
           .currentSelection=${this.chartSelection}
           .chartType="${'LineChart'}"
-          .dataObj="${this.data![this.currentView] || {}}"
+          .dataObj="${this.data}"
           .options="${this.generateDisplayDataChartOptions()}"
         >
           Loading chart...
@@ -569,13 +521,10 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   /**
-   * Fetches and aggregates data for the chart.
-   * This method takes an array of fetch function configurations and an optional
-   * array of additional series configurations. It fetches data for each fetch
-   * function configuration concurrently, then applies the additional series
-   * calculators to the fetched data. The processed data is then formatted into
-   * a `LineChartMetricData` array and passed to `setDisplayDataFromMap` for
-   * rendering.
+   * Populate the chart data based on a set of fetch function configurations.
+   * The processed data is then formatted into a `LineChartMetricData` array
+   * and passed to `processDisplayDataFromMap` to structure the data for the
+   * chart.
    *
    * @param fetchFunctionConfigs An array of fetch function configurations.
    * @param dataIndex The index of the data array to update.
@@ -585,11 +534,38 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    *    The `detail` property contains a map of
    *    `{ [label: string]: { data: T[] } }`.
    */
-  async _fetchAndAggregateData<T>(
+  async _populateDataForChart<T>(
     fetchFunctionConfigs: FetchFunctionConfig<T>[],
-    dataIndex: number,
     additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
   ) {
+    const metricDataArray = await this._getAggregatedData(
+      fetchFunctionConfigs,
+      additionalSeriesConfigs,
+    );
+
+    this.data = this.processDisplayDataFromMap(metricDataArray);
+  }
+
+  /**
+   * Fetches and aggregates data for the chart, returning the result.
+   * This method takes an array of fetch function configurations and an optional
+   * array of additional series configurations. It fetches data for each fetch
+   * function configuration concurrently, then applies the additional series
+   * calculators to the fetched data.
+   *
+   * @param fetchFunctionConfigs An array of fetch function configurations.
+   * @param dataIndex The index of the data array to update.
+   * @param additionalSeriesConfigs An optional array of additional series configurations.
+   * @event CustomEvent data-fetch-starting - Dispatched when data fetching starts.
+   * @event DataFetchedEvent data-fetch-complete - Dispatched when data fetching is complete.
+   *    The `detail` property contains a map of
+   *    `{ [label: string]: { data: T[] } }`.
+   * @return {Promise<LineChartMetricData<T>[]>} A promise that resolves to an array of `LineChartMetricData` objects.
+   */
+  async _getAggregatedData<T>(
+    fetchFunctionConfigs: FetchFunctionConfig<T>[],
+    additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
+  ): Promise<LineChartMetricData<T>[]> {
     // Create an array of metric data objects for each fetch function
     const metricDataArray: Array<LineChartMetricData<T>> =
       fetchFunctionConfigs.map(
@@ -666,7 +642,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       );
     }
 
-    this.setDisplayDataFromMap(metricDataArray, dataIndex);
+    return metricDataArray;
   }
 
   /**
@@ -860,7 +836,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           <div class="spacer"></div>
         </div>
         <div class="chart-description">${this.getPanelDescription()}</div>
-        <div>${this.getTabs()}</div>
         <div>${this.renderChart()}</div>
         ${this.renderPointSelectedDetails()}
       </sl-card>

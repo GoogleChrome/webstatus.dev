@@ -35,11 +35,11 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     apiClientStub = stub(new APIClient(''));
     setDisplayDataFromMapStub = stub(
       WebstatusLineChartPanel.prototype,
-      'setDisplayDataFromMap',
+      'processDisplayDataFromMap',
     );
     fetchAndAggregateDataStub = stub(
       WebstatusLineChartPanel.prototype,
-      '_fetchAndAggregateData',
+      '_populateDataForChart',
     );
     el = await fixture<WebstatusStatsMissingOneImplChartPanel>(
       testHtml`<webstatus-stats-missing-one-impl-chart-panel

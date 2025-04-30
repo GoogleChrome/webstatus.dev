@@ -151,14 +151,14 @@ describe('WebstatusLineChartPanel', () => {
       },
     ];
 
-    el.setDisplayDataFromMap(metricDataArray, 0);
-    expect(el.data![0]).to.exist;
-    expect(el.data![0].cols).to.deep.equal([
+    el.processDisplayDataFromMap(metricDataArray);
+    expect(el.data).to.exist;
+    expect(el.data!.cols).to.deep.equal([
       {type: 'date', label: 'Date', role: 'domain'},
       {type: 'number', label: 'Metric 1', role: 'data'},
       {type: 'number', label: 'Metric 2', role: 'data'},
     ]);
-    expect(el.data![0].rows).to.deep.equal([
+    expect(el.data!.rows).to.deep.equal([
       [new Date('2024-01-01'), 10, 15], // Values for both metrics on the same date
       [new Date('2024-01-02'), 20, 25], // Values for both metrics on the same date
       [new Date('2024-01-03'), null, 30], // Metric 1 is null because it has no data for 2024-01-03
@@ -210,7 +210,7 @@ describe('WebstatusLineChartPanel', () => {
     expect(errorMessage!.textContent).to.include('Error when loading chart');
   });
 
-  describe('_fetchAndAggregateData', () => {
+  describe('_populateDataForChart', () => {
     it('fetches data and applies additional series calculators', async () => {
       const fetchFunctionConfigs: FetchFunctionConfig<MetricDataPoint>[] = [
         {
@@ -248,21 +248,20 @@ describe('WebstatusLineChartPanel', () => {
           },
         ];
 
-      await el._fetchAndAggregateData(
+      await el._populateDataForChart(
         fetchFunctionConfigs,
-        0,
         additionalSeriesConfigs,
       );
       await el.updateComplete;
 
-      expect(el.data![0]).to.exist;
-      expect(el.data![0].cols).to.deep.equal([
+      expect(el.data).to.exist;
+      expect(el.data!.cols).to.deep.equal([
         {type: 'date', label: 'Date', role: 'domain'},
         {type: 'number', label: 'Metric 1', role: 'data'},
         {type: 'number', label: 'Metric 2', role: 'data'},
         {type: 'number', label: 'Total', role: 'data'}, // Check for the additional 'Total' column
       ]);
-      expect(el.data![0].rows).to.deep.equal([
+      expect(el.data!.rows).to.deep.equal([
         [new Date('2024-01-01'), 10, 15, 15], // Total should be 15 (max of 10 and 15)
         [new Date('2024-01-02'), 20, 25, 25], // Total should be 25 (max of 20 and 25)
         [new Date('2024-01-03'), null, 30, 30], // Max should be 30
@@ -284,7 +283,7 @@ describe('WebstatusLineChartPanel', () => {
       const startingListener = oneEvent(el, 'data-fetch-starting');
       const completeListener = oneEvent(el, 'data-fetch-complete');
 
-      await el._fetchAndAggregateData(fetchFunctionConfigs, 0);
+      await el._populateDataForChart(fetchFunctionConfigs);
 
       await startingListener;
       const {detail} = await completeListener;

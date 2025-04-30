@@ -23,8 +23,8 @@ import {
   FeatureWPTMetricViewType,
   WPTRunMetric,
 } from '../../api/client.js';
-import {WebstatusLineChartPanel} from '../webstatus-line-chart-panel.js';
 import '../webstatus-feature-wpt-progress-chart-panel.js';
+import {WebstatusLineChartTabbedPanel} from '../webstatus-line-chart-tabbed-panel.js';
 
 const startDate = new Date('2024-01-01');
 const endDate = new Date('2024-01-31');
@@ -51,8 +51,8 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
   beforeEach(async () => {
     apiClientStub = stub(new APIClient(''));
     fetchAndAggregateDataStub = stub(
-      WebstatusLineChartPanel.prototype,
-      '_fetchAndAggregateData',
+      WebstatusLineChartTabbedPanel.prototype,
+      '_populateDataForChartByView',
     );
     el = await createFixtureElement(startDate, endDate, DEFAULT_TEST_VIEW);
     el.apiClient = apiClientStub;
@@ -82,7 +82,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
     expect(el.dataFetchEndDate).to.deep.equal(new Date('2024-01-31'));
   });
 
-  it('calls _fetchAndAggregateData with correct configurations', async () => {
+  it('calls _populateDataForChartByView with correct configurations', async () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
       fetchAndAggregateDataStub.getCall(0).args;

@@ -40,7 +40,7 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.browsersByView[this.currentView];
+    const selectedBrowsers = this.browsers;
     const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
@@ -51,14 +51,9 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
       vAxisTitle: 'Number of features supported',
     };
   }
-  @state()
-  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   @state()
-  browsersByView: Array<Array<BrowsersParameter>> = [
-    ['chrome', 'firefox', 'safari'],
-    ['chrome_android', 'firefox_android', 'safari_ios'],
-  ];
+  browsers: BrowsersParameter[] = ALL_BROWSERS;
 
   @state()
   tabViews: Array<string> = ['Desktop', 'Mobile'];
@@ -97,26 +92,23 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
           startDate,
           endDate,
         );
-        const promises = fetchFunctionConfigs.map((configs, i) => {
-          return this._fetchAndAggregateData(
-            [
-              ...configs,
-              {
-                // Additional fetch function config for the "Total" series
-                label: 'Total number of Baseline features',
-                fetchFunction: () =>
-                  this.apiClient.listAggregatedBaselineStatusCounts(
-                    startDate,
-                    endDate,
-                  ),
-                timestampExtractor: (dataPoint: BaselineStatusMetric) =>
-                  new Date(dataPoint.timestamp),
-                valueExtractor: (dataPoint: BaselineStatusMetric) =>
-                  dataPoint.count ?? 0,
-              },
-            ],
-            i,
-          );
+        const promises = fetchFunctionConfigs.map(configs => {
+          return this._populateDataForChart([
+            configs,
+            {
+              // Additional fetch function config for the "Total" series
+              label: 'Total number of Baseline features',
+              fetchFunction: () =>
+                this.apiClient.listAggregatedBaselineStatusCounts(
+                  startDate,
+                  endDate,
+                ),
+              timestampExtractor: (dataPoint: BaselineStatusMetric) =>
+                new Date(dataPoint.timestamp),
+              valueExtractor: (dataPoint: BaselineStatusMetric) =>
+                dataPoint.count ?? 0,
+            },
+          ]);
         });
         await Promise.all(promises);
       },

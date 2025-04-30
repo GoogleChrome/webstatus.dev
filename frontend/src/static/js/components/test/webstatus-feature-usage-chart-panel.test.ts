@@ -33,7 +33,7 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     apiClientStub = stub(new APIClient(''));
     fetchAndAggregateDataStub = stub(
       WebstatusLineChartPanel.prototype,
-      '_fetchAndAggregateData',
+      '_populateDataForChart',
     );
     el = await fixture<WebstatusFeatureUsageChartPanel>(
       testHtml`<webstatus-feature-usage-chart-panel
@@ -69,7 +69,7 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     expect(el.dataFetchEndDate).to.deep.equal(new Date('2024-01-31'));
   });
 
-  it('calls _fetchAndAggregateData with correct configurations', async () => {
+  it('calls _populateDataForChart with correct configurations', async () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
       fetchAndAggregateDataStub.getCall(0).args;
