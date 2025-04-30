@@ -127,6 +127,16 @@ export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
     total: '#888888',
   };
 
+export const BROWSER_ID_TO_ICON_NAME: Record<BrowsersParameter, string> = {
+  chrome: 'chrome',
+  chrome_android: 'chrome',
+  firefox: 'firefox',
+  firefox_android: 'firefox',
+  safari: 'safari',
+  safari_ios: 'safari',
+  edge: 'edge',
+};
+
 export const CHANNEL_ID_TO_LABEL: Record<ChannelsParameter, string> = {
   stable: 'Stable',
   experimental: 'Experimental',

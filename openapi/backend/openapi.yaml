@@ -66,6 +66,12 @@ paths:
               - stable_edge_desc
               - stable_firefox_asc
               - stable_firefox_desc
+              - stable_chrome_android_asc
+              - stable_chrome_android_desc
+              - stable_firefox_android_asc
+              - stable_firefox_android_desc
+              - stable_safari_ios_asc
+              - stable_safari_ios_desc
               - experimental_chrome_asc
               - experimental_chrome_desc
               - experimental_safari_asc
@@ -74,6 +80,12 @@ paths:
               - experimental_edge_desc
               - experimental_firefox_asc
               - experimental_firefox_desc
+              - experimental_chrome_android_asc
+              - experimental_chrome_android_desc
+              - experimental_firefox_android_asc
+              - experimental_firefox_android_desc
+              - experimental_safari_ios_asc
+              - experimental_safari_ios_desc
               - chrome_usage_asc
               - chrome_usage_desc
               # availability_{browser}_{direction}
@@ -85,6 +97,12 @@ paths:
               - availability_firefox_desc
               - availability_safari_asc
               - availability_safari_desc
+              - availability_chrome_android_asc
+              - availability_chrome_android_desc
+              - availability_firefox_android_asc
+              - availability_firefox_android_desc
+              - availability_safari_ios_asc
+              - availability_safari_ios_desc
       responses:
         '200':
           description: OK
