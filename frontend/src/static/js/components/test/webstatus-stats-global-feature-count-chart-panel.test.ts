@@ -81,10 +81,10 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
       fetchAndAggregateDataStub.getCall(0).args;
-    expect(fetchFunctionConfigs.length).to.equal(8); // 7 browsers + total
+    expect(fetchFunctionConfigs.length).to.equal(4); // 3 browsers + total
     // Test Chrome configuration
     const chromeConfig = fetchFunctionConfigs[0];
-    expect(chromeConfig.label).to.equal('Chrome');
+    expect(chromeConfig.label).to.equal('Chrome/Edge');
     expect(chromeConfig.fetchFunction).to.be.a('function');
     const chromeTestDataPoint: BrowserReleaseFeatureMetric = {
       timestamp: '2024-01-01',
@@ -121,21 +121,8 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
     );
     expect(safariConfig.valueExtractor(safariTestDataPoint)).to.equal(7);
 
-    // Test Edge configuration
-    const edgeConfig = fetchFunctionConfigs[3];
-    expect(edgeConfig.label).to.equal('Edge');
-    expect(edgeConfig.fetchFunction).to.be.a('function');
-    const edgeTestDataPoint: BrowserReleaseFeatureMetric = {
-      timestamp: '2024-01-01',
-      count: 8,
-    };
-    expect(edgeConfig.timestampExtractor(edgeTestDataPoint)).to.deep.equal(
-      new Date('2024-01-01'),
-    );
-    expect(edgeConfig.valueExtractor(edgeTestDataPoint)).to.equal(8);
-
     // Test Total configuration
-    const totalConfig = fetchFunctionConfigs[7];
+    const totalConfig = fetchFunctionConfigs[3];
     expect(totalConfig.label).to.equal('Total number of Baseline features');
     expect(totalConfig.fetchFunction).to.be.a('function');
     const totalTestDataPoint: BaselineStatusMetric = {
@@ -156,16 +143,7 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
 
     // Check colors based on browsers displayed.
     // 4 browsers and total.
-    expect(options.colors).eql([
-      '#FF0000',
-      '#F48400',
-      '#4285F4',
-      '#0F9D58',
-      '#FF0000',
-      '#F48400',
-      '#4285F4',
-      '#888888',
-    ]);
+    expect(options.colors).eql(['#34A853', '#F48400', '#4285F4', '#888888']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,

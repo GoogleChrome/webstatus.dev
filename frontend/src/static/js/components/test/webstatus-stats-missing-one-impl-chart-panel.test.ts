@@ -81,11 +81,11 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs] = fetchAndAggregateDataStub.getCall(0).args;
 
-    expect(fetchFunctionConfigs.length).to.equal(4); // 4 browsers
+    expect(fetchFunctionConfigs.length).to.equal(3); // 3 browsers
 
     // Test Chrome configuration
     const chromeConfig = fetchFunctionConfigs[0];
-    expect(chromeConfig.label).to.equal('Chrome');
+    expect(chromeConfig.label).to.equal('Chrome/Edge');
     expect(chromeConfig.fetchFunction).to.be.a('function');
     await chromeConfig.fetchFunction();
     expect(
@@ -105,30 +105,8 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     );
     expect(chromeConfig.valueExtractor(chromeTestDataPoint)).to.equal(10);
 
-    // Test Edge configuration
-    const edgeConfig = fetchFunctionConfigs[1];
-    expect(edgeConfig.label).to.equal('Edge');
-    expect(edgeConfig.fetchFunction).to.be.a('function');
-    await edgeConfig.fetchFunction();
-    expect(
-      apiClientStub.getMissingOneImplementationCountsForBrowser,
-    ).to.have.been.calledWith(
-      'edge',
-      ['firefox', 'safari'],
-      new Date('2023-12-02'),
-      new Date('2024-01-31'),
-    );
-    const edgeTestDataPoint: BrowserReleaseFeatureMetric = {
-      timestamp: '2024-01-01',
-      count: 10,
-    };
-    expect(edgeConfig.timestampExtractor(edgeTestDataPoint)).to.deep.equal(
-      new Date('2024-01-01'),
-    );
-    expect(edgeConfig.valueExtractor(edgeTestDataPoint)).to.equal(10);
-
     // Test Firefox configuration
-    const firefoxConfig = fetchFunctionConfigs[2];
+    const firefoxConfig = fetchFunctionConfigs[1];
     expect(firefoxConfig.label).to.equal('Firefox');
     expect(firefoxConfig.fetchFunction).to.be.a('function');
     await firefoxConfig.fetchFunction();
@@ -136,7 +114,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       apiClientStub.getMissingOneImplementationCountsForBrowser,
     ).to.have.been.calledWith(
       'firefox',
-      ['chrome', 'edge', 'safari'],
+      ['chrome', 'safari'],
       new Date('2023-12-02'),
       new Date('2024-01-31'),
     );
@@ -150,7 +128,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     expect(firefoxConfig.valueExtractor(firefoxTestDataPoint)).to.equal(9);
 
     // Test Safari configuration
-    const safariConfig = fetchFunctionConfigs[3];
+    const safariConfig = fetchFunctionConfigs[2];
     expect(safariConfig.label).to.equal('Safari');
     expect(safariConfig.fetchFunction).to.be.a('function');
     await safariConfig.fetchFunction();
@@ -158,7 +136,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       apiClientStub.getMissingOneImplementationCountsForBrowser,
     ).to.have.been.calledWith(
       'safari',
-      ['chrome', 'edge', 'firefox'],
+      ['chrome', 'firefox'],
       new Date('2023-12-02'),
       new Date('2024-01-31'),
     );
@@ -175,7 +153,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
   it('generates chart options correctly', () => {
     const options = el.generateDisplayDataChartOptions();
     expect(options.vAxis?.title).to.equal('Number of features missing');
-    expect(options.colors).eql(['#FF0000', '#0F9D58', '#F48400', '#4285F4']);
+    expect(options.colors).eql(['#34A853', '#F48400', '#4285F4']);
     expect(options.hAxis?.viewWindow?.min).to.deep.equal(el.startDate);
     const expectedEndDate = new Date(
       el.endDate.getTime() + 1000 * 60 * 60 * 24,
@@ -338,7 +316,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       apiClientStub.getMissingOneImplementationFeatures,
     ).to.have.been.calledWith(
       'safari',
-      ['chrome', 'edge', 'firefox'],
+      ['chrome', 'firefox'],
       new Date('2024-01-01'),
     );
 
@@ -361,30 +339,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       apiClientStub.getMissingOneImplementationFeatures,
     ).to.have.been.calledWith(
       'firefox',
-      ['chrome', 'edge', 'safari'],
-      new Date('2024-01-01'),
-    );
-
-    const chartClickEventTwo: ChartSelectPointEvent = new CustomEvent(
-      'point-selected',
-      {
-        detail: {
-          label: 'Edge',
-          timestamp: new Date('2024-01-01'),
-          value: 123,
-        },
-        bubbles: true,
-      },
-    );
-    chart.dispatchEvent(chartClickEventTwo);
-    await el.updateComplete;
-
-    expect(el._pointSelectedTask).to.exist;
-    expect(
-      apiClientStub.getMissingOneImplementationFeatures,
-    ).to.have.been.calledWith(
-      'edge',
-      ['firefox', 'safari'],
+      ['chrome', 'safari'],
       new Date('2024-01-01'),
     );
 

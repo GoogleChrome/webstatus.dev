@@ -24,9 +24,9 @@ import {
   BrowserReleaseFeatureMetric,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
-  BROWSER_ID_TO_LABEL,
   BROWSER_LABEL_TO_ID,
   MissingOneImplFeaturesList,
+  BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, state} from 'lit/decorators.js';
@@ -39,12 +39,7 @@ import {
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
   @state()
-  supportedBrowsers: BrowsersParameter[] = [
-    'chrome',
-    'edge',
-    'firefox',
-    'safari',
-  ];
+  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
@@ -84,10 +79,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   getOtherBrowsersFromTargetBrowser(
     browser: BrowsersParameter,
   ): BrowsersParameter[] {
-    if (browser === 'safari' || browser === 'firefox') {
-      return this.supportedBrowsers.filter(value => browser !== value);
-    }
-    return ['firefox', 'safari'];
+    return this.supportedBrowsers.filter(value => browser !== value);
   }
 
   private _createFetchFunctionConfigs(
@@ -95,22 +87,26 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return browsers.map(browser => ({
-      label: BROWSER_ID_TO_LABEL[browser],
-      fetchFunction: () => {
-        const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(browser);
-        return this.apiClient.getMissingOneImplementationCountsForBrowser(
-          browser,
-          otherBrowsers,
-          startDate,
-          endDate,
-        );
-      },
-      timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        new Date(dataPoint.timestamp),
-      valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        dataPoint.count ?? 0,
-    }));
+    return browsers.map(browser => {
+      const label =
+        browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
+      return {
+        label,
+        fetchFunction: () => {
+          const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(browser);
+          return this.apiClient.getMissingOneImplementationCountsForBrowser(
+            browser,
+            otherBrowsers,
+            startDate,
+            endDate,
+          );
+        },
+        timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+          new Date(dataPoint.timestamp),
+        valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+          dataPoint.count ?? 0,
+      };
+    });
   }
 
   createLoadingTask(): Task {

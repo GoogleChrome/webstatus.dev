@@ -23,7 +23,6 @@ import {
 import {
   BrowserReleaseFeatureMetric,
   BaselineStatusMetric,
-  ALL_BROWSERS,
   BrowsersParameter,
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
@@ -53,21 +52,29 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
     };
   }
   @state()
-  supportedBrowsers: BrowsersParameter[] = ALL_BROWSERS;
+  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return ALL_BROWSERS.map(browser => ({
-      label: BROWSER_ID_TO_LABEL[browser],
-      fetchFunction: () =>
-        this.apiClient.getFeatureCountsForBrowser(browser, startDate, endDate),
-      timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        new Date(dataPoint.timestamp),
-      valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
-        dataPoint.count ?? 0,
-    }));
+    return this.supportedBrowsers.map(browser => {
+      const label =
+        browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
+      return {
+        label,
+        fetchFunction: () =>
+          this.apiClient.getFeatureCountsForBrowser(
+            browser,
+            startDate,
+            endDate,
+          ),
+        timestampExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+          new Date(dataPoint.timestamp),
+        valueExtractor: (dataPoint: BrowserReleaseFeatureMetric) =>
+          dataPoint.count ?? 0,
+      };
+    });
   }
 
   createLoadingTask(): Task {

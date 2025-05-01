@@ -117,13 +117,13 @@ export const BROWSER_LABEL_TO_ID: Record<string, BrowsersParameter> =
 
 export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
   {
-    chrome: '#FF0000',
-    chrome_android: '#FF0000',
+    chrome: '#34A853',
+    chrome_android: '#34A853',
     firefox: '#F48400',
     firefox_android: '#F48400',
     safari: '#4285F4',
     safari_ios: '#4285F4',
-    edge: '#0F9D58',
+    edge: '#7851A9',
     total: '#888888',
   };
 
