@@ -151,14 +151,15 @@ describe('WebstatusLineChartPanel', () => {
       },
     ];
 
-    el.processDisplayDataFromMap(metricDataArray);
-    expect(el.data).to.exist;
-    expect(el.data!.cols).to.deep.equal([
+    const formattedMetricData = el.processDisplayDataFromMap(metricDataArray);
+    expect(formattedMetricData).to.exist;
+
+    expect(formattedMetricData.cols).to.deep.equal([
       {type: 'date', label: 'Date', role: 'domain'},
       {type: 'number', label: 'Metric 1', role: 'data'},
       {type: 'number', label: 'Metric 2', role: 'data'},
     ]);
-    expect(el.data!.rows).to.deep.equal([
+    expect(formattedMetricData.rows).to.deep.equal([
       [new Date('2024-01-01'), 10, 15], // Values for both metrics on the same date
       [new Date('2024-01-02'), 20, 25], // Values for both metrics on the same date
       [new Date('2024-01-03'), null, 30], // Metric 1 is null because it has no data for 2024-01-03

@@ -114,7 +114,9 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
           .containerId="${this.getPanelID()}-chart-container"
           .currentSelection=${this.chartSelection}
           .chartType="${'LineChart'}"
-          .dataObj="${this.dataByView![this.currentView]}"
+          .dataObj="${this.dataByView
+            ? this.dataByView[this.currentView]
+            : undefined}"
           .options="${this.generateDisplayDataChartOptions()}"
         >
           Loading chart...

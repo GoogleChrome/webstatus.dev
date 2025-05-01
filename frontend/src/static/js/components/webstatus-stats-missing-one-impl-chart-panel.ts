@@ -83,11 +83,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   }
 
   private _createFetchFunctionConfigs(
-    browser: BrowsersParameter,
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return browsers.map(browser => {
+    return this.browsers.map(browser => {
       const label =
         browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
       return {
@@ -114,10 +113,11 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        const fetchFunctionConfigs = this.browsers.map(browser =>
-          this._createFetchFunctionConfigs(browser, startDate, endDate),
+        const fetchFunctionConfigs = this._createFetchFunctionConfigs(
+          startDate,
+          endDate,
         );
-        return this._populateDataForChart(fetchFunctionConfigs);
+        await this._populateDataForChart(fetchFunctionConfigs);
       },
     });
   }
