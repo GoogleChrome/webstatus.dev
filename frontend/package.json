@@ -16,8 +16,8 @@
     "postinstall": "./scripts/postinstall.js",
     "start": "node dist/server/index.js",
     "cp-imgs": "mkdir -p build/public/img && cp -v -r src/static/img/* build/public/img && cp -v .postinstall/static/img/* build/public/img",
-    "test": "npm run build && npm run cp-imgs && wtr --coverage",
-    "test:watch": "npm run build && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage\" "
+    "test": "BUILD_ENV=local npm run build && npm run cp-imgs && wtr --coverage",
+    "test:watch": "BUILD_ENV=local npm run build && concurrently -k --raw \"tsc --watch --preserveWatchOutput\"  \"wtr --watch --coverage\" "
   },
   "devDependencies": {
     "@browser-logos/chrome": "^2.0.0",

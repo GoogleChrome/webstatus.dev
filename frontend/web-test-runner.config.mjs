@@ -34,12 +34,12 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   },
 
   // in a monorepo you need to set the root dir to resolve modules
-  rootDir: 'build/',
+  rootDir: '.',
 
   files: [
     // Have to compile tests
     // Taken from https://github.com/open-wc/create/blob/master/src/generators/testing-wtr-ts/templates/static/web-test-runner.config.mjs
-    '**/test/*.test.js',
+    'build/**/test/*.test.js',
   ],
   testRunnerHtml: testFramework => `
   <html>
