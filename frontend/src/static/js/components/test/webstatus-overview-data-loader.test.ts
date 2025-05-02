@@ -79,11 +79,11 @@ describe('webstatus-overview-data-loader', () => {
     const location = {search: '?q=name:test3 OR id:test1 OR id:test2'};
     const component: WebstatusOverviewDataLoader =
       await fixture<WebstatusOverviewDataLoader>(
-        html`<webstatus-overview-table
+        html`<webstatus-overview-data-loader
           .location=${location}
           .savedSearch=${orderedSavedSearch}
           .taskTracker=${taskTracker}
-        ></webstatus-overview-table>`,
+        ></webstatus-overview-data-loader>`,
       );
     await component.updateComplete;
     assert.instanceOf(component, WebstatusOverviewDataLoader);
@@ -177,11 +177,11 @@ describe('webstatus-overview-data-loader', () => {
     const location = {search: `?q=${cssQuery}`};
     const component: WebstatusOverviewDataLoader =
       await fixture<WebstatusOverviewDataLoader>(
-        html`<webstatus-overview-table
+        html`<webstatus-overview-data-loader
           .location=${location}
           .savedSearch=${cssSavedSearch}
           .taskTracker=${cssTaskTracker}
-        ></webstatus-overview-table>`,
+        ></webstatus-overview-data-loader>`,
       );
     await component.updateComplete;
     assert.instanceOf(component, WebstatusOverviewDataLoader);
@@ -208,11 +208,11 @@ describe('webstatus-overview-data-loader', () => {
   it('reorderByQueryTerms() return undefined when query is not ordered', async () => {
     const location = {search: 'id:nothing'};
     const component = await fixture<WebstatusOverviewDataLoader>(
-      html`<webstatus-overview-table
+      html`<webstatus-overview-data-loader
         .location=${location}
         .savedSearch=${defaultOrderSavedSearch}
         .taskTracker=${taskTracker}
-      ></webstatus-overview-table>`,
+      ></webstatus-overview-data-loader>`,
     );
     await component.updateComplete;
     assert.instanceOf(component, WebstatusOverviewDataLoader);
