@@ -89,7 +89,7 @@ port-forward-manual: port-forward-terminate
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
 	$(call wait_for_port,5555,frontend,/)
-	$(call wait_for_port,8080,backend,/v1/features)
+	$(call wait_for_port,8080,backend,/v1/features?page_size=1)
 	$(call wait_for_port,9099,auth-main,/)
 	$(call wait_for_port,9100,auth-aux,/)
 
