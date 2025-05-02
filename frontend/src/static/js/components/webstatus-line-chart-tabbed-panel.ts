@@ -39,27 +39,17 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
 
   /**
    * Names of the tabs to be displayed in the panel.
-   * @state
+   * @abstract
    * @type {Array<string>}
    */
-  @state()
-  tabViews: Array<string> = [];
-
-  /**
-   * Indicates which tabbed view is active.
-   * @state
-   * @type {number}
-   */
-  @state()
-  currentView: number = 0;
+  abstract tabViews: Array<string>;
 
   /**
    * The list of supported browsers for each view of the chart.
-   * @state
+   * @abstract
    * @type {ArrayArray<<BrowsersParameter>>}
    */
-  @state()
-  browsersByView: Array<Array<BrowsersParameter>> = [];
+  abstract browsersByView: Array<Array<BrowsersParameter>>;
 
   _handleTabClick() {
     this.resetPointSelectedTask();
@@ -126,12 +116,52 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
           .containerId="${this.getPanelID()}-${view}-chart-container"
           .chartType="${'LineChart'}"
           .dataObj="${this.dataByView ? this.dataByView[view] : undefined}"
-          .options="${this.generateDisplayDataChartOptions()}"
+          .options="${this.generateDisplayDataChartOptionsByView(view)}"
         >
           Loading chart...
         </webstatus-gchart>
       </div>
     `;
+  }
+
+  generateDisplayDataChartOptionsByView(
+    view: number,
+  ): google.visualization.LineChartOptions {
+    const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput(
+      this.browsersByView[view],
+    );
+    // Add one day to this.endDate.
+    const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
+    const options: google.visualization.LineChartOptions = {
+      height: 300, // This is necessary to avoid shrinking to 0 or 18px.
+      hAxis: {
+        title: '',
+        titleTextStyle: {color: '#333'},
+        viewWindow: {min: this.startDate, max: endDate},
+      },
+      vAxis: {
+        minValue: 0,
+        title: vAxisTitle,
+        format: '#,###',
+      },
+      legend: {position: 'top'},
+      colors: seriesColors,
+      chartArea: {left: 100, right: 16, top: 40, bottom: 40},
+
+      interpolateNulls: true,
+
+      // Enable explorer mode
+      explorer: {
+        actions: ['dragToZoom', 'rightClickToReset'],
+        axis: 'horizontal',
+        keepInBounds: true,
+        maxZoomIn: 4,
+        maxZoomOut: 4,
+        zoomDelta: 0.01,
+      },
+    };
+
+    return options;
   }
 
   /**
@@ -150,7 +180,7 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
     dataIndex: number,
     additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
   ) {
-    const metricDataArray = await this._getAggregatedData(
+    const metricDataArray = await this._fetchAndAggregateData(
       fetchFunctionConfigs,
       additionalSeriesConfigs,
     );

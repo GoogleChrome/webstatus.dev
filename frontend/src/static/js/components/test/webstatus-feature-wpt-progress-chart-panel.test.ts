@@ -216,7 +216,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
   });
 
   it('generates chart options correctly', () => {
-    const options = el.generateDisplayDataChartOptions();
+    const options = el.generateDisplayDataChartOptionsByView(0);
     // Check colors based on browsers displayed.
     // 4 browsers and total.
     expect(options.colors).eql([
@@ -239,7 +239,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       el = await createFixtureElement(startDate, endDate, 'test_counts');
       el.apiClient = apiClientStub;
       await el.updateComplete;
-      const options = el.generateDisplayDataChartOptions();
+      const options = el.generateDisplayDataChartOptionsByView(0);
       expect(options.vAxis?.title).to.equal('Number of tests passed');
       // Call method for both desktop and mobile views.
       expect(populateDataForChartByViewStub).to.have.been.calledTwice;
@@ -255,7 +255,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       el = await createFixtureElement(startDate, endDate, 'subtest_counts');
       el.apiClient = apiClientStub;
       await el.updateComplete;
-      const options = el.generateDisplayDataChartOptions();
+      const options = el.generateDisplayDataChartOptionsByView(0);
       expect(options.vAxis?.title).to.equal('Number of subtests passed');
       // Call method for both desktop and mobile views.
       expect(populateDataForChartByViewStub).to.have.been.calledTwice;

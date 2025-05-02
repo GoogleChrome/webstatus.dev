@@ -26,6 +26,7 @@ import {WebStatusDataObj, WebstatusGChart} from '../webstatus-gchart.js';
 import {TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {createMockIterator, taskUpdateComplete} from './test-helpers.js';
+import {BrowsersParameter} from '../../api/client.js';
 
 // Interface for the data used in LineChartMetricData
 interface MetricDataPoint {
@@ -35,6 +36,8 @@ interface MetricDataPoint {
 
 @customElement('test-line-chart-panel')
 class TestLineChartPanel extends WebstatusLineChartPanel {
+  browsers: BrowsersParameter[] = [];
+
   resolveTask!: (value: WebStatusDataObj) => void;
   rejectTask!: (reason: Error) => void;
   resolvePointSelectedTask!: (value: unknown) => void;
@@ -88,7 +91,7 @@ class TestLineChartPanel extends WebstatusLineChartPanel {
     return html``;
   }
 
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput(_browsers: BrowsersParameter[]): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   } {

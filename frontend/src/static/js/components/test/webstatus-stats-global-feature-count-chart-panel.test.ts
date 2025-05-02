@@ -29,18 +29,18 @@ import '../webstatus-stats-global-feature-count-chart-panel.js';
 describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
   let el: WebstatusStatsGlobalFeatureCountChartPanel;
   let apiClientStub: SinonStubbedInstance<APIClient>;
-  let setDisplayDataFromMapStub: SinonStub;
-  let fetchAndAggregateDataStub: SinonStub;
+  let processDisplayDataFromMapStub: SinonStub;
+  let populateDataForChartStub: SinonStub;
   const startDate = new Date('2024-01-01');
   const endDate = new Date('2024-01-31');
 
   beforeEach(async () => {
     apiClientStub = stub(new APIClient(''));
-    fetchAndAggregateDataStub = stub(
+    populateDataForChartStub = stub(
       WebstatusLineChartPanel.prototype,
       '_populateDataForChart',
     );
-    setDisplayDataFromMapStub = stub(
+    processDisplayDataFromMapStub = stub(
       WebstatusLineChartPanel.prototype,
       'processDisplayDataFromMap',
     );
@@ -54,8 +54,8 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
   });
 
   afterEach(() => {
-    setDisplayDataFromMapStub.restore();
-    fetchAndAggregateDataStub.restore();
+    processDisplayDataFromMapStub.restore();
+    populateDataForChartStub.restore();
   });
 
   it('renders the card', async () => {
@@ -78,9 +78,9 @@ describe('WebstatusStatsGlobalFeatureCountChartPanel', () => {
   });
 
   it('calls _fetchAndAggregateData with correct arguments', async () => {
-    expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
+    expect(populateDataForChartStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
-      fetchAndAggregateDataStub.getCall(0).args;
+      populateDataForChartStub.getCall(0).args;
     expect(fetchFunctionConfigs.length).to.equal(4); // 3 browsers + total
     // Test Chrome configuration
     const chromeConfig = fetchFunctionConfigs[0];

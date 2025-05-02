@@ -96,11 +96,6 @@ export class WebstatusGChart extends LitElement {
   // re-drawing, we need to manually set the current selection.
   currentSelection: google.visualization.ChartSelection[] | undefined;
 
-  @property({attribute: false})
-  updatePoint: (
-    selection: google.visualization.ChartSelection[] | undefined,
-  ) => void = () => {};
-
   @property({state: true, type: Object})
   dataTable:
     | google.visualization.DataTable

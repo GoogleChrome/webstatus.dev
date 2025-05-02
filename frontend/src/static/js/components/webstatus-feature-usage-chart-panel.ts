@@ -112,12 +112,12 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
     return html`${nothing}`;
   }
 
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const seriesColors = this.browsers.map(browser => {
+    const seriesColors = browsers.map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
     });

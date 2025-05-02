@@ -31,6 +31,8 @@ import {WebstatusLineChartTabbedPanel} from './webstatus-line-chart-tabbed-panel
 
 @customElement('webstatus-feature-wpt-progress-chart-panel')
 export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTabbedPanel {
+  readonly browsers: BrowsersParameter[] = [];
+
   readonly browsersByView: BrowsersParameter[][] = [
     ['chrome', 'firefox', 'safari', 'edge'],
     ['chrome_android', 'firefox_android', 'safari_ios'],
@@ -170,15 +172,12 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTab
   }
 
   override readonly hasMax: boolean = true;
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const seriesColors = [
-      ...this.browsersByView[this.currentView],
-      'total',
-    ].map(browser => {
+    const seriesColors = [...browsers, 'total'].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
     });

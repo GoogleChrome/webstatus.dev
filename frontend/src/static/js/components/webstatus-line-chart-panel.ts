@@ -29,6 +29,7 @@ import {Task} from '@lit/task';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {BrowsersParameter} from '../api/client.js';
 
 /**
  * Interface defining the structure of metric data for the line chart.
@@ -115,6 +116,13 @@ export interface FetchFunctionConfig<T> {
  * panel identification, text display, and chart options.
  */
 export abstract class WebstatusLineChartPanel extends LitElement {
+  /**
+   * The list of supported browsers for the chart.
+   * @abstract
+   * @type {Array<BrowsersParameter>}
+   */
+  abstract browsers: Array<BrowsersParameter>;
+
   /**
    * The start date used to fetch data.
    * Currently, we fetch more data so that the chart has more data.
@@ -217,10 +225,11 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
   /**
    * Returns the input for generating chart options.
+   * @param {BrowsersParameter[]} browsers The list of browsers to be displayed.
    * @abstract
    * @returns {{seriesColors: Array<string>; vAxisTitle: string;}} Chart options input.
    */
-  abstract getDisplayDataChartOptionsInput(): {
+  abstract getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   };
@@ -302,14 +311,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
         }
       `,
     ];
-  }
-
-  /**
-   * Update the formatted chart data.
-   * @param dataObj The new formatted chart data.
-   */
-  updateData(dataObj: WebStatusDataObj) {
-    this.data = dataObj;
   }
 
   /**
@@ -470,7 +471,9 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   generateDisplayDataChartOptions(): google.visualization.LineChartOptions {
-    const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput();
+    const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput(
+      this.browsers,
+    );
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options: google.visualization.LineChartOptions = {
@@ -523,7 +526,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
     fetchFunctionConfigs: FetchFunctionConfig<T>[],
     additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
   ) {
-    const metricDataArray = await this._getAggregatedData(
+    const metricDataArray = await this._fetchAndAggregateData(
       fetchFunctionConfigs,
       additionalSeriesConfigs,
     );
@@ -532,25 +535,24 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   /**
-   * Fetches and aggregates data for the chart, returning the result.
+   * Fetches and aggregates data for the chart.
    * This method takes an array of fetch function configurations and an optional
    * array of additional series configurations. It fetches data for each fetch
    * function configuration concurrently, then applies the additional series
-   * calculators to the fetched data.
+   * calculators to the fetched data. The processed data is then formatted into
+   * a `LineChartMetricData` array and returned.
    *
    * @param fetchFunctionConfigs An array of fetch function configurations.
-   * @param dataIndex The index of the data array to update.
    * @param additionalSeriesConfigs An optional array of additional series configurations.
    * @event CustomEvent data-fetch-starting - Dispatched when data fetching starts.
    * @event DataFetchedEvent data-fetch-complete - Dispatched when data fetching is complete.
    *    The `detail` property contains a map of
    *    `{ [label: string]: { data: T[] } }`.
-   * @return {Promise<LineChartMetricData<T>[]>} A promise that resolves to an array of `LineChartMetricData` objects.
    */
-  async _getAggregatedData<T>(
+  async _fetchAndAggregateData<T>(
     fetchFunctionConfigs: FetchFunctionConfig<T>[],
     additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
-  ): Promise<LineChartMetricData<T>[]> {
+  ) {
     // Create an array of metric data objects for each fetch function
     const metricDataArray: Array<LineChartMetricData<T>> =
       fetchFunctionConfigs.map(

@@ -35,12 +35,12 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   // https://github.com/mdn/browser-compat-data/blob/92d6876b420b0e6e69eb61256ed04827c9889063/browsers/edge.json#L53-L66
   // Set offset to -500 days.
   override dataFetchStartDateOffsetMsec: number = -500 * 24 * 60 * 60 * 1000;
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.browsers;
+    const selectedBrowsers = browsers;
     const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];

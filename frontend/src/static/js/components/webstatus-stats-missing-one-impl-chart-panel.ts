@@ -122,12 +122,12 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     });
   }
 
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.browsers;
+    const selectedBrowsers = browsers;
     const seriesColors = [...selectedBrowsers].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
