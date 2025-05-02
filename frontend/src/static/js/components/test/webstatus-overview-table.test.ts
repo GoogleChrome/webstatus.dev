@@ -16,7 +16,6 @@
 
 import {fixture, html, assert} from '@open-wc/testing';
 import {WebstatusOverviewTable} from '../webstatus-overview-table.js';
-import 'webstatus';
 
 describe('webstatus-overview-table', () => {
   it('renders with no data', async () => {
