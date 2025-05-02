@@ -174,6 +174,7 @@ export class WebstatusOverviewTable extends LitElement {
     if (this.isLoading) {
       return this.renderBodyWhenPending(columns);
     }
+    // If the data is not available, and not loading, then we have an error.
     if (this.data === undefined) {
       return this.renderBodyWhenError(columns);
     }
