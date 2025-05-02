@@ -171,12 +171,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   @state()
   data?: WebStatusDataObj;
 
-  // Selected data points on the chart.
-  // If the chart ever re-draws due to resize or the encompassing component
-  // re-drawing, we need to manually set the current selection.
-  @state()
-  chartSelection?: google.visualization.ChartSelection[];
-
   /**
    * The API client for fetching web status data. Injected via context.
    * @consume
@@ -213,13 +207,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @returns {TemplateResult} The panel description text.
    */
   abstract getPanelDescription(): TemplateResult;
-
-  /**
-   * Update the selected point when selected/deselected, or the view has been changed.
-   */
-  updatePoint(newPoint: google.visualization.ChartSelection[] | undefined) {
-    this.chartSelection = newPoint;
-  }
 
   /**
    * Renders the controls for the panel (e.g., dropdowns, buttons).
@@ -470,10 +457,8 @@ export abstract class WebstatusLineChartPanel extends LitElement {
           id="${this.getPanelID()}-chart"
           @point-selected=${this.handlePointSelected}
           @point-deselected=${this.handlePointDeselected}
-          .updatePoint=${this.updatePoint}
           .hasMax=${this.hasMax}
           .containerId="${this.getPanelID()}-chart-container"
-          .currentSelection=${this.chartSelection}
           .chartType="${'LineChart'}"
           .dataObj="${this.data}"
           .options="${this.generateDisplayDataChartOptions()}"
@@ -729,7 +714,6 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   resetPointSelectedTask() {
     // Reset the point selected task
     this._pointSelectedTask = undefined;
-    this.chartSelection = [];
     this._renderCustomPointSelectedSuccess = undefined;
   }
 

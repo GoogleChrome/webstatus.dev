@@ -25,7 +25,7 @@ test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
 
   // Wait for the chart container to exist
-  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
 
   // Wait specifically for the "Baseline since" text
   await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
@@ -36,13 +36,13 @@ test('matches the screenshot', async ({page}) => {
 
 test('chart width resizes with window', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
-  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
   await page.waitForTimeout(1000);
   const narrowWidth = 1000;
   const wideWidth = 1200;
   const height = 1000;
   const chartContainer = page.locator(
-    '#feature-wpt-implementation-progress-complete',
+    '#feature-wpt-implementation-progress-0-complete',
   );
 
   // Resize to narrow width
@@ -68,9 +68,24 @@ test('chart width resizes with window', async ({page}) => {
   await expect(chartContainer).toHaveScreenshot();
 });
 
+test('mobile chart displays on click and matches screenshot', async ({
+  page,
+}) => {
+  await page.goto('http://localhost:5555/features/odit64');
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  const mobileTab = page.locator(
+    'sl-tab#feature-wpt-implementation-progress-tab-mobile',
+  );
+
+  await mobileTab.click();
+  await page.waitForTimeout(2000);
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
 test('date range changes are preserved in the URL', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
-  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
+  await page.waitForSelector('#feature-wpt-implementation-progress-1-complete');
 
   // Get the current default startDate and endDate from the selectors
   // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
@@ -100,7 +115,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
 
   // Refresh the page with that URL.
   await page.goto(url);
-  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
 
   // Check that the startDate and endDate are still there.
   const url2 = page.url();
@@ -126,7 +141,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
 
   // Go to that URL.
   await page.goto(url3);
-  await page.waitForSelector('#feature-wpt-implementation-progress-complete');
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
 
   // Check that the startDate and endDate selectors are reset to the initial default.
   const startDateSelector3 = page.locator('sl-input#start-date');

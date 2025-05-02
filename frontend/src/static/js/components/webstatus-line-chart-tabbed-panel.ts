@@ -25,11 +25,8 @@ import {BrowsersParameter} from '../api/client.js';
 import {WebStatusDataObj} from './webstatus-gchart.js';
 
 /**
- * Abstract base class for creating line chart panels to display web status data.
- * This class handles data processing, chart rendering using `webstatus-gchart`,
- * and provides a framework for custom controls and panel-specific logic.
- * Subclasses must implement abstract methods to define data loading,
- * panel identification, text display, and chart options.
+ * Extension of the WebstatusLineChartTabbedPanel abstract base class to add
+ * tabbed functionality for multiple views.
  */
 export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPanel {
   /**
@@ -64,14 +61,8 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
   @state()
   browsersByView: Array<Array<BrowsersParameter>> = [];
 
-  /**
-   *
-   * @param _
-   * @param index
-   */
-  _handleTabClick(_: Event, index: number) {
+  _handleTabClick() {
     this.resetPointSelectedTask();
-    this.currentView = index;
   }
 
   /**
@@ -86,37 +77,55 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
       >${this.tabViews.map(
         (tab, index) =>
           html`<sl-tab
-            slot="nav"
-            panel="${tab.toLowerCase()}"
-            @click=${(e: Event) => this._handleTabClick(e, index)}
-            >${tab}</sl-tab
-          >`,
-      )}</sl-tab-group
-    >`;
+              slot="nav"
+              id="${this.getPanelID()}-tab-${tab.toLowerCase()}"
+              panel="${tab.toLowerCase()}"
+              @click=${this._handleTabClick}
+            >
+              ${tab}
+            </sl-tab>
+            <sl-tab-panel name="${tab.toLowerCase()}">
+              <div>${this.renderChartByView(index)}</div>
+              ${this.renderPointSelectedDetails()}
+            </sl-tab-panel>`,
+      )}
+    </sl-tab-group>`;
+  }
+
+  /**
+   * Renders the chart for the current view based on the current state of the
+   * data loading task.
+   * @param {number} index - The index of the current view.
+   * @returns {TemplateResult} The chart template.
+   */
+  renderChartByView(view: number): TemplateResult {
+    if (!this._task) return html``;
+    return this._task?.render({
+      complete: () => this.renderChartWhenCompleteByView(view),
+      error: error => this.renderChartWhenError(error),
+      initial: () => this.renderChartWhenInitial(),
+      pending: () => this.renderChartWhenPending(),
+    });
   }
 
   /**
    * Renders the chart when data loading is complete.
    * @returns {TemplateResult} The chart template, including the `webstatus-gchart` component.
    */
-  renderChartWhenComplete(): TemplateResult {
+  renderChartWhenCompleteByView(view: number): TemplateResult {
     return html`
       <div
-        id="${this.getPanelID()}-complete"
+        id="${this.getPanelID()}-${view}-complete"
         class="complete-chart-panel chart-panel"
       >
         <webstatus-gchart
           id="${this.getPanelID()}-chart"
           @point-selected=${this.handlePointSelected}
           @point-deselected=${this.handlePointDeselected}
-          .updatePoint=${this.updatePoint}
           .hasMax=${this.hasMax}
-          .containerId="${this.getPanelID()}-chart-container"
-          .currentSelection=${this.chartSelection}
+          .containerId="${this.getPanelID()}-${view}-chart-container"
           .chartType="${'LineChart'}"
-          .dataObj="${this.dataByView
-            ? this.dataByView[this.currentView]
-            : undefined}"
+          .dataObj="${this.dataByView ? this.dataByView[view] : undefined}"
           .options="${this.generateDisplayDataChartOptions()}"
         >
           Loading chart...
@@ -162,8 +171,6 @@ export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPa
         </div>
         <div class="chart-description">${this.getPanelDescription()}</div>
         <div>${this.getTabs()}</div>
-        <div>${this.renderChart()}</div>
-        ${this.renderPointSelectedDetails()}
       </sl-card>
     `;
   }

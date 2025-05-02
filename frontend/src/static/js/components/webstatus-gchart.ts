@@ -328,12 +328,12 @@ export class WebstatusGChart extends LitElement {
   private _handleChartClick() {
     const selection = this.chartWrapper?.getChart()?.getSelection();
     if (selection === undefined) {
-      this.updatePoint(undefined);
+      this.currentSelection = undefined;
       return;
     }
 
     if (selection.length === 0) {
-      this.updatePoint([]);
+      this.currentSelection = [];
       const chartDeselectEvent: ChartDeselectPointEvent = new CustomEvent(
         'point-deselected',
         {detail: undefined},
@@ -342,7 +342,7 @@ export class WebstatusGChart extends LitElement {
       return;
     }
 
-    this.updatePoint(selection);
+    this.currentSelection = selection;
     // TODO: For now only look at the first selection since we only configure for one selection at a time.
     const item = selection[0];
     const row = item.row;

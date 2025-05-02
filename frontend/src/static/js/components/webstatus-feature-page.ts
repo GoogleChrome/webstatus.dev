@@ -501,12 +501,13 @@ export class FeaturePage extends BaseChartsPage {
   }
 
   handleWPTScoresFetched(e: DataFetchedEvent<WPTRunMetric>) {
-    this.featureSupport = new Map(
-      Array.from(e.detail, ([key, value]) => [
-        BROWSER_LABEL_TO_ID[key],
-        value.data,
-      ]),
-    );
+    if (this.featureSupport === undefined) {
+      this.featureSupport = new Map();
+    }
+    for (const [key, value] of e.detail) {
+      this.featureSupport.set(BROWSER_LABEL_TO_ID[key], value.data);
+    }
+    this.requestUpdate();
   }
 
   renderFeatureUsage(): TemplateResult {
