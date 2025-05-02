@@ -128,7 +128,9 @@ describe('WebstatusLineChartPanel', () => {
   it('renders the chart container when complete', async () => {
     el.resolveTask({cols: [], rows: []});
     await taskUpdateComplete();
-    const chartContainer = el.shadowRoot!.querySelector('#test-panel-complete');
+    const chartContainer = el.shadowRoot!.querySelector(
+      '#test-panel-0-complete',
+    );
     expect(chartContainer).to.exist;
 
     const chart = el.shadowRoot!.querySelector('#test-panel-chart');
