@@ -35,6 +35,15 @@ type BrowserFeatureCountResultPage struct {
 	Metrics       []BrowserFeatureCountMetric
 }
 
+var additionalBrowserNameMap = map[string]string{
+	"chrome":          "chrome_android",
+	"firefox":         "firefox_android",
+	"safari":          "safari_ios",
+	"chrome_android":  "chrome",
+	"firefox_android": "firefox",
+	"safari_ios":      "safari",
+}
+
 func (c *Client) ListBrowserFeatureCountMetric(
 	ctx context.Context,
 	browser string,
@@ -122,9 +131,15 @@ func (c *Client) getInitialBrowserFeatureCount(
 		return parsedToken.LastCumulativeCount, nil
 	}
 
+	additionalBrowserName := browser
+	if _, ok := additionalBrowserNameMap[browser]; ok {
+		additionalBrowserName = additionalBrowserNameMap[browser]
+	}
+
 	params := map[string]interface{}{
-		"browserName": browser,
-		"startAt":     startAt,
+		"browserName":           browser,
+		"additionalBrowserName": additionalBrowserName,
+		"startAt":               startAt,
 	}
 
 	var excludedFeatureFilter string
@@ -145,7 +160,8 @@ func (c *Client) getInitialBrowserFeatureCount(
 						ON bfa.BrowserName = br.BrowserName
 						AND bfa.BrowserVersion = br.BrowserVersion
 						%s
-						WHERE bfa.BrowserName = @browserName AND ReleaseDate < @startAt
+						WHERE (bfa.BrowserName = @browserName OR bfa.BrowserName = @additionalBrowserName)
+						AND ReleaseDate < @startAt
 						GROUP BY ReleaseDate
 					)`,
 			excludedFeatureFilter),
@@ -165,11 +181,17 @@ func createListBrowserFeatureCountMetricStatement(
 	pageToken *BrowserFeatureCountCursor,
 	excludedFeatureIDs []string,
 ) spanner.Statement {
+	additionalBrowserName := browser
+	if _, ok := additionalBrowserNameMap[browser]; ok {
+		additionalBrowserName = additionalBrowserNameMap[browser]
+	}
+
 	params := map[string]interface{}{
-		"browserName": browser,
-		"startAt":     startAt,
-		"endAt":       endAt,
-		"pageSize":    pageSize,
+		"browserName":           browser,
+		"additionalBrowserName": additionalBrowserName,
+		"startAt":               startAt,
+		"endAt":                 endAt,
+		"pageSize":              pageSize,
 	}
 	var pageFilter string
 	if pageToken != nil {
@@ -196,7 +218,7 @@ RIGHT JOIN BrowserReleases
 ON bfa.BrowserName = BrowserReleases.BrowserName
 AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
 WHERE
-    BrowserReleases.BrowserName = @browserName
+    (BrowserReleases.BrowserName = @browserName OR BrowserReleases.BrowserName = @additionalBrowserName)
     AND BrowserReleases.ReleaseDate >= @startAt
     AND BrowserReleases.ReleaseDate < @endAt
 	%s
