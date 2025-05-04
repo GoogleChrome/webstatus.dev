@@ -122,14 +122,15 @@ type MockGetIDFromFeatureKeyConfig struct {
 }
 
 type MockListBrowserFeatureCountMetricConfig struct {
-	expectedBrowser   string
-	expectedStartAt   time.Time
-	expectedEndAt     time.Time
-	expectedPageSize  int
-	expectedPageToken *string
-	pageToken         *string
-	page              *backend.BrowserReleaseFeatureMetricsPage
-	err               error
+	expectedTargetBrowser       string
+	expectedTargetMobileBrowser string
+	expectedStartAt             time.Time
+	expectedEndAt               time.Time
+	expectedPageSize            int
+	expectedPageToken           *string
+	pageToken                   *string
+	page                        *backend.BrowserReleaseFeatureMetricsPage
+	err                         error
 }
 
 type MockListMissingOneImplCountsConfig struct {
@@ -388,7 +389,8 @@ func (m *MockWPTMetricsStorer) GetFeature(
 
 func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 	_ context.Context,
-	browser string,
+	targetBrowser string,
+	targetMobileBrowser string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -396,14 +398,15 @@ func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 ) (*backend.BrowserReleaseFeatureMetricsPage, error) {
 	m.callCountListBrowserFeatureCountMetric++
 
-	if browser != m.listBrowserFeatureCountMetricCfg.expectedBrowser ||
+	if targetBrowser != m.listBrowserFeatureCountMetricCfg.expectedTargetBrowser ||
+		targetMobileBrowser != m.listBrowserFeatureCountMetricCfg.expectedTargetMobileBrowser ||
 		!startAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedStartAt) ||
 		!endAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedEndAt) ||
 		pageSize != m.listBrowserFeatureCountMetricCfg.expectedPageSize ||
 		!reflect.DeepEqual(pageToken, m.listBrowserFeatureCountMetricCfg.expectedPageToken) {
 
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %d %v }",
-			m.listBrowserFeatureCountMetricCfg, browser, startAt, endAt, pageSize, pageToken)
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %d %v }",
+			m.listBrowserFeatureCountMetricCfg, targetBrowser, targetMobileBrowser, startAt, endAt, pageSize, pageToken)
 	}
 
 	return m.listBrowserFeatureCountMetricCfg.page, m.listBrowserFeatureCountMetricCfg.err

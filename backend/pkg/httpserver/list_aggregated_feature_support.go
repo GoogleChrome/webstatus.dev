@@ -23,6 +23,23 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+var ErrNoMatchingMobileBrowser = errors.New("browser does not have a matching mobile browser")
+
+func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
+	switch browser {
+	case backend.Chrome:
+		return backend.ChromeAndroid, nil
+	case backend.Firefox:
+		return backend.FirefoxAndroid, nil
+	case backend.Safari:
+		return backend.SafariIos, nil
+	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
+		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+	}
+
+	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+}
+
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
 // nolint: ireturn // Signature generated from openapi
 func (s *Server) ListAggregatedFeatureSupport(
@@ -35,9 +52,24 @@ func (s *Server) ListAggregatedFeatureSupport(
 		return cachedResponse, nil
 	}
 
+	var targetMobileBrowser backend.BrowserPathParam
+	if request.Params.IncludeBaselineMobileBrowsers != nil {
+		var err error
+		targetMobileBrowser, err = getDesktopsMobileProduct(request.Browser)
+		if err != nil {
+			return backend.ListAggregatedFeatureSupport400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
+			}, err
+		}
+	} else {
+		targetMobileBrowser = request.Browser
+	}
+
 	page, err := s.wptMetricsStorer.ListBrowserFeatureCountMetric(
 		ctx,
 		string(request.Browser),
+		string(targetMobileBrowser),
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,
 		getPageSizeOrDefault(request.Params.PageSize),

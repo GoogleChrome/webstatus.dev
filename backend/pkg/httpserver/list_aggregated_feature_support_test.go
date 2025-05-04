@@ -38,13 +38,14 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
-				expectedBrowser:   "chrome",
-				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:  100,
-				expectedPageToken: nil,
-				pageToken:         nil,
-				err:               nil,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: "chrome",
+				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            100,
+				expectedPageToken:           nil,
+				pageToken:                   nil,
+				err:                         nil,
 				page: &backend.BrowserReleaseFeatureMetricsPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nil,
@@ -138,12 +139,13 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
-				expectedBrowser:   "chrome",
-				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:  50,
-				expectedPageToken: inputPageToken,
-				err:               nil,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: "chrome_android",
+				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            50,
+				expectedPageToken:           inputPageToken,
+				err:                         nil,
 				page: &backend.BrowserReleaseFeatureMetricsPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nextPageToken,
@@ -164,7 +166,8 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
-						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
+						`"endAt":"2000-01-10","page_token":"input-token","page_size":50,` +
+						`"include_baseline_mobile_browsers":true}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
 				},
@@ -172,7 +175,8 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			expectedCacheCalls: []*ExpectedCacheCall{
 				{
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
-						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
+						`"endAt":"2000-01-10","page_token":"input-token","page_size":50,` +
+						`"include_baseline_mobile_browsers":true}}`,
 					Value: []byte(
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
 							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{"next_page_token":"next-page-token"}}`,
@@ -200,7 +204,8 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			request: httptest.NewRequest(
 				http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt="+
-					"2000-01-01&endAt=2000-01-10&page_token="+*inputPageToken+"&page_size=50",
+					"2000-01-01&endAt=2000-01-10&page_token="+*inputPageToken+"&page_size=50"+
+					"&include_baseline_mobile_browsers=true",
 				nil),
 		},
 		{
@@ -209,7 +214,8 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `listAggregatedFeatureSupport-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
-						`"endAt":"2000-01-10","page_token":"input-token","page_size":50}}`,
+						`"endAt":"2000-01-10","page_token":"input-token","page_size":50,` +
+						`"include_baseline_mobile_browsers":true}}`,
 					Value: []byte(
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},{"count":9,` +
 							`"timestamp":"2000-01-09T00:00:00Z"}],"metadata":{"next_page_token":"next-page-token"}}`,
@@ -238,20 +244,22 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			request: httptest.NewRequest(
 				http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt="+
-					"2000-01-01&endAt=2000-01-10&page_token="+*inputPageToken+"&page_size=50",
+					"2000-01-01&endAt=2000-01-10&page_token="+*inputPageToken+"&page_size=50"+
+					"&include_baseline_mobile_browsers=true",
 				nil),
 		},
 		{
 			name: "500 case",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
-				expectedBrowser:   "chrome",
-				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:  100,
-				expectedPageToken: nil,
-				page:              nil,
-				pageToken:         nil,
-				err:               errTest,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: "chrome",
+				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            100,
+				expectedPageToken:           nil,
+				page:                        nil,
+				pageToken:                   nil,
+				err:                         errTest,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
@@ -270,14 +278,15 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		{
 			name: "400 case - invalid page token",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
-				expectedBrowser:   "chrome",
-				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:  100,
-				expectedPageToken: badPageToken,
-				pageToken:         nil,
-				err:               backendtypes.ErrInvalidPageToken,
-				page:              nil,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: "chrome",
+				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            100,
+				expectedPageToken:           badPageToken,
+				pageToken:                   nil,
+				err:                         backendtypes.ErrInvalidPageToken,
+				page:                        nil,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
