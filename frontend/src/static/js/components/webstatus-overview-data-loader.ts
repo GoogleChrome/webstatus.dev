@@ -103,13 +103,6 @@ export class WebstatusOverviewDataLoader extends LitElement {
     return features;
   }
 
-  reorderFeatures() {
-    let renderFeatures = this.reorderByQueryTerms();
-    if (!renderFeatures) {
-      renderFeatures = this.taskTracker.data?.data;
-    }
-  }
-
   render(): TemplateResult {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location),
@@ -132,6 +125,11 @@ export class WebstatusOverviewDataLoader extends LitElement {
       );
     }
 
+    let data = this.taskTracker.data?.data;
+    if (this.taskTracker.status === TaskStatus.COMPLETE) {
+      data = this.reorderByQueryTerms();
+    }
+
     return html`<webstatus-overview-table
       .columns=${columns}
       .headerCells=${headerCells}
@@ -139,7 +137,7 @@ export class WebstatusOverviewDataLoader extends LitElement {
       .isLoading=${this.taskTracker.status === TaskStatus.PENDING ||
       this.taskTracker.status === TaskStatus.INITIAL}
       .dataError=${this.taskTracker.error}
-      .data=${this.taskTracker?.data?.data}
+      .data=${data}
     ></webstatus-overview-table>`;
   }
 }
