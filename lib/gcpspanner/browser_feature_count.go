@@ -35,9 +35,15 @@ type BrowserFeatureCountResultPage struct {
 	Metrics       []BrowserFeatureCountMetric
 }
 
+// BrowserFeatureCountTemplateData contains the variables for the template query.
+type BrowserFeatureCountTemplateData struct {
+	BrowserFilter string
+}
+
 func (c *Client) ListBrowserFeatureCountMetric(
 	ctx context.Context,
-	browser string,
+	targetBrowser string,
+	targetMobileBrowser string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -60,14 +66,16 @@ func (c *Client) ListBrowserFeatureCountMetric(
 		return nil, err
 	}
 	// 2. Calculate initial cumulative count
-	cumulativeCount, err := c.getInitialBrowserFeatureCount(ctx, txn, parsedToken, browser, startAt, ignoredFeatureIDs)
+	cumulativeCount, err := c.getInitialBrowserFeatureCount(
+		ctx, txn, parsedToken, targetBrowser, targetMobileBrowser, startAt, ignoredFeatureIDs)
 	if err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
 	// 3. Process results and update cumulative count
 	stmt := createListBrowserFeatureCountMetricStatement(
-		browser,
+		targetBrowser,
+		targetMobileBrowser,
 		startAt,
 		endAt,
 		pageSize,
@@ -114,7 +122,8 @@ func (c *Client) getInitialBrowserFeatureCount(
 	ctx context.Context,
 	txn *spanner.ReadOnlyTransaction,
 	parsedToken *BrowserFeatureCountCursor,
-	browser string,
+	targetBrowser string,
+	targetMobileBrowser string,
 	startAt time.Time,
 	excludedFeatureIDs []string) (int64, error) {
 	// For pagination, we have the existing count. Return early.
@@ -122,24 +131,17 @@ func (c *Client) getInitialBrowserFeatureCount(
 		return parsedToken.LastCumulativeCount, nil
 	}
 
-	var additionalBrowserNameMap = map[string]string{
-		"chrome":          "chrome_android",
-		"firefox":         "firefox_android",
-		"safari":          "safari_ios",
-		"chrome_android":  "chrome",
-		"firefox_android": "firefox",
-		"safari_ios":      "safari",
-	}
-
-	additionalBrowserName := browser
-	if _, ok := additionalBrowserNameMap[browser]; ok {
-		additionalBrowserName = additionalBrowserNameMap[browser]
+	var browserFilter string
+	if targetMobileBrowser != "" {
+		browserFilter = `(bfa.BrowserName = @targetBrowserName OR bfa.BrowserName = @targetMobileBrowserName)`
+	} else {
+		browserFilter = `bfa.BrowserName = @targetBrowserName`
 	}
 
 	params := map[string]interface{}{
-		"browserName":           browser,
-		"additionalBrowserName": additionalBrowserName,
-		"startAt":               startAt,
+		"targetBrowserName":       targetBrowser,
+		"targetMobileBrowserName": targetMobileBrowser,
+		"startAt":                 startAt,
 	}
 
 	var excludedFeatureFilter string
@@ -160,11 +162,11 @@ func (c *Client) getInitialBrowserFeatureCount(
 						ON bfa.BrowserName = br.BrowserName
 						AND bfa.BrowserVersion = br.BrowserVersion
 						%s
-						WHERE (bfa.BrowserName = @browserName OR bfa.BrowserName = @additionalBrowserName)
+						WHERE %s
 						AND ReleaseDate < @startAt
 						GROUP BY ReleaseDate
 					)`,
-			excludedFeatureFilter),
+			excludedFeatureFilter, browserFilter),
 		Params: params,
 	}).Do(func(r *spanner.Row) error {
 		return r.Column(0, &initialCount)
@@ -174,32 +176,21 @@ func (c *Client) getInitialBrowserFeatureCount(
 }
 
 func createListBrowserFeatureCountMetricStatement(
-	browser string,
+	targetBrowser string,
+	targetMobileBrowser string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *BrowserFeatureCountCursor,
 	excludedFeatureIDs []string,
 ) spanner.Statement {
-	var additionalBrowserNameMap = map[string]string{
-		"chrome":          "chrome_android",
-		"firefox":         "firefox_android",
-		"safari":          "safari_ios",
-		"chrome_android":  "chrome",
-		"firefox_android": "firefox",
-		"safari_ios":      "safari",
-	}
-	additionalBrowserName := browser
-	if _, ok := additionalBrowserNameMap[browser]; ok {
-		additionalBrowserName = additionalBrowserNameMap[browser]
-	}
 
 	params := map[string]interface{}{
-		"browserName":           browser,
-		"additionalBrowserName": additionalBrowserName,
-		"startAt":               startAt,
-		"endAt":                 endAt,
-		"pageSize":              pageSize,
+		"targetBrowserName":       targetBrowser,
+		"targetMobileBrowserName": targetMobileBrowser,
+		"startAt":                 startAt,
+		"endAt":                   endAt,
+		"pageSize":                pageSize,
 	}
 	var pageFilter string
 	if pageToken != nil {
@@ -215,6 +206,12 @@ func createListBrowserFeatureCountMetricStatement(
 		excludedFeatureFilter = "AND bfa.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
 	}
 
+	var browserFilter string
+	if targetMobileBrowser != "" {
+		browserFilter = `(BrowserReleases.BrowserName = @targetBrowserName OR BrowserReleases.BrowserName = @targetMobileBrowserName)`
+	} else {
+		browserFilter = `bfa.BrowserName = @targetBrowserName`
+	}
 	// Construct the query
 	// This query selects the 'ReleaseDate' and the feature counts for each release date.
 	query := fmt.Sprintf(`
@@ -226,14 +223,14 @@ RIGHT JOIN BrowserReleases
 ON bfa.BrowserName = BrowserReleases.BrowserName
 AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
 WHERE
-    (BrowserReleases.BrowserName = @browserName OR BrowserReleases.BrowserName = @additionalBrowserName)
+	%s
     AND BrowserReleases.ReleaseDate >= @startAt
     AND BrowserReleases.ReleaseDate < @endAt
 	%s
 GROUP BY ReleaseDate
 ORDER BY ReleaseDate ASC
 LIMIT @pageSize
-`, excludedFeatureFilter, pageFilter)
+`, excludedFeatureFilter, browserFilter, pageFilter)
 
 	stmt := spanner.NewStatement(query)
 	stmt.Params = params

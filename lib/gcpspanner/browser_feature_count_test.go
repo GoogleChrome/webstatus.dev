@@ -121,7 +121,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 	// In the meantime, be careful with the order of the test cases.
 	testCases := []struct {
 		testName                       string
-		browser                        string
+		targetBrowser                  string
+		targetMobileBrowser            string
 		startAt                        time.Time
 		endAt                          time.Time
 		pageSize                       int
@@ -132,7 +133,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 	}{
 		{
 			testName:                       "Test 1a. First Page",
-			browser:                        "chrome",
+			targetBrowser:                  "chrome",
+			targetMobileBrowser:            "chrome_android",
 			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
@@ -156,7 +158,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		},
 		{
 			testName:                       "Test 1b. Second Page",
-			browser:                        "chrome",
+			targetBrowser:                  "chrome",
+			targetMobileBrowser:            "chrome_android",
 			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
@@ -176,7 +179,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		},
 		{
 			testName:                       "Test 2. Get the point but still count all the features beforehand.",
-			browser:                        "chrome",
+			targetBrowser:                  "chrome",
+			targetMobileBrowser:            "chrome_android",
 			startAt:                        time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
@@ -198,7 +202,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		// `BrowserFeatureAvailabilities` entries for those releases within that range.
 		{
 			testName:                       "Test 3. No availabilities for one browser.",
-			browser:                        "firefox",
+			targetBrowser:                  "firefox",
+			targetMobileBrowser:            "firefox_android",
 			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
@@ -222,7 +227,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		},
 		{
 			testName:                    "Test 4. With Excluded Features",
-			browser:                     "chrome",
+			targetBrowser:               "chrome",
+			targetMobileBrowser:         "",
 			startAt:                     time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                       time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			pageSize:                    3,
@@ -275,7 +281,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			}
 
 			result, err = spannerClient.ListBrowserFeatureCountMetric(
-				ctx, tc.browser, tc.startAt, tc.endAt, tc.pageSize, tc.inputCursor)
+				ctx, tc.targetBrowser, tc.targetMobileBrowser, tc.startAt, tc.endAt, tc.pageSize, tc.inputCursor)
 			if err != nil {
 				t.Errorf("Unexpected error: %v", err)
 			}

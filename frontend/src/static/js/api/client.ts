@@ -485,7 +485,11 @@ export class APIClient {
         {
           ...temporaryFetchOptions,
           params: {
-            query: {startAt, endAt, page_token: nextPageToken},
+            query: {
+              startAt,
+              endAt,
+              page_token: nextPageToken,
+            },
             path: {browser},
           },
         },
