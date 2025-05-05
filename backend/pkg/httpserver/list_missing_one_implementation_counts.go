@@ -23,6 +23,21 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+var ErrNoMatchingMobileBrowser = errors.New("browser does not have a matching mobile browser")
+
+func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
+	switch browser {
+	case backend.Chrome:
+		return backend.ChromeAndroid, nil
+	case backend.Firefox:
+		return backend.FirefoxAndroid, nil
+	case backend.Safari:
+		return backend.SafariIos, nil
+	default:
+		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+	}
+}
+
 // ListMissingOneImplementationCounts implements backend.StrictServerInterface.
 // nolint: ireturn // Signature generated from openapi
 func (s *Server) ListMissingOneImplementationCounts(
@@ -34,13 +49,30 @@ func (s *Server) ListMissingOneImplementationCounts(
 	if found {
 		return cachedResponse, nil
 	}
-	otherBrowsers := make([]string, len(request.Params.Browser))
+	otherBrowsers := make([]string, 0, 5)
 	for i := 0; i < len(request.Params.Browser); i++ {
 		otherBrowsers[i] = string(request.Params.Browser[i])
+		matchingMobileBrowser, err := getDesktopsMobileProduct(request.Params.Browser[i])
+		if err != nil {
+			otherBrowsers = append(otherBrowsers, string(matchingMobileBrowser))
+		}
+	}
+
+	var targetMobileBrowser backend.BrowserPathParam
+	if *request.Params.IncludeBaselineMobileBrowsers {
+		var err error
+		targetMobileBrowser, err = getDesktopsMobileProduct(request.Browser)
+		if err != nil {
+			return backend.ListMissingOneImplementationCounts400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
+			}, nil
+		}
 	}
 	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(
 		ctx,
 		string(request.Browser),
+		string(targetMobileBrowser),
 		otherBrowsers,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,
