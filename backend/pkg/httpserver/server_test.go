@@ -133,15 +133,16 @@ type MockListBrowserFeatureCountMetricConfig struct {
 }
 
 type MockListMissingOneImplCountsConfig struct {
-	expectedTargetBrowser string
-	expectedOtherBrowsers []string
-	expectedStartAt       time.Time
-	expectedEndAt         time.Time
-	expectedPageSize      int
-	expectedPageToken     *string
-	pageToken             *string
-	page                  *backend.BrowserReleaseFeatureMetricsPage
-	err                   error
+	expectedTargetBrowser       string
+	expectedTargetMobileBrowser string
+	expectedOtherBrowsers       []string
+	expectedStartAt             time.Time
+	expectedEndAt               time.Time
+	expectedPageSize            int
+	expectedPageToken           *string
+	pageToken                   *string
+	page                        *backend.BrowserReleaseFeatureMetricsPage
+	err                         error
 }
 
 type MockListMissingOneImplFeaturesConfig struct {
@@ -412,6 +413,7 @@ func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	_ context.Context,
 	targetBrowser string,
+	targetMobileBrowser string,
 	otherBrowsers []string,
 	startAt time.Time,
 	endAt time.Time,
@@ -421,6 +423,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	m.callCountListMissingOneImplCounts++
 
 	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||
+		targetMobileBrowser != m.listMissingOneImplCountCfg.expectedTargetMobileBrowser ||
 		!slices.Equal(otherBrowsers, m.listMissingOneImplCountCfg.expectedOtherBrowsers) ||
 		!startAt.Equal(m.listMissingOneImplCountCfg.expectedStartAt) ||
 		!endAt.Equal(m.listMissingOneImplCountCfg.expectedEndAt) ||
