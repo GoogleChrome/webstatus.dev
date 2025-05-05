@@ -23,20 +23,94 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+type MissingOneBrowserParams struct {
+	targetBrowser       string
+	targetMobileBrowser *string
+	otherBrowsers       []string
+}
+
+// GetDesktopsMobileProduct returns the mobile version of the given desktop browser.
+func GetDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
+	switch browser {
+	case backend.Chrome:
+		return backend.ChromeAndroid, nil
+	case backend.Firefox:
+		return backend.FirefoxAndroid, nil
+	case backend.Safari:
+		return backend.SafariIos, nil
+	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
+		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+	}
+
+	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+}
+
+func PrepareMissingOneBrowserParams(
+	targetBrowserParam backend.BrowserPathParam,
+	otherBrowsersParam []backend.BrowserPathParam,
+	includeMobileBrowsers bool,
+) (*MissingOneBrowserParams, error) {
+	var otherBrowsers []string
+	var targetMobileBrowser *string
+	if includeMobileBrowsers {
+		otherBrowsers = make([]string, len(otherBrowsersParam)*2)
+		var err error
+		matchingMobileBrowser, err := getDesktopsMobileProduct(targetBrowserParam)
+		if err != nil {
+
+			return nil, err
+		}
+		targetMobileBrowser = (*string)(&matchingMobileBrowser)
+
+		var matchingMobileOtherBrowser backend.BrowserPathParam
+		for i := range otherBrowsersParam {
+			otherBrowsers[i*2] = string(otherBrowsersParam[i])
+			matchingMobileOtherBrowser, err = getDesktopsMobileProduct(otherBrowsersParam[i])
+			if err != nil {
+
+				return nil, err
+			}
+			otherBrowsers[i*2+1] = string(matchingMobileOtherBrowser)
+		}
+	} else {
+		otherBrowsers = make([]string, len(otherBrowsersParam))
+		for i := range otherBrowsersParam {
+			otherBrowsers[i] = string(otherBrowsersParam[i])
+		}
+	}
+
+	return &MissingOneBrowserParams{
+		targetBrowser:       string(targetBrowserParam),
+		targetMobileBrowser: targetMobileBrowser,
+		otherBrowsers:       otherBrowsers,
+	}, nil
+}
+
 // ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
 // nolint: ireturn // Signature generated from openapi
 func (s *Server) ListMissingOneImplementationFeatures(
 	ctx context.Context,
 	request backend.ListMissingOneImplementationFeaturesRequestObject) (
 	backend.ListMissingOneImplementationFeaturesResponseObject, error) {
-	otherBrowsers := make([]string, len(request.Params.Browser))
-	for i := 0; i < len(request.Params.Browser); i++ {
-		otherBrowsers[i] = string(request.Params.Browser[i])
+
+	browserParams, err := PrepareMissingOneBrowserParams(
+		request.Browser, request.Params.Browser, request.Params.IncludeBaselineMobileBrowsers != nil)
+	if err != nil {
+		if errors.Is(err, ErrNoMatchingMobileBrowser) {
+			return backend.ListMissingOneImplementationFeatures400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
+			}, nil
+		}
+
+		return nil, err
 	}
+
 	page, err := s.wptMetricsStorer.ListMissingOneImplementationFeatures(
 		ctx,
-		string(request.Browser),
-		otherBrowsers,
+		browserParams.targetBrowser,
+		browserParams.targetMobileBrowser,
+		browserParams.otherBrowsers,
 		request.Date.Time,
 		getPageSizeOrDefault(request.Params.PageSize),
 		request.Params.PageToken,
