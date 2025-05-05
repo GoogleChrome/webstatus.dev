@@ -35,15 +35,6 @@ type BrowserFeatureCountResultPage struct {
 	Metrics       []BrowserFeatureCountMetric
 }
 
-var additionalBrowserNameMap = map[string]string{
-	"chrome":          "chrome_android",
-	"firefox":         "firefox_android",
-	"safari":          "safari_ios",
-	"chrome_android":  "chrome",
-	"firefox_android": "firefox",
-	"safari_ios":      "safari",
-}
-
 func (c *Client) ListBrowserFeatureCountMetric(
 	ctx context.Context,
 	browser string,
@@ -131,6 +122,15 @@ func (c *Client) getInitialBrowserFeatureCount(
 		return parsedToken.LastCumulativeCount, nil
 	}
 
+	var additionalBrowserNameMap = map[string]string{
+		"chrome":          "chrome_android",
+		"firefox":         "firefox_android",
+		"safari":          "safari_ios",
+		"chrome_android":  "chrome",
+		"firefox_android": "firefox",
+		"safari_ios":      "safari",
+	}
+
 	additionalBrowserName := browser
 	if _, ok := additionalBrowserNameMap[browser]; ok {
 		additionalBrowserName = additionalBrowserNameMap[browser]
@@ -181,6 +181,14 @@ func createListBrowserFeatureCountMetricStatement(
 	pageToken *BrowserFeatureCountCursor,
 	excludedFeatureIDs []string,
 ) spanner.Statement {
+	var additionalBrowserNameMap = map[string]string{
+		"chrome":          "chrome_android",
+		"firefox":         "firefox_android",
+		"safari":          "safari_ios",
+		"chrome_android":  "chrome",
+		"firefox_android": "firefox",
+		"safari_ios":      "safari",
+	}
 	additionalBrowserName := browser
 	if _, ok := additionalBrowserNameMap[browser]; ok {
 		additionalBrowserName = additionalBrowserNameMap[browser]
