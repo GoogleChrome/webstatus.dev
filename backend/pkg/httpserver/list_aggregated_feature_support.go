@@ -33,9 +33,10 @@ func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 		return backend.FirefoxAndroid, nil
 	case backend.Safari:
 		return backend.SafariIos, nil
-	default:
+	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
 		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 	}
+	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
