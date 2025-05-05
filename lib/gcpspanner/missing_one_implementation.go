@@ -77,7 +77,8 @@ const localMissingOneImplCountRawTemplate = `
 WITH TargetBrowserUnsupportedFeatures AS (
     SELECT bfse.WebFeatureID, bfse.EventReleaseDate
     FROM BrowserFeatureSupportEvents bfse
-    WHERE bfse.TargetBrowserName = @targetBrowserParam
+    WHERE (bfse.TargetBrowserName = @targetBrowserParam
+		   OR bfse.TargetBrowserName = @additionalTargetBrowserParam)
       AND bfse.SupportStatus = 'unsupported'
 	  {{ .ExcludedFeatureFilter }}
 ),
@@ -130,7 +131,8 @@ SELECT releases.EventReleaseDate,
 		FROM BrowserFeatureSupportEvents bfse
 		WHERE
 			bfse.EventReleaseDate = releases.EventReleaseDate
-			AND bfse.TargetBrowserName = @targetBrowserParam
+			AND (bfse.TargetBrowserName = @targetBrowserParam
+			     OR bfse.TargetBrowserName = @additionalTargetBrowserParam)
 			AND bfse.SupportStatus = 'unsupported'
 			{{ .ExcludedFeatureFilter }}
 		{{ range $browserParamName := .OtherBrowsersParamNames }}
@@ -216,6 +218,20 @@ func buildMissingOneImplTemplate(
 		params[paramName] = otherBrowsers[i]
 		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
 	}
+
+	var additionalBrowserNameMap = map[string]string{
+		"chrome":          "chrome_android",
+		"firefox":         "firefox_android",
+		"safari":          "safari_ios",
+		"chrome_android":  "chrome",
+		"firefox_android": "firefox",
+		"safari_ios":      "safari",
+	}
+	additionalBrowserName := targetBrowser
+	if _, ok := additionalBrowserNameMap[targetBrowser]; ok {
+		additionalBrowserName = additionalBrowserNameMap[targetBrowser]
+	}
+	params["additionalTargetBrowserParam"] = additionalBrowserName
 
 	params["limit"] = pageSize
 
