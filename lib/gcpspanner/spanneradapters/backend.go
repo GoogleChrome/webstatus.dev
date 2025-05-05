@@ -80,7 +80,8 @@ type BackendSpannerClient interface {
 	) (*string, error)
 	ListBrowserFeatureCountMetric(
 		ctx context.Context,
-		browser string,
+		targetBrowser string,
+		targetMobileBrowser string,
 		startAt time.Time,
 		endAt time.Time,
 		pageSize int,
@@ -142,7 +143,8 @@ func NewBackend(client BackendSpannerClient) *Backend {
 
 func (s *Backend) ListBrowserFeatureCountMetric(
 	ctx context.Context,
-	browser string,
+	targetBrowser string,
+	targetMobileBrowser string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -150,7 +152,8 @@ func (s *Backend) ListBrowserFeatureCountMetric(
 ) (*backend.BrowserReleaseFeatureMetricsPage, error) {
 	page, err := s.client.ListBrowserFeatureCountMetric(
 		ctx,
-		browser,
+		targetBrowser,
+		targetMobileBrowser,
 		startAt,
 		endAt,
 		pageSize,
