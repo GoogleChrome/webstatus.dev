@@ -140,7 +140,7 @@ export class WebstatusOverviewDataLoader extends LitElement {
       .isLoading=${this.taskTracker.status === TaskStatus.PENDING ||
       this.taskTracker.status === TaskStatus.INITIAL}
       .dataError=${this.taskTracker.error}
-      .data=${this.taskTracker?.data?.data}
+      .data=${data}
     ></webstatus-overview-table>`;
   }
 }
