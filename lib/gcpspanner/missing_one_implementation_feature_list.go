@@ -70,7 +70,8 @@ FROM WebFeatures wf
 WHERE wf.ID IN (
     SELECT bfse.WebFeatureID
     FROM BrowserFeatureSupportEvents bfse
-    WHERE bfse.TargetBrowserName = @targetBrowserParam
+    WHERE (bfse.TargetBrowserName = @targetBrowserParam
+	       OR bfse.TargetBrowserName = @additionalTargetBrowserParam)
       AND bfse.EventReleaseDate = @targetDate
       AND bfse.SupportStatus = 'unsupported'
 )
@@ -119,6 +120,20 @@ func buildMissingOneImplFeatureListTemplate(
 		params[paramName] = otherBrowsers[i]
 		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
 	}
+
+	var additionalBrowserNameMap = map[string]string{
+		"chrome":          "chrome_android",
+		"firefox":         "firefox_android",
+		"safari":          "safari_ios",
+		"chrome_android":  "chrome",
+		"firefox_android": "firefox",
+		"safari_ios":      "safari",
+	}
+	additionalBrowserName := targetBrowser
+	if _, ok := additionalBrowserNameMap[targetBrowser]; ok {
+		additionalBrowserName = additionalBrowserNameMap[targetBrowser]
+	}
+	params["additionalTargetBrowserParam"] = additionalBrowserName
 
 	var excludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
