@@ -85,7 +85,7 @@ test('mobile chart displays on click and matches screenshot', async ({
 
 test('date range changes are preserved in the URL', async ({page}) => {
   await page.goto('http://localhost:5555/features/odit64');
-  await page.waitForSelector('#feature-wpt-implementation-progress-1-complete');
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
 
   // Get the current default startDate and endDate from the selectors
   // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
