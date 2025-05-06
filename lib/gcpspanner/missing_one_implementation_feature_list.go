@@ -102,8 +102,8 @@ type missingOneImplFeatureListTemplateData struct {
 }
 
 func buildMissingOneImplFeatureListTemplate(
-	targetBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	targetDate time.Time,
 	cursor *missingOneImplFeatureListCursor,
 	pageSize int,
@@ -163,8 +163,8 @@ func buildMissingOneImplFeatureListTemplate(
 
 func (c *Client) ListMissingOneImplementationFeatures(
 	ctx context.Context,
-	targetBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	targetDate time.Time,
 	pageSize int,
 	pageToken *string,
@@ -188,7 +188,7 @@ func (c *Client) ListMissingOneImplementationFeatures(
 	}
 
 	stmt := buildMissingOneImplFeatureListTemplate(
-		targetBrowser,
+		targetBrowsers,
 		otherBrowsers,
 		targetDate,
 		cursor,

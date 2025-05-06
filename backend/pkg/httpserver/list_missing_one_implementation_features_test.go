@@ -37,13 +37,13 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedtargetDate:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      100,
-				expectedPageToken:     nil,
-				pageToken:             nil,
-				err:                   nil,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
+				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:       100,
+				expectedPageToken:      nil,
+				pageToken:              nil,
+				err:                    nil,
 				page: &backend.MissingOneImplFeaturesPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nil,
@@ -60,8 +60,8 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
-						`"browser":["edge","firefox","safari"]}}`,
+					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
+						`"browser":[["edge"],["firefox"],["safari"]]}}`,
 					Value: nil,
 					Err:   nil,
 				},
@@ -82,12 +82,12 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedtargetDate:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      50,
-				expectedPageToken:     inputPageToken,
-				err:                   nil,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
+				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:       50,
+				expectedPageToken:      inputPageToken,
+				err:                    nil,
 				page: &backend.MissingOneImplFeaturesPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nextPageToken,
@@ -105,9 +105,9 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
+					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
 						`"page_token":"input-token",` +
-						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+						`"page_size":50,"browser":[["edge"],["firefox"],["safari"]]}}`,
 					Value: nil,
 					Err:   nil,
 				},
@@ -129,19 +129,19 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "500 case",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedtargetDate:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      100,
-				expectedPageToken:     nil,
-				page:                  nil,
-				pageToken:             nil,
-				err:                   errTest,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
+				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:       100,
+				expectedPageToken:      nil,
+				page:                   nil,
+				pageToken:              nil,
+				err:                    errTest,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
-						`"browser":["edge","firefox","safari"]}}`,
+					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
+						`"browser":[["edge"],["firefox"],["safari"]]}}`,
 					Value: nil,
 					Err:   nil,
 				},
@@ -157,19 +157,19 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "400 case - invalid page token",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedtargetDate:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      100,
-				expectedPageToken:     badPageToken,
-				page:                  nil,
-				pageToken:             nil,
-				err:                   backendtypes.ErrInvalidPageToken,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
+				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:       100,
+				expectedPageToken:      badPageToken,
+				page:                   nil,
+				pageToken:              nil,
+				err:                    backendtypes.ErrInvalidPageToken,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `ListMissingOneImplementationFeatures-{"browser":"chrome","targetDate":"2000-01-01","Params":{` +
-						`"browser":["edge","firefox","safari"]}}`,
+					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
+						`"browser":[["edge"],["firefox"],["safari"]]}}`,
 					Value: nil,
 					Err:   nil,
 				},
