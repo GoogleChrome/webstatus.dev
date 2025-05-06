@@ -61,7 +61,7 @@ func (s *Server) ListMissingOneImplementationCounts(
 			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
 				Message: "browser does not have a matching mobile browser",
-			}, nil
+			}, err
 		}
 		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
 	}
