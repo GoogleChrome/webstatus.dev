@@ -40,12 +40,6 @@ export class WebstatusOverviewTable extends LitElement {
   data?: components['schemas']['Feature'][];
 
   @property({attribute: false})
-  dataError?: ApiError | Error;
-
-  @state()
-  taskStatus: TaskStatus = TaskStatus.INITIAL;
-
-  @property({attribute: false})
   columns: ColumnKey[] = [];
 
   @property({attribute: false})
