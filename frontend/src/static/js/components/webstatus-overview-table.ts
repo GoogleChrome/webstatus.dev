@@ -17,7 +17,7 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {TaskStatus} from '@lit/task';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {customElement, property} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {
@@ -27,7 +27,6 @@ import {
   renderColgroups,
   renderGroupsRow,
 } from './webstatus-overview-cells.js';
-import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
 import {
   GITHUB_REPO_ISSUE_LINK,
@@ -37,10 +36,7 @@ import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
-  @property({type: Boolean})
-  isLoading = false;
-
-  @property({attribute: false})
+  @state()
   data?: components['schemas']['Feature'][];
 
   @property({attribute: false})
@@ -52,12 +48,8 @@ export class WebstatusOverviewTable extends LitElement {
   @property({attribute: false})
   headerCells: TemplateResult[] = [];
 
-  @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
-    status: TaskStatus.INITIAL, // Initial state
-    error: undefined,
-    data: undefined,
-  };
+  @state()
+  taskStatus: TaskStatus = TaskStatus.INITIAL;
 
   @property({type: Object})
   location!: {search: string}; // Set by parent.
@@ -171,17 +163,18 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
-    if (this.isLoading) {
-      return this.renderBodyWhenPending(columns);
+    switch (this.taskStatus) {
+      case TaskStatus.INITIAL:
+        return this.renderBodyWhenPending(columns);
+      case TaskStatus.PENDING:
+        return this.renderBodyWhenPending(columns);
+      case TaskStatus.COMPLETE:
+        return this.data?.length === 0
+          ? this.renderBodyWhenNoResults(columns)
+          : this.renderBodyWhenComplete(columns);
+      case TaskStatus.ERROR:
+        return this.renderBodyWhenError(columns);
     }
-    // If the data is not available, and not loading, then we have an error.
-    if (this.data === undefined) {
-      return this.renderBodyWhenError(columns);
-    }
-    if (this.data.length === 0) {
-      return this.renderBodyWhenNoResults(columns);
-    }
-    return this.renderBodyWhenComplete(columns);
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
