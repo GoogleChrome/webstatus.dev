@@ -125,11 +125,6 @@ type mockDeleteUserSearchBookmarkConfig struct {
 	returnedError   error
 }
 
-type mockDesktopMobileBrowserPair struct {
-	Desktop string
-	Mobile  string
-}
-
 type mockBackendSpannerClient struct {
 	t                                    *testing.T
 	aggregationData                      []gcpspanner.WPTRunAggregationMetricWithTime
@@ -343,6 +338,7 @@ func (c mockBackendSpannerClient) ListMissingOneImplCounts(
 	for i, browsersList := range otherBrowsers {
 		if i >= len(expectedOtherBrowsers) || !slices.Equal(browsersList, expectedOtherBrowsers[i]) {
 			unexpectedOtherBrowsersFound = true
+
 			break
 		}
 	}
@@ -372,6 +368,7 @@ func (c mockBackendSpannerClient) ListMissingOneImplementationFeatures(
 	for i, browsersList := range otherBrowsers {
 		if i >= len(expectedOtherBrowsers) || !slices.Equal(browsersList, expectedOtherBrowsers[i]) {
 			unexpectedOtherBrowsersFound = true
+
 			break
 		}
 	}

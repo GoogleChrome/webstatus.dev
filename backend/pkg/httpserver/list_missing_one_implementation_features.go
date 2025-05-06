@@ -37,7 +37,7 @@ func (s *Server) ListMissingOneImplementationFeatures(
 		if err != nil {
 			return backend.ListMissingOneImplementationFeatures400JSONResponse{
 				Code:    400,
-				Message: err.Error(),
+				Message: "browser does not have a matching mobile browser",
 			}, nil
 		}
 		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
