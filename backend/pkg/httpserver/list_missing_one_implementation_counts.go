@@ -37,6 +37,7 @@ func GetDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
 		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 	}
+
 	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
@@ -59,7 +60,7 @@ func (s *Server) ListMissingOneImplementationCounts(
 		if err != nil {
 			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
-				Message: err.Error(),
+				Message: "browser does not have a matching mobile browser",
 			}, nil
 		}
 		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
