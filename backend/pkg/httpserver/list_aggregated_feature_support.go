@@ -36,6 +36,7 @@ func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
 		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 	}
+
 	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
