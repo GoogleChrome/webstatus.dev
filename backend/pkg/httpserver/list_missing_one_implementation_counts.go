@@ -25,13 +25,8 @@ import (
 
 var ErrNoMatchingMobileBrowser = errors.New("browser does not have a matching mobile browser")
 
-type DesktopMobileBrowserPair struct {
-	Desktop string
-	Mobile  string
-}
-
-// getDesktopsMobileProduct returns the mobile version of the given desktop browser.
-func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
+// GetDesktopsMobileProduct returns the mobile version of the given desktop browser.
+func GetDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
 	switch browser {
 	case backend.Chrome:
 		return backend.ChromeAndroid, nil
@@ -60,7 +55,7 @@ func (s *Server) ListMissingOneImplementationCounts(
 	var targetBrowsers = []string{}
 	targetBrowsers = append(targetBrowsers, string(request.Browser))
 	if request.Params.IncludeBaselineMobileBrowsers != nil {
-		targetMobileBrowser, err := getDesktopsMobileProduct(request.Browser)
+		targetMobileBrowser, err := GetDesktopsMobileProduct(request.Browser)
 		if err != nil {
 			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
@@ -70,16 +65,18 @@ func (s *Server) ListMissingOneImplementationCounts(
 		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
 	}
 
-	otherBrowsers := [][]string{{}, {}}
-	for i := 0; i < len(request.Params.Browser); i++ {
-		otherBrowsers[0] = append(otherBrowsers[0], string(request.Params.Browser[i]))
+	otherBrowsers := [][]string{}
+	for i := range len(request.Params.Browser) {
+		otherBrowser := []string{}
+		otherBrowser = append(otherBrowser, string(request.Params.Browser[i]))
 		// Add the mobile version of the browser if include_baseline_mobile_browsers is set.
 		if request.Params.IncludeBaselineMobileBrowsers != nil {
-			matchingMobileBrowser, err := getDesktopsMobileProduct(request.Params.Browser[i])
+			matchingMobileBrowser, err := GetDesktopsMobileProduct(request.Params.Browser[i])
 			if err == nil {
-				otherBrowsers[1] = append(otherBrowsers[1], string(matchingMobileBrowser))
+				otherBrowser = append(otherBrowser, string(matchingMobileBrowser))
 			}
 		}
+		otherBrowsers = append(otherBrowsers, otherBrowser)
 	}
 
 	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(

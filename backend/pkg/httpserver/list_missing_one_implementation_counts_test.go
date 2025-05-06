@@ -178,7 +178,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				{
 					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
-						`"page_size":50,"include_baseline_mobile_browsers":"true","browser":["firefox","safari"]}}`,
+						`"page_size":50,"include_baseline_mobile_browsers":true,"browser":["firefox","safari"]}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
 				},
@@ -187,7 +187,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				{
 					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
-						`"page_size":50,"include_baseline_mobile_browsers":"true","browser":["firefox","safari"]}}`,
+						`"page_size":50,"include_baseline_mobile_browsers":true,"browser":["firefox","safari"]}}`,
 					Value: []byte(
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
 							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],` +
@@ -215,7 +215,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 }`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
-					"browser=edge&browser=firefox&browser=safari&"+
+					"browser=firefox&browser=safari&include_baseline_mobile_browsers=true&"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
 		},
 		{
@@ -344,14 +344,16 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `ListMissingOneImplementationCounts-{"browser":"edge","Params":{"startAt":"2000-01-01",` +
-						`"endAt":"2000-01-10","include_baseline_mobile_browsers":"true","browser":["chrome","firefox","safari"]}}`,
+						`"endAt":"2000-01-10","include_baseline_mobile_browsers":true,` +
+						`"browser":["chrome","firefox","safari"]}}`,
 					Value: nil,
 					Err:   ErrNoMatchingMobileBrowser,
 				},
 			},
 			expectedCacheCalls: nil,
-			expectedCallCount:  1,
-			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"browser does not have a matching mobile browser"}`),
+			expectedCallCount:  0,
+			expectedResponse: testJSONResponse(400,
+				`{"code":400,"message":"browser does not have a matching mobile browser"}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/edge/missing_one_implementation_counts?"+
 					"browser=chrome&browser=firefox&browser=safari&"+
