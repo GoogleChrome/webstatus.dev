@@ -29,7 +29,6 @@ import {Task} from '@lit/task';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {BrowsersParameter} from '../api/client.js';
 
 /**
  * Interface defining the structure of metric data for the line chart.
@@ -43,7 +42,7 @@ export interface LineChartMetricData<T> {
   label: string;
 
   /**
-   * The array of data points for the metric, indexed by view.
+   * The array of data points for the metric.
    * @type {Array<T>}
    */
   data: Array<T>;
@@ -114,14 +113,16 @@ export interface FetchFunctionConfig<T> {
  * and provides a framework for custom controls and panel-specific logic.
  * Subclasses must implement abstract methods to define data loading,
  * panel identification, text display, and chart options.
+ * @template S The type of the categories displayed in the chart.
  */
-export abstract class WebstatusLineChartPanel extends LitElement {
+export abstract class WebstatusLineChartPanel<S> extends LitElement {
   /**
-   * The list of supported browsers for the chart.
+   * The categories displayed in the chart.
    * @abstract
-   * @type {Array<BrowsersParameter>}
+   * @template S The categories displayed in the chart.
+   * @type {Array<S>}
    */
-  abstract browsers: Array<BrowsersParameter>;
+  abstract series: Array<S>;
 
   /**
    * The start date used to fetch data.
@@ -172,7 +173,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   endDate!: Date;
 
   /**
-   * The processed data objects for each view of the chart, structured for `webstatus-gchart`.
+   * The processed data object for the chart, structured for `webstatus-gchart`.
    * @state
    * @type {WebStatusDataObj | undefined}
    */
@@ -225,11 +226,11 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
   /**
    * Returns the input for generating chart options.
-   * @param {BrowsersParameter[]} browsers The list of browsers to be displayed.
+   * @param {S[]} series The list of categories to be displayed.
    * @abstract
    * @returns {{seriesColors: Array<string>; vAxisTitle: string;}} Chart options input.
    */
-  abstract getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
+  abstract getDisplayDataChartOptionsInput<S>(series: S[]): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   };
@@ -472,7 +473,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
   generateDisplayDataChartOptions(): google.visualization.LineChartOptions {
     const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput(
-      this.browsers,
+      this.series,
     );
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);

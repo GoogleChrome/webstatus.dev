@@ -34,8 +34,8 @@ interface MetricDataPoint {
 }
 
 @customElement('test-line-chart-tabbed-panel')
-class TestLineChartPanel extends WebstatusLineChartTabbedPanel {
-  browsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+class TestLineChartPanel extends WebstatusLineChartTabbedPanel<BrowsersParameter> {
+  readonly series: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
   browsersByView: BrowsersParameter[][] = [
     ['chrome', 'firefox', 'safari'],
     ['chrome_android', 'firefox_android', 'safari_ios'],
@@ -95,7 +95,9 @@ class TestLineChartPanel extends WebstatusLineChartTabbedPanel {
     return html``;
   }
 
-  getDisplayDataChartOptionsInput(_browsers: BrowsersParameter[]): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    _browsers: BrowsersParameter[],
+  ): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   } {

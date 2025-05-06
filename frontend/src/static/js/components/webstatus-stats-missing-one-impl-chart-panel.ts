@@ -29,7 +29,7 @@ import {
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
 import {
   getTopCssIdentifierTemplate,
@@ -37,9 +37,8 @@ import {
 } from './utils.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
-export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
-  @state()
-  browsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
+  readonly series: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
@@ -79,14 +78,14 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   getOtherBrowsersFromTargetBrowser(
     browser: BrowsersParameter,
   ): BrowsersParameter[] {
-    return this.browsers.filter(value => browser !== value);
+    return this.series.filter(value => browser !== value);
   }
 
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return this.browsers.map(browser => {
+    return this.series.map(browser => {
       const label =
         browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
       return {
@@ -122,7 +121,9 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     });
   }
 
-  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    browsers: BrowsersParameter[],
+  ): {
     seriesColors: string[];
     vAxisTitle: string;
   } {

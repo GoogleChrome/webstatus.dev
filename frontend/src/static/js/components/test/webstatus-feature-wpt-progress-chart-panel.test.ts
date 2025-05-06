@@ -184,7 +184,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       chromeAndroidConfig.valueExtractor(chromeAndroidTestDataPoint),
     ).to.equal(5);
 
-    // Test Firefox configuration
+    // Test Firefox Android configuration
     const firefoxAndroidConfig = fetchFunctionConfigs[1];
     expect(firefoxAndroidConfig.label).to.equal('Firefox Android');
     expect(firefoxAndroidConfig.fetchFunction).to.be.a('function');
@@ -200,7 +200,7 @@ describe('WebstatusFeatureWPTProgressChartPanel', () => {
       firefoxAndroidConfig.valueExtractor(firefoxAndroidTestDataPoint),
     ).to.equal(7);
 
-    // Test Safari configuration
+    // Test Safari iOS configuration
     const safariIosConfig = fetchFunctionConfigs[2];
     expect(safariIosConfig.label).to.equal('Safari iOS');
     expect(safariIosConfig.fetchFunction).to.be.a('function');

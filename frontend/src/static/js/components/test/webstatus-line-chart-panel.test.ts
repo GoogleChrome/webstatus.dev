@@ -35,8 +35,8 @@ interface MetricDataPoint {
 }
 
 @customElement('test-line-chart-panel')
-class TestLineChartPanel extends WebstatusLineChartPanel {
-  browsers: BrowsersParameter[] = [];
+class TestLineChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
+  readonly series: BrowsersParameter[] = [];
 
   resolveTask!: (value: WebStatusDataObj) => void;
   rejectTask!: (reason: Error) => void;
@@ -91,7 +91,9 @@ class TestLineChartPanel extends WebstatusLineChartPanel {
     return html``;
   }
 
-  getDisplayDataChartOptionsInput(_browsers: BrowsersParameter[]): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    _browsers: BrowsersParameter[],
+  ): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   } {

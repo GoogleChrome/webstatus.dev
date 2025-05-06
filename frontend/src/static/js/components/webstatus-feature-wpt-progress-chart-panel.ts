@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
@@ -30,16 +30,15 @@ import {FetchFunctionConfig} from './webstatus-line-chart-panel.js';
 import {WebstatusLineChartTabbedPanel} from './webstatus-line-chart-tabbed-panel.js';
 
 @customElement('webstatus-feature-wpt-progress-chart-panel')
-export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTabbedPanel {
-  readonly browsers: BrowsersParameter[] = [];
+export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTabbedPanel<BrowsersParameter> {
+  readonly series: BrowsersParameter[] = [];
 
   readonly browsersByView: BrowsersParameter[][] = [
     ['chrome', 'firefox', 'safari', 'edge'],
     ['chrome_android', 'firefox_android', 'safari_ios'],
   ];
 
-  @state()
-  tabViews = ['Desktop', 'Mobile'];
+  readonly tabViews = ['Desktop', 'Mobile'];
 
   readonly featureSupportChannel: ChannelsParameter = STABLE_CHANNEL;
 
@@ -172,7 +171,9 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTab
   }
 
   override readonly hasMax: boolean = true;
-  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    browsers: BrowsersParameter[],
+  ): {
     seriesColors: string[];
     vAxisTitle: string;
   } {

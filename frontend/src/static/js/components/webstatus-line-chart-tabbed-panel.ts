@@ -28,7 +28,9 @@ import {WebStatusDataObj} from './webstatus-gchart.js';
  * Extension of the WebstatusLineChartTabbedPanel abstract base class to add
  * tabbed functionality for multiple views.
  */
-export abstract class WebstatusLineChartTabbedPanel extends WebstatusLineChartPanel {
+export abstract class WebstatusLineChartTabbedPanel<
+  S,
+> extends WebstatusLineChartPanel<S> {
   /**
    * The processed data objects for each view of the chart, structured for `webstatus-gchart`.
    * @state
