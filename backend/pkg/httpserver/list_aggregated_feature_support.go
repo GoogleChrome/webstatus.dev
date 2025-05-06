@@ -60,7 +60,7 @@ func (s *Server) ListAggregatedFeatureSupport(
 			return backend.ListAggregatedFeatureSupport400JSONResponse{
 				Code:    400,
 				Message: err.Error(),
-			}, nil
+			}, err
 		}
 	}
 
