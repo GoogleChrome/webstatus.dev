@@ -17,7 +17,7 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {TaskStatus} from '@lit/task';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {customElement, property, state} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {
@@ -33,20 +33,22 @@ import {
   SEARCH_QUERY_README_LINK,
 } from '../utils/constants.js';
 import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
+import {TaskTracker} from '../utils/task-tracker.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
-  @state()
-  data?: components['schemas']['Feature'][];
+  @property({type: Object})
+  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+    status: TaskStatus.INITIAL, // Initial state
+    error: undefined,
+    data: undefined,
+  };
 
   @property({attribute: false})
   columns: ColumnKey[] = [];
 
   @property({attribute: false})
   headerCells: TemplateResult[] = [];
-
-  @state()
-  taskStatus: TaskStatus = TaskStatus.INITIAL;
 
   @property({type: Object})
   location!: {search: string}; // Set by parent.
@@ -160,13 +162,13 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
-    switch (this.taskStatus) {
+    switch (this.taskTracker.status) {
       case TaskStatus.INITIAL:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.PENDING:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.COMPLETE:
-        return this.data?.length === 0
+        return this.taskTracker.data?.data?.length === 0
           ? this.renderBodyWhenNoResults(columns)
           : this.renderBodyWhenComplete(columns);
       case TaskStatus.ERROR:
@@ -175,7 +177,11 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    return html` ${this.data?.map(f => this.renderFeatureRow(f, columns))} `;
+    return html`
+      ${this.taskTracker.data?.data?.map(f =>
+        this.renderFeatureRow(f, columns),
+      )}
+    `;
   }
 
   renderBodyWhenNoResults(columns: ColumnKey[]): TemplateResult {
@@ -190,7 +196,7 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderBodyWhenError(columns: ColumnKey[]): TemplateResult {
-    if (this.dataError instanceof BadRequestError) {
+    if (this.taskTracker.error instanceof BadRequestError) {
       return html`
         <tr>
           <td class="message" colspan=${columns.length}>
@@ -227,7 +233,8 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
     const DEFAULT_SKELETON_ROWS = 10;
-    const skeleton_rows = this.data?.length || DEFAULT_SKELETON_ROWS;
+    const skeleton_rows =
+      this.taskTracker.data?.data?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
         range(skeleton_rows),
