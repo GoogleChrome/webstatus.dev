@@ -451,8 +451,8 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
 	m.callCountListMissingOneImplFeatures++
 	unexpectedOtherBrowsers := false
 	for i, browserList := range otherBrowsers {
-		if i >= len(m.listMissingOneImplCountCfg.expectedOtherBrowsers) ||
-			!slices.Equal(browserList, m.listMissingOneImplCountCfg.expectedOtherBrowsers[i]) {
+		if i >= len(m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers) ||
+			!slices.Equal(browserList, m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers[i]) {
 			unexpectedOtherBrowsers = true
 		}
 	}

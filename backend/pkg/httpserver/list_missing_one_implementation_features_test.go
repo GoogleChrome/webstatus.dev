@@ -82,8 +82,8 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowsers: []string{"chrome"},
-				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
+				expectedTargetBrowsers: []string{"chrome", "chrome_android"},
+				expectedOtherBrowsers:  [][]string{{"firefox", "firefox_android"}, {"safari", "safari_ios"}},
 				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:       50,
 				expectedPageToken:      inputPageToken,
@@ -105,9 +105,10 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
-					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
-						`"page_token":"input-token",` +
-						`"page_size":50,"browser":[["edge"],["firefox"],["safari"]]}}`,
+					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome","chrome_android"],` +
+						`"targetDate":"2000-01-01","Params":{"page_token":"input-token","page_size":50,` +
+						`"browser":[["firefox","firefox_android"],["safari","safari_ios"]],` +
+						`"include_baseline_mobile_browsers":true}}`,
 					Value: nil,
 					Err:   nil,
 				},
@@ -123,8 +124,8 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			}`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts/2000-01-01/features?"+
-					"browser=edge&browser=firefox&browser=safari&"+
-					"page_size=50&page_token="+*inputPageToken, nil),
+					"browser=firefox&browser=safari&include_baseline_mobile_browsers=true"+
+					"&page_size=50&page_token="+*inputPageToken, nil),
 		},
 		{
 			name: "500 case",

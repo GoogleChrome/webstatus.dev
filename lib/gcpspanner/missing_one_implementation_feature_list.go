@@ -70,17 +70,16 @@ FROM WebFeatures wf
 WHERE wf.ID IN (
     SELECT bfse.WebFeatureID
     FROM BrowserFeatureSupportEvents bfse
-    WHERE (bfse.TargetBrowserName = @targetBrowserParam
-	       OR bfse.TargetBrowserName = @additionalTargetBrowserParam)
+    WHERE {{ .TargetBrowserFilter }}
       AND bfse.EventReleaseDate = @targetDate
       AND bfse.SupportStatus = 'unsupported'
 )
-AND {{ range $browserParamName := .OtherBrowsersParamNames }}
+AND {{ range $browserFilter := .OtherBrowsersFilters }}
 EXISTS (
     SELECT 1
     FROM BrowserFeatureSupportEvents bfse_other
     WHERE bfse_other.WebFeatureID = wf.ID
-      AND bfse_other.TargetBrowserName = @{{ $browserParamName }}
+      AND {{ $browserFilter }}
       AND bfse_other.EventReleaseDate = @targetDate
       AND bfse_other.SupportStatus = 'supported'
 )
@@ -96,9 +95,10 @@ OFFSET {{ .Offset }}
 `
 
 type missingOneImplFeatureListTemplateData struct {
-	OtherBrowsersParamNames []string
-	Offset                  int
-	ExcludedFeatureFilter   string
+	OtherBrowsersFilters  []string
+	TargetBrowserFilter   string
+	Offset                int
+	ExcludedFeatureFilter string
 }
 
 func buildMissingOneImplFeatureListTemplate(
@@ -110,30 +110,25 @@ func buildMissingOneImplFeatureListTemplate(
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	allBrowsers := make([]string, len(otherBrowsers)+1)
-	copy(allBrowsers, otherBrowsers)
-	allBrowsers[len(allBrowsers)-1] = targetBrowser
-	params["targetBrowserParam"] = targetBrowser
-	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
-	for i := range otherBrowsers {
-		paramName := fmt.Sprintf("otherBrowser%d", i)
-		params[paramName] = otherBrowsers[i]
-		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
+	var targetBrowserFilter string
+	if len(targetBrowsers) > 1 {
+		targetBrowserFilter = fmt.Sprintf("(bfse.TargetBrowserName = '%s' OR bfse.TargetBrowserName = '%s')",
+			targetBrowsers[0], targetBrowsers[1])
+	} else {
+		targetBrowserFilter = fmt.Sprintf("bfse.TargetBrowserName = '%s'", targetBrowsers[0])
 	}
 
-	var additionalBrowserNameMap = map[string]string{
-		"chrome":          "chrome_android",
-		"firefox":         "firefox_android",
-		"safari":          "safari_ios",
-		"chrome_android":  "chrome",
-		"firefox_android": "firefox",
-		"safari_ios":      "safari",
+	var otherBrowsersFilters []string
+	for i := range otherBrowsers {
+		if len(otherBrowsers[i]) > 1 {
+			otherBrowsersFilters = append(otherBrowsersFilters,
+				fmt.Sprintf("(bfse_other.TargetBrowserName = '%s' OR bfse_other.TargetBrowserName = '%s')",
+					otherBrowsers[i][0], otherBrowsers[i][1]))
+		} else {
+			otherBrowsersFilters = append(otherBrowsersFilters,
+				fmt.Sprintf("bfse_other.TargetBrowserName = '%s'", otherBrowsers[i][0]))
+		}
 	}
-	additionalBrowserName := targetBrowser
-	if _, ok := additionalBrowserNameMap[targetBrowser]; ok {
-		additionalBrowserName = additionalBrowserNameMap[targetBrowser]
-	}
-	params["additionalTargetBrowserParam"] = additionalBrowserName
 
 	var excludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
@@ -145,9 +140,10 @@ func buildMissingOneImplFeatureListTemplate(
 	params["limit"] = pageSize
 
 	tmplData := missingOneImplFeatureListTemplateData{
-		OtherBrowsersParamNames: otherBrowsersParamNames,
-		Offset:                  0,
-		ExcludedFeatureFilter:   excludedFeatureFilter,
+		OtherBrowsersFilters:  otherBrowsersFilters,
+		TargetBrowserFilter:   targetBrowserFilter,
+		Offset:                0,
+		ExcludedFeatureFilter: excludedFeatureFilter,
 	}
 
 	if cursor != nil {
