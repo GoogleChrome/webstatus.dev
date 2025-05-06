@@ -125,20 +125,16 @@ export class WebstatusOverviewDataLoader extends LitElement {
       );
     }
 
-    if (
-      this.taskTracker.status === TaskStatus.COMPLETE &&
-      this.taskTracker.data
-    ) {
-      this.taskTracker.data.data =
-        this.reorderByQueryTerms() || this.taskTracker.data?.data;
+    let data = this.taskTracker.data?.data;
+    if (this.taskTracker.status === TaskStatus.COMPLETE) {
+      data = this.reorderByQueryTerms() || this.taskTracker.data?.data;
     }
 
     return html`<webstatus-overview-table
       .columns=${columns}
       .headerCells=${headerCells}
       .location=${this.location}
-      .isLoading=${this.taskTracker.status === TaskStatus.PENDING ||
-      this.taskTracker.status === TaskStatus.INITIAL}
+      .taskStatus=${this.taskTracker.status}
       .dataError=${this.taskTracker.error}
       .data=${data}
     ></webstatus-overview-table>`;

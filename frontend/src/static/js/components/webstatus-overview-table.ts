@@ -17,7 +17,7 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {TaskStatus} from '@lit/task';
 import {range} from 'lit/directives/range.js';
 import {map} from 'lit/directives/map.js';
-import {customElement, property} from 'lit/decorators.js';
+import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 import {
@@ -36,27 +36,14 @@ import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
-  @property({type: Boolean})
-  isLoading = false;
-
-  @property({attribute: false})
+  @state()
   data?: components['schemas']['Feature'][];
 
   @property({attribute: false})
   dataError?: ApiError | Error;
 
-  @property({attribute: false})
-  columns: ColumnKey[] = [];
-
-  @property({attribute: false})
-  headerCells: TemplateResult[] = [];
-
-  @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
-    status: TaskStatus.INITIAL, // Initial state
-    error: undefined,
-    data: undefined,
-  };
+  @state()
+  taskStatus: TaskStatus = TaskStatus.INITIAL;
 
   @property({attribute: false})
   columns: ColumnKey[] = [];
@@ -176,13 +163,13 @@ export class WebstatusOverviewTable extends LitElement {
   }
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
-    switch (this.taskTracker.status) {
+    switch (this.taskStatus) {
       case TaskStatus.INITIAL:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.PENDING:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.COMPLETE:
-        return this.taskTracker.data?.data?.length === 0
+        return this.data?.length === 0
           ? this.renderBodyWhenNoResults(columns)
           : this.renderBodyWhenComplete(columns);
       case TaskStatus.ERROR:
