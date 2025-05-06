@@ -26,6 +26,7 @@ import {WebStatusDataObj, WebstatusGChart} from '../webstatus-gchart.js';
 import {TemplateResult, html} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {createMockIterator, taskUpdateComplete} from './test-helpers.js';
+import {BrowsersParameter} from '../../api/client.js';
 
 // Interface for the data used in LineChartMetricData
 interface MetricDataPoint {
@@ -34,7 +35,9 @@ interface MetricDataPoint {
 }
 
 @customElement('test-line-chart-panel')
-class TestLineChartPanel extends WebstatusLineChartPanel {
+class TestLineChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
+  readonly series: BrowsersParameter[] = [];
+
   resolveTask!: (value: WebStatusDataObj) => void;
   rejectTask!: (reason: Error) => void;
   resolvePointSelectedTask!: (value: unknown) => void;
@@ -88,7 +91,9 @@ class TestLineChartPanel extends WebstatusLineChartPanel {
     return html``;
   }
 
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    _browsers: BrowsersParameter[],
+  ): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   } {
@@ -151,14 +156,15 @@ describe('WebstatusLineChartPanel', () => {
       },
     ];
 
-    el.setDisplayDataFromMap(metricDataArray);
-    expect(el.data).to.exist;
-    expect(el.data!.cols).to.deep.equal([
+    const formattedMetricData = el.processDisplayDataFromMap(metricDataArray);
+    expect(formattedMetricData).to.exist;
+
+    expect(formattedMetricData.cols).to.deep.equal([
       {type: 'date', label: 'Date', role: 'domain'},
       {type: 'number', label: 'Metric 1', role: 'data'},
       {type: 'number', label: 'Metric 2', role: 'data'},
     ]);
-    expect(el.data!.rows).to.deep.equal([
+    expect(formattedMetricData.rows).to.deep.equal([
       [new Date('2024-01-01'), 10, 15], // Values for both metrics on the same date
       [new Date('2024-01-02'), 20, 25], // Values for both metrics on the same date
       [new Date('2024-01-03'), null, 30], // Metric 1 is null because it has no data for 2024-01-03
@@ -210,7 +216,7 @@ describe('WebstatusLineChartPanel', () => {
     expect(errorMessage!.textContent).to.include('Error when loading chart');
   });
 
-  describe('_fetchAndAggregateData', () => {
+  describe('_populateDataForChart', () => {
     it('fetches data and applies additional series calculators', async () => {
       const fetchFunctionConfigs: FetchFunctionConfig<MetricDataPoint>[] = [
         {
@@ -248,7 +254,7 @@ describe('WebstatusLineChartPanel', () => {
           },
         ];
 
-      await el._fetchAndAggregateData(
+      await el._populateDataForChart(
         fetchFunctionConfigs,
         additionalSeriesConfigs,
       );
@@ -283,7 +289,7 @@ describe('WebstatusLineChartPanel', () => {
       const startingListener = oneEvent(el, 'data-fetch-starting');
       const completeListener = oneEvent(el, 'data-fetch-complete');
 
-      await el._fetchAndAggregateData(fetchFunctionConfigs);
+      await el._populateDataForChart(fetchFunctionConfigs);
 
       await startingListener;
       const {detail} = await completeListener;

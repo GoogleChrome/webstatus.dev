@@ -27,20 +27,22 @@ import {
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 
 @customElement('webstatus-stats-global-feature-chart-panel')
-export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineChartPanel {
+export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
   // Worst case there are 470 days between releases for Edge
   // https://github.com/mdn/browser-compat-data/blob/92d6876b420b0e6e69eb61256ed04827c9889063/browsers/edge.json#L53-L66
   // Set offset to -500 days.
   override dataFetchStartDateOffsetMsec: number = -500 * 24 * 60 * 60 * 1000;
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    browsers: BrowsersParameter[],
+  ): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.supportedBrowsers;
+    const selectedBrowsers = browsers;
     const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
@@ -51,14 +53,14 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
       vAxisTitle: 'Number of features supported',
     };
   }
-  @state()
-  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+
+  series: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   private _createFetchFunctionConfigs(
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return this.supportedBrowsers.map(browser => {
+    return this.series.map(browser => {
       const label =
         browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
       return {
@@ -82,7 +84,7 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        await this._fetchAndAggregateData([
+        await this._populateDataForChart([
           ...this._createFetchFunctionConfigs(startDate, endDate),
           {
             // Additional fetch function config for the "Total" series

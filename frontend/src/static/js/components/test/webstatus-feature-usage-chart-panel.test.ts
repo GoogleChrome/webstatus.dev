@@ -25,15 +25,15 @@ import '../webstatus-feature-usage-chart-panel.js';
 describe('WebstatusFeatureUsageChartPanel', () => {
   let el: WebstatusFeatureUsageChartPanel;
   let apiClientStub: SinonStubbedInstance<APIClient>;
-  let fetchAndAggregateDataStub: SinonStub;
+  let populateDataForChartStub: SinonStub;
   const startDate = new Date('2024-01-01');
   const endDate = new Date('2024-01-31');
 
   beforeEach(async () => {
     apiClientStub = stub(new APIClient(''));
-    fetchAndAggregateDataStub = stub(
+    populateDataForChartStub = stub(
       WebstatusLineChartPanel.prototype,
-      '_fetchAndAggregateData',
+      '_populateDataForChart',
     );
     el = await fixture<WebstatusFeatureUsageChartPanel>(
       testHtml`<webstatus-feature-usage-chart-panel
@@ -47,7 +47,7 @@ describe('WebstatusFeatureUsageChartPanel', () => {
   });
 
   afterEach(() => {
-    fetchAndAggregateDataStub.restore();
+    populateDataForChartStub.restore();
   });
 
   it('renders the card', async () => {
@@ -69,10 +69,10 @@ describe('WebstatusFeatureUsageChartPanel', () => {
     expect(el.dataFetchEndDate).to.deep.equal(new Date('2024-01-31'));
   });
 
-  it('calls _fetchAndAggregateData with correct configurations', async () => {
-    expect(fetchAndAggregateDataStub).to.have.been.calledOnce;
+  it('calls _populateDataForChart with correct configurations', async () => {
+    expect(populateDataForChartStub).to.have.been.calledOnce;
     const [fetchFunctionConfigs, additionalSeriesConfigs] =
-      fetchAndAggregateDataStub.getCall(0).args;
+      populateDataForChartStub.getCall(0).args;
 
     expect(fetchFunctionConfigs.length).to.equal(1); // Only 1 browser (Chrome)
 

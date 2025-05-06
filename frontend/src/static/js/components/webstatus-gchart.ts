@@ -326,41 +326,43 @@ export class WebstatusGChart extends LitElement {
       this.currentSelection = undefined;
       return;
     }
-    if (selection.length > 0) {
-      this.currentSelection = selection;
-      // TODO: For now only look at the first selection since we only configure for one selection at a time.
-      const item = selection[0];
-      const row = item.row;
-      const column = item.column;
-      // row and column both have the type: number|null|undefined
-      if (
-        row !== null &&
-        column !== null &&
-        row !== undefined &&
-        column !== undefined
-      ) {
-        const label = this.dataTable!.getColumnLabel(column);
-        // Assuming timestamp is in the first column
-        const timestamp = this.dataTable!.getValue(row, 0);
-        const value = this.dataTable!.getValue(row, column);
 
-        // Dispatch the chart click event
-        const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
-          'point-selected',
-          {
-            detail: {label, timestamp, value},
-            bubbles: true,
-          },
-        );
-        this.dispatchEvent(chartClickEvent);
-      }
-    } else if (selection.length === 0) {
+    if (selection.length === 0) {
       this.currentSelection = [];
       const chartDeselectEvent: ChartDeselectPointEvent = new CustomEvent(
         'point-deselected',
         {detail: undefined},
       );
       this.dispatchEvent(chartDeselectEvent);
+      return;
+    }
+
+    this.currentSelection = selection;
+    // TODO: For now only look at the first selection since we only configure for one selection at a time.
+    const item = selection[0];
+    const row = item.row;
+    const column = item.column;
+    // row and column both have the type: number|null|undefined
+    if (
+      row !== null &&
+      column !== null &&
+      row !== undefined &&
+      column !== undefined
+    ) {
+      const label = this.dataTable!.getColumnLabel(column);
+      // Assuming timestamp is in the first column
+      const timestamp = this.dataTable!.getValue(row, 0);
+      const value = this.dataTable!.getValue(row, column);
+
+      // Dispatch the chart click event
+      const chartClickEvent: ChartSelectPointEvent = new CustomEvent(
+        'point-selected',
+        {
+          detail: {label, timestamp, value},
+          bubbles: true,
+        },
+      );
+      this.dispatchEvent(chartClickEvent);
     }
   }
 }

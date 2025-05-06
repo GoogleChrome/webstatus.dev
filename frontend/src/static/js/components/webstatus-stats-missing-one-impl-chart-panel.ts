@@ -29,7 +29,7 @@ import {
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement} from 'lit/decorators.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
 import {
   getTopCssIdentifierTemplate,
@@ -37,9 +37,8 @@ import {
 } from './utils.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
-export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel {
-  @state()
-  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
+  readonly series: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
@@ -79,15 +78,14 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   getOtherBrowsersFromTargetBrowser(
     browser: BrowsersParameter,
   ): BrowsersParameter[] {
-    return this.supportedBrowsers.filter(value => browser !== value);
+    return this.series.filter(value => browser !== value);
   }
 
   private _createFetchFunctionConfigs(
-    browsers: BrowsersParameter[],
     startDate: Date,
     endDate: Date,
   ): FetchFunctionConfig<BrowserReleaseFeatureMetric>[] {
-    return browsers.map(browser => {
+    return this.series.map(browser => {
       const label =
         browser === 'chrome' ? 'Chrome/Edge' : BROWSER_ID_TO_LABEL[browser];
       return {
@@ -114,23 +112,23 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       args: () =>
         [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
       task: async ([startDate, endDate]: [Date, Date]) => {
-        await this._fetchAndAggregateData(
-          this._createFetchFunctionConfigs(
-            this.supportedBrowsers,
-            startDate,
-            endDate,
-          ),
+        const fetchFunctionConfigs = this._createFetchFunctionConfigs(
+          startDate,
+          endDate,
         );
+        await this._populateDataForChart(fetchFunctionConfigs);
       },
     });
   }
 
-  getDisplayDataChartOptionsInput(): {
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    browsers: BrowsersParameter[],
+  ): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = this.supportedBrowsers;
+    const selectedBrowsers = browsers;
     const seriesColors = [...selectedBrowsers].map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];

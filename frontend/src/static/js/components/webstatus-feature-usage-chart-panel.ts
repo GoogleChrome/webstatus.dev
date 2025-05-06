@@ -15,19 +15,25 @@
  */
 
 import {customElement, property} from 'lit/decorators.js';
-import {WebstatusLineChartPanel} from './webstatus-line-chart-panel.js';
+import {
+  FetchFunctionConfig,
+  WebstatusLineChartPanel,
+} from './webstatus-line-chart-panel.js';
 import {Task} from '@lit/task';
 import {TemplateResult, html, nothing} from 'lit';
 import {
   BROWSER_ID_TO_COLOR,
+  BROWSER_ID_TO_LABEL,
   BrowsersParameter,
   ChromeUsageStat,
 } from '../api/client.js';
 
 @customElement('webstatus-feature-usage-chart-panel')
-export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
+export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
   @property({type: String})
   featureId!: string;
+
+  series: BrowsersParameter[] = ['chrome'];
 
   private roundUsagePercentage(usage: number | undefined): number {
     if (usage === undefined) {
@@ -48,6 +54,26 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
     return percentage.toFixed(1);
   }
 
+  private _createFetchFunctionConfigs(
+    featureId: string,
+    startDate: Date,
+    endDate: Date,
+  ): FetchFunctionConfig<ChromeUsageStat>[] {
+    return this.series.map(browser => ({
+      label: BROWSER_ID_TO_LABEL[browser],
+      fetchFunction: () =>
+        this.apiClient.getChromeDailyUsageStats(featureId, startDate, endDate),
+      timestampExtractor: (dataPoint: ChromeUsageStat): Date =>
+        new Date(dataPoint.timestamp),
+      valueExtractor: (dataPoint: ChromeUsageStat): number =>
+        this.roundUsagePercentage(dataPoint.usage),
+      tooltipExtractor: (dataPoint: ChromeUsageStat): string => {
+        const percentage = this.roundUsagePercentage(dataPoint.usage);
+        return `${BROWSER_ID_TO_LABEL[browser]}: ${this.formatPercentageForDisplay(percentage)}%`;
+      },
+    }));
+  }
+
   createLoadingTask(): Task {
     return new Task(this, {
       args: () =>
@@ -63,25 +89,9 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
           endDate === undefined
         )
           return;
-        await this._fetchAndAggregateData<ChromeUsageStat>([
-          {
-            label: 'Chrome',
-            fetchFunction: () =>
-              this.apiClient.getChromeDailyUsageStats(
-                featureId,
-                startDate,
-                endDate,
-              ),
-            timestampExtractor: (dataPoint: ChromeUsageStat): Date =>
-              new Date(dataPoint.timestamp),
-            valueExtractor: (dataPoint: ChromeUsageStat): number =>
-              this.roundUsagePercentage(dataPoint.usage),
-            tooltipExtractor: (dataPoint: ChromeUsageStat): string => {
-              const percentage = this.roundUsagePercentage(dataPoint.usage);
-              return `Chrome: ${this.formatPercentageForDisplay(percentage)}%`;
-            },
-          },
-        ]);
+        await this._populateDataForChart<ChromeUsageStat>(
+          this._createFetchFunctionConfigs(featureId, startDate, endDate),
+        );
       },
     });
   }
@@ -101,13 +111,15 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel {
   renderControls(): TemplateResult {
     return html`${nothing}`;
   }
-  readonly featureSupportBrowsers: BrowsersParameter[] = ['chrome'];
-  getDisplayDataChartOptionsInput(): {
+
+  getDisplayDataChartOptionsInput<BrowsersParameter>(
+    series: BrowsersParameter[],
+  ): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const seriesColors = this.featureSupportBrowsers.map(browser => {
+    const seriesColors = series.map(browser => {
       const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
       return BROWSER_ID_TO_COLOR[browserKey];
     });

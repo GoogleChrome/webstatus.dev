@@ -113,8 +113,17 @@ export interface FetchFunctionConfig<T> {
  * and provides a framework for custom controls and panel-specific logic.
  * Subclasses must implement abstract methods to define data loading,
  * panel identification, text display, and chart options.
+ * @template S The type of the categories displayed in the chart.
  */
-export abstract class WebstatusLineChartPanel extends LitElement {
+export abstract class WebstatusLineChartPanel<S> extends LitElement {
+  /**
+   * The categories displayed in the chart.
+   * @abstract
+   * @template S The categories displayed in the chart.
+   * @type {Array<S>}
+   */
+  abstract series: Array<S>;
+
   /**
    * The start date used to fetch data.
    * Currently, we fetch more data so that the chart has more data.
@@ -217,10 +226,11 @@ export abstract class WebstatusLineChartPanel extends LitElement {
 
   /**
    * Returns the input for generating chart options.
+   * @param {S[]} series The list of categories to be displayed.
    * @abstract
    * @returns {{seriesColors: Array<string>; vAxisTitle: string;}} Chart options input.
    */
-  abstract getDisplayDataChartOptionsInput(): {
+  abstract getDisplayDataChartOptionsInput<S>(series: S[]): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   };
@@ -310,7 +320,9 @@ export abstract class WebstatusLineChartPanel extends LitElement {
    * @param {Array<LineChartMetricData<T>>} metricDataArray Array of metric data objects.
    * @template T The data type of the metric data.
    */
-  setDisplayDataFromMap<T>(metricDataArray: Array<LineChartMetricData<T>>) {
+  processDisplayDataFromMap<T>(
+    metricDataArray: Array<LineChartMetricData<T>>,
+  ): WebStatusDataObj {
     type dataEntryValueType = {value: number | null; tooltip: string | null};
     type dataEntryType = {[key: string]: dataEntryValueType};
     const dataObj: WebStatusDataObj = {cols: [], rows: []};
@@ -373,7 +385,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       dataObj.rows.push(row);
     }
 
-    this.data = dataObj;
+    return dataObj;
   }
 
   /**
@@ -460,7 +472,9 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   generateDisplayDataChartOptions(): google.visualization.LineChartOptions {
-    const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput();
+    const {seriesColors, vAxisTitle} = this.getDisplayDataChartOptionsInput(
+      this.series,
+    );
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
     const options: google.visualization.LineChartOptions = {
@@ -496,13 +510,38 @@ export abstract class WebstatusLineChartPanel extends LitElement {
   }
 
   /**
+   * Populate the chart data based on a set of fetch function configurations.
+   * The processed data is then formatted into a `LineChartMetricData` array
+   * and passed to `processDisplayDataFromMap` to structure the data for the
+   * chart.
+   *
+   * @param fetchFunctionConfigs An array of fetch function configurations.
+   * @param dataIndex The index of the data array to update.
+   * @param additionalSeriesConfigs An optional array of additional series configurations.
+   * @event CustomEvent data-fetch-starting - Dispatched when data fetching starts.
+   * @event DataFetchedEvent data-fetch-complete - Dispatched when data fetching is complete.
+   *    The `detail` property contains a map of
+   *    `{ [label: string]: { data: T[] } }`.
+   */
+  async _populateDataForChart<T>(
+    fetchFunctionConfigs: FetchFunctionConfig<T>[],
+    additionalSeriesConfigs?: AdditionalSeriesConfig<T>[],
+  ) {
+    const metricDataArray = await this._fetchAndAggregateData(
+      fetchFunctionConfigs,
+      additionalSeriesConfigs,
+    );
+
+    this.data = this.processDisplayDataFromMap(metricDataArray);
+  }
+
+  /**
    * Fetches and aggregates data for the chart.
    * This method takes an array of fetch function configurations and an optional
    * array of additional series configurations. It fetches data for each fetch
    * function configuration concurrently, then applies the additional series
    * calculators to the fetched data. The processed data is then formatted into
-   * a `LineChartMetricData` array and passed to `setDisplayDataFromMap` for
-   * rendering.
+   * a `LineChartMetricData` array and returned.
    *
    * @param fetchFunctionConfigs An array of fetch function configurations.
    * @param additionalSeriesConfigs An optional array of additional series configurations.
@@ -591,7 +630,7 @@ export abstract class WebstatusLineChartPanel extends LitElement {
       );
     }
 
-    this.setDisplayDataFromMap(metricDataArray);
+    return metricDataArray;
   }
 
   /**
