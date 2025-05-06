@@ -25,6 +25,12 @@ import (
 
 var ErrNoMatchingMobileBrowser = errors.New("browser does not have a matching mobile browser")
 
+type DesktopMobileBrowserPair struct {
+	Desktop string
+	Mobile  string
+}
+
+// getDesktopsMobileProduct returns the mobile version of the given desktop browser.
 func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
 	switch browser {
 	case backend.Chrome:
@@ -33,9 +39,10 @@ func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 		return backend.FirefoxAndroid, nil
 	case backend.Safari:
 		return backend.SafariIos, nil
-	default:
+	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
 		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 	}
+	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
 // ListMissingOneImplementationCounts implements backend.StrictServerInterface.
@@ -49,30 +56,35 @@ func (s *Server) ListMissingOneImplementationCounts(
 	if found {
 		return cachedResponse, nil
 	}
-	otherBrowsers := make([]string, 0, 5)
-	for i := 0; i < len(request.Params.Browser); i++ {
-		otherBrowsers[i] = string(request.Params.Browser[i])
-		matchingMobileBrowser, err := getDesktopsMobileProduct(request.Params.Browser[i])
-		if err != nil {
-			otherBrowsers = append(otherBrowsers, string(matchingMobileBrowser))
-		}
-	}
 
-	var targetMobileBrowser backend.BrowserPathParam
-	if *request.Params.IncludeBaselineMobileBrowsers {
-		var err error
-		targetMobileBrowser, err = getDesktopsMobileProduct(request.Browser)
+	var targetBrowsers = []string{}
+	targetBrowsers = append(targetBrowsers, string(request.Browser))
+	if request.Params.IncludeBaselineMobileBrowsers != nil {
+		targetMobileBrowser, err := getDesktopsMobileProduct(request.Browser)
 		if err != nil {
 			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
 				Message: err.Error(),
 			}, nil
 		}
+		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
 	}
+
+	otherBrowsers := [][]string{{}, {}}
+	for i := 0; i < len(request.Params.Browser); i++ {
+		otherBrowsers[0] = append(otherBrowsers[0], string(request.Params.Browser[i]))
+		// Add the mobile version of the browser if include_baseline_mobile_browsers is set.
+		if request.Params.IncludeBaselineMobileBrowsers != nil {
+			matchingMobileBrowser, err := getDesktopsMobileProduct(request.Params.Browser[i])
+			if err == nil {
+				otherBrowsers[1] = append(otherBrowsers[1], string(matchingMobileBrowser))
+			}
+		}
+	}
+
 	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(
 		ctx,
-		string(request.Browser),
-		string(targetMobileBrowser),
+		targetBrowsers,
 		otherBrowsers,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,

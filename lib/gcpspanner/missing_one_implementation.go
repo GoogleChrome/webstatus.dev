@@ -197,9 +197,8 @@ func (q LocalMissingOneImplementationQuery) Query(data missingOneImplTemplateDat
 
 func buildMissingOneImplTemplate(
 	cursor *missingOneImplCursor,
-	targetBrowser string,
-	targetMobileBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -261,9 +260,8 @@ func buildMissingOneImplTemplate(
 
 func (c *Client) ListMissingOneImplCounts(
 	ctx context.Context,
-	targetBrowser string,
-	targetMobileBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
