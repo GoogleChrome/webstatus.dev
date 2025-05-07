@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -77,7 +78,7 @@ const localMissingOneImplCountRawTemplate = `
 WITH TargetBrowserUnsupportedFeatures AS (
     SELECT bfse.WebFeatureID, bfse.EventReleaseDate
     FROM BrowserFeatureSupportEvents bfse
-    WHERE {{ .TargetBrowserFilter }}
+    WHERE ({{ .TargetBrowserFilter }})
       AND bfse.SupportStatus = 'unsupported'
 	  {{ .ExcludedFeatureFilter }}
 ),
@@ -105,7 +106,7 @@ SELECT releases.EventReleaseDate,
 			tbuf.EventReleaseDate = releases.EventReleaseDate
 			{{ range $releaseDateFilter := .ReleaseDateFilters }}
 				AND
-				{{ $releaseDateFilter }}
+				({{ $releaseDateFilter }})
 			{{ end }}
 	) AS Count
 FROM (
@@ -130,7 +131,7 @@ SELECT releases.EventReleaseDate,
 		FROM BrowserFeatureSupportEvents bfse
 		WHERE
 			bfse.EventReleaseDate = releases.EventReleaseDate
-			AND {{ .TargetBrowserFilter }}
+			AND ({{ .TargetBrowserFilter }})
 			AND bfse.SupportStatus = 'unsupported'
 			{{ .ExcludedFeatureFilter }}
 		{{ range $browserFilter := .OtherBrowsersFilters }}
@@ -138,7 +139,7 @@ SELECT releases.EventReleaseDate,
 				SELECT 1
 				FROM BrowserFeatureSupportEvents bfse_other
 				WHERE bfse_other.WebFeatureID = bfse.WebFeatureID
-				AND {{ $browserFilter }}
+				AND ({{ $browserFilter }})
 				AND bfse_other.SupportStatus = 'supported'
 				AND bfse_other.EventReleaseDate = bfse.EventReleaseDate
 				{{ $.OtherExcludedFeatureFilter }}
@@ -216,13 +217,13 @@ func buildMissingOneImplTemplate(
 	}
 	params["allBrowsersParam"] = allBrowsers
 
-	var targetBrowserFilter string
-	if len(targetBrowsers) > 1 {
-		targetBrowserFilter = fmt.Sprintf("(bfse.TargetBrowserName = '%s' OR bfse.TargetBrowserName = '%s')",
-			targetBrowsers[0], targetBrowsers[1])
-	} else {
-		targetBrowserFilter = fmt.Sprintf("bfse.TargetBrowserName = '%s'", targetBrowsers[0])
+	targetBrowserConditions := make([]string, len(targetBrowsers))
+	for i, browserName := range targetBrowsers {
+		paramName := fmt.Sprintf("targetBrowserParam%d", i) // Create a unique param name, e.g., targetBrowserParam0
+		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
+		params[paramName] = browserName
 	}
+	targetBrowserFilter := fmt.Sprintf("(%s)", strings.Join(targetBrowserConditions, " AND "))
 
 	params["limit"] = pageSize
 
@@ -232,22 +233,22 @@ func buildMissingOneImplTemplate(
 		params[releaseDateParamName] = cursor.ReleaseDate
 	}
 
-	var otherBrowsersFilters []string
-	var releaseDateFilters []string
-	for i := range otherBrowsers {
-		if len(otherBrowsers[i]) > 1 {
-			otherBrowsersFilters = append(otherBrowsersFilters,
-				fmt.Sprintf("(bfse_other.TargetBrowserName = '%s' OR bfse_other.TargetBrowserName = '%s')",
-					otherBrowsers[i][0], otherBrowsers[i][1]))
-			releaseDateFilters = append(releaseDateFilters,
-				fmt.Sprintf("('%s' IN UNNEST(obsf.SupportedBrowsers) OR '%s' IN UNNEST(obsf.SupportedBrowsers))",
-					otherBrowsers[i][0], otherBrowsers[i][1]))
-		} else {
-			otherBrowsersFilters = append(otherBrowsersFilters,
-				fmt.Sprintf("bfse_other.TargetBrowserName = '%s'", otherBrowsers[i][0]))
-			releaseDateFilters = append(releaseDateFilters,
-				fmt.Sprintf("'%s' IN UNNEST(obsf.SupportedBrowsers)", otherBrowsers[i][0]))
+	otherBrowsersFilters := make([]string, 0, len(otherBrowsers))
+	releaseDateFilters := make([]string, 0, len(otherBrowsers))
+	for i, otherBrowserGroup := range otherBrowsers {
+		otherBrowsersConditions := make([]string, len(otherBrowserGroup))
+		releaseDateConditions := make([]string, len(otherBrowserGroup))
+		for j, browserName := range otherBrowserGroup {
+			paramName := fmt.Sprintf("otherBrowsersParam%d-%d", i, j)
+			otherBrowsersConditions[j] = fmt.Sprintf("bfse_other.TargetBrowserName = @%s", paramName)
+			params[paramName] = browserName
+
+			paramName = fmt.Sprintf("releaseDateParam%d-%d", i, j)
+			releaseDateConditions[j] = fmt.Sprintf("%s IN UNNEST(obsf.SupportedBrowsers)", paramName)
+			params[paramName] = browserName
 		}
+		otherBrowsersFilters[i] = fmt.Sprintf("(%s)", strings.Join(otherBrowsersConditions, " AND "))
+		releaseDateFilters[i] = fmt.Sprintf("(%s)", strings.Join(releaseDateConditions, " AND "))
 	}
 
 	var excludedFeatureFilter, otherExcludedFeatureFilter string

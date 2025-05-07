@@ -57,11 +57,12 @@ func (s *Server) ListMissingOneImplementationCounts(
 	targetBrowsers = append(targetBrowsers, string(request.Browser))
 	if request.Params.IncludeBaselineMobileBrowsers != nil {
 		targetMobileBrowser, err := GetDesktopsMobileProduct(request.Browser)
+		// nolint: nilerr // Error is used for message, but 400 should be returned rather than 500.
 		if err != nil {
 			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
-				Message: "browser does not have a matching mobile browser",
-			}, err
+				Message: err.Error(),
+			}, nil
 		}
 		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
 	}
