@@ -111,7 +111,7 @@ func buildMissingOneImplFeatureListTemplate(
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	targetBrowserConditions := make([]string, len(targetBrowsers))
+	targetBrowserConditions := make([]string, 0, len(targetBrowsers))
 	for i, browserName := range targetBrowsers {
 		paramName := fmt.Sprintf("targetBrowserParam%d", i) // Create a unique param name, e.g., targetBrowserParam0
 		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
@@ -121,7 +121,7 @@ func buildMissingOneImplFeatureListTemplate(
 
 	otherBrowsersFilters := make([]string, 0, len(otherBrowsers))
 	for i, otherBrowserGroup := range otherBrowsers {
-		otherBrowsersConditions := make([]string, len(otherBrowserGroup))
+		otherBrowsersConditions := make([]string, 0, len(otherBrowserGroup))
 		for j, browserName := range otherBrowserGroup {
 			paramName := fmt.Sprintf("otherBrowsersParam%d-%d", i, j)
 			otherBrowsersConditions[j] = fmt.Sprintf("bfse_other.TargetBrowserName = @%s", paramName)
