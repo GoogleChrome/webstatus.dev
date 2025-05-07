@@ -295,9 +295,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     return html`<webstatus-overview-table
       .columns=${columns}
       .headerCells=${headerCells}
-      .taskStatus=${this.taskTracker.status}
-      .taskError=${this.taskTracker.error}
-      .data=${this.taskTracker.data}
+      .taskTracker=${this.taskTracker}
     ></webstatus-overview-table>`;
   }
 }

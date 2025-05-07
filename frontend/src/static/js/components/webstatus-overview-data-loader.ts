@@ -133,13 +133,20 @@ export class WebstatusOverviewDataLoader extends LitElement {
         this.reorderByQueryTerms() || this.taskTracker.data?.data;
     }
 
+    const featureTaskTracker: TaskTracker<
+      components['schemas']['Feature'][],
+      ApiError
+    > = {
+      status: this.taskTracker.status,
+      error: this.taskTracker.error,
+      data: this.taskTracker.data?.data,
+    };
+
     return html`<webstatus-overview-table
       .columns=${columns}
       .headerCells=${headerCells}
       .location=${this.location}
-      .taskStatus=${this.taskTracker.status}
-      .taskError=${this.taskTracker.error}
-      .data=${this.taskTracker.data?.data}
+      .taskTracker=${featureTaskTracker}
     ></webstatus-overview-table>`;
   }
 }
