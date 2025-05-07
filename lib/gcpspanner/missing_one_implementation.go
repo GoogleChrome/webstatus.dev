@@ -104,9 +104,9 @@ SELECT releases.EventReleaseDate,
 			AND obsf.EventReleaseDate = tbuf.EventReleaseDate
 		WHERE
 			tbuf.EventReleaseDate = releases.EventReleaseDate
-			{{ range $releaseDateFilter := .ReleaseDateFilters }}
+			{{ range $browserParamName := .OtherBrowsersParamNames }}
 				AND
-				({{ $releaseDateFilter }})
+				@{{ $browserParamName }} IN UNNEST(obsf.SupportedBrowsers)
 			{{ end }}
 	) AS Count
 FROM (
@@ -163,7 +163,7 @@ LIMIT @limit;
 
 type missingOneImplTemplateData struct {
 	ReleaseDateParam           string
-	ReleaseDateFilters         []string
+	OtherBrowsersParamNames    []string
 	TargetBrowserFilter        string
 	OtherBrowsersFilters       []string
 	ExcludedFeatureFilter      string
@@ -219,7 +219,7 @@ func buildMissingOneImplTemplate(
 
 	targetBrowserConditions := make([]string, 0, len(targetBrowsers))
 	for i, browserName := range targetBrowsers {
-		paramName := fmt.Sprintf("targetBrowserParam%d", i) // Create a unique param name, e.g., targetBrowserParam0
+		paramName := fmt.Sprintf("targetBrowserParam%d", i)
 		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
 		params[paramName] = browserName
 	}
@@ -233,22 +233,18 @@ func buildMissingOneImplTemplate(
 		params[releaseDateParamName] = cursor.ReleaseDate
 	}
 
+	var allOtherBrowsersParams []string
 	otherBrowsersFilters := make([]string, 0, len(otherBrowsers))
-	releaseDateFilters := make([]string, 0, len(otherBrowsers))
 	for i, otherBrowserGroup := range otherBrowsers {
+		allOtherBrowsersParams = append(
+			allOtherBrowsersParams, otherBrowserGroup...)
 		otherBrowsersConditions := make([]string, 0, len(otherBrowserGroup))
-		releaseDateConditions := make([]string, 0, len(otherBrowserGroup))
 		for j, browserName := range otherBrowserGroup {
 			paramName := fmt.Sprintf("otherBrowsersParam%d-%d", i, j)
 			otherBrowsersConditions[j] = fmt.Sprintf("bfse_other.TargetBrowserName = @%s", paramName)
 			params[paramName] = browserName
-
-			paramName = fmt.Sprintf("releaseDateParam%d-%d", i, j)
-			releaseDateConditions[j] = fmt.Sprintf("%s IN UNNEST(obsf.SupportedBrowsers)", paramName)
-			params[paramName] = browserName
 		}
 		otherBrowsersFilters[i] = fmt.Sprintf("(%s)", strings.Join(otherBrowsersConditions, " AND "))
-		releaseDateFilters[i] = fmt.Sprintf("(%s)", strings.Join(releaseDateConditions, " AND "))
 	}
 
 	var excludedFeatureFilter, otherExcludedFeatureFilter string
@@ -263,7 +259,7 @@ func buildMissingOneImplTemplate(
 
 	tmplData := missingOneImplTemplateData{
 		ReleaseDateParam:           releaseDateParamName,
-		ReleaseDateFilters:         releaseDateFilters,
+		OtherBrowsersParamNames:    allOtherBrowsersParams,
 		TargetBrowserFilter:        targetBrowserFilter,
 		OtherBrowsersFilters:       otherBrowsersFilters,
 		ExcludedFeatureFilter:      excludedFeatureFilter,

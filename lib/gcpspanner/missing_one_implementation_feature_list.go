@@ -113,7 +113,7 @@ func buildMissingOneImplFeatureListTemplate(
 	params := map[string]interface{}{}
 	targetBrowserConditions := make([]string, 0, len(targetBrowsers))
 	for i, browserName := range targetBrowsers {
-		paramName := fmt.Sprintf("targetBrowserParam%d", i) // Create a unique param name, e.g., targetBrowserParam0
+		paramName := fmt.Sprintf("targetBrowserParam%d", i)
 		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
 		params[paramName] = browserName
 	}

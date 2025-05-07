@@ -325,29 +325,15 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 					"startAt=2000-01-01&endAt=2000-01-10&page_token"+*badPageToken, nil),
 		},
 		{
-			name: "400 case - no matching mobile browser",
-			mockConfig: &MockListMissingOneImplCountsConfig{
-				expectedTargetBrowsers: []string{"chrome"},
-				expectedOtherBrowsers: [][]string{
-					{"edge"},
-					{"firefox"},
-					{"safari"},
-				},
-				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:  100,
-				expectedPageToken: badPageToken,
-				page:              nil,
-				pageToken:         nil,
-				err:               backendtypes.ErrInvalidPageToken,
-			},
+			name:       "400 case - no matching mobile browser",
+			mockConfig: nil,
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `ListMissingOneImplementationCounts-{"browser":"edge","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","include_baseline_mobile_browsers":true,` +
 						`"browser":["chrome","firefox","safari"]}}`,
 					Value: nil,
-					Err:   ErrNoMatchingMobileBrowser,
+					Err:   cachetypes.ErrCachedDataNotFound,
 				},
 			},
 			expectedCacheCalls: nil,
