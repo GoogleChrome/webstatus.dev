@@ -97,7 +97,7 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 
 		// Firefox Android Availabilities
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "firefox_android", BrowserVersion: "90"},
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "firefox_android", BrowserVersion: "80"},
 			FeatureKey:                 "FeatureV",
 		}, // Available from Firefox Android 90
 	}
