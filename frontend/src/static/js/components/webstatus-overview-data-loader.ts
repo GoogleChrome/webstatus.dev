@@ -37,16 +37,6 @@ import {
 @customElement('webstatus-overview-data-loader')
 export class WebstatusOverviewDataLoader extends LitElement {
   @property({type: Object})
-  featureTaskTracker: TaskTracker<
-    components['schemas']['Feature'][],
-    ApiError
-  > = {
-    status: TaskStatus.INITIAL, // Initial state
-    error: undefined,
-    data: undefined,
-  };
-
-  @property({type: Object})
   taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
     error: undefined,
