@@ -88,8 +88,8 @@ type BackendSpannerClient interface {
 	) (*gcpspanner.BrowserFeatureCountResultPage, error)
 	ListMissingOneImplCounts(
 		ctx context.Context,
-		targetBrowser string,
-		otherBrowsers []string,
+		targetBrowsers []string,
+		otherBrowsers [][]string,
 		startAt time.Time,
 		endAt time.Time,
 		pageSize int,
@@ -97,8 +97,8 @@ type BackendSpannerClient interface {
 	) (*gcpspanner.MissingOneImplCountPage, error)
 	ListMissingOneImplementationFeatures(
 		ctx context.Context,
-		targetBrowser string,
-		otherBrowsers []string,
+		targetBrowsers []string,
+		otherBrowsers [][]string,
 		targetDate time.Time,
 		pageSize int,
 		pageToken *string,
@@ -305,15 +305,15 @@ func (s *Backend) ListChromeDailyUsageStats(
 
 func (s *Backend) ListMissingOneImplCounts(
 	ctx context.Context,
-	targetBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	startAt, endAt time.Time,
 	pageSize int,
 	pageToken *string,
 ) (*backend.BrowserReleaseFeatureMetricsPage, error) {
 	spannerPage, err := s.client.ListMissingOneImplCounts(
 		ctx,
-		targetBrowser,
+		targetBrowsers,
 		otherBrowsers,
 		startAt,
 		endAt,
@@ -347,15 +347,15 @@ func (s *Backend) ListMissingOneImplCounts(
 
 func (s *Backend) ListMissingOneImplementationFeatures(
 	ctx context.Context,
-	targetBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	targetDate time.Time,
 	pageSize int,
 	pageToken *string,
 ) (*backend.MissingOneImplFeaturesPage, error) {
 	spannerPage, err := s.client.ListMissingOneImplementationFeatures(
 		ctx,
-		targetBrowser,
+		targetBrowsers,
 		otherBrowsers,
 		targetDate,
 		pageSize,

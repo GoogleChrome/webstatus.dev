@@ -29,13 +29,37 @@ func (s *Server) ListMissingOneImplementationFeatures(
 	ctx context.Context,
 	request backend.ListMissingOneImplementationFeaturesRequestObject) (
 	backend.ListMissingOneImplementationFeaturesResponseObject, error) {
-	otherBrowsers := make([]string, len(request.Params.Browser))
-	for i := 0; i < len(request.Params.Browser); i++ {
-		otherBrowsers[i] = string(request.Params.Browser[i])
+
+	var targetBrowsers = []string{}
+	targetBrowsers = append(targetBrowsers, string(request.Browser))
+	if request.Params.IncludeBaselineMobileBrowsers != nil {
+		targetMobileBrowser, err := GetDesktopsMobileProduct(request.Browser)
+		if err != nil {
+			return backend.ListMissingOneImplementationFeatures400JSONResponse{
+				Code:    400,
+				Message: "browser does not have a matching mobile browser",
+			}, err
+		}
+		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
 	}
+
+	otherBrowsers := [][]string{}
+	for i := range len(request.Params.Browser) {
+		otherBrowser := []string{}
+		otherBrowser = append(otherBrowser, string(request.Params.Browser[i]))
+		// Add the mobile version of the browser if include_baseline_mobile_browsers is set.
+		if request.Params.IncludeBaselineMobileBrowsers != nil {
+			matchingMobileBrowser, err := GetDesktopsMobileProduct(request.Params.Browser[i])
+			if err == nil {
+				otherBrowser = append(otherBrowser, string(matchingMobileBrowser))
+			}
+		}
+		otherBrowsers = append(otherBrowsers, otherBrowser)
+	}
+
 	page, err := s.wptMetricsStorer.ListMissingOneImplementationFeatures(
 		ctx,
-		string(request.Browser),
+		targetBrowsers,
 		otherBrowsers,
 		request.Date.Time,
 		getPageSizeOrDefault(request.Params.PageSize),

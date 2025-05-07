@@ -379,6 +379,7 @@ paths:
         - $ref: '#/components/parameters/endAtParam'
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
+        - $ref: '#/components/parameters/includeBaselineMobileBrowsersParam'
         - in: query
           name: browser
           description: >
@@ -438,6 +439,7 @@ paths:
           description: The date for which to retrieve the feature IDs.
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
+        - $ref: '#/components/parameters/includeBaselineMobileBrowsersParam'
         - in: query # Add otherBrowsers parameter
           name: browser
           description: >
@@ -927,6 +929,15 @@ components:
         default: 1
       required: false
       description: Number of results to return
+    includeBaselineMobileBrowsersParam:
+      in: query
+      name: include_baseline_mobile_browsers
+      schema:
+        type: boolean
+      description: >
+        Include baseline mobile browsers in the response. This is only applicable
+        for desktop browsers with a corresponding mobile browser.
+      required: false
   schemas:
     SupportedBrowsers:
       type: string
