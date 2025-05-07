@@ -20,29 +20,20 @@ import {map} from 'lit/directives/map.js';
 import {customElement, property} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
-import {getColumnsSpec, getSortSpec} from '../utils/urls.js';
 import {
   ColumnKey,
-  DEFAULT_SORT_SPEC,
   CELL_DEFS,
-  parseColumnsSpec,
   renderFeatureCell,
   renderColgroups,
   renderGroupsRow,
-  renderHeaderCell,
-  renderSavedSearchHeaderCells,
 } from './webstatus-overview-cells.js';
-import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
 import {
   GITHUB_REPO_ISSUE_LINK,
   SEARCH_QUERY_README_LINK,
 } from '../utils/constants.js';
-import {Toast} from '../utils/toast.js';
-import {
-  CurrentSavedSearch,
-  SavedSearchScope,
-} from '../contexts/app-bookmark-info-context.js';
+import {CurrentSavedSearch} from '../contexts/app-bookmark-info-context.js';
+import {TaskTracker} from '../utils/task-tracker.js';
 
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
@@ -52,6 +43,12 @@ export class WebstatusOverviewTable extends LitElement {
     error: undefined,
     data: undefined,
   };
+
+  @property({attribute: false})
+  columns: ColumnKey[] = [];
+
+  @property({attribute: false})
+  headerCells: TemplateResult[] = [];
 
   @property({type: Object})
   location!: {search: string}; // Set by parent.
@@ -147,93 +144,18 @@ export class WebstatusOverviewTable extends LitElement {
     ];
   }
 
-  findFeaturesFromAtom(
-    searchKey: string,
-    searchValue: string,
-  ): components['schemas']['Feature'][] {
-    if (!this.taskTracker.data?.data) {
-      return [];
-    }
-
-    const features: components['schemas']['Feature'][] = [];
-    for (const feature of this.taskTracker.data.data) {
-      if (searchKey === 'id' && feature?.feature_id === searchValue) {
-        features.push(feature);
-        break;
-      } else if (
-        searchKey === 'name' &&
-        (feature?.feature_id.includes(searchValue) ||
-          feature?.name.includes(searchValue))
-      ) {
-        features.push(feature);
-      }
-    }
-    return features;
-  }
-
-  reorderByQueryTerms(): components['schemas']['Feature'][] | undefined {
-    if (
-      !this.savedSearch ||
-      this.savedSearch.scope !== SavedSearchScope.GlobalSavedSearch ||
-      !this.savedSearch.value.is_ordered
-    ) {
-      return undefined;
-    }
-
-    const atoms: string[] = this.savedSearch.value.query.trim().split('OR');
-    const features = [];
-    for (const atom of atoms) {
-      const terms = atom.trim().split(':');
-      const foundFeatures = this.findFeaturesFromAtom(terms[0], terms[1]);
-      if (foundFeatures) {
-        features.push(...foundFeatures);
-      }
-    }
-
-    if (features.length !== this.taskTracker?.data?.data?.length) {
-      void new Toast().toast(
-        `Unable to apply custom sorting to saved search "${this.savedSearch.value.name}". Defaulting to normal sorting.`,
-        'warning',
-        'exclamation-triangle',
-      );
-      return undefined;
-    }
-    return features;
-  }
-
   render(): TemplateResult {
-    const columns: ColumnKey[] = parseColumnsSpec(
-      getColumnsSpec(this.location),
-    );
-    const sortSpec: string =
-      getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
-
-    let headerCells: TemplateResult[] = [];
-    if (
-      this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
-      this.savedSearch.value?.is_ordered
-    ) {
-      headerCells = renderSavedSearchHeaderCells(
-        this.savedSearch.value.name,
-        columns,
-      );
-    } else {
-      headerCells = columns.map(
-        col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
-      );
-    }
-
     return html`
       <table class="data-table">
-        ${renderColgroups(columns)}
+        ${renderColgroups(this.columns)}
         <thead>
-          ${renderGroupsRow(columns)}
+          ${renderGroupsRow(this.columns)}
           <tr class="header-row">
-            ${headerCells}
+            ${this.headerCells}
           </tr>
         </thead>
         <tbody>
-          ${this.renderTableBody(columns)}
+          ${this.renderTableBody(this.columns)}
         </tbody>
       </table>
     `;
@@ -241,27 +163,24 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderTableBody(columns: ColumnKey[]): TemplateResult {
     switch (this.taskTracker.status) {
+      case TaskStatus.INITIAL:
+        return this.renderBodyWhenPending(columns);
+      case TaskStatus.PENDING:
+        return this.renderBodyWhenPending(columns);
       case TaskStatus.COMPLETE:
         return this.taskTracker.data?.data?.length === 0
           ? this.renderBodyWhenNoResults(columns)
           : this.renderBodyWhenComplete(columns);
       case TaskStatus.ERROR:
         return this.renderBodyWhenError(columns);
-      case TaskStatus.INITIAL:
-        // Do the same thing as pending.
-        return this.renderBodyWhenPending(columns);
-      case TaskStatus.PENDING:
-        return this.renderBodyWhenPending(columns);
     }
   }
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
-    let renderFeatures = this.reorderByQueryTerms();
-    if (!renderFeatures) {
-      renderFeatures = this.taskTracker.data?.data;
-    }
     return html`
-      ${renderFeatures?.map(f => this.renderFeatureRow(f, columns))}
+      ${this.taskTracker.data?.data?.map(f =>
+        this.renderFeatureRow(f, columns),
+      )}
     `;
   }
 
