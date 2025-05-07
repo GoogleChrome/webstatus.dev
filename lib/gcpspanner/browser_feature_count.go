@@ -209,7 +209,7 @@ func createListBrowserFeatureCountMetricStatement(
 	var browserFilter string
 	if targetMobileBrowser != "" {
 		browserFilter = `(BrowserReleases.BrowserName = @targetBrowserName ` +
-			`OR BrowserReleases.BrowserName = @targetMobileBrowserName)`
+			`AND BrowserReleases.BrowserName = @targetMobileBrowserName)`
 	} else {
 		browserFilter = `bfa.BrowserName = @targetBrowserName`
 	}

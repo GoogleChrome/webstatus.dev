@@ -78,6 +78,10 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome", BrowserVersion: "101"},
 			FeatureKey:                 "FeatureZ",
 		}, // Available from Chrome 101
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome", BrowserVersion: "101"},
+			FeatureKey:                 "FeatureV",
+		}, // Available from Chrome 101
 
 		// Firefox Availabilities
 		{
@@ -91,15 +95,25 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 
 		// Chrome Android Availabilities
 		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome_android", BrowserVersion: "103"},
-			FeatureKey:                 "FeatureV",
-		}, // Available from Chrome Android 103
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "chrome_android",
+				BrowserVersion: "102",
+			},
+			FeatureKey: "FeatureX",
+		}, // Available from Chrome Android 102
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{
+				BrowserName:    "chrome_android",
+				BrowserVersion: "102",
+			},
+			FeatureKey: "FeatureV",
+		}, // Available from Chrome Android 102
 
 		// Firefox Android Availabilities
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "firefox_android", BrowserVersion: "80"},
 			FeatureKey:                 "FeatureV",
-		}, // Available from Firefox Android 90
+		}, // Available from Firefox Android 80
 	}
 	for _, availability := range browserFeatureAvailabilities {
 		err := client.UpsertBrowserFeatureAvailability(ctx,
@@ -150,8 +164,8 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 						FeatureCount: 0,
 					},
 					{
-						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 2,
+						ReleaseDate:  time.Date(2023, 12, 7, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 0,
 					},
 				},
 			},
@@ -166,13 +180,17 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			discouragedFeatureKeysToInsert: nil,
 			pageSize:                       3,
 			inputCursor: valuePtr(encodeBrowserFeatureCountCursor(
-				time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 2)),
+				time.Date(2024, 12, 7, 0, 0, 0, 0, time.UTC), 2)),
 			expectedResult: &BrowserFeatureCountResultPage{
 				NextPageToken: nil,
 				Metrics: []BrowserFeatureCountMetric{
 					{
+						ReleaseDate:  time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
+						FeatureCount: 1,
+					},
+					{
 						ReleaseDate:  time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC),
-						FeatureCount: 4,
+						FeatureCount: 2,
 					},
 				},
 			},
@@ -180,7 +198,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		{
 			testName:                       "Test 2. Get the point but still count all the features beforehand.",
 			targetBrowser:                  "chrome",
-			targetMobileBrowser:            "chrome_android",
+			targetMobileBrowser:            "",
 			startAt:                        time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
@@ -203,7 +221,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		{
 			testName:                       "Test 3. No availabilities for one browser.",
 			targetBrowser:                  "firefox",
-			targetMobileBrowser:            "firefox_android",
+			targetMobileBrowser:            "",
 			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
