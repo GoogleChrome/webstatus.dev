@@ -53,12 +53,13 @@ export class WebstatusOverviewDataLoader extends LitElement {
     searchKey: string,
     searchValue: string,
   ): components['schemas']['Feature'][] {
-    if (!this.taskTracker.data?.data) {
+    if (!this.taskTracker.data) {
       return [];
     }
 
     const features: components['schemas']['Feature'][] = [];
-    for (const feature of this.taskTracker.data.data) {
+    const data = this.taskTracker.data?.data || [];
+    for (const feature of data) {
       if (searchKey === 'id' && feature?.feature_id === searchValue) {
         features.push(feature);
         break;
@@ -126,18 +127,27 @@ export class WebstatusOverviewDataLoader extends LitElement {
     }
 
     if (
-      this.taskTracker.status === TaskStatus.COMPLETE &&
-      this.taskTracker.data
+      this.taskTracker.data?.data &&
+      this.taskTracker.status === TaskStatus.COMPLETE
     ) {
       this.taskTracker.data.data =
         this.reorderByQueryTerms() || this.taskTracker.data?.data;
     }
 
+    const featureTaskTracker: TaskTracker<
+      components['schemas']['Feature'][],
+      ApiError
+    > = {
+      status: this.taskTracker.status,
+      error: this.taskTracker.error,
+      data: this.taskTracker.data?.data,
+    };
+
     return html`<webstatus-overview-table
       .columns=${columns}
       .headerCells=${headerCells}
       .location=${this.location}
-      .taskTracker=${this.taskTracker}
+      .taskTracker=${featureTaskTracker}
     ></webstatus-overview-table>`;
   }
 }

@@ -215,21 +215,8 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     `;
     expect(header).dom.to.equal(expectedHeader);
 
-    const table = el.shadowRoot!.querySelector('.missing-features-table');
+    const table = el.shadowRoot!.querySelector('webstatus-overview-table');
     expect(table).to.exist;
-
-    const rows = table!
-      .getElementsByTagName('tbody')[0]
-      .getElementsByTagName('tr');
-    expect(rows.length).to.equal(10, 'should have 10 rows');
-
-    const firstRowCells = rows[0].querySelectorAll('td');
-    const textContent = firstRowCells[0].textContent
-      ?.split('\n')
-      .map(word => word.trim())
-      .filter(word => word.length > 0)
-      .join(' ');
-    expect(textContent).to.equal('grid TOP CSS', 'first row ID');
   });
 
   it('renders empty features footer', async () => {

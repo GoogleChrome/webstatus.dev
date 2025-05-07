@@ -214,3 +214,6 @@ export const VOCABULARY = [
     doc: 'Negate search term with a leading minus',
   },
 ];
+
+export const MISSING_ONE_TABLE_COLUMNS: string =
+  'name,availability_chrome,availability_firefox,availability_safari,availability_chrome_android,availability_firefox_android,availability_safari_ios,chrome_usage';

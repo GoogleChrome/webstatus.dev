@@ -38,7 +38,7 @@ import {TaskTracker} from '../utils/task-tracker.js';
 @customElement('webstatus-overview-table')
 export class WebstatusOverviewTable extends LitElement {
   @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+  taskTracker: TaskTracker<components['schemas']['Feature'][], ApiError> = {
     status: TaskStatus.INITIAL, // Initial state
     error: undefined,
     data: undefined,
@@ -168,7 +168,7 @@ export class WebstatusOverviewTable extends LitElement {
       case TaskStatus.PENDING:
         return this.renderBodyWhenPending(columns);
       case TaskStatus.COMPLETE:
-        return this.taskTracker.data?.data?.length === 0
+        return this.taskTracker.data?.length === 0
           ? this.renderBodyWhenNoResults(columns)
           : this.renderBodyWhenComplete(columns);
       case TaskStatus.ERROR:
@@ -178,9 +178,7 @@ export class WebstatusOverviewTable extends LitElement {
 
   renderBodyWhenComplete(columns: ColumnKey[]): TemplateResult {
     return html`
-      ${this.taskTracker.data?.data?.map(f =>
-        this.renderFeatureRow(f, columns),
-      )}
+      ${this.taskTracker.data?.map(f => this.renderFeatureRow(f, columns))}
     `;
   }
 
@@ -234,7 +232,7 @@ export class WebstatusOverviewTable extends LitElement {
   renderBodyWhenPending(columns: ColumnKey[]): TemplateResult {
     const DEFAULT_SKELETON_ROWS = 10;
     const skeleton_rows =
-      this.taskTracker.data?.data?.length || DEFAULT_SKELETON_ROWS;
+      this.taskTracker.data?.length || DEFAULT_SKELETON_ROWS;
     return html`
       ${map(
         range(skeleton_rows),

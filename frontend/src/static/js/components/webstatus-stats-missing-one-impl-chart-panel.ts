@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-import {Task} from '@lit/task';
+import {Task, TaskStatus} from '@lit/task';
 import {TemplateResult, html, nothing, css} from 'lit';
+import {type components} from 'webstatus.dev-backend';
 import {
   FetchFunctionConfig,
   WebstatusLineChartPanel,
@@ -29,16 +30,33 @@ import {
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
-import {customElement} from 'lit/decorators.js';
+import {customElement, property} from 'lit/decorators.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
 import {
-  getTopCssIdentifierTemplate,
-  getTopHtmlIdentifierTemplate,
-} from './utils.js';
+  ColumnKey,
+  parseColumnsSpec,
+  renderSavedSearchHeaderCells,
+} from './webstatus-overview-cells.js';
+import {MISSING_ONE_TABLE_COLUMNS} from '../utils/constants.js';
+import {TaskTracker} from '../utils/task-tracker.js';
+import {ApiError, UnknownError} from '../api/errors.js';
+import {toast} from '../utils/toast.js';
 
 @customElement('webstatus-stats-missing-one-impl-chart-panel')
 export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
   readonly series: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+
+  @property({type: Object})
+  taskTracker: TaskTracker<components['schemas']['Feature'][], ApiError> = {
+    status: TaskStatus.INITIAL, // Initial state
+    error: undefined,
+    data: undefined,
+  };
+
+  supportedBrowsers: BrowsersParameter[] = ['chrome', 'firefox', 'safari'];
+
+  @property({type: Boolean})
+  isLoadingFeatures = false;
 
   missingFeaturesList: MissingOneImplFeaturesList = [];
   selectedBrowser: string = '';
@@ -153,6 +171,16 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     this.featureListHref = formatOverviewPageUrl({search: ''}, {q: query});
   }
 
+  async getAllFeatureData(
+    features: MissingOneImplFeaturesList,
+  ): Promise<components['schemas']['Feature'][]> {
+    if (features.length === 0) {
+      return [];
+    }
+    const query = `id:${features.map(f => f.feature_id).join(' OR id:')}`;
+    return await this.apiClient.getAllFeatures(query, 'name_asc');
+  }
+
   /**
    * Creates a task and a renderer for handling point-selected events.
    * Overrides createPointSelectedTask() in the parent class when an point is
@@ -181,9 +209,33 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         this.selectedDate = targetDate.toISOString().substring(0, 10);
         this.selectedBrowser = label;
         this.updateFeatureListHref(features);
-        return features;
+        return await this.getAllFeatureData(features);
       },
       args: () => [targetDate, targetBrowser],
+      onComplete: features => {
+        this.taskTracker = {
+          status: TaskStatus.COMPLETE,
+          error: undefined,
+          data: features,
+        };
+      },
+      onError: async (error: unknown) => {
+        if (error instanceof ApiError) {
+          this.taskTracker = {
+            status: TaskStatus.ERROR,
+            error: error,
+            data: undefined,
+          };
+          await toast(`${error.message}`, 'danger', 'exclamation-triangle');
+        } else {
+          // Should never reach here but let's handle it.
+          this.taskTracker = {
+            status: TaskStatus.ERROR,
+            error: new UnknownError('unknown error fetching features'),
+            data: undefined,
+          };
+        }
+      },
     });
     return {task: task, renderSuccess: this.pointSelectedTaskRenderOnSuccess};
   }
@@ -236,52 +288,14 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   }
 
   renderMissingFeaturesTable(): TemplateResult {
-    const numCols = Math.ceil(this.missingFeaturesList.length / 10);
+    const columns: ColumnKey[] = parseColumnsSpec(MISSING_ONE_TABLE_COLUMNS);
+    let headerCells: TemplateResult[] = [];
+    headerCells = renderSavedSearchHeaderCells(this.getPanelText(), columns);
 
-    // Create table body with `numCols` columns and 10 rows each.
-    const bodyRows = [];
-    for (let i = 0; i < 10; i++) {
-      const cells = [];
-      for (let j = 0; j < numCols; j++) {
-        const featureIndex = j * 10 + i;
-        if (featureIndex < this.missingFeaturesList.length) {
-          const featureId = this.missingFeaturesList[featureIndex].feature_id;
-          const extraIdentifiers: TemplateResult[] = [];
-          const cssIdentifier = getTopCssIdentifierTemplate(featureId);
-          if (cssIdentifier) {
-            extraIdentifiers.push(cssIdentifier);
-          }
-          const htmlIdentifier = getTopHtmlIdentifierTemplate(featureId);
-          if (htmlIdentifier) {
-            extraIdentifiers.push(htmlIdentifier);
-          }
-          cells.push(
-            html` <td>
-              <div class="missing-feature-id">
-                <a href="/features/${featureId}">${featureId}</a>
-                ${extraIdentifiers}
-              </div>
-            </td>`,
-          );
-        } else {
-          // Empty cell.
-          cells.push(html`<td></td>`);
-        }
-      }
-
-      bodyRows.push(
-        html`<tr>
-          ${cells}
-        </tr>`,
-      );
-    }
-
-    return html`
-      <table class="missing-features-table">
-        <tbody>
-          ${bodyRows}
-        </tbody>
-      </table>
-    `;
+    return html`<webstatus-overview-table
+      .columns=${columns}
+      .headerCells=${headerCells}
+      .taskTracker=${this.taskTracker}
+    ></webstatus-overview-table>`;
   }
 }
