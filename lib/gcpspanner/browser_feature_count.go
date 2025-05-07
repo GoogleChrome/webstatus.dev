@@ -136,6 +136,7 @@ func (c *Client) getInitialBrowserFeatureCount(
 		browserFilter = `(bfa.BrowserName = @targetBrowserName OR bfa.BrowserName = @targetMobileBrowserName)`
 	} else {
 		browserFilter = `bfa.BrowserName = @targetBrowserName`
+		targetMobileBrowser = targetBrowser
 	}
 
 	params := map[string]interface{}{
@@ -158,7 +159,20 @@ func (c *Client) getInitialBrowserFeatureCount(
 					FROM (
 						SELECT COUNT(DISTINCT WebFeatureID) AS daily_feature_count
 						FROM BrowserReleases br
-						LEFT JOIN BrowserFeatureAvailabilities bfa
+						LEFT JOIN (
+							SELECT
+								bfa.WebFeatureID
+							FROM BrowserFeatureAvailabilities bfa
+							WHERE bfa.BrowserName = @targetBrowserName
+							INNER JOIN (
+								SELECT
+									bfa2. WebFeatureID,
+									bfa2.BrowserName
+								FROM BrowserFeatureAvailabilities bfa2
+								WHERE bfa2.BrowserName = @targetMobileBrowserName
+							ON bfa.WebFeatureID = bfa2.WebFeatureID
+							AND bfa.BrowserVersion = br.BrowserVersion
+						)
 						ON bfa.BrowserName = br.BrowserName
 						AND bfa.BrowserVersion = br.BrowserVersion
 						%s
@@ -209,7 +223,7 @@ func createListBrowserFeatureCountMetricStatement(
 	var browserFilter string
 	if targetMobileBrowser != "" {
 		browserFilter = `(BrowserReleases.BrowserName = @targetBrowserName ` +
-			`AND BrowserReleases.BrowserName = @targetMobileBrowserName)`
+			`OR BrowserReleases.BrowserName = @targetMobileBrowserName)`
 	} else {
 		browserFilter = `bfa.BrowserName = @targetBrowserName`
 	}
