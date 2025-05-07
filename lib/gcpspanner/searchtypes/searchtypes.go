@@ -92,6 +92,7 @@ const (
 	IdentifierAvailableOn          SearchIdentifier = "available_on"
 	IdentifierBaselineDate         SearchIdentifier = "baseline_date"
 	IdentifierBaselineStatus       SearchIdentifier = "baseline_status"
+	IdentifierBrowserCompatData    SearchIdentifier = "bcd"
 	IdentifierName                 SearchIdentifier = "name"
 	IdentifierGroup                SearchIdentifier = "group"
 	IdentifierSnapshot             SearchIdentifier = "snapshot"
