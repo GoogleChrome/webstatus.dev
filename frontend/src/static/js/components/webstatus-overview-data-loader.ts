@@ -58,7 +58,8 @@ export class WebstatusOverviewDataLoader extends LitElement {
     }
 
     const features: components['schemas']['Feature'][] = [];
-    for (const feature of this.taskTracker.data?.data) {
+    const data = this.taskTracker.data?.data || [];
+    for (const feature of data) {
       if (searchKey === 'id' && feature?.feature_id === searchValue) {
         features.push(feature);
         break;
