@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -110,24 +111,23 @@ func buildMissingOneImplFeatureListTemplate(
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	var targetBrowserFilter string
-	if len(targetBrowsers) > 1 {
-		targetBrowserFilter = fmt.Sprintf("(bfse.TargetBrowserName = '%s' OR bfse.TargetBrowserName = '%s')",
-			targetBrowsers[0], targetBrowsers[1])
-	} else {
-		targetBrowserFilter = fmt.Sprintf("bfse.TargetBrowserName = '%s'", targetBrowsers[0])
+	targetBrowserConditions := make([]string, len(targetBrowsers))
+	for i, browserName := range targetBrowsers {
+		paramName := fmt.Sprintf("targetBrowserParam%d", i) // Create a unique param name, e.g., targetBrowserParam0
+		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
+		params[paramName] = browserName
 	}
+	targetBrowserFilter := fmt.Sprintf("(%s)", strings.Join(targetBrowserConditions, " AND "))
 
-	var otherBrowsersFilters []string
-	for i := range otherBrowsers {
-		if len(otherBrowsers[i]) > 1 {
-			otherBrowsersFilters = append(otherBrowsersFilters,
-				fmt.Sprintf("(bfse_other.TargetBrowserName = '%s' OR bfse_other.TargetBrowserName = '%s')",
-					otherBrowsers[i][0], otherBrowsers[i][1]))
-		} else {
-			otherBrowsersFilters = append(otherBrowsersFilters,
-				fmt.Sprintf("bfse_other.TargetBrowserName = '%s'", otherBrowsers[i][0]))
+	otherBrowsersFilters := make([]string, 0, len(otherBrowsers))
+	for i, otherBrowserGroup := range otherBrowsers {
+		otherBrowsersConditions := make([]string, len(otherBrowserGroup))
+		for j, browserName := range otherBrowserGroup {
+			paramName := fmt.Sprintf("otherBrowsersParam%d-%d", i, j)
+			otherBrowsersConditions[j] = fmt.Sprintf("bfse_other.TargetBrowserName = @%s", paramName)
+			params[paramName] = browserName
 		}
+		otherBrowsersFilters[i] = fmt.Sprintf("(%s)", strings.Join(otherBrowsersConditions, " AND "))
 	}
 
 	var excludedFeatureFilter string
