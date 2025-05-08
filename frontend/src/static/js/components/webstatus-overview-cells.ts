@@ -23,9 +23,9 @@ import {
 import {BROWSER_ID_TO_ICON_NAME, FeatureSortOrderType} from '../api/client.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {
-  getTopCssIdentifierTemplate,
-  getTopHtmlIdentifierTemplate,
-} from './utils.js';
+  TOP_CSS_INTEROP_ISSUES,
+  TOP_HTML_INTEROP_ISSUES,
+} from '../utils/constants.js';
 
 const MISSING_VALUE = html``;
 
@@ -175,20 +175,28 @@ export const BASELINE_CHIP_CONFIGS: Record<
   },
 };
 
+function getFeatureBadges(featureId: string): TemplateResult[] {
+  const extraIdentifiers: TemplateResult[] = [];
+  if (TOP_CSS_INTEROP_ISSUES.includes(featureId)) {
+    extraIdentifiers.push(
+      html`<webstatus-feature-badge badgeType="css"></webstatus-feature-badge>`,
+    );
+  }
+  if (TOP_HTML_INTEROP_ISSUES.includes(featureId)) {
+    extraIdentifiers.push(
+      html`<webstatus-feature-badge
+        badgeType="html"
+      ></webstatus-feature-badge>`,
+    );
+  }
+  return extraIdentifiers;
+}
+
 const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   const featureUrl = formatFeaturePageUrl(feature, routerLocation);
-  const extraIdentifiers: TemplateResult[] = [];
-  const cssIdentifier = getTopCssIdentifierTemplate(feature.feature_id);
-  if (cssIdentifier) {
-    extraIdentifiers.push(cssIdentifier);
-  }
-  const htmlIdentifier = getTopHtmlIdentifierTemplate(feature.feature_id);
-  if (htmlIdentifier) {
-    extraIdentifiers.push(htmlIdentifier);
-  }
   return html`<div class="feature-name-cell">
     <a class="feature-page-link" href=${featureUrl}>${feature.name}</a
-    >${extraIdentifiers}
+    >${getFeatureBadges(feature.feature_id)}
   </div>`;
 };
 

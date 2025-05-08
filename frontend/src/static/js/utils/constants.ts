@@ -217,3 +217,33 @@ export const VOCABULARY = [
 
 export const MISSING_ONE_TABLE_COLUMNS: string =
   'name,availability_chrome,availability_firefox,availability_safari,availability_chrome_android,availability_firefox_android,availability_safari_ios,chrome_usage';
+
+export const BADGE_PARAMS_BY_TYPE: {
+  [badgeType: string]: {
+    name: string;
+    url: string;
+    description: string;
+    visualVariant: string;
+  };
+} = {
+  css: {
+    name: 'TOP CSS',
+    url: 'https://2024.stateofcss.com/',
+    description:
+      'This feature was listed as a top interoperability pain point in the recent State of CSS survey.',
+    visualVariant: 'success',
+  },
+  html: {
+    name: 'TOP HTML',
+    url: 'https://2024.stateofhtml.com/',
+    description:
+      'This feature was listed as a top interoperability pain point in the recent State of HTML survey.',
+    visualVariant: 'primary',
+  },
+  interop: {
+    name: 'INTEROP',
+    url: 'https://wpt.fyi/interop',
+    description: 'This feature is a focus area for the Interop 2025 effort.',
+    visualVariant: 'neutral',
+  },
+};
