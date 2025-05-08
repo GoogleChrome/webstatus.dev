@@ -57,6 +57,21 @@ export abstract class WebstatusLineChartTabbedPanel<
     this.resetPointSelectedTask();
   }
 
+  getTabTooltip(tab: string): TemplateResult {
+    if (tab === 'Mobile') {
+      return html`${tab}
+        <sl-tooltip content="${'Mobile results are a work in progress.'}">
+          <sl-icon
+            class="icon-button__icon"
+            aria-hidden="true"
+            name="exclamation-triangle"
+            library="default"
+          ></sl-icon
+        ></sl-tooltip>`;
+    }
+    return html`${tab}`;
+  }
+
   /**
    * Returns the view tabs to render for the panel.
    * @returns {TemplateResult} The mobile toggle element if enabled.
@@ -66,21 +81,20 @@ export abstract class WebstatusLineChartTabbedPanel<
       return html``;
     }
     return html`<sl-tab-group
-      >${this.tabViews.map(
-        (tab, index) =>
-          html`<sl-tab
-              slot="nav"
-              id="${this.getPanelID()}-tab-${tab.toLowerCase()}"
-              panel="${tab.toLowerCase()}"
-              @click=${this._handleTabClick}
-            >
-              ${tab}
-            </sl-tab>
-            <sl-tab-panel name="${tab.toLowerCase()}">
-              <div>${this.renderChartByView(index)}</div>
-              ${this.renderPointSelectedDetails()}
-            </sl-tab-panel>`,
-      )}
+      >${this.tabViews.map((tab, index) => {
+        return html`<sl-tab
+            slot="nav"
+            id="${this.getPanelID()}-tab-${tab.toLowerCase()}"
+            panel="${tab.toLowerCase()}"
+            @click=${this._handleTabClick}
+          >
+            ${this.getTabTooltip(tab)}
+          </sl-tab>
+          <sl-tab-panel name="${tab.toLowerCase()}">
+            <div>${this.renderChartByView(index)}</div>
+            ${this.renderPointSelectedDetails()}
+          </sl-tab-panel>`;
+      })}
     </sl-tab-group>`;
   }
 
