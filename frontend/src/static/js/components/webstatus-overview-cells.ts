@@ -561,7 +561,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Safari (iOS)',
     group: 'WPT',
     headerHtml: html`<img src="/public/img/safari_24x24.png" />
-      <img class="platform" alt="android logo" src="/public/img/ios.svg" />`,
+      <img class="platform" alt="ios logo" src="/public/img/ios.svg" />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
     options: {browser: 'safari_ios', channel: 'stable', platform: 'ios'},
@@ -636,7 +636,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Browser Implementation in Safari Experimental (iOS)',
     group: 'WPT Experimental',
     headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
-      <img class="platform" alt="android logo" src="/public/img/ios.svg" />`,
+      <img class="platform" alt="ios logo" src="/public/img/ios.svg" />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
     options: {browser: 'safari_ios', channel: 'experimental', platform: 'ios'},
