@@ -133,14 +133,6 @@ export class WebstatusOverviewTable extends LitElement {
           gap: 4px;
         }
 
-        .survey-result,
-        .survey-result:hover,
-        .survey-result a {
-          font-size: 10px;
-          text-decoration: none;
-          cursor: help;
-        }
-
         img.platform {
           margin-left: calc(-0.6 * var(--platform-logo-size));
           height: var(--platform-logo-size);
