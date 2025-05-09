@@ -35,6 +35,7 @@ type WebFeatureSpannerClient interface {
 	UpsertFeatureDiscouragedDetails(ctx context.Context, featureID string,
 		in gcpspanner.FeatureDiscouragedDetails) error
 	PrecalculateBrowserFeatureSupportEvents(ctx context.Context, startAt, endAt time.Time) error
+	UpsertBrowserCompatFeatures(ctx context.Context, featureID string, compatFeatures []string) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -97,6 +98,15 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		err = consumeFeatureSpecInformation(ctx, c.client, featureID, featureData)
 		if err != nil {
 			return nil, err
+		}
+
+		if len(featureData.CompatFeatures) > 0 {
+			err = c.client.UpsertBrowserCompatFeatures(ctx, *id, featureData.CompatFeatures)
+			if err != nil {
+				slog.ErrorContext(ctx, "unable to insert compat features", "featureID", *id, "error", err)
+
+				return nil, err
+			}
 		}
 
 		if featureData.Discouraged != nil {

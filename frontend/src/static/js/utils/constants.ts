@@ -186,6 +186,10 @@ export const VOCABULARY = [
     doc: 'Features in baseline and widely available',
   },
   {
+    name: 'bcd:',
+    doc: 'Features linked to MDN’s Browser Compatibility Data keys. E.g., bcd:ToggleEvent',
+  },
+  {
     name: 'group:',
     doc: 'Features in a group or its descendants. E.g., group:css',
   },

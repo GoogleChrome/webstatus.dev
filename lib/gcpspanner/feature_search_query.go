@@ -147,6 +147,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filter = b.baselineDateFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierAvailableBrowserDate:
 			filter = b.handleIdentifierAvailableBrowserDateTerm(node)
+		case searchtypes.IdentifierBrowserCompatData:
+			filter = b.browserCompatDataFilter(node.Term.Value, node.Term.Operator)
 		}
 		if filter != "" {
 			filters = append(filters, filter)
@@ -391,6 +393,13 @@ func (b *FeatureSearchFilterBuilder) baselineDateFilter(rawDate string, op searc
 	paramName := b.addParamGetName(date)
 
 	return fmt.Sprintf(`LowDate %s @%s`, searchOperatorToSpannerBinaryOperator(op), paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) browserCompatDataFilter(bcdKey string, op searchtypes.SearchOperator) string {
+	paramName := b.addParamGetName(bcdKey)
+
+	return fmt.Sprintf(`wf.ID IN (SELECT ID FROM WebFeatureBrowserCompatFeatures WHERE CompatFeature %s @%s)`,
+		searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 // Exclude all that do not have an entry in ExcludedFeatureKeys.

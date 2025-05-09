@@ -60,6 +60,7 @@ This query language enables you to construct flexible searches to find features 
 - `name:"Dark Mode"` - Find features named "Dark Mode" (including spaces).
 - `baseline_date:2023-01-01..2023-12-31` - Searches for all features that reached baseline in 2023.
 - `group:css` - Searches for features that belong to the `css` group and any groups that are descendants of that group.
+- `bcd:ToggleEvent` - Searches for features associated with the Browser Compatibility Data key `ToggleEvent`
 - `snapshot:ecmascript-5` - Searches for features that belong to the `ecmascript-5` snapshot.
 - `id:css` - Searches for a feature whose feature identifier (featurekey) is `css`.
 

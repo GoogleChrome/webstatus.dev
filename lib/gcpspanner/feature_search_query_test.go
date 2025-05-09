@@ -87,6 +87,24 @@ var (
 		},
 	}
 
+	simpleBCDQuery = TestTree{
+		Query: `bcd:"html.elements.address"`,
+		InputTree: &searchtypes.SearchNode{
+			Keyword: searchtypes.KeywordRoot,
+			Term:    nil,
+			Children: []*searchtypes.SearchNode{
+				{
+					Keyword: searchtypes.KeywordNone,
+					Term: &searchtypes.SearchTerm{
+						Identifier: "bcd",
+						Value:      "html.elements.address",
+						Operator:   searchtypes.OperatorEq,
+					},
+				},
+			},
+		},
+	}
+
 	availableOnBaselineStatus = TestTree{
 		Query: "available_on:chrome AND baseline_status:widely",
 		InputTree: &searchtypes.SearchNode{
@@ -458,6 +476,13 @@ WHERE BrowserName = @param0)`},
 			expectedClauses: []string{`(wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0)`},
 			expectedParams: map[string]interface{}{
 				"param0": "%" + "grid" + "%",
+			},
+		},
+		{
+			inputTestTree:   simpleBCDQuery,
+			expectedClauses: []string{`wf.ID IN (SELECT ID FROM WebFeatureBrowserCompatFeatures WHERE CompatFeature = @param0)`},
+			expectedParams: map[string]interface{}{
+				"param0": "html.elements.address",
 			},
 		},
 		{
