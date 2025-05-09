@@ -59,15 +59,17 @@ export abstract class WebstatusLineChartTabbedPanel<
 
   getTabTooltip(tab: string): TemplateResult {
     if (tab === 'Mobile') {
-      return html`${tab}
-        <sl-tooltip content="${'Mobile results are a work in progress.'}">
-          <sl-icon
-            class="icon-button__icon"
-            aria-hidden="true"
-            name="exclamation-triangle"
-            library="default"
-          ></sl-icon
-        ></sl-tooltip>`;
+      return html` <sl-tooltip
+        content="${'Collection of mobile test results is a work in progress.'}"
+        placement="right"
+      >
+        ${tab}&nbsp;<sl-icon
+          class="icon-button__icon"
+          aria-hidden="true"
+          name="exclamation-triangle"
+          library="default"
+        ></sl-icon
+      ></sl-tooltip>`;
     }
     return html`${tab}`;
   }
