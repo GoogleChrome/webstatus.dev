@@ -26,6 +26,7 @@ import {
   TOP_CSS_INTEROP_ISSUES,
   TOP_HTML_INTEROP_ISSUES,
 } from '../utils/constants.js';
+import './webstatus-feature-badge.js';
 
 const MISSING_VALUE = html``;
 
@@ -179,13 +180,15 @@ function getFeatureBadges(featureId: string): TemplateResult[] {
   const extraIdentifiers: TemplateResult[] = [];
   if (TOP_CSS_INTEROP_ISSUES.includes(featureId)) {
     extraIdentifiers.push(
-      html`<webstatus-feature-badge badgeType="css"></webstatus-feature-badge>`,
+      html`<webstatus-feature-badge
+        .badgeType=${'css'}
+      ></webstatus-feature-badge>`,
     );
   }
   if (TOP_HTML_INTEROP_ISSUES.includes(featureId)) {
     extraIdentifiers.push(
       html`<webstatus-feature-badge
-        badgeType="html"
+        .badgeType=${'html'}
       ></webstatus-feature-badge>`,
     );
   }
