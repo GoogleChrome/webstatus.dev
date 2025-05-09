@@ -184,7 +184,8 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     renderSuccess?: () => TemplateResult;
   } {
     const targetDate = event.detail.timestamp;
-    const label = event.detail.label;
+    const label =
+      event.detail.label === 'Chrome/Edge' ? 'Chrome' : event.detail.label;
     const targetBrowser = BROWSER_LABEL_TO_ID[label];
     const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(targetBrowser);
     const task = new Task(this, {

@@ -55,6 +55,8 @@ export const THEME = css`
     --icon-size: 22px;
     --link-color: var(--color-strong-primary);
     --link-hover-color: var(--link-color);
+    --browser-logo-size: 24px;
+    --platform-logo-size: 16px;
 
     --default-border: 1px solid var(--color-light);
 

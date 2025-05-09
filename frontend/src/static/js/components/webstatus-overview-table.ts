@@ -132,6 +132,12 @@ export class WebstatusOverviewTable extends LitElement {
           display: inline-flex;
           gap: 4px;
         }
+
+        img.platform {
+          margin-left: calc(-0.6 * var(--platform-logo-size));
+          height: var(--platform-logo-size);
+          width: var(--platform-logo-size);
+        }
       `,
     ];
   }

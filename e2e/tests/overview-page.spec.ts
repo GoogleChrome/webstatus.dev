@@ -28,6 +28,17 @@ test('matches the screenshot', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+test('matches the screenshot for mobile columns', async ({page}) => {
+  await gotoOverviewPageUrl(
+    page,
+    'http://localhost:5555/?columns=name,availability_chrome_android,availability_firefox_android,' +
+      'availability_safari_ios,stable_chrome_android,stable_firefox_android,stable_safari_ios,' +
+      'experimental_chrome_android,experimental_firefox_android,experimental_safari_ios',
+  );
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
 test('shows an error that their query is invalid', async ({page}) => {
   await page.goto('http://localhost:5555/?q=available_on%3Achrom');
 
