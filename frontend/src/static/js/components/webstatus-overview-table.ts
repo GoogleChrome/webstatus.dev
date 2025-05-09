@@ -132,14 +132,6 @@ export class WebstatusOverviewTable extends LitElement {
           display: inline-flex;
           gap: 4px;
         }
-
-        .survey-result,
-        .survey-result:hover,
-        .survey-result a {
-          font-size: 10px;
-          text-decoration: none;
-          cursor: help;
-        }
       `,
     ];
   }
