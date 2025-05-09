@@ -36,6 +36,7 @@ type CellRenderer = {
     options: {
       browser?: components['parameters']['browserPathParam'];
       channel?: components['parameters']['channelPathParam'];
+      platform?: string;
     },
   ): TemplateResult | typeof nothing;
 };
@@ -52,6 +53,7 @@ type ColumnDefinition = {
     browser?: components['parameters']['browserPathParam'];
     channel?: components['parameters']['channelPathParam'];
     columnOptions?: Array<ColumnOptionDefinition>;
+    platform?: string;
   };
 };
 
@@ -300,10 +302,21 @@ export const renderBaselineStatus: CellRenderer = (
   `;
 };
 
+function renderPlatformIcon(platform?: string): TemplateResult {
+  if (platform) {
+    return html`<img
+      class="platform"
+      alt="${platform} logo"
+      src="/public/img/${platform}.svg"
+    />`;
+  }
+  return html``;
+}
+
 export const renderAvailablity: CellRenderer = (
   feature,
   _routerLocation,
-  {browser},
+  {browser, platform},
 ) => {
   const browserImpl = feature.browser_implementations?.[browser!];
   const browserImplStatus = browserImpl?.status || 'unavailable';
@@ -317,6 +330,7 @@ export const renderAvailablity: CellRenderer = (
       >
         <img src="/public/img/${BROWSER_ID_TO_ICON_NAME[browser!]}_24x24.png" />
       </sl-tooltip>
+      ${renderPlatformIcon(platform)}
     </div>
   `;
 };
@@ -457,7 +471,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
-    options: {browser: 'chrome_android'},
+    options: {browser: 'chrome_android', platform: 'android'},
   },
   [ColumnKey.AvailabilityFirefoxAndroid]: {
     nameInDialog: 'Availibility in mobile Firefox (Android)',
@@ -466,7 +480,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
-    options: {browser: 'firefox_android'},
+    options: {browser: 'firefox_android', platform: 'android'},
   },
   [ColumnKey.AvailabilitySafariIos]: {
     nameInDialog: 'Availibility in mobile Safari (iOS)',
@@ -475,7 +489,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
-    options: {browser: 'safari_ios'},
+    options: {browser: 'safari_ios', platform: 'ios'},
   },
   [ColumnKey.StableChrome]: {
     nameInDialog: 'Browser Implementation in Chrome',
@@ -512,26 +526,45 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.StableChromeAndroid]: {
     nameInDialog: 'Browser Implementation in Chrome (Android)',
     group: 'WPT',
-    headerHtml: html`<img src="/public/img/chrome_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/chrome_24x24.png" />
+      <img
+        class="platform"
+        alt="android logo"
+        src="/public/img/android.svg"
+      />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'chrome_android', channel: 'stable'},
+    options: {
+      browser: 'chrome_android',
+      channel: 'stable',
+      platform: 'android',
+    },
   },
   [ColumnKey.StableFirefoxAndroid]: {
     nameInDialog: 'Browser Implementation in Firefox (Android)',
     group: 'WPT',
-    headerHtml: html`<img src="/public/img/firefox_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/firefox_24x24.png" />
+      <img
+        class="platform"
+        alt="android logo"
+        src="/public/img/android.svg"
+      />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'firefox_android', channel: 'stable'},
+    options: {
+      browser: 'firefox_android',
+      channel: 'stable',
+      platform: 'android',
+    },
   },
   [ColumnKey.StableSafariIos]: {
     nameInDialog: 'Browser Implementation in Safari (iOS)',
     group: 'WPT',
-    headerHtml: html`<img src="/public/img/safari_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/safari_24x24.png" />
+      <img class="platform" alt="ios logo" src="/public/img/ios.svg" />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQuality,
-    options: {browser: 'safari_ios', channel: 'stable'},
+    options: {browser: 'safari_ios', channel: 'stable', platform: 'ios'},
   },
   [ColumnKey.ExpChrome]: {
     nameInDialog: 'Browser Implementation in Chrome Experimental',
@@ -568,26 +601,45 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.ExpChromeAndroid]: {
     nameInDialog: 'Browser Implementation in Chrome Experimental (Android)',
     group: 'WPT Experimental',
-    headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/chrome-canary_24x24.png" />
+      <img
+        class="platform"
+        alt="android logo"
+        src="/public/img/android.svg"
+      />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'chrome_android', channel: 'experimental'},
+    options: {
+      browser: 'chrome_android',
+      channel: 'experimental',
+      platform: 'android',
+    },
   },
   [ColumnKey.ExpFirefoxAndroid]: {
     nameInDialog: 'Browser Implementation in Firefox Experimental (Android)',
     group: 'WPT Experimental',
-    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/firefox-nightly_24x24.png" />
+      <img
+        class="platform"
+        alt="android logo"
+        src="/public/img/android.svg"
+      />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'chrome_android', channel: 'experimental'},
+    options: {
+      browser: 'firefox_android',
+      channel: 'experimental',
+      platform: 'android',
+    },
   },
   [ColumnKey.ExpSafariIos]: {
     nameInDialog: 'Browser Implementation in Safari Experimental (iOS)',
     group: 'WPT Experimental',
-    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />`,
+    headerHtml: html`<img src="/public/img/safari-preview_24x24.png" />
+      <img class="platform" alt="ios logo" src="/public/img/ios.svg" />`,
     cellClass: 'centered',
     cellRenderer: renderBrowserQualityExp,
-    options: {browser: 'safari_ios', channel: 'experimental'},
+    options: {browser: 'safari_ios', channel: 'experimental', platform: 'ios'},
   },
   [ColumnKey.ChromeUsage]: {
     nameInDialog: 'Chrome Usage',

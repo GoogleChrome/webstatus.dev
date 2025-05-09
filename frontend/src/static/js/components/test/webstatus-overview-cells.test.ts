@@ -456,6 +456,8 @@ describe('renderAvailablity', () => {
     expect(div!.getAttribute('class')).to.equal('browser-impl-available');
     expect(div!.innerHTML).to.include('Since ');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
+    // The mobile platform icon should not be rendered got desktop browsers.
+    expect(div!.innerHTML).to.not.include('android.svg');
   });
   it('renders a grayscale icon for an available feature', async () => {
     const feature: components['schemas']['Feature'] = {
@@ -477,6 +479,28 @@ describe('renderAvailablity', () => {
     expect(div!.getAttribute('class')).to.equal('browser-impl-unavailable');
     expect(div!.innerHTML).to.include('Not available');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
+  });
+  it('renders a mobile  browser icon with platform logo', async () => {
+    const feature: components['schemas']['Feature'] = {
+      feature_id: 'id',
+      name: 'name',
+      browser_implementations: {
+        chrome_android: {status: 'available', version: '123'},
+      },
+    };
+    const result = renderAvailablity(
+      feature,
+      {search: ''},
+      {browser: 'chrome_android', platform: 'android'},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const div = el.querySelector('div');
+    expect(div).to.exist;
+    expect(div!.getAttribute('class')).to.equal('browser-impl-available');
+    expect(div!.innerHTML).to.include('Since ');
+    expect(div!.innerHTML).to.include('chrome_24x24.png');
+    expect(div!.innerHTML).to.include('android.svg');
   });
 });
 

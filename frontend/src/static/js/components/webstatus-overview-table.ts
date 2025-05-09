@@ -140,6 +140,12 @@ export class WebstatusOverviewTable extends LitElement {
           text-decoration: none;
           cursor: help;
         }
+
+        img.platform {
+          margin-left: calc(-0.6 * var(--platform-logo-size));
+          height: var(--platform-logo-size);
+          width: var(--platform-logo-size);
+        }
       `,
     ];
   }
