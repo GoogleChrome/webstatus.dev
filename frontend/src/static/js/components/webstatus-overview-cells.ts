@@ -430,7 +430,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilityChrome]: {
     nameInDialog: 'Availibility in desktop Chrome',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'chrome',
     cellClass: 'centered',
@@ -439,7 +439,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilityEdge]: {
     nameInDialog: 'Availibility in desktop Edge',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'edge',
     cellClass: 'centered',
@@ -448,7 +448,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilityFirefox]: {
     nameInDialog: 'Availibility in desktop Firefox',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'firefox',
     cellClass: 'centered',
@@ -457,7 +457,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilitySafari]: {
     nameInDialog: 'Availibility in desktop Safari',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'safari',
     cellClass: 'centered',
@@ -466,7 +466,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilityChromeAndroid]: {
     nameInDialog: 'Availibility in mobile Chrome (Android)',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'chrome',
     cellClass: 'centered',
@@ -475,7 +475,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilityFirefoxAndroid]: {
     nameInDialog: 'Availibility in mobile Firefox (Android)',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'firefox',
     cellClass: 'centered',
@@ -484,7 +484,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.AvailabilitySafariIos]: {
     nameInDialog: 'Availibility in mobile Safari (iOS)',
-    group: 'Availability today',
+    group: 'Availability',
     headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'safari',
     cellClass: 'centered',
