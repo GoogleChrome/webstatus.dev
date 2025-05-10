@@ -84,16 +84,6 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           font-style: italic;
           margin: 8px 0;
         }
-        .missing-feature-id {
-          padding: 0.5em 1em 0 0;
-        }
-        .survey-result,
-        .survey-result:hover,
-        .survey-result a {
-          font-size: 10px;
-          text-decoration: none;
-          cursor: help;
-        }
       `,
     ];
   }
