@@ -79,6 +79,11 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           overflow-x: auto;
           white-space: nowrap;
         }
+        .table-description {
+          font-size: 14px;
+          font-style: italic;
+          margin: 8px 0;
+        }
       `,
     ];
   }
@@ -252,6 +257,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
         <a href="${this.featureListHref}"
           >${this.missingFeaturesList.length} features</a
         >
+        <div class="table-description">
+          * This table represents feature values <strong>as of today</strong>,
+          and not at the selected timestamp.
+        </div>
       </div>
       ${this.renderMissingFeaturesTable()}
     `;
