@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -77,7 +78,7 @@ const localMissingOneImplCountRawTemplate = `
 WITH TargetBrowserUnsupportedFeatures AS (
     SELECT bfse.WebFeatureID, bfse.EventReleaseDate
     FROM BrowserFeatureSupportEvents bfse
-    WHERE bfse.TargetBrowserName = @targetBrowserParam
+    WHERE ({{ .TargetBrowserFilter }})
       AND bfse.SupportStatus = 'unsupported'
 	  {{ .ExcludedFeatureFilter }}
 ),
@@ -130,15 +131,15 @@ SELECT releases.EventReleaseDate,
 		FROM BrowserFeatureSupportEvents bfse
 		WHERE
 			bfse.EventReleaseDate = releases.EventReleaseDate
-			AND bfse.TargetBrowserName = @targetBrowserParam
+			AND ({{ .TargetBrowserFilter }})
 			AND bfse.SupportStatus = 'unsupported'
 			{{ .ExcludedFeatureFilter }}
-		{{ range $browserParamName := .OtherBrowsersParamNames }}
+		{{ range $browserFilter := .OtherBrowsersFilters }}
 			AND EXISTS (
 				SELECT 1
 				FROM BrowserFeatureSupportEvents bfse_other
 				WHERE bfse_other.WebFeatureID = bfse.WebFeatureID
-				AND bfse_other.TargetBrowserName = @{{ $browserParamName }}
+				AND ({{ $browserFilter }})
 				AND bfse_other.SupportStatus = 'supported'
 				AND bfse_other.EventReleaseDate = bfse.EventReleaseDate
 				{{ $.OtherExcludedFeatureFilter }}
@@ -163,6 +164,8 @@ LIMIT @limit;
 type missingOneImplTemplateData struct {
 	ReleaseDateParam           string
 	OtherBrowsersParamNames    []string
+	TargetBrowserFilter        string
+	OtherBrowsersFilters       []string
 	ExcludedFeatureFilter      string
 	OtherExcludedFeatureFilter string
 }
@@ -196,8 +199,8 @@ func (q LocalMissingOneImplementationQuery) Query(data missingOneImplTemplateDat
 
 func buildMissingOneImplTemplate(
 	cursor *missingOneImplCursor,
-	targetBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -205,17 +208,22 @@ func buildMissingOneImplTemplate(
 	tmpl MissingOneImplementationQuery,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	allBrowsers := make([]string, len(otherBrowsers)+1)
-	copy(allBrowsers, otherBrowsers)
-	allBrowsers[len(allBrowsers)-1] = targetBrowser
-	params["targetBrowserParam"] = targetBrowser
-	params["allBrowsersParam"] = allBrowsers
-	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
+	params["targetBrowserParam"] = targetBrowsers
+
+	allBrowsers := []string{}
+	allBrowsers = append(allBrowsers, targetBrowsers...)
 	for i := range otherBrowsers {
-		paramName := fmt.Sprintf("otherBrowser%d", i)
-		params[paramName] = otherBrowsers[i]
-		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
+		allBrowsers = append(allBrowsers, otherBrowsers[i]...)
 	}
+	params["allBrowsersParam"] = allBrowsers
+
+	targetBrowserConditions := make([]string, 0, len(targetBrowsers))
+	for i, browserName := range targetBrowsers {
+		paramName := fmt.Sprintf("targetBrowserParam%d", i)
+		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
+		params[paramName] = browserName
+	}
+	targetBrowserFilter := fmt.Sprintf("(%s)", strings.Join(targetBrowserConditions, " AND "))
 
 	params["limit"] = pageSize
 
@@ -223,6 +231,20 @@ func buildMissingOneImplTemplate(
 	if cursor != nil {
 		releaseDateParamName = "releaseDateCursor"
 		params[releaseDateParamName] = cursor.ReleaseDate
+	}
+
+	var allOtherBrowsersParams []string
+	otherBrowsersFilters := make([]string, 0, len(otherBrowsers))
+	for i, otherBrowserGroup := range otherBrowsers {
+		allOtherBrowsersParams = append(
+			allOtherBrowsersParams, otherBrowserGroup...)
+		otherBrowsersConditions := make([]string, 0, len(otherBrowserGroup))
+		for j, browserName := range otherBrowserGroup {
+			paramName := fmt.Sprintf("otherBrowsersParam%d-%d", i, j)
+			otherBrowsersConditions[j] = fmt.Sprintf("bfse_other.TargetBrowserName = @%s", paramName)
+			params[paramName] = browserName
+		}
+		otherBrowsersFilters[i] = fmt.Sprintf("(%s)", strings.Join(otherBrowsersConditions, " AND "))
 	}
 
 	var excludedFeatureFilter, otherExcludedFeatureFilter string
@@ -237,7 +259,9 @@ func buildMissingOneImplTemplate(
 
 	tmplData := missingOneImplTemplateData{
 		ReleaseDateParam:           releaseDateParamName,
-		OtherBrowsersParamNames:    otherBrowsersParamNames,
+		OtherBrowsersParamNames:    allOtherBrowsersParams,
+		TargetBrowserFilter:        targetBrowserFilter,
+		OtherBrowsersFilters:       otherBrowsersFilters,
 		ExcludedFeatureFilter:      excludedFeatureFilter,
 		OtherExcludedFeatureFilter: otherExcludedFeatureFilter,
 	}
@@ -250,8 +274,8 @@ func buildMissingOneImplTemplate(
 
 func (c *Client) ListMissingOneImplCounts(
 	ctx context.Context,
-	targetBrowser string,
-	otherBrowsers []string,
+	targetBrowsers []string,
+	otherBrowsers [][]string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -278,7 +302,7 @@ func (c *Client) ListMissingOneImplCounts(
 
 	stmt := buildMissingOneImplTemplate(
 		cursor,
-		targetBrowser,
+		targetBrowsers,
 		otherBrowsers,
 		startAt,
 		endAt,

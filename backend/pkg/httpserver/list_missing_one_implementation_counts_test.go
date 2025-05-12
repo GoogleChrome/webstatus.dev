@@ -38,14 +38,18 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: &MockListMissingOneImplCountsConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:         time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      100,
-				expectedPageToken:     nil,
-				pageToken:             nil,
-				err:                   nil,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers: [][]string{
+					{"edge"},
+					{"firefox"},
+					{"safari"},
+				},
+				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:  100,
+				expectedPageToken: nil,
+				pageToken:         nil,
+				err:               nil,
 				page: &backend.BrowserReleaseFeatureMetricsPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nil,
@@ -143,13 +147,16 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: &MockListMissingOneImplCountsConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:         time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      50,
-				expectedPageToken:     inputPageToken,
-				err:                   nil,
+				expectedTargetBrowsers: []string{"chrome", "chrome_android"},
+				expectedOtherBrowsers: [][]string{
+					{"firefox", "firefox_android"},
+					{"safari", "safari_ios"},
+				},
+				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:  50,
+				expectedPageToken: inputPageToken,
+				err:               nil,
 				page: &backend.BrowserReleaseFeatureMetricsPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nextPageToken,
@@ -171,7 +178,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				{
 					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
-						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+						`"page_size":50,"include_baseline_mobile_browsers":true,"browser":["firefox","safari"]}}`,
 					Value: nil,
 					Err:   cachetypes.ErrCachedDataNotFound,
 				},
@@ -180,7 +187,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				{
 					Key: `ListMissingOneImplementationCounts-{"browser":"chrome","Params":{"startAt":"2000-01-01",` +
 						`"endAt":"2000-01-10","page_token":"input-token",` +
-						`"page_size":50,"browser":["edge","firefox","safari"]}}`,
+						`"page_size":50,"include_baseline_mobile_browsers":true,"browser":["firefox","safari"]}}`,
 					Value: []byte(
 						`{"data":[{"count":10,"timestamp":"2000-01-10T00:00:00Z"},` +
 							`{"count":9,"timestamp":"2000-01-09T00:00:00Z"}],` +
@@ -208,7 +215,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 }`),
 			request: httptest.NewRequest(http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
-					"browser=edge&browser=firefox&browser=safari&"+
+					"browser=firefox&browser=safari&include_baseline_mobile_browsers=true&"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
 		},
 		{
@@ -253,15 +260,19 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 		{
 			name: "500 case",
 			mockConfig: &MockListMissingOneImplCountsConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:         time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      100,
-				expectedPageToken:     nil,
-				page:                  nil,
-				pageToken:             nil,
-				err:                   errTest,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers: [][]string{
+					{"edge"},
+					{"firefox"},
+					{"safari"},
+				},
+				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:  100,
+				expectedPageToken: nil,
+				page:              nil,
+				pageToken:         nil,
+				err:               errTest,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
@@ -283,15 +294,19 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 		{
 			name: "400 case - invalid page token",
 			mockConfig: &MockListMissingOneImplCountsConfig{
-				expectedTargetBrowser: "chrome",
-				expectedOtherBrowsers: []string{"edge", "firefox", "safari"},
-				expectedStartAt:       time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedEndAt:         time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:      100,
-				expectedPageToken:     badPageToken,
-				page:                  nil,
-				pageToken:             nil,
-				err:                   backendtypes.ErrInvalidPageToken,
+				expectedTargetBrowsers: []string{"chrome"},
+				expectedOtherBrowsers: [][]string{
+					{"edge"},
+					{"firefox"},
+					{"safari"},
+				},
+				expectedStartAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedEndAt:     time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:  100,
+				expectedPageToken: badPageToken,
+				page:              nil,
+				pageToken:         nil,
+				err:               backendtypes.ErrInvalidPageToken,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
@@ -308,6 +323,27 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_token"+*badPageToken, nil),
+		},
+		{
+			name:       "400 case - no matching mobile browser",
+			mockConfig: nil,
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key: `ListMissingOneImplementationCounts-{"browser":"edge","Params":{"startAt":"2000-01-01",` +
+						`"endAt":"2000-01-10","include_baseline_mobile_browsers":true,` +
+						`"browser":["chrome","firefox","safari"]}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+			expectedCallCount:  0,
+			expectedResponse: testJSONResponse(400,
+				`{"code":400,"message":"browser does not have a matching mobile browser"}`),
+			request: httptest.NewRequest(http.MethodGet,
+				"/v1/stats/features/browsers/edge/missing_one_implementation_counts?"+
+					"browser=chrome&browser=firefox&browser=safari&"+
+					"startAt=2000-01-01&endAt=2000-01-10&include_baseline_mobile_browsers=true", nil),
 		},
 	}
 
