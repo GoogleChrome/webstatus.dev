@@ -57,13 +57,6 @@ export class WebstatusSavedSearchControls extends LitElement {
   @state()
   private _bookmarkTask?: Task;
 
-  @property({attribute: false})
-  openSavedSearchDialog?: (
-    t: SavedSearchOperationType,
-    uss?: UserSavedSearch,
-    q?: string,
-  ) => void;
-
   // Members that are used for testing with sinon.
   _getOrigin: () => string = getOrigin;
   _formatOverviewPageUrl: (
@@ -79,10 +72,19 @@ export class WebstatusSavedSearchControls extends LitElement {
 
   openSavedSearch(
     type: SavedSearchOperationType,
-    userSavedSearch?: UserSavedSearch,
+    savedSearch?: UserSavedSearch,
     overviewPageQueryInput?: string,
   ) {
-    this.openSavedSearchDialog!(type, userSavedSearch, overviewPageQueryInput);
+    const event = new CustomEvent('open-saved-search-editor', {
+      detail: {
+        type,
+        savedSearch,
+        overviewPageQueryInput,
+      },
+      bubbles: true,
+      composed: true,
+    });
+    this.dispatchEvent(event);
   }
 
   async handleBookmarkSavedSearch(

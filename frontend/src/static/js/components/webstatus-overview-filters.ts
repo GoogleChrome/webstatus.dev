@@ -62,11 +62,7 @@ import {
   AppBookmarkInfo,
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
-import {
-  SavedSearchOperationType,
-  UserSavedSearch,
-  VOCABULARY,
-} from '../utils/constants.js';
+import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
 import {User} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
@@ -86,13 +82,6 @@ export class WebstatusOverviewFilters extends LitElement {
 
   @property({type: Object})
   user: User | null | undefined;
-
-  @property({attribute: false})
-  openSavedSearchDialog?: (
-    t: SavedSearchOperationType,
-    uss?: UserSavedSearch,
-    q?: string,
-  ) => void;
 
   @property({type: String})
   activeQuery: string = '';
@@ -401,7 +390,6 @@ export class WebstatusOverviewFilters extends LitElement {
             .savedSearch=${this.savedSearch}
             .location=${this.location}
             .overviewPageQueryInput=${this.typeaheadRef.value}
-            .openSavedSearchDialog=${this.openSavedSearchDialog}
           ></webstatus-saved-search-controls>
         </div>
       </sl-popup>

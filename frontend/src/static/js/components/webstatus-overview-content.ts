@@ -24,7 +24,7 @@ import {
   PropertyValueMap,
 } from 'lit';
 import {TaskStatus} from '@lit/task';
-import {customElement, property, query, state} from 'lit/decorators.js';
+import {customElement, property, query} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-data-loader.js';
@@ -72,11 +72,11 @@ export class WebstatusOverviewContent extends LitElement {
   savedSearch?: UserSavedSearch;
 
   @consume({context: apiClientContext})
-  @state()
+  @property({attribute: false})
   apiClient?: APIClient;
 
   @consume({context: firebaseUserContext, subscribe: true})
-  @state()
+  @property({type: Object})
   user: User | null | undefined;
 
   @query('webstatus-saved-search-editor')
@@ -101,16 +101,32 @@ export class WebstatusOverviewContent extends LitElement {
     ];
   }
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.openSavedSearch = this.openSavedSearch.bind(this);
+    this.addEventListener('open-saved-search-editor', this.openSavedSearch);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('open-saved-search-editor', this.openSavedSearch);
+    super.disconnectedCallback();
+  }
+
   async openSavedSearchDialog(
     type: SavedSearchOperationType,
     savedSearch?: UserSavedSearch,
     overviewPageQueryInput?: string,
   ) {
     this.savedSearch = savedSearch;
-    await this.savedSearchEditor.open(
-      type,
-      savedSearch,
-      overviewPageQueryInput,
+    void this.savedSearchEditor.open(type, savedSearch, overviewPageQueryInput);
+  }
+
+  async openSavedSearch(e: Event) {
+    const event = e as CustomEvent;
+    void this.openSavedSearchDialog(
+      event.detail.type,
+      event.detail.savedSearch,
+      event.detail.overviewPageQueryInput,
     );
   }
 
@@ -213,11 +229,8 @@ export class WebstatusOverviewContent extends LitElement {
           .appBookmarkInfo=${this.appBookmarkInfo}
           .activeQuery=${this.activeQuery}
           .savedSearch=${userSavedSearch?.value}
-          .openSavedSearchDialog=${(
-            t: SavedSearchOperationType,
-            uss?: UserSavedSearch,
-            q?: string,
-          ) => this.openSavedSearchDialog(t, uss, q)}
+          .user=${this.user}
+          .apiClient=${this.apiClient}
         ></webstatus-overview-filters>
         <br />
 
