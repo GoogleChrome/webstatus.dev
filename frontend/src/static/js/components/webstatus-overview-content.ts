@@ -233,7 +233,7 @@ export class WebstatusOverviewContent extends LitElement {
         ></webstatus-overview-pagination>
       </div>
       <webstatus-saved-search-editor
-        .apiClient=${this.apiClient}
+        .apiClient=${this.apiClient!}
         .user=${this.user!}
         .savedSearch=${userSavedSearch?.value}
         .location=${this.location}
