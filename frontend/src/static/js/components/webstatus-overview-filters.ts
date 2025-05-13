@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-import {consume} from '@lit/context';
 import {
   LitElement,
   type TemplateResult,
@@ -47,7 +46,6 @@ import {
   BROWSER_ID_TO_LABEL,
   CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
-import {apiClientContext} from '../contexts/api-client-context.js';
 
 import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
 import {
@@ -69,7 +67,7 @@ import {
   UserSavedSearch,
   VOCABULARY,
 } from '../utils/constants.js';
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {User} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
@@ -77,8 +75,7 @@ const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
   typeaheadRef = createRef<WebstatusTypeahead>();
-  @consume({context: apiClientContext})
-  @state()
+  @property({attribute: false})
   apiClient?: APIClient;
 
   @property({type: Object})
@@ -87,8 +84,7 @@ export class WebstatusOverviewFilters extends LitElement {
   @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
 
-  @consume({context: firebaseUserContext, subscribe: true})
-  @state()
+  @property({type: Object})
   user: User | null | undefined;
 
   @property({attribute: false})

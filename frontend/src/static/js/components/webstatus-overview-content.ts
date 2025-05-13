@@ -71,9 +71,6 @@ export class WebstatusOverviewContent extends LitElement {
   @property({type: Object})
   savedSearch?: UserSavedSearch;
 
-  @property({type: String})
-  overviewPageQueryInput?: string;
-
   @consume({context: apiClientContext})
   @state()
   apiClient?: APIClient;
@@ -110,7 +107,6 @@ export class WebstatusOverviewContent extends LitElement {
     overviewPageQueryInput?: string,
   ) {
     this.savedSearch = savedSearch;
-    this.overviewPageQueryInput = overviewPageQueryInput;
     await this.savedSearchEditor.open(
       type,
       savedSearch,
