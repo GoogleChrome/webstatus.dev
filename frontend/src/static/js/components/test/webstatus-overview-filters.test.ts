@@ -30,51 +30,6 @@ import {Toast} from '../../utils/toast.js';
 import {WebstatusOverviewFilters} from '../webstatus-overview-filters.js';
 import {APIClient} from '../../api/client.js';
 
-import {stub} from 'sinon'; // Make sure you have sinon installed
-import {savedSearchHelpers} from '../../contexts/app-bookmark-info-context.js';
-
-it('should correctly update _activeQuery based on getCurrentQuery return value', async () => {
-  const apiClient = new APIClient('');
-  const location = {search: ''};
-
-  const getCurrentQueryStub = stub(savedSearchHelpers, 'getCurrentQuery');
-
-  // Test case 1: Empty query
-  getCurrentQueryStub.returns('');
-  let filterComponent = await fixture<WebstatusOverviewFilters>(
-    html`<webstatus-overview-filters
-      .location=${location}
-      .apiClient=${apiClient}
-    ></webstatus-overview-filters>`,
-  );
-  await elementUpdated(filterComponent);
-  expect(filterComponent._activeQuery).to.eq('');
-
-  // Test case 2: A specific query
-  getCurrentQueryStub.returns('my-test-query');
-  filterComponent = await fixture<WebstatusOverviewFilters>(
-    html`<webstatus-overview-filters
-      .location=${location}
-      .apiClient=${apiClient}
-    ></webstatus-overview-filters>`,
-  );
-  await elementUpdated(filterComponent);
-  expect(filterComponent._activeQuery).to.eq('my-test-query');
-
-  // Test case 3: Another query
-  getCurrentQueryStub.returns('another-test-query');
-  filterComponent = await fixture<WebstatusOverviewFilters>(
-    html`<webstatus-overview-filters
-      .location=${location}
-      .apiClient=${apiClient}
-    ></webstatus-overview-filters>`,
-  );
-  await elementUpdated(filterComponent);
-  expect(filterComponent._activeQuery).to.eq('another-test-query');
-
-  getCurrentQueryStub.restore();
-});
-
 describe('downloadCSV', () => {
   it('should display an error toast when the CSVUtils.downloadCSV function throws an error', async () => {
     const apiClient = new APIClient(''); // TODO Can probably stub allFeaturesFetecher instead.

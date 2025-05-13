@@ -88,9 +88,6 @@ export class WebstatusOverviewTable extends LitElement {
         .browser-impl-unavailable img {
           filter: grayscale(1);
           opacity: 50%;
-          /*  Needed so that the image will stay behind the dialog box */
-          position: relative;
-          z-index: -1;
         }
         .percent {
           display: inline-block;

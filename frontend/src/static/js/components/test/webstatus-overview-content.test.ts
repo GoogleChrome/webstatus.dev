@@ -16,9 +16,119 @@
 
 import {WebstatusOverviewContent} from '../webstatus-overview-content.js';
 import '../webstatus-overview-content.js';
-import {expect} from '@open-wc/testing';
+import {elementUpdated, expect, fixture, html} from '@open-wc/testing';
+
+import {APIClient} from '../../api/client.js';
+
+import {stub} from 'sinon'; // Make sure you have sinon installed
+import {savedSearchHelpers} from '../../contexts/app-bookmark-info-context.js';
+import sinon from 'sinon';
+import {User} from 'firebase/auth';
+import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
+import {
+  BookmarkOwnerRole,
+  BookmarkStatusActive,
+  UserSavedSearch,
+} from '../../utils/constants.js';
 
 describe('webstatus-overview-content', () => {
+  let element: WebstatusOverviewContent;
+  let apiClientMock: sinon.SinonStubbedInstance<APIClient>;
+  let userMock: User;
+  let editor: WebstatusSavedSearchEditor;
+  let editorIsOpenStub: sinon.SinonStub;
+  let editorOpenSpy: sinon.SinonSpy;
+  let getEditSavedSearchStub: sinon.SinonStub;
+  let updatePageUrlStub: sinon.SinonStub;
+
+  const mockSavedSearchOwner: UserSavedSearch = {
+    id: 'owner123',
+    name: 'My Search',
+    query: 'feature:css',
+    description: 'A search I own',
+    created_at: new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+    permissions: {role: BookmarkOwnerRole},
+    bookmark_status: {status: BookmarkStatusActive}, // Owners always have it bookmarked implicitly
+  };
+
+  const mockLocation = {search: '?q=feature:css'};
+
+  beforeEach(async () => {
+    apiClientMock = sinon.createStubInstance(APIClient);
+    userMock = {
+      getIdToken: sinon.stub().resolves('mock-token'),
+    } as unknown as User;
+
+    element = await fixture<WebstatusOverviewContent>(html`
+      <webstatus-overview-content
+        .apiClient=${apiClientMock}
+        .user=${userMock}
+        .location=${mockLocation}
+      >
+      </webstatus-overview-content>
+    `);
+
+    element._getOrigin = () => 'http://localhost:8080';
+
+    getEditSavedSearchStub = sinon
+      .stub(element, '_getEditSavedSearch')
+      .returns(false);
+    updatePageUrlStub = sinon.stub(element, '_updatePageUrl');
+    // Get the mocked editor instance after the element is rendered
+    editor = element.shadowRoot!.querySelector<WebstatusSavedSearchEditor>(
+      'webstatus-saved-search-editor',
+    )!;
+    editorOpenSpy = sinon.spy(editor, 'open');
+    editorIsOpenStub = sinon.stub(editor, 'isOpen');
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('should correctly update activeQuery based on getCurrentQuery return value', async () => {
+    const apiClient = new APIClient('');
+    const location = {search: ''};
+
+    const getCurrentQueryStub = stub(savedSearchHelpers, 'getCurrentQuery');
+
+    // Test case 1: Empty query
+    getCurrentQueryStub.returns('');
+    let component = await fixture<WebstatusOverviewContent>(
+      html`<webstatus-overview-content
+        .location=${location}
+        .apiClient=${apiClient}
+      ></webstatus-overview-content>`,
+    );
+    await elementUpdated(component);
+    expect(component.activeQuery).to.eq('');
+
+    // Test case 2: A specific query
+    getCurrentQueryStub.returns('my-test-query');
+    component = await fixture<WebstatusOverviewContent>(
+      html`<webstatus-overview-content
+        .location=${location}
+        .apiClient=${apiClient}
+      ></webstatus-overview-content>`,
+    );
+    await elementUpdated(component);
+    expect(component.activeQuery).to.eq('my-test-query');
+
+    // Test case 3: Another query
+    getCurrentQueryStub.returns('another-test-query');
+    component = await fixture<WebstatusOverviewContent>(
+      html`<webstatus-overview-content
+        .location=${location}
+        .apiClient=${apiClient}
+      ></webstatus-overview-content>`,
+    );
+    await elementUpdated(component);
+    expect(component.activeQuery).to.eq('another-test-query');
+
+    getCurrentQueryStub.restore();
+  });
+
   describe('RenderBookmarkUI', () => {
     let container: HTMLElement;
     afterEach(() => {
@@ -102,6 +212,94 @@ describe('webstatus-overview-content', () => {
         '#overview-description',
       );
       expect(description).to.not.exist;
+    });
+  });
+
+  describe('updated lifecycle hook', () => {
+    it('opens edit dialog and updates URL if edit_saved_search param is present', async () => {
+      element.location = {search: 'test'};
+      element.appBookmarkInfo = {
+        globalSavedSearches: [
+          {
+            name: 'Test Bookmark 1',
+            query: 'test_query_1',
+            description: 'test description1',
+          },
+          {
+            name: 'Test Bookmark 2',
+            query: 'test_query_2',
+            description: 'test description2',
+          },
+        ],
+        currentGlobalSavedSearch: {
+          name: 'Test Bookmark 1',
+          query: 'test_query_1',
+          description: 'test description1',
+        },
+      };
+      element.savedSearch = {...mockSavedSearchOwner};
+      getEditSavedSearchStub.returns(true); // Simulate finding the param
+      editorIsOpenStub.returns(false); // Simulate editor not already open
+
+      // Trigger the updated lifecycle hook manually for testing
+      element.requestUpdate();
+      await element.updateComplete;
+
+      // It should call openSavedSearchDialog, which calls editor.open
+      expect(editorOpenSpy).to.have.been.calledOnceWith(
+        'edit',
+        element.savedSearch,
+        element.savedSearch.query,
+      );
+      // It should remove the URL parameter
+      expect(updatePageUrlStub).to.have.been.calledOnceWith(
+        '',
+        element.location,
+        {edit_saved_search: undefined},
+      );
+    });
+
+    it('does not open edit dialog if editor is already open', async () => {
+      element.savedSearch = {...mockSavedSearchOwner};
+      getEditSavedSearchStub.returns(true);
+      editorIsOpenStub.returns(true);
+
+      element.requestUpdate();
+      await element.updateComplete;
+
+      expect(editorOpenSpy).to.not.have.been.called;
+      // Should not update URL if dialog wasn't opened by this hook
+      expect(updatePageUrlStub).to.not.have.been.called;
+      expect(getEditSavedSearchStub).to.have.been.called;
+    });
+
+    it('does not open edit dialog if edit_saved_search param is not present', async () => {
+      element.savedSearch = {...mockSavedSearchOwner};
+      getEditSavedSearchStub.returns(false); // Param not present
+
+      editorIsOpenStub.returns(false);
+
+      element.requestUpdate();
+      await element.updateComplete;
+
+      expect(editorIsOpenStub).to.not.have.been.called;
+      expect(updatePageUrlStub).to.not.have.been.called;
+    });
+
+    it('does not open edit dialog if savedSearch is not available', async () => {
+      element.savedSearch = undefined; // No saved search loaded yet
+      getEditSavedSearchStub.returns(true);
+      editorIsOpenStub.returns(false);
+
+      element.requestUpdate();
+      await element.updateComplete;
+
+      expect(editorOpenSpy).to.not.have.been.called;
+      // updatePageUrl might still be called depending on exact logic,
+      // but the primary action (opening dialog) shouldn't happen.
+      // Let's assert it's not called for clarity, though the original code
+      // might call it regardless. The important part is the dialog doesn't open.
+      expect(updatePageUrlStub).to.not.have.been.called;
     });
   });
 });

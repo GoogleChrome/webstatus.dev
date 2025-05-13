@@ -31,6 +31,8 @@ export type BookmarkStatus = components['schemas']['UserSavedSearchBookmark'];
 export const BookmarkStatusActive: components['schemas']['UserSavedSearchBookmark']['status'] =
   'bookmark_active';
 
+export type SavedSearchOperationType = 'save' | 'edit' | 'delete';
+
 export interface UserSavedSearch extends SavedSearch {
   // Make id required
   id: string;

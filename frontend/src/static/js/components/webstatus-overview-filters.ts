@@ -21,7 +21,6 @@ import {
   CSSResultGroup,
   css,
   html,
-  PropertyValueMap,
   nothing,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
@@ -63,10 +62,13 @@ import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {
   AppBookmarkInfo,
-  SavedSearchScope,
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
-import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
+import {
+  SavedSearchOperationType,
+  UserSavedSearch,
+  VOCABULARY,
+} from '../utils/constants.js';
 import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
@@ -89,9 +91,18 @@ export class WebstatusOverviewFilters extends LitElement {
   @state()
   user: User | null | undefined;
 
-  _activeQuery: string = '';
+  @property({attribute: false})
+  openSavedSearchDialog?: (
+    t: SavedSearchOperationType,
+    uss?: UserSavedSearch,
+    q?: string,
+  ) => void;
 
-  _activeUserSavedSearch?: UserSavedSearch | undefined;
+  @property({type: String})
+  activeQuery: string = '';
+
+  @property({type: Object})
+  savedSearch?: UserSavedSearch | undefined;
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -157,28 +168,6 @@ export class WebstatusOverviewFilters extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('keyup', this.handleDocumentKeyUp);
-  }
-
-  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
-    if (
-      changedProperties.has('location') ||
-      changedProperties.has('appBookmarkInfo')
-    ) {
-      this._activeQuery = savedSearchHelpers.getCurrentQuery(
-        this.appBookmarkInfo,
-      );
-      const search = savedSearchHelpers.getCurrentSavedSearch(
-        this.appBookmarkInfo,
-      );
-      // Allow resetting of active search.
-      if (search === undefined) {
-        this._activeUserSavedSearch = undefined;
-      }
-      // If the search is a user search, store it. Ignore Global Saved Searches
-      if (search?.scope === SavedSearchScope.UserSavedSearch) {
-        this._activeUserSavedSearch = search.value;
-      }
-    }
   }
 
   handleDocumentKeyUp = (e: KeyboardEvent) => {
@@ -413,9 +402,10 @@ export class WebstatusOverviewFilters extends LitElement {
           <webstatus-saved-search-controls
             .user=${user}
             .apiClient=${apiClient}
-            .savedSearch=${this._activeUserSavedSearch}
+            .savedSearch=${this.savedSearch}
             .location=${this.location}
             .overviewPageQueryInput=${this.typeaheadRef.value}
+            .openSavedSearchDialog=${this.openSavedSearchDialog}
           ></webstatus-saved-search-controls>
         </div>
       </sl-popup>
@@ -456,7 +446,7 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          ${this.renderFilterInputBox(this._activeQuery)}
+          ${this.renderFilterInputBox(this.activeQuery)}
           ${this.renderColumnButton()} ${this.renderExportButton()}
         </div>
       </div>

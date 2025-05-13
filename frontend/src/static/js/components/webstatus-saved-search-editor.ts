@@ -17,7 +17,11 @@
 import {LitElement, html, css, type TemplateResult, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {SlAlert, SlButton, SlDialog, SlInput} from '@shoelace-style/shoelace';
-import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
+import {
+  SavedSearchOperationType,
+  UserSavedSearch,
+  VOCABULARY,
+} from '../utils/constants.js';
 import './webstatus-typeahead.js';
 import {WebstatusTypeahead} from './webstatus-typeahead.js';
 import {Task, TaskStatus} from '@lit/task';
@@ -25,8 +29,6 @@ import {APIClient, UpdateSavedSearchInput} from '../api/client.js';
 import {Toast} from '../utils/toast.js';
 import {User} from '../contexts/firebase-user-context.js';
 import {ApiError} from '../api/errors.js';
-
-type OperationType = 'save' | 'edit' | 'delete';
 
 interface OperationConfig {
   label: string;
@@ -67,7 +69,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
   savedSearch?: UserSavedSearch;
 
   @property({type: String})
-  operation: OperationType = 'save';
+  operation: SavedSearchOperationType = 'save';
 
   @property({type: Object})
   apiClient!: APIClient;
@@ -97,7 +99,9 @@ export class WebstatusSavedSearchEditor extends LitElement {
   @state()
   private _currentTask?: Task;
 
-  private operationConfigMap: {[key in OperationType]: OperationConfig} = {
+  private operationConfigMap: {
+    [key in SavedSearchOperationType]: OperationConfig;
+  } = {
     save: {
       label: 'Save New Search',
       render: (inProgress: boolean) => this.renderForm(inProgress),
@@ -125,7 +129,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
     return this._dialog?.open ?? false;
   }
   async open(
-    operation: OperationType,
+    operation: SavedSearchOperationType,
     savedSearch?: UserSavedSearch,
     overviewPageQueryInput?: string,
   ) {

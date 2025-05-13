@@ -24,6 +24,7 @@ import {User} from '../../contexts/firebase-user-context.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
+  SavedSearchOperationType,
   UserSavedSearch,
 } from '../../utils/constants.js';
 import {APIClient} from '../../api/client.js';
@@ -32,20 +33,15 @@ import * as toastUtils from '../../utils/toast.js';
 
 // Mock child component
 import {WebstatusTypeahead} from '../webstatus-typeahead.js';
-import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
 import {SlIconButton} from '@shoelace-style/shoelace';
 
 describe('WebstatusSavedSearchControls', () => {
   let element: WebstatusSavedSearchControls;
   let apiClientMock: sinon.SinonStubbedInstance<APIClient>;
   let userMock: User;
-  let editor: WebstatusSavedSearchEditor;
-  let editorIsOpenStub: sinon.SinonStub;
-  let editorOpenSpy: sinon.SinonSpy;
   let typeaheadMock: WebstatusTypeahead;
   let formatOverviewPageUrlStub: sinon.SinonStub;
-  let getEditSavedSearchStub: sinon.SinonStub;
-  let updatePageUrlStub: sinon.SinonStub;
+  let openSavedSearch: sinon.SinonStub;
   let toastStub: sinon.SinonStub;
 
   const typeaheadQuery = 'mock query';
@@ -105,6 +101,11 @@ describe('WebstatusSavedSearchControls', () => {
         .user=${userMock}
         .location=${mockLocation}
         .overviewPageQueryInput=${typeaheadMock}
+        .openSavedSearchDialog=${(
+          _t: SavedSearchOperationType,
+          _uss?: UserSavedSearch,
+          _q?: string,
+        ) => undefined}
       >
       </webstatus-saved-search-controls>
     `);
@@ -121,16 +122,7 @@ describe('WebstatusSavedSearchControls', () => {
         }
         return url.pathname + url.search;
       });
-    getEditSavedSearchStub = sinon
-      .stub(element, '_getEditSavedSearch')
-      .returns(false);
-    updatePageUrlStub = sinon.stub(element, '_updatePageUrl');
-    // Get the mocked editor instance after the element is rendered
-    editor = element.shadowRoot!.querySelector<WebstatusSavedSearchEditor>(
-      'webstatus-saved-search-editor',
-    )!;
-    editorOpenSpy = sinon.spy(editor, 'open');
-    editorIsOpenStub = sinon.stub(editor, 'isOpen');
+    openSavedSearch = sinon.stub(element, 'openSavedSearch');
   });
 
   afterEach(() => {
@@ -162,14 +154,14 @@ describe('WebstatusSavedSearchControls', () => {
     expect(deleteButton).to.not.exist;
   });
 
-  it('calls openNewSavedSearchDialog when save button is clicked', async () => {
+  it('calls openSavedSearchDialog when save button is clicked', async () => {
     const saveButton = element.shadowRoot!.querySelector<SlIconButton>(
       'sl-icon-button[name="floppy"]',
     )!;
     saveButton.click();
     await element.updateComplete;
 
-    expect(editorOpenSpy).to.have.been.calledOnceWith(
+    expect(openSavedSearch).to.have.been.calledOnceWith(
       'save',
       undefined,
       typeaheadQuery,
@@ -480,28 +472,28 @@ describe('WebstatusSavedSearchControls', () => {
       });
     });
 
-    it('calls openEditSavedSearchDialog when edit button is clicked', async () => {
+    it('calls openSavedSearchDialog when edit button is clicked', async () => {
       const editButton = element.shadowRoot!.querySelector<SlIconButton>(
         'sl-icon-button[name="pencil"]',
       )!;
       editButton.click();
       await element.updateComplete;
 
-      expect(editorOpenSpy).to.have.been.calledOnceWith(
+      expect(openSavedSearch).to.have.been.calledOnceWith(
         'edit',
         element.savedSearch,
         typeaheadQuery,
       );
     });
 
-    it('calls openDeleteSavedSearchDialog when delete button is clicked', async () => {
+    it('calls openSavedSearchDialog when delete button is clicked', async () => {
       const deleteButton = element.shadowRoot!.querySelector<SlIconButton>(
         'sl-icon-button[name="trash"]',
       )!;
       deleteButton.click();
       await element.updateComplete;
 
-      expect(editorOpenSpy).to.have.been.calledOnceWith(
+      expect(openSavedSearch).to.have.been.calledOnceWith(
         'delete',
         element.savedSearch,
       );
@@ -520,75 +512,6 @@ describe('WebstatusSavedSearchControls', () => {
       expect(apiClientMock.putUserSavedSearchBookmark).to.not.have.been.called;
       expect(apiClientMock.removeUserSavedSearchBookmark).to.not.have.been
         .called;
-    });
-  });
-
-  describe('updated lifecycle hook', () => {
-    it('opens edit dialog and updates URL if edit_saved_search param is present', async () => {
-      element.location = {search: 'test'};
-      element.savedSearch = {...mockSavedSearchOwner};
-      getEditSavedSearchStub.returns(true); // Simulate finding the param
-      editorIsOpenStub.returns(false); // Simulate editor not already open
-
-      // Trigger the updated lifecycle hook manually for testing
-      element.requestUpdate();
-      await element.updateComplete;
-
-      // It should call openEditSavedSearchDialog, which calls editor.open
-      expect(editorOpenSpy).to.have.been.calledOnceWith(
-        'edit',
-        element.savedSearch,
-        typeaheadQuery,
-      );
-      // It should remove the URL parameter
-      expect(updatePageUrlStub).to.have.been.calledOnceWith(
-        '',
-        element.location,
-        {edit_saved_search: undefined},
-      );
-    });
-
-    it('does not open edit dialog if editor is already open', async () => {
-      element.savedSearch = {...mockSavedSearchOwner};
-      getEditSavedSearchStub.returns(true);
-      editorIsOpenStub.returns(true);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      expect(editorOpenSpy).to.not.have.been.called;
-      // Should not update URL if dialog wasn't opened by this hook
-      expect(updatePageUrlStub).to.not.have.been.called;
-      expect(getEditSavedSearchStub).to.have.been.called;
-    });
-
-    it('does not open edit dialog if edit_saved_search param is not present', async () => {
-      element.savedSearch = {...mockSavedSearchOwner};
-      getEditSavedSearchStub.returns(false); // Param not present
-
-      editorIsOpenStub.returns(false);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      expect(editorIsOpenStub).to.not.have.been.called;
-      expect(updatePageUrlStub).to.not.have.been.called;
-    });
-
-    it('does not open edit dialog if savedSearch is not available', async () => {
-      element.savedSearch = undefined; // No saved search loaded yet
-      getEditSavedSearchStub.returns(true);
-      editorIsOpenStub.returns(false);
-
-      element.requestUpdate();
-      await element.updateComplete;
-
-      expect(editorOpenSpy).to.not.have.been.called;
-      // updatePageUrl might still be called depending on exact logic,
-      // but the primary action (opening dialog) shouldn't happen.
-      // Let's assert it's not called for clarity, though the original code
-      // might call it regardless. The important part is the dialog doesn't open.
-      expect(updatePageUrlStub).to.not.have.been.called;
     });
   });
 });
