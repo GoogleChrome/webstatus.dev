@@ -74,6 +74,9 @@ export class WebstatusTypeahead extends LitElement {
   @property({type: Array})
   vocabulary: Array<VocabularyItem>;
 
+  @property({type: Boolean})
+  isOverviewSearchbox: boolean = false;
+
   @state()
   prefix: string | null;
 
@@ -259,7 +262,7 @@ export class WebstatusTypeahead extends LitElement {
   renderInputField(): TemplateResult {
     return html`
       <sl-input
-        id="inputfield"
+        id=${this.isOverviewSearchbox ? 'inputfield' : ''}
         slot="trigger"
         label=${ifDefined(this.label)}
         placeholder=${this.placeholder}
