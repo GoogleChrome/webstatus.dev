@@ -24,7 +24,7 @@ import {
   PropertyValueMap,
 } from 'lit';
 import {TaskStatus} from '@lit/task';
-import {customElement, property, query} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-data-loader.js';
@@ -48,7 +48,11 @@ import {
   getOrigin,
   updatePageUrl,
 } from '../utils/urls.js';
-import {SavedSearchOperationType, UserSavedSearch} from '../utils/constants.js';
+import {
+  OpenSavedSearchEvent,
+  SavedSearchOperationType,
+  UserSavedSearch,
+} from '../utils/constants.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -72,11 +76,11 @@ export class WebstatusOverviewContent extends LitElement {
   savedSearch?: UserSavedSearch;
 
   @consume({context: apiClientContext})
-  @property({attribute: false})
+  @state()
   apiClient?: APIClient;
 
   @consume({context: firebaseUserContext, subscribe: true})
-  @property({type: Object})
+  @state()
   user: User | null | undefined;
 
   @query('webstatus-saved-search-editor')
@@ -121,12 +125,11 @@ export class WebstatusOverviewContent extends LitElement {
     void this.savedSearchEditor.open(type, savedSearch, overviewPageQueryInput);
   }
 
-  async openSavedSearch(e: Event) {
-    const event = e as CustomEvent;
+  async openSavedSearch(e: CustomEventInit<OpenSavedSearchEvent>) {
     void this.openSavedSearchDialog(
-      event.detail.type,
-      event.detail.savedSearch,
-      event.detail.overviewPageQueryInput,
+      e.detail!.type,
+      e.detail!.savedSearch,
+      e.detail!.overviewPageQueryInput,
     );
   }
 

@@ -61,6 +61,12 @@ export interface SavedSearch {
   description?: string;
 }
 
+export interface OpenSavedSearchEvent {
+  type: SavedSearchOperationType;
+  savedSearch?: UserSavedSearch;
+  overviewPageQueryInput?: string;
+}
+
 export const TOP_CSS_INTEROP_ISSUES: string[] = [
   'anchor-positioning',
   'container-queries',

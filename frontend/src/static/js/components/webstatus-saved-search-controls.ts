@@ -21,6 +21,7 @@ import {User} from '../contexts/firebase-user-context.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
+  OpenSavedSearchEvent,
   SavedSearchOperationType,
   UserSavedSearch,
 } from '../utils/constants.js';
@@ -75,15 +76,18 @@ export class WebstatusSavedSearchControls extends LitElement {
     savedSearch?: UserSavedSearch,
     overviewPageQueryInput?: string,
   ) {
-    const event = new CustomEvent('open-saved-search-editor', {
-      detail: {
-        type,
-        savedSearch,
-        overviewPageQueryInput,
+    const event = new CustomEvent<OpenSavedSearchEvent>(
+      'open-saved-search-editor',
+      {
+        detail: {
+          type,
+          savedSearch,
+          overviewPageQueryInput,
+        },
+        bubbles: true,
+        composed: true,
       },
-      bubbles: true,
-      composed: true,
-    });
+    );
     this.dispatchEvent(event);
   }
 
