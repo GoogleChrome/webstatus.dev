@@ -40,7 +40,6 @@ export class WebstatusFeatureBadge extends LitElement {
   }
 
   render() {
-    console.log(this.badgeType);
     if (!this.badgeType) {
       return html``;
     }
