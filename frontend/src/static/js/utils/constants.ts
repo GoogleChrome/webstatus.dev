@@ -95,6 +95,8 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'web-bluetooth',
 ];
 
+// This focus area to web feature mapping is defined at
+// https://github.com/web-platform-tests/interop/blob/main/web-features.json
 export const INTEROP_FEATURES: string[] = [
   'backdrop-filter',
   'largest-contentful-paint',
