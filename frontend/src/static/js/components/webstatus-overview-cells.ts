@@ -23,6 +23,7 @@ import {
 import {BROWSER_ID_TO_ICON_NAME, FeatureSortOrderType} from '../api/client.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {
+  INTEROP_FEATURES,
   TOP_CSS_INTEROP_ISSUES,
   TOP_HTML_INTEROP_ISSUES,
 } from '../utils/constants.js';
@@ -199,6 +200,13 @@ function getFeatureBadges(featureId: string): TemplateResult[] {
     extraIdentifiers.push(
       html`<webstatus-feature-badge
         .badgeType=${'html'}
+      ></webstatus-feature-badge>`,
+    );
+  }
+  if (INTEROP_FEATURES.includes(featureId)) {
+    extraIdentifiers.push(
+      html`<webstatus-feature-badge
+        .badgeType=${'interop'}
       ></webstatus-feature-badge>`,
     );
   }

@@ -95,6 +95,34 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'web-bluetooth',
 ];
 
+export const INTEROP_FEATURES: string[] = [
+  'backdrop-filter',
+  'largest-contentful-paint',
+  'anchor-positioning',
+  'details',
+  'flexbox',
+  'grid',
+  'subgrid',
+  'json-modules',
+  'navigation',
+  'pointer-events-api',
+  'mouse-events',
+  'mutation-events',
+  'scope',
+  'scrollend',
+  'storage-access',
+  'text-decoration',
+  'urlpattern',
+  'view-transitions',
+  'view-transitions-class',
+  'wasm-string-builtins',
+  'appearance',
+  'zoom',
+  'list-style',
+  'webrtc-encoded-transform',
+  'writing-mode',
+];
+
 export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   {
     name: 'Baseline 2025',
