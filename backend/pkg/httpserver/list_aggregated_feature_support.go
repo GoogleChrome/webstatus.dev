@@ -62,6 +62,8 @@ func (s *Server) ListAggregatedFeatureSupport(
 				Message: err.Error(),
 			}, err
 		}
+	} else {
+		targetMobileBrowser = request.Browser
 	}
 
 	page, err := s.wptMetricsStorer.ListBrowserFeatureCountMetric(

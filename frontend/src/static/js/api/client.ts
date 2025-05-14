@@ -489,6 +489,7 @@ export class APIClient {
               startAt,
               endAt,
               page_token: nextPageToken,
+              include_baseline_mobile_browsers: true,
             },
             path: {browser},
           },
