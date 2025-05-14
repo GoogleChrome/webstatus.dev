@@ -279,7 +279,8 @@ export const BADGE_PARAMS_BY_TYPE = {
   interop: {
     name: 'INTEROP',
     url: 'https://wpt.fyi/interop',
-    description: 'This feature is a focus area for the Interop 2025 effort.',
+    description:
+      'This feature is part of a focus area for the Interop 2025 effort.',
     variant: 'neutral',
   },
 } as const satisfies Record<string, BadgeConfig>;
