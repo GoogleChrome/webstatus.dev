@@ -211,6 +211,14 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
       <div slot="header" id="missing-one-implementation-list-header">
         Missing features on 2024-01-01 for Chrome:
         <a href="/?q=id%3Agrid+OR+id%3Ahtml+OR+id%3Ajs+OR+id%3Abluetooth">4 features</a>
+        <div class="table-description">
+           * This table represents feature values
+           <strong>
+             as of today
+           </strong>
+           ,
+          and not at the selected timestamp.
+         </div>
       </div>
     `;
     expect(header).dom.to.equal(expectedHeader);
