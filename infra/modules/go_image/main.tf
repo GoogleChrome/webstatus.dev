@@ -20,7 +20,13 @@ resource "docker_image" "local_image" {
       service_dir : var.go_module_path
       MAIN_BINARY : var.binary_type
     }
-    dockerfile = "images/go_service.Dockerfile"
+    dockerfile = "${path.cwd}/../images/go_service.Dockerfile"
+    # Use buildx default builder instead of legacy builder
+    # Needed for the --mount args
+    # Must also specify platform too.
+    builder        = "default"
+    platform       = "linux/amd64"
+    build_log_file = "${path.cwd}/${var.image_name}.log"
   }
   triggers = {
     dir_sha1 = sha1(join("",

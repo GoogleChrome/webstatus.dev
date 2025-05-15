@@ -24,7 +24,13 @@ resource "docker_image" "frontend" {
       service_dir : local.service_dir
     }
     target     = var.docker_build_target
-    dockerfile = "images/nodejs_service.Dockerfile"
+    dockerfile = "${path.cwd}/../images/nodejs_service.Dockerfile"
+    # Use buildx default builder instead of legacy builder
+    # Needed for the --mount args
+    # Must also specify platform too.
+    builder        = "default"
+    platform       = "linux/amd64"
+    build_log_file = "${path.cwd}/frontend.log"
   }
   triggers = {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "/../${local.service_dir}/**") : filesha1(f)], [for f in fileset(path.cwd, "/../lib/**") : filesha1(f)]))
