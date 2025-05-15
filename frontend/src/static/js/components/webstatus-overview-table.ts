@@ -134,9 +134,13 @@ export class WebstatusOverviewTable extends LitElement {
         }
 
         img.platform {
-          margin-left: calc(-0.6 * var(--platform-logo-size));
+          margin-left: calc(-0.3 * var(--platform-logo-size));
           height: var(--platform-logo-size);
           width: var(--platform-logo-size);
+        }
+        .browser-cell {
+          font-size: 22px;
+          font-weight: 300;
         }
       `,
     ];

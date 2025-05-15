@@ -315,11 +315,12 @@ export const renderBaselineStatus: CellRenderer = (
 
 function renderPlatformIcon(platform?: string): TemplateResult {
   if (platform) {
-    return html`<img
-      class="platform"
-      alt="${platform} logo"
-      src="/public/img/${platform}.svg"
-    />`;
+    return html` /
+      <img
+        class="platform"
+        alt="${platform} logo"
+        src="/public/img/${platform}.svg"
+      />`;
   }
   return html``;
 }
@@ -333,7 +334,7 @@ export const renderAvailablity: CellRenderer = (
   const browserImplStatus = browserImpl?.status || 'unavailable';
   const browserImplVersion = browserImpl?.version;
   return html`
-    <div class="browser-impl-${browserImplStatus}">
+    <div class="browser-impl-${browserImplStatus} browser-cell">
       <sl-tooltip
         content=${browserImplVersion
           ? `Since version ${browserImplVersion}`
