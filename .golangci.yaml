@@ -57,6 +57,10 @@ linters:
     dupl:
       # The default is 150
       threshold: 175
+    exhaustive:
+      check:
+        - switch
+        - map
   exclusions:
     generated: lax
     presets:

@@ -81,7 +81,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 			},
 			data: metricdatatypes.HistogramMapping{
-				"histogram": []metricdatatypes.HistogramEnumValue{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
 					{Value: 1, Label: "EnumLabel"},
 				},
 			},
@@ -99,7 +99,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				getIDFromFeatureKey:                        nil,
 			},
 			data: metricdatatypes.HistogramMapping{
-				"histogram": []metricdatatypes.HistogramEnumValue{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
 					{Value: 1, Label: "EnumLabel"},
 				},
 			},
@@ -120,7 +120,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				getIDFromFeatureKey:                        nil,
 			},
 			data: metricdatatypes.HistogramMapping{
-				"histogram": []metricdatatypes.HistogramEnumValue{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
 					{Value: 1, Label: "EnumLabel"},
 				},
 			},
@@ -144,7 +144,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				upsertWebFeatureChromiumHistogramEnumValue: nil,
 			},
 			data: metricdatatypes.HistogramMapping{
-				"histogram": []metricdatatypes.HistogramEnumValue{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
 					{Value: 1, Label: "EnumLabel"},
 				},
 			},
@@ -171,7 +171,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 			},
 			data: metricdatatypes.HistogramMapping{
-				"histogram": []metricdatatypes.HistogramEnumValue{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
 					{Value: 1, Label: "EnumLabel"},
 				},
 			},
