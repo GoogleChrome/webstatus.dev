@@ -140,29 +140,42 @@ func (c *Client) getInitialBrowserFeatureCount(
 	var excludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
 		excludedFeatureFilter = `
-            AND WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)`
+            AND bfa.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)`
 		params["excludedFeatureIDs"] = excludedFeatureIDs
 	}
 
 	// On the initial page, we need to get the sum of all the features before the start.
 	var initialCount int64
 	err := txn.Query(ctx, spanner.Statement{
-		SQL: fmt.Sprintf(`SELECT COALESCE(SUM(daily_feature_count), 0)
-					FROM (
-						SELECT COUNT(DISTINCT bfa.WebFeatureID) AS daily_feature_count
-						FROM BrowserReleases br
-						INNER JOIN BrowserFeatureAvailabilities bfa
-						ON bfa.BrowserName = br.BrowserName
-							AND bfa.BrowserVersion = br.BrowserVersion
-							%s
-						INNER JOIN BrowserFeatureAvailabilities bfa2
-						ON bfa.BrowserName = @targetBrowserName
-							AND bfa2.BrowserName = @targetMobileBrowserName
-							AND bfa2.BrowserVersion = br.BrowserVersion
-							AND bfa.WebFeatureID = bfa2.WebFeatureID
-						WHERE ReleaseDate < @startAt
-						GROUP BY ReleaseDate
-					)`,
+		SQL: fmt.Sprintf(`
+SELECT
+	COALESCE(SUM(daily_feature_count), 0)
+FROM (
+	SELECT
+		COUNT(DISTINCT bfa.WebFeatureID) AS daily_feature_count
+	FROM
+		BrowserReleases br
+	LEFT JOIN
+		BrowserFeatureAvailabilities bfa
+		ON bfa.BrowserName = br.BrowserName
+		AND bfa.BrowserVersion = br.BrowserVersion
+		%s
+	INNER JOIN
+		BrowserFeatureAvailabilities bfa2
+		ON bfa2.BrowserName = @targetMobileBrowserName
+		AND bfa.WebFeatureID = bfa2.WebFeatureID
+	LEFT JOIN
+		BrowserReleases br2
+		ON bfa2.BrowserName = @targetMobileBrowserName
+		AND br2.BrowserName = bfa2.BrowserName
+		AND br2.BrowserVersion = bfa2.BrowserVersion
+	WHERE
+		bfa.BrowserName = @targetBrowserName
+		AND br.ReleaseDate < @startAt
+		AND br2.ReleaseDate < @startAt
+	GROUP BY
+		br.ReleaseDate
+)`,
 			excludedFeatureFilter),
 		Params: params,
 	}).Do(func(r *spanner.Row) error {
@@ -193,35 +206,51 @@ func createListBrowserFeatureCountMetricStatement(
 	if pageToken != nil {
 		// Add filter for pagination if a page token is provided
 		pageFilter = `
-		AND BrowserReleases.ReleaseDate > @lastReleaseDate`
+		AND br.ReleaseDate > @lastReleaseDate`
 		params["lastReleaseDate"] = pageToken.LastReleaseDate
 	}
 
 	var excludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
 		params["excludedFeatureIDs"] = excludedFeatureIDs
-		excludedFeatureFilter = "AND bfa.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+		excludedFeatureFilter = "AND cf.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
 	}
 
 	// Construct the query
 	// This query selects the 'ReleaseDate' and the feature counts for each release date.
 	query := fmt.Sprintf(`
+WITH CommonFeatures AS (
+    SELECT
+        bfa1.BrowserName AS Browser1Name,
+        bfa1.BrowserVersion AS Browser1Version,
+        bfa1.WebFeatureID
+    FROM
+        BrowserFeatureAvailabilities AS bfa1
+    JOIN
+        BrowserFeatureAvailabilities AS bfa2
+        ON bfa1.WebFeatureID = bfa2.WebFeatureID
+    WHERE
+        bfa1.BrowserName = @targetBrowserName
+        AND bfa2.BrowserName = @targetMobileBrowserName
+)
 SELECT
-    BrowserReleases.ReleaseDate AS ReleaseDate,
-    COUNT(DISTINCT CASE WHEN bfa.WebFeatureID IS NOT NULL %s THEN bfa.WebFeatureID ELSE NULL END) AS FeatureCount
-FROM BrowserFeatureAvailabilities bfa
-INNER JOIN BrowserFeatureAvailabilities bfa2
-ON bfa.BrowserName = @targetBrowserName
-	AND bfa2.BrowserName = @targetMobileBrowserName
-	AND bfa.WebFeatureID = bfa2.WebFeatureID
-RIGHT JOIN BrowserReleases
-ON (bfa.BrowserName = BrowserReleases.BrowserName)
-    AND bfa.BrowserVersion = BrowserReleases.BrowserVersion
-WHERE BrowserReleases.ReleaseDate >= @startAt
-    AND BrowserReleases.ReleaseDate < @endAt
+    br.ReleaseDate,
+    COUNT(DISTINCT CASE WHEN cf.WebFeatureID IS NOT NULL %s THEN cf.WebFeatureID ELSE NULL END) AS FeatureCount
+FROM
+    BrowserReleases AS br
+LEFT JOIN
+    CommonFeatures AS cf
+    ON br.BrowserName = cf.Browser1Name
+    AND br.BrowserVersion = cf.Browser1Version
+WHERE
+    br.BrowserName = @targetBrowserName
+	AND br.ReleaseDate >= @startAt
+	AND br.ReleaseDate < @endAt
 	%s
-GROUP BY ReleaseDate
-ORDER BY ReleaseDate ASC
+GROUP BY
+    br.ReleaseDate
+ORDER BY
+    br.ReleaseDate
 LIMIT @pageSize
 `, excludedFeatureFilter, pageFilter)
 
