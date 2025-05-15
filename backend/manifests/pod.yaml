@@ -26,6 +26,9 @@ spec:
       ports:
         - containerPort: 8080
           name: http-backend
+      readinessProbe:
+        tcpSocket:
+          port: 8080
       env:
         - name: SPANNER_DATABASE
           value: 'local'

@@ -26,6 +26,9 @@ spec:
       ports:
         - containerPort: 6379
           name: valkey-port
+      readinessProbe:
+        tcpSocket:
+          port: 6379
       resources:
         limits:
           cpu: 250m

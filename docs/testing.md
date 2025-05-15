@@ -61,10 +61,10 @@ Developers may still need to inspect and manually fix the error.
 ### Note about running Playwright Makefile Targets
 
 If you have a running local development environment
-(established via `make start-local`) with the necessary fake users (`make dev_fake_users`),
-fake data (`make dev_fake_data`), and port forwarding
-(`make port-forward-manual`), you can expedite Playwright testing by skipping
-the environment setup.
+(established via `make start-local`) with the necessary port forwarding
+(`make port-forward-manual`), fake users (`make dev_fake_users`) and
+fake data (`make dev_fake_data`), you can expedite Playwright testing by
+skipping the environment setup.
 
 To do this, prefix your `make` command with `SKIP_FRESH_ENV=1`. This is
 particularly useful for rapid iteration, as `make start-local` leverages

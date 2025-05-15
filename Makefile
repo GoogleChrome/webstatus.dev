@@ -62,11 +62,10 @@ deploy-local: configure-skaffold
 delete-local:
 	skaffold delete $(SKAFFOLD_FLAGS) || true
 
-# TODO: In the future, we should install netcat
 define wait_for_port
     @echo "Waiting for $(2) on port $(1) to respond..."
     @for i in $$(seq 1 5); do \
-        if curl -s -f -o /dev/null -m 2 http://localhost:$(1)$(3); then \
+        if nc -zvw 2 localhost $(1); then \
             echo "$(2) on port $(1) is responding."; \
             exit 0; \
         fi; \
@@ -80,30 +79,42 @@ define wait_for_port
     done
 endef
 
+
+check-local-ports:
+	$(call wait_for_port,5555,frontend)
+	$(call wait_for_port,8080,backend)
+	$(call wait_for_port,9099,auth-main)
+	$(call wait_for_port,9100,auth-aux)
+	$(call wait_for_port,9010,spanner)
+	$(call wait_for_port,8086,datastore)
+
 port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
 	kubectl wait --for=condition=ready pod/backend
 	kubectl wait --for=condition=ready pod/auth
+	kubectl wait --for=condition=ready pod/datastore
+	kubectl wait --for=condition=ready pod/spanner
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
-	$(call wait_for_port,5555,frontend,/)
-	$(call wait_for_port,8080,backend,/v1/features?page_size=1)
-	$(call wait_for_port,9099,auth-main,/)
-	$(call wait_for_port,9100,auth-aux,/)
+	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
+	make check-local-ports
 
 port-forward-terminate:
 	fuser -k 5555/tcp || true
 	fuser -k 8080/tcp || true
 	fuser -k 9099/tcp || true
 	fuser -k 9100/tcp || true
+	fuser -k 9010/tcp || true
+	fuser -k 8086/tcp || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:
 		# Check if minikube is running using a shell command
 		@if ! minikube status -p "$${MINIKUBE_PROFILE}" | grep -q "Running"; then \
-				minikube start -p "$${MINIKUBE_PROFILE}" --cni calico --disk-size=10gb --cpus=2 --memory=4096m; \
+				minikube start -p "$${MINIKUBE_PROFILE}" --cni calico --disk-size=10gb --cpus=2 --memory=6g; \
 		fi
 minikube-clean-restart: minikube-delete minikube-running
 minikube-delete:
@@ -313,7 +324,7 @@ license-fix:
 # fresh-env-for-playwright prerequisite. If unset, the fresh environment will be created.
 SKIP_FRESH_ENV ?=
 
-fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local dev_fake_users dev_fake_data port-forward-manual)
+fresh-env-for-playwright: $(if $(SKIP_FRESH_ENV),,playwright-install delete-local build deploy-local port-forward-manual dev_fake_users dev_fake_data)
 
 playwright-install:
 	npx playwright install --with-deps
@@ -413,16 +424,7 @@ dev_fake_users: build
 	fuser -k 9099/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	go run util/cmd/load_test_users/main.go -project=local
-dev_fake_data: build is_local_migration_ready
-	fuser -k 9010/tcp || true
-	kubectl wait --for=condition=ready pod/spanner
-	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
-	fuser -k 8086/tcp || true
-	kubectl wait --for=condition=ready pod/datastore
-	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
-	fuser -k 9099/tcp || true
-	kubectl wait --for=condition=ready pod/auth
-	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
+dev_fake_data: build is_local_migration_ready check-local-ports
 	SPANNER_EMULATOR_HOST=localhost:9010 DATASTORE_EMULATOR_HOST=localhost:8086 FIREBASE_AUTH_EMULATOR_HOST=localhost:9099 \
 		go run ./util/cmd/load_fake_data/main.go \
 			-spanner_project=local \
@@ -430,9 +432,6 @@ dev_fake_data: build is_local_migration_ready
 			-spanner_database=local \
 			-datastore_project=local \
 			$(LOAD_FAKE_DATA_FLAGS)
-	fuser -k 9099/tcp || true
-	fuser -k 9010/tcp || true
-	fuser -k 8086/tcp || true
 is_local_migration_ready:
 	kubectl wait --for=condition=ready --timeout=300s pod/spanner
 	@MAX_RETRIES=5; SLEEP_INTERVAL=5 ; \

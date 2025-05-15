@@ -29,6 +29,9 @@ spec:
       ports:
         - containerPort: 5555
           name: http-frontend
+      readinessProbe:
+        tcpSocket:
+          port: 5555
       env:
         - name: API_URL
           value: http://localhost:8080
