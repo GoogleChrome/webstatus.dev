@@ -71,3 +71,6 @@ go.work.sum
 
 # TypeScript
 tsconfig.tsbuildinfo
+
+# Docker build log files
+infra/*.log

@@ -17,7 +17,13 @@ resource "docker_image" "otel_collector" {
   name = "${var.docker_repository_details.url}/otel_collector"
   build {
     context    = "${path.cwd}/../otel"
-    dockerfile = "Dockerfile"
+    dockerfile = "${path.cwd}/../otel/Dockerfile"
+    # Use buildx default builder instead of legacy builder
+    # Needed for the --mount args
+    # Must also specify platform too.
+    builder        = "default"
+    platform       = "linux/amd64"
+    build_log_file = "${path.cwd}/otel_collector.log"
   }
   triggers = {
     dir_sha1 = sha1(join("", [for f in fileset(path.cwd, "/../otel/**") : filesha1(f)]))
