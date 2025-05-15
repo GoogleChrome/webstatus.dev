@@ -36,7 +36,7 @@ import {
   ColumnKey,
   DEFAULT_SORT_SPEC,
   parseColumnsSpec,
-  renderGroupsRow,
+  renderGroupCells,
   renderSavedSearchHeaderCells,
 } from './webstatus-overview-cells.js';
 import {MISSING_ONE_TABLE_COLUMNS} from '../utils/constants.js';
@@ -296,7 +296,11 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
 
     return html`<webstatus-overview-table
       .columns=${columns}
-      .groupCells=${renderGroupsRow({search: ''}, columns, DEFAULT_SORT_SPEC!)}
+      .groupCells=${renderGroupCells(
+        {search: '/'},
+        columns,
+        DEFAULT_SORT_SPEC!,
+      )}
       .headerCells=${headerCells}
       .taskTracker=${this.taskTracker}
     ></webstatus-overview-table>`;

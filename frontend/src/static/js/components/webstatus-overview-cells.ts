@@ -690,7 +690,7 @@ export function renderColgroups(columns: ColumnKey[]): TemplateResult {
   `;
 }
 
-export function renderGroupsRow(
+export function renderGroupCells(
   routerLocation: {search: string},
   columns: ColumnKey[],
   sortSpec: string,
@@ -709,25 +709,13 @@ export function renderGroupsRow(
   });
 }
 
-function calcSingleSpanCols(columns: ColumnKey[]): Set<number> {
-  let spanTotal = 0;
-  return calcColGroupSpans(columns).reduce((set: Set<number>, {count}) => {
-    if (count === 1) {
-      set.add(spanTotal);
-    }
-    spanTotal += count;
-    return set;
-  }, new Set<number>());
-}
-
 export function renderSavedSearchHeaderCells(
   name: string,
   columns: ColumnKey[],
 ): TemplateResult[] {
-  const singleSpanCols = calcSingleSpanCols(columns);
-  const headerCells: TemplateResult[] = columns.map((col, i) => {
-    if (singleSpanCols.has(i)) {
-      return html`<th></th>`;
+  const headerCells: TemplateResult[] = columns.map(col => {
+    if (!CELL_DEFS[col].group) {
+      return html`<th colspan="1"></th>`;
     }
     if (col === ColumnKey.Name) {
       const title = `Sorted by ${name} query order`;
@@ -744,10 +732,9 @@ export function renderHeaderCells(
   columns: ColumnKey[],
   sortSpec: string,
 ) {
-  const singleSpanCols = calcSingleSpanCols(columns);
-  return columns.map((col, i) => {
-    if (singleSpanCols.has(i)) {
-      return html`<th></th>`;
+  return columns.map(col => {
+    if (!CELL_DEFS[col].group) {
+      return html`<th colspan=${1}></th>`;
     }
     return html`${renderHeaderCell(routerLocation, col, sortSpec)}`;
   });
@@ -786,7 +773,11 @@ function renderSortableHeaderCell(
 
   const colDef = CELL_DEFS[column];
   return html`
-    <th title="Click to sort" class="${colDef?.cellClass || ''} sortable">
+    <th
+      title="Click to sort"
+      class="${colDef?.cellClass || ''} sortable"
+      colspan="1"
+    >
       <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
     </th>
   `;
@@ -801,6 +792,7 @@ export function renderUnsortableHeaderCell(
     <th
       title=${ifDefined(customTitle)}
       class="${colDef?.cellClass || ''} unsortable"
+      colspan="1"
     >
       ${colDef?.headerHtml}
     </th>

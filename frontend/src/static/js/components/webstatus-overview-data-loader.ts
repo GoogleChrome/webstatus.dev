@@ -22,7 +22,7 @@ import {
   ColumnKey,
   DEFAULT_SORT_SPEC,
   parseColumnsSpec,
-  renderGroupsRow,
+  renderGroupCells,
   renderHeaderCells,
   renderSavedSearchHeaderCells,
 } from './webstatus-overview-cells.js';
@@ -111,7 +111,7 @@ export class WebstatusOverviewDataLoader extends LitElement {
     );
     const sortSpec: string =
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
-    const groupCells = renderGroupsRow(this.location, columns, sortSpec);
+    const groupCells = renderGroupCells(this.location, columns, sortSpec);
     let headerCells: TemplateResult[] = [];
     if (
       this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
