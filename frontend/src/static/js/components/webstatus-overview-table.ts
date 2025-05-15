@@ -25,7 +25,6 @@ import {
   CELL_DEFS,
   renderFeatureCell,
   renderColgroups,
-  renderGroupsRow,
 } from './webstatus-overview-cells.js';
 import {ApiError, BadRequestError} from '../api/errors.js';
 import {
@@ -46,6 +45,9 @@ export class WebstatusOverviewTable extends LitElement {
 
   @property({attribute: false})
   columns: ColumnKey[] = [];
+
+  @property({attribute: false})
+  groupCells: TemplateResult[] = [];
 
   @property({attribute: false})
   headerCells: TemplateResult[] = [];
@@ -69,6 +71,7 @@ export class WebstatusOverviewTable extends LitElement {
         .header-row th {
           border-left: var(--default-border);
           border-right: var(--default-border);
+          height: 28px;
         }
         .header-row th.sortable {
           min-width: 4em;
@@ -147,7 +150,7 @@ export class WebstatusOverviewTable extends LitElement {
       <table class="data-table">
         ${renderColgroups(this.columns)}
         <thead>
-          ${renderGroupsRow(this.columns)}
+          ${this.groupCells}
           <tr class="header-row">
             ${this.headerCells}
           </tr>

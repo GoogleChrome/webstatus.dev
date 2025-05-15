@@ -690,20 +690,45 @@ export function renderColgroups(columns: ColumnKey[]): TemplateResult {
   `;
 }
 
-export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
+export function renderGroupsRow(
+  routerLocation: {search: string},
+  columns: ColumnKey[],
+  sortSpec: string,
+): TemplateResult[] {
   const colGroupSpans = calcColGroupSpans(columns);
-  return html`
-    ${colGroupSpans.map(
-      ({group, count}) => html`<th colspan=${count}>${group}</th>`,
-    )}
-  `;
+  let spanTotal = 0;
+  return colGroupSpans.map(({group, count}) => {
+    let template;
+    if (count === 1) {
+      template = renderHeaderCell(routerLocation, columns[spanTotal], sortSpec);
+    } else {
+      template = html`<th colspan=${count}>${group}</th>`;
+    }
+    spanTotal += count;
+    return template;
+  });
+}
+
+function calcSingleSpanCols(columns: ColumnKey[]): Set<number> {
+  let spanTotal = 0;
+  return calcColGroupSpans(columns).reduce((set: Set<number>, {count}) => {
+    if (count === 1) {
+      set.add(spanTotal);
+    }
+    spanTotal += count;
+    return set;
+  }, new Set<number>());
 }
 
 export function renderSavedSearchHeaderCells(
   name: string,
   columns: ColumnKey[],
 ): TemplateResult[] {
-  const headerCells: TemplateResult[] = columns.map(col => {
+  const singleSpanCols = calcSingleSpanCols(columns);
+  const headerCells: TemplateResult[] = columns.map((col, i) => {
+    if (singleSpanCols.has(i)) {
+      return html`<th></th>`;
+    }
     if (col === ColumnKey.Name) {
       const title = `Sorted by ${name} query order`;
       return html`${renderUnsortableHeaderCell(col, title)}`;
@@ -714,7 +739,21 @@ export function renderSavedSearchHeaderCells(
   return headerCells;
 }
 
-export function renderHeaderCell(
+export function renderHeaderCells(
+  routerLocation: {search: string},
+  columns: ColumnKey[],
+  sortSpec: string,
+) {
+  const singleSpanCols = calcSingleSpanCols(columns);
+  return columns.map((col, i) => {
+    if (singleSpanCols.has(i)) {
+      return html`<th></th>`;
+    }
+    return html`${renderHeaderCell(routerLocation, col, sortSpec)}`;
+  });
+}
+
+function renderHeaderCell(
   routerLocation: {search: string},
   column: ColumnKey,
   sortSpec: string,

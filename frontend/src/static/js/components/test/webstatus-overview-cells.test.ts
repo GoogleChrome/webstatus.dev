@@ -28,12 +28,12 @@ import {
   renderBaselineStatus,
   renderAvailablity,
   renderChromeUsage,
-  renderHeaderCell,
   renderUnsortableHeaderCell,
   CELL_DEFS,
   calcColGroupSpans,
   renderColgroups,
   renderGroupsRow,
+  renderHeaderCells,
 } from '../webstatus-overview-cells.js';
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
@@ -567,7 +567,7 @@ describe('renderGroupsRow', () => {
     container = document.createElement('table');
   });
   it('Renders <th>s for column groups', async () => {
-    const result = renderGroupsRow(TEST_COLS);
+    const result = renderGroupsRow({search: ''}, TEST_COLS, '');
     render(result, container);
     const el = await fixture(container);
     const groupTHs = el.querySelectorAll('th');
@@ -655,15 +655,15 @@ describe('didFeatureCrash', () => {
   });
 });
 
-describe('renderHeaderCell', () => {
+describe('renderHeaderCells', () => {
   let container: HTMLElement;
   beforeEach(() => {
     container = document.createElement('tr');
   });
   it('renders a sortable header cell', async () => {
-    const result = renderHeaderCell(
+    const result = renderHeaderCells(
       {search: '/'},
-      ColumnKey.BaselineStatus,
+      [ColumnKey.BaselineStatus],
       '',
     );
     render(result, container);
@@ -675,9 +675,9 @@ describe('renderHeaderCell', () => {
   });
   it('renders an unsortable header cell', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].unsortable = true;
-    const result = renderHeaderCell(
+    const result = renderHeaderCells(
       {search: '/'},
-      ColumnKey.BaselineStatus,
+      [ColumnKey.BaselineStatus],
       '',
     );
     render(result, container);
@@ -701,9 +701,9 @@ describe('renderHeaderCell', () => {
   });
   it('renders a header cell with a cell class', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].cellClass = 'cell-class';
-    const result = renderHeaderCell(
+    const result = renderHeaderCells(
       {search: '/'},
-      ColumnKey.BaselineStatus,
+      [ColumnKey.BaselineStatus],
       '',
     );
     render(result, container);
