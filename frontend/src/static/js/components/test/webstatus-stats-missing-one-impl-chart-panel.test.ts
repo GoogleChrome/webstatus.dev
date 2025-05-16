@@ -216,11 +216,11 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
            <strong>
              as of today
            </strong>
-           ,
-          and not at the selected timestamp.
+           , and not at the selected timestamp.
          </div>
       </div>
     `;
+
     expect(header).dom.to.equal(expectedHeader);
 
     const table = el.shadowRoot!.querySelector('webstatus-overview-table');
