@@ -14,31 +14,21 @@
  * limitations under the License.
  */
 
-import {
-  LitElement,
-  PropertyValueMap,
-  TemplateResult,
-  css,
-  html,
-  nothing,
-} from 'lit';
+import {LitElement, TemplateResult, css, html, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {APIClient} from '../contexts/api-client-context.js';
 import {User} from '../contexts/firebase-user-context.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
+  OpenSavedSearchEvent,
+  SavedSearchOperationType,
   UserSavedSearch,
 } from '../utils/constants.js';
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 
 import './webstatus-saved-search-editor.js';
-import {
-  formatOverviewPageUrl,
-  getEditSavedSearch,
-  getOrigin,
-  updatePageUrl,
-} from '../utils/urls.js';
+import {formatOverviewPageUrl, getOrigin} from '../utils/urls.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
 import {Task, TaskStatus} from '@lit/task';
 import {ApiError} from '../api/errors.js';
@@ -70,13 +60,6 @@ export class WebstatusSavedSearchControls extends LitElement {
 
   // Members that are used for testing with sinon.
   _getOrigin: () => string = getOrigin;
-  _getEditSavedSearch: (location: {search: string}) => boolean =
-    getEditSavedSearch;
-  _updatePageUrl: (
-    pathname: string,
-    location: {search: string},
-    overrides: {edit_saved_search?: boolean},
-  ) => void = updatePageUrl;
   _formatOverviewPageUrl: (
     location: {search: string},
     overrides: {search_id?: string},
@@ -88,24 +71,24 @@ export class WebstatusSavedSearchControls extends LitElement {
     }
   `;
 
-  async openNewSavedSearchDialog() {
-    await this.savedSearchEditor.open(
-      'save',
-      undefined,
-      this.overviewPageQueryInput?.value,
+  openSavedSearch(
+    type: SavedSearchOperationType,
+    savedSearch?: UserSavedSearch,
+    overviewPageQueryInput?: string,
+  ) {
+    const event = new CustomEvent<OpenSavedSearchEvent>(
+      'open-saved-search-editor',
+      {
+        detail: {
+          type,
+          savedSearch,
+          overviewPageQueryInput,
+        },
+        bubbles: true,
+        composed: true,
+      },
     );
-  }
-
-  async openEditSavedSearchDialog() {
-    await this.savedSearchEditor.open(
-      'edit',
-      this.savedSearch,
-      this.overviewPageQueryInput?.value,
-    );
-  }
-
-  async openDeleteSavedSearchDialog() {
-    await this.savedSearchEditor.open('delete', this.savedSearch);
+    this.dispatchEvent(event);
   }
 
   async handleBookmarkSavedSearch(
@@ -245,32 +228,24 @@ export class WebstatusSavedSearchControls extends LitElement {
               <sl-icon-button
                 name="pencil"
                 label="Edit"
-                @click=${() => this.openEditSavedSearchDialog()}
+                @click=${() =>
+                  this.openSavedSearch(
+                    'edit',
+                    this.savedSearch,
+                    this.overviewPageQueryInput?.value,
+                  )}
               ></sl-icon-button>
             </sl-tooltip>
             <sl-tooltip content="Delete saved search">
               <sl-icon-button
                 name="trash"
                 label="Delete"
-                @click=${() => this.openDeleteSavedSearchDialog()}
+                @click=${() => this.openSavedSearch('delete', this.savedSearch)}
               ></sl-icon-button>
             </sl-tooltip>
           `
         : nothing}
     `;
-  }
-
-  protected async updated(
-    _changedProperties: PropertyValueMap<this>,
-  ): Promise<void> {
-    if (
-      this._getEditSavedSearch(this.location) &&
-      !this.savedSearchEditor.isOpen() &&
-      this.savedSearch
-    ) {
-      void this.openEditSavedSearchDialog();
-      this._updatePageUrl('', this.location, {edit_saved_search: undefined});
-    }
   }
 
   render() {
@@ -282,19 +257,19 @@ export class WebstatusSavedSearchControls extends LitElement {
             name="floppy"
             data-testid="saved-search-save-button"
             label="Save"
-            @click=${() => this.openNewSavedSearchDialog()}
+            @click=${() => {
+              this.openSavedSearch(
+                'save',
+                undefined,
+                this.overviewPageQueryInput?.value,
+              );
+            }}
           ></sl-icon-button>
         </sl-tooltip>
         ${this.savedSearch !== undefined
           ? this.renderActiveSavedSearchControls(this.savedSearch)
           : nothing}
       </div>
-      <webstatus-saved-search-editor
-        .apiClient=${this.apiClient}
-        .user=${this.user}
-        .savedSearch=${this.savedSearch}
-        .location=${this.location}
-      ></webstatus-saved-search-editor>
     `;
   }
 }

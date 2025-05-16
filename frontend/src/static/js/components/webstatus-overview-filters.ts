@@ -14,14 +14,12 @@
  * limitations under the License.
  */
 
-import {consume} from '@lit/context';
 import {
   LitElement,
   type TemplateResult,
   CSSResultGroup,
   css,
   html,
-  PropertyValueMap,
   nothing,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
@@ -48,7 +46,6 @@ import {
   BROWSER_ID_TO_LABEL,
   CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
-import {apiClientContext} from '../contexts/api-client-context.js';
 
 import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
 import {
@@ -63,11 +60,10 @@ import {Toast} from '../utils/toast.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {
   AppBookmarkInfo,
-  SavedSearchScope,
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {User} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
@@ -75,8 +71,7 @@ const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
 @customElement('webstatus-overview-filters')
 export class WebstatusOverviewFilters extends LitElement {
   typeaheadRef = createRef<WebstatusTypeahead>();
-  @consume({context: apiClientContext})
-  @state()
+  @property({attribute: false})
   apiClient?: APIClient;
 
   @property({type: Object})
@@ -85,13 +80,14 @@ export class WebstatusOverviewFilters extends LitElement {
   @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
 
-  @consume({context: firebaseUserContext, subscribe: true})
-  @state()
+  @property({type: Object})
   user: User | null | undefined;
 
-  _activeQuery: string = '';
+  @property({type: String})
+  activeQuery: string = '';
 
-  _activeUserSavedSearch?: UserSavedSearch | undefined;
+  @property({type: Object})
+  savedSearch?: UserSavedSearch | undefined;
 
   // Whether the export button should be enabled based on export status.
   @state()
@@ -157,28 +153,6 @@ export class WebstatusOverviewFilters extends LitElement {
   disconnectedCallback() {
     super.disconnectedCallback();
     document.removeEventListener('keyup', this.handleDocumentKeyUp);
-  }
-
-  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
-    if (
-      changedProperties.has('location') ||
-      changedProperties.has('appBookmarkInfo')
-    ) {
-      this._activeQuery = savedSearchHelpers.getCurrentQuery(
-        this.appBookmarkInfo,
-      );
-      const search = savedSearchHelpers.getCurrentSavedSearch(
-        this.appBookmarkInfo,
-      );
-      // Allow resetting of active search.
-      if (search === undefined) {
-        this._activeUserSavedSearch = undefined;
-      }
-      // If the search is a user search, store it. Ignore Global Saved Searches
-      if (search?.scope === SavedSearchScope.UserSavedSearch) {
-        this._activeUserSavedSearch = search.value;
-      }
-    }
   }
 
   handleDocumentKeyUp = (e: KeyboardEvent) => {
@@ -374,6 +348,7 @@ export class WebstatusOverviewFilters extends LitElement {
         value="${input}"
         data-testid="overview-query-input"
         .vocabulary=${VOCABULARY}
+        inputId="inputfield"
         @sl-change=${() => this.gotoFilterQueryString()}
       >
         <sl-button
@@ -413,7 +388,7 @@ export class WebstatusOverviewFilters extends LitElement {
           <webstatus-saved-search-controls
             .user=${user}
             .apiClient=${apiClient}
-            .savedSearch=${this._activeUserSavedSearch}
+            .savedSearch=${this.savedSearch}
             .location=${this.location}
             .overviewPageQueryInput=${this.typeaheadRef.value}
           ></webstatus-saved-search-controls>
@@ -456,7 +431,7 @@ export class WebstatusOverviewFilters extends LitElement {
     return html`
       <div class="vbox all-filter-controls">
         <div class="hbox filter-by-feature-name">
-          ${this.renderFilterInputBox(this._activeQuery)}
+          ${this.renderFilterInputBox(this.activeQuery)}
           ${this.renderColumnButton()} ${this.renderExportButton()}
         </div>
       </div>

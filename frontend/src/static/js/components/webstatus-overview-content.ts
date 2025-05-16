@@ -21,9 +21,10 @@ import {
   css,
   html,
   nothing,
+  PropertyValueMap,
 } from 'lit';
 import {TaskStatus} from '@lit/task';
-import {customElement, property} from 'lit/decorators.js';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-data-loader.js';
@@ -35,7 +36,23 @@ import {ApiError} from '../api/errors.js';
 import {
   AppBookmarkInfo,
   savedSearchHelpers,
+  SavedSearchScope,
 } from '../contexts/app-bookmark-info-context.js';
+import {consume} from '@lit/context';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
+import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
+import {
+  formatOverviewPageUrl,
+  getEditSavedSearch,
+  getOrigin,
+  updatePageUrl,
+} from '../utils/urls.js';
+import {
+  OpenSavedSearchEvent,
+  SavedSearchOperationType,
+  UserSavedSearch,
+} from '../utils/constants.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -51,6 +68,23 @@ export class WebstatusOverviewContent extends LitElement {
 
   @property({type: Object})
   appBookmarkInfo?: AppBookmarkInfo;
+
+  @property({type: String})
+  activeQuery: string = '';
+
+  @property({type: Object})
+  savedSearch?: UserSavedSearch;
+
+  @consume({context: apiClientContext})
+  @state()
+  apiClient?: APIClient;
+
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user: User | null | undefined;
+
+  @query('webstatus-saved-search-editor')
+  savedSearchEditor!: WebstatusSavedSearchEditor;
 
   static get styles(): CSSResultGroup {
     return [
@@ -71,6 +105,56 @@ export class WebstatusOverviewContent extends LitElement {
     ];
   }
 
+  connectedCallback(): void {
+    super.connectedCallback();
+    this.openSavedSearch = this.openSavedSearch.bind(this);
+    this.addEventListener('open-saved-search-editor', this.openSavedSearch);
+  }
+
+  disconnectedCallback() {
+    this.removeEventListener('open-saved-search-editor', this.openSavedSearch);
+    super.disconnectedCallback();
+  }
+
+  async openSavedSearchDialog(
+    type: SavedSearchOperationType,
+    savedSearch?: UserSavedSearch,
+    overviewPageQueryInput?: string,
+  ) {
+    this.savedSearch = savedSearch;
+    void this.savedSearchEditor.open(type, savedSearch, overviewPageQueryInput);
+  }
+
+  async openSavedSearch(e: CustomEventInit<OpenSavedSearchEvent>) {
+    void this.openSavedSearchDialog(
+      e.detail!.type,
+      e.detail!.savedSearch,
+      e.detail!.overviewPageQueryInput,
+    );
+  }
+
+  protected willUpdate(changedProperties: PropertyValueMap<this>): void {
+    if (
+      changedProperties.has('location') ||
+      changedProperties.has('appBookmarkInfo')
+    ) {
+      this.activeQuery = savedSearchHelpers.getCurrentQuery(
+        this.appBookmarkInfo,
+      );
+      const search = savedSearchHelpers.getCurrentSavedSearch(
+        this.appBookmarkInfo,
+      );
+      // Allow resetting of active search.
+      if (search === undefined) {
+        this.savedSearch = undefined;
+      }
+      // If the search is a user search, store it. Ignore Global Saved Searches
+      if (search?.scope === SavedSearchScope.UserSavedSearch) {
+        this.savedSearch = search.value;
+      }
+    }
+  }
+
   renderCount(): TemplateResult {
     switch (this.taskTracker.status) {
       case TaskStatus.INITIAL:
@@ -87,6 +171,37 @@ export class WebstatusOverviewContent extends LitElement {
     }
   }
 
+  // Members that are used for testing with sinon.
+  _getOrigin: () => string = getOrigin;
+  _getEditSavedSearch: (location: {search: string}) => boolean =
+    getEditSavedSearch;
+  _updatePageUrl: (
+    pathname: string,
+    location: {search: string},
+    overrides: {edit_saved_search?: boolean},
+  ) => void = updatePageUrl;
+  _formatOverviewPageUrl: (
+    location: {search: string},
+    overrides: {search_id?: string},
+  ) => string = formatOverviewPageUrl;
+
+  protected async updated(
+    _changedProperties: PropertyValueMap<this>,
+  ): Promise<void> {
+    if (
+      this._getEditSavedSearch(this.location) &&
+      !this.savedSearchEditor.isOpen() &&
+      this.savedSearch
+    ) {
+      void this.openSavedSearchDialog(
+        'edit',
+        this.savedSearch,
+        this.savedSearch.query,
+      );
+      this._updatePageUrl('', this.location, {edit_saved_search: undefined});
+    }
+  }
+
   render(): TemplateResult {
     const savedSearch = savedSearchHelpers.getCurrentSavedSearch(
       this.appBookmarkInfo,
@@ -95,6 +210,11 @@ export class WebstatusOverviewContent extends LitElement {
       ? savedSearch.value.name
       : 'Features overview';
     const pageDescription = savedSearch?.value.description;
+    const userSavedSearch =
+      savedSearch?.scope === SavedSearchScope.UserSavedSearch
+        ? savedSearch
+        : undefined;
+
     return html`
       <div class="main">
         <div class="hbox halign-items-space-between header-line">
@@ -110,6 +230,10 @@ export class WebstatusOverviewContent extends LitElement {
         <webstatus-overview-filters
           .location=${this.location}
           .appBookmarkInfo=${this.appBookmarkInfo}
+          .activeQuery=${this.activeQuery}
+          .savedSearch=${userSavedSearch?.value}
+          .user=${this.user}
+          .apiClient=${this.apiClient}
         ></webstatus-overview-filters>
         <br />
 
@@ -124,6 +248,12 @@ export class WebstatusOverviewContent extends LitElement {
           .totalCount=${this.taskTracker.data?.metadata.total ?? 0}
         ></webstatus-overview-pagination>
       </div>
+      <webstatus-saved-search-editor
+        .apiClient=${this.apiClient!}
+        .user=${this.user!}
+        .savedSearch=${userSavedSearch?.value}
+        .location=${this.location}
+      ></webstatus-saved-search-editor>
     `;
   }
 }
