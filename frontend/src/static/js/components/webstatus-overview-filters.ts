@@ -348,7 +348,7 @@ export class WebstatusOverviewFilters extends LitElement {
         value="${input}"
         data-testid="overview-query-input"
         .vocabulary=${VOCABULARY}
-        .isOverviewSearchbox=${true}
+        inputId="inputfield"
         @sl-change=${() => this.gotoFilterQueryString()}
       >
         <sl-button
