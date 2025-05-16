@@ -122,17 +122,10 @@ export async function resetUserData() {
   const projectRootDir = path.resolve(__dirname, '../..');
 
   try {
-    const cmd1 = 'make check-local-ports';
-    console.log(`Executing command: ${cmd1} in ${projectRootDir}`);
-    execSync(cmd1, {
-      cwd: projectRootDir,
-      stdio: 'inherit',
-    });
+    const cmd = `make dev_fake_data -o build -o is_local_migration_ready LOAD_FAKE_DATA_FLAGS='-scope=user -reset'`;
 
-    const cmd2 = `make dev_fake_data -o build -o is_local_migration_ready LOAD_FAKE_DATA_FLAGS='-scope=user -reset'`;
-
-    console.log(`Executing command: ${cmd2} in ${projectRootDir}`);
-    execSync(cmd2, {cwd: projectRootDir, stdio: 'inherit'});
+    console.log(`Executing command: ${cmd} in ${projectRootDir}`);
+    execSync(cmd, {cwd: projectRootDir, stdio: 'inherit'});
 
     console.log('Reset command finished successfully.');
   } catch (error) {
