@@ -258,8 +258,8 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           >${this.missingFeaturesList.length} features</a
         >
         <div class="table-description">
-          * This table represents feature values <strong>as of today</strong>,
-          and not at the selected timestamp.
+          * This table represents values for Availability and Usage
+          <strong>as of today</strong>, and not at the selected timestamp.
         </div>
       </div>
       ${this.renderMissingFeaturesTable()}
