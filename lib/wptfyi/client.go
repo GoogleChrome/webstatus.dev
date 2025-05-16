@@ -16,6 +16,7 @@ package wptfyi
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	mapset "github.com/deckarep/golang-set"
@@ -44,9 +45,19 @@ func (w HTTPClient) GetRuns(
 	//nolint:exhaustruct
 	// External struct does not need comply with exhaustruct.
 	apiOptions := shared.TestRunFilter{
-		From:     &from,
+		From: &from,
+		// TODO: Modify the upstream code so that we can use uint instead of int.
 		MaxCount: &pageSize,
-		Labels:   mapset.NewSetWith(browserName, channelName),
+		Products: shared.ProductSpecs{
+			{
+				ProductAtRevision: shared.ProductAtRevision{
+					Product: shared.Product{
+						BrowserName: browserName,
+					},
+				},
+				Labels: mapset.NewSetWith(channelName),
+			},
+		},
 	}
 
 	allRuns := shared.TestRuns{}
@@ -58,6 +69,11 @@ func (w HTTPClient) GetRuns(
 		}
 		runs, err := shared.FetchRuns(w.hostname, apiOptions)
 		if err != nil {
+			if is404Error(err) {
+				// No more results
+				break
+			}
+
 			return nil, err
 		}
 
@@ -83,4 +99,14 @@ func (w HTTPClient) GetRuns(
 	}
 
 	return allRuns, nil
+}
+
+func is404Error(err error) bool {
+	// nolint:lll // WONTFIX: commit URL is useful
+	// TODO. This is brittle. Instead, we should modify the imported wpt.fyi
+	// upstream client code to return specific error values.
+	// https://github.com/web-platform-tests/wpt.fyi/blob/da8187c63fe9ac7e6dddb9137db5657063e32f74/shared/fetch_runs.go#L24-L52
+	errorStr := err.Error()
+
+	return strings.Contains(errorStr, "Bad response code") && strings.Contains(errorStr, ": 404")
 }

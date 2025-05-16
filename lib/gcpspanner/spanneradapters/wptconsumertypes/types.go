@@ -43,6 +43,12 @@ var ErrUnableToStoreWPTRunFeatureMetrics = errors.New("unable to store wpt run f
 // BrowserName is an enumeration of the supported browsers for WPT runs.
 type BrowserName string
 
+// nolint:lll // WONTFIX: commit URL is useful
+// Only use browsers from
+// https://github.com/web-platform-tests/wpt.fyi/blob/da8187c63fe9ac7e6dddb9137db5657063e32f74/shared/product_spec.go#L71-L110
+// to avoid a 400 error.
+// Update the link above when the next snapshot of the list is used.
+// Also, update the list used in workflows/steps/services/wpt_consumer/cmd/job/main.go so that it will be consumed.
 const (
 	Chrome         BrowserName = "chrome"
 	Edge           BrowserName = "edge"
@@ -50,5 +56,4 @@ const (
 	Safari         BrowserName = "safari"
 	ChromeAndroid  BrowserName = "chrome_android"
 	FirefoxAndroid BrowserName = "firefox_android"
-	SafariIos      BrowserName = "safari_ios"
 )

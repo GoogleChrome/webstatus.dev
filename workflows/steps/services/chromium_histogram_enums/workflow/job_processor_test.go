@@ -33,9 +33,9 @@ var (
 )
 
 func TestProcess(t *testing.T) {
-	sampleHistograms := []metricdatatypes.HistogramName{"TestHistogram1", "TestHistogram2"}
+	sampleHistograms := []metricdatatypes.HistogramName{metricdatatypes.WebDXFeatureEnum, "TestHistogram2"}
 	sampleMapping := metricdatatypes.HistogramMapping{
-		"TestHistogram1": {
+		metricdatatypes.WebDXFeatureEnum: {
 			{
 				Label: "EnumValue1",
 				Value: 1,

@@ -113,7 +113,6 @@ func main() {
 		string(wptconsumertypes.Safari),
 		string(wptconsumertypes.ChromeAndroid),
 		string(wptconsumertypes.FirefoxAndroid),
-		string(wptconsumertypes.SafariIos),
 	}
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
 	for _, browser := range browsers {
