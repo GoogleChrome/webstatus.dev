@@ -28,12 +28,12 @@ import {
   renderBaselineStatus,
   renderAvailablity,
   renderChromeUsage,
-  renderHeaderCell,
   renderUnsortableHeaderCell,
   CELL_DEFS,
   calcColGroupSpans,
   renderColgroups,
-  renderGroupsRow,
+  renderGroupCells,
+  renderHeaderCells,
 } from '../webstatus-overview-cells.js';
 import {components} from 'webstatus.dev-backend';
 import {render} from 'lit';
@@ -555,7 +555,7 @@ describe('renderColgroups', () => {
   });
 });
 
-describe('renderGroupsRow', () => {
+describe('renderGroupCells', () => {
   const TEST_COLS = [
     ColumnKey.Name,
     ColumnKey.BaselineStatus,
@@ -567,16 +567,16 @@ describe('renderGroupsRow', () => {
     container = document.createElement('table');
   });
   it('Renders <th>s for column groups', async () => {
-    const result = renderGroupsRow(TEST_COLS);
+    const result = renderGroupCells({search: ''}, TEST_COLS, 'name_asc');
     render(result, container);
     const el = await fixture(container);
     const groupTHs = el.querySelectorAll('th');
     expect(groupTHs![0]).to.exist;
     expect(groupTHs![0].getAttribute('colspan')).to.equal('1');
-    expect(groupTHs![0].innerText).to.equal('');
+    expect(groupTHs![0].innerText).to.equal('Feature');
     expect(groupTHs![1]).to.exist;
     expect(groupTHs![1].getAttribute('colspan')).to.equal('1');
-    expect(groupTHs![1].innerText).to.equal('');
+    expect(groupTHs![1].innerText).to.equal('Baseline');
     expect(groupTHs![2]).to.exist;
     expect(groupTHs![2].getAttribute('colspan')).to.equal('2');
     expect(groupTHs![2].innerText).to.equal('WPT');
@@ -655,37 +655,38 @@ describe('didFeatureCrash', () => {
   });
 });
 
-describe('renderHeaderCell', () => {
+describe('renderHeaderCells', () => {
   let container: HTMLElement;
   beforeEach(() => {
     container = document.createElement('tr');
   });
   it('renders a sortable header cell', async () => {
-    const result = renderHeaderCell(
+    const result = renderHeaderCells(
       {search: '/'},
-      ColumnKey.BaselineStatus,
-      '',
+      [ColumnKey.AvailabilityChrome, ColumnKey.AvailabilityFirefox],
+      'name_desc',
     );
     render(result, container);
     const el = await fixture(container);
-    const th = el.querySelector('th');
+    const groupTHs = el.querySelectorAll('th');
+    expect(groupTHs![0]).to.exist;
+    const th = groupTHs![0];
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.equal('Click to sort');
     expect('' + th!.getAttribute('class')).to.include('sortable');
   });
   it('renders an unsortable header cell', async () => {
     CELL_DEFS[ColumnKey.BaselineStatus].unsortable = true;
-    const result = renderHeaderCell(
+    const result = renderHeaderCells(
       {search: '/'},
-      ColumnKey.BaselineStatus,
-      '',
+      [ColumnKey.BaselineStatus],
+      'name_desc',
     );
     render(result, container);
     const el = await fixture(container);
     const th = el.querySelector('th');
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.not.equal('Click to sort');
-    expect(th!.getAttribute('class')).to.include('unsortable');
   });
   it('renders the name header cell for query order', async () => {
     const result = renderUnsortableHeaderCell(
@@ -699,19 +700,6 @@ describe('renderHeaderCell', () => {
     expect(th!.getAttribute('title')).to.equal('bookmark1 query order');
     expect(th!.getAttribute('class')).to.include('unsortable');
   });
-  it('renders a header cell with a cell class', async () => {
-    CELL_DEFS[ColumnKey.BaselineStatus].cellClass = 'cell-class';
-    const result = renderHeaderCell(
-      {search: '/'},
-      ColumnKey.BaselineStatus,
-      '',
-    );
-    render(result, container);
-    const el = await fixture(container);
-    const th = el.querySelector('th');
-    expect(th).to.exist;
-    expect(th!.getAttribute('class')).to.include('cell-class');
-  });
   it('renders a non-name header cell for query order', async () => {
     const result = renderUnsortableHeaderCell(ColumnKey.BaselineStatus);
     render(result, container);
@@ -720,5 +708,45 @@ describe('renderHeaderCell', () => {
     expect(th).to.exist;
     expect(th!.getAttribute('title')).to.not.exist;
     expect(th!.getAttribute('class')).to.include('unsortable');
+  });
+});
+
+describe('renderGroupCells', () => {
+  let container: HTMLElement;
+  beforeEach(() => {
+    container = document.createElement('tr');
+  });
+  it('renders group cells with some sortable headers', async () => {
+    const result = renderGroupCells(
+      {search: '/'},
+      [
+        ColumnKey.Name,
+        ColumnKey.AvailabilityChrome,
+        ColumnKey.AvailabilityFirefox,
+      ],
+      'baseline_status_desc',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const groupTHs = el.querySelectorAll('th');
+    expect(groupTHs![0]).to.exist;
+    expect(groupTHs[0]!.getAttribute('title')).to.equal('Click to sort');
+    expect('' + groupTHs[0]!.getAttribute('class')).to.include('sortable');
+    expect(groupTHs[1]).to.exist;
+    expect(groupTHs[1]!.getAttribute('title')).to.not.equal('Click to sort');
+    expect('' + groupTHs[1]!.getAttribute('class')).to.not.include('sortable');
+  });
+  it('renders a group cell with a cell class', async () => {
+    CELL_DEFS[ColumnKey.BaselineStatus].cellClass = 'cell-class';
+    const result = renderGroupCells(
+      {search: '/'},
+      [ColumnKey.BaselineStatus],
+      'name_desc',
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const th = el.querySelector('th');
+    expect(th).to.exist;
+    expect(th!.getAttribute('class')).to.include('cell-class');
   });
 });

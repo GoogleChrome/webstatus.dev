@@ -690,13 +690,23 @@ export function renderColgroups(columns: ColumnKey[]): TemplateResult {
   `;
 }
 
-export function renderGroupsRow(columns: ColumnKey[]): TemplateResult {
+export function renderGroupCells(
+  routerLocation: {search: string},
+  columns: ColumnKey[],
+  sortSpec: string,
+): TemplateResult[] {
   const colGroupSpans = calcColGroupSpans(columns);
-  return html`
-    ${colGroupSpans.map(
-      ({group, count}) => html`<th colspan=${count}>${group}</th>`,
-    )}
-  `;
+  let spanTotal = 0;
+  return colGroupSpans.map(({group, count}) => {
+    let template;
+    if (count === 1) {
+      template = renderHeaderCell(routerLocation, columns[spanTotal], sortSpec);
+    } else {
+      template = html`<th colspan=${count}>${group}</th>`;
+    }
+    spanTotal += count;
+    return template;
+  });
 }
 
 export function renderSavedSearchHeaderCells(
@@ -704,6 +714,9 @@ export function renderSavedSearchHeaderCells(
   columns: ColumnKey[],
 ): TemplateResult[] {
   const headerCells: TemplateResult[] = columns.map(col => {
+    if (!CELL_DEFS[col].group) {
+      return html`<th colspan="1"></th>`;
+    }
     if (col === ColumnKey.Name) {
       const title = `Sorted by ${name} query order`;
       return html`${renderUnsortableHeaderCell(col, title)}`;
@@ -714,7 +727,20 @@ export function renderSavedSearchHeaderCells(
   return headerCells;
 }
 
-export function renderHeaderCell(
+export function renderHeaderCells(
+  routerLocation: {search: string},
+  columns: ColumnKey[],
+  sortSpec: string,
+) {
+  return columns.map(col => {
+    if (!CELL_DEFS[col].group) {
+      return html`<th colspan=${1}></th>`;
+    }
+    return html`${renderHeaderCell(routerLocation, col, sortSpec)}`;
+  });
+}
+
+function renderHeaderCell(
   routerLocation: {search: string},
   column: ColumnKey,
   sortSpec: string,
@@ -747,7 +773,11 @@ function renderSortableHeaderCell(
 
   const colDef = CELL_DEFS[column];
   return html`
-    <th title="Click to sort" class="${colDef?.cellClass || ''} sortable">
+    <th
+      title="Click to sort"
+      class="${colDef?.cellClass || ''} sortable"
+      colspan="1"
+    >
       <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
     </th>
   `;
@@ -762,6 +792,7 @@ export function renderUnsortableHeaderCell(
     <th
       title=${ifDefined(customTitle)}
       class="${colDef?.cellClass || ''} unsortable"
+      colspan="1"
     >
       ${colDef?.headerHtml}
     </th>

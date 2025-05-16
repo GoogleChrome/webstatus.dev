@@ -22,7 +22,8 @@ import {
   ColumnKey,
   DEFAULT_SORT_SPEC,
   parseColumnsSpec,
-  renderHeaderCell,
+  renderGroupCells,
+  renderHeaderCells,
   renderSavedSearchHeaderCells,
 } from './webstatus-overview-cells.js';
 import './webstatus-overview-table.js';
@@ -110,7 +111,7 @@ export class WebstatusOverviewDataLoader extends LitElement {
     );
     const sortSpec: string =
       getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
-
+    const groupCells = renderGroupCells(this.location, columns, sortSpec);
     let headerCells: TemplateResult[] = [];
     if (
       this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
@@ -121,9 +122,7 @@ export class WebstatusOverviewDataLoader extends LitElement {
         columns,
       );
     } else {
-      headerCells = columns.map(
-        col => html`${renderHeaderCell(this.location, col, sortSpec)}`,
-      );
+      headerCells = renderHeaderCells(this.location, columns, sortSpec);
     }
 
     if (
@@ -145,6 +144,7 @@ export class WebstatusOverviewDataLoader extends LitElement {
 
     return html`<webstatus-overview-table
       .columns=${columns}
+      .groupCells=${groupCells}
       .headerCells=${headerCells}
       .location=${this.location}
       .taskTracker=${featureTaskTracker}
