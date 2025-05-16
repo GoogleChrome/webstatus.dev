@@ -65,6 +65,7 @@ export class WebstatusOverviewTable extends LitElement {
         .data-table {
           margin: var(--content-padding) 0;
         }
+        .data-table th,
         .data-table th {
           padding: var(--content-padding-quarter) var(--content-padding);
         }
@@ -141,6 +142,9 @@ export class WebstatusOverviewTable extends LitElement {
         .browser-cell {
           font-size: 22px;
           font-weight: 300;
+        }
+        .availability-icon {
+          margin-right: calc(-0.3 * var(--platform-logo-size));
         }
       `,
     ];

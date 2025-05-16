@@ -340,7 +340,10 @@ export const renderAvailablity: CellRenderer = (
           ? `Since version ${browserImplVersion}`
           : 'Not available'}
       >
-        <img src="/public/img/${BROWSER_ID_TO_ICON_NAME[browser!]}_24x24.png" />
+        <img
+          class="availability-icon"
+          src="/public/img/${BROWSER_ID_TO_ICON_NAME[browser!]}_24x24.png"
+        />
       </sl-tooltip>
       ${renderPlatformIcon(platform)}
     </div>
