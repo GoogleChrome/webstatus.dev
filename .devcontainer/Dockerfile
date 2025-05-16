@@ -35,6 +35,9 @@ RUN echo "alias grun='java org.antlr.v4.gui.TestRig'" >> ~/.bashrc
 
 ENV CLASSPATH=.:/usr/local/lib/antlr-${ANTLR4_VERSION}-complete.jar
 
+# Install netcat (nc)
+RUN apt-get update && apt-get install -y netcat-traditional
+
 # Switch to the default user and append to PATH
 USER vscode
 

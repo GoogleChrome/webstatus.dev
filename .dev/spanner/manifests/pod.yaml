@@ -28,10 +28,14 @@ spec:
           name: grpc-port
         - containerPort: 9020
           name: rest-port
+      readinessProbe:
+        tcpSocket:
+          port: 9010
+        initialDelaySeconds: 10
       resources:
         limits:
           cpu: '2'
-          memory: '3.5Gi'
+          memory: '5.5Gi'
         requests:
           cpu: '300m'
           memory: '256Mi'

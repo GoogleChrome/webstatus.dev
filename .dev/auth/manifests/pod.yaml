@@ -28,6 +28,10 @@ spec:
           name: auth-port
         - containerPort: 9100
           name: auth-ui-port
+      readinessProbe:
+        tcpSocket:
+          port: 9099
+        initialDelaySeconds: 15
       startupProbe:
         httpGet:
           port: auth-ui-port
