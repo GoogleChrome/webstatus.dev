@@ -33,7 +33,7 @@ const DEFAULT_MINIMUM_DATE = new Date(2000, 0, 1);
 
 // 1 day after DEFAULT_END_DATE
 const DEFAULT_MAXIMUM_DATE = new Date(
-  DEFAULT_END_DATE.getTime() + 24 * 60 * 60 * 1000 * 100000 * 10000,
+  DEFAULT_END_DATE.getTime() + 24 * 60 * 60 * 1000,
 );
 
 /**

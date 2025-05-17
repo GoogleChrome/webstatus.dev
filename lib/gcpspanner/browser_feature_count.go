@@ -140,7 +140,7 @@ func (c *Client) getInitialBrowserFeatureCount(
 	var excludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
 		excludedFeatureFilter = `
-            AND bfa.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)`
+            AND bfa1.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)`
 		params["excludedFeatureIDs"] = excludedFeatureIDs
 	}
 
@@ -152,31 +152,27 @@ SELECT
 	COALESCE(SUM(daily_feature_count), 0)
 FROM (
 	SELECT
-		COUNT(DISTINCT bfa.WebFeatureID) AS daily_feature_count
+		COUNT(DISTINCT bfa1.WebFeatureID) AS daily_feature_count
 	FROM
-		BrowserReleases br
-	LEFT JOIN
-		BrowserFeatureAvailabilities bfa
-		ON bfa.BrowserName = br.BrowserName
-		AND bfa.BrowserVersion = br.BrowserVersion
+		BrowserFeatureAvailabilities AS bfa1
+	JOIN
+		BrowserReleases AS br1
+		ON bfa1.BrowserName = br1.BrowserName
+		AND bfa1.BrowserVersion = br1.BrowserVersion
 		%s
-	INNER JOIN
-		BrowserFeatureAvailabilities bfa2
-		ON bfa2.BrowserName = @targetMobileBrowserName
-		AND bfa.WebFeatureID = bfa2.WebFeatureID
-	LEFT JOIN
-		BrowserReleases br2
-		ON bfa2.BrowserName = @targetMobileBrowserName
-		AND br2.BrowserName = bfa2.BrowserName
-		AND br2.BrowserVersion = bfa2.BrowserVersion
+	JOIN
+		BrowserFeatureAvailabilities AS bfa2
+		ON bfa2.WebFeatureID = bfa2.WebFeatureID
+	JOIN
+		BrowserReleases AS br2
+		ON bfa2.BrowserName = br2.BrowserName
+		AND bfa2.BrowserVersion = br2.BrowserVersion
 	WHERE
-		bfa.BrowserName = @targetBrowserName
-		AND br.ReleaseDate < @startAt
+		bfa1.BrowserName = @targetBrowserName
+		AND br1.ReleaseDate < @startAt
+		AND bfa2.BrowserName = @targetMobileBrowserName
 		AND br2.ReleaseDate < @startAt
-	GROUP BY
-		br.ReleaseDate
-)`,
-			excludedFeatureFilter),
+)`, excludedFeatureFilter),
 		Params: params,
 	}).Do(func(r *spanner.Row) error {
 		return r.Column(0, &initialCount)
