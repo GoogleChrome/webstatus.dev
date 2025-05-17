@@ -65,7 +65,7 @@ export class WebstatusOverviewTable extends LitElement {
         .data-table {
           margin: var(--content-padding) 0;
         }
-        .data-table th,
+        .data-table td,
         .data-table th {
           padding: var(--content-padding-quarter) var(--content-padding);
         }
