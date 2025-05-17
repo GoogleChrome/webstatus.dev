@@ -453,7 +453,9 @@ describe('renderAvailablity', () => {
     const el = await fixture(container);
     const div = el.querySelector('div');
     expect(div).to.exist;
-    expect(div!.getAttribute('class')).to.equal('browser-impl-available');
+    expect(div!.getAttribute('class')).to.equal(
+      'browser-impl-available browser-cell',
+    );
     expect(div!.innerHTML).to.include('Since ');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
     // The mobile platform icon should not be rendered got desktop browsers.
@@ -476,7 +478,9 @@ describe('renderAvailablity', () => {
     const el = await fixture(container);
     const div = el.querySelector('div');
     expect(div).to.exist;
-    expect(div!.getAttribute('class')).to.equal('browser-impl-unavailable');
+    expect(div!.getAttribute('class')).to.equal(
+      'browser-impl-unavailable browser-cell',
+    );
     expect(div!.innerHTML).to.include('Not available');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
   });
@@ -497,7 +501,9 @@ describe('renderAvailablity', () => {
     const el = await fixture(container);
     const div = el.querySelector('div');
     expect(div).to.exist;
-    expect(div!.getAttribute('class')).to.equal('browser-impl-available');
+    expect(div!.getAttribute('class')).to.equal(
+      'browser-impl-available browser-cell',
+    );
     expect(div!.innerHTML).to.include('Since ');
     expect(div!.innerHTML).to.include('chrome_24x24.png');
     expect(div!.innerHTML).to.include('android.svg');
