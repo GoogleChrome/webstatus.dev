@@ -45,7 +45,7 @@ type CellRenderer = {
 type ColumnDefinition = {
   nameInDialog: string;
   group?: string;
-  headerHtml: TemplateResult;
+  headerHtml?: TemplateResult;
   iconName?: string;
   cellRenderer: CellRenderer;
   cellClass?: string;
@@ -154,6 +154,12 @@ export type BrowserChannelColumnKeys =
   | ColumnKey.ExpSafariIos;
 
 export const DEFAULT_SORT_SPEC: FeatureSortOrderType = 'baseline_status_desc';
+
+const DEFAULT_SORTABLE_HEADER = html`<sl-icon
+    class="sortable-icon"
+    name="arrow-up"
+  ></sl-icon
+  ><sl-icon class="sortable-icon" name="arrow-down"></sl-icon>`;
 
 interface BaselineChipConfig {
   icon: string;
@@ -422,13 +428,13 @@ export const getBrowserAndChannel = (
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.Name]: {
     nameInDialog: 'Feature name',
-    headerHtml: html`<p>Feature</p>`,
+    headerHtml: html`Feature`,
     cellRenderer: renderFeatureName,
     options: {},
   },
   [ColumnKey.BaselineStatus]: {
     nameInDialog: 'Baseline status',
-    headerHtml: html`<p>Baseline</p>`,
+    headerHtml: html`Baseline`,
     cellRenderer: renderBaselineStatus,
     options: {
       columnOptions: [
@@ -446,7 +452,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityChrome]: {
     nameInDialog: 'Availibility in desktop Chrome',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -455,7 +460,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityEdge]: {
     nameInDialog: 'Availibility in desktop Edge',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'edge',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -464,7 +468,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityFirefox]: {
     nameInDialog: 'Availibility in desktop Firefox',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -473,7 +476,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilitySafari]: {
     nameInDialog: 'Availibility in desktop Safari',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -482,7 +484,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityChromeAndroid]: {
     nameInDialog: 'Availibility in mobile Chrome (Android)',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -491,7 +492,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityFirefoxAndroid]: {
     nameInDialog: 'Availibility in mobile Firefox (Android)',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -500,7 +500,6 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilitySafariIos]: {
     nameInDialog: 'Availibility in mobile Safari (iOS)',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
     iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -658,7 +657,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.ChromeUsage]: {
     nameInDialog: 'Chrome Usage',
-    headerHtml: html`<p>Usage</p>`,
+    headerHtml: html`Usage`,
     cellRenderer: renderChromeUsage,
     options: {},
   },
@@ -765,24 +764,36 @@ function renderSortableHeaderCell(
     sort: column + '_asc',
     start: 0,
   });
+
+  const colDef = CELL_DEFS[column];
+  let headerHtml = colDef.headerHtml || DEFAULT_SORTABLE_HEADER;
   if (sortSpec === column + '_asc') {
-    sortIndicator = html`<sl-icon name="arrow-up"></sl-icon> `;
+    sortIndicator = html`<sl-icon name="arrow-up"></sl-icon>`;
     urlWithSort = formatOverviewPageUrl(routerLocation, {
       sort: column + '_desc',
       start: 0,
     });
+    if (colDef.headerHtml === undefined) {
+      headerHtml = html``;
+    }
   } else if (sortSpec === column + '_desc') {
-    sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
+    sortIndicator = html`<sl-icon name="arrow-down"></sl-icon>`;
+    console.log(colDef.headerHtml);
+    if (colDef.headerHtml === undefined) {
+      headerHtml = html``;
+    }
   }
 
-  const colDef = CELL_DEFS[column];
   return html`
     <th
       title="Click to sort"
       class="${colDef?.cellClass || ''} sortable"
       colspan="1"
     >
-      <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
+      <a href=${urlWithSort}>
+        ${sortIndicator}
+        <p>${headerHtml}</p></a
+      >
     </th>
   `;
 }
@@ -792,13 +803,14 @@ export function renderUnsortableHeaderCell(
   customTitle?: string,
 ): TemplateResult {
   const colDef = CELL_DEFS[column];
+
   return html`
     <th
       title=${ifDefined(customTitle)}
       class="${colDef?.cellClass || ''} unsortable"
       colspan="1"
     >
-      ${colDef?.headerHtml}
+      ${colDef?.headerHtml || nothing}
     </th>
   `;
 }

@@ -107,6 +107,8 @@ export class WebstatusOverviewTable extends LitElement {
         }
         .data-table th a {
           display: flex;
+          justify-content: center;
+          align-items: center;
         }
 
         td.message {
