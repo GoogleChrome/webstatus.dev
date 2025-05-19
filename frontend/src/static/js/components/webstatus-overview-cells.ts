@@ -422,13 +422,13 @@ export const getBrowserAndChannel = (
 export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.Name]: {
     nameInDialog: 'Feature name',
-    headerHtml: html`Feature`,
+    headerHtml: html`<p>Feature</p>`,
     cellRenderer: renderFeatureName,
     options: {},
   },
   [ColumnKey.BaselineStatus]: {
     nameInDialog: 'Baseline status',
-    headerHtml: html`Baseline`,
+    headerHtml: html`<p>Baseline</p>`,
     cellRenderer: renderBaselineStatus,
     options: {
       columnOptions: [
@@ -658,7 +658,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   },
   [ColumnKey.ChromeUsage]: {
     nameInDialog: 'Chrome Usage',
-    headerHtml: html`Usage`,
+    headerHtml: html`<p>Usage</p>`,
     cellRenderer: renderChromeUsage,
     options: {},
   },
@@ -766,7 +766,7 @@ function renderSortableHeaderCell(
     start: 0,
   });
   if (sortSpec === column + '_asc') {
-    sortIndicator = html` <sl-icon name="arrow-up"></sl-icon> `;
+    sortIndicator = html`<sl-icon name="arrow-up"></sl-icon> `;
     urlWithSort = formatOverviewPageUrl(routerLocation, {
       sort: column + '_desc',
       start: 0,

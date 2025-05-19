@@ -105,6 +105,9 @@ export class WebstatusOverviewTable extends LitElement {
         tr .centered {
           text-align: center;
         }
+        .data-table th a {
+          display: flex;
+        }
 
         td.message {
           height: 8em;
