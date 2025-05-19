@@ -812,14 +812,13 @@ export function renderUnsortableHeaderCell(
   customTitle?: string,
 ): TemplateResult {
   const colDef = CELL_DEFS[column];
-
   return html`
     <th
       title=${ifDefined(customTitle)}
       class="${colDef?.cellClass || ''} unsortable"
       colspan="1"
     >
-      ${colDef.headerHtml}
+      ${colDef?.headerHtml}
     </th>
   `;
 }
