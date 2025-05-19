@@ -68,6 +68,10 @@ export class WebstatusOverviewTable extends LitElement {
         .data-table th {
           padding: var(--content-padding-quarter) var(--content-padding);
         }
+        .data-table td {
+          padding: calc(var(--content-padding-quarter) + 2px)
+            var(--content-padding);
+        }
         .header-row th {
           border-left: var(--default-border);
           border-right: var(--default-border);
@@ -134,9 +138,16 @@ export class WebstatusOverviewTable extends LitElement {
         }
 
         img.platform {
-          margin-left: calc(-0.6 * var(--platform-logo-size));
+          margin-left: calc(-0.3 * var(--platform-logo-size));
           height: var(--platform-logo-size);
           width: var(--platform-logo-size);
+        }
+        .browser-cell {
+          font-size: 22px;
+          font-weight: 300;
+        }
+        .availability-icon {
+          margin-right: calc(-0.3 * var(--platform-logo-size));
         }
       `,
     ];
