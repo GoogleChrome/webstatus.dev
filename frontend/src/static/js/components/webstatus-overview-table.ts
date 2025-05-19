@@ -83,12 +83,6 @@ export class WebstatusOverviewTable extends LitElement {
         .header-row th.sortable:hover {
           background: var(--table-header-hover-background);
         }
-        th span.hover-only {
-          display: none;
-        }
-        th:hover span.hover-only {
-          display: inline;
-        }
         .baseline-date-block {
           padding-top: var(--content-padding-quarter);
         }
@@ -104,6 +98,11 @@ export class WebstatusOverviewTable extends LitElement {
         .missing.percent,
         tr .centered {
           text-align: center;
+        }
+        .data-table th a {
+          display: flex;
+          justify-content: center;
+          align-items: center;
         }
 
         td.message {
@@ -137,6 +136,10 @@ export class WebstatusOverviewTable extends LitElement {
           gap: 4px;
         }
 
+        .sortable-icon {
+          color: gray;
+          opacity: 70%;
+        }
         img.platform {
           margin-left: calc(-0.3 * var(--platform-logo-size));
           height: var(--platform-logo-size);

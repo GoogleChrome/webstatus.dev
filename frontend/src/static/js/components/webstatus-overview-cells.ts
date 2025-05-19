@@ -155,6 +155,14 @@ export type BrowserChannelColumnKeys =
 
 export const DEFAULT_SORT_SPEC: FeatureSortOrderType = 'baseline_status_desc';
 
+const DEFAULT_SORTABLE_HEADER = html`<sl-icon
+    class="sortable-icon"
+    name="arrow-up"
+  ></sl-icon
+  ><sl-icon class="sortable-icon" name="arrow-down"></sl-icon>`;
+
+const EMPTY_HEADER = html``;
+
 interface BaselineChipConfig {
   icon: string;
   word: string;
@@ -446,7 +454,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityChrome]: {
     nameInDialog: 'Availibility in desktop Chrome',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -455,7 +463,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityEdge]: {
     nameInDialog: 'Availibility in desktop Edge',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'edge',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -464,7 +472,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityFirefox]: {
     nameInDialog: 'Availibility in desktop Firefox',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -473,7 +481,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilitySafari]: {
     nameInDialog: 'Availibility in desktop Safari',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -482,7 +490,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityChromeAndroid]: {
     nameInDialog: 'Availibility in mobile Chrome (Android)',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'chrome',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -491,7 +499,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilityFirefoxAndroid]: {
     nameInDialog: 'Availibility in mobile Firefox (Android)',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'firefox',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -500,7 +508,7 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
   [ColumnKey.AvailabilitySafariIos]: {
     nameInDialog: 'Availibility in mobile Safari (iOS)',
     group: 'Availability',
-    headerHtml: html`<span class="hover-only">Sort</span>`,
+    headerHtml: EMPTY_HEADER,
     iconName: 'safari',
     cellClass: 'centered',
     cellRenderer: renderAvailablity,
@@ -765,24 +773,36 @@ function renderSortableHeaderCell(
     sort: column + '_asc',
     start: 0,
   });
+
+  const colDef = CELL_DEFS[column];
+  let isSorted = false;
+  let headerHtml = colDef.headerHtml;
   if (sortSpec === column + '_asc') {
-    sortIndicator = html` <sl-icon name="arrow-up"></sl-icon> `;
+    sortIndicator = html`<sl-icon name="arrow-up"></sl-icon>`;
     urlWithSort = formatOverviewPageUrl(routerLocation, {
       sort: column + '_desc',
       start: 0,
     });
+    isSorted = true;
   } else if (sortSpec === column + '_desc') {
-    sortIndicator = html` <sl-icon name="arrow-down"></sl-icon> `;
+    sortIndicator = html`<sl-icon name="arrow-down"></sl-icon>`;
+    isSorted = true;
   }
 
-  const colDef = CELL_DEFS[column];
+  if (!isSorted && headerHtml === EMPTY_HEADER) {
+    headerHtml = DEFAULT_SORTABLE_HEADER;
+  }
+
   return html`
     <th
       title="Click to sort"
       class="${colDef?.cellClass || ''} sortable"
       colspan="1"
     >
-      <a href=${urlWithSort}> ${sortIndicator} ${colDef?.headerHtml} </a>
+      <a href=${urlWithSort}>
+        ${sortIndicator}
+        <p>${headerHtml}</p></a
+      >
     </th>
   `;
 }

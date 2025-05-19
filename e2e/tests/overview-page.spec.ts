@@ -39,6 +39,15 @@ test('matches the screenshot for mobile columns', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+test('screenshot for availability sort', async ({page}) => {
+  await gotoOverviewPageUrl(
+    page,
+    'http://localhost:5555/?sort=availability_chrome_asc',
+  );
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
 test('shows an error that their query is invalid', async ({page}) => {
   await page.goto('http://localhost:5555/?q=available_on%3Achrom');
 
