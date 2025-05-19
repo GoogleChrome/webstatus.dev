@@ -136,6 +136,10 @@ export class WebstatusOverviewTable extends LitElement {
           gap: 4px;
         }
 
+        .sortable-icon {
+          color: gray;
+          opacity: 70%;
+        }
         img.platform {
           margin-left: calc(-0.3 * var(--platform-logo-size));
           height: var(--platform-logo-size);
