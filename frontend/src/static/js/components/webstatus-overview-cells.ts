@@ -778,7 +778,6 @@ function renderSortableHeaderCell(
     }
   } else if (sortSpec === column + '_desc') {
     sortIndicator = html`<sl-icon name="arrow-down"></sl-icon>`;
-    console.log(colDef.headerHtml);
     if (colDef.headerHtml === undefined) {
       headerHtml = html``;
     }
