@@ -579,13 +579,13 @@ describe('renderGroupCells', () => {
     const groupTHs = el.querySelectorAll('th');
     expect(groupTHs![0]).to.exist;
     expect(groupTHs![0].getAttribute('colspan')).to.equal('1');
-    expect(groupTHs![0].innerText).to.equal('Feature');
+    expect(groupTHs![0].innerText.trim()).to.equal('Feature');
     expect(groupTHs![1]).to.exist;
     expect(groupTHs![1].getAttribute('colspan')).to.equal('1');
-    expect(groupTHs![1].innerText).to.equal('Baseline');
+    expect(groupTHs![1].innerText.trim()).to.equal('Baseline');
     expect(groupTHs![2]).to.exist;
     expect(groupTHs![2].getAttribute('colspan')).to.equal('2');
-    expect(groupTHs![2].innerText).to.equal('WPT');
+    expect(groupTHs![2].innerText.trim()).to.equal('WPT');
   });
 });
 
