@@ -146,7 +146,7 @@ func (c *Client) getInitialBrowserFeatureCount(
 	var targetMobileBrowserFilter string
 	if targetMobileBrowser != nil {
 		targetMobileBrowserFilter = "AND bfa2.BrowserName = @targetMobileBrowserName"
-		params["TargetMobileBrowser"] = *targetMobileBrowser
+		params["targetMobileBrowserName"] = *targetMobileBrowser
 	}
 
 	// On the initial page, we need to get the sum of all the features before the start.

@@ -31,10 +31,13 @@ func getDesktopsMobileProduct(browser backend.BrowserPathParam) (*string, error)
 	switch browser {
 	case backend.Chrome:
 		mobileBrowser = string(backend.ChromeAndroid)
+		return &mobileBrowser, nil
 	case backend.Firefox:
 		mobileBrowser = string(backend.FirefoxAndroid)
+		return &mobileBrowser, nil
 	case backend.Safari:
 		mobileBrowser = string(backend.SafariIos)
+		return &mobileBrowser, nil
 	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
 		return nil, ErrNoMatchingMobileBrowser
 	}
