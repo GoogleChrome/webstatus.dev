@@ -43,7 +43,7 @@ type BrowserFeatureCountTemplateData struct {
 func (c *Client) ListBrowserFeatureCountMetric(
 	ctx context.Context,
 	targetBrowser string,
-	targetMobileBrowser string,
+	targetMobileBrowser *string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -123,7 +123,7 @@ func (c *Client) getInitialBrowserFeatureCount(
 	txn *spanner.ReadOnlyTransaction,
 	parsedToken *BrowserFeatureCountCursor,
 	targetBrowser string,
-	targetMobileBrowser string,
+	targetMobileBrowser *string,
 	startAt time.Time,
 	excludedFeatureIDs []string) (int64, error) {
 	// For pagination, we have the existing count. Return early.
@@ -132,9 +132,8 @@ func (c *Client) getInitialBrowserFeatureCount(
 	}
 
 	params := map[string]interface{}{
-		"targetBrowserName":       targetBrowser,
-		"targetMobileBrowserName": targetMobileBrowser,
-		"startAt":                 startAt,
+		"targetBrowserName": targetBrowser,
+		"startAt":           startAt,
 	}
 
 	var excludedFeatureFilter string
@@ -142,6 +141,12 @@ func (c *Client) getInitialBrowserFeatureCount(
 		excludedFeatureFilter = `
             AND bfa1.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)`
 		params["excludedFeatureIDs"] = excludedFeatureIDs
+	}
+
+	var targetMobileBrowserFilter string
+	if targetMobileBrowser != nil {
+		targetMobileBrowserFilter = "AND bfa2.BrowserName = @targetMobileBrowserName"
+		params["TargetMobileBrowser"] = *targetMobileBrowser
 	}
 
 	// On the initial page, we need to get the sum of all the features before the start.
@@ -165,9 +170,9 @@ FROM (
 		ON bfa1.WebFeatureID = bfa2.WebFeatureID
 	WHERE
 		bfa1.BrowserName = @targetBrowserName
-		AND bfa2.BrowserName = @targetMobileBrowserName
 		AND br.ReleaseDate < @startAt
-)`, excludedFeatureFilter),
+		%s
+)`, excludedFeatureFilter, targetMobileBrowserFilter),
 		Params: params,
 	}).Do(func(r *spanner.Row) error {
 		return r.Column(0, &initialCount)
@@ -178,7 +183,7 @@ FROM (
 
 func createListBrowserFeatureCountMetricStatement(
 	targetBrowser string,
-	targetMobileBrowser string,
+	targetMobileBrowser *string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -187,11 +192,10 @@ func createListBrowserFeatureCountMetricStatement(
 ) spanner.Statement {
 
 	params := map[string]interface{}{
-		"targetBrowserName":       targetBrowser,
-		"targetMobileBrowserName": targetMobileBrowser,
-		"startAt":                 startAt,
-		"endAt":                   endAt,
-		"pageSize":                pageSize,
+		"targetBrowserName": targetBrowser,
+		"startAt":           startAt,
+		"endAt":             endAt,
+		"pageSize":          pageSize,
 	}
 	var pageFilter string
 	if pageToken != nil {
@@ -205,6 +209,12 @@ func createListBrowserFeatureCountMetricStatement(
 	if len(excludedFeatureIDs) > 0 {
 		params["excludedFeatureIDs"] = excludedFeatureIDs
 		excludedFeatureFilter = "AND cf.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+	}
+
+	var targetMobileBrowserFilter string
+	if targetMobileBrowser != nil {
+		targetMobileBrowserFilter = "AND bfa2.BrowserName = @targetMobileBrowserName"
+		params["targetMobileBrowserName"] = *targetMobileBrowser
 	}
 
 	// Construct the query
@@ -222,7 +232,7 @@ WITH CommonFeatures AS (
         ON bfa1.WebFeatureID = bfa2.WebFeatureID
     WHERE
         bfa1.BrowserName = @targetBrowserName
-        AND bfa2.BrowserName = @targetMobileBrowserName
+		%s
 )
 SELECT
     br.ReleaseDate,
@@ -243,7 +253,7 @@ GROUP BY
 ORDER BY
     br.ReleaseDate
 LIMIT @pageSize
-`, excludedFeatureFilter, pageFilter)
+`, targetMobileBrowserFilter, excludedFeatureFilter, pageFilter)
 
 	stmt := spanner.NewStatement(query)
 	stmt.Params = params

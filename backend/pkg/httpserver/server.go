@@ -81,7 +81,7 @@ type WPTMetricsStorer interface {
 	ListBrowserFeatureCountMetric(
 		ctx context.Context,
 		targetBrowser string,
-		targetMobileBrowser string,
+		targetMobileBrowser *string,
 		startAt time.Time,
 		endAt time.Time,
 		pageSize int,

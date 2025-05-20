@@ -25,19 +25,21 @@ import (
 
 var ErrNoMatchingMobileBrowser = errors.New("browser does not have a matching mobile browser")
 
-func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
+func getDesktopsMobileProduct(browser backend.BrowserPathParam) (*string, error) {
+
+	var mobileBrowser string
 	switch browser {
 	case backend.Chrome:
-		return backend.ChromeAndroid, nil
+		mobileBrowser = string(backend.ChromeAndroid)
 	case backend.Firefox:
-		return backend.FirefoxAndroid, nil
+		mobileBrowser = string(backend.FirefoxAndroid)
 	case backend.Safari:
-		return backend.SafariIos, nil
+		mobileBrowser = string(backend.SafariIos)
 	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
-		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+		return nil, ErrNoMatchingMobileBrowser
 	}
 
-	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+	return &mobileBrowser, ErrNoMatchingMobileBrowser
 }
 
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
@@ -52,7 +54,7 @@ func (s *Server) ListAggregatedFeatureSupport(
 		return cachedResponse, nil
 	}
 
-	var targetMobileBrowser backend.BrowserPathParam
+	var targetMobileBrowser *string
 	if request.Params.IncludeBaselineMobileBrowsers != nil {
 		var err error
 		targetMobileBrowser, err = getDesktopsMobileProduct(request.Browser)
@@ -63,13 +65,12 @@ func (s *Server) ListAggregatedFeatureSupport(
 			}, err
 		}
 	} else {
-		targetMobileBrowser = request.Browser
 	}
 
 	page, err := s.wptMetricsStorer.ListBrowserFeatureCountMetric(
 		ctx,
 		string(request.Browser),
-		string(targetMobileBrowser),
+		targetMobileBrowser,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,
 		getPageSizeOrDefault(request.Params.PageSize),

@@ -214,7 +214,7 @@ func (c mockBackendSpannerClient) GetIDFromFeatureKey(
 func (c mockBackendSpannerClient) ListBrowserFeatureCountMetric(
 	ctx context.Context,
 	targetBrowser string,
-	targetMobileBrowser string,
+	targetMobileBrowser *string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
@@ -223,7 +223,7 @@ func (c mockBackendSpannerClient) ListBrowserFeatureCountMetric(
 	//nolint: goconst
 	if ctx != context.Background() ||
 		targetBrowser != "mybrowser" ||
-		targetMobileBrowser != "" ||
+		targetMobileBrowser != nil ||
 		!startAt.Equal(testStart) ||
 		!endAt.Equal(testEnd) ||
 		pageSize != 100 ||
@@ -588,7 +588,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			page, err := backend.ListBrowserFeatureCountMetric(
 				context.Background(),
 				"mybrowser",
-				"",
+				nil,
 				testStart,
 				testEnd,
 				100,

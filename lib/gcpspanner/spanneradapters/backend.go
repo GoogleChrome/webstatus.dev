@@ -81,7 +81,7 @@ type BackendSpannerClient interface {
 	ListBrowserFeatureCountMetric(
 		ctx context.Context,
 		targetBrowser string,
-		targetMobileBrowser string,
+		targetMobileBrowser *string,
 		startAt time.Time,
 		endAt time.Time,
 		pageSize int,
@@ -144,7 +144,7 @@ func NewBackend(client BackendSpannerClient) *Backend {
 func (s *Backend) ListBrowserFeatureCountMetric(
 	ctx context.Context,
 	targetBrowser string,
-	targetMobileBrowser string,
+	targetMobileBrowser *string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
