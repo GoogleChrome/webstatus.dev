@@ -129,7 +129,7 @@ type searchConfig struct {
 
 const defaultMaxOwnedSearchesPerUser = 25
 const defaultMaxBookmarksPerUser = 25
-const defaultBatchSize = 10000
+const defaultBatchSize = 5000
 const defaultBatchWriters = 8
 
 func combineAndDeduplicate(excluded []string, discouraged []string) []string {
@@ -900,7 +900,7 @@ func runConcurrentBatch[SpannerStruct any](ctx context.Context, c *Client,
 		slog.InfoContext(ctx, "batch write wait group to finished", "table", table)
 		close(doneChan)
 	}()
-	for i := 0; i < workers; i++ {
+	for i := range workers {
 		go concurrentBatchWriteEntity(ctx, c, &wg, c.batchSize, entityChan, table, errChan, i)
 	}
 	producerFn(entityChan)
