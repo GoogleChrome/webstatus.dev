@@ -333,6 +333,7 @@ paths:
         - $ref: '#/components/parameters/endAtParam'
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
+        - $ref: '#/components/parameters/includeBaselineMobileBrowsersParam'
       responses:
         '200':
           description: OK
@@ -927,6 +928,15 @@ components:
         default: 1
       required: false
       description: Number of results to return
+    includeBaselineMobileBrowsersParam:
+      in: query
+      name: include_baseline_mobile_browsers
+      schema:
+        type: boolean
+      description: >
+        Include baseline mobile browsers in the response. This is only applicable
+        for desktop browsers with a corresponding mobile browser.
+      required: false
   schemas:
     SupportedBrowsers:
       type: string
