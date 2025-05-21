@@ -25,27 +25,19 @@ import (
 
 var ErrNoMatchingMobileBrowser = errors.New("browser does not have a matching mobile browser")
 
-func getDesktopsMobileProduct(browser backend.BrowserPathParam) (*string, error) {
-
-	var mobileBrowser string
+func getDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
 	switch browser {
 	case backend.Chrome:
-		mobileBrowser = string(backend.ChromeAndroid)
-
-		return &mobileBrowser, nil
+		return backend.ChromeAndroid, nil
 	case backend.Firefox:
-		mobileBrowser = string(backend.FirefoxAndroid)
-
-		return &mobileBrowser, nil
+		return backend.FirefoxAndroid, nil
 	case backend.Safari:
-		mobileBrowser = string(backend.SafariIos)
-
-		return &mobileBrowser, nil
+		return backend.SafariIos, nil
 	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
-		return nil, ErrNoMatchingMobileBrowser
+		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 	}
 
-	return &mobileBrowser, ErrNoMatchingMobileBrowser
+	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
 // ListAggregatedFeatureSupport implements backend.StrictServerInterface.
@@ -63,13 +55,14 @@ func (s *Server) ListAggregatedFeatureSupport(
 	var targetMobileBrowser *string
 	if request.Params.IncludeBaselineMobileBrowsers != nil {
 		var err error
-		targetMobileBrowser, err = getDesktopsMobileProduct(request.Browser)
+		matchingMobileBrowser, err := getDesktopsMobileProduct(request.Browser)
 		if err != nil {
 			return backend.ListAggregatedFeatureSupport400JSONResponse{
 				Code:    400,
 				Message: err.Error(),
 			}, err
 		}
+		targetMobileBrowser = (*string)(&matchingMobileBrowser)
 	}
 
 	page, err := s.wptMetricsStorer.ListBrowserFeatureCountMetric(

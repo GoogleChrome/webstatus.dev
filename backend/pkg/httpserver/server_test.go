@@ -123,7 +123,7 @@ type MockGetIDFromFeatureKeyConfig struct {
 
 type MockListBrowserFeatureCountMetricConfig struct {
 	expectedTargetBrowser       string
-	expectedTargetMobileBrowser string
+	expectedTargetMobileBrowser *string
 	expectedStartAt             time.Time
 	expectedEndAt               time.Time
 	expectedPageSize            int
@@ -399,14 +399,14 @@ func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 	m.callCountListBrowserFeatureCountMetric++
 
 	if targetBrowser != m.listBrowserFeatureCountMetricCfg.expectedTargetBrowser ||
-		targetMobileBrowser != &m.listBrowserFeatureCountMetricCfg.expectedTargetMobileBrowser ||
+		!reflect.DeepEqual(targetMobileBrowser, m.listBrowserFeatureCountMetricCfg.expectedTargetMobileBrowser) ||
 		!startAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedStartAt) ||
 		!endAt.Equal(m.listBrowserFeatureCountMetricCfg.expectedEndAt) ||
 		pageSize != m.listBrowserFeatureCountMetricCfg.expectedPageSize ||
 		!reflect.DeepEqual(pageToken, m.listBrowserFeatureCountMetricCfg.expectedPageToken) {
 
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %d %v }",
-			m.listBrowserFeatureCountMetricCfg, targetBrowser, *targetMobileBrowser, startAt, endAt, pageSize, pageToken)
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %v, %s, %s, %d %v }",
+			m.listBrowserFeatureCountMetricCfg, targetBrowser, targetMobileBrowser, startAt, endAt, pageSize, pageToken)
 	}
 
 	return m.listBrowserFeatureCountMetricCfg.page, m.listBrowserFeatureCountMetricCfg.err

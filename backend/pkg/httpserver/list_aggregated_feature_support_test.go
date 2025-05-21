@@ -39,7 +39,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedTargetBrowser:       "chrome",
-				expectedTargetMobileBrowser: "chrome",
+				expectedTargetMobileBrowser: nil,
 				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:            100,
@@ -140,7 +140,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			name: "Success Case - include optional params",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedTargetBrowser:       "chrome",
-				expectedTargetMobileBrowser: "chrome_android",
+				expectedTargetMobileBrowser: valuePtr("chrome_android"),
 				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:            50,
@@ -252,7 +252,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			name: "500 case",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedTargetBrowser:       "chrome",
-				expectedTargetMobileBrowser: "chrome",
+				expectedTargetMobileBrowser: nil,
 				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:            100,
@@ -279,7 +279,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			name: "400 case - invalid page token",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedTargetBrowser:       "chrome",
-				expectedTargetMobileBrowser: "chrome",
+				expectedTargetMobileBrowser: nil,
 				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:            100,
