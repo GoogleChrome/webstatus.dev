@@ -95,6 +95,36 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'web-bluetooth',
 ];
 
+// This focus area to web feature mapping is defined at
+// https://github.com/web-platform-tests/interop/blob/main/web-features.json
+export const INTEROP_FEATURES: string[] = [
+  'backdrop-filter',
+  'largest-contentful-paint',
+  'anchor-positioning',
+  'details',
+  'flexbox',
+  'grid',
+  'subgrid',
+  'json-modules',
+  'navigation',
+  'pointer-events-api',
+  'mouse-events',
+  'mutation-events',
+  'scope',
+  'scrollend',
+  'storage-access',
+  'text-decoration',
+  'urlpattern',
+  'view-transitions',
+  'view-transitions-class',
+  'wasm-string-builtins',
+  'appearance',
+  'zoom',
+  'list-style',
+  'webrtc-encoded-transform',
+  'writing-mode',
+];
+
 export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   {
     name: 'Baseline 2025',
@@ -251,7 +281,8 @@ export const BADGE_PARAMS_BY_TYPE = {
   interop: {
     name: 'INTEROP',
     url: 'https://wpt.fyi/interop',
-    description: 'This feature is a focus area for the Interop 2025 effort.',
+    description:
+      'This feature is part of a focus area for the Interop 2025 effort.',
     variant: 'neutral',
   },
 } as const satisfies Record<string, BadgeConfig>;
