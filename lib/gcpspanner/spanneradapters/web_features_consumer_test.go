@@ -229,6 +229,12 @@ type mockUpsertFeatureDiscouragedDetailsConfig struct {
 	expectedCount  int
 }
 
+type mockUpsertBrowserCompatFeaturesConfig struct {
+	expectedInputs map[string][]string
+	outputs        map[string]error
+	expectedCount  int
+}
+
 type mockWebFeatureSpannerClient struct {
 	t                                               *testing.T
 	upsertWebFeatureCount                           int
@@ -243,6 +249,8 @@ type mockWebFeatureSpannerClient struct {
 	precalculateBrowserFeatureSupportEventsCount    int
 	mockUpsertFeatureDiscouragedDetailsCfg          mockUpsertFeatureDiscouragedDetailsConfig
 	upsertFeatureDiscouragedDetailsCount            int
+	mockUpsertBrowserCompatFeaturesCfg              mockUpsertBrowserCompatFeaturesConfig
+	upsertBrowserCompatFeaturesCount                int
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
@@ -367,6 +375,23 @@ func (c *mockWebFeatureSpannerClient) UpsertFeatureDiscouragedDetails(
 	return c.mockUpsertFeatureDiscouragedDetailsCfg.outputs[featureID]
 }
 
+func (c *mockWebFeatureSpannerClient) UpsertBrowserCompatFeatures(
+	_ context.Context, featureID string, compatFeatures []string) error {
+	if len(c.mockUpsertBrowserCompatFeaturesCfg.expectedInputs) <= c.upsertBrowserCompatFeaturesCount {
+		c.t.Fatal("no more expected input for UpsertBrowserCompatFeatures")
+	}
+	expectedInput, found := c.mockUpsertBrowserCompatFeaturesCfg.expectedInputs[featureID]
+	if !found {
+		c.t.Errorf("unexpected input for featureID %v", featureID)
+	}
+	if !reflect.DeepEqual(expectedInput, compatFeatures) {
+		c.t.Errorf("unexpected input expected %v received %v", expectedInput, compatFeatures)
+	}
+	c.upsertBrowserCompatFeaturesCount++
+
+	return c.mockUpsertBrowserCompatFeaturesCfg.outputs[featureID]
+}
+
 func newMockmockWebFeatureSpannerClient(
 	t *testing.T,
 	mockUpsertWebFeatureCfg mockUpsertWebFeatureConfig,
@@ -375,6 +400,7 @@ func newMockmockWebFeatureSpannerClient(
 	mockUpsertFeatureSpecCfg mockUpsertFeatureSpecConfig,
 	mocmockPrecalculateBrowserFeatureSupportEventsCfg mockPrecalculateBrowserFeatureSupportEventsConfig,
 	mockUpsertFeatureDiscouragedDetailsCfg mockUpsertFeatureDiscouragedDetailsConfig,
+	mockUpsertBrowserCompatFeaturesCfg mockUpsertBrowserCompatFeaturesConfig,
 ) *mockWebFeatureSpannerClient {
 	return &mockWebFeatureSpannerClient{
 		t:                                       t,
@@ -390,6 +416,8 @@ func newMockmockWebFeatureSpannerClient(
 		precalculateBrowserFeatureSupportEventsCount:    0,
 		mockUpsertFeatureDiscouragedDetailsCfg:          mockUpsertFeatureDiscouragedDetailsCfg,
 		upsertFeatureDiscouragedDetailsCount:            0,
+		mockUpsertBrowserCompatFeaturesCfg:              mockUpsertBrowserCompatFeaturesCfg,
+		upsertBrowserCompatFeaturesCount:                0,
 	}
 }
 
@@ -416,6 +444,7 @@ func TestInsertWebFeatures(t *testing.T) {
 		mockUpsertFeatureSpecCfg                       mockUpsertFeatureSpecConfig
 		mockPrecalculateBrowserFeatureSupportEventsCfg mockPrecalculateBrowserFeatureSupportEventsConfig
 		mockUpsertFeatureDiscouragedDetailsCfg         mockUpsertFeatureDiscouragedDetailsConfig
+		mockUpsertBrowserCompatFeaturesCfg             mockUpsertBrowserCompatFeaturesConfig
 		input                                          map[string]web_platform_dx__web_features.FeatureValue
 		expectedError                                  error // Expected error from InsertWebFeatures
 	}{
@@ -533,7 +562,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				"feature1": {
 					Name:           "Feature 1",
 					Caniuse:        nil,
-					CompatFeatures: nil,
+					CompatFeatures: []string{"html.elements.address", "html.elements.section"},
 					Discouraged: &web_platform_dx__web_features.Discouraged{
 						AccordingTo:  []string{"according-to-1", "according-to-2"},
 						Alternatives: []string{"alternative-1", "alternative-2"},
@@ -612,6 +641,15 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:       map[string]error{"feature1": nil},
 				expectedCount: 1,
 			},
+			mockUpsertBrowserCompatFeaturesCfg: mockUpsertBrowserCompatFeaturesConfig{
+				expectedInputs: map[string][]string{
+					"id-1": {"html.elements.address", "html.elements.section"},
+				},
+				outputs: map[string]error{
+					"id-1": nil,
+				},
+				expectedCount: 1,
+			},
 			expectedError: nil,
 		},
 		{
@@ -652,6 +690,11 @@ func TestInsertWebFeatures(t *testing.T) {
 			},
 			mockUpsertFeatureDiscouragedDetailsCfg: mockUpsertFeatureDiscouragedDetailsConfig{
 				expectedInputs: map[string]gcpspanner.FeatureDiscouragedDetails{},
+				outputs:        map[string]error{},
+				expectedCount:  0,
+			},
+			mockUpsertBrowserCompatFeaturesCfg: mockUpsertBrowserCompatFeaturesConfig{
+				expectedInputs: map[string][]string{},
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
@@ -725,6 +768,11 @@ func TestInsertWebFeatures(t *testing.T) {
 			},
 			mockUpsertFeatureSpecCfg: mockUpsertFeatureSpecConfig{
 				expectedInputs: map[string]gcpspanner.FeatureSpec{},
+				outputs:        map[string]error{},
+				expectedCount:  0,
+			},
+			mockUpsertBrowserCompatFeaturesCfg: mockUpsertBrowserCompatFeaturesConfig{
+				expectedInputs: map[string][]string{},
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
@@ -861,6 +909,11 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
+			mockUpsertBrowserCompatFeaturesCfg: mockUpsertBrowserCompatFeaturesConfig{
+				expectedInputs: map[string][]string{},
+				outputs:        map[string]error{},
+				expectedCount:  0,
+			},
 			expectedError: ErrBrowserFeatureAvailabilityTest,
 		},
 		{
@@ -987,6 +1040,11 @@ func TestInsertWebFeatures(t *testing.T) {
 			},
 			mockUpsertFeatureDiscouragedDetailsCfg: mockUpsertFeatureDiscouragedDetailsConfig{
 				expectedInputs: map[string]gcpspanner.FeatureDiscouragedDetails{},
+				outputs:        map[string]error{},
+				expectedCount:  0,
+			},
+			mockUpsertBrowserCompatFeaturesCfg: mockUpsertBrowserCompatFeaturesConfig{
+				expectedInputs: map[string][]string{},
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
@@ -1177,6 +1235,11 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
+			mockUpsertBrowserCompatFeaturesCfg: mockUpsertBrowserCompatFeaturesConfig{
+				expectedInputs: map[string][]string{},
+				outputs:        map[string]error{},
+				expectedCount:  0,
+			},
 			expectedError: ErrPrecalculateBrowserFeatureSupportEventsTest,
 		},
 	}
@@ -1191,6 +1254,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				tc.mockUpsertFeatureSpecCfg,
 				tc.mockPrecalculateBrowserFeatureSupportEventsCfg,
 				tc.mockUpsertFeatureDiscouragedDetailsCfg,
+				tc.mockUpsertBrowserCompatFeaturesCfg,
 			)
 			consumer := NewWebFeaturesConsumer(mockClient)
 
@@ -1240,6 +1304,13 @@ func TestInsertWebFeatures(t *testing.T) {
 				t.Errorf("expected %d calls to UpsertFeatureDiscouragedDetails, got %d",
 					mockClient.mockUpsertFeatureDiscouragedDetailsCfg.expectedCount,
 					mockClient.upsertFeatureDiscouragedDetailsCount)
+			}
+
+			if mockClient.upsertBrowserCompatFeaturesCount !=
+				tc.mockUpsertBrowserCompatFeaturesCfg.expectedCount {
+				t.Errorf("expected %d calls to UpsertBrowserCompatFeatures, got %d",
+					tc.mockUpsertBrowserCompatFeaturesCfg.expectedCount,
+					mockClient.upsertBrowserCompatFeaturesCount)
 			}
 		})
 	}
