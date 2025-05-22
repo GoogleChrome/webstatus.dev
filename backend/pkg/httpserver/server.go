@@ -93,16 +93,18 @@ type WPTMetricsStorer interface {
 	) (*string, error)
 	ListMissingOneImplCounts(
 		ctx context.Context,
-		targetBrowsers []string,
-		otherBrowsers [][]string,
+		targetBrowser string,
+		targetMobileBrowser *string,
+		otherBrowsers []string,
 		startAt, endAt time.Time,
 		pageSize int,
 		pageToken *string,
 	) (*backend.BrowserReleaseFeatureMetricsPage, error)
 	ListMissingOneImplementationFeatures(
 		ctx context.Context,
-		targetBrowsers []string,
-		otherBrowsers [][]string,
+		targetBrowser string,
+		targetMobileBrowser *string,
+		otherBrowsers []string,
 		targetDate time.Time,
 		pageSize int,
 		pageToken *string,

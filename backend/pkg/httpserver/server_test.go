@@ -134,26 +134,28 @@ type MockListBrowserFeatureCountMetricConfig struct {
 }
 
 type MockListMissingOneImplCountsConfig struct {
-	expectedTargetBrowsers []string
-	expectedOtherBrowsers  [][]string
-	expectedStartAt        time.Time
-	expectedEndAt          time.Time
-	expectedPageSize       int
-	expectedPageToken      *string
-	pageToken              *string
-	page                   *backend.BrowserReleaseFeatureMetricsPage
-	err                    error
+	expectedTargetBrowser       string
+	expectedTargetMobileBrowser *string
+	expectedOtherBrowsers       []string
+	expectedStartAt             time.Time
+	expectedEndAt               time.Time
+	expectedPageSize            int
+	expectedPageToken           *string
+	pageToken                   *string
+	page                        *backend.BrowserReleaseFeatureMetricsPage
+	err                         error
 }
 
 type MockListMissingOneImplFeaturesConfig struct {
-	expectedTargetBrowsers []string
-	expectedOtherBrowsers  [][]string
-	expectedtargetDate     time.Time
-	expectedPageSize       int
-	expectedPageToken      *string
-	pageToken              *string
-	page                   *backend.MissingOneImplFeaturesPage
-	err                    error
+	expectedTargetBrowser       string
+	expectedTargetMobileBrowser *string
+	expectedOtherBrowsers       []string
+	expectedtargetDate          time.Time
+	expectedPageSize            int
+	expectedPageToken           *string
+	pageToken                   *string
+	page                        *backend.MissingOneImplFeaturesPage
+	err                         error
 }
 
 type MockListBaselineStatusCountsConfig struct {
@@ -414,30 +416,31 @@ func (m *MockWPTMetricsStorer) ListBrowserFeatureCountMetric(
 
 func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	_ context.Context,
-	targetBrowsers []string,
-	otherBrowsers [][]string,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
 ) (*backend.BrowserReleaseFeatureMetricsPage, error) {
 	m.callCountListMissingOneImplCounts++
-	unexpectedOtherBrowsers := false
-	for i, browserList := range otherBrowsers {
-		if i >= len(m.listMissingOneImplCountCfg.expectedOtherBrowsers) ||
-			!slices.Equal(browserList, m.listMissingOneImplCountCfg.expectedOtherBrowsers[i]) {
-			unexpectedOtherBrowsers = true
-		}
-	}
-	if !slices.Equal(targetBrowsers, m.listMissingOneImplCountCfg.expectedTargetBrowsers) ||
-		unexpectedOtherBrowsers ||
+	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||
+		targetMobileBrowser != m.listMissingOneImplCountCfg.expectedTargetMobileBrowser ||
 		!startAt.Equal(m.listMissingOneImplCountCfg.expectedStartAt) ||
 		!endAt.Equal(m.listMissingOneImplCountCfg.expectedEndAt) ||
 		pageSize != m.listMissingOneImplCountCfg.expectedPageSize ||
 		!reflect.DeepEqual(pageToken, m.listMissingOneImplCountCfg.expectedPageToken) {
 
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %s, %d %v }",
-			m.listMissingOneImplCountCfg, targetBrowsers, otherBrowsers, startAt, endAt, pageSize, pageToken)
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %v, %s, %s, %s, %d %v }",
+			m.listMissingOneImplCountCfg,
+			targetBrowser,
+			targetMobileBrowser,
+			otherBrowsers,
+			startAt,
+			endAt,
+			pageSize,
+			pageToken)
 	}
 
 	return m.listMissingOneImplCountCfg.page, m.listMissingOneImplCountCfg.err
@@ -445,28 +448,29 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 
 func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
 	_ context.Context,
-	targetBrowsers []string,
-	otherBrowsers [][]string,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
 	targetDate time.Time,
 	pageSize int,
 	pageToken *string,
 ) (*backend.MissingOneImplFeaturesPage, error) {
 	m.callCountListMissingOneImplFeatures++
-	unexpectedOtherBrowsers := false
-	for i, browserList := range otherBrowsers {
-		if i >= len(m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers) ||
-			!slices.Equal(browserList, m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers[i]) {
-			unexpectedOtherBrowsers = true
-		}
-	}
-	if !slices.Equal(targetBrowsers, m.listMissingOneImplFeaturesCfg.expectedTargetBrowsers) ||
-		unexpectedOtherBrowsers ||
+	if targetBrowser != m.listMissingOneImplFeaturesCfg.expectedTargetBrowser ||
+		targetMobileBrowser != m.listMissingOneImplFeaturesCfg.expectedTargetMobileBrowser ||
+		!slices.Equal(otherBrowsers, m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers) ||
 		!targetDate.Equal(m.listMissingOneImplFeaturesCfg.expectedtargetDate) ||
 		pageSize != m.listMissingOneImplFeaturesCfg.expectedPageSize ||
 		!reflect.DeepEqual(pageToken, m.listMissingOneImplFeaturesCfg.expectedPageToken) {
 
-		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %s, %s, %d %v }",
-			m.listMissingOneImplFeaturesCfg, targetBrowsers, otherBrowsers, targetDate, pageSize, pageToken)
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %v, %s, %s, %d %v }",
+			m.listMissingOneImplFeaturesCfg,
+			targetBrowser,
+			targetMobileBrowser,
+			otherBrowsers,
+			targetDate,
+			pageSize,
+			pageToken)
 	}
 
 	return m.listMissingOneImplFeaturesCfg.page, m.listMissingOneImplFeaturesCfg.err

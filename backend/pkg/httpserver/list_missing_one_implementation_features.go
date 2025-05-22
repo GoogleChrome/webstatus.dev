@@ -23,6 +23,22 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+// GetDesktopsMobileProduct returns the mobile version of the given desktop browser.
+func GetDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.BrowserPathParam, error) {
+	switch browser {
+	case backend.Chrome:
+		return backend.ChromeAndroid, nil
+	case backend.Firefox:
+		return backend.FirefoxAndroid, nil
+	case backend.Safari:
+		return backend.SafariIos, nil
+	case backend.Edge, backend.ChromeAndroid, backend.FirefoxAndroid, backend.SafariIos:
+		return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+	}
+
+	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
+}
+
 // ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
 // nolint: ireturn // Signature generated from openapi
 func (s *Server) ListMissingOneImplementationFeatures(
@@ -30,36 +46,44 @@ func (s *Server) ListMissingOneImplementationFeatures(
 	request backend.ListMissingOneImplementationFeaturesRequestObject) (
 	backend.ListMissingOneImplementationFeaturesResponseObject, error) {
 
-	var targetBrowsers = []string{}
-	targetBrowsers = append(targetBrowsers, string(request.Browser))
+	var otherBrowsers []string
+	var targetMobileBrowser *string
 	if request.Params.IncludeBaselineMobileBrowsers != nil {
-		targetMobileBrowser, err := GetDesktopsMobileProduct(request.Browser)
+		otherBrowsers = make([]string, len(request.Params.Browser)*2)
+		var err error
+		matchingMobileBrowser, err := getDesktopsMobileProduct(request.Browser)
 		if err != nil {
 			return backend.ListMissingOneImplementationFeatures400JSONResponse{
 				Code:    400,
-				Message: "browser does not have a matching mobile browser",
+				Message: err.Error(),
 			}, err
 		}
-		targetBrowsers = append(targetBrowsers, string(targetMobileBrowser))
-	}
+		targetMobileBrowser = (*string)(&matchingMobileBrowser)
 
-	otherBrowsers := [][]string{}
-	for i := range len(request.Params.Browser) {
-		otherBrowser := []string{}
-		otherBrowser = append(otherBrowser, string(request.Params.Browser[i]))
-		// Add the mobile version of the browser if include_baseline_mobile_browsers is set.
-		if request.Params.IncludeBaselineMobileBrowsers != nil {
-			matchingMobileBrowser, err := GetDesktopsMobileProduct(request.Params.Browser[i])
-			if err == nil {
-				otherBrowser = append(otherBrowser, string(matchingMobileBrowser))
+		for i := 0; i < len(request.Params.Browser); i++ {
+			otherBrowsers[i*2] = string(request.Params.Browser[i])
+			matchingMobileBrowser, err = getDesktopsMobileProduct(request.Params.Browser[i])
+			if err != nil {
+				if err != nil {
+					return backend.ListMissingOneImplementationFeatures400JSONResponse{
+						Code:    400,
+						Message: err.Error(),
+					}, err
+				}
 			}
+			otherBrowsers[i*2+1] = string(matchingMobileBrowser)
 		}
-		otherBrowsers = append(otherBrowsers, otherBrowser)
+	} else {
+		otherBrowsers = make([]string, len(request.Params.Browser)*2)
+		for i := 0; i < len(request.Params.Browser); i++ {
+			otherBrowsers[i] = string(request.Params.Browser[i])
+		}
 	}
 
 	page, err := s.wptMetricsStorer.ListMissingOneImplementationFeatures(
 		ctx,
-		targetBrowsers,
+		string(request.Browser),
+		targetMobileBrowser,
 		otherBrowsers,
 		request.Date.Time,
 		getPageSizeOrDefault(request.Params.PageSize),

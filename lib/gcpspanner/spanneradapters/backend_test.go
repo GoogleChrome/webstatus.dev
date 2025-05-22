@@ -328,25 +328,18 @@ func (c mockBackendSpannerClient) FeaturesSearch(
 
 func (c mockBackendSpannerClient) ListMissingOneImplCounts(
 	ctx context.Context,
-	targetBrowsers []string,
-	otherBrowsers [][]string,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
 	startAt time.Time,
 	endAt time.Time,
 	pageSize int,
 	pageToken *string,
 ) (*gcpspanner.MissingOneImplCountPage, error) {
-	unexpectedOtherBrowsersFound := false
-	expectedOtherBrowsers := [][]string{{"browser1"}, {"browser2"}}
-	for i, browsersList := range otherBrowsers {
-		if i >= len(expectedOtherBrowsers) || !slices.Equal(browsersList, expectedOtherBrowsers[i]) {
-			unexpectedOtherBrowsersFound = true
-
-			break
-		}
-	}
 	if ctx != context.Background() ||
-		!slices.Equal(targetBrowsers, []string{"mybrowser"}) ||
-		unexpectedOtherBrowsersFound ||
+		targetBrowser != "mybrowser" ||
+		targetMobileBrowser != nil ||
+		!slices.Equal(otherBrowsers, []string{"browser1", "browser2"}) ||
 		!startAt.Equal(testStart) ||
 		!endAt.Equal(testEnd) ||
 		pageSize != 100 ||
@@ -359,24 +352,17 @@ func (c mockBackendSpannerClient) ListMissingOneImplCounts(
 
 func (c mockBackendSpannerClient) ListMissingOneImplementationFeatures(
 	ctx context.Context,
-	targetBrowsers []string,
-	otherBrowsers [][]string,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
 	targetDate time.Time,
 	pageSize int,
 	pageToken *string,
 ) (*gcpspanner.MissingOneImplFeatureListPage, error) {
-	unexpectedOtherBrowsersFound := false
-	expectedOtherBrowsers := [][]string{{"browser1"}, {"browser2"}}
-	for i, browsersList := range otherBrowsers {
-		if i >= len(expectedOtherBrowsers) || !slices.Equal(browsersList, expectedOtherBrowsers[i]) {
-			unexpectedOtherBrowsersFound = true
-
-			break
-		}
-	}
 	if ctx != context.Background() ||
-		!slices.Equal(targetBrowsers, []string{"mybrowser"}) ||
-		unexpectedOtherBrowsersFound ||
+		targetBrowser != "mybrowser" ||
+		targetMobileBrowser != nil ||
+		!slices.Equal(otherBrowsers, []string{"browser1", "browser2"}) ||
 		!targetDate.Equal(testStart) ||
 		pageSize != 100 ||
 		pageToken != nonNilInputPageToken {
@@ -809,8 +795,9 @@ func TestListMissingOneImplCounts(t *testing.T) {
 			backend := NewBackend(mock)
 			page, err := backend.ListMissingOneImplCounts(
 				context.Background(),
-				[]string{"mybrowser"},
-				[][]string{{"browser1"}, {"browser2"}},
+				"mybrowser",
+				nil,
+				[]string{"browser1", "browser2"},
 				testStart,
 				testEnd,
 				100,
@@ -894,8 +881,9 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			backend := NewBackend(mock)
 			page, err := backend.ListMissingOneImplementationFeatures(
 				context.Background(),
-				[]string{"mybrowser"},
-				[][]string{{"browser1"}, {"browser2"}},
+				"mybrowser",
+				nil,
+				[]string{"browser1", "browser2"},
 				testStart,
 				100,
 				nonNilInputPageToken)

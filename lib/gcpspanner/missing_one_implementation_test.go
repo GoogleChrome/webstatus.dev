@@ -62,7 +62,8 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 		{BrowserName: bazBrowser, BrowserVersion: "17", ReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)},
 
 		// quxBrowser Releases
-		{BrowserName: quxBrowser, BrowserVersion: "1.0", ReleaseDate: time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: quxBrowser, BrowserVersion: "1.0", ReleaseDate: time.Date(2024, 1, 28, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: quxBrowser, BrowserVersion: "2.0", ReleaseDate: time.Date(2024, 3, 27, 0, 0, 0, 0, time.UTC)},
 	}
 	for _, release := range browserReleases {
 		err := client.InsertBrowserRelease(ctx, release)
@@ -125,7 +126,11 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 		{
 			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: quxBrowser, BrowserVersion: "1.0"},
 			FeatureKey:                 "FeatureW",
-		},
+		}, // Available from bazBrowser 1.0
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: quxBrowser, BrowserVersion: "2.0"},
+			FeatureKey:                 "FeatureX",
+		}, // Available from bazBrowser 2.0
 	}
 	for _, availability := range browserFeatureAvailabilities {
 		err := client.UpsertBrowserFeatureAvailability(ctx,
@@ -142,11 +147,12 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 }
 
 func assertListMissingOneImplCounts(ctx context.Context, t *testing.T, startAt, endAt time.Time, pageToken *string,
-	targetBrowsers []string, otherBrowsers [][]string, pageSize int,
+	targetBrowser string, targetMobileBrowser *string, otherBrowsers []string, pageSize int,
 	expectedPage *MissingOneImplCountPage) {
 	result, err := spannerClient.ListMissingOneImplCounts(
 		ctx,
-		targetBrowsers,
+		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		startAt,
 		endAt,
@@ -169,10 +175,11 @@ func testMissingOneImplSuite(
 	pageSize int,
 ) {
 	t.Run("bazBrowser ", func(t *testing.T) {
-		targetBrowsers := []string{bazBrowser, quxBrowser}
-		otherBrowsers := [][]string{
-			{fooBrowser},
-			{barBrowser},
+		targetBrowser := bazBrowser
+		targetMobileBrowser := quxBrowser
+		otherBrowsers := []string{
+			fooBrowser,
+			barBrowser,
 		}
 
 		// nolint:dupl // WONTFIX - false positive
@@ -185,32 +192,43 @@ func testMissingOneImplSuite(
 					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureW, FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
-						Count:            2,
+						Count:            3,
 					},
 					// barBrowser 115 AND bazBrowser 17 release
 					// Currently supported features:
 					// fooBrowser: FeatureX, FeatureZ, FeatureY
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
-						Count:            1,
+						Count:            2,
 					},
 					// barBrowser 114 release
 					// Currently supported features:
 					// fooBrowser: FeatureX, FeatureZ, FeatureY
 					// barBrowser: FeatureX, FeatureZ, FeatureY
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC),
+						Count:            2,
+					},
+					// quxBrowser 2.0 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY
+					// barBrowser: FeatureX, FeatureZ, FeatureY
+					// bazBrowser: FeatureX, FeatureY
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					{
+						EventReleaseDate: time.Date(2024, 3, 27, 0, 0, 0, 0, time.UTC),
 						Count:            1,
 					},
 					// fooBrowser 112 release
@@ -219,10 +237,10 @@ func testMissingOneImplSuite(
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX, FeatureY
 					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// Missing in one bazBrowser + quxBrowser: FeatureX, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
-						Count:            1,
+						Count:            2,
 					},
 					// bazBrowser 16.5 release
 					// Currently supported features:
@@ -230,10 +248,10 @@ func testMissingOneImplSuite(
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX, FeatureY
 					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: None
+					// Missing in one bazBrowser + quxBrowser: FeatureX
 					{
 						EventReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC),
-						Count:            0,
+						Count:            1,
 					},
 					// fooBrowser 111 release
 					// Currently supported features:
@@ -241,9 +259,20 @@ func testMissingOneImplSuite(
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX
 					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: None
+					// Missing in one bazBrowser + quxBrowser: FeatureX
 					{
 						EventReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
+						Count:            1,
+					},
+					// bazBrowser 1.0 release
+					// Currently supported features:
+					// fooBrowser: None
+					// barBrowser: FeatureX, FeatureZ
+					// bazBrowser: FeatureX
+					// quxBrowser: FeatureW
+					// Missing in one bazBrowser + quxBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 1, 28, 0, 0, 0, 0, time.UTC),
 						Count:            0,
 					},
 					// bazBrowser 16.4 release
@@ -251,7 +280,7 @@ func testMissingOneImplSuite(
 					// fooBrowser: None
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX
-					// quxBrowser: FeatureW
+					// quxBrowser: None
 					// Missing in one bazBrowser + quxBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC),
@@ -262,7 +291,7 @@ func testMissingOneImplSuite(
 					// fooBrowser: None
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: None
-					// quxBrowser: FeatureW
+					// quxBrowser: None
 					// Missing in one bazBrowser + quxBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
@@ -273,7 +302,7 @@ func testMissingOneImplSuite(
 					// fooBrowser: None
 					// barBrowser: None
 					// bazBrowser: None
-					// quxBrowser: FeatureW
+					// quxBrowser: None
 					// Missing in one bazBrowser + quxBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
@@ -287,7 +316,8 @@ func testMissingOneImplSuite(
 				startAt,
 				endAt,
 				nil,
-				targetBrowsers,
+				targetBrowser,
+				&targetMobileBrowser,
 				otherBrowsers,
 				pageSize,
 				expectedResult,
@@ -305,43 +335,43 @@ func testMissingOneImplSuite(
 					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureW, FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
-						Count:            2,
+						Count:            3,
 					},
 					// barBrowser 115 AND bazBrowser 17 release
 					// Currently supported features:
 					// fooBrowser: FeatureX, FeatureZ, FeatureY
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
-						Count:            1,
+						Count:            2,
 					},
 					// barBrowser 114 release
 					// Currently supported features:
 					// fooBrowser: FeatureX, FeatureZ, FeatureY
 					// barBrowser: FeatureX, FeatureZ, FeatureY
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC),
-						Count:            1,
+						Count:            2,
 					},
-					// fooBrowser 112 release
+					// quxBrowser 2.0 release
 					// Currently supported features:
-					// fooBrowser: FeatureX, FeatureY, FeatureZ
-					// barBrowser: FeatureX, FeatureZ
+					// fooBrowser: FeatureX, FeatureZ, FeatureY
+					// barBrowser: FeatureX, FeatureZ, FeatureY
 					// bazBrowser: FeatureX, FeatureY
-					// quxBrowser: FeatureW
+					// quxBrowser: FeatureW, FeatureX
 					// Missing in one bazBrowser + quxBrowser: FeatureZ
 					{
-						EventReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
+						EventReleaseDate: time.Date(2024, 3, 27, 0, 0, 0, 0, time.UTC),
 						Count:            1,
 					},
 				},
@@ -353,7 +383,8 @@ func testMissingOneImplSuite(
 				startAt,
 				endAt,
 				nil,
-				targetBrowsers,
+				targetBrowser,
+				&targetMobileBrowser,
 				otherBrowsers,
 				4,
 				expectedPageOne,
@@ -364,16 +395,27 @@ func testMissingOneImplSuite(
 			expectedPageTwo := &MissingOneImplCountPage{
 				NextPageToken: &pageTwoToken,
 				Metrics: []MissingOneImplCount{
+					// fooBrowser 112 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureY, FeatureZ
+					// barBrowser: FeatureX, FeatureZ
+					// bazBrowser: FeatureX, FeatureY
+					// quxBrowser: FeatureW
+					// Missing in one bazBrowser + quxBrowser: FeatureX, FeatureZ
+					{
+						EventReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
+						Count:            2,
+					},
 					// bazBrowser 16.5 release
 					// Currently supported features:
 					// fooBrowser: FeatureX
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX, FeatureY
 					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: None
+					// Missing in one bazBrowser + quxBrowser: FeatureX
 					{
 						EventReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC),
-						Count:            0,
+						Count:            1,
 					},
 					// fooBrowser 111 release
 					// Currently supported features:
@@ -381,12 +423,12 @@ func testMissingOneImplSuite(
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX
 					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: None
+					// Missing in one bazBrowser + quxBrowser: FeatureX
 					{
 						EventReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-						Count:            0,
+						Count:            1,
 					},
-					// bazBrowser 16.4 release
+					// bazBrowser 1.0 release
 					// Currently supported features:
 					// fooBrowser: None
 					// barBrowser: FeatureX, FeatureZ
@@ -394,18 +436,7 @@ func testMissingOneImplSuite(
 					// quxBrowser: FeatureW
 					// Missing in one bazBrowser + quxBrowser: None
 					{
-						EventReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC),
-						Count:            0,
-					},
-					// barBrowser 113 release
-					// Currently supported features:
-					// fooBrowser: None
-					// barBrowser: FeatureX, FeatureZ
-					// bazBrowser: None
-					// quxBrowser: FeatureW
-					// Missing in one bazBrowser + quxBrowser: None
-					{
-						EventReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
+						EventReleaseDate: time.Date(2024, 1, 28, 0, 0, 0, 0, time.UTC),
 						Count:            0,
 					},
 				},
@@ -416,7 +447,8 @@ func testMissingOneImplSuite(
 				startAt,
 				endAt,
 				&pageOneToken,
-				targetBrowsers,
+				targetBrowser,
+				&targetMobileBrowser,
 				otherBrowsers,
 				4,
 				expectedPageTwo,
@@ -426,12 +458,34 @@ func testMissingOneImplSuite(
 			expectedPageThree := &MissingOneImplCountPage{
 				NextPageToken: nil,
 				Metrics: []MissingOneImplCount{
+					// bazBrowser 16.4 release
+					// Currently supported features:
+					// fooBrowser: None
+					// barBrowser: FeatureX, FeatureZ
+					// bazBrowser: FeatureX
+					// quxBrowser: None
+					// Missing in one bazBrowser + quxBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
+					// barBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: None
+					// barBrowser: FeatureX, FeatureZ
+					// bazBrowser: None
+					// quxBrowser: None
+					// Missing in one bazBrowser + quxBrowser: None
+					{
+						EventReleaseDate: time.Date(2024, 1, 20, 0, 0, 0, 0, time.UTC),
+						Count:            0,
+					},
 					// fooBrowser 110 release
 					// Currently supported features:
 					// fooBrowser: None
 					// barBrowser: None
 					// bazBrowser: None
-					// quxBrowser: FeatureW
+					// quxBrowser: None
 					// Missing in one bazBrowser + quxBrowser: None
 					{
 						EventReleaseDate: time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC),
@@ -445,7 +499,8 @@ func testMissingOneImplSuite(
 				startAt,
 				endAt,
 				&pageTwoToken,
-				targetBrowsers,
+				targetBrowser,
+				&targetMobileBrowser,
 				otherBrowsers,
 				4,
 				expectedPageThree,
@@ -456,14 +511,48 @@ func testMissingOneImplSuite(
 			expectedResult := &MissingOneImplCountPage{
 				NextPageToken: nil,
 				Metrics: []MissingOneImplCount{
+					// fooBrowser 113 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureW, FeatureY, FeatureZ
+					{
+						EventReleaseDate: time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC),
+						Count:            3,
+					},
+					// barBrowser 115 AND bazBrowser 17 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY
+					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
+					// bazBrowser: FeatureX, FeatureY
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureY, FeatureZ
+					{
+						EventReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
+						Count:            2,
+					},
 					// barBrowser 114 release
 					// Currently supported features:
 					// fooBrowser: FeatureX, FeatureZ, FeatureY
 					// barBrowser: FeatureX, FeatureZ, FeatureY
 					// bazBrowser: FeatureX, FeatureY
-					// Missing in one bazBrowser: FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureY, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 3, 28, 0, 0, 0, 0, time.UTC),
+						Count:            2,
+					},
+					// quxBrowser 2.0 release
+					// Currently supported features:
+					// fooBrowser: FeatureX, FeatureZ, FeatureY
+					// barBrowser: FeatureX, FeatureZ, FeatureY
+					// bazBrowser: FeatureX, FeatureY
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureZ
+					{
+						EventReleaseDate: time.Date(2024, 3, 27, 0, 0, 0, 0, time.UTC),
 						Count:            1,
 					},
 					// fooBrowser 112 release
@@ -471,30 +560,33 @@ func testMissingOneImplSuite(
 					// fooBrowser: FeatureX, FeatureY, FeatureZ
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX, FeatureY
-					// Missing in one bazBrowser: FeatureZ
+					// quxBrowser: FeatureW
+					// Missing in one bazBrowser + quxBrowser: FeatureX, FeatureZ
 					{
 						EventReleaseDate: time.Date(2024, 3, 15, 0, 0, 0, 0, time.UTC),
-						Count:            1,
+						Count:            2,
 					},
 					// bazBrowser 16.5 release
 					// Currently supported features:
 					// fooBrowser: FeatureX
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX, FeatureY
-					// Missing in one bazBrowser: None
+					// quxBrowser: FeatureW
+					// Missing in one bazBrowser + quxBrowser: FeatureX
 					{
 						EventReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC),
-						Count:            0,
+						Count:            1,
 					},
 					// fooBrowser 111 release
 					// Currently supported features:
 					// fooBrowser: FeatureX
 					// barBrowser: FeatureX, FeatureZ
 					// bazBrowser: FeatureX
-					// Missing in one bazBrowser: None
+					// quxBrowser: FeatureW
+					// Missing in one bazBrowser + quxBrowser: FeatureX
 					{
 						EventReleaseDate: time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
-						Count:            0,
+						Count:            1,
 					},
 				},
 			}
@@ -504,7 +596,8 @@ func testMissingOneImplSuite(
 				time.Date(2024, 2, 1, 0, 0, 0, 0, time.UTC),
 				time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC),
 				nil,
-				targetBrowsers,
+				targetBrowser,
+				&targetMobileBrowser,
 				otherBrowsers,
 				pageSize,
 				expectedResult,
@@ -512,9 +605,7 @@ func testMissingOneImplSuite(
 		})
 
 		t.Run("should show less data points when looking at a smaller subset of browsers", func(t *testing.T) {
-			otherBrowsers := [][]string{
-				{barBrowser},
-			}
+			otherBrowsers := []string{barBrowser}
 
 			expectedResult := &MissingOneImplCountPage{
 				NextPageToken: nil,
@@ -573,7 +664,8 @@ func testMissingOneImplSuite(
 				startAt,
 				endAt,
 				nil,
-				targetBrowsers,
+				targetBrowser,
+				&targetMobileBrowser,
 				otherBrowsers,
 				pageSize,
 				expectedResult,
@@ -584,11 +676,8 @@ func testMissingOneImplSuite(
 	// Misc tests just to make sure we can get other browser info.
 	// nolint:dupl // WONTFIX - false positive
 	t.Run("all fooBrowser data", func(t *testing.T) {
-		targetBrowsers := []string{fooBrowser}
-		otherBrowsers := [][]string{
-			{barBrowser},
-			{bazBrowser},
-		}
+		targetBrowser := fooBrowser
+		otherBrowsers := []string{barBrowser, bazBrowser}
 
 		expectedResult := &MissingOneImplCountPage{
 			NextPageToken: nil,
@@ -692,7 +781,8 @@ func testMissingOneImplSuite(
 			startAt,
 			endAt,
 			nil,
-			targetBrowsers,
+			targetBrowser,
+			nil,
 			otherBrowsers,
 			pageSize,
 			expectedResult,
@@ -723,8 +813,8 @@ func testMissingOneImplSuite(
 		}
 
 		t.Run(bazBrowser, func(t *testing.T) {
-			targetBrowsers := []string{bazBrowser}
-			otherBrowsers := [][]string{{fooBrowser}, {barBrowser}}
+			targetBrowser := bazBrowser
+			otherBrowsers := []string{fooBrowser, barBrowser}
 
 			expectedResult := &MissingOneImplCountPage{
 				NextPageToken: nil,
@@ -828,7 +918,8 @@ func testMissingOneImplSuite(
 				startAt,
 				endAt,
 				nil,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				pageSize,
 				expectedResult,

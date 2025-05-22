@@ -37,13 +37,14 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "Success Case - no optional params - use defaults",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowsers: []string{"chrome"},
-				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
-				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:       100,
-				expectedPageToken:      nil,
-				pageToken:              nil,
-				err:                    nil,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: nil,
+				expectedOtherBrowsers:       []string{"edge", "firefox", "safari"},
+				expectedtargetDate:          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            100,
+				expectedPageToken:           nil,
+				pageToken:                   nil,
+				err:                         nil,
 				page: &backend.MissingOneImplFeaturesPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nil,
@@ -82,12 +83,13 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "Success Case - include optional params",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowsers: []string{"chrome", "chrome_android"},
-				expectedOtherBrowsers:  [][]string{{"firefox", "firefox_android"}, {"safari", "safari_ios"}},
-				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:       50,
-				expectedPageToken:      inputPageToken,
-				err:                    nil,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: valuePtr("chrome_android"),
+				expectedOtherBrowsers:       []string{"firefox", "firefox_android", "safari", "safari_ios"},
+				expectedtargetDate:          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            50,
+				expectedPageToken:           inputPageToken,
+				err:                         nil,
 				page: &backend.MissingOneImplFeaturesPage{
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nextPageToken,
@@ -130,14 +132,15 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "500 case",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowsers: []string{"chrome"},
-				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
-				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:       100,
-				expectedPageToken:      nil,
-				page:                   nil,
-				pageToken:              nil,
-				err:                    errTest,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: nil,
+				expectedOtherBrowsers:       []string{"edge", "firefox", "safari"},
+				expectedtargetDate:          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            100,
+				expectedPageToken:           nil,
+				page:                        nil,
+				pageToken:                   nil,
+				err:                         errTest,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{
@@ -158,14 +161,15 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 		{
 			name: "400 case - invalid page token",
 			mockConfig: MockListMissingOneImplFeaturesConfig{
-				expectedTargetBrowsers: []string{"chrome"},
-				expectedOtherBrowsers:  [][]string{{"edge"}, {"firefox"}, {"safari"}},
-				expectedtargetDate:     time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-				expectedPageSize:       100,
-				expectedPageToken:      badPageToken,
-				page:                   nil,
-				pageToken:              nil,
-				err:                    backendtypes.ErrInvalidPageToken,
+				expectedTargetBrowser:       "chrome",
+				expectedTargetMobileBrowser: nil,
+				expectedOtherBrowsers:       []string{"edge", "firefox", "safari"},
+				expectedtargetDate:          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				expectedPageSize:            100,
+				expectedPageToken:           badPageToken,
+				page:                        nil,
+				pageToken:                   nil,
+				err:                         backendtypes.ErrInvalidPageToken,
 			},
 			expectedGetCalls: []*ExpectedGetCall{
 				{

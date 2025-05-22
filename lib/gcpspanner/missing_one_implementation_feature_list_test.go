@@ -129,11 +129,12 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 
 // nolint:unparam // WONTFIX
 func assertMissingOneImplFeatureList(ctx context.Context, t *testing.T, targetDate time.Time,
-	targetBrowsers []string, otherBrowsers [][]string, expectedPage *MissingOneImplFeatureListPage, token *string,
+	targetBrowser string, targetMobileBrowser *string, otherBrowsers []string, expectedPage *MissingOneImplFeatureListPage, token *string,
 	pageSize int) {
 	result, err := spannerClient.ListMissingOneImplementationFeatures(
 		ctx,
-		targetBrowsers,
+		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		targetDate,
 		pageSize,
@@ -155,11 +156,8 @@ func testMissingOneImplFeatureListSuite(
 	t *testing.T,
 ) {
 	t.Run("Query bazBrowser without exclusions", func(t *testing.T) {
-		targetBrowsers := []string{"bazBrowser"}
-		otherBrowsers := [][]string{
-			{"fooBrowser"},
-			{"barBrowser"},
-		}
+		targetBrowser := "bazBrowser"
+		otherBrowsers := []string{"fooBrowser", "barBrowser"}
 		targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
 		pageSize := 25
 		token := encodeMissingOneImplFeatureListCursor(0)
@@ -186,7 +184,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,
@@ -204,7 +203,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				emptyDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,
@@ -213,9 +213,7 @@ func testMissingOneImplFeatureListSuite(
 		})
 
 		t.Run("simple query at a smaller subset of otherBrowsers", func(t *testing.T) {
-			subsetBrowsers := [][]string{
-				{"barBrowser"},
-			}
+			subsetBrowsers := []string{"barBrowser"}
 
 			expectedResult := &MissingOneImplFeatureListPage{
 				NextPageToken: nil,
@@ -238,7 +236,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				subsetBrowsers,
 				expectedResult,
 				&token,
@@ -266,7 +265,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&pageToken,
@@ -295,7 +295,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,
@@ -321,7 +322,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResultPageTwo,
 				&returnToken,
@@ -351,7 +353,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				nil,
@@ -384,11 +387,8 @@ func testMissingOneImplFeatureListSuite(
 
 		// nolint:goconst // WONTFIX
 		t.Run("simple query", func(t *testing.T) {
-			targetBrowsers := []string{"bazBrowser"}
-			otherBrowsers := [][]string{
-				{"fooBrowser"},
-				{"barBrowser"},
-			}
+			targetBrowser := "bazBrowser"
+			otherBrowsers := []string{"fooBrowser", "barBrowser"}
 			targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
 			pageSize := 25
 			token := encodeMissingOneImplFeatureListCursor(0)
@@ -412,7 +412,8 @@ func testMissingOneImplFeatureListSuite(
 				ctx,
 				t,
 				targetDate,
-				targetBrowsers,
+				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,

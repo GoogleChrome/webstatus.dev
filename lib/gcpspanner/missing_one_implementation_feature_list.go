@@ -103,16 +103,17 @@ type missingOneImplFeatureListTemplateData struct {
 }
 
 func buildMissingOneImplFeatureListTemplate(
-	targetBrowsers []string,
-	otherBrowsers [][]string,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
 	targetDate time.Time,
 	cursor *missingOneImplFeatureListCursor,
 	pageSize int,
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	targetBrowserConditions := make([]string, 0, len(targetBrowsers))
-	for i, browserName := range targetBrowsers {
+	targetBrowserConditions := make([]string, 0, len(targetBrowser))
+	for i, browserName := range targetBrowser {
 		paramName := fmt.Sprintf("targetBrowserParam%d", i)
 		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
 		params[paramName] = browserName
@@ -159,8 +160,9 @@ func buildMissingOneImplFeatureListTemplate(
 
 func (c *Client) ListMissingOneImplementationFeatures(
 	ctx context.Context,
-	targetBrowsers []string,
-	otherBrowsers [][]string,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
 	targetDate time.Time,
 	pageSize int,
 	pageToken *string,
@@ -184,7 +186,8 @@ func (c *Client) ListMissingOneImplementationFeatures(
 	}
 
 	stmt := buildMissingOneImplFeatureListTemplate(
-		targetBrowsers,
+		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		targetDate,
 		cursor,
