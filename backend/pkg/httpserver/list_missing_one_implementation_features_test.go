@@ -62,7 +62,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
-						`"browser":[["edge"],["firefox"],["safari"]]}}`,
+						`"browser":["edge","firefox","safari"]}}`,
 					Value: nil,
 					Err:   nil,
 				},
@@ -109,7 +109,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				{
 					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome","chrome_android"],` +
 						`"targetDate":"2000-01-01","Params":{"page_token":"input-token","page_size":50,` +
-						`"browser":[["firefox","firefox_android"],["safari","safari_ios"]],` +
+						`"browser":["firefox","firefox_android","safari","safari_ios"],` +
 						`"include_baseline_mobile_browsers":true}}`,
 					Value: nil,
 					Err:   nil,
@@ -145,7 +145,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
-						`"browser":[["edge"],["firefox"],["safari"]]}}`,
+						`"browser":["edge","firefox","safari"]}}`,
 					Value: nil,
 					Err:   nil,
 				},
@@ -174,7 +174,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `ListMissingOneImplementationFeatures-{"browser":["chrome"],"targetDate":"2000-01-01","Params":{` +
-						`"browser":[["edge"],["firefox"],["safari"]]}}`,
+						`"browser":["edge","firefox","safari"]}}`,
 					Value: nil,
 					Err:   nil,
 				},

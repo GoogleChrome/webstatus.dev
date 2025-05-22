@@ -46,26 +46,25 @@ func (s *Server) ListMissingOneImplementationCounts(
 			return backend.ListMissingOneImplementationCounts400JSONResponse{
 				Code:    400,
 				Message: err.Error(),
-			}, err
+			}, nil
 		}
 		targetMobileBrowser = (*string)(&matchingMobileBrowser)
 
-		for i := 0; i < len(request.Params.Browser); i++ {
+		var matchingMobileOtherBrowser backend.BrowserPathParam
+		for i := range request.Params.Browser {
 			otherBrowsers[i*2] = string(request.Params.Browser[i])
-			matchingMobileBrowser, err = getDesktopsMobileProduct(request.Params.Browser[i])
+			matchingMobileOtherBrowser, err = getDesktopsMobileProduct(request.Params.Browser[i])
 			if err != nil {
-				if err != nil {
-					return backend.ListMissingOneImplementationCounts400JSONResponse{
-						Code:    400,
-						Message: err.Error(),
-					}, err
-				}
+				return backend.ListMissingOneImplementationCounts400JSONResponse{
+					Code:    400,
+					Message: err.Error(),
+				}, nil
 			}
-			otherBrowsers[i*2+1] = string(matchingMobileBrowser)
+			otherBrowsers[i*2+1] = string(matchingMobileOtherBrowser)
 		}
 	} else {
-		otherBrowsers = make([]string, len(request.Params.Browser)*2)
-		for i := 0; i < len(request.Params.Browser); i++ {
+		otherBrowsers = make([]string, len(request.Params.Browser))
+		for i := range request.Params.Browser {
 			otherBrowsers[i] = string(request.Params.Browser[i])
 		}
 	}

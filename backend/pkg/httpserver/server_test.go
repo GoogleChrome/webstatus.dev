@@ -426,7 +426,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 ) (*backend.BrowserReleaseFeatureMetricsPage, error) {
 	m.callCountListMissingOneImplCounts++
 	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||
-		targetMobileBrowser != m.listMissingOneImplCountCfg.expectedTargetMobileBrowser ||
+		!reflect.DeepEqual(targetMobileBrowser, m.listMissingOneImplCountCfg.expectedTargetMobileBrowser) ||
 		!startAt.Equal(m.listMissingOneImplCountCfg.expectedStartAt) ||
 		!endAt.Equal(m.listMissingOneImplCountCfg.expectedEndAt) ||
 		pageSize != m.listMissingOneImplCountCfg.expectedPageSize ||
@@ -457,7 +457,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
 ) (*backend.MissingOneImplFeaturesPage, error) {
 	m.callCountListMissingOneImplFeatures++
 	if targetBrowser != m.listMissingOneImplFeaturesCfg.expectedTargetBrowser ||
-		targetMobileBrowser != m.listMissingOneImplFeaturesCfg.expectedTargetMobileBrowser ||
+		!reflect.DeepEqual(targetMobileBrowser, m.listMissingOneImplFeaturesCfg.expectedTargetMobileBrowser) ||
 		!slices.Equal(otherBrowsers, m.listMissingOneImplFeaturesCfg.expectedOtherBrowsers) ||
 		!targetDate.Equal(m.listMissingOneImplFeaturesCfg.expectedtargetDate) ||
 		pageSize != m.listMissingOneImplFeaturesCfg.expectedPageSize ||
@@ -466,7 +466,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
 		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v, %v, %s, %s, %d %v }",
 			m.listMissingOneImplFeaturesCfg,
 			targetBrowser,
-			targetMobileBrowser,
+			&targetMobileBrowser,
 			otherBrowsers,
 			targetDate,
 			pageSize,
