@@ -78,7 +78,7 @@ export class WebstatusOverviewTable extends LitElement {
           height: 28px;
         }
         .header-row th.sortable {
-          min-width: 4em;
+          min-width: 3em;
         }
         .header-row th.sortable:hover {
           background: var(--table-header-hover-background);
