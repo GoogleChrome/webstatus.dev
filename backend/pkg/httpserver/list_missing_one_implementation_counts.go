@@ -34,13 +34,45 @@ func (s *Server) ListMissingOneImplementationCounts(
 	if found {
 		return cachedResponse, nil
 	}
-	otherBrowsers := make([]string, len(request.Params.Browser))
-	for i := 0; i < len(request.Params.Browser); i++ {
-		otherBrowsers[i] = string(request.Params.Browser[i])
+
+	var otherBrowsers []string
+
+	var targetMobileBrowser *string
+	if request.Params.IncludeBaselineMobileBrowsers != nil {
+		otherBrowsers = make([]string, len(request.Params.Browser)*2)
+		var err error
+		matchingMobileBrowser, err := getDesktopsMobileProduct(request.Browser)
+		if err != nil {
+			return backend.ListMissingOneImplementationCounts400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
+			}, nil
+		}
+		targetMobileBrowser = (*string)(&matchingMobileBrowser)
+
+		var matchingMobileOtherBrowser backend.BrowserPathParam
+		for i := range request.Params.Browser {
+			otherBrowsers[i*2] = string(request.Params.Browser[i])
+			matchingMobileOtherBrowser, err = getDesktopsMobileProduct(request.Params.Browser[i])
+			if err != nil {
+				return backend.ListMissingOneImplementationCounts400JSONResponse{
+					Code:    400,
+					Message: err.Error(),
+				}, nil
+			}
+			otherBrowsers[i*2+1] = string(matchingMobileOtherBrowser)
+		}
+	} else {
+		otherBrowsers = make([]string, len(request.Params.Browser))
+		for i := range request.Params.Browser {
+			otherBrowsers[i] = string(request.Params.Browser[i])
+		}
 	}
+
 	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(
 		ctx,
 		string(request.Browser),
+		targetMobileBrowser,
 		otherBrowsers,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,

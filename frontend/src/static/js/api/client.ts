@@ -560,6 +560,7 @@ export class APIClient {
               endAt,
               page_token: nextPageToken,
               browser: otherBrowsers,
+              include_baseline_mobile_browsers: true,
             },
             path: {browser},
           },
@@ -596,6 +597,7 @@ export class APIClient {
             query: {
               page_token: nextPageToken,
               browser: otherBrowsers,
+              include_baseline_mobile_browsers: true,
             },
             path: {browser: targetBrowser, date: targetDate},
           },

@@ -90,6 +90,7 @@ type BackendSpannerClient interface {
 	ListMissingOneImplCounts(
 		ctx context.Context,
 		targetBrowser string,
+		targetMobileBrowser *string,
 		otherBrowsers []string,
 		startAt time.Time,
 		endAt time.Time,
@@ -99,6 +100,7 @@ type BackendSpannerClient interface {
 	ListMissingOneImplementationFeatures(
 		ctx context.Context,
 		targetBrowser string,
+		targetMobileBrowser *string,
 		otherBrowsers []string,
 		targetDate time.Time,
 		pageSize int,
@@ -309,6 +311,7 @@ func (s *Backend) ListChromeDailyUsageStats(
 func (s *Backend) ListMissingOneImplCounts(
 	ctx context.Context,
 	targetBrowser string,
+	targetMobileBrowser *string,
 	otherBrowsers []string,
 	startAt, endAt time.Time,
 	pageSize int,
@@ -317,6 +320,7 @@ func (s *Backend) ListMissingOneImplCounts(
 	spannerPage, err := s.client.ListMissingOneImplCounts(
 		ctx,
 		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		startAt,
 		endAt,
@@ -351,6 +355,7 @@ func (s *Backend) ListMissingOneImplCounts(
 func (s *Backend) ListMissingOneImplementationFeatures(
 	ctx context.Context,
 	targetBrowser string,
+	targetMobileBrowser *string,
 	otherBrowsers []string,
 	targetDate time.Time,
 	pageSize int,
@@ -359,6 +364,7 @@ func (s *Backend) ListMissingOneImplementationFeatures(
 	spannerPage, err := s.client.ListMissingOneImplementationFeatures(
 		ctx,
 		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		targetDate,
 		pageSize,

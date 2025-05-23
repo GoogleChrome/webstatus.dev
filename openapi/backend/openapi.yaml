@@ -380,6 +380,7 @@ paths:
         - $ref: '#/components/parameters/endAtParam'
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
+        - $ref: '#/components/parameters/includeBaselineMobileBrowsersParam'
         - in: query
           name: browser
           description: >
@@ -439,6 +440,7 @@ paths:
           description: The date for which to retrieve the feature IDs.
         - $ref: '#/components/parameters/paginationTokenParam'
         - $ref: '#/components/parameters/paginationSizeParam'
+        - $ref: '#/components/parameters/includeBaselineMobileBrowsersParam'
         - in: query # Add otherBrowsers parameter
           name: browser
           description: >
