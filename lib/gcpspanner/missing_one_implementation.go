@@ -137,47 +137,9 @@ LIMIT
 `
 
 const gcpMissingOneImplCountRawTemplate = `
-WITH UnsupportedFeatures AS (
-    SELECT DISTINCT
-        bfse1.WebFeatureID,
-        bfse1.EventReleaseDate
-    FROM
-        BrowserFeatureSupportEvents bfse1
-		{{ .BrowserSupportedFeaturesFilter }}
-		{{ .ExcludedFeatureFilter }}
-),
-OtherSupportedFeatures AS (
-    SELECT
-        bfse_other.WebFeatureID,
-        bfse_other.EventReleaseDate
-    FROM
-        BrowserFeatureSupportEvents bfse_other
-    WHERE
-        bfse_other.SupportStatus = 'supported'
-        AND bfse_other.TargetBrowserName IN UNNEST(@otherBrowserNames)
-		{{ .OtherExcludedFeatureFilter }}
-    GROUP BY
-        bfse_other.WebFeatureID, bfse_other.EventReleaseDate
-    HAVING
-        -- Ensures all other browsers support the feature.
-        COUNT(DISTINCT bfse_other.TargetBrowserName) = @numOtherBrowsers
-),
-AggregatedCounts AS (
-    SELECT
-        uf.EventReleaseDate,
-        COUNT(uf.WebFeatureID) AS FeatureCount
-    FROM
-        UnsupportedFeatures uf
-    JOIN
-        OtherSupportedFeatures osf
-    ON uf.WebFeatureID = osf.WebFeatureID
-        AND uf.EventReleaseDate = osf.EventReleaseDate
-    GROUP BY
-        uf.EventReleaseDate
-)
 SELECT
     r.EventReleaseDate,
-    COALESCE(ac.FeatureCount, 0) AS Count
+    COALESCE(AggregatedCounts.FeatureCount, 0) AS Count
 FROM (
     SELECT DISTINCT
         ReleaseDate AS EventReleaseDate
@@ -187,13 +149,38 @@ FROM (
         BrowserName IN UNNEST(@allBrowserNames)
         AND ReleaseDate >= @startAt
         AND ReleaseDate < @endAt
-		{{if .ReleaseDateParam }}
-		AND ReleaseDate < @{{ .ReleaseDateParam }}
-		{{end}}
-		AND ReleaseDate < CURRENT_TIMESTAMP()
 ) r
-LEFT JOIN
-    AggregatedCounts ac ON r.EventReleaseDate = ac.EventReleaseDate
+LEFT JOIN (
+    SELECT
+        Unsupported.EventReleaseDate,
+        COUNT(Unsupported.WebFeatureID) AS FeatureCount
+    FROM (
+        SELECT DISTINCT
+            bfse1.WebFeatureID,
+            bfse1.EventReleaseDate
+        FROM
+            BrowserFeatureSupportEvents bfse1
+        {{ .BrowserSupportedFeaturesFilter }}
+		{{ .ExcludedFeatureFilter }}
+    ) Unsupported
+    JOIN (
+        SELECT
+            bfse_other.WebFeatureID,
+            bfse_other.EventReleaseDate
+        FROM
+            BrowserFeatureSupportEvents bfse_other
+        WHERE
+            bfse_other.SupportStatus = 'supported'
+            AND bfse_other.TargetBrowserName IN UNNEST(@otherBrowserNames)
+        GROUP BY
+            bfse_other.WebFeatureID, bfse_other.EventReleaseDate
+        HAVING
+            COUNT(DISTINCT bfse_other.TargetBrowserName) = @numOtherBrowsers
+    ) otherSupported ON Unsupported.WebFeatureID = otherSupported.WebFeatureID
+             AND Unsupported.EventReleaseDate = otherSupported.EventReleaseDate
+    GROUP BY
+        Unsupported.EventReleaseDate
+) AggregatedCounts ON r.EventReleaseDate = AggregatedCounts.EventReleaseDate
 ORDER BY
     r.EventReleaseDate DESC
 LIMIT
