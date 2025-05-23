@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -128,15 +127,8 @@ func buildMissingOneImplFeatureListTemplate(
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-
-	otherBrowserNames := make([]string, 0, len(otherBrowsers))
-	for i := range otherBrowsers {
-		paramName := fmt.Sprintf("otherBrowser%d", i)
-		params[paramName] = otherBrowsers[i]
-		otherBrowserNames = append(otherBrowserNames, paramName)
-	}
 	params["numOtherBrowsers"] = len(otherBrowsers)
-	params["otherBrowserNames"] = otherBrowserNames
+	params["otherBrowserNames"] = otherBrowsers
 	params["targetBrowserName"] = targetBrowser
 
 	var browserSupportedFeaturesFilter string
@@ -151,12 +143,17 @@ func buildMissingOneImplFeatureListTemplate(
 				AND (
 					bfse1.SupportStatus = 'unsupported'
 					OR bfse2.SupportStatus = 'unsupported'
+				)
+				AND (
+					bfse1.EventReleaseDate = @targetDate
+					OR bfse2.EventReleaseDate = @targetDate
 				)`
 	} else {
 		browserSupportedFeaturesFilter = `
 			WHERE
 				bfse1.TargetBrowserName = @targetBrowserName
-				AND bfse1.SupportStatus = 'unsupported'`
+				AND bfse1.SupportStatus = 'unsupported'
+				AND bfse1.EventReleaseDate = @targetDate`
 	}
 
 	var excludedFeatureFilter string

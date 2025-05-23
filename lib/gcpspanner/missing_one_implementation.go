@@ -285,7 +285,7 @@ func buildMissingOneImplTemplate(
 	var excludedFeatureFilter, otherExcludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
 		params["excludedFeatureIDs"] = excludedFeatureIDs
-		excludedFeatureFilter = "AND bfse.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+		excludedFeatureFilter = "AND bfse1.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
 		otherExcludedFeatureFilter = "AND bfse_other.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
 	}
 
