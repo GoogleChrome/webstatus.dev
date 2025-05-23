@@ -18,7 +18,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
+	"log/slog"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -66,40 +66,56 @@ type MissingOneImplFeature struct {
 }
 
 const missingOneImplFeatureListRawTemplate = `
-SELECT wf.FeatureKey as KEY
-FROM WebFeatures wf
-WHERE wf.ID IN (
-    SELECT bfse.WebFeatureID
-    FROM BrowserFeatureSupportEvents bfse
-    WHERE {{ .TargetBrowserFilter }}
-      AND bfse.EventReleaseDate = @targetDate
-      AND bfse.SupportStatus = 'unsupported'
+WITH UnsupportedFeatures AS (
+    -- This CTE identifies WebFeatureIDs that are not supported by the target browser.
+    SELECT DISTINCT
+        bfse1.WebFeatureID
+    FROM
+        BrowserFeatureSupportEvents bfse1
+	{{ .BrowserSupportedFeaturesFilter }}
+),
+OtherBrowserSupport AS (
+    -- This CTE identifies WebFeatureIDs that are supported by all
+    -- 'other' browsers on the specific event release date.
+    SELECT
+        WebFeatureID
+    FROM
+        BrowserFeatureSupportEvents
+    WHERE
+        EventReleaseDate = @targetDate
+        AND SupportStatus = 'supported'
+        AND TargetBrowserName IN UNNEST(@otherBrowserNames)
+    GROUP BY
+        WebFeatureID
+    HAVING
+        -- Ensures all other browsers support the feature.
+        COUNT(DISTINCT TargetBrowserName) = @numOtherBrowsers
 )
-AND {{ range $browserFilter := .OtherBrowsersFilters }}
-EXISTS (
-    SELECT 1
-    FROM BrowserFeatureSupportEvents bfse_other
-    WHERE bfse_other.WebFeatureID = wf.ID
-      AND {{ $browserFilter }}
-      AND bfse_other.EventReleaseDate = @targetDate
-      AND bfse_other.SupportStatus = 'supported'
-)
-AND
-{{ end }}
-1=1
-{{ .ExcludedFeatureFilter }}
-ORDER BY KEY ASC
-LIMIT @limit
+SELECT
+    wf.FeatureKey AS KEY
+FROM
+    -- Start with features that meet the "other browser" support criteria
+    OtherBrowserSupport obs
+JOIN
+    -- Then ensure they also meet the unsupported conditions for target browser.
+    UnsupportedFeatures uf ON obs.WebFeatureID = uf.WebFeatureID
+JOIN
+    -- Finally, get the FeatureKey
+    WebFeatures wf ON obs.WebFeatureID = wf.ID
+	{{ .ExcludedFeatureFilter }}
+ORDER BY
+    KEY ASC
+LIMIT
+	@limit
 {{ if .Offset }}
 OFFSET {{ .Offset }}
-{{ end }}
-`
+{{ end }}`
 
 type missingOneImplFeatureListTemplateData struct {
-	OtherBrowsersFilters  []string
-	TargetBrowserFilter   string
-	Offset                int
-	ExcludedFeatureFilter string
+	BrowserSupportedFeaturesFilter string
+	BrowserSupportedFeaturesJoin   string
+	Offset                         int
+	ExcludedFeatureFilter          string
 }
 
 func buildMissingOneImplFeatureListTemplate(
@@ -112,23 +128,35 @@ func buildMissingOneImplFeatureListTemplate(
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	targetBrowserConditions := make([]string, 0, len(targetBrowser))
-	for i, browserName := range targetBrowser {
-		paramName := fmt.Sprintf("targetBrowserParam%d", i)
-		targetBrowserConditions[i] = fmt.Sprintf("bfse.TargetBrowserName = @%s", paramName)
-		params[paramName] = browserName
-	}
-	targetBrowserFilter := fmt.Sprintf("(%s)", strings.Join(targetBrowserConditions, " AND "))
 
-	otherBrowsersFilters := make([]string, 0, len(otherBrowsers))
-	for i, otherBrowserGroup := range otherBrowsers {
-		otherBrowsersConditions := make([]string, 0, len(otherBrowserGroup))
-		for j, browserName := range otherBrowserGroup {
-			paramName := fmt.Sprintf("otherBrowsersParam%d-%d", i, j)
-			otherBrowsersConditions[j] = fmt.Sprintf("bfse_other.TargetBrowserName = @%s", paramName)
-			params[paramName] = browserName
-		}
-		otherBrowsersFilters[i] = fmt.Sprintf("(%s)", strings.Join(otherBrowsersConditions, " AND "))
+	otherBrowserNames := make([]string, 0, len(otherBrowsers))
+	for i := range otherBrowsers {
+		paramName := fmt.Sprintf("otherBrowser%d", i)
+		params[paramName] = otherBrowsers[i]
+		otherBrowserNames = append(otherBrowserNames, paramName)
+	}
+	params["numOtherBrowsers"] = len(otherBrowsers)
+	params["otherBrowserNames"] = otherBrowserNames
+	params["targetBrowserName"] = targetBrowser
+
+	var browserSupportedFeaturesFilter string
+	if targetMobileBrowser != nil {
+		params["targetMobileBrowserName"] = *targetMobileBrowser
+		browserSupportedFeaturesFilter = `
+			JOIN
+				BrowserFeatureSupportEvents bfse2 ON bfse1.WebFeatureID = bfse2.WebFeatureID
+			WHERE
+				bfse1.TargetBrowserName = @targetBrowserName
+				AND bfse2.TargetBrowserName = @targetMobileBrowserName
+				AND (
+					bfse1.SupportStatus = 'unsupported'
+					OR bfse2.SupportStatus = 'unsupported'
+				)`
+	} else {
+		browserSupportedFeaturesFilter = `
+			WHERE
+				bfse1.TargetBrowserName = @targetBrowserName
+				AND bfse1.SupportStatus = 'unsupported'`
 	}
 
 	var excludedFeatureFilter string
@@ -141,10 +169,9 @@ func buildMissingOneImplFeatureListTemplate(
 	params["limit"] = pageSize
 
 	tmplData := missingOneImplFeatureListTemplateData{
-		OtherBrowsersFilters:  otherBrowsersFilters,
-		TargetBrowserFilter:   targetBrowserFilter,
-		Offset:                0,
-		ExcludedFeatureFilter: excludedFeatureFilter,
+		BrowserSupportedFeaturesFilter: browserSupportedFeaturesFilter,
+		Offset:                         0,
+		ExcludedFeatureFilter:          excludedFeatureFilter,
 	}
 
 	if cursor != nil {
@@ -154,7 +181,7 @@ func buildMissingOneImplFeatureListTemplate(
 	sql := missingOneImplFeatureListTemplate.Execute(tmplData)
 	stmt := spanner.NewStatement(sql)
 	stmt.Params = params
-
+	slog.Error(sql)
 	return stmt
 }
 
