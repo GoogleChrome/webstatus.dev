@@ -17,7 +17,6 @@ package gcpspanner
 import (
 	"context"
 	"errors"
-	"log/slog"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -178,7 +177,6 @@ func buildMissingOneImplFeatureListTemplate(
 	sql := missingOneImplFeatureListTemplate.Execute(tmplData)
 	stmt := spanner.NewStatement(sql)
 	stmt.Params = params
-	slog.Error(sql)
 	return stmt
 }
 

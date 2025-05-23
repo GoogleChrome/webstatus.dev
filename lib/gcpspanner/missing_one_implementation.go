@@ -79,15 +79,7 @@ WITH UnsupportedFeatures AS (
         bfse1.EventReleaseDate
     FROM
         BrowserFeatureSupportEvents bfse1
-    JOIN
-        BrowserFeatureSupportEvents bfse2 ON bfse1.WebFeatureID = bfse2.WebFeatureID
-    WHERE
-        bfse1.TargetBrowserName = @targetBrowserName
-        AND bfse2.TargetBrowserName = @targetMobileBrowserName
-        AND (
-            bfse1.SupportStatus = 'unsupported'
-            OR bfse2.SupportStatus = 'unsupported'
-        )
+		{{ .BrowserSupportedFeaturesFilter }}
 		{{ .ExcludedFeatureFilter }}
 ),
 OtherSupportedFeatures AS (
@@ -152,10 +144,6 @@ WITH UnsupportedFeatures AS (
     FROM
         BrowserFeatureSupportEvents bfse1
 		{{ .BrowserSupportedFeaturesFilter }}
-        AND (
-            bfse1.SupportStatus = 'unsupported'
-            OR bfse2.SupportStatus = 'unsupported'
-        )
 		{{ .ExcludedFeatureFilter }}
 ),
 OtherSupportedFeatures AS (
