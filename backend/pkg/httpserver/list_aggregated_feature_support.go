@@ -64,7 +64,10 @@ func (s *Server) ListAggregatedFeatureSupport(
 				}, nil
 			}
 
-			return nil, err
+			return backend.ListAggregatedFeatureSupport500JSONResponse{
+				Code:    500,
+				Message: err.Error(),
+			}, nil
 		}
 		targetMobileBrowser = (*string)(&matchingMobileBrowser)
 	}

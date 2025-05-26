@@ -45,8 +45,8 @@ func GetDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
-// PrepareMissingOneBrowserParams takes the raw request inputs for "missing in one browser" requests
-// and formats them for use in Spanner.
+// PrepareMissingOneBrowserParams takes the raw request arguments for "missing in one browser" requests
+// and formats them.
 func PrepareMissingOneBrowserParams(
 	targetBrowserParam backend.BrowserPathParam,
 	otherBrowsersParam []backend.BrowserPathParam,
@@ -58,7 +58,6 @@ func PrepareMissingOneBrowserParams(
 		var err error
 		matchingMobileBrowser, err := getDesktopsMobileProduct(targetBrowserParam)
 		if err != nil {
-
 			return nil, err
 		}
 		targetMobileBrowser = (*string)(&matchingMobileBrowser)
@@ -70,7 +69,6 @@ func PrepareMissingOneBrowserParams(
 			otherBrowsers[i*2] = string(otherBrowsersParam[i])
 			matchingMobileOtherBrowser, err = getDesktopsMobileProduct(otherBrowsersParam[i])
 			if err != nil {
-
 				return nil, err
 			}
 			otherBrowsers[i*2+1] = string(matchingMobileOtherBrowser)
@@ -106,7 +104,10 @@ func (s *Server) ListMissingOneImplementationFeatures(
 			}, nil
 		}
 
-		return nil, err
+		return backend.ListMissingOneImplementationFeatures500JSONResponse{
+			Code:    500,
+			Message: err.Error(),
+		}, nil
 	}
 
 	page, err := s.wptMetricsStorer.ListMissingOneImplementationFeatures(

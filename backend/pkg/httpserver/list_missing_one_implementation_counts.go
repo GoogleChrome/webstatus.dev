@@ -45,7 +45,10 @@ func (s *Server) ListMissingOneImplementationCounts(
 			}, nil
 		}
 
-		return nil, err
+		return backend.ListMissingOneImplementationCounts500JSONResponse{
+			Code:    500,
+			Message: err.Error(),
+		}, nil
 	}
 
 	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(
