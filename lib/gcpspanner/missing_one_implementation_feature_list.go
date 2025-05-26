@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -82,7 +83,14 @@ OtherBrowserSupport AS (
     WHERE
         EventReleaseDate = @targetDate
         AND SupportStatus = 'supported'
-        AND TargetBrowserName IN UNNEST(@otherBrowserNames)
+        AND (
+			{{ range $otherBrowserParamName := .OtherBrowserParamNames }}
+		    TargetBrowserName = @{{ $otherBrowserParamName }}
+			OR
+			{{ end }}
+			-- Final statement to ensure syntax adherence.
+			1=2
+		)
     GROUP BY
         WebFeatureID
     HAVING
@@ -111,6 +119,7 @@ OFFSET {{ .Offset }}
 
 type missingOneImplFeatureListTemplateData struct {
 	BrowserSupportedFeaturesFilter string
+	OtherBrowserParamNames         []string
 	Offset                         int
 	ExcludedFeatureFilter          string
 }
@@ -126,8 +135,14 @@ func buildMissingOneImplFeatureListTemplate(
 ) spanner.Statement {
 	params := map[string]interface{}{}
 	params["numOtherBrowsers"] = len(otherBrowsers)
-	params["otherBrowserNames"] = otherBrowsers
 	params["targetBrowserName"] = targetBrowser
+
+	otherBrowserParamNames := make([]string, 0, len(otherBrowsers))
+	for i := range otherBrowsers {
+		paramName := fmt.Sprintf("otherBrowser%d", i)
+		params[paramName] = otherBrowsers[i]
+		otherBrowserParamNames = append(otherBrowserParamNames, paramName)
+	}
 
 	var browserSupportedFeaturesFilter string
 	if targetMobileBrowser != nil {
@@ -164,6 +179,7 @@ func buildMissingOneImplFeatureListTemplate(
 
 	tmplData := missingOneImplFeatureListTemplateData{
 		BrowserSupportedFeaturesFilter: browserSupportedFeaturesFilter,
+		OtherBrowserParamNames:         otherBrowserParamNames,
 		Offset:                         0,
 		ExcludedFeatureFilter:          excludedFeatureFilter,
 	}

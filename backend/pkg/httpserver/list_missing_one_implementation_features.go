@@ -45,6 +45,8 @@ func GetDesktopsMobileProduct(browser backend.BrowserPathParam) (backend.Browser
 	return backend.BrowserPathParam(""), ErrNoMatchingMobileBrowser
 }
 
+// PrepareMissingOneBrowserParams takes the raw request inputs for "missing in one browser" requests
+// and formats them for use in Spanner.
 func PrepareMissingOneBrowserParams(
 	targetBrowserParam backend.BrowserPathParam,
 	otherBrowsersParam []backend.BrowserPathParam,
@@ -53,7 +55,6 @@ func PrepareMissingOneBrowserParams(
 	var otherBrowsers []string
 	var targetMobileBrowser *string
 	if includeMobileBrowsers {
-		otherBrowsers = make([]string, len(otherBrowsersParam)*2)
 		var err error
 		matchingMobileBrowser, err := getDesktopsMobileProduct(targetBrowserParam)
 		if err != nil {
@@ -62,6 +63,8 @@ func PrepareMissingOneBrowserParams(
 		}
 		targetMobileBrowser = (*string)(&matchingMobileBrowser)
 
+		// Other browsers will include their mobile equivalents, so we'll need twice the size.
+		otherBrowsers = make([]string, len(otherBrowsersParam)*2)
 		var matchingMobileOtherBrowser backend.BrowserPathParam
 		for i := range otherBrowsersParam {
 			otherBrowsers[i*2] = string(otherBrowsersParam[i])

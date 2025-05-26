@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -90,7 +91,14 @@ OtherSupportedFeatures AS (
         BrowserFeatureSupportEvents bfse_other
     WHERE
         bfse_other.SupportStatus = 'supported'
-        AND bfse_other.TargetBrowserName IN UNNEST(@otherBrowserNames)
+        AND (
+			{{ range $otherBrowserParamName := .OtherBrowserParamNames }}
+		    bfse_other.TargetBrowserName = @{{ $otherBrowserParamName }}
+			OR
+			{{ end }}
+			-- Final statement to ensure syntax adherence.
+			1=2
+		)
 		{{ .OtherExcludedFeatureFilter }}
     GROUP BY
         bfse_other.WebFeatureID, bfse_other.EventReleaseDate
@@ -174,7 +182,14 @@ LEFT JOIN (
             BrowserFeatureSupportEvents bfse_other
         WHERE
             bfse_other.SupportStatus = 'supported'
-            AND bfse_other.TargetBrowserName IN UNNEST(@otherBrowserNames)
+        AND (
+			{{ range $otherBrowserParamName := .OtherBrowserParamNames }}
+		    bfse_other.TargetBrowserName = @{{ $otherBrowserParamName }}
+			OR
+			{{ end }}
+			-- Final statement to ensure syntax adherence.
+			1=2
+		)
         GROUP BY
             bfse_other.WebFeatureID, bfse_other.EventReleaseDate
         HAVING
@@ -193,7 +208,7 @@ LIMIT
 type missingOneImplTemplateData struct {
 	ReleaseDateParam               string
 	BrowserSupportedFeaturesFilter string
-	OtherBrowsersParamNames        []string
+	OtherBrowserParamNames         []string
 	ExcludedFeatureFilter          string
 	OtherExcludedFeatureFilter     string
 }
@@ -248,9 +263,14 @@ func buildMissingOneImplTemplate(
 	allBrowsers[len(allBrowsers)-1] = targetBrowser
 	params["targetBrowserName"] = targetBrowser
 	params["allBrowserNames"] = allBrowsers
-	params["otherBrowserNames"] = otherBrowsers
 	params["numOtherBrowsers"] = len(otherBrowsers)
-	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
+
+	otherBrowserParamNames := make([]string, 0, len(otherBrowsers))
+	for i := range otherBrowsers {
+		paramName := fmt.Sprintf("otherBrowser%d", i)
+		params[paramName] = otherBrowsers[i]
+		otherBrowserParamNames = append(otherBrowserParamNames, paramName)
+	}
 
 	params["limit"] = pageSize
 
@@ -296,7 +316,7 @@ func buildMissingOneImplTemplate(
 	tmplData := missingOneImplTemplateData{
 		ReleaseDateParam:               releaseDateParamName,
 		BrowserSupportedFeaturesFilter: browserSupportedFeaturesFilter,
-		OtherBrowsersParamNames:        otherBrowsersParamNames,
+		OtherBrowserParamNames:         otherBrowserParamNames,
 		ExcludedFeatureFilter:          excludedFeatureFilter,
 		OtherExcludedFeatureFilter:     otherExcludedFeatureFilter,
 	}

@@ -427,6 +427,7 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplCounts(
 	m.callCountListMissingOneImplCounts++
 	if targetBrowser != m.listMissingOneImplCountCfg.expectedTargetBrowser ||
 		!reflect.DeepEqual(targetMobileBrowser, m.listMissingOneImplCountCfg.expectedTargetMobileBrowser) ||
+		!slices.Equal(otherBrowsers, m.listMissingOneImplCountCfg.expectedOtherBrowsers) ||
 		!startAt.Equal(m.listMissingOneImplCountCfg.expectedStartAt) ||
 		!endAt.Equal(m.listMissingOneImplCountCfg.expectedEndAt) ||
 		pageSize != m.listMissingOneImplCountCfg.expectedPageSize ||
