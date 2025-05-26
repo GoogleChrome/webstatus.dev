@@ -55,6 +55,10 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 		{BrowserName: "bazBrowser", BrowserVersion: "16.4", ReleaseDate: time.Date(2024, 1, 25, 0, 0, 0, 0, time.UTC)},
 		{BrowserName: "bazBrowser", BrowserVersion: "16.5", ReleaseDate: time.Date(2024, 3, 5, 0, 0, 0, 0, time.UTC)},
 		{BrowserName: "bazBrowser", BrowserVersion: "17", ReleaseDate: time.Date(2024, 4, 1, 0, 0, 0, 0, time.UTC)},
+
+		// quxBrowser Releases
+		{BrowserName: quxBrowser, BrowserVersion: "1.0", ReleaseDate: time.Date(2024, 1, 28, 0, 0, 0, 0, time.UTC)},
+		{BrowserName: quxBrowser, BrowserVersion: "2.0", ReleaseDate: time.Date(2024, 3, 27, 0, 0, 0, 0, time.UTC)},
 	}
 	for _, release := range browserReleases {
 		err := client.InsertBrowserRelease(ctx, release)
@@ -112,6 +116,16 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "bazBrowser", BrowserVersion: "16.5"},
 			FeatureKey:                 "FeatureY",
 		}, // Available from bazBrowser 16.5
+
+		// quxBrowser Availabilities
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: quxBrowser, BrowserVersion: "1.0"},
+			FeatureKey:                 "FeatureW",
+		}, // Available from bazBrowser 1.0
+		{
+			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: quxBrowser, BrowserVersion: "2.0"},
+			FeatureKey:                 "FeatureX",
+		}, // Available from bazBrowser 2.0
 	}
 	for _, availability := range browserFeatureAvailabilities {
 		err := client.UpsertBrowserFeatureAvailability(ctx,
@@ -128,12 +142,21 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 }
 
 // nolint:unparam // WONTFIX
-func assertMissingOneImplFeatureList(ctx context.Context, t *testing.T, targetDate time.Time,
-	targetBrowser string, otherBrowsers []string, expectedPage *MissingOneImplFeatureListPage, token *string,
-	pageSize int) {
+func assertMissingOneImplFeatureList(
+	ctx context.Context,
+	t *testing.T,
+	targetDate time.Time,
+	targetBrowser string,
+	targetMobileBrowser *string,
+	otherBrowsers []string,
+	expectedPage *MissingOneImplFeatureListPage,
+	token *string,
+	pageSize int,
+) {
 	result, err := spannerClient.ListMissingOneImplementationFeatures(
 		ctx,
 		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		targetDate,
 		pageSize,
@@ -155,11 +178,9 @@ func testMissingOneImplFeatureListSuite(
 	t *testing.T,
 ) {
 	t.Run("Query bazBrowser without exclusions", func(t *testing.T) {
-		const targetBrowser = "bazBrowser"
-		otherBrowsers := []string{
-			"fooBrowser",
-			"barBrowser",
-		}
+		targetBrowser := "bazBrowser"
+		targetMobileBrowser := valuePtr("quxBrowser")
+		otherBrowsers := []string{"fooBrowser", "barBrowser"}
 		targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
 		pageSize := 25
 		token := encodeMissingOneImplFeatureListCursor(0)
@@ -173,9 +194,13 @@ func testMissingOneImplFeatureListSuite(
 					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
-					// Missing in on for bazBrowser: FeatureW, FeatureZ
+					// quxBrowser: FeatureW, FeatureX
+					// Missing in one bazBrowser + quxBrowser: FeatureW, FeatureY, FeatureZ
 					{
 						WebFeatureID: "FeatureZ",
+					},
+					{
+						WebFeatureID: "FeatureY",
 					},
 					{
 						WebFeatureID: "FeatureW",
@@ -187,6 +212,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				targetMobileBrowser,
 				otherBrowsers,
 				expectedResult,
 				&token,
@@ -205,6 +231,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				emptyDate,
 				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,
@@ -213,21 +240,22 @@ func testMissingOneImplFeatureListSuite(
 		})
 
 		t.Run("simple query at a smaller subset of otherBrowsers", func(t *testing.T) {
-			subsetBrowsers := []string{
-				"barBrowser",
-			}
+			subsetBrowsers := []string{"barBrowser"}
 
 			expectedResult := &MissingOneImplFeatureListPage{
 				NextPageToken: nil,
 				FeatureList: []MissingOneImplFeature{
 					// fooBrowser 113 release
 					// Currently supported features:
-					// fooBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// barBrowser: FeatureX, FeatureZ, FeatureY, FeatureW
 					// bazBrowser: FeatureX, FeatureY
+					// quxBrowser: FeatureW, FeatureX
 					// Missing in on for bazBrowser: FeatureW, FeatureZ
 					{
 						WebFeatureID: "FeatureZ",
+					},
+					{
+						WebFeatureID: "FeatureY",
 					},
 					{
 						WebFeatureID: "FeatureW",
@@ -239,6 +267,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				targetMobileBrowser,
 				subsetBrowsers,
 				expectedResult,
 				&token,
@@ -267,6 +296,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&pageToken,
@@ -296,6 +326,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,
@@ -322,6 +353,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResultPageTwo,
 				&returnToken,
@@ -352,6 +384,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				nil,
@@ -410,6 +443,7 @@ func testMissingOneImplFeatureListSuite(
 				t,
 				targetDate,
 				targetBrowser,
+				nil,
 				otherBrowsers,
 				expectedResult,
 				&token,

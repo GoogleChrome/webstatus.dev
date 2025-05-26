@@ -57,10 +57,17 @@ func (s *Server) ListAggregatedFeatureSupport(
 		var err error
 		matchingMobileBrowser, err := getDesktopsMobileProduct(request.Browser)
 		if err != nil {
-			return backend.ListAggregatedFeatureSupport400JSONResponse{
-				Code:    400,
+			if errors.Is(err, ErrNoMatchingMobileBrowser) {
+				return backend.ListAggregatedFeatureSupport400JSONResponse{
+					Code:    400,
+					Message: err.Error(),
+				}, nil
+			}
+
+			return backend.ListAggregatedFeatureSupport500JSONResponse{
+				Code:    500,
 				Message: err.Error(),
-			}, err
+			}, nil
 		}
 		targetMobileBrowser = (*string)(&matchingMobileBrowser)
 	}

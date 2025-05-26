@@ -74,97 +74,143 @@ func encodeMissingOneImplCursor(releaseDate time.Time) string {
 }
 
 const localMissingOneImplCountRawTemplate = `
-WITH TargetBrowserUnsupportedFeatures AS (
-    SELECT bfse.WebFeatureID, bfse.EventReleaseDate
-    FROM BrowserFeatureSupportEvents bfse
-    WHERE bfse.TargetBrowserName = @targetBrowserParam
-      AND bfse.SupportStatus = 'unsupported'
-	  {{ .ExcludedFeatureFilter }}
+WITH UnsupportedFeatures AS (
+    SELECT DISTINCT
+        bfse1.WebFeatureID,
+        bfse1.EventReleaseDate
+    FROM
+        BrowserFeatureSupportEvents bfse1
+		{{ .BrowserSupportedFeaturesFilter }}
+		{{ .ExcludedFeatureFilter }}
 ),
-OtherBrowsersSupportedFeatures AS (
+OtherSupportedFeatures AS (
     SELECT
         bfse_other.WebFeatureID,
-        bfse_other.EventReleaseDate,
-        ARRAY_AGG(DISTINCT bfse_other.TargetBrowserName) AS SupportedBrowsers
+        bfse_other.EventReleaseDate
     FROM
         BrowserFeatureSupportEvents bfse_other
     WHERE
         bfse_other.SupportStatus = 'supported'
+        AND (
+			{{ range $otherBrowserParamName := .OtherBrowserParamNames }}
+		    bfse_other.TargetBrowserName = @{{ $otherBrowserParamName }}
+			OR
+			{{ end }}
+			-- Final statement to ensure syntax adherence.
+			1=2
+		)
 		{{ .OtherExcludedFeatureFilter }}
     GROUP BY
         bfse_other.WebFeatureID, bfse_other.EventReleaseDate
+    HAVING
+        -- Ensures all other browsers support the feature.
+        COUNT(DISTINCT bfse_other.TargetBrowserName) = @numOtherBrowsers
+),
+AggregatedCounts AS (
+    SELECT
+        uf.EventReleaseDate,
+        COUNT(uf.WebFeatureID) AS FeatureCount
+    FROM
+        UnsupportedFeatures uf
+    JOIN
+        OtherSupportedFeatures osf
+    ON uf.WebFeatureID = osf.WebFeatureID
+        AND uf.EventReleaseDate = osf.EventReleaseDate
+    GROUP BY
+        uf.EventReleaseDate
 )
-SELECT releases.EventReleaseDate,
-	(
-		SELECT COUNT(DISTINCT tbuf.WebFeatureID)
-		FROM TargetBrowserUnsupportedFeatures tbuf
-		INNER JOIN OtherBrowsersSupportedFeatures obsf
-			ON tbuf.WebFeatureID = obsf.WebFeatureID
-			AND obsf.EventReleaseDate = tbuf.EventReleaseDate
-		WHERE
-			tbuf.EventReleaseDate = releases.EventReleaseDate
-			{{ range $browserParamName := .OtherBrowsersParamNames }}
-				AND
-				@{{ $browserParamName }} IN UNNEST(obsf.SupportedBrowsers)
-			{{ end }}
-	) AS Count
+SELECT
+    r.EventReleaseDate,
+    COALESCE(ac.FeatureCount, 0) AS Count
 FROM (
-    SELECT DISTINCT ReleaseDate AS EventReleaseDate
-    FROM BrowserReleases
-    WHERE BrowserName IN UNNEST(@allBrowsersParam)
-	AND ReleaseDate >= @startAt
-	AND ReleaseDate < @endAt
-	{{if .ReleaseDateParam }}
-	AND ReleaseDate < @{{ .ReleaseDateParam }}
-	{{end}}
-	AND ReleaseDate < CURRENT_TIMESTAMP()
-) releases
-ORDER BY releases.EventReleaseDate DESC
-LIMIT @limit;
+    SELECT DISTINCT
+        ReleaseDate AS EventReleaseDate
+    FROM
+        BrowserReleases
+    WHERE
+        BrowserName IN UNNEST(@allBrowserNames)
+        AND ReleaseDate >= @startAt
+        AND ReleaseDate < @endAt
+		{{if .ReleaseDateParam }}
+		AND ReleaseDate < @{{ .ReleaseDateParam }}
+		{{end}}
+		AND ReleaseDate < CURRENT_TIMESTAMP()
+) r
+LEFT JOIN
+    AggregatedCounts ac ON r.EventReleaseDate = ac.EventReleaseDate
+ORDER BY
+    r.EventReleaseDate DESC
+LIMIT
+	@limit;
 `
 
 const gcpMissingOneImplCountRawTemplate = `
-SELECT releases.EventReleaseDate,
-	(
-		SELECT COUNT(DISTINCT bfse.WebFeatureID)
-		FROM BrowserFeatureSupportEvents bfse
-		WHERE
-			bfse.EventReleaseDate = releases.EventReleaseDate
-			AND bfse.TargetBrowserName = @targetBrowserParam
-			AND bfse.SupportStatus = 'unsupported'
-			{{ .ExcludedFeatureFilter }}
-		{{ range $browserParamName := .OtherBrowsersParamNames }}
-			AND EXISTS (
-				SELECT 1
-				FROM BrowserFeatureSupportEvents bfse_other
-				WHERE bfse_other.WebFeatureID = bfse.WebFeatureID
-				AND bfse_other.TargetBrowserName = @{{ $browserParamName }}
-				AND bfse_other.SupportStatus = 'supported'
-				AND bfse_other.EventReleaseDate = bfse.EventReleaseDate
-				{{ $.OtherExcludedFeatureFilter }}
-			)
-		{{ end }}
-	) AS Count
+SELECT
+    r.EventReleaseDate,
+    COALESCE(AggregatedCounts.FeatureCount, 0) AS Count
 FROM (
-    SELECT DISTINCT ReleaseDate AS EventReleaseDate
-    FROM BrowserReleases
-    WHERE BrowserName IN UNNEST(@allBrowsersParam)
-	AND ReleaseDate >= @startAt
-	AND ReleaseDate < @endAt
-	{{if .ReleaseDateParam }}
-	AND ReleaseDate < @{{ .ReleaseDateParam }}
-	{{end}}
-	AND ReleaseDate < CURRENT_TIMESTAMP()
-) releases
-ORDER BY releases.EventReleaseDate DESC
-LIMIT @limit;
+    SELECT DISTINCT
+        ReleaseDate AS EventReleaseDate
+    FROM
+        BrowserReleases
+    WHERE
+        BrowserName IN UNNEST(@allBrowserNames)
+        AND ReleaseDate >= @startAt
+        AND ReleaseDate < @endAt
+		{{if .ReleaseDateParam }}
+		AND ReleaseDate < @{{ .ReleaseDateParam }}
+		{{end}}
+) r
+LEFT JOIN (
+    SELECT
+        Unsupported.EventReleaseDate,
+        COUNT(Unsupported.WebFeatureID) AS FeatureCount
+    FROM (
+        SELECT DISTINCT
+            bfse1.WebFeatureID,
+            bfse1.EventReleaseDate
+        FROM
+            BrowserFeatureSupportEvents bfse1
+        {{ .BrowserSupportedFeaturesFilter }}
+		{{ .ExcludedFeatureFilter }}
+    ) Unsupported
+    JOIN (
+        SELECT
+            bfse_other.WebFeatureID,
+            bfse_other.EventReleaseDate
+        FROM
+            BrowserFeatureSupportEvents bfse_other
+        WHERE
+            bfse_other.SupportStatus = 'supported'
+        AND (
+			{{ range $otherBrowserParamName := .OtherBrowserParamNames }}
+		    bfse_other.TargetBrowserName = @{{ $otherBrowserParamName }}
+			OR
+			{{ end }}
+			-- Final statement to ensure syntax adherence.
+			1=2
+		)
+        GROUP BY
+            bfse_other.WebFeatureID, bfse_other.EventReleaseDate
+        HAVING
+            COUNT(DISTINCT bfse_other.TargetBrowserName) = @numOtherBrowsers
+    ) otherSupported ON Unsupported.WebFeatureID = otherSupported.WebFeatureID
+             AND Unsupported.EventReleaseDate = otherSupported.EventReleaseDate
+    GROUP BY
+        Unsupported.EventReleaseDate
+) AggregatedCounts ON r.EventReleaseDate = AggregatedCounts.EventReleaseDate
+ORDER BY
+    r.EventReleaseDate DESC
+LIMIT
+	@limit;
 `
 
 type missingOneImplTemplateData struct {
-	ReleaseDateParam           string
-	OtherBrowsersParamNames    []string
-	ExcludedFeatureFilter      string
-	OtherExcludedFeatureFilter string
+	ReleaseDateParam               string
+	BrowserSupportedFeaturesFilter string
+	OtherBrowserParamNames         []string
+	ExcludedFeatureFilter          string
+	OtherExcludedFeatureFilter     string
 }
 
 // MissingOneImplementationQuery contains the base query for all missing one implementation
@@ -197,6 +243,7 @@ func (q LocalMissingOneImplementationQuery) Query(data missingOneImplTemplateDat
 func buildMissingOneImplTemplate(
 	cursor *missingOneImplCursor,
 	targetBrowser string,
+	targetMobileBrowser *string,
 	otherBrowsers []string,
 	startAt time.Time,
 	endAt time.Time,
@@ -205,16 +252,24 @@ func buildMissingOneImplTemplate(
 	tmpl MissingOneImplementationQuery,
 ) spanner.Statement {
 	params := map[string]interface{}{}
-	allBrowsers := make([]string, len(otherBrowsers)+1)
+	var allBrowsers []string
+	if targetMobileBrowser != nil {
+		allBrowsers = make([]string, len(otherBrowsers)+2)
+		allBrowsers[len(allBrowsers)-2] = *targetMobileBrowser
+	} else {
+		allBrowsers = make([]string, len(otherBrowsers)+1)
+	}
 	copy(allBrowsers, otherBrowsers)
 	allBrowsers[len(allBrowsers)-1] = targetBrowser
-	params["targetBrowserParam"] = targetBrowser
-	params["allBrowsersParam"] = allBrowsers
-	otherBrowsersParamNames := make([]string, 0, len(otherBrowsers))
+	params["targetBrowserName"] = targetBrowser
+	params["allBrowserNames"] = allBrowsers
+	params["numOtherBrowsers"] = len(otherBrowsers)
+
+	otherBrowserParamNames := make([]string, 0, len(otherBrowsers))
 	for i := range otherBrowsers {
 		paramName := fmt.Sprintf("otherBrowser%d", i)
 		params[paramName] = otherBrowsers[i]
-		otherBrowsersParamNames = append(otherBrowsersParamNames, paramName)
+		otherBrowserParamNames = append(otherBrowserParamNames, paramName)
 	}
 
 	params["limit"] = pageSize
@@ -228,18 +283,42 @@ func buildMissingOneImplTemplate(
 	var excludedFeatureFilter, otherExcludedFeatureFilter string
 	if len(excludedFeatureIDs) > 0 {
 		params["excludedFeatureIDs"] = excludedFeatureIDs
-		excludedFeatureFilter = "AND bfse.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+		excludedFeatureFilter = "AND bfse1.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
 		otherExcludedFeatureFilter = "AND bfse_other.WebFeatureID NOT IN UNNEST(@excludedFeatureIDs)"
+	}
+
+	var browserSupportedFeaturesFilter string
+	if targetMobileBrowser != nil {
+		params["targetMobileBrowserName"] = *targetMobileBrowser
+		browserSupportedFeaturesFilter = `
+			JOIN
+				BrowserFeatureSupportEvents bfse2
+			ON
+				bfse1.WebFeatureID = bfse2.WebFeatureID
+				AND bfse1.EventReleaseDate = bfse2.EventReleaseDate
+			WHERE
+				bfse1.TargetBrowserName = @targetBrowserName
+				AND bfse2.TargetBrowserName = @targetMobileBrowserName
+				AND (
+					bfse1.SupportStatus = 'unsupported'
+					OR bfse2.SupportStatus = 'unsupported'
+				)`
+	} else {
+		browserSupportedFeaturesFilter = `
+		WHERE
+			bfse1.TargetBrowserName = @targetBrowserName
+			AND bfse1.SupportStatus = 'unsupported'`
 	}
 
 	params["startAt"] = startAt
 	params["endAt"] = endAt
 
 	tmplData := missingOneImplTemplateData{
-		ReleaseDateParam:           releaseDateParamName,
-		OtherBrowsersParamNames:    otherBrowsersParamNames,
-		ExcludedFeatureFilter:      excludedFeatureFilter,
-		OtherExcludedFeatureFilter: otherExcludedFeatureFilter,
+		ReleaseDateParam:               releaseDateParamName,
+		BrowserSupportedFeaturesFilter: browserSupportedFeaturesFilter,
+		OtherBrowserParamNames:         otherBrowserParamNames,
+		ExcludedFeatureFilter:          excludedFeatureFilter,
+		OtherExcludedFeatureFilter:     otherExcludedFeatureFilter,
 	}
 	sql := tmpl.Query(tmplData)
 	stmt := spanner.NewStatement(sql)
@@ -251,6 +330,7 @@ func buildMissingOneImplTemplate(
 func (c *Client) ListMissingOneImplCounts(
 	ctx context.Context,
 	targetBrowser string,
+	targetMobileBrowser *string,
 	otherBrowsers []string,
 	startAt time.Time,
 	endAt time.Time,
@@ -279,6 +359,7 @@ func (c *Client) ListMissingOneImplCounts(
 	stmt := buildMissingOneImplTemplate(
 		cursor,
 		targetBrowser,
+		targetMobileBrowser,
 		otherBrowsers,
 		startAt,
 		endAt,

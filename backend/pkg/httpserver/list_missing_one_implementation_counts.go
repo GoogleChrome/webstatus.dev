@@ -34,14 +34,28 @@ func (s *Server) ListMissingOneImplementationCounts(
 	if found {
 		return cachedResponse, nil
 	}
-	otherBrowsers := make([]string, len(request.Params.Browser))
-	for i := 0; i < len(request.Params.Browser); i++ {
-		otherBrowsers[i] = string(request.Params.Browser[i])
+
+	browserParams, err := PrepareMissingOneBrowserParams(
+		request.Browser, request.Params.Browser, request.Params.IncludeBaselineMobileBrowsers != nil)
+	if err != nil {
+		if errors.Is(err, ErrNoMatchingMobileBrowser) {
+			return backend.ListMissingOneImplementationCounts400JSONResponse{
+				Code:    400,
+				Message: err.Error(),
+			}, nil
+		}
+
+		return backend.ListMissingOneImplementationCounts500JSONResponse{
+			Code:    500,
+			Message: err.Error(),
+		}, nil
 	}
+
 	page, err := s.wptMetricsStorer.ListMissingOneImplCounts(
 		ctx,
-		string(request.Browser),
-		otherBrowsers,
+		browserParams.targetBrowser,
+		browserParams.targetMobileBrowser,
+		browserParams.otherBrowsers,
 		request.Params.StartAt.Time,
 		request.Params.EndAt.Time,
 		getPageSizeOrDefault(request.Params.PageSize),
