@@ -401,7 +401,7 @@ export class WebstatusSidebarMenu extends LitElement {
         <sl-divider aria-hidden="true"></sl-divider>
         <sl-tree-item class="report-issue-item">
           <sl-icon name="graph-up"></sl-icon>
-          <a class="report-issue-link" href="/stats">Performance statistics</a>
+          <a class="report-issue-link" href="/stats">Platform statistics</a>
         </sl-tree-item>
         <sl-divider aria-hidden="true"></sl-divider>
 
