@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM google/cloud-sdk:523.0.1-emulators
+FROM google/cloud-sdk:524.0.0-emulators
 # TARGETARCH is an automatic platform ARG enabled by Docker BuildKit.
 # https://docs.docker.com/reference/dockerfile/#automatic-platform-args-in-the-global-scope
 ARG TARGETARCH
