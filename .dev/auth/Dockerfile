@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM node:22.15.0-bookworm-slim
+FROM node:22.16.0-bookworm-slim
 # FIREBASE_CLI_VERSION from https://github.com/firebase/firebase-tools/releases
-ARG FIREBASE_CLI_VERSION=13.29.1
+ARG FIREBASE_CLI_VERSION=14.5.1
 ADD https://github.com/firebase/firebase-tools/releases/download/v${FIREBASE_CLI_VERSION}/firebase-tools-linux /usr/local/bin/firebase
 RUN chmod +x /usr/local/bin/firebase
 ADD firebase.json firebase.json

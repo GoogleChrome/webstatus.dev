@@ -30,7 +30,7 @@ sudo chown "$(whoami)":"$(whoami)" ~/.cache/
 go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 
 # Install wrench CLI
-go install github.com/cloudspannerecosystem/wrench@v1.10.1
+go install github.com/cloudspannerecosystem/wrench@v1.11.8
 
 # Install addlicense
 go install github.com/google/addlicense@v1.1.1
