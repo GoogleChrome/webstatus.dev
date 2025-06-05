@@ -17,6 +17,7 @@ package spanneradapters
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -31,6 +32,7 @@ type mockChromiumHistogramEnumsClient struct {
 	upsertWebFeatureChromiumHistogramEnumValue func(context.Context,
 		gcpspanner.WebFeatureChromiumHistogramEnumValue) error
 	getIDFromFeatureKey func(context.Context, *gcpspanner.FeatureIDFilter) (*string, error)
+	fetchAllFeatureKeys func(context.Context) ([]string, error)
 }
 
 func (m *mockChromiumHistogramEnumsClient) UpsertChromiumHistogramEnum(ctx context.Context,
@@ -53,6 +55,11 @@ func (m *mockChromiumHistogramEnumsClient) GetIDFromFeatureKey(ctx context.Conte
 	return m.getIDFromFeatureKey(ctx, in)
 }
 
+func (m *mockChromiumHistogramEnumsClient) FetchAllFeatureKeys(
+	ctx context.Context) ([]string, error) {
+	return m.fetchAllFeatureKeys(ctx)
+}
+
 func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -63,6 +70,9 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 		{
 			name: "Success",
 			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return []string{"enum-label"}, nil
+				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
@@ -88,8 +98,29 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
+			name: "FetchAllFeatureKeys returns error",
+			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return nil, errors.New("test error")
+				},
+				upsertChromiumHistogramEnum:                nil,
+				upsertChromiumHistogramEnumValue:           nil,
+				upsertWebFeatureChromiumHistogramEnumValue: nil,
+				getIDFromFeatureKey:                        nil,
+			},
+			data: metricdatatypes.HistogramMapping{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
+					{Value: 1, Label: "EnumLabel"},
+				},
+			},
+			expectedErr: ErrFailedToGetFeatureKeys,
+		},
+		{
 			name: "UpsertChromiumHistogramEnum returns error",
 			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return []string{"enum-label"}, nil
+				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return nil, errors.New("test error")
@@ -108,6 +139,9 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 		{
 			name: "UpsertChromiumHistogramEnumValue returns error",
 			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return []string{"enum-label"}, nil
+				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
@@ -129,6 +163,9 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 		{
 			name: "GetIDFromFeatureKey returns error",
 			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return []string{"enum-label"}, nil
+				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
@@ -153,6 +190,9 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 		{
 			name: "UpsertWebFeatureChromiumHistogramEnumValue returns error",
 			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return []string{"enum-label"}, nil
+				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
@@ -195,48 +235,34 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 	}
 }
 
-func TestEnumLabelToFeatureKey(t *testing.T) {
-	tests := []struct {
-		name  string
-		label string
-		want  string
-	}{
-		{
-			name:  "Simple lowercase",
-			label: "simple",
-			want:  "simple",
-		},
-		{
-			name:  "typical",
-			label: "TypicalCase",
-			want:  "typical-case",
-		},
-		{
-			name:  "With numbers in the middle",
-			label: "With123Numbers",
-			want:  "with-123-numbers",
-		},
-		{
-			name:  "Starting with number",
-			label: "123Abc",
-			want:  "123-abc",
-		},
-		{
-			name:  "Consecutive uppercase letters",
-			label: "ABCTest",
-			want:  "a-b-c-test",
-		},
-		{
-			name:  "Mixed case with numbers and consecutive uppercase",
-			label: "ABC123defGHI456Jkl",
-			want:  "a-b-c-123def-g-h-i-456-jkl",
-		},
+func TestCreateEnumToFeatureKeyMap(t *testing.T) {
+	featureKeys := []string{
+		"canvas-2d-color-management",
+		"http3",
+		"intersection-observer-v2",
+		"view-transitions",
+		// Special cases
+		"float16array",
+		"uint8array-base64-hex",
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			if got := enumLabelToFeatureKey(tc.label); got != tc.want {
-				t.Errorf("enumLabelToFeatureKey() = %v, want %v", got, tc.want)
-			}
-		})
+	// nolint: lll // WONTFIX: useful comment with SHA
+	want := map[string]string{
+		"Canvas2DColorManagement": "canvas-2d-color-management",
+		"Http3":                   "http3",
+		"IntersectionObserverV2":  "intersection-observer-v2",
+		"ViewTransitions":         "view-transitions",
+		/*
+			Special cases
+		*/
+		// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom;l=360;drc=822a70f9ac61a75babe9d24ddfc32ab475acc7e1
+		// https://github.com/web-platform-dx/web-features/blob/main/features/float16array.yml
+		"Float16Array": "float16array",
+		// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom;l=396;drc=822a70f9ac61a75babe9d24ddfc32ab475acc7e1
+		// https://github.com/web-platform-dx/web-features/blob/main/features/uint8array-base64-hex.yml
+		"Uint8ArrayBase64Hex": "uint8array-base64-hex",
+	}
+	got := createEnumToFeatureKeyMap(featureKeys)
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("createEnumToFeatureKeyMap()\ngot:  (%+v)\nwant: (%+v)\n", got, want)
 	}
 }

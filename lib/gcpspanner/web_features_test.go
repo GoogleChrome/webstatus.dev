@@ -125,4 +125,19 @@ func TestUpsertWebFeature(t *testing.T) {
 	if !slices.Equal[[]WebFeature](expectedPageAfterUpdate, features) {
 		t.Errorf("unequal features after update. expected %+v actual %+v", sampleFeatures, features)
 	}
+
+	expectedKeys := []string{
+		"feature1",
+		"feature2",
+		"feature3",
+		"feature4",
+	}
+	keys, err := spannerClient.FetchAllFeatureKeys(ctx)
+	if err != nil {
+		t.Errorf("unexpected error fetching all keys")
+	}
+	slices.Sort(keys)
+	if !slices.Equal(keys, expectedKeys) {
+		t.Errorf("unequal keys. expected %+v actual %+v", expectedKeys, keys)
+	}
 }
