@@ -19,10 +19,11 @@ import (
 	"errors"
 	"log/slog"
 	"strings"
-	"unicode"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // ChromiumHistogramEnumConsumer handles the conversion of histogram between the workflow/API input
@@ -43,10 +44,20 @@ type ChromiumHistogramEnumsClient interface {
 	UpsertChromiumHistogramEnumValue(context.Context, gcpspanner.ChromiumHistogramEnumValue) (*string, error)
 	UpsertWebFeatureChromiumHistogramEnumValue(context.Context, gcpspanner.WebFeatureChromiumHistogramEnumValue) error
 	GetIDFromFeatureKey(context.Context, *gcpspanner.FeatureIDFilter) (*string, error)
+	FetchAllFeatureKeys(context.Context) ([]string, error)
 }
+
+// Used by GCP Log-based metrics to extract the data about mismatch mappings.
+const logMissingFeatureIDMetricMsg = "unable to find feature ID. skipping mapping"
 
 func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 	ctx context.Context, data metricdatatypes.HistogramMapping) error {
+	featureKeys, err := c.client.FetchAllFeatureKeys(ctx)
+	if err != nil {
+		return errors.Join(ErrFailedToGetFeatureKeys, err)
+	}
+	enumToFeatureKeyMap := createEnumToFeatureKeyMap(featureKeys)
+	// Create mapping of anticipated enums to feature keys
 	for histogram, enums := range data {
 		enumID, err := c.client.UpsertChromiumHistogramEnum(ctx, gcpspanner.ChromiumHistogramEnum{
 			HistogramName: string(histogram),
@@ -63,12 +74,21 @@ func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 			if err != nil {
 				return errors.Join(ErrFailedToStoreEnumValue, err)
 			}
-			featureKey := enumLabelToFeatureKey(enum.Label)
+
+			featureKey, found := enumToFeatureKeyMap[enum.Label]
+			if !found {
+				slog.WarnContext(ctx,
+					logMissingFeatureIDMetricMsg,
+					"label", enum.Label)
+
+				continue
+			}
+
 			featureID, err := c.client.GetIDFromFeatureKey(
 				ctx, gcpspanner.NewFeatureKeyFilter(featureKey))
 			if err != nil {
 				slog.WarnContext(ctx,
-					"unable to find feature ID. skipping mapping",
+					logMissingFeatureIDMetricMsg,
 					"error", err,
 					"featureKey", featureKey,
 					"label", enum.Label)
@@ -97,29 +117,35 @@ var (
 	// the mapping between enum value and web feature.
 	ErrFailedToStoreEnumValueWebFeatureMapping = errors.New(
 		"failed to store web feature to chromium enum value mapping")
+	// ErrFailedToGetFeatureKeys indicates an internal error when trying to get all the feature keys.
+	ErrFailedToGetFeatureKeys = errors.New("failed to get feature keys")
 )
 
-func enumLabelToFeatureKey(label string) string {
-	b := strings.Builder{}
-	for idx, c := range label {
-		// First character just return the lower case version of it.
-		if idx == 0 {
-			b.WriteRune(unicode.ToLower(c))
+// nolint:lll // WONTFIX: useful comment message
+// createEnumToFeatureKeyMap uses the list of WebDX feature keys to
+// generate a map from the enum label (e.g., "ViewTransitions")
+// back to its original WebDX feature key (e.g., "view-transitions").
+// It uses the same transformation logic described in the Chromium mojom file.
+// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom;l=35-47;drc=822a70f9ac61a75babe9d24ddfc32ab475acc7e1
+func createEnumToFeatureKeyMap(featureKeys []string) map[string]string {
+	titleCaser := cases.Title(language.English)
+	m := make(map[string]string, len(featureKeys))
+	specialCases := map[string]string{
+		"float16array":          "Float16Array",
+		"uint8array-base64-hex": "Uint8ArrayBase64Hex",
+	}
+	for _, featureKey := range featureKeys {
+		if specialCaseLabel, found := specialCases[featureKey]; found {
+			m[specialCaseLabel] = featureKey
 
 			continue
 		}
-		if unicode.IsUpper(c) {
-			b.WriteRune('-')
-			b.WriteRune(unicode.ToLower(c))
 
-			continue
-		}
-		// Add hyphen if previous character is a letter and current character is a digit
-		if idx > 0 && unicode.IsLetter(rune(label[idx-1])) && unicode.IsDigit(c) {
-			b.WriteRune('-')
-		}
-		b.WriteRune(c)
+		enumLabel := titleCaser.String(featureKey)
+		enumLabel = strings.ReplaceAll(enumLabel, "-", "")
+		// Before storing it, check if it exists
+		m[enumLabel] = featureKey
 	}
 
-	return b.String()
+	return m
 }

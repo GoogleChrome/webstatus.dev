@@ -102,15 +102,27 @@ func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilte
 
 func (c *Client) fetchAllWebFeatureIDsWithTransaction(
 	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]string, error) {
-	var ids []string
-	iter := txn.Read(ctx, webFeaturesTable, spanner.AllKeys(), []string{"ID"})
+	return fetchColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "ID")
+}
+
+func (c *Client) FetchAllFeatureKeys(ctx context.Context) ([]string, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	return fetchColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "FeatureKey")
+}
+
+func fetchColumnValuesWithTransaction[T any](
+	ctx context.Context, txn *spanner.ReadOnlyTransaction, table string, columnName string) ([]T, error) {
+	var values []T
+	iter := txn.Read(ctx, table, spanner.AllKeys(), []string{columnName})
 	defer iter.Stop()
 	err := iter.Do(func(row *spanner.Row) error {
-		var id string
-		if err := row.Column(0, &id); err != nil {
+		var value T
+		if err := row.Column(0, &value); err != nil {
 			return err
 		}
-		ids = append(ids, id)
+		values = append(values, value)
 
 		return nil
 	})
@@ -118,5 +130,5 @@ func (c *Client) fetchAllWebFeatureIDsWithTransaction(
 		return nil, err
 	}
 
-	return ids, nil
+	return values, nil
 }
