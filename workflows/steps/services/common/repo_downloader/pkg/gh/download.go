@@ -20,7 +20,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/google/go-github/v55/github"
+	"github.com/google/go-github/v72/github"
 )
 
 type Downloader struct {
@@ -48,7 +48,7 @@ func (d *Downloader) Download(
 	}
 
 	archiveURL, _, err := d.ghClient.client.Repositories.GetArchiveLink(
-		ctx, repoOwner, repoName, github.Tarball, nil, true)
+		ctx, repoOwner, repoName, github.Tarball, nil, 10)
 	if err != nil {
 		return nil, "", err
 	}
