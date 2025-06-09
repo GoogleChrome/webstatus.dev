@@ -58,18 +58,18 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					CompatFeatures: nil,
 					Name:           "feature 1",
 					Description:    "Feature 1 description",
-					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+					Caniuse: &web_platform_dx__web_features.StringOrStrings{
 						String:      valuePtr("caniuse-id1"),
 						StringArray: nil,
 					},
 					DescriptionHTML: "<html>1",
 					Discouraged:     nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: &web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -99,17 +99,17 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Name:           "feature 2",
 					Description:    "Feature 2 description",
 					Discouraged:    nil,
-					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+					Caniuse: &web_platform_dx__web_features.StringOrStrings{
 						String:      nil,
 						StringArray: []string{"caniuse-id2a", "caniuse-id2b"},
 					},
 					DescriptionHTML: "<html>2",
-					Status: web_platform_dx__web_features.Status{
+					Status: &web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -145,12 +145,12 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Description:     "Feature 3 description",
 					DescriptionHTML: "<html>3",
 					Discouraged:     nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: &web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -180,12 +180,12 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Description:     "Feature 4 description",
 					DescriptionHTML: "<html>4",
 					Discouraged:     nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: &web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,

@@ -176,9 +176,9 @@ JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 
 download-schemas:
 	wget -O jsonschema/web-platform-dx_web-features/defs.schema.json \
-		https://raw.githubusercontent.com/web-platform-dx/web-features/refs/heads/main/schemas/data.schema.json
-	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
-		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
+		https://raw.githubusercontent.com/ddbeck/web-features/refs/heads/91-jsonschema-source-of-truth/schemas/data.schema.json
+	# wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
+	# 	https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 
 jsonschema:
 	npx quicktype \

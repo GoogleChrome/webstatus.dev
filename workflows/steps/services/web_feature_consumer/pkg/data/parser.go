@@ -54,35 +54,35 @@ func postProcessFeatureValue(
 	data map[string]web_platform_dx__web_features.FeatureValue) {
 	for id, value := range data {
 		data[id] = web_platform_dx__web_features.FeatureValue{
-			Caniuse:         postProcessStringOrStringArray(value.Caniuse),
+			Caniuse:         postProcessStringOrStrings(value.Caniuse),
 			CompatFeatures:  value.CompatFeatures,
 			Description:     value.Description,
 			DescriptionHTML: value.DescriptionHTML,
-			Group:           postProcessStringOrStringArray(value.Group),
+			Group:           postProcessStringOrStrings(value.Group),
 			Name:            value.Name,
-			Snapshot:        postProcessStringOrStringArray(value.Snapshot),
-			Spec:            postProcessStringOrStringArray(value.Spec),
+			Snapshot:        postProcessStringOrStrings(value.Snapshot),
+			Spec:            postProcessStringOrStrings(value.Spec),
 			Status:          postProcessStatus(value.Status),
 			Discouraged:     value.Discouraged,
 		}
 	}
 }
 
-func postProcessStringOrStringArray(
-	value *web_platform_dx__web_features.StringOrStringArray) *web_platform_dx__web_features.StringOrStringArray {
+func postProcessStringOrStrings(
+	value *web_platform_dx__web_features.StringOrStrings) *web_platform_dx__web_features.StringOrStrings {
 	// Do nothing for now.
 	if value == nil {
 		return nil
 	}
 
-	return &web_platform_dx__web_features.StringOrStringArray{
+	return &web_platform_dx__web_features.StringOrStrings{
 		String:      value.String,
 		StringArray: value.StringArray,
 	}
 }
 
-func postProcessStatus(value web_platform_dx__web_features.Status) web_platform_dx__web_features.Status {
-	return web_platform_dx__web_features.Status{
+func postProcessStatus(value web_platform_dx__web_features.StatusHeadline) web_platform_dx__web_features.StatusHeadline {
+	return web_platform_dx__web_features.StatusHeadline{
 		Baseline:         postProcessBaseline(value.Baseline),
 		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),
 		BaselineLowDate:  postProcessBaselineDates(value.BaselineLowDate),
@@ -122,8 +122,8 @@ func postProcessBaselineSupportBrowser(value *string) *string {
 }
 
 func postProcessBaselineSupport(
-	value web_platform_dx__web_features.StatusSupport) web_platform_dx__web_features.StatusSupport {
-	return web_platform_dx__web_features.StatusSupport{
+	value web_platform_dx__web_features.Support) web_platform_dx__web_features.Support {
+	return web_platform_dx__web_features.Support{
 		Chrome:         postProcessBaselineSupportBrowser(value.Chrome),
 		ChromeAndroid:  postProcessBaselineSupportBrowser(value.ChromeAndroid),
 		Edge:           postProcessBaselineSupportBrowser(value.Edge),

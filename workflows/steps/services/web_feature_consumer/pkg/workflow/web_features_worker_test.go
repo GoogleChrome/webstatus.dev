@@ -260,12 +260,12 @@ func TestProcess(t *testing.T) {
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: &web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -304,12 +304,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -338,12 +338,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -372,12 +372,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -412,12 +412,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -542,12 +542,12 @@ func TestProcess(t *testing.T) {
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: &web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -576,12 +576,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -641,12 +641,12 @@ func TestProcess(t *testing.T) {
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: &web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -675,12 +675,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -709,12 +709,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -769,12 +769,12 @@ func TestProcess(t *testing.T) {
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: &web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -808,12 +808,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -842,12 +842,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -876,12 +876,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -936,12 +936,12 @@ func TestProcess(t *testing.T) {
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: &web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -980,12 +980,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -1014,12 +1014,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -1048,12 +1048,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
@@ -1088,12 +1088,12 @@ func TestProcess(t *testing.T) {
 						CompatFeatures: nil,
 						Discouraged:    nil,
 						Spec:           nil,
-						Status: web_platform_dx__web_features.Status{
+						Status: &web_platform_dx__web_features.StatusHeadline{
 							Baseline:         nil,
 							BaselineHighDate: nil,
 							BaselineLowDate:  nil,
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.Support{
 								Chrome:         nil,
 								ChromeAndroid:  nil,
 								Edge:           nil,
