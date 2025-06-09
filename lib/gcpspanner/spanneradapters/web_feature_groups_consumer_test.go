@@ -200,7 +200,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 			},
 			featureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
-					Group: &web_platform_dx__web_features.StringOrStringArray{
+					Group: &web_platform_dx__web_features.StringOrStrings{
 						StringArray: []string{"group1", "child3"},
 						String:      nil,
 					},
@@ -212,12 +212,12 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: &web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -229,7 +229,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					},
 				},
 				"feature2": {
-					Group: &web_platform_dx__web_features.StringOrStringArray{
+					Group: &web_platform_dx__web_features.StringOrStrings{
 						String:      valuePtr("group2"),
 						StringArray: nil,
 					},
@@ -241,12 +241,12 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: &web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.Support{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
