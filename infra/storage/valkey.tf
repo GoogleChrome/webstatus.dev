@@ -33,7 +33,7 @@ resource "google_memorystore_instance" "valkey_instance" {
   instance_id = "${var.env_id}-valkey-${each.key}"
   shard_count = 1
   node_type   = "SHARED_CORE_NANO"
-  desired_psc_auto_connections {
+  desired_auto_created_endpoints {
     network    = var.vpc_id
     project_id = var.projects.internal
   }
