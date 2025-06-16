@@ -65,7 +65,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 
 		featureBaselineStatus := gcpspanner.FeatureBaselineStatus{
-			Status:   getBaselineStatusEnum(featureData.Status),
+			Status:   getBaselineStatusEnum(*featureData.Status),
 			LowDate:  nil,
 			HighDate: nil,
 		}
@@ -231,7 +231,7 @@ func convertStringToDate(in *string) *time.Time {
 }
 
 // getBaselineStatusEnum converts the web feature status to the Spanner-compatible BaselineStatus type.
-func getBaselineStatusEnum(status web_platform_dx__web_features.Status) *gcpspanner.BaselineStatus {
+func getBaselineStatusEnum(status web_platform_dx__web_features.StatusHeadline) *gcpspanner.BaselineStatus {
 	if status.Baseline == nil {
 		return nil
 	}
