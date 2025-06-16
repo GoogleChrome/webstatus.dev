@@ -65,7 +65,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 
 		featureBaselineStatus := gcpspanner.FeatureBaselineStatus{
-			Status:   getBaselineStatusEnum(*featureData.Status),
+			Status:   getBaselineStatusEnum(featureData.Status),
 			LowDate:  nil,
 			HighDate: nil,
 		}

@@ -160,7 +160,7 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 					Name:            "",
 					Group:           nil,
 					Spec:            nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						ByCompatKey:      nil,
 						Baseline:         nil,
 						BaselineHighDate: nil,
@@ -189,7 +189,7 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 					Name:            "",
 					Group:           nil,
 					Spec:            nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,

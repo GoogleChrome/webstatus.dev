@@ -81,7 +81,8 @@ func postProcessStringOrStrings(
 	}
 }
 
-func postProcessStatus(value web_platform_dx__web_features.StatusHeadline) web_platform_dx__web_features.StatusHeadline {
+func postProcessStatus(
+	value web_platform_dx__web_features.StatusHeadline) web_platform_dx__web_features.StatusHeadline {
 	return web_platform_dx__web_features.StatusHeadline{
 		Baseline:         postProcessBaseline(value.Baseline),
 		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),

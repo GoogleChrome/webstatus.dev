@@ -542,7 +542,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -574,7 +574,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: nil,
 						String:      valuePtr("feature2-link"),
 					},
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -662,7 +662,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					CompatFeatures: nil,
 					Discouraged:    nil,
 					Spec:           nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -735,7 +735,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					CompatFeatures: nil,
 					Discouraged:    nil,
 					Spec:           nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -828,7 +828,7 @@ func TestInsertWebFeatures(t *testing.T) {
 					CompatFeatures: nil,
 					Discouraged:    nil,
 					Spec:           nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -957,7 +957,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -1112,7 +1112,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: []string{"feature1-link1", "feature1-link2"},
 						String:      nil,
 					},
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
@@ -1144,7 +1144,7 @@ func TestInsertWebFeatures(t *testing.T) {
 						StringArray: nil,
 						String:      valuePtr("feature2-link"),
 					},
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,

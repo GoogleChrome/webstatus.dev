@@ -172,7 +172,7 @@ func TestPostProcess(t *testing.T) {
 								"spec2",
 							},
 						},
-						Status: &web_platform_dx__web_features.StatusHeadline{
+						Status: web_platform_dx__web_features.StatusHeadline{
 							Baseline: &web_platform_dx__web_features.BaselineUnion{
 								Bool: valuePtr(false),
 								Enum: valuePtr(web_platform_dx__web_features.High),
@@ -236,7 +236,7 @@ func TestPostProcess(t *testing.T) {
 						"spec2",
 					},
 				},
-				Status: &web_platform_dx__web_features.StatusHeadline{
+				Status: web_platform_dx__web_features.StatusHeadline{
 					ByCompatKey: nil,
 					Baseline: &web_platform_dx__web_features.BaselineUnion{
 						Bool: valuePtr(false),

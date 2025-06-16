@@ -212,7 +212,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
@@ -241,7 +241,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,

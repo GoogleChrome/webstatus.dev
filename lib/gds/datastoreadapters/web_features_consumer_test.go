@@ -64,7 +64,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					},
 					DescriptionHTML: "<html>1",
 					Discouraged:     nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
@@ -104,7 +104,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 						StringArray: []string{"caniuse-id2a", "caniuse-id2b"},
 					},
 					DescriptionHTML: "<html>2",
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
@@ -145,7 +145,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Description:     "Feature 3 description",
 					DescriptionHTML: "<html>3",
 					Discouraged:     nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
@@ -180,7 +180,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Description:     "Feature 4 description",
 					DescriptionHTML: "<html>4",
 					Discouraged:     nil,
-					Status: &web_platform_dx__web_features.StatusHeadline{
+					Status: web_platform_dx__web_features.StatusHeadline{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
