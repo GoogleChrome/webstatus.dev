@@ -18,6 +18,11 @@
 <html>
   <head>
     <meta charset="UTF-8" />
+    <!-- Google tag (gtag.js) -->
+    <script
+      async
+      src="https://www.googletagmanager.com/gtag/js?id=$GOOGLE_ANALYTICS_ID"
+    ></script>
     <link
       href="https://fonts.googleapis.com/icon?family=Material+Icons"
       rel="stylesheet"
@@ -59,6 +64,7 @@
   <body>
     <script src="/public/js/index.js?v=$WEBSTATUS_VERSION"></script>
     <webstatus-app
+      gtag-id='$GOOGLE_ANALYTICS_ID'
       settings='{
         "apiUrl": "$API_URL",
         "firebase": {
@@ -74,19 +80,5 @@
       }'
     >
     </webstatus-app>
-    <!-- Google tag (gtag.js) -->
-    <script
-      async
-      src="https://www.googletagmanager.com/gtag/js?id=$GOOGLE_ANALYTICS_ID"
-    ></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag('js', new Date());
-
-      gtag('config', '$GOOGLE_ANALYTICS_ID');
-    </script>
   </body>
 </html>

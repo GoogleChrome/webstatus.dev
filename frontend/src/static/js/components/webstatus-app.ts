@@ -44,6 +44,27 @@ export class WebstatusApp extends LitElement {
   @property({type: Object})
   settings!: AppSettings;
 
+  @property({type: String, attribute: 'gtag-id'})
+  gtagID?: string;
+
+  connectedCallback(): void {
+    super.connectedCallback();
+
+    if (this.gtagID) {
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = function () {
+        // eslint-disable-next-line prefer-rest-params
+        window.dataLayer.push(arguments);
+      };
+      window.gtag('js', new Date());
+      window.gtag('config', this.gtagID);
+    } else {
+      console.error(
+        'gtag-id attribute is missing or empty. Google Analytics will not be initialized.',
+      );
+    }
+  }
+
   static get styles(): CSSResultGroup {
     return [
       SHARED_STYLES,
