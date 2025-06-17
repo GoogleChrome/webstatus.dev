@@ -225,6 +225,11 @@ export class WebstatusOverviewTable extends LitElement {
         </tr>
       `;
     }
+    if (this.taskTracker.error !== undefined) {
+      console.error(`${JSON.stringify(this.taskTracker.error)} - error`);
+    } else {
+      console.error('no error to print');
+    }
     return html`
       <tr>
         <td class="message" colspan=${columns.length}>
