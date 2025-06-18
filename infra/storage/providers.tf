@@ -21,5 +21,8 @@ terraform {
         google.public_project,
       ]
     }
+    random = {
+      source = "hashicorp/random"
+    }
   }
 }
