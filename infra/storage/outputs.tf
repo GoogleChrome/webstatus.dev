@@ -47,8 +47,8 @@ output "valkey_env_vars" {
   value = {
     for region, _ in var.region_to_subnet_info_map :
     region => {
-      host = google_memorystore_instance.valkey_instance[region].discovery_endpoints[0].address
-      port = google_memorystore_instance.valkey_instance[region].discovery_endpoints[0].port
+      host = google_memorystore_instance.valkey_instance[region].endpoints[0].connections[0].psc_auto_connection[0].ip_address
+      port = google_memorystore_instance.valkey_instance[region].endpoints[0].connections[0].psc_auto_connection[0].port
     }
   }
 }

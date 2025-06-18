@@ -30,7 +30,7 @@ resource "google_network_connectivity_service_connection_policy" "valkey_policy"
 resource "google_memorystore_instance" "valkey_instance" {
   project     = var.projects.internal
   for_each    = var.region_to_subnet_info_map
-  instance_id = "${var.env_id}-valkey-${each.key}"
+  instance_id = "${var.env_id}-valkey-${each.key}-${random_id.valkey_instance_suffix[each.key].hex}"
   shard_count = 1
   node_type   = "SHARED_CORE_NANO"
   desired_auto_created_endpoints {
@@ -41,4 +41,12 @@ resource "google_memorystore_instance" "valkey_instance" {
   location                    = each.key
   depends_on                  = [google_network_connectivity_service_connection_policy.valkey_policy]
   deletion_protection_enabled = var.deletion_protection
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "random_id" "valkey_instance_suffix" {
+  for_each    = var.region_to_subnet_info_map
+  byte_length = 2
 }
