@@ -34,13 +34,14 @@ DOCKERFILES := \
 		deploy-local \
 		stop-local \
 		port-forward-manual \
-		port-forward-terminate
+		port-forward-terminate \
+		unstaged-changes
 
 build: gen go-build node-install
 
 clean: clean-gen clean-node port-forward-terminate minikube-delete
 
-precommit: license-check lint test
+precommit: license-check lint unstaged-changes test
 
 ################################
 # Local Environment
@@ -316,6 +317,9 @@ license-check:
 
 license-fix:
 	addlicense $(ADDLICENSE_ARGS) .
+
+unstaged-changes:
+	git diff --exit-code
 
 ################################
 # Playwright
