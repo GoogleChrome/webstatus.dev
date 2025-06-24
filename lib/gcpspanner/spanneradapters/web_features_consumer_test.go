@@ -424,12 +424,16 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureKey: "feature1",
-						Name:       "Feature 1",
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 					"feature2": {
-						FeatureKey: "feature2",
-						Name:       "Feature 2",
+						FeatureKey:      "feature2",
+						Name:            "Feature 2",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				outputIDs: map[string]*string{
@@ -619,8 +623,10 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureKey: "feature1",
-						Name:       "Feature 1",
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				outputs: map[string]error{
@@ -693,8 +699,10 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureKey: "feature1",
-						Name:       "Feature 1",
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				outputs: map[string]error{
@@ -775,8 +783,10 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureKey: "feature1",
-						Name:       "Feature 1",
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				outputs: map[string]error{
@@ -868,8 +878,10 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureKey: "feature1",
-						Name:       "Feature 1",
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				outputs: map[string]error{
@@ -997,12 +1009,16 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
 				expectedInputs: map[string]gcpspanner.WebFeature{
 					"feature1": {
-						FeatureKey: "feature1",
-						Name:       "Feature 1",
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 					"feature2": {
-						FeatureKey: "feature2",
-						Name:       "Feature 2",
+						FeatureKey:      "feature2",
+						Name:            "Feature 2",
+						Description:     "text",
+						DescriptionHTML: "<html>",
 					},
 				},
 				outputIDs: map[string]*string{

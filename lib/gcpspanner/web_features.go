@@ -36,8 +36,10 @@ type SpannerWebFeature struct {
 // WebFeature contains common metadata for a Web Feature.
 // Columns come from the ../../infra/storage/spanner/migrations/*.sql files.
 type WebFeature struct {
-	FeatureKey string `spanner:"FeatureKey"`
-	Name       string `spanner:"Name"`
+	FeatureKey      string `spanner:"FeatureKey"`
+	Name            string `spanner:"Name"`
+	Description     string `spanner:"Description"`
+	DescriptionHTML string `spanner:"DescriptionHtml"`
 }
 
 // Implements the entityMapper interface for WebFeature and SpannerWebFeature.
@@ -46,7 +48,7 @@ type webFeatureSpannerMapper struct{}
 func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
-		ID, FeatureKey, Name
+		ID, FeatureKey, Name, Description, DescriptionHtml
 	FROM %s
 	WHERE FeatureKey = @featureKey
 	LIMIT 1`, m.Table()))
@@ -63,8 +65,10 @@ func (m webFeatureSpannerMapper) Merge(in WebFeature, existing SpannerWebFeature
 		ID: existing.ID,
 		WebFeature: WebFeature{
 			FeatureKey: existing.FeatureKey,
-			// Only allow overriding of the feature name.
-			Name: cmp.Or[string](in.Name, existing.Name),
+			// Only allow overriding of the feature name and description.
+			Name:            cmp.Or(in.Name, existing.Name),
+			Description:     cmp.Or(in.Description, existing.Description),
+			DescriptionHTML: cmp.Or(in.DescriptionHTML, existing.DescriptionHTML),
 		},
 	}
 }

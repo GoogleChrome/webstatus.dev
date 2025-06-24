@@ -32,9 +32,9 @@ func setupTablesForPrecalculateBrowserFeatureSupportEvents(
 
 	// 1. Insert sample data into WebFeatures
 	features := []WebFeature{
-		{FeatureKey: "FeatureX", Name: "Cool API"},
-		{FeatureKey: "FeatureY", Name: "Super API"},
-		{FeatureKey: "FeatureZ", Name: "Ultra API"},
+		{FeatureKey: "FeatureX", Name: "Cool API", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureY", Name: "Super API", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureZ", Name: "Ultra API", Description: "text", DescriptionHTML: "<html>"},
 	}
 	for _, feature := range features {
 		id, err := spannerClient.UpsertWebFeature(ctx, feature)

@@ -55,8 +55,10 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ret := make(map[string]string, len(data))
 	for featureID, featureData := range data {
 		webFeature := gcpspanner.WebFeature{
-			FeatureKey: featureID,
-			Name:       featureData.Name,
+			FeatureKey:      featureID,
+			Name:            featureData.Name,
+			Description:     featureData.Description,
+			DescriptionHTML: featureData.DescriptionHTML,
 		}
 
 		id, err := c.client.UpsertWebFeature(ctx, webFeature)
