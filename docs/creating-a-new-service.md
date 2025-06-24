@@ -49,7 +49,6 @@ Currently, there are 2 generic docker images
   - Users of the image can specify the correct `service_dir` build argument to
     point to the root of the newly created directory.
 - [Node](../images/nodejs_service.Dockerfile)
-
   - Has two targets that can be used in the final image:
     - `production` - for running a node based program
     - `static` - for running a static website that is built by node

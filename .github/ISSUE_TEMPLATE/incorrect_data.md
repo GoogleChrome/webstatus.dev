@@ -15,7 +15,6 @@ data from other sources and display it; we don't modify it.
 **Here's how to check:**
 
 1. **Identify the source of the data:**
-
    - [ ] **Baseline Status, Browser Availability, Feature Groups, Feature Snapshots:**
          Check the [Web DX Features repository](https://github.com/web-platform-dx/web-features)
    - [ ] **Web Platform Test scores:** Check the
@@ -32,7 +31,6 @@ data from other sources and display it; we don't modify it.
 
 - [ ] **Do not submit an issue here.** The issue lies with the original data
       source. Please submit an issue in the relevant repository:
-
   - [Web DX Features repository](https://github.com/web-platform-dx/web-features)
   - [Web Platform Tests repository](https://github.com/web-platform-tests/wpt)
   - [Browser Compat Data](https://github.com/mdn/browser-compat-data)
@@ -40,7 +38,6 @@ data from other sources and display it; we don't modify it.
 **If the data is different:**
 
 - [ ] Please provide the following information in your bug report:
-
   - **Screenshot:** A screenshot clearly showing the discrepancy between
     webstatus.dev and the original data source.
   - **URL:** The URL of the page on webstatus.dev where the incorrect data is
