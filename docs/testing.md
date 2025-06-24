@@ -5,7 +5,6 @@ _This doucument assumes you are using the devcontainer._
 ## Table Of Contents
 
 1. Run Precommit Suite
-
    - Go Tests
    - TypeScript Tests
    - License Check
@@ -14,7 +13,6 @@ _This doucument assumes you are using the devcontainer._
      - Attempt Automatic Lint Error Fixing
 
 1. Run Playwright Tests
-
    - Update Screenshots
    - Download GitHub Playwright Test Results
    - Analyze Playwright Test Results
