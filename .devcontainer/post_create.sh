@@ -35,8 +35,8 @@ go install github.com/cloudspannerecosystem/wrench@v1.11.8
 # Install addlicense
 go install github.com/google/addlicense@v1.1.1
 
-# Install repo-wide npm tools
-npm i --workspaces=false
+# Install repo-wide npm tools only (e.g. Playwright, gts)
+npm ci --workspaces=false
 
 # Generate files
 make gen -B
