@@ -227,8 +227,10 @@ func generateFeatures(
 		// Add it to the map.
 		featureIDMap[word] = nil
 		feature := gcpspanner.WebFeature{
-			Name:       featureName,
-			FeatureKey: featureID,
+			Name:            featureName,
+			FeatureKey:      featureID,
+			Description:     fmt.Sprintf("description for %s", featureName),
+			DescriptionHTML: fmt.Sprintf("description for <b>%s</b>", featureName),
 		}
 		_, err := client.UpsertWebFeature(ctx, feature)
 		if err != nil {

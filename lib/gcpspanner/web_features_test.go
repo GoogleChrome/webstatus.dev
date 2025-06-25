@@ -27,27 +27,37 @@ import (
 func getSampleFeatures() []WebFeature {
 	return []WebFeature{
 		{
-			Name:       "Feature 1",
-			FeatureKey: "feature1",
+			Name:            "Feature 1",
+			FeatureKey:      "feature1",
+			Description:     "Wow what a feature description",
+			DescriptionHTML: "Feature <b>1</b> description",
 		},
 		{
-			Name:       "Feature 2",
-			FeatureKey: "feature2",
+			Name:            "Feature 2",
+			FeatureKey:      "feature2",
+			Description:     "Feature 2 description",
+			DescriptionHTML: "Feature <b>2</b> description",
 		},
 		{
-			Name:       "Feature 3",
-			FeatureKey: "feature3",
+			Name:            "Feature 3",
+			FeatureKey:      "feature3",
+			Description:     "Feature 3 description",
+			DescriptionHTML: "Feature <b>3</b> description",
 		},
 		{
-			Name:       "Feature 4",
-			FeatureKey: "feature4",
+			Name:            "Feature 4",
+			FeatureKey:      "feature4",
+			Description:     "Feature 4 description",
+			DescriptionHTML: "Feature <b>4</b> description",
 		},
 	}
 }
 
 // Helper method to get all the features in a stable order.
 func (c *Client) ReadAllWebFeatures(ctx context.Context, t *testing.T) ([]WebFeature, error) {
-	stmt := spanner.NewStatement("SELECT ID, FeatureKey, Name FROM WebFeatures ORDER BY FeatureKey ASC")
+	stmt := spanner.NewStatement(`SELECT
+		ID, FeatureKey, Name, Description, DescriptionHtml
+	FROM WebFeatures ORDER BY FeatureKey ASC`)
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -87,13 +97,15 @@ func TestUpsertWebFeature(t *testing.T) {
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
 	}
-	if !slices.Equal[[]WebFeature](sampleFeatures, features) {
+	if !slices.Equal(sampleFeatures, features) {
 		t.Errorf("unequal features. expected %+v actual %+v", sampleFeatures, features)
 	}
 
 	_, err = spannerClient.UpsertWebFeature(ctx, WebFeature{
-		Name:       "Feature 1!!",
-		FeatureKey: "feature1",
+		Name:            "Feature 1!!",
+		FeatureKey:      "feature1",
+		Description:     "Feature 1 description!",
+		DescriptionHTML: "Feature <i>1</i> description!",
 	})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
@@ -106,20 +118,28 @@ func TestUpsertWebFeature(t *testing.T) {
 
 	expectedPageAfterUpdate := []WebFeature{
 		{
-			Name:       "Feature 1!!", // Updated field
-			FeatureKey: "feature1",
+			Name:            "Feature 1!!", // Updated field
+			FeatureKey:      "feature1",
+			Description:     "Feature 1 description!", // Updated field
+			DescriptionHTML: "Feature <i>1</i> description!",
 		},
 		{
-			Name:       "Feature 2",
-			FeatureKey: "feature2",
+			Name:            "Feature 2",
+			FeatureKey:      "feature2",
+			Description:     "Feature 2 description",
+			DescriptionHTML: "Feature <b>2</b> description",
 		},
 		{
-			Name:       "Feature 3",
-			FeatureKey: "feature3",
+			Name:            "Feature 3",
+			FeatureKey:      "feature3",
+			Description:     "Feature 3 description",
+			DescriptionHTML: "Feature <b>3</b> description",
 		},
 		{
-			Name:       "Feature 4",
-			FeatureKey: "feature4",
+			Name:            "Feature 4",
+			FeatureKey:      "feature4",
+			Description:     "Feature 4 description",
+			DescriptionHTML: "Feature <b>4</b> description",
 		},
 	}
 	if !slices.Equal[[]WebFeature](expectedPageAfterUpdate, features) {

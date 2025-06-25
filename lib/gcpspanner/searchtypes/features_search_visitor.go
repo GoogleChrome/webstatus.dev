@@ -160,6 +160,10 @@ func (v *FeaturesSearchVisitor) createNameNode(nameNode antlr.TerminalNode) *Sea
 	return v.createSimpleNode(nameNode, IdentifierName)
 }
 
+func (v *FeaturesSearchVisitor) createDescriptionNode(descriptionNode antlr.TerminalNode) *SearchNode {
+	return v.createSimpleNode(descriptionNode, IdentifierDescription)
+}
+
 func (v *FeaturesSearchVisitor) createSimpleNode(
 	node antlr.TerminalNode,
 	identifier SearchIdentifier) *SearchNode {
@@ -510,6 +514,11 @@ func (v *FeaturesSearchVisitor) VisitGroup_term(ctx *parser.Group_termContext) i
 // nolint: revive // Method signature is generated.
 func (v *FeaturesSearchVisitor) VisitName_term(ctx *parser.Name_termContext) interface{} {
 	return v.createNameNode(ctx.ANY_VALUE())
+}
+
+// nolint: revive // Method signature is generated.
+func (v *FeaturesSearchVisitor) VisitDescription_term(ctx *parser.Description_termContext) interface{} {
+	return v.createDescriptionNode(ctx.ANY_VALUE())
 }
 
 func (v *FeaturesSearchVisitor) VisitTerm(ctx *parser.TermContext) interface{} {

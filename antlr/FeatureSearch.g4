@@ -30,6 +30,7 @@ available_date_term:
 // In the future support other operators by doing something like (date_operator_query | date_range_query)
 baseline_date_term: 'baseline_date' COLON (date_range_query);
 name_term: 'name' COLON ANY_VALUE;
+description_term: 'desc' COLON ANY_VALUE;
 group_term: 'group' COLON ANY_VALUE;
 snapshot_term: 'snapshot' COLON ANY_VALUE;
 id_term: 'id' COLON ANY_VALUE;
@@ -41,6 +42,7 @@ term:
 	| group_term
 	| id_term
 	| snapshot_term
+	| description_term
 	| name_term;
 
 date_range_query: startDate = DATE '..' endDate = DATE;

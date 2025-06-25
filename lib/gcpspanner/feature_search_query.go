@@ -135,6 +135,8 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 			filter = b.availabilityFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierName:
 			filter = b.featureNameFilter(node.Term.Value, node.Term.Operator)
+		case searchtypes.IdentifierDescription:
+			filter = b.featureDescriptionFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierGroup:
 			filter = b.groupFilter(node.Term.Value, node.Term.Operator)
 		case searchtypes.IdentifierSnapshot:
@@ -300,6 +302,31 @@ func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op se
 	opStr := searchOperatorToSpannerStringPatternOperator(op)
 
 	return fmt.Sprintf(`(wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`, opStr, paramName,
+		opStr, paramName)
+}
+
+func (b *FeatureSearchFilterBuilder) featureDescriptionFilter(
+	description string, op searchtypes.SearchOperator) string {
+	// Normalize the string to lower case to use the computed column.
+	description = strings.ToLower(description)
+	// Safely add the database % wildcards if they do not already exist.
+	if !strings.HasPrefix(description, "%") {
+		description = "%" + description
+	}
+	if !strings.HasSuffix(description, "%") {
+		description = description + "%"
+	}
+
+	paramName := b.addParamGetName(description)
+
+	opStr := searchOperatorToSpannerStringPatternOperator(op)
+
+	// For now, search through the description, name and the feature key.
+	// When we do fuzzy searching, we can revisit this.
+	return fmt.Sprintf(
+		`(wf.Description_Lowercase %s @%s OR wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`,
+		opStr, paramName,
+		opStr, paramName,
 		opStr, paramName)
 }
 

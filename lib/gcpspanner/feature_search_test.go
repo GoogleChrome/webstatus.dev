@@ -46,24 +46,34 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	//nolint: dupl // Okay to duplicate for tests
 	sampleFeatures := []WebFeature{
 		{
-			Name:       "Feature 1",
-			FeatureKey: "feature1",
+			Name:            "Feature 1",
+			FeatureKey:      "feature1",
+			Description:     "@container",
+			DescriptionHTML: "<html>",
 		},
 		{
-			Name:       "Feature 2",
-			FeatureKey: "feature2",
+			Name:            "Feature 2",
+			FeatureKey:      "feature2",
+			Description:     "feature 2 description",
+			DescriptionHTML: "<b>feature 2</b>",
 		},
 		{
-			Name:       "Feature 3",
-			FeatureKey: "feature3",
+			Name:            "Feature 3",
+			FeatureKey:      "feature3",
+			Description:     "feature 3 description",
+			DescriptionHTML: "<b>feature 3</b>",
 		},
 		{
-			Name:       "Feature 4",
-			FeatureKey: "feature4",
+			Name:            "Feature 4",
+			FeatureKey:      "feature4",
+			Description:     "feature 4 description",
+			DescriptionHTML: "<b>feature 4</b>",
 		},
 		{
-			Name:       "Feature 5",
-			FeatureKey: "feature5",
+			Name:            "Feature 5",
+			FeatureKey:      "feature5",
+			Description:     "feature 5 description",
+			DescriptionHTML: "<b>feature 5</b>",
 		},
 	}
 	for _, feature := range sampleFeatures {
@@ -1026,6 +1036,7 @@ func testFeatureSearchFilters(ctx context.Context, t *testing.T, client *Client)
 	testFeatureNotAvailableSearchFilters(ctx, t, client)
 	testFeatureCommonFilterCombos(ctx, t, client)
 	testFeatureNameFilters(ctx, t, client)
+	testFeatureDescriptionFilters(ctx, t, client)
 	testFeatureBaselineStatusFilters(ctx, t, client)
 	testFeatureBaselineStatusDateFilters(ctx, t, client)
 	testFeatureAvailableBrowserDateFilters(ctx, t, client)
@@ -1324,6 +1335,71 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "4",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+}
+
+func testFeatureDescriptionFilters(ctx context.Context, t *testing.T, client *Client) {
+	// All lower case with description. Should return feature 1.
+	expectedResults := []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId1),
+	}
+	node := &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierDescription,
+					Value:      "@container",
+					Operator:   searchtypes.OperatorEq,
+				},
+				Children: nil,
+			},
+		},
+	}
+
+	expectedPage := FeatureResultPage{
+		Total:         1,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+
+	// All upper case with partial description. Should return same results (all).
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordNone,
+				Term: &searchtypes.SearchTerm{
+					Identifier: searchtypes.IdentifierDescription,
+					Value:      "@CON",
 					Operator:   searchtypes.OperatorEq,
 				},
 				Children: nil,

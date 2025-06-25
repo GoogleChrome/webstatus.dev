@@ -27,10 +27,10 @@ import (
 // nolint:dupl // WONTFIX
 func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T, client *Client) {
 	webFeatures := []WebFeature{
-		{FeatureKey: "FeatureX", Name: "Cool API"},
-		{FeatureKey: "FeatureY", Name: "Super API"},
-		{FeatureKey: "FeatureZ", Name: "Neat API"},
-		{FeatureKey: "FeatureW", Name: "Amazing API"},
+		{FeatureKey: "FeatureX", Name: "Cool API", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureY", Name: "Super API", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureZ", Name: "Neat API", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureW", Name: "Amazing API", Description: "text", DescriptionHTML: "<html>"},
 	}
 	for _, feature := range webFeatures {
 		_, err := client.UpsertWebFeature(ctx, feature)

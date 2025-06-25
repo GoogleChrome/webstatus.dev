@@ -35,6 +35,10 @@ This query language enables you to construct flexible searches to find features 
     - Examples:
       - `name:grid`
       - `name:"CSS Grid"`
+  - `desc`: Searches for features by their description. Expects a string as its value.
+  - Examples:
+    - `desc:@container`
+    - `desc:"CSS Property"`
   - `baseline_date`: Represents the date a feature reached baseline.
     - Option 1: Searches for an inclusive date range (DATE..DATE) where features reached baseline.
   - `group`: Searches for features that belong to a group defined in the web-features [repository](https://github.com/web-platform-dx/web-features/tree/main/groups).

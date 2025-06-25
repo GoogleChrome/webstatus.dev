@@ -693,6 +693,24 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "desc:@container",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Children: nil,
+						Term: &SearchTerm{
+							Identifier: IdentifierDescription,
+							Value:      "@container",
+							Operator:   OperatorEq,
+						},
+						Keyword: KeywordNone,
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "group:css",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,

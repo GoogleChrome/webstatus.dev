@@ -143,11 +143,11 @@ func TestListBaselineStatusCounts_ExcludedFeatures(t *testing.T) {
 func loadDataForListBaselineStatusCounts(ctx context.Context, t *testing.T) {
 	// Insert web features
 	webFeatures := []WebFeature{
-		{FeatureKey: "FeatureA", Name: "Feature A"},
-		{FeatureKey: "FeatureB", Name: "Feature B"},
-		{FeatureKey: "FeatureC", Name: "Feature C"},
-		{FeatureKey: "FeatureD", Name: "Feature D"},
-		{FeatureKey: "FeatureE", Name: "Feature E"},
+		{FeatureKey: "FeatureA", Name: "Feature A", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureB", Name: "Feature B", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureC", Name: "Feature C", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureD", Name: "Feature D", Description: "text", DescriptionHTML: "<html>"},
+		{FeatureKey: "FeatureE", Name: "Feature E", Description: "text", DescriptionHTML: "<html>"},
 	}
 	for _, wf := range webFeatures {
 		_, err := spannerClient.UpsertWebFeature(ctx, wf)
