@@ -398,8 +398,9 @@ go-workspace-clean:
 ################################
 # Node Misc
 ################################
+# Install all the packages from all workspaces.
 node-install:
-	npm install -ws --foreground-scripts
+	npm ci --include-workspace-root=true --foreground-scripts=true
 
 node-update:
 	npm update
