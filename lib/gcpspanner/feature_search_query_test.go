@@ -60,7 +60,7 @@ var (
 					Term: &searchtypes.SearchTerm{
 						Identifier: searchtypes.IdentifierName,
 						Value:      "CSS Grid",
-						Operator:   searchtypes.OperatorEq,
+						Operator:   searchtypes.OperatorLike,
 					},
 					Keyword: searchtypes.KeywordNone,
 				},
@@ -79,7 +79,7 @@ var (
 					Term: &searchtypes.SearchTerm{
 						Identifier: searchtypes.IdentifierName,
 						Value:      "grid",
-						Operator:   searchtypes.OperatorEq,
+						Operator:   searchtypes.OperatorLike,
 					},
 					Keyword: searchtypes.KeywordNone,
 				},
@@ -269,7 +269,7 @@ var (
 													Term: &searchtypes.SearchTerm{
 														Identifier: searchtypes.IdentifierName,
 														Value:      "avif",
-														Operator:   searchtypes.OperatorEq,
+														Operator:   searchtypes.OperatorLike,
 													},
 												},
 											},
@@ -284,7 +284,7 @@ var (
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierName,
 								Value:      "grid",
-								Operator:   searchtypes.OperatorEq,
+								Operator:   searchtypes.OperatorLike,
 							},
 						},
 					},
@@ -356,7 +356,7 @@ var (
 							Term: &searchtypes.SearchTerm{
 								Identifier: searchtypes.IdentifierName,
 								Value:      "grid",
-								Operator:   searchtypes.OperatorEq,
+								Operator:   searchtypes.OperatorLike,
 							},
 							Keyword: searchtypes.KeywordNone,
 						},
