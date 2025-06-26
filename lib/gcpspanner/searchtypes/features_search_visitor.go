@@ -145,28 +145,29 @@ func (v *FeaturesSearchVisitor) aggregateNodesImplicitAND(nodes []*SearchNode) *
 }
 
 func (v *FeaturesSearchVisitor) createIDNode(idNode antlr.TerminalNode) *SearchNode {
-	return v.createSimpleNode(idNode, IdentifierID)
+	return v.createSimpleNode(idNode, IdentifierID, OperatorEq)
 }
 
 func (v *FeaturesSearchVisitor) createSnapshotNode(snapshotNode antlr.TerminalNode) *SearchNode {
-	return v.createSimpleNode(snapshotNode, IdentifierSnapshot)
+	return v.createSimpleNode(snapshotNode, IdentifierSnapshot, OperatorEq)
 }
 
 func (v *FeaturesSearchVisitor) createGroupNode(groupNode antlr.TerminalNode) *SearchNode {
-	return v.createSimpleNode(groupNode, IdentifierGroup)
+	return v.createSimpleNode(groupNode, IdentifierGroup, OperatorEq)
 }
 
 func (v *FeaturesSearchVisitor) createNameNode(nameNode antlr.TerminalNode) *SearchNode {
-	return v.createSimpleNode(nameNode, IdentifierName)
+	return v.createSimpleNode(nameNode, IdentifierName, OperatorLike)
 }
 
 func (v *FeaturesSearchVisitor) createDescriptionNode(descriptionNode antlr.TerminalNode) *SearchNode {
-	return v.createSimpleNode(descriptionNode, IdentifierDescription)
+	return v.createSimpleNode(descriptionNode, IdentifierDescription, OperatorLike)
 }
 
 func (v *FeaturesSearchVisitor) createSimpleNode(
 	node antlr.TerminalNode,
-	identifier SearchIdentifier) *SearchNode {
+	identifier SearchIdentifier,
+	op SearchOperator) *SearchNode {
 	if node == nil {
 		v.addError(termMissingValueError{term: identifier})
 
@@ -181,7 +182,7 @@ func (v *FeaturesSearchVisitor) createSimpleNode(
 		Term: &SearchTerm{
 			Identifier: identifier,
 			Value:      value,
-			Operator:   OperatorEq,
+			Operator:   op,
 		},
 	}
 }

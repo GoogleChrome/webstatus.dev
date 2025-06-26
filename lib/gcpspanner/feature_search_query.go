@@ -172,6 +172,10 @@ func searchOperatorToSpannerBinaryOperator(in searchtypes.SearchOperator) string
 		return "="
 	case searchtypes.OperatorNeq:
 		return "!="
+	case searchtypes.OperatorLike:
+		return "LIKE"
+	case searchtypes.OperatorNotLike:
+		return "NOT LIKE"
 	case searchtypes.OperatorNone:
 		fallthrough
 	default:
@@ -190,6 +194,8 @@ func searchOperatorToSpannerListOperator(in searchtypes.SearchOperator) string {
 		searchtypes.OperatorGtEq,
 		searchtypes.OperatorLt,
 		searchtypes.OperatorLtEq,
+		searchtypes.OperatorLike,
+		searchtypes.OperatorNotLike,
 		searchtypes.OperatorNone:
 		fallthrough
 	default:
@@ -199,22 +205,29 @@ func searchOperatorToSpannerListOperator(in searchtypes.SearchOperator) string {
 	}
 }
 
-func searchOperatorToSpannerStringPatternOperator(in searchtypes.SearchOperator) string {
+func searchValueByOperator(in searchtypes.SearchOperator, value string) string {
 	switch in {
-	case searchtypes.OperatorEq:
-		return "LIKE"
-	case searchtypes.OperatorNeq:
-		return "NOT LIKE"
-	case searchtypes.OperatorGt,
+	case searchtypes.OperatorLike,
+		searchtypes.OperatorNotLike:
+		// Safely add the database % wildcards if they do not already exist.
+		if !strings.HasPrefix(value, "%") {
+			value = "%" + value
+		}
+		if !strings.HasSuffix(value, "%") {
+			value = value + "%"
+		}
+
+		return value
+	case searchtypes.OperatorEq,
+		searchtypes.OperatorNeq,
+		searchtypes.OperatorGt,
 		searchtypes.OperatorGtEq,
 		searchtypes.OperatorLt,
 		searchtypes.OperatorLtEq,
 		searchtypes.OperatorNone:
 		fallthrough
 	default:
-		// Default to "NOT LIKE". Callers should know the filter is applying to a string pattern and the
-		// searchNode should have either Eq or Neq. Return "LIKE" to produce correct sql syntax.
-		return "LIKE"
+		return value
 	}
 }
 
@@ -289,45 +302,30 @@ func (b *FeatureSearchFilterBuilder) availableBrowserDateFilter(
 func (b *FeatureSearchFilterBuilder) featureNameFilter(featureName string, op searchtypes.SearchOperator) string {
 	// Normalize the string to lower case to use the computed column.
 	featureName = strings.ToLower(featureName)
-	// Safely add the database % wildcards if they do not already exist.
-	if !strings.HasPrefix(featureName, "%") {
-		featureName = "%" + featureName
-	}
-	if !strings.HasSuffix(featureName, "%") {
-		featureName = featureName + "%"
-	}
+	featureName = searchValueByOperator(op, featureName)
 
 	paramName := b.addParamGetName(featureName)
 
-	opStr := searchOperatorToSpannerStringPatternOperator(op)
-
-	return fmt.Sprintf(`(wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`, opStr, paramName,
-		opStr, paramName)
+	return fmt.Sprintf(`(wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`,
+		searchOperatorToSpannerBinaryOperator(op), paramName,
+		searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) featureDescriptionFilter(
 	description string, op searchtypes.SearchOperator) string {
 	// Normalize the string to lower case to use the computed column.
 	description = strings.ToLower(description)
-	// Safely add the database % wildcards if they do not already exist.
-	if !strings.HasPrefix(description, "%") {
-		description = "%" + description
-	}
-	if !strings.HasSuffix(description, "%") {
-		description = description + "%"
-	}
+	description = searchValueByOperator(op, description)
 
 	paramName := b.addParamGetName(description)
-
-	opStr := searchOperatorToSpannerStringPatternOperator(op)
 
 	// For now, search through the description, name and the feature key.
 	// When we do fuzzy searching, we can revisit this.
 	return fmt.Sprintf(
 		`(wf.Description_Lowercase %s @%s OR wf.Name_Lowercase %s @%s OR wf.FeatureKey_Lowercase %s @%s)`,
-		opStr, paramName,
-		opStr, paramName,
-		opStr, paramName)
+		searchOperatorToSpannerBinaryOperator(op), paramName,
+		searchOperatorToSpannerBinaryOperator(op), paramName,
+		searchOperatorToSpannerBinaryOperator(op), paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) groupFilter(group string, op searchtypes.SearchOperator) string {

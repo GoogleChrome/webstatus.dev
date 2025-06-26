@@ -40,13 +40,15 @@ func (k *SearchKeyword) Invert() {
 type SearchOperator string
 
 const (
-	OperatorGtEq SearchOperator = "GT_EQ"
-	OperatorGt   SearchOperator = "GT"
-	OperatorLtEq SearchOperator = "LT_EQ"
-	OperatorLt   SearchOperator = "LT"
-	OperatorEq   SearchOperator = "EQ"
-	OperatorNeq  SearchOperator = "NEQ"
-	OperatorNone SearchOperator = "NONE"
+	OperatorGtEq    SearchOperator = "GT_EQ"
+	OperatorGt      SearchOperator = "GT"
+	OperatorLtEq    SearchOperator = "LT_EQ"
+	OperatorLt      SearchOperator = "LT"
+	OperatorEq      SearchOperator = "EQ"
+	OperatorLike    SearchOperator = "LIKE"
+	OperatorNotLike SearchOperator = "NOT_LIKE"
+	OperatorNeq     SearchOperator = "NEQ"
+	OperatorNone    SearchOperator = "NONE"
 )
 
 func (o *SearchOperator) Invert() {
@@ -63,6 +65,10 @@ func (o *SearchOperator) Invert() {
 		*o = OperatorGt
 	case OperatorNeq:
 		*o = OperatorEq
+	case OperatorLike:
+		*o = OperatorNotLike
+	case OperatorNotLike:
+		*o = OperatorLike
 	case OperatorNone:
 		break
 	}

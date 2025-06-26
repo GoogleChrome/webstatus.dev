@@ -1267,7 +1267,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "feature",
-					Operator:   searchtypes.OperatorEq,
+					Operator:   searchtypes.OperatorLike,
 				},
 				Children: nil,
 			},
@@ -1300,7 +1300,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "FEATURE",
-					Operator:   searchtypes.OperatorEq,
+					Operator:   searchtypes.OperatorLike,
 				},
 				Children: nil,
 			},
@@ -1335,7 +1335,7 @@ func testFeatureNameFilters(ctx context.Context, t *testing.T, client *Client) {
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierName,
 					Value:      "4",
-					Operator:   searchtypes.OperatorEq,
+					Operator:   searchtypes.OperatorLike,
 				},
 				Children: nil,
 			},
@@ -1367,7 +1367,7 @@ func testFeatureDescriptionFilters(ctx context.Context, t *testing.T, client *Cl
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierDescription,
 					Value:      "@container",
-					Operator:   searchtypes.OperatorEq,
+					Operator:   searchtypes.OperatorLike,
 				},
 				Children: nil,
 			},
@@ -1400,7 +1400,7 @@ func testFeatureDescriptionFilters(ctx context.Context, t *testing.T, client *Cl
 				Term: &searchtypes.SearchTerm{
 					Identifier: searchtypes.IdentifierDescription,
 					Value:      "@CON",
-					Operator:   searchtypes.OperatorEq,
+					Operator:   searchtypes.OperatorLike,
 				},
 				Children: nil,
 			},
