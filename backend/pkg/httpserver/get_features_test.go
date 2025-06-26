@@ -213,7 +213,7 @@ func TestListFeatures(t *testing.T) {
 									Term: &searchtypes.SearchTerm{
 										Identifier: searchtypes.IdentifierName,
 										Value:      "grid",
-										Operator:   searchtypes.OperatorEq,
+										Operator:   searchtypes.OperatorLike,
 									},
 									Keyword: searchtypes.KeywordNone,
 								},
