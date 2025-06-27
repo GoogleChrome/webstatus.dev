@@ -555,10 +555,10 @@ func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_sea
 func (v *FeaturesSearchVisitor) VisitSearch_criteria(ctx *parser.Search_criteriaContext) interface{} {
 	// Handle the default ANY_VALUE case.
 	// This is needed for the feature name that does not have the prefix.
-	// Even though createNameNode will return nil if node is nil, it will add an error.
+	// Even though createDescriptionNode will return nil if node is nil, it will add an error.
 	// So we proactively check for node.
 	if node := ctx.ANY_VALUE(); node != nil {
-		return v.createNameNode(node)
+		return v.createDescriptionNode(node)
 	}
 
 	return v.VisitChildren(ctx)

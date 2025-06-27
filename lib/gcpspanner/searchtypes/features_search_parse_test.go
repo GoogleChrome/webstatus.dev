@@ -1150,7 +1150,7 @@ func TestParseQuery(t *testing.T) {
 				Children: []*SearchNode{
 					{
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "grid",
 							Operator:   OperatorLike,
 						},
@@ -1168,7 +1168,7 @@ func TestParseQuery(t *testing.T) {
 				Children: []*SearchNode{
 					{
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "CSS Grid",
 							Operator:   OperatorLike,
 						},
@@ -1187,7 +1187,7 @@ func TestParseQuery(t *testing.T) {
 					{
 						Children: nil,
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "::backdrop",
 							Operator:   OperatorLike,
 						},
@@ -1223,7 +1223,7 @@ func TestParseQuery(t *testing.T) {
 					{
 						Children: nil,
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      ":has()",
 							Operator:   OperatorLike,
 						},
@@ -1241,7 +1241,7 @@ func TestParseQuery(t *testing.T) {
 					{
 						Children: nil,
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "<a>",
 							Operator:   OperatorLike,
 						},
@@ -1295,7 +1295,7 @@ func TestParseQuery(t *testing.T) {
 					{
 						Children: nil,
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "@charset",
 							Operator:   OperatorLike,
 						},
@@ -1349,7 +1349,7 @@ func TestParseQuery(t *testing.T) {
 					{
 						Children: nil,
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "intl.segmenter",
 							Operator:   OperatorLike,
 						},
@@ -1367,7 +1367,7 @@ func TestParseQuery(t *testing.T) {
 					{
 						Children: nil,
 						Term: &SearchTerm{
-							Identifier: IdentifierName,
+							Identifier: IdentifierDescription,
 							Value:      "intl.segmenter",
 							Operator:   OperatorLike,
 						},
@@ -1516,7 +1516,7 @@ func TestParseQuery(t *testing.T) {
 								Keyword:  KeywordNone,
 								Children: nil,
 								Term: &SearchTerm{
-									Identifier: IdentifierName,
+									Identifier: IdentifierDescription,
 									Value:      "CSS Grid",
 									Operator:   OperatorLike,
 								},
