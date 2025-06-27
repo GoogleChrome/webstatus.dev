@@ -27,14 +27,23 @@ export class WebstatusPage extends LitElement {
     return [
       SHARED_STYLES,
       css`
+        :host {
+          flex-shrink: 1;
+          min-width: 0;
+          box-sizing: border-box;
+          width: 100%;
+          overflow: hidden;
+        }
         .container {
           height: 100%;
           width: 100%;
+          overflow: hidden;
         }
 
         #sidebar-drawer {
           max-width: ${DRAWER_WIDTH_PX}px;
           border-right: 1px solid #e1e3e8;
+          flex-shrink: 0;
         }
         #sidebar-drawer:not([open]),
         #sidebar-drawer[no-header]::part(header) {
@@ -48,6 +57,11 @@ export class WebstatusPage extends LitElement {
 
         .page-container {
           padding: var(--content-padding);
+          flex-grow: 1;
+          flex-shrink: 1;
+          min-width: 0;
+          overflow-x: hidden;
+          box-sizing: border-box;
         }
       `,
     ];

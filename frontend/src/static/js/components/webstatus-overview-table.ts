@@ -62,8 +62,12 @@ export class WebstatusOverviewTable extends LitElement {
     return [
       SHARED_STYLES,
       css`
-        .data-table {
+        .table-container {
+          overflow-x: auto;
           margin: var(--content-padding) 0;
+        }
+        .data-table {
+          min-width: 100%;
         }
         .data-table th {
           padding: var(--content-padding-quarter) var(--content-padding);
@@ -158,18 +162,20 @@ export class WebstatusOverviewTable extends LitElement {
 
   render(): TemplateResult {
     return html`
-      <table class="data-table">
-        ${renderColgroups(this.columns)}
-        <thead>
-          ${this.groupCells}
-          <tr class="header-row">
-            ${this.headerCells}
-          </tr>
-        </thead>
-        <tbody>
-          ${this.renderTableBody(this.columns)}
-        </tbody>
-      </table>
+      <div class="table-container">
+        <table class="data-table">
+          ${renderColgroups(this.columns)}
+          <thead>
+            ${this.groupCells}
+            <tr class="header-row">
+              ${this.headerCells}
+            </tr>
+          </thead>
+          <tbody>
+            ${this.renderTableBody(this.columns)}
+          </tbody>
+        </table>
+      </div>
     `;
   }
 
