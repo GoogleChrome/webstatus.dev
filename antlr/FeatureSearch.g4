@@ -14,7 +14,14 @@ WS: [ \t\r\n]+ -> skip;
 // Identifiers
 BROWSER_NAME options {
 	caseInsensitive = true;
-}: 'chrome' | 'firefox' | 'edge' | 'safari';
+}:
+	'chrome'
+	| 'chrome_android'
+	| 'firefox'
+	| 'firefox_android'
+	| 'edge'
+	| 'safari'
+	| 'safari_ios';
 BASELINE_STATUS: 'limited' | 'newly' | 'widely';
 DATE:
 	[2][0-9][0-9][0-9]'-' [01][0-9]'-' [0-3][0-9]; // YYYY-MM-DD (starting from 2000)

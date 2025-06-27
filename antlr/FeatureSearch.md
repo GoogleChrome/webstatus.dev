@@ -7,7 +7,7 @@ This query language enables you to construct flexible searches to find features 
 - Terms: The basic building blocks of a search query. Each term has an identifier (available_on, baseline_status, name) followed by a colon (:) and its corresponding value without any spaces.
 - **Value Types:**
   - browsers (`BROWSER_NAME`)
-    - Accepted Values: `[a-z]+`
+    - Accepted Values: `chrome`, `chrome_android`, `firefox`, `firefox_android`, `edge`, `safari`, `safari_ios`
     - Example:
       - chrome
   - features (`FEATURE_NAME`)

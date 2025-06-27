@@ -100,6 +100,114 @@ func TestParseQuery(t *testing.T) {
 			},
 		},
 		{
+			InputQuery: "available_on:chrome_android",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "chrome_android",
+							Operator:   OperatorEq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "-available_on:chrome_android",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "chrome_android",
+							Operator:   OperatorNeq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "available_on:firefox_android",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "firefox_android",
+							Operator:   OperatorEq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "-available_on:firefox_android",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "firefox_android",
+							Operator:   OperatorNeq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "available_on:safari_ios",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "safari_ios",
+							Operator:   OperatorEq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
+			InputQuery: "-available_on:safari_ios",
+			ExpectedTree: &SearchNode{
+				Keyword: KeywordRoot,
+				Term:    nil,
+				Children: []*SearchNode{
+					{
+						Term: &SearchTerm{
+							Identifier: IdentifierAvailableOn,
+							Value:      "safari_ios",
+							Operator:   OperatorNeq,
+						},
+						Children: nil,
+						Keyword:  KeywordNone,
+					},
+				},
+			},
+		},
+		{
 			InputQuery: "available_date:chrome:2000-01-01..2000-12-31",
 			ExpectedTree: &SearchNode{
 				Keyword: KeywordRoot,
