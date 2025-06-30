@@ -105,7 +105,9 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<Bro
 
   getPanelDescription(): TemplateResult {
     return html`This chart displays the percentage of page loads that include
-    this feature in participating Chrome installs.`;
+    this feature in participating Chrome installs. Please note: Usage data might
+    be undercounted if not all usage methods are tracked, or overcounted if
+    pages probe for feature availability without actual use.`;
   }
 
   renderControls(): TemplateResult {
