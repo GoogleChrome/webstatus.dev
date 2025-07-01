@@ -12,7 +12,7 @@
     "lib/gen/openapi/ts-webstatus.dev-backend-types"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.53.1",
+    "@playwright/test": "^1.53.2",
     "@types/node": "^22.9.0",
     "concurrently": "^9.2.0",
     "eslint-plugin-n": "^17.20.0",
