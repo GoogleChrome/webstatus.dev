@@ -106,17 +106,50 @@ func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilte
 
 func (c *Client) fetchAllWebFeatureIDsWithTransaction(
 	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]string, error) {
-	return fetchColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "ID")
+	return fetchSingleColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "ID")
 }
 
 func (c *Client) FetchAllFeatureKeys(ctx context.Context) ([]string, error) {
 	txn := c.ReadOnlyTransaction()
 	defer txn.Close()
 
-	return fetchColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "FeatureKey")
+	return fetchSingleColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "FeatureKey")
+}
+
+type spannerFeatureIDAndKey struct {
+	ID         string `spanner:"ID"`
+	FeatureKey string `spanner:"FeatureKey"`
+}
+
+func (c *Client) fetchAllWebFeatureIDsAndKeysWithTransaction(
+	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]spannerFeatureIDAndKey, error) {
+	return fetchColumnValuesWithTransaction[spannerFeatureIDAndKey](
+		ctx, txn, webFeaturesTable, []string{"ID", "FeatureKey"})
 }
 
 func fetchColumnValuesWithTransaction[T any](
+	ctx context.Context, txn *spanner.ReadOnlyTransaction, table string, columnNames []string) ([]T, error) {
+	var values []T
+	iter := txn.Read(ctx, table, spanner.AllKeys(), columnNames)
+	defer iter.Stop()
+	err := iter.Do(func(row *spanner.Row) error {
+		var value T
+		if err := row.ToStruct(&value); err != nil {
+			return err
+		}
+		values = append(values, value)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return values, nil
+}
+
+// Deprecated. // TODO - use fetchColumnValuesWithTransaction.
+func fetchSingleColumnValuesWithTransaction[T any](
 	ctx context.Context, txn *spanner.ReadOnlyTransaction, table string, columnName string) ([]T, error) {
 	var values []T
 	iter := txn.Read(ctx, table, spanner.AllKeys(), []string{columnName})

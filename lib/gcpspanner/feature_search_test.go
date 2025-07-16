@@ -548,29 +548,15 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 		groupKeyToInternalID[group.GroupKey] = *id
 	}
-	groupLookups := []FeatureGroupIDsLookup{
-		{
-			ID:           groupKeyToInternalID["parent1"],
-			WebFeatureID: webFeatureKeyToInternalFeatureID["feature1"],
-			Depth:        0,
-		},
-		{
-			ID:           groupKeyToInternalID["parent1"],
-			WebFeatureID: webFeatureKeyToInternalFeatureID["feature3"],
-			Depth:        1,
-		},
-		{
-			ID:           groupKeyToInternalID["child3"],
-			WebFeatureID: webFeatureKeyToInternalFeatureID["feature3"],
-			Depth:        0,
-		},
-		{
-			ID:           groupKeyToInternalID["parent2"],
-			WebFeatureID: webFeatureKeyToInternalFeatureID["feature2"],
-			Depth:        0,
-		},
+	featureKeyToGroupsMapping := map[string][]string{
+		"feature1": {"parent1"},
+		"feature2": {"parent2"},
+		"feature3": {"child3"},
 	}
-	err = client.UpsertFeatureGroupLookups(ctx, groupLookups)
+	childGroupKeyToParentGroupKey := map[string]string{
+		"child3": "parent1",
+	}
+	err = client.UpsertFeatureGroupLookups(ctx, featureKeyToGroupsMapping, childGroupKeyToParentGroupKey)
 	if err != nil {
 		t.Fatalf("unable to insert group feature lookups err %s", err)
 	}

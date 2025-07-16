@@ -25,7 +25,8 @@ import (
 // WebFeatureGroupsClient expects a subset of the functionality from lib/gcpspanner that only apply to Groups.
 type WebFeatureGroupsClient interface {
 	UpsertGroup(ctx context.Context, group gcpspanner.Group) (*string, error)
-	UpsertFeatureGroupLookups(ctx context.Context, lookups []gcpspanner.FeatureGroupIDsLookup) error
+	UpsertFeatureGroupLookups(ctx context.Context,
+		featureKeyToGroupsMapping map[string][]string, childGroupKeyToParentGroupKey map[string]string) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -39,21 +40,12 @@ type WebFeatureGroupConsumer struct {
 	client WebFeatureGroupsClient
 }
 
-func (c *WebFeatureGroupConsumer) calculateAllLookups(
-	ctx context.Context,
-	featureKeyToID map[string]string,
-	featureData map[string]web_platform_dx__web_features.FeatureValue,
-	groupKeyToID map[string]string,
-	childToParentMap map[string]string,
-) []gcpspanner.FeatureGroupIDsLookup {
-	var allLookups []gcpspanner.FeatureGroupIDsLookup
+func extractFeatureKeyToGroupsMapping(
+	featuresData map[string]web_platform_dx__web_features.FeatureValue,
+) map[string][]string {
+	m := make(map[string][]string)
 
-	for featureKey, featureID := range featureKeyToID {
-		feature := featureData[featureKey]
-		if feature.Group == nil {
-			continue
-		}
-
+	for featureKey, feature := range featuresData {
 		var directGroupKeys []string
 		if feature.Group.String != nil {
 			directGroupKeys = append(directGroupKeys, *feature.Group.String)
@@ -61,42 +53,14 @@ func (c *WebFeatureGroupConsumer) calculateAllLookups(
 			directGroupKeys = feature.Group.StringArray
 		}
 
-		// For each direct group associated with the feature...
-		for _, directGroupKey := range directGroupKeys {
-			currentGroupKey := directGroupKey
-			currentDepth := int64(0)
-
-			for {
-				groupID, found := groupKeyToID[currentGroupKey]
-				if !found {
-					slog.WarnContext(ctx, "group key not found during hierarchy traversal", "groupKey", currentGroupKey)
-
-					break
-				}
-
-				allLookups = append(allLookups, gcpspanner.FeatureGroupIDsLookup{
-					ID:           groupID,
-					WebFeatureID: featureID,
-					Depth:        currentDepth,
-				})
-
-				// Move up to the parent.
-				parentGroupKey, hasParent := childToParentMap[currentGroupKey]
-				if !hasParent {
-					break
-				}
-				currentGroupKey = parentGroupKey
-				currentDepth++
-			}
-		}
+		m[featureKey] = directGroupKeys
 	}
 
-	return allLookups
+	return m
 }
 
 func (c *WebFeatureGroupConsumer) InsertWebFeatureGroups(
 	ctx context.Context,
-	featureKeyToID map[string]string,
 	featureData map[string]web_platform_dx__web_features.FeatureValue,
 	groupData map[string]web_platform_dx__web_features.GroupData) error {
 	groupKeyToInternalID := make(map[string]string, len(groupData))
@@ -119,14 +83,13 @@ func (c *WebFeatureGroupConsumer) InsertWebFeatureGroups(
 		}
 	}
 
-	// Step 2: Perform the core calculation in its own helper.
-	lookupsToUpsert := c.calculateAllLookups(
-		ctx, featureKeyToID, featureData, groupKeyToInternalID, childToParentMap,
-	)
+	// Step 2: Upsert the feature group lookups for feature search
+	featureKeyToGroupsMapping := extractFeatureKeyToGroupsMapping(featureData)
+	err := c.client.UpsertFeatureGroupLookups(ctx, featureKeyToGroupsMapping, childToParentMap)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to UpsertFeatureGroupLookups", "error", err)
 
-	// Step 3: Call the client to perform the final database write.
-	if len(lookupsToUpsert) > 0 {
-		return c.client.UpsertFeatureGroupLookups(ctx, lookupsToUpsert)
+		return err
 	}
 
 	return nil

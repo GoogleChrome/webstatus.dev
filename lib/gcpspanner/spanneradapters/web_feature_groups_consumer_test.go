@@ -19,7 +19,6 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -33,196 +32,15 @@ type mockUpsertGroupConfig struct {
 	expectedCount  int
 }
 
+type mockUpsertFeatureGroupLookupInput struct {
+	featureKeyToGroupsMapping     map[string][]string
+	childGroupKeyToParentGroupKey map[string]string
+}
+
 type mockUpsertFeatureGroupLookupsConfig struct {
-	expectedInput []gcpspanner.FeatureGroupIDsLookup
+	expectedInput mockUpsertFeatureGroupLookupInput
 	output        error
 	expectedCount int
-}
-
-func TestCalculateAllLookups(t *testing.T) {
-	testCases := []struct {
-		name             string
-		featureKeyToID   map[string]string
-		featureData      map[string]web_platform_dx__web_features.FeatureValue
-		groupKeyToID     map[string]string
-		childToParentMap map[string]string
-		expectedLookups  []gcpspanner.FeatureGroupIDsLookup
-	}{
-		{
-			name:           "Deep Hierarchy",
-			featureKeyToID: map[string]string{"feat1": "feature_id_1"},
-			featureData: map[string]web_platform_dx__web_features.FeatureValue{
-				"feat1": {
-					Caniuse:         nil,
-					CompatFeatures:  nil,
-					Description:     "feature 1",
-					DescriptionHTML: "<html>",
-					Discouraged:     nil,
-					Name:            "Feature 1",
-					Snapshot:        nil,
-					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
-						Baseline:         nil,
-						BaselineHighDate: nil,
-						BaselineLowDate:  nil,
-						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
-							Chrome:         nil,
-							ChromeAndroid:  nil,
-							Edge:           nil,
-							Firefox:        nil,
-							FirefoxAndroid: nil,
-							Safari:         nil,
-							SafariIos:      nil,
-						},
-					},
-					Group: &web_platform_dx__web_features.StringOrStringArray{
-						String: valuePtr("grandchild"), StringArray: nil},
-				},
-			},
-			groupKeyToID: map[string]string{
-				"root":       "uuid_root",
-				"child":      "uuid_child",
-				"grandchild": "uuid_grandchild",
-			},
-			childToParentMap: map[string]string{
-				"child":      "root",
-				"grandchild": "child",
-			},
-			expectedLookups: []gcpspanner.FeatureGroupIDsLookup{
-				{ID: "uuid_grandchild", WebFeatureID: "feature_id_1", Depth: 0},
-				{ID: "uuid_child", WebFeatureID: "feature_id_1", Depth: 1},
-				{ID: "uuid_root", WebFeatureID: "feature_id_1", Depth: 2},
-			},
-		},
-		{
-			name:           "Multiple Direct Groups",
-			featureKeyToID: map[string]string{"feat1": "feature_id_1"},
-			featureData: map[string]web_platform_dx__web_features.FeatureValue{
-				"feat1": {
-					Caniuse:         nil,
-					CompatFeatures:  nil,
-					Description:     "feature 1",
-					DescriptionHTML: "<html>",
-					Discouraged:     nil,
-					Name:            "Feature 1",
-					Snapshot:        nil,
-					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
-						Baseline:         nil,
-						BaselineHighDate: nil,
-						BaselineLowDate:  nil,
-						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
-							Chrome:         nil,
-							ChromeAndroid:  nil,
-							Edge:           nil,
-							Firefox:        nil,
-							FirefoxAndroid: nil,
-							Safari:         nil,
-							SafariIos:      nil,
-						},
-					},
-					Group: &web_platform_dx__web_features.StringOrStringArray{
-						StringArray: []string{"child1", "child2"}, String: nil},
-				},
-			},
-			groupKeyToID: map[string]string{
-				"root":   "uuid_root",
-				"child1": "uuid_child1",
-				"child2": "uuid_child2",
-			},
-			childToParentMap: map[string]string{
-				"child1": "root",
-				"child2": "root",
-			},
-			expectedLookups: []gcpspanner.FeatureGroupIDsLookup{
-				{ID: "uuid_child1", WebFeatureID: "feature_id_1", Depth: 0},
-				{ID: "uuid_root", WebFeatureID: "feature_id_1", Depth: 1},
-				{ID: "uuid_child2", WebFeatureID: "feature_id_1", Depth: 0},
-				// Note: Duplicates are expected here and handled by the DB.
-				{ID: "uuid_root", WebFeatureID: "feature_id_1", Depth: 1},
-			},
-		},
-		{
-			name:           "Feature with No Group",
-			featureKeyToID: map[string]string{"feat1": "feature_id_1"},
-			featureData: map[string]web_platform_dx__web_features.FeatureValue{
-				"feat1": {
-					Caniuse:         nil,
-					CompatFeatures:  nil,
-					Description:     "feature 1",
-					DescriptionHTML: "<html>",
-					Discouraged:     nil,
-					Name:            "Feature 1",
-					Snapshot:        nil,
-					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
-						Baseline:         nil,
-						BaselineHighDate: nil,
-						BaselineLowDate:  nil,
-						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
-							Chrome:         nil,
-							ChromeAndroid:  nil,
-							Edge:           nil,
-							Firefox:        nil,
-							FirefoxAndroid: nil,
-							Safari:         nil,
-							SafariIos:      nil,
-						},
-					},
-					// No group associated
-					Group: nil,
-				},
-			},
-			groupKeyToID:     map[string]string{"group1": "uuid_1"},
-			childToParentMap: map[string]string{},
-			expectedLookups:  []gcpspanner.FeatureGroupIDsLookup{}, // Expect no lookups
-		},
-		{
-			name:             "No Features",
-			featureKeyToID:   map[string]string{},
-			featureData:      map[string]web_platform_dx__web_features.FeatureValue{},
-			groupKeyToID:     map[string]string{"group1": "uuid_1"},
-			childToParentMap: map[string]string{},
-			expectedLookups:  []gcpspanner.FeatureGroupIDsLookup{},
-		},
-	}
-
-	consumer := NewWebFeatureGroupsConsumer(nil)
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Run the calculation
-			actualLookups := consumer.calculateAllLookups(
-				context.Background(), tc.featureKeyToID, tc.featureData, tc.groupKeyToID, tc.childToParentMap)
-
-			sortLookups(actualLookups)
-			sortLookups(tc.expectedLookups)
-
-			if !slices.Equal(actualLookups, tc.expectedLookups) {
-				t.Errorf("lookup slice mismatch.\ngot= %v\nwant=%v", actualLookups, tc.expectedLookups)
-			}
-		})
-	}
-}
-
-// sortLookups sorts the slice for deterministic testing.
-func sortLookups(lookups []gcpspanner.FeatureGroupIDsLookup) {
-	slices.SortFunc(lookups, func(a, b gcpspanner.FeatureGroupIDsLookup) int {
-		if a.WebFeatureID != b.WebFeatureID {
-			return slices.Compare([]string{a.WebFeatureID}, []string{b.WebFeatureID})
-		}
-		if a.ID != b.ID {
-			return slices.Compare([]string{a.ID}, []string{b.ID})
-		}
-		if a.Depth != b.Depth {
-			return int(a.Depth - b.Depth)
-		}
-
-		return 0
-	})
 }
 
 func TestInsertWebFeatureGroups(t *testing.T) {
@@ -256,10 +74,14 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 				expectedCount: 3,
 			},
 			mockUpsertFeatureGroupLookupsCfg: mockUpsertFeatureGroupLookupsConfig{
-				expectedInput: []gcpspanner.FeatureGroupIDsLookup{
-					{ID: "uuid1", WebFeatureID: "featureID1", Depth: 0},
-					{ID: "uuid2", WebFeatureID: "featureID1", Depth: 0},
-					{ID: "uuid2", WebFeatureID: "featureID2", Depth: 0},
+				expectedInput: mockUpsertFeatureGroupLookupInput{
+					featureKeyToGroupsMapping: map[string][]string{
+						"feature1": {"group1", "group2"},
+						"feature2": {"group2"},
+					},
+					childGroupKeyToParentGroupKey: map[string]string{
+						"child3": "group1",
+					},
 				},
 				output:        nil,
 				expectedCount: 1,
@@ -343,7 +165,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 				t, tc.mockUpsertGroupCfg, tc.mockUpsertFeatureGroupLookupsCfg)
 			consumer := NewWebFeatureGroupsConsumer(mockClient)
 
-			err := consumer.InsertWebFeatureGroups(context.TODO(), tc.featureKeyToID, tc.featureData, tc.groupData)
+			err := consumer.InsertWebFeatureGroups(context.TODO(), tc.featureData, tc.groupData)
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
@@ -395,12 +217,16 @@ func (c *mockWebFeatureGroupsClient) UpsertGroup(_ context.Context, group gcpspa
 }
 
 func (c *mockWebFeatureGroupsClient) UpsertFeatureGroupLookups(
-	_ context.Context, lookups []gcpspanner.FeatureGroupIDsLookup) error {
+	_ context.Context, featureKeyToGroupsMapping map[string][]string,
+	childGroupKeyToParentGroupKey map[string]string) error {
 	expectedInput := c.mockUpsertFeatureGroupLookupsCfg.expectedInput
-	sortLookups(expectedInput)
-	sortLookups(lookups)
-	if !slices.Equal(expectedInput, lookups) {
-		c.t.Errorf("unexpected input for UpsertFeatureGroupLookups expected %v received %v", expectedInput, lookups)
+	if !reflect.DeepEqual(expectedInput.featureKeyToGroupsMapping, featureKeyToGroupsMapping) ||
+		!reflect.DeepEqual(expectedInput.childGroupKeyToParentGroupKey, childGroupKeyToParentGroupKey) {
+		c.t.Errorf("unexpected input for UpsertFeatureGroupLookups\nexpected (%v %v)\nreceived (%v %v)",
+			expectedInput.featureKeyToGroupsMapping,
+			expectedInput.childGroupKeyToParentGroupKey,
+			featureKeyToGroupsMapping,
+			childGroupKeyToParentGroupKey)
 	}
 	c.upsertFeatureGroupLookupsCount++
 

@@ -28,3 +28,22 @@ CREATE TABLE IF NOT EXISTS FeatureGroupIDsLookup (
     CONSTRAINT FK_FeatureGroupIDsLookup_WebDXGroups FOREIGN KEY (ID) REFERENCES WebDXGroups(ID)
 ) PRIMARY KEY (ID, WebFeatureID)
 ,   INTERLEAVE IN PARENT WebDXGroups ON DELETE CASCADE;
+
+-- A denormalized lookup table mapping features to direct/inherited groups.
+-- Used by the feature search functionality.
+CREATE TABLE IF NOT EXISTS FeatureGroupKeysLookup (
+    GroupKey_Lowercase STRING(64) NOT NULL,
+    WebFeatureID STRING(36) NOT NULL,
+    GroupID STRING(36) NOT NULL,
+    -- The hierarchy level of the association. A value of 0 means a direct
+    -- link. A value of 1 means this group is the direct parent of the
+    -- feature's group, 2 means it's a grandparent, and so on.
+    -- TODO. Future queries may use this column
+    Depth INT64 NOT NULL,
+    CONSTRAINT FK_FeatureGroupKeysLookup_WebFeatureID
+        FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
+    CONSTRAINT FK_FeatureGroupKeysLookup_GroupID
+        FOREIGN KEY (GroupID) REFERENCES WebDXGroups(ID) ON DELETE CASCADE
+-- The primary key starts with GroupKey_Lowercase because the main search query
+-- filters by group name.
+) PRIMARY KEY (GroupKey_Lowercase, WebFeatureID);

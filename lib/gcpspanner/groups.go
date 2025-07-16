@@ -99,3 +99,15 @@ func (c *Client) UpsertGroup(ctx context.Context, group Group) (*string, error) 
 func (c *Client) GetGroupIDFromGroupKey(ctx context.Context, groupKey string) (*string, error) {
 	return newEntityWriterWithIDRetrieval[groupSpannerMapper, string](c).getIDByKey(ctx, groupKey)
 }
+
+type spannerGroupIDKeyAndKeyLowercase struct {
+	ID                string `spanner:"ID"`
+	GroupKey          string `spanner:"GroupKey"`
+	GroupKeyLowercase string `spanner:"GroupKey_Lowercase"`
+}
+
+func (c *Client) fetchAllGroupIDsAndKeysWithTransaction(
+	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]spannerGroupIDKeyAndKeyLowercase, error) {
+	return fetchColumnValuesWithTransaction[spannerGroupIDKeyAndKeyLowercase](
+		ctx, txn, groupsTable, []string{"ID", "GroupKey", "GroupKey_Lowercase"})
+}
