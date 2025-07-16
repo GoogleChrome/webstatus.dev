@@ -173,7 +173,6 @@ func (m *mockWebFeatureMetadataStorer) InsertWebFeaturesMetadata(
 type mockInsertWebFeatureGroupsConfig struct {
 	expectedFeatureData map[string]web_platform_dx__web_features.FeatureValue
 	expectedGroupData   map[string]web_platform_dx__web_features.GroupData
-	expectedMapping     map[string]string
 	returnError         error
 }
 
@@ -184,12 +183,10 @@ type mockWebFeatureGroupStorer struct {
 
 func (m *mockWebFeatureGroupStorer) InsertWebFeatureGroups(
 	_ context.Context,
-	featureKeyToID map[string]string,
 	featureData map[string]web_platform_dx__web_features.FeatureValue,
 	groupData map[string]web_platform_dx__web_features.GroupData) error {
 	if !reflect.DeepEqual(featureData, m.mockInsertWebFeatureGroupsCfg.expectedFeatureData) ||
-		!reflect.DeepEqual(groupData, m.mockInsertWebFeatureGroupsCfg.expectedGroupData) ||
-		!reflect.DeepEqual(featureKeyToID, m.mockInsertWebFeatureGroupsCfg.expectedMapping) {
+		!reflect.DeepEqual(groupData, m.mockInsertWebFeatureGroupsCfg.expectedGroupData) {
 		m.t.Error("unexpected input")
 	}
 
@@ -393,9 +390,6 @@ func TestProcess(t *testing.T) {
 						Snapshot:        nil,
 					},
 				},
-				expectedMapping: map[string]string{
-					"feature1": "id-1",
-				},
 				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
 					"group1": {
 						Name:   "Group 1",
@@ -473,7 +467,6 @@ func TestProcess(t *testing.T) {
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: nil,
 				expectedGroupData:   nil,
-				expectedMapping:     nil,
 				returnError:         nil,
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
@@ -511,7 +504,6 @@ func TestProcess(t *testing.T) {
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: nil,
 				expectedGroupData:   nil,
-				expectedMapping:     nil,
 				returnError:         nil,
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
@@ -610,7 +602,6 @@ func TestProcess(t *testing.T) {
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: nil,
 				expectedGroupData:   nil,
-				expectedMapping:     nil,
 				returnError:         nil,
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
@@ -738,7 +729,6 @@ func TestProcess(t *testing.T) {
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: nil,
 				expectedGroupData:   nil,
-				expectedMapping:     nil,
 				returnError:         nil,
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
@@ -896,9 +886,6 @@ func TestProcess(t *testing.T) {
 						Group:           nil,
 						Snapshot:        nil,
 					},
-				},
-				expectedMapping: map[string]string{
-					"feature1": "id-1",
 				},
 				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
 					"group1": {
@@ -1068,9 +1055,6 @@ func TestProcess(t *testing.T) {
 						Group:           nil,
 						Snapshot:        nil,
 					},
-				},
-				expectedMapping: map[string]string{
-					"feature1": "id-1",
 				},
 				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
 					"group1": {
