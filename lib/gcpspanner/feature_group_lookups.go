@@ -28,12 +28,6 @@ type spannerFeatureGroupKeysLookup struct {
 	Depth             int64  `spanner:"Depth"`
 }
 
-type FeatureGroupIDsLookup struct {
-	GroupID      string
-	WebFeatureID string
-	Depth        int64
-}
-
 func (c *Client) UpsertFeatureGroupLookups(
 	ctx context.Context, featureKeyToGroupsMapping map[string][]string,
 	childGroupKeyToParentGroupKey map[string]string) error {
@@ -88,7 +82,8 @@ func calculateAllFeatureGroupLookups(
 	for featureKey, featureID := range featureKeyToID {
 		featureGroups, found := featureKeyToGroupsMapping[featureKey]
 		if !found {
-			slog.WarnContext(ctx, "unable to find feature group data by feature key", "featureKey", featureKey)
+			slog.WarnContext(ctx, "Unable to find feature group data for feature key. "+
+				"This is okay if the feature is not associated with a group", "featureKey", featureKey)
 
 			continue
 		}

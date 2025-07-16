@@ -46,6 +46,9 @@ func extractFeatureKeyToGroupsMapping(
 	m := make(map[string][]string)
 
 	for featureKey, feature := range featuresData {
+		if feature.Group == nil {
+			continue
+		}
 		var directGroupKeys []string
 		if feature.Group.String != nil {
 			directGroupKeys = append(directGroupKeys, *feature.Group.String)

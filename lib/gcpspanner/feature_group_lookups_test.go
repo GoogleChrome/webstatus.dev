@@ -188,18 +188,18 @@ func TestUpsertFeatureGroupLookups(t *testing.T) {
 			{GroupID: groupKeyToID["child"], WebFeatureID: featureKeyToID["FeatureZ"], Depth: 0, GroupKeyLowercase: "child"},
 		}
 
-		assertFeatureGroupIDsLookups(ctx, t, expectedLookups)
+		assertFeatureGroupKeysLookups(ctx, t, expectedLookups)
 	})
 }
 
-func assertFeatureGroupIDsLookups(ctx context.Context, t *testing.T, expectedLookups []spannerFeatureGroupKeysLookup) {
+func assertFeatureGroupKeysLookups(ctx context.Context, t *testing.T, expectedLookups []spannerFeatureGroupKeysLookup) {
 	actualLookups := spannerClient.readAllFeatureGroupKeysLookups(ctx, t)
 
 	// Assert that the actual events match the expected events
 	slices.SortFunc(expectedLookups, sortFeatureGroupKeysLookups)
 	slices.SortFunc(actualLookups, sortFeatureGroupKeysLookups)
 	if !reflect.DeepEqual(expectedLookups, actualLookups) {
-		t.Errorf("Unexpected data in FeatureGroupIDsLookups\nExpected (size: %d):\n%+v\nActual (size: %d):\n%+v",
+		t.Errorf("Unexpected data in FeatureGroupKeysLookup\nExpected (size: %d):\n%+v\nActual (size: %d):\n%+v",
 			len(expectedLookups), expectedLookups, len(actualLookups), actualLookups)
 	}
 }
