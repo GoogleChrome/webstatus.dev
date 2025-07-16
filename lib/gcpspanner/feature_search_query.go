@@ -337,23 +337,12 @@ func (b *FeatureSearchFilterBuilder) groupFilter(group string, op searchtypes.Se
 	opStr := searchOperatorToSpannerBinaryOperator(op)
 
 	return fmt.Sprintf(`
-    wf.ID IN (
-        SELECT wfg.WebFeatureID
-        FROM WebFeatureGroups wfg
-        WHERE
-            EXISTS (
-                SELECT 1
-                FROM WebDXGroups g
-                LEFT JOIN WebDXGroupDescendants gd ON g.ID = gd.GroupID
-                WHERE g.GroupKey_Lowercase %s @%s
-                  AND (
-                      g.ID IN UNNEST(wfg.GroupIDs)
-                      OR
-                      ARRAY_INCLUDES_ANY(gd.DescendantGroupIDs, wfg.GroupIDs)
-                  )
-            )
-    )
-    `, opStr, paramName)
+	wf.ID IN (
+		SELECT l.WebFeatureID
+		FROM FeatureGroupIDsLookup AS l
+		JOIN WebDXGroups AS g ON l.ID = g.ID
+		WHERE g.GroupKey_Lowercase %s @%s
+	)`, opStr, paramName)
 }
 
 func (b *FeatureSearchFilterBuilder) snapshotFilter(snapshot string, op searchtypes.SearchOperator) string {

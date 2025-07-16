@@ -548,50 +548,31 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		}
 		groupKeyToInternalID[group.GroupKey] = *id
 	}
-	groupDescArr := []struct {
-		groupKey string
-		info     GroupDescendantInfo
-	}{
+	groupLookups := []FeatureGroupIDsLookup{
 		{
-			groupKey: "parent1",
-			info: GroupDescendantInfo{
-				DescendantGroupIDs: []string{
-					groupKeyToInternalID["child3"],
-				},
-			},
-		},
-	}
-	for _, info := range groupDescArr {
-		err := client.UpsertGroupDescendantInfo(ctx, info.groupKey, info.info)
-		if err != nil {
-			t.Fatalf("unable to insert group descendant info err %s", err)
-		}
-	}
-	webFeatureGroups := []WebFeatureGroup{
-		{
+			ID:           groupKeyToInternalID["parent1"],
 			WebFeatureID: webFeatureKeyToInternalFeatureID["feature1"],
-			GroupIDs: []string{
-				groupKeyToInternalID["parent1"],
-			},
+			Depth:        0,
 		},
 		{
-			WebFeatureID: webFeatureKeyToInternalFeatureID["feature2"],
-			GroupIDs: []string{
-				groupKeyToInternalID["parent2"],
-			},
-		},
-		{
+			ID:           groupKeyToInternalID["parent1"],
 			WebFeatureID: webFeatureKeyToInternalFeatureID["feature3"],
-			GroupIDs: []string{
-				groupKeyToInternalID["child3"],
-			},
+			Depth:        1,
+		},
+		{
+			ID:           groupKeyToInternalID["child3"],
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature3"],
+			Depth:        0,
+		},
+		{
+			ID:           groupKeyToInternalID["parent2"],
+			WebFeatureID: webFeatureKeyToInternalFeatureID["feature2"],
+			Depth:        0,
 		},
 	}
-	for _, webFeatureGroup := range webFeatureGroups {
-		err = client.UpsertWebFeatureGroup(ctx, webFeatureGroup)
-		if err != nil {
-			t.Fatalf("failed to insert web feature group. err: %s group\n", err)
-		}
+	err = client.UpsertFeatureGroupLookups(ctx, groupLookups)
+	if err != nil {
+		t.Fatalf("unable to insert group feature lookups err %s", err)
 	}
 	// Insert Snapshot information
 	snapshotKeyToInternalID := map[string]string{}
@@ -1679,6 +1660,57 @@ func testGroupFilters(ctx context.Context, t *testing.T, client *Client) {
 					Operator:   searchtypes.OperatorEq,
 				},
 				Keyword: searchtypes.KeywordNone,
+			},
+		},
+	}
+	assertFeatureSearch(ctx, t, client,
+		featureSearchArgs{
+			pageToken: nil,
+			pageSize:  100,
+			node:      node,
+			sort:      defaultSorting(),
+		},
+		&expectedPage,
+	)
+
+	// group:child3 OR group:parent2
+	// Should get feature2 and feature3
+	expectedResults = []FeatureResult{
+		getFeatureSearchTestFeature(FeatureSearchTestFId2),
+		getFeatureSearchTestFeature(FeatureSearchTestFId3),
+	}
+	expectedPage = FeatureResultPage{
+		Total:         2,
+		NextPageToken: nil,
+		Features:      expectedResults,
+	}
+	node = &searchtypes.SearchNode{
+		Keyword: searchtypes.KeywordRoot,
+		Term:    nil,
+		Children: []*searchtypes.SearchNode{
+			{
+				Keyword: searchtypes.KeywordOR,
+				Term:    nil,
+				Children: []*searchtypes.SearchNode{
+					{
+						Children: nil,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierGroup,
+							Value:      "child3",
+							Operator:   searchtypes.OperatorEq,
+						},
+						Keyword: searchtypes.KeywordNone,
+					},
+					{
+						Children: nil,
+						Term: &searchtypes.SearchTerm{
+							Identifier: searchtypes.IdentifierGroup,
+							Value:      "parent2",
+							Operator:   searchtypes.OperatorEq,
+						},
+						Keyword: searchtypes.KeywordNone,
+					},
+				},
 			},
 		},
 	}
