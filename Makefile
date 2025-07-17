@@ -181,12 +181,14 @@ download-schemas:
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 
+# Use the workaround in https://github.com/glideapps/quicktype/issues/518 to generate ALL types
 jsonschema:
 	npx quicktype \
-		--src jsonschema/web-platform-dx_web-features/defs.schema.json \
+		--src jsonschema/web-platform-dx_web-features/defs.schema.json#definitions/ \
 		--src-lang schema \
 		--lang go \
-		--top-level FeatureData \
+		--omit-empty \
+		--top-level WebFeaturesData \
 		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
