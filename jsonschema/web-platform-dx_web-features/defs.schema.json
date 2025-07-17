@@ -43,7 +43,6 @@
     "features": {
       "description": "Feature identifiers and data",
       "type": "object",
-      "additionalProperties": {
         "oneOf": [
           {
             "$ref": "#/definitions/FeatureData"
@@ -54,9 +53,11 @@
           {
             "$ref": "#/definitions/FeatureSplitData"
           }
-        ]
-      }
-    },
+        ],
+        "discriminator": {
+          "propertyName": "kind"
+        }
+      },
     "groups": {
       "description": "Group identifiers and data",
       "type": "object",
@@ -112,6 +113,7 @@
       "description": "A feature data entry",
       "type": "object",
       "properties": {
+        "kind": { "const": "data" },
         "name": {
           "description": "Short name",
           "type": "string"
@@ -126,7 +128,7 @@
         },
         "spec": {
           "description": "Specification URL(s)",
-          "$ref": "#/definitions/URLOrURLs"
+          "$ref": "#/definitions/StringOrStrings"
         },
         "group": {
           "description": "Group identifier(s)",
@@ -153,7 +155,7 @@
           "$ref": "#/definitions/Discouraged"
         }
       },
-      "required": ["name", "description", "description_html", "spec", "status"],
+      "required": ["name", "description", "description_html", "kind", "spec", "status"],
       "additionalProperties": false
     },
     "GroupData": {
@@ -191,6 +193,7 @@
       "description": "A feature has permanently moved to exactly one other ID",
       "type": "object",
       "properties": {
+        "kind": { "const": "moved" },
         "redirect": {
           "type": "object",
           "properties": {
@@ -206,13 +209,14 @@
           "additionalProperties": false
         }
       },
-      "required": ["redirect"],
+      "required": ["redirect", "kind"],
       "additionalProperties": false
     },
     "FeatureSplitData": {
       "description": "A feature has split into two or more other features",
       "type": "object",
       "properties": {
+        "kind": { "const": "split" },
         "redirect": {
           "type": "object",
           "properties": {
@@ -228,7 +232,7 @@
           "additionalProperties": false
         }
       },
-      "required": ["redirect"],
+      "required": ["kind", "redirect"],
       "additionalProperties": false
     },
     "Status": {
@@ -341,22 +345,6 @@
         "type": "string"
       },
       "minItems": 1
-    },
-    "URLOrURLs": {
-      "oneOf": [
-        {
-          "type": "string",
-          "format": "uri"
-        },
-        {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "format": "uri"
-          },
-          "minItems": 2
-        }
-      ]
     }
   }
 }
