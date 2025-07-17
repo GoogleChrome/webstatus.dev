@@ -24,6 +24,7 @@ import (
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 func TestParse(t *testing.T) {
@@ -90,7 +91,7 @@ func valuePtr[T any](in T) *T { return &in }
 func TestPostProcess(t *testing.T) {
 	testCases := []struct {
 		name                 string
-		featureData          *web_platform_dx__web_features.FeatureData
+		featureData          *webdxfeaturetypes.ProcessedWebFeaturesData
 		expectedFeatureValue web_platform_dx__web_features.FeatureValue
 	}{
 		{
@@ -128,7 +129,7 @@ func TestPostProcess(t *testing.T) {
 				},
 				Groups:    nil,
 				Snapshots: nil,
-				Features: map[string]web_platform_dx__web_features.FeatureValue{
+				Features: webdxfeaturetypes.FeatureKinds{
 					"feature1": {
 						CompatFeatures:  []string{"compat1", "compat2"},
 						Description:     "description",
@@ -144,35 +145,35 @@ func TestPostProcess(t *testing.T) {
 							},
 						},
 						Name: "feature 1 name",
-						Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+						Caniuse: &web_platform_dx__web_features.StringOrStrings{
 							String: valuePtr("caniuse_data"),
 							StringArray: []string{
 								"caniuse1",
 								"caniuse2",
 							},
 						},
-						Group: &web_platform_dx__web_features.StringOrStringArray{
+						Group: &web_platform_dx__web_features.StringOrStrings{
 							String: valuePtr("group_name"),
 							StringArray: []string{
 								"group1",
 								"group2",
 							},
 						},
-						Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+						Snapshot: &web_platform_dx__web_features.StringOrStrings{
 							String: valuePtr("snapshot_data"),
 							StringArray: []string{
 								"snapshot1",
 								"snapshot2",
 							},
 						},
-						Spec: &web_platform_dx__web_features.StringOrStringArray{
+						Spec: &web_platform_dx__web_features.StringOrStrings{
 							String: valuePtr("spec_link"),
 							StringArray: []string{
 								"spec1",
 								"spec2",
 							},
 						},
-						Status: web_platform_dx__web_features.Status{
+						Status: web_platform_dx__web_features.StatusHeadlineClass{
 							Baseline: &web_platform_dx__web_features.BaselineUnion{
 								Bool: valuePtr(false),
 								Enum: valuePtr(web_platform_dx__web_features.High),
@@ -180,7 +181,7 @@ func TestPostProcess(t *testing.T) {
 							BaselineHighDate: valuePtr("≤2023-01-01"),
 							BaselineLowDate:  valuePtr("≤2022-12-01"),
 							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
+							Support: web_platform_dx__web_features.ByCompatKeySupport{
 								Chrome:         valuePtr("≤99"),
 								ChromeAndroid:  valuePtr("≤98"),
 								Firefox:        valuePtr("≤97"),
@@ -208,35 +209,35 @@ func TestPostProcess(t *testing.T) {
 					},
 				},
 				Name: "feature 1 name",
-				Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+				Caniuse: &web_platform_dx__web_features.StringOrStrings{
 					String: valuePtr("caniuse_data"),
 					StringArray: []string{
 						"caniuse1",
 						"caniuse2",
 					},
 				},
-				Group: &web_platform_dx__web_features.StringOrStringArray{
+				Group: &web_platform_dx__web_features.StringOrStrings{
 					String: valuePtr("group_name"),
 					StringArray: []string{
 						"group1",
 						"group2",
 					},
 				},
-				Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+				Snapshot: &web_platform_dx__web_features.StringOrStrings{
 					String: valuePtr("snapshot_data"),
 					StringArray: []string{
 						"snapshot1",
 						"snapshot2",
 					},
 				},
-				Spec: &web_platform_dx__web_features.StringOrStringArray{
+				Spec: &web_platform_dx__web_features.StringOrStrings{
 					String: valuePtr("spec_link"),
 					StringArray: []string{
 						"spec1",
 						"spec2",
 					},
 				},
-				Status: web_platform_dx__web_features.Status{
+				Status: web_platform_dx__web_features.StatusHeadlineClass{
 					ByCompatKey: nil,
 					Baseline: &web_platform_dx__web_features.BaselineUnion{
 						Bool: valuePtr(false),
@@ -244,7 +245,7 @@ func TestPostProcess(t *testing.T) {
 					},
 					BaselineHighDate: valuePtr("2023-01-01"),
 					BaselineLowDate:  valuePtr("2022-12-01"),
-					Support: web_platform_dx__web_features.StatusSupport{
+					Support: web_platform_dx__web_features.ByCompatKeySupport{
 						Chrome:         valuePtr("99"),
 						ChromeAndroid:  valuePtr("98"),
 						Firefox:        valuePtr("97"),

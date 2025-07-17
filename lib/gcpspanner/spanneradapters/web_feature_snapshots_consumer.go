@@ -20,6 +20,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // WebFeatureSnapshotsClient expects a subset of the functionality from lib/gcpspanner that only apply to Snapshots.
@@ -64,7 +65,7 @@ func (c *WebFeatureSnapshotConsumer) upsertSnapshots(
 func (c *WebFeatureSnapshotConsumer) upsertSnapshotMappings(
 	ctx context.Context,
 	featureKeyToID map[string]string,
-	featureData map[string]web_platform_dx__web_features.FeatureValue,
+	featureData webdxfeaturetypes.FeatureKinds,
 	snapshotKeyToInternalID map[string]string,
 ) error {
 	for featureKey, featureID := range featureKeyToID {
@@ -110,7 +111,7 @@ func (c *WebFeatureSnapshotConsumer) upsertSnapshotMappings(
 func (c *WebFeatureSnapshotConsumer) InsertWebFeatureSnapshots(
 	ctx context.Context,
 	featureKeyToID map[string]string,
-	featureData map[string]web_platform_dx__web_features.FeatureValue,
+	featureData webdxfeaturetypes.FeatureKinds,
 	snapshotData map[string]web_platform_dx__web_features.SnapshotData) error {
 	snapshotKeyToInternalID := make(map[string]string, len(snapshotData))
 	// Upsert basic snapshot data and get snapshot ids.

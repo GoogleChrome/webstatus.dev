@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // AssetGetter describes the behavior to get a certain asset from a github release.
@@ -35,14 +36,14 @@ type AssetGetter interface {
 
 // AssetParser describes the behavior to parse the io.ReadCloser from AssetGetter into the expected data type.
 type AssetParser interface {
-	Parse(io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error)
+	Parse(io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error)
 }
 
 // WebFeatureStorer describes the logic to insert the web features that were returned by the AssetParser.
 type WebFeatureStorer interface {
 	InsertWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureValue,
+		data webdxfeaturetypes.FeatureKinds,
 		startAt time.Time, endAt time.Time) (map[string]string, error)
 }
 
@@ -52,14 +53,14 @@ type WebFeatureMetadataStorer interface {
 	InsertWebFeaturesMetadata(
 		ctx context.Context,
 		featureKeyToID map[string]string,
-		data map[string]web_platform_dx__web_features.FeatureValue) error
+		data webdxfeaturetypes.FeatureKinds) error
 }
 
 // WebDXGroupStorer describes the logic to insert the groups that were returned by the AssetParser.
 type WebDXGroupStorer interface {
 	InsertWebFeatureGroups(
 		ctx context.Context,
-		featureData map[string]web_platform_dx__web_features.FeatureValue,
+		featureData webdxfeaturetypes.FeatureKinds,
 		groupData map[string]web_platform_dx__web_features.GroupData) error
 }
 
@@ -68,7 +69,7 @@ type WebDXSnapshotStorer interface {
 	InsertWebFeatureSnapshots(
 		ctx context.Context,
 		featureKeyToID map[string]string,
-		featureData map[string]web_platform_dx__web_features.FeatureValue,
+		featureData webdxfeaturetypes.FeatureKinds,
 		snapshotData map[string]web_platform_dx__web_features.SnapshotData) error
 }
 

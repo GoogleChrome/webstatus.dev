@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // WebFeatureSpannerClient expects a subset of the functionality from lib/gcpspanner that only apply to WebFeatures.
@@ -51,7 +52,7 @@ type WebFeaturesConsumer struct {
 
 func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureValue,
+	data webdxfeaturetypes.FeatureKinds,
 	startAt, endAt time.Time) (map[string]string, error) {
 	// 1. Prepare all WebFeature structs from the input data.
 	allFeatures := make([]gcpspanner.WebFeature, 0, len(data))
