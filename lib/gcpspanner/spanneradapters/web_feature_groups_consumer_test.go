@@ -19,106 +19,11 @@ import (
 	"context"
 	"errors"
 	"reflect"
-	"slices"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 )
-
-func TestBuildGroupDescendants(t *testing.T) {
-	testCases := []struct {
-		name                  string
-		groupData             map[string]web_platform_dx__web_features.GroupData
-		groupKeyToInternalID  map[string]string
-		expectedDescendantMap map[string]gcpspanner.GroupDescendantInfo
-	}{
-		{
-			name: "Simple Hierarchy",
-			groupData: map[string]web_platform_dx__web_features.GroupData{
-				"group1": {Parent: nil, Name: "Group 1"},
-				"group2": {Name: "Group 2", Parent: valuePtr("group1")},
-				"group3": {Name: "Group 3", Parent: valuePtr("group1")},
-			},
-			groupKeyToInternalID: map[string]string{
-				"group1": "uuid1",
-				"group2": "uuid2",
-				"group3": "uuid3",
-			},
-			expectedDescendantMap: map[string]gcpspanner.GroupDescendantInfo{
-				"group1": {DescendantGroupIDs: []string{"uuid2", "uuid3"}},
-				"group2": {DescendantGroupIDs: nil},
-				"group3": {DescendantGroupIDs: nil},
-			},
-		},
-		{
-			name: "Deeper Hierarchy",
-			groupData: map[string]web_platform_dx__web_features.GroupData{
-				"group1": {Parent: nil, Name: "Group 1"},
-				"group2": {Name: "Group 2", Parent: valuePtr("group1")},
-				"group3": {Name: "Group 3", Parent: valuePtr("group2")},
-				"group4": {Name: "Group 4", Parent: valuePtr("group2")},
-			},
-			groupKeyToInternalID: map[string]string{
-				"group1": "uuid1",
-				"group2": "uuid2",
-				"group3": "uuid3",
-				"group4": "uuid4",
-			},
-			expectedDescendantMap: map[string]gcpspanner.GroupDescendantInfo{
-				"group1": {DescendantGroupIDs: []string{"uuid2", "uuid3", "uuid4"}},
-				"group2": {DescendantGroupIDs: []string{"uuid3", "uuid4"}},
-				"group3": {DescendantGroupIDs: nil},
-				"group4": {DescendantGroupIDs: nil},
-			},
-		},
-		{
-			name: "Multiple Roots",
-			groupData: map[string]web_platform_dx__web_features.GroupData{
-				"group1": {Parent: nil, Name: "Group 1"},
-				"group2": {Parent: nil, Name: "Group 2"},
-				"group3": {Name: "Group 3", Parent: valuePtr("group1")},
-			},
-			groupKeyToInternalID: map[string]string{
-				"group1": "uuid1",
-				"group2": "uuid2",
-				"group3": "uuid3",
-			},
-			expectedDescendantMap: map[string]gcpspanner.GroupDescendantInfo{
-				"group1": {DescendantGroupIDs: []string{"uuid3"}},
-				"group2": {DescendantGroupIDs: nil},
-				"group3": {DescendantGroupIDs: nil},
-			},
-		},
-		{
-			name: "No Children",
-			groupData: map[string]web_platform_dx__web_features.GroupData{
-				"group1": {Name: "Group 1", Parent: nil},
-			},
-			groupKeyToInternalID: map[string]string{
-				"group1": "uuid1",
-			},
-			expectedDescendantMap: map[string]gcpspanner.GroupDescendantInfo{
-				"group1": {DescendantGroupIDs: nil},
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			consumer := &WebFeatureGroupConsumer{client: nil}
-			actualDescendantMap := consumer.buildGroupDescendants(tc.groupData, tc.groupKeyToInternalID)
-
-			for _, info := range actualDescendantMap {
-				slices.Sort(info.DescendantGroupIDs)
-			}
-
-			if !reflect.DeepEqual(actualDescendantMap, tc.expectedDescendantMap) {
-				t.Errorf("Descendant maps not equal.\nExpected: %v\nReceived: %v", tc.expectedDescendantMap, actualDescendantMap)
-			}
-		})
-	}
-}
 
 type mockUpsertGroupConfig struct {
 	expectedInputs map[string]gcpspanner.Group
@@ -127,28 +32,26 @@ type mockUpsertGroupConfig struct {
 	expectedCount  int
 }
 
-type mockUpsertGroupDescendantInfoConfig struct {
-	expectedInputs map[string]gcpspanner.GroupDescendantInfo
-	outputs        map[string]error
-	expectedCount  int
+type mockUpsertFeatureGroupLookupInput struct {
+	featureKeyToGroupsMapping     map[string][]string
+	childGroupKeyToParentGroupKey map[string]string
 }
 
-type mockUpsertWebFeatureGroupConfig struct {
-	expectedInputs map[string]gcpspanner.WebFeatureGroup
-	outputs        map[string]error
-	expectedCount  int
+type mockUpsertFeatureGroupLookupsConfig struct {
+	expectedInput mockUpsertFeatureGroupLookupInput
+	output        error
+	expectedCount int
 }
 
 func TestInsertWebFeatureGroups(t *testing.T) {
 	testCases := []struct {
-		name                         string
-		mockUpsertGroupCfg           mockUpsertGroupConfig
-		mockUpsertGroupDescendantCfg mockUpsertGroupDescendantInfoConfig
-		mockUpsertWebFeatureGroupCfg mockUpsertWebFeatureGroupConfig
-		featureKeyToID               map[string]string
-		featureData                  map[string]web_platform_dx__web_features.FeatureValue
-		groupData                    map[string]web_platform_dx__web_features.GroupData
-		expectedError                error
+		name                             string
+		mockUpsertGroupCfg               mockUpsertGroupConfig
+		mockUpsertFeatureGroupLookupsCfg mockUpsertFeatureGroupLookupsConfig
+		featureKeyToID                   map[string]string
+		featureData                      map[string]web_platform_dx__web_features.FeatureValue
+		groupData                        map[string]web_platform_dx__web_features.GroupData
+		expectedError                    error
 	}{
 		{
 			name: "Success with single and multiple groups per feature",
@@ -170,29 +73,18 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 				},
 				expectedCount: 3,
 			},
-			mockUpsertGroupDescendantCfg: mockUpsertGroupDescendantInfoConfig{
-				expectedInputs: map[string]gcpspanner.GroupDescendantInfo{
-					"group1": {DescendantGroupIDs: []string{"uuid3"}},
-					"group2": {DescendantGroupIDs: nil},
-					"child3": {DescendantGroupIDs: nil},
+			mockUpsertFeatureGroupLookupsCfg: mockUpsertFeatureGroupLookupsConfig{
+				expectedInput: mockUpsertFeatureGroupLookupInput{
+					featureKeyToGroupsMapping: map[string][]string{
+						"feature1": {"group1", "group2"},
+						"feature2": {"group2"},
+					},
+					childGroupKeyToParentGroupKey: map[string]string{
+						"child3": "group1",
+					},
 				},
-				outputs: map[string]error{
-					"group1": nil,
-					"group2": nil,
-					"child3": nil,
-				},
-				expectedCount: 3,
-			},
-			mockUpsertWebFeatureGroupCfg: mockUpsertWebFeatureGroupConfig{
-				expectedInputs: map[string]gcpspanner.WebFeatureGroup{
-					"featureID1": {WebFeatureID: "featureID1", GroupIDs: []string{"uuid1", "uuid3"}},
-					"featureID2": {WebFeatureID: "featureID2", GroupIDs: []string{"uuid2"}},
-				},
-				outputs: map[string]error{
-					"featureID1": nil,
-					"featureID2": nil,
-				},
-				expectedCount: 2,
+				output:        nil,
+				expectedCount: 1,
 			},
 			featureKeyToID: map[string]string{
 				"feature1": "featureID1",
@@ -201,7 +93,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 			featureData: map[string]web_platform_dx__web_features.FeatureValue{
 				"feature1": {
 					Group: &web_platform_dx__web_features.StringOrStringArray{
-						StringArray: []string{"group1", "child3"},
+						StringArray: []string{"group1", "group2"},
 						String:      nil,
 					},
 					Caniuse:         nil,
@@ -270,10 +162,10 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := newMockWebFeatureGroupsClient(
-				t, tc.mockUpsertGroupCfg, tc.mockUpsertGroupDescendantCfg, tc.mockUpsertWebFeatureGroupCfg)
+				t, tc.mockUpsertGroupCfg, tc.mockUpsertFeatureGroupLookupsCfg)
 			consumer := NewWebFeatureGroupsConsumer(mockClient)
 
-			err := consumer.InsertWebFeatureGroups(context.TODO(), tc.featureKeyToID, tc.featureData, tc.groupData)
+			err := consumer.InsertWebFeatureGroups(context.TODO(), tc.featureData, tc.groupData)
 
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
@@ -284,14 +176,9 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					tc.mockUpsertGroupCfg.expectedCount, mockClient.upsertGroupCount)
 			}
 
-			if mockClient.upsertGroupDescendantInfoCount != tc.mockUpsertGroupDescendantCfg.expectedCount {
-				t.Errorf("expected %d calls to UpsertGroupDescendantInfo, got %d",
-					tc.mockUpsertGroupDescendantCfg.expectedCount, mockClient.upsertGroupDescendantInfoCount)
-			}
-
-			if mockClient.upsertWebFeatureGroupCount != tc.mockUpsertWebFeatureGroupCfg.expectedCount {
-				t.Errorf("expected %d calls to UpsertWebFeatureGroup, got %d",
-					tc.mockUpsertWebFeatureGroupCfg.expectedCount, mockClient.upsertWebFeatureGroupCount)
+			if mockClient.upsertFeatureGroupLookupsCount != tc.mockUpsertFeatureGroupLookupsCfg.expectedCount {
+				t.Errorf("expected %d calls to UpsertFeatureGroupLookups, got %d",
+					tc.mockUpsertFeatureGroupLookupsCfg.expectedCount, mockClient.upsertFeatureGroupLookupsCount)
 			}
 		})
 	}
@@ -300,13 +187,11 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 type mockWebFeatureGroupsClient struct {
 	t *testing.T
 
-	mockUpsertGroupCfg           mockUpsertGroupConfig
-	mockUpsertGroupDescendantCfg mockUpsertGroupDescendantInfoConfig
-	mockUpsertWebFeatureGroupCfg mockUpsertWebFeatureGroupConfig
+	mockUpsertGroupCfg               mockUpsertGroupConfig
+	mockUpsertFeatureGroupLookupsCfg mockUpsertFeatureGroupLookupsConfig
 
 	upsertGroupCount               int
-	upsertGroupDescendantInfoCount int
-	upsertWebFeatureGroupCount     int
+	upsertFeatureGroupLookupsCount int
 }
 
 func (c *mockWebFeatureGroupsClient) UpsertGroup(_ context.Context, group gcpspanner.Group) (*string, error) {
@@ -331,59 +216,33 @@ func (c *mockWebFeatureGroupsClient) UpsertGroup(_ context.Context, group gcpspa
 	return &output, c.mockUpsertGroupCfg.outputs[group.GroupKey]
 }
 
-func (c *mockWebFeatureGroupsClient) UpsertGroupDescendantInfo(
-	_ context.Context, groupKey string, descendantInfo gcpspanner.GroupDescendantInfo) error {
-	if len(c.mockUpsertGroupDescendantCfg.expectedInputs) <= c.upsertGroupDescendantInfoCount {
-		c.t.Fatal("no more expected input for UpsertGroupDescendantInfo")
+func (c *mockWebFeatureGroupsClient) UpsertFeatureGroupLookups(
+	_ context.Context, featureKeyToGroupsMapping map[string][]string,
+	childGroupKeyToParentGroupKey map[string]string) error {
+	expectedInput := c.mockUpsertFeatureGroupLookupsCfg.expectedInput
+	if !reflect.DeepEqual(expectedInput.featureKeyToGroupsMapping, featureKeyToGroupsMapping) ||
+		!reflect.DeepEqual(expectedInput.childGroupKeyToParentGroupKey, childGroupKeyToParentGroupKey) {
+		c.t.Errorf("unexpected input for UpsertFeatureGroupLookups\nexpected (%v %v)\nreceived (%v %v)",
+			expectedInput.featureKeyToGroupsMapping,
+			expectedInput.childGroupKeyToParentGroupKey,
+			featureKeyToGroupsMapping,
+			childGroupKeyToParentGroupKey)
 	}
-	if len(c.mockUpsertGroupDescendantCfg.outputs) <= c.upsertGroupDescendantInfoCount {
-		c.t.Fatal("no more configured outputs for UpsertGroupDescendantInfo")
-	}
+	c.upsertFeatureGroupLookupsCount++
 
-	expectedInput, found := c.mockUpsertGroupDescendantCfg.expectedInputs[groupKey]
-	if !found {
-		c.t.Errorf("unexpected input %v for groupKey %s", descendantInfo, groupKey)
-	}
-	if !reflect.DeepEqual(expectedInput, descendantInfo) {
-		c.t.Errorf("unexpected input for groupKey %s expected %v received %v", groupKey, expectedInput, descendantInfo)
-	}
-	c.upsertGroupDescendantInfoCount++
-
-	return c.mockUpsertGroupDescendantCfg.outputs[groupKey]
-}
-
-func (c *mockWebFeatureGroupsClient) UpsertWebFeatureGroup(_ context.Context, group gcpspanner.WebFeatureGroup) error {
-	if len(c.mockUpsertWebFeatureGroupCfg.expectedInputs) <= c.upsertWebFeatureGroupCount {
-		c.t.Fatal("no more expected input for UpsertWebFeatureGroup")
-	}
-	if len(c.mockUpsertWebFeatureGroupCfg.outputs) <= c.upsertWebFeatureGroupCount {
-		c.t.Fatal("no more configured outputs for UpsertWebFeatureGroup")
-	}
-
-	expectedInput, found := c.mockUpsertWebFeatureGroupCfg.expectedInputs[group.WebFeatureID]
-	if !found {
-		c.t.Errorf("unexpected input %v", group)
-	}
-	if !reflect.DeepEqual(expectedInput, group) {
-		c.t.Errorf("unexpected input expected %v received %v", expectedInput, group)
-	}
-	c.upsertWebFeatureGroupCount++
-
-	return c.mockUpsertWebFeatureGroupCfg.outputs[group.WebFeatureID]
+	return c.mockUpsertFeatureGroupLookupsCfg.output
 }
 
 func newMockWebFeatureGroupsClient(t *testing.T,
 	upsertGroupCfg mockUpsertGroupConfig,
-	upsertGroupDescendantCfg mockUpsertGroupDescendantInfoConfig,
-	upsertWebFeatureGroupCfg mockUpsertWebFeatureGroupConfig) *mockWebFeatureGroupsClient {
+	upsertFeatureGroupLookupsCfg mockUpsertFeatureGroupLookupsConfig,
+) *mockWebFeatureGroupsClient {
 
 	return &mockWebFeatureGroupsClient{
-		t:                              t,
-		mockUpsertGroupCfg:             upsertGroupCfg,
-		mockUpsertGroupDescendantCfg:   upsertGroupDescendantCfg,
-		mockUpsertWebFeatureGroupCfg:   upsertWebFeatureGroupCfg,
-		upsertGroupCount:               0,
-		upsertGroupDescendantInfoCount: 0,
-		upsertWebFeatureGroupCount:     0,
+		t:                                t,
+		mockUpsertGroupCfg:               upsertGroupCfg,
+		mockUpsertFeatureGroupLookupsCfg: upsertFeatureGroupLookupsCfg,
+		upsertGroupCount:                 0,
+		upsertFeatureGroupLookupsCount:   0,
 	}
 }

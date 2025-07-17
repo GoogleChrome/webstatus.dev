@@ -59,7 +59,6 @@ type WebFeatureMetadataStorer interface {
 type WebDXGroupStorer interface {
 	InsertWebFeatureGroups(
 		ctx context.Context,
-		featureKeyToID map[string]string,
 		featureData map[string]web_platform_dx__web_features.FeatureValue,
 		groupData map[string]web_platform_dx__web_features.GroupData) error
 }
@@ -133,7 +132,7 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 		return err
 	}
 
-	err = p.groupStorer.InsertWebFeatureGroups(ctx, mapping, data.Features, data.Groups)
+	err = p.groupStorer.InsertWebFeatureGroups(ctx, data.Features, data.Groups)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store groups", "error", err)
 
