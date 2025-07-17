@@ -20,6 +20,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // WebFeatureGroupsClient expects a subset of the functionality from lib/gcpspanner that only apply to Groups.
@@ -41,7 +42,7 @@ type WebFeatureGroupConsumer struct {
 }
 
 func extractFeatureKeyToGroupsMapping(
-	featuresData map[string]web_platform_dx__web_features.FeatureValue,
+	featuresData webdxfeaturetypes.FeatureKinds,
 ) map[string][]string {
 	m := make(map[string][]string)
 
@@ -64,7 +65,7 @@ func extractFeatureKeyToGroupsMapping(
 
 func (c *WebFeatureGroupConsumer) InsertWebFeatureGroups(
 	ctx context.Context,
-	featureData map[string]web_platform_dx__web_features.FeatureValue,
+	featureData webdxfeaturetypes.FeatureKinds,
 	groupData map[string]web_platform_dx__web_features.GroupData) error {
 	groupKeyToInternalID := make(map[string]string, len(groupData))
 	childToParentMap := make(map[string]string)

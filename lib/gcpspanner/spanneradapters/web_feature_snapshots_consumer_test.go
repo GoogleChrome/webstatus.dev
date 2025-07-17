@@ -23,6 +23,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 type mockUpsertSnapshotConfig struct {
@@ -110,7 +111,7 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 		mockUpsertSnapshotCfg           mockUpsertSnapshotConfig
 		mockUpsertWebFeatureSnapshotCfg mockUpsertWebFeatureSnapshotConfig
 		featureKeyToID                  map[string]string
-		featureData                     map[string]web_platform_dx__web_features.FeatureValue
+		featureData                     webdxfeaturetypes.FeatureKinds
 		snapshotData                    map[string]web_platform_dx__web_features.SnapshotData
 		expectedError                   error
 	}{
@@ -146,10 +147,10 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 				"feature1": "featureID1",
 				"feature2": "featureID2",
 			},
-			featureData: map[string]web_platform_dx__web_features.FeatureValue{
+			featureData: webdxfeaturetypes.FeatureKinds{
 				"feature1": {
 					Discouraged: nil,
-					Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+					Snapshot: &web_platform_dx__web_features.StringOrStrings{
 						StringArray: []string{"snapshot1", "snapshot2"},
 						String:      nil,
 					},
@@ -160,12 +161,12 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 					Name:            "",
 					Group:           nil,
 					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.StatusHeadlineClass{
 						ByCompatKey:      nil,
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.ByCompatKeySupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -178,7 +179,7 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 				},
 				"feature2": {
 					Discouraged: nil,
-					Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+					Snapshot: &web_platform_dx__web_features.StringOrStrings{
 						String:      valuePtr("snapshot1"),
 						StringArray: nil,
 					},
@@ -189,12 +190,12 @@ func TestInsertWebFeatureSnapshots(t *testing.T) {
 					Name:            "",
 					Group:           nil,
 					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: web_platform_dx__web_features.StatusHeadlineClass{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: web_platform_dx__web_features.ByCompatKeySupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
