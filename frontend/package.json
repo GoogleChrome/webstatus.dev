@@ -61,7 +61,7 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
-    "@lit/context": "^1.1.5",
+    "@lit/context": "^1.1.6",
     "@lit/task": "^1.0.3",
     "@shoelace-style/shoelace": "^2.20.1",
     "@types/google.visualization": "^0.0.74",
