@@ -42,7 +42,7 @@ func parseEnvVarDuration(key string) time.Duration {
 	cacheDuration := os.Getenv(key)
 	duration, err := time.ParseDuration(cacheDuration)
 	if err != nil {
-		slog.Error("unable to parse duration", "key", key, "input value", cacheDuration)
+		slog.ErrorContext(context.TODO(), "unable to parse duration", "key", key, "input value", cacheDuration)
 		os.Exit(1)
 	}
 
@@ -57,7 +57,7 @@ func main() {
 	projectID := os.Getenv("PROJECT_ID")
 	fs, err := gds.NewDatastoreClient(projectID, datastoreDB)
 	if err != nil {
-		slog.Error("failed to create datastore client", "error", err.Error())
+		slog.ErrorContext(context.TODO(), "failed to create datastore client", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -67,12 +67,12 @@ func main() {
 	spannerInstance := os.Getenv("SPANNER_INSTANCE")
 	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
 	if err != nil {
-		slog.Error("failed to create spanner client", "error", err.Error())
+		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
 		os.Exit(1)
 	}
 
 	if _, found := os.LookupEnv("SPANNER_EMULATOR_HOST"); found {
-		slog.Info("setting spanner to local mode")
+		slog.InfoContext(ctx, "setting spanner to local mode")
 		spannerClient.SetFeatureSearchBaseQuery(gcpspanner.LocalFeatureBaseQuery{})
 		spannerClient.SetMisingOneImplementationQuery(gcpspanner.LocalMissingOneImplementationQuery{})
 	}
@@ -92,7 +92,7 @@ func main() {
 			cachetypes.WithTTL(aggregatedFeaturesStatsTTL),
 		},
 	}
-	slog.Info("cache settings", "duration", cacheTTL, "prefix", cacheKeyPrefix,
+	slog.InfoContext(ctx, "cache settings", "duration", cacheTTL, "prefix", cacheKeyPrefix,
 		"aggregatedFeaturesStatsTTL", aggregatedFeaturesStatsTTL)
 
 	cache, err := valkeycache.NewValkeyDataCache[string, []byte](
@@ -102,7 +102,7 @@ func main() {
 		cacheTTL,
 	)
 	if err != nil {
-		slog.Error("unable to create valkey cache instance", "error", err)
+		slog.ErrorContext(ctx, "unable to create valkey cache instance", "error", err)
 		os.Exit(1)
 	}
 
@@ -111,7 +111,7 @@ func main() {
 		ProjectID: projectID,
 	})
 	if err != nil {
-		slog.Error("error initializing firebase app", "error", err)
+		slog.ErrorContext(ctx, "error initializing firebase app", "error", err)
 		os.Exit(1)
 	}
 
@@ -119,19 +119,19 @@ func main() {
 	// Access Auth service from default app
 	firebaseBaseAuthClient, err := firebaseApp.Auth(context.Background())
 	if err != nil {
-		slog.Error("error getting Auth client", "error", err)
+		slog.ErrorContext(ctx, "error getting Auth client", "error", err)
 	}
 
 	if firebaseTenantID, found := os.LookupEnv("FIREBASE_AUTH_TENANT_ID"); found {
 		tenantClient, err := firebaseBaseAuthClient.TenantManager.AuthForTenant(firebaseTenantID)
 		if err != nil {
-			slog.Error("error initializing firebase tenant client", "error", err)
+			slog.ErrorContext(ctx, "error initializing firebase tenant client", "error", err)
 			os.Exit(1)
 		}
-		slog.Info("using tenant firebase auth client")
+		slog.InfoContext(ctx, "using tenant firebase auth client")
 		firebaseAuthClient = tenantClient
 	} else {
-		slog.Info("using non tenant firebase auth client")
+		slog.InfoContext(ctx, "using non tenant firebase auth client")
 		firebaseAuthClient = firebaseBaseAuthClient
 	}
 
@@ -155,21 +155,21 @@ func main() {
 	}
 
 	if os.Getenv("OTEL_SERVICE_NAME") != "" {
-		slog.Info("opentelemetry settings detected.")
+		slog.InfoContext(ctx, "opentelemetry settings detected.")
 		otelProjectID := os.Getenv("OTEL_GCP_PROJECT_ID")
 		if otelProjectID == "" {
-			slog.Error("missing project id for opentelemetry")
+			slog.ErrorContext(ctx, "missing project id for opentelemetry")
 			os.Exit(1)
 		}
 		shutdown, err := opentelemetry.SetupOpenTelemetry(ctx, otelProjectID)
 		if err != nil {
-			slog.Error("failed to setup opentelemetry", "error", err.Error())
+			slog.ErrorContext(ctx, "failed to setup opentelemetry", "error", err.Error())
 			os.Exit(1)
 		}
 		defer func() {
 			err := shutdown(ctx)
 			if err != nil {
-				slog.Error("unable to shutdown opentelemetry")
+				slog.ErrorContext(ctx, "unable to shutdown opentelemetry")
 			}
 		}()
 		// Prepend the opentelemtry middleware
@@ -188,7 +188,7 @@ func main() {
 
 	err = srv.ListenAndServe()
 	if err != nil {
-		slog.Error("unable to start server", "error", err.Error())
+		slog.ErrorContext(ctx, "unable to start server", "error", err.Error())
 		os.Exit(1)
 	}
 }

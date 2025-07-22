@@ -30,7 +30,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/lib/wptfyi"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
-	"github.com/google/go-github/v72/github"
+	"github.com/google/go-github/v73/github"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -48,7 +48,7 @@ func main() {
 		var parseErr error
 		wptPageLimit, parseErr = strconv.Atoi(wptPageLimitStr)
 		if parseErr != nil {
-			slog.Error("unable to parse custom page limit", "input", wptPageLimitStr)
+			slog.ErrorContext(ctx, "unable to parse custom page limit", "input", wptPageLimitStr)
 			os.Exit(1)
 		}
 	}
@@ -61,7 +61,7 @@ func main() {
 	projectID := os.Getenv("PROJECT_ID")
 	dsClient, err := gds.NewDatastoreClient(projectID, datastoreDB)
 	if err != nil {
-		slog.Error("failed to create datastore client", "error", err.Error())
+		slog.ErrorContext(ctx, "failed to create datastore client", "error", err.Error())
 		os.Exit(1)
 	}
 	_ = dsClient
@@ -71,7 +71,7 @@ func main() {
 	spannerInstance := os.Getenv("SPANNER_INSTANCE")
 	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
 	if err != nil {
-		slog.Error("failed to create spanner client", "error", err.Error())
+		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -82,7 +82,7 @@ func main() {
 	dataWindowDuration := os.Getenv("DATA_WINDOW_DURATION")
 	duration, err := time.ParseDuration(dataWindowDuration)
 	if err != nil {
-		slog.Error("unable to parse DATA_WINDOW_DURATION duration", "input value", dataWindowDuration)
+		slog.ErrorContext(ctx, "unable to parse DATA_WINDOW_DURATION duration", "input value", dataWindowDuration)
 		os.Exit(1)
 	}
 
@@ -129,7 +129,7 @@ func main() {
 	// Job Execution and Error Handling
 	errs := pool.Start(ctx, numWorkers, processor, jobs)
 	if len(errs) > 0 {
-		slog.Error("workflow returned errors", "error", errs)
+		slog.ErrorContext(ctx, "workflow returned errors", "error", errs)
 		os.Exit(1)
 	}
 }

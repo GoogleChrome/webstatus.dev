@@ -48,7 +48,7 @@ func main() {
 	}
 	fs, err := gds.NewDatastoreClient(os.Getenv("PROJECT_ID"), datastoreDB)
 	if err != nil {
-		slog.Error("failed to create datastore client", "error", err.Error())
+		slog.ErrorContext(ctx, "failed to create datastore client", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -57,7 +57,7 @@ func main() {
 	spannerInstance := os.Getenv("SPANNER_INSTANCE")
 	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
 	if err != nil {
-		slog.Error("failed to create spanner client", "error", err.Error())
+		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
 		os.Exit(1)
 	}
 
@@ -67,7 +67,7 @@ func main() {
 	dataWindowDuration := os.Getenv("DATA_WINDOW_DURATION")
 	duration, err := time.ParseDuration(dataWindowDuration)
 	if err != nil {
-		slog.Error("unable to parse DATA_WINDOW_DURATION duration", "input value", dataWindowDuration)
+		slog.ErrorContext(ctx, "unable to parse DATA_WINDOW_DURATION duration", "input value", dataWindowDuration)
 		os.Exit(1)
 	}
 	endAt := time.Now().UTC()

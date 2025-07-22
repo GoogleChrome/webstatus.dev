@@ -1039,7 +1039,7 @@ func getFeatureSearchSortOrder(
 	}
 
 	// Unknown sort order
-	slog.Warn("unsupported sort order", "order", *sortOrder)
+	slog.WarnContext(context.TODO(), "unsupported sort order", "order", *sortOrder)
 
 	return gcpspanner.NewBaselineStatusSort(false)
 }

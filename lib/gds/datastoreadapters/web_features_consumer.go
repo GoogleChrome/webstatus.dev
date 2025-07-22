@@ -49,7 +49,7 @@ func (c *WebFeaturesConsumer) InsertWebFeaturesMetadata(
 		featureID, found := featureKeyToID[featureKey]
 		if !found {
 			// Should never happen but let's log it out.
-			slog.Warn("unable to find internal ID for featue key", "feature key", featureKey)
+			slog.WarnContext(ctx, "unable to find internal ID for featue key", "feature key", featureKey)
 
 			continue
 		}
@@ -67,7 +67,7 @@ func (c *WebFeaturesConsumer) InsertWebFeaturesMetadata(
 			},
 		)
 		if err != nil {
-			slog.Error("unable to upsert web feature metadata",
+			slog.ErrorContext(ctx, "unable to upsert web feature metadata",
 				"feature key", featureKey, "feature id", featureID, "error", err)
 
 			return err

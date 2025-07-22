@@ -61,7 +61,7 @@ func (s *Server) PostV1GithubComOwnerName(ctx context.Context,
 	}
 	if err != nil {
 		// TODO: separate the different errors
-		slog.Error("unable to download archive.", "error", err.Error())
+		slog.ErrorContext(ctx, "unable to download archive.", "error", err.Error())
 
 		return repo_downloader.PostV1GithubComOwnerName400JSONResponse{
 			Code:    400,
@@ -74,7 +74,7 @@ func (s *Server) PostV1GithubComOwnerName(ctx context.Context,
 	// Iterator is responsible for closing the resp.Body
 	archiveReader, err := targz.NewTarGzArchiveIterator(archive, request.Body.Archive.TarStripComponents)
 	if err != nil {
-		slog.Error("unable to extract archive. %s", "error", err.Error())
+		slog.ErrorContext(ctx, "unable to extract archive. %s", "error", err.Error())
 
 		return repo_downloader.PostV1GithubComOwnerName400JSONResponse{
 			Code:    400,
@@ -102,7 +102,7 @@ func (s *Server) PostV1GithubComOwnerName(ctx context.Context,
 			file.GetData(),
 			fmt.Sprintf("%s/%s", repoPathPrefix, file.GetName()))
 		if err != nil {
-			slog.Error("unable to store file. %s", "error", err.Error())
+			slog.ErrorContext(ctx, "unable to store file. %s", "error", err.Error())
 
 			return repo_downloader.PostV1GithubComOwnerName500JSONResponse{
 				Code:    500,

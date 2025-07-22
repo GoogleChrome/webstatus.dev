@@ -15,6 +15,7 @@
 package workflow
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -86,13 +87,15 @@ func (f BCDDataFilter) FilterData(
 		for release, releaseData := range browserData.Releases {
 			if releaseData.ReleaseDate == nil {
 				// Maybe this might happen if the browser release is anticipated but not released yet.
-				slog.Warn("data is incomplete. missing release date", "browser", browser, "release", release)
+				slog.WarnContext(context.TODO(),
+					"data is incomplete. missing release date", "browser", browser, "release", release)
 
 				continue
 			}
 			releaseDate, err := time.Parse(time.DateOnly, *releaseData.ReleaseDate)
 			if err != nil {
-				slog.Error("unable to parse date", "browser", browser, "release", release, "date", *releaseData.ReleaseDate)
+				slog.ErrorContext(context.TODO(),
+					"unable to parse date", "browser", browser, "release", release, "date", *releaseData.ReleaseDate)
 
 				return nil, ErrMalformedReleaseDate
 			}

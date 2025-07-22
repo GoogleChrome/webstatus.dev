@@ -15,6 +15,7 @@
 package gcpspanner
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"strings"
@@ -96,7 +97,7 @@ func (t *BaseQueryTemplate) Execute(data any) string {
 	var buf strings.Builder
 	err := t.tmpl.Execute(&buf, data)
 	if err != nil {
-		slog.Error("unable to execute template", "error", err)
+		slog.ErrorContext(context.TODO(), "unable to execute template", "error", err)
 
 		return ""
 	}
