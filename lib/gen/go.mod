@@ -7,7 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/getkin/kin-openapi v0.132.0
-	github.com/oapi-codegen/runtime v1.1.1
+	github.com/oapi-codegen/runtime v1.1.2
 )
 
 require (
@@ -21,6 +21,6 @@ require (
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
 	github.com/oasdiff/yaml3 v0.0.0-20250309153720-d2182401db90 // indirect
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
-	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476 // indirect
+	golang.org/x/exp v0.0.0-20250718183923-645b1fa84792 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

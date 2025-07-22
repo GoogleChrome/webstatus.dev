@@ -45,18 +45,18 @@ func main() {
 	}
 	storer, err := gcs.NewClient(client, bucket)
 	if err != nil {
-		slog.Error("unable to create gcs client", "error", err.Error())
+		slog.ErrorContext(context.TODO(), "unable to create gcs client", "error", err.Error())
 		os.Exit(1)
 	}
 
 	srv, err := httpserver.NewHTTPServer("8080", ghDownloader, storer)
 	if err != nil {
-		slog.Error("unable to create server", "error", err.Error())
+		slog.ErrorContext(context.TODO(), "unable to create server", "error", err.Error())
 		os.Exit(1)
 	}
 	err = srv.ListenAndServe()
 	if err != nil {
-		slog.Error("unable to start server", "error", err.Error())
+		slog.ErrorContext(context.TODO(), "unable to start server", "error", err.Error())
 		os.Exit(1)
 	}
 }

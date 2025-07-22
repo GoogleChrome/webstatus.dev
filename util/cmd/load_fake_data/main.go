@@ -609,7 +609,7 @@ func generateUserData(ctx context.Context, spannerClient *gcpspanner.Client,
 	if err != nil {
 		return fmt.Errorf("saved searches generation failed %w", err)
 	}
-	slog.Info("saved searches generated",
+	slog.InfoContext(ctx, "saved searches generated",
 		"amount of searches created", savedSearchesCount)
 
 	bookmarkCount, err := generateSavedSearchBookmarks(ctx, spannerClient, authClient)
@@ -617,7 +617,7 @@ func generateUserData(ctx context.Context, spannerClient *gcpspanner.Client,
 		return fmt.Errorf("saved search bookmarks generation failed %w", err)
 
 	}
-	slog.Info("saved search bookmarks generated",
+	slog.InfoContext(ctx, "saved search bookmarks generated",
 		"amount of bookmarks created", bookmarkCount)
 
 	return nil
@@ -627,42 +627,42 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	if err != nil {
 		return fmt.Errorf("release generation failed %w", err)
 	}
-	slog.Info("releases generated",
+	slog.InfoContext(ctx, "releases generated",
 		"amount of releases created", releasesCount)
 
 	features, webFeatureKeyToInternalFeatureID, err := generateFeatures(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("feature generation failed %w", err)
 	}
-	slog.Info("features generated",
+	slog.InfoContext(ctx, "features generated",
 		"amount of features created", len(features))
 
 	err = generateFeatureMetadata(ctx, datastoreClient, features)
 	if err != nil {
 		return fmt.Errorf("feature metadata generation failed %w", err)
 	}
-	slog.Info("feature metadata generated",
+	slog.InfoContext(ctx, "feature metadata generated",
 		"amount of feature metadata created", len(features))
 
 	runsCount, metricsCount, err := generateRunsAndMetrics(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("wpt runs generation failed %w", err)
 	}
-	slog.Info("runs and metrics generated",
+	slog.InfoContext(ctx, "runs and metrics generated",
 		"amount of runs created", runsCount, "amount of metrics created", metricsCount)
 
 	statusCount, err := generateBaselineStatus(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("baseline status failed %w", err)
 	}
-	slog.Info("statuses generated",
+	slog.InfoContext(ctx, "statuses generated",
 		"amount of statuses created", statusCount)
 
 	availabilityCount, err := generateFeatureAvailability(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("feature availability generation failed %w", err)
 	}
-	slog.Info("availabilities generated",
+	slog.InfoContext(ctx, "availabilities generated",
 		"amount of availabilities created", availabilityCount)
 
 	// Only ~12 months
@@ -671,47 +671,47 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	if err != nil {
 		return fmt.Errorf("browser feature support precalculation failed %w", err)
 	}
-	slog.Info("browser feature support precalculation complete")
+	slog.InfoContext(ctx, "browser feature support precalculation complete")
 
 	groupKeys, err := generateGroups(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("group generation failed %w", err)
 	}
-	slog.Info("groups generated",
+	slog.InfoContext(ctx, "groups generated",
 		"groupKeys", groupKeys)
 
 	snapshotKeys, err := generateSnapshots(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("snapshot generation failed %w", err)
 	}
-	slog.Info("snapshots generated",
+	slog.InfoContext(ctx, "snapshots generated",
 		"snapshotKeys", snapshotKeys)
 
 	chromiumHistogramEnumIDMap, err := generateChromiumHistogramEnums(ctx, spannerClient)
 	if err != nil {
 		return fmt.Errorf("chromium histogram enums generation failed %w", err)
 	}
-	slog.Info("enums generated", "size", len(chromiumHistogramEnumIDMap))
+	slog.InfoContext(ctx, "enums generated", "size", len(chromiumHistogramEnumIDMap))
 
 	chromiumHistogramEnumValueToIDMap, err := generateChromiumHistogramEnumValues(
 		ctx, spannerClient, chromiumHistogramEnumIDMap, features)
 	if err != nil {
 		return fmt.Errorf("chromium histogram enum values generation failed %w", err)
 	}
-	slog.Info("enum values generated", "size", len(chromiumHistogramEnumValueToIDMap))
+	slog.InfoContext(ctx, "enum values generated", "size", len(chromiumHistogramEnumValueToIDMap))
 
 	err = generateWebFeatureChromiumHistogramEnumValues(
 		ctx, spannerClient, webFeatureKeyToInternalFeatureID, chromiumHistogramEnumValueToIDMap, features)
 	if err != nil {
 		return fmt.Errorf("web feature chromium histogram enums values generation failed %w", err)
 	}
-	slog.Info("web feature to enum mapping generated")
+	slog.InfoContext(ctx, "web feature to enum mapping generated")
 
 	chromiumMetricsCount, err := generateChromiumHistogramMetrics(ctx, spannerClient, features)
 	if err != nil {
 		return fmt.Errorf("chromium histogram metrics generation failed %w", err)
 	}
-	slog.Info("chromium histogram metrics generated",
+	slog.InfoContext(ctx, "chromium histogram metrics generated",
 		"amount of metrics generated", chromiumMetricsCount)
 
 	return nil
@@ -962,7 +962,7 @@ func initFirebaseAuthClient(ctx context.Context, projectID string) *auth.Client 
 	// Access Auth service from default app
 	firebaseAuthClient, err := firebaseApp.Auth(context.Background())
 	if err != nil {
-		slog.Error("error getting Auth client", "error", err)
+		slog.ErrorContext(context.TODO(), "error getting Auth client", "error", err)
 		os.Exit(1)
 	}
 
@@ -983,29 +983,30 @@ func main() {
 	)
 	flag.Parse()
 
-	slog.Info("establishing spanner client",
+	slog.InfoContext(context.TODO(), "establishing spanner client",
 		"project", *spannerProject,
 		"instance", *spannerInstance,
 		"database", *spannerDatabase)
 
 	spannerClient, err := gcpspanner.NewSpannerClient(*spannerProject, *spannerInstance, *spannerDatabase)
 	if err != nil {
-		slog.Error("unable to create spanner client", "error", err)
+		slog.ErrorContext(context.TODO(), "unable to create spanner client", "error", err)
 		os.Exit(1)
 	}
 
-	slog.Info("establishing datastore client",
+	slog.InfoContext(context.TODO(), "establishing datastore client",
 		"project", *datastoreProject,
 		"database", *datastoreDatabase)
 
 	datastoreClient, err := gds.NewDatastoreClient(*datastoreProject, datastoreDatabase)
 	if err != nil {
-		slog.Error("unable to create datastore client", "error", err)
+		slog.ErrorContext(
+			context.TODO(), "unable to create datastore client", "error", err)
 		os.Exit(1)
 	}
 
 	// Use the same project as spanner
-	slog.Info("establishing firebase auth client", "project", *spannerProject)
+	slog.InfoContext(context.TODO(), "establishing firebase auth client", "project", *spannerProject)
 
 	firebaseAuthClient := initFirebaseAuthClient(context.Background(), *spannerProject)
 
@@ -1050,5 +1051,5 @@ func main() {
 		slog.ErrorContext(ctx, "Data generation failed", "scope", *scope, "reset", *resetFlag, "error", finalErr)
 		os.Exit(1)
 	}
-	slog.Info("loading fake data successful")
+	slog.InfoContext(ctx, "loading fake data successful")
 }

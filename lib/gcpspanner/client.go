@@ -189,7 +189,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 	var bw batchWriter
 	bw = gcpBatchWriter{}
 	if _, found := os.LookupEnv("SPANNER_EMULATOR_HOST"); found {
-		slog.Info("using local batch writer")
+		slog.InfoContext(context.TODO(), "using local batch writer")
 		bw = LocalBatchWriter{}
 	}
 
@@ -315,7 +315,7 @@ func encodeChromeDailyUsageCursor(date civil.Date) string {
 func encodeCursor[T any](in T) string {
 	data, err := json.Marshal(in)
 	if err != nil {
-		slog.Error("unable to encode cursor", "error", err)
+		slog.ErrorContext(context.TODO(), "unable to encode cursor", "error", err)
 
 		return ""
 	}

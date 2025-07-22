@@ -224,7 +224,7 @@ func convertStringToDate(in *string) *time.Time {
 
 	t, err := time.Parse(time.DateOnly, *in)
 	if err != nil {
-		slog.Warn("unable to parse time", "time", *in)
+		slog.WarnContext(context.TODO(), "unable to parse time", "time", *in)
 
 		return nil
 	}

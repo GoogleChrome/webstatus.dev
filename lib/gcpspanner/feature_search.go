@@ -262,7 +262,7 @@ func convertSpannerMetrics(spannerMetrics []*SpannerFeatureResultMetric) []*Feat
 		if metric.FeatureRunDetails.Valid {
 			var detailsMap map[string]interface{}
 			if err := json.Unmarshal([]byte(metric.FeatureRunDetails.String()), &detailsMap); err != nil {
-				slog.Error("Error unmarshalling FeatureRunDetails", "error", err)
+				slog.ErrorContext(context.TODO(), "Error unmarshalling FeatureRunDetails", "error", err)
 			} else {
 				featureResultMetric.FeatureRunDetails = detailsMap
 			}

@@ -150,12 +150,12 @@ func createUsers(project string) {
 		claim := createUserClaim(user, project)
 		token := jwt.NewWithClaims(jwt.SigningMethodNone, claim)
 		if token == nil {
-			slog.Error("missing token")
+			slog.ErrorContext(context.TODO(), "missing token")
 			os.Exit(1)
 		}
 		signedString, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
 		if err != nil {
-			slog.Error("unable to sign token", "error", err)
+			slog.ErrorContext(context.TODO(), "unable to sign token", "error", err)
 			os.Exit(1)
 		}
 
@@ -171,23 +171,23 @@ func createUsers(project string) {
 		// Step 2. Send the request to create the account
 		req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, u, bytes.NewBuffer(jsonData))
 		if err != nil {
-			slog.Error("unable to create request", "error", err)
+			slog.ErrorContext(context.TODO(), "unable to create request", "error", err)
 			os.Exit(1)
 		}
 		req.Header.Set("Content-Type", "application/json")
 
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
-			slog.Error("unable to send request", "error", err)
+			slog.ErrorContext(context.TODO(), "unable to send request", "error", err)
 			os.Exit(1)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != http.StatusOK {
-			slog.Error("unexpected status code", "status code", resp.StatusCode)
+			slog.ErrorContext(context.TODO(), "unexpected status code", "status code", resp.StatusCode)
 			os.Exit(1)
 		}
 
-		slog.Info("user created", "email", user.Email)
+		slog.InfoContext(context.TODO(), "user created", "email", user.Email)
 	}
 }
 

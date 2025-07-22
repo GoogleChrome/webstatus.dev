@@ -84,7 +84,7 @@ func (c *entityClient[T]) upsert(
 
 		keys, err := c.GetAll(ctx, query, &existingEntity)
 		if err != nil && !errors.Is(err, datastore.ErrNoSuchEntity) {
-			slog.Error("unable to check for existing entities", "error", err)
+			slog.ErrorContext(ctx, "unable to check for existing entities", "error", err)
 
 			return err
 		}
@@ -102,7 +102,7 @@ func (c *entityClient[T]) upsert(
 		_, err = tx.Put(key, data)
 		if err != nil {
 			// Handle any errors in an appropriate way, such as returning them.
-			slog.Error("unable to upsert entity", "error", err)
+			slog.ErrorContext(ctx, "unable to upsert entity", "error", err)
 
 			return err
 		}
@@ -111,7 +111,8 @@ func (c *entityClient[T]) upsert(
 	})
 
 	if err != nil {
-		slog.Error("failed to commit upsert transaction", "error", err)
+		slog.ErrorContext(
+			ctx, "failed to commit upsert transaction", "error", err)
 
 		return err
 	}
@@ -168,7 +169,7 @@ func (c entityClient[T]) get(ctx context.Context, kind string, filterables ...Fi
 	query = query.Limit(1)
 	_, err := c.GetAll(ctx, query, &data)
 	if err != nil {
-		slog.Error("failed to list data", "error", err, "kind", kind)
+		slog.ErrorContext(ctx, "failed to list data", "error", err, "kind", kind)
 
 		return nil, err
 	}
