@@ -89,32 +89,32 @@ func (m *mockAssetParser) Parse(file io.ReadCloser) (*webdxfeaturetypes.Processe
 var (
 	testInsertWebFeaturesStartAt = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	testInsertWebFeaturesEndAt   = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
-	fakeBrowsersData             = web_platform_dx__web_features.ByCompatKeySupport{
-		Chrome: web_platform_dx__web_features.BrowserData{
+	fakeBrowsersData             = map[string]web_platform_dx__web_features.BrowserData{
+		"chrome": {
 			Name:     "chrome",
 			Releases: nil,
 		},
-		ChromeAndroid: web_platform_dx__web_features.BrowserData{
+		"chrome_android": {
 			Name:     "chrome_android",
 			Releases: nil,
 		},
-		Edge: web_platform_dx__web_features.BrowserData{
+		"edge": {
 			Name:     "edge",
 			Releases: nil,
 		},
-		Firefox: web_platform_dx__web_features.BrowserData{
+		"firefox": {
 			Name:     "firefox",
 			Releases: nil,
 		},
-		FirefoxAndroid: web_platform_dx__web_features.BrowserData{
+		"firefox_android": {
 			Name:     "firefox_android",
 			Releases: nil,
 		},
-		Safari: web_platform_dx__web_features.BrowserData{
+		"safari": {
 			Name:     "safari",
 			Releases: nil,
 		},
-		SafariIos: web_platform_dx__web_features.BrowserData{
+		"safari_ios": {
 			Name:     "safari_ios",
 			Releases: nil,
 		},
@@ -252,19 +252,22 @@ func TestProcess(t *testing.T) {
 				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
 					Features: webdxfeaturetypes.FeatureKinds{
+						Moved: nil,
+						Split: nil,
 						Data: map[string]web_platform_dx__web_features.FeatureData{
 							"feature1": {
 								Name:           "Feature 1",
 								Caniuse:        nil,
 								CompatFeatures: nil,
 								Discouraged:    nil,
+								Kind:           web_platform_dx__web_features.Feature,
 								Spec:           nil,
-								Status: web_platform_dx__web_features.StatusHeadlineClass{
+								Status: web_platform_dx__web_features.StatusHeadline{
 									Baseline:         nil,
 									BaselineHighDate: nil,
 									BaselineLowDate:  nil,
 									ByCompatKey:      nil,
-									Support: web_platform_dx__web_features.ByCompatKeySupport{
+									Support: web_platform_dx__web_features.Support{
 										Chrome:         nil,
 										ChromeAndroid:  nil,
 										Edge:           nil,
@@ -298,19 +301,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -334,19 +340,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -370,19 +379,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -409,19 +421,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
 				expectedFeatureData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -539,19 +554,22 @@ func TestProcess(t *testing.T) {
 				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
 					Features: webdxfeaturetypes.FeatureKinds{
+						Moved: nil,
+						Split: nil,
 						Data: map[string]web_platform_dx__web_features.FeatureData{
 							"feature1": {
 								Name:           "Feature 1",
 								Caniuse:        nil,
 								CompatFeatures: nil,
 								Discouraged:    nil,
+								Kind:           web_platform_dx__web_features.Feature,
 								Spec:           nil,
-								Status: web_platform_dx__web_features.StatusHeadlineClass{
+								Status: web_platform_dx__web_features.StatusHeadline{
 									Baseline:         nil,
 									BaselineHighDate: nil,
 									BaselineLowDate:  nil,
 									ByCompatKey:      nil,
-									Support: web_platform_dx__web_features.ByCompatKeySupport{
+									Support: web_platform_dx__web_features.Support{
 										Chrome:         nil,
 										ChromeAndroid:  nil,
 										Edge:           nil,
@@ -575,19 +593,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -641,19 +662,22 @@ func TestProcess(t *testing.T) {
 				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
 					Features: webdxfeaturetypes.FeatureKinds{
+						Moved: nil,
+						Split: nil,
 						Data: map[string]web_platform_dx__web_features.FeatureData{
 							"feature1": {
 								Name:           "Feature 1",
 								Caniuse:        nil,
 								CompatFeatures: nil,
 								Discouraged:    nil,
+								Kind:           web_platform_dx__web_features.Feature,
 								Spec:           nil,
-								Status: web_platform_dx__web_features.StatusHeadlineClass{
+								Status: web_platform_dx__web_features.StatusHeadline{
 									Baseline:         nil,
 									BaselineHighDate: nil,
 									BaselineLowDate:  nil,
 									ByCompatKey:      nil,
-									Support: web_platform_dx__web_features.ByCompatKeySupport{
+									Support: web_platform_dx__web_features.Support{
 										Chrome:         nil,
 										ChromeAndroid:  nil,
 										Edge:           nil,
@@ -677,19 +701,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -713,19 +740,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -774,19 +804,22 @@ func TestProcess(t *testing.T) {
 				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
 					Features: webdxfeaturetypes.FeatureKinds{
+						Moved: nil,
+						Split: nil,
 						Data: map[string]web_platform_dx__web_features.FeatureData{
 							"feature1": {
 								Name:           "Feature 1",
 								Caniuse:        nil,
 								CompatFeatures: nil,
 								Discouraged:    nil,
+								Kind:           web_platform_dx__web_features.Feature,
 								Spec:           nil,
-								Status: web_platform_dx__web_features.StatusHeadlineClass{
+								Status: web_platform_dx__web_features.StatusHeadline{
 									Baseline:         nil,
 									BaselineHighDate: nil,
 									BaselineLowDate:  nil,
 									ByCompatKey:      nil,
-									Support: web_platform_dx__web_features.ByCompatKeySupport{
+									Support: web_platform_dx__web_features.Support{
 										Chrome:         nil,
 										ChromeAndroid:  nil,
 										Edge:           nil,
@@ -815,19 +848,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -851,19 +887,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -887,19 +926,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -946,19 +988,22 @@ func TestProcess(t *testing.T) {
 				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
 					Features: webdxfeaturetypes.FeatureKinds{
+						Moved: nil,
+						Split: nil,
 						Data: map[string]web_platform_dx__web_features.FeatureData{
 							"feature1": {
 								Name:           "Feature 1",
 								Caniuse:        nil,
 								CompatFeatures: nil,
 								Discouraged:    nil,
+								Kind:           web_platform_dx__web_features.Feature,
 								Spec:           nil,
-								Status: web_platform_dx__web_features.StatusHeadlineClass{
+								Status: web_platform_dx__web_features.StatusHeadline{
 									Baseline:         nil,
 									BaselineHighDate: nil,
 									BaselineLowDate:  nil,
 									ByCompatKey:      nil,
-									Support: web_platform_dx__web_features.ByCompatKeySupport{
+									Support: web_platform_dx__web_features.Support{
 										Chrome:         nil,
 										ChromeAndroid:  nil,
 										Edge:           nil,
@@ -992,19 +1037,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -1028,19 +1076,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
 				expectedData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -1064,19 +1115,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
 				expectedFeatureData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -1103,19 +1157,22 @@ func TestProcess(t *testing.T) {
 			},
 			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
 				expectedFeatureData: &webdxfeaturetypes.FeatureKinds{
+					Moved: nil,
+					Split: nil,
 					Data: map[string]web_platform_dx__web_features.FeatureData{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
+							Kind:           web_platform_dx__web_features.Feature,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.StatusHeadlineClass{
+							Status: web_platform_dx__web_features.StatusHeadline{
 								Baseline:         nil,
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.ByCompatKeySupport{
+								Support: web_platform_dx__web_features.Support{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,

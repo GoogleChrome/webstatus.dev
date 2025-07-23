@@ -183,16 +183,16 @@ download-schemas:
 
 # Use the workaround in https://github.com/glideapps/quicktype/issues/518 to generate ALL types
 jsonschema:
+	rm $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/*.go
+	cat jsonschema/web-platform-dx_web-features/defs.schema.json| jq 'walk(if type == "string" and . == "#/definitions/URLOrURLs" then "#/definitions/StringOrStrings" else . end) | del(.definitions.URLOrURLs)' |
 	npx quicktype \
-		--src jsonschema/web-platform-dx_web-features/defs.schema.json#definitions/ \
+		--src jsonschema/web-platform-dx_web-features/defs.schema.json#/definitions/ \
 		--src-lang schema \
 		--lang go \
-		--omit-empty \
 		--top-level WebFeaturesData \
-		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
+		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/types.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
-
 	npx quicktype \
 		--src jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		--src-lang schema \

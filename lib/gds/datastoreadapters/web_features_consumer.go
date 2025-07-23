@@ -45,7 +45,7 @@ func (c *WebFeaturesConsumer) InsertWebFeaturesMetadata(
 	ctx context.Context,
 	featureKeyToID map[string]string,
 	data webdxfeaturetypes.FeatureKinds) error {
-	for featureKey, featureData := range data {
+	for featureKey, featureData := range data.Data {
 		featureID, found := featureKeyToID[featureKey]
 		if !found {
 			// Should never happen but let's log it out.

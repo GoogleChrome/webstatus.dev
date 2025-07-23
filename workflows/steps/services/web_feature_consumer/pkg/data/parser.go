@@ -34,9 +34,10 @@ var ErrUnableToProcess = errors.New("unable to process the data")
 // rawWebFeaturesJSONData is used to parse the source JSON.
 // It holds the features as raw JSON messages to be processed individually.
 type rawWebFeaturesJSONData struct {
-	Browsers map[string]web_platform_dx__web_features.BrowserData `json:"browsers"`
-	Groups   map[string]web_platform_dx__web_features.GroupData   `json:"groups"`
-	Features map[string]json.RawMessage                           `json:"features"`
+	Browsers  map[string]web_platform_dx__web_features.BrowserData  `json:"browsers"`
+	Features  json.RawMessage                                       `json:"features"`
+	Groups    map[string]web_platform_dx__web_features.GroupData    `json:"groups"`
+	Snapshots map[string]web_platform_dx__web_features.SnapshotData `json:"snapshots"`
 }
 
 // featureKindPeek is a small helper struct to find the discriminator value.
@@ -70,22 +71,31 @@ func postProcess(data *rawWebFeaturesJSONData) (*webdxfeaturetypes.ProcessedWebF
 	if err != nil {
 		return nil, err
 	}
+
 	return &webdxfeaturetypes.ProcessedWebFeaturesData{
-		Browsers: data.Browsers,
-		Groups:   data.Groups,
-		Features: *featureKinds,
+		Browsers:  data.Browsers,
+		Groups:    data.Groups,
+		Features:  *featureKinds,
+		Snapshots: data.Snapshots,
 	}, nil
 
 }
 
-func postProcessFeatureValue(data map[string]json.RawMessage) (*webdxfeaturetypes.FeatureKinds, error) {
+func postProcessFeatureValue(data json.RawMessage) (*webdxfeaturetypes.FeatureKinds, error) {
 	featureKinds := webdxfeaturetypes.FeatureKinds{
 		Data:  make(map[string]web_platform_dx__web_features.FeatureData),
 		Moved: make(map[string]web_platform_dx__web_features.FeatureMovedData),
 		Split: make(map[string]web_platform_dx__web_features.FeatureSplitData),
 	}
 
-	for id, rawFeature := range data {
+	featureRawMessageMap := make(map[string]json.RawMessage)
+
+	err := json.Unmarshal(data, &featureRawMessageMap)
+	if err != nil {
+		return nil, err
+	}
+
+	for id, rawFeature := range featureRawMessageMap {
 		// Peek inside the raw JSON to find the "kind"
 		var peek featureKindPeek
 		if err := json.Unmarshal(rawFeature, &peek); err != nil {
@@ -95,13 +105,14 @@ func postProcessFeatureValue(data map[string]json.RawMessage) (*webdxfeaturetype
 
 		// Switch on the explicit "kind" to unmarshal into the correct type
 		switch peek.Kind {
-		case string(web_platform_dx__web_features.Data):
+		case string(web_platform_dx__web_features.Feature):
 			var value web_platform_dx__web_features.FeatureData
 			if err := json.Unmarshal(rawFeature, &value); err != nil {
 				return nil, err
 			}
 			// Run your existing post-processing logic
 			featureKinds.Data[id] = web_platform_dx__web_features.FeatureData{
+				Kind:            web_platform_dx__web_features.Feature,
 				Caniuse:         postProcessStringOrStrings(value.Caniuse),
 				CompatFeatures:  value.CompatFeatures,
 				Description:     value.Description,
@@ -146,8 +157,9 @@ func postProcessStringOrStrings(
 	}
 }
 
-func postProcessStatus(value web_platform_dx__web_features.StatusHeadlineClass) web_platform_dx__web_features.StatusHeadlineClass {
-	return web_platform_dx__web_features.StatusHeadlineClass{
+func postProcessStatus(value web_platform_dx__web_features.StatusHeadline,
+) web_platform_dx__web_features.StatusHeadline {
+	return web_platform_dx__web_features.StatusHeadline{
 		Baseline:         postProcessBaseline(value.Baseline),
 		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),
 		BaselineLowDate:  postProcessBaselineDates(value.BaselineLowDate),
@@ -187,8 +199,8 @@ func postProcessBaselineSupportBrowser(value *string) *string {
 }
 
 func postProcessBaselineSupport(
-	value web_platform_dx__web_features.ByCompatKeySupport) web_platform_dx__web_features.ByCompatKeySupport {
-	return web_platform_dx__web_features.ByCompatKeySupport{
+	value web_platform_dx__web_features.Support) web_platform_dx__web_features.Support {
+	return web_platform_dx__web_features.Support{
 		Chrome:         postProcessBaselineSupportBrowser(value.Chrome),
 		ChromeAndroid:  postProcessBaselineSupportBrowser(value.ChromeAndroid),
 		Edge:           postProcessBaselineSupportBrowser(value.Edge),
