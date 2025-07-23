@@ -144,7 +144,7 @@ resource "google_cloud_run_v2_service" "service" {
         initial_delay_seconds = 0
         timeout_seconds       = 1
         period_seconds        = 3
-        failure_threshold     = 3
+        failure_threshold     = 10
         tcp_socket {
           port = 4319
         }
