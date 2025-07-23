@@ -44,6 +44,7 @@ frontend/.postinstall
 lib/gen/*/*/*.go
 lib/gen/*/*/*.ts
 lib/gen/featuresearch/**
+jsonschema/web-platform-dx_web-features/defs_final.schema.json
 
 # Ignore coverage files
 coverage
