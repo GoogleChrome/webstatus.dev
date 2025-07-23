@@ -69,7 +69,7 @@ func (c *WebFeatureSnapshotConsumer) upsertSnapshotMappings(
 	snapshotKeyToInternalID map[string]string,
 ) error {
 	for featureKey, featureID := range featureKeyToID {
-		feature := featureData[featureKey]
+		feature := featureData.Data[featureKey]
 		if feature.Snapshot == nil {
 			continue
 		}
