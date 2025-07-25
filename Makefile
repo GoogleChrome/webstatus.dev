@@ -181,16 +181,20 @@ download-schemas:
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 
+# Use the workaround in https://github.com/glideapps/quicktype/issues/518 to generate ALL types
+# Currently, StringOrStrings and UrlOrURLs cannot be in the same jsonschema because quicktype
+# sees that they are the same and tries to optimize. Remove one and keep the other.
 jsonschema:
+	rm -f $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/*.go
+	cat jsonschema/web-platform-dx_web-features/defs.schema.json | jq 'walk(if type == "string" and . == "#/definitions/URLOrURLs" then "#/definitions/StringOrStrings" else . end) | del(.definitions.URLOrURLs)' > jsonschema/web-platform-dx_web-features/defs_final.schema.json
 	npx quicktype \
-		--src jsonschema/web-platform-dx_web-features/defs.schema.json \
+		--src jsonschema/web-platform-dx_web-features/defs_final.schema.json#/definitions/ \
 		--src-lang schema \
 		--lang go \
-		--top-level FeatureData \
-		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
+		--top-level WebFeaturesData \
+		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/types.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
-
 	npx quicktype \
 		--src jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		--src-lang schema \

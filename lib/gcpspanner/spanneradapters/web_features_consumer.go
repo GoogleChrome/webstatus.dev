@@ -21,6 +21,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // WebFeatureSpannerClient expects a subset of the functionality from lib/gcpspanner that only apply to WebFeatures.
@@ -50,10 +51,10 @@ type WebFeaturesConsumer struct {
 
 func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureValue,
+	data webdxfeaturetypes.FeatureKinds,
 	startAt, endAt time.Time) (map[string]string, error) {
-	ret := make(map[string]string, len(data))
-	for featureID, featureData := range data {
+	ret := make(map[string]string, len(data.Data))
+	for featureID, featureData := range data.Data {
 		webFeature := gcpspanner.WebFeature{
 			FeatureKey:      featureID,
 			Name:            featureData.Name,
@@ -132,7 +133,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 func consumeFeatureSpecInformation(ctx context.Context,
 	client WebFeatureSpannerClient,
 	featureID string,
-	featureData web_platform_dx__web_features.FeatureValue) error {
+	featureData web_platform_dx__web_features.FeatureData) error {
 	if featureData.Spec == nil {
 		return nil
 	}
@@ -166,7 +167,7 @@ func consumeFeatureSpecInformation(ctx context.Context,
 }
 
 func extractBrowserAvailability(
-	featureData web_platform_dx__web_features.FeatureValue) []gcpspanner.BrowserFeatureAvailability {
+	featureData web_platform_dx__web_features.FeatureData) []gcpspanner.BrowserFeatureAvailability {
 	var fba []gcpspanner.BrowserFeatureAvailability
 	support := featureData.Status.Support
 	if support.Chrome != nil {
@@ -233,7 +234,7 @@ func convertStringToDate(in *string) *time.Time {
 }
 
 // getBaselineStatusEnum converts the web feature status to the Spanner-compatible BaselineStatus type.
-func getBaselineStatusEnum(status web_platform_dx__web_features.Status) *gcpspanner.BaselineStatus {
+func getBaselineStatusEnum(status web_platform_dx__web_features.StatusHeadline) *gcpspanner.BaselineStatus {
 	if status.Baseline == nil {
 		return nil
 	}

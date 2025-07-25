@@ -19,7 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // WebFeatureDatastoreClient expects a subset of the functionality from lib/gds that only apply to WebFeatures.
@@ -44,8 +44,8 @@ type WebFeaturesConsumer struct {
 func (c *WebFeaturesConsumer) InsertWebFeaturesMetadata(
 	ctx context.Context,
 	featureKeyToID map[string]string,
-	data map[string]web_platform_dx__web_features.FeatureValue) error {
-	for featureKey, featureData := range data {
+	data webdxfeaturetypes.FeatureKinds) error {
+	for featureKey, featureData := range data.Data {
 		featureID, found := featureKeyToID[featureKey]
 		if !found {
 			// Should never happen but let's log it out.

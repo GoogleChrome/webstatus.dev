@@ -23,6 +23,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 type mockUpsertGroupConfig struct {
@@ -49,7 +50,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 		mockUpsertGroupCfg               mockUpsertGroupConfig
 		mockUpsertFeatureGroupLookupsCfg mockUpsertFeatureGroupLookupsConfig
 		featureKeyToID                   map[string]string
-		featureData                      map[string]web_platform_dx__web_features.FeatureValue
+		featureData                      webdxfeaturetypes.FeatureKinds
 		groupData                        map[string]web_platform_dx__web_features.GroupData
 		expectedError                    error
 	}{
@@ -90,62 +91,68 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 				"feature1": "featureID1",
 				"feature2": "featureID2",
 			},
-			featureData: map[string]web_platform_dx__web_features.FeatureValue{
-				"feature1": {
-					Group: &web_platform_dx__web_features.StringOrStringArray{
-						StringArray: []string{"group1", "group2"},
-						String:      nil,
-					},
-					Caniuse:         nil,
-					CompatFeatures:  nil,
-					Description:     "",
-					DescriptionHTML: "<html>",
-					Discouraged:     nil,
-					Name:            "",
-					Snapshot:        nil,
-					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
-						Baseline:         nil,
-						BaselineHighDate: nil,
-						BaselineLowDate:  nil,
-						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
-							Chrome:         nil,
-							ChromeAndroid:  nil,
-							Edge:           nil,
-							Firefox:        nil,
-							FirefoxAndroid: nil,
-							Safari:         nil,
-							SafariIos:      nil,
+			featureData: webdxfeaturetypes.FeatureKinds{
+				Moved: nil,
+				Split: nil,
+				Data: map[string]web_platform_dx__web_features.FeatureData{
+					"feature1": {
+						Group: &web_platform_dx__web_features.StringOrStrings{
+							StringArray: []string{"group1", "group2"},
+							String:      nil,
+						},
+						Kind:            web_platform_dx__web_features.Feature,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Description:     "",
+						DescriptionHTML: "<html>",
+						Discouraged:     nil,
+						Name:            "",
+						Snapshot:        nil,
+						Spec:            nil,
+						Status: web_platform_dx__web_features.StatusHeadline{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
 						},
 					},
-				},
-				"feature2": {
-					Group: &web_platform_dx__web_features.StringOrStringArray{
-						String:      valuePtr("group2"),
-						StringArray: nil,
-					},
-					Caniuse:         nil,
-					CompatFeatures:  nil,
-					Description:     "",
-					DescriptionHTML: "<html>",
-					Discouraged:     nil,
-					Name:            "",
-					Snapshot:        nil,
-					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
-						Baseline:         nil,
-						BaselineHighDate: nil,
-						BaselineLowDate:  nil,
-						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
-							Chrome:         nil,
-							ChromeAndroid:  nil,
-							Edge:           nil,
-							Firefox:        nil,
-							FirefoxAndroid: nil,
-							Safari:         nil,
-							SafariIos:      nil,
+					"feature2": {
+						Group: &web_platform_dx__web_features.StringOrStrings{
+							String:      valuePtr("group2"),
+							StringArray: nil,
+						},
+						Kind:            web_platform_dx__web_features.Feature,
+						Caniuse:         nil,
+						CompatFeatures:  nil,
+						Description:     "",
+						DescriptionHTML: "<html>",
+						Discouraged:     nil,
+						Name:            "",
+						Snapshot:        nil,
+						Spec:            nil,
+						Status: web_platform_dx__web_features.StatusHeadline{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.Support{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
 						},
 					},
 				},
