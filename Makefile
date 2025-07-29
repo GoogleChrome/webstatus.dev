@@ -142,16 +142,16 @@ OAPI_GEN_CONFIG = openapi/types.cfg.yaml
 OPENAPI_OUT_DIR = lib/gen/openapi
 
 # Pattern rule to generate types and server code for different packages
-$(OPENAPI_OUT_DIR)/%/types.gen.go: openapi/%/openapi.yaml
-	oapi-codegen -config $(OAPI_GEN_CONFIG) \
+$(OPENAPI_OUT_DIR)/%/types.gen.go: openapi/%/openapi.yaml go-install-tools
+	go tool oapi-codegen -config $(OAPI_GEN_CONFIG) \
 							 -o $(OPENAPI_OUT_DIR)/$*/types.gen.go -package $(shell basename $*) $<
 
-$(OPENAPI_OUT_DIR)/%/server.gen.go: openapi/%/openapi.yaml
-	oapi-codegen -config openapi/server.cfg.yaml \
+$(OPENAPI_OUT_DIR)/%/server.gen.go: openapi/%/openapi.yaml go-install-tools
+	go tool oapi-codegen -config openapi/server.cfg.yaml \
 							 -o $(OPENAPI_OUT_DIR)/$*/server.gen.go -package $(shell basename $*) $<
 
-$(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml
-	oapi-codegen -config openapi/client.cfg.yaml \
+$(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml go-install-tools
+	go tool oapi-codegen -config openapi/client.cfg.yaml \
 							 -o $(OPENAPI_OUT_DIR)/$*/client.gen.go -package $(shell basename $*) $<
 
 # Target to generate all OpenAPI code
@@ -258,7 +258,7 @@ go-test: clean-up-go-testcontainers go-workspace-setup
 	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
 	for GO_MODULE in $${GO_MODULES[@]}; \
 	do \
-		if [[ "$$GO_MODULE" != *"lib/gen" ]]; then \
+		if [[ "$$GO_MODULE" != *"lib/gen" && "$$GO_MODULE" != *"tools"*  ]]; then \
 			echo "********* Testing module: $${GO_MODULE} *********" ; \
 			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
 			mkdir -p $${GO_COVERAGE_DIR} ; \
@@ -312,11 +312,11 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'antlr/.antlr/**' \
 	-ignore '.devcontainer/cache/**'
 
-license-check:
-	addlicense -check $(ADDLICENSE_ARGS) .
+license-check: go-install-tools
+	go tool addlicense -check $(ADDLICENSE_ARGS) .
 
-license-fix:
-	addlicense $(ADDLICENSE_ARGS) .
+license-fix: go-install-tools
+	go tool addlicense $(ADDLICENSE_ARGS) .
 
 unstaged-changes:
 	git diff --exit-code
@@ -354,6 +354,19 @@ playwright-show-traces:
 ################################
 # Go Misc
 ################################
+go-install-tools: go-workspace-setup
+	pushd tools && \
+	go mod download && \
+	popd
+
+# Currently, the tools will not upgrade automatically with the `go-update
+# target. Instead, we need to have a separate target
+go-update-tools: go-workspace-setup
+	pushd tools && \
+	go get -u github.com/cloudspannerecosystem/wrench@latest && \
+	go get -u github.com/google/addlicense@latest && \
+	go get github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen && \
+	popd
 
 go-update: go-workspace-setup
 	@declare -a GO_MODULES=(); \
@@ -385,6 +398,7 @@ go-workspace-setup: go-workspace-clean
 		go work use ./backend && \
 		go work use ./lib && \
 		go work use ./lib/gen && \
+		go work use ./tools && \
 		go work use ./util && \
 		go work use ./workflows/steps/services/bcd_consumer && \
 		go work use ./workflows/steps/services/chromium_histogram_enums && \
@@ -449,8 +463,8 @@ is_local_migration_ready:
 ################################
 # Spanner Management
 ################################
-spanner_new_migration:
-	wrench migrate create --directory infra/storage/spanner
+spanner_new_migration: go-install-tools
+	go tool wrench migrate create --directory infra/storage/spanner
 
 spanner_port_forward: spanner_port_forward_terminate
 	kubectl wait --for=condition=ready pod/spanner

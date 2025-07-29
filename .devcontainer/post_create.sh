@@ -26,14 +26,8 @@ make minikube-delete
 # correctly but the parent ~/.cache directory is owned by root. This fixes that.
 sudo chown "$(whoami)":"$(whoami)" ~/.cache/
 
-# Install oapi-codegen
-go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
-
-# Install wrench CLI
-go install github.com/cloudspannerecosystem/wrench@v1.11.8
-
-# Install addlicense
-go install github.com/google/addlicense@v1.1.1
+# Install go tools
+make go-install-tools
 
 # Install repo-wide npm tools only (e.g. Playwright, gts)
 npm ci --workspaces=false
