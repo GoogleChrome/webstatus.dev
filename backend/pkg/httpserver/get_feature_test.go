@@ -61,6 +61,7 @@ func TestGetFeature(t *testing.T) {
 							openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
 						),
 					},
+					DeveloperSignals: nil,
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status:  valuePtr(backend.Available),
@@ -175,6 +176,9 @@ func TestGetFeature(t *testing.T) {
 							openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
 						),
 					},
+					DeveloperSignals: &backend.FeatureDeveloperSignals{
+						PositiveCount: 10,
+					},
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status:  valuePtr(backend.Available),
@@ -205,6 +209,7 @@ func TestGetFeature(t *testing.T) {
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
+							`"developer_signals":{"positive_count":10},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
 					CacheCfg: getDefaultCacheConfig(),
@@ -225,6 +230,7 @@ func TestGetFeature(t *testing.T) {
 			"version":"100"
 		}
 	},
+	"developer_signals":{"positive_count":10},
 	"feature_id":"feature1",
 	"name":"feature 1"
 }`,
@@ -242,6 +248,7 @@ func TestGetFeature(t *testing.T) {
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
+							`"developer_signals":{"positive_count":10},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
 					Err: nil,
@@ -263,6 +270,7 @@ func TestGetFeature(t *testing.T) {
 			"version":"100"
 		}
 	},
+	"developer_signals":{"positive_count":10},
 	"feature_id":"feature1",
 	"name":"feature 1"
 }`,
