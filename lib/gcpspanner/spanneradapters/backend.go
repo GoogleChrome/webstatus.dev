@@ -821,6 +821,8 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			Chrome: convertChromeUsageToBackend(featureResult.ChromiumUsage),
 		},
 		BrowserImplementations: nil,
+		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
+		DeveloperSignals: nil,
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
@@ -1036,6 +1038,10 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.SafariIos))
 	case backend.AvailabilitySafariIosDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.SafariIos))
+	case backend.DeveloperSignalPositiveCountAsc, backend.DeveloperSignalPositiveCountDesc:
+		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
+
+		return gcpspanner.NewBaselineStatusSort(false)
 	}
 
 	// Unknown sort order

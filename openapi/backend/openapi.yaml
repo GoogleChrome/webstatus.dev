@@ -88,6 +88,8 @@ paths:
               - experimental_safari_ios_desc
               - chrome_usage_asc
               - chrome_usage_desc
+              - developer_signal_positive_count_asc
+              - developer_signal_positive_count_desc
               # availability_{browser}_{direction}
               - availability_chrome_asc
               - availability_chrome_desc
@@ -1116,6 +1118,14 @@ components:
           format: int64 # Currently, 'count(*)' from spanner comes as int64 https://cloud.google.com/spanner/docs/reference/standard-sql/data-types
       required:
         - total
+    FeatureDeveloperSignals:
+      type: object
+      properties:
+        positive_count:
+          type: integer
+          description: Count of positive feedback for a feature
+      required:
+        - positive_count
     FeaturePage:
       type: object
       properties:
@@ -1335,6 +1345,11 @@ components:
           $ref: '#/components/schemas/BrowserUsage'
         wpt:
           $ref: '#/components/schemas/FeatureWPTSnapshots'
+        developer_signals:
+          description: >
+            The absence of this object means the feature does not have an active issue
+            in https://github.com/web-platform-dx/developer-signals.
+          $ref: '#/components/schemas/FeatureDeveloperSignals'
       required:
         - feature_id
         - name

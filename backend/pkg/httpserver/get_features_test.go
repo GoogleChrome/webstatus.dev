@@ -84,6 +84,7 @@ func TestListFeatures(t *testing.T) {
 									Version: valuePtr("101"),
 								},
 							},
+							DeveloperSignals: nil,
 						},
 					},
 				},
@@ -251,6 +252,9 @@ func TestListFeatures(t *testing.T) {
 									Version: valuePtr("101"),
 								},
 							},
+							DeveloperSignals: &backend.FeatureDeveloperSignals{
+								PositiveCount: 24,
+							},
 						},
 					},
 				},
@@ -272,6 +276,7 @@ func TestListFeatures(t *testing.T) {
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
+							`"developer_signals":{"positive_count":24},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -294,6 +299,9 @@ func TestListFeatures(t *testing.T) {
 				"status":"available",
 				"version":"101"
 				}
+			},
+			"developer_signals":{
+				"positive_count":24
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"
