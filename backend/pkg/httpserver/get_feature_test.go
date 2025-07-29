@@ -62,6 +62,7 @@ func TestGetFeature(t *testing.T) {
 						),
 					},
 					DeveloperSignals: nil,
+					Evolution:        nil,
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status:  valuePtr(backend.Available),
@@ -179,6 +180,15 @@ func TestGetFeature(t *testing.T) {
 					DeveloperSignals: &backend.FeatureDeveloperSignals{
 						PositiveCount: 10,
 					},
+					Evolution: &backend.FeatureEvolutionInfo{
+						SplitOffInfo: &backend.FeatureEvolutionSplit{
+							Features: []backend.FeatureSplitInfo{
+								{
+									Id: "other",
+								},
+							},
+						},
+					},
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
 							Status:  valuePtr(backend.Available),
@@ -210,6 +220,7 @@ func TestGetFeature(t *testing.T) {
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
 							`"developer_signals":{"positive_count":10},` +
+							`"evolution":{"split_off_info":{"features":[{"id":"other"}]}},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
 					CacheCfg: getDefaultCacheConfig(),
@@ -231,6 +242,7 @@ func TestGetFeature(t *testing.T) {
 		}
 	},
 	"developer_signals":{"positive_count":10},
+	"evolution":{"split_off_info":{"features":[{"id":"other"}]}},
 	"feature_id":"feature1",
 	"name":"feature 1"
 }`,
@@ -249,6 +261,7 @@ func TestGetFeature(t *testing.T) {
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
 							`"developer_signals":{"positive_count":10},` +
+							`"evolution":{"split_off_info":{"features":[{"id":"other"}]}},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
 					Err: nil,
@@ -271,6 +284,7 @@ func TestGetFeature(t *testing.T) {
 		}
 	},
 	"developer_signals":{"positive_count":10},
+	"evolution":{"split_off_info":{"features":[{"id":"other"}]}},
 	"feature_id":"feature1",
 	"name":"feature 1"
 }`,

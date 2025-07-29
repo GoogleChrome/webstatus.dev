@@ -158,6 +158,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Feature'
+        '301':
+          description: Moved Permanently
+          headers:
+            Location:
+              description: The URL of the new, permanent location for the feature.
+              schema:
+                type: string
+                format: uri
         '400':
           description: Bad Input
           content:
@@ -170,6 +178,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+        '410':
+          description: Gone (Feature is no longer available at this URI due to evolution)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeatureGoneError'
         '429':
           description: Rate Limit
           content:
@@ -1332,6 +1346,8 @@ components:
             https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
         spec:
           $ref: '#/components/schemas/FeatureSpecInfo'
+        evolution:
+          $ref: '#/components/schemas/FeatureEvolutionInfo'
         browser_implementations:
           type: object
           description: >
@@ -1354,6 +1370,66 @@ components:
         - feature_id
         - name
         - baseline_status
+    FeatureSplitInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of a feature that resulted from a split.
+      required:
+        - id
+    FeatureEvolutionSplit:
+      type: object
+      description: >
+        Details if this feature's scope has been narrowed and parts
+        of it have been spun off into new, distinct features.
+      properties:
+        features:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureSplitInfo'
+      required:
+        - features
+    FeatureEvolutionInfo:
+      type: object
+      description: >
+        Contains information about the evolution of the feature, such as
+        if its scope has been redefined or if parts of it have been
+        spun off into new features. This field is only present if
+        relevant evolutionary events have occurred.
+      properties:
+        split_off_info:
+          $ref: '#/components/schemas/FeatureEvolutionSplit'
+    FeatureGoneError:
+      description: |
+        Represents various reasons a feature might be gone due to evolution.
+        Clients should check the 'type' field to determine the specific error structure.
+      oneOf:
+        - $ref: '#/components/schemas/FeatureGoneSplit'
+      discriminator:
+        propertyName: type
+        mapping:
+          split: '#/components/schemas/FeatureGoneSplit'
+    FeatureGoneSplit:
+      allOf:
+        - $ref: '#/components/schemas/BasicErrorModel'
+        - type: object
+          properties:
+            type:
+              type: string
+              enum:
+                - split
+              description: Indicates the feature was removed due to a split.
+            new_features:
+              type: array
+              description: >
+                A list of feature IDs that have completely replaced the original,
+                now-gone feature, as a result of a full split.
+              items:
+                $ref: '#/components/schemas/FeatureSplitInfo'
+          required:
+            - type
+            - new_features
     BrowserUsage:
       type: object
       properties:
