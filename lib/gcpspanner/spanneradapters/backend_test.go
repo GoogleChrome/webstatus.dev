@@ -1272,6 +1272,8 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
+						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+						Evolution: nil,
 					},
 					{
 						Baseline: &backend.BaselineInfo{
@@ -1340,6 +1342,8 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
+						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+						Evolution: nil,
 					},
 				},
 			},
@@ -1579,6 +1583,8 @@ func TestGetFeature(t *testing.T) {
 				},
 				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 				DeveloperSignals: nil,
+				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+				Evolution: nil,
 			},
 		},
 	}
@@ -2830,6 +2836,8 @@ func TestConvertFeatureResult(t *testing.T) {
 				BrowserImplementations: nil,
 				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 				DeveloperSignals: nil,
+				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+				Evolution: nil,
 			},
 		},
 	}

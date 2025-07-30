@@ -823,6 +823,8 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		BrowserImplementations: nil,
 		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 		DeveloperSignals: nil,
+		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+		Evolution: nil,
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
