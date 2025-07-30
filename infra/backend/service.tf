@@ -74,6 +74,15 @@ resource "google_cloud_run_v2_service" "service" {
         container_port = 8080
       }
       depends_on = ["otel"]
+      startup_probe {
+        initial_delay_seconds = 0
+        timeout_seconds       = 1
+        period_seconds        = 3
+        failure_threshold     = 10
+        tcp_socket {
+          port = 8080
+        }
+      }
       env {
         name  = "SPANNER_DATABASE"
         value = var.spanner_datails.database
