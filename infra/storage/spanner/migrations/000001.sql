@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS WPTRunFeatureMetrics (
     BrowserName STRING(64) NOT NULL,
     TimeStart TIMESTAMP NOT NULL,
     -- End denormalized data.
-    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
+    CONSTRAINT FK_WPTRunFeatureMetricsWebFeatureID FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
     FOREIGN KEY (ID) REFERENCES WPTRuns(ID)
 ) PRIMARY KEY (ID, WebFeatureID)
 ,    INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE;
@@ -101,7 +101,7 @@ CREATE TABLE IF NOT EXISTS BrowserFeatureAvailabilities (
     BrowserName STRING(64) NOT NULL, -- From BCD not wpt.fyi.
     BrowserVersion STRING(8) NOT NULL, -- From BCD not wpt.fyi. Only contains major number.
     WebFeatureID STRING(36) NOT NULL, -- From web features table.
-    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
+    CONSTRAINT FK_BrowserFeatureAvailabilitiesWebFeatureID FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
     FOREIGN KEY (BrowserName, BrowserVersion) REFERENCES BrowserReleases(BrowserName, BrowserVersion),
 ) PRIMARY KEY (WebFeatureID, BrowserName);
 
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS FeatureBaselineStatus (
     Status STRING(16),
     LowDate TIMESTAMP,
     HighDate TIMESTAMP,
-    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
+    CONSTRAINT FK_FeatureBaselineStatusWebFeatureID FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
     -- Options come from https://github.com/web-platform-dx/web-features/blob/3d4d066c47c9f07514bf743b3955572a6073ff1e/packages/web-features/README.md?plain=1#L17-L24
     CHECK (Status IN ('none', 'low', 'high'))
 ) PRIMARY KEY (WebFeatureID);

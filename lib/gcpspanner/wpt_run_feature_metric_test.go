@@ -993,3 +993,28 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 	testGetSubsetAggregatedMetrics(ctx, spannerClient, t)
 	testGetSubsetAggregatedMetricsPages(ctx, spannerClient, t)
 }
+
+func (c *Client) ReadAllWPTRunFeatureMetrics(ctx context.Context) ([]WPTRunFeatureMetric, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	var metrics []WPTRunFeatureMetric
+	iter := txn.Read(ctx, WPTRunFeatureMetricTable, spanner.AllKeys(),
+		[]string{"TotalTests", "TestPass", "TotalSubtests", "SubtestPass"})
+
+	defer iter.Stop()
+	err := iter.Do(func(row *spanner.Row) error {
+		var metric WPTRunFeatureMetric
+		if err := row.ToStruct(&metric); err != nil {
+			return err
+		}
+		metrics = append(metrics, metric)
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return metrics, nil
+}

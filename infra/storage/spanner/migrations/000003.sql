@@ -16,5 +16,5 @@
 CREATE TABLE IF NOT EXISTS FeatureSpecs (
     WebFeatureID STRING(36) NOT NULL,
     Links ARRAY<STRING(128)>,
-    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID),
+    CONSTRAINT FK_FeatureSpecsWebFeatureID FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
 ) PRIMARY KEY (WebFeatureID);
