@@ -3,9 +3,9 @@ module github.com/GoogleChrome/webstatus.dev/workflows/steps/services/common/rep
 go 1.24.5
 
 require (
-	cloud.google.com/go/storage v1.55.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250717004142-2c4c5f54a3d9
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250717004142-2c4c5f54a3d9
+	cloud.google.com/go/storage v1.56.0
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250804165824-fd606c7d439d
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250804165824-fd606c7d439d
 	github.com/google/go-github/v73 v73.0.0
 )
 
@@ -24,7 +24,7 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/getkin/kin-openapi v0.132.0 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.1 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.2 // indirect
 	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.21.1 // indirect
@@ -67,11 +67,11 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.27.0 // indirect
-	google.golang.org/api v0.242.0
-	google.golang.org/genproto v0.0.0-20250721164621-a45f3dfb1074 // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20250721164621-a45f3dfb1074 // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20250721164621-a45f3dfb1074 // indirect
-	google.golang.org/grpc v1.73.0 // indirect
+	google.golang.org/api v0.244.0
+	google.golang.org/genproto v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20250804133106-a7a43d27e69b // indirect
+	google.golang.org/grpc v1.74.2 // indirect
 	google.golang.org/protobuf v1.36.6 // indirect
 )
 
