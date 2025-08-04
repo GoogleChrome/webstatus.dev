@@ -405,36 +405,24 @@ func generateGroups(ctx context.Context,
 		}
 		groupKeyToInternalID[group.GroupKey] = *id
 	}
-	groupDescArr := []struct {
-		groupKey string
-		info     gcpspanner.GroupDescendantInfo
-	}{
-		{
-			groupKey: "parent1",
-			info: gcpspanner.GroupDescendantInfo{
-				DescendantGroupIDs: []string{
-					groupKeyToInternalID["child3"],
-				},
-			},
-		},
+	featureKeyToGroupsMapping := make(map[string][]string)
+	childGroupKeyToParentGroupKey := map[string]string{
+		"child3": "parent1",
 	}
-	for _, info := range groupDescArr {
-		err := client.UpsertGroupDescendantInfo(ctx, info.groupKey, info.info)
-		if err != nil {
-			return nil, err
-		}
-	}
+
 	for _, feature := range features {
-		group := groups[r.Intn(len(groups))]
-		err := client.UpsertWebFeatureGroup(ctx, gcpspanner.WebFeatureGroup{
-			WebFeatureID: feature.ID,
-			GroupIDs: []string{
-				groupKeyToInternalID[group.GroupKey],
-			},
-		})
-		if err != nil {
-			return nil, err
+		var groupKeys []string
+		if _, found := featureKeyToGroupsMapping[feature.FeatureKey]; !found {
+			groupKeys = []string{}
 		}
+		group := groups[r.Intn(len(groups))]
+		groupKeys = append(groupKeys, group.GroupKey)
+		featureKeyToGroupsMapping[feature.FeatureKey] = groupKeys
+	}
+
+	err := client.UpsertFeatureGroupLookups(ctx, featureKeyToGroupsMapping, childGroupKeyToParentGroupKey)
+	if err != nil {
+		return nil, err
 	}
 
 	groupKeys := []string{}
