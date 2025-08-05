@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS LatestDailyChromiumHistogramMetrics (
     WebFeatureID STRING(36) NOT NULL,
     ChromiumHistogramEnumValueID STRING(36) NOT NULL,
     Day DATE NOT NULL,
-    FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
+    CONSTRAINT FK_LatestDailyChromiumHistogramMetricsWebFeatureID FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
     FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues(ID) ON DELETE CASCADE,
     FOREIGN KEY (ChromiumHistogramEnumValueID, Day) REFERENCES DailyChromiumHistogramMetrics(ChromiumHistogramEnumValueID, Day) ON DELETE CASCADE,
 ) PRIMARY KEY (WebFeatureID, ChromiumHistogramEnumValueID);
