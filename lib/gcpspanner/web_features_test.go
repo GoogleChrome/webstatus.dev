@@ -259,7 +259,7 @@ func TestSyncWebFeatures(t *testing.T) {
 			name:          "Deletes all features when desired state is empty",
 			initialState:  getSampleFeatures(),
 			desiredState:  []WebFeature{},
-			expectedState: []WebFeature{},
+			expectedState: nil,
 		},
 	}
 
