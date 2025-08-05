@@ -72,6 +72,7 @@ func createDatabaseContainer() error {
 			Dockerfile: filepath.Join(".dev", "spanner", "Dockerfile"),
 			Context:    repoRoot,
 			BuildArgs:  map[string]*string{"TARGETARCH": &goarch},
+			KeepImage:  true,
 		},
 		ExposedPorts: []string{"9010/tcp"},
 		WaitingFor:   wait.ForLog("Spanner setup for webstatus.dev finished"),
