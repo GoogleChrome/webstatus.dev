@@ -51,7 +51,8 @@ func (m browserFeatureAvailabilityMapper) SelectOne(key browserFeatureAvailabili
 	return stmt
 }
 
-func (m browserFeatureAvailabilityMapper) GetKey(in spannerBrowserFeatureAvailability) browserFeatureAvailabilityKey {
+func (m browserFeatureAvailabilityMapper) GetKeyFromExternal(
+	in spannerBrowserFeatureAvailability) browserFeatureAvailabilityKey {
 	return browserFeatureAvailabilityKey{
 		WebFeatureID: in.WebFeatureID,
 		BrowserName:  in.BrowserName,

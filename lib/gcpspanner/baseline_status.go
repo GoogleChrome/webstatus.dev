@@ -80,7 +80,7 @@ func (m baselineStatusMapper) Merge(in spannerFeatureBaselineStatus,
 	}
 }
 
-func (m baselineStatusMapper) GetKey(in spannerFeatureBaselineStatus) string {
+func (m baselineStatusMapper) GetKeyFromExternal(in spannerFeatureBaselineStatus) string {
 	return in.WebFeatureID
 }
 

@@ -41,7 +41,7 @@ type userSavedSearchBookmarkKey struct {
 	UserSavedSearchBookmark
 }
 
-func (m userSavedSearchBookmarkMapper) GetKey(
+func (m userSavedSearchBookmarkMapper) GetKeyFromExternal(
 	in UserSavedSearchBookmark) userSavedSearchBookmarkKey {
 	return userSavedSearchBookmarkKey{
 		UserSavedSearchBookmark: in,

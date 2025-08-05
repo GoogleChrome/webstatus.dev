@@ -330,53 +330,121 @@ func encodeFeatureResultOffsetCursor(offset int) string {
 	})
 }
 
-// entityMapper defines the core mapping operations between an external entity
-// struct and its corresponding internal representation stored in Spanner. It
-// provides methods to get the external key, generate a select statement, and
-// retrieve the table name associated with the entity.
-type entityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	SelectOne(ExternalKey) spanner.Statement
-}
+// --- Generic Entity Mapper Interfaces ---
 
-// readableEntityMapper extends EntityMapper with the ability to merge an
-// external entity representation into its corresponding Spanner representation.
-type readableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	entityMapper[ExternalStruct, SpannerStruct, ExternalKey]
-}
-
-// writeableEntityMapper extends EntityMapper with the ability to merge an
-// external entity representation into its corresponding Spanner representation.
-type writeableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
-	Merge(ExternalStruct, SpannerStruct) SpannerStruct
-	GetKey(ExternalStruct) ExternalKey
+// baseMapper provides the table name.
+type baseMapper interface {
 	Table() string
 }
 
-// writeableEntityMapperWithIDRetrieval further extends WriteableEntityMapper
-// with the capability to retrieve the ID of an entity based on its external key.
-type writeableEntityMapperWithIDRetrieval[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
-	GetID(ExternalKey) spanner.Statement
+// externalKeyMapper handles getting the business key from an external struct.
+type externalKeyMapper[ExternalStruct any, Key comparable] interface {
+	GetKeyFromExternal(ExternalStruct) Key
 }
+
+// internalKeyMapper handles getting the primary key from an internal Spanner struct.
+type internalKeyMapper[SpannerStruct any, Key comparable] interface {
+	GetKeyFromInternal(SpannerStruct) Key
+}
+
+// readOneMapper provides a method to select a single entity by its key.
+type readOneMapper[Key comparable] interface {
+	SelectOne(Key) spanner.Statement
+}
+
+// readAllMapper provides a method to select all entities.
+type readAllMapper interface {
+	SelectAll() spanner.Statement
+}
+
+// mergeMapper handles the logic for updating an existing entity.
+type mergeMapper[ExternalStruct any, SpannerStruct any] interface {
+	Merge(ExternalStruct, SpannerStruct) SpannerStruct
+}
+
+// idRetrievalMapper provides a method to get a Spanner ID from a business key.
+type idRetrievalMapper[Key comparable] interface {
+	GetID(Key) spanner.Statement
+}
+
+// deleteByKeyMapper provides a way to create a delete mutation from a key.
+type deleteByKeyMapper[Key comparable] interface {
+	DeleteKey(Key) spanner.Key
+}
+
+// deleteByStructMapper provides a way to create a delete mutation from a struct.
+type deleteByStructMapper[SpannerStruct any] interface {
+	DeleteMutation(SpannerStruct) *spanner.Mutation
+}
+
+// --- Composed Interfaces for Specific Components ---
+
+// readableEntityMapper is composed for the entityReader.
+type readableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+	readOneMapper[Key]
+}
+
+// writeableEntityMapper is composed for the entityWriter.
+type writeableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+	baseMapper
+	externalKeyMapper[ExternalStruct, Key]
+	readOneMapper[Key]
+	mergeMapper[ExternalStruct, SpannerStruct]
+}
+
+// writeableEntityMapperWithIDRetrieval is composed for the entityWriter that
+// also needs to fetch a Spanner-generated ID.
+type writeableEntityMapperWithIDRetrieval[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+	writeableEntityMapper[ExternalStruct, SpannerStruct, Key]
+	idRetrievalMapper[Key]
+}
+
+// uniquieWriteableEntityMapper is composed for the entityUniqueWriter.
+type uniquieWriteableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+	baseMapper
+	externalKeyMapper[ExternalStruct, Key]
+	readOneMapper[Key]
+	deleteByKeyMapper[Key]
+}
+
+// removableEntityMapper is composed for the entityRemover.
+type removableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+	baseMapper
+	externalKeyMapper[ExternalStruct, Key]
+	readOneMapper[Key] // To verify the entity exists before deleting.
+	deleteByKeyMapper[Key]
+}
+
+// syncableEntityMapper is composed for the entitySynchronizer. It needs
+// methods to read all entities, handle keys, merge, and delete by struct.
+type syncableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+	baseMapper
+	externalKeyMapper[ExternalStruct, Key]
+	internalKeyMapper[SpannerStruct, Key]
+	readAllMapper
+	mergeMapper[ExternalStruct, SpannerStruct]
+	deleteByStructMapper[SpannerStruct]
+}
+
+// --- Generic Entity Components ---
 
 // entityWriterWithIDRetrieval handles Spanner resources that use Spanner-generated
 // UUIDs as their primary key, but allows users to work with a different unique
-// value (e.g. ExternalKey) to find and retrieve the entity's ID.
+// value (e.g. Key) to find and retrieve the entity's ID.
 type entityWriterWithIDRetrieval[
-	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, ExternalKey],
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any,
+	Key comparable,
 	ID any] struct {
-	*entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]
+	*entityWriter[M, ExternalStruct, SpannerStruct, Key]
 }
 
 // upsertAndGetID performs an upsert operation on the entity and retrieves its ID.
 // It first attempts to upsert the entity using the `upsert` method from the
 // embedded `entityWriter`. If successful, it then uses the `getIDByKey` method to
 // fetch the entity's ID based on its external key.
-func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID]) upsertAndGetID(
+func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID]) upsertAndGetID(
 	ctx context.Context,
 	input ExternalStruct) (*ID, error) {
 	err := c.upsert(ctx, input)
@@ -385,7 +453,7 @@ func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalK
 	}
 
 	var mapper M
-	id, err := c.getIDByKey(ctx, mapper.GetKey(input))
+	id, err := c.getIDByKey(ctx, mapper.GetKeyFromExternal(input))
 	if err != nil {
 		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
@@ -399,9 +467,9 @@ type transaction interface {
 	Query(ctx context.Context, statement spanner.Statement) *spanner.RowIterator
 }
 
-func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByKey(
+func (c *entityReader[M, ExternalStruct, SpannerStruct, Key]) readRowByKey(
 	ctx context.Context,
-	key ExternalKey,
+	key Key,
 ) (*SpannerStruct, error) {
 	txn := c.Single()
 	defer txn.Close()
@@ -410,9 +478,9 @@ func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByK
 }
 
 // readRowByKey retrieves the row of an entity based on its external key with transaction.
-func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByKeyWithTransaction(
+func (c *entityReader[M, ExternalStruct, SpannerStruct, Key]) readRowByKeyWithTransaction(
 	ctx context.Context,
-	key ExternalKey,
+	key Key,
 	txn transaction,
 ) (*SpannerStruct, error) {
 	var mapper M
@@ -442,9 +510,9 @@ func (c *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]) readRowByK
 // getIDByKey retrieves the ID of an entity based on its external key.
 // It uses the `GetID` method from the `WriteableEntityMapperWithIDRetrieval`
 // interface to generate a Spanner query to fetch the ID.
-func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID]) getIDByKey(
+func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID]) getIDByKey(
 	ctx context.Context,
-	key ExternalKey,
+	key Key,
 ) (*ID, error) {
 	var mapper M
 	stmt := mapper.GetID(key)
@@ -474,24 +542,24 @@ func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalK
 
 // entityReader is a basic client for reading any row from the database.
 type entityReader[
-	M readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M readableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any] struct {
+	Key comparable] struct {
 	*Client
 }
 
 // entityWriter is a basic client for writing any row to the database.
 type entityWriter[
-	M writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M writeableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any] struct {
+	Key comparable] struct {
 	*Client
 }
 
 // createInsertMutation simply creates a spanner mutation from the struct to the table.
-func (c *entityWriter[M, ExternalStruct, S, ExternalKey]) createInsertMutation(
+func (c *entityWriter[M, ExternalStruct, S, Key]) createInsertMutation(
 	mapper M, input ExternalStruct) (*spanner.Mutation, error) {
 	m, err := spanner.InsertStruct(mapper.Table(), input)
 	if err != nil {
@@ -504,7 +572,7 @@ func (c *entityWriter[M, ExternalStruct, S, ExternalKey]) createInsertMutation(
 // createUpdateMutation reads an existing entity from a Spanner row, merges it with the input
 // entity using the mapper's Merge method, and creates a Spanner mutation for
 // updating the row.
-func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) createUpdateMutation(
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) createUpdateMutation(
 	row *spanner.Row, mapper M, input ExternalStruct) (*spanner.Mutation, error) {
 	existing := new(SpannerStruct)
 	// Read the existing entity and merge the values.
@@ -525,7 +593,7 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) createUpda
 // upsert performs an upsert (insert or update) operation on an entity.
 // It first attempts to select the entity based on its external key.
 // If the entity exists, it updates it; otherwise, it inserts a new entity.
-func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsert(
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) upsert(
 	ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
@@ -539,12 +607,12 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsert(
 }
 
 // upsertWithTransaction performs an upsert operation on an entity using the existing transaction.
-func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertWithTransaction(
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) upsertWithTransaction(
 	ctx context.Context,
 	txn *spanner.ReadWriteTransaction,
 	input ExternalStruct) error {
 	var mapper M
-	stmt := mapper.SelectOne(mapper.GetKey(input))
+	stmt := mapper.SelectOne(mapper.GetKeyFromExternal(input))
 	// Attempt to query for the row.
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
@@ -581,7 +649,7 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertWith
 // It first attempts to select the entity based on its external key.
 // If the entity exists, it updates it; otherwise, it returns an error.
 // nolint:unused // TODO: Remove nolint directive once the method is used.
-func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) update(
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) update(
 	ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
@@ -596,12 +664,12 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) update(
 
 // updateWithTransaction performs an update operation on an entity using the existing transaction.
 // nolint:unused // TODO: Remove nolint directive once the method is used.
-func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) updateWithTransaction(
+func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) updateWithTransaction(
 	ctx context.Context,
 	txn *spanner.ReadWriteTransaction,
 	input ExternalStruct) error {
 	var mapper M
-	stmt := mapper.SelectOne(mapper.GetKey(input))
+	stmt := mapper.SelectOne(mapper.GetKeyFromExternal(input))
 	// Attempt to query for the row.
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
@@ -632,27 +700,19 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) updateWith
 	return nil
 }
 
-// uniquieWriteableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
-type uniquieWriteableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
-	GetKey(ExternalStruct) ExternalKey
-	Table() string
-	DeleteKey(ExternalKey) spanner.Key
-}
-
 // entityUniqueWriter is a basic client for writing a row to the database where this a unique constraint for a key.
 type entityUniqueWriter[
-	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any] struct {
+	Key comparable] struct {
 	*Client
 }
 
 // upsertUniqueKey performs an upsert (insert or update) operation on an entity with a unique key.
 // This means that the given key can only exist once. If the entity exists, it
 // must be removed before inserting. This is essentially a compare and swap due to the key.
-func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertUniqueKey(ctx context.Context,
+func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key]) upsertUniqueKey(ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		return c.upsertUniqueKeyWithTransaction(ctx, txn, input)
@@ -665,7 +725,7 @@ func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upse
 }
 
 // createInsertMutation simply creates a spanner mutation from the struct to the table.
-func (c *entityUniqueWriter[M, ExternalStruct, S, ExternalKey]) createInsertMutation(
+func (c *entityUniqueWriter[M, ExternalStruct, S, Key]) createInsertMutation(
 	mapper M, input ExternalStruct) (*spanner.Mutation, error) {
 	m, err := spanner.InsertStruct(mapper.Table(), input)
 	if err != nil {
@@ -676,12 +736,12 @@ func (c *entityUniqueWriter[M, ExternalStruct, S, ExternalKey]) createInsertMuta
 }
 
 // upsertUniqueKeyWithTransaction performs an upsertUniqueKey operation on an entity using the existing transaction.
-func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upsertUniqueKeyWithTransaction(
+func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key]) upsertUniqueKeyWithTransaction(
 	ctx context.Context,
 	txn *spanner.ReadWriteTransaction,
 	input ExternalStruct) error {
 	var mapper M
-	key := mapper.GetKey(input)
+	key := mapper.GetKeyFromExternal(input)
 	stmt := mapper.SelectOne(key)
 	// Attempt to query for the row.
 	it := txn.Query(ctx, stmt)
@@ -719,26 +779,18 @@ func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]) upse
 	return nil
 }
 
-// removableEntityMapper extends writeableEntityMapper with the ability to remove an entity.
-type removableEntityMapper[ExternalStruct any, SpannerStruct any, ExternalKey any] interface {
-	readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey]
-	GetKey(ExternalStruct) ExternalKey
-	DeleteKey(ExternalKey) spanner.Key
-	Table() string
-}
-
 // entityRemover is a basic client for removing any row from the database.
 type entityRemover[
-	M removableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M removableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any] struct {
+	Key comparable] struct {
 	*Client
 }
 
 // remove performs an delete operation on an entity.
 // nolint: unused // TODO: Remove nolint directive once the method is used.
-func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) remove(ctx context.Context,
+func (c *entityRemover[M, ExternalStruct, SpannerStruct, Key]) remove(ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		return c.removeWithTransaction(ctx, txn, input)
@@ -749,11 +801,11 @@ func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) remove(ct
 
 // removeWithTransaction performs an delete operation on an entity using the existing transaction.
 // nolint:unused // TODO: Remove nolint directive once the method is used.
-func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) removeWithTransaction(ctx context.Context,
+func (c *entityRemover[M, ExternalStruct, SpannerStruct, Key]) removeWithTransaction(ctx context.Context,
 	txn *spanner.ReadWriteTransaction,
 	input ExternalStruct) error {
 	var mapper M
-	key := mapper.GetKey(input)
+	key := mapper.GetKeyFromExternal(input)
 	stmt := mapper.SelectOne(key)
 	// Attempt to query for the row.
 	it := txn.Query(ctx, stmt)
@@ -782,46 +834,183 @@ func (c *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]) removeWit
 	return nil
 }
 
+// entitySynchronizer handles the synchronization of a Spanner table with a
+// desired state provided as a slice of entities. It determines whether to
+// use a single atomic transaction or a high-throughput batch write based on
+// the number of changes.
+type entitySynchronizer[
+	M syncableEntityMapper[ExternalStruct, SpannerStruct, Key],
+	ExternalStruct any,
+	SpannerStruct any,
+	Key comparable,
+] struct {
+	*Client
+	// The number of mutations at which the synchronizer will switch from a
+	// single atomic transaction to the non-atomic batch writer.
+	batchWriteThreshold int
+}
+
+// newEntitySynchronizer creates a new synchronizer with a default threshold.
+func newEntitySynchronizer[
+	M syncableEntityMapper[ExternalStruct, SpannerStruct, Key],
+	ExternalStruct any,
+	SpannerStruct any,
+	Key comparable,
+](c *Client) *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key] {
+	return &entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]{
+		Client:              c,
+		batchWriteThreshold: defaultBatchSize,
+	}
+}
+
+// Sync reconciles the state of a Spanner table with a provided list of desired entities.
+// It includes detailed logging for each operation for auditing purposes.
+func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
+	ctx context.Context,
+	desiredState []ExternalStruct,
+) error {
+	var mapper M
+	tableName := mapper.Table()
+
+	// 1. READ: Fetch all existing entities from the database.
+	slog.InfoContext(ctx, "Starting sync: reading all existing entities", "table", tableName)
+	stmt := mapper.SelectAll()
+	iter := s.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	existingEntities := make(map[Key]SpannerStruct)
+	err := iter.Do(func(r *spanner.Row) error {
+		var spannerEntity SpannerStruct
+		if err := r.ToStruct(&spannerEntity); err != nil {
+			return err
+		}
+		existingEntities[mapper.GetKeyFromInternal(spannerEntity)] = spannerEntity
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to read existing entities for sync: %w", err)
+	}
+	slog.InfoContext(ctx, "Read complete", "table", tableName, "existing_count", len(existingEntities))
+
+	// 2. COMPUTE DIFF: Determine and log each operation.
+	var inserts, updates, deletes int
+	mutations := []*spanner.Mutation{}
+	desiredKeys := make(map[Key]struct{})
+
+	for _, externalEntity := range desiredState {
+		key := mapper.GetKeyFromExternal(externalEntity)
+		desiredKeys[key] = struct{}{}
+
+		var m *spanner.Mutation
+		var err error
+
+		if existing, found := existingEntities[key]; found {
+			// --- UPDATE logic ---
+			slog.DebugContext(ctx, "Preparing update", "table", tableName, "key", key)
+			updates++
+			merged := mapper.Merge(externalEntity, existing)
+			m, err = spanner.UpdateStruct(tableName, merged)
+			if err != nil {
+				return fmt.Errorf("failed to create update mutation for key %v: %w", key, err)
+			}
+		} else {
+			// --- INSERT logic ---
+			slog.DebugContext(ctx, "Preparing insert", "table", tableName, "key", key)
+			inserts++
+			m, err = spanner.InsertStruct(tableName, externalEntity)
+			if err != nil {
+				return fmt.Errorf("failed to create insert mutation for key %v: %w", key, err)
+			}
+		}
+		mutations = append(mutations, m)
+	}
+
+	// --- DELETE logic ---
+	for key, entity := range existingEntities {
+		if _, found := desiredKeys[key]; !found {
+			slog.DebugContext(ctx, "Preparing delete", "table", tableName, "key", key)
+			deletes++
+			mutations = append(mutations, mapper.DeleteMutation(entity))
+		}
+	}
+
+	// Log a summary of the computed changes.
+	slog.InfoContext(ctx, "Diff computed",
+		"table", tableName,
+		"inserts", inserts,
+		"updates", updates,
+		"deletes", deletes,
+		"total_mutations", len(mutations))
+
+	if len(mutations) == 0 {
+		slog.InfoContext(ctx, "Sync complete: no changes to apply", "table", tableName)
+
+		return nil
+	}
+
+	// 3. WRITE: Apply the changes using the appropriate method.
+	if len(mutations) < s.batchWriteThreshold {
+		slog.InfoContext(ctx, "Applying changes via single atomic transaction", "table", tableName)
+		_, err := s.Apply(ctx, mutations)
+		if err != nil {
+			return fmt.Errorf("atomic sync transaction failed: %w", err)
+		}
+	} else {
+		slog.WarnContext(ctx,
+			"Applying changes via non-atomic batch writer due to large mutation count",
+			"table", tableName, "threshold", s.batchWriteThreshold)
+		err := s.BatchWriteMutations(ctx, s.Client.Client, mutations)
+		if err != nil {
+			return fmt.Errorf("batch writer sync failed: %w", err)
+		}
+	}
+
+	slog.InfoContext(ctx, "Sync successful", "table", tableName)
+
+	return nil
+}
+
 func newEntityWriterWithIDRetrieval[
-	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, ExternalKey],
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key],
 	ID any,
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any](c *Client) *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID] {
-	return &entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, ExternalKey, ID]{
-		entityWriter: &entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}}
+	Key comparable](c *Client) *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID] {
+	return &entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID]{
+		entityWriter: &entityWriter[M, ExternalStruct, SpannerStruct, Key]{c}}
 }
 
 func newEntityWriter[
-	M writeableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M writeableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any](c *Client) *entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey] {
-	return &entityWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+	Key comparable](c *Client) *entityWriter[M, ExternalStruct, SpannerStruct, Key] {
+	return &entityWriter[M, ExternalStruct, SpannerStruct, Key]{c}
 }
 
 func newUniqueEntityWriter[
-	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	ExternalStruct any,
 	SpannerStruct any,
-	ExternalKey any](c *Client) *entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey] {
-	return &entityUniqueWriter[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+	Key comparable](c *Client) *entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key] {
+	return &entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key]{c}
 }
 
 func newEntityReader[
-	M readableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M readableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	SpannerStruct any,
 	ExternalStruct any,
-	ExternalKey any](c *Client) *entityReader[M, ExternalStruct, SpannerStruct, ExternalKey] {
-	return &entityReader[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+	Key comparable](c *Client) *entityReader[M, ExternalStruct, SpannerStruct, Key] {
+	return &entityReader[M, ExternalStruct, SpannerStruct, Key]{c}
 }
 
 func newEntityRemover[
-	M removableEntityMapper[ExternalStruct, SpannerStruct, ExternalKey],
+	M removableEntityMapper[ExternalStruct, SpannerStruct, Key],
 	SpannerStruct any,
 	ExternalStruct any,
-	ExternalKey any](c *Client) *entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey] {
-	return &entityRemover[M, ExternalStruct, SpannerStruct, ExternalKey]{c}
+	Key comparable](c *Client) *entityRemover[M, ExternalStruct, SpannerStruct, Key] {
+	return &entityRemover[M, ExternalStruct, SpannerStruct, Key]{c}
 }
 
 func concurrentBatchWriteEntity[SpannerStruct any](

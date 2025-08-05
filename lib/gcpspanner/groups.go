@@ -37,7 +37,7 @@ func (m groupSpannerMapper) Merge(in Group, existing spannerGroup) spannerGroup 
 	}
 }
 
-func (m groupSpannerMapper) GetKey(in Group) string {
+func (m groupSpannerMapper) GetKeyFromExternal(in Group) string {
 	return in.GroupKey
 }
 

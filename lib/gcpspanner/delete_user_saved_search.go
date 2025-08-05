@@ -26,7 +26,8 @@ type removeUserSavedSearchMapper struct{}
 
 func (m removeUserSavedSearchMapper) Table() string { return savedSearchesTable }
 
-func (m removeUserSavedSearchMapper) GetKey(in DeleteUserSavedSearchRequest) removeUserSavedSearchMapperKey {
+func (m removeUserSavedSearchMapper) GetKeyFromExternal(
+	in DeleteUserSavedSearchRequest) removeUserSavedSearchMapperKey {
 	return removeUserSavedSearchMapperKey{
 		ID:     in.SavedSearchID,
 		UserID: in.RequestingUserID,

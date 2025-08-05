@@ -39,7 +39,7 @@ type dailyChromiumHistogramEnumCapstoneKey struct {
 	Day                     civil.Date
 }
 
-func (m dailyChromiumHistogramEnumCapstonesSpannerMapper) GetKey(
+func (m dailyChromiumHistogramEnumCapstonesSpannerMapper) GetKeyFromExternal(
 	in spannerDailyChromiumHistogramEnumCapstone) dailyChromiumHistogramEnumCapstoneKey {
 	return dailyChromiumHistogramEnumCapstoneKey{
 		ChromiumHistogramEnumID: in.ChromiumHistogramEnumID,

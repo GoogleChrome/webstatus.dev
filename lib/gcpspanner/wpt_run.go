@@ -74,7 +74,7 @@ func (m wptRunSpannerMapper) SelectOne(externalRunID int64) spanner.Statement {
 	return stmt
 }
 
-func (m wptRunSpannerMapper) GetKey(in WPTRun) int64 {
+func (m wptRunSpannerMapper) GetKeyFromExternal(in WPTRun) int64 {
 	return in.RunID
 }
 
