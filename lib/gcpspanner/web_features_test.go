@@ -83,6 +83,21 @@ func (c *Client) ReadAllWebFeatures(ctx context.Context, t *testing.T) ([]WebFea
 	return ret, nil
 }
 
+func (c *Client) DeleteWebFeature(ctx context.Context, internalID string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+		mutation := spanner.Delete(webFeaturesTable, spanner.Key{internalID})
+
+		return txn.BufferWrite([]*spanner.Mutation{mutation})
+	})
+	if err != nil {
+		// TODO wrap the error and return it
+
+		return err
+	}
+
+	return nil
+}
+
 func TestUpsertWebFeature(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
