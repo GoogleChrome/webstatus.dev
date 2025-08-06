@@ -25,7 +25,8 @@ import (
 
 // WebFeatureSpannerClient expects a subset of the functionality from lib/gcpspanner that only apply to WebFeatures.
 type WebFeatureSpannerClient interface {
-	UpsertWebFeature(ctx context.Context, feature gcpspanner.WebFeature) (*string, error)
+	SyncWebFeatures(ctx context.Context, features []gcpspanner.WebFeature) error
+	FetchAllWebFeatureIDsAndKeys(ctx context.Context) ([]gcpspanner.SpannerFeatureIDAndKey, error)
 	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
 	UpsertBrowserFeatureAvailability(
 		ctx context.Context,
@@ -52,7 +53,8 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 	ctx context.Context,
 	data map[string]web_platform_dx__web_features.FeatureValue,
 	startAt, endAt time.Time) (map[string]string, error) {
-	ret := make(map[string]string, len(data))
+	// 1. Prepare all WebFeature structs from the input data.
+	allFeatures := make([]gcpspanner.WebFeature, 0, len(data))
 	for featureID, featureData := range data {
 		webFeature := gcpspanner.WebFeature{
 			FeatureKey:      featureID,
@@ -60,12 +62,19 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 			Description:     featureData.Description,
 			DescriptionHTML: featureData.DescriptionHTML,
 		}
+		allFeatures = append(allFeatures, webFeature)
+	}
 
-		id, err := c.client.UpsertWebFeature(ctx, webFeature)
-		if err != nil {
-			return nil, err
-		}
+	// 2. Sync all features at once. This will insert, update, and delete features
+	// to make the database match the desired state.
+	if err := c.client.SyncWebFeatures(ctx, allFeatures); err != nil {
+		slog.ErrorContext(ctx, "failed to sync web features", "error", err)
 
+		return nil, err
+	}
+
+	// 3. Loop through the data again to process all related entities for each feature.
+	for featureID, featureData := range data {
 		featureBaselineStatus := gcpspanner.FeatureBaselineStatus{
 			Status:   getBaselineStatusEnum(featureData.Status),
 			LowDate:  nil,
@@ -75,7 +84,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		featureBaselineStatus.LowDate = convertStringToDate(featureData.Status.BaselineLowDate)
 		featureBaselineStatus.HighDate = convertStringToDate(featureData.Status.BaselineHighDate)
 
-		err = c.client.UpsertFeatureBaselineStatus(ctx, featureID, featureBaselineStatus)
+		err := c.client.UpsertFeatureBaselineStatus(ctx, featureID, featureBaselineStatus)
 		if err != nil {
 			return nil, err
 		}
@@ -115,15 +124,25 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 				return nil, err
 			}
 		}
-
-		ret[featureID] = *id
 	}
 
-	// Now that all the feature information is stored, run pre-calculation of
+	// 4. Now that all the feature information is stored, run pre-calculation of
 	// feature support events.
 	err := c.client.PrecalculateBrowserFeatureSupportEvents(ctx, startAt, endAt)
 	if err != nil {
 		return nil, err
+	}
+
+	// 5. Fetch all feature IDs to construct the return map.
+	idAndKeyPairs, err := c.client.FetchAllWebFeatureIDsAndKeys(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to fetch feature IDs and keys after sync", "error", err)
+
+		return nil, err
+	}
+	ret := make(map[string]string, len(idAndKeyPairs))
+	for _, pair := range idAndKeyPairs {
+		ret[pair.FeatureKey] = pair.ID
 	}
 
 	return ret, nil

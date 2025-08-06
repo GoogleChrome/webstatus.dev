@@ -148,14 +148,21 @@ func (c *Client) FetchAllFeatureKeys(ctx context.Context) ([]string, error) {
 	return fetchSingleColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "FeatureKey")
 }
 
-type spannerFeatureIDAndKey struct {
+type SpannerFeatureIDAndKey struct {
 	ID         string `spanner:"ID"`
 	FeatureKey string `spanner:"FeatureKey"`
 }
 
+func (c *Client) FetchAllWebFeatureIDsAndKeys(ctx context.Context) ([]SpannerFeatureIDAndKey, error) {
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	return c.fetchAllWebFeatureIDsAndKeysWithTransaction(ctx, txn)
+}
+
 func (c *Client) fetchAllWebFeatureIDsAndKeysWithTransaction(
-	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]spannerFeatureIDAndKey, error) {
-	return fetchColumnValuesWithTransaction[spannerFeatureIDAndKey](
+	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]SpannerFeatureIDAndKey, error) {
+	return fetchColumnValuesWithTransaction[SpannerFeatureIDAndKey](
 		ctx, txn, webFeaturesTable, []string{"ID", "FeatureKey"})
 }
 
