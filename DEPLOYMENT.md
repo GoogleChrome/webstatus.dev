@@ -74,7 +74,7 @@ Create the tables by running:
 export SPANNER_PROJECT_ID=webstatus-dev-internal-staging
 export SPANNER_DATABASE_ID=${ENV_ID}-database
 export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
-wrench migrate up --directory ./storage/spanner/
+go tool wrench migrate up --directory ./storage/spanner/
 ```
 
 Populate data:
@@ -129,7 +129,7 @@ Migrate the tables if any schemas changed (assuming you already authenticated wi
 export SPANNER_PROJECT_ID=webstatus-dev-internal-staging
 export SPANNER_DATABASE_ID=${ENV_ID}-database
 export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
-wrench migrate up --directory ./storage/spanner/
+go tool wrench migrate up --directory ./storage/spanner/
 ```
 
 Assuming the plan output by the terraform plan command looks fine, run:
@@ -163,7 +163,7 @@ Migrate the tables if any schemas changed (assuming you already authenticated wi
 export SPANNER_PROJECT_ID=webstatus-dev-internal-prod
 export SPANNER_DATABASE_ID=${ENV_ID}-database
 export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
-wrench migrate up --directory ./storage/spanner/
+go tool wrench migrate up --directory ./storage/spanner/
 ```
 
 Assuming the plan output by the terraform plan command looks fine, run:
