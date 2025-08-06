@@ -54,7 +54,7 @@ func (m snapshotSpannerMapper) Merge(in Snapshot, existing spannerSnapshot) span
 	}
 }
 
-func (m snapshotSpannerMapper) GetKey(in Snapshot) string {
+func (m snapshotSpannerMapper) GetKeyFromExternal(in Snapshot) string {
 	return in.SnapshotKey
 }
 

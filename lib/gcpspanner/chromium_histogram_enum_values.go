@@ -47,7 +47,8 @@ func (m chromiumHistogramEnumValuesMapper) SelectOne(key spannerChromiumHistogra
 	return stmt
 }
 
-func (m chromiumHistogramEnumValuesMapper) GetKey(in ChromiumHistogramEnumValue) spannerChromiumHistogramEnumValueKey {
+func (m chromiumHistogramEnumValuesMapper) GetKeyFromExternal(
+	in ChromiumHistogramEnumValue) spannerChromiumHistogramEnumValueKey {
 	return spannerChromiumHistogramEnumValueKey{
 		ChromiumHistogramEnumID: in.ChromiumHistogramEnumID,
 		BucketID:                in.BucketID,

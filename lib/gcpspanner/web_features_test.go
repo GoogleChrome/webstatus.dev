@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/go-cmp/cmp"
 	"google.golang.org/api/iterator"
 )
 
@@ -174,5 +175,119 @@ func TestUpsertWebFeature(t *testing.T) {
 	slices.Sort(keys)
 	if !slices.Equal(keys, expectedKeys) {
 		t.Errorf("unequal keys. expected %+v actual %+v", expectedKeys, keys)
+	}
+}
+
+func TestSyncWebFeatures(t *testing.T) {
+	ctx := context.Background()
+
+	type syncTestCase struct {
+		name          string
+		initialState  []WebFeature
+		desiredState  []WebFeature
+		expectedState []WebFeature
+	}
+
+	testCases := []syncTestCase{
+		{
+			name:          "Initial creation",
+			initialState:  nil, // No initial state
+			desiredState:  getSampleFeatures(),
+			expectedState: getSampleFeatures(),
+		},
+		{
+			name:         "Deletes features not in desired state",
+			initialState: getSampleFeatures(),
+			desiredState: []WebFeature{
+				getSampleFeatures()[0], // feature1
+				getSampleFeatures()[2], // feature3
+			},
+			expectedState: []WebFeature{
+				getSampleFeatures()[0],
+				getSampleFeatures()[2],
+			},
+		},
+		{
+			name:         "Updates existing features",
+			initialState: getSampleFeatures(),
+			desiredState: func() []WebFeature {
+				features := getSampleFeatures()
+				features[1].Name = "UPDATED Feature 2"
+				features[3].Description = "UPDATED Description 4"
+
+				return features
+			}(),
+			expectedState: func() []WebFeature {
+				features := getSampleFeatures()
+				features[1].Name = "UPDATED Feature 2"
+				features[3].Description = "UPDATED Description 4"
+
+				return features
+			}(),
+		},
+		{
+			name:         "Performs mixed insert, update, and delete",
+			initialState: getSampleFeatures(),
+			desiredState: []WebFeature{
+				{FeatureKey: "feature1", Name: "Updated Feature 1 Name", Description: "", DescriptionHTML: ""},
+				getSampleFeatures()[2], // Keep feature3
+				{FeatureKey: "feature5", Name: "New Feature 5", Description: "", DescriptionHTML: ""},
+			},
+			expectedState: []WebFeature{
+				{
+					FeatureKey:      "feature1",
+					Name:            "Updated Feature 1 Name",
+					Description:     "Wow what a feature description", // Preserved by merge logic
+					DescriptionHTML: "Feature <b>1</b> description",   // Preserved by merge logic
+				},
+				getSampleFeatures()[2], // feature3 is unchanged
+				{
+					FeatureKey:      "feature5",
+					Name:            "New Feature 5",
+					Description:     "", // New fields are empty
+					DescriptionHTML: "",
+				},
+			},
+		},
+		{
+			name:          "No changes when desired state matches current state",
+			initialState:  getSampleFeatures(),
+			desiredState:  getSampleFeatures(),
+			expectedState: getSampleFeatures(),
+		},
+		{
+			name:          "Deletes all features when desired state is empty",
+			initialState:  getSampleFeatures(),
+			desiredState:  []WebFeature{},
+			expectedState: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			restartDatabaseContainer(t)
+
+			// 1. Setup initial state if provided
+			if tc.initialState != nil {
+				if err := spannerClient.SyncWebFeatures(ctx, tc.initialState); err != nil {
+					t.Fatalf("Failed to set up initial state: %v", err)
+				}
+			}
+
+			// 2. Run the sync with the desired state
+			if err := spannerClient.SyncWebFeatures(ctx, tc.desiredState); err != nil {
+				t.Fatalf("SyncWebFeatures failed: %v", err)
+			}
+
+			// 3. Verify the final state
+			featuresInDB, err := spannerClient.ReadAllWebFeatures(ctx, t)
+			if err != nil {
+				t.Fatalf("ReadAllWebFeatures failed: %v", err)
+			}
+
+			if diff := cmp.Diff(tc.expectedState, featuresInDB); diff != "" {
+				t.Errorf("features mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

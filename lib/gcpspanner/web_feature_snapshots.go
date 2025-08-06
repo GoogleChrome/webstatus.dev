@@ -39,7 +39,7 @@ type spannerWebFeatureSnapshot struct {
 // Implements the Mapping interface for WebFeatureSnapshot and SpannerWebFeatureSnapshot.
 type webFeaturesSnapshotSpannerMapper struct{}
 
-func (m webFeaturesSnapshotSpannerMapper) GetKey(in WebFeatureSnapshot) string {
+func (m webFeaturesSnapshotSpannerMapper) GetKeyFromExternal(in WebFeatureSnapshot) string {
 	return in.WebFeatureID
 }
 

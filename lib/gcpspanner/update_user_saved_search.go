@@ -39,7 +39,9 @@ type updateUserSavedSearchMapper struct {
 	unauthenticatedUserSavedSearchMapper
 }
 
-func (m updateUserSavedSearchMapper) GetKey(in UpdateSavedSearchRequest) string { return in.ID }
+func (m updateUserSavedSearchMapper) GetKeyFromExternal(in UpdateSavedSearchRequest) string {
+	return in.ID
+}
 
 func (m updateUserSavedSearchMapper) Table() string { return savedSearchesTable }
 

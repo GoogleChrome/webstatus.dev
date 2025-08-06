@@ -46,7 +46,7 @@ func (m chromiumHistogramEnumsMapper) SelectOne(histogramName string) spanner.St
 	return stmt
 }
 
-func (m chromiumHistogramEnumsMapper) GetKey(in ChromiumHistogramEnum) string {
+func (m chromiumHistogramEnumsMapper) GetKeyFromExternal(in ChromiumHistogramEnum) string {
 	return in.HistogramName
 }
 

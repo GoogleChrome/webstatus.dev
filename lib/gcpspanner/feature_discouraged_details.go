@@ -41,7 +41,7 @@ type spannerFeatureDiscouragedDetails struct {
 // Implements the Mapping interface for FeatureDiscouragedDetails and SpannerFeatureDiscouragedDetails.
 type featureDiscouragedDetailsSpannerMapper struct{}
 
-func (m featureDiscouragedDetailsSpannerMapper) GetKey(in spannerFeatureDiscouragedDetails) string {
+func (m featureDiscouragedDetailsSpannerMapper) GetKeyFromExternal(in spannerFeatureDiscouragedDetails) string {
 	return in.WebFeatureID
 }
 

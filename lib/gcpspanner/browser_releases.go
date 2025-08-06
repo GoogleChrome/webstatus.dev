@@ -67,7 +67,7 @@ func (m browserReleaseSpannerMapper) Merge(_ BrowserRelease, existing spannerBro
 	return existing
 }
 
-func (m browserReleaseSpannerMapper) GetKey(in BrowserRelease) browserReleaseKey {
+func (m browserReleaseSpannerMapper) GetKeyFromExternal(in BrowserRelease) browserReleaseKey {
 	return browserReleaseKey{
 		BrowserName:    in.BrowserName,
 		BrowserVersion: in.BrowserVersion,

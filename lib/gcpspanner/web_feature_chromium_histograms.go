@@ -39,7 +39,8 @@ type spannerWebFeatureChromiumHistogramEnum struct {
 // Implements the Mapping interface for WebFeatureChromiumHistogramEnum and SpannerWebFeatureChromiumHistogramEnum.
 type webFeaturesChromiumHistogramEnumSpannerMapper struct{}
 
-func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetKey(in WebFeatureChromiumHistogramEnumValue) string {
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetKeyFromExternal(
+	in WebFeatureChromiumHistogramEnumValue) string {
 	return in.WebFeatureID
 }
 

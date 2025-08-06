@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"fmt"
+	"log/slog"
 
 	"cloud.google.com/go/spanner"
 )
@@ -42,8 +43,16 @@ type WebFeature struct {
 	DescriptionHTML string `spanner:"DescriptionHtml"`
 }
 
-// Implements the entityMapper interface for WebFeature and SpannerWebFeature.
+// Implements the syncableEntityMapper interface for WebFeature and SpannerWebFeature.
 type webFeatureSpannerMapper struct{}
+
+// SelectAll returns a statement to select all WebFeatures.
+func (m webFeatureSpannerMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID, FeatureKey, Name, Description, DescriptionHtml
+	FROM %s`, m.Table()))
+}
 
 func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
@@ -73,11 +82,24 @@ func (m webFeatureSpannerMapper) Merge(in WebFeature, existing SpannerWebFeature
 	}
 }
 
+// DeleteMutation creates a Spanner delete mutation for a given WebFeature.
+// It uses the internal Spanner ID, not the FeatureKey, for the deletion.
+func (m webFeatureSpannerMapper) DeleteMutation(in SpannerWebFeature) *spanner.Mutation {
+	return spanner.Delete(webFeaturesTable, spanner.Key{in.ID})
+}
+
+// Table returns the name of the Spanner table.
 func (m webFeatureSpannerMapper) Table() string {
 	return webFeaturesTable
 }
 
-func (m webFeatureSpannerMapper) GetKey(in WebFeature) string {
+// GetKeyFromExternal returns the business key (FeatureKey) from an external WebFeature struct.
+func (m webFeatureSpannerMapper) GetKeyFromExternal(in WebFeature) string {
+	return in.FeatureKey
+}
+
+// GetKeyFromInternal returns the business key (FeatureKey) from an internal SpannerWebFeature struct.
+func (m webFeatureSpannerMapper) GetKeyFromInternal(in SpannerWebFeature) string {
 	return in.FeatureKey
 }
 
@@ -94,6 +116,16 @@ func (m webFeatureSpannerMapper) GetID(key string) spanner.Statement {
 	stmt.Params = parameters
 
 	return stmt
+}
+
+// SyncWebFeatures reconciles the WebFeatures table with the provided list of features.
+// It will insert new features, update existing ones, and delete any features
+// that are in the database but not in the provided list.
+func (c *Client) SyncWebFeatures(ctx context.Context, features []WebFeature) error {
+	slog.InfoContext(ctx, "Starting web features synchronization")
+	synchronizer := newEntitySynchronizer[webFeatureSpannerMapper](c)
+
+	return synchronizer.Sync(ctx, features)
 }
 
 func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
