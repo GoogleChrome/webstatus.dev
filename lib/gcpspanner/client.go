@@ -67,6 +67,14 @@ var (
 	ErrUsageMetricUpsertNoHistogramEnumFound = errors.New("histogram enum not found when upserting usage metric")
 )
 
+// entitySynchronizer specific errors.
+var (
+	ErrSyncReadFailed             = errors.New("sync failed during read phase")
+	ErrSyncMutationCreationFailed = errors.New("sync failed to create mutation")
+	ErrSyncAtomicWriteFailed      = errors.New("sync atomic write failed")
+	ErrSyncBatchWriteFailed       = errors.New("sync batch write failed")
+)
+
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
 	*spanner.Client
@@ -889,13 +897,14 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 		return nil
 	})
 	if err != nil {
-		return fmt.Errorf("failed to read existing entities for sync: %w", err)
+		return errors.Join(ErrSyncReadFailed, err)
 	}
 	slog.InfoContext(ctx, "Read complete", "table", tableName, "existing_count", len(existingEntities))
 
 	// 2. COMPUTE DIFF: Determine and log each operation.
 	var inserts, updates, deletes int
-	mutations := []*spanner.Mutation{}
+	upsertMutations := []*spanner.Mutation{}
+	deleteMutations := []*spanner.Mutation{}
 	desiredKeys := make(map[Key]struct{})
 
 	for _, externalEntity := range desiredState {
@@ -912,7 +921,7 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 			merged := mapper.Merge(externalEntity, existing)
 			m, err = spanner.UpdateStruct(tableName, merged)
 			if err != nil {
-				return fmt.Errorf("failed to create update mutation for key %v: %w", key, err)
+				return errors.Join(ErrSyncMutationCreationFailed, err)
 			}
 		} else {
 			// --- INSERT logic ---
@@ -920,10 +929,10 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 			inserts++
 			m, err = spanner.InsertStruct(tableName, externalEntity)
 			if err != nil {
-				return fmt.Errorf("failed to create insert mutation for key %v: %w", key, err)
+				return errors.Join(ErrSyncMutationCreationFailed, err)
 			}
 		}
-		mutations = append(mutations, m)
+		upsertMutations = append(upsertMutations, m)
 	}
 
 	// --- DELETE logic ---
@@ -931,42 +940,82 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 		if _, found := desiredKeys[key]; !found {
 			slog.DebugContext(ctx, "Preparing delete", "table", tableName, "key", key)
 			deletes++
-			mutations = append(mutations, mapper.DeleteMutation(entity))
+			deleteMutations = append(deleteMutations, mapper.DeleteMutation(entity))
 		}
 	}
 
 	// Log a summary of the computed changes.
+	totalMutations := len(upsertMutations) + len(deleteMutations)
 	slog.InfoContext(ctx, "Diff computed",
 		"table", tableName,
 		"inserts", inserts,
 		"updates", updates,
 		"deletes", deletes,
-		"total_mutations", len(mutations))
+		"total_mutations", totalMutations)
 
-	if len(mutations) == 0 {
+	if totalMutations == 0 {
 		slog.InfoContext(ctx, "Sync complete: no changes to apply", "table", tableName)
 
 		return nil
 	}
 
 	// 3. WRITE: Apply the changes using the appropriate method.
-	if len(mutations) < s.batchWriteThreshold {
-		slog.InfoContext(ctx, "Applying changes via single atomic transaction", "table", tableName)
-		_, err := s.Apply(ctx, mutations)
-		if err != nil {
-			return fmt.Errorf("atomic sync transaction failed: %w", err)
-		}
+	if totalMutations < s.batchWriteThreshold {
+		err = s.applyAtomic(ctx, deleteMutations, upsertMutations, tableName)
 	} else {
-		slog.WarnContext(ctx,
-			"Applying changes via non-atomic batch writer due to large mutation count",
-			"table", tableName, "threshold", s.batchWriteThreshold)
-		err := s.BatchWriteMutations(ctx, s.Client.Client, mutations)
-		if err != nil {
-			return fmt.Errorf("batch writer sync failed: %w", err)
-		}
+		err = s.applyNonAtomic(ctx, deleteMutations, upsertMutations, tableName)
+	}
+	if err != nil {
+		return err
 	}
 
 	slog.InfoContext(ctx, "Sync successful", "table", tableName)
+
+	return nil
+}
+
+// applyAtomic applies all mutations in a single, atomic transaction.
+// This is suitable for smaller change sets.
+func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyAtomic(
+	ctx context.Context,
+	deleteMutations []*spanner.Mutation,
+	upsertMutations []*spanner.Mutation,
+	tableName string) error {
+	slog.InfoContext(ctx, "Applying changes via single atomic transaction", "table", tableName)
+	allMutations := append(deleteMutations, upsertMutations...)
+	_, err := s.Apply(ctx, allMutations)
+	if err != nil {
+		return errors.Join(ErrSyncAtomicWriteFailed, err)
+	}
+
+	return nil
+}
+
+// applyNonAtomic applies mutations in separate batches, with deletes occurring first.
+// This is suitable for large change sets where atomicity is not required for the
+// entire operation.
+func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyNonAtomic(
+	ctx context.Context,
+	deleteMutations []*spanner.Mutation,
+	upsertMutations []*spanner.Mutation,
+	tableName string) error {
+	slog.WarnContext(ctx,
+		"Applying changes via non-atomic batch writer due to large mutation count",
+		"table", tableName, "threshold", s.batchWriteThreshold)
+
+	if len(deleteMutations) > 0 {
+		slog.InfoContext(ctx, "Applying delete mutations", "count", len(deleteMutations), "table", tableName)
+		if err := s.BatchWriteMutations(ctx, s.Client.Client, deleteMutations); err != nil {
+			return errors.Join(ErrSyncBatchWriteFailed, err)
+		}
+	}
+
+	if len(upsertMutations) > 0 {
+		slog.InfoContext(ctx, "Applying upsert mutations", "count", len(upsertMutations), "table", tableName)
+		if err := s.BatchWriteMutations(ctx, s.Client.Client, upsertMutations); err != nil {
+			return errors.Join(ErrSyncBatchWriteFailed, err)
+		}
+	}
 
 	return nil
 }
