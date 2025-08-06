@@ -23,12 +23,15 @@ ENV SPANNER_DATABASE_ID=local
 ENV SPANNER_EMULATOR_HOST=0.0.0.0:9010
 
 # Install Wrench - https://github.com/cloudspannerecosystem/wrench
-ENV WRENCH_VERSION="1.10.1"
-RUN echo "Downloading for version ${WRENCH_VERSION} for architecture ${TARGETARCH}"
-RUN curl \
+COPY tools/go.mod tools.go.mod
+RUN WRENCH_VERSION=$(grep 'github.com/cloudspannerecosystem/wrench' tools.go.mod | awk '{print $2}' | sed 's/v//' | tr -d '[:space:]') && \
+    echo "Downloading wrench version ${WRENCH_VERSION} for architecture ${TARGETARCH}" && \
+    curl \
     -L -o wrench.tar.gz \
     "https://github.com/cloudspannerecosystem/wrench/releases/download/v${WRENCH_VERSION}/wrench-${WRENCH_VERSION}-linux-${TARGETARCH}.tar.gz" && \
-    tar -xf wrench.tar.gz && mv wrench /bin/
+    tar -xf wrench.tar.gz && \
+    mv wrench /bin/ && \
+    rm wrench.tar.gz tools.go.mod
 
 RUN gcloud config set auth/disable_credentials true && \
     gcloud config set project ${SPANNER_PROJECT_ID} && \
