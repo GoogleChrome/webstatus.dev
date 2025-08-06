@@ -18,11 +18,13 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"sort"
 	"testing"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestConvertStringToDate(t *testing.T) {
@@ -193,11 +195,16 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 	}
 }
 
-type mockUpsertWebFeatureConfig struct {
-	expectedInputs map[string]gcpspanner.WebFeature
-	outputIDs      map[string]*string
-	outputs        map[string]error
-	expectedCount  int
+type mockSyncWebFeaturesConfig struct {
+	expectedInput []gcpspanner.WebFeature
+	err           error
+	expectedCount int
+}
+
+type mockFetchIDsAndKeysConfig struct {
+	output        []gcpspanner.SpannerFeatureIDAndKey
+	err           error
+	expectedCount int
 }
 
 type mockUpsertFeatureBaselineStatusConfig struct {
@@ -231,8 +238,10 @@ type mockUpsertFeatureDiscouragedDetailsConfig struct {
 
 type mockWebFeatureSpannerClient struct {
 	t                                               *testing.T
-	upsertWebFeatureCount                           int
-	mockUpsertWebFeatureCfg                         mockUpsertWebFeatureConfig
+	syncWebFeaturesCount                            int
+	mockSyncWebFeaturesCfg                          mockSyncWebFeaturesConfig
+	fetchIDsAndKeysCount                            int
+	mockFetchIDsAndKeysCfg                          mockFetchIDsAndKeysConfig
 	upsertFeatureBaselineStatusCount                int
 	mockUpsertFeatureBaselineStatusCfg              mockUpsertFeatureBaselineStatusConfig
 	insertBrowserFeatureAvailabilityCountPerFeature map[string]int
@@ -245,24 +254,29 @@ type mockWebFeatureSpannerClient struct {
 	upsertFeatureDiscouragedDetailsCount            int
 }
 
-func (c *mockWebFeatureSpannerClient) UpsertWebFeature(
-	_ context.Context, feature gcpspanner.WebFeature) (*string, error) {
-	if len(c.mockUpsertWebFeatureCfg.expectedInputs) <= c.upsertWebFeatureCount {
-		c.t.Fatal("no more expected input for UpsertWebFeature")
-	}
-	if len(c.mockUpsertWebFeatureCfg.outputs) <= c.upsertWebFeatureCount {
-		c.t.Fatal("no more configured outputs for UpsertWebFeature")
-	}
-	expectedInput, found := c.mockUpsertWebFeatureCfg.expectedInputs[feature.FeatureKey]
-	if !found {
-		c.t.Errorf("unexpected input %v", feature)
-	}
-	if !reflect.DeepEqual(expectedInput, feature) {
-		c.t.Errorf("unexpected input expected %s received %s", expectedInput, feature)
-	}
-	c.upsertWebFeatureCount++
+func (c *mockWebFeatureSpannerClient) SyncWebFeatures(
+	_ context.Context, features []gcpspanner.WebFeature) error {
+	// Sort both slices for stable comparison
+	sort.Slice(features, func(i, j int) bool {
+		return features[i].FeatureKey < features[j].FeatureKey
+	})
+	sort.Slice(c.mockSyncWebFeaturesCfg.expectedInput, func(i, j int) bool {
+		return c.mockSyncWebFeaturesCfg.expectedInput[i].FeatureKey < c.mockSyncWebFeaturesCfg.expectedInput[j].FeatureKey
+	})
 
-	return c.mockUpsertWebFeatureCfg.outputIDs[feature.FeatureKey], c.mockUpsertWebFeatureCfg.outputs[feature.FeatureKey]
+	if diff := cmp.Diff(c.mockSyncWebFeaturesCfg.expectedInput, features); diff != "" {
+		c.t.Errorf("SyncWebFeatures unexpected input (-want +got):\n%s", diff)
+	}
+	c.syncWebFeaturesCount++
+
+	return c.mockSyncWebFeaturesCfg.err
+}
+
+func (c *mockWebFeatureSpannerClient) FetchAllWebFeatureIDsAndKeys(
+	_ context.Context) ([]gcpspanner.SpannerFeatureIDAndKey, error) {
+	c.fetchIDsAndKeysCount++
+
+	return c.mockFetchIDsAndKeysCfg.output, c.mockFetchIDsAndKeysCfg.err
 }
 
 func (c *mockWebFeatureSpannerClient) UpsertFeatureBaselineStatus(
@@ -369,7 +383,8 @@ func (c *mockWebFeatureSpannerClient) UpsertFeatureDiscouragedDetails(
 
 func newMockmockWebFeatureSpannerClient(
 	t *testing.T,
-	mockUpsertWebFeatureCfg mockUpsertWebFeatureConfig,
+	mockSyncWebFeaturesCfg mockSyncWebFeaturesConfig,
+	mockFetchIDsAndKeysCfg mockFetchIDsAndKeysConfig,
 	mockUpsertFeatureBaselineStatusCfg mockUpsertFeatureBaselineStatusConfig,
 	mockUpsertBrowserFeatureAvailabilityCfg mockUpsertBrowserFeatureAvailabilityConfig,
 	mockUpsertFeatureSpecCfg mockUpsertFeatureSpecConfig,
@@ -378,11 +393,13 @@ func newMockmockWebFeatureSpannerClient(
 ) *mockWebFeatureSpannerClient {
 	return &mockWebFeatureSpannerClient{
 		t:                                       t,
-		mockUpsertWebFeatureCfg:                 mockUpsertWebFeatureCfg,
+		mockSyncWebFeaturesCfg:                  mockSyncWebFeaturesCfg,
+		mockFetchIDsAndKeysCfg:                  mockFetchIDsAndKeysCfg,
 		mockUpsertFeatureBaselineStatusCfg:      mockUpsertFeatureBaselineStatusCfg,
 		mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityCfg,
 		mockUpsertFeatureSpecCfg:                mockUpsertFeatureSpecCfg,
-		upsertWebFeatureCount:                   0,
+		syncWebFeaturesCount:                    0,
+		fetchIDsAndKeysCount:                    0,
 		upsertFeatureBaselineStatusCount:        0,
 		upsertFeatureSpecCount:                  0,
 		insertBrowserFeatureAvailabilityCountPerFeature: map[string]int{},
@@ -393,7 +410,8 @@ func newMockmockWebFeatureSpannerClient(
 	}
 }
 
-var ErrWebFeatureTest = errors.New("web feature test error")
+var ErrSyncWebFeaturesTest = errors.New("sync web features test error")
+var ErrFetchIDsAndKeysTest = errors.New("fetch IDs and keys test error")
 var ErrBaselineStatusTest = errors.New("baseline status test error")
 var ErrBrowserFeatureAvailabilityTest = errors.New("browser feature availability test error")
 var ErrFeatureSpecTest = errors.New("feature spec test error")
@@ -410,7 +428,8 @@ func TestInsertWebFeatures(t *testing.T) {
 	// nolint: dupl // WONTFIX - some of the test cases are similar. It is better to be explicit for each case.
 	testCases := []struct {
 		name                                           string
-		mockUpsertWebFeatureCfg                        mockUpsertWebFeatureConfig
+		mockSyncWebFeaturesCfg                         mockSyncWebFeaturesConfig
+		mockFetchIDsAndKeysCfg                         mockFetchIDsAndKeysConfig
 		mockUpsertFeatureBaselineStatusCfg             mockUpsertFeatureBaselineStatusConfig
 		mockUpsertBrowserFeatureAvailabilityCfg        mockUpsertBrowserFeatureAvailabilityConfig
 		mockUpsertFeatureSpecCfg                       mockUpsertFeatureSpecConfig
@@ -421,30 +440,31 @@ func TestInsertWebFeatures(t *testing.T) {
 	}{
 		{
 			name: "success",
-			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
-				expectedInputs: map[string]gcpspanner.WebFeature{
-					"feature1": {
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{
+					{
 						FeatureKey:      "feature1",
 						Name:            "Feature 1",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
-					"feature2": {
+					{
 						FeatureKey:      "feature2",
 						Name:            "Feature 2",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
 				},
-				outputIDs: map[string]*string{
-					"feature1": valuePtr("id-1"),
-					"feature2": valuePtr("id-2"),
+				err:           nil,
+				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output: []gcpspanner.SpannerFeatureIDAndKey{
+					{ID: "id-1", FeatureKey: "feature1"},
+					{ID: "id-2", FeatureKey: "feature2"},
 				},
-				outputs: map[string]error{
-					"feature1": nil,
-					"feature2": nil,
-				},
-				expectedCount: 2,
+				err:           nil,
+				expectedCount: 1,
 			},
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
@@ -619,23 +639,17 @@ func TestInsertWebFeatures(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "UpsertWebFeature error",
-			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
-				expectedInputs: map[string]gcpspanner.WebFeature{
-					"feature1": {
-						FeatureKey:      "feature1",
-						Name:            "Feature 1",
-						Description:     "text",
-						DescriptionHTML: "<html>",
-					},
-				},
-				outputs: map[string]error{
-					"feature1": ErrWebFeatureTest,
-				},
-				outputIDs: map[string]*string{
-					"feature1": valuePtr("id-1"),
-				},
+			name: "SyncWebFeatures error",
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{{
+					FeatureKey: "feature1", Name: "Feature 1", Description: "text", DescriptionHTML: "<html>"}},
+				err:           ErrSyncWebFeaturesTest,
 				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output:        nil,
+				err:           nil,
+				expectedCount: 0,
 			},
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: nil,
@@ -692,26 +706,26 @@ func TestInsertWebFeatures(t *testing.T) {
 					Snapshot:        nil,
 				},
 			},
-			expectedError: ErrWebFeatureTest,
+			expectedError: ErrSyncWebFeaturesTest,
 		},
 		{
 			name: "UpsertFeatureBaselineStatus error",
-			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
-				expectedInputs: map[string]gcpspanner.WebFeature{
-					"feature1": {
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{
+					{
 						FeatureKey:      "feature1",
 						Name:            "Feature 1",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
 				},
-				outputs: map[string]error{
-					"feature1": nil,
-				},
-				outputIDs: map[string]*string{
-					"feature1": valuePtr("id-1"),
-				},
+				err:           nil,
 				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output:        nil,
+				err:           nil,
+				expectedCount: 0,
 			},
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
@@ -780,22 +794,22 @@ func TestInsertWebFeatures(t *testing.T) {
 		},
 		{
 			name: "UpsertBrowserFeatureAvailability error",
-			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
-				expectedInputs: map[string]gcpspanner.WebFeature{
-					"feature1": {
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{
+					{
 						FeatureKey:      "feature1",
 						Name:            "Feature 1",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
 				},
-				outputs: map[string]error{
-					"feature1": nil,
-				},
-				outputIDs: map[string]*string{
-					"feature1": valuePtr("id-1"),
-				},
+				err:           nil,
 				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output:        nil,
+				err:           nil,
+				expectedCount: 0,
 			},
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
@@ -875,22 +889,22 @@ func TestInsertWebFeatures(t *testing.T) {
 		},
 		{
 			name: "upsert feature spec failure",
-			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
-				expectedInputs: map[string]gcpspanner.WebFeature{
-					"feature1": {
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{
+					{
 						FeatureKey:      "feature1",
 						Name:            "Feature 1",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
 				},
-				outputs: map[string]error{
-					"feature1": nil,
-				},
-				outputIDs: map[string]*string{
-					"feature1": valuePtr("id-1"),
-				},
+				err:           nil,
 				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output:        nil,
+				err:           nil,
+				expectedCount: 0,
 			},
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
@@ -1006,30 +1020,28 @@ func TestInsertWebFeatures(t *testing.T) {
 		},
 		{
 			name: "PrecalculateBrowserFeatureSupportEvents failure",
-			mockUpsertWebFeatureCfg: mockUpsertWebFeatureConfig{
-				expectedInputs: map[string]gcpspanner.WebFeature{
-					"feature1": {
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{
+					{
 						FeatureKey:      "feature1",
 						Name:            "Feature 1",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
-					"feature2": {
+					{
 						FeatureKey:      "feature2",
 						Name:            "Feature 2",
 						Description:     "text",
 						DescriptionHTML: "<html>",
 					},
 				},
-				outputIDs: map[string]*string{
-					"feature1": valuePtr("id-1"),
-					"feature2": valuePtr("id-2"),
-				},
-				outputs: map[string]error{
-					"feature1": nil,
-					"feature2": nil,
-				},
-				expectedCount: 2,
+				err:           nil,
+				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output:        nil,
+				err:           nil,
+				expectedCount: 0,
 			},
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
@@ -1195,13 +1207,211 @@ func TestInsertWebFeatures(t *testing.T) {
 			},
 			expectedError: ErrPrecalculateBrowserFeatureSupportEventsTest,
 		},
+		{
+			name: "FetchAllWebFeatureIDsAndKeys error",
+			mockSyncWebFeaturesCfg: mockSyncWebFeaturesConfig{
+				expectedInput: []gcpspanner.WebFeature{
+					{
+						FeatureKey:      "feature1",
+						Name:            "Feature 1",
+						Description:     "text",
+						DescriptionHTML: "<html>",
+					},
+					{
+						FeatureKey:      "feature2",
+						Name:            "Feature 2",
+						Description:     "text",
+						DescriptionHTML: "<html>",
+					},
+				},
+				err:           nil,
+				expectedCount: 1,
+			},
+			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
+				output:        nil,
+				err:           ErrFetchIDsAndKeysTest,
+				expectedCount: 1,
+			},
+			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
+				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
+					"feature1": {
+						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						HighDate: nil,
+						LowDate:  nil,
+					},
+					"feature2": {
+						Status:   valuePtr(gcpspanner.BaselineStatusLow),
+						HighDate: nil,
+						LowDate:  nil,
+					},
+				},
+				outputs: map[string]error{
+					"feature1": nil,
+					"feature2": nil,
+				},
+				expectedCount: 2,
+			},
+			mockUpsertBrowserFeatureAvailabilityCfg: mockUpsertBrowserFeatureAvailabilityConfig{
+				expectedInputs: map[string][]gcpspanner.BrowserFeatureAvailability{
+					"feature1": {
+						{
+							BrowserName:    "chrome",
+							BrowserVersion: "100",
+						},
+						{
+							BrowserName:    "edge",
+							BrowserVersion: "101",
+						},
+						{
+							BrowserName:    "firefox",
+							BrowserVersion: "102",
+						},
+						{
+							BrowserName:    "safari",
+							BrowserVersion: "103",
+						},
+						{
+							BrowserName:    "chrome_android",
+							BrowserVersion: "104",
+						},
+					},
+					"feature2": {
+						{
+							BrowserName:    "firefox",
+							BrowserVersion: "202",
+						},
+						{
+							BrowserName:    "safari",
+							BrowserVersion: "203",
+						},
+						{
+							BrowserName:    "safari_ios",
+							BrowserVersion: "106",
+						},
+					},
+				},
+				outputs: map[string][]error{
+					"feature1": {nil, nil, nil, nil, nil},
+					"feature2": {nil, nil, nil},
+				},
+				expectedCountPerFeature: map[string]int{
+					"feature1": 5,
+					"feature2": 3,
+				},
+			},
+			mockUpsertFeatureSpecCfg: mockUpsertFeatureSpecConfig{
+				expectedInputs: map[string]gcpspanner.FeatureSpec{
+					"feature1": {
+						Links: []string{
+							"feature1-link1",
+							"feature1-link2",
+						},
+					},
+					"feature2": {
+						Links: []string{
+							"feature2-link",
+						},
+					},
+				},
+				outputs: map[string]error{
+					"feature1": nil,
+					"feature2": nil,
+				},
+				expectedCount: 2,
+			},
+			input: map[string]web_platform_dx__web_features.FeatureValue{
+				"feature1": {
+					Name:           "Feature 1",
+					Caniuse:        nil,
+					CompatFeatures: nil,
+					Discouraged: &web_platform_dx__web_features.Discouraged{
+						AccordingTo:  []string{"according-to-1", "according-to-2"},
+						Alternatives: []string{"alternative-1", "alternative-2"},
+					},
+					Spec: &web_platform_dx__web_features.StringOrStringArray{
+						StringArray: []string{"feature1-link1", "feature1-link2"},
+						String:      nil,
+					},
+					Status: web_platform_dx__web_features.Status{
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
+							Chrome:         valuePtr("100"),
+							ChromeAndroid:  valuePtr("104"),
+							Edge:           valuePtr("101"),
+							Firefox:        valuePtr("102"),
+							FirefoxAndroid: nil,
+							Safari:         valuePtr("103"),
+							SafariIos:      nil,
+						},
+						Baseline: &web_platform_dx__web_features.BaselineUnion{
+							Enum: valuePtr(web_platform_dx__web_features.High),
+							Bool: nil,
+						},
+					},
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					Group:           nil,
+					Snapshot:        nil,
+				},
+				"feature2": {
+					Name:           "Feature 2",
+					Caniuse:        nil,
+					CompatFeatures: nil,
+					Discouraged:    nil,
+					Spec: &web_platform_dx__web_features.StringOrStringArray{
+						StringArray: nil,
+						String:      valuePtr("feature2-link"),
+					},
+					Status: web_platform_dx__web_features.Status{
+						BaselineHighDate: nil,
+						BaselineLowDate:  nil,
+						ByCompatKey:      nil,
+						Support: web_platform_dx__web_features.StatusSupport{
+							Chrome:         nil,
+							ChromeAndroid:  nil,
+							Edge:           nil,
+							Firefox:        valuePtr("202"),
+							FirefoxAndroid: nil,
+							Safari:         valuePtr("203"),
+							SafariIos:      valuePtr("106"),
+						},
+						Baseline: &web_platform_dx__web_features.BaselineUnion{
+							Enum: valuePtr(web_platform_dx__web_features.Low),
+							Bool: nil,
+						},
+					},
+					Description:     "text",
+					DescriptionHTML: "<html>",
+					Group:           nil,
+					Snapshot:        nil,
+				},
+			},
+			mockPrecalculateBrowserFeatureSupportEventsCfg: mockPrecalculateBrowserFeatureSupportEventsConfig{
+				expectedCount: 1,
+				err:           nil,
+			},
+			mockUpsertFeatureDiscouragedDetailsCfg: mockUpsertFeatureDiscouragedDetailsConfig{
+				expectedInputs: map[string]gcpspanner.FeatureDiscouragedDetails{
+					"feature1": {
+						AccordingTo:  []string{"according-to-1", "according-to-2"},
+						Alternatives: []string{"alternative-1", "alternative-2"},
+					},
+				},
+				outputs:       map[string]error{"feature1": nil},
+				expectedCount: 1,
+			},
+			expectedError: ErrFetchIDsAndKeysTest,
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := newMockmockWebFeatureSpannerClient(
 				t,
-				tc.mockUpsertWebFeatureCfg,
+				tc.mockSyncWebFeaturesCfg,
+				tc.mockFetchIDsAndKeysCfg,
 				tc.mockUpsertFeatureBaselineStatusCfg,
 				tc.mockUpsertBrowserFeatureAvailabilityCfg,
 				tc.mockUpsertFeatureSpecCfg,
@@ -1217,10 +1427,16 @@ func TestInsertWebFeatures(t *testing.T) {
 				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
 			}
 
-			if mockClient.upsertWebFeatureCount != mockClient.mockUpsertWebFeatureCfg.expectedCount {
-				t.Errorf("expected %d calls to UpsertWebFeature, got %d",
-					mockClient.mockUpsertWebFeatureCfg.expectedCount,
-					mockClient.upsertWebFeatureCount)
+			if mockClient.syncWebFeaturesCount != mockClient.mockSyncWebFeaturesCfg.expectedCount {
+				t.Errorf("expected %d calls to SyncWebFeatures, got %d",
+					mockClient.mockSyncWebFeaturesCfg.expectedCount,
+					mockClient.syncWebFeaturesCount)
+			}
+
+			if mockClient.fetchIDsAndKeysCount != mockClient.mockFetchIDsAndKeysCfg.expectedCount {
+				t.Errorf("expected %d calls to FetchAllWebFeatureIDsAndKeys, got %d",
+					mockClient.mockFetchIDsAndKeysCfg.expectedCount,
+					mockClient.fetchIDsAndKeysCount)
 			}
 
 			if mockClient.upsertFeatureBaselineStatusCount !=
