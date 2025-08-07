@@ -1015,15 +1015,14 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes
 	}
 	tableName := mapper.Table()
 
-	// Handle manual child deletions first. By fetching the keys of all child
-	// records and deleting them in a batch, we move the cascade logic into the
-	// application. This is more robust than relying on `ON DELETE CASCADE`
-	// in the schema, which can fail if a single parent's cascade is too large.
-	// For example, deleting one `WebFeatures` row could cascade to tens of
-	// thousands of `WPTRunFeatureMetrics` rows, exceeding Spanner's mutation
-	// limit for a single transaction. This approach allows the non-atomic
-	// batch writer to break up the large child delete operation into smaller,
-	// manageable chunks.
+	// Handle manual child deletions first.
+	// The `ON DELETE CASCADE` constraint should be the default, but it can fail
+	// if a cascade exceeds Spanner's 80k mutation limit.
+	//
+	// If a new table's sync starts failing on the parent delete step below,
+	// its mapper should be updated to implement `GetChildDeleteKeyMutations`
+	// to handle the child deletes manually.
+	// See: https://github.com/GoogleChrome/webstatus.dev/issues/1697
 	childKeyMutationSet, err := mapper.GetChildDeleteKeyMutations(ctx, s.Client, entitiesToDelete)
 	if err != nil {
 		return errors.Join(ErrSyncFailedToGetChildMutations, err)
@@ -1042,7 +1041,15 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes
 		"Applying parent delete mutations via batch writer",
 		"count", len(deleteMutations), "table", tableName)
 
-	return s.applyNonAtomic(ctx, deleteMutations, tableName)
+	err = s.applyNonAtomic(ctx, deleteMutations, tableName)
+	if err != nil {
+		// See above comment about GetChildDeleteKeyMutations for possible fix.
+		slog.ErrorContext(ctx, "Failed to apply parent delete mutations", "error", err)
+
+		return err
+	}
+
+	return nil
 }
 
 // applyAtomic applies all upsert mutations in a single, atomic transaction.
