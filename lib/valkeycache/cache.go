@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+	"github.com/cenkalti/backoff/v5"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -42,10 +43,19 @@ func NewValkeyDataCache[K comparable, V []byte](
 	ttl time.Duration) (*ValkeyDataCache[K, V], error) {
 
 	addr := fmt.Sprintf("%s:%s", host, port)
-	// nolint: exhaustruct // No need to use every option of 3rd party struct.
-	c, err := valkey.NewClient(valkey.ClientOption{
-		InitAddress: []string{addr},
-	})
+	operation := func() (valkey.Client, error) {
+		// nolint: exhaustruct // No need to use every option of 3rd party struct.
+		return valkey.NewClient(valkey.ClientOption{
+			InitAddress: []string{addr},
+		})
+	}
+
+	c, err := backoff.Retry(context.TODO(), operation,
+		backoff.WithBackOff(backoff.NewExponentialBackOff()),
+		// Should be less than the total time in the startup probe for the backend container in
+		// infra/backend/service.tf
+		backoff.WithMaxElapsedTime(25*time.Second),
+	)
 	if err != nil {
 		return nil, err
 	}
