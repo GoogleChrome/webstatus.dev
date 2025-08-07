@@ -9,6 +9,7 @@ require (
 	firebase.google.com/go/v4 v4.18.0
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250804165824-fd606c7d439d
 	github.com/antlr4-go/antlr/v4 v4.13.1
+	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/deckarep/golang-set v1.8.0
 	github.com/google/go-github/v73 v73.0.0
 	github.com/oapi-codegen/runtime v1.1.2
@@ -32,7 +33,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.53.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.53.0 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
-	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/platforms v0.2.1 // indirect
