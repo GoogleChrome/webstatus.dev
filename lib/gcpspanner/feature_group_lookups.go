@@ -17,6 +17,8 @@ package gcpspanner
 import (
 	"context"
 	"log/slog"
+
+	"cloud.google.com/go/spanner"
 )
 
 const featureGroupKeysLookupTable = "FeatureGroupKeysLookup"
@@ -58,6 +60,10 @@ func (c *Client) UpsertFeatureGroupLookups(
 		groupKeyToGroupDetails[groupDetail.GroupKey] = groupDetail
 	}
 
+	toMutationFn := func(entity spannerFeatureGroupKeysLookup) (*spanner.Mutation, error) {
+		return spanner.InsertOrUpdateStruct(featureGroupKeysLookupTable, entity)
+	}
+
 	return runConcurrentBatch(ctx,
 		c, func(entityChan chan<- spannerFeatureGroupKeysLookup) {
 			calculateAllFeatureGroupLookups(
@@ -67,7 +73,7 @@ func (c *Client) UpsertFeatureGroupLookups(
 				groupKeyToGroupDetails,
 				entityChan,
 				childGroupKeyToParentGroupKey)
-		}, featureGroupKeysLookupTable)
+		}, featureGroupKeysLookupTable, toMutationFn)
 }
 
 func calculateAllFeatureGroupLookups(

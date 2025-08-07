@@ -69,17 +69,81 @@ func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
 	return stmt
 }
 
+// Merge method remains for backward compatibility.
+// TODO: Remove once we remove the UpsertWebFeature method.
 func (m webFeatureSpannerMapper) Merge(in WebFeature, existing SpannerWebFeature) SpannerWebFeature {
-	return SpannerWebFeature{
+	merged, _ := m.MergeAndCheckChanged(in, existing)
+
+	return merged
+}
+
+// MergeAndCheckChanged will merge the entity and return if the entity has changed.
+func (m webFeatureSpannerMapper) MergeAndCheckChanged(
+	in WebFeature, existing SpannerWebFeature) (SpannerWebFeature, bool) {
+	merged := SpannerWebFeature{
 		ID: existing.ID,
 		WebFeature: WebFeature{
-			FeatureKey: existing.FeatureKey,
-			// Only allow overriding of the feature name and description.
+			FeatureKey:      existing.FeatureKey,
 			Name:            cmp.Or(in.Name, existing.Name),
 			Description:     cmp.Or(in.Description, existing.Description),
 			DescriptionHTML: cmp.Or(in.DescriptionHTML, existing.DescriptionHTML),
 		},
 	}
+
+	hasChanged := merged.Name != existing.Name ||
+		merged.Description != existing.Description ||
+		merged.DescriptionHTML != existing.DescriptionHTML
+
+	return merged, hasChanged
+}
+
+func (m webFeatureSpannerMapper) GetChildDeleteKeyMutations(
+	ctx context.Context, client *Client, parentsToDelete []SpannerWebFeature) ([]ChildDeleteKeyMutations, error) {
+	if len(parentsToDelete) == 0 {
+		return nil, nil
+	}
+	var metricMutations, browserSupportEventMutations []*spanner.Mutation
+
+	// WPTRunFeatureMetrics can contain a lot of entries for a given feature
+	for _, parent := range parentsToDelete {
+		pairs, err := client.getAllSpannerWPTRunFeatureMetricIDsByWebFeatureID(ctx, parent.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, pair := range pairs {
+			metricMutations = append(metricMutations,
+				spanner.Delete(WPTRunFeatureMetricTable, spanner.Key{pair.ID, pair.WebFeatureID}))
+		}
+	}
+
+	// BrowserFeatureCounts can contain a lot of entries for a given feature
+	for _, parent := range parentsToDelete {
+		events, err := client.getAllSpannerBrowserFeatureCountIDsByWebFeatureID(ctx, parent.ID)
+		if err != nil {
+			return nil, err
+		}
+		for _, event := range events {
+			browserSupportEventMutations = append(browserSupportEventMutations,
+				spanner.Delete(browserFeatureSupportEventsTable,
+					spanner.Key{
+						event.TargetBrowserName,
+						event.EventBrowserName,
+						event.EventReleaseDate,
+						event.WebFeatureID,
+					}))
+		}
+	}
+
+	return []ChildDeleteKeyMutations{
+		{
+			tableName: WPTRunFeatureMetricTable,
+			mutations: metricMutations,
+		},
+		{
+			tableName: browserFeatureSupportEventsTable,
+			mutations: browserSupportEventMutations,
+		},
+	}, nil
 }
 
 // DeleteMutation creates a Spanner delete mutation for a given WebFeature.
