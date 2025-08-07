@@ -44,6 +44,14 @@ type WebFeatureStorer interface {
 		ctx context.Context,
 		data map[string]web_platform_dx__web_features.FeatureValue,
 		startAt time.Time, endAt time.Time) (map[string]string, error)
+	InsertMovedWebFeatures(
+		ctx context.Context,
+		data map[string]web_platform_dx__web_features.FeatureMovedData,
+	) error
+	InsertSplitWebFeatures(
+		ctx context.Context,
+		data map[string]web_platform_dx__web_features.FeatureSplitData,
+	) error
 }
 
 // WebFeatureMetadataStorer describes the logic to insert the non-relation metadata about web features that

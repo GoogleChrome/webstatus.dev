@@ -269,3 +269,16 @@ func getBaselineStatusEnum(status web_platform_dx__web_features.Status) *gcpspan
 
 	return nil
 }
+
+func (c *WebFeaturesConsumer) InsertMovedWebFeatures(
+	ctx context.Context,
+	data map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	return nil
+}
+
+func (c *WebFeaturesConsumer) InsertSplitWebFeatures(
+	ctx context.Context,
+	data map[string]web_platform_dx__web_features.FeatureSplitData) error {
+
+	return nil
+}
