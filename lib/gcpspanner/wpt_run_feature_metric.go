@@ -618,3 +618,45 @@ func withPageTokenFeatureSubset(
 	params["lastTimestamp"] = cursor.LastTimeStart
 	params["lastRunID"] = cursor.LastRunID
 }
+
+type spannerWPTRunFeatureMetricIDAndWebFeatureID struct {
+	ID           string `spanner:"ID"`
+	WebFeatureID string `spanner:"WebFeatureID"`
+}
+
+func (c *Client) getAllSpannerWPTRunFeatureMetricIDsByWebFeatureID(
+	ctx context.Context,
+	webFeatureID string) ([]spannerWPTRunFeatureMetricIDAndWebFeatureID, error) {
+	txn := c.Single()
+	defer txn.Close()
+	stmt := spanner.NewStatement(`
+		SELECT
+			ID,
+			WebFeatureID
+		FROM WPTRunFeatureMetrics
+		WHERE WebFeatureID = @webFeatureID`)
+	stmt.Params = map[string]interface{}{
+		"webFeatureID": webFeatureID,
+	}
+
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	var pairs []spannerWPTRunFeatureMetricIDAndWebFeatureID
+	for {
+		row, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		var pair spannerWPTRunFeatureMetricIDAndWebFeatureID
+		if err := row.ToStruct(&pair); err != nil {
+			return nil, err
+		}
+		pairs = append(pairs, pair)
+	}
+
+	return pairs, nil
+}

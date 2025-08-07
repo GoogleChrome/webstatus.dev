@@ -69,10 +69,11 @@ var (
 
 // entitySynchronizer specific errors.
 var (
-	ErrSyncReadFailed             = errors.New("sync failed during read phase")
-	ErrSyncMutationCreationFailed = errors.New("sync failed to create mutation")
-	ErrSyncAtomicWriteFailed      = errors.New("sync atomic write failed")
-	ErrSyncBatchWriteFailed       = errors.New("sync batch write failed")
+	ErrSyncReadFailed                = errors.New("sync failed during read phase")
+	ErrSyncMutationCreationFailed    = errors.New("sync failed to create mutation")
+	ErrSyncAtomicWriteFailed         = errors.New("sync atomic write failed")
+	ErrSyncBatchWriteFailed          = errors.New("sync batch write failed")
+	ErrSyncFailedToGetChildMutations = errors.New("sync failed to get child mutations")
 )
 
 // Client is the client for interacting with GCP Spanner.
@@ -370,6 +371,12 @@ type mergeMapper[ExternalStruct any, SpannerStruct any] interface {
 	Merge(ExternalStruct, SpannerStruct) SpannerStruct
 }
 
+// mergeAndCheckChangedMapper handles merging and explicitly returns if a change occurred.
+// TODO: Long term: all the mappers should move from mergeMapper to mergeAndCheckChangedMapper.
+type mergeAndCheckChangedMapper[ExternalStruct any, SpannerStruct any] interface {
+	MergeAndCheckChanged(ExternalStruct, SpannerStruct) (SpannerStruct, bool)
+}
+
 // idRetrievalMapper provides a method to get a Spanner ID from a business key.
 type idRetrievalMapper[Key comparable] interface {
 	GetID(Key) spanner.Statement
@@ -430,8 +437,25 @@ type syncableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable]
 	externalKeyMapper[ExternalStruct, Key]
 	internalKeyMapper[SpannerStruct, Key]
 	readAllMapper
-	mergeMapper[ExternalStruct, SpannerStruct]
+	// mergeMapper[ExternalStruct, SpannerStruct]
+	mergeAndCheckChangedMapper[ExternalStruct, SpannerStruct]
+	childDeleterMapper[SpannerStruct]
 	deleteByStructMapper[SpannerStruct]
+}
+
+type ChildDeleteKeyMutations struct {
+	tableName string
+	mutations []*spanner.Mutation
+}
+
+// childDeleterMapper provides a method to get the keys of child entities
+// that need to be deleted before their parents.
+type childDeleterMapper[SpannerStruct any] interface {
+	GetChildDeleteKeyMutations(
+		ctx context.Context,
+		client *Client,
+		parentsToDelete []SpannerStruct,
+	) ([]ChildDeleteKeyMutations, error)
 }
 
 // --- Generic Entity Components ---
@@ -864,7 +888,9 @@ func newEntitySynchronizer[
 	ExternalStruct any,
 	SpannerStruct any,
 	Key comparable,
-](c *Client) *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key] {
+](
+	c *Client,
+) *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key] {
 	return &entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]{
 		Client:              c,
 		batchWriteThreshold: defaultBatchSize,
@@ -901,7 +927,7 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 	}
 	slog.InfoContext(ctx, "Read complete", "table", tableName, "existing_count", len(existingEntities))
 
-	// 2. COMPUTE DIFF: Determine and log each operation.
+	// 2. COMPUTE DIFF: Separate mutations into deletes and upserts.
 	var inserts, updates, deletes int
 	upsertMutations := []*spanner.Mutation{}
 	deleteMutations := []*spanner.Mutation{}
@@ -917,8 +943,11 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 		if existing, found := existingEntities[key]; found {
 			// --- UPDATE logic ---
 			slog.DebugContext(ctx, "Preparing update", "table", tableName, "key", key)
+			merged, hasChanged := mapper.MergeAndCheckChanged(externalEntity, existing)
+			if !hasChanged {
+				continue
+			}
 			updates++
-			merged := mapper.Merge(externalEntity, existing)
 			m, err = spanner.UpdateStruct(tableName, merged)
 			if err != nil {
 				return errors.Join(ErrSyncMutationCreationFailed, err)
@@ -935,36 +964,34 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 		upsertMutations = append(upsertMutations, m)
 	}
 
-	// --- DELETE logic ---
+	entitiesToDelete := make([]SpannerStruct, 0)
 	for key, entity := range existingEntities {
 		if _, found := desiredKeys[key]; !found {
 			slog.DebugContext(ctx, "Preparing delete", "table", tableName, "key", key)
 			deletes++
 			deleteMutations = append(deleteMutations, mapper.DeleteMutation(entity))
+			entitiesToDelete = append(entitiesToDelete, entity)
 		}
 	}
 
-	// Log a summary of the computed changes.
-	totalMutations := len(upsertMutations) + len(deleteMutations)
 	slog.InfoContext(ctx, "Diff computed",
 		"table", tableName,
 		"inserts", inserts,
 		"updates", updates,
-		"deletes", deletes,
-		"total_mutations", totalMutations)
+		"deletes", deletes)
 
-	if totalMutations == 0 {
-		slog.InfoContext(ctx, "Sync complete: no changes to apply", "table", tableName)
-
-		return nil
+	// 3. APPLY DELETES: Handle child and parent deletions first.
+	if err := s.applyDeletes(ctx, entitiesToDelete, deleteMutations, mapper); err != nil {
+		return err
 	}
 
-	// 3. WRITE: Apply the changes using the appropriate method.
-	if totalMutations < s.batchWriteThreshold {
-		err = s.applyAtomic(ctx, deleteMutations, upsertMutations, tableName)
+	// 4. APPLY UPSERTS: Apply all inserts and updates together.
+	if len(upsertMutations) < s.batchWriteThreshold {
+		err = s.applyAtomic(ctx, upsertMutations, tableName)
 	} else {
-		err = s.applyNonAtomic(ctx, deleteMutations, upsertMutations, tableName)
+		err = s.applyNonAtomic(ctx, upsertMutations, tableName)
 	}
+
 	if err != nil {
 		return err
 	}
@@ -974,16 +1001,65 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 	return nil
 }
 
-// applyAtomic applies all mutations in a single, atomic transaction.
-// This is suitable for smaller change sets.
+func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) mutationNoop(
+	m *spanner.Mutation) (*spanner.Mutation, error) {
+	return m, nil
+}
+
+// applyDeletes handles the deletion of child and parent entities.
+func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes(
+	ctx context.Context, entitiesToDelete []SpannerStruct, deleteMutations []*spanner.Mutation,
+	mapper M) error {
+	if len(entitiesToDelete) == 0 {
+		return nil
+	}
+	tableName := mapper.Table()
+
+	// Handle manual child deletions first.
+	// The `ON DELETE CASCADE` constraint should be the default, but it can fail
+	// if a cascade exceeds Spanner's 80k mutation limit.
+	//
+	// If a new table's sync starts failing on the parent delete step below,
+	// its mapper should be updated to implement `GetChildDeleteKeyMutations`
+	// to handle the child deletes manually.
+	// See: https://github.com/GoogleChrome/webstatus.dev/issues/1697
+	childKeyMutationSet, err := mapper.GetChildDeleteKeyMutations(ctx, s.Client, entitiesToDelete)
+	if err != nil {
+		return errors.Join(ErrSyncFailedToGetChildMutations, err)
+	}
+	for _, childKeyMutations := range childKeyMutationSet {
+		slog.InfoContext(ctx, "Applying child delete mutations via batch writer",
+			"count", len(childKeyMutations.mutations), "table", childKeyMutations.tableName)
+		err := s.applyNonAtomic(ctx, childKeyMutations.mutations, childKeyMutations.tableName)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Delete the parent entities.
+	slog.InfoContext(ctx,
+		"Applying parent delete mutations via batch writer",
+		"count", len(deleteMutations), "table", tableName)
+
+	err = s.applyNonAtomic(ctx, deleteMutations, tableName)
+	if err != nil {
+		// See above comment about GetChildDeleteKeyMutations for possible fix.
+		slog.ErrorContext(ctx, "Failed to apply parent delete mutations", "error", err)
+
+		return err
+	}
+
+	return nil
+}
+
+// applyAtomic applies all upsert mutations in a single, atomic transaction.
 func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyAtomic(
 	ctx context.Context,
-	deleteMutations []*spanner.Mutation,
 	upsertMutations []*spanner.Mutation,
 	tableName string) error {
-	slog.InfoContext(ctx, "Applying changes via single atomic transaction", "table", tableName)
-	allMutations := append(deleteMutations, upsertMutations...)
-	_, err := s.Apply(ctx, allMutations)
+	slog.InfoContext(ctx, "Applying upsert mutations via single atomic transaction",
+		"table", tableName, "count", len(upsertMutations))
+	_, err := s.Apply(ctx, upsertMutations)
 	if err != nil {
 		return errors.Join(ErrSyncAtomicWriteFailed, err)
 	}
@@ -991,30 +1067,23 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyAtomic(
 	return nil
 }
 
-// applyNonAtomic applies mutations in separate batches, with deletes occurring first.
-// This is suitable for large change sets where atomicity is not required for the
-// entire operation.
+// applyNonAtomic applies upsert mutations in batches.
 func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyNonAtomic(
 	ctx context.Context,
-	deleteMutations []*spanner.Mutation,
-	upsertMutations []*spanner.Mutation,
+	mutations []*spanner.Mutation,
 	tableName string) error {
 	slog.WarnContext(ctx,
-		"Applying changes via non-atomic batch writer due to large mutation count",
-		"table", tableName, "threshold", s.batchWriteThreshold)
+		"Applying upsert mutations via non-atomic batch writer due to large mutation count",
+		"table", tableName, "count", len(mutations))
 
-	if len(deleteMutations) > 0 {
-		slog.InfoContext(ctx, "Applying delete mutations", "count", len(deleteMutations), "table", tableName)
-		if err := s.BatchWriteMutations(ctx, s.Client.Client, deleteMutations); err != nil {
-			return errors.Join(ErrSyncBatchWriteFailed, err)
+	producerFn := func(mutationChan chan<- *spanner.Mutation) {
+		for _, m := range mutations {
+			mutationChan <- m
 		}
 	}
-
-	if len(upsertMutations) > 0 {
-		slog.InfoContext(ctx, "Applying upsert mutations", "count", len(upsertMutations), "table", tableName)
-		if err := s.BatchWriteMutations(ctx, s.Client.Client, upsertMutations); err != nil {
-			return errors.Join(ErrSyncBatchWriteFailed, err)
-		}
+	err := runConcurrentBatch(ctx, s.Client, producerFn, tableName, s.mutationNoop)
+	if err != nil {
+		return errors.Join(ErrSyncBatchWriteFailed, err)
 	}
 
 	return nil
@@ -1064,7 +1133,8 @@ func newEntityRemover[
 
 func concurrentBatchWriteEntity[SpannerStruct any](
 	ctx context.Context, c *Client, wg *sync.WaitGroup, batchSize int,
-	entityChan <-chan SpannerStruct, table string, errChan chan error, workerID int) {
+	entityChan <-chan SpannerStruct, toMutationFn func(SpannerStruct) (*spanner.Mutation, error),
+	table string, errChan chan error, workerID int) {
 	var totalBatches, entityCount uint
 	success := true
 	defer func() {
@@ -1096,7 +1166,7 @@ func concurrentBatchWriteEntity[SpannerStruct any](
 				}
 				// Else, the channel is still open and it has received a value.
 				// Create a mutation and append it to the upcoming batch
-				m, err := spanner.InsertOrUpdateStruct(table, entity)
+				m, err := toMutationFn(entity)
 				if err != nil {
 					success = false
 					errChan <- err
@@ -1123,7 +1193,8 @@ func concurrentBatchWriteEntity[SpannerStruct any](
 }
 
 func runConcurrentBatch[SpannerStruct any](ctx context.Context, c *Client,
-	producerFn func(entityChan chan<- SpannerStruct), table string) error {
+	producerFn func(entityChan chan<- SpannerStruct), table string,
+	toMutationFn func(SpannerStruct) (*spanner.Mutation, error)) error {
 	entityChan := make(chan SpannerStruct, c.batchSize)
 	errChan := make(chan error)
 	ctx, cancel := context.WithCancel(ctx)
@@ -1139,7 +1210,7 @@ func runConcurrentBatch[SpannerStruct any](ctx context.Context, c *Client,
 		close(doneChan)
 	}()
 	for i := range workers {
-		go concurrentBatchWriteEntity(ctx, c, &wg, c.batchSize, entityChan, table, errChan, i)
+		go concurrentBatchWriteEntity(ctx, c, &wg, c.batchSize, entityChan, toMutationFn, table, errChan, i)
 	}
 	producerFn(entityChan)
 	close(entityChan)

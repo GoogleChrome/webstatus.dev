@@ -16,8 +16,12 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
+
+	"cloud.google.com/go/spanner"
+	"google.golang.org/api/iterator"
 )
 
 const browserFeatureSupportEventsTable = "BrowserFeatureSupportEvents"
@@ -128,8 +132,50 @@ func (c *Client) PrecalculateBrowserFeatureSupportEvents(ctx context.Context, st
 	availabilityMap := buildAvailabilityMap(releases, availabilities)
 
 	// 5. Generate BrowserFeatureSupportEvents entries (including SupportStatus)
+	toMutationFn := func(entity BrowserFeatureSupportEvent) (*spanner.Mutation, error) {
+		return spanner.InsertOrUpdateStruct(browserFeatureSupportEventsTable, entity)
+	}
+
 	return runConcurrentBatch[BrowserFeatureSupportEvent](ctx,
 		c, func(entityChan chan<- BrowserFeatureSupportEvent) {
 			calculateBrowserSupportEvents(availabilityMap, releases, ids, entityChan, startAt, endAt)
-		}, browserFeatureSupportEventsTable)
+		}, browserFeatureSupportEventsTable, toMutationFn)
+}
+
+func (c *Client) getAllSpannerBrowserFeatureCountIDsByWebFeatureID(
+	ctx context.Context, webFeatureID string) ([]BrowserFeatureSupportEvent, error) {
+	txn := c.Single()
+	defer txn.Close()
+
+	stmt := spanner.NewStatement(`
+		SELECT
+			TargetBrowserName,
+			EventBrowserName,
+			EventReleaseDate,
+			WebFeatureID,
+			SupportStatus
+		FROM ` + browserFeatureSupportEventsTable + `
+		WHERE WebFeatureID = @webFeatureID`)
+	stmt.Params["webFeatureID"] = webFeatureID
+
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	var events []BrowserFeatureSupportEvent
+	for {
+		row, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		var event BrowserFeatureSupportEvent
+		if err := row.ToStruct(&event); err != nil {
+			return nil, err
+		}
+		events = append(events, event)
+	}
+
+	return events, nil
 }
