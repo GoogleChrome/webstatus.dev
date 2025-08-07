@@ -253,7 +253,7 @@ func convertStringToDate(in *string) *time.Time {
 }
 
 // getBaselineStatusEnum converts the web feature status to the Spanner-compatible BaselineStatus type.
-func getBaselineStatusEnum(status web_platform_dx__web_features.StatusHeadlineClass) *gcpspanner.BaselineStatus {
+func getBaselineStatusEnum(status web_platform_dx__web_features.StatusHeadline) *gcpspanner.BaselineStatus {
 	if status.Baseline == nil {
 		return nil
 	}
