@@ -25,15 +25,18 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 var (
-	errTestFailToGetAsset       = errors.New("fail to get asset")
-	errTestCannotParseData      = errors.New("cannot parse data")
-	errTestFailToStoreData      = errors.New("fail to store data")
-	errTestFailToStoreMetadata  = errors.New("fail to store metadata")
-	errTestFailToStoreGroups    = errors.New("fail to store groups")
-	errTestFailToStoreSnapshots = errors.New("fail to store snapshots")
+	errTestFailToGetAsset           = errors.New("fail to get asset")
+	errTestCannotParseData          = errors.New("cannot parse data")
+	errTestFailToStoreData          = errors.New("fail to store data")
+	errTestFailToStoreMetadata      = errors.New("fail to store metadata")
+	errTestFailToStoreGroups        = errors.New("fail to store groups")
+	errTestFailToStoreSnapshots     = errors.New("fail to store snapshots")
+	errTestFailToStoreMovedFeatures = errors.New("fail to store moved features")
+	errTestFailToStoreSplitFeatures = errors.New("fail to store split features")
 )
 
 type mockAssetGetter struct {
@@ -67,11 +70,11 @@ type mockAssetParser struct {
 
 type mockParseConfig struct {
 	expectedFileContents string
-	returnData           *web_platform_dx__web_features.FeatureData
+	returnData           *webdxfeaturetypes.ProcessedWebFeaturesData
 	returnError          error
 }
 
-func (m *mockAssetParser) Parse(file io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error) {
+func (m *mockAssetParser) Parse(file io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
 	defer file.Close()
 	fileContents, err := io.ReadAll(file)
 	if err != nil {
@@ -126,9 +129,39 @@ type mockInsertWebFeaturesConfig struct {
 	returnError     error
 }
 
+type mockInsertMovedFeaturesConfig struct {
+	expectedData map[string]web_platform_dx__web_features.FeatureMovedData
+	returnError  error
+}
+
+type mockInsertSplitFeaturesConfig struct {
+	expectedData map[string]web_platform_dx__web_features.FeatureSplitData
+	returnError  error
+}
+
 type mockWebFeatureStorer struct {
-	t                        *testing.T
-	mockInsertWebFeaturesCfg mockInsertWebFeaturesConfig
+	t                             *testing.T
+	mockInsertWebFeaturesCfg      mockInsertWebFeaturesConfig
+	mockInsertMovedWebFeaturesCfg *mockInsertMovedFeaturesConfig
+	mockInsertSplitWebFeaturesCfg *mockInsertSplitFeaturesConfig
+}
+
+func (m *mockWebFeatureStorer) InsertMovedWebFeatures(
+	_ context.Context, data map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	if !reflect.DeepEqual(data, m.mockInsertMovedWebFeaturesCfg.expectedData) {
+		m.t.Error("unexpected data")
+	}
+
+	return m.mockInsertMovedWebFeaturesCfg.returnError
+}
+
+func (m *mockWebFeatureStorer) InsertSplitWebFeatures(
+	_ context.Context, data map[string]web_platform_dx__web_features.FeatureSplitData) error {
+	if !reflect.DeepEqual(data, m.mockInsertSplitWebFeaturesCfg.expectedData) {
+		m.t.Error("unexpected data")
+	}
+
+	return m.mockInsertSplitWebFeaturesCfg.returnError
 }
 
 func (m *mockWebFeatureStorer) InsertWebFeatures(
@@ -235,6 +268,8 @@ func TestProcess(t *testing.T) {
 		mockInsertWebFeaturesMetadataCfg mockInsertWebFeaturesMetadataConfig
 		mockInsertWebFeatureGroupsCfg    mockInsertWebFeatureGroupsConfig
 		mockInsertWebFeatureSnapshotsCfg mockInsertWebFeatureSnapshotsConfig
+		mockInsertMovedFeaturesCfg       *mockInsertMovedFeaturesConfig
+		mockInsertSplitFeaturesCfg       *mockInsertSplitFeaturesConfig
 		expectedError                    error
 	}{
 		{
@@ -248,34 +283,51 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
+								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
+							},
+						},
+						Moved: map[string]web_platform_dx__web_features.FeatureMovedData{
+							"movedFeature": {
+								Kind:           web_platform_dx__web_features.Moved,
+								RedirectTarget: "new-feature",
+							},
+						},
+						Split: map[string]web_platform_dx__web_features.FeatureSplitData{
+							"splitFeature": {
+								Kind: web_platform_dx__web_features.Split,
+								RedirectTargets: []string{
+									"new-feature-1",
+									"new-feature-2",
 								},
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
 					},
 					Groups: map[string]web_platform_dx__web_features.GroupData{
@@ -438,6 +490,27 @@ func TestProcess(t *testing.T) {
 				},
 				returnError: nil,
 			},
+			mockInsertMovedFeaturesCfg: &mockInsertMovedFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureMovedData{
+					"movedFeature": {
+						Kind:           web_platform_dx__web_features.Moved,
+						RedirectTarget: "new-feature",
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertSplitFeaturesCfg: &mockInsertSplitFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureSplitData{
+					"splitFeature": {
+						Kind: web_platform_dx__web_features.Split,
+						RedirectTargets: []string{
+							"new-feature-1",
+							"new-feature-2",
+						},
+					},
+				},
+				returnError: nil,
+			},
 			expectedError: nil,
 		},
 		{
@@ -475,7 +548,9 @@ func TestProcess(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedError: errTestFailToGetAsset,
+			mockInsertMovedFeaturesCfg: nil,
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestFailToGetAsset,
 		},
 		{
 			name: "fail to parse data",
@@ -512,7 +587,9 @@ func TestProcess(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedError: errTestCannotParseData,
+			mockInsertMovedFeaturesCfg: nil,
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestCannotParseData,
 		},
 		{
 			name: "fail to store data",
@@ -525,35 +602,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups:    nil,
 					Snapshots: nil,
@@ -610,7 +691,9 @@ func TestProcess(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedError: errTestFailToStoreData,
+			mockInsertMovedFeaturesCfg: nil,
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestFailToStoreData,
 		},
 		{
 			name: "fail to store metadata",
@@ -623,35 +706,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups:    nil,
 					Snapshots: nil,
@@ -737,7 +824,9 @@ func TestProcess(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedError: errTestFailToStoreMetadata,
+			mockInsertMovedFeaturesCfg: nil,
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestFailToStoreMetadata,
 		},
 		{
 			name: "fail to store groups",
@@ -750,35 +839,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups: map[string]web_platform_dx__web_features.GroupData{
 						"group1": {
@@ -901,7 +994,9 @@ func TestProcess(t *testing.T) {
 				expectedMapping:      nil,
 				returnError:          nil,
 			},
-			expectedError: errTestFailToStoreGroups,
+			mockInsertMovedFeaturesCfg: nil,
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestFailToStoreGroups,
 		},
 		{
 			name: "fail to store snapshots",
@@ -914,35 +1009,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups: map[string]web_platform_dx__web_features.GroupData{
 						"group1": {
@@ -1104,7 +1203,480 @@ func TestProcess(t *testing.T) {
 				},
 				returnError: errTestFailToStoreSnapshots,
 			},
-			expectedError: errTestFailToStoreSnapshots,
+			mockInsertMovedFeaturesCfg: nil,
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestFailToStoreSnapshots,
+		},
+		{
+			name: "fail to store moved features",
+			mockDownloadFileFromReleaseCfg: mockDownloadFileFromReleaseConfig{
+				expectedOwner:    testRepoOwner,
+				expectedRepo:     testRepoName,
+				expectedFileName: testFileName,
+				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnError:      nil,
+			},
+			mockParseCfg: mockParseConfig{
+				expectedFileContents: "hi features",
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
+					Browsers: fakeBrowsersData,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
+								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
+							},
+						},
+						Moved: map[string]web_platform_dx__web_features.FeatureMovedData{
+							"movedFeature": {
+								Kind:           web_platform_dx__web_features.Moved,
+								RedirectTarget: "new-feature",
+							},
+						},
+						Split: map[string]web_platform_dx__web_features.FeatureSplitData{
+							"splitFeature": {
+								Kind: web_platform_dx__web_features.Split,
+								RedirectTargets: []string{
+									"new-feature-1",
+									"new-feature-2",
+								},
+							},
+						},
+					},
+					Groups: map[string]web_platform_dx__web_features.GroupData{
+						"group1": {
+							Name:   "Group 1",
+							Parent: nil,
+						},
+					},
+					Snapshots: map[string]web_platform_dx__web_features.SnapshotData{
+						"snapshot1": {
+							Name: "Snapshot 1",
+							Spec: "",
+						},
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				returnedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
+					"group1": {
+						Name:   "Group 1",
+						Parent: nil,
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
+				expectedFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				expectedSnapshotData: map[string]web_platform_dx__web_features.SnapshotData{
+					"snapshot1": {
+						Name: "Snapshot 1",
+						Spec: "",
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertMovedFeaturesCfg: &mockInsertMovedFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureMovedData{
+					"movedFeature": {
+						Kind:           web_platform_dx__web_features.Moved,
+						RedirectTarget: "new-feature",
+					},
+				},
+				returnError: errTestFailToStoreMovedFeatures,
+			},
+			mockInsertSplitFeaturesCfg: nil,
+			expectedError:              errTestFailToStoreMovedFeatures,
+		},
+		{
+			name: "fail to store split features",
+			mockDownloadFileFromReleaseCfg: mockDownloadFileFromReleaseConfig{
+				expectedOwner:    testRepoOwner,
+				expectedRepo:     testRepoName,
+				expectedFileName: testFileName,
+				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnError:      nil,
+			},
+			mockParseCfg: mockParseConfig{
+				expectedFileContents: "hi features",
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
+					Browsers: fakeBrowsersData,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
+								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
+							},
+						},
+						Moved: map[string]web_platform_dx__web_features.FeatureMovedData{
+							"movedFeature": {
+								Kind:           web_platform_dx__web_features.Moved,
+								RedirectTarget: "new-feature",
+							},
+						},
+						Split: map[string]web_platform_dx__web_features.FeatureSplitData{
+							"splitFeature": {
+								Kind: web_platform_dx__web_features.Split,
+								RedirectTargets: []string{
+									"new-feature-1",
+									"new-feature-2",
+								},
+							},
+						},
+					},
+					Groups: map[string]web_platform_dx__web_features.GroupData{
+						"group1": {
+							Name:   "Group 1",
+							Parent: nil,
+						},
+					},
+					Snapshots: map[string]web_platform_dx__web_features.SnapshotData{
+						"snapshot1": {
+							Name: "Snapshot 1",
+							Spec: "",
+						},
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesCfg: mockInsertWebFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				returnedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeaturesMetadataCfg: mockInsertWebFeaturesMetadataConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeatureGroupsCfg: mockInsertWebFeatureGroupsConfig{
+				expectedFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedGroupData: map[string]web_platform_dx__web_features.GroupData{
+					"group1": {
+						Name:   "Group 1",
+						Parent: nil,
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertWebFeatureSnapshotsCfg: mockInsertWebFeatureSnapshotsConfig{
+				expectedFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+					"feature1": {
+						Name:           "Feature 1",
+						Caniuse:        nil,
+						CompatFeatures: nil,
+						Discouraged:    nil,
+						Spec:           nil,
+						Status: web_platform_dx__web_features.Status{
+							Baseline:         nil,
+							BaselineHighDate: nil,
+							BaselineLowDate:  nil,
+							ByCompatKey:      nil,
+							Support: web_platform_dx__web_features.StatusSupport{
+								Chrome:         nil,
+								ChromeAndroid:  nil,
+								Edge:           nil,
+								Firefox:        nil,
+								FirefoxAndroid: nil,
+								Safari:         nil,
+								SafariIos:      nil,
+							},
+						},
+						Description:     "text",
+						DescriptionHTML: "<html>",
+						Group:           nil,
+						Snapshot:        nil,
+					},
+				},
+				expectedMapping: map[string]string{
+					"feature1": "id-1",
+				},
+				expectedSnapshotData: map[string]web_platform_dx__web_features.SnapshotData{
+					"snapshot1": {
+						Name: "Snapshot 1",
+						Spec: "",
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertMovedFeaturesCfg: &mockInsertMovedFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureMovedData{
+					"movedFeature": {
+						Kind:           web_platform_dx__web_features.Moved,
+						RedirectTarget: "new-feature",
+					},
+				},
+				returnError: nil,
+			},
+			mockInsertSplitFeaturesCfg: &mockInsertSplitFeaturesConfig{
+				expectedData: map[string]web_platform_dx__web_features.FeatureSplitData{
+					"splitFeature": {
+						Kind: web_platform_dx__web_features.Split,
+						RedirectTargets: []string{
+							"new-feature-1",
+							"new-feature-2",
+						},
+					},
+				},
+				returnError: errTestFailToStoreSplitFeatures,
+			},
+			expectedError: errTestFailToStoreSplitFeatures,
 		},
 	}
 	for _, tc := range testCases {
@@ -1118,8 +1690,10 @@ func TestProcess(t *testing.T) {
 				mockParseCfg: tc.mockParseCfg,
 			}
 			mockStorer := &mockWebFeatureStorer{
-				t:                        t,
-				mockInsertWebFeaturesCfg: tc.mockInsertWebFeaturesCfg,
+				t:                             t,
+				mockInsertWebFeaturesCfg:      tc.mockInsertWebFeaturesCfg,
+				mockInsertMovedWebFeaturesCfg: tc.mockInsertMovedFeaturesCfg,
+				mockInsertSplitWebFeaturesCfg: tc.mockInsertSplitFeaturesCfg,
 			}
 			mockMetadataStorer := &mockWebFeatureMetadataStorer{
 				t:                                t,

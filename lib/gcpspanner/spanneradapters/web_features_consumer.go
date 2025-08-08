@@ -271,14 +271,15 @@ func getBaselineStatusEnum(status web_platform_dx__web_features.Status) *gcpspan
 }
 
 func (c *WebFeaturesConsumer) InsertMovedWebFeatures(
-	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	_ context.Context,
+	_ map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	// TODO: implement this after the database method is ready.
 	return nil
 }
 
 func (c *WebFeaturesConsumer) InsertSplitWebFeatures(
-	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureSplitData) error {
-
+	_ context.Context,
+	_ map[string]web_platform_dx__web_features.FeatureSplitData) error {
+	// TODO: implement this after the database method is ready.
 	return nil
 }
