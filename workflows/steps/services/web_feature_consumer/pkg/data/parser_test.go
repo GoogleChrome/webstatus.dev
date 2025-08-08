@@ -19,11 +19,12 @@ import (
 	"io"
 	"os"
 	"path"
-	"reflect"
 	"strings"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestParse(t *testing.T) {
@@ -46,9 +47,16 @@ func TestParse(t *testing.T) {
 			if err != nil {
 				t.Errorf("unable to parse file err %s", err.Error())
 			}
-			if len(result.Features) == 0 {
+			if len(result.Features.Data) == 0 {
 				t.Error("unexpected empty map for features")
 			}
+			// TODO: When we move to v3, there will be moved and split features
+			// if len(result.Features.Moved) == 0 {
+			// 	t.Error("unexpected empty map for moved features")
+			// }
+			// if len(result.Features.Split) == 0 {
+			// 	t.Error("unexpected empty map for split features")
+			// }
 			if len(result.Groups) == 0 {
 				t.Error("unexpected empty map for groups")
 			}
@@ -89,13 +97,13 @@ func valuePtr[T any](in T) *T { return &in }
 
 func TestPostProcess(t *testing.T) {
 	testCases := []struct {
-		name                 string
-		featureData          *web_platform_dx__web_features.FeatureData
-		expectedFeatureValue web_platform_dx__web_features.FeatureValue
+		name          string
+		featureData   *rawWebFeaturesJSONData
+		expectedValue *webdxfeaturetypes.ProcessedWebFeaturesData
 	}{
 		{
 			name: "catch-all case",
-			featureData: &web_platform_dx__web_features.FeatureData{
+			featureData: &rawWebFeaturesJSONData{
 				Browsers: web_platform_dx__web_features.Browsers{
 					Chrome: web_platform_dx__web_features.BrowserData{
 						Name:     "chrome",
@@ -193,77 +201,116 @@ func TestPostProcess(t *testing.T) {
 					},
 				},
 			},
-			expectedFeatureValue: web_platform_dx__web_features.FeatureValue{
-				CompatFeatures:  []string{"compat1", "compat2"},
-				Description:     "description",
-				DescriptionHTML: "description html",
-				Discouraged: &web_platform_dx__web_features.Discouraged{
-					AccordingTo: []string{
-						"discouraged1",
-						"discouraged2",
+			expectedValue: &webdxfeaturetypes.ProcessedWebFeaturesData{
+				Browsers: web_platform_dx__web_features.Browsers{
+					Chrome: web_platform_dx__web_features.BrowserData{
+						Name:     "chrome",
+						Releases: nil,
 					},
-					Alternatives: []string{
-						"feature2",
-						"feature3",
+					ChromeAndroid: web_platform_dx__web_features.BrowserData{
+						Name:     "chrome_android",
+						Releases: nil,
 					},
-				},
-				Name: "feature 1 name",
-				Caniuse: &web_platform_dx__web_features.StringOrStringArray{
-					String: valuePtr("caniuse_data"),
-					StringArray: []string{
-						"caniuse1",
-						"caniuse2",
+					Edge: web_platform_dx__web_features.BrowserData{
+						Name:     "edge",
+						Releases: nil,
 					},
-				},
-				Group: &web_platform_dx__web_features.StringOrStringArray{
-					String: valuePtr("group_name"),
-					StringArray: []string{
-						"group1",
-						"group2",
+					Firefox: web_platform_dx__web_features.BrowserData{
+						Name:     "firefox",
+						Releases: nil,
 					},
-				},
-				Snapshot: &web_platform_dx__web_features.StringOrStringArray{
-					String: valuePtr("snapshot_data"),
-					StringArray: []string{
-						"snapshot1",
-						"snapshot2",
+					FirefoxAndroid: web_platform_dx__web_features.BrowserData{
+						Name:     "firefox_android",
+						Releases: nil,
+					},
+					Safari: web_platform_dx__web_features.BrowserData{
+						Name:     "safari",
+						Releases: nil,
+					},
+					SafariIos: web_platform_dx__web_features.BrowserData{
+						Name:     "safari_ios",
+						Releases: nil,
 					},
 				},
-				Spec: &web_platform_dx__web_features.StringOrStringArray{
-					String: valuePtr("spec_link"),
-					StringArray: []string{
-						"spec1",
-						"spec2",
+				Features: &webdxfeaturetypes.FeatureKinds{
+					Data: map[string]web_platform_dx__web_features.FeatureValue{
+						"feature1": {
+							CompatFeatures:  []string{"compat1", "compat2"},
+							Description:     "description",
+							DescriptionHTML: "description html",
+							Discouraged: &web_platform_dx__web_features.Discouraged{
+								AccordingTo: []string{
+									"discouraged1",
+									"discouraged2",
+								},
+								Alternatives: []string{
+									"feature2",
+									"feature3",
+								},
+							},
+							Name: "feature 1 name",
+							Caniuse: &web_platform_dx__web_features.StringOrStringArray{
+								String: valuePtr("caniuse_data"),
+								StringArray: []string{
+									"caniuse1",
+									"caniuse2",
+								},
+							},
+							Group: &web_platform_dx__web_features.StringOrStringArray{
+								String: valuePtr("group_name"),
+								StringArray: []string{
+									"group1",
+									"group2",
+								},
+							},
+							Snapshot: &web_platform_dx__web_features.StringOrStringArray{
+								String: valuePtr("snapshot_data"),
+								StringArray: []string{
+									"snapshot1",
+									"snapshot2",
+								},
+							},
+							Spec: &web_platform_dx__web_features.StringOrStringArray{
+								String: valuePtr("spec_link"),
+								StringArray: []string{
+									"spec1",
+									"spec2",
+								},
+							},
+							Status: web_platform_dx__web_features.Status{
+								ByCompatKey: nil,
+								Baseline: &web_platform_dx__web_features.BaselineUnion{
+									Bool: valuePtr(false),
+									Enum: valuePtr(web_platform_dx__web_features.High),
+								},
+								BaselineHighDate: valuePtr("2023-01-01"),
+								BaselineLowDate:  valuePtr("2022-12-01"),
+								Support: web_platform_dx__web_features.StatusSupport{
+									Chrome:         valuePtr("99"),
+									ChromeAndroid:  valuePtr("98"),
+									Firefox:        valuePtr("97"),
+									FirefoxAndroid: valuePtr("96"),
+									Edge:           valuePtr("95"),
+									Safari:         valuePtr("94"),
+									SafariIos:      valuePtr("93"),
+								},
+							},
+						},
 					},
+					Moved: nil,
+					Split: nil,
 				},
-				Status: web_platform_dx__web_features.Status{
-					ByCompatKey: nil,
-					Baseline: &web_platform_dx__web_features.BaselineUnion{
-						Bool: valuePtr(false),
-						Enum: valuePtr(web_platform_dx__web_features.High),
-					},
-					BaselineHighDate: valuePtr("2023-01-01"),
-					BaselineLowDate:  valuePtr("2022-12-01"),
-					Support: web_platform_dx__web_features.StatusSupport{
-						Chrome:         valuePtr("99"),
-						ChromeAndroid:  valuePtr("98"),
-						Firefox:        valuePtr("97"),
-						FirefoxAndroid: valuePtr("96"),
-						Edge:           valuePtr("95"),
-						Safari:         valuePtr("94"),
-						SafariIos:      valuePtr("93"),
-					},
-				},
+				Snapshots: nil,
+				Groups:    nil,
 			},
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			postProcess(tc.featureData)
-			featureValue := tc.featureData.Features["feature1"]
-			if !reflect.DeepEqual(featureValue, tc.expectedFeatureValue) {
-				t.Errorf("FeatureValue not as expected")
+			value := postProcess(tc.featureData)
+			if diff := cmp.Diff(tc.expectedValue, value); diff != "" {
+				t.Errorf("postProcess unexpected output (-want +got):\n%s", diff)
 			}
 		})
 	}

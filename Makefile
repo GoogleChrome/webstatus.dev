@@ -190,6 +190,7 @@ jsonschema:
 		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
+	cp web_platform_dx__web_features_extras.txt $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/extras.go
 
 	npx quicktype \
 		--src jsonschema/mdn_browser-compat-data/browsers.schema.json \
