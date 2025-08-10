@@ -1,0 +1,30 @@
+package web_platform_dx__web_features
+
+// This is a temporary file until v3 lands
+// Takes files generated from https://github.com/GoogleChrome/webstatus.dev/pull/1635
+
+type FeatureMovedDataKind string
+
+const (
+	Moved FeatureMovedDataKind = "moved"
+)
+
+type FeatureSplitDataKind string
+
+const (
+	Split FeatureSplitDataKind = "split"
+)
+
+// A feature has permanently moved to exactly one other ID
+type FeatureMovedData struct {
+	Kind FeatureMovedDataKind `json:"kind"`
+	// The new ID for this feature
+	RedirectTarget string `json:"redirect_target"`
+}
+
+// A feature has split into two or more other features
+type FeatureSplitData struct {
+	Kind FeatureSplitDataKind `json:"kind"`
+	// The new IDs for this feature
+	RedirectTargets []string `json:"redirect_targets"`
+}

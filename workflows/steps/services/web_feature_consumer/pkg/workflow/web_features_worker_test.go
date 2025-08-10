@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 var (
@@ -67,11 +68,11 @@ type mockAssetParser struct {
 
 type mockParseConfig struct {
 	expectedFileContents string
-	returnData           *web_platform_dx__web_features.FeatureData
+	returnData           *webdxfeaturetypes.ProcessedWebFeaturesData
 	returnError          error
 }
 
-func (m *mockAssetParser) Parse(file io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error) {
+func (m *mockAssetParser) Parse(file io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
 	defer file.Close()
 	fileContents, err := io.ReadAll(file)
 	if err != nil {
@@ -248,34 +249,51 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
+								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
+							},
+						},
+						Moved: map[string]web_platform_dx__web_features.FeatureMovedData{
+							"movedFeature": {
+								Kind:           web_platform_dx__web_features.Moved,
+								RedirectTarget: "new-feature",
+							},
+						},
+						Split: map[string]web_platform_dx__web_features.FeatureSplitData{
+							"splitFeature": {
+								Kind: web_platform_dx__web_features.Split,
+								RedirectTargets: []string{
+									"new-feature-1",
+									"new-feature-2",
 								},
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
 					},
 					Groups: map[string]web_platform_dx__web_features.GroupData{
@@ -525,35 +543,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups:    nil,
 					Snapshots: nil,
@@ -623,35 +645,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups:    nil,
 					Snapshots: nil,
@@ -750,35 +776,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups: map[string]web_platform_dx__web_features.GroupData{
 						"group1": {
@@ -914,35 +944,39 @@ func TestProcess(t *testing.T) {
 			},
 			mockParseCfg: mockParseConfig{
 				expectedFileContents: "hi features",
-				returnData: &web_platform_dx__web_features.FeatureData{
+				returnData: &webdxfeaturetypes.ProcessedWebFeaturesData{
 					Browsers: fakeBrowsersData,
-					Features: map[string]web_platform_dx__web_features.FeatureValue{
-						"feature1": {
-							Name:           "Feature 1",
-							Caniuse:        nil,
-							CompatFeatures: nil,
-							Discouraged:    nil,
-							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
-								Baseline:         nil,
-								BaselineHighDate: nil,
-								BaselineLowDate:  nil,
-								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
-									Chrome:         nil,
-									ChromeAndroid:  nil,
-									Edge:           nil,
-									Firefox:        nil,
-									FirefoxAndroid: nil,
-									Safari:         nil,
-									SafariIos:      nil,
+					Features: &webdxfeaturetypes.FeatureKinds{
+						Data: map[string]web_platform_dx__web_features.FeatureValue{
+							"feature1": {
+								Name:           "Feature 1",
+								Caniuse:        nil,
+								CompatFeatures: nil,
+								Discouraged:    nil,
+								Spec:           nil,
+								Status: web_platform_dx__web_features.Status{
+									Baseline:         nil,
+									BaselineHighDate: nil,
+									BaselineLowDate:  nil,
+									ByCompatKey:      nil,
+									Support: web_platform_dx__web_features.StatusSupport{
+										Chrome:         nil,
+										ChromeAndroid:  nil,
+										Edge:           nil,
+										Firefox:        nil,
+										FirefoxAndroid: nil,
+										Safari:         nil,
+										SafariIos:      nil,
+									},
 								},
+								Description:     "text",
+								DescriptionHTML: "<html>",
+								Group:           nil,
+								Snapshot:        nil,
 							},
-							Description:     "text",
-							DescriptionHTML: "<html>",
-							Group:           nil,
-							Snapshot:        nil,
 						},
+						Moved: nil,
+						Split: nil,
 					},
 					Groups: map[string]web_platform_dx__web_features.GroupData{
 						"group1": {

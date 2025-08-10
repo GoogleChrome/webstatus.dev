@@ -181,7 +181,7 @@ download-schemas:
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 
-jsonschema:
+jsonschema: clean-jsonschema
 	npx quicktype \
 		--src jsonschema/web-platform-dx_web-features/defs.schema.json \
 		--src-lang schema \
@@ -190,6 +190,7 @@ jsonschema:
 		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
+	cp web_platform_dx__web_features_extras.txt $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/extras.go
 
 	npx quicktype \
 		--src jsonschema/mdn_browser-compat-data/browsers.schema.json \
