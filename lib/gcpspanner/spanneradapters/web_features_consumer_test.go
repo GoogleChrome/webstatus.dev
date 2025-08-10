@@ -236,22 +236,60 @@ type mockUpsertFeatureDiscouragedDetailsConfig struct {
 	expectedCount  int
 }
 
+type mockSyncMovedWebFeaturesConfig struct {
+	expectedFeatures []gcpspanner.MovedWebFeature
+	err              error
+	expectedCount    int
+}
+
+type mockSyncSplitWebFeaturesConfig struct {
+	expectedFeatures []gcpspanner.SplitWebFeature
+	err              error
+	expectedCount    int
+}
+
 type mockWebFeatureSpannerClient struct {
 	t                                               *testing.T
 	syncWebFeaturesCount                            int
-	mockSyncWebFeaturesCfg                          mockSyncWebFeaturesConfig
+	mockSyncWebFeaturesCfg                          *mockSyncWebFeaturesConfig
 	fetchIDsAndKeysCount                            int
-	mockFetchIDsAndKeysCfg                          mockFetchIDsAndKeysConfig
+	mockFetchIDsAndKeysCfg                          *mockFetchIDsAndKeysConfig
 	upsertFeatureBaselineStatusCount                int
-	mockUpsertFeatureBaselineStatusCfg              mockUpsertFeatureBaselineStatusConfig
+	mockUpsertFeatureBaselineStatusCfg              *mockUpsertFeatureBaselineStatusConfig
 	insertBrowserFeatureAvailabilityCountPerFeature map[string]int
-	mockUpsertBrowserFeatureAvailabilityCfg         mockUpsertBrowserFeatureAvailabilityConfig
-	mockUpsertFeatureSpecCfg                        mockUpsertFeatureSpecConfig
+	mockUpsertBrowserFeatureAvailabilityCfg         *mockUpsertBrowserFeatureAvailabilityConfig
+	mockUpsertFeatureSpecCfg                        *mockUpsertFeatureSpecConfig
 	upsertFeatureSpecCount                          int
-	mockPrecalculateBrowserFeatureSupportEventsCfg  mockPrecalculateBrowserFeatureSupportEventsConfig
+	mockPrecalculateBrowserFeatureSupportEventsCfg  *mockPrecalculateBrowserFeatureSupportEventsConfig
 	precalculateBrowserFeatureSupportEventsCount    int
-	mockUpsertFeatureDiscouragedDetailsCfg          mockUpsertFeatureDiscouragedDetailsConfig
+	mockUpsertFeatureDiscouragedDetailsCfg          *mockUpsertFeatureDiscouragedDetailsConfig
 	upsertFeatureDiscouragedDetailsCount            int
+	mockSyncMovedWebFeaturesCfg                     *mockSyncMovedWebFeaturesConfig
+	syncMovedWebFeaturesCount                       int
+	mockSyncSplitWebFeaturesCfg                     *mockSyncSplitWebFeaturesConfig
+	syncSplitWebFeaturesCount                       int
+}
+
+// SyncMovedWebFeatures implements WebFeatureSpannerClient.
+func (c *mockWebFeatureSpannerClient) SyncMovedWebFeatures(
+	_ context.Context, features []gcpspanner.MovedWebFeature) error {
+	c.syncMovedWebFeaturesCount++
+	if diff := cmp.Diff(c.mockSyncMovedWebFeaturesCfg.expectedFeatures, features); diff != "" {
+		c.t.Errorf("SyncMovedWebFeatures unexpected input (-want +got):\n%s", diff)
+	}
+
+	return c.mockSyncMovedWebFeaturesCfg.err
+}
+
+// SyncSplitWebFeatures implements WebFeatureSpannerClient.
+func (c *mockWebFeatureSpannerClient) SyncSplitWebFeatures(
+	_ context.Context, features []gcpspanner.SplitWebFeature) error {
+	c.syncSplitWebFeaturesCount++
+	if diff := cmp.Diff(c.mockSyncSplitWebFeaturesCfg.expectedFeatures, features); diff != "" {
+		c.t.Errorf("SyncSplitWebFeatures unexpected input (-want +got):\n%s", diff)
+	}
+
+	return c.mockSyncSplitWebFeaturesCfg.err
 }
 
 func (c *mockWebFeatureSpannerClient) SyncWebFeatures(
@@ -383,13 +421,15 @@ func (c *mockWebFeatureSpannerClient) UpsertFeatureDiscouragedDetails(
 
 func newMockmockWebFeatureSpannerClient(
 	t *testing.T,
-	mockSyncWebFeaturesCfg mockSyncWebFeaturesConfig,
-	mockFetchIDsAndKeysCfg mockFetchIDsAndKeysConfig,
-	mockUpsertFeatureBaselineStatusCfg mockUpsertFeatureBaselineStatusConfig,
-	mockUpsertBrowserFeatureAvailabilityCfg mockUpsertBrowserFeatureAvailabilityConfig,
-	mockUpsertFeatureSpecCfg mockUpsertFeatureSpecConfig,
-	mocmockPrecalculateBrowserFeatureSupportEventsCfg mockPrecalculateBrowserFeatureSupportEventsConfig,
-	mockUpsertFeatureDiscouragedDetailsCfg mockUpsertFeatureDiscouragedDetailsConfig,
+	mockSyncWebFeaturesCfg *mockSyncWebFeaturesConfig,
+	mockFetchIDsAndKeysCfg *mockFetchIDsAndKeysConfig,
+	mockUpsertFeatureBaselineStatusCfg *mockUpsertFeatureBaselineStatusConfig,
+	mockUpsertBrowserFeatureAvailabilityCfg *mockUpsertBrowserFeatureAvailabilityConfig,
+	mockUpsertFeatureSpecCfg *mockUpsertFeatureSpecConfig,
+	mocmockPrecalculateBrowserFeatureSupportEventsCfg *mockPrecalculateBrowserFeatureSupportEventsConfig,
+	mockUpsertFeatureDiscouragedDetailsCfg *mockUpsertFeatureDiscouragedDetailsConfig,
+	mockSyncMovedWebFeaturesCfg *mockSyncMovedWebFeaturesConfig,
+	mockSyncSplitWebFeaturesCfg *mockSyncSplitWebFeaturesConfig,
 ) *mockWebFeatureSpannerClient {
 	return &mockWebFeatureSpannerClient{
 		t:                                       t,
@@ -407,6 +447,10 @@ func newMockmockWebFeatureSpannerClient(
 		precalculateBrowserFeatureSupportEventsCount:    0,
 		mockUpsertFeatureDiscouragedDetailsCfg:          mockUpsertFeatureDiscouragedDetailsCfg,
 		upsertFeatureDiscouragedDetailsCount:            0,
+		mockSyncMovedWebFeaturesCfg:                     mockSyncMovedWebFeaturesCfg,
+		syncMovedWebFeaturesCount:                       0,
+		mockSyncSplitWebFeaturesCfg:                     mockSyncSplitWebFeaturesCfg,
+		syncSplitWebFeaturesCount:                       0,
 	}
 }
 
@@ -417,6 +461,8 @@ var ErrBrowserFeatureAvailabilityTest = errors.New("browser feature availability
 var ErrFeatureSpecTest = errors.New("feature spec test error")
 var ErrPrecalculateBrowserFeatureSupportEventsTest = errors.New("precalculate support events error")
 var ErrFeatureDiscouragedDetailsTest = errors.New("feature discouraged details test error")
+var ErrSyncMovedWebFeaturesTest = errors.New("sync moved web features test error")
+var ErrSyncSplitWebFeaturesTest = errors.New("sync split web features test error")
 
 // nolint:gochecknoglobals
 var (
@@ -1410,13 +1456,15 @@ func TestInsertWebFeatures(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			mockClient := newMockmockWebFeatureSpannerClient(
 				t,
-				tc.mockSyncWebFeaturesCfg,
-				tc.mockFetchIDsAndKeysCfg,
-				tc.mockUpsertFeatureBaselineStatusCfg,
-				tc.mockUpsertBrowserFeatureAvailabilityCfg,
-				tc.mockUpsertFeatureSpecCfg,
-				tc.mockPrecalculateBrowserFeatureSupportEventsCfg,
-				tc.mockUpsertFeatureDiscouragedDetailsCfg,
+				&tc.mockSyncWebFeaturesCfg,
+				&tc.mockFetchIDsAndKeysCfg,
+				&tc.mockUpsertFeatureBaselineStatusCfg,
+				&tc.mockUpsertBrowserFeatureAvailabilityCfg,
+				&tc.mockUpsertFeatureSpecCfg,
+				&tc.mockPrecalculateBrowserFeatureSupportEventsCfg,
+				&tc.mockUpsertFeatureDiscouragedDetailsCfg,
+				nil,
+				nil,
 			)
 			consumer := NewWebFeaturesConsumer(mockClient)
 
@@ -1472,6 +1520,146 @@ func TestInsertWebFeatures(t *testing.T) {
 				t.Errorf("expected %d calls to UpsertFeatureDiscouragedDetails, got %d",
 					mockClient.mockUpsertFeatureDiscouragedDetailsCfg.expectedCount,
 					mockClient.upsertFeatureDiscouragedDetailsCount)
+			}
+		})
+	}
+}
+
+func TestInsertMovedWebFeatures(t *testing.T) {
+	testCases := []struct {
+		name                        string
+		movedFeatures               map[string]web_platform_dx__web_features.FeatureMovedData
+		mockSyncMovedWebFeaturesCfg *mockSyncMovedWebFeaturesConfig
+		expectedErr                 error
+	}{
+		{
+			name: "success",
+			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
+				"feature1": {
+					Kind:           web_platform_dx__web_features.Moved,
+					RedirectTarget: "targetA",
+				},
+			},
+			mockSyncMovedWebFeaturesCfg: &mockSyncMovedWebFeaturesConfig{
+				expectedFeatures: []gcpspanner.MovedWebFeature{
+					{
+						OriginalFeatureKey: "feature1",
+						NewFeatureKey:      "targetA",
+					},
+				},
+				err:           nil,
+				expectedCount: 1,
+			},
+			expectedErr: nil,
+		},
+		{
+			name:          "error",
+			movedFeatures: nil,
+			mockSyncMovedWebFeaturesCfg: &mockSyncMovedWebFeaturesConfig{
+				expectedFeatures: []gcpspanner.MovedWebFeature{},
+				err:              ErrSyncMovedWebFeaturesTest,
+				expectedCount:    1,
+			},
+			expectedErr: ErrSyncMovedWebFeaturesTest,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := newMockmockWebFeatureSpannerClient(
+				t,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				tc.mockSyncMovedWebFeaturesCfg,
+				nil,
+			)
+			consumer := NewWebFeaturesConsumer(mockClient)
+			err := consumer.InsertMovedWebFeatures(context.TODO(), tc.movedFeatures)
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedErr)
+			}
+
+			if mockClient.syncMovedWebFeaturesCount != tc.mockSyncMovedWebFeaturesCfg.expectedCount {
+				t.Errorf("expected %d calls to SyncMovedWebFeatures, got %d",
+					tc.mockSyncMovedWebFeaturesCfg.expectedCount,
+					mockClient.syncMovedWebFeaturesCount)
+			}
+		})
+	}
+}
+
+func TestInsertSplitWebFeatures(t *testing.T) {
+	testCases := []struct {
+		name                        string
+		splitFeatures               map[string]web_platform_dx__web_features.FeatureSplitData
+		mockSyncSplitWebFeaturesCfg *mockSyncSplitWebFeaturesConfig
+		expectedError               error
+	}{
+		{
+			name: "success",
+			splitFeatures: map[string]web_platform_dx__web_features.FeatureSplitData{
+				"feature1": {
+					Kind: web_platform_dx__web_features.Split,
+					RedirectTargets: []string{
+						"target1",
+						"target2",
+					},
+				},
+			},
+			mockSyncSplitWebFeaturesCfg: &mockSyncSplitWebFeaturesConfig{
+				expectedFeatures: []gcpspanner.SplitWebFeature{
+					{
+						OriginalFeatureKey: "feature1",
+						TargetFeatureKeys: []string{
+							"target1",
+							"target2",
+						},
+					},
+				},
+				expectedCount: 1,
+				err:           nil,
+			},
+			expectedError: nil,
+		},
+		{
+			name:          "error",
+			splitFeatures: nil,
+			mockSyncSplitWebFeaturesCfg: &mockSyncSplitWebFeaturesConfig{
+				expectedFeatures: []gcpspanner.SplitWebFeature{},
+				expectedCount:    1,
+				err:              ErrSyncSplitWebFeaturesTest,
+			},
+			expectedError: ErrSyncSplitWebFeaturesTest,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := newMockmockWebFeatureSpannerClient(
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				nil,
+				tc.mockSyncSplitWebFeaturesCfg,
+			)
+			consumer := NewWebFeaturesConsumer(mockClient)
+			err := consumer.InsertSplitWebFeatures(context.TODO(), tc.splitFeatures)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error: got %v, want %v", err, tc.expectedError)
+			}
+
+			if mockClient.syncSplitWebFeaturesCount != tc.mockSyncSplitWebFeaturesCfg.expectedCount {
+				t.Errorf("expected %d calls to SyncSplitWebFeatures, got %d",
+					tc.mockSyncSplitWebFeaturesCfg.expectedCount,
+					mockClient.syncSplitWebFeaturesCount)
 			}
 		})
 	}
