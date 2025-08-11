@@ -23,9 +23,9 @@ import (
 	"slices"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -1062,6 +1062,10 @@ func (s *Backend) GetFeature(
 	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView),
 		BrowserList(browsers).ToStringList())
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
 		return nil, err
 	}
 

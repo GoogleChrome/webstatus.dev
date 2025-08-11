@@ -20,8 +20,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
@@ -305,7 +305,7 @@ func TestGetFeature(t *testing.T) {
 					backend.SafariIos,
 				},
 				data: nil,
-				err:  gcpspanner.ErrQueryReturnedNoResults,
+				err:  backendtypes.ErrEntityDoesNotExist,
 			},
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),

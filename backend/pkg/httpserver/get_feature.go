@@ -21,7 +21,7 @@ import (
 	"log/slog"
 	"net/http"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -41,7 +41,7 @@ func (s *Server) GetFeature(
 		defaultBrowsers(),
 	)
 	if err != nil {
-		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+		if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
 			return backend.GetFeature404JSONResponse{
 				Code:    http.StatusNotFound,
 				Message: fmt.Sprintf("feature id %s is not found", request.FeatureId),
