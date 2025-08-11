@@ -254,3 +254,32 @@ This guide outlines the process for adding a new search term (e.g., `is:discoura
 
 6.  **Update Frontend (`frontend/`)**:
     - Add the new search term to the search builder UI to make it discoverable to users. This involves updating the search vocabulary in `frontend/src/static/js/utils/constants.ts`.
+
+### 6.2. How-To: Update Toolchain Versions
+
+This guide outlines the process for updating the versions of various tools used in the project. Most tool versions are managed within `.devcontainer/devcontainer.json`.
+
+#### Updating Go
+
+The Go version is managed in two places: the production Docker image and the devcontainer configuration.
+
+1.  **Update Production Image**: In `images/go_service.Dockerfile`, update the `FROM golang:X.Y.Z-alpine...` line to the desired version.
+2.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the `ghcr.io/devcontainers/features/go:1` feature and update the `version` property to match the version from the Dockerfile.
+3.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer to apply the new Go version.
+4.  **Update Dependencies**: Run `make go-update && make go-tidy` to update Go modules and ensure they are compatible with the new toolchain.
+
+#### Updating Node.js
+
+Similar to Go, the Node.js version is managed in the production Docker image and the devcontainer.
+
+1.  **Update Production Image**: In `images/nodejs_service.Dockerfile`, update the `FROM node:X.Y.Z-alpine...` line to the desired version.
+2.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the `ghcr.io/devcontainers/features/node:1` feature and update the `version` property to match.
+3.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer.
+4.  **Update Dependencies**: Run `make node-update` to update npm packages.
+
+#### Updating Other Devcontainer Tools (Terraform, Skaffold, etc.)
+
+For other tools defined as features in the devcontainer:
+
+1.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the feature for the tool you want to update (e.g., `ghcr.io/devcontainers/features/terraform:1`) and change its `version`.
+2.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer to use the new version.
