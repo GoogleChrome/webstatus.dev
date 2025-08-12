@@ -296,6 +296,18 @@ For other tools defined as features in the devcontainer: When evaluating these i
 
 ### 6.3. How-To: Update Dependencies
 
+**General Instructions**
+
+- **Always Upgrade**: When changing a version, **always upgrade** to a newer one. Never downgrade. Most tools use Semantic Versioning (SemVer), which you can use to compare versions.
+- **Verify Your Local Version**: Before running commands to update dependencies, ensure your local tool's version matches the new version you've specified.
+- **Commit Before Verifying**: You must create a commit **before** running any verification commands (e.g., pre-commit hooks).
+  - The commit message must use the `chore:` prefix.
+  - In the commit description, summarize the upgrade and the steps taken.
+  - The commit description should also indicate that these steps were completed by AI. Including any prompt(s) given by the user to generate these changes.
+  - If you need to make more changes later, amend this commit and update the message.
+  - If there are any existing manual changes made, make a note in the commit message.
+  - In the commit message, let users know that they will need to rebuild the devcontainer after merging.
+
 #### Updating Go Dependencies
 
 This guide outlines the process for updating Go dependencies after the Go toolchain has been updated and the devcontainer rebuilt.
