@@ -32,6 +32,7 @@ import {
   firebaseAuthContext,
 } from '../../contexts/firebase-auth-context.js';
 import {firebaseUserContext} from '../../contexts/firebase-user-context.js';
+import {assertIsDefined} from '../../utils/test-utils.js';
 
 class FakeFirebaseApp implements FirebaseApp {
   name: string = '';
@@ -60,7 +61,7 @@ describe('webstatus-firebase-auth-service', () => {
       html`<webstatus-firebase-auth-service .settings=${settings}>
       </webstatus-firebase-auth-service>`,
     );
-    assert.exists(component);
+    assertIsDefined(component);
     assert.equal(component.settings, settings);
   });
   it('can receive the firebase app via context', async () => {
@@ -81,12 +82,12 @@ describe('webstatus-firebase-auth-service', () => {
     const parentElement = root.querySelector<FakeParentElement>(
       'fake-parent-element',
     );
-    assert.exists(parentElement);
+    assertIsDefined(parentElement);
 
     const component = root.querySelector<WebstatusFirebaseAuthService>(
       'webstatus-firebase-auth-service',
     );
-    assert.exists(component);
+    assertIsDefined(component);
 
     const initFirebaseAuthStub = sinon.stub(component, 'initFirebaseAuth');
 
@@ -119,11 +120,11 @@ describe('webstatus-firebase-auth-service', () => {
     const component = root.querySelector<WebstatusFirebaseAuthService>(
       'webstatus-firebase-auth-service',
     );
-    assert.exists(component);
+    assertIsDefined(component);
     const childComponent = root.querySelector<FakeChildElement>(
       'fake-child-auth-element-1',
     );
-    assert.exists(childComponent);
+    assertIsDefined(childComponent);
     const userStub = {} as User;
     const authStub = {
       onAuthStateChanged: (callback: (user?: User) => void) =>
@@ -175,12 +176,11 @@ describe('webstatus-firebase-auth-service', () => {
     const component = root.querySelector<WebstatusFirebaseAuthService>(
       'webstatus-firebase-auth-service',
     );
-    assert.exists(component);
+    assertIsDefined(component);
     const childComponent = root.querySelector<FakeChildElement>(
       'fake-child-auth-element-2',
     );
-    assert.exists(childComponent);
-
+    assertIsDefined(childComponent);
     const userStub = {} as User;
     const authStub = {
       onAuthStateChanged: (callback: (user: User | null) => void) =>
@@ -222,13 +222,13 @@ describe('webstatus-firebase-auth-service', () => {
     const parentElement = root.querySelector<FakeParentElement>(
       'fake-parent-element',
     );
-    assert.exists(parentElement);
+    assertIsDefined(parentElement);
     parentElement.app = new FakeFirebaseApp();
     const component = root.querySelector<WebstatusFirebaseAuthService>(
       'webstatus-firebase-auth-service',
     );
 
-    assert.exists(component);
+    assertIsDefined(component);
     component!.emulatorConnector = emulatorConnectorStub;
     component.authInitializer = () => authStub;
 

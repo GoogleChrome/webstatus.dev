@@ -15,6 +15,7 @@
  */
 import {expect, fixture, html, assert} from '@open-wc/testing';
 import {TaskTracker} from '../../utils/task-tracker.js';
+import {assertIsDefined} from '../../utils/test-utils.js';
 import {type components} from 'webstatus.dev-backend';
 import {ApiError} from '../../api/errors.js';
 import {TaskStatus} from '@lit/task';
@@ -91,7 +92,7 @@ describe('webstatus-overview-data-loader', () => {
 
     const sortedFeatures = component.reorderByQueryTerms();
 
-    assert.exists(sortedFeatures);
+    assertIsDefined(sortedFeatures);
     expect(sortedFeatures.length).to.equal(4);
     expect(sortedFeatures[0].feature_id).to.equal('test3');
     expect(sortedFeatures[1].feature_id).to.equal('test4');
@@ -189,7 +190,7 @@ describe('webstatus-overview-data-loader', () => {
 
     const sortedFeatures = component.reorderByQueryTerms();
 
-    assert.exists(sortedFeatures);
+    assertIsDefined(sortedFeatures);
     expect(sortedFeatures.length).to.equal(12);
     expect(sortedFeatures[0].feature_id).to.equal('anchor-positioning');
     expect(sortedFeatures[1].feature_id).to.equal('container-queries');

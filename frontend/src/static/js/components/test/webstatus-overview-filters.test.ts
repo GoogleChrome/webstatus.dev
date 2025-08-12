@@ -29,6 +29,7 @@ import {CSVUtils} from '../../utils/csv.js';
 import {Toast} from '../../utils/toast.js';
 import {WebstatusOverviewFilters} from '../webstatus-overview-filters.js';
 import {APIClient} from '../../api/client.js';
+import {assertIsDefined} from '../../utils/test-utils.js';
 
 describe('downloadCSV', () => {
   it('should display an error toast when the CSVUtils.downloadCSV function throws an error', async () => {
@@ -56,7 +57,7 @@ describe('downloadCSV', () => {
       filterComponent.shadowRoot?.querySelector<HTMLButtonElement>(
         '#export-to-csv-button',
       );
-    assert.exists(downloadButton);
+    assertIsDefined(downloadButton);
     downloadButton.click();
 
     await elementUpdated(filterComponent);
@@ -99,7 +100,7 @@ describe('downloadCSV', () => {
       filterComponent.shadowRoot?.querySelector<HTMLButtonElement>(
         '#export-to-csv-button',
       );
-    assert.exists(downloadButton);
+    assertIsDefined(downloadButton);
 
     const toastStub = sinon.stub(Toast.prototype, 'toast');
     downloadButton.click();

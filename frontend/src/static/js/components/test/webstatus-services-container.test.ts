@@ -20,6 +20,7 @@ import {WebstatusServicesContainer} from './../webstatus-services-container.js';
 import {AppSettings} from '../../../../common/app-settings.js';
 import './../webstatus-services-container.js';
 import {ServiceElement} from '../../services/service-element.js';
+import {assertIsDefined} from '../../utils/test-utils.js';
 
 describe('WebstatusServiceContainer', () => {
   const settings: AppSettings = {
@@ -86,7 +87,7 @@ describe('WebstatusServiceContainer', () => {
     await initializeServices(el);
 
     const slotContentElement = el.querySelector('#slot-content');
-    assert.exists(slotContentElement, 'Slot content element should exist');
+    assertIsDefined(slotContentElement);
     assert.strictEqual(
       slotContentElement.textContent?.trim(),
       'This is the slot content',
