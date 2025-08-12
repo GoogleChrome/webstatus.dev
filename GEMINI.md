@@ -19,7 +19,7 @@ This section describes the tools and commands for local development.
 - **`make start-local`**: Starts the complete local development environment using Skaffold and Minikube. This includes live-reloading for code changes.
 - **`make port-forward-manual`**: After starting the environment, run this to expose the services (frontend, backend, etc.) on `localhost`.
 - **`make test`**: Runs the Go and TypeScript unit tests. Use `make go-test` to run only Go tests.
-- **`make precommit`**: Runs a comprehensive suite of checks including tests, linting, and license header verification. This is the main command to run before submitting a pull request.
+- **`make precommit`**: Runs a comprehensive suite of checks including tests, linting, and license header verification. This is the main command to run before submitting a pull request. This command also checks if there are any unstaged changes. So a commit will need to be made first.
 - **`make gen`**: Regenerates all auto-generated code (from OpenAPI, JSON Schema, ANTLR). Use `make openapi` for just OpenAPI changes.
 - **`make dev_workflows`**: Populates the local Spanner database by running the data ingestion jobs against live data sources.
 - **`make dev_fake_data`**: Populates the local Spanner database with a consistent set of fake data for testing.
@@ -257,29 +257,61 @@ This guide outlines the process for adding a new search term (e.g., `is:discoura
 
 ### 6.2. How-To: Update Toolchain Versions
 
-This guide outlines the process for updating the versions of various tools used in the project. Most tool versions are managed within `.devcontainer/devcontainer.json`.
+This guide outlines the process for updating the versions of tools used in the project. Most tool versions are managed in the `.devcontainer/devcontainer.json` file.
+
+**General Instructions:**
+
+- **Find Available Versions**: Check the tool's official sources (e.g., website, GitHub repository) to find available versions. Don't always assume the highest version currently pinned is the correct version. ONLY use released versions of a tool. Do not use pre-release or release candidate versions.
+- **Always Upgrade**: When changing a version, **always upgrade** to a newer one. Never downgrade. Most tools use Semantic Versioning (SemVer), which you can use to compare versions.
+- **Verify Your Local Version**: Before running commands to update dependencies, ensure your local tool's version matches the new version you've specified.
+- **Commit Before Verifying**: You must create a commit **before** running any verification commands (e.g., pre-commit hooks).
+  - The commit message must use the `chore:` prefix (e.g., `chore: upgrade node to v22.4.0` or `chore: upgrade X tools`).
+  - In the commit description, summarize the upgrade and the steps taken.
+  - The commit description should also indicate that these steps were completed by AI. Including any prompt(s) given by the user to generate these changes.
+  - If you need to make more changes later, amend this commit and update the message.
+  - If there are any existing manual changes made, make a note in the commit message.
+  - In the commit message, let users know that they will need to rebuild the devcontainer after merging.
 
 #### Updating Go
 
-The Go version is managed in two places: the production Docker image and the devcontainer configuration.
+The Go version is managed in two places: the production Docker image and the devcontainer configuration. When evaluating these instructions, esnure that the `General Instructions` are followed EXACTLY too. Use https://go.dev/doc/devel/release when looking for the go versions.
 
-1.  **Update Production Image**: In `images/go_service.Dockerfile`, update the `FROM golang:X.Y.Z-alpine...` line to the desired version.
-2.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the `ghcr.io/devcontainers/features/go:1` feature and update the `version` property to match the version from the Dockerfile.
-3.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer to apply the new Go version.
-4.  **Update Dependencies**: Run `make go-update && make go-tidy` to update Go modules and ensure they are compatible with the new toolchain.
+1.  **Update Production Image**: In `images/go_service.Dockerfile`, update the `FROM golang:X.Y.Z-alpineA.BC...` line to the desired version. Keep the same level of versioning for alpine. (e.g. Don't change from alpine3.22 to alpine3.22.1.) Only keep major and minor versions of alpine pinned. Use https://go.dev/doc/devel/release when looking for the go versions.
+    The version of alpine should be the latest version available and pinned. Check docker registries to ensure the docker image exists and verify it is the latest version for Go that the registry has available. Dependabot may have already upgraded this but double check with external sources if that is indeed the case.
+2.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the `ghcr.io/devcontainers/features/go:1` feature and update the `version` property to match the version from the Dockerfile. Do not update other sections of the devcontainer.json file. Double check with external sources that it is indeed the latest version. Use https://go.dev/doc/devel/release when looking for the go versions.
 
 #### Updating Node.js
 
-Similar to Go, the Node.js version is managed in the production Docker image and the devcontainer.
+Similar to Go, the Node.js version is managed in the production Docker image and the devcontainer. However, node should only target the version that is marked as `LTS`. Not `Current` or `EOL`. When evaluating these instructions, esnure that the `General Instructions` are followed EXACTLY too. Use https://github.com/nodejs/node/releases when looking for the releases by looking for the most recent version marked as LTS.
 
-1.  **Update Production Image**: In `images/nodejs_service.Dockerfile`, update the `FROM node:X.Y.Z-alpine...` line to the desired version.
-2.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the `ghcr.io/devcontainers/features/node:1` feature and update the `version` property to match.
-3.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer.
-4.  **Update Dependencies**: Run `make node-update` to update npm packages.
+1.  **Update Production Image**: In `images/nodejs_service.Dockerfile`, update the `FROM node:X.Y.Z-alpineA.BC...` line to the desired version. Keep the same level of versioning for alpine. (e.g. Don't change from alpine3.22 to alpine3.22.1.) Only keep major and minor versions of alpine pinned.
+    The version of alpine should be the latest version available and pinned. Check docker registries to ensure the docker image exists and verify it is the latest version for Node that the registry has available. Dependabot may have already upgraded this but double check with external sources if that is indeed the case. Use https://github.com/nodejs/node/releases when looking for the node versions as metioned earlier while also following the `General Instructions`.
+2.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the `ghcr.io/devcontainers/features/node:1` feature and update the `version` property to match. Do not update other sections of the devcontainer.json file. Double check with external sources that it is indeed the latest version. Use https://github.com/nodejs/node/releases when looking for the node versions as metioned earlier while also following the `General Instructions`.
 
 #### Updating Other Devcontainer Tools (Terraform, Skaffold, etc.)
 
-For other tools defined as features in the devcontainer:
+For other tools defined as features in the devcontainer: When evaluating these instructions, esnure that the `General Instructions` are followed too.
 
-1.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the feature for the tool you want to update (e.g., `ghcr.io/devcontainers/features/terraform:1`) and change its `version`.
-2.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer to use the new version.
+1.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the feature for the tool you want to update (e.g., `ghcr.io/devcontainers/features/terraform:1`) and change its `version`. Do not update other sections of the devcontainer.json file.
+
+### 6.3. How-To: Update Dependencies
+
+#### Updating Go Dependencies
+
+This guide outlines the process for updating Go dependencies after the Go toolchain has been updated and the devcontainer rebuilt.
+
+1.  **Update Dependencies**: Run `make go-update && make go-tidy` to update Go modules and ensure they are compatible with the new toolchain. Run `make go-build` to ensure everything compiles.
+
+- If there are compilation errors:
+  1. First, try to fix the actual Go code (Example: version upgrade github.com/google/go-github from vXY to vXZ may require manual Go code changes first then Go mod changes to remove the old package version).
+  2. If a certain dependency is still causing issues, revert it in the go.mod/go.sum file and make a warning note in the commit message.
+  - Either way, run `make go-tidy && make go-build` to ensure things compile again. Repeat the fixing process in the `If there are compilation errors` list if there are still compilation issues until everything compiles.
+
+2.  **Fix vulnerabilities**: Check for any vulnerabilities in the dependencies. Update, pin and/or fix them if possible. Do not downgrade dependencies to fix vulnerabilities. If they are not fixable, make a warning note in the commit message.
+
+#### Updating Node.js Dependencies
+
+This guide outlines the process for updating Node.js dependencies after the Node.js toolchain has been updated and the devcontainer rebuilt.
+
+1.  **Update Dependencies**: Run `make node-update` to update npm packages. Run `make node-lint` to ensure there are no linting errors. If there are issues, fix them if possible. Otherwise, revert the bad dependency update and make a warning note in the commit message. Make sure `make node-lint` works again.
+2.  **Fix vulnerabilities**: Check for any vulnerabilities in the dependencies. Update, pin and/or fix them if possible. Do not downgrade dependencies to fix vulnerabilities. Some nested dependencies with vulnerabilities may report that there is no direct fix. But they may be fixed if you override that dependency using NPM's override functionality. Check if that is possible before giving up. Run `make node-update` to update npm packages again after fixing the vulnerabilities. If they are not fixable, make a warning note in the commit message.
