@@ -1,74 +1,93 @@
 package backendtypes
 
-import "github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+import (
+	"context"
 
-type resultType string
-
-const (
-	regularFeatureType resultType = "regular"
-	splitFeatureType   resultType = "split"
-	movedFeatureType   resultType = "moved"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-// GetFeatureResult contains the different types of feature results when getting
-// a specific feature by feature ID.
-type GetFeatureResult struct {
-	feature        *backend.Feature
-	movedFeatureID *string
-	splitFeature   *backend.FeatureSplitInfo
-	resultType     resultType
+// FeatureResultVisitor defines the methods for visiting each result type.
+type FeatureResultVisitor interface {
+	VisitRegularFeature(ctx context.Context, result RegularFeatureResult)
+	VisitMovedFeature(ctx context.Context, result MovedFeatureResult)
+	VisitSplitFeature(ctx context.Context, result SplitFeatureResult)
 }
 
-// NewRegularFeatureResult creates a new GetFeatureResult for a regular feature.
-func NewRegularFeatureResult(feature *backend.Feature) *GetFeatureResult {
-	return &GetFeatureResult{
-		feature:        feature,
-		movedFeatureID: nil,
-		splitFeature:   nil,
-		resultType:     regularFeatureType,
-	}
+// RegularFeatureResult represents a result for a regular feature.
+type RegularFeatureResult struct {
+	feature *backend.Feature
 }
 
-// NewMovedFeatureResult creates a new GetFeatureResult for a moved feature.
-func NewMovedFeatureResult(movedFeatureID string) *GetFeatureResult {
-	return &GetFeatureResult{
-		feature:        nil,
-		movedFeatureID: &movedFeatureID,
-		splitFeature:   nil,
-		resultType:     movedFeatureType,
-	}
+func (r RegularFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
+	v.VisitRegularFeature(ctx, r)
 }
 
-// NewSplitFeatureResult creates a new GetFeatureResult for a split feature.
-func NewSplitFeatureResult(splitFeature *backend.FeatureSplitInfo) *GetFeatureResult {
-	return &GetFeatureResult{
-		feature:        nil,
-		movedFeatureID: nil,
-		splitFeature:   splitFeature,
-		resultType:     splitFeatureType,
-	}
-}
-
-func (r GetFeatureResult) IsRegular() bool {
-	return r.resultType == regularFeatureType && r.feature != nil
-}
-
-func (r GetFeatureResult) IsMoved() bool {
-	return r.resultType == movedFeatureType && r.movedFeatureID != nil
-}
-
-func (r GetFeatureResult) IsSplit() bool {
-	return r.resultType == splitFeatureType && r.splitFeature != nil
-}
-
-func (r GetFeatureResult) GetFeature() *backend.Feature {
+func (r RegularFeatureResult) Feature() *backend.Feature {
 	return r.feature
 }
 
-func (r GetFeatureResult) GetMovedFeatureID() *string {
-	return r.movedFeatureID
+// RegularFeatureResult creates a new RegularFeatureResult for a regular feature.
+func NewRegularFeatureResult(feature *backend.Feature) *RegularFeatureResult {
+	return &RegularFeatureResult{
+		feature: feature,
+	}
 }
 
-func (r GetFeatureResult) GetSplitFeature() *backend.FeatureSplitInfo {
-	return r.splitFeature
+// SplitFeatureResult represents a result for a split feature.
+type SplitFeatureResult struct {
+	splitFeature *backend.FeatureSplitInfo
+}
+
+func (s SplitFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
+	v.VisitSplitFeature(ctx, s)
+}
+
+// NewSplitFeatureResult creates a new SplitFeatureResult for a split feature.
+func NewSplitFeatureResult(splitFeature *backend.FeatureSplitInfo) *SplitFeatureResult {
+	return &SplitFeatureResult{
+		splitFeature: splitFeature,
+	}
+}
+
+// MovedFeatureResult represents a result for a moved feature.
+type MovedFeatureResult struct {
+	newFeatureID string
+}
+
+func (m MovedFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
+	v.VisitMovedFeature(ctx, m)
+}
+
+// NewMovedFeatureResult creates a new MovedFeatureResult for a moved feature.
+func NewMovedFeatureResult(newFeatureID string) *MovedFeatureResult {
+	return &MovedFeatureResult{
+		newFeatureID: newFeatureID,
+	}
+}
+
+func (m MovedFeatureResult) NewFeatureID() string {
+	return m.newFeatureID
+}
+
+// FeatureResult is the interface that all concrete results implement.
+// The Visit method allows a visitor to operate on the concrete type.
+type FeatureResult interface {
+	Visit(ctx context.Context, visitor FeatureResultVisitor)
+}
+
+// GetFeatureResult is a container for the result of a GetFeature operation.
+type GetFeatureResult struct {
+	result FeatureResult
+}
+
+// Visit allows a visitor to operate on the result.
+func (g GetFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
+	g.result.Visit(ctx, v)
+}
+
+// NewGetFeatureResult creates a new GetFeatureResult.
+func NewGetFeatureResult(result FeatureResult) *GetFeatureResult {
+	return &GetFeatureResult{
+		result: result,
+	}
 }

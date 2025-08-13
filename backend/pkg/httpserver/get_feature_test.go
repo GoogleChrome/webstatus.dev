@@ -51,7 +51,7 @@ func TestGetFeature(t *testing.T) {
 					backend.FirefoxAndroid,
 					backend.SafariIos,
 				},
-				data: &backend.Feature{
+				data: backendtypes.NewGetFeatureResult(backendtypes.NewRegularFeatureResult(&backend.Feature{
 					Baseline: &backend.BaselineInfo{
 						Status: valuePtr(backend.Widely),
 						LowDate: valuePtr(
@@ -75,7 +75,7 @@ func TestGetFeature(t *testing.T) {
 					Spec:      nil,
 					Usage:     nil,
 					Wpt:       nil,
-				},
+				})),
 				err: nil,
 			},
 			expectedCallCount: 1,
@@ -167,7 +167,7 @@ func TestGetFeature(t *testing.T) {
 					backend.FirefoxAndroid,
 					backend.SafariIos,
 				},
-				data: &backend.Feature{
+				data: backendtypes.NewGetFeatureResult(backendtypes.NewRegularFeatureResult(&backend.Feature{
 					Baseline: &backend.BaselineInfo{
 						Status: valuePtr(backend.Widely),
 						LowDate: valuePtr(
@@ -201,7 +201,7 @@ func TestGetFeature(t *testing.T) {
 					Spec:      nil,
 					Usage:     nil,
 					Wpt:       nil,
-				},
+				})),
 				err: nil,
 			},
 			expectedCallCount: 1,

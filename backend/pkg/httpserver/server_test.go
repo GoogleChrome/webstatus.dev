@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
@@ -111,7 +112,7 @@ type MockGetFeatureByIDConfig struct {
 	expectedFeatureID     string
 	expectedWPTMetricView backend.WPTMetricView
 	expectedBrowsers      []backend.BrowserPathParam
-	data                  *backend.Feature
+	data                  *backendtypes.GetFeatureResult
 	err                   error
 }
 
@@ -376,7 +377,7 @@ func (m *MockWPTMetricsStorer) GetFeature(
 	featureID string,
 	view backend.WPTMetricView,
 	browsers []backend.BrowserPathParam,
-) (*backend.Feature, error) {
+) (*backendtypes.GetFeatureResult, error) {
 	m.callCountGetFeature++
 
 	if featureID != m.getFeatureByIDConfig.expectedFeatureID ||

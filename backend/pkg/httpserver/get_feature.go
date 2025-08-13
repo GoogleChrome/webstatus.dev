@@ -25,6 +25,33 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
+type GetFeatureResultVisitor struct {
+	resp            backend.GetFeatureResponseObject
+	getFeatureCache operationResponseCache[
+		backend.GetFeatureRequestObject,
+		backend.GetFeature200JSONResponse,
+	]
+	request backend.GetFeatureRequestObject
+}
+
+func (v *GetFeatureResultVisitor) VisitRegularFeature(ctx context.Context, result backendtypes.RegularFeatureResult) {
+	resp := backend.GetFeature200JSONResponse(*result.Feature())
+	v.getFeatureCache.AttemptCache(ctx, v.request, &resp)
+	v.resp = resp
+}
+
+func (v *GetFeatureResultVisitor) VisitMovedFeature(ctx context.Context, result backendtypes.MovedFeatureResult) {
+	v.resp = backend.GetFeature301Response{
+		Headers: backend.GetFeature301ResponseHeaders{
+			Location: result.NewFeatureID(),
+		},
+	}
+}
+
+func (v *GetFeatureResultVisitor) VisitSplitFeature(ctx context.Context, result backendtypes.SplitFeatureResult) {
+
+}
+
 // GetFeature implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
 func (s *Server) GetFeature(
@@ -36,7 +63,7 @@ func (s *Server) GetFeature(
 	if found {
 		return cachedResponse, nil
 	}
-	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
+	result, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
 		getWPTMetricViewOrDefault(request.Params.WptMetricView),
 		defaultBrowsers(),
 	)
@@ -56,8 +83,12 @@ func (s *Server) GetFeature(
 		}, nil
 	}
 
-	resp := backend.GetFeature200JSONResponse(*feature)
-	s.operationResponseCaches.getFeatureCache.AttemptCache(ctx, request, &resp)
+	v := &GetFeatureResultVisitor{
+		resp:            nil,
+		getFeatureCache: s.operationResponseCaches.getFeatureCache,
+		request:         request,
+	}
+	result.Visit(ctx, v)
 
-	return resp, nil
+	return v.resp, nil
 }
