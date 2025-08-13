@@ -36,6 +36,8 @@ type WebFeatureSpannerClient interface {
 	UpsertFeatureDiscouragedDetails(ctx context.Context, featureID string,
 		in gcpspanner.FeatureDiscouragedDetails) error
 	PrecalculateBrowserFeatureSupportEvents(ctx context.Context, startAt, endAt time.Time) error
+	SyncMovedWebFeatures(ctx context.Context, features []gcpspanner.MovedWebFeature) error
+	SyncSplitWebFeatures(ctx context.Context, features []gcpspanner.SplitWebFeature) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -149,16 +151,44 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 }
 
 func (c *WebFeaturesConsumer) InsertMovedWebFeatures(
-	_ context.Context,
-	_ map[string]web_platform_dx__web_features.FeatureMovedData) error {
-	// TODO: implement this after the database method is ready.
+	ctx context.Context,
+	data map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	movedFeatures := make([]gcpspanner.MovedWebFeature, 0, len(data))
+	for featureKey, featureData := range data {
+		movedFeatures = append(movedFeatures, gcpspanner.MovedWebFeature{
+			OriginalFeatureKey: featureKey,
+			NewFeatureKey:      featureData.RedirectTarget,
+		})
+	}
+
+	err := c.client.SyncMovedWebFeatures(ctx, movedFeatures)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to sync moved web features", "error", err)
+
+		return err
+	}
+
 	return nil
 }
 
 func (c *WebFeaturesConsumer) InsertSplitWebFeatures(
-	_ context.Context,
-	_ map[string]web_platform_dx__web_features.FeatureSplitData) error {
-	// TODO: implement this after the database method is ready.
+	ctx context.Context,
+	data map[string]web_platform_dx__web_features.FeatureSplitData) error {
+	splitFeatures := make([]gcpspanner.SplitWebFeature, 0, len(data))
+	for featureKey, featureData := range data {
+		splitFeatures = append(splitFeatures, gcpspanner.SplitWebFeature{
+			OriginalFeatureKey: featureKey,
+			TargetFeatureKeys:  featureData.RedirectTargets,
+		})
+	}
+
+	err := c.client.SyncSplitWebFeatures(ctx, splitFeatures)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to sync split web features", "error", err)
+
+		return err
+	}
+
 	return nil
 }
 
