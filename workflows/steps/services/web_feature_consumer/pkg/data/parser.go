@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // Parser contains the logic to parse the JSON from the web-features Github Release.
@@ -28,32 +29,60 @@ type Parser struct{}
 
 var ErrUnexpectedFormat = errors.New("unexpected format")
 
+var ErrUnableToProcess = errors.New("unable to process the data")
+
+// rawWebFeaturesJSONData is used to parse the source JSON.
+// It holds the features as raw JSON messages to be processed individually.
+type rawWebFeaturesJSONData struct {
+	Browsers  web_platform_dx__web_features.Browsers                `json:"browsers"`
+	Groups    map[string]web_platform_dx__web_features.GroupData    `json:"groups"`
+	Snapshots map[string]web_platform_dx__web_features.SnapshotData `json:"snapshots"`
+	// TODO: When we move to v3, we will change Features to being json.RawMessage
+	Features map[string]web_platform_dx__web_features.FeatureValue `json:"features"`
+}
+
 // Parse expects the raw bytes for a map of string to
 // https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
 // The string is the feature ID.
 // It will consume the readcloser and close it.
-func (p Parser) Parse(in io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error) {
+func (p Parser) Parse(in io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
 	defer in.Close()
-	var ret web_platform_dx__web_features.FeatureData
+	var source rawWebFeaturesJSONData
 	decoder := json.NewDecoder(in)
-	err := decoder.Decode(&ret)
+	err := decoder.Decode(&source)
 	if err != nil {
 		return nil, errors.Join(ErrUnexpectedFormat, err)
 	}
 
-	postProcess(&ret)
+	processedData := postProcess(&source)
 
-	return &ret, nil
+	return processedData, nil
 }
 
-func postProcess(data *web_platform_dx__web_features.FeatureData) {
-	postProcessFeatureValue(data.Features)
+func postProcess(data *rawWebFeaturesJSONData) *webdxfeaturetypes.ProcessedWebFeaturesData {
+	featureKinds := postProcessFeatureValue(data.Features)
+
+	return &webdxfeaturetypes.ProcessedWebFeaturesData{
+		Browsers:  data.Browsers,
+		Groups:    data.Groups,
+		Snapshots: data.Snapshots,
+		Features:  featureKinds,
+	}
 }
 
 func postProcessFeatureValue(
-	data map[string]web_platform_dx__web_features.FeatureValue) {
+	data map[string]web_platform_dx__web_features.FeatureValue) *webdxfeaturetypes.FeatureKinds {
+	featureKinds := webdxfeaturetypes.FeatureKinds{
+		Data:  nil,
+		Moved: nil,
+		Split: nil,
+	}
+
 	for id, value := range data {
-		data[id] = web_platform_dx__web_features.FeatureValue{
+		if featureKinds.Data == nil {
+			featureKinds.Data = make(map[string]web_platform_dx__web_features.FeatureValue)
+		}
+		featureKinds.Data[id] = web_platform_dx__web_features.FeatureValue{
 			Caniuse:         postProcessStringOrStringArray(value.Caniuse),
 			CompatFeatures:  value.CompatFeatures,
 			Description:     value.Description,
@@ -66,6 +95,8 @@ func postProcessFeatureValue(
 			Discouraged:     value.Discouraged,
 		}
 	}
+
+	return &featureKinds
 }
 
 func postProcessStringOrStringArray(

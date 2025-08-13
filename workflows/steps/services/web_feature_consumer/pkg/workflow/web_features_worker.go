@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // AssetGetter describes the behavior to get a certain asset from a github release.
@@ -35,7 +36,7 @@ type AssetGetter interface {
 
 // AssetParser describes the behavior to parse the io.ReadCloser from AssetGetter into the expected data type.
 type AssetParser interface {
-	Parse(io.ReadCloser) (*web_platform_dx__web_features.FeatureData, error)
+	Parse(io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error)
 }
 
 // WebFeatureStorer describes the logic to insert the web features that were returned by the AssetParser.
@@ -118,28 +119,28 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 		return err
 	}
 
-	mapping, err := p.storer.InsertWebFeatures(ctx, data.Features, job.startAt, job.endAt)
+	mapping, err := p.storer.InsertWebFeatures(ctx, data.Features.Data, job.startAt, job.endAt)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store data", "error", err)
 
 		return err
 	}
 
-	err = p.metadataStorer.InsertWebFeaturesMetadata(ctx, mapping, data.Features)
+	err = p.metadataStorer.InsertWebFeaturesMetadata(ctx, mapping, data.Features.Data)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store metadata", "error", err)
 
 		return err
 	}
 
-	err = p.groupStorer.InsertWebFeatureGroups(ctx, data.Features, data.Groups)
+	err = p.groupStorer.InsertWebFeatureGroups(ctx, data.Features.Data, data.Groups)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store groups", "error", err)
 
 		return err
 	}
 
-	err = p.snapshotStorer.InsertWebFeatureSnapshots(ctx, mapping, data.Features, data.Snapshots)
+	err = p.snapshotStorer.InsertWebFeatureSnapshots(ctx, mapping, data.Features.Data, data.Snapshots)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store snapshots", "error", err)
 
