@@ -45,6 +45,14 @@ type WebFeatureStorer interface {
 		ctx context.Context,
 		data map[string]web_platform_dx__web_features.FeatureValue,
 		startAt time.Time, endAt time.Time) (map[string]string, error)
+	InsertMovedWebFeatures(
+		ctx context.Context,
+		data map[string]web_platform_dx__web_features.FeatureMovedData,
+	) error
+	InsertSplitWebFeatures(
+		ctx context.Context,
+		data map[string]web_platform_dx__web_features.FeatureSplitData,
+	) error
 }
 
 // WebFeatureMetadataStorer describes the logic to insert the non-relation metadata about web features that
@@ -143,6 +151,20 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 	err = p.snapshotStorer.InsertWebFeatureSnapshots(ctx, mapping, data.Features.Data, data.Snapshots)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store snapshots", "error", err)
+
+		return err
+	}
+
+	err = p.storer.InsertMovedWebFeatures(ctx, data.Features.Moved)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to store moved features", "error", err)
+
+		return err
+	}
+
+	err = p.storer.InsertSplitWebFeatures(ctx, data.Features.Split)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to store split features", "error", err)
 
 		return err
 	}
