@@ -1472,23 +1472,25 @@ func compareFeatureDataMap(m1, m2 *map[string]backend.WPTFeatureData) bool {
 }
 
 func TestGetFeature(t *testing.T) {
+	const (
+		defaultFeatureID  = "feature1"
+		defaultMetricView = backend.SubtestCounts
+	)
+	var (
+		defaultInputBrowsers = []backend.BrowserPathParam{
+			"browser1",
+			"browser2",
+			"browser3",
+		}
+	)
 	testCases := []struct {
-		name               string
-		cfg                mockGetFeatureConfig
-		inputFeatureID     string
-		inputWPTMetricView backend.WPTMetricView
-		inputBrowsers      BrowserList
-		expectedFeature    *backend.Feature
+		name          string
+		cfg           mockGetFeatureConfig
+		visitor       func(t *testing.T) backendtypes.FeatureResultVisitor
+		expectedError error
 	}{
 		{
-			name:               "regular",
-			inputFeatureID:     "feature1",
-			inputWPTMetricView: backend.SubtestCounts,
-			inputBrowsers: []backend.BrowserPathParam{
-				"browser1",
-				"browser2",
-				"browser3",
-			},
+			name: "regular",
 			cfg: mockGetFeatureConfig{
 				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
@@ -1533,59 +1535,65 @@ func TestGetFeature(t *testing.T) {
 				},
 				returnedError: nil,
 			},
-			expectedFeature: &backend.Feature{
-				Baseline: &backend.BaselineInfo{
-					Status: valuePtr(backend.Newly),
-					LowDate: valuePtr(
-						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					),
-					HighDate: nil,
-				},
-				FeatureId: "feature1",
-				Name:      "feature 1",
-				Spec: &backend.FeatureSpecInfo{
-					Links: &[]backend.SpecLink{
-						{
-							Link: valuePtr("link1"),
+			visitor: func(t *testing.T) backendtypes.FeatureResultVisitor {
+				return &TestRegularFeatureVisitor{
+					t: t,
+					expected: backendtypes.NewRegularFeatureResult(&backend.Feature{
+						Baseline: &backend.BaselineInfo{
+							Status: valuePtr(backend.Newly),
+							LowDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+							HighDate: nil,
 						},
-						{
-							Link: valuePtr("link2"),
-						},
-					},
-				},
-				Usage: &backend.BrowserUsage{
-					Chrome: &backend.ChromeUsageInfo{
-						Daily: nil,
-					},
-				},
-				Wpt: &backend.FeatureWPTSnapshots{
-					Experimental: &map[string]backend.WPTFeatureData{
-						"browser3": {
-							Score:    valuePtr[float64](0.2),
-							Metadata: nil,
-						},
-					},
-					Stable: &map[string]backend.WPTFeatureData{
-						"browser3": {
-							Score: valuePtr[float64](0.5),
-							Metadata: &map[string]interface{}{
-								"browser3": "test",
+						FeatureId: "feature1",
+						Name:      "feature 1",
+						Spec: &backend.FeatureSpecInfo{
+							Links: &[]backend.SpecLink{
+								{
+									Link: valuePtr("link1"),
+								},
+								{
+									Link: valuePtr("link2"),
+								},
 							},
 						},
-					},
-				},
-				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"browser3": {
-						Status:  valuePtr(backend.Available),
-						Date:    nil,
-						Version: nil,
-					},
-				},
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-				DeveloperSignals: nil,
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-				Evolution: nil,
+						Usage: &backend.BrowserUsage{
+							Chrome: &backend.ChromeUsageInfo{
+								Daily: nil,
+							},
+						},
+						Wpt: &backend.FeatureWPTSnapshots{
+							Experimental: &map[string]backend.WPTFeatureData{
+								"browser3": {
+									Score:    valuePtr[float64](0.2),
+									Metadata: nil,
+								},
+							},
+							Stable: &map[string]backend.WPTFeatureData{
+								"browser3": {
+									Score: valuePtr[float64](0.5),
+									Metadata: &map[string]interface{}{
+										"browser3": "test",
+									},
+								},
+							},
+						},
+						BrowserImplementations: &map[string]backend.BrowserImplementation{
+							"browser3": {
+								Status:  valuePtr(backend.Available),
+								Date:    nil,
+								Version: nil,
+							},
+						},
+						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
+						DeveloperSignals: nil,
+						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+						Evolution: nil,
+					}),
+				}
 			},
+			expectedError: nil,
 		},
 	}
 	for _, tc := range testCases {
@@ -1598,17 +1606,48 @@ func TestGetFeature(t *testing.T) {
 			bk := NewBackend(mock)
 			feature, err := bk.GetFeature(
 				context.Background(),
-				tc.inputFeatureID, tc.inputWPTMetricView, tc.inputBrowsers)
-			if !errors.Is(err, tc.cfg.returnedError) {
+				defaultFeatureID, defaultMetricView, defaultInputBrowsers)
+			if !errors.Is(err, tc.expectedError) {
 				t.Error("unexpected error")
 			}
-
-			if !CompareFeatures(*feature, *tc.expectedFeature) {
-				t.Error("unexpected feature")
+			if tc.visitor == nil {
+				return
+			}
+			err = feature.Visit(t.Context(), tc.visitor(t))
+			if err != nil {
+				t.Error("unexpected error")
 			}
 
 		})
 	}
+}
+
+// TestRegularFeatureVisitor expects a RegularFeatureResult and compares it.
+// Other Visit methods will cause an error.
+type TestRegularFeatureVisitor struct {
+	t        *testing.T
+	expected *backendtypes.RegularFeatureResult
+}
+
+func (v *TestRegularFeatureVisitor) VisitRegularFeature(_ context.Context,
+	actual backendtypes.RegularFeatureResult) error {
+	if !CompareFeatures(*actual.Feature(), *v.expected.Feature()) {
+		v.t.Error("unexpected feature")
+	}
+
+	return nil
+}
+
+func (v *TestRegularFeatureVisitor) VisitMovedFeature(_ context.Context, actual backendtypes.MovedFeatureResult) error {
+	v.t.Errorf("VisitMovedFeature called unexpectedly for a RegularFeature test. Actual: %+v", actual)
+
+	return nil
+}
+
+func (v *TestRegularFeatureVisitor) VisitSplitFeature(_ context.Context, actual backendtypes.SplitFeatureResult) error {
+	v.t.Errorf("VisitSplitFeature called unexpectedly for a RegularFeature test. Actual: %+v", actual)
+
+	return nil
 }
 
 func TestCreateUserSavedSearch(t *testing.T) {

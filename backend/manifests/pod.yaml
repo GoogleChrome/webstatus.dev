@@ -30,6 +30,8 @@ spec:
         tcpSocket:
           port: 8080
       env:
+        - name: BASE_URL
+          value: 'http://localhost:8080'
         - name: SPANNER_DATABASE
           value: 'local'
         - name: SPANNER_INSTANCE

@@ -534,7 +534,8 @@ func TestListFeatures(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
+				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountFeaturesSearch,
 				"FeaturesSearch", mockCacher)

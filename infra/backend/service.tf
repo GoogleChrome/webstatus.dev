@@ -135,6 +135,10 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "OTEL_GCP_PROJECT_ID"
         value = var.projects.public
       }
+      env {
+        name  = "BASE_URL"
+        value = var.backend_api_url
+      }
     }
     containers {
       name  = "otel"

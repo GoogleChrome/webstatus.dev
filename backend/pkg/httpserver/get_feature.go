@@ -20,10 +20,54 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
+
+type GetFeatureResultVisitor struct {
+	resp            backend.GetFeatureResponseObject
+	getFeatureCache operationResponseCache[
+		backend.GetFeatureRequestObject,
+		backend.GetFeature200JSONResponse,
+	]
+	request backend.GetFeatureRequestObject
+	baseURL *url.URL
+}
+
+func (v *GetFeatureResultVisitor) VisitRegularFeature(ctx context.Context,
+	result backendtypes.RegularFeatureResult) error {
+	resp := backend.GetFeature200JSONResponse(*result.Feature())
+	v.getFeatureCache.AttemptCache(ctx, v.request, &resp)
+	v.resp = resp
+
+	return nil
+}
+
+func (v *GetFeatureResultVisitor) VisitMovedFeature(_ context.Context, result backendtypes.MovedFeatureResult) error {
+	location := v.baseURL.JoinPath("v1", "features", result.NewFeatureID()).String()
+	v.resp = backend.GetFeature301Response{
+		Headers: backend.GetFeature301ResponseHeaders{
+			Location: location,
+		},
+	}
+
+	return nil
+}
+
+func (v *GetFeatureResultVisitor) VisitSplitFeature(_ context.Context, result backendtypes.SplitFeatureResult) error {
+	gone := backend.FeatureGoneError{
+		Code:        410,
+		Message:     "feature is split",
+		NewFeatures: result.SplitFeature().Features,
+		Type:        backend.Split,
+	}
+	v.resp = backend.GetFeature410JSONResponse(gone)
+
+	return nil
+}
 
 // GetFeature implements backend.StrictServerInterface.
 // nolint: revive, ireturn // Name generated from openapi
@@ -36,7 +80,7 @@ func (s *Server) GetFeature(
 	if found {
 		return cachedResponse, nil
 	}
-	feature, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
+	result, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
 		getWPTMetricViewOrDefault(request.Params.WptMetricView),
 		defaultBrowsers(),
 	)
@@ -56,8 +100,21 @@ func (s *Server) GetFeature(
 		}, nil
 	}
 
-	resp := backend.GetFeature200JSONResponse(*feature)
-	s.operationResponseCaches.getFeatureCache.AttemptCache(ctx, request, &resp)
+	v := &GetFeatureResultVisitor{
+		resp:            nil,
+		getFeatureCache: s.operationResponseCaches.getFeatureCache,
+		request:         request,
+		baseURL:         s.baseURL,
+	}
+	err = result.Visit(ctx, v)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to determine if feature is regular, split, or moved", "error", err)
 
-	return resp, nil
+		return backend.GetFeature500JSONResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to determine if feature is regular, split, or moved",
+		}, nil
+	}
+
+	return v.resp, nil
 }
