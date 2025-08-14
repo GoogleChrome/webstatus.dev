@@ -29,6 +29,15 @@ import (
 )
 
 func TestGetFeature(t *testing.T) {
+	defaultExpectedBrowsers := []backend.BrowserPathParam{
+		backend.Chrome,
+		backend.Edge,
+		backend.Firefox,
+		backend.Safari,
+		backend.ChromeAndroid,
+		backend.FirefoxAndroid,
+		backend.SafariIos,
+	}
 	testCases := []struct {
 		name               string
 		mockConfig         *MockGetFeatureByIDConfig
@@ -44,15 +53,7 @@ func TestGetFeature(t *testing.T) {
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
-				},
+				expectedBrowsers:      defaultExpectedBrowsers,
 				data: backendtypes.NewGetFeatureResult(backendtypes.NewRegularFeatureResult(&backend.Feature{
 					Baseline: &backend.BaselineInfo{
 						Status: valuePtr(backend.Widely),
@@ -160,15 +161,7 @@ func TestGetFeature(t *testing.T) {
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.SubtestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
-				},
+				expectedBrowsers:      defaultExpectedBrowsers,
 				data: backendtypes.NewGetFeatureResult(backendtypes.NewRegularFeatureResult(&backend.Feature{
 					Baseline: &backend.BaselineInfo{
 						Status: valuePtr(backend.Widely),
@@ -297,17 +290,9 @@ func TestGetFeature(t *testing.T) {
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
-				},
-				data: nil,
-				err:  backendtypes.ErrEntityDoesNotExist,
+				expectedBrowsers:      defaultExpectedBrowsers,
+				data:                  nil,
+				err:                   backendtypes.ErrEntityDoesNotExist,
 			},
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
@@ -326,17 +311,9 @@ func TestGetFeature(t *testing.T) {
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
-				},
-				data: nil,
-				err:  errTest,
+				expectedBrowsers:      defaultExpectedBrowsers,
+				data:                  nil,
+				err:                   errTest,
 			},
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
@@ -355,17 +332,9 @@ func TestGetFeature(t *testing.T) {
 			mockConfig: &MockGetFeatureByIDConfig{
 				expectedFeatureID:     "feature1",
 				expectedWPTMetricView: backend.TestCounts,
-				expectedBrowsers: []backend.BrowserPathParam{
-					backend.Chrome,
-					backend.Edge,
-					backend.Firefox,
-					backend.Safari,
-					backend.ChromeAndroid,
-					backend.FirefoxAndroid,
-					backend.SafariIos,
-				},
-				data: backendtypes.NewGetFeatureResult(backendtypes.NewMovedFeatureResult("feature2")),
-				err:  nil,
+				expectedBrowsers:      defaultExpectedBrowsers,
+				data:                  backendtypes.NewGetFeatureResult(backendtypes.NewMovedFeatureResult("feature2")),
+				err:                   nil,
 			},
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
@@ -379,6 +348,38 @@ func TestGetFeature(t *testing.T) {
 					Body: io.NopCloser(strings.NewReader("")),
 				}
 			}(),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+		},
+		{
+			name: "410",
+			mockConfig: &MockGetFeatureByIDConfig{
+				expectedFeatureID:     "feature1",
+				expectedWPTMetricView: backend.TestCounts,
+				expectedBrowsers:      defaultExpectedBrowsers,
+				data: backendtypes.NewGetFeatureResult(backendtypes.NewSplitFeatureResult(backend.FeatureEvolutionSplit{
+					Features: []backend.FeatureSplitInfo{
+						{
+							Id: "other1",
+						},
+						{
+							Id: "other2",
+						},
+					},
+				})),
+				err: nil,
+			},
+			expectedCallCount: 1,
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedResponse: testJSONResponse(410, `
+{"code":410,"message":"feature is split","new_features":[{"id":"other1"},{"id":"other2"}],"type":"split"}`,
+			),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,

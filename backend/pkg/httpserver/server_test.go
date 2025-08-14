@@ -739,11 +739,11 @@ func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
 	var actualObj, expectedObj interface{}
 	err := json.Unmarshal(actualBody, &actualObj)
 	if err != nil {
-		t.Fatal("failed to parse json from actual response")
+		t.Fatalf("failed to parse json from actual response. Error: %s", err.Error())
 	}
 	err = json.Unmarshal(expectedBody, &expectedObj)
 	if err != nil {
-		t.Fatal("failed to parse json from expected response")
+		t.Fatalf("failed to parse json from expected response. Error: %s", err.Error())
 	}
 
 	if !reflect.DeepEqual(actualObj, expectedObj) {

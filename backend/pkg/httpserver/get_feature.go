@@ -57,15 +57,11 @@ func (v *GetFeatureResultVisitor) VisitMovedFeature(_ context.Context, result ba
 }
 
 func (v *GetFeatureResultVisitor) VisitSplitFeature(_ context.Context, result backendtypes.SplitFeatureResult) error {
-	gone := backend.FeatureGoneError{}
-	err := gone.FromFeatureGoneSplit(backend.FeatureGoneSplit{
+	gone := backend.FeatureGoneError{
 		Code:        410,
 		Message:     "feature is split",
 		NewFeatures: result.SplitFeature().Features,
 		Type:        backend.Split,
-	})
-	if err != nil {
-		return err
 	}
 	v.resp = backend.GetFeature410JSONResponse(gone)
 
