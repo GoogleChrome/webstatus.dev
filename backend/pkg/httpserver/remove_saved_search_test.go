@@ -19,7 +19,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 )
 
 func TestRemoveSavedSearch(t *testing.T) {
