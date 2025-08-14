@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/url"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
@@ -32,6 +33,7 @@ type GetFeatureResultVisitor struct {
 		backend.GetFeature200JSONResponse,
 	]
 	request backend.GetFeatureRequestObject
+	baseURL *url.URL
 }
 
 func (v *GetFeatureResultVisitor) VisitRegularFeature(ctx context.Context,
@@ -44,9 +46,10 @@ func (v *GetFeatureResultVisitor) VisitRegularFeature(ctx context.Context,
 }
 
 func (v *GetFeatureResultVisitor) VisitMovedFeature(_ context.Context, result backendtypes.MovedFeatureResult) error {
+	location := v.baseURL.JoinPath("v1", "features", result.NewFeatureID()).String()
 	v.resp = backend.GetFeature301Response{
 		Headers: backend.GetFeature301ResponseHeaders{
-			Location: result.NewFeatureID(),
+			Location: location,
 		},
 	}
 
@@ -104,6 +107,7 @@ func (s *Server) GetFeature(
 		resp:            nil,
 		getFeatureCache: s.operationResponseCaches.getFeatureCache,
 		request:         request,
+		baseURL:         s.baseURL,
 	}
 	err = result.Visit(ctx, v)
 	if err != nil {

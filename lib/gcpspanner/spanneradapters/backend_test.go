@@ -1509,26 +1509,27 @@ func compareFeatureDataMap(m1, m2 *map[string]backend.WPTFeatureData) bool {
 }
 
 func TestGetFeature(t *testing.T) {
+	const (
+		defaultFeatureID  = "feature1"
+		defaultMetricView = backend.SubtestCounts
+	)
+	var (
+		defaultInputBrowsers = []backend.BrowserPathParam{
+			"browser1",
+			"browser2",
+			"browser3",
+		}
+	)
 	testCases := []struct {
-		name               string
-		cfg                mockGetFeatureConfig
-		movedFeatureCfg    *mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig
-		splitFeatureCfg    *mockGetSplitWebFeatureByOriginalFeatureKeyConfig
-		inputFeatureID     string
-		inputWPTMetricView backend.WPTMetricView
-		inputBrowsers      BrowserList
-		visitor            func(t *testing.T) backendtypes.FeatureResultVisitor
-		expectedError      error
+		name            string
+		cfg             mockGetFeatureConfig
+		movedFeatureCfg *mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig
+		splitFeatureCfg *mockGetSplitWebFeatureByOriginalFeatureKeyConfig
+		visitor         func(t *testing.T) backendtypes.FeatureResultVisitor
+		expectedError   error
 	}{
 		{
-			name:               "regular",
-			inputFeatureID:     "feature1",
-			inputWPTMetricView: backend.SubtestCounts,
-			inputBrowsers: []backend.BrowserPathParam{
-				"browser1",
-				"browser2",
-				"browser3",
-			},
+			name: "regular",
 			cfg: mockGetFeatureConfig{
 				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
@@ -1636,14 +1637,7 @@ func TestGetFeature(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:               "moved",
-			inputFeatureID:     "feature1",
-			inputWPTMetricView: backend.SubtestCounts,
-			inputBrowsers: []backend.BrowserPathParam{
-				"browser1",
-				"browser2",
-				"browser3",
-			},
+			name: "moved",
 			cfg: mockGetFeatureConfig{
 				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
@@ -1673,14 +1667,7 @@ func TestGetFeature(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:               "split",
-			inputFeatureID:     "feature1",
-			inputWPTMetricView: backend.SubtestCounts,
-			inputBrowsers: []backend.BrowserPathParam{
-				"browser1",
-				"browser2",
-				"browser3",
-			},
+			name: "split",
 			cfg: mockGetFeatureConfig{
 				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
@@ -1721,14 +1708,7 @@ func TestGetFeature(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name:               "feature not found",
-			inputFeatureID:     "feature1",
-			inputWPTMetricView: backend.SubtestCounts,
-			inputBrowsers: []backend.BrowserPathParam{
-				"browser1",
-				"browser2",
-				"browser3",
-			},
+			name: "feature not found",
 			cfg: mockGetFeatureConfig{
 				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
 				expectedWPTMetricView: gcpspanner.WPTSubtestView,
@@ -1769,7 +1749,7 @@ func TestGetFeature(t *testing.T) {
 			bk := NewBackend(mock)
 			feature, err := bk.GetFeature(
 				context.Background(),
-				tc.inputFeatureID, tc.inputWPTMetricView, tc.inputBrowsers)
+				defaultFeatureID, defaultMetricView, defaultInputBrowsers)
 			if !errors.Is(err, tc.expectedError) {
 				t.Error("unexpected error")
 			}

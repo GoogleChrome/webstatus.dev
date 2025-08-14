@@ -15,8 +15,10 @@
 package httpserver
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -367,7 +369,16 @@ func TestGetFeature(t *testing.T) {
 			},
 			expectedCallCount: 1,
 			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
-			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature"}`),
+			expectedResponse: func() *http.Response {
+				// nolint:exhaustruct
+				return &http.Response{
+					StatusCode: http.StatusMovedPermanently,
+					Header: map[string][]string{
+						"Location": {"http://localhost:8080/v1/features/feature2"},
+					},
+					Body: io.NopCloser(strings.NewReader("")),
+				}
+			}(),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
