@@ -20,7 +20,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 )
 
 func TestPutUserSavedSearchBookmark(t *testing.T) {
@@ -106,7 +106,7 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 				t:                             t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: nil}
+				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{authMiddlewareOption}...)
 			assertMocksExpectations(t, 1, mockStorer.callCountPutUserSavedSearchBookmark,

@@ -1404,12 +1404,15 @@ components:
       description: |
         Represents various reasons a feature might be gone due to evolution.
         Clients should check the 'type' field to determine the specific error structure.
-      oneOf:
-        - $ref: '#/components/schemas/FeatureGoneSplit'
-      discriminator:
-        propertyName: type
-        mapping:
-          split: '#/components/schemas/FeatureGoneSplit'
+      $ref: '#/components/schemas/FeatureGoneSplit'
+      # Cannot use oneOf until this bug is fixed
+      # https://github.com/oapi-codegen/oapi-codegen/issues/970
+      # oneOf:
+      #   - $ref: '#/components/schemas/FeatureGoneSplit'
+      # discriminator:
+      #   propertyName: type
+      #   mapping:
+      #     split: '#/components/schemas/FeatureGoneSplit'
     FeatureGoneSplit:
       allOf:
         - $ref: '#/components/schemas/BasicErrorModel'

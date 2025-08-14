@@ -118,6 +118,7 @@ module "backend" {
   cors_allowed_origin       = var.backend_cors_allowed_origin
   min_instance_count        = var.backend_min_instance_count
   max_instance_count        = var.backend_max_instance_count
+  backend_api_url           = var.backend_api_url
   firebase_settings = {
     tenant_id = module.auth.tenant_id
   }

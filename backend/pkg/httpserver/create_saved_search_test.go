@@ -23,7 +23,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -365,7 +365,7 @@ func TestCreateSavedSearch(t *testing.T) {
 				t:                        t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: nil}
+				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 		})

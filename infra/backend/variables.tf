@@ -103,3 +103,8 @@ variable "firebase_settings" {
     tenant_id = string
   })
 }
+
+variable "backend_api_url" {
+  type = string
+}
+

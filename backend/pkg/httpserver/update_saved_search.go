@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )

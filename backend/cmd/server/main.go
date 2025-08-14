@@ -19,6 +19,7 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
 	"slices"
 	"time"
@@ -75,6 +76,13 @@ func main() {
 		slog.InfoContext(ctx, "setting spanner to local mode")
 		spannerClient.SetFeatureSearchBaseQuery(gcpspanner.LocalFeatureBaseQuery{})
 		spannerClient.SetMisingOneImplementationQuery(gcpspanner.LocalMissingOneImplementationQuery{})
+	}
+
+	baseURLString := os.Getenv("BASE_URL")
+	baseURL, err := url.Parse(baseURLString)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to parse base url", "error", err, "base_url_string", baseURLString)
+		os.Exit(1)
 	}
 
 	// Allowed Origin. Can remove after UbP.
@@ -178,6 +186,7 @@ func main() {
 
 	srv := httpserver.NewHTTPServer(
 		"8080",
+		baseURL,
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
 		cache,
