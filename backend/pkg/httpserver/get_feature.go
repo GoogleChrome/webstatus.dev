@@ -34,22 +34,39 @@ type GetFeatureResultVisitor struct {
 	request backend.GetFeatureRequestObject
 }
 
-func (v *GetFeatureResultVisitor) VisitRegularFeature(ctx context.Context, result backendtypes.RegularFeatureResult) {
+func (v *GetFeatureResultVisitor) VisitRegularFeature(ctx context.Context,
+	result backendtypes.RegularFeatureResult) error {
 	resp := backend.GetFeature200JSONResponse(*result.Feature())
 	v.getFeatureCache.AttemptCache(ctx, v.request, &resp)
 	v.resp = resp
+
+	return nil
 }
 
-func (v *GetFeatureResultVisitor) VisitMovedFeature(ctx context.Context, result backendtypes.MovedFeatureResult) {
+func (v *GetFeatureResultVisitor) VisitMovedFeature(_ context.Context, result backendtypes.MovedFeatureResult) error {
 	v.resp = backend.GetFeature301Response{
 		Headers: backend.GetFeature301ResponseHeaders{
 			Location: result.NewFeatureID(),
 		},
 	}
+
+	return nil
 }
 
-func (v *GetFeatureResultVisitor) VisitSplitFeature(ctx context.Context, result backendtypes.SplitFeatureResult) {
+func (v *GetFeatureResultVisitor) VisitSplitFeature(_ context.Context, result backendtypes.SplitFeatureResult) error {
+	gone := backend.FeatureGoneError{}
+	err := gone.FromFeatureGoneSplit(backend.FeatureGoneSplit{
+		Code:        410,
+		Message:     "feature is split",
+		NewFeatures: result.SplitFeature().Features,
+		Type:        backend.Split,
+	})
+	if err != nil {
+		return err
+	}
+	v.resp = backend.GetFeature410JSONResponse(gone)
 
+	return nil
 }
 
 // GetFeature implements backend.StrictServerInterface.
@@ -78,7 +95,7 @@ func (s *Server) GetFeature(
 		slog.ErrorContext(ctx, "unable to get feature", "error", err)
 
 		return backend.GetFeature500JSONResponse{
-			Code:    500,
+			Code:    http.StatusInternalServerError,
 			Message: "unable to get feature",
 		}, nil
 	}
@@ -88,7 +105,15 @@ func (s *Server) GetFeature(
 		getFeatureCache: s.operationResponseCaches.getFeatureCache,
 		request:         request,
 	}
-	result.Visit(ctx, v)
+	err = result.Visit(ctx, v)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to determine if feature is regular, split, or moved", "error", err)
+
+		return backend.GetFeature500JSONResponse{
+			Code:    http.StatusInternalServerError,
+			Message: "unable to determine if feature is regular, split, or moved",
+		}, nil
+	}
 
 	return v.resp, nil
 }

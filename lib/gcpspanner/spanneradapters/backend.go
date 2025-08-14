@@ -74,6 +74,14 @@ type BackendSpannerClient interface {
 		wptMetricView gcpspanner.WPTMetricView,
 		browsers []string,
 	) (*gcpspanner.FeatureResult, error)
+	GetMovedWebFeatureDetailsByOriginalFeatureKey(
+		ctx context.Context,
+		featureKey string,
+	) (*gcpspanner.MovedWebFeature, error)
+	GetSplitWebFeatureByOriginalFeatureKey(
+		ctx context.Context,
+		featureKey string,
+	) (*gcpspanner.SplitWebFeature, error)
 	GetIDFromFeatureKey(
 		ctx context.Context,
 		filter *gcpspanner.FeatureIDFilter,
@@ -1059,20 +1067,49 @@ func (s *Backend) GetFeature(
 	browsers []backend.BrowserPathParam,
 ) (*backendtypes.GetFeatureResult, error) {
 	filter := gcpspanner.NewFeatureKeyFilter(featureID)
-	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView),
-		BrowserList(browsers).ToStringList())
-	if err != nil {
-		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
-			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
-		}
+	featureResult, err := s.client.GetFeature(
+		ctx, filter, getSpannerWPTMetricView(wptMetricView), BrowserList(browsers).ToStringList())
+	if err == nil {
+		return backendtypes.NewGetFeatureResult(
+			backendtypes.NewRegularFeatureResult(s.convertFeatureResult(featureResult))), nil
+	}
 
+	if !errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
 		return nil, err
 	}
 
-	return backendtypes.NewGetFeatureResult(
-			backendtypes.NewRegularFeatureResult(s.convertFeatureResult(featureResult)),
-		),
-		nil
+	// If the feature is not found, check if it has been moved.
+	movedFeatureResult, err := s.client.GetMovedWebFeatureDetailsByOriginalFeatureKey(ctx, featureID)
+	if err == nil {
+		return backendtypes.NewGetFeatureResult(
+			backendtypes.NewMovedFeatureResult(movedFeatureResult.NewFeatureKey)), nil
+	}
+	if !errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+		return nil, err
+	}
+
+	// If the feature is not found and not moved, check if it has been split.
+	splitFeatureResult, err := s.client.GetSplitWebFeatureByOriginalFeatureKey(ctx, featureID)
+	if err == nil {
+		features := make([]backend.FeatureSplitInfo, 0, len(splitFeatureResult.TargetFeatureKeys))
+		for _, feature := range splitFeatureResult.TargetFeatureKeys {
+			features = append(features, backend.FeatureSplitInfo{
+				Id: feature,
+			})
+		}
+
+		return backendtypes.NewGetFeatureResult(
+			backendtypes.NewSplitFeatureResult(backend.FeatureEvolutionSplit{
+				Features: features,
+			}),
+		), nil
+	}
+	if !errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+		return nil, err
+	}
+
+	// If the feature is not found, not moved, and not split, then it does not exist in the database.
+	return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
 }
 
 func (s *Backend) GetIDFromFeatureKey(

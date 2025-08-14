@@ -348,6 +348,35 @@ func TestGetFeature(t *testing.T) {
 			},
 			expectedCacheCalls: nil,
 		},
+		{
+			name: "301",
+			mockConfig: &MockGetFeatureByIDConfig{
+				expectedFeatureID:     "feature1",
+				expectedWPTMetricView: backend.TestCounts,
+				expectedBrowsers: []backend.BrowserPathParam{
+					backend.Chrome,
+					backend.Edge,
+					backend.Firefox,
+					backend.Safari,
+					backend.ChromeAndroid,
+					backend.FirefoxAndroid,
+					backend.SafariIos,
+				},
+				data: backendtypes.NewGetFeatureResult(backendtypes.NewMovedFeatureResult("feature2")),
+				err:  nil,
+			},
+			expectedCallCount: 1,
+			request:           httptest.NewRequest(http.MethodGet, "/v1/features/feature1", nil),
+			expectedResponse:  testJSONResponse(500, `{"code":500,"message":"unable to get feature"}`),
+			expectedGetCalls: []*ExpectedGetCall{
+				{
+					Key:   `getFeature-{"feature_id":"feature1","Params":{}}`,
+					Value: nil,
+					Err:   cachetypes.ErrCachedDataNotFound,
+				},
+			},
+			expectedCacheCalls: nil,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -358,7 +387,8 @@ func TestGetFeature(t *testing.T) {
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
-				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions())}
+				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
+				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountGetFeature,
 				"GetFeature", mockCacher)

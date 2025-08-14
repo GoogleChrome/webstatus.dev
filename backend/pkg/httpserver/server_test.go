@@ -21,6 +21,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"reflect"
 	"slices"
 	"strings"
@@ -1023,4 +1024,13 @@ func TestGenericErrorFn(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getTestBaseURL(t *testing.T) *url.URL {
+	baseURL, err := url.Parse("http://localhost:8080")
+	if err != nil {
+		t.Fatalf("failed to parse base URL: %v", err)
+	}
+
+	return baseURL
 }

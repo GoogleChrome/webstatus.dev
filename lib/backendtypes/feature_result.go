@@ -8,9 +8,9 @@ import (
 
 // FeatureResultVisitor defines the methods for visiting each result type.
 type FeatureResultVisitor interface {
-	VisitRegularFeature(ctx context.Context, result RegularFeatureResult)
-	VisitMovedFeature(ctx context.Context, result MovedFeatureResult)
-	VisitSplitFeature(ctx context.Context, result SplitFeatureResult)
+	VisitRegularFeature(ctx context.Context, result RegularFeatureResult) error
+	VisitMovedFeature(ctx context.Context, result MovedFeatureResult) error
+	VisitSplitFeature(ctx context.Context, result SplitFeatureResult) error
 }
 
 // RegularFeatureResult represents a result for a regular feature.
@@ -18,8 +18,8 @@ type RegularFeatureResult struct {
 	feature *backend.Feature
 }
 
-func (r RegularFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
-	v.VisitRegularFeature(ctx, r)
+func (r RegularFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) error {
+	return v.VisitRegularFeature(ctx, r)
 }
 
 func (r RegularFeatureResult) Feature() *backend.Feature {
@@ -35,15 +35,19 @@ func NewRegularFeatureResult(feature *backend.Feature) *RegularFeatureResult {
 
 // SplitFeatureResult represents a result for a split feature.
 type SplitFeatureResult struct {
-	splitFeature *backend.FeatureSplitInfo
+	splitFeature backend.FeatureEvolutionSplit
 }
 
-func (s SplitFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
-	v.VisitSplitFeature(ctx, s)
+func (s SplitFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) error {
+	return v.VisitSplitFeature(ctx, s)
+}
+
+func (s SplitFeatureResult) SplitFeature() backend.FeatureEvolutionSplit {
+	return s.splitFeature
 }
 
 // NewSplitFeatureResult creates a new SplitFeatureResult for a split feature.
-func NewSplitFeatureResult(splitFeature *backend.FeatureSplitInfo) *SplitFeatureResult {
+func NewSplitFeatureResult(splitFeature backend.FeatureEvolutionSplit) *SplitFeatureResult {
 	return &SplitFeatureResult{
 		splitFeature: splitFeature,
 	}
@@ -54,8 +58,8 @@ type MovedFeatureResult struct {
 	newFeatureID string
 }
 
-func (m MovedFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
-	v.VisitMovedFeature(ctx, m)
+func (m MovedFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) error {
+	return v.VisitMovedFeature(ctx, m)
 }
 
 // NewMovedFeatureResult creates a new MovedFeatureResult for a moved feature.
@@ -72,7 +76,7 @@ func (m MovedFeatureResult) NewFeatureID() string {
 // FeatureResult is the interface that all concrete results implement.
 // The Visit method allows a visitor to operate on the concrete type.
 type FeatureResult interface {
-	Visit(ctx context.Context, visitor FeatureResultVisitor)
+	Visit(ctx context.Context, visitor FeatureResultVisitor) error
 }
 
 // GetFeatureResult is a container for the result of a GetFeature operation.
@@ -81,8 +85,8 @@ type GetFeatureResult struct {
 }
 
 // Visit allows a visitor to operate on the result.
-func (g GetFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) {
-	g.result.Visit(ctx, v)
+func (g GetFeatureResult) Visit(ctx context.Context, v FeatureResultVisitor) error {
+	return g.result.Visit(ctx, v)
 }
 
 // NewGetFeatureResult creates a new GetFeatureResult.

@@ -21,6 +21,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
@@ -149,6 +150,7 @@ type Server struct {
 	metadataStorer          WebFeatureMetadataStorer
 	wptMetricsStorer        WPTMetricsStorer
 	operationResponseCaches *operationResponseCaches
+	baseURL                 *url.URL
 }
 
 func defaultBrowsers() []backend.BrowserPathParam {
@@ -203,6 +205,7 @@ type RouteCacheOptions struct {
 
 func NewHTTPServer(
 	port string,
+	baseURL *url.URL,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
 	rawBytesDataCacher RawBytesDataCacher,
@@ -214,6 +217,7 @@ func NewHTTPServer(
 		metadataStorer:          metadataStorer,
 		wptMetricsStorer:        wptMetricsStorer,
 		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher, routeCacheOptions),
+		baseURL:                 baseURL,
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

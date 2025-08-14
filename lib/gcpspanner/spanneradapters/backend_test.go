@@ -64,6 +64,18 @@ type mockGetIDByFeaturesIDConfig struct {
 	returnedError      error
 }
 
+type mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig struct {
+	expectedFeatureKey string
+	result             *gcpspanner.MovedWebFeature
+	returnedError      error
+}
+
+type mockGetSplitWebFeatureByOriginalFeatureKeyConfig struct {
+	expectedFeatureKey string
+	result             *gcpspanner.SplitWebFeature
+	returnedError      error
+}
+
 type mockListBrowserFeatureCountMetricConfig struct {
 	result        *gcpspanner.BrowserFeatureCountResultPage
 	returnedError error
@@ -146,6 +158,31 @@ type mockBackendSpannerClient struct {
 	mockDeleteUserSearchBookmarkCfg      *mockDeleteUserSearchBookmarkConfig
 	pageToken                            *string
 	err                                  error
+
+	mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg *mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig
+	mockGetSplitWebFeatureByOriginalFeatureKeyCfg        *mockGetSplitWebFeatureByOriginalFeatureKeyConfig
+}
+
+// GetMovedWebFeatureDetailsByOriginalFeatureKey implements BackendSpannerClient.
+func (c mockBackendSpannerClient) GetMovedWebFeatureDetailsByOriginalFeatureKey(
+	_ context.Context, featureKey string) (*gcpspanner.MovedWebFeature, error) {
+	if featureKey != c.mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg.expectedFeatureKey {
+		c.t.Errorf("unexpected input to mock: %s", featureKey)
+	}
+
+	return c.mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg.result,
+		c.mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg.returnedError
+}
+
+// GetSplitWebFeatureByOriginalFeatureKey implements BackendSpannerClient.
+func (c mockBackendSpannerClient) GetSplitWebFeatureByOriginalFeatureKey(
+	_ context.Context, featureKey string) (*gcpspanner.SplitWebFeature, error) {
+	if featureKey != c.mockGetSplitWebFeatureByOriginalFeatureKeyCfg.expectedFeatureKey {
+		c.t.Errorf("unexpected input to mock: %s", featureKey)
+	}
+
+	return c.mockGetSplitWebFeatureByOriginalFeatureKeyCfg.result,
+		c.mockGetSplitWebFeatureByOriginalFeatureKeyCfg.returnedError
 }
 
 // AddUserSearchBookmark implements BackendSpannerClient.
@@ -199,7 +236,7 @@ func (c mockBackendSpannerClient) GetFeature(
 		c.t.Error("unexpected input to mock")
 	}
 
-	return c.mockGetFeatureCfg.result, c.mockFeaturesSearchCfg.returnedError
+	return c.mockGetFeatureCfg.result, c.mockGetFeatureCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) GetIDFromFeatureKey(
@@ -1475,10 +1512,13 @@ func TestGetFeature(t *testing.T) {
 	testCases := []struct {
 		name               string
 		cfg                mockGetFeatureConfig
+		movedFeatureCfg    *mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig
+		splitFeatureCfg    *mockGetSplitWebFeatureByOriginalFeatureKeyConfig
 		inputFeatureID     string
 		inputWPTMetricView backend.WPTMetricView
 		inputBrowsers      BrowserList
-		expectedFeature    *backend.Feature
+		visitor            func(t *testing.T) backendtypes.FeatureResultVisitor
+		expectedError      error
 	}{
 		{
 			name:               "regular",
@@ -1533,59 +1573,188 @@ func TestGetFeature(t *testing.T) {
 				},
 				returnedError: nil,
 			},
-			expectedFeature: &backend.Feature{
-				Baseline: &backend.BaselineInfo{
-					Status: valuePtr(backend.Newly),
-					LowDate: valuePtr(
-						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
-					),
-					HighDate: nil,
-				},
-				FeatureId: "feature1",
-				Name:      "feature 1",
-				Spec: &backend.FeatureSpecInfo{
-					Links: &[]backend.SpecLink{
-						{
-							Link: valuePtr("link1"),
+			splitFeatureCfg: nil,
+			movedFeatureCfg: nil,
+			visitor: func(t *testing.T) backendtypes.FeatureResultVisitor {
+				return &TestRegularFeatureVisitor{
+					t: t,
+					expected: backendtypes.NewRegularFeatureResult(&backend.Feature{
+						Baseline: &backend.BaselineInfo{
+							Status: valuePtr(backend.Newly),
+							LowDate: valuePtr(
+								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
+							),
+							HighDate: nil,
 						},
-						{
-							Link: valuePtr("link2"),
-						},
-					},
-				},
-				Usage: &backend.BrowserUsage{
-					Chrome: &backend.ChromeUsageInfo{
-						Daily: nil,
-					},
-				},
-				Wpt: &backend.FeatureWPTSnapshots{
-					Experimental: &map[string]backend.WPTFeatureData{
-						"browser3": {
-							Score:    valuePtr[float64](0.2),
-							Metadata: nil,
-						},
-					},
-					Stable: &map[string]backend.WPTFeatureData{
-						"browser3": {
-							Score: valuePtr[float64](0.5),
-							Metadata: &map[string]interface{}{
-								"browser3": "test",
+						FeatureId: "feature1",
+						Name:      "feature 1",
+						Spec: &backend.FeatureSpecInfo{
+							Links: &[]backend.SpecLink{
+								{
+									Link: valuePtr("link1"),
+								},
+								{
+									Link: valuePtr("link2"),
+								},
 							},
 						},
-					},
-				},
-				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"browser3": {
-						Status:  valuePtr(backend.Available),
-						Date:    nil,
-						Version: nil,
-					},
-				},
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-				DeveloperSignals: nil,
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-				Evolution: nil,
+						Usage: &backend.BrowserUsage{
+							Chrome: &backend.ChromeUsageInfo{
+								Daily: nil,
+							},
+						},
+						Wpt: &backend.FeatureWPTSnapshots{
+							Experimental: &map[string]backend.WPTFeatureData{
+								"browser3": {
+									Score:    valuePtr[float64](0.2),
+									Metadata: nil,
+								},
+							},
+							Stable: &map[string]backend.WPTFeatureData{
+								"browser3": {
+									Score: valuePtr[float64](0.5),
+									Metadata: &map[string]interface{}{
+										"browser3": "test",
+									},
+								},
+							},
+						},
+						BrowserImplementations: &map[string]backend.BrowserImplementation{
+							"browser3": {
+								Status:  valuePtr(backend.Available),
+								Date:    nil,
+								Version: nil,
+							},
+						},
+						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
+						DeveloperSignals: nil,
+						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
+						Evolution: nil,
+					}),
+				}
 			},
+			expectedError: nil,
+		},
+		{
+			name:               "moved",
+			inputFeatureID:     "feature1",
+			inputWPTMetricView: backend.SubtestCounts,
+			inputBrowsers: []backend.BrowserPathParam{
+				"browser1",
+				"browser2",
+				"browser3",
+			},
+			cfg: mockGetFeatureConfig{
+				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
+				expectedWPTMetricView: gcpspanner.WPTSubtestView,
+				expectedBrowsers: []string{
+					"browser1",
+					"browser2",
+					"browser3",
+				},
+				result:        nil,
+				returnedError: gcpspanner.ErrQueryReturnedNoResults,
+			},
+			splitFeatureCfg: nil,
+			movedFeatureCfg: &mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig{
+				expectedFeatureKey: "feature1",
+				result: &gcpspanner.MovedWebFeature{
+					OriginalFeatureKey: "feature1",
+					NewFeatureKey:      "feature2",
+				},
+				returnedError: nil,
+			},
+			visitor: func(t *testing.T) backendtypes.FeatureResultVisitor {
+				return &TestMovedFeatureVisitor{
+					t:        t,
+					expected: *backendtypes.NewMovedFeatureResult("feature2"),
+				}
+			},
+			expectedError: nil,
+		},
+		{
+			name:               "split",
+			inputFeatureID:     "feature1",
+			inputWPTMetricView: backend.SubtestCounts,
+			inputBrowsers: []backend.BrowserPathParam{
+				"browser1",
+				"browser2",
+				"browser3",
+			},
+			cfg: mockGetFeatureConfig{
+				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
+				expectedWPTMetricView: gcpspanner.WPTSubtestView,
+				expectedBrowsers: []string{
+					"browser1",
+					"browser2",
+					"browser3",
+				},
+				result:        nil,
+				returnedError: gcpspanner.ErrQueryReturnedNoResults,
+			},
+			splitFeatureCfg: &mockGetSplitWebFeatureByOriginalFeatureKeyConfig{
+				expectedFeatureKey: "feature1",
+				result: &gcpspanner.SplitWebFeature{
+					OriginalFeatureKey: "feature1",
+					TargetFeatureKeys:  []string{"feature2", "feature3"},
+				},
+				returnedError: nil,
+			},
+			movedFeatureCfg: &mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig{
+				expectedFeatureKey: "feature1",
+				result:             nil,
+				returnedError:      gcpspanner.ErrQueryReturnedNoResults,
+			},
+			visitor: func(t *testing.T) backendtypes.FeatureResultVisitor {
+				return &TestSplitFeatureVisitor{
+					t: t,
+					expected: *backendtypes.NewSplitFeatureResult(
+						backend.FeatureEvolutionSplit{
+							Features: []backend.FeatureSplitInfo{
+								{Id: "feature2"},
+								{Id: "feature3"},
+							},
+						},
+					),
+				}
+			},
+			expectedError: nil,
+		},
+		{
+			name:               "feature not found",
+			inputFeatureID:     "feature1",
+			inputWPTMetricView: backend.SubtestCounts,
+			inputBrowsers: []backend.BrowserPathParam{
+				"browser1",
+				"browser2",
+				"browser3",
+			},
+			cfg: mockGetFeatureConfig{
+				expectedFilterable:    gcpspanner.NewFeatureKeyFilter("feature1"),
+				expectedWPTMetricView: gcpspanner.WPTSubtestView,
+				expectedBrowsers: []string{
+					"browser1",
+					"browser2",
+					"browser3",
+				},
+				result:        nil,
+				returnedError: gcpspanner.ErrQueryReturnedNoResults,
+			},
+			splitFeatureCfg: &mockGetSplitWebFeatureByOriginalFeatureKeyConfig{
+				expectedFeatureKey: "feature1",
+				result: &gcpspanner.SplitWebFeature{
+					OriginalFeatureKey: "feature1",
+					TargetFeatureKeys:  []string{"feature2", "feature3"},
+				},
+				returnedError: gcpspanner.ErrQueryReturnedNoResults,
+			},
+			movedFeatureCfg: &mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig{
+				expectedFeatureKey: "feature1",
+				result:             nil,
+				returnedError:      gcpspanner.ErrQueryReturnedNoResults,
+			},
+			visitor:       nil,
+			expectedError: backendtypes.ErrEntityDoesNotExist,
 		},
 	}
 	for _, tc := range testCases {
@@ -1594,21 +1763,110 @@ func TestGetFeature(t *testing.T) {
 			mock := mockBackendSpannerClient{
 				t:                 t,
 				mockGetFeatureCfg: tc.cfg,
+				mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg: tc.movedFeatureCfg,
+				mockGetSplitWebFeatureByOriginalFeatureKeyCfg:        tc.splitFeatureCfg,
 			}
 			bk := NewBackend(mock)
 			feature, err := bk.GetFeature(
 				context.Background(),
 				tc.inputFeatureID, tc.inputWPTMetricView, tc.inputBrowsers)
-			if !errors.Is(err, tc.cfg.returnedError) {
+			if !errors.Is(err, tc.expectedError) {
 				t.Error("unexpected error")
 			}
 
-			if !CompareFeatures(*feature, *tc.expectedFeature) {
-				t.Error("unexpected feature")
+			if tc.visitor == nil {
+				return
 			}
-
+			err = feature.Visit(t.Context(), tc.visitor(t))
+			if err != nil {
+				t.Error("unexpected error")
+			}
 		})
 	}
+}
+
+// TestRegularFeatureVisitor expects a RegularFeatureResult and compares it.
+// Other Visit methods will cause an error.
+type TestRegularFeatureVisitor struct {
+	t        *testing.T
+	expected *backendtypes.RegularFeatureResult
+}
+
+func (v *TestRegularFeatureVisitor) VisitRegularFeature(_ context.Context,
+	actual backendtypes.RegularFeatureResult) error {
+	if !CompareFeatures(*actual.Feature(), *v.expected.Feature()) {
+		v.t.Error("unexpected feature")
+	}
+
+	return nil
+}
+
+func (v *TestRegularFeatureVisitor) VisitMovedFeature(_ context.Context, actual backendtypes.MovedFeatureResult) error {
+	v.t.Errorf("VisitMovedFeature called unexpectedly for a RegularFeature test. Actual: %+v", actual)
+
+	return nil
+}
+
+func (v *TestRegularFeatureVisitor) VisitSplitFeature(_ context.Context, actual backendtypes.SplitFeatureResult) error {
+	v.t.Errorf("VisitSplitFeature called unexpectedly for a RegularFeature test. Actual: %+v", actual)
+
+	return nil
+}
+
+// TestMovedFeatureVisitor expects a MovedFeatureResult and compares it.
+// Other Visit methods will cause an error.
+type TestMovedFeatureVisitor struct {
+	t        *testing.T
+	expected backendtypes.MovedFeatureResult
+}
+
+func (v *TestMovedFeatureVisitor) VisitMovedFeature(_ context.Context, actual backendtypes.MovedFeatureResult) error {
+	if !reflect.DeepEqual(v.expected, actual) {
+		v.t.Errorf("MovedFeature mismatch:\nExpected: %+v\nActual:   %+v", v.expected, actual)
+	}
+
+	return nil
+}
+
+func (v *TestMovedFeatureVisitor) VisitRegularFeature(_ context.Context,
+	actual backendtypes.RegularFeatureResult) error {
+	v.t.Errorf("VisitRegularFeature called unexpectedly for a MovedFeature test. Actual: %+v", actual)
+
+	return nil
+}
+
+func (v *TestMovedFeatureVisitor) VisitSplitFeature(_ context.Context, actual backendtypes.SplitFeatureResult) error {
+	v.t.Errorf("VisitSplitFeature called unexpectedly for a MovedFeature test. Actual: %+v", actual)
+
+	return nil
+}
+
+// TestSplitFeatureVisitor expects a SplitFeatureResult and compares it.
+// Other Visit methods will cause an error.
+type TestSplitFeatureVisitor struct {
+	t        *testing.T
+	expected backendtypes.SplitFeatureResult
+}
+
+func (v *TestSplitFeatureVisitor) VisitSplitFeature(_ context.Context, actual backendtypes.SplitFeatureResult) error {
+	if !reflect.DeepEqual(v.expected, actual) {
+		v.t.Errorf("SplitFeature mismatch:\nExpected: %+v\nActual:   %+v", v.expected, actual)
+	}
+
+	return nil
+}
+
+func (v *TestSplitFeatureVisitor) VisitRegularFeature(_ context.Context,
+	actual backendtypes.RegularFeatureResult) error {
+	v.t.Errorf("VisitRegularFeature called unexpectedly for a SplitFeature test. Actual: %+v", actual)
+
+	return nil
+}
+
+func (v *TestSplitFeatureVisitor) VisitMovedFeature(_ context.Context, actual backendtypes.MovedFeatureResult) error {
+	v.t.Errorf("VisitMovedFeature called unexpectedly for a SplitFeature test. Actual: %+v", actual)
+
+	return nil
 }
 
 func TestCreateUserSavedSearch(t *testing.T) {
