@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
