@@ -1057,7 +1057,7 @@ func (s *Backend) GetFeature(
 	featureID string,
 	wptMetricView backend.WPTMetricView,
 	browsers []backend.BrowserPathParam,
-) (*backend.Feature, error) {
+) (*backendtypes.GetFeatureResult, error) {
 	filter := gcpspanner.NewFeatureKeyFilter(featureID)
 	featureResult, err := s.client.GetFeature(ctx, filter, getSpannerWPTMetricView(wptMetricView),
 		BrowserList(browsers).ToStringList())
@@ -1065,7 +1065,8 @@ func (s *Backend) GetFeature(
 		return nil, err
 	}
 
-	return s.convertFeatureResult(featureResult), nil
+	return backendtypes.NewGetFeatureResult(
+		backendtypes.NewRegularFeatureResult(s.convertFeatureResult(featureResult))), nil
 }
 
 func (s *Backend) GetIDFromFeatureKey(
