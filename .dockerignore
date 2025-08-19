@@ -39,11 +39,6 @@ dist
 frontend/build
 frontend/.postinstall
 
-# Generated files
-*.gen.go
-lib/gen/*/*/*.go
-lib/gen/*/*/*.ts
-lib/gen/featuresearch/**
 
 # Ignore coverage files
 coverage
