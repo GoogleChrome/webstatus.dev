@@ -711,6 +711,11 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 		},
 	}
 	insertTestDailyChromiumHistogramMetrics(ctx, client, t, sampleDailyChromiumHistogramMetrics)
+
+	err := client.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during sync. %s", err.Error())
+	}
 }
 
 func defaultSorting() Sortable {
@@ -1730,7 +1735,7 @@ func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, c
 				Keyword: searchtypes.KeywordAND,
 				Term:    nil,
 				Children: []*searchtypes.SearchNode{
-					{ // startDateNode
+					{
 						Keyword: searchtypes.KeywordNone,
 						Term: &searchtypes.SearchTerm{
 							Identifier: searchtypes.IdentifierAvailableBrowserDate,
@@ -1758,7 +1763,7 @@ func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, c
 							},
 						},
 					},
-					{ // endDateNode
+					{
 						Keyword: searchtypes.KeywordNone,
 						Term: &searchtypes.SearchTerm{
 							Identifier: searchtypes.IdentifierAvailableBrowserDate,

@@ -59,12 +59,6 @@ var (
 	// ErrUsageMetricUpsertNoHistogramFound indicates that the chromium histogram metric
 	// was not found when attempting to upsert a usage metric.
 	ErrUsageMetricUpsertNoHistogramFound = errors.New("histogram not found when upserting usage metric")
-
-	// ErrUsageMetricUpsertNoHistogramEnumFound indicates that the chromium histogram enum
-	// was not found when attempting to upsert a usage metric. This typically occurs when
-	// the histogram name associated with the metric is not found, possibly due to
-	// a draft or obsolete feature for which the corresponding enum ID has not been created.
-	ErrUsageMetricUpsertNoHistogramEnumFound = errors.New("histogram enum not found when upserting usage metric")
 )
 
 // entitySynchronizer specific errors.
