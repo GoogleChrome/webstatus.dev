@@ -912,15 +912,16 @@ func generateChromiumHistogramMetrics(
 				usage = big.NewRat(r.Int63n(10000), 10000) // Generate usage between 0-100%
 			}
 
-			err := client.UpsertDailyChromiumHistogramMetric(
+			err := client.StoreDailyChromiumHistogramMetrics(
 				ctx,
-				metricdatatypes.WebDXFeatureEnum,
-				int64(i+1),
-				gcpspanner.DailyChromiumHistogramMetric{
-					Day:  civil.DateOf(currDate),
-					Rate: *usage,
+				metricdatatypes.WebDXFeatureEnum, map[int64]gcpspanner.DailyChromiumHistogramMetric{
+					int64(i + 1): {
+						Day:  civil.DateOf(currDate),
+						Rate: *usage,
+					},
 				},
 			)
+
 			if err != nil {
 				return metricsCount, err
 			}

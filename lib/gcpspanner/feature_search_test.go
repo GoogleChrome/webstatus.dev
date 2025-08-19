@@ -8,7 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// WITHOUT WARRANTIES, OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
@@ -711,6 +711,11 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 		},
 	}
 	insertTestDailyChromiumHistogramMetrics(ctx, client, t, sampleDailyChromiumHistogramMetrics)
+
+	err := client.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during sync. %s", err.Error())
+	}
 }
 
 func defaultSorting() Sortable {
@@ -1730,7 +1735,7 @@ func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, c
 				Keyword: searchtypes.KeywordAND,
 				Term:    nil,
 				Children: []*searchtypes.SearchNode{
-					{ // startDateNode
+					{
 						Keyword: searchtypes.KeywordNone,
 						Term: &searchtypes.SearchTerm{
 							Identifier: searchtypes.IdentifierAvailableBrowserDate,
@@ -1758,7 +1763,7 @@ func testFeatureAvailableBrowserDateFilters(ctx context.Context, t *testing.T, c
 							},
 						},
 					},
-					{ // endDateNode
+					{
 						Keyword: searchtypes.KeywordNone,
 						Term: &searchtypes.SearchTerm{
 							Identifier: searchtypes.IdentifierAvailableBrowserDate,

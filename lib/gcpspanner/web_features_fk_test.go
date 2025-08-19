@@ -197,17 +197,24 @@ func (w *webFeatureForeignKeyTestHelpers) insertWebFeatureChromiumHistogramData(
 		t.Errorf("unexpected error during insert. %s", err.Error())
 	}
 
-	err = spannerClient.UpsertDailyChromiumHistogramMetric(ctx,
-		metricdatatypes.HistogramName(histogramName), bucketID, DailyChromiumHistogramMetric{
-			Day: civil.Date{
-				Year:  2000,
-				Day:   1,
-				Month: time.January,
+	err = spannerClient.StoreDailyChromiumHistogramMetrics(
+		ctx,
+		metricdatatypes.HistogramName(histogramName),
+		map[int64]DailyChromiumHistogramMetric{
+			bucketID: {
+				Day: civil.Date{
+					Year: 2000, Day: 1, Month: time.January,
+				},
+				Rate: *big.NewRat(91, 100),
 			},
-			Rate: *big.NewRat(91, 100),
 		})
 	if err != nil {
 		t.Errorf("unexpected error during insert. %s", err.Error())
+	}
+
+	err = spannerClient.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during sync. %s", err.Error())
 	}
 
 	// Insert WebFeatureChromiumHistogramEnumValue

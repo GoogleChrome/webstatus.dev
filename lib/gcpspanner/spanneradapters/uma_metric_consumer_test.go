@@ -29,8 +29,9 @@ type mockUMAMetricsClient struct {
 		gcpspanner.DailyChromiumHistogramEnumCapstone) (*bool, error)
 	upsertDailyChromiumHistogramCapstone func(context.Context,
 		gcpspanner.DailyChromiumHistogramEnumCapstone) error
-	upsertDailyChromiumHistogramMetric func(context.Context,
-		metricdatatypes.HistogramName, int64, gcpspanner.DailyChromiumHistogramMetric) error
+	storeDailyChromiumHistogramMetrics func(context.Context,
+		metricdatatypes.HistogramName, map[int64]gcpspanner.DailyChromiumHistogramMetric) error
+	syncLatestDailyChromiumHistogramMetrics func(context.Context) error
 }
 
 func (m *mockUMAMetricsClient) HasDailyChromiumHistogramCapstone(ctx context.Context,
@@ -43,9 +44,13 @@ func (m *mockUMAMetricsClient) UpsertDailyChromiumHistogramCapstone(ctx context.
 	return m.upsertDailyChromiumHistogramCapstone(ctx, in)
 }
 
-func (m *mockUMAMetricsClient) UpsertDailyChromiumHistogramMetric(ctx context.Context,
-	histogramName metricdatatypes.HistogramName, id int64, in gcpspanner.DailyChromiumHistogramMetric) error {
-	return m.upsertDailyChromiumHistogramMetric(ctx, histogramName, id, in)
+func (m *mockUMAMetricsClient) StoreDailyChromiumHistogramMetrics(ctx context.Context,
+	histogramName metricdatatypes.HistogramName, in map[int64]gcpspanner.DailyChromiumHistogramMetric) error {
+	return m.storeDailyChromiumHistogramMetrics(ctx, histogramName, in)
+}
+
+func (m *mockUMAMetricsClient) SyncLatestDailyChromiumHistogramMetrics(ctx context.Context) error {
+	return m.syncLatestDailyChromiumHistogramMetrics(ctx)
 }
 
 func TestUMAMetricConsumer_HasCapstone(t *testing.T) {
@@ -66,8 +71,9 @@ func TestUMAMetricConsumer_HasCapstone(t *testing.T) {
 
 					return &result, nil
 				},
-				upsertDailyChromiumHistogramCapstone: nil,
-				upsertDailyChromiumHistogramMetric:   nil,
+				upsertDailyChromiumHistogramCapstone:    nil,
+				storeDailyChromiumHistogramMetrics:      nil,
+				syncLatestDailyChromiumHistogramMetrics: nil,
 			},
 			day:         civil.Date{Year: 2024, Month: 1, Day: 1},
 			histogram:   metricdatatypes.HistogramName("test"),
@@ -83,8 +89,9 @@ func TestUMAMetricConsumer_HasCapstone(t *testing.T) {
 
 					return &result, nil
 				},
-				upsertDailyChromiumHistogramCapstone: nil,
-				upsertDailyChromiumHistogramMetric:   nil,
+				upsertDailyChromiumHistogramCapstone:    nil,
+				storeDailyChromiumHistogramMetrics:      nil,
+				syncLatestDailyChromiumHistogramMetrics: nil,
 			},
 			day:         civil.Date{Year: 2024, Month: 1, Day: 1},
 			histogram:   metricdatatypes.HistogramName("test"),
@@ -94,12 +101,13 @@ func TestUMAMetricConsumer_HasCapstone(t *testing.T) {
 		{
 			name: "HasDailyChromiumHistogramCapstone returns error",
 			client: &mockUMAMetricsClient{
-				upsertDailyChromiumHistogramCapstone: nil,
-				upsertDailyChromiumHistogramMetric:   nil,
 				hasDailyChromiumHistogramCapstone: func(_ context.Context,
 					_ gcpspanner.DailyChromiumHistogramEnumCapstone) (*bool, error) {
 					return nil, errors.New("test error")
 				},
+				upsertDailyChromiumHistogramCapstone:    nil,
+				storeDailyChromiumHistogramMetrics:      nil,
+				syncLatestDailyChromiumHistogramMetrics: nil,
 			},
 			day:         civil.Date{Year: 2024, Month: 1, Day: 1},
 			histogram:   metricdatatypes.HistogramName("test"),
@@ -134,12 +142,13 @@ func TestUMAMetricConsumer_SaveCapstone(t *testing.T) {
 		{
 			name: "UpsertDailyChromiumHistogramCapstone returns nil",
 			client: &mockUMAMetricsClient{
+				hasDailyChromiumHistogramCapstone: nil,
 				upsertDailyChromiumHistogramCapstone: func(_ context.Context,
 					_ gcpspanner.DailyChromiumHistogramEnumCapstone) error {
 					return nil
 				},
-				upsertDailyChromiumHistogramMetric: nil,
-				hasDailyChromiumHistogramCapstone:  nil,
+				storeDailyChromiumHistogramMetrics:      nil,
+				syncLatestDailyChromiumHistogramMetrics: nil,
 			},
 			day:         civil.Date{Year: 2024, Month: 1, Day: 1},
 			histogram:   metricdatatypes.HistogramName("test"),
@@ -148,12 +157,13 @@ func TestUMAMetricConsumer_SaveCapstone(t *testing.T) {
 		{
 			name: "UpsertDailyChromiumHistogramCapstone returns error",
 			client: &mockUMAMetricsClient{
-				upsertDailyChromiumHistogramMetric: nil,
-				hasDailyChromiumHistogramCapstone:  nil,
+				hasDailyChromiumHistogramCapstone: nil,
 				upsertDailyChromiumHistogramCapstone: func(_ context.Context,
 					_ gcpspanner.DailyChromiumHistogramEnumCapstone) error {
 					return errors.New("test error")
 				},
+				storeDailyChromiumHistogramMetrics:      nil,
+				syncLatestDailyChromiumHistogramMetrics: nil,
 			},
 			day:         civil.Date{Year: 2024, Month: 1, Day: 1},
 			histogram:   metricdatatypes.HistogramName("test"),
@@ -182,14 +192,17 @@ func TestUMAMetricConsumer_SaveMetrics(t *testing.T) {
 		expectedErr error
 	}{
 		{
-			name: "UpsertDailyChromiumHistogramMetric returns nil",
+			name: "success",
 			client: &mockUMAMetricsClient{
-				upsertDailyChromiumHistogramMetric: func(_ context.Context, _ metricdatatypes.HistogramName,
-					_ int64, _ gcpspanner.DailyChromiumHistogramMetric) error {
-					return nil
-				},
 				hasDailyChromiumHistogramCapstone:    nil,
 				upsertDailyChromiumHistogramCapstone: nil,
+				storeDailyChromiumHistogramMetrics: func(_ context.Context, _ metricdatatypes.HistogramName,
+					_ map[int64]gcpspanner.DailyChromiumHistogramMetric) error {
+					return nil
+				},
+				syncLatestDailyChromiumHistogramMetrics: func(_ context.Context) error {
+					return nil
+				},
 			},
 			day: civil.Date{Year: 2024, Month: 1, Day: 1},
 			data: metricdatatypes.BucketDataMetrics{
@@ -199,14 +212,15 @@ func TestUMAMetricConsumer_SaveMetrics(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "UpsertDailyChromiumHistogramMetric returns error",
+			name: "StoreDailyChromiumHistogramMetrics returns error",
 			client: &mockUMAMetricsClient{
 				hasDailyChromiumHistogramCapstone:    nil,
 				upsertDailyChromiumHistogramCapstone: nil,
-				upsertDailyChromiumHistogramMetric: func(_ context.Context, _ metricdatatypes.HistogramName,
-					_ int64, _ gcpspanner.DailyChromiumHistogramMetric) error {
+				storeDailyChromiumHistogramMetrics: func(_ context.Context, _ metricdatatypes.HistogramName,
+					_ map[int64]gcpspanner.DailyChromiumHistogramMetric) error {
 					return errors.New("test error")
 				},
+				syncLatestDailyChromiumHistogramMetrics: nil,
 			},
 			day: civil.Date{Year: 2024, Month: 1, Day: 1},
 			data: metricdatatypes.BucketDataMetrics{
@@ -215,36 +229,23 @@ func TestUMAMetricConsumer_SaveMetrics(t *testing.T) {
 			expectedErr: ErrMetricsSaveFailed,
 		},
 		{
-			name: "UpsertDailyChromiumHistogramMetric skips on ErrUsageMetricUpsertNoHistogramEnumFound",
+			name: "SyncLatestDailyChromiumHistogramMetrics returns error",
 			client: &mockUMAMetricsClient{
 				hasDailyChromiumHistogramCapstone:    nil,
 				upsertDailyChromiumHistogramCapstone: nil,
-				upsertDailyChromiumHistogramMetric: func(_ context.Context, _ metricdatatypes.HistogramName,
-					_ int64, _ gcpspanner.DailyChromiumHistogramMetric) error {
-					return gcpspanner.ErrUsageMetricUpsertNoHistogramEnumFound
+				storeDailyChromiumHistogramMetrics: func(_ context.Context, _ metricdatatypes.HistogramName,
+					_ map[int64]gcpspanner.DailyChromiumHistogramMetric) error {
+					return nil
+				},
+				syncLatestDailyChromiumHistogramMetrics: func(_ context.Context) error {
+					return errors.New("test error")
 				},
 			},
 			day: civil.Date{Year: 2024, Month: 1, Day: 1},
 			data: metricdatatypes.BucketDataMetrics{
 				1: {Rate: 0.5, LowVolume: false, Milestone: ""},
 			},
-			expectedErr: nil,
-		},
-		{
-			name: "UpsertDailyChromiumHistogramMetric skips on ErrUsageMetricUpsertNoFeatureIDFound",
-			client: &mockUMAMetricsClient{
-				hasDailyChromiumHistogramCapstone:    nil,
-				upsertDailyChromiumHistogramCapstone: nil,
-				upsertDailyChromiumHistogramMetric: func(_ context.Context, _ metricdatatypes.HistogramName,
-					_ int64, _ gcpspanner.DailyChromiumHistogramMetric) error {
-					return gcpspanner.ErrUsageMetricUpsertNoFeatureIDFound
-				},
-			},
-			day: civil.Date{Year: 2024, Month: 1, Day: 1},
-			data: metricdatatypes.BucketDataMetrics{
-				1: {Rate: 0.5, LowVolume: false, Milestone: ""},
-			},
-			expectedErr: nil,
+			expectedErr: ErrMetricsSaveFailed,
 		},
 	}
 	for _, tc := range tests {

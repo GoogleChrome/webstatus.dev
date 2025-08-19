@@ -8,7 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// WITHOUT WARRANTIES, OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
@@ -155,12 +155,8 @@ func getSampleDailyChromiumHistogramMetricsToCheckAfterUpdate(
 		},
 		{
 			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["ViewTransitions"],
-			Day: civil.Date{
-				Year:  2000,
-				Month: time.January,
-				Day:   20,
-			},
-			Rate: *big.NewRat(93, 100),
+			Day:                          civil.Date{Year: 2000, Month: time.January, Day: 20},
+			Rate:                         *big.NewRat(93, 100),
 		},
 	}
 }
@@ -220,11 +216,13 @@ func getSampleLatestDailyChromiumHistogramMetricsToCheckAfterUpdate(
 func insertTestDailyChromiumHistogramMetrics(
 	ctx context.Context, c *Client, t *testing.T, values []dailyChromiumHistogramMetricToInsert) {
 	for _, metricToInsert := range values {
-		err := c.UpsertDailyChromiumHistogramMetric(
+		metrics := map[int64]DailyChromiumHistogramMetric{
+			metricToInsert.bucketID: metricToInsert.DailyChromiumHistogramMetric,
+		}
+		err := c.StoreDailyChromiumHistogramMetrics(
 			ctx,
 			metricToInsert.histogramName,
-			metricToInsert.bucketID,
-			metricToInsert.DailyChromiumHistogramMetric,
+			metrics,
 		)
 		if err != nil {
 			t.Errorf("unexpected error during insert of Chromium metrics. %s", err.Error())
@@ -296,7 +294,7 @@ func (c *Client) readAllLatestDailyChromiumHistogramMetrics(
 	return ret, nil
 }
 
-func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
+func TestStoreAndSyncDailyChromiumHistogramMetric(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 
@@ -308,6 +306,11 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
 	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
 	insertTestDailyChromiumHistogramMetrics(ctx, spannerClient, t, sampleMetrics)
+
+	err := spannerClient.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during sync. %s", err.Error())
+	}
 
 	metricValues, err := spannerClient.readAllDailyChromiumHistogramMetrics(ctx)
 	if err != nil {
@@ -328,34 +331,43 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 	}
 
 	// Update the rate of one of the items.
-	err = spannerClient.UpsertDailyChromiumHistogramMetric(ctx,
-		metricdatatypes.WebDXFeatureEnum, 2, DailyChromiumHistogramMetric{
-			Day: civil.Date{
-				Year:  2000,
-				Month: time.January,
-				Day:   1,
+	err = spannerClient.StoreDailyChromiumHistogramMetrics(
+		ctx,
+		metricdatatypes.WebDXFeatureEnum,
+		map[int64]DailyChromiumHistogramMetric{
+			2: {
+				Day: civil.Date{
+					Year:  2000,
+					Month: time.January,
+					Day:   1,
+				},
+				// Change it to 90
+				Rate: *big.NewRat(90, 100),
 			},
-			// Change it to 90
-			Rate: *big.NewRat(90, 100),
 		})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
 	}
 
 	// Insert a newer value.
-	err = spannerClient.UpsertDailyChromiumHistogramMetric(ctx,
-		metricdatatypes.WebDXFeatureEnum, 2, DailyChromiumHistogramMetric{
-			Day: civil.Date{
-				Year:  2000,
-				Month: time.January,
-				Day:   20,
+	err = spannerClient.StoreDailyChromiumHistogramMetrics(
+		ctx,
+		metricdatatypes.WebDXFeatureEnum,
+		map[int64]DailyChromiumHistogramMetric{
+			2: {
+				Day:  civil.Date{Year: 2000, Month: time.January, Day: 20},
+				Rate: *big.NewRat(93, 100),
 			},
-			// New value of 93 for new day.
-			Rate: *big.NewRat(93, 100),
 		})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
 	}
+
+	err = spannerClient.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during sync. %s", err.Error())
+	}
+
 	metricValues, err = spannerClient.readAllDailyChromiumHistogramMetrics(ctx)
 	if err != nil {
 		t.Errorf("unexpected error during read all. %s", err.Error())
@@ -393,22 +405,18 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 				bucketID:      0,
 				expectedError: ErrUsageMetricUpsertNoHistogramFound,
 			},
-			{
-				name:          "bad histogram bucket id",
-				histogram:     metricdatatypes.WebDXFeatureEnum,
-				bucketID:      0,
-				expectedError: ErrUsageMetricUpsertNoHistogramEnumFound,
-			},
-			{
-				name:          "bucket id exists but no matching web features entry",
-				histogram:     metricdatatypes.WebDXFeatureEnum,
-				bucketID:      3,
-				expectedError: ErrUsageMetricUpsertNoFeatureIDFound,
-			},
+			// This test case is no longer valid because we don't check for the enum value at this level.
+			// {
+			// 	name:          "bad histogram bucket id",
+			// 	histogram:     metricdatatypes.WebDXFeatureEnum,
+			// 	bucketID:      0,
+			// 	expectedError: ErrUsageMetricUpsertNoHistogramEnumFound,
+			// },
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
-				err := spannerClient.UpsertDailyChromiumHistogramMetric(ctx, tc.histogram, tc.bucketID, unsuedMetric)
+				metrics := map[int64]DailyChromiumHistogramMetric{tc.bucketID: unsuedMetric}
+				err := spannerClient.StoreDailyChromiumHistogramMetrics(ctx, tc.histogram, metrics)
 				if !errors.Is(err, tc.expectedError) {
 					t.Errorf("expected %v, received %v", tc.expectedError, err)
 				}
@@ -416,11 +424,81 @@ func TestUpsertDailyChromiumHistogramMetric(t *testing.T) {
 		}
 	})
 }
-
 func dailyMetricEquality(left, right testSpannerDailyChromiumHistogramMetric) bool {
 	return reflect.DeepEqual(left, right)
 }
 
 func latestDailyMetricEquality(left, right testSpannerDailyChromiumHistogramMetric) bool {
 	return reflect.DeepEqual(left, right)
+}
+
+func TestSyncLatestDailyChromiumHistogramMetric_Deletes(t *testing.T) {
+	restartDatabaseContainer(t)
+	ctx := context.Background()
+
+	idMap := setupRequiredTablesForWebFeatureChromiumHistogramEnum(ctx, t)
+	sampleEnums := getSampleChromiumHistogramEnums()
+	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
+	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
+	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
+	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
+	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
+	insertTestDailyChromiumHistogramMetrics(ctx, spannerClient, t, sampleMetrics)
+
+	// 1. Initial Sync
+	err := spannerClient.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during initial sync. %s", err.Error())
+	}
+
+	// 2. Verify initial state
+	latestMetrics, err := spannerClient.readAllLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error reading latest metrics after initial sync. %s", err.Error())
+	}
+	expectedInitialLatestMetrics := getSampleLatestDailyChromiumHistogramMetricsToCheckBeforeUpdate(
+		enumValueLabelToIDMap)
+	if !slices.EqualFunc(expectedInitialLatestMetrics, latestMetrics, latestDailyMetricEquality) {
+		t.Fatalf("unequal metrics after initial sync.\nexpected %+v\nreceived %+v",
+			expectedInitialLatestMetrics, latestMetrics)
+	}
+
+	// 3. Trigger a deletion by calling the high-level DeleteWebFeature function.
+	// This should handle the cascade correctly, as verified in other tests.
+	featureIDToDelete := idMap["ViewTransitions"]
+	err = spannerClient.DeleteWebFeature(ctx, featureIDToDelete)
+	if err != nil {
+		t.Fatalf("failed to delete WebFeature: %s", err.Error())
+	}
+
+	// 4. Run sync again
+	err = spannerClient.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error during second sync. %s", err.Error())
+	}
+
+	// 5. Verify final state (one record deleted)
+	finalLatestMetrics, err := spannerClient.readAllLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		t.Fatalf("unexpected error reading latest metrics after second sync. %s", err.Error())
+	}
+
+	// The expected result is the initial list minus the deleted feature.
+	expectedFinalLatestMetrics := []testSpannerDailyChromiumHistogramMetric{
+		// CompressionStreams is the only one left.
+		{
+			ChromiumHistogramEnumValueID: enumValueLabelToIDMap["CompressionStreams"],
+			Day: civil.Date{
+				Year:  2000,
+				Month: time.January,
+				Day:   2,
+			},
+			Rate: *big.NewRat(8, 100),
+		},
+	}
+
+	if !slices.EqualFunc(expectedFinalLatestMetrics, finalLatestMetrics, latestDailyMetricEquality) {
+		t.Fatalf("unequal metrics after deletion sync.\nexpected %+v\nreceived %+v",
+			expectedFinalLatestMetrics, finalLatestMetrics)
+	}
 }

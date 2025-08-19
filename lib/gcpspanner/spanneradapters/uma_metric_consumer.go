@@ -41,8 +41,10 @@ func NewUMAMetricConsumer(client UMAMetricsClient) *UMAMetricConsumer {
 type UMAMetricsClient interface {
 	HasDailyChromiumHistogramCapstone(context.Context, gcpspanner.DailyChromiumHistogramEnumCapstone) (*bool, error)
 	UpsertDailyChromiumHistogramCapstone(context.Context, gcpspanner.DailyChromiumHistogramEnumCapstone) error
-	UpsertDailyChromiumHistogramMetric(context.Context, metricdatatypes.HistogramName,
-		int64, gcpspanner.DailyChromiumHistogramMetric) error
+	StoreDailyChromiumHistogramMetrics(context.Context,
+		metricdatatypes.HistogramName,
+		map[int64]gcpspanner.DailyChromiumHistogramMetric) error
+	SyncLatestDailyChromiumHistogramMetrics(context.Context) error
 }
 
 func (c *UMAMetricConsumer) HasCapstone(
@@ -79,36 +81,31 @@ func (c *UMAMetricConsumer) SaveMetrics(
 	ctx context.Context,
 	day civil.Date,
 	data metricdatatypes.BucketDataMetrics) error {
+	metricsToStore := make(map[int64]gcpspanner.DailyChromiumHistogramMetric, len(data))
 	for id, bucketData := range data {
 		rate := new(big.Rat).SetFloat64(bucketData.Rate)
 		if rate == nil {
 			return ErrInvalidRate
 		}
-		histogramName := metricdatatypes.WebDXFeatureEnum
-		err := c.client.UpsertDailyChromiumHistogramMetric(ctx, histogramName, id,
-			gcpspanner.DailyChromiumHistogramMetric{
-				Day:  day,
-				Rate: *rate,
-			})
-		if err != nil {
-			if errors.Is(err, gcpspanner.ErrUsageMetricUpsertNoHistogramEnumFound) {
-				slog.WarnContext(ctx, "histogram enum not found. skipping", "histogram", histogramName, "id", id,
-					"day", day, "rate", *rate, "err", err)
-
-				continue
-			} else if errors.Is(err, gcpspanner.ErrUsageMetricUpsertNoFeatureIDFound) {
-				slog.WarnContext(ctx, "failed to find feature id for enum. skipping", "histogram", histogramName,
-					"id", id, "day", day, "rate", *rate, "err", err)
-
-				continue
-			}
-			// All other errors should go back up (example: failure to find the histogram itself means
-			// a configuration or database problem).
-			slog.ErrorContext(ctx, "failed to save metrics", "histogram", histogramName, "id", id,
-				"day", day, "rate", *rate, "err", err)
-
-			return errors.Join(ErrMetricsSaveFailed, err)
+		metricsToStore[id] = gcpspanner.DailyChromiumHistogramMetric{
+			Day:  day,
+			Rate: *rate,
 		}
+	}
+
+	histogramName := metricdatatypes.WebDXFeatureEnum
+	err := c.client.StoreDailyChromiumHistogramMetrics(ctx, histogramName, metricsToStore)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to store metrics", "histogram", histogramName, "day", day, "err", err)
+
+		return errors.Join(ErrMetricsSaveFailed, err)
+	}
+
+	err = c.client.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to sync latest metrics", "histogram", histogramName, "day", day, "err", err)
+
+		return errors.Join(ErrMetricsSaveFailed, err)
 	}
 
 	return nil
