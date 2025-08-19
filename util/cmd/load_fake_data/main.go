@@ -935,6 +935,11 @@ func generateChromiumHistogramMetrics(
 		}
 	}
 
+	err := client.SyncLatestDailyChromiumHistogramMetrics(ctx)
+	if err != nil {
+		return metricsCount, err
+	}
+
 	return metricsCount, nil
 }
 

@@ -8,7 +8,7 @@
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES, OR CONDITIONS OF ANY KIND, either express or implied.
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
@@ -405,13 +405,6 @@ func TestStoreAndSyncDailyChromiumHistogramMetric(t *testing.T) {
 				bucketID:      0,
 				expectedError: ErrUsageMetricUpsertNoHistogramFound,
 			},
-			// This test case is no longer valid because we don't check for the enum value at this level.
-			// {
-			// 	name:          "bad histogram bucket id",
-			// 	histogram:     metricdatatypes.WebDXFeatureEnum,
-			// 	bucketID:      0,
-			// 	expectedError: ErrUsageMetricUpsertNoHistogramEnumFound,
-			// },
 		}
 		for _, tc := range testCases {
 			t.Run(tc.name, func(t *testing.T) {
@@ -465,7 +458,8 @@ func TestSyncLatestDailyChromiumHistogramMetric_Deletes(t *testing.T) {
 
 	// 3. Trigger a deletion by calling the high-level DeleteWebFeature function.
 	// This should handle the cascade correctly, as verified in other tests.
-	featureIDToDelete := idMap["ViewTransitions"]
+	// feature2 matches to ViewTransitions enum label.
+	featureIDToDelete := idMap["feature2"]
 	err = spannerClient.DeleteWebFeature(ctx, featureIDToDelete)
 	if err != nil {
 		t.Fatalf("failed to delete WebFeature: %s", err.Error())
