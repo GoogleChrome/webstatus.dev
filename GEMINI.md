@@ -14,16 +14,30 @@ This section describes the tools and commands for local development.
 - **Skaffold & Minikube**: Local development is managed by `skaffold`, which deploys services to a local `minikube` Kubernetes cluster.
 - **Makefile**: Common development tasks are scripted in the `Makefile`. See below for key commands.
 
-### Key Makefile Commands
+### 2.1. Key Makefile Commands
 
 - **`make start-local`**: Starts the complete local development environment using Skaffold and Minikube. This includes live-reloading for code changes.
 - **`make port-forward-manual`**: After starting the environment, run this to expose the services (frontend, backend, etc.) on `localhost`.
 - **`make test`**: Runs the Go and TypeScript unit tests. Use `make go-test` to run only Go tests.
-- **`make precommit`**: Runs a comprehensive suite of checks including tests, linting, and license header verification. This is the main command to run before submitting a pull request.
+- **`make precommit`**: Runs a comprehensive suite of checks including tests, linting (`golangci-lint` configured via `.golangci.yaml`), and license header verification. This is the main command to run before submitting a pull request.
 - **`make gen`**: Regenerates all auto-generated code (from OpenAPI, JSON Schema, ANTLR). Use `make openapi` for just OpenAPI changes.
 - **`make dev_workflows`**: Populates the local Spanner database by running the data ingestion jobs against live data sources.
 - **`make dev_fake_data`**: Populates the local Spanner database with a consistent set of fake data for testing.
 - **`make spanner_new_migration`**: Creates a new Spanner database migration file in `infra/storage/spanner/migrations`.
+
+### 2.2. Living Document & Continuous Improvement
+
+This document is a living guide to the `webstatus.dev` project. As an AI assistant, I must treat it as the source of truth for my operations. However, like any documentation, it can become outdated.
+
+If you, the user, find that I am making mistakes due to outdated or missing information in this document, or if you have to provide significant guidance to correct my course, please instruct me to update this file.
+
+My own process should also include a self-correction loop:
+
+- After a series of changes, especially if they involved trial-and-error or failed tests.
+- I will reflect on the process and identify any gaps in my understanding.
+- I will then propose changes to this `GEMINI.md` file to incorporate the new knowledge.
+
+This ensures that the document evolves with the codebase, making my assistance more accurate and efficient over time.
 
 ## 3. Codebase Architecture
 
@@ -81,7 +95,8 @@ Standalone Go applications that populate the Spanner database from external sour
   - **DO** follow the existing pattern for new workflows: new directory, `main.go`, and `manifests/job.yaml`.
   - **DO** use consumer-specific `spanneradapters` (e.g., `BCDConsumer`).
   - **DON'T** call the `Backend` spanner adapter from a workflow.
-  - **DO** use the `entitySynchronizer` for bulk data updates.
+  - **DO** choose the correct data ingestion pattern (sync vs. upsert) based on the use case. See the "How-To" guide for details.
+  - **DO** separate the process of ingesting raw data from the process of linking that data to other entities (like web features). This makes the ingestion pipeline more robust.
   - **DO** add a new target to the `make dev_workflows` command in `Makefile` for any new workflow.
 
 ### 3.2. Shared Go Libraries (`lib/`)
@@ -98,6 +113,18 @@ Shared Go libraries used by the `backend` and `workflows`.
   - **DON'T** put service-specific logic in `lib/`.
   - **DO** define new database table structs in `lib/gcpspanner`.
   - **DO** create or extend adapters in `lib/gcpspanner/spanneradapters` to expose new database queries.
+
+### 3.2.1 The Go Mapper Pattern for Spanner
+
+A core architectural pattern in the Go codebase is the **mapper pattern**, used for all interactions with the Spanner database. This pattern, defined in `lib/gcpspanner/client.go`, provides a generic and reusable way to handle database operations, reducing boilerplate and ensuring consistency.
+
+- **Core Concept**: Instead of writing custom query logic for each data type, you use generic helpers like `newEntityReader`, `newEntityWriter`, and `newEntitySynchronizer`. These helpers are configured with a "mapper" struct.
+- **Mapper Interfaces**: The mapper struct implements a set of interfaces that define the specific database logic for a data type. The composition of these interfaces determines the mapper's capabilities. Key interfaces include:
+  - `baseMapper`: Defines the Spanner table name.
+  - `readOneMapper`: Defines how to select a single entity by its key.
+  - `mergeMapper`: Defines how to merge an incoming entity with an existing one for updates.
+  - `deleteByStructMapper`: Defines how to delete an entity.
+- **Implementations**: You can find many examples of mapper implementations throughout the `lib/gcpspanner/` directory (e.g., `webFeatureSpannerMapper`, `baselineStatusMapper`). **DO** look for existing mappers before writing a new one.
 
 ### 3.3. End-to-End Data Flow Example
 
@@ -171,8 +198,11 @@ This section covers key processes and architectural decisions that apply across 
   - **DO** add E2E tests for critical user journeys.
   - **DON'T** write E2E tests for small component-level interactions.
   - **DO** use resilient selectors like `data-testid`.
-- **Unit Tests**:
-  - **Go**: Use table-driven unit tests with mocks for dependencies.
+- **Go Unit & Integration Tests**:
+  - **DO** use table-driven unit tests with mocks for dependencies at the adapter layer (`spanneradapters`).
+  - **DO** write **integration tests using `testcontainers-go`** for any changes to the `lib/gcpspanner` layer. This is especially critical when implementing or modifying a mapper. These tests must spin up a Spanner emulator and verify the mapper's logic against a real database.
+  - When a refactoring changes how errors are handled (e.g., from returning an error to logging a warning and continuing), **DO** update the tests to reflect the new expected behavior. Some test cases might become obsolete and should be removed or updated.
+- **TypeScript Unit Tests**:
   - **TypeScript**: Use `npm run test -w frontend`.
 
 ### 5.2. CI/CD (`.github/`)
@@ -219,6 +249,10 @@ Helper scripts and small CLI tools for local development.
 - **"Do's and Don'ts"**:
   - **DO** place new one-off development scripts here.
   - **DON'T** put production application logic in `util/`.
+
+### 5.7. Code Modifications
+
+- **License Headers**: Never modify license headers manually. They are managed by the `make license-fix` command. If you see license header issues, run that command.
 
 ## 6. How-To Guides
 
@@ -283,3 +317,47 @@ For other tools defined as features in the devcontainer:
 
 1.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the feature for the tool you want to update (e.g., `ghcr.io/devcontainers/features/terraform:1`) and change its `version`.
 2.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer to use the new version.
+
+### 6.3. How-To: Implement or Refactor a Go Data Ingestion Workflow
+
+This guide outlines the process for implementing or refactoring a Go data ingestion workflow.
+
+**1. Analyze the Data and Goal**
+
+First, analyze the nature of the incoming data and the goal of the ingestion. Ask these questions:
+
+- Is the incoming data a **complete set** that represents the entire desired state of a table? Or is it a **partial update** or a stream of new events?
+- Do I need to handle **deletions**? If a record is no longer in the source data, should it be removed from the database?
+
+**2. Choose the Right Ingestion Pattern**
+
+Based on your analysis, choose one of the following patterns:
+
+- **Use Full Synchronization if...** the data is a complete source of truth and you need to handle creates, updates, and deletes to keep a table perfectly in sync.
+  - **Example**: Syncing the `WebFeatures` table from the `web-features` git repository.
+  - **Implementation**: Use the `newEntitySynchronizer` helper. Your mapper must implement the `syncableEntityMapper` interface.
+
+- **Use Batch Upsert if...** you are adding or updating records in bulk but **not** deleting old records. This is common for append-only or time-series data.
+  - **Example**: Storing daily UMA metrics or WPT results for a specific run.
+  - **Implementation**: Use the `newEntityWriter` helper, likely in a loop or with a custom batching function. Your mapper only needs to implement the `writeableEntityMapper` interface.
+
+- **Use Simple Insert if...** you are processing and inserting records one-by-one.
+  - **Example**: Ingesting the list of BCD browser releases as they are processed.
+  - **Implementation**: Use the `newEntityWriter` helper inside a loop. Your mapper only needs to implement the `writeableEntityMapper` interface.
+
+**3. Implement the Workflow**
+
+1.  **Implement the Mapper**: In the `lib/gcpspanner` package, create a new mapper struct and implement the required interfaces for your chosen pattern (e.g., `syncableEntityMapper` or `writeableEntityMapper`).
+2.  **Implement the Client Method**: In `lib/gcpspanner/client.go`, add a new method that takes the data and uses the appropriate generic helper (e.g., `newEntitySynchronizer`) with your new mapper.
+3.  **Update the Adapter**: In the `lib/gcpspanner/spanneradapters` package, update the consumer to call the new client method.
+
+**4. Write Tests**
+
+This is a critical step:
+
+- Update the **unit tests** for the adapter to mock the new client methods.
+- Write a new **integration test** using `testcontainers-go` for your new logic in the `lib/gcpspanner` package. This test must verify the end-to-end process for the pattern you chose.
+
+**5. Verify**
+
+Run `make precommit` to ensure all linting checks and tests pass.
