@@ -92,6 +92,7 @@ func main() {
 		spanneradapters.NewWebFeatureGroupsConsumer(spannerClient),
 		spanneradapters.NewWebFeatureSnapshotsConsumer(spannerClient),
 		data.Parser{},
+		data.V3Parser{},
 	)
 
 	// Job Generation

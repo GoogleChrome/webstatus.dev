@@ -68,6 +68,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.13.0 // indirect
 	go.opentelemetry.io/otel/log v0.13.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.13.0 // indirect
+	golang.org/x/mod v0.27.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 )
 
