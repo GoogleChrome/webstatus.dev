@@ -136,8 +136,32 @@ func (m latestDailyChromiumHistogramMetricMapper) GetChildDeleteKeyMutations(
 	_ context.Context,
 	_ *Client,
 	_ []SpannerLatestDailyChromiumHistogramMetric,
-) ([]ChildDeleteKeyMutations, error) {
+) ([]ExtraMutationsGroup, error) {
 	return nil, nil
+}
+
+// PreDeleteHook is a no-op for this table.
+func (m latestDailyChromiumHistogramMetricMapper) PreDeleteHook(
+	_ context.Context,
+	_ *Client,
+	_ []SpannerLatestDailyChromiumHistogramMetric,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+type latestDailyChromiumHistogramMetricByWebFeatureIDMapper struct{}
+
+func (m latestDailyChromiumHistogramMetricByWebFeatureIDMapper) SelectAllByKeys(webFeatureID string) spanner.Statement {
+	stmt := spanner.NewStatement(`
+	SELECT
+		*
+	FROM LatestDailyChromiumHistogramMetrics
+	WHERE WebFeatureID = @webFeatureID`)
+	stmt.Params = map[string]interface{}{
+		"webFeatureID": webFeatureID,
+	}
+
+	return stmt
 }
 
 // DeleteMutation creates a Spanner delete mutation.
@@ -202,4 +226,13 @@ func (c *Client) getDesiredLatestDailyChromiumHistogramMetrics(
 	}
 
 	return desiredState, nil
+}
+
+func (c *Client) getAllLatestDailyChromiumHistogramMetricsByFeatureID(
+	ctx context.Context, featureID string) ([]SpannerLatestDailyChromiumHistogramMetric, error) {
+	return newAllByKeysEntityReader[
+		latestDailyChromiumHistogramMetricByWebFeatureIDMapper,
+		string,
+		SpannerLatestDailyChromiumHistogramMetric,
+	](c).readAllByKeys(ctx, featureID)
 }

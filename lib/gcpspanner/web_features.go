@@ -44,7 +44,10 @@ type WebFeature struct {
 }
 
 // Implements the syncableEntityMapper interface for WebFeature and SpannerWebFeature.
-type webFeatureSpannerMapper struct{}
+type webFeatureSpannerMapper struct {
+	// key is original feature key. value is the target feature key.
+	RedirectTargets map[string]string
+}
 
 // SelectAll returns a statement to select all WebFeatures.
 func (m webFeatureSpannerMapper) SelectAll() spanner.Statement {
@@ -97,8 +100,215 @@ func (m webFeatureSpannerMapper) MergeAndCheckChanged(
 	return merged, hasChanged
 }
 
+func (m webFeatureSpannerMapper) buildFeatureKeyToIDMap(ctx context.Context, c *Client) (map[string]string, error) {
+	featureKeyToIDMap := map[string]string{}
+	for sourceKey, targetKey := range m.RedirectTargets {
+		sourceID, err := c.GetIDFromFeatureKey(ctx, &FeatureIDFilter{featureKey: sourceKey})
+		if err != nil {
+			return nil, err
+		}
+		featureKeyToIDMap[sourceKey] = *sourceID
+
+		targetID, err := c.GetIDFromFeatureKey(ctx, &FeatureIDFilter{featureKey: targetKey})
+		if err != nil {
+			return nil, err
+		}
+		featureKeyToIDMap[targetKey] = *targetID
+	}
+
+	return featureKeyToIDMap, nil
+}
+
+func (m webFeatureSpannerMapper) moveWPTRunFeatureMetrics(
+	ctx context.Context,
+	c *Client,
+	sourceID string,
+	targetID string,
+) ([]*spanner.Mutation, error) {
+	metrics, err := c.getAllWPTRunFeatureMetricIDsByWebFeatureID(ctx, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	mutations := make([]*spanner.Mutation, 0, len(metrics))
+	for _, metric := range metrics {
+		metric.WebFeatureID = targetID
+		m, err := spanner.InsertOrUpdateStruct(WPTRunFeatureMetricTable, metric)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to create mutation for WPTRunFeatureMetric", "error", err, "metric", metric)
+
+			return nil, err
+		}
+		mutations = append(mutations, m)
+	}
+
+	return mutations, nil
+}
+
+func (m webFeatureSpannerMapper) moveLatestWPTRunFeatureMetrics(
+	ctx context.Context,
+	c *Client,
+	sourceID string,
+	targetID string,
+) ([]*spanner.Mutation, error) {
+	latestMetrics, err := c.getAllSpannerLatestWPTRunFeatureMetricIDsByWebFeatureID(ctx, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	mutations := make([]*spanner.Mutation, 0, len(latestMetrics))
+	for _, metric := range latestMetrics {
+		metric.WebFeatureID = targetID
+		m, err := spanner.InsertOrUpdateStruct(LatestWPTRunFeatureMetricsTable, metric)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to create mutation for LatestWPTRunFeatureMetrics",
+				"error", err, "metric", metric)
+
+			return nil, err
+		}
+		mutations = append(mutations, m)
+	}
+
+	return mutations, nil
+}
+
+func (m webFeatureSpannerMapper) moveWebFeatureChromiumHistogramEnumValues(
+	ctx context.Context,
+	c *Client,
+	sourceID string,
+	targetID string,
+) ([]*spanner.Mutation, error) {
+	featureEnumValues, err := c.getAllWebFeatureChromiumHistogramEnumValuesByFeatureID(ctx, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	mutations := make([]*spanner.Mutation, 0, len(featureEnumValues))
+	for _, featureEnumValue := range featureEnumValues {
+		featureEnumValue.WebFeatureID = targetID
+		m, err := spanner.InsertOrUpdateStruct(webFeatureChromiumHistogramEnumValuesTable, featureEnumValue)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to create mutation for WebFeatureChromiumHistogramEnumValues",
+				"error", err, "featureEnumValue", featureEnumValue)
+
+			return nil, err
+		}
+		mutations = append(mutations, m)
+	}
+
+	return mutations, nil
+}
+
+func (m webFeatureSpannerMapper) moveLatestDailyChromiumHistogramMetrics(
+	ctx context.Context,
+	c *Client,
+	sourceID string,
+	targetID string,
+) ([]*spanner.Mutation, error) {
+	dailyMetrics, err := c.getAllLatestDailyChromiumHistogramMetricsByFeatureID(ctx, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	mutations := make([]*spanner.Mutation, 0, len(dailyMetrics))
+	for _, metric := range dailyMetrics {
+		metric.WebFeatureID = targetID
+		m, err := spanner.InsertOrUpdateStruct(LatestDailyChromiumHistogramMetricsTable, metric)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to create mutation for LatestDailyChromiumHistogramMetrics",
+				"error", err, "metric", metric)
+
+			return nil, err
+		}
+		mutations = append(mutations, m)
+	}
+
+	return mutations, nil
+}
+
+func (m webFeatureSpannerMapper) PreDeleteHook(
+	ctx context.Context,
+	c *Client,
+	_ []SpannerWebFeature,
+) ([]ExtraMutationsGroup, error) {
+	// Check the m.RedirectTargets and move data sources to prevent data loss.
+	if len(m.RedirectTargets) == 0 {
+		return nil, nil
+	}
+
+	featureKeyToIDMap, err := m.buildFeatureKeyToIDMap(ctx, c)
+	if err != nil {
+		return nil, err
+	}
+
+	var wptRunFeatureMetricMutations []*spanner.Mutation
+	var latestWPTRunFeatureMetricMutations []*spanner.Mutation
+	var webFeatureChromiumHistogramEnumValueMutations []*spanner.Mutation
+	var latestDailyChromiumHistogramMetricMutations []*spanner.Mutation
+
+	// The following sections are where the WebFeatureID is the primary key (or part of the primary key).
+	// This requires us to copy the rows (with updated IDs) because Spanner does not allow the modifications of keys.
+	// https://cloud.google.com/spanner/docs/schema-and-data-model#change_table_keys
+	for sourceKey, targetKey := range m.RedirectTargets {
+		sourceID := featureKeyToIDMap[sourceKey]
+		targetID := featureKeyToIDMap[targetKey]
+
+		mutations, err := m.moveWPTRunFeatureMetrics(ctx, c, sourceID, targetID)
+		if err != nil {
+			return nil, err
+		}
+		wptRunFeatureMetricMutations = append(wptRunFeatureMetricMutations, mutations...)
+
+		mutations, err = m.moveLatestWPTRunFeatureMetrics(ctx, c, sourceID, targetID)
+		if err != nil {
+			return nil, err
+		}
+		latestWPTRunFeatureMetricMutations = append(latestWPTRunFeatureMetricMutations, mutations...)
+
+		mutations, err = m.moveWebFeatureChromiumHistogramEnumValues(ctx, c, sourceID, targetID)
+		if err != nil {
+			return nil, err
+		}
+		webFeatureChromiumHistogramEnumValueMutations = append(
+			webFeatureChromiumHistogramEnumValueMutations, mutations...)
+
+		mutations, err = m.moveLatestDailyChromiumHistogramMetrics(ctx, c, sourceID, targetID)
+		if err != nil {
+			return nil, err
+		}
+		latestDailyChromiumHistogramMetricMutations = append(latestDailyChromiumHistogramMetricMutations, mutations...)
+	}
+
+	var groups []ExtraMutationsGroup
+	if len(wptRunFeatureMetricMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: WPTRunFeatureMetricTable,
+			mutations: wptRunFeatureMetricMutations,
+		})
+	}
+
+	if len(latestWPTRunFeatureMetricMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: LatestWPTRunFeatureMetricsTable,
+			mutations: latestWPTRunFeatureMetricMutations,
+		})
+	}
+
+	if len(webFeatureChromiumHistogramEnumValueMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: webFeatureChromiumHistogramEnumValuesTable,
+			mutations: webFeatureChromiumHistogramEnumValueMutations,
+		})
+	}
+
+	if len(latestDailyChromiumHistogramMetricMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: LatestDailyChromiumHistogramMetricsTable,
+			mutations: latestDailyChromiumHistogramMetricMutations,
+		})
+	}
+
+	return groups, nil
+}
+
 func (m webFeatureSpannerMapper) GetChildDeleteKeyMutations(
-	ctx context.Context, client *Client, parentsToDelete []SpannerWebFeature) ([]ChildDeleteKeyMutations, error) {
+	ctx context.Context, client *Client, parentsToDelete []SpannerWebFeature) ([]ExtraMutationsGroup, error) {
 	if len(parentsToDelete) == 0 {
 		return nil, nil
 	}
@@ -134,7 +344,7 @@ func (m webFeatureSpannerMapper) GetChildDeleteKeyMutations(
 		}
 	}
 
-	return []ChildDeleteKeyMutations{
+	return []ExtraMutationsGroup{
 		{
 			tableName: WPTRunFeatureMetricTable,
 			mutations: metricMutations,
@@ -182,12 +392,27 @@ func (m webFeatureSpannerMapper) GetID(key string) spanner.Statement {
 	return stmt
 }
 
+type SyncWebFeaturesOption func(*webFeatureSpannerMapper)
+
+func WithRedirectTargets(redirects map[string]string) SyncWebFeaturesOption {
+	return func(m *webFeatureSpannerMapper) {
+		m.RedirectTargets = redirects
+	}
+}
+
 // SyncWebFeatures reconciles the WebFeatures table with the provided list of features.
 // It will insert new features, update existing ones, and delete any features
 // that are in the database but not in the provided list.
-func (c *Client) SyncWebFeatures(ctx context.Context, features []WebFeature) error {
+func (c *Client) SyncWebFeatures(
+	ctx context.Context,
+	features []WebFeature,
+	opts ...SyncWebFeaturesOption,
+) error {
 	slog.InfoContext(ctx, "Starting web features synchronization")
 	synchronizer := newEntitySynchronizer[webFeatureSpannerMapper](c)
+	for _, opt := range opts {
+		opt(&synchronizer.Mapper)
+	}
 
 	return synchronizer.Sync(ctx, features)
 }

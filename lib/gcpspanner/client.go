@@ -68,6 +68,7 @@ var (
 	ErrSyncAtomicWriteFailed         = errors.New("sync atomic write failed")
 	ErrSyncBatchWriteFailed          = errors.New("sync batch write failed")
 	ErrSyncFailedToGetChildMutations = errors.New("sync failed to get child mutations")
+	ErrSyncFailedToGetPreDeleteHooks = errors.New("sync failed to get pre delete hooks")
 )
 
 // Client is the client for interacting with GCP Spanner.
@@ -360,6 +361,10 @@ type readAllMapper interface {
 	SelectAll() spanner.Statement
 }
 
+type readAllByKeysMapper[KeysContainer comparable] interface {
+	SelectAllByKeys(KeysContainer) spanner.Statement
+}
+
 // mergeMapper handles the logic for updating an existing entity.
 type mergeMapper[ExternalStruct any, SpannerStruct any] interface {
 	Merge(ExternalStruct, SpannerStruct) SpannerStruct
@@ -435,9 +440,10 @@ type syncableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable]
 	mergeAndCheckChangedMapper[ExternalStruct, SpannerStruct]
 	childDeleterMapper[SpannerStruct]
 	deleteByStructMapper[SpannerStruct]
+	preDeleteHookMapper[SpannerStruct]
 }
 
-type ChildDeleteKeyMutations struct {
+type ExtraMutationsGroup struct {
 	tableName string
 	mutations []*spanner.Mutation
 }
@@ -449,7 +455,11 @@ type childDeleterMapper[SpannerStruct any] interface {
 		ctx context.Context,
 		client *Client,
 		parentsToDelete []SpannerStruct,
-	) ([]ChildDeleteKeyMutations, error)
+	) ([]ExtraMutationsGroup, error)
+}
+
+type preDeleteHookMapper[SpannerStruct any] interface {
+	PreDeleteHook(ctx context.Context, client *Client, rowsToDelete []SpannerStruct) ([]ExtraMutationsGroup, error)
 }
 
 // --- Generic Entity Components ---
@@ -860,6 +870,57 @@ func (c *entityRemover[M, ExternalStruct, SpannerStruct, Key]) removeWithTransac
 	return nil
 }
 
+// allByKeysEntityReader handles the reading of a Spanner table with a set of key(s).
+type allByKeysEntityReader[
+	M readAllByKeysMapper[KeysContainer],
+	KeysContainer comparable,
+	SpannerStruct any] struct {
+	*Client
+}
+
+// newAllByKeysEntityReader creates a new reader.
+func newAllByKeysEntityReader[
+	M readAllByKeysMapper[KeysContainer],
+	KeysContainer comparable,
+	SpannerStruct any,
+](
+	c *Client,
+) *allByKeysEntityReader[M, KeysContainer, SpannerStruct] {
+	return &allByKeysEntityReader[M, KeysContainer, SpannerStruct]{
+		Client: c,
+	}
+}
+
+func (r *allByKeysEntityReader[M, KeysContainer, SpannerStruct]) readAllByKeys(
+	ctx context.Context,
+	keys KeysContainer,
+) ([]SpannerStruct, error) {
+	var mapper M
+	stmt := mapper.SelectAllByKeys(keys)
+	txn := r.Single()
+	defer txn.Close()
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	var entities []SpannerStruct
+	for {
+		row, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		var entity SpannerStruct
+		if err := row.ToStruct(&entity); err != nil {
+			return nil, err
+		}
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
+}
+
 // entitySynchronizer handles the synchronization of a Spanner table with a
 // desired state provided as a slice of entities. It determines whether to
 // use a single atomic transaction or a high-throughput batch write based on
@@ -874,6 +935,9 @@ type entitySynchronizer[
 	// The number of mutations at which the synchronizer will switch from a
 	// single atomic transaction to the non-atomic batch writer.
 	batchWriteThreshold int
+	// Mapper is the entity mapper that provides the necessary database operation logic.
+	// This field should be configured before calling the Sync method.
+	Mapper M
 }
 
 // newEntitySynchronizer creates a new synchronizer with a default threshold.
@@ -882,12 +946,13 @@ func newEntitySynchronizer[
 	ExternalStruct any,
 	SpannerStruct any,
 	Key comparable,
-](
-	c *Client,
-) *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key] {
+](c *Client) *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key] {
+	var m M
+
 	return &entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]{
 		Client:              c,
 		batchWriteThreshold: defaultBatchSize,
+		Mapper:              m,
 	}
 }
 
@@ -897,7 +962,7 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 	ctx context.Context,
 	desiredState []ExternalStruct,
 ) error {
-	var mapper M
+	mapper := s.Mapper
 	tableName := mapper.Table()
 
 	// 1. READ: Fetch all existing entities from the database.
@@ -974,19 +1039,18 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) Sync(
 		"updates", updates,
 		"deletes", deletes)
 
-	// 3. APPLY DELETES: Handle child and parent deletions first.
-	if err := s.applyDeletes(ctx, entitiesToDelete, deleteMutations, mapper); err != nil {
-		return err
-	}
-
-	// 4. APPLY UPSERTS: Apply all inserts and updates together.
+	// 3. APPLY UPSERTS: Apply all inserts and updates together.
 	if len(upsertMutations) < s.batchWriteThreshold {
 		err = s.applyAtomic(ctx, upsertMutations, tableName)
 	} else {
 		err = s.applyNonAtomic(ctx, upsertMutations, tableName)
 	}
-
 	if err != nil {
+		return err
+	}
+
+	// 4. APPLY DELETES: Handle child and parent deletions.
+	if err := s.applyDeletes(ctx, entitiesToDelete, deleteMutations, mapper); err != nil {
 		return err
 	}
 
@@ -1008,6 +1072,20 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyDeletes
 		return nil
 	}
 	tableName := mapper.Table()
+
+	// Handle pre delete hooks first.
+	mutationGroups, err := mapper.PreDeleteHook(ctx, s.Client, entitiesToDelete)
+	if err != nil {
+		return errors.Join(ErrSyncFailedToGetPreDeleteHooks, err)
+	}
+	for _, group := range mutationGroups {
+		slog.InfoContext(ctx, "Applying pre delete mutations via batch writer",
+			"count", len(group.mutations), "table", group.tableName)
+		err := s.applyNonAtomic(ctx, group.mutations, group.tableName)
+		if err != nil {
+			return err
+		}
+	}
 
 	// Handle manual child deletions first.
 	// The `ON DELETE CASCADE` constraint should be the default, but it can fail

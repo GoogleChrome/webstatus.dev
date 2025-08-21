@@ -26,7 +26,8 @@ import (
 
 // WebFeatureSpannerClient expects a subset of the functionality from lib/gcpspanner that only apply to WebFeatures.
 type WebFeatureSpannerClient interface {
-	SyncWebFeatures(ctx context.Context, features []gcpspanner.WebFeature) error
+	SyncWebFeatures(ctx context.Context, features []gcpspanner.WebFeature,
+		options ...gcpspanner.SyncWebFeaturesOption) error
 	FetchAllWebFeatureIDsAndKeys(ctx context.Context) ([]gcpspanner.SpannerFeatureIDAndKey, error)
 	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
 	UpsertBrowserFeatureAvailability(
@@ -68,9 +69,19 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		allFeatures = append(allFeatures, webFeature)
 	}
 
+	redirectMap := map[string]string{}
+	for sourceKey, targetData := range data.Features.Moved {
+		redirectMap[sourceKey] = targetData.RedirectTarget
+	}
+
+	options := []gcpspanner.SyncWebFeaturesOption{}
+	if len(redirectMap) > 0 {
+		options = append(options, gcpspanner.WithRedirectTargets(redirectMap))
+	}
+
 	// 2. Sync all features at once. This will insert, update, and delete features
 	// to make the database match the desired state.
-	if err := c.client.SyncWebFeatures(ctx, allFeatures); err != nil {
+	if err := c.client.SyncWebFeatures(ctx, allFeatures, options...); err != nil {
 		slog.ErrorContext(ctx, "failed to sync web features", "error", err)
 
 		return nil, err
