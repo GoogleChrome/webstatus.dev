@@ -43,7 +43,7 @@ type AssetParser interface {
 type WebFeatureStorer interface {
 	InsertWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureValue,
+		data *webdxfeaturetypes.ProcessedWebFeaturesData,
 		startAt time.Time, endAt time.Time) (map[string]string, error)
 	InsertMovedWebFeatures(
 		ctx context.Context,
@@ -127,7 +127,7 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 		return err
 	}
 
-	mapping, err := p.storer.InsertWebFeatures(ctx, data.Features.Data, job.startAt, job.endAt)
+	mapping, err := p.storer.InsertWebFeatures(ctx, data, job.startAt, job.endAt)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to store data", "error", err)
 
