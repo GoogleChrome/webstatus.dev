@@ -20,6 +20,7 @@ import {
   type TemplateResult,
   css,
   html,
+  nothing,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
@@ -289,6 +290,7 @@ export class WebstatusTypeahead extends LitElement {
         @click=${(e: Event) => e.preventDefault()}
         @sl-select=${this.handleCandidateSelected}
       >
+        <webstatus-typeahead-invisible-item></webstatus-typeahead-invisible-item>
         ${this.candidates.map(
           c => html`
             <webstatus-typeahead-item
@@ -318,13 +320,24 @@ export class WebstatusTypeahead extends LitElement {
 @customElement('webstatus-typeahead-dropdown')
 export class WebstatusTypeaheadDropdown extends SlDropdown {
   getCurrentItem(): SlMenuItem | undefined {
-    return this.getMenu()!.getCurrentItem();
+    const item = this.getMenu()!.getCurrentItem();
+    if (!item || item instanceof WebstatusTypeaheadInvisibleItem) {
+      return undefined;
+    }
+    return item;
   }
 
   setCurrentItem(newCurrentItem: SlMenuItem) {
     const menu = this.getMenu();
     menu!.setCurrentItem(newCurrentItem);
     newCurrentItem.scrollIntoView({block: 'nearest', behavior: 'smooth'});
+  }
+
+  getAllVisibleItems(menu: SlMenu): SlMenuItem[] {
+    const items = menu.getAllItems();
+    return items.filter(
+      item => !(item instanceof WebstatusTypeaheadInvisibleItem),
+    );
   }
 
   resetSelection() {
@@ -337,10 +350,7 @@ export class WebstatusTypeaheadDropdown extends SlDropdown {
     if (!menu) {
       return;
     }
-    const menuItems = menu.getAllItems();
-    if (menuItems.length === 0) {
-      return;
-    }
+    const menuItems = this.getAllVisibleItems(menu);
     const currentItem = menu.getCurrentItem();
 
     // Handle menu selection keys.
@@ -478,5 +488,12 @@ export class WebstatusTypeaheadItem extends LitElement {
         <span id="doc">${highlightedDoc}</span>
       </div>
     `;
+  }
+}
+
+@customElement('webstatus-typeahead-invisible-item')
+export class WebstatusTypeaheadInvisibleItem extends WebstatusTypeaheadItem {
+  override render(): TemplateResult {
+    return html`${nothing}`;
   }
 }
