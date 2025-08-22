@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
@@ -48,24 +49,25 @@ type mockDownloadFileFromReleaseConfig struct {
 	expectedFileName string
 	expectedOwner    string
 	expectedRepo     string
-	returnReadCloser io.ReadCloser
+	returnFile       *gh.ReleaseFile
 	returnError      error
 }
 
 func (m *mockAssetGetter) DownloadFileFromRelease(
-	_ context.Context, owner, repo string, _ *http.Client, filePattern string) (io.ReadCloser, error) {
+	_ context.Context, owner, repo string, _ *http.Client, filePattern string) (*gh.ReleaseFile, error) {
 	if filePattern != m.mockDownloadFileFromReleaseCfg.expectedFileName ||
 		owner != m.mockDownloadFileFromReleaseCfg.expectedOwner ||
 		repo != m.mockDownloadFileFromReleaseCfg.expectedRepo {
 		m.t.Error("unexpected input to DownloadFileFromRelease")
 	}
 
-	return m.mockDownloadFileFromReleaseCfg.returnReadCloser, m.mockDownloadFileFromReleaseCfg.returnError
+	return m.mockDownloadFileFromReleaseCfg.returnFile, m.mockDownloadFileFromReleaseCfg.returnError
 }
 
 type mockAssetParser struct {
 	t            *testing.T
 	mockParseCfg mockParseConfig
+	callCount    int
 }
 
 type mockParseConfig struct {
@@ -75,13 +77,15 @@ type mockParseConfig struct {
 }
 
 func (m *mockAssetParser) Parse(file io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
+	m.callCount++
 	defer file.Close()
 	fileContents, err := io.ReadAll(file)
 	if err != nil {
 		m.t.Errorf("unable to read file")
 	}
 	if string(fileContents) != m.mockParseCfg.expectedFileContents {
-		m.t.Error("unexpected file contents")
+		m.t.Errorf("unexpected file contents want: %s, got: %s",
+			m.mockParseCfg.expectedFileContents, string(fileContents))
 	}
 
 	return m.mockParseCfg.returnData, m.mockParseCfg.returnError
@@ -258,7 +262,20 @@ const (
 	testFileName  = "file.txt"
 )
 
+func testFile(tag *string, contents string) *gh.ReleaseFile {
+	return &gh.ReleaseFile{
+		Contents: io.NopCloser(strings.NewReader(contents)),
+		Info: gh.ReleaseInfo{
+			Tag: tag,
+		},
+	}
+}
+
 func TestProcess(t *testing.T) {
+	// According https://pkg.go.dev/golang.org/x/mod/semver, the version must start with v
+	testFileFn := func() *gh.ReleaseFile {
+		return testFile(valuePtr(v2), "hi features")
+	}
 	// nolint: dupl
 	testCases := []struct {
 		name                             string
@@ -278,7 +295,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -519,7 +536,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      errTestFailToGetAsset,
 			},
 			mockParseCfg: mockParseConfig{
@@ -558,7 +575,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -597,7 +614,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -701,7 +718,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -834,7 +851,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -1004,7 +1021,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -1213,7 +1230,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -1443,7 +1460,7 @@ func TestProcess(t *testing.T) {
 				expectedOwner:    testRepoOwner,
 				expectedRepo:     testRepoName,
 				expectedFileName: testFileName,
-				returnReadCloser: io.NopCloser(strings.NewReader("hi features")),
+				returnFile:       testFileFn(),
 				returnError:      nil,
 			},
 			mockParseCfg: mockParseConfig{
@@ -1688,6 +1705,12 @@ func TestProcess(t *testing.T) {
 			mockParser := &mockAssetParser{
 				t:            t,
 				mockParseCfg: tc.mockParseCfg,
+				callCount:    0,
+			}
+			mockParserV3 := &mockAssetParser{
+				t:            t,
+				mockParseCfg: tc.mockParseCfg,
+				callCount:    0,
 			}
 			mockStorer := &mockWebFeatureStorer{
 				t:                             t,
@@ -1717,6 +1740,7 @@ func TestProcess(t *testing.T) {
 				mockGroupStorer,
 				mockSnapshotStorer,
 				mockParser,
+				mockParserV3,
 			)
 
 			err := processor.Process(context.TODO(), NewJobArguments(
@@ -1728,6 +1752,137 @@ func TestProcess(t *testing.T) {
 			))
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("Expected error: %v, Got: %v", tc.expectedError, err)
+			}
+		})
+	}
+}
+
+func valuePtr[T any](in T) *T { return &in }
+
+func TestParseByVersion(t *testing.T) {
+	testCases := []struct {
+		name                string
+		file                *gh.ReleaseFile
+		v2Parser            *mockAssetParser
+		expectedV2CallCount int
+		v3Parser            *mockAssetParser
+		expectedV3CallCount int
+		expectedError       error
+	}{
+		{
+			name:                "missing tag",
+			file:                testFile(nil, ""),
+			v2Parser:            nil,
+			v3Parser:            nil,
+			expectedError:       ErrUnknownAssetVersion,
+			expectedV2CallCount: 0,
+			expectedV3CallCount: 0,
+		},
+		{
+			name: "v2 parses successfully",
+			file: testFile(valuePtr(v2), ""),
+			v2Parser: &mockAssetParser{
+				t: t,
+				mockParseCfg: mockParseConfig{
+					expectedFileContents: "",
+					returnError:          nil,
+					returnData:           nil,
+				},
+				callCount: 0,
+			},
+			v3Parser:            nil,
+			expectedError:       nil,
+			expectedV2CallCount: 1,
+			expectedV3CallCount: 0,
+		},
+		{
+			name: "v2 parses unsuccessfully",
+			file: testFile(valuePtr(v2), ""),
+			v2Parser: &mockAssetParser{
+				t: t,
+				mockParseCfg: mockParseConfig{
+					expectedFileContents: "",
+					returnError:          errTestCannotParseData,
+					returnData:           nil,
+				},
+				callCount: 0,
+			},
+			v3Parser:            nil,
+			expectedError:       errTestCannotParseData,
+			expectedV2CallCount: 1,
+			expectedV3CallCount: 0,
+		},
+		{
+			name:     "v3 parses successfully",
+			file:     testFile(valuePtr(v3), ""),
+			v2Parser: nil,
+			v3Parser: &mockAssetParser{
+				t: t,
+				mockParseCfg: mockParseConfig{
+					expectedFileContents: "",
+					returnError:          nil,
+					returnData:           nil,
+				},
+				callCount: 0,
+			},
+			expectedError:       nil,
+			expectedV2CallCount: 0,
+			expectedV3CallCount: 1,
+		},
+		{
+			name:     "v3 parses unsuccessfully",
+			file:     testFile(valuePtr(v3), ""),
+			v2Parser: nil,
+			v3Parser: &mockAssetParser{
+				t: t,
+				mockParseCfg: mockParseConfig{
+					expectedFileContents: "",
+					returnError:          errTestCannotParseData,
+					returnData:           nil,
+				},
+				callCount: 0,
+			},
+			expectedError:       errTestCannotParseData,
+			expectedV2CallCount: 0,
+			expectedV3CallCount: 1,
+		},
+		{
+			name:                "unsupported tag",
+			file:                testFile(valuePtr("v4.0.0"), ""),
+			v2Parser:            nil,
+			v3Parser:            nil,
+			expectedError:       ErrUnsupportedAssetVersion,
+			expectedV2CallCount: 0,
+			expectedV3CallCount: 0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			p := WebFeaturesJobProcessor{
+				assetGetter:             nil,
+				webFeaturesDataV2Parser: tc.v2Parser,
+				webFeaturesDataV3Parser: tc.v3Parser,
+				storer:                  nil,
+				metadataStorer:          nil,
+				groupStorer:             nil,
+				snapshotStorer:          nil,
+			}
+			_, err := p.parseByVersion(t.Context(), tc.file)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("Expected error: %v, Got: %v", tc.expectedError, err)
+			}
+			if tc.v2Parser != nil && tc.v2Parser.callCount != tc.expectedV2CallCount {
+				t.Errorf("Expected v2 call count: %d, Got: %d", tc.expectedV2CallCount, tc.v2Parser.callCount)
+			}
+			if tc.v2Parser == nil && tc.expectedV2CallCount > 0 {
+				t.Error("Expected v2 parser to be called")
+			}
+			if tc.v3Parser != nil && tc.v3Parser.callCount != tc.expectedV3CallCount {
+				t.Errorf("Expected v3 call count: %d, Got: %d", tc.expectedV3CallCount, tc.v3Parser.callCount)
+			}
+			if tc.v3Parser == nil && tc.expectedV3CallCount > 0 {
+				t.Error("Expected v3 parser to be called")
 			}
 		})
 	}

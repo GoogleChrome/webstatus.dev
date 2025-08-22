@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-github/v73/github"
 )
 
@@ -34,6 +35,12 @@ func checkIfFileIsReadable(t *testing.T, file io.Reader) {
 	}
 }
 
+func checkIfTagIsPopulated(t *testing.T, file *ReleaseFile) {
+	if file.Info.Tag == nil || *file.Info.Tag == "" {
+		t.Error("tag is empty")
+	}
+}
+
 func TestDownloadFileFromReleaseWebFeatures(t *testing.T) {
 	t.Skip("Used for debugging purposes.")
 	client := NewClient("")
@@ -44,14 +51,14 @@ func TestDownloadFileFromReleaseWebFeatures(t *testing.T) {
 		t.Errorf("unexpected error: %s", err.Error())
 	} else {
 		// Close to be safe at the end.
-		defer file.Close()
-		checkIfFileIsReadable(t, file)
+		defer file.Contents.Close()
+		checkIfFileIsReadable(t, file.Contents)
+		checkIfTagIsPopulated(t, file)
 	}
 }
 
 func TestDownloadFileFromReleaseBrowserCompatData(t *testing.T) {
 	t.Skip("Used for debugging purposes.")
-	t.Skip("Cannot remove until https://github.com/mdn/browser-compat-data/issues/22675 is fixed")
 	client := NewClient("")
 	ctx := context.Background()
 	httpClient := http.DefaultClient
@@ -60,8 +67,9 @@ func TestDownloadFileFromReleaseBrowserCompatData(t *testing.T) {
 		t.Errorf("unexpected error: %s", err.Error())
 	} else {
 		// Close to be safe at the end.
-		defer file.Close()
-		checkIfFileIsReadable(t, file)
+		defer file.Contents.Close()
+		checkIfFileIsReadable(t, file.Contents)
+		checkIfTagIsPopulated(t, file)
 	}
 }
 
@@ -113,6 +121,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 		cfg           mockGetLatestReleaseConfig
 		roundTripCfg  *mockRoundTripperConfig
 		expectedError error
+		expectedFile  *ReleaseFile
 	}{
 		{
 			name: "successful download",
@@ -127,6 +136,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 							BrowserDownloadURL: valuePtr("http://example.com/file.txt"),
 						},
 					},
+					TagName: valuePtr("v1.0.0"),
 				},
 				err: nil,
 			},
@@ -135,10 +145,51 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				//nolint: exhaustruct
 				resp: &http.Response{
 					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(nil),
 				},
 				err: nil,
 			},
 			expectedError: nil,
+			expectedFile: &ReleaseFile{
+				Contents: io.NopCloser(nil),
+				Info: ReleaseInfo{
+					Tag: valuePtr("v1.0.0"),
+				},
+			},
+		},
+		{
+			name: "successful download without leading v in tag",
+			cfg: mockGetLatestReleaseConfig{
+				expectedOwner: "owner",
+				expectedRepo:  "repo",
+				//nolint: exhaustruct
+				release: &github.RepositoryRelease{
+					Assets: []*github.ReleaseAsset{
+						{
+							Name:               valuePtr("file.txt"),
+							BrowserDownloadURL: valuePtr("http://example.com/file.txt"),
+						},
+					},
+					TagName: valuePtr("2.0.0"),
+				},
+				err: nil,
+			},
+			roundTripCfg: &mockRoundTripperConfig{
+				expectedURL: "http://example.com/file.txt",
+				//nolint: exhaustruct
+				resp: &http.Response{
+					StatusCode: http.StatusOK,
+					Body:       io.NopCloser(nil),
+				},
+				err: nil,
+			},
+			expectedError: nil,
+			expectedFile: &ReleaseFile{
+				Contents: io.NopCloser(nil),
+				Info: ReleaseInfo{
+					Tag: valuePtr("v2.0.0"),
+				},
+			},
 		},
 		{
 			name: "rate limit with github api",
@@ -151,6 +202,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 			},
 			roundTripCfg:  nil,
 			expectedError: ErrRateLimit,
+			expectedFile:  nil,
 		},
 		{
 			name: "unknown error with github api",
@@ -162,6 +214,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 			},
 			roundTripCfg:  nil,
 			expectedError: ErrFatalError,
+			expectedFile:  nil,
 		},
 		{
 			name: "missing asset",
@@ -174,6 +227,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 			},
 			roundTripCfg:  nil,
 			expectedError: ErrAssetNotFound,
+			expectedFile:  nil,
 		},
 		{
 			name: "request.DO() fails",
@@ -198,6 +252,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				err:  errors.New("something went wrong"),
 			},
 			expectedError: ErrUnableToDownloadAsset,
+			expectedFile:  nil,
 		},
 		{
 			name: "failed to download",
@@ -224,6 +279,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				err: nil,
 			},
 			expectedError: ErrUnableToDownloadAsset,
+			expectedFile:  nil,
 		},
 	}
 	for _, tc := range testCases {
@@ -241,7 +297,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 
 			httpClient := http.DefaultClient
 			httpClient.Transport = &rt
-			_, err := client.DownloadFileFromRelease(
+			file, err := client.DownloadFileFromRelease(
 				context.Background(),
 				"owner",
 				"repo",
@@ -250,6 +306,9 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 			)
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error expected: %v received: %v", tc.expectedError, err)
+			}
+			if diff := cmp.Diff(tc.expectedFile, file); diff != "" {
+				t.Errorf("unexpected file (-want +got):\n%s", diff)
 			}
 		})
 	}

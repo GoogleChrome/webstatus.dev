@@ -27,6 +27,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/bcdconsumertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/mdn__browser_compat_data"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/bcd_consumer/pkg/data"
 )
 
@@ -56,7 +57,7 @@ type mockDownloadFileFromReleaseConfig struct {
 	repoOwner   string
 	repoName    string
 	filePattern string
-	fakeFile    io.ReadCloser
+	fakeFile    *gh.ReleaseFile
 	err         error
 }
 
@@ -69,7 +70,7 @@ func (m *MockDataGetter) DownloadFileFromRelease(
 	_ context.Context,
 	owner, repo string,
 	_ *http.Client,
-	filePattern string) (io.ReadCloser, error) {
+	filePattern string) (*gh.ReleaseFile, error) {
 	if m.mockDownloadFileFromReleaseCfg.repoOwner != owner ||
 		m.mockDownloadFileFromReleaseCfg.repoName != repo ||
 		m.mockDownloadFileFromReleaseCfg.filePattern != filePattern {
@@ -97,7 +98,8 @@ func (m *MockDataParser) Parse(in io.ReadCloser) (*data.BCDData, error) {
 		m.t.Errorf("unable to read file")
 	}
 	if m.mockParseCfg.expectedFileContents != string(fileContents) {
-		m.t.Error("unexpected file contents")
+		m.t.Errorf("unexpected file contents. want: %s, got: %s",
+			m.mockParseCfg.expectedFileContents, string(fileContents))
 	}
 
 	return m.mockParseCfg.ret, m.mockParseCfg.err
@@ -205,6 +207,16 @@ func getSampleReleases() []bcdconsumertypes.BrowserRelease {
 }
 
 func TestProcess(t *testing.T) {
+	// Create a function to generate a file because Contents can only be read once
+	testFileFn := func() *gh.ReleaseFile {
+		return &gh.ReleaseFile{
+			Contents: io.NopCloser(strings.NewReader("success")),
+			Info: gh.ReleaseInfo{
+				Tag: nil,
+			},
+		}
+	}
+
 	testCases := []processWorkflowTest{
 		{
 			name: "successful process",
@@ -215,7 +227,7 @@ func TestProcess(t *testing.T) {
 				repoOwner:   repoOwner,
 				repoName:    repoName,
 				filePattern: filePattern,
-				fakeFile:    io.NopCloser(strings.NewReader("success")),
+				fakeFile:    testFileFn(),
 				err:         nil,
 			},
 			mockParseCfg: &mockParseConfig{
@@ -244,7 +256,7 @@ func TestProcess(t *testing.T) {
 				repoOwner:   repoOwner,
 				repoName:    repoName,
 				filePattern: filePattern,
-				fakeFile:    io.NopCloser(strings.NewReader("success")),
+				fakeFile:    testFileFn(),
 				err:         errTestGetter,
 			},
 			mockParseCfg:                 nil,
@@ -261,7 +273,7 @@ func TestProcess(t *testing.T) {
 				repoOwner:   repoOwner,
 				repoName:    repoName,
 				filePattern: filePattern,
-				fakeFile:    io.NopCloser(strings.NewReader("success")),
+				fakeFile:    testFileFn(),
 				err:         nil,
 			},
 			mockParseCfg: &mockParseConfig{
@@ -282,7 +294,7 @@ func TestProcess(t *testing.T) {
 				repoOwner:   repoOwner,
 				repoName:    repoName,
 				filePattern: filePattern,
-				fakeFile:    io.NopCloser(strings.NewReader("success")),
+				fakeFile:    testFileFn(),
 				err:         nil,
 			},
 			mockParseCfg: &mockParseConfig{
@@ -308,7 +320,7 @@ func TestProcess(t *testing.T) {
 				repoOwner:   repoOwner,
 				repoName:    repoName,
 				filePattern: filePattern,
-				fakeFile:    io.NopCloser(strings.NewReader("success")),
+				fakeFile:    testFileFn(),
 				err:         nil,
 			},
 			mockParseCfg: &mockParseConfig{

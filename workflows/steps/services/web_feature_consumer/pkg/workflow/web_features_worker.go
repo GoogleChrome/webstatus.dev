@@ -16,13 +16,16 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
+	"golang.org/x/mod/semver"
 )
 
 // AssetGetter describes the behavior to get a certain asset from a github release.
@@ -31,13 +34,18 @@ type AssetGetter interface {
 		ctx context.Context,
 		owner, repo string,
 		httpClient *http.Client,
-		filePattern string) (io.ReadCloser, error)
+		filePattern string) (*gh.ReleaseFile, error)
 }
 
 // AssetParser describes the behavior to parse the io.ReadCloser from AssetGetter into the expected data type.
 type AssetParser interface {
 	Parse(io.ReadCloser) (*webdxfeaturetypes.ProcessedWebFeaturesData, error)
 }
+
+var (
+	ErrUnknownAssetVersion     = errors.New("unknown asset version")
+	ErrUnsupportedAssetVersion = errors.New("unsupported asset version")
+)
 
 // WebFeatureStorer describes the logic to insert the web features that were returned by the AssetParser.
 type WebFeatureStorer interface {
@@ -86,25 +94,73 @@ func NewWebFeaturesJobProcessor(assetGetter AssetGetter,
 	metadataStorer WebFeatureMetadataStorer,
 	groupStorer WebDXGroupStorer,
 	snapshotStorer WebDXSnapshotStorer,
-	webFeaturesDataParser AssetParser,
+	webFeaturesDataV2Parser AssetParser,
+	webFeaturesDataV3Parser AssetParser,
 ) WebFeaturesJobProcessor {
 	return WebFeaturesJobProcessor{
-		assetGetter:           assetGetter,
-		storer:                storer,
-		metadataStorer:        metadataStorer,
-		groupStorer:           groupStorer,
-		snapshotStorer:        snapshotStorer,
-		webFeaturesDataParser: webFeaturesDataParser,
+		assetGetter:             assetGetter,
+		storer:                  storer,
+		metadataStorer:          metadataStorer,
+		groupStorer:             groupStorer,
+		snapshotStorer:          snapshotStorer,
+		webFeaturesDataV2Parser: webFeaturesDataV2Parser,
+		webFeaturesDataV3Parser: webFeaturesDataV3Parser,
 	}
 }
 
 type WebFeaturesJobProcessor struct {
-	assetGetter           AssetGetter
-	storer                WebFeatureStorer
-	metadataStorer        WebFeatureMetadataStorer
-	groupStorer           WebDXGroupStorer
-	snapshotStorer        WebDXSnapshotStorer
-	webFeaturesDataParser AssetParser
+	assetGetter             AssetGetter
+	storer                  WebFeatureStorer
+	metadataStorer          WebFeatureMetadataStorer
+	groupStorer             WebDXGroupStorer
+	snapshotStorer          WebDXSnapshotStorer
+	webFeaturesDataV2Parser AssetParser
+	webFeaturesDataV3Parser AssetParser
+}
+
+const (
+	// According to https://pkg.go.dev/golang.org/x/mod/semver, the version must start with "v".
+	v2 = "v2.0.0"
+	v3 = "v3.0.0"
+	v4 = "v4.0.0"
+)
+
+func (p WebFeaturesJobProcessor) parseByVersion(ctx context.Context, file *gh.ReleaseFile) (
+	*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
+	if file.Info.Tag == nil {
+		slog.ErrorContext(ctx, "unknown version", "version", "nil")
+
+		return nil, ErrUnknownAssetVersion
+	}
+
+	if semver.Compare(*file.Info.Tag, v3) == -1 {
+		// If less than version 3, use default v2 parser
+		slog.InfoContext(ctx, "using v2 parser", "version", *file.Info.Tag)
+		data, err := p.webFeaturesDataV2Parser.Parse(file.Contents)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to parse v2 data", "error", err)
+
+			return nil, err
+		}
+
+		return data, nil
+
+	} else if semver.Compare(*file.Info.Tag, v4) == -1 {
+		// If version 3, use v3 parser
+		slog.InfoContext(ctx, "using v3 parser", "version", *file.Info.Tag)
+		data, err := p.webFeaturesDataV3Parser.Parse(file.Contents)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to parse v3 data", "error", err)
+
+			return nil, err
+		}
+
+		return data, nil
+	}
+
+	slog.ErrorContext(ctx, "unsupported version", "version", *file.Info.Tag)
+
+	return nil, ErrUnsupportedAssetVersion
 }
 
 func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) error {
@@ -120,7 +176,7 @@ func (p WebFeaturesJobProcessor) Process(ctx context.Context, job JobArguments) 
 		return err
 	}
 
-	data, err := p.webFeaturesDataParser.Parse(file)
+	data, err := p.parseByVersion(ctx, file)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to parse data", "error", err)
 

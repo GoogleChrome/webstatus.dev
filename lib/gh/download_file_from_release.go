@@ -18,9 +18,12 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log/slog"
 	"net/http"
+	"strings"
 
 	"github.com/google/go-github/v73/github"
+	"golang.org/x/mod/semver"
 )
 
 var (
@@ -31,11 +34,22 @@ var (
 	ErrFatalError            = errors.New("fatal error using github")
 )
 
+// ReleaseFile represents a file in a given Github release.
+type ReleaseFile struct {
+	Contents io.ReadCloser
+	Info     ReleaseInfo
+}
+
+type ReleaseInfo struct {
+	// If the tag is valid, the will be non null.
+	Tag *string
+}
+
 func (c *Client) DownloadFileFromRelease(
 	ctx context.Context,
 	owner, repo string,
 	httpClient *http.Client,
-	filePattern string) (io.ReadCloser, error) {
+	filePattern string) (*ReleaseFile, error) {
 	release, _, err := c.repoClient.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
 		// nolint: exhaustruct // WONTFIX. This is an external package. Cannot control it.
@@ -84,5 +98,24 @@ func (c *Client) DownloadFileFromRelease(
 		return nil, errors.Join(ErrUnableToDownloadAsset, err)
 	}
 
-	return resp.Body, nil
+	// Returns a tag or empty string if not found.
+	tagName := release.GetTagName()
+	// In the event the tag is missing the prefix "v", add it.
+	// According https://pkg.go.dev/golang.org/x/mod/semver, the version must start with v
+	if len(tagName) > 0 && !strings.HasPrefix(tagName, "v") {
+		tagName = "v" + tagName
+	}
+	var tagNamePtr *string
+	if semver.IsValid(tagName) {
+		tagNamePtr = &tagName
+	} else {
+		slog.WarnContext(ctx, "invalid tag. it will not be used", "tag", tagName)
+	}
+
+	return &ReleaseFile{
+		Contents: resp.Body,
+		Info: ReleaseInfo{
+			Tag: tagNamePtr,
+		},
+	}, nil
 }

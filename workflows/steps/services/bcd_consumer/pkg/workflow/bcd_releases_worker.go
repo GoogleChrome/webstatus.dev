@@ -20,6 +20,7 @@ import (
 	"net/http"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/bcdconsumertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/bcd_consumer/pkg/data"
 )
 
@@ -45,7 +46,7 @@ type DataGetter interface {
 		ctx context.Context,
 		owner, repo string,
 		httpClient *http.Client,
-		filePattern string) (io.ReadCloser, error)
+		filePattern string) (*gh.ReleaseFile, error)
 }
 
 // DataParser describes the behavior to read raw bytes into the expected BCDData struct.
@@ -106,7 +107,7 @@ func (p BCDJobProcessor) Process(
 	}
 
 	// Step 2. Parse the file.
-	data, err := p.dataParser.Parse(file)
+	data, err := p.dataParser.Parse(file.Contents)
 	if err != nil {
 		return err
 	}
