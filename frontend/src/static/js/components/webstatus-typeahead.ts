@@ -351,6 +351,9 @@ export class WebstatusTypeaheadDropdown extends SlDropdown {
       return;
     }
     const menuItems = this.getAllVisibleItems(menu);
+    if (menuItems.length === 0) {
+      return;
+    }
     const currentItem = menu.getCurrentItem();
 
     // Handle menu selection keys.
