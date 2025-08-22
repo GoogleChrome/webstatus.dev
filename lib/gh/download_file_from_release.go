@@ -34,7 +34,8 @@ var (
 	ErrFatalError            = errors.New("fatal error using github")
 )
 
-type File struct {
+// ReleaseFile represents a file in a given Github release.
+type ReleaseFile struct {
 	Contents io.ReadCloser
 	Info     ReleaseInfo
 }
@@ -48,7 +49,7 @@ func (c *Client) DownloadFileFromRelease(
 	ctx context.Context,
 	owner, repo string,
 	httpClient *http.Client,
-	filePattern string) (*File, error) {
+	filePattern string) (*ReleaseFile, error) {
 	release, _, err := c.repoClient.GetLatestRelease(ctx, owner, repo)
 	if err != nil {
 		// nolint: exhaustruct // WONTFIX. This is an external package. Cannot control it.
@@ -111,7 +112,7 @@ func (c *Client) DownloadFileFromRelease(
 		slog.WarnContext(ctx, "invalid tag. it will not be used", "tag", tagName)
 	}
 
-	return &File{
+	return &ReleaseFile{
 		Contents: resp.Body,
 		Info: ReleaseInfo{
 			Tag: tagNamePtr,

@@ -35,7 +35,7 @@ func checkIfFileIsReadable(t *testing.T, file io.Reader) {
 	}
 }
 
-func checkIfTagIsPopulated(t *testing.T, file *File) {
+func checkIfTagIsPopulated(t *testing.T, file *ReleaseFile) {
 	if file.Info.Tag == nil || *file.Info.Tag == "" {
 		t.Error("tag is empty")
 	}
@@ -121,7 +121,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 		cfg           mockGetLatestReleaseConfig
 		roundTripCfg  *mockRoundTripperConfig
 		expectedError error
-		expectedFile  *File
+		expectedFile  *ReleaseFile
 	}{
 		{
 			name: "successful download",
@@ -150,7 +150,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				err: nil,
 			},
 			expectedError: nil,
-			expectedFile: &File{
+			expectedFile: &ReleaseFile{
 				Contents: io.NopCloser(nil),
 				Info: ReleaseInfo{
 					Tag: valuePtr("v1.0.0"),
@@ -184,7 +184,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				err: nil,
 			},
 			expectedError: nil,
-			expectedFile: &File{
+			expectedFile: &ReleaseFile{
 				Contents: io.NopCloser(nil),
 				Info: ReleaseInfo{
 					Tag: valuePtr("v2.0.0"),

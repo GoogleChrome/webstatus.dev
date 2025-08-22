@@ -34,7 +34,7 @@ type AssetGetter interface {
 		ctx context.Context,
 		owner, repo string,
 		httpClient *http.Client,
-		filePattern string) (*gh.File, error)
+		filePattern string) (*gh.ReleaseFile, error)
 }
 
 // AssetParser describes the behavior to parse the io.ReadCloser from AssetGetter into the expected data type.
@@ -125,7 +125,7 @@ const (
 	v4 = "v4.0.0"
 )
 
-func (p WebFeaturesJobProcessor) parseByVersion(ctx context.Context, file *gh.File) (
+func (p WebFeaturesJobProcessor) parseByVersion(ctx context.Context, file *gh.ReleaseFile) (
 	*webdxfeaturetypes.ProcessedWebFeaturesData, error) {
 	if file.Info.Tag == nil {
 		slog.ErrorContext(ctx, "unknown version", "version", "nil")

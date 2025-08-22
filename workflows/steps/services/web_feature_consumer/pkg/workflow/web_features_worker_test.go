@@ -49,12 +49,12 @@ type mockDownloadFileFromReleaseConfig struct {
 	expectedFileName string
 	expectedOwner    string
 	expectedRepo     string
-	returnFile       *gh.File
+	returnFile       *gh.ReleaseFile
 	returnError      error
 }
 
 func (m *mockAssetGetter) DownloadFileFromRelease(
-	_ context.Context, owner, repo string, _ *http.Client, filePattern string) (*gh.File, error) {
+	_ context.Context, owner, repo string, _ *http.Client, filePattern string) (*gh.ReleaseFile, error) {
 	if filePattern != m.mockDownloadFileFromReleaseCfg.expectedFileName ||
 		owner != m.mockDownloadFileFromReleaseCfg.expectedOwner ||
 		repo != m.mockDownloadFileFromReleaseCfg.expectedRepo {
@@ -262,8 +262,8 @@ const (
 	testFileName  = "file.txt"
 )
 
-func testFile(tag *string, contents string) *gh.File {
-	return &gh.File{
+func testFile(tag *string, contents string) *gh.ReleaseFile {
+	return &gh.ReleaseFile{
 		Contents: io.NopCloser(strings.NewReader(contents)),
 		Info: gh.ReleaseInfo{
 			Tag: tag,
@@ -273,7 +273,7 @@ func testFile(tag *string, contents string) *gh.File {
 
 func TestProcess(t *testing.T) {
 	// According https://pkg.go.dev/golang.org/x/mod/semver, the version must start with v
-	testFileFn := func() *gh.File {
+	testFileFn := func() *gh.ReleaseFile {
 		return testFile(valuePtr(v2), "hi features")
 	}
 	// nolint: dupl
@@ -1762,7 +1762,7 @@ func valuePtr[T any](in T) *T { return &in }
 func TestParseByVersion(t *testing.T) {
 	testCases := []struct {
 		name                string
-		file                *gh.File
+		file                *gh.ReleaseFile
 		v2Parser            *mockAssetParser
 		expectedV2CallCount int
 		v3Parser            *mockAssetParser

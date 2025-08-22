@@ -46,7 +46,7 @@ type DataGetter interface {
 		ctx context.Context,
 		owner, repo string,
 		httpClient *http.Client,
-		filePattern string) (*gh.File, error)
+		filePattern string) (*gh.ReleaseFile, error)
 }
 
 // DataParser describes the behavior to read raw bytes into the expected BCDData struct.

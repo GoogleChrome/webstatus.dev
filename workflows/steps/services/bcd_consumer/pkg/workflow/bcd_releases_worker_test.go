@@ -57,7 +57,7 @@ type mockDownloadFileFromReleaseConfig struct {
 	repoOwner   string
 	repoName    string
 	filePattern string
-	fakeFile    *gh.File
+	fakeFile    *gh.ReleaseFile
 	err         error
 }
 
@@ -70,7 +70,7 @@ func (m *MockDataGetter) DownloadFileFromRelease(
 	_ context.Context,
 	owner, repo string,
 	_ *http.Client,
-	filePattern string) (*gh.File, error) {
+	filePattern string) (*gh.ReleaseFile, error) {
 	if m.mockDownloadFileFromReleaseCfg.repoOwner != owner ||
 		m.mockDownloadFileFromReleaseCfg.repoName != repo ||
 		m.mockDownloadFileFromReleaseCfg.filePattern != filePattern {
@@ -208,8 +208,8 @@ func getSampleReleases() []bcdconsumertypes.BrowserRelease {
 
 func TestProcess(t *testing.T) {
 	// Create a function to generate a file because Contents can only be read once
-	testFileFn := func() *gh.File {
-		return &gh.File{
+	testFileFn := func() *gh.ReleaseFile {
+		return &gh.ReleaseFile{
 			Contents: io.NopCloser(strings.NewReader("success")),
 			Info: gh.ReleaseInfo{
 				Tag: nil,
