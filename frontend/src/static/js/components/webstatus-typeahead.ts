@@ -54,6 +54,8 @@ interface VocabularyItem {
   doc: string;
 }
 
+const NONSELECTABLE_ITEM_VALUE = 'NONSELECTABLE_ITEM_VALUE';
+
 @customElement('webstatus-typeahead')
 export class WebstatusTypeahead extends LitElement {
   slDropdownRef = createRef<WebstatusTypeaheadDropdown>();
@@ -213,10 +215,18 @@ export class WebstatusTypeahead extends LitElement {
 
   // Check if the user is pressing Enter to send a query.  This is detected
   // on keyDown so that the handler is run before the dropdown keyDown is run.
+  // If stopPropagation() is not called, the event will cause a completion.
   handleInputFieldKeyDown(event: KeyboardEvent) {
     if (event.key === 'Enter') {
-      const slDropdown = this.slDropdownRef.value!;
-      if (!slDropdown.open || !slDropdown.getCurrentItem()) {
+      const slDropdown = this.slDropdownRef.value as WebstatusTypeaheadDropdown;
+      if (!slDropdown) return;
+      const currentItem = slDropdown.getCurrentItem();
+      if (
+        !slDropdown.open ||
+        !currentItem ||
+        currentItem.value === NONSELECTABLE_ITEM_VALUE
+      ) {
+        // User wants to send the query to the server.
         this._fireEvent('sl-change', this);
         event.stopPropagation();
       }
@@ -284,11 +294,19 @@ export class WebstatusTypeahead extends LitElement {
   }
 
   renderAutocompleteMenu(): TemplateResult {
+    // sl-menu automatically selects the first menu item.  This nerfs
+    // that undesired behavior by adding an invisible 0th menu item.
+    const nonselectableItem = html`
+      <webstatus-typeahead-item
+        value="${NONSELECTABLE_ITEM_VALUE}"
+      ></webstatus-typeahead-item>
+    `;
     return html`
       <sl-menu
         @click=${(e: Event) => e.preventDefault()}
         @sl-select=${this.handleCandidateSelected}
       >
+        ${nonselectableItem}
         ${this.candidates.map(
           c => html`
             <webstatus-typeahead-item
@@ -368,12 +386,16 @@ export class WebstatusTypeaheadDropdown extends SlDropdown {
         if (event.key === 'ArrowDown' && menuItems[currentItemIndex + 1]) {
           this.setCurrentItem(menuItems[currentItemIndex + 1]);
         }
-        if (event.key === 'ArrowUp' && menuItems[currentItemIndex - 1]) {
+        if (
+          event.key === 'ArrowUp' &&
+          menuItems[currentItemIndex - 1] &&
+          currentItemIndex > 1
+        ) {
           this.setCurrentItem(menuItems[currentItemIndex - 1]);
         }
       } else {
         if (event.key === 'ArrowDown') {
-          this.setCurrentItem(menuItems[0]);
+          this.setCurrentItem(menuItems[1]);
         }
         if (event.key === 'ArrowUp') {
           this.setCurrentItem(menuItems[menuItems.length - 1]);
@@ -467,6 +489,9 @@ export class WebstatusTypeaheadItem extends LitElement {
   }
 
   render(): TemplateResult {
+    if (this.value === NONSELECTABLE_ITEM_VALUE) {
+      return html``;
+    }
     const highlightedValue = this.highlight(this.value);
     const highlightedDoc = this.highlight(this.doc);
     return html`

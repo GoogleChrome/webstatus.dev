@@ -7,6 +7,7 @@ toolchain go1.24.1
 require (
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/getkin/kin-openapi v0.132.0
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/oapi-codegen/runtime v1.1.2
 )
 
