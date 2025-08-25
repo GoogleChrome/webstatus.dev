@@ -425,6 +425,10 @@ func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilte
 	return newEntityWriterWithIDRetrieval[webFeatureSpannerMapper, string](c).getIDByKey(ctx, filter.featureKey)
 }
 
+func (c *Client) GetWebFeatureByID(ctx context.Context, id string) (*SpannerWebFeature, error) {
+	return newEntityReader[webFeatureSpannerMapper, SpannerWebFeature, string](c).readRowByKey(ctx, id)
+}
+
 func (c *Client) fetchAllWebFeatureIDsWithTransaction(
 	ctx context.Context, txn *spanner.ReadOnlyTransaction) ([]string, error) {
 	return fetchSingleColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "ID")
