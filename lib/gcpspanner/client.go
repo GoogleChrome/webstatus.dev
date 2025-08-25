@@ -585,6 +585,13 @@ type entityReader[
 	*Client
 }
 
+type entityAllReader[
+	M readAllMapper,
+	SpannerStruct any,
+] struct {
+	*Client
+}
+
 // entityWriter is a basic client for writing any row to the database.
 type entityWriter[
 	M writeableEntityMapper[ExternalStruct, SpannerStruct, Key],

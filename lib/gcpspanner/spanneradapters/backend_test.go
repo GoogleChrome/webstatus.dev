@@ -1655,6 +1655,7 @@ func TestGetFeature(t *testing.T) {
 				result: &gcpspanner.MovedWebFeature{
 					OriginalFeatureKey: "feature1",
 					NewFeatureKey:      "feature2",
+					CreatedAt:          time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				returnedError: nil,
 			},
