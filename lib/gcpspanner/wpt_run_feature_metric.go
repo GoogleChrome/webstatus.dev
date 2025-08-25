@@ -627,36 +627,69 @@ type spannerWPTRunFeatureMetricIDAndWebFeatureID struct {
 func (c *Client) getAllSpannerWPTRunFeatureMetricIDsByWebFeatureID(
 	ctx context.Context,
 	webFeatureID string) ([]spannerWPTRunFeatureMetricIDAndWebFeatureID, error) {
-	txn := c.Single()
-	defer txn.Close()
+	metrics, err := c.getAllWPTRunFeatureMetricIDsByWebFeatureID(ctx, webFeatureID)
+	if err != nil {
+		return nil, err
+	}
+
+	pairs := make([]spannerWPTRunFeatureMetricIDAndWebFeatureID, 0, len(metrics))
+	for _, metric := range metrics {
+		pairs = append(pairs, spannerWPTRunFeatureMetricIDAndWebFeatureID{
+			ID:           metric.ID,
+			WebFeatureID: metric.WebFeatureID,
+		})
+	}
+
+	return pairs, nil
+}
+
+type wptRunFeatureMetricMapper struct{}
+
+func (m wptRunFeatureMetricMapper) SelectAllByKeys(webFeatureID string) spanner.Statement {
 	stmt := spanner.NewStatement(`
 		SELECT
-			ID,
-			WebFeatureID
+			*
 		FROM WPTRunFeatureMetrics
+		WHERE WebFeatureID = @webFeatureID
+		ORDER BY TimeStart DESC`)
+	stmt.Params = map[string]interface{}{
+		"webFeatureID": webFeatureID,
+	}
+
+	return stmt
+}
+
+func (c *Client) getAllWPTRunFeatureMetricIDsByWebFeatureID(
+	ctx context.Context,
+	webFeatureID string) ([]SpannerWPTRunFeatureMetric, error) {
+	return newAllByKeysEntityReader[
+		wptRunFeatureMetricMapper,
+		string,
+		SpannerWPTRunFeatureMetric,
+	](c).readAllByKeys(ctx, webFeatureID)
+}
+
+type latestWptRunsFeatureMetricMapper struct{}
+
+func (m latestWptRunsFeatureMetricMapper) SelectAllByKeys(webFeatureID string) spanner.Statement {
+	stmt := spanner.NewStatement(`
+		SELECT
+			*
+		FROM LatestWPTRunFeatureMetrics
 		WHERE WebFeatureID = @webFeatureID`)
 	stmt.Params = map[string]interface{}{
 		"webFeatureID": webFeatureID,
 	}
 
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
+	return stmt
+}
 
-	var pairs []spannerWPTRunFeatureMetricIDAndWebFeatureID
-	for {
-		row, err := it.Next()
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return nil, errors.Join(ErrInternalQueryFailure, err)
-		}
-		var pair spannerWPTRunFeatureMetricIDAndWebFeatureID
-		if err := row.ToStruct(&pair); err != nil {
-			return nil, err
-		}
-		pairs = append(pairs, pair)
-	}
-
-	return pairs, nil
+func (c *Client) getAllSpannerLatestWPTRunFeatureMetricIDsByWebFeatureID(
+	ctx context.Context,
+	webFeatureID string) ([]SpannerLatestWPTRunFeatureMetric, error) {
+	return newAllByKeysEntityReader[
+		latestWptRunsFeatureMetricMapper,
+		string,
+		SpannerLatestWPTRunFeatureMetric,
+	](c).readAllByKeys(ctx, webFeatureID)
 }

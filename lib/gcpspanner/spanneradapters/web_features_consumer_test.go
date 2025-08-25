@@ -197,9 +197,10 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 }
 
 type mockSyncWebFeaturesConfig struct {
-	expectedInput []gcpspanner.WebFeature
-	err           error
-	expectedCount int
+	expectedInput   []gcpspanner.WebFeature
+	expectedOptions []gcpspanner.SyncWebFeaturesOption
+	err             error
+	expectedCount   int
 }
 
 type mockFetchIDsAndKeysConfig struct {
@@ -294,7 +295,7 @@ func (c *mockWebFeatureSpannerClient) SyncSplitWebFeatures(
 }
 
 func (c *mockWebFeatureSpannerClient) SyncWebFeatures(
-	_ context.Context, features []gcpspanner.WebFeature) error {
+	_ context.Context, features []gcpspanner.WebFeature, opts ...gcpspanner.SyncWebFeaturesOption) error {
 	// Sort both slices for stable comparison
 	sort.Slice(features, func(i, j int) bool {
 		return features[i].FeatureKey < features[j].FeatureKey
@@ -306,6 +307,12 @@ func (c *mockWebFeatureSpannerClient) SyncWebFeatures(
 	if diff := cmp.Diff(c.mockSyncWebFeaturesCfg.expectedInput, features); diff != "" {
 		c.t.Errorf("SyncWebFeatures unexpected input (-want +got):\n%s", diff)
 	}
+
+	if !reflect.DeepEqual(c.mockSyncWebFeaturesCfg.expectedOptions, opts) {
+		c.t.Errorf("SyncWebFeatures unexpected options expected %v received %v",
+			c.mockSyncWebFeaturesCfg.expectedOptions, opts)
+	}
+
 	c.syncWebFeaturesCount++
 
 	return c.mockSyncWebFeaturesCfg.err
@@ -532,8 +539,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output: []gcpspanner.SpannerFeatureIDAndKey{
@@ -730,8 +738,9 @@ func TestInsertWebFeatures(t *testing.T) {
 				expectedInput: []gcpspanner.WebFeature{
 					{FeatureKey: "feature1", Name: "Feature 1", Description: "text", DescriptionHTML: "<html>"},
 				},
-				err:           ErrSyncWebFeaturesTest,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             ErrSyncWebFeaturesTest,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,
@@ -815,8 +824,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,
@@ -908,8 +918,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,
@@ -1012,8 +1023,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,
@@ -1158,8 +1170,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,
@@ -1356,8 +1369,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,
@@ -1556,8 +1570,9 @@ func TestInsertWebFeatures(t *testing.T) {
 						DescriptionHTML: "<html>",
 					},
 				},
-				err:           nil,
-				expectedCount: 1,
+				expectedOptions: []gcpspanner.SyncWebFeaturesOption{},
+				err:             nil,
+				expectedCount:   1,
 			},
 			mockFetchIDsAndKeysCfg: mockFetchIDsAndKeysConfig{
 				output:        nil,

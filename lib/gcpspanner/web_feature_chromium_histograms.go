@@ -69,7 +69,29 @@ func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectOne(id string) span
 	return stmt
 }
 
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectAllByKeys(id string) spanner.Statement {
+	stmt := spanner.NewStatement(`
+	SELECT
+		*
+	FROM WebFeatureChromiumHistogramEnumValues
+	WHERE WebFeatureID = @webFeatureID`)
+	stmt.Params = map[string]interface{}{
+		"webFeatureID": id,
+	}
+
+	return stmt
+}
+
 func (c *Client) UpsertWebFeatureChromiumHistogramEnumValue(
 	ctx context.Context, in WebFeatureChromiumHistogramEnumValue) error {
 	return newEntityWriter[webFeaturesChromiumHistogramEnumSpannerMapper](c).upsert(ctx, in)
+}
+
+func (c *Client) getAllWebFeatureChromiumHistogramEnumValuesByFeatureID(
+	ctx context.Context, featureID string) ([]WebFeatureChromiumHistogramEnumValue, error) {
+	return newAllByKeysEntityReader[
+		webFeaturesChromiumHistogramEnumSpannerMapper,
+		string,
+		WebFeatureChromiumHistogramEnumValue,
+	](c).readAllByKeys(ctx, featureID)
 }
