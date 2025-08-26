@@ -585,6 +585,40 @@ type entityReader[
 	*Client
 }
 
+type entityAllReader[
+	M readAllMapper,
+	SpannerStruct any,
+] struct {
+	*Client
+}
+
+func (r *entityAllReader[M, SpannerStruct]) readAll(ctx context.Context) ([]SpannerStruct, error) {
+	var mapper M
+	stmt := mapper.SelectAll()
+	txn := r.Single()
+	defer txn.Close()
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	var entities []SpannerStruct
+	for {
+		row, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		var entity SpannerStruct
+		if err := row.ToStruct(&entity); err != nil {
+			return nil, err
+		}
+		entities = append(entities, entity)
+	}
+
+	return entities, nil
+}
+
 // entityWriter is a basic client for writing any row to the database.
 type entityWriter[
 	M writeableEntityMapper[ExternalStruct, SpannerStruct, Key],
@@ -1159,6 +1193,13 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyNonAtom
 	}
 
 	return nil
+}
+
+func newAllEntityReader[
+	M readAllMapper,
+	SpannerStruct any,
+](c *Client) *entityAllReader[M, SpannerStruct] {
+	return &entityAllReader[M, SpannerStruct]{c}
 }
 
 func newEntityWriterWithIDRetrieval[

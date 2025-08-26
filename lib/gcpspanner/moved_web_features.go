@@ -14,28 +14,150 @@
 
 package gcpspanner
 
-import "context"
+import (
+	"context"
+	"log/slog"
+
+	"cloud.google.com/go/spanner"
+)
+
+const movedFeaturesTable = "MovedWebFeatures"
 
 type MovedWebFeature struct {
 	OriginalFeatureKey string `spanner:"OriginalFeatureKey"`
 	NewFeatureKey      string `spanner:"NewFeatureKey"`
 }
 
+type spannerNewMovedWebFeature struct {
+	OriginalFeatureKey string `spanner:"OriginalFeatureKey"`
+	TargetWebFeatureID string `spanner:"TargetWebFeatureID"`
+}
+
+type spannerMovedWebFeature struct {
+	ID                 string `spanner:"ID"`
+	OriginalFeatureKey string `spanner:"OriginalFeatureKey"`
+	TargetWebFeatureID string `spanner:"TargetWebFeatureID"`
+}
+
+type movedWebFeatureMapper struct{}
+
+func (m movedWebFeatureMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(
+		`SELECT
+			ID,
+			OriginalFeatureKey,
+			TargetWebFeatureID
+		FROM MovedWebFeatures`)
+}
+
+// MergeAndCheckChanged will merge the entity and return if the entity has changed.
+func (m movedWebFeatureMapper) MergeAndCheckChanged(
+	// Right now, we treat these as immutable for now. Differences should yield a different entity
+	_ spannerNewMovedWebFeature, existing spannerMovedWebFeature) (spannerMovedWebFeature, bool) {
+	return existing, false
+}
+
+func (m movedWebFeatureMapper) PreDeleteHook(
+	_ context.Context,
+	_ *Client,
+	_ []spannerMovedWebFeature,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m movedWebFeatureMapper) DeleteMutation(in spannerMovedWebFeature) *spanner.Mutation {
+	return spanner.Delete(movedFeaturesTable, spanner.Key{in.ID})
+}
+
+func (m movedWebFeatureMapper) GetKeyFromExternal(in spannerNewMovedWebFeature) string {
+	return in.OriginalFeatureKey
+}
+
+func (m movedWebFeatureMapper) GetKeyFromInternal(in spannerMovedWebFeature) string {
+	return in.ID
+}
+
+func (m movedWebFeatureMapper) GetChildDeleteKeyMutations(
+	_ context.Context, _ *Client, _ []spannerMovedWebFeature) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m movedWebFeatureMapper) Table() string {
+	return movedFeaturesTable
+}
+
 // SyncMovedWebFeatures reconciles the MovedWebFeatures table with the provided list of features.
 // It will insert new details for moved web features, update existing ones, and delete any moved web features
 // that are no longer present in the provided list.
-func (c *Client) SyncMovedWebFeatures(_ context.Context, _ []MovedWebFeature) error {
-	// TODO. Will implement once the tables are created.
-	// https://github.com/GoogleChrome/webstatus.dev/issues/1669
-	return nil
+func (c *Client) SyncMovedWebFeatures(ctx context.Context, movedWebFeatures []MovedWebFeature) error {
+	slog.InfoContext(ctx, "Starting moved web features synchronization")
+	synchronizer := newEntitySynchronizer[movedWebFeatureMapper](c)
+
+	spannerMovedWebFeatures := make([]spannerNewMovedWebFeature, 0, len(movedWebFeatures))
+	for _, movedWebFeature := range movedWebFeatures {
+		// Get the web feature id from the target feature key.
+		targetWebFeatureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(movedWebFeature.NewFeatureKey))
+		if err != nil {
+			return err
+		}
+
+		spannerMovedWebFeatures = append(spannerMovedWebFeatures, spannerNewMovedWebFeature{
+			OriginalFeatureKey: movedWebFeature.OriginalFeatureKey,
+			TargetWebFeatureID: *targetWebFeatureID,
+		})
+	}
+
+	return synchronizer.Sync(ctx, spannerMovedWebFeatures)
+}
+
+type movedWebFeatureByOriginalKeyMapper struct{}
+
+func (m movedWebFeatureByOriginalKeyMapper) SelectOne(featureKey string) spanner.Statement {
+	stmt := spanner.NewStatement(
+		`SELECT
+			ID,
+			OriginalFeatureKey,
+			TargetWebFeatureID
+		FROM MovedWebFeatures WHERE OriginalFeatureKey = @OriginalFeatureKey`)
+	stmt.Params["OriginalFeatureKey"] = featureKey
+
+	return stmt
 }
 
 // GetMovedWebFeatureDetailsByOriginalFeatureKey returns the details about the moved feature.
 // If details are not found for the feature key, it returns ErrQueryReturnedNoResults.
 // Other errors should be investigated and handled appropriately.
 func (c *Client) GetMovedWebFeatureDetailsByOriginalFeatureKey(
-	_ context.Context, _ string) (*MovedWebFeature, error) {
-	// TODO. Will implement once the tables are created.
-	// https://github.com/GoogleChrome/webstatus.dev/issues/1669
-	return nil, ErrQueryReturnedNoResults
+	ctx context.Context, originalFeatureKey string) (*MovedWebFeature, error) {
+	feature, err := newEntityReader[
+		movedWebFeatureByOriginalKeyMapper,
+		spannerMovedWebFeature,
+		string,
+	](c).readRowByKey(ctx, originalFeatureKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return &MovedWebFeature{
+		OriginalFeatureKey: feature.OriginalFeatureKey,
+		NewFeatureKey:      feature.TargetWebFeatureID,
+	}, nil
+}
+
+type movedWebFeaturesGetAllMapper struct{}
+
+func (m movedWebFeaturesGetAllMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(
+		`SELECT
+			mwf.OriginalFeatureKey,
+			wf.FeatureKey AS NewFeatureKey
+		FROM
+			MovedWebFeatures AS mwf
+		JOIN
+			WebFeatures AS wf ON mwf.TargetWebFeatureID = wf.ID`)
+}
+
+func (c *Client) GetAllMovedWebFeatures(ctx context.Context) ([]MovedWebFeature, error) {
+	return newAllEntityReader[movedWebFeaturesGetAllMapper, MovedWebFeature](c).readAll(ctx)
+
 }
