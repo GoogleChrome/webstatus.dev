@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -81,10 +82,16 @@ type upsertMetricConfig struct {
 	err               error
 }
 
+type getAllMovedWebFeaturesConfig struct {
+	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData
+	err           error
+}
+
 type MockWebFeatureWPTScoreStorer struct {
-	insertRunCfg    *insertRunConfig
-	upsertMetricCfg *upsertMetricConfig
-	t               *testing.T
+	insertRunCfg              *insertRunConfig
+	upsertMetricCfg           *upsertMetricConfig
+	getAllMovedWebFeaturesCfg *getAllMovedWebFeaturesConfig
+	t                         *testing.T
 }
 
 var (
@@ -114,14 +121,20 @@ func (m *MockWebFeatureWPTScoreStorer) UpsertWPTRunFeatureMetrics(
 	return m.upsertMetricCfg.err
 }
 
+func (m *MockWebFeatureWPTScoreStorer) GetAllMovedWebFeatures(_ context.Context) (
+	map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	return m.getAllMovedWebFeaturesCfg.movedFeatures, m.getAllMovedWebFeaturesCfg.err
+}
+
 type processRunTest struct {
-	name                      string
-	inputRun                  shared.TestRun
-	mockResultsDownloader     *MockResultsDownloader
-	mockWebFeaturesDataGetter *MockWebFeaturesDataGetter
-	insertRunConfig           *insertRunConfig
-	upsertMetricConfig        *upsertMetricConfig
-	expectedErr               error
+	name                         string
+	inputRun                     shared.TestRun
+	mockResultsDownloader        *MockResultsDownloader
+	mockWebFeaturesDataGetter    *MockWebFeaturesDataGetter
+	insertRunConfig              *insertRunConfig
+	upsertMetricConfig           *upsertMetricConfig
+	getAllMovedWebFeaturesConfig *getAllMovedWebFeaturesConfig
+	expectedErr                  error
 }
 
 // nolint: lll // WONTFIX
@@ -207,6 +220,10 @@ func TestProcessRun(t *testing.T) {
 				},
 				shouldFail: false,
 			},
+			getAllMovedWebFeaturesConfig: &getAllMovedWebFeaturesConfig{
+				movedFeatures: nil,
+				err:           nil,
+			},
 			expectedErr: nil,
 		},
 		{
@@ -237,6 +254,10 @@ func TestProcessRun(t *testing.T) {
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
 				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
+			},
+			getAllMovedWebFeaturesConfig: &getAllMovedWebFeaturesConfig{
+				movedFeatures: nil,
+				err:           nil,
 			},
 			expectedErr: nil,
 		},
@@ -269,7 +290,8 @@ func TestProcessRun(t *testing.T) {
 				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
 			},
-			expectedErr: errDownloadResults,
+			getAllMovedWebFeaturesConfig: nil,
+			expectedErr:                  errDownloadResults,
 		},
 		{
 			name: "Fail to get data",
@@ -310,7 +332,8 @@ func TestProcessRun(t *testing.T) {
 				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      true,
 			},
-			expectedErr: errGetWebFeaturesData,
+			getAllMovedWebFeaturesConfig: nil,
+			expectedErr:                  errGetWebFeaturesData,
 		},
 		{
 			name: "Fail to insert run",
@@ -369,6 +392,10 @@ func TestProcessRun(t *testing.T) {
 			mockWebFeaturesDataGetter: &MockWebFeaturesDataGetter{
 				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
+			},
+			getAllMovedWebFeaturesConfig: &getAllMovedWebFeaturesConfig{
+				movedFeatures: nil,
+				err:           nil,
 			},
 			expectedErr: errInsertWPTRun,
 		},
@@ -443,6 +470,10 @@ func TestProcessRun(t *testing.T) {
 				webFeaturesData: shared.WebFeaturesData{},
 				shouldFail:      false,
 			},
+			getAllMovedWebFeaturesConfig: &getAllMovedWebFeaturesConfig{
+				movedFeatures: nil,
+				err:           nil,
+			},
 			expectedErr: errUpsertWPTMetric,
 		},
 	}
@@ -452,9 +483,10 @@ func TestProcessRun(t *testing.T) {
 				tt.mockResultsDownloader,
 				tt.mockWebFeaturesDataGetter,
 				&MockWebFeatureWPTScoreStorer{
-					insertRunCfg:    tt.insertRunConfig,
-					upsertMetricCfg: tt.upsertMetricConfig,
-					t:               t,
+					insertRunCfg:              tt.insertRunConfig,
+					upsertMetricCfg:           tt.upsertMetricConfig,
+					getAllMovedWebFeaturesCfg: tt.getAllMovedWebFeaturesConfig,
+					t:                         t,
 				},
 			)
 
@@ -462,6 +494,104 @@ func TestProcessRun(t *testing.T) {
 
 			if !errors.Is(err, tt.expectedErr) {
 				t.Errorf("Expected error: %v, Got: %v", tt.expectedErr, err)
+			}
+		})
+	}
+}
+
+func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
+	testCases := []struct {
+		name          string
+		movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData
+		data          *shared.WebFeaturesData
+		expectedData  *shared.WebFeaturesData
+		expectedErr   error
+	}{
+		{
+			name: "successful migration",
+			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
+				"old-feature": {RedirectTarget: "new-feature", Kind: web_platform_dx__web_features.Moved},
+			},
+			data: &shared.WebFeaturesData{
+				"test1.html": {"old-feature": nil},
+				"test2.html": {"another-feature": nil},
+			},
+			expectedData: &shared.WebFeaturesData{
+				"test1.html": {"new-feature": nil},
+				"test2.html": {"another-feature": nil},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "conflict with existing feature",
+			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
+				"old-feature": {RedirectTarget: "new-feature", Kind: web_platform_dx__web_features.Moved},
+			},
+			data: &shared.WebFeaturesData{
+				"test1.html": {"old-feature": nil},
+				"test2.html": {"new-feature": nil},
+			},
+			expectedData: nil, // Data should not be modified
+			expectedErr:  ErrConflictMigratingFeatureKey,
+		},
+		{
+			name:          "no migration needed",
+			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{},
+			data: &shared.WebFeaturesData{
+				"test1.html": {"feature-a": nil},
+			},
+			expectedData: &shared.WebFeaturesData{
+				"test1.html": {"feature-a": nil},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "multiple migrations",
+			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
+				"old-a": {RedirectTarget: "new-a", Kind: web_platform_dx__web_features.Moved},
+				"old-b": {RedirectTarget: "new-b", Kind: web_platform_dx__web_features.Moved},
+			},
+			data: &shared.WebFeaturesData{
+				"test1.html": {"old-a": nil, "feature-c": nil},
+				"test2.html": {"old-b": nil},
+			},
+			expectedData: &shared.WebFeaturesData{
+				"test1.html": {"new-a": nil, "feature-c": nil},
+				"test2.html": {"new-b": nil},
+			},
+			expectedErr: nil,
+		},
+		{
+			name: "empty data",
+			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{"a": {
+				RedirectTarget: "b", Kind: web_platform_dx__web_features.Moved,
+			}},
+			data:         &shared.WebFeaturesData{},
+			expectedData: &shared.WebFeaturesData{},
+			expectedErr:  nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Make a deep copy of the input data to avoid modifying the test case data.
+			dataCopy := make(shared.WebFeaturesData)
+			for k, v := range *tc.data {
+				innerCopy := make(map[string]interface{})
+				for ik, iv := range v {
+					innerCopy[ik] = iv
+				}
+				dataCopy[k] = innerCopy
+			}
+
+			err := migrateWebFeaturesToMovedFeatures(context.Background(), tc.movedFeatures, &dataCopy)
+
+			if !errors.Is(err, tc.expectedErr) {
+				t.Errorf("expected error %v, got %v", tc.expectedErr, err)
+			}
+
+			if tc.expectedErr == nil && !reflect.DeepEqual(&dataCopy, tc.expectedData) {
+				t.Errorf("expected data %v, got %v", &dataCopy, tc.expectedData)
 			}
 		})
 	}

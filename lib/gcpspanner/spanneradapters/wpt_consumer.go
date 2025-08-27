@@ -20,6 +20,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -34,6 +35,7 @@ type WPTWorkflowSpannerClient interface {
 	InsertWPTRun(ctx context.Context, run gcpspanner.WPTRun) error
 	UpsertWPTRunFeatureMetrics(ctx context.Context, externalRunID int64,
 		in map[string]gcpspanner.WPTRunFeatureMetric) error
+	GetAllMovedWebFeatures(ctx context.Context) ([]gcpspanner.MovedWebFeature, error)
 }
 
 // WPTConsumer is the adapter that takes data from the WPT workflow and prepares
@@ -100,6 +102,30 @@ func (w *WPTConsumer) UpsertWPTRunFeatureMetrics(
 	}
 
 	return nil
+}
+
+func convertGCPSpannerMovedFeaturesToMap(
+	movedFeatures []gcpspanner.MovedWebFeature,
+) map[string]web_platform_dx__web_features.FeatureMovedData {
+	ret := make(map[string]web_platform_dx__web_features.FeatureMovedData, len(movedFeatures))
+	for _, feature := range movedFeatures {
+		ret[feature.OriginalFeatureKey] = web_platform_dx__web_features.FeatureMovedData{
+			RedirectTarget: feature.NewFeatureKey,
+			Kind:           web_platform_dx__web_features.Moved,
+		}
+	}
+
+	return ret
+}
+
+func (w *WPTConsumer) GetAllMovedWebFeatures(
+	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	movedFeatures, err := w.client.GetAllMovedWebFeatures(ctx)
+	if err != nil {
+		return nil, errors.Join(wptconsumertypes.ErrUnableToGetAllMovedWebFeatures, err)
+	}
+
+	return convertGCPSpannerMovedFeaturesToMap(movedFeatures), nil
 }
 
 // NewWPTRun creates a gcpspanner WPTRun from the incoming TestRun from wpt.fyi.

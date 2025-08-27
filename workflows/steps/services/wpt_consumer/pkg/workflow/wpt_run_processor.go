@@ -16,10 +16,12 @@ package workflow
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -69,6 +71,7 @@ type WebFeatureWPTScoreStorer interface {
 		context.Context,
 		int64,
 		map[string]wptconsumertypes.WPTFeatureMetric) error
+	GetAllMovedWebFeatures(ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error)
 }
 
 func (w WPTRunProcessor) ProcessRun(
@@ -93,6 +96,17 @@ func (w WPTRunProcessor) ProcessRun(
 		return err
 	}
 
+	// Get the moved web features.
+	movedWebFeatureMap, err := w.scoreStorer.GetAllMovedWebFeatures(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = migrateWebFeaturesToMovedFeatures(ctx, movedWebFeatureMap, &webFeaturesData)
+	if err != nil {
+		return err
+	}
+
 	metricsPerFeature := resultsSummaryFile.Score(ctx, &webFeaturesData)
 
 	// Insert the data.
@@ -107,6 +121,60 @@ func (w WPTRunProcessor) ProcessRun(
 	err = w.scoreStorer.UpsertWPTRunFeatureMetrics(ctx, run.ID, metricsPerFeature)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+var ErrConflictMigratingFeatureKey = errors.New("conflict migrating feature key")
+
+// migrateWebFeaturesToMovedFeatures analyzes the moved features and updates the web features data
+// to ensure that any legacy feature identifiers are migrated to their new identifiers before scoring.
+// This function modifies the data in-place.
+func migrateWebFeaturesToMovedFeatures(
+	ctx context.Context,
+	movedWebFeatures map[string]web_platform_dx__web_features.FeatureMovedData,
+	// data is the web features data, structured as map[test-name]map[feature-id]interface{}.
+	// It is passed as a pointer because it is modified in-place.
+	data *shared.WebFeaturesData) error {
+	// First, take inventory of all the feature keys in the data.
+	allFeatureKeySet := make(map[string]struct{})
+	for _, featuresMap := range *data {
+		for featureKey := range featuresMap {
+			allFeatureKeySet[featureKey] = struct{}{}
+		}
+	}
+
+	// Attempt to migrate web features.
+	for testName, featuresMap := range *data {
+
+		newFeaturesMap := make(map[string]interface{}, len(featuresMap))
+		for featureKey, featureKeyData := range featuresMap {
+			if movedFeatureData, found := movedWebFeatures[featureKey]; found {
+				if _, exists := allFeatureKeySet[movedFeatureData.RedirectTarget]; exists {
+					// This new key already exists somewhere in the data.
+					// That means upstream has done a partial migration to the new feature key.
+					// Instead of assuming, we should error out and the WEB_FEATURES.yml file needs to be updated.
+					slog.ErrorContext(ctx, "conflict migrating feature key. upstream currently using both keys",
+						"test", testName,
+						"old_key", featureKey,
+						"new_key", movedFeatureData.RedirectTarget,
+					)
+
+					return ErrConflictMigratingFeatureKey
+				}
+				slog.WarnContext(ctx, "migrating feature key for test. Upstream WPT data should be updated.",
+					"test", testName,
+					"old_key", featureKey,
+					"new_key", movedFeatureData.RedirectTarget)
+
+				newFeaturesMap[movedFeatureData.RedirectTarget] = featureKeyData
+			} else {
+				newFeaturesMap[featureKey] = featureKeyData
+			}
+
+		}
+		(*data)[testName] = newFeaturesMap
 	}
 
 	return nil
