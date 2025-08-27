@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
@@ -45,10 +46,23 @@ type ChromiumHistogramEnumsClient interface {
 	UpsertWebFeatureChromiumHistogramEnumValue(context.Context, gcpspanner.WebFeatureChromiumHistogramEnumValue) error
 	GetIDFromFeatureKey(context.Context, *gcpspanner.FeatureIDFilter) (*string, error)
 	FetchAllFeatureKeys(context.Context) ([]string, error)
+	GetAllMovedWebFeatures(ctx context.Context) ([]gcpspanner.MovedWebFeature, error)
 }
 
 // Used by GCP Log-based metrics to extract the data about mismatch mappings.
 const logMissingFeatureIDMetricMsg = "unable to find feature ID. skipping mapping"
+
+var ErrConflictMigratingFeatureKey = errors.New("conflict migrating feature key")
+
+func (c *ChromiumHistogramEnumConsumer) GetAllMovedWebFeatures(
+	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	movedFeatures, err := c.client.GetAllMovedWebFeatures(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertGCPSpannerMovedFeaturesToMap(movedFeatures), nil
+}
 
 func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 	ctx context.Context, data metricdatatypes.HistogramMapping) error {
@@ -57,6 +71,20 @@ func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 		return errors.Join(ErrFailedToGetFeatureKeys, err)
 	}
 	enumToFeatureKeyMap := createEnumToFeatureKeyMap(featureKeys)
+
+	histogramsToEnumMap, histogramsToAllFeatureKeySet := buildHistogramMaps(data, enumToFeatureKeyMap)
+
+	// Get the moved features
+	movedFeatures, err := c.GetAllMovedWebFeatures(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = migrateMovedFeatures(ctx, histogramsToEnumMap, histogramsToAllFeatureKeySet, movedFeatures)
+	if err != nil {
+		return err
+	}
+
 	// Create mapping of anticipated enums to feature keys
 	for histogram, enums := range data {
 		enumID, err := c.client.UpsertChromiumHistogramEnum(ctx, gcpspanner.ChromiumHistogramEnum{
@@ -75,32 +103,92 @@ func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 				return errors.Join(ErrFailedToStoreEnumValue, err)
 			}
 
-			featureKey, found := enumToFeatureKeyMap[enum.Label]
-			if !found {
-				slog.WarnContext(ctx,
-					logMissingFeatureIDMetricMsg,
-					"label", enum.Label)
-
+			featureKey := histogramsToEnumMap[histogram][enum.Value]
+			if featureKey == nil {
 				continue
 			}
 
 			featureID, err := c.client.GetIDFromFeatureKey(
-				ctx, gcpspanner.NewFeatureKeyFilter(featureKey))
+				ctx, gcpspanner.NewFeatureKeyFilter(*featureKey))
 			if err != nil {
 				slog.WarnContext(ctx,
 					logMissingFeatureIDMetricMsg,
 					"error", err,
-					"featureKey", featureKey,
+					"featureKey", *featureKey,
 					"label", enum.Label)
 
 				continue
 			}
-			err = c.client.UpsertWebFeatureChromiumHistogramEnumValue(ctx, gcpspanner.WebFeatureChromiumHistogramEnumValue{
-				WebFeatureID:                 *featureID,
-				ChromiumHistogramEnumValueID: *enumValueID,
-			})
+			err = c.client.UpsertWebFeatureChromiumHistogramEnumValue(ctx,
+				gcpspanner.WebFeatureChromiumHistogramEnumValue{
+					WebFeatureID:                 *featureID,
+					ChromiumHistogramEnumValueID: *enumValueID,
+				})
 			if err != nil {
 				return errors.Join(ErrFailedToStoreEnumValueWebFeatureMapping, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+func buildHistogramMaps(
+	data metricdatatypes.HistogramMapping,
+	enumToFeatureKeyMap map[string]string,
+) (map[metricdatatypes.HistogramName]map[int64]*string,
+	map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue) {
+	histogramsToEnumMap := map[metricdatatypes.HistogramName]map[int64]*string{}
+	histogramsToAllFeatureKeySet := make(
+		map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue)
+
+	for histogram, enums := range data {
+		enumIDToFeatureKeyMap := make(map[int64]*string, len(enums))
+		allFeatureKeySet := make(map[string]metricdatatypes.HistogramEnumValue, len(enums))
+		for _, enum := range enums {
+			featureKey, found := enumToFeatureKeyMap[enum.Label]
+			if !found {
+				enumIDToFeatureKeyMap[enum.Value] = nil
+
+				continue
+			}
+			enumIDToFeatureKeyMap[enum.Value] = &featureKey
+			allFeatureKeySet[featureKey] = enum
+		}
+		histogramsToEnumMap[histogram] = enumIDToFeatureKeyMap
+		histogramsToAllFeatureKeySet[histogram] = allFeatureKeySet
+	}
+
+	return histogramsToEnumMap, histogramsToAllFeatureKeySet
+}
+
+func migrateMovedFeatures(
+	ctx context.Context,
+	histogramsToEnumMap map[metricdatatypes.HistogramName]map[int64]*string,
+	histogramsToAllFeatureKeySet map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue,
+	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData,
+) error {
+	for histogram, allFeaturesKeySet := range histogramsToAllFeatureKeySet {
+		for featureKey, featureEnum := range allFeaturesKeySet {
+			if movedFeatureData, found := movedFeatures[featureKey]; found {
+				if _, exists := allFeaturesKeySet[movedFeatureData.RedirectTarget]; exists {
+					// This new key already exists somewhere in the data.
+					// That means upstream has done a partial migration to the new feature key.
+					// Instead of assuming, we should error out and Chromium mojom file needs to be updated.
+					slog.ErrorContext(ctx, "conflict migrating feature key. upstream currently using both keys",
+						"histogram", histogram,
+						"old_key", featureKey,
+						"new_key", movedFeatureData.RedirectTarget,
+					)
+
+					return ErrConflictMigratingFeatureKey
+				}
+				slog.WarnContext(ctx, "migrating feature key for histogram",
+					"histogram", histogram,
+					"old_key", featureKey,
+					"new_key", movedFeatureData.RedirectTarget,
+				)
+				histogramsToEnumMap[histogram][featureEnum.Value] = &movedFeatureData.RedirectTarget
 			}
 		}
 	}

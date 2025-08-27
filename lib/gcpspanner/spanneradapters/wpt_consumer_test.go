@@ -23,12 +23,14 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
 type MockWPTWorkflowSpannerClient struct {
 	InsertWPTRunConfig               *InsertWPTRunConfig
 	UpsertWPTRunFeatureMetricsConfig *UpsertWPTRunFeatureMetricsConfig
+	GetAllMovedWebFeaturesConfig     *GetAllMovedWebFeaturesConfig
 	t                                *testing.T
 }
 
@@ -61,6 +63,16 @@ func (m *MockWPTWorkflowSpannerClient) UpsertWPTRunFeatureMetrics(
 	}
 
 	return m.UpsertWPTRunFeatureMetricsConfig.err
+}
+
+type GetAllMovedWebFeaturesConfig struct {
+	output []gcpspanner.MovedWebFeature
+	err    error
+}
+
+func (m *MockWPTWorkflowSpannerClient) GetAllMovedWebFeatures(
+	_ context.Context) ([]gcpspanner.MovedWebFeature, error) {
+	return m.GetAllMovedWebFeaturesConfig.output, m.GetAllMovedWebFeaturesConfig.err
 }
 
 func getSampleTestRun() shared.TestRun {
@@ -158,6 +170,7 @@ func TestWPTConsumer_InsertWPTRun(t *testing.T) {
 			mockClient := &MockWPTWorkflowSpannerClient{
 				InsertWPTRunConfig:               &testCases[idx].mockConfig,
 				UpsertWPTRunFeatureMetricsConfig: nil,
+				GetAllMovedWebFeaturesConfig:     nil,
 				t:                                t,
 			}
 			consumer := NewWPTWorkflowConsumer(mockClient)
@@ -271,6 +284,7 @@ func TestWPTConsumer_UpsertWPTRunFeatureMetrics(t *testing.T) {
 			mockClient := &MockWPTWorkflowSpannerClient{
 				UpsertWPTRunFeatureMetricsConfig: &testCases[idx].mockConfig,
 				InsertWPTRunConfig:               nil,
+				GetAllMovedWebFeaturesConfig:     nil,
 				t:                                t,
 			}
 			consumer := NewWPTWorkflowConsumer(mockClient)
@@ -356,6 +370,81 @@ func TestNewWPTRun(t *testing.T) {
 			output := NewWPTRun(tc.input)
 			if !reflect.DeepEqual(tc.expectedOutput, output) {
 				t.Error("unexpected output")
+			}
+		})
+	}
+}
+
+func TestWPTConsumer_GetAllMovedWebFeatures(t *testing.T) {
+	testCases := []struct {
+		name          string
+		mockConfig    GetAllMovedWebFeaturesConfig
+		expected      map[string]web_platform_dx__web_features.FeatureMovedData
+		expectedError error
+	}{
+		{
+			name: "Success",
+			mockConfig: GetAllMovedWebFeaturesConfig{
+				output: []gcpspanner.MovedWebFeature{
+					{
+						OriginalFeatureKey: "feature1",
+						NewFeatureKey:      "new-feature1",
+					},
+					{
+						OriginalFeatureKey: "feature2",
+						NewFeatureKey:      "new-feature2",
+					},
+				},
+				err: nil,
+			},
+			expected: map[string]web_platform_dx__web_features.FeatureMovedData{
+				"feature1": {
+					RedirectTarget: "new-feature1",
+					Kind:           web_platform_dx__web_features.Moved,
+				},
+				"feature2": {
+					RedirectTarget: "new-feature2",
+					Kind:           web_platform_dx__web_features.Moved,
+				},
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Database error",
+			mockConfig: GetAllMovedWebFeaturesConfig{
+				output: nil,
+				err:    errors.New("database error"),
+			},
+			expected:      nil,
+			expectedError: wptconsumertypes.ErrUnableToGetAllMovedWebFeatures,
+		},
+		{
+			name: "Empty result",
+			mockConfig: GetAllMovedWebFeaturesConfig{
+				output: []gcpspanner.MovedWebFeature{},
+				err:    nil,
+			},
+			expected:      map[string]web_platform_dx__web_features.FeatureMovedData{},
+			expectedError: nil,
+		},
+	}
+
+	for idx, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockClient := &MockWPTWorkflowSpannerClient{
+				GetAllMovedWebFeaturesConfig:     &testCases[idx].mockConfig,
+				InsertWPTRunConfig:               nil,
+				UpsertWPTRunFeatureMetricsConfig: nil,
+				t:                                t,
+			}
+			consumer := NewWPTWorkflowConsumer(mockClient)
+
+			result, err := consumer.GetAllMovedWebFeatures(context.Background())
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("Expected error: %v, got: %v", tc.expectedError, err)
+			}
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("Unexpected result. Expected %v, got %v", tc.expected, result)
 			}
 		})
 	}

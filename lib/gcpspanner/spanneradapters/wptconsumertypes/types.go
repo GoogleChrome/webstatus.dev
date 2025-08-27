@@ -40,6 +40,10 @@ var ErrUnableToStoreWPTRun = errors.New("unable to store wpt run data")
 // unable to save the wpt run feature metrics.
 var ErrUnableToStoreWPTRunFeatureMetrics = errors.New("unable to store wpt run feature metrics")
 
+// ErrUnableToGetAllMovedWebFeatures indicates that the storage layer was unable
+// to get all moved web features.
+var ErrUnableToGetAllMovedWebFeatures = errors.New("unable to get all moved web features")
+
 // BrowserName is an enumeration of the supported browsers for WPT runs.
 type BrowserName string
 
