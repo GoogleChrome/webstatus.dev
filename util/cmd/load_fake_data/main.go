@@ -46,7 +46,7 @@ const runsPerBrowserPerChannel = 100
 const numberOfFeatures = 80
 
 // Feature Key used for feature page tests.
-const featurePageFeatureKey = "odit64"
+const featurePageFeatureKey = "anchor-positioning"
 
 // Allows us to regenerate the same values between runs.
 const seedValue = 1024
@@ -79,20 +79,21 @@ var testUserEmails = []string{
 	"webkit.user@example.com",
 }
 
-func getRealFeatureDetails() []struct {
+func getSpecialFeatureDetails() []struct {
 	name string
 	id   string
 } {
-	// Top HTML Interop Issues
 	return []struct {
 		name string
 		id   string
 	}{
+		// Top HTML Interop Issues
 		{
 			name: "Popover",
 			id:   "popover",
 		},
 		{
+			// Used for feature detail page tests.
 			name: "Anchor Positioning",
 			id:   "anchor-positioning",
 		},
@@ -128,7 +129,108 @@ func getRealFeatureDetails() []struct {
 			name: "Web Bluetooth",
 			id:   "web-bluetooth",
 		},
+		// Feature evolution
+		// old-feature will be moved to new-feature
+		{
+			name: "Old Feature",
+			id:   "old-feature",
+		},
+		// before-split-feature will be split into after-split-feature-1 and after-split-feature-2
+		{
+			name: "Before Split Feature",
+			id:   "before-split-feature",
+		},
+		{
+			name: "Partially Split Feature",
+			id:   "partially-split-feature",
+		},
 	}
+}
+
+func getMovedFeaturesDetails() []gcpspanner.MovedWebFeature {
+	return []gcpspanner.MovedWebFeature{
+		{
+			OriginalFeatureKey: "old-feature",
+			NewFeatureKey:      "new-feature",
+		},
+	}
+}
+
+func getSplitFeatureDetails() []gcpspanner.SplitWebFeature {
+	return []gcpspanner.SplitWebFeature{
+		{
+			OriginalFeatureKey: "before-split-feature",
+			TargetFeatureKeys: []string{
+				"after-split-feature-1",
+				"after-split-feature-2",
+			},
+		},
+		{
+			OriginalFeatureKey: "partially-split-feature",
+			TargetFeatureKeys: []string{
+				"partially-split-feature",
+				"partial-child-feature-1",
+			},
+		},
+	}
+}
+
+func getWebFeaturesToRemoveDuringEvolution() []string {
+	return []string{
+		"old-feature",
+		"before-split-feature",
+	}
+}
+
+func getAdditionalWebFeaturesDuringEvolution() []gcpspanner.WebFeature {
+
+	return []gcpspanner.WebFeature{
+		{
+			Name:            "New Feature",
+			FeatureKey:      "new-feature",
+			Description:     "New Feature comes from Old Feature",
+			DescriptionHTML: "New Feature comes from <b>Old Feature</b>",
+		},
+		{
+			Name:            "After Split Feature 1",
+			FeatureKey:      "after-split-feature-1",
+			Description:     "This feature was split from before-split-feature",
+			DescriptionHTML: "This feature was split from <b>before-split-feature</b>",
+		},
+		{
+			Name:            "After Split Feature 2",
+			FeatureKey:      "after-split-feature-2",
+			Description:     "This feature was split from before-split-feature",
+			DescriptionHTML: "This feature was split from <b>before-split-feature</b>",
+		},
+		{
+			Name:            "Partial Child Feature 1",
+			FeatureKey:      "partial-child-feature-1",
+			Description:     "This feature was partially split from partially-split-feature",
+			DescriptionHTML: "This feature was partially split from <b>partially-split-feature</b>",
+		},
+	}
+}
+
+type featuresHelper struct {
+	features map[string]gcpspanner.WebFeature
+}
+
+func (h *featuresHelper) AddFeature(feature gcpspanner.WebFeature) {
+	h.features[feature.FeatureKey] = feature
+}
+
+func (h *featuresHelper) RemoveFeature(featureKey string) {
+	delete(h.features, featureKey)
+}
+
+func (h featuresHelper) Features() []gcpspanner.WebFeature {
+	features := make([]gcpspanner.WebFeature, 0, len(h.features))
+	for _, feature := range h.features {
+		features = append(features, feature)
+	}
+
+	return features
 }
 
 func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authClient *auth.Client) error {
@@ -204,12 +306,13 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
 }
 
 func generateFeatures(
-	ctx context.Context, client *gcpspanner.Client) ([]gcpspanner.SpannerWebFeature, map[string]string, error) {
+	ctx context.Context, client *gcpspanner.Client, helper *featuresHelper) (
+	[]gcpspanner.SpannerWebFeature, map[string]string, error) {
 	features := make([]gcpspanner.SpannerWebFeature, 0, numberOfFeatures)
 	featureIDMap := make(map[string]interface{})
 	webFeatureKeyToInternalFeatureID := map[string]string{}
 
-	realFeatureDetails := getRealFeatureDetails()
+	realFeatureDetails := getSpecialFeatureDetails()
 	for idx := 0; idx < numberOfFeatures; idx++ {
 		word := fmt.Sprintf("%s%d", gofakeit.LoremIpsumWord(), len(featureIDMap))
 		featureName := cases.Title(language.English).String(word)
@@ -232,15 +335,20 @@ func generateFeatures(
 			Description:     fmt.Sprintf("description for %s", featureName),
 			DescriptionHTML: fmt.Sprintf("description for <b>%s</b>", featureName),
 		}
-		_, err := client.UpsertWebFeature(ctx, feature)
+		helper.AddFeature(feature)
+	}
+
+	inputFeatures := helper.Features()
+	err := client.SyncWebFeatures(ctx, inputFeatures)
+	if err != nil {
+		return nil, nil, err
+	}
+	for _, feature := range inputFeatures {
+		id, err := client.GetIDFromFeatureKey(ctx, gcpspanner.NewFeatureKeyFilter(feature.FeatureKey))
 		if err != nil {
 			return nil, nil, err
 		}
-		id, err := client.GetIDFromFeatureKey(ctx, gcpspanner.NewFeatureKeyFilter(featureID))
-		if err != nil {
-			return nil, nil, err
-		}
-		webFeatureKeyToInternalFeatureID[featureID] = *id
+		webFeatureKeyToInternalFeatureID[feature.FeatureKey] = *id
 		features = append(features, gcpspanner.SpannerWebFeature{
 			WebFeature: feature,
 			ID:         *id,
@@ -248,6 +356,43 @@ func generateFeatures(
 	}
 
 	return features, webFeatureKeyToInternalFeatureID, nil
+}
+
+func generateEvolutionOfFeatures(ctx context.Context, client *gcpspanner.Client, helper *featuresHelper) error {
+	featuresToRemove := getWebFeaturesToRemoveDuringEvolution()
+	for _, featureToRemove := range featuresToRemove {
+		helper.RemoveFeature(featureToRemove)
+
+	}
+	featuresToAdd := getAdditionalWebFeaturesDuringEvolution()
+	for _, featureToAdd := range featuresToAdd {
+		helper.AddFeature(featureToAdd)
+	}
+	redirectTargets := map[string]string{}
+	movedFeatures := getMovedFeaturesDetails()
+	for _, movedFeature := range movedFeatures {
+		redirectTargets[movedFeature.OriginalFeatureKey] = movedFeature.NewFeatureKey
+	}
+	slog.InfoContext(ctx, "Performing web feature sync with redirect targets", "target_size", len(redirectTargets))
+	err := client.SyncWebFeatures(ctx, helper.Features(), gcpspanner.WithRedirectTargets(redirectTargets))
+	if err != nil {
+		return err
+	}
+
+	slog.InfoContext(ctx, "Performing moved web feature sync")
+	err = client.SyncMovedWebFeatures(ctx, movedFeatures)
+	if err != nil {
+		return err
+	}
+
+	splitFeatures := getSplitFeatureDetails()
+	slog.InfoContext(ctx, "Performing split web feature sync")
+	err = client.SyncSplitWebFeatures(ctx, splitFeatures)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func generateFeatureMetadata(ctx context.Context, client *gds.Client, features []gcpspanner.SpannerWebFeature) error {
@@ -618,7 +763,10 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.InfoContext(ctx, "releases generated",
 		"amount of releases created", releasesCount)
 
-	features, webFeatureKeyToInternalFeatureID, err := generateFeatures(ctx, spannerClient)
+	fh := &featuresHelper{
+		features: make(map[string]gcpspanner.WebFeature),
+	}
+	features, webFeatureKeyToInternalFeatureID, err := generateFeatures(ctx, spannerClient, fh)
 	if err != nil {
 		return fmt.Errorf("feature generation failed %w", err)
 	}
@@ -702,6 +850,12 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.InfoContext(ctx, "chromium histogram metrics generated",
 		"amount of metrics generated", chromiumMetricsCount)
 
+	err = generateEvolutionOfFeatures(ctx, spannerClient, fh)
+	if err != nil {
+		return fmt.Errorf("feature evolution generation failed %w", err)
+	}
+	slog.InfoContext(ctx, "feature evolution generation complete")
+
 	return nil
 }
 
@@ -723,6 +877,9 @@ func generateBaselineStatus(
 		statusIndex := r.Intn(len(statuses))
 		var highDate *time.Time
 		var lowDate *time.Time
+		if feature.FeatureKey == featurePageFeatureKey {
+			statusIndex = 2
+		}
 		switch statuses[statusIndex] {
 		case &highValue:
 			adjustedTime := baseDate.AddDate(0, 0, r.Intn(30)) // Add up to 1 month
@@ -896,7 +1053,7 @@ func generateChromiumHistogramMetrics(
 		currDate := startTimeWindow
 		// For testing, some features (~20%) have no usage data.
 		var modifier = r.Intn(5)
-		if modifier == 0 {
+		if modifier == 0 && features[i].FeatureKey != featurePageFeatureKey {
 			continue
 		}
 		for currDate.Before(time.Date(2020, time.December, 1, 0, 0, 0, 0, time.UTC)) {

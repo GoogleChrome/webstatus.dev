@@ -144,12 +144,7 @@ func TestGetMovedWebFeatureDetailsByOriginalFeatureKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	// The target feature ID is returned, not the key. Let's get the ID to compare.
-	targetID, err := spannerClient.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter("feature-b"))
-	if err != nil {
-		t.Fatalf("failed to get target ID: %v", err)
-	}
-	expected := &MovedWebFeature{OriginalFeatureKey: "feature-a", NewFeatureKey: *targetID}
+	expected := &MovedWebFeature{OriginalFeatureKey: "feature-a", NewFeatureKey: "feature-b"}
 
 	if diff := cmp.Diff(expected, result); diff != "" {
 		t.Errorf("unexpected result (-want +got): %s", diff)

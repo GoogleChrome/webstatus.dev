@@ -27,6 +27,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/google/go-cmp/cmp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -1190,6 +1191,10 @@ func TestFeaturesSearch(t *testing.T) {
 							},
 							SpecLinks:     nil,
 							ChromiumUsage: big.NewRat(91, 100),
+							SplitOffFeatures: []string{
+								"feature1",
+								"feature4",
+							},
 						},
 						{
 							Name:       "feature 2",
@@ -1243,7 +1248,8 @@ func TestFeaturesSearch(t *testing.T) {
 								"link1",
 								"link2",
 							},
-							ChromiumUsage: big.NewRat(10, 100),
+							ChromiumUsage:    big.NewRat(10, 100),
+							SplitOffFeatures: nil,
 						},
 					},
 				},
@@ -1309,8 +1315,14 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-						Evolution: nil,
+						Evolution: &backend.FeatureEvolutionInfo{
+							SplitOffInfo: &backend.FeatureEvolutionSplit{
+								Features: []backend.FeatureSplitInfo{
+									{Id: "feature1"},
+									{Id: "feature4"},
+								},
+							},
+						},
 					},
 					{
 						Baseline: &backend.BaselineInfo{
@@ -1379,8 +1391,7 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-						Evolution: nil,
+						Evolution:        nil,
 					},
 				},
 			},
@@ -1406,8 +1417,8 @@ func TestFeaturesSearch(t *testing.T) {
 				t.Error("unexpected error")
 			}
 
-			if !reflect.DeepEqual(page, tc.expectedPage) {
-				t.Error("unexpected page")
+			if diff := cmp.Diff(tc.expectedPage, page); diff != "" {
+				t.Errorf("page mismatch (-want +got):\n%s", diff)
 			}
 
 		})
@@ -1571,6 +1582,10 @@ func TestGetFeature(t *testing.T) {
 						"link2",
 					},
 					ChromiumUsage: nil,
+					SplitOffFeatures: []string{
+						"feature1",
+						"feature4",
+					},
 				},
 				returnedError: nil,
 			},
@@ -1629,8 +1644,14 @@ func TestGetFeature(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-						Evolution: nil,
+						Evolution: &backend.FeatureEvolutionInfo{
+							SplitOffInfo: &backend.FeatureEvolutionSplit{
+								Features: []backend.FeatureSplitInfo{
+									{Id: "feature1"},
+									{Id: "feature2"},
+								},
+							},
+						},
 					}),
 				}
 			},
@@ -3051,6 +3072,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				ImplementationStatuses: nil,
 				SpecLinks:              nil,
 				ChromiumUsage:          big.NewRat(8, 100),
+				SplitOffFeatures:       nil,
 			},
 
 			expectedFeature: &backend.Feature{
@@ -3073,8 +3095,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				BrowserImplementations: nil,
 				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 				DeveloperSignals: nil,
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-				Evolution: nil,
+				Evolution:        nil,
 			},
 		},
 	}

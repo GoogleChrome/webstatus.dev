@@ -115,10 +115,14 @@ type movedWebFeatureByOriginalKeyMapper struct{}
 func (m movedWebFeatureByOriginalKeyMapper) SelectOne(featureKey string) spanner.Statement {
 	stmt := spanner.NewStatement(
 		`SELECT
-			ID,
-			OriginalFeatureKey,
-			TargetWebFeatureID
-		FROM MovedWebFeatures WHERE OriginalFeatureKey = @OriginalFeatureKey`)
+			mwf.OriginalFeatureKey,
+			wf.FeatureKey AS NewFeatureKey
+		FROM
+			MovedWebFeatures AS mwf
+		JOIN
+			WebFeatures AS wf ON mwf.TargetWebFeatureID = wf.ID
+		WHERE
+			OriginalFeatureKey = @OriginalFeatureKey`)
 	stmt.Params["OriginalFeatureKey"] = featureKey
 
 	return stmt
@@ -131,17 +135,14 @@ func (c *Client) GetMovedWebFeatureDetailsByOriginalFeatureKey(
 	ctx context.Context, originalFeatureKey string) (*MovedWebFeature, error) {
 	feature, err := newEntityReader[
 		movedWebFeatureByOriginalKeyMapper,
-		spannerMovedWebFeature,
+		MovedWebFeature,
 		string,
 	](c).readRowByKey(ctx, originalFeatureKey)
 	if err != nil {
 		return nil, err
 	}
 
-	return &MovedWebFeature{
-		OriginalFeatureKey: feature.OriginalFeatureKey,
-		NewFeatureKey:      feature.TargetWebFeatureID,
-	}, nil
+	return feature, nil
 }
 
 type movedWebFeaturesGetAllMapper struct{}

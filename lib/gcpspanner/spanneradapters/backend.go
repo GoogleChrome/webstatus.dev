@@ -813,6 +813,20 @@ func convertMetrics(
 }
 
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
+	var evolution *backend.FeatureEvolutionInfo
+	if len(featureResult.SplitOffFeatures) > 0 {
+		splitOffFeatures := make([]backend.FeatureSplitInfo, 0, len(featureResult.SplitOffFeatures))
+		for _, feature := range featureResult.SplitOffFeatures {
+			splitOffFeatures = append(splitOffFeatures, backend.FeatureSplitInfo{
+				Id: feature,
+			})
+		}
+		evolution = &backend.FeatureEvolutionInfo{
+			SplitOffInfo: &backend.FeatureEvolutionSplit{
+				Features: splitOffFeatures,
+			},
+		}
+	}
 	// Initialize the returned feature with the default values.
 	// The logic below will fill in nullable fields.
 	ret := &backend.Feature{
@@ -831,8 +845,7 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		BrowserImplementations: nil,
 		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 		DeveloperSignals: nil,
-		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-		Evolution: nil,
+		Evolution:        evolution,
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
