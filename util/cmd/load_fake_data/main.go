@@ -15,6 +15,7 @@
 package main
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"flag"
@@ -23,6 +24,7 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -229,6 +231,7 @@ func (h featuresHelper) Features() []gcpspanner.WebFeature {
 	for _, feature := range h.features {
 		features = append(features, feature)
 	}
+	slices.SortFunc(features, func(a, b gcpspanner.WebFeature) int { return cmp.Compare(a.FeatureKey, b.FeatureKey) })
 
 	return features
 }
