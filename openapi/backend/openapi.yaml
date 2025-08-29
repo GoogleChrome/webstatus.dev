@@ -1346,8 +1346,6 @@ components:
             https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
         spec:
           $ref: '#/components/schemas/FeatureSpecInfo'
-        evolution:
-          $ref: '#/components/schemas/FeatureEvolutionInfo'
         browser_implementations:
           type: object
           description: >
@@ -1390,16 +1388,6 @@ components:
             $ref: '#/components/schemas/FeatureSplitInfo'
       required:
         - features
-    FeatureEvolutionInfo:
-      type: object
-      description: >
-        Contains information about the evolution of the feature, such as
-        if its scope has been redefined or if parts of it have been
-        spun off into new features. This field is only present if
-        relevant evolutionary events have occurred.
-      properties:
-        split_off_info:
-          $ref: '#/components/schemas/FeatureEvolutionSplit'
     FeatureGoneError:
       description: |
         Represents various reasons a feature might be gone due to evolution.

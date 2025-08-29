@@ -356,14 +356,6 @@ LEFT OUTER JOIN (
 	ON ldchm.ChromiumHistogramEnumValueID = dchm.ChromiumHistogramEnumValueID
 	AND ldchm.Day = dchm.Day
 ) AS chromium_usage_metrics ON wf.ID = chromium_usage_metrics.WebFeatureID
-LEFT OUTER JOIN (
-    SELECT
-        swf.OriginalFeatureKey,
-        ARRAY_AGG(wf.FeatureKey) AS SplitOffFeatures
-    FROM SplitWebFeatures swf
-    JOIN WebFeatures wf ON swf.TargetWebFeatureID = wf.ID
-    GROUP BY swf.OriginalFeatureKey
-) AS split_features ON wf.FeatureKey = split_features.OriginalFeatureKey
 `
 	gcpFSBaseQueryTemplate   = commonFSBaseQueryTemplate
 	localFSBaseQueryTemplate = commonFSBaseQueryTemplate
@@ -454,7 +446,6 @@ SELECT
 	fbs.HighDate,
 	fs.Links AS SpecLinks,
 	chromium_usage_metrics.ChromiumUsage,
-	split_features.SplitOffFeatures,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
@@ -518,7 +509,6 @@ SELECT
 	fbs.HighDate,
 	fs.Links AS SpecLinks,
 	chromium_usage_metrics.ChromiumUsage,
-	split_features.SplitOffFeatures,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}

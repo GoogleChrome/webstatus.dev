@@ -85,7 +85,6 @@ func TestListFeatures(t *testing.T) {
 								},
 							},
 							DeveloperSignals: nil,
-							Evolution:        nil,
 						},
 					},
 				},
@@ -256,15 +255,6 @@ func TestListFeatures(t *testing.T) {
 							DeveloperSignals: &backend.FeatureDeveloperSignals{
 								PositiveCount: 24,
 							},
-							Evolution: &backend.FeatureEvolutionInfo{
-								SplitOffInfo: &backend.FeatureEvolutionSplit{
-									Features: []backend.FeatureSplitInfo{
-										{
-											Id: "test-other",
-										},
-									},
-								},
-							},
 						},
 					},
 				},
@@ -287,7 +277,6 @@ func TestListFeatures(t *testing.T) {
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
 							`"developer_signals":{"positive_count":24},` +
-							`"evolution":{"split_off_info":{"features":[{"id":"test-other"}]}},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -313,13 +302,6 @@ func TestListFeatures(t *testing.T) {
 			},
 			"developer_signals":{
 				"positive_count":24
-			},
-			"evolution":{
-				"split_off_info":{
-					"features":[
-						{"id":"test-other"}
-					]
-				}
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"
@@ -351,7 +333,6 @@ func TestListFeatures(t *testing.T) {
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
 							`"developer_signals":{"positive_count":24},` +
-							`"evolution":{"split_off_info":{"features":[{"id":"test-other"}]}},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -378,13 +359,6 @@ func TestListFeatures(t *testing.T) {
 			},
 			"developer_signals":{
 				"positive_count":24
-			},
-			"evolution":{
-				"split_off_info":{
-					"features":[
-						{"id":"test-other"}
-					]
-				}
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"

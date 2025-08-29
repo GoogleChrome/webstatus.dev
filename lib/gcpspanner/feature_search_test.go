@@ -90,22 +90,6 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		t.Errorf("unexpected error during insert of excluded keys. %s", err.Error())
 	}
 
-	// Sync split features
-	splitFeatures := []SplitWebFeature{
-		{
-			OriginalFeatureKey: "feature1",
-			TargetFeatureKeys: []string{
-				// Itself is a target. Meaning it was only partially split.
-				"feature1",
-				"feature4",
-			},
-		},
-	}
-	err = client.SyncSplitWebFeatures(ctx, splitFeatures)
-	if err != nil {
-		t.Errorf("unexpected error during sync of split features. %s", err.Error())
-	}
-
 	// nolint: dupl // Okay to duplicate for tests
 	sampleReleases := []BrowserRelease{
 		{
@@ -844,10 +828,6 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example2.com",
 			},
 			ChromiumUsage: big.NewRat(8, 100),
-			SplitOffFeatures: []string{
-				"feature1",
-				"feature4",
-			},
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -896,9 +876,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					ImplementationVersion: valuePtr("2.0.0"),
 				},
 			},
-			SpecLinks:        nil,
-			ChromiumUsage:    big.NewRat(91, 100),
-			SplitOffFeatures: nil,
+			SpecLinks:     nil,
+			ChromiumUsage: big.NewRat(91, 100),
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -929,8 +908,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example3.com",
 				"http://example4.com",
 			},
-			ChromiumUsage:    nil,
-			SplitOffFeatures: nil,
+			ChromiumUsage: nil,
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -944,7 +922,6 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ImplementationStatuses: nil,
 			SpecLinks:              nil,
 			ChromiumUsage:          nil,
-			SplitOffFeatures:       nil,
 		}
 	}
 
@@ -2579,15 +2556,7 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) &&
 		AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) &&
 		AreSpecLinksEqual(a.SpecLinks, b.SpecLinks) &&
-		AreChromiumUsagesEqual(a.ChromiumUsage, b.ChromiumUsage) &&
-		AreSplitOffFeaturesEqual(a.SplitOffFeatures, b.SplitOffFeatures)
-}
-
-func AreSplitOffFeaturesEqual(a, b []string) bool {
-	slices.Sort(a)
-	slices.Sort(b)
-
-	return slices.Equal(a, b)
+		AreChromiumUsagesEqual(a.ChromiumUsage, b.ChromiumUsage)
 }
 
 func AreSpecLinksEqual(a, b []string) bool {
@@ -2649,7 +2618,6 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	fmt.Fprintf(&builder, "\tHighDate: %s\n", PrintNullableField(result.HighDate))
 	fmt.Fprintf(&builder, "\tSpecLinks: %s\n", result.SpecLinks)
 	fmt.Fprintf(&builder, "\tChromiumUsage: %s\n", PrintNullableField(result.ChromiumUsage))
-	fmt.Fprintf(&builder, "\tSplitOffFeatures: %s\n", result.SplitOffFeatures)
 
 	fmt.Fprintln(&builder, "\tStable Metrics:")
 	for _, metric := range result.StableMetrics {

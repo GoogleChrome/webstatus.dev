@@ -1191,10 +1191,6 @@ func TestFeaturesSearch(t *testing.T) {
 							},
 							SpecLinks:     nil,
 							ChromiumUsage: big.NewRat(91, 100),
-							SplitOffFeatures: []string{
-								"feature1",
-								"feature4",
-							},
 						},
 						{
 							Name:       "feature 2",
@@ -1248,8 +1244,7 @@ func TestFeaturesSearch(t *testing.T) {
 								"link1",
 								"link2",
 							},
-							ChromiumUsage:    big.NewRat(10, 100),
-							SplitOffFeatures: nil,
+							ChromiumUsage: big.NewRat(10, 100),
 						},
 					},
 				},
@@ -1315,14 +1310,6 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						Evolution: &backend.FeatureEvolutionInfo{
-							SplitOffInfo: &backend.FeatureEvolutionSplit{
-								Features: []backend.FeatureSplitInfo{
-									{Id: "feature1"},
-									{Id: "feature4"},
-								},
-							},
-						},
 					},
 					{
 						Baseline: &backend.BaselineInfo{
@@ -1391,7 +1378,6 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						Evolution:        nil,
 					},
 				},
 			},
@@ -1582,10 +1568,6 @@ func TestGetFeature(t *testing.T) {
 						"link2",
 					},
 					ChromiumUsage: nil,
-					SplitOffFeatures: []string{
-						"feature1",
-						"feature4",
-					},
 				},
 				returnedError: nil,
 			},
@@ -1644,14 +1626,6 @@ func TestGetFeature(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						Evolution: &backend.FeatureEvolutionInfo{
-							SplitOffInfo: &backend.FeatureEvolutionSplit{
-								Features: []backend.FeatureSplitInfo{
-									{Id: "feature1"},
-									{Id: "feature2"},
-								},
-							},
-						},
 					}),
 				}
 			},
@@ -3072,7 +3046,6 @@ func TestConvertFeatureResult(t *testing.T) {
 				ImplementationStatuses: nil,
 				SpecLinks:              nil,
 				ChromiumUsage:          big.NewRat(8, 100),
-				SplitOffFeatures:       nil,
 			},
 
 			expectedFeature: &backend.Feature{
@@ -3095,7 +3068,6 @@ func TestConvertFeatureResult(t *testing.T) {
 				BrowserImplementations: nil,
 				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 				DeveloperSignals: nil,
-				Evolution:        nil,
 			},
 		},
 	}

@@ -81,7 +81,6 @@ func (c *Client) GetFeature(
 		HighDate:               result.HighDate,
 		SpecLinks:              result.SpecLinks,
 		ChromiumUsage:          result.ChromiumUsage,
-		SplitOffFeatures:       result.SplitOffFeatures,
 	}
 
 	return &actualResult, nil

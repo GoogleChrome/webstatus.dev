@@ -43,7 +43,6 @@ type SpannerFeatureResult struct {
 	HighDate               *time.Time                    `spanner:"HighDate"`
 	SpecLinks              []string                      `spanner:"SpecLinks"`
 	ChromiumUsage          *big.Rat                      `spanner:"ChromiumUsage"`
-	SplitOffFeatures       []string                      `spanner:"SplitOffFeatures"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
@@ -88,7 +87,6 @@ type FeatureResult struct {
 	HighDate               *time.Time              `spanner:"HighDate"`
 	SpecLinks              []string                `spanner:"SpecLinks"`
 	ChromiumUsage          *big.Rat                `spanner:"ChromiumUsage"`
-	SplitOffFeatures       []string                `spanner:"SplitOffFeatures"`
 }
 
 // FeatureResultPage contains the details for the feature search request.
@@ -241,7 +239,6 @@ func (c *Client) getFeatureResult(
 			HighDate:               result.HighDate,
 			SpecLinks:              result.SpecLinks,
 			ChromiumUsage:          result.ChromiumUsage,
-			SplitOffFeatures:       result.SplitOffFeatures,
 		}
 		results = append(results, actualResult)
 	}

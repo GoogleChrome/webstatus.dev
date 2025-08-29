@@ -142,10 +142,6 @@ func getSpecialFeatureDetails() []struct {
 			name: "Before Split Feature",
 			id:   "before-split-feature",
 		},
-		{
-			name: "Partially Split Feature",
-			id:   "partially-split-feature",
-		},
 	}
 }
 
@@ -165,13 +161,6 @@ func getSplitFeatureDetails() []gcpspanner.SplitWebFeature {
 			TargetFeatureKeys: []string{
 				"after-split-feature-1",
 				"after-split-feature-2",
-			},
-		},
-		{
-			OriginalFeatureKey: "partially-split-feature",
-			TargetFeatureKeys: []string{
-				"partially-split-feature",
-				"partial-child-feature-1",
 			},
 		},
 	}
@@ -204,12 +193,6 @@ func getAdditionalWebFeaturesDuringEvolution() []gcpspanner.WebFeature {
 			FeatureKey:      "after-split-feature-2",
 			Description:     "This feature was split from before-split-feature",
 			DescriptionHTML: "This feature was split from <b>before-split-feature</b>",
-		},
-		{
-			Name:            "Partial Child Feature 1",
-			FeatureKey:      "partial-child-feature-1",
-			Description:     "This feature was partially split from partially-split-feature",
-			DescriptionHTML: "This feature was partially split from <b>partially-split-feature</b>",
 		},
 	}
 }
