@@ -43,13 +43,25 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<Bro
     if (percentage >= 100) {
       return 100;
     }
-    // Round to one decimal place.
+    // If percentage is very small, pass it through without rounding.
+    if (percentage > 0 && percentage < 0.1) {
+      return percentage;
+    }
+    // Otherwise, round to one decimal place.
     return Math.round(percentage * 10) / 10;
   }
 
   private formatPercentageForDisplay(percentage: number): string {
     if (percentage === 100) {
       return '100';
+    }
+    // For very small values, show the raw value.
+    if (percentage > 0 && percentage < 0.01) {
+      return String(percentage);
+    }
+    // For other small values, show 2 decimal places.
+    if (percentage > 0 && percentage < 0.1) {
+      return percentage.toFixed(2);
     }
     return percentage.toFixed(1);
   }
