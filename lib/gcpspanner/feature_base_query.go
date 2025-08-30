@@ -507,8 +507,8 @@ SELECT
 	fbs.Status,
 	fbs.LowDate,
 	fbs.HighDate,
-	chromium_usage_metrics.ChromiumUsage,
 	fs.Links AS SpecLinks,
+	chromium_usage_metrics.ChromiumUsage,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}

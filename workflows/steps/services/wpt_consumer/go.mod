@@ -8,6 +8,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250804165824-fd606c7d439d
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250804165824-fd606c7d439d
 	github.com/google/go-github/v73 v73.0.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20250722211730-930045014bcd
 )
@@ -26,7 +27,6 @@ require (
 	cloud.google.com/go/monitoring v1.24.2 // indirect
 	cloud.google.com/go/secretmanager v1.15.0 // indirect
 	cloud.google.com/go/spanner v1.83.0 // indirect
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250804165824-fd606c7d439d // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.3 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.29.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect

@@ -21,8 +21,11 @@ test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
 });
 
+const featureID = 'anchor-positioning';
+const featureName = 'Anchor Positioning';
+
 test('matches the screenshot', async ({page}) => {
-  await page.goto('http://localhost:5555/features/odit64');
+  await page.goto(`http://localhost:5555/features/${featureID}`);
 
   // Wait for the chart container to exist
   await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
@@ -35,7 +38,7 @@ test('matches the screenshot', async ({page}) => {
 });
 
 test('chart width resizes with window', async ({page}) => {
-  await page.goto('http://localhost:5555/features/odit64');
+  await page.goto(`http://localhost:5555/features/${featureID}`);
   await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
   await page.waitForTimeout(1000);
   const narrowWidth = 1000;
@@ -71,7 +74,7 @@ test('chart width resizes with window', async ({page}) => {
 test('mobile chart displays on click and matches screenshot', async ({
   page,
 }) => {
-  await page.goto('http://localhost:5555/features/odit64');
+  await page.goto(`http://localhost:5555/features/${featureID}`);
   await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
   const mobileTab = page.locator(
     'sl-tab#feature-wpt-implementation-progress-tab-mobile',
@@ -84,7 +87,7 @@ test('mobile chart displays on click and matches screenshot', async ({
 });
 
 test('date range changes are preserved in the URL', async ({page}) => {
-  await page.goto('http://localhost:5555/features/odit64');
+  await page.goto(`http://localhost:5555/features/${featureID}`);
   await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
 
   // Get the current default startDate and endDate from the selectors
@@ -131,7 +134,7 @@ test('date range changes are preserved in the URL', async ({page}) => {
   // TODO: Check that the chart has the right start date.
 
   // Click on the feature breadcrumb.
-  const featureCrumb = page.locator('.crumbs >> a:has-text("odit64")');
+  const featureCrumb = page.locator(`.crumbs >> a:has-text("${featureName}")`);
   await featureCrumb.click();
 
   // Check that the URL no longer contains the startDate or endDate.

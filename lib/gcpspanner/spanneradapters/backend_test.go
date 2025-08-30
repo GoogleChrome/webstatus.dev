@@ -27,6 +27,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/google/go-cmp/cmp"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -1309,8 +1310,6 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-						Evolution: nil,
 					},
 					{
 						Baseline: &backend.BaselineInfo{
@@ -1379,8 +1378,6 @@ func TestFeaturesSearch(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-						Evolution: nil,
 					},
 				},
 			},
@@ -1406,8 +1403,8 @@ func TestFeaturesSearch(t *testing.T) {
 				t.Error("unexpected error")
 			}
 
-			if !reflect.DeepEqual(page, tc.expectedPage) {
-				t.Error("unexpected page")
+			if diff := cmp.Diff(tc.expectedPage, page); diff != "" {
+				t.Errorf("page mismatch (-want +got):\n%s", diff)
 			}
 
 		})
@@ -1629,8 +1626,6 @@ func TestGetFeature(t *testing.T) {
 						},
 						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-						Evolution: nil,
 					}),
 				}
 			},
@@ -3073,8 +3068,6 @@ func TestConvertFeatureResult(t *testing.T) {
 				BrowserImplementations: nil,
 				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 				DeveloperSignals: nil,
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1671
-				Evolution: nil,
 			},
 		},
 	}

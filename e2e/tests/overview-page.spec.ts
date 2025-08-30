@@ -350,7 +350,7 @@ test.describe('saved searches', () => {
         'http://localhost:5555/?search_id=a09386fe-65f1-4640-b28d-3cf2f2de69c9',
       );
       const featureCount = await getOverviewPageFeatureCount(page);
-      expect(featureCount, 'Feature count should be 72').toEqual(72);
+      expect(featureCount, 'Feature count should be 73').toEqual(73);
 
       const searchbox = page.locator('#inputfield');
       await expect(searchbox, 'Search box value should match').toHaveAttribute(
@@ -384,7 +384,7 @@ test.describe('saved searches', () => {
     await test.step('Navigate to next page (1)', async () => {
       await clickNextPage();
       const featureCount = await getOverviewPageFeatureCount(page);
-      expect(featureCount, 'Feature count should be 72').toEqual(72);
+      expect(featureCount, 'Feature count should be 73').toEqual(73);
       await verifyTableRowCount(25);
       await verifyFeaturesRequest(
         'baseline_status:limited OR available_on:chrome',
@@ -395,8 +395,8 @@ test.describe('saved searches', () => {
     await test.step('Navigate to next page (2)', async () => {
       await clickNextPage();
       const featureCount = await getOverviewPageFeatureCount(page);
-      expect(featureCount, 'Feature count should be 72').toEqual(72);
-      await verifyTableRowCount(22);
+      expect(featureCount, 'Feature count should be 73').toEqual(73);
+      await verifyTableRowCount(23);
       await verifyFeaturesRequest(
         'baseline_status:limited OR available_on:chrome',
       );
