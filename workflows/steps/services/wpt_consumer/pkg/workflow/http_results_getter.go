@@ -18,19 +18,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 )
 
 var (
-	// ErrFailedToRequestResults indicates the request for results failed.
-	ErrFailedToRequestResults = errors.New("failed to send request for results")
-
-	// ErrResultsDownloadBadStatusCode indicates there was an unexpected status code.
-	ErrResultsDownloadBadStatusCode = errors.New("unexpected status code when downloading results")
-
 	// ErrFailedToParseResults indicates the results could not be parsed.
 	ErrFailedToParseResults = errors.New("failed to parse results")
 )
@@ -53,23 +47,14 @@ type HTTPResultsGetter struct {
 func (h HTTPResultsGetter) DownloadResults(
 	ctx context.Context,
 	url string) (ResultsSummaryFile, error) {
-	// Build the request
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	fetcher, err := httputils.NewHTTPFetcher(url, &h.client)
 	if err != nil {
-		return nil, errors.Join(ErrFailedToRequestResults, err)
+		return nil, err
 	}
 
-	// Attempt to download the results.
-	resp, err := h.client.Do(req)
+	body, err := fetcher.Fetch(ctx)
 	if err != nil {
-		return nil, errors.Join(ErrFailedToRequestResults, err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		slog.WarnContext(ctx, "download failed: unexpected status code", "status code", resp.StatusCode)
-
-		return nil, ErrResultsDownloadBadStatusCode
+		return nil, err
 	}
 
 	// No need to decompress it despite it having the .gz suffix.
@@ -77,7 +62,7 @@ func (h HTTPResultsGetter) DownloadResults(
 	// Attempt to convert the results file from the raw bytes.
 	// For now only attempt to parse v2 files.
 	var data ResultsSummaryFileV2
-	decoder := json.NewDecoder(resp.Body)
+	decoder := json.NewDecoder(body)
 	if err := decoder.Decode(&data); err != nil {
 		return nil, errors.Join(ErrFailedToParseResults, err)
 	}

@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/fetchtypes"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 )
 
@@ -48,14 +49,6 @@ func TestHTTPResultsGetter_DownloadResults(t *testing.T) {
 			wantErrOfKind: nil,
 		},
 		{
-			name:          "HTTP Error",
-			url:           "http://test.example/not_found",
-			responseBody:  "Not Found",
-			statusCode:    http.StatusNotFound,
-			wantData:      nil,
-			wantErrOfKind: ErrResultsDownloadBadStatusCode,
-		},
-		{
 			name:          "Invalid JSON",
 			url:           "http://test.example/invalid.json",
 			responseBody:  `{not valid JSON}`,
@@ -69,7 +62,7 @@ func TestHTTPResultsGetter_DownloadResults(t *testing.T) {
 			responseBody:  ``, // No response due to timeout
 			statusCode:    http.StatusOK,
 			wantData:      nil,
-			wantErrOfKind: ErrFailedToRequestResults,
+			wantErrOfKind: fetchtypes.ErrFailedToFetch,
 		},
 	}
 

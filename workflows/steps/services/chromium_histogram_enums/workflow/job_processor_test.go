@@ -21,6 +21,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
@@ -102,7 +103,7 @@ func TestProcess(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock dependencies
 			mockFetcher := &mockEnumsFetcher{
-				fetchFunc: func(_ context.Context) (io.ReadCloser, error) {
+				fetchFunc: func(_ context.Context, _ ...httputils.FetchOption) (io.ReadCloser, error) {
 					if tt.fetchErr != nil {
 						return nil, tt.fetchErr
 					}
@@ -148,12 +149,12 @@ func TestProcess(t *testing.T) {
 
 // Mock dependencies.
 type mockEnumsFetcher struct {
-	fetchFunc func(ctx context.Context) (io.ReadCloser, error)
+	fetchFunc func(ctx context.Context, opts ...httputils.FetchOption) (io.ReadCloser, error)
 }
 
-func (m *mockEnumsFetcher) Fetch(ctx context.Context) (io.ReadCloser, error) {
+func (m *mockEnumsFetcher) Fetch(ctx context.Context, opts ...httputils.FetchOption) (io.ReadCloser, error) {
 	if m.fetchFunc != nil {
-		return m.fetchFunc(ctx)
+		return m.fetchFunc(ctx, opts...)
 	}
 
 	return nil, errEnumsResponseNil

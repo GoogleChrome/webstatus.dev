@@ -22,6 +22,8 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/fetchtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/google/go-github/v73/github"
 	"golang.org/x/mod/semver"
 )
@@ -76,26 +78,20 @@ func (c *Client) DownloadFileFromRelease(
 		return nil, ErrAssetNotFound
 	}
 
-	req, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodGet,
-		downloadURL,
-		nil,
-	)
+	fetcher, err := httputils.NewHTTPFetcher(downloadURL, httpClient)
 	if err != nil {
-		// Currently cannot happen. But just in case something changes.
+		slog.ErrorContext(ctx, "unable to create fetcher", "error", err)
+
+		return nil, err
+	}
+
+	body, err := fetcher.Fetch(ctx)
+	if err != nil {
+		if errors.Is(err, fetchtypes.ErrFailedToFetch) || errors.Is(err, fetchtypes.ErrUnexpectedResult) {
+			return nil, errors.Join(ErrUnableToDownloadAsset, err)
+		}
+
 		return nil, errors.Join(ErrFatalError, err)
-	}
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return nil, errors.Join(ErrUnableToDownloadAsset, err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		// Clean up by closing since we will not be returning the body
-		resp.Body.Close()
-
-		return nil, errors.Join(ErrUnableToDownloadAsset, err)
 	}
 
 	// Returns a tag or empty string if not found.
@@ -113,7 +109,7 @@ func (c *Client) DownloadFileFromRelease(
 	}
 
 	return &ReleaseFile{
-		Contents: resp.Body,
+		Contents: body,
 		Info: ReleaseInfo{
 			Tag: tagNamePtr,
 		},

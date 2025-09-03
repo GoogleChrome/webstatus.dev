@@ -24,14 +24,13 @@ import (
 	"time"
 
 	"cloud.google.com/go/civil"
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
 const umaQueryServer = "https://uma-export.appspot.com/webstatus/"
 
 var errGeneratingToken = errors.New("token generation error")
-var errMissingBody = errors.New("missing response body")
-var errUnexpectedStatusCode = errors.New("unexpected status code")
 
 type tokenGenerator interface {
 	Generate(ctx context.Context, url string) (*string, error)
@@ -73,34 +72,19 @@ func (f HTTPMetricsFetcher) Fetch(ctx context.Context,
 		return nil, errors.Join(err, errGeneratingToken)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, queryURL, nil)
-	if err != nil {
-		slog.ErrorContext(ctx, "unable to create request", "error", err)
-
-		return nil, err
-	}
-
-	req.Header.Add("Authorization", "Bearer "+*token)
-
-	resp, err := f.httpClient.Do(req)
+	fetcher, err := httputils.NewHTTPFetcher(queryURL, f.httpClient)
 	if err != nil {
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
-		// Clean up by closing since we will not be returning the body
-		if resp.Body != nil {
-			resp.Body.Close()
-		}
-
-		return nil, errUnexpectedStatusCode
+	body, err := fetcher.Fetch(ctx, httputils.WithHeaders(map[string]string{
+		"Authorization": "Bearer " + *token,
+	}))
+	if err != nil {
+		return nil, err
 	}
 
-	if resp.Body == nil {
-		return nil, errMissingBody
-	}
-
-	return resp.Body, nil
+	return body, nil
 }
 
 func (f HTTPMetricsFetcher) queryURL(queryName metricdatatypes.UMAExportQuery, date civil.Date) string {

@@ -23,6 +23,7 @@ import (
 	"testing"
 
 	"cloud.google.com/go/civil"
+	"github.com/GoogleChrome/webstatus.dev/lib/fetchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
@@ -78,7 +79,7 @@ func TestHTTPMetricsFetcher_Fetch(t *testing.T) {
 			token:       "test-token",
 			httpStatus:  http.StatusInternalServerError,
 			expectedURL: "",
-			err:         errUnexpectedStatusCode,
+			err:         fetchtypes.ErrUnexpectedResult,
 			// Empty values that won't be checked
 			want:         "",
 			responseBody: "",
