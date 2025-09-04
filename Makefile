@@ -404,6 +404,7 @@ go-workspace-setup: go-workspace-clean
 		go work use ./workflows/steps/services/bcd_consumer && \
 		go work use ./workflows/steps/services/chromium_histogram_enums && \
 		go work use ./workflows/steps/services/common/repo_downloader && \
+		go work use ./workflows/steps/services/developer_signals_consumer && \
 		go work use ./workflows/steps/services/uma_export && \
 		go work use ./workflows/steps/services/web_feature_consumer && \
 		go work use ./workflows/steps/services/wpt_consumer
@@ -427,10 +428,13 @@ clean-node:
 ################################
 # Local Data / Workflows
 ################################
-dev_workflows: bcd_workflow web_feature_workflow chromium_histogram_enums_workflow wpt_workflow
+dev_workflows: bcd_workflow web_feature_workflow developer_signals_workflow chromium_histogram_enums_workflow wpt_workflow
 web_feature_workflow:
 	./util/run_job.sh web-features-consumer images/go_service.Dockerfile workflows/steps/services/web_feature_consumer \
 		workflows/steps/services/web_feature_consumer/manifests/job.yaml web-features-consumer
+developer_signals_workflow:
+	./util/run_job.sh developer-signals-consumer images/go_service.Dockerfile workflows/steps/services/developer_signals_consumer \
+		workflows/steps/services/developer_signals_consumer/manifests/job.yaml developer-signals-consumer
 wpt_workflow:
 	./util/run_job.sh wpt-consumer images/go_service.Dockerfile workflows/steps/services/wpt_consumer \
 		workflows/steps/services/wpt_consumer/manifests/job.yaml wpt-consumer
