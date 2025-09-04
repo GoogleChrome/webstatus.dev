@@ -19,6 +19,7 @@ import (
 	"io"
 	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 )
 
@@ -47,7 +48,7 @@ func NewChromiumHistogramEnumsJobProcessor(
 }
 
 type EnumsFetecher interface {
-	Fetch(context.Context) (io.ReadCloser, error)
+	Fetch(context.Context, ...httputils.FetchOption) (io.ReadCloser, error)
 }
 
 type EnumsParser interface {

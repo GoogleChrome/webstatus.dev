@@ -16,10 +16,10 @@ package gh
 
 import (
 	"context"
-	"fmt"
 	"io"
 	"net/http"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/google/go-github/v73/github"
 )
 
@@ -53,24 +53,17 @@ func (d *Downloader) Download(
 		return nil, "", err
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, archiveURL.String(), nil)
-	if err != nil {
-		return nil, "", err
-	}
-	resp, err := d.httpClient.Do(req)
+	fetcher, err := httputils.NewHTTPFetcher(archiveURL.String(), d.httpClient)
 	if err != nil {
 		return nil, "", err
 	}
 
-	statusCode := resp.StatusCode
-	if statusCode < 200 || statusCode > 299 {
-		err := fmt.Errorf("bad status code:%d, unable to download wpt-metadata", statusCode)
-		resp.Body.Close()
-
+	resp, err := fetcher.Fetch(ctx)
+	if err != nil {
 		return nil, "", err
 	}
 
-	return resp.Body, "main", nil
+	return resp, "main", nil
 }
 
 type ArchiveFile interface {
