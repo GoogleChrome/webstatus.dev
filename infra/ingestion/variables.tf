@@ -72,6 +72,10 @@ variable "chromium_region_schedules" {
   type = map(string)
 }
 
+variable "developer_signals_region_schedules" {
+  type = map(string)
+}
+
 variable "uma_region_schedules" {
   type = map(string)
 }

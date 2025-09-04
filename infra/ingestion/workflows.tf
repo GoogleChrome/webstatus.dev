@@ -213,3 +213,37 @@ module "uma_export_workflow" {
   ]
 }
 
+module "developer_signals_workflow" {
+  source = "../modules/single_stage_go_workflow"
+  providers = {
+    google.internal_project = google.internal_project
+    google.public_project   = google.public_project
+  }
+  regions                       = var.regions
+  short_name                    = "dev-signals" # Needs to be short enough to create a service account
+  full_name                     = "Developer Signals Workflow"
+  deletion_protection           = var.deletion_protection
+  project_id                    = var.spanner_datails.project_id
+  timeout_seconds               = 60 * 10 # 5 minutes
+  image_name                    = "developer_signals_consumer_image"
+  spanner_details               = var.spanner_datails
+  env_id                        = var.env_id
+  region_schedules              = var.developer_signals_region_schedules
+  docker_repository_url         = var.docker_repository_details.url
+  go_module_path                = "workflows/steps/services/developer_signals_consumer"
+  does_process_write_to_spanner = true
+  env_vars = [
+    {
+      name  = "PROJECT_ID"
+      value = var.spanner_datails.project_id
+    },
+    {
+      name  = "SPANNER_DATABASE"
+      value = var.spanner_datails.database
+    },
+    {
+      name  = "SPANNER_INSTANCE"
+      value = var.spanner_datails.instance
+    }
+  ]
+}
