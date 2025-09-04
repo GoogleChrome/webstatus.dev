@@ -25,31 +25,58 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
+type SyncLatestFeatureDeveloperSignalsConfig struct {
+	expectedData []gcpspanner.FeatureDeveloperSignal
+	err          error
+}
+
 type MockDeveloperSignalsClient struct {
-	callHistory   []gcpspanner.FeatureDeveloperSignal
-	shouldFail    bool
-	failWithError error
+	// Config for GetAllMovedWebFeatures
+	GetAllMovedWebFeaturesConfig *GetAllMovedWebFeaturesConfig
+
+	// Config for SyncLatestFeatureDeveloperSignals
+	SyncLatestFeatureDeveloperSignalsConfig *SyncLatestFeatureDeveloperSignalsConfig
+	t                                       *testing.T
+}
+
+func (m *MockDeveloperSignalsClient) GetAllMovedWebFeatures(_ context.Context) ([]gcpspanner.MovedWebFeature, error) {
+	return m.GetAllMovedWebFeaturesConfig.output, m.GetAllMovedWebFeaturesConfig.err
 }
 
 func (m *MockDeveloperSignalsClient) SyncLatestFeatureDeveloperSignals(
 	_ context.Context,
 	data []gcpspanner.FeatureDeveloperSignal,
 ) error {
-	m.callHistory = append(m.callHistory, data...)
-	if m.shouldFail {
-		return m.failWithError
+	// Sort slices for deterministic comparison
+	cmpFunc := func(i, j gcpspanner.FeatureDeveloperSignal) int {
+		if i.WebFeatureKey < j.WebFeatureKey {
+			return -1
+		}
+		if i.WebFeatureKey > j.WebFeatureKey {
+			return 1
+		}
+
+		return 0
+	}
+	slices.SortFunc(data, cmpFunc)
+	slices.SortFunc(m.SyncLatestFeatureDeveloperSignalsConfig.expectedData, cmpFunc)
+	if diff := cmp.Diff(m.SyncLatestFeatureDeveloperSignalsConfig.expectedData, data); diff != "" {
+		m.t.Errorf("unexpected data (-want +got): %s", diff)
 	}
 
-	return nil
+	return m.SyncLatestFeatureDeveloperSignalsConfig.err
 }
 
 func TestSyncLatestFeatureDeveloperSignals(t *testing.T) {
+	var fakeGetAllMovedWebFeaturesError = errors.New("fake error")
+	var fakeSyncError = errors.New("fake sync error")
+
 	testCases := []struct {
-		name          string
-		input         *developersignaltypes.FeatureDeveloperSignals
-		mockClient    *MockDeveloperSignalsClient
-		expectedError error
-		expectedCalls []gcpspanner.FeatureDeveloperSignal
+		name                   string
+		input                  *developersignaltypes.FeatureDeveloperSignals
+		syncConfig             *SyncLatestFeatureDeveloperSignalsConfig
+		allMovedFeaturesConfig *GetAllMovedWebFeaturesConfig
+		expectedError          error
 	}{
 		{
 			name: "Success",
@@ -57,64 +84,104 @@ func TestSyncLatestFeatureDeveloperSignals(t *testing.T) {
 				"feature1": {Upvotes: 100, Link: "link1"},
 				"feature2": {Upvotes: 200, Link: "link2"},
 			},
-			mockClient:    &MockDeveloperSignalsClient{callHistory: nil, shouldFail: false, failWithError: nil},
-			expectedError: nil,
-			expectedCalls: []gcpspanner.FeatureDeveloperSignal{
-				{WebFeatureKey: "feature1", Upvotes: 100, Link: "link1"},
-				{WebFeatureKey: "feature2", Upvotes: 200, Link: "link2"},
+			syncConfig: &SyncLatestFeatureDeveloperSignalsConfig{
+				expectedData: []gcpspanner.FeatureDeveloperSignal{
+					{WebFeatureKey: "feature1", Upvotes: 100, Link: "link1"},
+					{WebFeatureKey: "feature2", Upvotes: 200, Link: "link2"},
+				},
+				err: nil,
 			},
-		},
-		{
-			name:          "Empty input",
-			input:         &developersignaltypes.FeatureDeveloperSignals{},
-			mockClient:    &MockDeveloperSignalsClient{callHistory: nil, shouldFail: false, failWithError: nil},
+			allMovedFeaturesConfig: &GetAllMovedWebFeaturesConfig{
+				output: []gcpspanner.MovedWebFeature{},
+				err:    nil,
+			},
 			expectedError: nil,
-			expectedCalls: nil,
 		},
 		{
-			name: "Spanner client error",
+			name:                   "Empty input",
+			input:                  &developersignaltypes.FeatureDeveloperSignals{},
+			expectedError:          nil,
+			syncConfig:             nil,
+			allMovedFeaturesConfig: nil,
+		},
+		{
+			name: "Spanner client error on sync",
 			input: &developersignaltypes.FeatureDeveloperSignals{
 				"feature1": {Upvotes: 100, Link: "link1"},
 			},
-			mockClient: &MockDeveloperSignalsClient{
-				shouldFail:    true,
-				failWithError: errors.New("spanner error"),
-				callHistory:   nil,
+			syncConfig: &SyncLatestFeatureDeveloperSignalsConfig{
+				expectedData: []gcpspanner.FeatureDeveloperSignal{
+					{WebFeatureKey: "feature1", Upvotes: 100, Link: "link1"},
+				},
+				err: fakeSyncError,
 			},
-			expectedError: errors.New("spanner error"),
-			expectedCalls: []gcpspanner.FeatureDeveloperSignal{
-				{WebFeatureKey: "feature1", Upvotes: 100, Link: "link1"},
+			allMovedFeaturesConfig: &GetAllMovedWebFeaturesConfig{
+				output: []gcpspanner.MovedWebFeature{},
+				err:    nil,
 			},
+			expectedError: fakeSyncError,
+		},
+		{
+			name: "Error getting moved features",
+			input: &developersignaltypes.FeatureDeveloperSignals{
+				"feature1": {Upvotes: 100, Link: "link1"},
+			},
+			allMovedFeaturesConfig: &GetAllMovedWebFeaturesConfig{
+				output: nil,
+				err:    fakeGetAllMovedWebFeaturesError,
+			},
+			syncConfig:    nil,
+			expectedError: fakeGetAllMovedWebFeaturesError,
+		},
+		{
+			name: "Conflict with moved feature",
+			input: &developersignaltypes.FeatureDeveloperSignals{
+				"feature1": {Upvotes: 100, Link: "link1"}, // This one is moved
+				"feature2": {Upvotes: 200, Link: "link2"}, // This is the new one
+			},
+			allMovedFeaturesConfig: &GetAllMovedWebFeaturesConfig{
+				output: []gcpspanner.MovedWebFeature{
+					{OriginalFeatureKey: "feature1", NewFeatureKey: "feature2"},
+				},
+				err: nil,
+			},
+			expectedError: ErrConflictMigratingFeatureKey,
+			syncConfig:    nil,
+		},
+		{
+			name: "Success with moved feature",
+			input: &developersignaltypes.FeatureDeveloperSignals{
+				"feature1": {Upvotes: 100, Link: "link1"}, // This one is moved
+				"feature3": {Upvotes: 300, Link: "link3"}, // This one is not moved
+			},
+			allMovedFeaturesConfig: &GetAllMovedWebFeaturesConfig{
+				output: []gcpspanner.MovedWebFeature{
+					{OriginalFeatureKey: "feature1", NewFeatureKey: "feature2"},
+				},
+				err: nil,
+			},
+			syncConfig: &SyncLatestFeatureDeveloperSignalsConfig{
+				expectedData: []gcpspanner.FeatureDeveloperSignal{
+					{WebFeatureKey: "feature2", Upvotes: 100, Link: "link1"},
+					{WebFeatureKey: "feature3", Upvotes: 300, Link: "link3"},
+				},
+				err: nil,
+			},
+			expectedError: nil,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			consumer := NewDeveloperSignalsConsumer(tc.mockClient)
+			consumer := NewDeveloperSignalsConsumer(&MockDeveloperSignalsClient{
+				GetAllMovedWebFeaturesConfig:            tc.allMovedFeaturesConfig,
+				SyncLatestFeatureDeveloperSignalsConfig: tc.syncConfig,
+				t:                                       t,
+			})
 			err := consumer.SyncLatestFeatureDeveloperSignals(context.Background(), tc.input)
 
 			if !errors.Is(err, tc.expectedError) {
-				if err.Error() != tc.expectedError.Error() {
-					t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
-				}
-			}
-
-			// Sort slices for deterministic comparison
-			cmpFunc := func(i, j gcpspanner.FeatureDeveloperSignal) int {
-				if i.WebFeatureKey < j.WebFeatureKey {
-					return -1
-				}
-				if i.WebFeatureKey > j.WebFeatureKey {
-					return 1
-				}
-
-				return 0
-			}
-			slices.SortFunc(tc.mockClient.callHistory, cmpFunc)
-			slices.SortFunc(tc.expectedCalls, cmpFunc)
-
-			if diff := cmp.Diff(tc.expectedCalls, tc.mockClient.callHistory); diff != "" {
-				t.Errorf("unexpected call history (-want +got): %s", diff)
+				t.Errorf("expected error %v, got %v", tc.expectedError, err)
 			}
 		})
 	}

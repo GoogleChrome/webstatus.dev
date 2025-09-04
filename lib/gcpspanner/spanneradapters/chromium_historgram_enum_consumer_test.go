@@ -290,7 +290,7 @@ func TestCreateEnumToFeatureKeyMap(t *testing.T) {
 	}
 }
 
-func TestMigrateMovedFeatures(t *testing.T) {
+func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 	testCases := []struct {
 		name                         string
 		histogramsToEnumMap          map[metricdatatypes.HistogramName]map[int64]*string
@@ -410,7 +410,7 @@ func TestMigrateMovedFeatures(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := migrateMovedFeatures(
+			err := migrateMovedFeaturesForChromiumHistograms(
 				context.Background(), tc.histogramsToEnumMap, tc.histogramsToAllFeatureKeySet, tc.movedFeatures)
 
 			if !errors.Is(err, tc.expectedErr) {
