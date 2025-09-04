@@ -63,6 +63,11 @@ web_features_region_schedules = {
   "europe-west1" = "0 8 * * *"  # Daily at 8:00 AM
 }
 
+developer_signals_region_schedules = {
+  "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
+  "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
+}
+
 chromium_region_schedules = {
   "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
   "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM

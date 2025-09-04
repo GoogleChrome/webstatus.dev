@@ -134,6 +134,10 @@ variable "bcd_region_schedules" {
   type = map(string)
 }
 
+variable "developer_signals_region_schedules" {
+  type = map(string)
+}
+
 variable "wpt_region_schedules" {
   type = map(string)
 }
