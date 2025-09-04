@@ -23,13 +23,13 @@ import (
 
 type spannerFeatureDeveloperSignal struct {
 	WebFeatureID string `spanner:"WebFeatureID"`
-	Votes        int64  `spanner:"Votes"`
+	Upvotes      int64  `spanner:"Upvotes"`
 	Link         string `spanner:"Link"`
 }
 
 type FeatureDeveloperSignal struct {
 	WebFeatureKey string `spanner:"WebFeatureKey"`
-	Votes         int64  `spanner:"Votes"`
+	Upvotes       int64  `spanner:"Upvotes"`
 	Link          string `spanner:"Link"`
 }
 
@@ -42,7 +42,7 @@ func (m latestFeatureDeveloperSignalsMapper) SelectAll() spanner.Statement {
 	return spanner.NewStatement(`
 	SELECT
 		WebFeatureID,
-		Votes
+		Upvotes
 	FROM
 		LatestFeatureDeveloperSignals`)
 }
@@ -69,11 +69,11 @@ func (m latestFeatureDeveloperSignalsMapper) MergeAndCheckChanged(
 ) (spannerFeatureDeveloperSignal, bool) {
 	merged := spannerFeatureDeveloperSignal{
 		WebFeatureID: existing.WebFeatureID,
-		Votes:        in.Votes,
+		Upvotes:      in.Upvotes,
 		Link:         in.Link,
 	}
 
-	hasChanged := merged.Votes != existing.Votes || merged.Link != existing.Link
+	hasChanged := merged.Upvotes != existing.Upvotes || merged.Link != existing.Link
 
 	return merged, hasChanged
 }
@@ -100,7 +100,7 @@ func (c *Client) SyncLatestFeatureDeveloperSignals(ctx context.Context, input []
 		}
 		signals = append(signals, spannerFeatureDeveloperSignal{
 			WebFeatureID: *webFeatureID,
-			Votes:        signal.Votes,
+			Upvotes:      signal.Upvotes,
 			Link:         signal.Link,
 		})
 	}
@@ -114,7 +114,7 @@ func (m latestFeatureDeveloperSignalGetAllMapper) SelectAll() spanner.Statement 
 	return spanner.NewStatement(`
 	SELECT
 		wf.FeatureKey AS WebFeatureKey,
-		lfd.Votes,
+		lfd.Upvotes,
 		lfd.Link
 	FROM
 		LatestFeatureDeveloperSignals AS lfd

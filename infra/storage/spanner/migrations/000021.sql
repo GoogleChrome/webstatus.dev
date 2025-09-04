@@ -16,7 +16,7 @@
 -- For now, the only signal for a feature is the thumbs up.
 CREATE TABLE IF NOT EXISTS LatestFeatureDeveloperSignals (
     WebFeatureID STRING(36) NOT NULL,
-    Votes INT64 NOT NULL,
+    Upvotes INT64 NOT NULL,
     Link STRING(MAX) NOT NULL,
     FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures(ID) ON DELETE CASCADE,
 ) PRIMARY KEY (WebFeatureID);

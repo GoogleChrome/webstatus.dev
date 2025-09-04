@@ -38,12 +38,12 @@ func getSampleFeatureDeveloperSignals() []FeatureDeveloperSignal {
 		{
 			WebFeatureKey: "feature1",
 			Link:          "https://example.com/feature1",
-			Votes:         100,
+			Upvotes:       100,
 		},
 		{
 			WebFeatureKey: "feature2",
 			Link:          "https://example.com/feature2",
-			Votes:         200,
+			Upvotes:       200,
 		},
 	}
 }
@@ -79,13 +79,13 @@ func TestSyncAndGetAllLatestFeatureDeveloperSignals(t *testing.T) {
 	updatedSignals := []FeatureDeveloperSignal{
 		{
 			WebFeatureKey: "feature1",
-			Votes:         150, // Update
+			Upvotes:       150, // Update
 			Link:          "https://example.com/feature1-updated",
 		},
 		// feature2 is deleted
 		{
 			WebFeatureKey: "feature3", // Insert
-			Votes:         300,
+			Upvotes:       300,
 			Link:          "https://example.com/feature3",
 		},
 	}
@@ -109,12 +109,12 @@ func TestSyncAndGetAllLatestFeatureDeveloperSignals(t *testing.T) {
 		{
 			WebFeatureKey: "feature1",
 			Link:          "https://example.com/feature1-updated",
-			Votes:         150,
+			Upvotes:       150,
 		},
 		{
 			WebFeatureKey: "feature3",
 			Link:          "https://example.com/feature3",
-			Votes:         300,
+			Upvotes:       300,
 		},
 	}
 
@@ -127,7 +127,7 @@ func TestSyncAndGetAllLatestFeatureDeveloperSignals(t *testing.T) {
 		{
 			WebFeatureKey: "non-existent-feature",
 			Link:          "https://example.com/non-existent-feature",
-			Votes:         999,
+			Upvotes:       999,
 		},
 	}
 	err = spannerClient.SyncLatestFeatureDeveloperSignals(ctx, signalsWithInvalidFeature)
