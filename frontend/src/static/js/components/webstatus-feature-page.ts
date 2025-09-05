@@ -42,6 +42,7 @@ import {
   BASELINE_CHIP_CONFIGS,
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
+import {formatUpvoteCount} from './utils.js';
 
 import './webstatus-gchart';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
@@ -307,10 +308,7 @@ export class FeaturePage extends BaseChartsPage {
       return html`${nothing}`;
     }
 
-    const formattedUpvotes = new Intl.NumberFormat('en-US', {
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(signal.upvotes);
+    const formattedUpvotes = formatUpvoteCount(signal.upvotes);
 
     const rawUpvotes = new Intl.NumberFormat().format(signal.upvotes);
 

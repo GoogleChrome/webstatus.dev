@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2024 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,3 +34,10 @@ export const IS_MOBILE = (() => {
 
   return width <= NARROW_WINDOW_MAX_WIDTH || width === 0;
 })();
+
+export function formatUpvoteCount(upvotes: number): string {
+  return new Intl.NumberFormat('en-US', {
+    notation: 'compact',
+    maximumFractionDigits: 1,
+  }).format(upvotes);
+}
