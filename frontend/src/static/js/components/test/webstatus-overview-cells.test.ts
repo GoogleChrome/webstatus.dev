@@ -117,6 +117,66 @@ describe('renderChromeUsage', () => {
   });
 });
 
+describe('renderDeveloperSignalUpvotes', () => {
+  let container: HTMLElement;
+  let feature: components['schemas']['Feature'];
+  beforeEach(() => {
+    container = document.createElement('div');
+
+    feature = {
+      feature_id: 'id',
+      name: 'name',
+    };
+  });
+
+  it('renders upvotes when available', async () => {
+    feature.developer_signals = {upvotes: 12345, link: 'http://example.com'};
+    const result = CELL_DEFS[ColumnKey.DeveloperSignalUpvotes].cellRenderer(
+      feature,
+      {search: ''},
+      {},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const tooltip = el.querySelector('sl-tooltip');
+    expect(tooltip).to.exist;
+    expect(tooltip!.getAttribute('content')).to.equal(
+      '12,345 developer upvotes. Need this feature across browsers? Upvote it on GitHub.',
+    );
+    const span = el.querySelector('span');
+    expect(span).to.exist;
+    expect(el.textContent.trim()).to.equal('12.3K');
+  });
+
+  it('renders nothing when upvotes are not available', async () => {
+    const result = CELL_DEFS[ColumnKey.DeveloperSignalUpvotes].cellRenderer(
+      feature,
+      {search: ''},
+      {},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    expect(el.textContent.trim()).to.equal('');
+  });
+
+  it('renders upvotes with correct formatting for smaller numbers', async () => {
+    feature.developer_signals = {
+      upvotes: 500,
+      link: 'http://example.com',
+    };
+    const result = CELL_DEFS[ColumnKey.DeveloperSignalUpvotes].cellRenderer(
+      feature,
+      {search: ''},
+      {},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const span = el.querySelector('span');
+    expect(span).to.exist;
+    expect(el.textContent.trim()).to.equal('500');
+  });
+});
+
 describe('renderBaselineStatus', () => {
   let container: HTMLElement;
   beforeEach(() => {
