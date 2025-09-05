@@ -317,4 +317,86 @@ describe('webstatus-feature-page', () => {
       );
     });
   });
+
+  describe('renderDeveloperSignal', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
+      );
+      hostElement = document.createElement('div');
+    });
+
+    it('renders nothing when there is no signal', async () => {
+      const signal = undefined;
+      const actual = element.renderDeveloperSignal(signal);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders nothing when link is missing', async () => {
+      const signal = {upvotes: 10};
+      const actual = element.renderDeveloperSignal(signal);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders nothing when upvotes are missing', async () => {
+      const signal = {link: 'http://example.com'};
+      const actual = element.renderDeveloperSignal(signal);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders the developer signal button', async () => {
+      const signal = {upvotes: 10, link: 'http://example.com'};
+      const actual = element.renderDeveloperSignal(signal);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const tooltip = host.querySelector('sl-tooltip');
+      const button = host.querySelector('sl-button');
+      const icon = host?.querySelector('sl-icon');
+
+      expect(tooltip).to.not.be.null;
+      expect(button).to.not.be.null;
+      expect(icon).to.not.be.null;
+
+      expect(tooltip?.getAttribute('content')).to.equal(
+        '10 developer upvotes. Click to see the discussion.',
+      );
+      expect(button?.getAttribute('href')).to.equal('http://example.com');
+      expect(button?.getAttribute('aria-label')).to.equal(
+        '10 developer upvotes',
+      );
+      expect(button?.textContent?.trim()).to.equal('10');
+      expect(icon?.getAttribute('name')).to.equal('hand-thumbs-up');
+    });
+
+    it('renders the developer signal button with compact number', async () => {
+      const signal = {upvotes: 12345, link: 'http://example.com'};
+      const actual = element.renderDeveloperSignal(signal);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const tooltip = host.querySelector('sl-tooltip');
+      const button = host.querySelector('sl-button');
+
+      expect(tooltip).to.not.be.null;
+      expect(button).to.not.be.null;
+
+      expect(tooltip?.getAttribute('content')).to.equal(
+        '12,345 developer upvotes. Click to see the discussion.',
+      );
+      expect(button?.getAttribute('aria-label')).to.equal(
+        '12,345 developer upvotes',
+      );
+      expect(button?.textContent?.trim()).to.equal('12.3K');
+    });
+  });
 });

@@ -300,6 +300,38 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
+  renderDeveloperSignal(
+    signal?: components['schemas']['FeatureDeveloperSignals'],
+  ): TemplateResult {
+    if (!signal?.link || !signal?.upvotes) {
+      return html`${nothing}`;
+    }
+
+    const formattedUpvotes = new Intl.NumberFormat('en-US', {
+      notation: 'compact',
+      maximumFractionDigits: 1,
+    }).format(signal.upvotes);
+
+    const rawUpvotes = new Intl.NumberFormat().format(signal.upvotes);
+
+    return html`
+      <sl-tooltip
+        content="${rawUpvotes} developer upvotes. Click to see the discussion."
+      >
+        <sl-button
+          href=${signal.link}
+          target="_blank"
+          variant="default"
+          size="small"
+          aria-label="${rawUpvotes} developer upvotes"
+        >
+          <sl-icon slot="prefix" name="hand-thumbs-up"></sl-icon>
+          ${formattedUpvotes}
+        </sl-button>
+      </sl-tooltip>
+    `;
+  }
+
   wptLinkMetricView(): string {
     const view = this._getWPTMetricView(this.location);
     switch (view) {
@@ -351,7 +383,10 @@ export class FeaturePage extends BaseChartsPage {
     return html`
       <div id="nameAndOffsiteLinks" class="hbox wrap">
         <div class="vbox">
-          <h1>${this.feature?.name || this.featureId}</h1>
+          <div class="hbox valign-items-center">
+            <h1>${this.feature?.name || this.featureId}</h1>
+            ${this.renderDeveloperSignal(this.feature?.developer_signals)}
+          </div>
           ${this.renderDescription()}
         </div>
         <div class="spacer"></div>
