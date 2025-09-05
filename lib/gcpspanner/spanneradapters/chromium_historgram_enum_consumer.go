@@ -52,8 +52,6 @@ type ChromiumHistogramEnumsClient interface {
 // Used by GCP Log-based metrics to extract the data about mismatch mappings.
 const logMissingFeatureIDMetricMsg = "unable to find feature ID. skipping mapping"
 
-var ErrConflictMigratingFeatureKey = errors.New("conflict migrating feature key")
-
 func (c *ChromiumHistogramEnumConsumer) GetAllMovedWebFeatures(
 	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
 	movedFeatures, err := c.client.GetAllMovedWebFeatures(ctx)
@@ -80,7 +78,8 @@ func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 		return err
 	}
 
-	err = migrateMovedFeatures(ctx, histogramsToEnumMap, histogramsToAllFeatureKeySet, movedFeatures)
+	err = migrateMovedFeaturesForChromiumHistograms(
+		ctx, histogramsToEnumMap, histogramsToAllFeatureKeySet, movedFeatures)
 	if err != nil {
 		return err
 	}
@@ -162,34 +161,25 @@ func buildHistogramMaps(
 	return histogramsToEnumMap, histogramsToAllFeatureKeySet
 }
 
-func migrateMovedFeatures(
+func migrateMovedFeaturesForChromiumHistograms(
 	ctx context.Context,
 	histogramsToEnumMap map[metricdatatypes.HistogramName]map[int64]*string,
 	histogramsToAllFeatureKeySet map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue,
 	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData,
 ) error {
 	for histogram, allFeaturesKeySet := range histogramsToAllFeatureKeySet {
-		for featureKey, featureEnum := range allFeaturesKeySet {
-			if movedFeatureData, found := movedFeatures[featureKey]; found {
-				if _, exists := allFeaturesKeySet[movedFeatureData.RedirectTarget]; exists {
-					// This new key already exists somewhere in the data.
-					// That means upstream has done a partial migration to the new feature key.
-					// Instead of assuming, we should error out and Chromium mojom file needs to be updated.
-					slog.ErrorContext(ctx, "conflict migrating feature key. upstream currently using both keys",
-						"histogram", histogram,
-						"old_key", featureKey,
-						"new_key", movedFeatureData.RedirectTarget,
-					)
+		logger := slog.With("histogram", histogram)
 
-					return ErrConflictMigratingFeatureKey
-				}
-				slog.WarnContext(ctx, "migrating feature key for histogram",
-					"histogram", histogram,
-					"old_key", featureKey,
-					"new_key", movedFeatureData.RedirectTarget,
-				)
-				histogramsToEnumMap[histogram][featureEnum.Value] = &movedFeatureData.RedirectTarget
-			}
+		err := NewMigrator(
+			movedFeatures,
+			allFeaturesKeySet,
+			histogramsToEnumMap[histogram],
+			WithLoggerForMigrator[metricdatatypes.HistogramEnumValue, map[int64]*string](logger),
+		).Migrate(ctx, func(oldKey, newKey string, data map[int64]*string) {
+			data[allFeaturesKeySet[oldKey].Value] = &newKey
+		})
+		if err != nil {
+			return err
 		}
 	}
 

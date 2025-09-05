@@ -19,6 +19,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/developersignaltypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 )
 
 // DeveloperSignalsConsumer handles the conversion of the developer signals between the downloaded
@@ -35,7 +36,34 @@ func NewDeveloperSignalsConsumer(client DeveloperSignalsClient) *DeveloperSignal
 // DeveloperSignalsClient expects a subset of the functionality from lib/gcpspanner that only apply to
 // Developer Signals.
 type DeveloperSignalsClient interface {
+	GetAllMovedWebFeatures(ctx context.Context) ([]gcpspanner.MovedWebFeature, error)
 	SyncLatestFeatureDeveloperSignals(ctx context.Context, data []gcpspanner.FeatureDeveloperSignal) error
+}
+
+func (c *DeveloperSignalsConsumer) GetAllMovedWebFeatures(
+	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	movedFeatures, err := c.client.GetAllMovedWebFeatures(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return convertGCPSpannerMovedFeaturesToMap(movedFeatures), nil
+}
+
+func migrateMovedFeaturesForDeveloperSignals(
+	ctx context.Context,
+	data *developersignaltypes.FeatureDeveloperSignals,
+	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	allFeaturesSet := make(map[string]struct{}, len(*data))
+	for featureID := range *data {
+		allFeaturesSet[featureID] = struct{}{}
+	}
+
+	return NewMigrator(movedFeatures, allFeaturesSet, data).Migrate(ctx,
+		func(oldKey, newKey string, data *developersignaltypes.FeatureDeveloperSignals) {
+			(*data)[newKey] = (*data)[oldKey]
+			delete(*data, oldKey)
+		})
 }
 
 // SyncLatestFeatureDeveloperSignals handles the conversion of developer signals between the workflow/API input
@@ -44,6 +72,20 @@ func (c *DeveloperSignalsConsumer) SyncLatestFeatureDeveloperSignals(
 	ctx context.Context, data *developersignaltypes.FeatureDeveloperSignals) error {
 	if data == nil || len(*data) == 0 {
 		return nil
+	}
+
+	// Get all moved web features so we can migrate old data to the new feature ID.
+	// We do this here because we want to avoid doing this for every metric.
+	// We also want to avoid doing this in the spanner client because we want to
+	// keep the spanner client as a generic library.
+	movedFeatures, err := c.GetAllMovedWebFeatures(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = migrateMovedFeaturesForDeveloperSignals(ctx, data, movedFeatures)
+	if err != nil {
+		return err
 	}
 
 	signals := make([]gcpspanner.FeatureDeveloperSignal, 0, len(*data))
