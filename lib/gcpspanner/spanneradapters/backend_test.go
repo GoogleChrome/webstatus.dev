@@ -1189,8 +1189,10 @@ func TestFeaturesSearch(t *testing.T) {
 									ImplementationVersion: valuePtr("103"),
 								},
 							},
-							SpecLinks:     nil,
-							ChromiumUsage: big.NewRat(91, 100),
+							SpecLinks:              nil,
+							ChromiumUsage:          big.NewRat(91, 100),
+							DeveloperSignalUpvotes: valuePtr(int64(9)),
+							DeveloperSignalLink:    valuePtr("http://example.com"),
 						},
 						{
 							Name:       "feature 2",
@@ -1244,7 +1246,9 @@ func TestFeaturesSearch(t *testing.T) {
 								"link1",
 								"link2",
 							},
-							ChromiumUsage: big.NewRat(10, 100),
+							ChromiumUsage:          big.NewRat(10, 100),
+							DeveloperSignalUpvotes: nil,
+							DeveloperSignalLink:    nil,
 						},
 					},
 				},
@@ -1308,8 +1312,10 @@ func TestFeaturesSearch(t *testing.T) {
 								Version: valuePtr("103"),
 							},
 						},
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-						DeveloperSignals: nil,
+						DeveloperSignals: &backend.FeatureDeveloperSignals{
+							Upvotes: valuePtr[int64](9),
+							Link:    valuePtr("http://example.com"),
+						},
 					},
 					{
 						Baseline: &backend.BaselineInfo{
@@ -1376,7 +1382,6 @@ func TestFeaturesSearch(t *testing.T) {
 								Version: valuePtr("102"),
 							},
 						},
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
 						DeveloperSignals: nil,
 					},
 				},
@@ -1442,6 +1447,10 @@ func CompareFeatures(f1, f2 backend.Feature) bool {
 		return false
 	}
 
+	if !compareDeveloperSignals(f1.DeveloperSignals, f2.DeveloperSignals) {
+		return false
+	}
+
 	// All fields match
 	return true
 }
@@ -1476,6 +1485,10 @@ func compareWPTSnapshots(w1, w2 *backend.FeatureWPTSnapshots) bool {
 	}
 
 	return true
+}
+
+func compareDeveloperSignals(s1, s2 *backend.FeatureDeveloperSignals) bool {
+	return reflect.DeepEqual(s1, s2)
 }
 
 // compareFeatureDataMap helps compare maps of WPTFeatureData.
@@ -1567,7 +1580,9 @@ func TestGetFeature(t *testing.T) {
 						"link1",
 						"link2",
 					},
-					ChromiumUsage: nil,
+					ChromiumUsage:          nil,
+					DeveloperSignalUpvotes: valuePtr(int64(4)),
+					DeveloperSignalLink:    valuePtr("http://example.com"),
 				},
 				returnedError: nil,
 			},
@@ -1624,8 +1639,10 @@ func TestGetFeature(t *testing.T) {
 								Version: nil,
 							},
 						},
-						// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-						DeveloperSignals: nil,
+						DeveloperSignals: &backend.FeatureDeveloperSignals{
+							Upvotes: valuePtr[int64](4),
+							Link:    valuePtr("http://example.com"),
+						},
 					}),
 				}
 			},
@@ -3005,6 +3022,14 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 			input: valuePtr(backend.AvailabilitySafariDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "safari"),
 		},
+		{
+			input: valuePtr(backend.DeveloperSignalUpvotesAsc),
+			want:  gcpspanner.NewDeveloperSignalUpvotesSort(true),
+		},
+		{
+			input: valuePtr(backend.DeveloperSignalUpvotesDesc),
+			want:  gcpspanner.NewDeveloperSignalUpvotesSort(false),
+		},
 	}
 
 	for _, tt := range sortOrderTests {
@@ -3046,6 +3071,8 @@ func TestConvertFeatureResult(t *testing.T) {
 				ImplementationStatuses: nil,
 				SpecLinks:              nil,
 				ChromiumUsage:          big.NewRat(8, 100),
+				DeveloperSignalUpvotes: nil,
+				DeveloperSignalLink:    nil,
 			},
 
 			expectedFeature: &backend.Feature{
@@ -3066,8 +3093,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				},
 				Wpt:                    nil,
 				BrowserImplementations: nil,
-				// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-				DeveloperSignals: nil,
+				DeveloperSignals:       nil,
 			},
 		},
 	}

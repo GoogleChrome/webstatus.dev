@@ -812,6 +812,22 @@ func convertMetrics(
 	return wpt
 }
 
+type spannerDeveloperSignals struct {
+	Upvotes *int64
+	Link    *string
+}
+
+func convertFeatureDeveloperSignals(signals spannerDeveloperSignals) *backend.FeatureDeveloperSignals {
+	if signals.Upvotes == nil && signals.Link == nil {
+		return nil
+	}
+
+	return &backend.FeatureDeveloperSignals{
+		Upvotes: signals.Upvotes,
+		Link:    signals.Link,
+	}
+}
+
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
 	// Initialize the returned feature with the default values.
 	// The logic below will fill in nullable fields.
@@ -829,8 +845,10 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			Chrome: convertChromeUsageToBackend(featureResult.ChromiumUsage),
 		},
 		BrowserImplementations: nil,
-		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-		DeveloperSignals: nil,
+		DeveloperSignals: convertFeatureDeveloperSignals(spannerDeveloperSignals{
+			Upvotes: featureResult.DeveloperSignalUpvotes,
+			Link:    featureResult.DeveloperSignalLink,
+		}),
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
@@ -1046,10 +1064,10 @@ func getFeatureSearchSortOrder(
 		return gcpspanner.NewBrowserFeatureSupportSort(true, string(backend.SafariIos))
 	case backend.AvailabilitySafariIosDesc:
 		return gcpspanner.NewBrowserFeatureSupportSort(false, string(backend.SafariIos))
-	case backend.DeveloperSignalPositiveCountAsc, backend.DeveloperSignalPositiveCountDesc:
-		// TODO https://github.com/GoogleChrome/webstatus.dev/issues/1675
-
-		return gcpspanner.NewBaselineStatusSort(false)
+	case backend.DeveloperSignalUpvotesAsc:
+		return gcpspanner.NewDeveloperSignalUpvotesSort(true)
+	case backend.DeveloperSignalUpvotesDesc:
+		return gcpspanner.NewDeveloperSignalUpvotesSort(false)
 	}
 
 	// Unknown sort order

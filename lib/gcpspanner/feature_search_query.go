@@ -471,7 +471,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		browserFeatureSupportDetails = &SortByBrowserFeatureSupportDetails{
 			BrowserName: sort.BrowserTarget(),
 		}
-	case ChromiumUsageSort, IDSort, NameSort, StatusSort:
+	case ChromiumUsageSort, IDSort, NameSort, StatusSort, DeveloperSignalUpvotesSort:
 		break // do nothing.
 	}
 
@@ -562,7 +562,8 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 		featureSearchBrowserImplColumn,
 		featureSearchStatusColumn,
 		featureSearchChromiumUsageColumn,
-		featureSearchBrowserFeatureSupportDateColumn:
+		featureSearchBrowserFeatureSupportDateColumn,
+		featureSearchUpvotesColumn:
 		return string(f)
 	}
 
@@ -574,13 +575,14 @@ func (f FeatureSearchColumn) ToFilterColumn() string {
 type FeaturesSearchSortTarget string
 
 const (
-	IDSort                    FeaturesSearchSortTarget = "id"
-	NameSort                  FeaturesSearchSortTarget = "name"
-	StatusSort                FeaturesSearchSortTarget = "status"
-	StableImplSort            FeaturesSearchSortTarget = "stable_browser_impl"
-	ExperimentalImplSort      FeaturesSearchSortTarget = "experimental_browser_impl"
-	ChromiumUsageSort         FeaturesSearchSortTarget = "chromium_usage"
-	BrowserFeatureSupportSort FeaturesSearchSortTarget = "browser_feature_support"
+	IDSort                     FeaturesSearchSortTarget = "id"
+	NameSort                   FeaturesSearchSortTarget = "name"
+	StatusSort                 FeaturesSearchSortTarget = "status"
+	StableImplSort             FeaturesSearchSortTarget = "stable_browser_impl"
+	ExperimentalImplSort       FeaturesSearchSortTarget = "experimental_browser_impl"
+	ChromiumUsageSort          FeaturesSearchSortTarget = "chromium_usage"
+	BrowserFeatureSupportSort  FeaturesSearchSortTarget = "browser_feature_support"
+	DeveloperSignalUpvotesSort FeaturesSearchSortTarget = "developer_signal_upvotes"
 )
 
 const (
@@ -593,6 +595,7 @@ const (
 	featureSearchBrowserImplColumn               FeatureSearchColumn = "sort_impl_calcs.SortImplStatus"
 	featureSearchChromiumUsageColumn             FeatureSearchColumn = "chromium_usage_metrics.ChromiumUsage"
 	featureSearchBrowserFeatureSupportDateColumn FeatureSearchColumn = "sort_browser_feature_support_calcs.SortDate"
+	featureSearchUpvotesColumn                   FeatureSearchColumn = "lfds.Upvotes"
 )
 
 const (
@@ -691,5 +694,19 @@ func NewBrowserFeatureSupportSort(isAscending bool, browserName string) Sortable
 		browserTarget:  &browserName,
 		ascendingOrder: isAscending,
 		sortTarget:     sortTarget,
+	}
+}
+
+// NewDeveloperSignalUpvotesSort returns a Sortable specifically for the DeveloperSignalUpvotes column.
+func NewDeveloperSignalUpvotesSort(isAscending bool) Sortable {
+	return Sortable{
+		clause: buildFullClause(
+			[]string{
+				buildSortableOrderClause(isAscending, featureSearchUpvotesColumn),
+			},
+		),
+		ascendingOrder: isAscending,
+		sortTarget:     DeveloperSignalUpvotesSort,
+		browserTarget:  nil,
 	}
 }

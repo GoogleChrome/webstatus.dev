@@ -49,6 +49,7 @@ func (w *webFeatureForeignKeyTestHelpers) insertEntities(ctx context.Context, t 
 	w.insertWebFeatureChromiumHistogramData(ctx, t)
 	w.insertBrowserFeatureSupportEvent(ctx, t)
 	w.insertFeatureDiscouragedDetails(ctx, t)
+	w.insertFeatureDeveloperSignals(ctx, t)
 }
 
 func (w *webFeatureForeignKeyTestHelpers) insertFeature(ctx context.Context, t *testing.T) {
@@ -256,6 +257,19 @@ func (w *webFeatureForeignKeyTestHelpers) insertFeatureDiscouragedDetails(ctx co
 	}
 }
 
+func (w *webFeatureForeignKeyTestHelpers) insertFeatureDeveloperSignals(ctx context.Context, t *testing.T) {
+	err := spannerClient.SyncLatestFeatureDeveloperSignals(ctx, []FeatureDeveloperSignal{
+		{
+			WebFeatureKey: w.testWebFeature().FeatureKey,
+			Upvotes:       1,
+			Link:          "https://example.com",
+		},
+	})
+	if err != nil {
+		t.Errorf("unexpected error during insert. %s", err.Error())
+	}
+}
+
 func (w *webFeatureForeignKeyTestHelpers) assertWebFeatureCount(ctx context.Context, t *testing.T, want int) {
 	features, err := spannerClient.ReadAllWebFeatures(ctx, t)
 	if err != nil {
@@ -369,6 +383,17 @@ func (w webFeatureForeignKeyTestHelpers) assertFeatureDiscouragedDetailsCount(
 	}
 }
 
+func (w webFeatureForeignKeyTestHelpers) assertLatestFeatureDeveloperSignalsCount(
+	ctx context.Context, t *testing.T, want int) {
+	signals, err := spannerClient.GetAllLatestFeatureDeveloperSignals(ctx)
+	if err != nil {
+		t.Errorf("unexpected error during read all of signals. %s", err.Error())
+	}
+	if len(signals) != want {
+		t.Errorf("unexpected number of signals. want: %d, got %d", want, len(signals))
+	}
+}
+
 // This is to test https://github.com/GoogleChrome/webstatus.dev/issues/513
 // and to prevent it in the future.
 // An easy way to find all of these would be to examine all the migrations with the
@@ -395,6 +420,7 @@ func TestWebFeatureForeignKey(t *testing.T) {
 	helpers.assertBrowserFeatureSupportEventCount(ctx, t, 1)
 	helpers.assertLatestDailyChromiumHistogramMetricsCount(ctx, t, 1)
 	helpers.assertFeatureDiscouragedDetailsCount(ctx, t, 1)
+	helpers.assertLatestFeatureDeveloperSignalsCount(ctx, t, 1)
 
 	// Delete the web feature
 	err := spannerClient.DeleteWebFeature(ctx, *helpers.featureID)
@@ -414,4 +440,5 @@ func TestWebFeatureForeignKey(t *testing.T) {
 	helpers.assertBrowserFeatureSupportEventCount(ctx, t, 0)
 	helpers.assertLatestDailyChromiumHistogramMetricsCount(ctx, t, 0)
 	helpers.assertFeatureDiscouragedDetailsCount(ctx, t, 0)
+	helpers.assertLatestFeatureDeveloperSignalsCount(ctx, t, 0)
 }

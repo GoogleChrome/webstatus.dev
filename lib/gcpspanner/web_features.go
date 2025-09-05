@@ -222,6 +222,32 @@ func (m webFeatureSpannerMapper) moveLatestDailyChromiumHistogramMetrics(
 	return mutations, nil
 }
 
+func (m webFeatureSpannerMapper) moveLatestFeatureDeveloperSignals(
+	ctx context.Context,
+	c *Client,
+	sourceID string,
+	targetID string,
+) ([]*spanner.Mutation, error) {
+	developerSignals, err := c.getAllLatestFeatureDeveloperSignalsByWebFeatureID(ctx, sourceID)
+	if err != nil {
+		return nil, err
+	}
+	mutations := make([]*spanner.Mutation, 0, len(developerSignals))
+	for _, signal := range developerSignals {
+		signal.WebFeatureID = targetID
+		m, err := spanner.InsertOrUpdateStruct(latestFeatureDeveloperSignalsTableName, signal)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to create mutation for LatestFeatureDeveloperSignals",
+				"error", err, "signal", signal)
+
+			return nil, err
+		}
+		mutations = append(mutations, m)
+	}
+
+	return mutations, nil
+}
+
 func (m webFeatureSpannerMapper) PreDeleteHook(
 	ctx context.Context,
 	c *Client,
@@ -241,6 +267,7 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 	var latestWPTRunFeatureMetricMutations []*spanner.Mutation
 	var webFeatureChromiumHistogramEnumValueMutations []*spanner.Mutation
 	var latestDailyChromiumHistogramMetricMutations []*spanner.Mutation
+	var latestFeatureDeveloperSignalMutations []*spanner.Mutation
 
 	// The following sections are where the WebFeatureID is the primary key (or part of the primary key).
 	// This requires us to copy the rows (with updated IDs) because Spanner does not allow the modifications of keys.
@@ -273,6 +300,12 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 			return nil, err
 		}
 		latestDailyChromiumHistogramMetricMutations = append(latestDailyChromiumHistogramMetricMutations, mutations...)
+
+		mutations, err = m.moveLatestFeatureDeveloperSignals(ctx, c, sourceID, targetID)
+		if err != nil {
+			return nil, err
+		}
+		latestFeatureDeveloperSignalMutations = append(latestFeatureDeveloperSignalMutations, mutations...)
 	}
 
 	var groups []ExtraMutationsGroup
@@ -301,6 +334,13 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 		groups = append(groups, ExtraMutationsGroup{
 			tableName: LatestDailyChromiumHistogramMetricsTable,
 			mutations: latestDailyChromiumHistogramMetricMutations,
+		})
+	}
+
+	if len(latestFeatureDeveloperSignalMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: latestFeatureDeveloperSignalsTableName,
+			mutations: latestFeatureDeveloperSignalMutations,
 		})
 	}
 
