@@ -22,6 +22,7 @@ import {
 } from '../utils/urls.js';
 import {BROWSER_ID_TO_ICON_NAME, FeatureSortOrderType} from '../api/client.js';
 import {ifDefined} from 'lit/directives/if-defined.js';
+import {formatUpvoteCount} from './utils.js';
 import {
   INTEROP_FEATURES,
   TOP_CSS_INTEROP_ISSUES,
@@ -89,6 +90,7 @@ export enum ColumnKey {
   ExpFirefoxAndroid = 'experimental_firefox_android',
   ExpSafariIos = 'experimental_safari_ios',
   ChromeUsage = 'chrome_usage',
+  DeveloperSignalUpvotes = 'developer_signal_upvotes',
 }
 
 const columnKeyMapping = Object.entries(ColumnKey).reduce(
@@ -242,6 +244,26 @@ export const renderChromeUsage: CellRenderer = (
     usage = '100%';
   }
   return html`<span id="chrome-usage">${usage}</span>`;
+};
+
+const renderDeveloperSignalUpvotes: CellRenderer = (
+  feature,
+  _routerLocation,
+  _options,
+) => {
+  const upvotes = feature.developer_signals?.upvotes;
+  if (upvotes === undefined) {
+    return html``;
+  }
+
+  return html`
+    <sl-tooltip content="${upvotes} developer upvotes">
+      <div class="dev-signal-cell">
+        <sl-icon name="hand-thumbs-up"></sl-icon>
+        <span>${formatUpvoteCount(upvotes)}</span>
+      </div>
+    </sl-tooltip>
+  `;
 };
 
 function formatDateString(dateString: string): string {
@@ -676,6 +698,13 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Chrome Usage',
     headerHtml: html`Usage`,
     cellRenderer: renderChromeUsage,
+    options: {},
+  },
+  [ColumnKey.DeveloperSignalUpvotes]: {
+    nameInDialog: 'Developer Upvotes',
+    headerHtml: html`Upvotes`,
+    cellClass: 'centered',
+    cellRenderer: renderDeveloperSignalUpvotes,
     options: {},
   },
 };
