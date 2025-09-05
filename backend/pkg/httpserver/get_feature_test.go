@@ -173,7 +173,8 @@ func TestGetFeature(t *testing.T) {
 						),
 					},
 					DeveloperSignals: &backend.FeatureDeveloperSignals{
-						PositiveCount: 10,
+						Upvotes: valuePtr(int64(10)),
+						Link:    valuePtr("https://example.com"),
 					},
 					BrowserImplementations: &map[string]backend.BrowserImplementation{
 						"chrome": {
@@ -205,7 +206,7 @@ func TestGetFeature(t *testing.T) {
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
-							`"developer_signals":{"positive_count":10},` +
+							`"developer_signals":{"link":"https://example.com","upvotes":10},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
 					CacheCfg: getDefaultCacheConfig(),
@@ -226,7 +227,7 @@ func TestGetFeature(t *testing.T) {
 			"version":"100"
 		}
 	},
-	"developer_signals":{"positive_count":10},
+	"developer_signals":{"link":"https://example.com","upvotes":10},
 	"feature_id":"feature1",
 	"name":"feature 1"
 }`,
@@ -244,7 +245,7 @@ func TestGetFeature(t *testing.T) {
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"100"}},` +
-							`"developer_signals":{"positive_count":10},` +
+							`"developer_signals":{"link":"https://example.com","upvotes":10},` +
 							`"feature_id":"feature1","name":"feature 1"}`,
 					),
 					Err: nil,
@@ -266,7 +267,7 @@ func TestGetFeature(t *testing.T) {
 			"version":"100"
 		}
 	},
-	"developer_signals":{"positive_count":10},
+	"developer_signals":{"link":"https://example.com","upvotes":10},
 	"feature_id":"feature1",
 	"name":"feature 1"
 }`,

@@ -253,7 +253,8 @@ func TestListFeatures(t *testing.T) {
 								},
 							},
 							DeveloperSignals: &backend.FeatureDeveloperSignals{
-								PositiveCount: 24,
+								Upvotes: valuePtr(int64(24)),
+								Link:    valuePtr("https://example.com"),
 							},
 						},
 					},
@@ -276,7 +277,7 @@ func TestListFeatures(t *testing.T) {
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
-							`"developer_signals":{"positive_count":24},` +
+							`"developer_signals":{"link":"https://example.com","upvotes":24},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -301,7 +302,8 @@ func TestListFeatures(t *testing.T) {
 				}
 			},
 			"developer_signals":{
-				"positive_count":24
+				"link":"https://example.com",
+				"upvotes":24
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"
@@ -332,7 +334,7 @@ func TestListFeatures(t *testing.T) {
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
-							`"developer_signals":{"positive_count":24},` +
+							`"developer_signals":{"link":"https://example.com","upvotes":24},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -358,7 +360,8 @@ func TestListFeatures(t *testing.T) {
 				}
 			},
 			"developer_signals":{
-				"positive_count":24
+				"link":"https://example.com",
+				"upvotes":24
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"

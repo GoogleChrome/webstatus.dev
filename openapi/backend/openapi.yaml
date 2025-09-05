@@ -88,8 +88,8 @@ paths:
               - experimental_safari_ios_desc
               - chrome_usage_asc
               - chrome_usage_desc
-              - developer_signal_positive_count_asc
-              - developer_signal_positive_count_desc
+              - developer_signal_upvotes_asc
+              - developer_signal_upvotes_desc
               # availability_{browser}_{direction}
               - availability_chrome_asc
               - availability_chrome_desc
@@ -1135,11 +1135,13 @@ components:
     FeatureDeveloperSignals:
       type: object
       properties:
-        positive_count:
+        upvotes:
           type: integer
           description: Count of positive feedback for a feature
-      required:
-        - positive_count
+          format: int64 # To match the value type from Spanner as it only supports int64.
+        link:
+          type: string
+          description: Link to the issue tracking developer signal for a feature.
     FeaturePage:
       type: object
       properties:

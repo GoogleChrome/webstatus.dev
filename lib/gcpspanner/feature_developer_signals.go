@@ -125,3 +125,27 @@ func (m latestFeatureDeveloperSignalGetAllMapper) SelectAll() spanner.Statement 
 func (c *Client) GetAllLatestFeatureDeveloperSignals(ctx context.Context) ([]FeatureDeveloperSignal, error) {
 	return newAllEntityReader[latestFeatureDeveloperSignalGetAllMapper, FeatureDeveloperSignal](c).readAll(ctx)
 }
+
+type latestFeatureDeveloperSignalByFeatureIDMapper struct{}
+
+func (m latestFeatureDeveloperSignalByFeatureIDMapper) SelectAllByKeys(webFeatureID string) spanner.Statement {
+	stmt := spanner.NewStatement(`
+	SELECT
+		WebFeatureID, Upvotes, Link
+	FROM LatestFeatureDeveloperSignals
+	WHERE WebFeatureID = @webFeatureID`)
+	stmt.Params = map[string]interface{}{
+		"webFeatureID": webFeatureID,
+	}
+
+	return stmt
+}
+
+func (c *Client) getAllLatestFeatureDeveloperSignalsByWebFeatureID(
+	ctx context.Context, featureID string) ([]spannerFeatureDeveloperSignal, error) {
+	return newAllByKeysEntityReader[
+		latestFeatureDeveloperSignalByFeatureIDMapper,
+		string,
+		spannerFeatureDeveloperSignal,
+	](c).readAllByKeys(ctx, featureID)
+}
