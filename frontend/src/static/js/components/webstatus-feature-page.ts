@@ -50,6 +50,7 @@ import './webstatus-feature-wpt-progress-chart-panel.js';
 import './webstatus-feature-usage-chart-panel.js';
 import {DataFetchedEvent} from './webstatus-line-chart-panel.js';
 import {NotFoundError} from '../api/errors.js';
+import {formatDeveloperUpvotesMessages} from '../utils/format.js';
 // CanIUseData is a slimmed down interface of the data returned from the API.
 interface CanIUseData {
   items?: {
@@ -307,26 +308,19 @@ export class FeaturePage extends BaseChartsPage {
       return html`${nothing}`;
     }
 
-    const formattedUpvotes = new Intl.NumberFormat('en-US', {
-      notation: 'compact',
-      maximumFractionDigits: 1,
-    }).format(signal.upvotes);
-
-    const rawUpvotes = new Intl.NumberFormat().format(signal.upvotes);
+    const messages = formatDeveloperUpvotesMessages(signal.upvotes);
 
     return html`
-      <sl-tooltip
-        content="${rawUpvotes} developer upvotes. Click to see the discussion."
-      >
+      <sl-tooltip content=${messages.message}>
         <sl-button
           href=${signal.link}
           target="_blank"
           variant="default"
           size="small"
-          aria-label="${rawUpvotes} developer upvotes"
+          aria-label="${messages.shortMessage}"
         >
           <sl-icon slot="prefix" name="hand-thumbs-up"></sl-icon>
-          ${formattedUpvotes}
+          ${messages.shorthandNumber}
         </sl-button>
       </sl-tooltip>
     `;

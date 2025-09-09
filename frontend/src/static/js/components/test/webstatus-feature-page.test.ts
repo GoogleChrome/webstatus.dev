@@ -369,7 +369,7 @@ describe('webstatus-feature-page', () => {
       expect(icon).to.not.be.null;
 
       expect(tooltip?.getAttribute('content')).to.equal(
-        '10 developer upvotes. Click to see the discussion.',
+        '10 developer upvotes. Need this feature across browsers? Upvote it on GitHub.',
       );
       expect(button?.getAttribute('href')).to.equal('http://example.com');
       expect(button?.getAttribute('aria-label')).to.equal(
@@ -391,7 +391,7 @@ describe('webstatus-feature-page', () => {
       expect(button).to.not.be.null;
 
       expect(tooltip?.getAttribute('content')).to.equal(
-        '12,345 developer upvotes. Click to see the discussion.',
+        '12,345 developer upvotes. Need this feature across browsers? Upvote it on GitHub.',
       );
       expect(button?.getAttribute('aria-label')).to.equal(
         '12,345 developer upvotes',
