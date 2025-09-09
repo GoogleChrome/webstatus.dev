@@ -208,6 +208,18 @@ export const VOCABULARY = [
     doc: 'Features available on Safari',
   },
   {
+    name: 'available_on:chrome_android',
+    doc: 'Features available on Chrome',
+  },
+  {
+    name: 'available_on:firefox_android',
+    doc: 'Features available on Firefox Android',
+  },
+  {
+    name: 'available_on:safari_ios',
+    doc: 'Features available on Safari iOS',
+  },
+  {
     name: 'baseline_date:2023-01-01..2024-01-01',
     doc: 'Reached baseline between the given dates',
   },
