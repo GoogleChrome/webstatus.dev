@@ -141,7 +141,7 @@ describe('renderDeveloperSignalUpvotes', () => {
     const tooltip = el.querySelector('sl-tooltip');
     expect(tooltip).to.exist;
     expect(tooltip!.getAttribute('content')).to.equal(
-      '12,345 developer upvotes. Need this feature across browsers? Upvote it on GitHub.',
+      '12,345 developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.',
     );
     const span = el.querySelector('span');
     expect(span).to.exist;
