@@ -83,7 +83,6 @@ module "ingestion" {
   docker_repository_details          = module.storage.docker_repository_details
   deletion_protection                = var.deletion_protection
   regions                            = keys(var.region_information)
-  buckets                            = module.storage.buckets
   secret_ids                         = var.secret_ids
   datastore_info                     = module.storage.datastore_info
   spanner_datails                    = module.storage.spanner_info
