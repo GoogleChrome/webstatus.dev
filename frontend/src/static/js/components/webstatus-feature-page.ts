@@ -50,6 +50,7 @@ import './webstatus-feature-wpt-progress-chart-panel.js';
 import './webstatus-feature-usage-chart-panel.js';
 import {DataFetchedEvent} from './webstatus-line-chart-panel.js';
 import {NotFoundError} from '../api/errors.js';
+import {formatDeveloperUpvotesMessages} from '../utils/format.js';
 // CanIUseData is a slimmed down interface of the data returned from the API.
 interface CanIUseData {
   items?: {
@@ -300,6 +301,31 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
+  renderDeveloperSignal(
+    signal?: components['schemas']['FeatureDeveloperSignals'],
+  ): TemplateResult {
+    if (!signal?.link || !signal?.upvotes) {
+      return html`${nothing}`;
+    }
+
+    const messages = formatDeveloperUpvotesMessages(signal.upvotes);
+
+    return html`
+      <sl-tooltip content=${messages.message}>
+        <sl-button
+          href=${signal.link}
+          target="_blank"
+          variant="default"
+          size="small"
+          aria-label="${messages.shortMessage}"
+        >
+          <sl-icon slot="prefix" name="hand-thumbs-up"></sl-icon>
+          ${messages.shorthandNumber}
+        </sl-button>
+      </sl-tooltip>
+    `;
+  }
+
   wptLinkMetricView(): string {
     const view = this._getWPTMetricView(this.location);
     switch (view) {
@@ -351,7 +377,10 @@ export class FeaturePage extends BaseChartsPage {
     return html`
       <div id="nameAndOffsiteLinks" class="hbox wrap">
         <div class="vbox">
-          <h1>${this.feature?.name || this.featureId}</h1>
+          <div class="hbox valign-items-center">
+            <h1>${this.feature?.name || this.featureId}</h1>
+            ${this.renderDeveloperSignal(this.feature?.developer_signals)}
+          </div>
           ${this.renderDescription()}
         </div>
         <div class="spacer"></div>
