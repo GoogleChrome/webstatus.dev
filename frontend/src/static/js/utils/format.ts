@@ -58,7 +58,7 @@ export function formatDeveloperUpvotesMessages(
   return {
     shorthandNumber,
     rawNumber,
-    message: `${rawNumber} developer upvotes. Need this feature across browsers? Upvote it on GitHub.`,
+    message: `${rawNumber} developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.`,
     shortMessage: `${rawNumber} developer upvotes`,
   };
 }

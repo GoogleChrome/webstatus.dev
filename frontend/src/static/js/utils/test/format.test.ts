@@ -41,7 +41,7 @@ describe('format', () => {
     expect(result.shorthandNumber).to.equal('12.3K');
     expect(result.rawNumber).to.equal('12,345');
     expect(result.message).to.equal(
-      '12,345 developer upvotes. Need this feature across browsers? Upvote it on GitHub.',
+      '12,345 developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.',
     );
     expect(result.shortMessage).to.equal('12,345 developer upvotes');
   });
