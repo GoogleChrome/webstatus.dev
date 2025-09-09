@@ -13,18 +13,6 @@
       "remoteRoot": "/work/backend"
     },
     {
-      "name": "Debug 'Repo Downloader' service",
-      "type": "cloudcode.kubernetes",
-      "request": "attach",
-      "language": "Go",
-      "debugPort": 56268,
-      "podSelector": {
-        "app.kubernetes.io/name": "repo-downloader"
-      },
-      "localRoot": "${workspaceFolder}/workflows/steps/services/common/repo_downloader",
-      "remoteRoot": "/work/workflows/steps/services/common/repo_downloader"
-    },
-    {
       "type": "antlr-debug",
       "request": "launch",
       "name": "Debug FeatureSearch grammar",

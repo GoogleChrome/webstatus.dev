@@ -91,7 +91,6 @@ The above skaffold command deploys multiple resources:
 | datastore | Datastore Emulator             | N/A                                                        | http://datastore:8086                               |
 | spanner   | Spanner Emulator               | N/A                                                        | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
 | valkey    | Valkey                         | N/A                                                        | valkey:6379                                         |
-| gcs       | Google Cloud Storage Emulator  | N/A                                                        | http://gcs:4443                                     |
 | auth      | Auth Emulator                  | http://localhost:9099<br />http://localhost:9100/auth (ui) | http://auth:9099<br />http://auth:9100/auth (ui)    |
 
 _In the event the servers are not responsive, make a temporary change to a file_

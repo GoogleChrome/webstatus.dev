@@ -6,7 +6,6 @@ DOCKERFILES := \
 	images/go_service.Dockerfile \
 	images/nodejs_service.Dockerfile \
 	otel/Dockerfile \
-	./.dev/gcs/Dockerfile \
 	./.dev/auth/Dockerfile \
 	./.dev/datastore/Dockerfile \
 	./.dev/spanner/Dockerfile \
@@ -156,14 +155,10 @@ $(OPENAPI_OUT_DIR)/%/client.gen.go: openapi/%/openapi.yaml go-install-tools
 
 # Target to generate all OpenAPI code
 go-openapi: $(OPENAPI_OUT_DIR)/backend/types.gen.go \
-			$(OPENAPI_OUT_DIR)/backend/server.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/client.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/types.gen.go \
-			$(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader/server.gen.go
+			$(OPENAPI_OUT_DIR)/backend/server.gen.go
 
 clean-go-openapi:
 	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/backend, /types.gen.go /server.gen.go)
-	rm -rf $(addprefix $(OPENAPI_OUT_DIR)/workflows/steps/common/repo_downloader, /types.gen.go /server.gen.go)
 
 node-openapi:
 	npx openapi-typescript openapi/backend/openapi.yaml -o lib/gen/openapi/ts-webstatus.dev-backend-types/types.d.ts
@@ -403,7 +398,6 @@ go-workspace-setup: go-workspace-clean
 		go work use ./util && \
 		go work use ./workflows/steps/services/bcd_consumer && \
 		go work use ./workflows/steps/services/chromium_histogram_enums && \
-		go work use ./workflows/steps/services/common/repo_downloader && \
 		go work use ./workflows/steps/services/developer_signals_consumer && \
 		go work use ./workflows/steps/services/uma_export && \
 		go work use ./workflows/steps/services/web_feature_consumer && \

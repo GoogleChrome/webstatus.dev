@@ -29,12 +29,6 @@ variable "docker_repository_details" {
   })
 }
 
-variable "buckets" {
-  type = object({
-    repo_download_bucket = string
-  })
-}
-
 variable "secret_ids" {
   type = object({
     github_token = string
