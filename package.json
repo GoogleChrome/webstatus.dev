@@ -20,7 +20,7 @@
     "openapi-typescript": "7.9.1",
     "prettier": "3.6.2",
     "quicktype": "23.2.6",
-    "stylelint": "^16.23.1",
+    "stylelint": "^16.24.0",
     "stylelint-config-standard": "^39.0.0"
   },
   "overrides": {
