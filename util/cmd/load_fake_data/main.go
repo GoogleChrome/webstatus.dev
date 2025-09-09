@@ -836,6 +836,13 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.InfoContext(ctx, "chromium histogram metrics generated",
 		"amount of metrics generated", chromiumMetricsCount)
 
+	signalsGenerated, err := generateFeatureDeveloperSignals(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("feature developer signals generation failed %w", err)
+	}
+	slog.InfoContext(ctx, "feature developer signals generated",
+		"amount of signals generated", signalsGenerated)
+
 	err = generateEvolutionOfFeatures(ctx, spannerClient, fh)
 	if err != nil {
 		return fmt.Errorf("feature evolution generation failed %w", err)
@@ -1084,6 +1091,31 @@ func generateChromiumHistogramMetrics(
 	}
 
 	return metricsCount, nil
+}
+
+func generateFeatureDeveloperSignals(
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
+	signals := []gcpspanner.FeatureDeveloperSignal{}
+	for _, feature := range features {
+		var modifier = r.Intn(5)
+		if modifier == 0 && feature.FeatureKey != featurePageFeatureKey {
+			continue
+		}
+
+		signals = append(signals, gcpspanner.FeatureDeveloperSignal{
+			WebFeatureKey: feature.FeatureKey,
+			Upvotes:       r.Int63n(1000),
+			Link:          "https://fake-github.com/org/repo/issues/4",
+		})
+
+	}
+
+	err := client.SyncLatestFeatureDeveloperSignals(ctx, signals)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(signals), nil
 }
 
 func initFirebaseAuthClient(ctx context.Context, projectID string) *auth.Client {

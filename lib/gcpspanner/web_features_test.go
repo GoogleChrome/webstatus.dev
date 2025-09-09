@@ -283,6 +283,18 @@ func (s syncWebFeaturesRedirectCase) postFirstSyncSetup(
 	if err != nil {
 		t.Fatalf("Failed to sync latest chromium histogram metrics: %v", err)
 	}
+
+	// Add Feature Developer Signals
+	err = spannerClient.SyncLatestFeatureDeveloperSignals(ctx, []FeatureDeveloperSignal{
+		{
+			WebFeatureKey: "feature-a",
+			Upvotes:       1,
+			Link:          "https://example.com",
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to sync latest feature developer signals: %v", err)
+	}
 }
 
 func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
@@ -371,6 +383,24 @@ func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
 	}
 	if webFeatureEnums[0].WebFeatureID != featureKeyToIDMap["feature-b"] {
 		t.Error("expected web feature chromium enum to be for feature-b")
+	}
+
+	// Check Feature Developer Signals
+	// Check that the signal information is missing for feature-a and now feature-b has the information.
+	signals, err := spannerClient.getAllLatestFeatureDeveloperSignalsByWebFeatureID(ctx, featureKeyToIDMap["feature-a"])
+	if err != nil {
+		t.Fatalf("unexpected error reading feature developer signals for feature-a. %s", err.Error())
+	}
+	if len(signals) != 0 {
+		t.Fatal("expected no feature developer signals for feature-a")
+	}
+
+	signals, err = spannerClient.getAllLatestFeatureDeveloperSignalsByWebFeatureID(ctx, featureKeyToIDMap["feature-b"])
+	if err != nil {
+		t.Fatalf("unexpected error reading feature developer signals for feature-b. %s", err.Error())
+	}
+	if len(signals) != 1 {
+		t.Fatal("expected 1 feature developer signal for feature-b")
 	}
 }
 

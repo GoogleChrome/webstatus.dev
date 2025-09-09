@@ -599,6 +599,23 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			t.Fatalf("failed to insert web feature snapshot. err: %s", err)
 		}
 	}
+
+	// Sync Developer Signals.
+	err = client.SyncLatestFeatureDeveloperSignals(ctx, []FeatureDeveloperSignal{
+		{
+			WebFeatureKey: "feature1",
+			Upvotes:       1,
+			Link:          "https://example.com",
+		},
+		{
+			WebFeatureKey: "feature2",
+			Upvotes:       9,
+			Link:          "https://example2.com",
+		},
+	})
+	if err != nil {
+		t.Fatalf("unexpected error during sync. %s", err.Error())
+	}
 }
 
 func addSampleChromiumUsageMetricsData(ctx context.Context,
@@ -827,7 +844,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example1.com",
 				"http://example2.com",
 			},
-			ChromiumUsage: big.NewRat(8, 100),
+			ChromiumUsage:          big.NewRat(8, 100),
+			DeveloperSignalUpvotes: valuePtr(int64(1)),
+			DeveloperSignalLink:    valuePtr("https://example.com"),
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -876,8 +895,10 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 					ImplementationVersion: valuePtr("2.0.0"),
 				},
 			},
-			SpecLinks:     nil,
-			ChromiumUsage: big.NewRat(91, 100),
+			SpecLinks:              nil,
+			ChromiumUsage:          big.NewRat(91, 100),
+			DeveloperSignalUpvotes: valuePtr(int64(9)),
+			DeveloperSignalLink:    valuePtr("https://example2.com"),
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -908,7 +929,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example3.com",
 				"http://example4.com",
 			},
-			ChromiumUsage: nil,
+			ChromiumUsage:          nil,
+			DeveloperSignalUpvotes: nil,
+			DeveloperSignalLink:    nil,
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -922,6 +945,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ImplementationStatuses: nil,
 			SpecLinks:              nil,
 			ChromiumUsage:          nil,
+			DeveloperSignalUpvotes: nil,
+			DeveloperSignalLink:    nil,
 		}
 	}
 
@@ -2112,6 +2137,7 @@ func testFeatureSearchSort(ctx context.Context, t *testing.T, client *Client) {
 	testFeatureSearchSortBrowserImpl(ctx, t, client)
 	testFeatureSearchChromiumUsage(ctx, t, client)
 	testFeatureSearchSortBrowserFeatureSupport(ctx, t, client)
+	testFeatureSearchSortDeveloperSignalUpvotes(ctx, t, client)
 }
 
 // nolint: dupl // WONTFIX. Only duplicated because the feature filter test yields similar results.
@@ -2475,6 +2501,65 @@ func testFeatureSearchSortBrowserFeatureSupport(ctx context.Context, t *testing.
 	}
 }
 
+func testFeatureSearchSortDeveloperSignalUpvotes(ctx context.Context, t *testing.T, client *Client) {
+	type DeveloperSignalUpvoteCase struct {
+		name         string
+		sortable     Sortable
+		expectedPage *FeatureResultPage
+	}
+	testCases := []DeveloperSignalUpvoteCase{
+		{
+			name:     "DeveloperSignalUpvotes asc",
+			sortable: NewDeveloperSignalUpvotesSort(true),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// null developer signal, defaults to `feature key ASC`, feature3
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// null developer signal, defaults to `feature key ASC`, feature4
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+					// upvotes = 1, feature 1
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// upvotes = 9, feature 2
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+				},
+			},
+		},
+		{
+			name:     "DeveloperSignalUpvotes desc",
+			sortable: NewDeveloperSignalUpvotesSort(false),
+			expectedPage: &FeatureResultPage{
+				Total:         4,
+				NextPageToken: nil,
+				Features: []FeatureResult{
+					// upvotes = 9, feature 2
+					getFeatureSearchTestFeature(FeatureSearchTestFId2),
+					// upvotes = 1, feature 1
+					getFeatureSearchTestFeature(FeatureSearchTestFId1),
+					// null developer signal, defaults to `feature key ASC`, feature3
+					getFeatureSearchTestFeature(FeatureSearchTestFId3),
+					// null developer signal, defaults to `feature key ASC`, feature4
+					getFeatureSearchTestFeature(FeatureSearchTestFId4),
+				},
+			},
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			assertFeatureSearch(ctx, t, client,
+				featureSearchArgs{
+					pageToken: nil,
+					pageSize:  100,
+					node:      nil,
+					sort:      tc.sortable,
+				},
+				tc.expectedPage,
+			)
+		})
+	}
+}
+
 func TestFeaturesSearch(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
@@ -2632,6 +2717,8 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	for _, status := range result.ImplementationStatuses {
 		fmt.Fprint(&builder, PrettyPrintImplementationStatus(status))
 	}
+	fmt.Fprintf(&builder, "\tDeveloperSignalUpvotes: %s\n", PrintNullableField(result.DeveloperSignalUpvotes))
+	fmt.Fprintf(&builder, "\tDeveloperSignalLink %s\n", PrintNullableField(result.DeveloperSignalLink))
 	fmt.Fprintln(&builder)
 
 	return builder.String()
