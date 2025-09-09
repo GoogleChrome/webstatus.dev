@@ -263,7 +263,7 @@ go-test: clean-up-go-testcontainers go-workspace-setup
 			echo "********* Testing module: $${GO_MODULE} *********" ; \
 			GO_COVERAGE_DIR="$${GO_MODULE}/coverage/unit" ; \
 			mkdir -p $${GO_COVERAGE_DIR} ; \
-			go test -p 1 -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
+			go test -race -p 1 -cover -covermode=atomic -coverprofile=$${GO_COVERAGE_DIR}/cover.out "$${GO_MODULE}/..." && \
 			echo "Generating coverage report for $${GO_MODULE}" && \
 			go tool cover --func=$${GO_COVERAGE_DIR}/cover.out && \
 			echo -e "\n\n" || exit 1; \

@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"reflect"
+	"sync"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
@@ -59,7 +60,7 @@ func TestLocalDataCache(t *testing.T) {
 	}
 	for _, tt := range getCacheDataTests {
 		t.Run(tt.name, func(t *testing.T) {
-			cache := NewLocalDataCache[string, string]()
+			cache := NewLocalDataCache[string, string](nil)
 			cache.data = tt.cacheData
 			val, err := cache.Get(context.Background(), tt.key)
 
@@ -91,7 +92,7 @@ func TestLocalDataCache(t *testing.T) {
 	}
 	for idx, tt := range cacheDataTests {
 		t.Run(tt.name, func(t *testing.T) {
-			cache := NewLocalDataCache[string, string]()
+			cache := NewLocalDataCache[string, string](nil)
 			cache.data = tt.cacheData
 			err := cache.Cache(context.Background(), tt.key, cacheDataTests[idx].value)
 
@@ -107,4 +108,59 @@ func TestLocalDataCache(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestLocalDataCache_ConcurrentMapAccess tests that the cache can safely handle
+// concurrent read access to a map value when a copier function is used.
+// This test is designed to fail under the Go race detector if the cache's Get
+// method does not return a proper copy, leading to a data race.
+func TestLocalDataCache_ConcurrentMapAccess(t *testing.T) {
+	// Define a copier function for our test map type. This is what a consumer
+	// of the cache would provide for their specific reference type.
+	copier := func(in map[string]int) map[string]int {
+		if in == nil {
+			return nil
+		}
+		out := make(map[string]int, len(in))
+		for k, v := range in {
+			out[k] = v
+		}
+
+		return out
+	}
+
+	// Create a new cache instance with the copier function.
+	cache := NewLocalDataCache[string, map[string]int](copier)
+	initialMap := map[string]int{"a": 1}
+	// Seed the cache with an initial value.
+	err := cache.Cache(context.Background(), "test-map", initialMap)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var wg sync.WaitGroup
+	numGoroutines := 100
+
+	// Start multiple goroutines to simulate concurrent access.
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			// Each goroutine gets the map from the cache.
+			m, err := cache.Get(context.Background(), "test-map")
+			if err != nil {
+				// t.Error is safe for concurrent use by multiple goroutines.
+				t.Error(err)
+			}
+			// Each goroutine modifies its local copy of the map.
+			// If the cache's Get method does not use the copier correctly and
+			// returns a direct reference to the underlying map, the race
+			// detector will report a data race on this line.
+			m["a"]++
+		}()
+	}
+
+	// Wait for all goroutines to complete. If there was a race condition,
+	// the test will have already failed when run with the -race flag.
+	wg.Wait()
 }
