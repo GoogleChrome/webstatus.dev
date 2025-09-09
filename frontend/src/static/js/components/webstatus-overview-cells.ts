@@ -28,6 +28,7 @@ import {
   TOP_HTML_INTEROP_ISSUES,
 } from '../utils/constants.js';
 import './webstatus-feature-badge.js';
+import {formatDeveloperUpvotesMessages} from '../utils/format.js';
 
 const MISSING_VALUE = html``;
 
@@ -89,6 +90,7 @@ export enum ColumnKey {
   ExpFirefoxAndroid = 'experimental_firefox_android',
   ExpSafariIos = 'experimental_safari_ios',
   ChromeUsage = 'chrome_usage',
+  DeveloperSignalUpvotes = 'developer_signal_upvotes',
 }
 
 const columnKeyMapping = Object.entries(ColumnKey).reduce(
@@ -242,6 +244,32 @@ export const renderChromeUsage: CellRenderer = (
     usage = '100%';
   }
   return html`<span id="chrome-usage">${usage}</span>`;
+};
+
+const renderDeveloperSignalUpvotes: CellRenderer = (
+  feature,
+  _routerLocation,
+  _options,
+) => {
+  const upvotes = feature.developer_signals?.upvotes;
+  const link = feature.developer_signals?.link;
+  if (upvotes === undefined || link === undefined) {
+    // If upvotes is undefined, link will be undefined as well. But we currently mark both as optional.
+    // This check is just in case something goes wrong.
+    return html`${nothing}`;
+  }
+
+  const messages = formatDeveloperUpvotesMessages(upvotes);
+
+  return html`
+    <sl-tooltip content="${messages.message}">
+      <div class="dev-signal-cell">
+        <span
+          ><a href=${link} target="_blank">${messages.shorthandNumber}</a></span
+        >
+      </div>
+    </sl-tooltip>
+  `;
 };
 
 function formatDateString(dateString: string): string {
@@ -676,6 +704,13 @@ export const CELL_DEFS: Record<ColumnKey, ColumnDefinition> = {
     nameInDialog: 'Chrome Usage',
     headerHtml: html`Usage`,
     cellRenderer: renderChromeUsage,
+    options: {},
+  },
+  [ColumnKey.DeveloperSignalUpvotes]: {
+    nameInDialog: 'Developer Upvotes',
+    headerHtml: html`Upvotes <sl-icon name="hand-thumbs-up"></sl-icon>`,
+    cellClass: 'centered',
+    cellRenderer: renderDeveloperSignalUpvotes,
     options: {},
   },
 };

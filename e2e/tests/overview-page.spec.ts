@@ -48,6 +48,16 @@ test('screenshot for availability sort', async ({page}) => {
   await expect(pageContainer).toHaveScreenshot();
 });
 
+test('screenshot for developer upvotes column', async ({page}) => {
+  await gotoOverviewPageUrl(
+    page,
+    'http://localhost:5555/?columns=name,baseline_status,availability_chrome,availability_firefox,availability_edge,' +
+      'availability_safari,chrome_usage,developer_signal_upvotes',
+  );
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
 test('shows an error that their query is invalid', async ({page}) => {
   await page.goto('http://localhost:5555/?q=available_on%3Achrom');
 

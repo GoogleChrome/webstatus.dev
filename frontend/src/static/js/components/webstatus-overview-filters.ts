@@ -239,6 +239,9 @@ export class WebstatusOverviewFilters extends LitElement {
         case ColumnKey.ChromeUsage:
           columns.push(name);
           break;
+        case ColumnKey.DeveloperSignalUpvotes:
+          columns.push(name);
+          break;
         case ColumnKey.StableChrome:
         case ColumnKey.StableEdge:
         case ColumnKey.StableFirefox:
@@ -265,6 +268,8 @@ export class WebstatusOverviewFilters extends LitElement {
       const browserImpl = feature.browser_implementations!;
       const wptData = feature.wpt;
       const chromeUsage = feature.usage?.chrome?.daily?.toString() || '';
+      const developerSignalUpvotes =
+        feature.developer_signals?.upvotes?.toString() || '';
       const row: string[] = [];
 
       const pushBrowserChannelValue = (
@@ -291,6 +296,9 @@ export class WebstatusOverviewFilters extends LitElement {
             break;
           case ColumnKey.ChromeUsage:
             row.push(chromeUsage);
+            break;
+          case ColumnKey.DeveloperSignalUpvotes:
+            row.push(developerSignalUpvotes);
             break;
           case ColumnKey.StableChrome:
           case ColumnKey.StableEdge:
