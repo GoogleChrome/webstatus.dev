@@ -36,6 +36,7 @@
     "files.trimTrailingWhitespace": false,
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
+  "go.testFlags": ["-race"],
   "files.exclude": {
     "**/.git": true,
     "**/.svn": true,

@@ -21,22 +21,34 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 )
 
+// Copier is a function that creates a deep copy of a value of type V.
+// This is necessary for cache implementations that store reference types (e.g., maps, slices, pointers)
+// to prevent race conditions when multiple goroutines access and modify cached data.
+type Copier[V any] func(V) V
+
 // LocalDataCache is an in-memory thread safe cache.
 // It uses generics so that users of it can uses any type of data they want.
 // The key K must be of type comparable. More infomration here: https://go.dev/blog/comparable
 // The value V can be any type.
 type LocalDataCache[K comparable, V any] struct {
-	mu   *sync.RWMutex
-	data map[K]V
+	mu     *sync.RWMutex
+	data   map[K]V
+	copier Copier[V]
 }
 
 // NewLocalDataCache creates a new LocalDataCache instance.
-func NewLocalDataCache[K comparable, V any]() *LocalDataCache[K, V] {
+// It accepts an optional copier function. If a copier is provided, the Get
+// method will return a deep copy of the cached value. This is critical for
+// ensuring thread safety when caching reference types that might be mutated by consumers.
+// This design is chosen to provide type safety and performance, avoiding the use of reflection
+// for deep copying. If the copier is nil, values will be returned by reference.
+func NewLocalDataCache[K comparable, V any](copier Copier[V]) *LocalDataCache[K, V] {
 	data := make(map[K]V)
 
 	return &LocalDataCache[K, V]{
-		data: data,
-		mu:   &sync.RWMutex{},
+		data:   data,
+		mu:     &sync.RWMutex{},
+		copier: copier,
 	}
 }
 
@@ -54,10 +66,10 @@ func (c *LocalDataCache[K, V]) Cache(
 }
 
 // Get retrieves a value from the cache.
-// It returns a copy of the value if it exists in the cache.
-//   - It returns a copy instead of a pointer so that users cannot modify it and impact the value stored in the cache.
-//
-// It returns cachetypes.ErrCachedDataNotFound if it does not exist.
+// If a copier function was provided to NewLocalDataCache, this method returns a
+// deep copy of the value. Otherwise, it returns a direct reference.
+// Returning a copy for reference types is crucial for preventing race conditions.
+// It returns cachetypes.ErrCachedDataNotFound if the key does not exist.
 // nolint: ireturn // V is not a interface always. Can ignore this.
 func (c *LocalDataCache[K, V]) Get(
 	_ context.Context,
@@ -66,10 +78,15 @@ func (c *LocalDataCache[K, V]) Get(
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	if data, found := c.data[key]; found {
-		return data, nil
+	data, found := c.data[key]
+	if !found {
+		// Return a zero valued version of V and the not found error.
+		return *new(V), cachetypes.ErrCachedDataNotFound
 	}
 
-	// Return a zero valued version of V and the not found error.
-	return *new(V), cachetypes.ErrCachedDataNotFound
+	if c.copier != nil {
+		return c.copier(data), nil
+	}
+
+	return data, nil
 }

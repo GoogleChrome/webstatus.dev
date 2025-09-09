@@ -89,6 +89,19 @@ func main() {
 	// Worker Pool Setup
 	pool := workerpool.Pool[workflow.JobArguments]{}
 
+	webFeaturesDataCopier := func(in shared.WebFeaturesData) shared.WebFeaturesData {
+		dataCopy := make(shared.WebFeaturesData, len(in))
+		for testName, featuresMap := range in {
+			newFeaturesMap := make(map[string]interface{}, len(featuresMap))
+			for featureKey, featureData := range featuresMap {
+				newFeaturesMap[featureKey] = featureData
+			}
+			dataCopy[testName] = newFeaturesMap
+		}
+
+		return dataCopy
+	}
+
 	processor := workflow.NewWPTJobProcessor(
 		wptfyi.NewHTTPClient(wptFyiHostname),
 		workflow.NewWPTRunsProcessor(
@@ -96,7 +109,7 @@ func main() {
 				workflow.NewHTTPResultsGetter(),
 				workflow.NewCacheableWebFeaturesDataGetter(
 					shared.NewGitHubWebFeaturesClient(ghClient),
-					localcache.NewLocalDataCache[string, shared.WebFeaturesData](),
+					localcache.NewLocalDataCache[string, shared.WebFeaturesData](webFeaturesDataCopier),
 				),
 				spanneradapters.NewWPTWorkflowConsumer(spannerClient),
 			),
