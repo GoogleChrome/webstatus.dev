@@ -1,5 +1,7 @@
 # Gemini Code Assist Configuration for webstatus.dev
 
+<!-- Last analyzed commit: 96f9821fd3482b12fac0a787ed273675f3f82655 -->
+
 This document provides context to Gemini Code Assist to help it generate more accurate and project-specific code suggestions.
 
 ## 1. Project Overview
@@ -24,20 +26,6 @@ This section describes the tools and commands for local development.
 - **`make dev_workflows`**: Populates the local Spanner database by running the data ingestion jobs against live data sources.
 - **`make dev_fake_data`**: Populates the local Spanner database with a consistent set of fake data for testing.
 - **`make spanner_new_migration`**: Creates a new Spanner database migration file in `infra/storage/spanner/migrations`.
-
-### 2.2. Living Document & Continuous Improvement
-
-This document is a living guide to the `webstatus.dev` project. As an AI assistant, I must treat it as the source of truth for my operations. However, like any documentation, it can become outdated.
-
-If you, the user, find that I am making mistakes due to outdated or missing information in this document, or if you have to provide significant guidance to correct my course, please instruct me to update this file.
-
-My own process should also include a self-correction loop:
-
-- After a series of changes, especially if they involved trial-and-error or failed tests.
-- I will reflect on the process and identify any gaps in my understanding.
-- I will then propose changes to this `GEMINI.md` file to incorporate the new knowledge.
-
-This ensures that the document evolves with the codebase, making my assistance more accurate and efficient over time.
 
 ## 3. Codebase Architecture
 
@@ -87,13 +75,13 @@ The frontend Single Page Application (SPA).
 
 Standalone Go applications that populate the Spanner database from external sources.
 
-- **Overview**: Each workflow corresponds to a specific data source (e.g., `bcd_consumer`, `wpt_consumer`). They run as scheduled Cloud Run Jobs in production.
+- **Overview**: Each workflow corresponds to a specific data source (e.g., `bcd_consumer`, `wpt_consumer`, `developer_signals_consumer`). They run as scheduled Cloud Run Jobs in production. The `web_feature_consumer` is a key workflow that ingests data from the `web-platform-dx/web-features` repository, and it now handles features that have been moved or split.
 - **Development & Execution**:
   - **Local**: Run all main workflows with `make dev_workflows`.
   - **Production**: Deployed as `google_cloud_run_v2_job` resources via Terraform.
 - **"Do's and Don'ts" (Workflows)**:
   - **DO** follow the existing pattern for new workflows: new directory, `main.go`, and `manifests/job.yaml`.
-  - **DO** use consumer-specific `spanneradapters` (e.g., `BCDConsumer`).
+  - **DO** use consumer-specific `spanneradapters` (e.g., `BCDConsumer`, `DeveloperSignalsConsumer`).
   - **DON'T** call the `Backend` spanner adapter from a workflow.
   - **DO** choose the correct data ingestion pattern (sync vs. upsert) based on the use case. See the "How-To" guide for details.
   - **DO** separate the process of ingesting raw data from the process of linking that data to other entities (like web features). This makes the ingestion pipeline more robust.
@@ -108,6 +96,10 @@ Shared Go libraries used by the `backend` and `workflows`.
   - **`lib/gcpspanner`**: The data access layer, containing the Spanner client, data models, and generic helpers.
   - **`lib/gcpspanner/spanneradapters`**: The abstraction layer between services and the database client.
   - **`lib/cachetypes`**: Common interfaces and types for the caching layer.
+  - **`lib/fetchtypes`**: A common module for making HTTP requests.
+  - **`lib/developersignaltypes`**: Types related to developer signals.
+  - **`lib/webdxfeaturetypes`**: Types related to web features from the `web-platform-dx/web-features` repository.
+
 - **"Do's and Don'ts" (Libraries)**:
   - **DO** place reusable Go code shared between services here.
   - **DON'T** put service-specific logic in `lib/`.
@@ -124,7 +116,8 @@ A core architectural pattern in the Go codebase is the **mapper pattern**, used 
   - `readOneMapper`: Defines how to select a single entity by its key.
   - `mergeMapper`: Defines how to merge an incoming entity with an existing one for updates.
   - `deleteByStructMapper`: Defines how to delete an entity.
-- **Implementations**: You can find many examples of mapper implementations throughout the `lib/gcpspanner/` directory (e.g., `webFeatureSpannerMapper`, `baselineStatusMapper`). **DO** look for existing mappers before writing a new one.
+  - `childDeleteMapper`: Defines how to handle child deletions in batches before deleting the parent. See the `GetChildDeleteKeyMutations` method.
+- **Implementations**: You can find many examples of mapper implementations throughout the `lib/gcpspanner/` directory (e.g., `webFeatureSpannerMapper`, `baselineStatusMapper`, `latestFeatureDeveloperSignalsMapper`). **DO** look for existing mappers before writing a new one.
 
 ### 3.3. End-to-End Data Flow Example
 
@@ -135,9 +128,9 @@ This example illustrates how data is ingested by a workflow and then served by t
 The goal is to ingest feature definitions from the `web-platform-dx/web-features` repository into the Spanner `WebFeatures` table.
 
 - A developer runs `make dev_workflows`, which executes the `web_feature_consumer` job via `util/run_job.sh`.
-- The `web_feature_consumer` fetches the latest feature data.
-- It uses its dedicated adapter, `spanneradapters.WebFeatureConsumer`, to process and store the data.
-- The adapter calls `gcpspanner.Client`, which uses the generic `entitySynchronizer` to efficiently batch-write the feature data into the `WebFeatures` table in the database.
+- The `web_feature_consumer` fetches the latest feature data and processes it into a `webdxfeaturetypes.ProcessedWebFeaturesData` struct. This struct separates features, moved features, and split features.
+- It uses its dedicated adapter, `spanneradapters.WebFeaturesConsumer`, to process and store the data.
+- The adapter calls `gcpspanner.Client`, which uses the generic `entitySynchronizer` to efficiently batch-write the feature data into the `WebFeatures`, `MovedWebFeatures`, and `SplitWebFeatures` tables in the database.
 
 **2. Data Serving (`getFeature` API endpoint)**
 
@@ -231,6 +224,7 @@ The project's infrastructure is managed with **Terraform**.
 - **Creation**: Use `make spanner_new_migration` to create a new migration file.
 - **Cascade Deletes**: Prefer using `ON DELETE CASCADE` for foreign key relationships to maintain data integrity. Add an integration test to verify this behavior (see `lib/gcpspanner/web_features_fk_test.go`).
 - **Cascade Caveat**: If a cascade could delete thousands of child entities, it may exceed Spanner's mutation limit. In such cases, implement the `GetChildDeleteKeyMutations` method in the parent's `spannerMapper` to handle child deletions in batches before deleting the parent.
+- **Data Migrations**: For more complex data migrations, such as renaming a feature key, a generic migrator has been introduced in `lib/gcpspanner/spanneradapters/migration.go`. This can be used to migrate data between old and new keys.
 
 ### 5.5. Caching
 
@@ -328,6 +322,7 @@ First, analyze the nature of the incoming data and the goal of the ingestion. As
 
 - Is the incoming data a **complete set** that represents the entire desired state of a table? Or is it a **partial update** or a stream of new events?
 - Do I need to handle **deletions**? If a record is no longer in the source data, should it be removed from the database?
+- Does the data contain features that have been **moved** or **split**?
 
 **2. Choose the Right Ingestion Pattern**
 
@@ -347,9 +342,10 @@ Based on your analysis, choose one of the following patterns:
 
 **3. Implement the Workflow**
 
-1.  **Implement the Mapper**: In the `lib/gcpspanner` package, create a new mapper struct and implement the required interfaces for your chosen pattern (e.g., `syncableEntityMapper` or `writeableEntityMapper`).
-2.  **Implement the Client Method**: In `lib/gcpspanner/client.go`, add a new method that takes the data and uses the appropriate generic helper (e.g., `newEntitySynchronizer`) with your new mapper.
-3.  **Update the Adapter**: In the `lib/gcpspanner/spanneradapters` package, update the consumer to call the new client method.
+1.  **Process Data**: In the workflow's `main.go`, fetch the data and process it into the appropriate struct from `lib/webdxfeaturetypes` or other relevant type packages. For example, the `web_feature_consumer` uses `webdxfeaturetypes.ProcessedWebFeaturesData`.
+2.  **Implement the Mapper**: In the `lib/gcpspanner` package, create a new mapper struct and implement the required interfaces for your chosen pattern (e.g., `syncableEntityMapper` or `writeableEntityMapper`).
+3.  **Implement the Client Method**: In `lib/gcpspanner/client.go`, add a new method that takes the data and uses the appropriate generic helper (e.g., `newEntitySynchronizer`) with your new mapper.
+4.  **Update the Adapter**: In the `lib/gcpspanner/spanneradapters` package, update the consumer to call the new client method. The adapter is responsible for converting the data from the workflow's format to the Spanner client's format.
 
 **4. Write Tests**
 
@@ -361,3 +357,23 @@ This is a critical step:
 **5. Verify**
 
 Run `make precommit` to ensure all linting checks and tests pass.
+
+## 7. Updating the Knowledge Base
+
+To keep this document up-to-date, you can ask me to analyze the latest commits and update my knowledge base. I will use the hidden marker at the end of this file to find the commits that have been made since my last analysis.
+
+### 7.1. Prompt for Updating
+
+You can use the following prompt to ask me to update my knowledge base:
+
+> Please update your knowledge base by analyzing the commits since the last analyzed commit stored in `GEMINI.md`.
+
+### 7.2. Process
+
+When you give me this prompt, I will:
+
+1.  Read the `GEMINI.md` file to find the last analyzed commit SHA.
+2.  Use `git log` to find all the commits that have been made since that SHA.
+3.  Analyze the new commits to understand the changes.
+4.  Update this document with the new information.
+5.  Update the last analyzed commit SHA near the top of this file.
