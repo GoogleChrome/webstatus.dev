@@ -192,6 +192,18 @@ export const VOCABULARY = [
     doc: 'Became available on Safari between the given dates',
   },
   {
+    name: 'available_date:chrome_android:2023-01-01..2024-01-01',
+    doc: 'Became available on Chrome Android between the given dates',
+  },
+  {
+    name: 'available_date:firefox_android:2023-01-01..2024-01-01',
+    doc: 'Became available on Firefox between the given dates',
+  },
+  {
+    name: 'available_date:safari_ios:2023-01-01..2024-01-01',
+    doc: 'Became available on Safari iOS between the given dates',
+  },
+  {
     name: 'available_on:chrome',
     doc: 'Features available on Chrome',
   },
@@ -209,7 +221,7 @@ export const VOCABULARY = [
   },
   {
     name: 'available_on:chrome_android',
-    doc: 'Features available on Chrome',
+    doc: 'Features available on Chrome Android',
   },
   {
     name: 'available_on:firefox_android',
