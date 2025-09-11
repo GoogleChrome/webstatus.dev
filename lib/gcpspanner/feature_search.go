@@ -42,6 +42,8 @@ type SpannerFeatureResult struct {
 	LowDate                *time.Time                    `spanner:"LowDate"`
 	HighDate               *time.Time                    `spanner:"HighDate"`
 	SpecLinks              []string                      `spanner:"SpecLinks"`
+	AccordingTo            []string                      `spanner:"AccordingTo"`
+	Alternatives           []string                      `spanner:"Alternatives"`
 	ChromiumUsage          *big.Rat                      `spanner:"ChromiumUsage"`
 	DeveloperSignalUpvotes *int64                        `spanner:"DeveloperSignalUpvotes"`
 	DeveloperSignalLink    *string                       `spanner:"DeveloperSignalLink"`
@@ -88,6 +90,8 @@ type FeatureResult struct {
 	LowDate                *time.Time              `spanner:"LowDate"`
 	HighDate               *time.Time              `spanner:"HighDate"`
 	SpecLinks              []string                `spanner:"SpecLinks"`
+	AccordingTo            []string                `spanner:"AccordingTo"`
+	Alternatives           []string                `spanner:"Alternatives"`
 	ChromiumUsage          *big.Rat                `spanner:"ChromiumUsage"`
 	DeveloperSignalUpvotes *int64                  `spanner:"DeveloperSignalUpvotes"`
 	DeveloperSignalLink    *string                 `spanner:"DeveloperSignalLink"`
@@ -232,6 +236,14 @@ func (c *Client) getFeatureResult(
 			result.SpecLinks = nil
 		}
 
+		if len(result.AccordingTo) == 0 {
+			result.AccordingTo = nil
+		}
+
+		if len(result.Alternatives) == 0 {
+			result.Alternatives = nil
+		}
+
 		actualResult := FeatureResult{
 			FeatureKey:             result.FeatureKey,
 			Name:                   result.Name,
@@ -242,6 +254,8 @@ func (c *Client) getFeatureResult(
 			LowDate:                result.LowDate,
 			HighDate:               result.HighDate,
 			SpecLinks:              result.SpecLinks,
+			AccordingTo:            result.AccordingTo,
+			Alternatives:           result.Alternatives,
 			ChromiumUsage:          result.ChromiumUsage,
 			DeveloperSignalUpvotes: result.DeveloperSignalUpvotes,
 			DeveloperSignalLink:    result.DeveloperSignalLink,
