@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	firebase.google.com/go/v4 v4.18.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250910184114-58f5a4f50727
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250910184114-58f5a4f50727
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250910222635-604d7daa3a0a
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250910222635-604d7daa3a0a
 	github.com/go-chi/cors v1.2.2
 	github.com/oapi-codegen/runtime v1.1.2
 )
@@ -24,7 +24,7 @@ require (
 	cloud.google.com/go/longrunning v0.6.7 // indirect
 	cloud.google.com/go/monitoring v1.24.2 // indirect
 	cloud.google.com/go/secretmanager v1.15.0 // indirect
-	cloud.google.com/go/spanner v1.85.0 // indirect
+	cloud.google.com/go/spanner v1.84.1 // indirect
 	cloud.google.com/go/storage v1.56.1 // indirect
 	cloud.google.com/go/trace v1.11.6 // indirect
 	github.com/GoogleCloudPlatform/grpc-gcp-go/grpcgcp v1.5.3 // indirect
@@ -115,9 +115,9 @@ require (
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
+	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/oauth2 v0.31.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
@@ -144,3 +144,6 @@ exclude (
 )
 
 exclude github.com/envoyproxy/go-control-plane v0.13.2
+
+// 1.85.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
+exclude cloud.google.com/go/spanner v1.85.0

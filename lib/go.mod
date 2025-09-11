@@ -4,14 +4,14 @@ go 1.25.0
 
 require (
 	cloud.google.com/go/datastore v1.20.0
-	cloud.google.com/go/spanner v1.85.0
+	cloud.google.com/go/spanner v1.84.1
 	cloud.google.com/go/storage v1.56.1
 	firebase.google.com/go/v4 v4.18.0
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250910184114-58f5a4f50727
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250910222635-604d7daa3a0a
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/deckarep/golang-set v1.8.0
-	github.com/google/go-github/v73 v73.0.0
+	github.com/google/go-github/v74 v74.0.0
 	github.com/oapi-codegen/runtime v1.1.2
 	github.com/stretchr/testify v1.11.1
 	github.com/testcontainers/testcontainers-go v0.38.0
@@ -45,7 +45,6 @@ require (
 	github.com/go-openapi/jsonpointer v0.22.0 // indirect
 	github.com/go-openapi/swag/jsonname v0.24.0 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
-	github.com/google/go-github/v74 v74.0.0 // indirect
 	github.com/grafana/regexp v0.0.0-20250905093917-f7b3be9d1853 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.0 // indirect
@@ -70,7 +69,7 @@ require (
 	go.opentelemetry.io/otel/exporters/stdout/stdoutlog v0.14.0 // indirect
 	go.opentelemetry.io/otel/log v0.14.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.14.0 // indirect
-	go.yaml.in/yaml/v2 v2.4.2 // indirect
+	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 )
 
@@ -159,7 +158,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.8.0 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
+	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/oauth2 v0.31.0
 	golang.org/x/sync v0.17.0 // indirect
@@ -181,3 +180,6 @@ exclude (
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b2c93a
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787961b3
 )
+
+// 1.85.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
+exclude cloud.google.com/go/spanner v1.85.0

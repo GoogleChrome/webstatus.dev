@@ -4,9 +4,9 @@ go 1.25.0
 
 require (
 	cloud.google.com/go v0.122.0
-	cloud.google.com/go/spanner v1.85.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250910184114-58f5a4f50727
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250910184114-58f5a4f50727
+	cloud.google.com/go/spanner v1.84.1
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20250910222635-604d7daa3a0a
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20250910222635-604d7daa3a0a
 	github.com/brianvoe/gofakeit/v7 v7.6.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20250910182517-4c8fc9ff3d8d
@@ -86,7 +86,7 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.38.0 // indirect
 	go.opentelemetry.io/otel/trace v1.38.0 // indirect
 	golang.org/x/crypto v0.42.0 // indirect
-	golang.org/x/exp v0.0.0-20250819193227-8b4c13bb791b // indirect
+	golang.org/x/exp v0.0.0-20250911091902-df9299821621 // indirect
 	golang.org/x/net v0.44.0 // indirect
 	golang.org/x/oauth2 v0.31.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
@@ -106,3 +106,6 @@ replace github.com/GoogleChrome/webstatus.dev/lib => ../lib
 replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../lib/gen
 
 exclude github.com/envoyproxy/go-control-plane v0.13.2
+
+// 1.85.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
+exclude cloud.google.com/go/spanner v1.85.0
