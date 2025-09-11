@@ -83,6 +83,8 @@ func (c *Client) GetFeature(
 		ChromiumUsage:          result.ChromiumUsage,
 		DeveloperSignalUpvotes: result.DeveloperSignalUpvotes,
 		DeveloperSignalLink:    result.DeveloperSignalLink,
+		AccordingTo:            result.AccordingTo,
+		Alternatives:           result.Alternatives,
 	}
 
 	return &actualResult, nil

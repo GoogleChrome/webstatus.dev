@@ -1142,6 +1142,31 @@ components:
         link:
           type: string
           description: Link to the issue tracking developer signal for a feature.
+    FeatureDiscouragedInfo:
+      type: object
+      properties:
+        according_to:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureDiscouragedAccordingTo'
+        alternatives:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeatureDiscouragedAlternative'
+    FeatureDiscouragedAccordingTo:
+      type: object
+      properties:
+        link:
+          type: string
+      required:
+        - link
+    FeatureDiscouragedAlternative:
+      type: object
+      properties:
+        id:
+          type: string
+      required:
+        - id
     FeaturePage:
       type: object
       properties:
@@ -1366,6 +1391,8 @@ components:
             The absence of this object means the feature does not have an active issue
             in https://github.com/web-platform-dx/developer-signals.
           $ref: '#/components/schemas/FeatureDeveloperSignals'
+        discouraged:
+          $ref: '#/components/schemas/FeatureDiscouragedInfo'
       required:
         - feature_id
         - name

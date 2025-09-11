@@ -849,6 +849,10 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			Upvotes: featureResult.DeveloperSignalUpvotes,
 			Link:    featureResult.DeveloperSignalLink,
 		}),
+		Discouraged: convertDiscouragedDetails(
+			featureResult.Alternatives,
+			featureResult.AccordingTo,
+		),
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
@@ -886,6 +890,39 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 		ret.Spec = &backend.FeatureSpecInfo{
 			Links: &links,
 		}
+	}
+
+	return ret
+}
+
+func convertDiscouragedDetails(alternatives, accordingTo []string) *backend.FeatureDiscouragedInfo {
+	if len(alternatives) == 0 && len(accordingTo) == 0 {
+		return nil
+	}
+
+	ret := &backend.FeatureDiscouragedInfo{
+		Alternatives: nil,
+		AccordingTo:  nil,
+	}
+
+	if len(alternatives) > 0 {
+		alternativeInfo := make([]backend.FeatureDiscouragedAlternative, 0, len(alternatives))
+		for idx := range alternatives {
+			alternativeInfo = append(alternativeInfo, backend.FeatureDiscouragedAlternative{
+				Id: alternatives[idx],
+			})
+		}
+		ret.Alternatives = &alternativeInfo
+	}
+
+	if len(accordingTo) > 0 {
+		accordingToInfo := make([]backend.FeatureDiscouragedAccordingTo, 0, len(accordingTo))
+		for idx := range accordingTo {
+			accordingToInfo = append(accordingToInfo, backend.FeatureDiscouragedAccordingTo{
+				Link: accordingTo[idx],
+			})
+		}
+		ret.AccordingTo = &accordingToInfo
 	}
 
 	return ret

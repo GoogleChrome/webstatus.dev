@@ -1193,6 +1193,14 @@ func TestFeaturesSearch(t *testing.T) {
 							ChromiumUsage:          big.NewRat(91, 100),
 							DeveloperSignalUpvotes: valuePtr(int64(9)),
 							DeveloperSignalLink:    valuePtr("http://example.com"),
+							AccordingTo: []string{
+								"accordingto1",
+								"accordingto2",
+							},
+							Alternatives: []string{
+								"alternative1",
+								"alternative2",
+							},
 						},
 						{
 							Name:       "feature 2",
@@ -1249,6 +1257,11 @@ func TestFeaturesSearch(t *testing.T) {
 							ChromiumUsage:          big.NewRat(10, 100),
 							DeveloperSignalUpvotes: nil,
 							DeveloperSignalLink:    nil,
+							AccordingTo: []string{
+								"accordingto3",
+								"accordingto4",
+							},
+							Alternatives: nil,
 						},
 					},
 				},
@@ -1315,6 +1328,24 @@ func TestFeaturesSearch(t *testing.T) {
 						DeveloperSignals: &backend.FeatureDeveloperSignals{
 							Upvotes: valuePtr[int64](9),
 							Link:    valuePtr("http://example.com"),
+						},
+						Discouraged: &backend.FeatureDiscouragedInfo{
+							AccordingTo: &[]backend.FeatureDiscouragedAccordingTo{
+								{
+									Link: "accordingto1",
+								},
+								{
+									Link: "accordingto2",
+								},
+							},
+							Alternatives: &[]backend.FeatureDiscouragedAlternative{
+								{
+									Id: "alternative1",
+								},
+								{
+									Id: "alternative2",
+								},
+							},
 						},
 					},
 					{
@@ -1383,6 +1414,17 @@ func TestFeaturesSearch(t *testing.T) {
 							},
 						},
 						DeveloperSignals: nil,
+						Discouraged: &backend.FeatureDiscouragedInfo{
+							AccordingTo: &[]backend.FeatureDiscouragedAccordingTo{
+								{
+									Link: "accordingto3",
+								},
+								{
+									Link: "accordingto4",
+								},
+							},
+							Alternatives: nil,
+						},
 					},
 				},
 			},
@@ -1583,6 +1625,11 @@ func TestGetFeature(t *testing.T) {
 					ChromiumUsage:          nil,
 					DeveloperSignalUpvotes: valuePtr(int64(4)),
 					DeveloperSignalLink:    valuePtr("http://example.com"),
+					Alternatives: []string{
+						"alternative1",
+						"alternative2",
+					},
+					AccordingTo: []string{"according1", "according2"},
 				},
 				returnedError: nil,
 			},
@@ -1642,6 +1689,24 @@ func TestGetFeature(t *testing.T) {
 						DeveloperSignals: &backend.FeatureDeveloperSignals{
 							Upvotes: valuePtr[int64](4),
 							Link:    valuePtr("http://example.com"),
+						},
+						Discouraged: &backend.FeatureDiscouragedInfo{
+							Alternatives: &[]backend.FeatureDiscouragedAlternative{
+								{
+									Id: "alternative1",
+								},
+								{
+									Id: "alternative2",
+								},
+							},
+							AccordingTo: &[]backend.FeatureDiscouragedAccordingTo{
+								{
+									Link: "according1",
+								},
+								{
+									Link: "according2",
+								},
+							},
 						},
 					}),
 				}
@@ -3073,6 +3138,8 @@ func TestConvertFeatureResult(t *testing.T) {
 				ChromiumUsage:          big.NewRat(8, 100),
 				DeveloperSignalUpvotes: nil,
 				DeveloperSignalLink:    nil,
+				AccordingTo:            nil,
+				Alternatives:           nil,
 			},
 
 			expectedFeature: &backend.Feature{
@@ -3094,6 +3161,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				Wpt:                    nil,
 				BrowserImplementations: nil,
 				DeveloperSignals:       nil,
+				Discouraged:            nil,
 			},
 		},
 	}

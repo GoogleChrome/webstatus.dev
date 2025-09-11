@@ -616,6 +616,32 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	if err != nil {
 		t.Fatalf("unexpected error during sync. %s", err.Error())
 	}
+
+	// Insert Discouraged Features
+	discouragedDetails := map[string]FeatureDiscouragedDetails{
+		"feature3": {
+			AccordingTo: []string{
+				"https://example.com",
+				"https://example2.com",
+			},
+			Alternatives: []string{
+				"feature1",
+			},
+		},
+		"feature4": {
+			AccordingTo: []string{
+				"https://example.com",
+			},
+			// Alternatives can be null
+			Alternatives: nil,
+		},
+	}
+	for featureKey, details := range discouragedDetails {
+		err := client.UpsertFeatureDiscouragedDetails(ctx, featureKey, details)
+		if err != nil {
+			t.Fatalf("unexpected error during insert of discouraged details. %s", err.Error())
+		}
+	}
 }
 
 func addSampleChromiumUsageMetricsData(ctx context.Context,
@@ -847,6 +873,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ChromiumUsage:          big.NewRat(8, 100),
 			DeveloperSignalUpvotes: valuePtr(int64(1)),
 			DeveloperSignalLink:    valuePtr("https://example.com"),
+			AccordingTo:            nil,
+			Alternatives:           nil,
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -899,6 +927,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ChromiumUsage:          big.NewRat(91, 100),
 			DeveloperSignalUpvotes: valuePtr(int64(9)),
 			DeveloperSignalLink:    valuePtr("https://example2.com"),
+			AccordingTo:            nil,
+			Alternatives:           nil,
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -932,6 +962,13 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ChromiumUsage:          nil,
 			DeveloperSignalUpvotes: nil,
 			DeveloperSignalLink:    nil,
+			AccordingTo: []string{
+				"https://example.com",
+				"https://example2.com",
+			},
+			Alternatives: []string{
+				"feature1",
+			},
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -947,6 +984,10 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			ChromiumUsage:          nil,
 			DeveloperSignalUpvotes: nil,
 			DeveloperSignalLink:    nil,
+			AccordingTo: []string{
+				"https://example.com",
+			},
+			Alternatives: nil,
 		}
 	}
 
@@ -2641,8 +2682,20 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		AreMetricsEqual(a.ExperimentalMetrics, b.ExperimentalMetrics) &&
 		AreImplementationStatusesEqual(a.ImplementationStatuses, b.ImplementationStatuses) &&
 		AreSpecLinksEqual(a.SpecLinks, b.SpecLinks) &&
-		AreChromiumUsagesEqual(a.ChromiumUsage, b.ChromiumUsage)
+		AreChromiumUsagesEqual(a.ChromiumUsage, b.ChromiumUsage) &&
+		AreDeveloperSignalUpvotesEqual(a.DeveloperSignalUpvotes, b.DeveloperSignalUpvotes) &&
+		AreDeveloperSignalLinksEqual(a.DeveloperSignalLink, b.DeveloperSignalLink) &&
+		AreDiscouragedAccordingToEqual(a.AccordingTo, b.AccordingTo) &&
+		AreDiscouragedAlternativesEqual(a.Alternatives, b.Alternatives)
 }
+
+func AreDeveloperSignalUpvotesEqual(a, b *int64) bool { return reflect.DeepEqual(a, b) }
+
+func AreDeveloperSignalLinksEqual(a, b *string) bool { return reflect.DeepEqual(a, b) }
+
+func AreDiscouragedAccordingToEqual(a, b []string) bool { return slices.Equal(a, b) }
+
+func AreDiscouragedAlternativesEqual(a, b []string) bool { return slices.Equal(a, b) }
 
 func AreSpecLinksEqual(a, b []string) bool {
 	return slices.Equal(a, b)
@@ -2719,6 +2772,9 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	}
 	fmt.Fprintf(&builder, "\tDeveloperSignalUpvotes: %s\n", PrintNullableField(result.DeveloperSignalUpvotes))
 	fmt.Fprintf(&builder, "\tDeveloperSignalLink %s\n", PrintNullableField(result.DeveloperSignalLink))
+
+	fmt.Fprintf(&builder, "\tAccordingTo: %s\n", result.AccordingTo)
+	fmt.Fprintf(&builder, "\tAlternatives: %s\n", result.Alternatives)
 	fmt.Fprintln(&builder)
 
 	return builder.String()

@@ -85,6 +85,7 @@ func TestListFeatures(t *testing.T) {
 								},
 							},
 							DeveloperSignals: nil,
+							Discouraged:      nil,
 						},
 					},
 				},
@@ -256,6 +257,14 @@ func TestListFeatures(t *testing.T) {
 								Upvotes: valuePtr(int64(24)),
 								Link:    valuePtr("https://example.com"),
 							},
+							Discouraged: &backend.FeatureDiscouragedInfo{
+								AccordingTo: &[]backend.FeatureDiscouragedAccordingTo{
+									{Link: "https://example.com/discouraged"},
+								},
+								Alternatives: &[]backend.FeatureDiscouragedAlternative{
+									{Id: "alternative"},
+								},
+							},
 						},
 					},
 				},
@@ -278,6 +287,10 @@ func TestListFeatures(t *testing.T) {
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
 							`"developer_signals":{"link":"https://example.com","upvotes":24},` +
+							`"discouraged":{` +
+							`"according_to":[{"link":"https://example.com/discouraged"}],` +
+							`"alternatives":[{"id":"alternative"}]` +
+							`},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -304,6 +317,9 @@ func TestListFeatures(t *testing.T) {
 			"developer_signals":{
 				"link":"https://example.com",
 				"upvotes":24
+			},
+			"discouraged":{
+				"according_to":[{"link":"https://example.com/discouraged"}],"alternatives":[{"id":"alternative"}]
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"
@@ -335,6 +351,10 @@ func TestListFeatures(t *testing.T) {
 							`"browser_implementations":` +
 							`{"chrome":{"date":"1999-01-01","status":"available","version":"101"}},` +
 							`"developer_signals":{"link":"https://example.com","upvotes":24},` +
+							`"discouraged":{` +
+							`"according_to":[{"link":"https://example.com/discouraged"}],` +
+							`"alternatives":[{"id":"alternative"}]` +
+							`},` +
 							`"feature_id":"feature1","name":"feature 1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
@@ -362,6 +382,9 @@ func TestListFeatures(t *testing.T) {
 			"developer_signals":{
 				"link":"https://example.com",
 				"upvotes":24
+			},
+			"discouraged":{
+				"according_to":[{"link":"https://example.com/discouraged"}],"alternatives":[{"id":"alternative"}]
 			},
 			"feature_id":"feature1",
 			"name":"feature 1"
