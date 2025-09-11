@@ -18,26 +18,26 @@
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.24.5"
+      "version": "1.25.1"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": true
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22.17.1"
+      "version": "22.19.0"
     },
     "ghcr.io/devcontainers/features/terraform:1": {
       // Get version from https://github.com/hashicorp/terraform/releases
-      "version": "1.12.2",
+      "version": "1.13.2",
       // We do not use terragrunt.
       "terragrunt": "none",
       // Get version from https://github.com/terraform-linters/tflint/releases
-      "tflint": "0.58.1"
+      "tflint": "0.59.1"
     },
     "ghcr.io/lukewiwa/features/shellcheck:0": {
       // Get version from https://github.com/koalaman/shellcheck/releases
-      "version": "v0.10.0"
+      "version": "v0.11.0"
     },
     "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
       // We don't use helm
