@@ -24,8 +24,23 @@ test.beforeEach(async ({page}) => {
 const featureID = 'anchor-positioning';
 const featureName = 'Anchor Positioning';
 
+const discouragedFeatureId = 'discouraged';
+
 test('matches the screenshot', async ({page}) => {
   await page.goto(`http://localhost:5555/features/${featureID}`);
+
+  // Wait for the chart container to exist
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+
+  // Wait specifically for the "Baseline since" text
+  await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
+
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
+test('matches the screenshot for a discouraged feature', async ({page}) => {
+  await page.goto(`http://localhost:5555/features/${discouragedFeatureId}`);
 
   // Wait for the chart container to exist
   await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
