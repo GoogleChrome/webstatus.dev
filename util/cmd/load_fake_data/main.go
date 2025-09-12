@@ -50,6 +50,8 @@ const numberOfFeatures = 80
 // Feature Key used for feature page tests.
 const featurePageFeatureKey = "anchor-positioning"
 
+const discouragedFeatureKey = "discouraged"
+
 // Allows us to regenerate the same values between runs.
 const seedValue = 1024
 
@@ -97,7 +99,7 @@ func getSpecialFeatureDetails() []struct {
 		{
 			// Used for feature detail page tests.
 			name: "Anchor Positioning",
-			id:   "anchor-positioning",
+			id:   featurePageFeatureKey,
 		},
 		{
 			name: "Cross-Document View Transitions",
@@ -141,6 +143,10 @@ func getSpecialFeatureDetails() []struct {
 		{
 			name: "Before Split Feature",
 			id:   "before-split-feature",
+		},
+		{
+			name: "Discouraged Feature",
+			id:   discouragedFeatureKey,
 		},
 	}
 }
@@ -843,6 +849,13 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.InfoContext(ctx, "feature developer signals generated",
 		"amount of signals generated", signalsGenerated)
 
+	discouragedFeaturesCount, err := generateDiscouragedFeatures(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("discouraged features generation failed %w", err)
+	}
+	slog.InfoContext(ctx, "discouraged features generated",
+		"amount of discouraged features generated", discouragedFeaturesCount)
+
 	err = generateEvolutionOfFeatures(ctx, spannerClient, fh)
 	if err != nil {
 		return fmt.Errorf("feature evolution generation failed %w", err)
@@ -1116,6 +1129,36 @@ func generateFeatureDeveloperSignals(
 	}
 
 	return len(signals), nil
+}
+
+func generateDiscouragedFeatures(
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
+	discouragedFeatures := 0
+	for _, feature := range features {
+
+		// Only 10 percent of the features are discouraged. Or if it is the discouragedFeatureKey.
+		// Also, ensure that it is not the feature page feature key.
+		var modifier = r.Intn(10)
+		if (modifier == 0 || feature.FeatureKey == discouragedFeatureKey) &&
+			feature.FeatureKey != featurePageFeatureKey {
+			err := client.UpsertFeatureDiscouragedDetails(ctx, feature.FeatureKey,
+				gcpspanner.FeatureDiscouragedDetails{
+					AccordingTo: []string{
+						"https://webstatus.dev",
+						"https://example.com",
+					},
+					Alternatives: []string{
+						featurePageFeatureKey,
+					},
+				})
+			if err != nil {
+				return 0, err
+			}
+			discouragedFeatures++
+		}
+	}
+
+	return discouragedFeatures, nil
 }
 
 func initFirebaseAuthClient(ctx context.Context, projectID string) *auth.Client {

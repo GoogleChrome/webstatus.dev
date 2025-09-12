@@ -39,7 +39,7 @@ import {
 } from '../utils/urls.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {
-  BASELINE_CHIP_CONFIGS,
+  getBaselineChipConfig,
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
@@ -196,6 +196,10 @@ export class FeaturePage extends BaseChartsPage {
 
         .under-construction {
           min-height: 12em;
+        }
+
+        .discouraged-info li {
+          margin-left: var(--content-padding);
         }
       `,
     ];
@@ -373,8 +377,58 @@ export class FeaturePage extends BaseChartsPage {
     return `https://caniuse.com/${data.items[0].id}`;
   }
 
+  renderDiscouragedNotice(
+    discouragedDetails?: components['schemas']['FeatureDiscouragedInfo'],
+  ): TemplateResult {
+    if (!discouragedDetails) {
+      return html`${nothing}`;
+    }
+    // If there are links to documentation, build a section for that
+    const accordingTo = discouragedDetails.according_to;
+    let accordingToSection: TemplateResult = html`${nothing}`;
+    if (accordingTo && accordingTo.length > 0) {
+      accordingToSection = html`
+        <br />
+        For the rationale, see:
+        <ul>
+          ${accordingTo.map(
+            f => html`<li><a href="${f.link}">${f.link}</a></li>`,
+          )}
+        </ul>
+      `;
+    }
+
+    // If there are alternatives, build a section for that
+    const alternatives = discouragedDetails.alternatives;
+    let alternativesSection: TemplateResult = html`${nothing}`;
+    if (alternatives && alternatives.length > 0) {
+      alternativesSection = html`
+        <br />
+        Consider using the following features instead:
+        <ul>
+          ${alternatives.map(
+            f => html`<li><a href="/features/${f.id}">${f.id}</a></li>`,
+          )}
+        </ul>
+      `;
+    }
+
+    return html`
+      <sl-alert variant="neutral" open class="discouraged-info">
+        <sl-icon slot="icon" name="discouraged"></sl-icon>
+        <h3>Discouraged</h3>
+        Avoid using this feature in new projects. This feature may be a
+        candidate for removal from web standards or browsers.
+        ${accordingToSection} ${alternativesSection}
+      </sl-alert>
+    `;
+  }
+
   renderNameDescriptionControls(): TemplateResult {
     return html`
+      <div class="hbox">
+        ${this.renderDiscouragedNotice(this.feature?.discouraged)}
+      </div>
       <div id="nameAndOffsiteLinks" class="hbox wrap">
         <div class="vbox">
           <div class="hbox valign-items-center">
@@ -473,7 +527,7 @@ export class FeaturePage extends BaseChartsPage {
     const status = this.feature?.baseline?.status;
     if (status === undefined) return html``;
 
-    const chipConfig = BASELINE_CHIP_CONFIGS[status];
+    const chipConfig = getBaselineChipConfig(status, this.feature.discouraged);
     const sinceDate = this.feature?.baseline?.low_date;
     return html`
       <sl-card class="halign-stretch wptScore baseline">
