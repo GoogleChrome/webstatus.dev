@@ -171,10 +171,31 @@ interface BaselineChipConfig {
   word: string;
 }
 
-export const BASELINE_CHIP_CONFIGS: Record<
-  NonNullable<components['schemas']['BaselineInfo']['status']>,
+export function getBaselineChipConfig(
+  status: NonNullable<components['schemas']['BaselineInfo']['status']>,
+  discouraged?: components['schemas']['FeatureDiscouragedInfo'],
+): BaselineChipConfig {
+  if (discouraged) {
+    // For now, just use the generic discouraged type
+    return BASELINE_CHIP_CONFIGS['discouraged'];
+  }
+
+  return BASELINE_CHIP_CONFIGS[status];
+}
+
+// In the future, there will be types like Obsolete and Pending Removal.
+// For now, there is only a generic 'discouraged' type.
+type DiscouragedType = 'discouraged';
+
+const BASELINE_CHIP_CONFIGS: Record<
+  | NonNullable<components['schemas']['BaselineInfo']['status']>
+  | DiscouragedType,
   BaselineChipConfig
 > = {
+  discouraged: {
+    icon: 'discouraged.svg',
+    word: 'Discouraged',
+  },
   limited: {
     icon: 'cross.svg',
     word: 'Limited availability',
@@ -292,7 +313,7 @@ export const renderBaselineStatus: CellRenderer = (
 ) => {
   const baselineStatus = feature.baseline?.status;
   if (baselineStatus === undefined) return html``;
-  const chipConfig = BASELINE_CHIP_CONFIGS[baselineStatus];
+  const chipConfig = getBaselineChipConfig(baselineStatus, feature.discouraged);
   const columnOptions: ColumnOptionKey[] = parseColumnOptions(
     getColumnOptions(routerLocation),
   );

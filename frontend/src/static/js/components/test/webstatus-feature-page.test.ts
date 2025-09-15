@@ -399,4 +399,84 @@ describe('webstatus-feature-page', () => {
       expect(button?.textContent?.trim()).to.equal('12.3K');
     });
   });
+  describe('renderDiscouragedNotice', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
+      );
+      hostElement = document.createElement('div');
+    });
+
+    it('renders nothing when there are no discouraged details', async () => {
+      const discouragedDetails = undefined;
+      const actual = element.renderDiscouragedNotice(discouragedDetails);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders the basic notice when discouraged details are empty', async () => {
+      const discouragedDetails = {};
+      const actual = element.renderDiscouragedNotice(discouragedDetails);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const alert = host.querySelector('sl-alert');
+      expect(alert).to.not.be.null;
+      expect(alert?.textContent).to.contain('Discouraged');
+      expect(host.querySelector('ul')).to.be.null;
+    });
+
+    it('renders the notice with "according to" links', async () => {
+      const discouragedDetails = {
+        according_to: [{link: 'http://example.com/rationale'}],
+      };
+      const actual = element.renderDiscouragedNotice(discouragedDetails);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent).to.contain('For the rationale, see:');
+      const link = host.querySelector('a');
+      expect(link).to.not.be.null;
+      expect(link?.href).to.equal('http://example.com/rationale');
+      expect(link?.textContent).to.equal('http://example.com/rationale');
+    });
+
+    it('renders the notice with "alternatives" links', async () => {
+      const discouragedDetails = {
+        alternatives: [{id: 'other-feature'}],
+      };
+      const actual = element.renderDiscouragedNotice(discouragedDetails);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent).to.contain(
+        'Consider using the following features instead:',
+      );
+      const link = host.querySelector('a');
+      expect(link).to.not.be.null;
+      expect(link?.getAttribute('href')).to.equal('/features/other-feature');
+      expect(link?.textContent).to.equal('other-feature');
+    });
+
+    it('renders the notice with both "according to" and "alternatives" links', async () => {
+      const discouragedDetails = {
+        according_to: [{link: 'http://example.com/rationale'}],
+        alternatives: [{id: 'other-feature'}],
+      };
+      const actual = element.renderDiscouragedNotice(discouragedDetails);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent).to.contain('For the rationale, see:');
+      expect(host.textContent).to.contain(
+        'Consider using the following features instead:',
+      );
+      const links = host.querySelectorAll('a');
+      expect(links.length).to.equal(2);
+      expect(links[0].href).to.equal('http://example.com/rationale');
+      expect(links[1].getAttribute('href')).to.equal('/features/other-feature');
+    });
+  });
 });
