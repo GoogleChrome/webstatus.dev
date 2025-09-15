@@ -414,21 +414,20 @@ export class FeaturePage extends BaseChartsPage {
     }
 
     return html`
-      <sl-alert variant="neutral" open class="discouraged-info">
-        <sl-icon slot="icon" name="discouraged"></sl-icon>
-        <h3>Discouraged</h3>
-        Avoid using this feature in new projects. This feature may be a
-        candidate for removal from web standards or browsers.
-        ${accordingToSection} ${alternativesSection}
-      </sl-alert>
+      <div class="hbox">
+        <sl-alert variant="neutral" open class="discouraged-info">
+          <sl-icon slot="icon" name="discouraged"></sl-icon>
+          <h3>Discouraged</h3>
+          Avoid using this feature in new projects. This feature may be a
+          candidate for removal from web standards or browsers.
+          ${accordingToSection} ${alternativesSection}
+        </sl-alert>
+      </div>
     `;
   }
 
   renderNameDescriptionControls(): TemplateResult {
     return html`
-      <div class="hbox">
-        ${this.renderDiscouragedNotice(this.feature?.discouraged)}
-      </div>
       <div id="nameAndOffsiteLinks" class="hbox wrap">
         <div class="vbox">
           <div class="hbox valign-items-center">
@@ -635,6 +634,7 @@ export class FeaturePage extends BaseChartsPage {
 
     return html`
       <div class="vbox">
+        ${this.renderDiscouragedNotice(this.feature?.discouraged)}
         <div class="hbox wrap">
           ${this.renderCrumbs()}
           <div class="spacer"></div>
