@@ -201,6 +201,10 @@ export class FeaturePage extends BaseChartsPage {
         .discouraged-info li {
           margin-left: var(--content-padding);
         }
+
+        .discouraged-info img {
+          width: 20px;
+        }
       `,
     ];
   }
@@ -416,7 +420,11 @@ export class FeaturePage extends BaseChartsPage {
     return html`
       <div class="hbox">
         <sl-alert variant="neutral" open class="discouraged-info">
-          <sl-icon slot="icon" name="discouraged"></sl-icon>
+          <img
+            src="/public/img/discouraged.svg"
+            class="discouraged-icon"
+            slot="icon"
+          />
           <h3>Discouraged</h3>
           Avoid using this feature in new projects. This feature may be a
           candidate for removal from web standards or browsers.
