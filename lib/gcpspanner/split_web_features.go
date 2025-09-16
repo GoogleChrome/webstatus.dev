@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"log/slog"
+	"slices"
 
 	"cloud.google.com/go/spanner"
 )
@@ -143,5 +144,16 @@ func (m splitWebFeatureByOriginalKeyMapper) SelectOne(featureKey string) spanner
 // Other errors should be investigated and handled appropriately.
 func (c *Client) GetSplitWebFeatureByOriginalFeatureKey(
 	ctx context.Context, featureKey string) (*SplitWebFeature, error) {
-	return newEntityReader[splitWebFeatureByOriginalKeyMapper, SplitWebFeature, string](c).readRowByKey(ctx, featureKey)
+	splitWebFeature, err := newEntityReader[
+		splitWebFeatureByOriginalKeyMapper,
+		SplitWebFeature,
+		string,
+	](c).readRowByKey(ctx, featureKey)
+	if err != nil {
+		return nil, err
+	}
+	// Sort for stable output.
+	slices.Sort(splitWebFeature.TargetFeatureKeys)
+
+	return splitWebFeature, nil
 }
