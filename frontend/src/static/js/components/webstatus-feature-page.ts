@@ -49,7 +49,11 @@ import {BaseChartsPage} from './webstatus-base-charts-page.js';
 import './webstatus-feature-wpt-progress-chart-panel.js';
 import './webstatus-feature-usage-chart-panel.js';
 import {DataFetchedEvent} from './webstatus-line-chart-panel.js';
-import {NotFoundError} from '../api/errors.js';
+import {
+  FeatureGoneSplitError,
+  FeatureMovedError,
+  NotFoundError,
+} from '../api/errors.js';
 import {formatDeveloperUpvotesMessages} from '../utils/format.js';
 // CanIUseData is a slimmed down interface of the data returned from the API.
 interface CanIUseData {
@@ -76,6 +80,15 @@ export class FeaturePage extends BaseChartsPage {
 
   @state()
   featureMetadata?: {can_i_use?: CanIUseData; description?: string} | undefined;
+
+  @state()
+  oldFeatureId?: string;
+
+  @state()
+  _isMoved = false;
+
+  @state()
+  _newFeatureId?: string;
 
   featureId!: string;
 
@@ -214,16 +227,28 @@ export class FeaturePage extends BaseChartsPage {
     this._loadingTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
-        if (typeof apiClient === 'object' && typeof featureId === 'string') {
+        if (typeof apiClient !== 'object' || typeof featureId !== 'string') {
+          return Promise.reject('api client and/or featureId not set');
+        }
+        try {
           const wptMetricView = getWPTMetricView(
             this.location,
           ) as FeatureWPTMetricViewType;
-          this.feature = await apiClient.getFeature(featureId, wptMetricView);
-          return this.feature;
+          const feature = await apiClient.getFeature(featureId, wptMetricView);
+          this.feature = feature;
+          return feature;
+        } catch (error) {
+          if (error instanceof FeatureMovedError) {
+            this.handleMovedFeature(featureId, error);
+            // The task can now complete successfully with the new feature data.
+            return error.feature;
+          }
+          // For other errors, re-throw them to be handled by onError.
+          throw error;
         }
-        return Promise.reject('api client and/or featureId not set');
       },
       onError: async error => {
+        // FeatureMovedError is now handled in the task, so it won't appear here.
         if (error instanceof NotFoundError) {
           const queryParam = this.featureId ? `?q=${this.featureId}` : '';
 
@@ -232,6 +257,12 @@ export class FeaturePage extends BaseChartsPage {
           // For now use the window href and revisit when navigateToUrl
           // is move to another location.
           window.location.href = `/errors-404/feature-not-found${queryParam}`;
+        } else if (error instanceof FeatureGoneSplitError) {
+          const newFeatureIds = error.newFeatureIds.join(',');
+          const queryParam = newFeatureIds
+            ? `?new_features=${newFeatureIds}`
+            : '';
+          window.location.href = `/errors-410/feature-gone-split${queryParam}`;
         } else {
           console.error('Unexpected error in _loadingTask:', error);
         }
@@ -249,10 +280,37 @@ export class FeaturePage extends BaseChartsPage {
     });
   }
 
+  handleMovedFeature(oldFeatureId: string, error: FeatureMovedError) {
+    const newFeature = error.feature;
+    const newFeatureId = error.newFeatureId;
+
+    // Set component state to render the new feature.
+    this.feature = newFeature;
+    this.featureId = newFeatureId;
+    this.oldFeatureId = oldFeatureId; // Used to show a redirect notice.
+
+    // Update browser URL and history.
+    const newUrl = `/features/${newFeatureId}?redirected_from=${oldFeatureId}`;
+    history.pushState(null, '', newUrl);
+
+    // Update the canonical URL in the document head for SEO.
+    document.head.querySelector('link[rel="canonical"]')?.remove();
+    const canonical = document.createElement('link');
+    canonical.rel = 'canonical';
+    // The canonical URL should be clean, without the 'redirected_from' param.
+    canonical.href = `/features/${newFeatureId}`;
+    document.head.appendChild(canonical);
+
+    // Update the page title.
+    document.title = newFeature.name || newFeatureId;
+  }
+
   override async firstUpdated(): Promise<void> {
     await super.firstUpdated();
     this.featureId =
       this.location.params['featureId']?.toString() || 'undefined';
+    const urlParams = new URLSearchParams(this.location.search);
+    this.oldFeatureId = urlParams.get('redirected_from') || undefined;
   }
 
   render(): TemplateResult {
@@ -263,6 +321,20 @@ export class FeaturePage extends BaseChartsPage {
         initial: () => this.renderWhenInitial(),
         pending: () => this.renderWhenPending(),
       })}
+    `;
+  }
+
+  renderRedirectNotice(): TemplateResult {
+    if (!this.oldFeatureId) {
+      return html`${nothing}`;
+    }
+
+    return html`
+      <sl-alert variant="primary" open closable>
+        <sl-icon slot="icon" name="info-circle"></sl-icon>
+        You have been redirected from an old feature ID
+        (<strong>${this.oldFeatureId}</strong>).
+      </sl-alert>
     `;
   }
 
@@ -642,6 +714,7 @@ export class FeaturePage extends BaseChartsPage {
 
     return html`
       <div class="vbox">
+        ${this.renderRedirectNotice()}
         ${this.renderDiscouragedNotice(this.feature?.discouraged)}
         <div class="hbox wrap">
           ${this.renderCrumbs()}

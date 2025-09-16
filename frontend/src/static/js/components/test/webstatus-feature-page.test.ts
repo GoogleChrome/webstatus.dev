@@ -20,6 +20,7 @@ import '../webstatus-feature-page.js';
 import sinon from 'sinon';
 import {WPTRunMetric} from '../../api/client.js';
 import {render} from 'lit';
+import {FeatureMovedError} from '../../api/errors.js';
 
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
@@ -477,6 +478,63 @@ describe('webstatus-feature-page', () => {
       expect(links.length).to.equal(2);
       expect(links[0].href).to.equal('http://example.com/rationale');
       expect(links[1].getAttribute('href')).to.equal('/features/other-feature');
+    });
+  });
+
+  describe('redirects', () => {
+    it('shows a redirect notice if the redirected_from URL parameter is present', async () => {
+      const redirectedEl = await fixture<FeaturePage>(
+        html`<webstatus-feature-page
+          .location=${{
+            params: {featureId: 'new-feature'},
+            search: '?redirected_from=old-feature',
+            pathname: '/features/new-feature',
+          }}
+        ></webstatus-feature-page>`,
+      );
+      await redirectedEl.updateComplete;
+
+      const alert = redirectedEl.shadowRoot?.querySelector('sl-alert');
+      expect(alert).to.not.be.null;
+      // Normalize whitespace to avoid issues with formatting in the template literal.
+      const text = alert?.textContent?.replace(/\s+/g, ' ').trim();
+      expect(text).to.contain(
+        'You have been redirected from an old feature ID (old-feature)',
+      );
+    });
+
+    it('does not show a redirect notice if the URL parameter is not present', async () => {
+      const alert = el.shadowRoot?.querySelector('sl-alert');
+      expect(alert).to.be.null;
+    });
+
+    it('handleMovedFeature updates the history and component state', async () => {
+      const pushStateSpy = sinon.spy(history, 'pushState');
+      const newFeature = {
+        feature_id: 'new-feature',
+        name: 'New Feature',
+        description: 'A new feature',
+        browser_implementations: {},
+        wpt: {},
+      };
+      const fakeError = new FeatureMovedError('foo', 'new-feature', newFeature);
+
+      el.handleMovedFeature('old-feature', fakeError);
+
+      expect(el.featureId).to.equal('new-feature');
+      expect(el.oldFeatureId).to.equal('old-feature');
+      expect(el.feature).to.deep.equal(newFeature);
+
+      expect(pushStateSpy).to.have.been.calledWith(
+        null,
+        '',
+        '/features/new-feature?redirected_from=old-feature',
+      );
+
+      const canonical = document.head.querySelector('link[rel="canonical"]');
+      expect(canonical).to.not.be.null;
+      expect(canonical?.getAttribute('href')).to.equal('/features/new-feature');
+      expect(document.title).to.equal('New Feature');
     });
   });
 });

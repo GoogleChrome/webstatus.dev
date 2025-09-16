@@ -21,7 +21,11 @@ import createClient, {
   ParseAsResponse,
 } from 'openapi-fetch';
 import {type components, type paths} from 'webstatus.dev-backend';
-import {createAPIError} from './errors.js';
+import {
+  createAPIError,
+  FeatureGoneSplitError,
+  FeatureMovedError,
+} from './errors.js';
 
 import {
   MediaType,
@@ -302,17 +306,37 @@ export class APIClient {
     const qsParams: paths['/v1/features/{feature_id}']['get']['parameters']['query'] =
       {};
     if (wptMetricView) qsParams.wpt_metric_view = wptMetricView;
-    const {data, error} = await this.client.GET('/v1/features/{feature_id}', {
+    const resp = await this.client.GET('/v1/features/{feature_id}', {
       ...temporaryFetchOptions,
       params: {
         path: {feature_id: featureId},
         query: qsParams,
       },
     });
-    if (error !== undefined) {
-      throw createAPIError(error);
+    if (resp.error !== undefined) {
+      const data = resp.error;
+      if (resp.response.status === 410 && 'new_features' in data) {
+        // Type narrowing doesn't work.
+        // https://github.com/openapi-ts/openapi-typescript/issues/1723
+        // We have to force it.
+        const featureGoneData =
+          data as components['schemas']['FeatureGoneError'];
+        throw new FeatureGoneSplitError(
+          resp.error.message,
+          featureGoneData.new_features.map(f => f.id),
+        );
+      }
+      throw createAPIError(resp.error);
     }
-    return data;
+    if (resp.response.redirected) {
+      const featureId = resp.response.url.split('/').pop() || '';
+      throw new FeatureMovedError(
+        'redirected to feature',
+        featureId,
+        resp.data,
+      );
+    }
+    return resp.data;
   }
 
   public async getFeatureMetadata(

@@ -169,3 +169,51 @@ test('date range changes are preserved in the URL', async ({page}) => {
   const endDateInputElement3 = endDateSelector3.locator('input');
   expect(await endDateInputElement3.inputValue()).toBe(endDate);
 });
+
+test('redirects for a moved feature', async ({page}) => {
+  await page.goto('http://localhost:5555/features/old-feature');
+
+  // Expect the URL to be updated to the new feature's URL.
+  await expect(page).toHaveURL(
+    'http://localhost:5555/features/new-feature?redirected_from=old-feature',
+  );
+
+  // Expect the title and redirect banner to be correct.
+  await expect(page.locator('h1')).toHaveText('New Feature');
+  await expect(
+    page.locator(
+      'sl-alert:has-text("You have been redirected from an old feature ID")',
+    ),
+  ).toBeVisible();
+
+  // Wait for charts to load to avoid flakiness in the screenshot.
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+
+  // Take a screenshot for visual verification.
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot();
+});
+
+test('shows gone page for a split feature', async ({page}) => {
+  await page.goto('http://localhost:5555/features/before-split-feature');
+
+  // Expect to be redirected to the 'feature-gone-split' page.
+  await expect(page).toHaveURL(
+    'http://localhost:5555/errors-410/feature-gone-split?new_features=after-split-feature-1,after-split-feature-2',
+  );
+
+  // Assert that the content of the 410 page is correct.
+  await expect(page.locator('.new-results-header')).toContainText(
+    'Please see the following new features',
+  );
+  await expect(
+    page.locator('a[href="/features/after-split-feature-1"]'),
+  ).toBeVisible();
+  await expect(
+    page.locator('a[href="/features/after-split-feature-2"]'),
+  ).toBeVisible();
+
+  // Take a screenshot for visual verification.
+  const pageContainer = page.locator('.container'); // Assuming a generic container for the error page.
+  await expect(pageContainer).toHaveScreenshot();
+});
