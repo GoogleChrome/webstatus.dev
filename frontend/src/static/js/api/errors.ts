@@ -1,3 +1,5 @@
+import {type components} from 'webstatus.dev-backend';
+
 /**
  * Copyright 2024 Google LLC
  *
@@ -104,5 +106,29 @@ export class UnknownError extends ApiError {
   constructor(message: string) {
     super(message, 0);
     this.name = 'UnknownError';
+  }
+}
+
+export class FeatureGoneSplitError extends ApiError {
+  newFeatureIds: Array<string>;
+  constructor(message: string, newFeatureIds: Array<string>) {
+    super(message, 410);
+    this.name = 'FeatureGoneSplitError';
+    this.newFeatureIds = newFeatureIds;
+  }
+}
+
+export class FeatureMovedError extends ApiError {
+  newFeatureId: string;
+  feature: components['schemas']['Feature'];
+  constructor(
+    message: string,
+    newFeatureId: string,
+    feature: components['schemas']['Feature'],
+  ) {
+    super(message, 301);
+    this.name = 'FeatureMovedError';
+    this.newFeatureId = newFeatureId;
+    this.feature = feature;
   }
 }
