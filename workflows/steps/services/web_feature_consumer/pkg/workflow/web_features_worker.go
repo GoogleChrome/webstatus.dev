@@ -22,7 +22,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"golang.org/x/mod/semver"
@@ -55,11 +54,11 @@ type WebFeatureStorer interface {
 		startAt time.Time, endAt time.Time) (map[string]string, error)
 	InsertMovedWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureMovedData,
+		data map[string]webdxfeaturetypes.FeatureMovedData,
 	) error
 	InsertSplitWebFeatures(
 		ctx context.Context,
-		data map[string]web_platform_dx__web_features.FeatureSplitData,
+		data map[string]webdxfeaturetypes.FeatureSplitData,
 	) error
 }
 
@@ -69,15 +68,15 @@ type WebFeatureMetadataStorer interface {
 	InsertWebFeaturesMetadata(
 		ctx context.Context,
 		featureKeyToID map[string]string,
-		data map[string]web_platform_dx__web_features.FeatureValue) error
+		data map[string]webdxfeaturetypes.FeatureValue) error
 }
 
 // WebDXGroupStorer describes the logic to insert the groups that were returned by the AssetParser.
 type WebDXGroupStorer interface {
 	InsertWebFeatureGroups(
 		ctx context.Context,
-		featureData map[string]web_platform_dx__web_features.FeatureValue,
-		groupData map[string]web_platform_dx__web_features.GroupData) error
+		featureData map[string]webdxfeaturetypes.FeatureValue,
+		groupData map[string]webdxfeaturetypes.GroupData) error
 }
 
 // WebDXSnapshotStorer describes the logic to insert the snapshots that were returned by the AssetParser.
@@ -85,8 +84,8 @@ type WebDXSnapshotStorer interface {
 	InsertWebFeatureSnapshots(
 		ctx context.Context,
 		featureKeyToID map[string]string,
-		featureData map[string]web_platform_dx__web_features.FeatureValue,
-		snapshotData map[string]web_platform_dx__web_features.SnapshotData) error
+		featureData map[string]webdxfeaturetypes.FeatureValue,
+		snapshotData map[string]webdxfeaturetypes.SnapshotData) error
 }
 
 func NewWebFeaturesJobProcessor(assetGetter AssetGetter,

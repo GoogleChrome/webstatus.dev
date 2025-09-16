@@ -20,7 +20,6 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
@@ -164,7 +163,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 
 func (c *WebFeaturesConsumer) InsertMovedWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	data map[string]webdxfeaturetypes.FeatureMovedData) error {
 	movedFeatures := make([]gcpspanner.MovedWebFeature, 0, len(data))
 	for featureKey, featureData := range data {
 		movedFeatures = append(movedFeatures, gcpspanner.MovedWebFeature{
@@ -185,7 +184,7 @@ func (c *WebFeaturesConsumer) InsertMovedWebFeatures(
 
 func (c *WebFeaturesConsumer) InsertSplitWebFeatures(
 	ctx context.Context,
-	data map[string]web_platform_dx__web_features.FeatureSplitData) error {
+	data map[string]webdxfeaturetypes.FeatureSplitData) error {
 	splitFeatures := make([]gcpspanner.SplitWebFeature, 0, len(data))
 	for featureKey, featureData := range data {
 		splitFeatures = append(splitFeatures, gcpspanner.SplitWebFeature{
@@ -207,17 +206,12 @@ func (c *WebFeaturesConsumer) InsertSplitWebFeatures(
 func consumeFeatureSpecInformation(ctx context.Context,
 	client WebFeatureSpannerClient,
 	featureID string,
-	featureData web_platform_dx__web_features.FeatureValue) error {
+	featureData webdxfeaturetypes.FeatureValue) error {
 	if featureData.Spec == nil {
 		return nil
 	}
 
-	var links []string
-	if featureData.Spec.String != nil {
-		links = []string{*featureData.Spec.String}
-	} else if len(featureData.Spec.StringArray) > 0 {
-		links = featureData.Spec.StringArray
-	}
+	links := featureData.Spec
 
 	if len(links) > 0 {
 		spec := gcpspanner.FeatureSpec{
@@ -241,7 +235,7 @@ func consumeFeatureSpecInformation(ctx context.Context,
 }
 
 func extractBrowserAvailability(
-	featureData web_platform_dx__web_features.FeatureValue) []gcpspanner.BrowserFeatureAvailability {
+	featureData webdxfeaturetypes.FeatureValue) []gcpspanner.BrowserFeatureAvailability {
 	var fba []gcpspanner.BrowserFeatureAvailability
 	support := featureData.Status.Support
 	if support.Chrome != nil {
@@ -308,15 +302,15 @@ func convertStringToDate(in *string) *time.Time {
 }
 
 // getBaselineStatusEnum converts the web feature status to the Spanner-compatible BaselineStatus type.
-func getBaselineStatusEnum(status web_platform_dx__web_features.Status) *gcpspanner.BaselineStatus {
+func getBaselineStatusEnum(status webdxfeaturetypes.Status) *gcpspanner.BaselineStatus {
 	if status.Baseline == nil {
 		return nil
 	}
 	if status.Baseline.Enum != nil {
 		switch *status.Baseline.Enum {
-		case web_platform_dx__web_features.High:
+		case webdxfeaturetypes.High:
 			return valuePtr(gcpspanner.BaselineStatusHigh)
-		case web_platform_dx__web_features.Low:
+		case webdxfeaturetypes.Low:
 			return valuePtr(gcpspanner.BaselineStatusLow)
 		}
 	} else if status.Baseline.Bool != nil && !*status.Baseline.Bool {

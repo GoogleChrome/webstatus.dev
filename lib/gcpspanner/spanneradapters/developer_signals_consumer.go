@@ -19,7 +19,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/developersignaltypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // DeveloperSignalsConsumer handles the conversion of the developer signals between the downloaded
@@ -41,7 +41,7 @@ type DeveloperSignalsClient interface {
 }
 
 func (c *DeveloperSignalsConsumer) GetAllMovedWebFeatures(
-	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	ctx context.Context) (map[string]webdxfeaturetypes.FeatureMovedData, error) {
 	movedFeatures, err := c.client.GetAllMovedWebFeatures(ctx)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (c *DeveloperSignalsConsumer) GetAllMovedWebFeatures(
 func migrateMovedFeaturesForDeveloperSignals(
 	ctx context.Context,
 	data *developersignaltypes.FeatureDeveloperSignals,
-	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData) error {
+	movedFeatures map[string]webdxfeaturetypes.FeatureMovedData) error {
 	allFeaturesSet := make(map[string]struct{}, len(*data))
 	for featureID := range *data {
 		allFeaturesSet[featureID] = struct{}{}

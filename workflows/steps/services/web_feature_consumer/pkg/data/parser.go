@@ -21,6 +21,7 @@ import (
 	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features_v3"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
@@ -46,9 +47,9 @@ type rawWebFeaturesJSONDataV2 struct {
 // rawWebFeaturesJSONDataV3 is used to parse the source JSON.
 // It holds the features as raw JSON messages to be processed individually.
 type rawWebFeaturesJSONDataV3 struct {
-	Browsers  web_platform_dx__web_features.Browsers                `json:"browsers"`
-	Groups    map[string]web_platform_dx__web_features.GroupData    `json:"groups"`
-	Snapshots map[string]web_platform_dx__web_features.SnapshotData `json:"snapshots"`
+	Browsers  web_platform_dx__web_features_v3.Browsers                `json:"browsers"`
+	Groups    map[string]web_platform_dx__web_features_v3.GroupData    `json:"groups"`
+	Snapshots map[string]web_platform_dx__web_features_v3.SnapshotData `json:"snapshots"`
 	// TODO: When we move to v3, we will change Features to being json.RawMessage
 	Features json.RawMessage `json:"features"`
 }
@@ -101,9 +102,9 @@ func postProcess(data *rawWebFeaturesJSONDataV2) *webdxfeaturetypes.ProcessedWeb
 	featureKinds := postProcessFeatureValue(data.Features)
 
 	return &webdxfeaturetypes.ProcessedWebFeaturesData{
-		Browsers:  data.Browsers,
-		Groups:    data.Groups,
-		Snapshots: data.Snapshots,
+		Browsers:  postProcessBrowsers(data.Browsers),
+		Groups:    postProcessGroups(data.Groups),
+		Snapshots: postProcessSnapshots(data.Snapshots),
 		Features:  featureKinds,
 	}
 }
@@ -115,11 +116,70 @@ func postProcessV3(data *rawWebFeaturesJSONDataV3) (*webdxfeaturetypes.Processed
 	}
 
 	return &webdxfeaturetypes.ProcessedWebFeaturesData{
-		Browsers:  data.Browsers,
-		Groups:    data.Groups,
-		Snapshots: data.Snapshots,
+		Browsers:  postProcessBrowsersV3(data.Browsers),
+		Groups:    postProcessGroupsV3(data.Groups),
+		Snapshots: postProcessSnapshotsV3(data.Snapshots),
 		Features:  featureKinds,
 	}, nil
+}
+
+func postProcessBrowsersV3(value web_platform_dx__web_features_v3.Browsers) webdxfeaturetypes.Browsers {
+	return webdxfeaturetypes.Browsers{
+		Chrome:         postProcessBrowserDataV3(value.Chrome),
+		ChromeAndroid:  postProcessBrowserDataV3(value.ChromeAndroid),
+		Edge:           postProcessBrowserDataV3(value.Edge),
+		Firefox:        postProcessBrowserDataV3(value.Firefox),
+		FirefoxAndroid: postProcessBrowserDataV3(value.FirefoxAndroid),
+		Safari:         postProcessBrowserDataV3(value.Safari),
+		SafariIos:      postProcessBrowserDataV3(value.SafariIos),
+	}
+}
+
+func postProcessBrowserDataV3(value web_platform_dx__web_features_v3.BrowserData) webdxfeaturetypes.BrowserData {
+	var releases []webdxfeaturetypes.Release
+	if value.Releases != nil {
+		releases = make([]webdxfeaturetypes.Release, len(value.Releases))
+		for i, r := range value.Releases {
+			releases[i] = webdxfeaturetypes.Release{
+				Version: r.Version,
+				Date:    r.Date,
+			}
+		}
+	}
+
+	return webdxfeaturetypes.BrowserData{Name: value.Name, Releases: releases}
+}
+
+func postProcessGroupsV3(
+	value map[string]web_platform_dx__web_features_v3.GroupData) map[string]webdxfeaturetypes.GroupData {
+	if value == nil {
+		return nil
+	}
+	groups := make(map[string]webdxfeaturetypes.GroupData, len(value))
+	for id, g := range value {
+		groups[id] = webdxfeaturetypes.GroupData{
+			Name:   g.Name,
+			Parent: g.Parent,
+		}
+	}
+
+	return groups
+}
+
+func postProcessSnapshotsV3(
+	value map[string]web_platform_dx__web_features_v3.SnapshotData) map[string]webdxfeaturetypes.SnapshotData {
+	if value == nil {
+		return nil
+	}
+	snapshots := make(map[string]webdxfeaturetypes.SnapshotData, len(value))
+	for id, s := range value {
+		snapshots[id] = webdxfeaturetypes.SnapshotData{
+			Name: s.Name,
+			Spec: s.Spec,
+		}
+	}
+
+	return snapshots
 }
 
 func postProcessFeatureValueV3(data json.RawMessage) (*webdxfeaturetypes.FeatureKinds, error) {
@@ -146,51 +206,101 @@ func postProcessFeatureValueV3(data json.RawMessage) (*webdxfeaturetypes.Feature
 
 		// Switch on the explicit "kind" to unmarshal into the correct type
 		switch peek.Kind {
-		case string(web_platform_dx__web_features.Feature):
+		case string(web_platform_dx__web_features_v3.Feature):
 			if featureKinds.Data == nil {
-				featureKinds.Data = make(map[string]web_platform_dx__web_features.FeatureValue)
+				featureKinds.Data = make(map[string]webdxfeaturetypes.FeatureValue)
 			}
-			var value web_platform_dx__web_features.FeatureValue
-			if err := json.Unmarshal(rawFeature, &value); err != nil {
+			feature, err := processFeatureKind(rawFeature)
+			if err != nil {
 				return nil, err
 			}
-			// Run your existing post-processing logic
-			featureKinds.Data[id] = web_platform_dx__web_features.FeatureValue{
-				Caniuse:         postProcessStringOrStringArray(value.Caniuse),
-				CompatFeatures:  value.CompatFeatures,
-				Description:     value.Description,
-				DescriptionHTML: value.DescriptionHTML,
-				Group:           postProcessStringOrStringArray(value.Group),
-				Name:            value.Name,
-				Snapshot:        postProcessStringOrStringArray(value.Snapshot),
-				Spec:            postProcessStringOrStringArray(value.Spec),
-				Status:          postProcessStatus(value.Status),
-				Discouraged:     value.Discouraged,
-			}
+			featureKinds.Data[id] = *feature
 
-		case string(web_platform_dx__web_features.Moved):
+		case string(web_platform_dx__web_features_v3.Moved):
 			if featureKinds.Moved == nil {
-				featureKinds.Moved = make(map[string]web_platform_dx__web_features.FeatureMovedData)
+				featureKinds.Moved = make(map[string]webdxfeaturetypes.FeatureMovedData)
 			}
-			var value web_platform_dx__web_features.FeatureMovedData
-			if err := json.Unmarshal(rawFeature, &value); err != nil {
+			moved, err := processMovedKind(rawFeature)
+			if err != nil {
 				return nil, err
 			}
-			featureKinds.Moved[id] = value
+			featureKinds.Moved[id] = *moved
 
-		case string(web_platform_dx__web_features.Split):
+		case string(web_platform_dx__web_features_v3.Split):
 			if featureKinds.Split == nil {
-				featureKinds.Split = make(map[string]web_platform_dx__web_features.FeatureSplitData)
+				featureKinds.Split = make(map[string]webdxfeaturetypes.FeatureSplitData)
 			}
-			var value web_platform_dx__web_features.FeatureSplitData
-			if err := json.Unmarshal(rawFeature, &value); err != nil {
+			split, err := processSplitKind(rawFeature)
+			if err != nil {
 				return nil, err
 			}
-			featureKinds.Split[id] = value
+			featureKinds.Split[id] = *split
 		}
 	}
 
 	return &featureKinds, nil
+}
+
+// processFeatureKind processes a feature of kind "feature".
+func processFeatureKind(rawFeature json.RawMessage) (*webdxfeaturetypes.FeatureValue, error) {
+	var value web_platform_dx__web_features_v3.FeatureValue
+	if err := json.Unmarshal(rawFeature, &value); err != nil {
+		return nil, err
+	}
+	// Return an error because these values should be present. Quicktype just messes it up.
+	if value.Description == nil || value.DescriptionHTML == nil || value.Name == nil || value.Status == nil {
+		return nil, ErrUnexpectedFormat
+	}
+	feature := &webdxfeaturetypes.FeatureValue{
+		Caniuse:         value.Caniuse,
+		CompatFeatures:  value.CompatFeatures,
+		Description:     *value.Description,
+		DescriptionHTML: *value.DescriptionHTML,
+		Group:           value.Group,
+		Name:            *value.Name,
+		Snapshot:        value.Snapshot,
+		Spec:            value.Spec,
+		Status:          postProcessStatusV3(*value.Status),
+		Discouraged:     postProcessDiscouragedV3(value.Discouraged),
+	}
+
+	return feature, nil
+}
+
+// processMovedKind processes a feature of kind "moved".
+func processMovedKind(rawFeature json.RawMessage) (*webdxfeaturetypes.FeatureMovedData, error) {
+	var value web_platform_dx__web_features_v3.FeatureValue
+	if err := json.Unmarshal(rawFeature, &value); err != nil {
+		return nil, err
+	}
+	// Return an error because these values should be present. Quicktype just messes it up.
+	if value.RedirectTarget == nil {
+		return nil, ErrUnexpectedFormat
+	}
+	moved := &webdxfeaturetypes.FeatureMovedData{
+		Kind:           webdxfeaturetypes.FeatureMovedDataKind(value.Kind),
+		RedirectTarget: *value.RedirectTarget,
+	}
+
+	return moved, nil
+}
+
+// processSplitKind processes a feature of kind "split".
+func processSplitKind(rawFeature json.RawMessage) (*webdxfeaturetypes.FeatureSplitData, error) {
+	var value web_platform_dx__web_features_v3.FeatureValue
+	if err := json.Unmarshal(rawFeature, &value); err != nil {
+		return nil, err
+	}
+	// Return an error because these values should be present. Quicktype just messes it up.
+	if value.RedirectTargets == nil {
+		return nil, ErrUnexpectedFormat
+	}
+	split := &webdxfeaturetypes.FeatureSplitData{
+		Kind:            webdxfeaturetypes.FeatureSplitDataKind(value.Kind),
+		RedirectTargets: value.RedirectTargets,
+	}
+
+	return split, nil
 }
 func postProcessFeatureValue(
 	data map[string]web_platform_dx__web_features.FeatureValue) *webdxfeaturetypes.FeatureKinds {
@@ -202,9 +312,9 @@ func postProcessFeatureValue(
 
 	for id, value := range data {
 		if featureKinds.Data == nil {
-			featureKinds.Data = make(map[string]web_platform_dx__web_features.FeatureValue)
+			featureKinds.Data = make(map[string]webdxfeaturetypes.FeatureValue)
 		}
-		featureKinds.Data[id] = web_platform_dx__web_features.FeatureValue{
+		featureKinds.Data[id] = webdxfeaturetypes.FeatureValue{
 			Caniuse:         postProcessStringOrStringArray(value.Caniuse),
 			CompatFeatures:  value.CompatFeatures,
 			Description:     value.Description,
@@ -213,8 +323,8 @@ func postProcessFeatureValue(
 			Name:            value.Name,
 			Snapshot:        postProcessStringOrStringArray(value.Snapshot),
 			Spec:            postProcessStringOrStringArray(value.Spec),
-			Status:          postProcessStatus(value.Status),
-			Discouraged:     value.Discouraged,
+			Status:          postProcessStatus(value.Status), // This line is causing the error
+			Discouraged:     postProcessDiscouraged(value.Discouraged),
 		}
 	}
 
@@ -222,24 +332,58 @@ func postProcessFeatureValue(
 }
 
 func postProcessStringOrStringArray(
-	value *web_platform_dx__web_features.StringOrStringArray) *web_platform_dx__web_features.StringOrStringArray {
+	value *web_platform_dx__web_features.StringOrStringArray) []string {
 	// Do nothing for now.
+	if value == nil || (value.StringArray == nil && value.String == nil) {
+		return nil
+	}
+	if value.String != nil {
+		return []string{*value.String}
+	}
+
+	return value.StringArray
+}
+
+func postProcessDiscouraged(
+	value *web_platform_dx__web_features.Discouraged) *webdxfeaturetypes.Discouraged {
 	if value == nil {
 		return nil
 	}
 
-	return &web_platform_dx__web_features.StringOrStringArray{
-		String:      value.String,
-		StringArray: value.StringArray,
+	return &webdxfeaturetypes.Discouraged{
+		AccordingTo:  value.AccordingTo,
+		Alternatives: value.Alternatives,
 	}
 }
 
-func postProcessStatus(value web_platform_dx__web_features.Status) web_platform_dx__web_features.Status {
-	return web_platform_dx__web_features.Status{
+func postProcessDiscouragedV3(
+	value *web_platform_dx__web_features_v3.Discouraged) *webdxfeaturetypes.Discouraged {
+	if value == nil {
+		return nil
+	}
+
+	return &webdxfeaturetypes.Discouraged{
+		AccordingTo:  value.AccordingTo,
+		Alternatives: value.Alternatives,
+	}
+}
+
+func postProcessStatus(value web_platform_dx__web_features.Status) webdxfeaturetypes.Status {
+	return webdxfeaturetypes.Status{
 		Baseline:         postProcessBaseline(value.Baseline),
 		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),
 		BaselineLowDate:  postProcessBaselineDates(value.BaselineLowDate),
 		Support:          postProcessBaselineSupport(value.Support),
+		ByCompatKey:      nil,
+	}
+}
+
+func postProcessStatusV3(value web_platform_dx__web_features_v3.StatusHeadline) webdxfeaturetypes.Status {
+	return webdxfeaturetypes.Status{
+		Baseline:         postProcessBaselineV3(value.Baseline),
+		BaselineHighDate: postProcessBaselineDates(value.BaselineHighDate),
+		BaselineLowDate:  postProcessBaselineDates(value.BaselineLowDate),
+		Support:          postProcessBaselineSupportV3(value.Support),
 		ByCompatKey:      nil,
 	}
 }
@@ -253,15 +397,47 @@ func postProcessBaselineDates(value *string) *string {
 	return value
 }
 
+func valuePtr[T any](in T) *T { return &in }
+
 func postProcessBaseline(
-	value *web_platform_dx__web_features.BaselineUnion) *web_platform_dx__web_features.BaselineUnion {
+	value *web_platform_dx__web_features.BaselineUnion) *webdxfeaturetypes.BaselineUnion {
 	if value == nil {
 		return nil
 	}
+	var enum *webdxfeaturetypes.BaselineEnum
+	if value.Enum != nil {
+		switch *value.Enum {
+		case web_platform_dx__web_features.High:
+			enum = valuePtr(webdxfeaturetypes.High)
+		case web_platform_dx__web_features.Low:
+			enum = valuePtr(webdxfeaturetypes.Low)
+		}
+	}
 
-	return &web_platform_dx__web_features.BaselineUnion{
+	return &webdxfeaturetypes.BaselineUnion{
 		Bool: value.Bool,
-		Enum: value.Enum,
+		Enum: enum,
+	}
+}
+
+func postProcessBaselineV3(
+	value *web_platform_dx__web_features_v3.BaselineUnion) *webdxfeaturetypes.BaselineUnion {
+	if value == nil {
+		return nil
+	}
+	var enum *webdxfeaturetypes.BaselineEnum
+	if value.Enum != nil {
+		switch *value.Enum {
+		case web_platform_dx__web_features_v3.High:
+			enum = valuePtr(webdxfeaturetypes.High)
+		case web_platform_dx__web_features_v3.Low:
+			enum = valuePtr(webdxfeaturetypes.Low)
+		}
+	}
+
+	return &webdxfeaturetypes.BaselineUnion{
+		Bool: value.Bool,
+		Enum: enum,
 	}
 }
 
@@ -275,8 +451,21 @@ func postProcessBaselineSupportBrowser(value *string) *string {
 }
 
 func postProcessBaselineSupport(
-	value web_platform_dx__web_features.StatusSupport) web_platform_dx__web_features.StatusSupport {
-	return web_platform_dx__web_features.StatusSupport{
+	value web_platform_dx__web_features.StatusSupport) webdxfeaturetypes.StatusSupport {
+	return webdxfeaturetypes.StatusSupport{
+		Chrome:         postProcessBaselineSupportBrowser(value.Chrome),
+		ChromeAndroid:  postProcessBaselineSupportBrowser(value.ChromeAndroid),
+		Edge:           postProcessBaselineSupportBrowser(value.Edge),
+		Firefox:        postProcessBaselineSupportBrowser(value.Firefox),
+		FirefoxAndroid: postProcessBaselineSupportBrowser(value.FirefoxAndroid),
+		Safari:         postProcessBaselineSupportBrowser(value.Safari),
+		SafariIos:      postProcessBaselineSupportBrowser(value.SafariIos),
+	}
+}
+
+func postProcessBaselineSupportV3(
+	value web_platform_dx__web_features_v3.Support) webdxfeaturetypes.StatusSupport {
+	return webdxfeaturetypes.StatusSupport{
 		Chrome:         postProcessBaselineSupportBrowser(value.Chrome),
 		ChromeAndroid:  postProcessBaselineSupportBrowser(value.ChromeAndroid),
 		Edge:           postProcessBaselineSupportBrowser(value.Edge),
@@ -290,4 +479,63 @@ func postProcessBaselineSupport(
 // Removes web-features range character "≤" from the string.
 func removeRangeSymbol(value string) string {
 	return strings.TrimPrefix(value, "≤")
+}
+
+func postProcessBrowsers(value web_platform_dx__web_features.Browsers) webdxfeaturetypes.Browsers {
+	return webdxfeaturetypes.Browsers{
+		Chrome:         postProcessBrowserData(value.Chrome),
+		ChromeAndroid:  postProcessBrowserData(value.ChromeAndroid),
+		Edge:           postProcessBrowserData(value.Edge),
+		Firefox:        postProcessBrowserData(value.Firefox),
+		FirefoxAndroid: postProcessBrowserData(value.FirefoxAndroid),
+		Safari:         postProcessBrowserData(value.Safari),
+		SafariIos:      postProcessBrowserData(value.SafariIos),
+	}
+}
+
+func postProcessBrowserData(value web_platform_dx__web_features.BrowserData) webdxfeaturetypes.BrowserData {
+	var releases []webdxfeaturetypes.Release
+	if value.Releases != nil {
+		releases := make([]webdxfeaturetypes.Release, len(value.Releases))
+		for i, r := range value.Releases {
+			releases[i] = webdxfeaturetypes.Release{
+				Version: r.Version,
+				Date:    r.Date,
+			}
+		}
+	}
+
+	return webdxfeaturetypes.BrowserData{Name: value.Name, Releases: releases}
+}
+
+func postProcessGroups(
+	value map[string]web_platform_dx__web_features.GroupData) map[string]webdxfeaturetypes.GroupData {
+	if value == nil {
+		return nil
+	}
+	groups := make(map[string]webdxfeaturetypes.GroupData, len(value))
+	for id, g := range value {
+		groups[id] = webdxfeaturetypes.GroupData{
+			Name:   g.Name,
+			Parent: g.Parent,
+		}
+	}
+
+	return groups
+}
+
+func postProcessSnapshots(
+	value map[string]web_platform_dx__web_features.SnapshotData) map[string]webdxfeaturetypes.SnapshotData {
+	if value == nil {
+		return nil
+	}
+	snapshots := make(map[string]webdxfeaturetypes.SnapshotData, len(value))
+	for id, s := range value {
+		snapshots[id] = webdxfeaturetypes.SnapshotData{
+			Name: s.Name,
+			Spec: s.Spec,
+		}
+	}
+
+	return snapshots
 }

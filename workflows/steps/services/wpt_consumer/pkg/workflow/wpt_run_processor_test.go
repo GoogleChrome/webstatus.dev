@@ -22,7 +22,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -83,7 +83,7 @@ type upsertMetricConfig struct {
 }
 
 type getAllMovedWebFeaturesConfig struct {
-	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData
+	movedFeatures map[string]webdxfeaturetypes.FeatureMovedData
 	err           error
 }
 
@@ -122,7 +122,7 @@ func (m *MockWebFeatureWPTScoreStorer) UpsertWPTRunFeatureMetrics(
 }
 
 func (m *MockWebFeatureWPTScoreStorer) GetAllMovedWebFeatures(_ context.Context) (
-	map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	map[string]webdxfeaturetypes.FeatureMovedData, error) {
 	return m.getAllMovedWebFeaturesCfg.movedFeatures, m.getAllMovedWebFeaturesCfg.err
 }
 
@@ -502,15 +502,15 @@ func TestProcessRun(t *testing.T) {
 func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 	testCases := []struct {
 		name          string
-		movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData
+		movedFeatures map[string]webdxfeaturetypes.FeatureMovedData
 		data          *shared.WebFeaturesData
 		expectedData  *shared.WebFeaturesData
 		expectedErr   error
 	}{
 		{
 			name: "successful migration",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"old-feature": {RedirectTarget: "new-feature", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"old-feature": {RedirectTarget: "new-feature", Kind: webdxfeaturetypes.Moved},
 			},
 			data: &shared.WebFeaturesData{
 				"test1.html": {"old-feature": nil},
@@ -524,8 +524,8 @@ func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 		},
 		{
 			name: "conflict with existing feature",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"old-feature": {RedirectTarget: "new-feature", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"old-feature": {RedirectTarget: "new-feature", Kind: webdxfeaturetypes.Moved},
 			},
 			data: &shared.WebFeaturesData{
 				"test1.html": {"old-feature": nil},
@@ -536,7 +536,7 @@ func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 		},
 		{
 			name:          "no migration needed",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{},
 			data: &shared.WebFeaturesData{
 				"test1.html": {"feature-a": nil},
 			},
@@ -547,9 +547,9 @@ func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 		},
 		{
 			name: "multiple migrations",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"old-a": {RedirectTarget: "new-a", Kind: web_platform_dx__web_features.Moved},
-				"old-b": {RedirectTarget: "new-b", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"old-a": {RedirectTarget: "new-a", Kind: webdxfeaturetypes.Moved},
+				"old-b": {RedirectTarget: "new-b", Kind: webdxfeaturetypes.Moved},
 			},
 			data: &shared.WebFeaturesData{
 				"test1.html": {"old-a": nil, "feature-c": nil},
@@ -563,8 +563,8 @@ func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 		},
 		{
 			name: "empty data",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{"a": {
-				RedirectTarget: "b", Kind: web_platform_dx__web_features.Moved,
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{"a": {
+				RedirectTarget: "b", Kind: webdxfeaturetypes.Moved,
 			}},
 			data:         &shared.WebFeaturesData{},
 			expectedData: &shared.WebFeaturesData{},

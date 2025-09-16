@@ -21,8 +21,8 @@ import (
 	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -53,7 +53,7 @@ type ChromiumHistogramEnumsClient interface {
 const logMissingFeatureIDMetricMsg = "unable to find feature ID. skipping mapping"
 
 func (c *ChromiumHistogramEnumConsumer) GetAllMovedWebFeatures(
-	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	ctx context.Context) (map[string]webdxfeaturetypes.FeatureMovedData, error) {
 	movedFeatures, err := c.client.GetAllMovedWebFeatures(ctx)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func migrateMovedFeaturesForChromiumHistograms(
 	ctx context.Context,
 	histogramsToEnumMap map[metricdatatypes.HistogramName]map[int64]*string,
 	histogramsToAllFeatureKeySet map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue,
-	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData,
+	movedFeatures map[string]webdxfeaturetypes.FeatureMovedData,
 ) error {
 	for histogram, allFeaturesKeySet := range histogramsToAllFeatureKeySet {
 		logger := slog.With("histogram", histogram)

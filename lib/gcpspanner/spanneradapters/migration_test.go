@@ -22,14 +22,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/google/go-cmp/cmp"
 )
 
 func TestMigrator_Migrate(t *testing.T) {
 	type testCase[SetValueType, DataType any] struct {
 		name             string
-		movedFeatures    map[string]web_platform_dx__web_features.FeatureMovedData
+		movedFeatures    map[string]webdxfeaturetypes.FeatureMovedData
 		allFeaturesSet   map[string]SetValueType
 		dataToMigrate    DataType
 		updateFunc       func(oldKey, newKey string, data DataType)
@@ -41,7 +41,7 @@ func TestMigrator_Migrate(t *testing.T) {
 	testCases := []testCase[struct{}, map[string]int]{
 		{
 			name:          "no migration needed",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{},
 			allFeaturesSet: map[string]struct{}{
 				"feature1": {},
 				"feature2": {},
@@ -63,8 +63,8 @@ func TestMigrator_Migrate(t *testing.T) {
 		},
 		{
 			name: "successful migration",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"feature1": {RedirectTarget: "feature3", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"feature1": {RedirectTarget: "feature3", Kind: webdxfeaturetypes.Moved},
 			},
 			allFeaturesSet: map[string]struct{}{
 				"feature1": {},
@@ -87,8 +87,8 @@ func TestMigrator_Migrate(t *testing.T) {
 		},
 		{
 			name: "conflict during migration",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"feature1": {RedirectTarget: "feature2", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"feature1": {RedirectTarget: "feature2", Kind: webdxfeaturetypes.Moved},
 			},
 			allFeaturesSet: map[string]struct{}{
 				"feature1": {},
@@ -112,9 +112,9 @@ func TestMigrator_Migrate(t *testing.T) {
 		},
 		{
 			name: "multiple successful migrations",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"feature1": {RedirectTarget: "feature3", Kind: web_platform_dx__web_features.Moved},
-				"feature2": {RedirectTarget: "feature4", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"feature1": {RedirectTarget: "feature3", Kind: webdxfeaturetypes.Moved},
+				"feature2": {RedirectTarget: "feature4", Kind: webdxfeaturetypes.Moved},
 			},
 			allFeaturesSet: map[string]struct{}{
 				"feature1": {},

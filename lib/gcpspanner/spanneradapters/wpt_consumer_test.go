@@ -23,7 +23,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -379,7 +379,7 @@ func TestWPTConsumer_GetAllMovedWebFeatures(t *testing.T) {
 	testCases := []struct {
 		name          string
 		mockConfig    GetAllMovedWebFeaturesConfig
-		expected      map[string]web_platform_dx__web_features.FeatureMovedData
+		expected      map[string]webdxfeaturetypes.FeatureMovedData
 		expectedError error
 	}{
 		{
@@ -397,14 +397,14 @@ func TestWPTConsumer_GetAllMovedWebFeatures(t *testing.T) {
 				},
 				err: nil,
 			},
-			expected: map[string]web_platform_dx__web_features.FeatureMovedData{
+			expected: map[string]webdxfeaturetypes.FeatureMovedData{
 				"feature1": {
 					RedirectTarget: "new-feature1",
-					Kind:           web_platform_dx__web_features.Moved,
+					Kind:           webdxfeaturetypes.Moved,
 				},
 				"feature2": {
 					RedirectTarget: "new-feature2",
-					Kind:           web_platform_dx__web_features.Moved,
+					Kind:           webdxfeaturetypes.Moved,
 				},
 			},
 			expectedError: nil,
@@ -424,7 +424,7 @@ func TestWPTConsumer_GetAllMovedWebFeatures(t *testing.T) {
 				output: []gcpspanner.MovedWebFeature{},
 				err:    nil,
 			},
-			expected:      map[string]web_platform_dx__web_features.FeatureMovedData{},
+			expected:      map[string]webdxfeaturetypes.FeatureMovedData{},
 			expectedError: nil,
 		},
 	}

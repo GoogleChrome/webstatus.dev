@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 type mockUpsertGroupConfig struct {
@@ -49,8 +49,8 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 		mockUpsertGroupCfg               mockUpsertGroupConfig
 		mockUpsertFeatureGroupLookupsCfg mockUpsertFeatureGroupLookupsConfig
 		featureKeyToID                   map[string]string
-		featureData                      map[string]web_platform_dx__web_features.FeatureValue
-		groupData                        map[string]web_platform_dx__web_features.GroupData
+		featureData                      map[string]webdxfeaturetypes.FeatureValue
+		groupData                        map[string]webdxfeaturetypes.GroupData
 		expectedError                    error
 	}{
 		{
@@ -90,12 +90,9 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 				"feature1": "featureID1",
 				"feature2": "featureID2",
 			},
-			featureData: map[string]web_platform_dx__web_features.FeatureValue{
+			featureData: map[string]webdxfeaturetypes.FeatureValue{
 				"feature1": {
-					Group: &web_platform_dx__web_features.StringOrStringArray{
-						StringArray: []string{"group1", "group2"},
-						String:      nil,
-					},
+					Group:           []string{"group1", "group2"},
 					Caniuse:         nil,
 					CompatFeatures:  nil,
 					Description:     "",
@@ -104,12 +101,12 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: webdxfeaturetypes.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: webdxfeaturetypes.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -121,10 +118,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					},
 				},
 				"feature2": {
-					Group: &web_platform_dx__web_features.StringOrStringArray{
-						String:      valuePtr("group2"),
-						StringArray: nil,
-					},
+					Group:           []string{"group2"},
 					Caniuse:         nil,
 					CompatFeatures:  nil,
 					Description:     "",
@@ -133,12 +127,12 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					Name:            "",
 					Snapshot:        nil,
 					Spec:            nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: webdxfeaturetypes.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: webdxfeaturetypes.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -150,7 +144,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 					},
 				},
 			},
-			groupData: map[string]web_platform_dx__web_features.GroupData{
+			groupData: map[string]webdxfeaturetypes.GroupData{
 				"group1": {Name: "Group 1", Parent: nil},
 				"group2": {Name: "Group 2", Parent: nil},
 				"child3": {Name: "Child 3", Parent: valuePtr("group1")},

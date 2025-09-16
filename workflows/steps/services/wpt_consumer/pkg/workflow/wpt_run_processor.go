@@ -21,7 +21,7 @@ import (
 	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -71,7 +71,7 @@ type WebFeatureWPTScoreStorer interface {
 		context.Context,
 		int64,
 		map[string]wptconsumertypes.WPTFeatureMetric) error
-	GetAllMovedWebFeatures(ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error)
+	GetAllMovedWebFeatures(ctx context.Context) (map[string]webdxfeaturetypes.FeatureMovedData, error)
 }
 
 func (w WPTRunProcessor) ProcessRun(
@@ -133,7 +133,7 @@ var ErrConflictMigratingFeatureKey = errors.New("conflict migrating feature key"
 // This function modifies the data in-place.
 func migrateWebFeaturesToMovedFeatures(
 	ctx context.Context,
-	movedWebFeatures map[string]web_platform_dx__web_features.FeatureMovedData,
+	movedWebFeatures map[string]webdxfeaturetypes.FeatureMovedData,
 	// data is the web features data, structured as map[test-name]map[feature-id]interface{}.
 	// It is passed as a pointer because it is modified in-place.
 	data *shared.WebFeaturesData) error {
