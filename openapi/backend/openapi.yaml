@@ -1370,14 +1370,14 @@ components:
           description: >
             Short name that is intended to be human friendly.
             Comes from FeatureData's 'name' field in
-            https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
+            https://github.com/web-platform-dx/web-features/blob/main/schemas/data.schema.json
         spec:
           $ref: '#/components/schemas/FeatureSpecInfo'
         browser_implementations:
           type: object
           description: >
             Describes the implementation status of the feature. The keys for the object come
-            from https://github.com/web-platform-dx/web-features/blob/8ab08d00b9bdb505af37c435204eb6fe819dfaab/schemas/defs.schema.json#L102-L122
+            from https://github.com/web-platform-dx/web-features/blob/f630e000a15eaff23f41d6b8c4a44cca64a4a7e4/schemas/data.schema.json#L261-L289
           additionalProperties:
             $ref: '#/components/schemas/BrowserImplementation'
         baseline:

@@ -93,7 +93,6 @@ func NewWebFeaturesJobProcessor(assetGetter AssetGetter,
 	metadataStorer WebFeatureMetadataStorer,
 	groupStorer WebDXGroupStorer,
 	snapshotStorer WebDXSnapshotStorer,
-	webFeaturesDataV2Parser AssetParser,
 	webFeaturesDataV3Parser AssetParser,
 ) WebFeaturesJobProcessor {
 	return WebFeaturesJobProcessor{
@@ -102,7 +101,6 @@ func NewWebFeaturesJobProcessor(assetGetter AssetGetter,
 		metadataStorer:          metadataStorer,
 		groupStorer:             groupStorer,
 		snapshotStorer:          snapshotStorer,
-		webFeaturesDataV2Parser: webFeaturesDataV2Parser,
 		webFeaturesDataV3Parser: webFeaturesDataV3Parser,
 	}
 }
@@ -113,13 +111,11 @@ type WebFeaturesJobProcessor struct {
 	metadataStorer          WebFeatureMetadataStorer
 	groupStorer             WebDXGroupStorer
 	snapshotStorer          WebDXSnapshotStorer
-	webFeaturesDataV2Parser AssetParser
 	webFeaturesDataV3Parser AssetParser
 }
 
 const (
 	// According to https://pkg.go.dev/golang.org/x/mod/semver, the version must start with "v".
-	v2 = "v2.0.0"
 	v3 = "v3.0.0"
 	v4 = "v4.0.0"
 )
@@ -132,19 +128,8 @@ func (p WebFeaturesJobProcessor) parseByVersion(ctx context.Context, file *gh.Re
 		return nil, ErrUnknownAssetVersion
 	}
 
-	if semver.Compare(*file.Info.Tag, v3) == -1 {
-		// If less than version 3, use default v2 parser
-		slog.InfoContext(ctx, "using v2 parser", "version", *file.Info.Tag)
-		data, err := p.webFeaturesDataV2Parser.Parse(file.Contents)
-		if err != nil {
-			slog.ErrorContext(ctx, "unable to parse v2 data", "error", err)
-
-			return nil, err
-		}
-
-		return data, nil
-
-	} else if semver.Compare(*file.Info.Tag, v4) == -1 {
+	// Only support v3.x.y for now.
+	if semver.Compare(*file.Info.Tag, v3) >= 0 && semver.Compare(*file.Info.Tag, v4) == -1 {
 		// If version 3, use v3 parser
 		slog.InfoContext(ctx, "using v3 parser", "version", *file.Info.Tag)
 		data, err := p.webFeaturesDataV3Parser.Parse(file.Contents)

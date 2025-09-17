@@ -29,9 +29,9 @@ const featureMetadataKey = "FeatureMetadataKey"
 type FeatureMetadata struct {
 	// The ID from WebFeatures table in spanner. Not the web features key.
 	WebFeatureID string `datastore:"web_feature_id"`
-	// Non-null fields from https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
+	// Non-null fields from https://github.com/web-platform-dx/web-features/blob/main/schemas/data.schema.json
 	Description string `datastore:"description"`
-	// Nullable fields from https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json
+	// Nullable fields from https://github.com/web-platform-dx/web-features/blob/main/schemas/data.schema.json
 	CanIUseIDs []string `datastore:"can_i_use_ids"`
 }
 

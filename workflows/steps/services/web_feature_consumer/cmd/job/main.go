@@ -91,7 +91,6 @@ func main() {
 		datastoreadapters.NewWebFeaturesConsumer(fs),
 		spanneradapters.NewWebFeatureGroupsConsumer(spannerClient),
 		spanneradapters.NewWebFeatureSnapshotsConsumer(spannerClient),
-		data.Parser{},
 		data.V3Parser{},
 	)
 
