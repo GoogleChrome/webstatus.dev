@@ -19,7 +19,7 @@ import (
 	"errors"
 	"log/slog"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // ErrConflictMigratingFeatureKey is returned when a feature key migration would result in a conflict.
@@ -40,7 +40,7 @@ type Migrator[SetValueType, DataType any] struct {
 	AllFeaturesSet map[string]SetValueType
 	// MovedFeatures is a map where the key is the old (moved) feature key and the value
 	// contains information about the new feature key.
-	MovedFeatures map[string]web_platform_dx__web_features.FeatureMovedData
+	MovedFeatures map[string]webdxfeaturetypes.FeatureMovedData
 	// DataToMigrate is the actual data structure that needs to be modified based on the feature key migrations.
 	DataToMigrate DataType
 	// logger is an optional logger for outputting migration information. Defaults to slog.Default().
@@ -62,7 +62,7 @@ func WithLoggerForMigrator[SetValueType, DataType any](logger *slog.Logger) Migr
 // It takes the moved features map, the set of all features from the source data, the data to be migrated,
 // and optional configuration functions.
 func NewMigrator[SetValueType, DataType any](
-	movedFeatures map[string]web_platform_dx__web_features.FeatureMovedData,
+	movedFeatures map[string]webdxfeaturetypes.FeatureMovedData,
 	allFeaturesSet map[string]SetValueType,
 	data DataType,
 	options ...MigratorOption[SetValueType, DataType],

@@ -170,7 +170,10 @@ node-openapi:
 ################################
 JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 
+# TODO: Once v3 is merged into main, removed the old defs.schema.json and change the ref from v3.0 to main.
 download-schemas:
+	wget -O jsonschema/web-platform-dx_web-features/v3.data.schema.json \
+		https://raw.githubusercontent.com/web-platform-dx/web-features/refs/heads/v3.0/schemas/data.schema.json
 	wget -O jsonschema/web-platform-dx_web-features/defs.schema.json \
 		https://raw.githubusercontent.com/web-platform-dx/web-features/refs/heads/main/schemas/data.schema.json
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
@@ -185,7 +188,15 @@ jsonschema: clean-jsonschema
 		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/feature_data.go \
 		--package web_platform_dx__web_features \
 		--field-tags json
-	cp web_platform_dx__web_features_extras.txt $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features/extras.go
+
+	npx quicktype \
+		--src jsonschema/web-platform-dx_web-features/v3.data.schema.json \
+		--src-lang schema \
+		--lang go \
+		--top-level FeatureData \
+		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features_v3/feature_data.go \
+		--package web_platform_dx__web_features_v3 \
+		--field-tags json
 
 	npx quicktype \
 		--src jsonschema/mdn_browser-compat-data/browsers.schema.json \

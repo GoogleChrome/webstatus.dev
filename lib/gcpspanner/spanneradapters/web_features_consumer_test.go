@@ -23,7 +23,6 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -56,13 +55,13 @@ func TestConvertStringToDate(t *testing.T) {
 func TestGetBaselineStatusEnum(t *testing.T) {
 	testCases := []struct {
 		name     string
-		input    web_platform_dx__web_features.Status
+		input    webdxfeaturetypes.Status
 		expected *gcpspanner.BaselineStatus
 	}{
 		{
 			name: "undefined status",
-			input: web_platform_dx__web_features.Status{
-				Support: web_platform_dx__web_features.StatusSupport{
+			input: webdxfeaturetypes.Status{
+				Support: webdxfeaturetypes.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -80,11 +79,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "undefined baseline",
-			input: web_platform_dx__web_features.Status{
+			input: webdxfeaturetypes.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
 				ByCompatKey:      nil,
-				Support: web_platform_dx__web_features.StatusSupport{
+				Support: webdxfeaturetypes.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -99,11 +98,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "enum: High",
-			input: web_platform_dx__web_features.Status{
+			input: webdxfeaturetypes.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
 				ByCompatKey:      nil,
-				Support: web_platform_dx__web_features.StatusSupport{
+				Support: webdxfeaturetypes.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -112,8 +111,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Safari:         nil,
 					SafariIos:      nil,
 				},
-				Baseline: &web_platform_dx__web_features.BaselineUnion{
-					Enum: valuePtr(web_platform_dx__web_features.High),
+				Baseline: &webdxfeaturetypes.BaselineUnion{
+					Enum: valuePtr(webdxfeaturetypes.High),
 					Bool: nil,
 				},
 			},
@@ -121,11 +120,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "enum: Low",
-			input: web_platform_dx__web_features.Status{
+			input: webdxfeaturetypes.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
 				ByCompatKey:      nil,
-				Support: web_platform_dx__web_features.StatusSupport{
+				Support: webdxfeaturetypes.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -134,8 +133,8 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Safari:         nil,
 					SafariIos:      nil,
 				},
-				Baseline: &web_platform_dx__web_features.BaselineUnion{
-					Enum: valuePtr(web_platform_dx__web_features.Low),
+				Baseline: &webdxfeaturetypes.BaselineUnion{
+					Enum: valuePtr(webdxfeaturetypes.Low),
 					Bool: nil,
 				},
 			},
@@ -143,11 +142,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "bool: False",
-			input: web_platform_dx__web_features.Status{
+			input: webdxfeaturetypes.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
 				ByCompatKey:      nil,
-				Support: web_platform_dx__web_features.StatusSupport{
+				Support: webdxfeaturetypes.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -156,7 +155,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Safari:         nil,
 					SafariIos:      nil,
 				},
-				Baseline: &web_platform_dx__web_features.BaselineUnion{
+				Baseline: &webdxfeaturetypes.BaselineUnion{
 					Bool: valuePtr(false),
 					Enum: nil,
 				},
@@ -165,11 +164,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 		},
 		{
 			name: "bool: True (should never happen)",
-			input: web_platform_dx__web_features.Status{
+			input: webdxfeaturetypes.Status{
 				BaselineHighDate: nil,
 				BaselineLowDate:  nil,
 				ByCompatKey:      nil,
-				Support: web_platform_dx__web_features.StatusSupport{
+				Support: webdxfeaturetypes.StatusSupport{
 					Chrome:         nil,
 					ChromeAndroid:  nil,
 					Edge:           nil,
@@ -178,7 +177,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					Safari:         nil,
 					SafariIos:      nil,
 				},
-				Baseline: &web_platform_dx__web_features.BaselineUnion{
+				Baseline: &webdxfeaturetypes.BaselineUnion{
 					Bool: valuePtr(true),
 					Enum: nil,
 				},
@@ -476,32 +475,32 @@ var ErrSyncSplitWebFeaturesTest = errors.New("sync split web features test error
 var (
 	testInsertWebFeaturesStartAt = time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
 	testInsertWebFeaturesEndAt   = time.Date(3000, 1, 1, 0, 0, 0, 0, time.UTC)
-	fakeBrowsersData             = web_platform_dx__web_features.Browsers{
-		Chrome: web_platform_dx__web_features.BrowserData{
+	fakeBrowsersData             = webdxfeaturetypes.Browsers{
+		Chrome: webdxfeaturetypes.BrowserData{
 			Name:     "chrome",
 			Releases: nil,
 		},
-		ChromeAndroid: web_platform_dx__web_features.BrowserData{
+		ChromeAndroid: webdxfeaturetypes.BrowserData{
 			Name:     "chrome_android",
 			Releases: nil,
 		},
-		Edge: web_platform_dx__web_features.BrowserData{
+		Edge: webdxfeaturetypes.BrowserData{
 			Name:     "edge",
 			Releases: nil,
 		},
-		Firefox: web_platform_dx__web_features.BrowserData{
+		Firefox: webdxfeaturetypes.BrowserData{
 			Name:     "firefox",
 			Releases: nil,
 		},
-		FirefoxAndroid: web_platform_dx__web_features.BrowserData{
+		FirefoxAndroid: webdxfeaturetypes.BrowserData{
 			Name:     "firefox_android",
 			Releases: nil,
 		},
-		Safari: web_platform_dx__web_features.BrowserData{
+		Safari: webdxfeaturetypes.BrowserData{
 			Name:     "safari",
 			Releases: nil,
 		},
-		SafariIos: web_platform_dx__web_features.BrowserData{
+		SafariIos: webdxfeaturetypes.BrowserData{
 			Name:     "safari_ios",
 			Releases: nil,
 		},
@@ -643,24 +642,21 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
-							Discouraged: &web_platform_dx__web_features.Discouraged{
+							Discouraged: &webdxfeaturetypes.Discouraged{
 								AccordingTo:  []string{"according-to-1", "according-to-2"},
 								Alternatives: []string{"alternative-1", "alternative-2"},
 							},
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: []string{"feature1-link1", "feature1-link2"},
-								String:      nil,
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec: []string{"feature1-link1", "feature1-link2"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         valuePtr("100"),
 									ChromeAndroid:  valuePtr("104"),
 									Edge:           valuePtr("101"),
@@ -669,8 +665,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("103"),
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -684,15 +680,14 @@ func TestInsertWebFeatures(t *testing.T) {
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: nil,
-								String:      valuePtr("feature2-link"),
+							Spec: []string{
+								"feature2-link",
 							},
-							Status: web_platform_dx__web_features.Status{
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -701,8 +696,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("203"),
 									SafariIos:      valuePtr("106"),
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.Low),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.Low),
 									Bool: nil,
 								},
 							},
@@ -776,18 +771,18 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -796,8 +791,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         nil,
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -861,18 +856,18 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -881,8 +876,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         nil,
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -966,18 +961,18 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
 							Spec:           nil,
-							Status: web_platform_dx__web_features.Status{
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         valuePtr("100"),
 									ChromeAndroid:  nil,
 									Edge:           valuePtr("101"),
@@ -986,8 +981,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("103"),
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1104,21 +1099,18 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: []string{"feature1-link1", "feature1-link2"},
-								String:      nil,
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec:           []string{"feature1-link1", "feature1-link2"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         valuePtr("100"),
 									ChromeAndroid:  valuePtr("104"),
 									Edge:           valuePtr("101"),
@@ -1127,8 +1119,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("103"),
 									SafariIos:      valuePtr("106"),
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1271,21 +1263,18 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: []string{"feature1-link1", "feature1-link2"},
-								String:      nil,
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec:           []string{"feature1-link1", "feature1-link2"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         valuePtr("100"),
 									ChromeAndroid:  valuePtr("104"),
 									Edge:           valuePtr("101"),
@@ -1294,8 +1283,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("103"),
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1309,15 +1298,12 @@ func TestInsertWebFeatures(t *testing.T) {
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: nil,
-								String:      valuePtr("feature2-link"),
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec:           []string{"feature2-link"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -1326,8 +1312,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("203"),
 									SafariIos:      valuePtr("106"),
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.Low),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.Low),
 									Bool: nil,
 								},
 							},
@@ -1470,24 +1456,21 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
-							Discouraged: &web_platform_dx__web_features.Discouraged{
+							Discouraged: &webdxfeaturetypes.Discouraged{
 								AccordingTo:  []string{"according-to-1", "according-to-2"},
 								Alternatives: []string{"alternative-1", "alternative-2"},
 							},
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: []string{"feature1-link1", "feature1-link2"},
-								String:      nil,
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec: []string{"feature1-link1", "feature1-link2"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         valuePtr("100"),
 									ChromeAndroid:  valuePtr("104"),
 									Edge:           valuePtr("101"),
@@ -1496,8 +1479,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("103"),
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1511,15 +1494,12 @@ func TestInsertWebFeatures(t *testing.T) {
 							Caniuse:        nil,
 							CompatFeatures: nil,
 							Discouraged:    nil,
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: nil,
-								String:      valuePtr("feature2-link"),
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec:           []string{"feature2-link"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
@@ -1528,8 +1508,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("203"),
 									SafariIos:      valuePtr("106"),
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.Low),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.Low),
 									Bool: nil,
 								},
 							},
@@ -1643,24 +1623,21 @@ func TestInsertWebFeatures(t *testing.T) {
 				Browsers:  fakeBrowsersData,
 				Groups:    nil,
 				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]web_platform_dx__web_features.FeatureValue{
+					Data: map[string]webdxfeaturetypes.FeatureValue{
 						"feature1": {
 							Name:           "Feature 1",
 							Caniuse:        nil,
 							CompatFeatures: nil,
-							Discouraged: &web_platform_dx__web_features.Discouraged{
+							Discouraged: &webdxfeaturetypes.Discouraged{
 								AccordingTo:  []string{"according-to-1", "according-to-2"},
 								Alternatives: []string{"alternative-1", "alternative-2"},
 							},
-							Spec: &web_platform_dx__web_features.StringOrStringArray{
-								StringArray: []string{"feature1-link1", "feature1-link2"},
-								String:      nil,
-							},
-							Status: web_platform_dx__web_features.Status{
+							Spec: []string{"feature1-link1", "feature1-link2"},
+							Status: webdxfeaturetypes.Status{
 								BaselineHighDate: nil,
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
-								Support: web_platform_dx__web_features.StatusSupport{
+								Support: webdxfeaturetypes.StatusSupport{
 									Chrome:         valuePtr("100"),
 									ChromeAndroid:  valuePtr("104"),
 									Edge:           valuePtr("101"),
@@ -1669,8 +1646,8 @@ func TestInsertWebFeatures(t *testing.T) {
 									Safari:         valuePtr("103"),
 									SafariIos:      nil,
 								},
-								Baseline: &web_platform_dx__web_features.BaselineUnion{
-									Enum: valuePtr(web_platform_dx__web_features.High),
+								Baseline: &webdxfeaturetypes.BaselineUnion{
+									Enum: valuePtr(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1778,15 +1755,15 @@ func TestInsertWebFeatures(t *testing.T) {
 func TestInsertMovedWebFeatures(t *testing.T) {
 	testCases := []struct {
 		name                        string
-		movedFeatures               map[string]web_platform_dx__web_features.FeatureMovedData
+		movedFeatures               map[string]webdxfeaturetypes.FeatureMovedData
 		mockSyncMovedWebFeaturesCfg *mockSyncMovedWebFeaturesConfig
 		expectedErr                 error
 	}{
 		{
 			name: "success",
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
 				"feature1": {
-					Kind:           web_platform_dx__web_features.Moved,
+					Kind:           webdxfeaturetypes.Moved,
 					RedirectTarget: "targetA",
 				},
 			},
@@ -1845,15 +1822,15 @@ func TestInsertMovedWebFeatures(t *testing.T) {
 func TestInsertSplitWebFeatures(t *testing.T) {
 	testCases := []struct {
 		name                        string
-		splitFeatures               map[string]web_platform_dx__web_features.FeatureSplitData
+		splitFeatures               map[string]webdxfeaturetypes.FeatureSplitData
 		mockSyncSplitWebFeaturesCfg *mockSyncSplitWebFeaturesConfig
 		expectedError               error
 	}{
 		{
 			name: "success",
-			splitFeatures: map[string]web_platform_dx__web_features.FeatureSplitData{
+			splitFeatures: map[string]webdxfeaturetypes.FeatureSplitData{
 				"feature1": {
-					Kind: web_platform_dx__web_features.Split,
+					Kind: webdxfeaturetypes.Split,
 					RedirectTargets: []string{
 						"target1",
 						"target2",

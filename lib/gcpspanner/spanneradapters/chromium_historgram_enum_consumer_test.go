@@ -21,8 +21,8 @@ import (
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 type mockChromiumHistogramEnumsClient struct {
@@ -295,7 +295,7 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 		name                         string
 		histogramsToEnumMap          map[metricdatatypes.HistogramName]map[int64]*string
 		histogramsToAllFeatureKeySet map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue
-		movedFeatures                map[string]web_platform_dx__web_features.FeatureMovedData
+		movedFeatures                map[string]webdxfeaturetypes.FeatureMovedData
 		expectedHistogramsToEnumMap  map[metricdatatypes.HistogramName]map[int64]*string
 		expectedErr                  error
 	}{
@@ -311,8 +311,8 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 					"old-feature": {Value: 1, Label: "old-feature"},
 				},
 			},
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"old-feature": {RedirectTarget: "new-feature", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"old-feature": {RedirectTarget: "new-feature", Kind: webdxfeaturetypes.Moved},
 			},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
@@ -335,8 +335,8 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 					"new-feature": {Value: 2, Label: "new-feature"},
 				},
 			},
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"old-feature": {RedirectTarget: "new-feature", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"old-feature": {RedirectTarget: "new-feature", Kind: webdxfeaturetypes.Moved},
 			},
 			expectedHistogramsToEnumMap: nil,
 			expectedErr:                 ErrConflictMigratingFeatureKey,
@@ -353,7 +353,7 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 					"feature-a": {Value: 1, Label: "feature-a"},
 				},
 			},
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
 					1: valuePtr("feature-a"),
@@ -381,9 +381,9 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 					"old-b": {Value: 3, Label: "old-b"},
 				},
 			},
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"old-a": {RedirectTarget: "new-a", Kind: web_platform_dx__web_features.Moved},
-				"old-b": {RedirectTarget: "new-b", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"old-a": {RedirectTarget: "new-a", Kind: webdxfeaturetypes.Moved},
+				"old-b": {RedirectTarget: "new-b", Kind: webdxfeaturetypes.Moved},
 			},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
@@ -400,8 +400,8 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			name:                         "empty data",
 			histogramsToEnumMap:          map[metricdatatypes.HistogramName]map[int64]*string{},
 			histogramsToAllFeatureKeySet: map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue{},
-			movedFeatures: map[string]web_platform_dx__web_features.FeatureMovedData{
-				"a": {RedirectTarget: "b", Kind: web_platform_dx__web_features.Moved},
+			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{
+				"a": {RedirectTarget: "b", Kind: webdxfeaturetypes.Moved},
 			},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{},
 			expectedErr:                 nil,
@@ -430,7 +430,7 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 	testCases := []struct {
 		name          string
 		mockClient    *mockChromiumHistogramEnumsClient
-		expected      map[string]web_platform_dx__web_features.FeatureMovedData
+		expected      map[string]webdxfeaturetypes.FeatureMovedData
 		expectedError error
 	}{
 		{
@@ -454,14 +454,14 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 					}, nil
 				},
 			},
-			expected: map[string]web_platform_dx__web_features.FeatureMovedData{
+			expected: map[string]webdxfeaturetypes.FeatureMovedData{
 				"feature1": {
 					RedirectTarget: "new-feature1",
-					Kind:           web_platform_dx__web_features.Moved,
+					Kind:           webdxfeaturetypes.Moved,
 				},
 				"feature2": {
 					RedirectTarget: "new-feature2",
-					Kind:           web_platform_dx__web_features.Moved,
+					Kind:           webdxfeaturetypes.Moved,
 				},
 			},
 			expectedError: nil,
@@ -493,7 +493,7 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 					return []gcpspanner.MovedWebFeature{}, nil
 				},
 			},
-			expected:      map[string]web_platform_dx__web_features.FeatureMovedData{},
+			expected:      map[string]webdxfeaturetypes.FeatureMovedData{},
 			expectedError: nil,
 		},
 	}

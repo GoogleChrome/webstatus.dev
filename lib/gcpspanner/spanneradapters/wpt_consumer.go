@@ -20,7 +20,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -106,12 +106,12 @@ func (w *WPTConsumer) UpsertWPTRunFeatureMetrics(
 
 func convertGCPSpannerMovedFeaturesToMap(
 	movedFeatures []gcpspanner.MovedWebFeature,
-) map[string]web_platform_dx__web_features.FeatureMovedData {
-	ret := make(map[string]web_platform_dx__web_features.FeatureMovedData, len(movedFeatures))
+) map[string]webdxfeaturetypes.FeatureMovedData {
+	ret := make(map[string]webdxfeaturetypes.FeatureMovedData, len(movedFeatures))
 	for _, feature := range movedFeatures {
-		ret[feature.OriginalFeatureKey] = web_platform_dx__web_features.FeatureMovedData{
+		ret[feature.OriginalFeatureKey] = webdxfeaturetypes.FeatureMovedData{
 			RedirectTarget: feature.NewFeatureKey,
-			Kind:           web_platform_dx__web_features.Moved,
+			Kind:           webdxfeaturetypes.Moved,
 		}
 	}
 
@@ -119,7 +119,7 @@ func convertGCPSpannerMovedFeaturesToMap(
 }
 
 func (w *WPTConsumer) GetAllMovedWebFeatures(
-	ctx context.Context) (map[string]web_platform_dx__web_features.FeatureMovedData, error) {
+	ctx context.Context) (map[string]webdxfeaturetypes.FeatureMovedData, error) {
 	movedFeatures, err := w.client.GetAllMovedWebFeatures(ctx)
 	if err != nil {
 		return nil, errors.Join(wptconsumertypes.ErrUnableToGetAllMovedWebFeatures, err)

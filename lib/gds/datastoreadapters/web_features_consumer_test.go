@@ -21,7 +21,7 @@ import (
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // MockWebFeatureDatastoreClient allows us to control UpsertFeatureMetadata behavior.
@@ -45,7 +45,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 	testCases := []struct {
 		name                string
 		featureKeyToID      map[string]string
-		inputFeatureData    map[string]web_platform_dx__web_features.FeatureValue
+		inputFeatureData    map[string]webdxfeaturetypes.FeatureValue
 		expectedUpserts     map[string]gds.FeatureMetadata
 		mockClientError     error
 		expectedErrorReturn error
@@ -53,23 +53,20 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Success with single CanIUse ID",
 			featureKeyToID: map[string]string{"feature1": "id1"},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+			inputFeatureData: map[string]webdxfeaturetypes.FeatureValue{
 				"feature1": {
-					CompatFeatures: nil,
-					Name:           "feature 1",
-					Description:    "Feature 1 description",
-					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
-						String:      valuePtr("caniuse-id1"),
-						StringArray: nil,
-					},
+					CompatFeatures:  nil,
+					Name:            "feature 1",
+					Description:     "Feature 1 description",
+					Caniuse:         []string{"caniuse-id1"},
 					DescriptionHTML: "<html>1",
 					Discouraged:     nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: webdxfeaturetypes.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: webdxfeaturetypes.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -93,23 +90,20 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Success with multiple CanIUse IDs",
 			featureKeyToID: map[string]string{"feature2": "id2"},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+			inputFeatureData: map[string]webdxfeaturetypes.FeatureValue{
 				"feature2": {
-					CompatFeatures: nil,
-					Name:           "feature 2",
-					Description:    "Feature 2 description",
-					Discouraged:    nil,
-					Caniuse: &web_platform_dx__web_features.StringOrStringArray{
-						String:      nil,
-						StringArray: []string{"caniuse-id2a", "caniuse-id2b"},
-					},
+					CompatFeatures:  nil,
+					Name:            "feature 2",
+					Description:     "Feature 2 description",
+					Discouraged:     nil,
+					Caniuse:         []string{"caniuse-id2a", "caniuse-id2b"},
 					DescriptionHTML: "<html>2",
-					Status: web_platform_dx__web_features.Status{
+					Status: webdxfeaturetypes.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: webdxfeaturetypes.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -137,7 +131,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Missing feature ID",
 			featureKeyToID: map[string]string{},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+			inputFeatureData: map[string]webdxfeaturetypes.FeatureValue{
 				"feature3": {
 					Caniuse:         nil,
 					CompatFeatures:  nil,
@@ -145,12 +139,12 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Description:     "Feature 3 description",
 					DescriptionHTML: "<html>3",
 					Discouraged:     nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: webdxfeaturetypes.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: webdxfeaturetypes.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,
@@ -172,7 +166,7 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 		{
 			name:           "Upsert error",
 			featureKeyToID: map[string]string{"feature4": "id4"},
-			inputFeatureData: map[string]web_platform_dx__web_features.FeatureValue{
+			inputFeatureData: map[string]webdxfeaturetypes.FeatureValue{
 				"feature4": {
 					Caniuse:         nil,
 					CompatFeatures:  nil,
@@ -180,12 +174,12 @@ func TestInsertWebFeaturesMetadata(t *testing.T) {
 					Description:     "Feature 4 description",
 					DescriptionHTML: "<html>4",
 					Discouraged:     nil,
-					Status: web_platform_dx__web_features.Status{
+					Status: webdxfeaturetypes.Status{
 						Baseline:         nil,
 						BaselineHighDate: nil,
 						BaselineLowDate:  nil,
 						ByCompatKey:      nil,
-						Support: web_platform_dx__web_features.StatusSupport{
+						Support: webdxfeaturetypes.StatusSupport{
 							Chrome:         nil,
 							ChromeAndroid:  nil,
 							Edge:           nil,

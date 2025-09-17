@@ -19,7 +19,7 @@ import (
 	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
+	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 )
 
 // WebFeatureSnapshotsClient expects a subset of the functionality from lib/gcpspanner that only apply to Snapshots.
@@ -41,7 +41,7 @@ type WebFeatureSnapshotConsumer struct {
 
 func (c *WebFeatureSnapshotConsumer) upsertSnapshots(
 	ctx context.Context,
-	snapshotData map[string]web_platform_dx__web_features.SnapshotData,
+	snapshotData map[string]webdxfeaturetypes.SnapshotData,
 	snapshotKeyToInternalID map[string]string,
 ) error {
 	for key, snapshot := range snapshotData {
@@ -64,7 +64,7 @@ func (c *WebFeatureSnapshotConsumer) upsertSnapshots(
 func (c *WebFeatureSnapshotConsumer) upsertSnapshotMappings(
 	ctx context.Context,
 	featureKeyToID map[string]string,
-	featureData map[string]web_platform_dx__web_features.FeatureValue,
+	featureData map[string]webdxfeaturetypes.FeatureValue,
 	snapshotKeyToInternalID map[string]string,
 ) error {
 	for featureKey, featureID := range featureKeyToID {
@@ -72,25 +72,16 @@ func (c *WebFeatureSnapshotConsumer) upsertSnapshotMappings(
 		if feature.Snapshot == nil {
 			continue
 		}
-		var snapshotIDs []string
-		if feature.Snapshot.String != nil {
-			internalID, found := snapshotKeyToInternalID[*feature.Snapshot.String]
-			if !found {
-				slog.WarnContext(ctx, "unable to find internal snapshot ID", "snapshotKey", *feature.Snapshot.String)
 
-				continue
+		var snapshotIDs = make([]string, 0, len(feature.Snapshot))
+		for _, snapshotKey := range feature.Snapshot {
+			internalID, found := snapshotKeyToInternalID[snapshotKey]
+			if !found {
+				slog.WarnContext(ctx, "unable to find internal snapshot ID", "snapshotKey", snapshotKey)
+
+				continue // Skip this snapshot key, but continue with others
 			}
 			snapshotIDs = append(snapshotIDs, internalID)
-		} else if feature.Snapshot.StringArray != nil {
-			for _, snapshotKey := range feature.Snapshot.StringArray {
-				internalID, found := snapshotKeyToInternalID[snapshotKey]
-				if !found {
-					slog.WarnContext(ctx, "unable to find internal snapshot ID", "snapshotKey", snapshotKey)
-
-					continue
-				}
-				snapshotIDs = append(snapshotIDs, internalID)
-			}
 		}
 		err := c.client.UpsertWebFeatureSnapshot(ctx, gcpspanner.WebFeatureSnapshot{
 			WebFeatureID: featureID,
@@ -110,8 +101,8 @@ func (c *WebFeatureSnapshotConsumer) upsertSnapshotMappings(
 func (c *WebFeatureSnapshotConsumer) InsertWebFeatureSnapshots(
 	ctx context.Context,
 	featureKeyToID map[string]string,
-	featureData map[string]web_platform_dx__web_features.FeatureValue,
-	snapshotData map[string]web_platform_dx__web_features.SnapshotData) error {
+	featureData map[string]webdxfeaturetypes.FeatureValue,
+	snapshotData map[string]webdxfeaturetypes.SnapshotData) error {
 	snapshotKeyToInternalID := make(map[string]string, len(snapshotData))
 	// Upsert basic snapshot data and get snapshot ids.
 	err := c.upsertSnapshots(ctx, snapshotData, snapshotKeyToInternalID)
