@@ -274,7 +274,7 @@ func testFile(tag *string, contents string) *gh.ReleaseFile {
 func TestProcess(t *testing.T) {
 	// According https://pkg.go.dev/golang.org/x/mod/semver, the version must start with v
 	testFileFn := func() *gh.ReleaseFile {
-		return testFile(valuePtr(v2), "hi features")
+		return testFile(valuePtr(v3), "hi features")
 	}
 	// nolint: dupl
 	testCases := []struct {
@@ -1849,11 +1849,6 @@ func TestProcess(t *testing.T) {
 				t:                              t,
 				mockDownloadFileFromReleaseCfg: tc.mockDownloadFileFromReleaseCfg,
 			}
-			mockParser := &mockAssetParser{
-				t:            t,
-				mockParseCfg: tc.mockParseCfg,
-				callCount:    0,
-			}
 			mockParserV3 := &mockAssetParser{
 				t:            t,
 				mockParseCfg: tc.mockParseCfg,
@@ -1886,7 +1881,6 @@ func TestProcess(t *testing.T) {
 				mockMetadataStorer,
 				mockGroupStorer,
 				mockSnapshotStorer,
-				mockParser,
 				mockParserV3,
 			)
 
@@ -1910,59 +1904,30 @@ func TestParseByVersion(t *testing.T) {
 	testCases := []struct {
 		name                string
 		file                *gh.ReleaseFile
-		v2Parser            *mockAssetParser
 		expectedV2CallCount int
 		v3Parser            *mockAssetParser
 		expectedV3CallCount int
 		expectedError       error
 	}{
 		{
+			name:                "v2.0.0 tag",
+			file:                testFile(valuePtr("v2.1.0"), ""),
+			v3Parser:            nil,
+			expectedError:       ErrUnsupportedAssetVersion,
+			expectedV2CallCount: 0,
+			expectedV3CallCount: 0,
+		},
+		{
 			name:                "missing tag",
 			file:                testFile(nil, ""),
-			v2Parser:            nil,
 			v3Parser:            nil,
 			expectedError:       ErrUnknownAssetVersion,
 			expectedV2CallCount: 0,
 			expectedV3CallCount: 0,
 		},
 		{
-			name: "v2 parses successfully",
-			file: testFile(valuePtr(v2), ""),
-			v2Parser: &mockAssetParser{
-				t: t,
-				mockParseCfg: mockParseConfig{
-					expectedFileContents: "",
-					returnError:          nil,
-					returnData:           nil,
-				},
-				callCount: 0,
-			},
-			v3Parser:            nil,
-			expectedError:       nil,
-			expectedV2CallCount: 1,
-			expectedV3CallCount: 0,
-		},
-		{
-			name: "v2 parses unsuccessfully",
-			file: testFile(valuePtr(v2), ""),
-			v2Parser: &mockAssetParser{
-				t: t,
-				mockParseCfg: mockParseConfig{
-					expectedFileContents: "",
-					returnError:          errTestCannotParseData,
-					returnData:           nil,
-				},
-				callCount: 0,
-			},
-			v3Parser:            nil,
-			expectedError:       errTestCannotParseData,
-			expectedV2CallCount: 1,
-			expectedV3CallCount: 0,
-		},
-		{
-			name:     "v3 parses successfully",
-			file:     testFile(valuePtr(v3), ""),
-			v2Parser: nil,
+			name: "v3 parses successfully",
+			file: testFile(valuePtr(v3), ""),
 			v3Parser: &mockAssetParser{
 				t: t,
 				mockParseCfg: mockParseConfig{
@@ -1977,9 +1942,24 @@ func TestParseByVersion(t *testing.T) {
 			expectedV3CallCount: 1,
 		},
 		{
-			name:     "v3 parses unsuccessfully",
-			file:     testFile(valuePtr(v3), ""),
-			v2Parser: nil,
+			name: "v3.1.0 parses successfully",
+			file: testFile(valuePtr("v3.1.0"), ""),
+			v3Parser: &mockAssetParser{
+				t: t,
+				mockParseCfg: mockParseConfig{
+					expectedFileContents: "",
+					returnError:          nil,
+					returnData:           nil,
+				},
+				callCount: 0,
+			},
+			expectedError:       nil,
+			expectedV2CallCount: 0,
+			expectedV3CallCount: 1,
+		},
+		{
+			name: "v3 parses unsuccessfully",
+			file: testFile(valuePtr(v3), ""),
 			v3Parser: &mockAssetParser{
 				t: t,
 				mockParseCfg: mockParseConfig{
@@ -1996,7 +1976,6 @@ func TestParseByVersion(t *testing.T) {
 		{
 			name:                "unsupported tag",
 			file:                testFile(valuePtr("v4.0.0"), ""),
-			v2Parser:            nil,
 			v3Parser:            nil,
 			expectedError:       ErrUnsupportedAssetVersion,
 			expectedV2CallCount: 0,
@@ -2008,7 +1987,6 @@ func TestParseByVersion(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			p := WebFeaturesJobProcessor{
 				assetGetter:             nil,
-				webFeaturesDataV2Parser: tc.v2Parser,
 				webFeaturesDataV3Parser: tc.v3Parser,
 				storer:                  nil,
 				metadataStorer:          nil,
@@ -2018,12 +1996,6 @@ func TestParseByVersion(t *testing.T) {
 			_, err := p.parseByVersion(t.Context(), tc.file)
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("Expected error: %v, Got: %v", tc.expectedError, err)
-			}
-			if tc.v2Parser != nil && tc.v2Parser.callCount != tc.expectedV2CallCount {
-				t.Errorf("Expected v2 call count: %d, Got: %d", tc.expectedV2CallCount, tc.v2Parser.callCount)
-			}
-			if tc.v2Parser == nil && tc.expectedV2CallCount > 0 {
-				t.Error("Expected v2 parser to be called")
 			}
 			if tc.v3Parser != nil && tc.v3Parser.callCount != tc.expectedV3CallCount {
 				t.Errorf("Expected v3 call count: %d, Got: %d", tc.expectedV3CallCount, tc.v3Parser.callCount)

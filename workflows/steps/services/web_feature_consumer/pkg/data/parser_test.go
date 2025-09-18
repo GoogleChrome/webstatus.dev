@@ -23,50 +23,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features_v3"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/google/go-cmp/cmp"
 )
-
-func TestParse(t *testing.T) {
-	testCases := []struct {
-		name string
-		path string
-	}{
-		{
-			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v2.25.0",
-			path: path.Join("testdata", "data.json"),
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			file, err := os.Open(tc.path)
-			if err != nil {
-				t.Fatalf("unable to read file err %s", err.Error())
-			}
-			result, err := Parser{}.Parse(file)
-			if err != nil {
-				t.Errorf("unable to parse file err %s", err.Error())
-			}
-			if len(result.Features.Data) == 0 {
-				t.Error("unexpected empty map for features")
-			}
-			if len(result.Features.Moved) != 0 {
-				t.Error("unexpected map for moved features")
-			}
-			if len(result.Features.Split) != 0 {
-				t.Error("unexpected map for split features")
-			}
-			if len(result.Groups) == 0 {
-				t.Error("unexpected empty map for groups")
-			}
-			if len(result.Snapshots) == 0 {
-				t.Error("unexpected empty map for snapshots")
-			}
-		})
-	}
-}
 
 func TestParseV3(t *testing.T) {
 	testCases := []struct {
@@ -75,17 +35,16 @@ func TestParseV3(t *testing.T) {
 	}{
 		{
 			name: "data.json from https://github.com/web-platform-dx/web-features/releases/tag/v3.0.0",
-			path: path.Join("testdata", "data.json"),
+			path: path.Join("testdata", "v3.data.json"),
 		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			t.Skip("3.0.0 does not exist yet")
 			file, err := os.Open(tc.path)
 			if err != nil {
 				t.Fatalf("unable to read file err %s", err.Error())
 			}
-			result, err := Parser{}.Parse(file)
+			result, err := V3Parser{}.Parse(file)
 			if err != nil {
 				t.Errorf("unable to parse file err %s", err.Error())
 			}
@@ -124,12 +83,6 @@ func TestParseError(t *testing.T) {
 			name:          "bad format",
 			input:         io.NopCloser(strings.NewReader("Hello, world!")),
 			expectedError: ErrUnexpectedFormat,
-			testParser:    Parser{},
-		},
-		{
-			name:          "bad format",
-			input:         io.NopCloser(strings.NewReader("Hello, world!")),
-			expectedError: ErrUnexpectedFormat,
 			testParser:    V3Parser{},
 		},
 	}
@@ -141,211 +94,6 @@ func TestParseError(t *testing.T) {
 			}
 			if result != nil {
 				t.Error("unexpected map")
-			}
-		})
-	}
-}
-
-func testBrowsers() web_platform_dx__web_features.Browsers {
-	return web_platform_dx__web_features.Browsers{
-		Chrome: web_platform_dx__web_features.BrowserData{
-			Name:     "chrome",
-			Releases: nil,
-		},
-		ChromeAndroid: web_platform_dx__web_features.BrowserData{
-			Name:     "chrome_android",
-			Releases: nil,
-		},
-		Edge: web_platform_dx__web_features.BrowserData{
-			Name:     "edge",
-			Releases: nil,
-		},
-		Firefox: web_platform_dx__web_features.BrowserData{
-			Name:     "firefox",
-			Releases: nil,
-		},
-		FirefoxAndroid: web_platform_dx__web_features.BrowserData{
-			Name:     "firefox_android",
-			Releases: nil,
-		},
-		Safari: web_platform_dx__web_features.BrowserData{
-			Name:     "safari",
-			Releases: nil,
-		},
-		SafariIos: web_platform_dx__web_features.BrowserData{
-			Name:     "safari_ios",
-			Releases: nil,
-		},
-	}
-}
-
-func TestPostProcess(t *testing.T) {
-	testCases := []struct {
-		name          string
-		featureData   *rawWebFeaturesJSONDataV2
-		expectedValue *webdxfeaturetypes.ProcessedWebFeaturesData
-	}{
-		{
-			name: "catch-all case",
-			featureData: &rawWebFeaturesJSONDataV2{
-				Browsers:  testBrowsers(),
-				Groups:    nil,
-				Snapshots: nil,
-				Features: map[string]web_platform_dx__web_features.FeatureValue{
-					"feature1": {
-						CompatFeatures:  []string{"compat1", "compat2"},
-						Description:     "description",
-						DescriptionHTML: "description html",
-						Discouraged: &web_platform_dx__web_features.Discouraged{
-							AccordingTo: []string{
-								"discouraged1",
-								"discouraged2",
-							},
-							Alternatives: []string{
-								"feature2",
-								"feature3",
-							},
-						},
-						Name: "feature 1 name",
-						Caniuse: &web_platform_dx__web_features.StringOrStringArray{
-							String: nil,
-							StringArray: []string{
-								"caniuse1",
-								"caniuse2",
-							},
-						},
-						Group: &web_platform_dx__web_features.StringOrStringArray{
-							String:      valuePtr("group_name"),
-							StringArray: nil,
-						},
-						Snapshot: &web_platform_dx__web_features.StringOrStringArray{
-							String: nil,
-							StringArray: []string{
-								"snapshot1",
-								"snapshot2",
-							},
-						},
-						Spec: &web_platform_dx__web_features.StringOrStringArray{
-							String:      valuePtr("spec_link"),
-							StringArray: nil,
-						},
-						Status: web_platform_dx__web_features.Status{
-							Baseline: &web_platform_dx__web_features.BaselineUnion{
-								Bool: valuePtr(false),
-								Enum: valuePtr(web_platform_dx__web_features.High),
-							},
-							BaselineHighDate: valuePtr("≤2023-01-01"),
-							BaselineLowDate:  valuePtr("≤2022-12-01"),
-							ByCompatKey:      nil,
-							Support: web_platform_dx__web_features.StatusSupport{
-								Chrome:         valuePtr("≤99"),
-								ChromeAndroid:  valuePtr("≤98"),
-								Firefox:        valuePtr("≤97"),
-								FirefoxAndroid: valuePtr("≤96"),
-								Edge:           valuePtr("≤95"),
-								Safari:         valuePtr("≤94"),
-								SafariIos:      valuePtr("≤93"),
-							},
-						},
-					},
-				},
-			},
-			expectedValue: &webdxfeaturetypes.ProcessedWebFeaturesData{
-				Browsers: webdxfeaturetypes.Browsers{
-					Chrome: webdxfeaturetypes.BrowserData{
-						Name:     "chrome",
-						Releases: nil,
-					},
-					ChromeAndroid: webdxfeaturetypes.BrowserData{
-						Name:     "chrome_android",
-						Releases: nil,
-					},
-					Edge: webdxfeaturetypes.BrowserData{
-						Name:     "edge",
-						Releases: nil,
-					},
-					Firefox: webdxfeaturetypes.BrowserData{
-						Name:     "firefox",
-						Releases: nil,
-					},
-					FirefoxAndroid: webdxfeaturetypes.BrowserData{
-						Name:     "firefox_android",
-						Releases: nil,
-					},
-					Safari: webdxfeaturetypes.BrowserData{
-						Name:     "safari",
-						Releases: nil,
-					},
-					SafariIos: webdxfeaturetypes.BrowserData{
-						Name:     "safari_ios",
-						Releases: nil,
-					},
-				},
-				Features: &webdxfeaturetypes.FeatureKinds{
-					Data: map[string]webdxfeaturetypes.FeatureValue{
-						"feature1": {
-							CompatFeatures:  []string{"compat1", "compat2"},
-							Description:     "description",
-							DescriptionHTML: "description html",
-							Discouraged: &webdxfeaturetypes.Discouraged{
-								AccordingTo: []string{
-									"discouraged1",
-									"discouraged2",
-								},
-								Alternatives: []string{
-									"feature2",
-									"feature3",
-								},
-							},
-							Name: "feature 1 name",
-							Caniuse: []string{
-								"caniuse1",
-								"caniuse2",
-							},
-							Group: []string{
-								"group_name",
-							},
-							Snapshot: []string{
-								"snapshot1",
-								"snapshot2",
-							},
-							Spec: []string{
-								"spec_link",
-							},
-							Status: webdxfeaturetypes.Status{
-								ByCompatKey: nil,
-								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Bool: valuePtr(false),
-									Enum: valuePtr(webdxfeaturetypes.High),
-								},
-								BaselineHighDate: valuePtr("2023-01-01"),
-								BaselineLowDate:  valuePtr("2022-12-01"),
-								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("99"),
-									ChromeAndroid:  valuePtr("98"),
-									Firefox:        valuePtr("97"),
-									FirefoxAndroid: valuePtr("96"),
-									Edge:           valuePtr("95"),
-									Safari:         valuePtr("94"),
-									SafariIos:      valuePtr("93"),
-								},
-							},
-						},
-					},
-					Moved: nil,
-					Split: nil,
-				},
-				Snapshots: nil,
-				Groups:    nil,
-			},
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			value := postProcess(tc.featureData)
-			if diff := cmp.Diff(tc.expectedValue, value); diff != "" {
-				t.Errorf("postProcess unexpected output (-want +got):\n%s", diff)
 			}
 		})
 	}

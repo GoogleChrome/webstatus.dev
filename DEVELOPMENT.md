@@ -189,7 +189,7 @@ make -B openapi
 The project uses json schema to generate types from:
 
 - [browser-compat-data](https://github.com/mdn/browser-compat-data/tree/main/schemas)
-- [web-features](https://github.com/web-platform-dx/web-features/blob/main/schemas/defs.schema.json)
+- [web-features](https://github.com/web-platform-dx/web-features/blob/main/schemas/data.schema.json)
   - We make minor tweaks to the web-features schema to work with the
     [QuickType](https://github.com/glideapps/quicktype) tool to successfully generate the types
 
