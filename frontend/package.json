@@ -44,7 +44,7 @@
     "@web/test-runner": "^0.20.2",
     "@web/test-runner-mocha": "^0.9.0",
     "@web/test-runner-playwright": "^0.11.1",
-    "chai": "^6.0.1",
+    "chai": "^6.2.0",
     "cpy": "^12.0.1",
     "eslint": "^9.17.0",
     "eslint-plugin-import": "^2.32.0",
