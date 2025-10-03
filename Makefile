@@ -216,6 +216,8 @@ node-lint: node-install
 	npx prettier . --check
 
 tf-lint:
+	cd infra && terraform init -backend=false -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars && terraform validate
+	cd infra && terraform init -backend=false -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars && terraform validate
 	terraform fmt -recursive -check .
 
 shell-lint:

@@ -103,3 +103,49 @@ resource "google_project_iam_member" "invoker" {
   project  = var.project_id
   member   = google_service_account.service_account.member
 }
+
+# This alert fires when a job has failed at least once in the last 23 hours,
+# and has not had any successful runs in that same period.
+# The alert will automatically resolve when the job succeeds on a subsequent run.
+# We use a 23-hour alignment period because of a GCP limitation where alignment
+# periods must be at least 5 minutes shorter than the 24-hour duration.
+resource "google_monitoring_alert_policy" "job_failed_alert" {
+  for_each = { for r in var.regions : r => r if length(var.notification_channel_ids) > 0 }
+
+  display_name          = "${var.full_name}/${each.key} - Job Not Succeeded in 23 Hours (Error)"
+  combiner              = "AND"
+  notification_channels = var.notification_channel_ids
+  severity              = "ERROR"
+
+  conditions {
+    display_name = "No successful job executions in 23 hours"
+    condition_absent {
+      filter   = "metric.type=\"run.googleapis.com/job/completed_execution_count\" AND resource.type=\"cloud_run_job\" AND metric.labels.result=\"succeeded\" AND resource.labels.job_name=\"${module.job.regional_job_map[each.key].name}\""
+      duration = "120s"
+      trigger {
+        count = 1
+      }
+      aggregations {
+        alignment_period   = "82800s" # 23 hours
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+
+  conditions {
+    display_name = "Job has failed at least once in the last 23 hours"
+    condition_threshold {
+      filter          = "metric.type=\"run.googleapis.com/job/completed_execution_count\" AND resource.type=\"cloud_run_job\" AND metric.labels.result=\"failed\" AND resource.labels.job_name=\"${module.job.regional_job_map[each.key].name}\""
+      duration        = "120s"
+      comparison      = "COMPARISON_GT"
+      threshold_value = 0
+      trigger {
+        count = 1
+      }
+      aggregations {
+        alignment_period   = "82800s" # 23 hours
+        per_series_aligner = "ALIGN_SUM"
+      }
+    }
+  }
+}
