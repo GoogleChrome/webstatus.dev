@@ -380,6 +380,26 @@ describe('webstatus-feature-page', () => {
       expect(icon?.getAttribute('name')).to.equal('hand-thumbs-up');
     });
 
+    it('renders the developer signal when the upvotes are zero', async () => {
+      const signal = {upvotes: 0, link: 'http://example.com'};
+      const actual = element.renderDeveloperSignal(signal);
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const tooltip = host.querySelector('sl-tooltip');
+      const button = host.querySelector('sl-button');
+
+      expect(tooltip).to.not.be.null;
+      expect(button).to.not.be.null;
+
+      expect(tooltip?.getAttribute('content')).to.equal(
+        '0 developer upvotes. Need this feature across browsers? Click this and upvote it on GitHub.',
+      );
+      expect(button?.getAttribute('aria-label')).to.equal(
+        '0 developer upvotes',
+      );
+      expect(button?.textContent?.trim()).to.equal('0');
+    });
+
     it('renders the developer signal button with compact number', async () => {
       const signal = {upvotes: 12345, link: 'http://example.com'};
       const actual = element.renderDeveloperSignal(signal);
