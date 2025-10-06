@@ -97,3 +97,8 @@ variable "resource_job_limits" {
   }
 
 }
+
+variable "notification_channel_ids" {
+  description = "A list of notification channel ids to send alerts to."
+  type        = list(string)
+}

@@ -94,3 +94,4 @@ auth_github_config_locations = {
 # match production.
 backend_min_instance_count  = 0
 frontend_min_instance_count = 0
+notification_channel_ids    = ["projects/web-compass-staging/notificationChannels/7136127183667686021"]

@@ -54,6 +54,7 @@ terraform plan \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
     -var "deletion_protection=false" \
+    -var "notification_channel_ids=[]" \
     -var "datastore_region_id=us-east1"
 ```
 
@@ -65,6 +66,7 @@ terraform apply \
     -var "env_id=${ENV_ID}" \
     -var "spanner_processing_units=100" \
     -var "deletion_protection=false" \
+    -var "notification_channel_ids=[]" \
     -var "datastore_region_id=us-east1"
 ```
 

@@ -91,3 +91,4 @@ auth_github_config_locations = {
 
 backend_min_instance_count  = 1
 frontend_min_instance_count = 1
+notification_channel_ids    = ["projects/web-compass-prod/notificationChannels/4991947607216940054"]

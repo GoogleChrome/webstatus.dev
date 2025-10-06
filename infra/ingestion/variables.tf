@@ -86,3 +86,8 @@ variable "web_features_region_schedules" {
 variable "deletion_protection" {
   type = bool
 }
+
+variable "notification_channel_ids" {
+  description = "A list of notification channel ids to send alerts to."
+  type        = list(string)
+}

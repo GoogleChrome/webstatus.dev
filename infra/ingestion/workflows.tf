@@ -26,6 +26,7 @@ module "web_features_workflow" {
   timeout_seconds                 = 7200 # 2 hours
   image_name                      = "web_features_consumer_image"
   spanner_details                 = var.spanner_datails
+  notification_channel_ids        = var.notification_channel_ids
   env_id                          = var.env_id
   region_schedules                = var.web_features_region_schedules
   docker_repository_url           = var.docker_repository_details.url
@@ -74,6 +75,7 @@ module "wpt_workflow" {
   timeout_seconds                 = 86400 # 24 hours
   image_name                      = "wpt_consumer_image"
   spanner_details                 = var.spanner_datails
+  notification_channel_ids        = var.notification_channel_ids
   env_id                          = var.env_id
   region_schedules                = var.wpt_region_schedules
   docker_repository_url           = var.docker_repository_details.url
@@ -122,6 +124,7 @@ module "bcd_workflow" {
   timeout_seconds               = 60 * 5 # 5 minutes
   image_name                    = "bcd_consumer_image"
   spanner_details               = var.spanner_datails
+  notification_channel_ids      = var.notification_channel_ids
   env_id                        = var.env_id
   region_schedules              = var.bcd_region_schedules
   docker_repository_url         = var.docker_repository_details.url
@@ -157,6 +160,7 @@ module "chromium_enum_workflow" {
   timeout_seconds               = 60 * 5 # 5 minutes
   image_name                    = "chromium_enum_consumer_image"
   spanner_details               = var.spanner_datails
+  notification_channel_ids      = var.notification_channel_ids
   env_id                        = var.env_id
   region_schedules              = var.chromium_region_schedules
   docker_repository_url         = var.docker_repository_details.url
@@ -192,6 +196,7 @@ module "uma_export_workflow" {
   timeout_seconds               = 60 * 5 # 5 minutes
   image_name                    = "uma_export_consumer_image"
   spanner_details               = var.spanner_datails
+  notification_channel_ids      = var.notification_channel_ids
   env_id                        = var.env_id
   region_schedules              = var.uma_region_schedules
   docker_repository_url         = var.docker_repository_details.url
@@ -227,6 +232,7 @@ module "developer_signals_workflow" {
   timeout_seconds               = 60 * 10 # 5 minutes
   image_name                    = "developer_signals_consumer_image"
   spanner_details               = var.spanner_datails
+  notification_channel_ids      = var.notification_channel_ids
   env_id                        = var.env_id
   region_schedules              = var.developer_signals_region_schedules
   docker_repository_url         = var.docker_repository_details.url

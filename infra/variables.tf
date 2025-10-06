@@ -194,3 +194,8 @@ variable "frontend_max_instance_count" {
   # https://cloud.google.com/run/docs/configuring/max-instances#setting
   default = 100
 }
+
+variable "notification_channel_ids" {
+  description = "A list of notification channel ids to send alerts to."
+  type        = list(string)
+}

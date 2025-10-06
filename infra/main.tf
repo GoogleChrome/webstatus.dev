@@ -94,6 +94,7 @@ module "ingestion" {
   chromium_region_schedules          = var.chromium_region_schedules
   web_features_region_schedules      = var.web_features_region_schedules
   developer_signals_region_schedules = var.developer_signals_region_schedules
+  notification_channel_ids           = var.notification_channel_ids
 }
 
 module "backend" {
