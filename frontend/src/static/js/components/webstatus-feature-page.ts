@@ -384,7 +384,7 @@ export class FeaturePage extends BaseChartsPage {
   renderDeveloperSignal(
     signal?: components['schemas']['FeatureDeveloperSignals'],
   ): TemplateResult {
-    if (!signal?.link || !signal?.upvotes) {
+    if (signal?.link === undefined || signal?.upvotes === undefined) {
       return html`${nothing}`;
     }
 
