@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"context"
 	"errors"
+	"maps"
 	"slices"
 	"testing"
 
@@ -24,42 +25,27 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func getSampleBrowserAvailabilities() []struct {
-	FeatureKey string
-	BrowserFeatureAvailability
-} {
-	return []struct {
-		FeatureKey string
-		BrowserFeatureAvailability
-	}{
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+func getSampleBrowserAvailabilities() map[string][]BrowserFeatureAvailability {
+	return map[string][]BrowserFeatureAvailability{
+		"feature1": {
+			{
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "0.0.0",
 			},
-			FeatureKey: "feature1",
-		},
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+			{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "0.0.0",
 			},
-			FeatureKey: "feature1",
 		},
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+		"feature2": {
+			{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "2.0.0",
 			},
-			FeatureKey: "feature2",
-		},
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+			{
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "1.0.0",
 			},
-
-			FeatureKey: "feature2",
 		},
 	}
 }
@@ -86,7 +72,7 @@ func setupRequiredTablesForBrowserFeatureAvailability(
 // Helper method to get all the Availabilities in a stable order.
 func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]BrowserFeatureAvailability, error) {
 	stmt := spanner.NewStatement(
-		"SELECT * FROM BrowserFeatureAvailabilities ORDER BY BrowserVersion ASC, BrowserName ASC")
+		"SELECT BrowserName, BrowserVersion FROM BrowserFeatureAvailabilities ORDER BY BrowserVersion ASC, BrowserName ASC")
 	iter := c.Single().Query(ctx, stmt)
 	defer iter.Stop()
 
@@ -99,27 +85,25 @@ func (c *Client) ReadAllAvailabilities(ctx context.Context, _ *testing.T) ([]Bro
 		if err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		var availability spannerBrowserFeatureAvailability
+		var availability BrowserFeatureAvailability
 		if err := row.ToStruct(&availability); err != nil {
 			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
-		ret = append(ret, availability.BrowserFeatureAvailability)
+		ret = append(ret, availability)
 	}
 
 	return ret, nil
 }
 
-func TestUpsertBrowserFeatureAvailability(t *testing.T) {
+func TestSyncBrowserFeatureAvailabilities(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 	setupRequiredTablesForBrowserFeatureAvailability(ctx, spannerClient, t)
 	sampleAvailabilities := getSampleBrowserAvailabilities()
-	for _, availability := range sampleAvailabilities {
-		err := spannerClient.UpsertBrowserFeatureAvailability(
-			ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
-		if err != nil {
-			t.Errorf("unexpected error during insert. %s", err.Error())
-		}
+	err := spannerClient.SyncBrowserFeatureAvailabilities(
+		ctx, sampleAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during insert. %s", err.Error())
 	}
 
 	expectedPage := []BrowserFeatureAvailability{
@@ -151,10 +135,19 @@ func TestUpsertBrowserFeatureAvailability(t *testing.T) {
 	}
 
 	// Update the availability info for feature1 on barBrowser to a later version
-	err = spannerClient.UpsertBrowserFeatureAvailability(ctx, "feature1", BrowserFeatureAvailability{
-		BrowserName:    "barBrowser",
-		BrowserVersion: "1.0.0",
-	})
+	updatedAvailabilities := maps.Clone(sampleAvailabilities)
+	updatedAvailabilities["feature1"] = []BrowserFeatureAvailability{
+		{
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+		},
+		{
+			BrowserName:    "barBrowser",
+			BrowserVersion: "1.0.0",
+		},
+	}
+
+	err = spannerClient.SyncBrowserFeatureAvailabilities(ctx, updatedAvailabilities)
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
 	}
@@ -170,6 +163,33 @@ func TestUpsertBrowserFeatureAvailability(t *testing.T) {
 			BrowserName:    "barBrowser",
 			BrowserVersion: "1.0.0",
 		},
+		{
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "1.0.0",
+		},
+		{
+			BrowserName:    "barBrowser",
+			BrowserVersion: "2.0.0",
+		},
+	}
+	availabilities, err = spannerClient.ReadAllAvailabilities(ctx, t)
+	if err != nil {
+		t.Errorf("unexpected error during read all. %s", err.Error())
+	}
+	if !slices.Equal(expectedPage, availabilities) {
+		t.Errorf("unequal availabilities.\nexpected %+v\nreceived %+v", expectedPage, availabilities)
+	}
+
+	// Remove the availability info for feature1 on barBrowser
+	regressedAvailabilities := maps.Clone(updatedAvailabilities)
+	delete(regressedAvailabilities, "feature1")
+
+	err = spannerClient.SyncBrowserFeatureAvailabilities(ctx, regressedAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during update. %s", err.Error())
+	}
+
+	expectedPage = []BrowserFeatureAvailability{
 		{
 			BrowserName:    "fooBrowser",
 			BrowserVersion: "1.0.0",

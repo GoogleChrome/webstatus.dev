@@ -116,10 +116,14 @@ func (w *webFeatureForeignKeyTestHelpers) insertBrowserFeatureAvailability(ctx c
 	}
 
 	// Insert BrowserFeatureAvailability
-	err = spannerClient.UpsertBrowserFeatureAvailability(ctx, w.testWebFeature().FeatureKey, BrowserFeatureAvailability{
-		BrowserName:    "fooBrowser",
-		BrowserVersion: "0.0.0",
-	})
+	availabilities := make(map[string][]BrowserFeatureAvailability)
+	availabilities[w.testWebFeature().FeatureKey] = []BrowserFeatureAvailability{
+		{
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "0.0.0",
+		},
+	}
+	err = spannerClient.SyncBrowserFeatureAvailabilities(ctx, availabilities)
 	if err != nil {
 		t.Errorf("unexpected error during insert. %s", err.Error())
 	}
