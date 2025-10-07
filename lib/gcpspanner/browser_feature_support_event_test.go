@@ -59,33 +59,19 @@ func setupTablesForPrecalculateBrowserFeatureSupportEvents(
 	}
 
 	// 3. Insert sample data into BrowserFeatureAvailabilities
-	availabilities := []struct {
-		WebFeatureKey string
-		BrowserFeatureAvailability
-	}{
-		{
-			WebFeatureKey:              features[0].FeatureKey,
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "Chrome", BrowserVersion: "110"},
+	browserFeatureAvailabilities := map[string][]BrowserFeatureAvailability{
+		features[0].FeatureKey: {
+			{BrowserName: "Chrome", BrowserVersion: "110"},
 		},
-		{
-			WebFeatureKey:              features[2].FeatureKey,
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "Chrome", BrowserVersion: "111"},
+		features[1].FeatureKey: {
+			{BrowserName: "Firefox", BrowserVersion: "111"},
 		},
-		{
-			WebFeatureKey:              features[1].FeatureKey,
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "Firefox", BrowserVersion: "111"},
-		},
-		{
-			WebFeatureKey:              features[2].FeatureKey,
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "Firefox", BrowserVersion: "112"},
+		features[2].FeatureKey: {
+			{BrowserName: "Chrome", BrowserVersion: "111"},
+			{BrowserName: "Firefox", BrowserVersion: "112"},
 		},
 	}
-	syncAvailabilities := make(map[string][]BrowserFeatureAvailability)
-	for _, availability := range availabilities {
-		syncAvailabilities[availability.WebFeatureKey] = append(
-			syncAvailabilities[availability.WebFeatureKey], availability.BrowserFeatureAvailability)
-	}
-	err := spannerClient.SyncBrowserFeatureAvailabilities(ctx, syncAvailabilities)
+	err := spannerClient.SyncBrowserFeatureAvailabilities(ctx, browserFeatureAvailabilities)
 	if err != nil {
 		t.Fatalf("Failed to sync BrowserFeatureAvailability: %v", err)
 	}

@@ -72,72 +72,29 @@ func loadDataForListMissingOneImplCounts(ctx context.Context, t *testing.T, clie
 		}
 	}
 
-	browserFeatureAvailabilities := []struct {
-		FeatureKey string
-		BrowserFeatureAvailability
-	}{
-		// fooBrowser Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "111"},
-			FeatureKey:                 "FeatureX",
-		}, // Available from fooBrowser 111
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "112"},
-			FeatureKey:                 "FeatureY",
-		}, // Available from fooBrowser 112
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "112"},
-			FeatureKey:                 "FeatureZ",
-		}, // Available from fooBrowser 112
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: fooBrowser, BrowserVersion: "113"},
-			FeatureKey:                 "FeatureW",
-		}, // Available from fooBrowser 113
-
-		// barBrowser Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "113"},
-			FeatureKey:                 "FeatureX",
-		}, // Available from barBrowser 113
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "113"},
-			FeatureKey:                 "FeatureZ",
-		}, // Available from barBrowser 113
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "114"},
-			FeatureKey:                 "FeatureY",
-		}, // Available from barBrowser 114
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: barBrowser, BrowserVersion: "115"},
-			FeatureKey:                 "FeatureW",
-		}, // Available from barBrowser 115
-
-		// bazBrowser Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: bazBrowser, BrowserVersion: "16.4"},
-			FeatureKey:                 "FeatureX",
-		}, // Available from bazBrowser 16.4
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: bazBrowser, BrowserVersion: "16.5"},
-			FeatureKey:                 "FeatureY",
-		}, // Available from bazBrowser 16.5
-
-		// quxBrowser Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: quxBrowser, BrowserVersion: "1.0"},
-			FeatureKey:                 "FeatureW",
-		}, // Available from bazBrowser 1.0
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: quxBrowser, BrowserVersion: "2.0"},
-			FeatureKey:                 "FeatureX",
-		}, // Available from bazBrowser 2.0
+	browserFeatureAvailabilities := map[string][]BrowserFeatureAvailability{
+		"FeatureX": {
+			{BrowserName: fooBrowser, BrowserVersion: "111"},
+			{BrowserName: barBrowser, BrowserVersion: "113"},
+			{BrowserName: bazBrowser, BrowserVersion: "16.4"},
+			{BrowserName: quxBrowser, BrowserVersion: "2.0"},
+		},
+		"FeatureY": {
+			{BrowserName: fooBrowser, BrowserVersion: "112"},
+			{BrowserName: barBrowser, BrowserVersion: "114"},
+			{BrowserName: bazBrowser, BrowserVersion: "16.5"},
+		},
+		"FeatureZ": {
+			{BrowserName: fooBrowser, BrowserVersion: "112"},
+			{BrowserName: barBrowser, BrowserVersion: "113"},
+		},
+		"FeatureW": {
+			{BrowserName: fooBrowser, BrowserVersion: "113"},
+			{BrowserName: barBrowser, BrowserVersion: "115"},
+			{BrowserName: quxBrowser, BrowserVersion: "1.0"},
+		},
 	}
-	syncAvailabilities := make(map[string][]BrowserFeatureAvailability)
-	for _, availability := range browserFeatureAvailabilities {
-		syncAvailabilities[availability.FeatureKey] = append(
-			syncAvailabilities[availability.FeatureKey], availability.BrowserFeatureAvailability)
-	}
-	err := client.SyncBrowserFeatureAvailabilities(ctx, syncAvailabilities)
+	err := client.SyncBrowserFeatureAvailabilities(ctx, browserFeatureAvailabilities)
 	if err != nil {
 		t.Errorf("unexpected error during insert. %s", err.Error())
 	}

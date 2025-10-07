@@ -179,4 +179,31 @@ func TestSyncBrowserFeatureAvailabilities(t *testing.T) {
 	if !slices.Equal(expectedPage, availabilities) {
 		t.Errorf("unequal availabilities.\nexpected %+v\nreceived %+v", expectedPage, availabilities)
 	}
+
+	// Remove the availability info for feature1 on barBrowser
+	regressedAvailabilities := maps.Clone(updatedAvailabilities)
+	delete(regressedAvailabilities, "feature1")
+
+	err = spannerClient.SyncBrowserFeatureAvailabilities(ctx, regressedAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during update. %s", err.Error())
+	}
+
+	expectedPage = []BrowserFeatureAvailability{
+		{
+			BrowserName:    "fooBrowser",
+			BrowserVersion: "1.0.0",
+		},
+		{
+			BrowserName:    "barBrowser",
+			BrowserVersion: "2.0.0",
+		},
+	}
+	availabilities, err = spannerClient.ReadAllAvailabilities(ctx, t)
+	if err != nil {
+		t.Errorf("unexpected error during read all. %s", err.Error())
+	}
+	if !slices.Equal(expectedPage, availabilities) {
+		t.Errorf("unequal availabilities.\nexpected %+v\nreceived %+v", expectedPage, availabilities)
+	}
 }
