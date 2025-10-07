@@ -164,11 +164,14 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			FeatureKey: "feature3",
 		},
 	}
+	syncAvailabilities := make(map[string][]BrowserFeatureAvailability)
 	for _, availability := range sampleBrowserAvailabilities {
-		err := client.UpsertBrowserFeatureAvailability(ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
-		if err != nil {
-			t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
-		}
+		syncAvailabilities[availability.FeatureKey] = append(
+			syncAvailabilities[availability.FeatureKey], availability.BrowserFeatureAvailability)
+	}
+	err = client.SyncBrowserFeatureAvailabilities(ctx, syncAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
 	}
 
 	//nolint: dupl // Okay to duplicate for tests

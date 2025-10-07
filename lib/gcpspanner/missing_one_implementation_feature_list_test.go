@@ -127,14 +127,16 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 			FeatureKey:                 "FeatureX",
 		}, // Available from bazBrowser 2.0
 	}
+	syncAvailabilities := make(map[string][]BrowserFeatureAvailability)
 	for _, availability := range browserFeatureAvailabilities {
-		err := client.UpsertBrowserFeatureAvailability(ctx,
-			availability.FeatureKey, availability.BrowserFeatureAvailability)
-		if err != nil {
-			t.Errorf("unexpected error during insert. %s", err.Error())
-		}
+		syncAvailabilities[availability.FeatureKey] = append(
+			syncAvailabilities[availability.FeatureKey], availability.BrowserFeatureAvailability)
 	}
-	err := spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx,
+	err := client.SyncBrowserFeatureAvailabilities(ctx, syncAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during insert. %s", err.Error())
+	}
+	err = spannerClient.PrecalculateBrowserFeatureSupportEvents(ctx,
 		time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC))
 	if err != nil {
 		t.Errorf("unexpected error during pre-calculate. %s", err.Error())

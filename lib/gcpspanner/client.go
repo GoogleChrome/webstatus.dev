@@ -413,14 +413,6 @@ type writeableEntityMapperWithIDRetrieval[ExternalStruct any, SpannerStruct any,
 	idRetrievalMapper[Key]
 }
 
-// uniquieWriteableEntityMapper is composed for the entityUniqueWriter.
-type uniquieWriteableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
-	baseMapper
-	externalKeyMapper[ExternalStruct, Key]
-	readOneMapper[Key]
-	deleteByKeyMapper[Key]
-}
-
 // removableEntityMapper is composed for the entityRemover.
 type removableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable] interface {
 	baseMapper
@@ -763,85 +755,6 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) updateWithTransact
 
 	// Buffer the mutation to be committed.
 	err = txn.BufferWrite([]*spanner.Mutation{m})
-	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
-	}
-
-	return nil
-}
-
-// entityUniqueWriter is a basic client for writing a row to the database where this a unique constraint for a key.
-type entityUniqueWriter[
-	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, Key],
-	ExternalStruct any,
-	SpannerStruct any,
-	Key comparable] struct {
-	*Client
-}
-
-// upsertUniqueKey performs an upsert (insert or update) operation on an entity with a unique key.
-// This means that the given key can only exist once. If the entity exists, it
-// must be removed before inserting. This is essentially a compare and swap due to the key.
-func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key]) upsertUniqueKey(ctx context.Context,
-	input ExternalStruct) error {
-	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		return c.upsertUniqueKeyWithTransaction(ctx, txn, input)
-	})
-	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
-	}
-
-	return nil
-}
-
-// createInsertMutation simply creates a spanner mutation from the struct to the table.
-func (c *entityUniqueWriter[M, ExternalStruct, S, Key]) createInsertMutation(
-	mapper M, input ExternalStruct) (*spanner.Mutation, error) {
-	m, err := spanner.InsertStruct(mapper.Table(), input)
-	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
-	}
-
-	return m, nil
-}
-
-// upsertUniqueKeyWithTransaction performs an upsertUniqueKey operation on an entity using the existing transaction.
-func (c *entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key]) upsertUniqueKeyWithTransaction(
-	ctx context.Context,
-	txn *spanner.ReadWriteTransaction,
-	input ExternalStruct) error {
-	var mapper M
-	key := mapper.GetKeyFromExternal(input)
-	stmt := mapper.SelectOne(key)
-	// Attempt to query for the row.
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-	var ms []*spanner.Mutation
-
-	_, err := it.Next()
-	if err != nil {
-		// Check if an unexpected error occurred.
-		if !errors.Is(err, iterator.Done) {
-			return errors.Join(ErrInternalQueryFailure, err)
-		}
-
-		// No rows returned. Act as if this is an insertion.
-		m, err := c.createInsertMutation(mapper, input)
-		if err != nil {
-			return err
-		}
-		ms = append(ms, m)
-	} else {
-		m1 := spanner.Delete(mapper.Table(), mapper.DeleteKey(key))
-		ms = append(ms, m1)
-		m2, err := c.createInsertMutation(mapper, input)
-		if err != nil {
-			return err
-		}
-		ms = append(ms, m2)
-	}
-	// Buffer the mutation to be committed.
-	err = txn.BufferWrite(ms)
 	if err != nil {
 		return errors.Join(ErrInternalQueryFailure, err)
 	}
@@ -1218,14 +1131,6 @@ func newEntityWriter[
 	SpannerStruct any,
 	Key comparable](c *Client) *entityWriter[M, ExternalStruct, SpannerStruct, Key] {
 	return &entityWriter[M, ExternalStruct, SpannerStruct, Key]{c}
-}
-
-func newUniqueEntityWriter[
-	M uniquieWriteableEntityMapper[ExternalStruct, SpannerStruct, Key],
-	ExternalStruct any,
-	SpannerStruct any,
-	Key comparable](c *Client) *entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key] {
-	return &entityUniqueWriter[M, ExternalStruct, SpannerStruct, Key]{c}
 }
 
 func newEntityReader[

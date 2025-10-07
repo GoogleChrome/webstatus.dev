@@ -80,12 +80,14 @@ func setupTablesForPrecalculateBrowserFeatureSupportEvents(
 			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "Firefox", BrowserVersion: "112"},
 		},
 	}
+	syncAvailabilities := make(map[string][]BrowserFeatureAvailability)
 	for _, availability := range availabilities {
-		err := spannerClient.UpsertBrowserFeatureAvailability(ctx, availability.WebFeatureKey,
-			availability.BrowserFeatureAvailability)
-		if err != nil {
-			t.Fatalf("Failed to insert BrowserFeatureAvailability: %v", err)
-		}
+		syncAvailabilities[availability.WebFeatureKey] = append(
+			syncAvailabilities[availability.WebFeatureKey], availability.BrowserFeatureAvailability)
+	}
+	err := spannerClient.SyncBrowserFeatureAvailabilities(ctx, syncAvailabilities)
+	if err != nil {
+		t.Fatalf("Failed to sync BrowserFeatureAvailability: %v", err)
 	}
 
 	return features, featureKeyToID
