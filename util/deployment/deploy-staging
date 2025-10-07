@@ -4,7 +4,7 @@ set -e
 echo "Starting staging deployment..."
 
 # Ensure we are in the project root
-if [ ! -f "GEMINI.md" ] || [ ! -d "infra" ] || [ ! -d "frontend" ] || [ ! -d "backend" ]; then
+if [ "$(git rev-parse --git-dir 2>/dev/null)" != ".git" ]; then
   echo "Please run this script from the root of the webstatus.dev repository."
   exit 1
 fi
