@@ -1,0 +1,50 @@
+#!/bin/bash
+set -e
+
+echo "Starting staging deployment..."
+
+# Ensure we are in the project root
+if [ ! -f "GEMINI.md" ] || [ ! -d "infra" ] || [ ! -d "frontend" ] || [ ! -d "backend" ]; then
+  echo "Please run this script from the root of the webstatus.dev repository."
+  exit 1
+fi
+
+echo "Building..."
+make build
+
+cd infra
+
+echo "Authenticating with gcloud..."
+gcloud auth login
+gcloud auth application-default login --project=web-compass-staging
+gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+ENV_ID="staging"
+export TF_WORKSPACE=${ENV_ID}
+
+echo "Initializing Terraform..."
+terraform init -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
+
+echo "Planning Terraform changes..."
+terraform plan \
+    -var-file=".envs/staging.tfvars" \
+    -var "env_id=${ENV_ID}"
+
+echo
+echo "Review the plan above. If it looks correct, you will be prompted to apply the changes."
+echo "Press enter to continue, or Ctrl+C to cancel."
+read
+
+echo "Migrating database schema (if needed)..."
+export SPANNER_PROJECT_ID=webstatus-dev-internal-staging
+export SPANNER_DATABASE_ID=${ENV_ID}-database
+export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
+(cd .. && go tool wrench migrate up --directory ./infra/storage/spanner/)
+
+echo "Applying Terraform changes..."
+terraform apply \
+    -var-file=".envs/staging.tfvars" \
+    -var "env_id=${ENV_ID}"
+
+echo "Staging deployment complete."
+echo "Please verify the deployment at https://website-webstatus-dev.corp.goog/ and https://api-webstatus-dev.corp.goog/v1/features"

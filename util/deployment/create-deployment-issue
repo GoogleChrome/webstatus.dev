@@ -1,0 +1,71 @@
+#!/bin/bash
+set -e
+
+# Ensure we are in the project root
+if [ ! -f "GEMINI.md" ] || [ ! -d "infra" ] || [ ! -d "frontend" ] || [ ! -d "backend" ]; then
+  echo "Please run this script from the root of the webstatus.dev repository."
+  exit 1
+fi
+
+echo "Checking GitHub CLI authentication status..."
+if ! gh auth status > /dev/null 2>&1; then
+  echo "You are not logged into the GitHub CLI. Starting login process..."
+  gh auth login
+  # Re-check auth status after login attempt
+  if ! gh auth status > /dev/null 2>&1; then
+    echo "GitHub login failed. Please run 'gh auth login' manually and try again."
+    exit 1
+  fi
+fi
+echo "Authenticated."
+
+echo "Creating GitHub release issue..."
+
+PREVIOUS_SHORT_SHA=$(gh issue list --state=closed --label="release" --json title --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].title' | awk '{print $NF}')
+if [ -z "$PREVIOUS_SHORT_SHA" ]; then
+  echo "Could not determine the previous release SHA. Please check closed release issues."
+  exit 1
+fi
+
+CHANGELOG=$(git log --oneline "$PREVIOUS_SHORT_SHA..HEAD" --format="- %C(auto) %h %s")
+NEW_SHA=$(git rev-parse --short HEAD)
+
+DIRTY_PREFIX=""
+if [[ -n $(git status --porcelain) ]]; then
+    DIRTY_PREFIX="(contains uncommitted changes) "
+fi
+
+ISSUE_TITLE="Deploy $DIRTY_PREFIX$NEW_SHA"
+ISSUE_BODY=$(cat << EOF
+Changelist $PREVIOUS_SHORT_SHA...$NEW_SHA
+
+Changes:
+
+$CHANGELOG
+
+This push is happening as part of the regular weekly push.
+EOF
+)
+
+echo "Creating issue with the following details:"
+echo "---"
+echo "Title: $ISSUE_TITLE"
+echo "Body:"
+echo "$ISSUE_BODY"
+echo "---"
+echo "Press enter to create the issue, or Ctrl+C to cancel."
+read
+
+echo $ISSUE_TITLE
+echo $ISSUE_BODY
+
+exit
+
+gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "release" -R "GoogleChrome/webstatus.dev"
+
+if [[ $? != 0 ]]; then
+  echo "GitHub issue creation failed."
+  exit 1
+fi
+
+echo "Successfully created GitHub issue."
