@@ -56,11 +56,6 @@ echo "---"
 echo "Press enter to create the issue, or Ctrl+C to cancel."
 read
 
-echo $ISSUE_TITLE
-echo $ISSUE_BODY
-
-exit
-
 gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "release" -R "GoogleChrome/webstatus.dev"
 
 if [[ $? != 0 ]]; then
