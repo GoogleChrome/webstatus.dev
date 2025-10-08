@@ -1,0 +1,66 @@
+#!/bin/bash
+set -e
+
+# This is a helper script for deploying to a specific environment.
+# It is called by the deploy-staging and deploy-production scripts.
+
+# Check that all required environment variables are set.
+if [ -z "$DEPLOY_ENV" ] || [ -z "$GCP_PROJECT" ] || \
+  [ -z "$SPANNER_PROJECT" ] || [ -z "$WEBSITE_URL" ] || \
+  [ -z "$API_URL" ]; then
+    echo "Error: One or more required environment variables are not set."
+    echo "Please ensure the environment variables DEPLOY_ENV, GCP_PROJECT, SPANNER_PROJECT, WEBSITE_URL, and API_URL are exported."
+    exit 1
+fi
+
+echo "Starting deployment for $DEPLOY_ENV environment..."
+
+# Ensure we are in the project root
+if [ "$(git rev-parse --git-dir 2>/dev/null)" != ".git" ]; then
+  echo "Please run this script from the root of the webstatus.dev repository."
+  exit 1
+fi
+
+echo "Building..."
+make build
+
+cd infra
+
+echo "Authenticating with gcloud for project $GCP_PROJECT..."
+gcloud auth login
+gcloud auth application-default login --project="$GCP_PROJECT"
+gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+export TF_WORKSPACE=${DEPLOY_ENV}
+
+echo "Initializing Terraform..."
+terraform init -reconfigure --var-file=".envs/${DEPLOY_ENV}.tfvars" --backend-config=".envs/backend-${DEPLOY_ENV}.tfvars"
+
+echo "Planning Terraform changes..."
+terraform plan \
+    -var-file=".envs/${DEPLOY_ENV}.tfvars" \
+    -var "env_id=${DEPLOY_ENV}"
+
+echo
+echo "Review the plan above. If it looks correct, you will be prompted to apply the changes."
+echo "Press enter to continue, or Ctrl+C to cancel."
+read -r
+
+echo "Migrating database schema (if needed)..."
+export SPANNER_PROJECT_ID=${SPANNER_PROJECT}
+export SPANNER_DATABASE_ID=${DEPLOY_ENV}-database
+export SPANNER_INSTANCE_ID=${DEPLOY_ENV}-spanner
+(cd .. && go tool wrench migrate up --directory ./infra/storage/spanner/)
+
+echo "Applying Terraform changes..."
+terraform apply \
+    -var-file=".envs/${DEPLOY_ENV}.tfvars" \
+    -var "env_id=${DEPLOY_ENV}"
+
+echo "$DEPLOY_ENV deployment complete."
+echo "Please verify the deployment at:"
+echo "  $WEBSITE_URL"
+echo "  $API_URL"
+if [ "$DEPLOY_ENV" == "prod" ]; then
+  echo "Remember to close the GitHub release issue."
+fi
