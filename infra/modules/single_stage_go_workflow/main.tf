@@ -65,12 +65,13 @@ resource "google_cloud_run_v2_job_iam_member" "job_status" {
 }
 
 resource "google_workflows_workflow" "workflow" {
-  for_each        = module.job.regional_job_map
-  provider        = google.internal_project
-  name            = "${var.env_id}-${var.short_name}-${each.key}"
-  region          = each.key
-  description     = "${var.full_name}. Env id: ${var.env_id}"
-  service_account = google_service_account.service_account.id
+  for_each            = module.job.regional_job_map
+  provider            = google.internal_project
+  name                = "${var.env_id}-${var.short_name}-${each.key}"
+  region              = each.key
+  description         = "${var.full_name}. Env id: ${var.env_id}"
+  service_account     = google_service_account.service_account.id
+  deletion_protection = var.deletion_protection
   source_contents = templatefile(
     "${path.root}/modules/single_stage_go_workflow/workflows.yaml.tftpl",
     {
