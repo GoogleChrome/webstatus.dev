@@ -49,6 +49,10 @@ code webstatus.dev # Opens Visual Studio Code with the webstatus.dev folder.
 
 After getting the code with or without devcontainer, check out the [DEVELOPMENT.md](./DEVELOPMENT.md) for more information to get started and running locally.
 
+### Using Gemini CLI
+
+This devcontainer comes with the [Gemini CLI](https://developers.google.com/gemini-code-assist/docs/gemini-cli) tool. To use it, you can set the `GEMINI_API_KEY` environment variable on your host machine, and it will be automatically configured in the devcontainer. If you do not set it on the host, you will need to authenticate manually after the devcontainer starts.
+
 ## Deployment
 
 For project administrators or users interested in deploying their own version,

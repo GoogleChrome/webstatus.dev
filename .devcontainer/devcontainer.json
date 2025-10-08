@@ -51,6 +51,9 @@
       "version": "21"
     }
   },
+  "remoteEnv": {
+    "GEMINI_API_KEY": "${localEnv:GEMINI_API_KEY}"
+  },
   "customizations": {
     "vscode": {
       "settings": {
@@ -67,7 +70,8 @@
         "ms-playwright.playwright",
         "figma.figma-vscode-extension",
         "mike-lischke.vscode-antlr4",
-        "ms-vsliveshare.vsliveshare"
+        "ms-vsliveshare.vsliveshare",
+        "Google.gemini-cli-vscode-ide-companion"
       ]
     }
   },
@@ -83,6 +87,8 @@
   ],
   // Use 'forwardPorts' to make a list of ports inside the container available locally.
   // "forwardPorts": [],
+  // Use 'postAttachCommand' to run commands after the container is created and attached.
+  "postAttachCommand": "./.devcontainer/post_attach.sh",
   // Use 'postCreateCommand' to run commands after the container is created.
   "postCreateCommand": "./.devcontainer/post_create.sh"
   // Configure tool-specific properties.
