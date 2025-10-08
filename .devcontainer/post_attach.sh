@@ -38,9 +38,9 @@ if gh auth status &>/dev/null; then
     }
   }')
 else
-    echo "WARNING: GitHub CLI not authenticated. GitHub MCP server will not be configured."
-    echo "To configure the GitHub MCP Server, use 'gh auth login' and then reload (not rebuild) the devcontainer."
-    echo "In the Command Palette, run: Developer: Reload Window"
+  echo "WARNING: GitHub CLI not authenticated. GitHub MCP server will not be configured."
+  echo "To configure the GitHub MCP Server, use 'gh auth login' and then reload (not rebuild) the devcontainer."
+  echo "In the Command Palette, run: Developer: Reload Window"
 fi
 
 mkdir -p "$HOME/.gemini"
