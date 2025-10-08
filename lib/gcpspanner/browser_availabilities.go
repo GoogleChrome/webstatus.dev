@@ -17,57 +17,19 @@ package gcpspanner
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"cloud.google.com/go/spanner"
 )
 
 const browserFeatureAvailabilitiesTable = "BrowserFeatureAvailabilities"
 
-// Implements the entityMapper interface for BrowserFeatureAvailability and SpannerBrowserFeatureAvailability.
-type browserFeatureAvailabilityMapper struct{}
-
-func (m browserFeatureAvailabilityMapper) Table() string {
-	return browserFeatureAvailabilitiesTable
-}
-
-type browserFeatureAvailabilityKey struct {
-	WebFeatureID string
-	BrowserName  string
-}
-
-func (m browserFeatureAvailabilityMapper) SelectOne(key browserFeatureAvailabilityKey) spanner.Statement {
-	stmt := spanner.NewStatement(fmt.Sprintf(`
-	SELECT
-		WebFeatureID, BrowserName, BrowserVersion
-	FROM %s
-	WHERE WebFeatureID = @webFeatureID AND BrowserName = @browserName
-	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
-		"webFeatureID": key.WebFeatureID,
-		"browserName":  key.BrowserName,
-	}
-	stmt.Params = parameters
-
-	return stmt
-}
-
-func (m browserFeatureAvailabilityMapper) GetKeyFromExternal(
-	in spannerBrowserFeatureAvailability) browserFeatureAvailabilityKey {
-	return browserFeatureAvailabilityKey{
-		WebFeatureID: in.WebFeatureID,
-		BrowserName:  in.BrowserName,
-	}
-}
-
-func (m browserFeatureAvailabilityMapper) DeleteKey(key browserFeatureAvailabilityKey) spanner.Key {
-	return spanner.Key{key.WebFeatureID, key.BrowserName}
-}
-
 // spannerBrowserFeatureAvailability is a wrapper for the browser availability
 // information for a feature stored in spanner.
 type spannerBrowserFeatureAvailability struct {
-	WebFeatureID string
-	BrowserFeatureAvailability
+	WebFeatureID   string `spanner:"WebFeatureID"`
+	BrowserName    string `spanner:"BrowserName"`
+	BrowserVersion string `spanner:"BrowserVersion"`
 }
 
 // BrowserFeatureAvailability contains availability information for a particular
@@ -77,27 +39,100 @@ type BrowserFeatureAvailability struct {
 	BrowserVersion string
 }
 
-// UpsertBrowserFeatureAvailability will upsert the given browser feature availability.
-func (c *Client) UpsertBrowserFeatureAvailability(
+// Implements the syncableEntityMapper interface for BrowserFeatureAvailability and spannerBrowserFeatureAvailability.
+type browserFeatureAvailabilitySpannerMapper struct{}
+
+// PreDeleteHook is a no-op for browser feature availabilities.
+func (m browserFeatureAvailabilitySpannerMapper) PreDeleteHook(
+	_ context.Context,
+	_ *Client,
+	_ []spannerBrowserFeatureAvailability,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+// GetChildDeleteKeyMutations returns nil as there are no child delete mutations for browser feature availabilities.
+func (m browserFeatureAvailabilitySpannerMapper) GetChildDeleteKeyMutations(
+	_ context.Context,
+	_ *Client,
+	_ []spannerBrowserFeatureAvailability,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m browserFeatureAvailabilitySpannerMapper) Table() string {
+	return browserFeatureAvailabilitiesTable
+}
+
+func (m browserFeatureAvailabilitySpannerMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		WebFeatureID, BrowserName, BrowserVersion
+	FROM %s`, m.Table()))
+}
+
+func (m browserFeatureAvailabilitySpannerMapper) GetKeyFromExternal(in spannerBrowserFeatureAvailability) string {
+	return fmt.Sprintf("%s-%s", in.WebFeatureID, in.BrowserName)
+}
+
+func (m browserFeatureAvailabilitySpannerMapper) GetKeyFromInternal(in spannerBrowserFeatureAvailability) string {
+	return fmt.Sprintf("%s-%s", in.WebFeatureID, in.BrowserName)
+}
+
+func (m browserFeatureAvailabilitySpannerMapper) MergeAndCheckChanged(
+	in spannerBrowserFeatureAvailability, existing spannerBrowserFeatureAvailability) (
+	spannerBrowserFeatureAvailability, bool) {
+	merged := spannerBrowserFeatureAvailability{
+		WebFeatureID:   existing.WebFeatureID,
+		BrowserName:    existing.BrowserName,
+		BrowserVersion: in.BrowserVersion,
+	}
+	hasChanged := merged.BrowserVersion != existing.BrowserVersion
+
+	return merged, hasChanged
+}
+
+func (m browserFeatureAvailabilitySpannerMapper) DeleteMutation(
+	in spannerBrowserFeatureAvailability) *spanner.Mutation {
+	return spanner.Delete(browserFeatureAvailabilitiesTable, spanner.Key{in.WebFeatureID, in.BrowserName})
+}
+
+// SyncBrowserFeatureAvailabilities reconciles the BrowserFeatureAvailabilities table with the provided
+// list of availabilities.
+func (c *Client) SyncBrowserFeatureAvailabilities(
 	ctx context.Context,
-	webFeatureID string,
-	input BrowserFeatureAvailability) error {
-	id, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(webFeatureID))
+	availabilities map[string][]BrowserFeatureAvailability,
+) error {
+	featureIDandKeys, err := c.FetchAllWebFeatureIDsAndKeys(ctx)
 	if err != nil {
 		return err
 	}
-	if id == nil {
-		return ErrInternalQueryFailure
-	}
-	featureAvailability := spannerBrowserFeatureAvailability{
-		WebFeatureID:               *id,
-		BrowserFeatureAvailability: input,
+
+	featureKeyToID := make(map[string]string, len(featureIDandKeys))
+	for _, item := range featureIDandKeys {
+		featureKeyToID[item.FeatureKey] = item.ID
 	}
 
-	return newUniqueEntityWriter[
-		browserFeatureAvailabilityMapper,
-		spannerBrowserFeatureAvailability,
-		spannerBrowserFeatureAvailability](c).upsertUniqueKey(ctx, featureAvailability)
+	var spannerAvailabilities []spannerBrowserFeatureAvailability
+	for featureKey, featureAvailabilities := range availabilities {
+		featureID, ok := featureKeyToID[featureKey]
+		if !ok {
+			slog.WarnContext(ctx, "unable to find feature id for feature key", "featureKey", featureKey)
+
+			continue
+		}
+		for _, availability := range featureAvailabilities {
+			spannerAvailabilities = append(spannerAvailabilities, spannerBrowserFeatureAvailability{
+				WebFeatureID:   featureID,
+				BrowserName:    availability.BrowserName,
+				BrowserVersion: availability.BrowserVersion,
+			})
+		}
+	}
+
+	synchronizer := newEntitySynchronizer[browserFeatureAvailabilitySpannerMapper](c)
+
+	return synchronizer.Sync(ctx, spannerAvailabilities)
 }
 
 func (c *Client) fetchAllBrowserAvailabilitiesWithTransaction(

@@ -29,10 +29,9 @@ type WebFeatureSpannerClient interface {
 		options ...gcpspanner.SyncWebFeaturesOption) error
 	FetchAllWebFeatureIDsAndKeys(ctx context.Context) ([]gcpspanner.SpannerFeatureIDAndKey, error)
 	UpsertFeatureBaselineStatus(ctx context.Context, featureID string, status gcpspanner.FeatureBaselineStatus) error
-	UpsertBrowserFeatureAvailability(
+	SyncBrowserFeatureAvailabilities(
 		ctx context.Context,
-		featureID string,
-		featureAvailability gcpspanner.BrowserFeatureAvailability) error
+		availabilities map[string][]gcpspanner.BrowserFeatureAvailability) error
 	UpsertFeatureSpec(ctx context.Context, webFeatureID string, input gcpspanner.FeatureSpec) error
 	UpsertFeatureDiscouragedDetails(ctx context.Context, featureID string,
 		in gcpspanner.FeatureDiscouragedDetails) error
@@ -87,6 +86,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 	}
 
 	// 3. Loop through the data again to process all related entities for each feature.
+	browserAvailabilities := make(map[string][]gcpspanner.BrowserFeatureAvailability)
 	for featureID, featureData := range data.Features.Data {
 		featureBaselineStatus := gcpspanner.FeatureBaselineStatus{
 			Status:   getBaselineStatusEnum(featureData.Status),
@@ -103,19 +103,7 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 
 		// Read the browser support data.
-		fba := extractBrowserAvailability(featureData)
-		for _, browserAvailability := range fba {
-			err := c.client.UpsertBrowserFeatureAvailability(ctx, featureID, browserAvailability)
-			if err != nil {
-				slog.ErrorContext(ctx, "unable to insert BrowserFeatureAvailability",
-					"browserName", browserAvailability.BrowserName,
-					"browserVersion", browserAvailability.BrowserVersion,
-					"featureID", featureID,
-				)
-
-				return nil, err
-			}
-		}
+		browserAvailabilities[featureID] = extractBrowserAvailability(featureData)
 
 		// Read the spec information
 		err = consumeFeatureSpecInformation(ctx, c.client, featureID, featureData)
@@ -139,9 +127,14 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		}
 	}
 
+	err := c.client.SyncBrowserFeatureAvailabilities(ctx, browserAvailabilities)
+	if err != nil {
+		return nil, err
+	}
+
 	// 4. Now that all the feature information is stored, run pre-calculation of
 	// feature support events.
-	err := c.client.PrecalculateBrowserFeatureSupportEvents(ctx, startAt, endAt)
+	err = c.client.PrecalculateBrowserFeatureSupportEvents(ctx, startAt, endAt)
 	if err != nil {
 		return nil, err
 	}

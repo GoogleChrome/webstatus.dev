@@ -61,67 +61,31 @@ func loadDataForListBrowserFeatureCountMetric(ctx context.Context, t *testing.T,
 		}
 	}
 
-	browserFeatureAvailabilities := []struct {
-		FeatureKey string
-		BrowserFeatureAvailability
-	}{
-		// Chrome Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome", BrowserVersion: "100"},
-			FeatureKey:                 "FeatureX",
-		}, // Available from Chrome 100
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome", BrowserVersion: "100"},
-			FeatureKey:                 "FeatureY",
-		}, // Available from Chrome 100
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome", BrowserVersion: "101"},
-			FeatureKey:                 "FeatureZ",
-		}, // Available from Chrome 101
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "chrome", BrowserVersion: "101"},
-			FeatureKey:                 "FeatureV",
-		}, // Available from Chrome 101
-
-		// Firefox Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "firefox", BrowserVersion: "80"},
-			FeatureKey:                 "FeatureY",
-		}, // Available from Firefox 80
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{BrowserName: "firefox", BrowserVersion: "81"},
-			FeatureKey:                 "FeatureW",
-		}, // Available from Firefox 81
-
-		// Chrome Android Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
-				BrowserName:    "chrome_android",
-				BrowserVersion: "100",
-			},
-			FeatureKey: "FeatureX",
-		}, // Available from Chrome Android 102
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
-				BrowserName:    "chrome_android",
-				BrowserVersion: "101",
-			},
-			FeatureKey: "FeatureV",
-		}, // Available from Chrome Android 102
-
-		// Firefox Android Availabilities
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
-				BrowserName: "firefox_android", BrowserVersion: "80"},
-			FeatureKey: "FeatureV",
-		}, // Available from Firefox Android 80
+	browserFeatureAvailabilities := map[string][]BrowserFeatureAvailability{
+		"FeatureX": {
+			{BrowserName: "chrome", BrowserVersion: "100"},
+			{BrowserName: "chrome_android", BrowserVersion: "100"},
+		},
+		"FeatureY": {
+			{BrowserName: "chrome", BrowserVersion: "100"},
+			{BrowserName: "firefox", BrowserVersion: "80"},
+		},
+		"FeatureZ": {
+			{BrowserName: "chrome", BrowserVersion: "101"},
+		},
+		"FeatureV": {
+			{BrowserName: "chrome", BrowserVersion: "101"},
+			{BrowserName: "chrome_android", BrowserVersion: "101"},
+			{BrowserName: "firefox_android", BrowserVersion: "80"},
+		},
+		"FeatureW": {
+			{BrowserName: "firefox", BrowserVersion: "81"},
+		},
 	}
-	for _, availability := range browserFeatureAvailabilities {
-		err := client.UpsertBrowserFeatureAvailability(ctx,
-			availability.FeatureKey, availability.BrowserFeatureAvailability)
-		if err != nil {
-			t.Errorf("unexpected error during insert. %s", err.Error())
-		}
+
+	err := client.SyncBrowserFeatureAvailabilities(ctx, browserFeatureAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during insert. %s", err.Error())
 	}
 }
 

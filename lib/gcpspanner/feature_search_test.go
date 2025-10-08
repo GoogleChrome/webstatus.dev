@@ -131,44 +131,34 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	}
 
 	//nolint: dupl // Okay to duplicate for tests
-	sampleBrowserAvailabilities := []struct {
-		BrowserFeatureAvailability
-		FeatureKey string
-	}{
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+	sampleFeatureBrowserAvailabilities := map[string][]BrowserFeatureAvailability{
+		"feature1": {
+			{
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "0.0.0",
 			},
-			FeatureKey: "feature1",
-		},
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+			{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "1.0.0",
 			},
-			FeatureKey: "feature1",
 		},
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+		"feature2": {
+			{
 				BrowserName:    "barBrowser",
 				BrowserVersion: "2.0.0",
 			},
-			FeatureKey: "feature2",
 		},
-		{
-			BrowserFeatureAvailability: BrowserFeatureAvailability{
+		"feature3": {
+			{
 				BrowserName:    "fooBrowser",
 				BrowserVersion: "1.0.0",
 			},
-			FeatureKey: "feature3",
 		},
 	}
-	for _, availability := range sampleBrowserAvailabilities {
-		err := client.UpsertBrowserFeatureAvailability(ctx, availability.FeatureKey, availability.BrowserFeatureAvailability)
-		if err != nil {
-			t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
-		}
+
+	err = client.SyncBrowserFeatureAvailabilities(ctx, sampleFeatureBrowserAvailabilities)
+	if err != nil {
+		t.Errorf("unexpected error during insert of availabilities. %s", err.Error())
 	}
 
 	//nolint: dupl // Okay to duplicate for tests

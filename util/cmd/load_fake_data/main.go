@@ -497,21 +497,30 @@ func generateFeatureAvailability(
 	generateUnimplementedFeatures(featureAvailability, browsers)
 
 	// Insert the availabilities into Spanner
+	availabilities := make(map[string][]gcpspanner.BrowserFeatureAvailability)
 	for _, browser := range browsers {
 		for featureKey, releaseNumber := range featureAvailability[browser] {
-			err := client.UpsertBrowserFeatureAvailability(
-				ctx,
-				featureKey,
-				gcpspanner.BrowserFeatureAvailability{
-					BrowserName:    browser,
-					BrowserVersion: fmt.Sprintf("%d", releaseNumber),
-				},
-			)
-			if err != nil {
-				return availabilitiesInserted, err
+			var featureAvailabilities []gcpspanner.BrowserFeatureAvailability
+			var found bool
+			featureAvailabilities, found = availabilities[featureKey]
+			if !found {
+				featureAvailabilities = []gcpspanner.BrowserFeatureAvailability{}
 			}
+			featureAvailabilities = append(featureAvailabilities, gcpspanner.BrowserFeatureAvailability{
+				BrowserName:    browser,
+				BrowserVersion: fmt.Sprintf("%d", releaseNumber),
+			})
+			availabilities[featureKey] = featureAvailabilities
 			availabilitiesInserted++
 		}
+	}
+
+	err := client.SyncBrowserFeatureAvailabilities(
+		ctx,
+		availabilities,
+	)
+	if err != nil {
+		return 0, err
 	}
 
 	return availabilitiesInserted, nil
