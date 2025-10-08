@@ -55,7 +55,5 @@ else
 fi
 
 
-# If using the Gemini CLI, you will need to open a new terminal, separate from the default terminal vscode opens.
-echo "If you are using the Gemini CLI, please open a new terminal (separate from the default terminal VSCode opens)."
-echo "You can do this by going to the Command Palette (Ctrl+Shift+P or Cmd+Shift+P) and selecting 'Terminal: Create New Terminal'."
-echo "This ensures that the Gemini CLI is available in your terminal session."
+echo "Note: After starting the Gemini CLI for the first time, it may present you with some errors."
+echo "In that case, it will tell you to open a new terminal and start the Gemini CLI again."
