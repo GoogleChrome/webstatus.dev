@@ -1,0 +1,51 @@
+#!/bin/bash
+set -e
+
+echo "Starting production deployment..."
+
+# Ensure we are in the project root
+if [ "$(git rev-parse --git-dir 2>/dev/null)" != ".git" ]; then
+  echo "Please run this script from the root of the webstatus.dev repository."
+  exit 1
+fi
+
+echo "Building..."
+make build
+
+cd infra
+
+echo "Authenticating with gcloud..."
+gcloud auth login
+gcloud auth application-default login --project=web-compass-prod
+gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
+
+ENV_ID="prod"
+export TF_WORKSPACE=${ENV_ID}
+
+echo "Initializing Terraform..."
+terraform init -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars
+
+echo "Planning Terraform changes..."
+terraform plan \
+    -var-file=".envs/prod.tfvars" \
+    -var "env_id=${ENV_ID}"
+
+echo
+echo "Review the plan above. If it looks correct, you will be prompted to apply the changes."
+echo "Press enter to continue, or Ctrl+C to cancel."
+read
+
+echo "Migrating database schema (if needed)..."
+export SPANNER_PROJECT_ID=webstatus-dev-internal-prod
+export SPANNER_DATABASE_ID=${ENV_ID}-database
+export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
+(cd .. && go tool wrench migrate up --directory ./infra/storage/spanner/)
+
+echo "Applying Terraform changes..."
+terraform apply \
+    -var-file=".envs/prod.tfvars" \
+    -var "env_id=${ENV_ID}"
+
+echo "Production deployment complete."
+echo "Please verify the deployment at https://webstatus.dev/ and https://api.webstatus.dev/v1/features"
+echo "Remember to close the GitHub release issue."

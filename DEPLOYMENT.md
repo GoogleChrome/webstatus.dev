@@ -111,67 +111,10 @@ Also, remove your domain from the allow-list of domains in the [console](https:/
 
 ## Deploy Staging
 
-```sh
-make build
-cd infra
-gcloud auth login
-gcloud auth application-default login --project=web-compass-staging
-gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-ENV_ID="staging"
-export TF_WORKSPACE=${ENV_ID}
-terraform init -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars
-terraform plan \
-    -var-file=".envs/staging.tfvars" \
-    -var "env_id=${ENV_ID}"
-```
-
-Migrate the tables if any schemas changed (assuming you already authenticated with `gcloud auth application-default login`):
-
-```sh
-export SPANNER_PROJECT_ID=webstatus-dev-internal-staging
-export SPANNER_DATABASE_ID=${ENV_ID}-database
-export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
-go tool wrench migrate up --directory ./storage/spanner/
-```
-
-Assuming the plan output by the terraform plan command looks fine, run:
-
-```sh
-terraform apply \
-    -var-file=".envs/staging.tfvars" \
-    -var "env_id=${ENV_ID}"
-```
+Run the script `deploy-staging` in the devcontainer and follow the output and
+prompts to complete the deployment.
 
 ## Deploy Prod
 
-```sh
-make build
-cd infra
-gcloud auth login
-gcloud auth application-default login --project=web-compass-prod
-gcloud auth configure-docker europe-west1-docker.pkg.dev --quiet
-ENV_ID="prod"
-export TF_WORKSPACE=${ENV_ID}
-terraform init -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars
-
-terraform plan \
-    -var-file=".envs/prod.tfvars" \
-    -var "env_id=${ENV_ID}"
-```
-
-Migrate the tables if any schemas changed (assuming you already authenticated with `gcloud auth application-default login`):
-
-```sh
-export SPANNER_PROJECT_ID=webstatus-dev-internal-prod
-export SPANNER_DATABASE_ID=${ENV_ID}-database
-export SPANNER_INSTANCE_ID=${ENV_ID}-spanner
-go tool wrench migrate up --directory ./storage/spanner/
-```
-
-Assuming the plan output by the terraform plan command looks fine, run:
-
-```sh
-terraform apply \
-    -var-file=".envs/prod.tfvars" \
-    -var "env_id=${ENV_ID}"
-```
+Run the script `deploy-production` in the devcontainer and follow the output and
+prompts to complete the deployment.

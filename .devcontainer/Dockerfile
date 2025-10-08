@@ -41,4 +41,4 @@ RUN apt-get update && apt-get install -y netcat-traditional
 # Switch to the default user and append to PATH
 USER vscode
 
-RUN echo 'PATH=${PATH}:/google-cloud-sdk/bin' >> ~/.bashrc
+RUN echo 'PATH=${PATH}:/google-cloud-sdk/bin:/workspaces/webstatus.dev/util/deployment' >> ~/.bashrc
