@@ -54,11 +54,9 @@ echo "Body:"
 echo "$ISSUE_BODY"
 echo "---"
 echo "Press enter to create the issue, or Ctrl+C to cancel."
-read
+read -r
 
-gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "release" -R "GoogleChrome/webstatus.dev"
-
-if [[ $? != 0 ]]; then
+if ( ! gh issue create --title "$ISSUE_TITLE" --body "$ISSUE_BODY" --label "release" -R "GoogleChrome/webstatus.dev"); then
   echo "GitHub issue creation failed."
   exit 1
 fi

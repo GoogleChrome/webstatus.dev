@@ -2,7 +2,7 @@
 set -e
 
 # Get the directory of the script
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" )" && pwd )"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 export DEPLOY_ENV="prod"
 export GCP_PROJECT="web-compass-prod"

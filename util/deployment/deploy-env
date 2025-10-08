@@ -44,7 +44,7 @@ terraform plan \
 echo
 echo "Review the plan above. If it looks correct, you will be prompted to apply the changes."
 echo "Press enter to continue, or Ctrl+C to cancel."
-read
+read -r
 
 echo "Migrating database schema (if needed)..."
 export SPANNER_PROJECT_ID=${SPANNER_PROJECT}

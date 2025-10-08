@@ -225,6 +225,7 @@ shell-lint:
 	shellcheck infra/**/*.sh
 	shellcheck .dev/**/*.sh
 	shellcheck util/*.sh
+	shellcheck util/deployment/*
 
 lint-fix: node-install
 	npm run lint-fix -w frontend
