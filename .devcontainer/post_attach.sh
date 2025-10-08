@@ -29,11 +29,12 @@ GEMINI_CONFIG='{
 # If not, print out a warning message.
 if gh auth status &>/dev/null; then
   echo "GitHub CLI authenticated. Adding GitHub MCP server to Gemini config."
-  GEMINI_CONFIG=$(echo "$GEMINI_CONFIG" | jq '.mcpServers.github = {
+  GH_TOKEN=$(gh auth token)
+  GEMINI_CONFIG=$(echo "$GEMINI_CONFIG" | jq --arg token "$GH_TOKEN" '.mcpServers.github = {
     "command": "npx",
     "args": ["-y", "@modelcontextprotocol/server-github"],
     "env": {
-      "GITHUB_PERSONAL_ACCESS_TOKEN": "$(gh auth token)"
+      "GITHUB_PERSONAL_ACCESS_TOKEN": $token
     }
   }')
 else
