@@ -19,8 +19,6 @@ if ! gh auth status > /dev/null 2>&1; then
 fi
 echo "Authenticated."
 
-echo "Creating GitHub release issue..."
-
 PREVIOUS_SHORT_SHA=$(gh issue list --state=closed --label="release" --json title --repo "GoogleChrome/webstatus.dev" | jq -r '.[0].title' | awk '{print $NF}')
 if [ -z "$PREVIOUS_SHORT_SHA" ]; then
   echo "Could not determine the previous release SHA. Please check closed release issues."
@@ -36,6 +34,22 @@ if [[ -n $(git status --porcelain) ]]; then
 fi
 
 ISSUE_TITLE="Deploy $DIRTY_PREFIX$NEW_SHA"
+
+echo "Checking for existing issue with title: $ISSUE_TITLE"
+EXISTING_ISSUE_JSON=$(gh issue list --search "\"$ISSUE_TITLE\" in:title" --state all --repo "GoogleChrome/webstatus.dev" --json number,title,state,url | jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title)')
+
+if [[ -n "$EXISTING_ISSUE_JSON" ]]; then
+  ISSUE_STATE=$(echo "$EXISTING_ISSUE_JSON" | jq -r '.state')
+  ISSUE_URL=$(echo "$EXISTING_ISSUE_JSON" | jq -r '.url')
+  if [[ "$ISSUE_STATE" == "CLOSED" ]]; then
+    echo -e "Deployment has already been completed for $NEW_SHA. A closed\nissue with the title '$ISSUE_TITLE' was found:\n  $ISSUE_URL"
+    exit 1
+  else # It must be OPEN
+    echo -e "An open issue with the title '$ISSUE_TITLE' already exists:\n  $ISSUE_URL"
+    exit 0
+  fi
+fi
+
 ISSUE_BODY=$(cat << EOF
 Changelist $PREVIOUS_SHORT_SHA...$NEW_SHA
 

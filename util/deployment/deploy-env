@@ -61,6 +61,3 @@ echo "$DEPLOY_ENV deployment complete."
 echo "Please verify the deployment at:"
 echo "  $WEBSITE_URL"
 echo "  $API_URL"
-if [ "$DEPLOY_ENV" == "prod" ]; then
-  echo "Remember to close the GitHub release issue."
-fi
