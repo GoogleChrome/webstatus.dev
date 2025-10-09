@@ -170,11 +170,14 @@ node-openapi:
 ################################
 JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 
+# TODO change web-features-mappings to use main branch once this PR is merged: https://github.com/web-platform-dx/web-features-mappings/pull/17
 download-schemas:
 	wget -O jsonschema/web-platform-dx_web-features/v3.data.schema.json \
 		https://raw.githubusercontent.com/web-platform-dx/web-features/refs/heads/main/schemas/data.schema.json
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
+	wget -O jsonschema/web-platform-dx_web-features-mappings/combined-schema.gen.json \
+		https://raw.githubusercontent.com/web-platform-dx/web-features-mappings/refs/heads/generate-schema-validation-for-combined/combined-schema.gen.json
 
 jsonschema: clean-jsonschema
 	npx quicktype \
@@ -195,6 +198,14 @@ jsonschema: clean-jsonschema
 		--package mdn__browser_compat_data \
 		--field-tags json
 
+	npx quicktype \
+		--src jsonschema/web-platform-dx_web-features-mappings/combined-schema.gen.json \
+		--src-lang schema \
+		--lang go \
+		--top-level WebFeaturesMappings \
+		--out $(JSONSCHEMA_OUT_DIR)/web_platform_dx__web_features_mappings/web_features_mappings.go \
+		--package web_platform_dx__web_features_mappings \
+		--field-tags json
 
 
 clean-jsonschema:

@@ -1,0 +1,329 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Combined Web Feature Mappings Data",
+  "description": "Schema for combined-data.json.",
+  "type": "object",
+  "definitions": {
+    "chromeUseCountersFile": {
+      "description": "Schema for chrome-use-counters.json. An object where keys are feature IDs and values are usage metrics.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/useCounterValue"
+        }
+      },
+      "additionalProperties": false
+    },
+    "developerSignalsFile": {
+      "description": "Schema for developer-signals.json. An object where keys are feature IDs and values are signals from developers about a feature.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/developerSignal"
+        }
+      },
+      "additionalProperties": false
+    },
+    "interopFile": {
+      "description": "Schema for interop.json. An object where keys are feature IDs and values are an array of interop records.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/interopHistory"
+        }
+      },
+      "additionalProperties": false
+    },
+    "mdnDocsFile": {
+      "description": "Schema for mdn-docs.json. An object where keys are feature IDs and values are an array of MDN documentation links.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/mdnLinkArray"
+        }
+      },
+      "additionalProperties": false
+    },
+    "standardsPositionsFile": {
+      "description": "Schema for standards-positions.json. An object where keys are feature IDs and values are an array of standards position records.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/standardsPositionArray"
+        }
+      },
+      "additionalProperties": false
+    },
+    "stateOfSurveysFile": {
+      "description": "Schema for state-of-surveys.json. An object where keys are feature IDs and values are an array of survey records.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/surveyRecordArray"
+        }
+      },
+      "additionalProperties": false
+    },
+    "wptFile": {
+      "description": "Schema for wpt.json. An object where keys are feature IDs and values are a record of Web Platform Tests.",
+      "type": "object",
+      "patternProperties": {
+        ".*": {
+          "$ref": "#/definitions/wptRecord"
+        }
+      },
+      "additionalProperties": false
+    },
+    "useCounterValue": {
+      "type": "object",
+      "description": "The usage metrics for a single web feature from chrome-use-counters.json.",
+      "properties": {
+        "percentageOfPageLoad": {
+          "type": "number"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "percentageOfPageLoad",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "developerSignal": {
+      "type": "object",
+      "description": "The developer signals for a single web feature from developer-signals.json.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "votes": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "required": [
+        "url",
+        "votes"
+      ],
+      "additionalProperties": false
+    },
+    "interopHistory": {
+      "description": "An array of Interop records from interop.json.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/interopRecord"
+      },
+      "minItems": 1
+    },
+    "interopRecord": {
+      "type": "object",
+      "properties": {
+        "year": {
+          "type": "integer"
+        },
+        "label": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "year",
+        "label",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "mdnLinkArray": {
+      "description": "An array of MDN documentation links from mdn-docs.json.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/mdnLink"
+      },
+      "minItems": 1
+    },
+    "mdnLink": {
+      "type": "object",
+      "properties": {
+        "slug": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "anchor": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "slug",
+        "title",
+        "anchor",
+        "url"
+      ],
+      "additionalProperties": false
+    },
+    "standardsPositionArray": {
+      "description": "An array of standards position records from standards-positions.json.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/standardsPositionRecord"
+      },
+      "minItems": 1
+    },
+    "standardsPositionRecord": {
+      "type": "object",
+      "properties": {
+        "vendor": {
+          "type": "string",
+          "enum": [
+            "mozilla",
+            "webkit"
+          ]
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "position": {
+          "type": "string",
+          "enum": [
+            "",
+            "blocked",
+            "defer",
+            "negative",
+            "neutral",
+            "oppose",
+            "positive",
+            "support"
+          ]
+        },
+        "concerns": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "API design",
+              "accessibility",
+              "annoyance",
+              "compatibility",
+              "complexity",
+              "dependencies",
+              "device independence",
+              "duplication",
+              "integration",
+              "internationalization",
+              "interoperability",
+              "maintenance",
+              "performance",
+              "portability",
+              "power",
+              "privacy",
+              "security",
+              "use cases",
+              "venue"
+            ]
+          }
+        }
+      },
+      "required": [
+        "vendor",
+        "url",
+        "position",
+        "concerns"
+      ],
+      "additionalProperties": false
+    },
+    "surveyRecordArray": {
+      "description": "An array of survey records from state-of-surveys.json.",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/surveyRecord"
+      },
+      "minItems": 1
+    },
+    "surveyRecord": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri"
+        },
+        "question": {
+          "type": "string"
+        },
+        "subQuestion": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "url",
+        "question",
+        "subQuestion",
+        "path"
+      ],
+      "additionalProperties": false
+    },
+    "wptRecord": {
+      "type": "object",
+      "description": "A record of Web Platform Tests from wpt.json.",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": {
+    "type": "object",
+    "properties": {
+      "chrome-use-counters": {
+        "$ref": "#/definitions/useCounterValue"
+      },
+      "developer-signals": {
+        "$ref": "#/definitions/developerSignal"
+      },
+      "interop": {
+        "$ref": "#/definitions/interopHistory"
+      },
+      "mdn-docs": {
+        "$ref": "#/definitions/mdnLinkArray"
+      },
+      "standards-positions": {
+        "$ref": "#/definitions/standardsPositionArray"
+      },
+      "state-of-surveys": {
+        "$ref": "#/definitions/surveyRecordArray"
+      },
+      "wpt": {
+        "$ref": "#/definitions/wptRecord"
+      }
+    },
+    "additionalProperties": false
+  }
+}
