@@ -15,5 +15,5 @@ export API_URL="https://api.webstatus.dev/v1/features"
 
 "$DIR/deploy-env"
 
-echo "Remember to close the GitHub release issue.
+echo "Remember to close the GitHub release issue."
 echo "https://github.com/GoogleChrome/webstatus.dev/issues?q=is%3Aissue+label%3Arelease+is%3Aopen"
