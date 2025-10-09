@@ -18,14 +18,20 @@ on: # trigger builds for 1) PRs, 2) merges into main from merge_queue, and 3) ma
   merge_group:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 env:
-  GO_VERSION: '1.23'
+  GO_VERSION: '1.25'
   NODE_VERSION: '22'
   GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - name: Checkout (GitHub)
         uses: actions/checkout@v5
@@ -37,15 +43,21 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4
+        with:
+          languages: go, javascript-typescript, actions
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
-      - name: Run precommit target for CI
+      - name: Run build and precommit for CI
         uses: devcontainers/ci@v0.3
         with:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer-ci-precommit
           push: never
-          runCmd: make precommit
+          runCmd: make gen && make precommit
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4
   playwright:
     runs-on: ubuntu-latest
     steps:
