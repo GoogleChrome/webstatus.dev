@@ -36,7 +36,7 @@ fi
 ISSUE_TITLE="Deploy $DIRTY_PREFIX$NEW_SHA"
 
 echo "Checking for existing issue with title: $ISSUE_TITLE"
-EXISTING_ISSUE_JSON=$(gh issue list --search "\"$ISSUE_TITLE\" in:title" --state all --repo "GoogleChrome/webstatus.dev" --json number,title,state,url | jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title)')
+EXISTING_ISSUE_JSON=$(gh issue list --search "\"$ISSUE_TITLE\" in:title label:release" --state all --repo "GoogleChrome/webstatus.dev" --json number,title,state,url | jq --arg title "$ISSUE_TITLE" '.[] | select(.title == $title)')
 
 if [[ -n "$EXISTING_ISSUE_JSON" ]]; then
   ISSUE_STATE=$(echo "$EXISTING_ISSUE_JSON" | jq -r '.state')
