@@ -4,6 +4,9 @@ set -e
 # Get the directory of the script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Create the GitHub issue for this deployment if it doesn't already exist.
+"$DIR/create-deployment-issue"
+
 export DEPLOY_ENV="prod"
 export GCP_PROJECT="web-compass-prod"
 export SPANNER_PROJECT="webstatus-dev-internal-prod"
@@ -11,3 +14,6 @@ export WEBSITE_URL="https://webstatus.dev/"
 export API_URL="https://api.webstatus.dev/v1/features"
 
 "$DIR/deploy-env"
+
+echo "Remember to close the GitHub release issue."
+echo "https://github.com/GoogleChrome/webstatus.dev/issues?q=is%3Aissue+label%3Arelease+is%3Aopen"
