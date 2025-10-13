@@ -24,7 +24,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/fetchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v75/github"
 	"golang.org/x/mod/semver"
 )
 
