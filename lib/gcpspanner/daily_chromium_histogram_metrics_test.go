@@ -303,7 +303,8 @@ func TestStoreAndSyncDailyChromiumHistogramMetric(t *testing.T) {
 	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
 	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
 	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
-	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
+	sampleWebFeatureEnumValues := getSampleWebFeatureChromiumHistogramEnums(idMap, enumValueLabelToIDMap)
+	insertTestWebFeatureChromiumHistogramEnumValues(ctx, spannerClient, t, sampleWebFeatureEnumValues)
 	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
 	insertTestDailyChromiumHistogramMetrics(ctx, spannerClient, t, sampleMetrics)
 
@@ -434,7 +435,8 @@ func TestSyncLatestDailyChromiumHistogramMetric_Deletes(t *testing.T) {
 	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
 	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
 	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
-	spannerClient.createSampleWebFeatureChromiumHistogramEnums(ctx, t, idMap, enumValueLabelToIDMap)
+	sampleWebFeatureEnumValues := getSampleWebFeatureChromiumHistogramEnums(idMap, enumValueLabelToIDMap)
+	insertTestWebFeatureChromiumHistogramEnumValues(ctx, spannerClient, t, sampleWebFeatureEnumValues)
 	sampleMetrics := getSampleDailyChromiumHistogramMetricsToInsert()
 	insertTestDailyChromiumHistogramMetrics(ctx, spannerClient, t, sampleMetrics)
 

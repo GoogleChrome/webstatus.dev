@@ -1044,18 +1044,19 @@ func generateWebFeatureChromiumHistogramEnumValues(
 	chromiumHistogramEnumValueToIDMap map[string]string,
 	features []gcpspanner.SpannerWebFeature,
 ) error {
+	values := make([]gcpspanner.WebFeatureChromiumHistogramEnumValue, 0, len(features))
 	for _, feature := range features {
 		webFeatureChromiumHistogramEnumValueEntry := gcpspanner.WebFeatureChromiumHistogramEnumValue{
 			WebFeatureID:                 webFeatureKeyToInternalFeatureID[feature.FeatureKey],
 			ChromiumHistogramEnumValueID: chromiumHistogramEnumValueToIDMap[feature.FeatureKey],
 		}
-		err := client.UpsertWebFeatureChromiumHistogramEnumValue(
-			ctx,
-			webFeatureChromiumHistogramEnumValueEntry,
-		)
-		if err != nil {
-			return err
-		}
+		values = append(values, webFeatureChromiumHistogramEnumValueEntry)
+
+	}
+
+	err := client.SyncWebFeatureChromiumHistogramEnumValues(ctx, values)
+	if err != nil {
+		return err
 	}
 
 	return nil

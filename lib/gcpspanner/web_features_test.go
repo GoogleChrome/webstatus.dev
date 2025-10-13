@@ -270,11 +270,12 @@ func (s syncWebFeaturesRedirectCase) postFirstSyncSetup(
 	}
 
 	// Associate the enum to feature-a
-	err = spannerClient.UpsertWebFeatureChromiumHistogramEnumValue(ctx,
-		WebFeatureChromiumHistogramEnumValue{
+	err = spannerClient.SyncWebFeatureChromiumHistogramEnumValues(ctx, []WebFeatureChromiumHistogramEnumValue{
+		{
 			WebFeatureID:                 featureKeyToIDMap["feature-a"],
 			ChromiumHistogramEnumValueID: *featureEnumID,
-		})
+		},
+	})
 	if err != nil {
 		t.Fatalf("Failed to upsert web feature chromium histogram enum value: %v", err)
 	}

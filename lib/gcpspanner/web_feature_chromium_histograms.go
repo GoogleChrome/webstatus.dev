@@ -44,29 +44,17 @@ func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetKeyFromExternal(
 	return in.WebFeatureID
 }
 
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetKeyFromInternal(
+	in spannerWebFeatureChromiumHistogramEnum) string {
+	return in.WebFeatureID
+}
+
 func (m webFeaturesChromiumHistogramEnumSpannerMapper) Table() string {
 	return webFeatureChromiumHistogramEnumValuesTable
 }
 
-func (m webFeaturesChromiumHistogramEnumSpannerMapper) Merge(
-	_ WebFeatureChromiumHistogramEnumValue,
-	existing spannerWebFeatureChromiumHistogramEnum) spannerWebFeatureChromiumHistogramEnum {
-	return existing
-}
-
-func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectOne(id string) spanner.Statement {
-	stmt := spanner.NewStatement(fmt.Sprintf(`
-	SELECT
-		WebFeatureID, ChromiumHistogramEnumValueID
-	FROM %s
-	WHERE WebFeatureID = @webFeatureID
-	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
-		"webFeatureID": id,
-	}
-	stmt.Params = parameters
-
-	return stmt
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(fmt.Sprintf(`SELECT * FROM %s`, m.Table()))
 }
 
 func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectAllByKeys(id string) spanner.Statement {
@@ -82,9 +70,37 @@ func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectAllByKeys(id string
 	return stmt
 }
 
-func (c *Client) UpsertWebFeatureChromiumHistogramEnumValue(
-	ctx context.Context, in WebFeatureChromiumHistogramEnumValue) error {
-	return newEntityWriter[webFeaturesChromiumHistogramEnumSpannerMapper](c).upsert(ctx, in)
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) MergeAndCheckChanged(
+	_ WebFeatureChromiumHistogramEnumValue,
+	existing spannerWebFeatureChromiumHistogramEnum) (spannerWebFeatureChromiumHistogramEnum, bool) {
+	// This entity only has key columns, so there's nothing to merge or update.
+	// The synchronizer will handle inserts and deletes based on the key.
+	return existing, false
+}
+
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) DeleteMutation(
+	in spannerWebFeatureChromiumHistogramEnum) *spanner.Mutation {
+	return spanner.Delete(m.Table(), spanner.Key{in.WebFeatureID})
+}
+
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) GetChildDeleteKeyMutations(
+	_ context.Context,
+	_ *Client,
+	_ []spannerWebFeatureChromiumHistogramEnum,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m webFeaturesChromiumHistogramEnumSpannerMapper) PreDeleteHook(
+	_ context.Context, _ *Client, _ []spannerWebFeatureChromiumHistogramEnum) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (c *Client) SyncWebFeatureChromiumHistogramEnumValues(
+	ctx context.Context,
+	in []WebFeatureChromiumHistogramEnumValue,
+) error {
+	return newEntitySynchronizer[webFeaturesChromiumHistogramEnumSpannerMapper](c).Sync(ctx, in)
 }
 
 func (c *Client) getAllWebFeatureChromiumHistogramEnumValuesByFeatureID(
