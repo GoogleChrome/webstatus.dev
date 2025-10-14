@@ -5,8 +5,8 @@ go 1.25.1
 require (
 	cloud.google.com/go v0.123.0
 	cloud.google.com/go/spanner v1.86.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251013195115-12299f70911f
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013195115-12299f70911f
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251013220913-fc89df057b85
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013220913-fc89df057b85
 	github.com/brianvoe/gofakeit/v7 v7.8.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20251007213024-9c624d869f2e
@@ -56,7 +56,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.30.0 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
+	github.com/cncf/xds/go v0.0.0-20251014123835-2ee22ca58382 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.35.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect

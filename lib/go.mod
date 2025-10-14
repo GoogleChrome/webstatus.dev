@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/spanner v1.86.0
 	cloud.google.com/go/storage v1.57.0
 	firebase.google.com/go/v4 v4.18.0
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013195115-12299f70911f
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013220913-fc89df057b85
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/deckarep/golang-set v1.8.0
@@ -87,7 +87,7 @@ require (
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
+	github.com/cncf/xds/go v0.0.0-20251014123835-2ee22ca58382 // indirect
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect

@@ -7,8 +7,8 @@ replace github.com/GoogleChrome/webstatus.dev/lib => ../../../../lib
 replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 
 require (
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251013195115-12299f70911f
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013195115-12299f70911f
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251013220913-fc89df057b85
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013220913-fc89df057b85
 )
 
 require (
@@ -30,7 +30,7 @@ require (
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cncf/xds/go v0.0.0-20250501225837-2ac532fd4443 // indirect
+	github.com/cncf/xds/go v0.0.0-20251014123835-2ee22ca58382 // indirect
 	github.com/deckarep/golang-set v1.8.0 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.35.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
