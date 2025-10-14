@@ -18,18 +18,18 @@
   // Features to add to the dev container. More info: https://containers.dev/features.
   "features": {
     "ghcr.io/devcontainers/features/go:1": {
-      "version": "1.25.1"
+      "version": "1.25.3"
     },
     "ghcr.io/devcontainers/features/github-cli:1": {},
     "ghcr.io/devcontainers/features/docker-in-docker:2": {
       "moby": true
     },
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22.19.0"
+      "version": "22.20.0"
     },
     "ghcr.io/devcontainers/features/terraform:1": {
       // Get version from https://github.com/hashicorp/terraform/releases
-      "version": "1.13.2",
+      "version": "1.13.3",
       // We do not use terragrunt.
       "terragrunt": "none",
       // Get version from https://github.com/terraform-linters/tflint/releases
@@ -48,7 +48,7 @@
     "ghcr.io/devcontainers/features/java:1": {
       // Only pick LTS versions from
       // https://www.oracle.com/java/technologies/java-se-support-roadmap.html
-      "version": "21"
+      "version": "25"
     }
   },
   "remoteEnv": {

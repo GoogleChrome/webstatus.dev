@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-github/v74/github"
+	"github.com/google/go-github/v75/github"
 )
 
 func checkIfFileIsReadable(t *testing.T, file io.Reader) {
