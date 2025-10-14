@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	cloud.google.com/go/datastore v1.20.0
-	cloud.google.com/go/spanner v1.86.0
+	cloud.google.com/go/spanner v1.84.1
 	cloud.google.com/go/storage v1.57.0
 	firebase.google.com/go/v4 v4.18.0
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013220913-fc89df057b85
@@ -69,6 +69,7 @@ require (
 	go.opentelemetry.io/otel/log v0.14.0 // indirect
 	go.opentelemetry.io/otel/sdk/log v0.14.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
+	golang.org/x/xerrors v0.0.0-20240903120638-7835f813f4da // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 )
 
@@ -182,3 +183,9 @@ exclude (
 
 // 1.85.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
 exclude cloud.google.com/go/spanner v1.85.0
+
+// 1.85.1 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
+exclude cloud.google.com/go/spanner v1.85.1
+
+// 1.86.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
+exclude cloud.google.com/go/spanner v1.86.0
