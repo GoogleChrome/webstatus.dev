@@ -598,6 +598,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/users/me/ping:
+    post:
+      summary: Signal user login and refresh profile
+      description: |
+        Signals to the backend that a user has just authenticated.
+        This allows the backend to perform tasks like creating or updating the user's profile
+        with the latest information from the identity provider (e.g., refreshing their email address).
+
+        This endpoint should be called by clients once, immediately after a successful login.
+      operationId: pingUser
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/users/me/saved-searches:
     get:
       summary: List user saved searches

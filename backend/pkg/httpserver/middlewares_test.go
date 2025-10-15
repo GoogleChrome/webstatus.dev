@@ -140,6 +140,11 @@ func TestAuthScopePresentWhenSecurityConfigured(t *testing.T) {
 	testAuthScope(t, "/v1/users/me/saved-searches", http.MethodGet, true, testUser)
 }
 
+func TestPingUserAuthScope(t *testing.T) {
+	testUser := &auth.User{ID: "test"}
+	testAuthScope(t, "/v1/users/me/ping", http.MethodPost, true, testUser)
+}
+
 // This test ensures that the third-party OpenAPI library continues to omit
 // Bearer authentication scopes from the request context when the route does
 // not have security schemes configured.

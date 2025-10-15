@@ -421,6 +421,21 @@ export class APIClient {
     });
   }
 
+  public async pingUser(token: string): Promise<void> {
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/users/me/ping'], 'post'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      credentials: temporaryFetchOptions.credentials,
+    };
+    const {error} = await this.client.POST('/v1/users/me/ping', options);
+    if (error) {
+      throw createAPIError(error);
+    }
+  }
+
   public async *getFeatureStatsByBrowserAndChannel(
     featureId: string,
     browser: BrowsersParameter,
