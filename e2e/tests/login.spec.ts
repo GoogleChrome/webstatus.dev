@@ -28,6 +28,13 @@ test('matches the screenshot for unauthenticated user', async ({page}) => {
 });
 
 test('can sign in and sign out user', async ({page}) => {
+  // Start waiting for the ping request before logging in.
+  const pingRequestPromise = page.waitForRequest(
+    request =>
+      request.url().endsWith('/v1/users/me/ping') &&
+      request.method() === 'POST',
+  );
+
   await loginAsUser(page, 'test user 1');
   const login = page.locator('webstatus-login');
 
@@ -35,6 +42,10 @@ test('can sign in and sign out user', async ({page}) => {
 
   // Should have the email address
   await expect(login).toContainText(expectedEmail);
+
+  // Wait for the ping request to be made and assert that it happened.
+  const pingRequest = await pingRequestPromise;
+  expect(pingRequest).toBeTruthy();
 
   const header = page.locator('webstatus-header');
   await expect(header).toHaveScreenshot('authenticated-header.png');

@@ -38,6 +38,7 @@ interface FirebaseAuthSettings {
   emulatorURL: string;
   tenantID: string;
 }
+import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 
 @customElement('webstatus-firebase-auth-service')
 export class WebstatusFirebaseAuthService extends ServiceElement {
@@ -52,7 +53,12 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   firebaseAuthConfig?: AuthConfig;
 
   @provide({context: firebaseUserContext})
+  @state()
   user: User | null | undefined;
+
+  @consume({context: apiClientContext, subscribe: true})
+  @state()
+  apiClient?: APIClient;
 
   // Useful for testing
   authInitializer: (app: FirebaseApp | undefined) => Auth = getAuth;
@@ -84,8 +90,19 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       // Set up the callback that will detect when:
       // 1. The user first logs in
       // 2. Resuming a session
-      this.firebaseAuthConfig.auth.onAuthStateChanged(user => {
-        this.user = user ? user : null;
+      this.firebaseAuthConfig.auth.onAuthStateChanged(async user => {
+        if (user) {
+          // User is signed in.
+          if (this.user === null || this.user === undefined) {
+            // User was not signed in before.
+            const idToken = await user.getIdToken();
+            await this.apiClient?.pingUser(idToken);
+          }
+          this.user = user;
+        } else {
+          // User is signed out.
+          this.user = null;
+        }
       });
     }
   }
