@@ -177,6 +177,11 @@ func (c *Client) getIgnoredFeatureIDsForStats(ctx context.Context, txn *spanner.
 
 // NewSpannerClient returns a Client for the Google Spanner service.
 func NewSpannerClient(projectID string, instanceID string, name string) (*Client, error) {
+	// TODO: Re-enable multiplexed sessions once the underlying issue is fixed.
+	// For now, disable multiplexed sessions. More information, see:
+	// https://github.com/GoogleChrome/webstatus.dev/issues/1943
+	os.Setenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS", "FALSE")
+	os.Setenv("GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_FOR_RW", "FALSE")
 	if projectID == "" || instanceID == "" || name == "" {
 		return nil, ErrBadClientConfig
 	}

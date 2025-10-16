@@ -1,13 +1,13 @@
 module github.com/GoogleChrome/webstatus.dev/lib
 
-go 1.25.1
+go 1.25.3
 
 require (
 	cloud.google.com/go/datastore v1.20.0
-	cloud.google.com/go/spanner v1.84.1
+	cloud.google.com/go/spanner v1.86.0
 	cloud.google.com/go/storage v1.57.0
 	firebase.google.com/go/v4 v4.18.0
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013220913-fc89df057b85
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251015221928-7a6ffd51e418
 	github.com/antlr4-go/antlr/v4 v4.13.1
 	github.com/cenkalti/backoff/v5 v5.0.3
 	github.com/deckarep/golang-set v1.8.0
@@ -58,7 +58,7 @@ require (
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/otlptranslator v1.0.0 // indirect
-	github.com/shirou/gopsutil/v4 v4.25.5 // indirect
+	github.com/shirou/gopsutil/v4 v4.25.6 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
@@ -78,9 +78,9 @@ require (
 	cloud.google.com/go/compute/metadata v0.9.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/logging v1.13.0 // indirect
-	cloud.google.com/go/longrunning v0.6.7 // indirect
+	cloud.google.com/go/longrunning v0.7.0 // indirect
 	cloud.google.com/go/secretmanager v1.15.1 // indirect
-	dario.cat/mergo v1.0.1 // indirect
+	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20210617225240-d185dfc1b5a1 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/trace v1.30.0
 	github.com/Microsoft/go-winio v0.6.2 // indirect
@@ -92,7 +92,7 @@ require (
 	github.com/cpuguy83/dockercfg v0.3.2 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/docker v28.3.3+incompatible // indirect
-	github.com/docker/go-connections v0.5.0 // indirect
+	github.com/docker/go-connections v0.6.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -164,9 +164,9 @@ require (
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/text v0.30.0
 	golang.org/x/time v0.14.0 // indirect
-	google.golang.org/genproto v0.0.0-20251007200510-49b9836ed3ff // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251007200510-49b9836ed3ff // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff // indirect
+	google.golang.org/genproto v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
@@ -179,12 +179,3 @@ exclude (
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20240907200651-3ffb98b2c93a
 	google.golang.org/grpc/stats/opentelemetry v0.0.0-20241028142157-ada6787961b3
 )
-
-// 1.85.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
-exclude cloud.google.com/go/spanner v1.85.0
-
-// 1.85.1 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
-exclude cloud.google.com/go/spanner v1.85.1
-
-// 1.86.0 has an issue: https://github.com/googleapis/google-cloud-go/issues/12812
-exclude cloud.google.com/go/spanner v1.86.0
