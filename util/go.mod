@@ -1,15 +1,15 @@
 module github.com/GoogleChrome/webstatus.dev/util
 
-go 1.25.1
+go 1.25.3
 
 require (
 	cloud.google.com/go v0.123.0
 	cloud.google.com/go/spanner v1.86.0
-	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251013220913-fc89df057b85
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251013220913-fc89df057b85
+	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251015221928-7a6ffd51e418
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251015221928-7a6ffd51e418
 	github.com/brianvoe/gofakeit/v7 v7.8.0
 	github.com/golang-jwt/jwt/v5 v5.3.0
-	github.com/web-platform-tests/wpt.fyi v0.0.0-20251007213024-9c624d869f2e
+	github.com/web-platform-tests/wpt.fyi v0.0.0-20251015195846-bbfbb7f38ce2
 	golang.org/x/text v0.30.0
 )
 
@@ -48,7 +48,7 @@ require (
 	cloud.google.com/go/datastore v1.20.0 // indirect
 	cloud.google.com/go/iam v1.5.3 // indirect
 	cloud.google.com/go/logging v1.13.0 // indirect
-	cloud.google.com/go/longrunning v0.6.7 // indirect
+	cloud.google.com/go/longrunning v0.7.0 // indirect
 	cloud.google.com/go/monitoring v1.24.3 // indirect
 	cloud.google.com/go/secretmanager v1.15.1 // indirect
 	firebase.google.com/go/v4 v4.18.0
@@ -93,9 +93,9 @@ require (
 	golang.org/x/sys v0.37.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/api v0.252.0 // indirect
-	google.golang.org/genproto v0.0.0-20251007200510-49b9836ed3ff // indirect
-	google.golang.org/genproto/googleapis/api v0.0.0-20251007200510-49b9836ed3ff // indirect
-	google.golang.org/genproto/googleapis/rpc v0.0.0-20251007200510-49b9836ed3ff // indirect
+	google.golang.org/genproto v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20251014184007-4626949a642f // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20251014184007-4626949a642f // indirect
 	google.golang.org/grpc v1.76.0 // indirect
 	google.golang.org/protobuf v1.36.10 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
