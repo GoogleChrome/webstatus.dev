@@ -109,7 +109,16 @@ func TestSyncWebFeatureChromiumHistogramEnumValues(t *testing.T) {
 	sampleEnums := getSampleChromiumHistogramEnums()
 	enumIDMap := insertTestChromiumHistogramEnums(ctx, spannerClient, t, sampleEnums)
 	sampleEnumValues := getSampleChromiumHistogramEnumValues(enumIDMap)
-	enumValueLabelToIDMap := insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
+	insertTestChromiumHistogramEnumValues(ctx, spannerClient, t, sampleEnumValues)
+	enumValueLabelToIDMap := make(map[string]string)
+	for _, enumValue := range sampleEnumValues {
+		id, err := spannerClient.GetIDFromChromiumHistogramEnumValueKey(
+			ctx, enumValue.ChromiumHistogramEnumID, enumValue.BucketID)
+		if err != nil {
+			t.Fatalf("unexpected error getting enum value id. %s", err.Error())
+		}
+		enumValueLabelToIDMap[enumValue.Label] = *id
+	}
 	insertTestWebFeatureChromiumHistogramEnumValues(ctx, spannerClient, t,
 		getSampleWebFeatureChromiumHistogramEnums(idMap, enumValueLabelToIDMap))
 

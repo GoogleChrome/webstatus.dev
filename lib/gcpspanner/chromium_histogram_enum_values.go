@@ -61,6 +61,48 @@ func (m chromiumHistogramEnumValuesMapper) Merge(
 	return existing
 }
 
+func (m chromiumHistogramEnumValuesMapper) GetKeyFromInternal(
+	in spannerChromiumHistogramEnumValue) spannerChromiumHistogramEnumValueKey {
+	return spannerChromiumHistogramEnumValueKey{
+		ChromiumHistogramEnumID: in.ChromiumHistogramEnumID,
+		BucketID:                in.BucketID,
+	}
+}
+
+func (m chromiumHistogramEnumValuesMapper) SelectAll() spanner.Statement {
+	return spanner.NewStatement(fmt.Sprintf(`SELECT * FROM %s`, m.Table()))
+}
+
+func (m chromiumHistogramEnumValuesMapper) MergeAndCheckChanged(
+	in ChromiumHistogramEnumValue,
+	existing spannerChromiumHistogramEnumValue) (spannerChromiumHistogramEnumValue, bool) {
+	changed := false
+	if in.Label != existing.Label {
+		existing.Label = in.Label
+		changed = true
+	}
+
+	return existing, changed
+}
+
+func (m chromiumHistogramEnumValuesMapper) DeleteMutation(
+	in spannerChromiumHistogramEnumValue) *spanner.Mutation {
+	return spanner.Delete(m.Table(), spanner.Key{in.ID})
+}
+
+func (m chromiumHistogramEnumValuesMapper) GetChildDeleteKeyMutations(
+	_ context.Context,
+	_ *Client,
+	_ []spannerChromiumHistogramEnumValue,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m chromiumHistogramEnumValuesMapper) PreDeleteHook(
+	_ context.Context, _ *Client, _ []spannerChromiumHistogramEnumValue) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
 func (m chromiumHistogramEnumValuesMapper) GetID(in spannerChromiumHistogramEnumValueKey) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
@@ -86,6 +128,8 @@ type ChromiumHistogramEnumValue struct {
 type spannerChromiumHistogramEnumValue struct {
 	ID string `spanner:"ID"`
 	ChromiumHistogramEnumValue
+	// ";->" means this field is read-only and not written to Spanner.
+	LabelLowercase string `spanner:"Label_Lowercase;->"`
 }
 
 type spannerChromiumHistogramEnumValueKey struct {
@@ -93,8 +137,8 @@ type spannerChromiumHistogramEnumValueKey struct {
 	BucketID                int64
 }
 
-func (c *Client) UpsertChromiumHistogramEnumValue(ctx context.Context, in ChromiumHistogramEnumValue) (*string, error) {
-	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumValuesMapper, string](c).upsertAndGetID(ctx, in)
+func (c *Client) SyncChromiumHistogramEnumValues(ctx context.Context, in []ChromiumHistogramEnumValue) error {
+	return newEntitySynchronizer[chromiumHistogramEnumValuesMapper](c).Sync(ctx, in)
 }
 
 func (c *Client) GetIDFromChromiumHistogramEnumValueKey(

@@ -663,8 +663,17 @@ func addSampleChromiumUsageMetricsData(ctx context.Context,
 			Label:                   "feature2",
 		},
 	}
-	chromiumHistogramEnumValueToIDMap := insertTestChromiumHistogramEnumValues(
+	chromiumHistogramEnumValueToIDMap := make(map[string]string)
+	insertTestChromiumHistogramEnumValues(
 		ctx, client, t, sampleChromiumHistogramEnumValues)
+	for _, enumValue := range sampleChromiumHistogramEnumValues {
+		id, err := client.GetIDFromChromiumHistogramEnumValueKey(
+			ctx, enumValue.ChromiumHistogramEnumID, enumValue.BucketID)
+		if err != nil {
+			t.Fatalf("unexpected error getting enum value id. %s", err.Error())
+		}
+		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *id
+	}
 
 	sampleWebFeatureChromiumHistogramEnumValues := []WebFeatureChromiumHistogramEnumValue{
 		{

@@ -1021,15 +1021,33 @@ func generateChromiumHistogramEnumValues(
 	features []gcpspanner.SpannerWebFeature,
 ) (map[string]string, error) {
 	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(features))
+	enumValuesToSync := make([]gcpspanner.ChromiumHistogramEnumValue, 0, len(features))
 	for i, feature := range features {
 		ChromiumHistogramEnumValueEntry := gcpspanner.ChromiumHistogramEnumValue{
 			ChromiumHistogramEnumID: chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
 			BucketID:                int64(i + 1),
 			Label:                   feature.FeatureKey,
 		}
-		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValueEntry)
+		enumValuesToSync = append(enumValuesToSync, ChromiumHistogramEnumValueEntry)
+	}
+
+	err := client.SyncChromiumHistogramEnumValues(ctx, enumValuesToSync)
+	if err != nil {
+		return nil, err
+	}
+
+	for i, feature := range features {
+		enumValueID, err := client.GetIDFromChromiumHistogramEnumValueKey(
+			ctx,
+			chromiumHistogramEnumIDMap["WebDXFeatureObserver"],
+			int64(i+1),
+		)
 		if err != nil {
-			return nil, err
+			// It is possible that the enum value was deleted in the sync.
+			// In that case, we just log it and continue.
+			slog.WarnContext(ctx, "unable to get enum value id", "featureKey", feature.FeatureKey)
+
+			continue
 		}
 		chromiumHistogramEnumValueToIDMap[feature.FeatureKey] = *enumValueID
 	}
