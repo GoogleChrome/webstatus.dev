@@ -32,6 +32,8 @@ import {
   firebaseAuthContext,
 } from '../../contexts/firebase-auth-context.js';
 import {firebaseUserContext} from '../../contexts/firebase-user-context.js';
+import {apiClientContext} from '../../contexts/api-client-context.js';
+import {APIClient} from '../../api/client.js';
 
 class FakeFirebaseApp implements FirebaseApp {
   name: string = '';
@@ -42,8 +44,10 @@ class FakeFirebaseApp implements FirebaseApp {
 @customElement('fake-parent-element')
 class FakeParentElement extends LitElement {
   @provide({context: firebaseAppContext})
-  @property({attribute: false})
   app?: FirebaseApp;
+
+  @provide({context: apiClientContext})
+  apiClient!: APIClient;
 
   render(): TemplateResult {
     return html`<slot></slot>`;
@@ -55,6 +59,9 @@ describe('webstatus-firebase-auth-service', () => {
     emulatorURL: '',
     tenantID: 'tenantID',
   };
+  const userStub = {
+    getIdToken: sinon.stub().resolves('test-token'),
+  } as unknown as User;
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusFirebaseAuthService>(
       html`<webstatus-firebase-auth-service .settings=${settings}>
@@ -124,7 +131,6 @@ describe('webstatus-firebase-auth-service', () => {
       'fake-child-auth-element-1',
     );
     assert.exists(childComponent);
-    const userStub = {} as User;
     const authStub = {
       onAuthStateChanged: (callback: (user?: User) => void) =>
         callback(userStub),
@@ -180,19 +186,76 @@ describe('webstatus-firebase-auth-service', () => {
       'fake-child-auth-element-2',
     );
     assert.exists(childComponent);
-
-    const userStub = {} as User;
+    let authStateCallback: (user: User | null) => void = () => {};
     const authStub = {
-      onAuthStateChanged: (callback: (user: User | null) => void) =>
-        callback(userStub),
+      onAuthStateChanged: (callback: (user: User | null) => void) => {
+        authStateCallback = callback;
+      },
     } as Auth;
     component.authInitializer = () => authStub;
-    component.firebaseApp = {} as FirebaseApp;
+    component.firebaseApp = new FakeFirebaseApp();
+    component.requestUpdate();
+
     await component.updateComplete;
+    await childComponent.updateComplete;
+
+    // Simulate user logging in.
+    component.initFirebaseAuth();
+    authStateCallback(userStub);
+    await component.updateComplete;
+    await childComponent.updateComplete;
 
     // Ensure it gets the same user via context.
     assert.equal(component.user, userStub);
     assert.equal(childComponent.user, userStub);
+  });
+
+  it('pings the server when a user logs in', async () => {
+    const apiClientStub = sinon.createStubInstance(APIClient);
+    let authStateCallback: (user: User | null) => void = () => {};
+    const authStub = {
+      onAuthStateChanged: (callback: (user: User | null) => void) => {
+        authStateCallback = callback;
+      },
+    } as Auth;
+
+    const root = document.createElement('div');
+    document.body.appendChild(root);
+    render(
+      html`
+        <fake-parent-element .apiClient=${apiClientStub}>
+          <webstatus-firebase-auth-service .settings=${settings}>
+          </webstatus-firebase-auth-service>
+        </fake-parent-element>
+      `,
+      root,
+    );
+
+    const parentElement = root.querySelector<FakeParentElement>(
+      'fake-parent-element',
+    );
+    assert.exists(parentElement);
+    const component = root.querySelector<WebstatusFirebaseAuthService>(
+      'webstatus-firebase-auth-service',
+    );
+    assert.exists(component);
+
+    component.authInitializer = () => authStub;
+    component.firebaseApp = new FakeFirebaseApp();
+
+    parentElement.requestUpdate();
+    await parentElement.updateComplete;
+    await component.updateComplete;
+
+    // Manually call initFirebaseAuth to set up the onAuthStateChanged listener.
+    component.initFirebaseAuth();
+    await component.updateComplete;
+
+    // Simulate user logging in.
+    authStateCallback(userStub);
+    await component.updateComplete;
+
+    expect(apiClientStub.pingUser).to.have.been.calledWith('test-token');
   });
 
   it('calls emulatorConnector when emulatorURL is set', async () => {
@@ -204,7 +267,6 @@ describe('webstatus-firebase-auth-service', () => {
     const root = document.createElement('div');
     document.body.appendChild(root);
     const emulatorConnectorStub = sinon.stub();
-    const userStub = {} as User;
     const authStub = {
       onAuthStateChanged: (callback: (user?: User) => void) =>
         callback(userStub),

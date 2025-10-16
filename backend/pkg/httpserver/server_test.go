@@ -958,6 +958,17 @@ func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
 	panic("unimplemented")
 }
 
+// PingUser implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) PingUser(
+	ctx context.Context,
+	_ backend.PingUserRequestObject,
+) (backend.PingUserResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 // ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
 // nolint: ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) ListMissingOneImplementationFeatures(ctx context.Context,
