@@ -42,7 +42,9 @@ func NewChromiumHistogramEnumConsumer(client ChromiumHistogramEnumsClient) *Chro
 // Chromium Histograms.
 type ChromiumHistogramEnumsClient interface {
 	UpsertChromiumHistogramEnum(context.Context, gcpspanner.ChromiumHistogramEnum) (*string, error)
-	UpsertChromiumHistogramEnumValue(context.Context, gcpspanner.ChromiumHistogramEnumValue) (*string, error)
+	SyncChromiumHistogramEnumValues(context.Context, []gcpspanner.ChromiumHistogramEnumValue) error
+	GetIDFromChromiumHistogramEnumValueKey(
+		ctx context.Context, chromiumHistogramEnumID string, bucketID int64) (*string, error)
 	SyncWebFeatureChromiumHistogramEnumValues(context.Context, []gcpspanner.WebFeatureChromiumHistogramEnumValue) error
 	GetIDFromFeatureKey(context.Context, *gcpspanner.FeatureIDFilter) (*string, error)
 	FetchAllFeatureKeys(context.Context) ([]string, error)
@@ -93,12 +95,21 @@ func (c *ChromiumHistogramEnumConsumer) SaveHistogramEnums(
 		if err != nil {
 			return errors.Join(ErrFailedToStoreEnum, err)
 		}
+		var enumValuesToSync []gcpspanner.ChromiumHistogramEnumValue
 		for _, enum := range enums {
-			enumValueID, err := c.client.UpsertChromiumHistogramEnumValue(ctx, gcpspanner.ChromiumHistogramEnumValue{
+			enumValuesToSync = append(enumValuesToSync, gcpspanner.ChromiumHistogramEnumValue{
 				ChromiumHistogramEnumID: *enumID,
 				BucketID:                enum.Value,
 				Label:                   enum.Label,
 			})
+		}
+		err = c.client.SyncChromiumHistogramEnumValues(ctx, enumValuesToSync)
+		if err != nil {
+			return errors.Join(ErrFailedToStoreEnumValue, err)
+		}
+
+		for _, enum := range enums {
+			enumValueID, err := c.client.GetIDFromChromiumHistogramEnumValueKey(ctx, *enumID, enum.Value)
 			if err != nil {
 				return errors.Join(ErrFailedToStoreEnumValue, err)
 			}

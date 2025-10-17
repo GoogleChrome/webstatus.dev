@@ -56,17 +56,11 @@ func insertTestChromiumHistogramEnumValues(
 	client *Client,
 	t *testing.T,
 	values []ChromiumHistogramEnumValue,
-) map[string]string {
-	chromiumHistogramEnumValueToIDMap := make(map[string]string, len(values))
-	for _, enumValue := range values {
-		enumValueID, err := client.UpsertChromiumHistogramEnumValue(ctx, enumValue)
-		if err != nil {
-			t.Fatalf("unable to insert sample enum value. error %s", err)
-		}
-		chromiumHistogramEnumValueToIDMap[enumValue.Label] = *enumValueID
+) {
+	err := client.SyncChromiumHistogramEnumValues(ctx, values)
+	if err != nil {
+		t.Fatalf("unable to sync sample enum value. error %s", err)
 	}
-
-	return chromiumHistogramEnumValueToIDMap
 }
 
 // Helper method to get all the enum values in a stable order.
@@ -102,7 +96,7 @@ func (c *Client) ReadAllChromiumHistogramEnumValues(
 	return ret, nil
 }
 
-func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
+func TestSyncChromiumHistogramEnumValues(t *testing.T) {
 	restartDatabaseContainer(t)
 	ctx := context.Background()
 	sampleEnums := getSampleChromiumHistogramEnums()
@@ -119,11 +113,27 @@ func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 		t.Errorf("unequal enums.\nexpected %+v\nreceived %+v", sampleHistogramsEnumValues, enumValues)
 	}
 
-	_, err = spannerClient.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValue{
-		ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
-		BucketID:                1,
-		// Should not update
-		Label: "CompressionStreamssssssss",
+	// In this sync, we are:
+	// 1. Keeping `AnotherLabel`
+	// 2. Removing `CompressionStreams`
+	// 3. Updating `ViewTransitions` (it should update)
+	// 4. Keeping `WritingSuggestions` but it should be a new bucket ID. (like popover did in real life)
+	err = spannerClient.SyncChromiumHistogramEnumValues(ctx, []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: enumIDMap["AnotherHistogram"],
+			BucketID:                1,
+			Label:                   "AnotherLabel",
+		},
+		{
+			ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
+			BucketID:                2,
+			Label:                   "ViewTransitions-changed",
+		},
+		{
+			ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
+			BucketID:                33,
+			Label:                   "WritingSuggestions",
+		},
 	})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
@@ -135,9 +145,28 @@ func TestUpsertChromiumHistogramEnumValue(t *testing.T) {
 	}
 	slices.SortFunc(enumValues, sortChromiumHistogramEnumValues)
 
-	// Should be the same. No updates should happen.
-	if !slices.Equal(sampleHistogramsEnumValues, enumValues) {
-		t.Errorf("unequal enum values after update.\nexpected %+v\nreceived %+v", sampleHistogramsEnumValues, enumValues)
+	expected := []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: enumIDMap["AnotherHistogram"],
+			BucketID:                1,
+			Label:                   "AnotherLabel",
+		},
+		{
+			ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
+			BucketID:                2,
+			Label:                   "ViewTransitions-changed",
+		},
+		{
+			ChromiumHistogramEnumID: enumIDMap["WebDXFeatureObserver"],
+			BucketID:                33,
+			Label:                   "WritingSuggestions",
+		},
+	}
+	slices.SortFunc(expected, sortChromiumHistogramEnumValues)
+
+	// One item should be deleted, one item should be updated.
+	if !slices.Equal(expected, enumValues) {
+		t.Errorf("unequal enum values after update.\nexpected %+v\nreceived %+v", expected, enumValues)
 	}
 }
 

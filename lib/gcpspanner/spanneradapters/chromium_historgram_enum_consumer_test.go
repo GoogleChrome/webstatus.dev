@@ -28,8 +28,10 @@ import (
 type mockChromiumHistogramEnumsClient struct {
 	upsertChromiumHistogramEnum func(context.Context,
 		gcpspanner.ChromiumHistogramEnum) (*string, error)
-	upsertChromiumHistogramEnumValue func(context.Context,
-		gcpspanner.ChromiumHistogramEnumValue) (*string, error)
+	syncChromiumHistogramEnumValues func(context.Context,
+		[]gcpspanner.ChromiumHistogramEnumValue) error
+	getIDFromChromiumHistogramEnumValueKey func(
+		ctx context.Context, chromiumHistogramEnumID string, bucketID int64) (*string, error)
 	syncWebFeatureChromiumHistogramEnumValues func(context.Context,
 		[]gcpspanner.WebFeatureChromiumHistogramEnumValue) error
 	getIDFromFeatureKey    func(context.Context, *gcpspanner.FeatureIDFilter) (*string, error)
@@ -42,9 +44,14 @@ func (m *mockChromiumHistogramEnumsClient) UpsertChromiumHistogramEnum(ctx conte
 	return m.upsertChromiumHistogramEnum(ctx, in)
 }
 
-func (m *mockChromiumHistogramEnumsClient) UpsertChromiumHistogramEnumValue(ctx context.Context,
-	in gcpspanner.ChromiumHistogramEnumValue) (*string, error) {
-	return m.upsertChromiumHistogramEnumValue(ctx, in)
+func (m *mockChromiumHistogramEnumsClient) SyncChromiumHistogramEnumValues(
+	ctx context.Context, in []gcpspanner.ChromiumHistogramEnumValue) error {
+	return m.syncChromiumHistogramEnumValues(ctx, in)
+}
+
+func (m *mockChromiumHistogramEnumsClient) GetIDFromChromiumHistogramEnumValueKey(
+	ctx context.Context, chromiumHistogramEnumID string, bucketID int64) (*string, error) {
+	return m.getIDFromChromiumHistogramEnumValueKey(ctx, chromiumHistogramEnumID, bucketID)
 }
 
 func (m *mockChromiumHistogramEnumsClient) SyncWebFeatureChromiumHistogramEnumValues(ctx context.Context,
@@ -84,8 +91,12 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
 				},
-				upsertChromiumHistogramEnumValue: func(_ context.Context,
-					_ gcpspanner.ChromiumHistogramEnumValue) (*string, error) {
+				syncChromiumHistogramEnumValues: func(_ context.Context,
+					_ []gcpspanner.ChromiumHistogramEnumValue) error {
+					return nil
+				},
+				getIDFromChromiumHistogramEnumValueKey: func(
+					_ context.Context, _ string, _ int64) (*string, error) {
 					return valuePtr("enumValueID"), nil
 				},
 				getIDFromFeatureKey: func(_ context.Context,
@@ -126,7 +137,8 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 					return nil, errors.New("test error")
 				},
 				upsertChromiumHistogramEnum:               nil,
-				upsertChromiumHistogramEnumValue:          nil,
+				syncChromiumHistogramEnumValues:           nil,
+				getIDFromChromiumHistogramEnumValueKey:    nil,
 				syncWebFeatureChromiumHistogramEnumValues: nil,
 				getIDFromFeatureKey:                       nil,
 				getAllMovedWebFeatures:                    nil,
@@ -148,7 +160,8 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return nil, errors.New("test error")
 				},
-				upsertChromiumHistogramEnumValue:          nil,
+				syncChromiumHistogramEnumValues:           nil,
+				getIDFromChromiumHistogramEnumValueKey:    nil,
 				syncWebFeatureChromiumHistogramEnumValues: nil,
 				getIDFromFeatureKey:                       nil,
 				getAllMovedWebFeatures: func(_ context.Context) ([]gcpspanner.MovedWebFeature, error) {
@@ -164,7 +177,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 			expectedErr: ErrFailedToStoreEnum,
 		},
 		{
-			name: "UpsertChromiumHistogramEnumValue returns error",
+			name: "SyncChromiumHistogramEnumValue returns error",
 			client: &mockChromiumHistogramEnumsClient{
 				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
 					return []string{"enum-label"}, nil
@@ -173,8 +186,40 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
 				},
-				upsertChromiumHistogramEnumValue: func(_ context.Context,
-					_ gcpspanner.ChromiumHistogramEnumValue) (*string, error) {
+				syncChromiumHistogramEnumValues: func(_ context.Context,
+					_ []gcpspanner.ChromiumHistogramEnumValue) error {
+					return errors.New("test error")
+				},
+				getIDFromChromiumHistogramEnumValueKey:    nil,
+				syncWebFeatureChromiumHistogramEnumValues: nil,
+				getIDFromFeatureKey:                       nil,
+				getAllMovedWebFeatures: func(_ context.Context) ([]gcpspanner.MovedWebFeature, error) {
+					return nil, nil
+				},
+			},
+			data: metricdatatypes.HistogramMapping{
+				metricdatatypes.WebDXFeatureEnum: []metricdatatypes.HistogramEnumValue{
+					{Value: 1, Label: "EnumLabel"},
+				},
+			},
+			expectedErr: ErrFailedToStoreEnumValue,
+		},
+		{
+			name: "GetIDFromChromiumHistogramEnumValueKey returns error",
+			client: &mockChromiumHistogramEnumsClient{
+				fetchAllFeatureKeys: func(_ context.Context) ([]string, error) {
+					return []string{"enum-label"}, nil
+				},
+				upsertChromiumHistogramEnum: func(_ context.Context,
+					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
+					return valuePtr("enumID"), nil
+				},
+				syncChromiumHistogramEnumValues: func(_ context.Context,
+					_ []gcpspanner.ChromiumHistogramEnumValue) error {
+					return nil
+				},
+				getIDFromChromiumHistogramEnumValueKey: func(
+					_ context.Context, _ string, _ int64) (*string, error) {
 					return nil, errors.New("test error")
 				},
 				syncWebFeatureChromiumHistogramEnumValues: nil,
@@ -200,8 +245,12 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
 				},
-				upsertChromiumHistogramEnumValue: func(_ context.Context,
-					_ gcpspanner.ChromiumHistogramEnumValue) (*string, error) {
+				syncChromiumHistogramEnumValues: func(_ context.Context,
+					_ []gcpspanner.ChromiumHistogramEnumValue) error {
+					return nil
+				},
+				getIDFromChromiumHistogramEnumValueKey: func(
+					_ context.Context, _ string, _ int64) (*string, error) {
 					return valuePtr("enumValueID"), nil
 				},
 				getIDFromFeatureKey: func(_ context.Context,
@@ -238,8 +287,12 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
 					return valuePtr("enumID"), nil
 				},
-				upsertChromiumHistogramEnumValue: func(_ context.Context,
-					_ gcpspanner.ChromiumHistogramEnumValue) (*string, error) {
+				syncChromiumHistogramEnumValues: func(_ context.Context,
+					_ []gcpspanner.ChromiumHistogramEnumValue) error {
+					return nil
+				},
+				getIDFromChromiumHistogramEnumValueKey: func(
+					_ context.Context, _ string, _ int64) (*string, error) {
 					return valuePtr("enumValueID"), nil
 				},
 				getIDFromFeatureKey: func(_ context.Context,
@@ -459,7 +512,8 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 			mockClient: &mockChromiumHistogramEnumsClient{
 				fetchAllFeatureKeys:                       nil,
 				upsertChromiumHistogramEnum:               nil,
-				upsertChromiumHistogramEnumValue:          nil,
+				syncChromiumHistogramEnumValues:           nil,
+				getIDFromChromiumHistogramEnumValueKey:    nil,
 				syncWebFeatureChromiumHistogramEnumValues: nil,
 				getIDFromFeatureKey:                       nil,
 				getAllMovedWebFeatures: func(_ context.Context) ([]gcpspanner.MovedWebFeature, error) {
@@ -492,7 +546,8 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 			mockClient: &mockChromiumHistogramEnumsClient{
 				fetchAllFeatureKeys:                       nil,
 				upsertChromiumHistogramEnum:               nil,
-				upsertChromiumHistogramEnumValue:          nil,
+				syncChromiumHistogramEnumValues:           nil,
+				getIDFromChromiumHistogramEnumValueKey:    nil,
 				syncWebFeatureChromiumHistogramEnumValues: nil,
 				getIDFromFeatureKey:                       nil,
 				getAllMovedWebFeatures: func(_ context.Context) ([]gcpspanner.MovedWebFeature, error) {
@@ -507,7 +562,8 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 			mockClient: &mockChromiumHistogramEnumsClient{
 				fetchAllFeatureKeys:                       nil,
 				upsertChromiumHistogramEnum:               nil,
-				upsertChromiumHistogramEnumValue:          nil,
+				syncChromiumHistogramEnumValues:           nil,
+				getIDFromChromiumHistogramEnumValueKey:    nil,
 				syncWebFeatureChromiumHistogramEnumValues: nil,
 				getIDFromFeatureKey:                       nil,
 				getAllMovedWebFeatures: func(_ context.Context) ([]gcpspanner.MovedWebFeature, error) {

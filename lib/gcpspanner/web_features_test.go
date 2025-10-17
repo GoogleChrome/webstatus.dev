@@ -236,13 +236,19 @@ func (s syncWebFeaturesRedirectCase) postFirstSyncSetup(
 	}
 
 	bucketID := int64(100)
-	featureEnumID, err := spannerClient.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValue{
-		ChromiumHistogramEnumID: *enumID,
-		BucketID:                bucketID,
-		Label:                   "FeatureAOrB",
+	err = spannerClient.SyncChromiumHistogramEnumValues(ctx, []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: *enumID,
+			BucketID:                bucketID,
+			Label:                   "FeatureAOrB",
+		},
 	})
 	if err != nil {
-		t.Fatalf("Failed to insert chromium histogram enum value: %v", err)
+		t.Fatalf("Failed to sync chromium histogram enum value: %v", err)
+	}
+	featureEnumID, err := spannerClient.GetIDFromChromiumHistogramEnumValueKey(ctx, *enumID, bucketID)
+	if err != nil {
+		t.Fatalf("Failed to get chromium histogram enum value id: %v", err)
 	}
 
 	// Insert chromium histogram metrics for feature-a.

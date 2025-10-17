@@ -185,13 +185,20 @@ func (w *webFeatureForeignKeyTestHelpers) insertWebFeatureChromiumHistogramData(
 
 	bucketID := int64(1)
 
-	enumID, err := spannerClient.UpsertChromiumHistogramEnumValue(ctx, ChromiumHistogramEnumValue{
-		ChromiumHistogramEnumID: *id,
-		BucketID:                bucketID,
-		Label:                   "test label",
+	err = spannerClient.SyncChromiumHistogramEnumValues(ctx, []ChromiumHistogramEnumValue{
+		{
+			ChromiumHistogramEnumID: *id,
+			BucketID:                bucketID,
+			Label:                   "test label",
+		},
 	})
 	if err != nil {
-		t.Errorf("unexpected error during insert. %s", err.Error())
+		t.Errorf("unexpected error during sync. %s", err.Error())
+	}
+
+	enumID, err := spannerClient.GetIDFromChromiumHistogramEnumValueKey(ctx, *id, bucketID)
+	if err != nil {
+		t.Errorf("unexpected error during get id. %s", err.Error())
 	}
 
 	err = spannerClient.SyncWebFeatureChromiumHistogramEnumValues(ctx, []WebFeatureChromiumHistogramEnumValue{
