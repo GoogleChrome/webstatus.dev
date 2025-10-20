@@ -170,14 +170,13 @@ node-openapi:
 ################################
 JSONSCHEMA_OUT_DIR = lib/gen/jsonschema
 
-# TODO change web-features-mappings to use main branch once this PR is merged: https://github.com/web-platform-dx/web-features-mappings/pull/17
 download-schemas:
 	wget -O jsonschema/web-platform-dx_web-features/v3.data.schema.json \
 		https://raw.githubusercontent.com/web-platform-dx/web-features/refs/heads/main/schemas/data.schema.json
 	wget -O jsonschema/mdn_browser-compat-data/browsers.schema.json \
 		https://raw.githubusercontent.com/mdn/browser-compat-data/main/schemas/browsers.schema.json
 	wget -O jsonschema/web-platform-dx_web-features-mappings/combined-schema.gen.json \
-		https://raw.githubusercontent.com/web-platform-dx/web-features-mappings/refs/heads/generate-schema-validation-for-combined/combined-schema.gen.json
+		https://raw.githubusercontent.com/web-platform-dx/web-features-mappings/refs/heads/main/combined-schema.gen.json
 
 jsonschema: clean-jsonschema
 	npx quicktype \
