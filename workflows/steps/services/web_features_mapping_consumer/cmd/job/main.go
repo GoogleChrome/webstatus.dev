@@ -1,0 +1,73 @@
+// Copyright 2025 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+package main
+
+import (
+	"context"
+	"log/slog"
+	"net/http"
+	"os"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_features_mapping_consumer/pkg/data"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_features_mapping_consumer/pkg/workflow"
+)
+
+const (
+	defaultURL = "https://raw.githubusercontent.com/web-platform-dx/web-features-mappings" +
+		"/refs/heads/main/mappings/combined-data.json"
+)
+
+func main() {
+	ctx := context.Background()
+
+	// Configuration and Client Setup
+	projectID := os.Getenv("PROJECT_ID")
+	spannerDB := os.Getenv("SPANNER_DATABASE")
+	spannerInstance := os.Getenv("SPANNER_INSTANCE")
+	spannerClient, err := gcpspanner.NewSpannerClient(projectID, spannerInstance, spannerDB)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create spanner client", "error", err.Error())
+		os.Exit(1)
+	}
+
+	// Currently, only one worker needed
+	numWorkers := 1
+
+	// Worker Pool Setup
+	pool := workerpool.Pool[workflow.JobArguments]{}
+
+	downloader := data.NewHTTPDownloader(http.DefaultClient)
+	parser := data.Parser{}
+
+	processor := workflow.NewWebFeaturesMappingJobProcessor(
+		spanneradapters.NewWebFeaturesMappingConsumer(spannerClient),
+		downloader,
+		parser,
+	)
+
+	// Job Generation
+	jobs := []workflow.JobArguments{
+		workflow.NewJobArguments(defaultURL),
+	}
+	// Job Execution and Error Handling
+	errs := pool.Start(ctx, numWorkers, processor, jobs)
+	if len(errs) > 0 {
+		slog.ErrorContext(ctx, "workflow returned errors", "error", errs)
+		os.Exit(1)
+	}
+}

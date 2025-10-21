@@ -10,3 +10,4 @@ docs/schema
 workflows/steps/services/bcd_consumer/pkg/data/testdata/data.json
 workflows/steps/services/web_feature_consumer/pkg/data/testdata/v3.data.json
 workflows/steps/services/developer_signals_consumer/pkg/data/testdata/web-features-signals.json
+workflows/steps/services/web_features_mapping_consumer/pkg/data/testdata/combined-data.json
