@@ -154,6 +154,10 @@ variable "web_features_region_schedules" {
   type = map(string)
 }
 
+variable "web_features_mapping_region_schedules" {
+  type = map(string)
+}
+
 
 variable "firebase_api_key_location" {
   description = "Location of the firebase api key in secret manager"

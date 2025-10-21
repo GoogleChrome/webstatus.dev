@@ -82,6 +82,11 @@ wpt_region_schedules = {
   "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
 }
 
+web_features_mapping_region_schedules = {
+  "us-central1"  = "0 23 * * *" # Daily at 11:00 PM
+  "europe-west1" = "0 11 * * *" # Daily at 11:00 AM
+}
+
 firebase_api_key_location = "prod-firebase-app-api-key"
 
 auth_github_config_locations = {
