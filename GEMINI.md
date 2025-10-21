@@ -21,7 +21,7 @@ This section describes the tools and commands for local development.
 - **`make start-local`**: Starts the complete local development environment using Skaffold and Minikube. This includes live-reloading for code changes.
 - **`make port-forward-manual`**: After starting the environment, run this to expose the services (frontend, backend, etc.) on `localhost`.
 - **`make test`**: Runs the Go and TypeScript unit tests. Use `make go-test` to run only Go tests.
-- **`make precommit`**: Runs a comprehensive suite of checks including tests, linting (`golangci-lint` configured via `.golangci.yaml`), and license header verification. This is the main command to run before submitting a pull request.
+- **`make precommit`**: Runs a comprehensive suite of checks including tests, linting (`golangci-lint` configured via `.golangci.yaml`), and license header verification. This is the main command to run before submitting a pull request. Common linting errors to watch for include `exhaustruct` (missing struct fields) and `nlreturn` (missing newline before return).
 - **`make gen`**: Regenerates all auto-generated code (from OpenAPI, JSON Schema, ANTLR). Use `make openapi` for just OpenAPI changes.
 - **`make dev_workflows`**: Populates the local Spanner database by running the data ingestion jobs against live data sources.
 - **`make dev_fake_data`**: Populates the local Spanner database with a consistent set of fake data for testing.
@@ -81,6 +81,7 @@ Standalone Go applications that populate the Spanner database from external sour
   - **Production**: Deployed as `google_cloud_run_v2_job` resources via Terraform.
 - **"Do's and Don'ts" (Workflows)**:
   - **DO** follow the existing pattern for new workflows: new directory, `main.go`, and `manifests/job.yaml`.
+  - **DO** separate data fetching and parsing logic from the main workflow processor. Create a `pkg/data` directory within the workflow to house `downloader.go` and `parser.go` files with corresponding interfaces.
   - **DO** use consumer-specific `spanneradapters` (e.g., `BCDConsumer`, `DeveloperSignalsConsumer`).
   - **DON'T** call the `Backend` spanner adapter from a workflow.
   - **DO** choose the correct data ingestion pattern (sync vs. upsert) based on the use case. See the "How-To" guide for details.
@@ -184,7 +185,13 @@ The project uses JSON schemas to define the structure of data from external sour
 
 This section covers key processes and architectural decisions that apply across the project.
 
-### 5.1. Testing
+### 5.1. Use Intermediate Types
+
+**DO** create hand-written, intermediate types in the `lib/` directory (e.g., `lib/webdxfeaturetypes`) to represent the data structures your application logic will use. The `Parser` component of a workflow should be responsible for transforming the auto-generated types (from `lib/gen/jsonschema/`) into these intermediate types.
+
+This practice decouples the core application logic from the exact structure of the external data source. If the source schema changes, you only need to update the parser and the intermediate types, rather than chasing down changes throughout the entire codebase.
+
+### 5.2. Testing
 
 - **End-to-End (E2E) Tests (`e2e/`)**: E2E tests are written in **TypeScript** using **Playwright** to test complete user flows.
   - **Execution**: Run with `make playwright-test`. This command sets up a fresh, clean environment.
@@ -198,7 +205,7 @@ This section covers key processes and architectural decisions that apply across 
 - **TypeScript Unit Tests**:
   - **TypeScript**: Use `npm run test -w frontend`.
 
-### 5.2. CI/CD (`.github/`)
+### 5.3. CI/CD (`.github/`)
 
 Continuous integration is handled by GitHub Actions, defined in `.github/workflows/ci.yml`.
 
@@ -207,7 +214,7 @@ Continuous integration is handled by GitHub Actions, defined in `.github/workflo
   - **DO** run `make precommit` locally before pushing changes to avoid CI failures.
   - **DON'T** merge pull requests if CI checks are failing.
 
-### 5.3. Infrastructure & Deployment (`infra/`)
+### 5.4. Infrastructure & Deployment (`infra/`)
 
 The project's infrastructure is managed with **Terraform**.
 
@@ -219,20 +226,20 @@ The project's infrastructure is managed with **Terraform**.
   - **DON'T** hardcode environment-specific values in `.tf` files.
   - **DO** run `make tf-lint` before committing.
 
-### 5.4. Database Migrations & Foreign Keys
+### 5.5. Database Migrations & Foreign Keys
 
 - **Creation**: Use `make spanner_new_migration` to create a new migration file.
 - **Cascade Deletes**: Prefer using `ON DELETE CASCADE` for foreign key relationships to maintain data integrity. Add an integration test to verify this behavior (see `lib/gcpspanner/web_features_fk_test.go`).
 - **Cascade Caveat**: If a cascade could delete thousands of child entities, it may exceed Spanner's mutation limit. In such cases, implement the `GetChildDeleteKeyMutations` method in the parent's `spannerMapper` to handle child deletions in batches before deleting the parent.
 - **Data Migrations**: For more complex data migrations, such as renaming a feature key, a generic migrator has been introduced in `lib/gcpspanner/spanneradapters/migration.go`. This can be used to migrate data between old and new keys.
 
-### 5.5. Caching
+### 5.6. Caching
 
 The `httpserver` package includes a generic response caching mechanism (`operationResponseCache`).
 
 - **Be careful when caching authenticated user data.** To prevent data leakage between users, ensure the cache key includes a unique user identifier. If not possible, avoid caching that endpoint for authenticated requests.
 
-### 5.6. Utility Scripts (`util/`)
+### 5.7. Utility Scripts (`util/`)
 
 Helper scripts and small CLI tools for local development.
 
@@ -244,7 +251,7 @@ Helper scripts and small CLI tools for local development.
   - **DO** place new one-off development scripts here.
   - **DON'T** put production application logic in `util/`.
 
-### 5.7. Code Modifications
+### 5.8. Code Modifications
 
 - **License Headers**: Never modify license headers manually. They are managed by the `make license-fix` command. If you see license header issues, run that command.
 
@@ -283,7 +290,36 @@ This guide outlines the process for adding a new search term (e.g., `is:discoura
 6.  **Update Frontend (`frontend/`)**:
     - Add the new search term to the search builder UI to make it discoverable to users. This involves updating the search vocabulary in `frontend/src/static/js/utils/constants.ts`.
 
-### 6.2. How-To: Update Toolchain Versions
+### 6.2. How-To: Add a New Scheduled Workflow
+
+This guide outlines the process for adding a new scheduled data ingestion workflow.
+
+1.  **Create the Workflow Application**:
+    - Following the patterns in the "Workflows / Data Ingestion Jobs (`workflows/`)" section, create a new directory in `workflows/steps/services/` for your new workflow.
+    - Implement the `main.go` file, the processor, and any necessary data fetching/parsing logic in a `pkg/data` subdirectory.
+    - Add a `manifests/job.yaml` file for the Kubernetes Job definition.
+    - Add a `skaffold.yaml` file.
+
+2.  **Update `Makefile`**:
+    - Add a new target to the `make dev_workflows` command in the root `Makefile` to allow running the new job locally.
+
+3.  **Add Terraform Resources**:
+    - In `infra/ingestion/workflows.tf`, add a new `module "workflow"` block for your new job. This will define the Cloud Run Job resource.
+
+4.  **Configure Scheduling (Terraform)**:
+    - **Declare a schedule variable**: In `infra/variables.tf`, add a new `variable` for your workflow's schedule (e.g., `my_new_workflow_region_schedules`). Give it a description and a default value.
+    - **Update environment configurations**:
+      - In `infra/.envs/staging.tfvars`, add the new variable and set an appropriate schedule for the staging environment.
+      - In `infra/.envs/prod.tfvars`, add the new variable and set the production schedule.
+    - **Pass the variable to the module**: In `infra/main.tf`, find the `module "ingestion"` block and pass your new schedule variable to it.
+    - **Use the variable in the module**: In `infra/ingestion/main.tf`, add the new variable to the `module "ingestion"`'s variables.
+    - **Use the variable in the workflow**: In `infra/ingestion/workflows.tf`, find your new workflow module and pass the `region_schedules` variable to it.
+
+5.  **Verify**:
+    - Run `make tf-lint` to ensure your Terraform configuration is valid.
+    - Run `make precommit` to run all checks.
+
+### 6.3. How-To: Update Toolchain Versions
 
 This guide outlines the process for updating the versions of various tools used in the project. Most tool versions are managed within `.devcontainer/devcontainer.json`.
 
@@ -312,7 +348,7 @@ For other tools defined as features in the devcontainer:
 1.  **Update Devcontainer**: In `.devcontainer/devcontainer.json`, find the feature for the tool you want to update (e.g., `ghcr.io/devcontainers/features/terraform:1`) and change its `version`.
 2.  **Rebuild Devcontainer**: Rebuild and reopen the project in the devcontainer to use the new version.
 
-### 6.3. How-To: Implement or Refactor a Go Data Ingestion Workflow
+### 6.4. How-To: Implement or Refactor a Go Data Ingestion Workflow
 
 This guide outlines the process for implementing or refactoring a Go data ingestion workflow.
 
