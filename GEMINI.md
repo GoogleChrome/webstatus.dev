@@ -106,6 +106,7 @@ Shared Go libraries used by the `backend` and `workflows`.
   - **DON'T** put service-specific logic in `lib/`.
   - **DO** define new database table structs in `lib/gcpspanner`.
   - **DO** create or extend adapters in `lib/gcpspanner/spanneradapters` to expose new database queries.
+  - **DO** handle the translation from business keys (e.g., `featureKey`) to internal database IDs within the `gcpspanner` client. Adapters and workflows should not be aware of internal IDs.
 
 ### 3.2.1 The Go Mapper Pattern for Spanner
 
@@ -351,6 +352,11 @@ For other tools defined as features in the devcontainer:
 ### 6.4. How-To: Implement or Refactor a Go Data Ingestion Workflow
 
 This guide outlines the process for implementing or refactoring a Go data ingestion workflow.
+
+> **Note on Pull Requests**: For a new workflow, plan to split your work into multiple, sequential pull requests for easier review:
+> 1.  **Data Layer PR**: Schema migration, new types, `gcpspanner` mapper, and client methods.
+> 2.  **Workflow Logic PR**: The consumer implementation, including its processor, parser, and downloader.
+> 3.  **Infrastructure PR**: Terraform changes to deploy the new Cloud Run Job.
 
 **1. Analyze the Data and Goal**
 
