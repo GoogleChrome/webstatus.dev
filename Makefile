@@ -414,6 +414,7 @@ go-workspace-setup: go-workspace-clean
 		go work use ./workflows/steps/services/developer_signals_consumer && \
 		go work use ./workflows/steps/services/uma_export && \
 		go work use ./workflows/steps/services/web_feature_consumer && \
+		go work use ./workflows/steps/services/web_features_mapping_consumer && \
 		go work use ./workflows/steps/services/wpt_consumer
 go-workspace-clean:
 	rm -rf go.work && rm -rf go.work.sum
@@ -435,7 +436,7 @@ clean-node:
 ################################
 # Local Data / Workflows
 ################################
-dev_workflows: bcd_workflow web_feature_workflow developer_signals_workflow chromium_histogram_enums_workflow wpt_workflow
+dev_workflows: bcd_workflow web_feature_workflow web_features_mapping_workflow developer_signals_workflow chromium_histogram_enums_workflow wpt_workflow
 web_feature_workflow:
 	./util/run_job.sh web-features-consumer images/go_service.Dockerfile workflows/steps/services/web_feature_consumer \
 		workflows/steps/services/web_feature_consumer/manifests/job.yaml web-features-consumer
@@ -451,6 +452,9 @@ bcd_workflow:
 chromium_histogram_enums_workflow:
 	./util/run_job.sh chromium-histogram-enums-consumer images/go_service.Dockerfile workflows/steps/services/chromium_histogram_enums \
 		workflows/steps/services/chromium_histogram_enums/manifests/job.yaml chromium-histogram-enums-consumer
+web_features_mapping_workflow:
+	./util/run_job.sh web-features-mapping-consumer images/go_service.Dockerfile workflows/steps/services/web_features_mapping_consumer \
+		workflows/steps/services/web_features_mapping_consumer/manifests/job.yaml web-features-mapping-consumer
 dev_fake_users: build
 	fuser -k 9099/tcp || true
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
