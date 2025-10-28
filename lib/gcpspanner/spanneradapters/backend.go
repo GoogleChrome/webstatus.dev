@@ -17,12 +17,14 @@ package spanneradapters
 import (
 	"cmp"
 	"context"
+	"encoding/json"
 	"errors"
 	"log/slog"
 	"math/big"
 	"slices"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -828,6 +830,39 @@ func convertFeatureDeveloperSignals(signals spannerDeveloperSignals) *backend.Fe
 	}
 }
 
+// NullJSONToTypedSlice safely converts a spanner.NullJSON object, which the Spanner
+// client decodes into a generic `interface{}`, into a strongly-typed slice of type `T`.
+//
+// A direct type assertion is not feasible because the underlying type is typically
+// `[]interface{}`, where each element is a `map[string]interface{}`. The most robust
+// and idiomatic way to perform this conversion is to re-marshal the generic structure
+// back into a JSON byte slice and then unmarshal it into the desired target struct slice.
+// This process also implicitly validates that the data from the database conforms to the
+// API's data contract. It returns `backendtypes.ErrEmptyJSONValue` if the input is valid but results in an empty slice.
+func NullJSONToTypedSlice[T any](jsonVal spanner.NullJSON) (*[]T, error) {
+	if !jsonVal.Valid {
+		return nil, backendtypes.ErrEmptyJSONValue
+	}
+
+	// Re-marshal the value from spanner.NullJSON to get a JSON byte slice.
+	bytes, err := json.Marshal(jsonVal.Value)
+	if err != nil {
+		return nil, errors.Join(err, backendtypes.ErrJSONMarshal)
+	}
+
+	// Unmarshal the byte slice into the target backend type.
+	var typedSlice []T
+	if err := json.Unmarshal(bytes, &typedSlice); err != nil {
+		return nil, errors.Join(err, backendtypes.ErrJSONUnmarshal)
+	}
+
+	if len(typedSlice) == 0 {
+		return nil, backendtypes.ErrEmptyJSONValue
+	}
+
+	return &typedSlice, nil
+}
+
 func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) *backend.Feature {
 	// Initialize the returned feature with the default values.
 	// The logic below will fill in nullable fields.
@@ -853,6 +888,7 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			featureResult.Alternatives,
 			featureResult.AccordingTo,
 		),
+		VendorPositions: nil,
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
@@ -891,6 +927,13 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			Links: &links,
 		}
 	}
+
+	vendorPositions, err := NullJSONToTypedSlice[backend.VendorPosition](featureResult.VendorPositions)
+	if err != nil && !errors.Is(err, backendtypes.ErrEmptyJSONValue) {
+		// Log the error but don't fail the whole request.
+		slog.ErrorContext(context.Background(), "unable to convert vendor positions", "error", err)
+	}
+	ret.VendorPositions = vendorPositions
 
 	return ret
 }

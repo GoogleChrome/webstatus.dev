@@ -29,6 +29,7 @@ import {
 } from '../utils/constants.js';
 import './webstatus-feature-badge.js';
 import {formatDeveloperUpvotesMessages} from '../utils/format.js';
+import {VendorPositions} from '../utils/vendor-position.js';
 
 const MISSING_VALUE = html``;
 
@@ -236,11 +237,37 @@ function getFeatureBadges(featureId: string): TemplateResult[] {
   return extraIdentifiers;
 }
 
+function renderVendorPositions(
+  vendorPositions?: components['schemas']['Feature']['vendor_positions'],
+): TemplateResult {
+  if (!vendorPositions) {
+    return html`${nothing}`;
+  }
+
+  const positions = VendorPositions.create(vendorPositions);
+  if (!positions || positions.length === 0) {
+    return html`${nothing}`;
+  }
+
+  return html`
+    ${positions.map(position => {
+      return html`
+        <sl-tag size="small">
+          <a href=${position.url} target="_blank">
+            ${position.vendor}: ${position.position}
+          </a>
+        </sl-tag>
+      `;
+    })}
+  `;
+}
+
 const renderFeatureName: CellRenderer = (feature, routerLocation, _options) => {
   const featureUrl = formatFeaturePageUrl(feature, routerLocation);
   return html`<div class="feature-name-cell">
     <a class="feature-page-link" href=${featureUrl}>${feature.name}</a
     >${getFeatureBadges(feature.feature_id)}
+    ${renderVendorPositions(feature.vendor_positions)}
   </div>`;
 };
 

@@ -29,6 +29,7 @@ import (
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/webfeaturesmappingtypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -88,6 +89,42 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 	err := client.InsertExcludedFeatureKey(ctx, "feature5")
 	if err != nil {
 		t.Errorf("unexpected error during insert of excluded keys. %s", err.Error())
+	}
+
+	sampleVendorPositions := []WebFeaturesMappingData{
+		{
+			WebFeatureID: "feature1",
+			VendorPositions: spanner.NullJSON{
+				Value: []webfeaturesmappingtypes.StandardsPosition{
+					{
+						Vendor:   "chrome",
+						Position: "positive",
+						URL:      "https://example.com/feature1",
+						Concerns: nil,
+					},
+				},
+				Valid: true,
+			},
+		},
+		{
+			WebFeatureID: "feature2",
+			VendorPositions: spanner.NullJSON{
+				Value: []webfeaturesmappingtypes.StandardsPosition{
+					{
+						Vendor:   "safari",
+						Position: "negative",
+						URL:      "https://example.com/feature2",
+						Concerns: nil,
+					},
+				},
+				Valid: true,
+			},
+		},
+	}
+
+	err = client.SyncWebFeaturesMappingData(ctx, sampleVendorPositions)
+	if err != nil {
+		t.Errorf("unexpected error during sync of vendor positions. %s", err.Error())
 	}
 
 	// nolint: dupl // Okay to duplicate for tests
@@ -874,6 +911,16 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			DeveloperSignalLink:    valuePtr("https://example.com"),
 			AccordingTo:            nil,
 			Alternatives:           nil,
+			VendorPositions: spanner.NullJSON{
+				Value: []interface{}{
+					map[string]interface{}{
+						"position": "positive",
+						"url":      "https://example.com/feature1",
+						"vendor":   "chrome",
+					},
+				},
+				Valid: true,
+			},
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -928,6 +975,16 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			DeveloperSignalLink:    valuePtr("https://example2.com"),
 			AccordingTo:            nil,
 			Alternatives:           nil,
+			VendorPositions: spanner.NullJSON{
+				Value: []interface{}{
+					map[string]interface{}{
+						"position": "negative",
+						"url":      "https://example.com/feature2",
+						"vendor":   "safari",
+					},
+				},
+				Valid: true,
+			},
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -968,6 +1025,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			Alternatives: []string{
 				"feature1",
 			},
+			VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -986,7 +1044,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			AccordingTo: []string{
 				"https://example.com",
 			},
-			Alternatives: nil,
+			Alternatives:    nil,
+			VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
 		}
 	}
 
@@ -2685,7 +2744,12 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		AreDeveloperSignalUpvotesEqual(a.DeveloperSignalUpvotes, b.DeveloperSignalUpvotes) &&
 		AreDeveloperSignalLinksEqual(a.DeveloperSignalLink, b.DeveloperSignalLink) &&
 		AreDiscouragedAccordingToEqual(a.AccordingTo, b.AccordingTo) &&
-		AreDiscouragedAlternativesEqual(a.Alternatives, b.Alternatives)
+		AreDiscouragedAlternativesEqual(a.Alternatives, b.Alternatives) &&
+		AreVendorPositionsEqual(a.VendorPositions, b.VendorPositions)
+}
+
+func AreVendorPositionsEqual(a, b spanner.NullJSON) bool {
+	return reflect.DeepEqual(a, b)
 }
 
 func AreDeveloperSignalUpvotesEqual(a, b *int64) bool { return reflect.DeepEqual(a, b) }
@@ -2774,6 +2838,7 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 
 	fmt.Fprintf(&builder, "\tAccordingTo: %s\n", result.AccordingTo)
 	fmt.Fprintf(&builder, "\tAlternatives: %s\n", result.Alternatives)
+	fmt.Fprintf(&builder, "\tVendorPositions: %s\n", result.VendorPositions)
 	fmt.Fprintln(&builder)
 
 	return builder.String()
