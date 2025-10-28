@@ -55,6 +55,7 @@ import {
   NotFoundError,
 } from '../api/errors.js';
 import {formatDeveloperUpvotesMessages} from '../utils/format.js';
+import {VendorPositions} from '../utils/vendor-position.js';
 // CanIUseData is a slimmed down interface of the data returned from the API.
 interface CanIUseData {
   items?: {
@@ -217,6 +218,10 @@ export class FeaturePage extends BaseChartsPage {
 
         .discouraged-info img {
           width: 20px;
+        }
+
+        .vendor-positions {
+          gap: var(--content-padding);
         }
       `,
     ];
@@ -632,6 +637,36 @@ export class FeaturePage extends BaseChartsPage {
     `;
   }
 
+  renderVendorPositions(): TemplateResult {
+    if (!this.feature?.vendor_positions) {
+      return html`${nothing}`;
+    }
+
+    const vendorPositions = VendorPositions.create(
+      this.feature.vendor_positions,
+    );
+    if (!vendorPositions || vendorPositions.length === 0) {
+      return html`${nothing}`;
+    }
+
+    return html`
+      <section id="vendor-positions">
+        <h3>Vendor positions</h3>
+        <div class="hbox wrap vendor-positions">
+          ${vendorPositions.map(position => {
+            return html`
+              <sl-tag>
+                <a href=${position.url} target="_blank">
+                  ${position.vendor}: ${position.position}
+                </a>
+              </sl-tag>
+            `;
+          })}
+        </div>
+      </section>
+    `;
+  }
+
   renderWPTScores(): TemplateResult {
     return html`
       <section id="wpt-scores">
@@ -732,8 +767,9 @@ export class FeaturePage extends BaseChartsPage {
           </div>
         </div>
 
-        ${this.renderNameDescriptionControls()} ${this.renderWPTScores()}
-        ${this.renderImplentationProgress()} ${this.renderFeatureUsage()}
+        ${this.renderNameDescriptionControls()} ${this.renderVendorPositions()}
+        ${this.renderWPTScores()} ${this.renderImplentationProgress()}
+        ${this.renderFeatureUsage()}
       </div>
     `;
 

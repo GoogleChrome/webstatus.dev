@@ -34,9 +34,12 @@ import (
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/jsonschema/web_platform_dx__web_features_mappings"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/webfeaturesmappingtypes"
 	"github.com/brianvoe/gofakeit/v7"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 	"golang.org/x/text/cases"
@@ -865,6 +868,13 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.InfoContext(ctx, "discouraged features generated",
 		"amount of discouraged features generated", discouragedFeaturesCount)
 
+	mappingDataCount, err := generateWebFeaturesMappingData(ctx, spannerClient, features)
+	if err != nil {
+		return fmt.Errorf("web features mapping data generation failed %w", err)
+	}
+	slog.InfoContext(ctx, "web features mapping data generated",
+		"amount of mapping data created", mappingDataCount)
+
 	err = generateEvolutionOfFeatures(ctx, spannerClient, fh)
 	if err != nil {
 		return fmt.Errorf("feature evolution generation failed %w", err)
@@ -872,6 +882,129 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	slog.InfoContext(ctx, "feature evolution generation complete")
 
 	return nil
+}
+
+func generateWebFeaturesMappingData(
+	ctx context.Context, client *gcpspanner.Client, features []gcpspanner.SpannerWebFeature) (int, error) {
+	mappings := []gcpspanner.WebFeaturesMappingData{}
+	for _, feature := range features {
+		positions := createFakeVendorPositions(feature.FeatureKey)
+		vendorPositions, err := spanneradapters.VendorPositionsToNullJSON(positions)
+		if err != nil {
+			return 0, err
+		}
+		if vendorPositions.Valid {
+			mappings = append(mappings, gcpspanner.WebFeaturesMappingData{
+				WebFeatureID:    feature.FeatureKey,
+				VendorPositions: vendorPositions,
+			})
+		}
+	}
+
+	err := client.SyncWebFeaturesMappingData(ctx, mappings)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(mappings), nil
+}
+
+// createFakeVendorPositionsNullJSON creates a spanner.NullJSON object containing vendor positions.
+// It returns a fixed position for the featurePageFeatureKey and random positions for other features.
+func createFakeVendorPositions(featureKey string) []webfeaturesmappingtypes.StandardsPosition {
+	var positions []webfeaturesmappingtypes.StandardsPosition
+
+	if featureKey == featurePageFeatureKey {
+		// Hardcode the positions for the special feature key
+		positions = []webfeaturesmappingtypes.StandardsPosition{
+			{
+				Vendor:   string(web_platform_dx__web_features_mappings.Mozilla),
+				Position: string(web_platform_dx__web_features_mappings.Positive),
+				URL:      "https://example.com/mozilla",
+				Concerns: nil,
+			},
+			{
+				Vendor:   string(web_platform_dx__web_features_mappings.Webkit),
+				Position: string(web_platform_dx__web_features_mappings.Negative),
+				URL:      "https://example.com/webkit",
+				Concerns: nil,
+			},
+		}
+	} else {
+		// 90% chance of having a mapping for other features
+		if r.Intn(10) < 9 {
+			allVendors := getAllVendors()
+			allVendorPositions := getAllVendorPositions()
+			for _, vendor := range allVendors {
+				// 50% chance for each vendor to have a position
+				if r.Intn(2) == 0 {
+					position := allVendorPositions[r.Intn(len(allVendorPositions))]
+					positions = append(positions, webfeaturesmappingtypes.StandardsPosition{
+						Vendor:   vendor,
+						Position: position,
+						URL:      gofakeit.URL(),
+						Concerns: nil,
+					})
+				}
+			}
+		}
+	}
+
+	return positions
+}
+
+// getVendorToStringSet provides a string representation for each Vendor enum.
+// The exhaustive linter is configured to check that this map is complete.
+func getVendorToStringSet() map[web_platform_dx__web_features_mappings.Vendor]any {
+	return map[web_platform_dx__web_features_mappings.Vendor]any{
+		web_platform_dx__web_features_mappings.Mozilla: nil,
+		web_platform_dx__web_features_mappings.Webkit:  nil,
+	}
+
+}
+
+// getAllVendors returns a slice of all Vendor enums, generated from the map above.
+func getAllVendors() []string {
+	vendorMap := getVendorToStringSet()
+	keys := make([]string, 0, len(vendorMap))
+	for k := range vendorMap {
+		keys = append(keys, string(k))
+	}
+	slices.Sort(keys)
+
+	return keys
+
+}
+
+// getPositionToStringSet provides a string representation for each Position enum.
+// The exhaustive linter is configured to check that this map is complete.
+func getPositionToStringSet() map[web_platform_dx__web_features_mappings.Position]any {
+	return map[web_platform_dx__web_features_mappings.Position]any{
+		web_platform_dx__web_features_mappings.Positive: nil,
+		web_platform_dx__web_features_mappings.Negative: nil,
+		web_platform_dx__web_features_mappings.Neutral:  nil,
+		web_platform_dx__web_features_mappings.Support:  nil,
+		web_platform_dx__web_features_mappings.Oppose:   nil,
+		web_platform_dx__web_features_mappings.Defer:    nil,
+		web_platform_dx__web_features_mappings.Blocked:  nil,
+		web_platform_dx__web_features_mappings.Empty:    nil,
+	}
+
+}
+
+// getAllVendorPositions returns a slice of all Position enums, generated from the map above.
+// It excludes the empty position, which is not useful for random generation.
+func getAllVendorPositions() []string {
+	positionMap := getPositionToStringSet()
+	keys := make([]string, 0, len(positionMap))
+	for k := range positionMap {
+		if k != web_platform_dx__web_features_mappings.Empty {
+			keys = append(keys, string(k))
+		}
+	}
+
+	return keys
+
 }
 
 func generateBaselineStatus(
