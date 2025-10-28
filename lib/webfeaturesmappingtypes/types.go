@@ -21,8 +21,8 @@ type FeatureMapping struct {
 }
 
 type StandardsPosition struct {
-	Vendor   string   `json:"vendor"`
-	Position string   `json:"position"`
-	URL      string   `json:"url"`
+	Vendor   string   `json:"vendor,omitempty"`
+	Position string   `json:"position,omitempty"`
+	URL      string   `json:"url,omitempty"`
 	Concerns []string `json:"concerns,omitempty"`
 }

@@ -16,7 +16,6 @@ package spanneradapters
 
 import (
 	"context"
-	"encoding/json"
 
 	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -47,19 +46,26 @@ func (a *WebFeaturesMappingConsumer) SyncWebFeaturesMappingData(
 ) error {
 	data := make([]gcpspanner.WebFeaturesMappingData, 0, len(mappings))
 	for featureID, mapping := range mappings {
+		vendorPositions, err := VendorPositionsToNullJSON(mapping.StandardsPositions)
+		if err != nil {
+			return err
+		}
 		spannerData := gcpspanner.WebFeaturesMappingData{
 			WebFeatureID:    featureID,
-			VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
-		}
-		if mapping.StandardsPositions != nil {
-			jsonValue, err := json.Marshal(mapping.StandardsPositions)
-			if err != nil {
-				return err
-			}
-			spannerData.VendorPositions = spanner.NullJSON{Value: string(jsonValue), Valid: true}
+			VendorPositions: vendorPositions,
 		}
 		data = append(data, spannerData)
 	}
 
 	return a.client.SyncWebFeaturesMappingData(ctx, data)
+}
+
+// VendorPositionsToNullJSON converts a slice of StandardsPosition into a spanner.NullJSON object.
+// This is used by both the real data consumer and the fake data generator to ensure consistency.
+func VendorPositionsToNullJSON(positions []webfeaturesmappingtypes.StandardsPosition) (spanner.NullJSON, error) {
+	if len(positions) == 0 {
+		return spanner.NullJSON{Valid: false, Value: nil}, nil
+	}
+
+	return spanner.NullJSON{Value: positions, Valid: true}, nil
 }

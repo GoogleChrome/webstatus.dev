@@ -71,7 +71,14 @@ func TestSyncWebFeaturesMappingData(t *testing.T) {
 				{
 					WebFeatureID: "feature1",
 					VendorPositions: spanner.NullJSON{
-						Value: `[{"vendor":"vendor1","position":"position1","url":"url1"}]`,
+						Value: []webfeaturesmappingtypes.StandardsPosition{
+							{
+								Vendor:   "vendor1",
+								Position: "position1",
+								URL:      "url1",
+								Concerns: nil,
+							},
+						},
 						Valid: true,
 					},
 				},

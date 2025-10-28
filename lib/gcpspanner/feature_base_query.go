@@ -333,6 +333,7 @@ LEFT OUTER JOIN ExcludedFeatureKeys efk ON wf.FeatureKey = efk.FeatureKey
 LEFT OUTER JOIN FeatureSpecs fs ON wf.ID = fs.WebFeatureID
 LEFT OUTER JOIN FeatureDiscouragedDetails fdd ON wf.ID = fdd.WebFeatureID
 LEFT OUTER JOIN LatestFeatureDeveloperSignals lfds ON wf.ID = lfds.WebFeatureID
+LEFT OUTER JOIN WebFeaturesMappingData wfmd ON wf.ID = wfmd.WebFeatureID
 LEFT OUTER JOIN (
 	SELECT
 		bfa.WebFeatureID,
@@ -452,6 +453,7 @@ SELECT
 	chromium_usage_metrics.ChromiumUsage,
 	lfds.Upvotes AS DeveloperSignalUpvotes,
 	lfds.Link AS DeveloperSignalLink,
+	wfmd.VendorPositions,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}
@@ -519,6 +521,7 @@ SELECT
 	chromium_usage_metrics.ChromiumUsage,
 	lfds.Upvotes AS DeveloperSignalUpvotes,
 	lfds.Link AS DeveloperSignalLink,
+	wfmd.VendorPositions,
 	{{ .StableMetrics }},
 	{{ .ExperimentalMetrics }},
 	{{ .ImplementationStatus }}

@@ -23,6 +23,7 @@ import (
 	"testing"
 	"time"
 
+	"cloud.google.com/go/spanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
@@ -1201,6 +1202,7 @@ func TestFeaturesSearch(t *testing.T) {
 								"alternative1",
 								"alternative2",
 							},
+							VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
 						},
 						{
 							Name:       "feature 2",
@@ -1261,7 +1263,8 @@ func TestFeaturesSearch(t *testing.T) {
 								"accordingto3",
 								"accordingto4",
 							},
-							Alternatives: nil,
+							Alternatives:    nil,
+							VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
 						},
 					},
 				},
@@ -1347,6 +1350,7 @@ func TestFeaturesSearch(t *testing.T) {
 								},
 							},
 						},
+						VendorPositions: nil,
 					},
 					{
 						Baseline: &backend.BaselineInfo{
@@ -1425,6 +1429,7 @@ func TestFeaturesSearch(t *testing.T) {
 							},
 							Alternatives: nil,
 						},
+						VendorPositions: nil,
 					},
 				},
 			},
@@ -1625,15 +1630,12 @@ func TestGetFeature(t *testing.T) {
 					ChromiumUsage:          nil,
 					DeveloperSignalUpvotes: valuePtr(int64(4)),
 					DeveloperSignalLink:    valuePtr("http://example.com"),
-					Alternatives: []string{
-						"alternative1",
-						"alternative2",
-					},
-					AccordingTo: []string{"according1", "according2"},
+					Alternatives:           []string{"alternative1", "alternative2"},
+					AccordingTo:            []string{"according1", "according2"},
+					VendorPositions:        spanner.NullJSON{Value: nil, Valid: false},
 				},
 				returnedError: nil,
-			},
-			splitFeatureCfg: nil,
+			}, splitFeatureCfg: nil,
 			movedFeatureCfg: nil,
 			visitor: func(t *testing.T) backendtypes.FeatureResultVisitor {
 				return &TestRegularFeatureVisitor{
@@ -1708,6 +1710,7 @@ func TestGetFeature(t *testing.T) {
 								},
 							},
 						},
+						VendorPositions: nil,
 					}),
 				}
 			},
@@ -3140,6 +3143,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				DeveloperSignalLink:    nil,
 				AccordingTo:            nil,
 				Alternatives:           nil,
+				VendorPositions:        spanner.NullJSON{Valid: false, Value: nil},
 			},
 
 			expectedFeature: &backend.Feature{
@@ -3162,6 +3166,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				BrowserImplementations: nil,
 				DeveloperSignals:       nil,
 				Discouraged:            nil,
+				VendorPositions:        nil,
 			},
 		},
 	}

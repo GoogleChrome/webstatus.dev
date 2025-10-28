@@ -35,4 +35,17 @@ var (
 
 	// ErrEntityDoesNotExist indicates the entity does not exist.
 	ErrEntityDoesNotExist = errors.New("entity does not exist")
+
+	// ErrJSONMarshal indicates a failure when marshalling data from a generic interface{} for conversion.
+	// This typically happens during the data conversion from a database type to a JSON byte slice.
+	ErrJSONMarshal = errors.New("failed to marshal data for JSON conversion")
+
+	// ErrJSONUnmarshal indicates a failure when unmarshalling JSON data into a target struct.
+	// This suggests a mismatch between the data stored in the database and the expected data contract.
+	ErrJSONUnmarshal = errors.New("failed to unmarshal JSON data")
+
+	// ErrEmptyJSONValue is a sentinel error indicating that the JSON value from the database
+	// was valid but empty (e.g., an empty array or object). This allows callers to distinguish
+	// between a missing value and an explicitly empty one.
+	ErrEmptyJSONValue = errors.New("JSON value is empty")
 )
