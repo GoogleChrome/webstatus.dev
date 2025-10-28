@@ -283,11 +283,17 @@ node-test: playwright-install
 ################################
 # ANTLR
 ################################
-antlr-gen: clean-antlr
+antlr-gen: clean-antlr antlr-gen-go antlr-gen-ts
+
+antlr-gen-go:
 	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=Go -o lib/gen/featuresearch/parser -visitor -no-listener antlr/FeatureSearch.g4
+
+antlr-gen-ts:
+	java -jar /usr/local/lib/antlr-$${ANTLR4_VERSION}-complete.jar -Dlanguage=TypeScript -o lib/gen/antlrv4/ts-antlrv4 -visitor antlr/FeatureSearch.g4
 
 clean-antlr:
 	rm -rf lib/gen/featuresearch/parser
+	rm -rf lib/gen/antlrv4/ts-antlrv4/antlr
 
 ################################
 # License
