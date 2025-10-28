@@ -1393,6 +1393,13 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SavedSearchResponse'
+    VendorPosition:
+      type: object
+      description: >
+        A loosely defined object representing a single vendor's standards position.
+        The schema is intentionally open-ended (`additionalProperties: true`) to
+        accommodate the evolving structure of the upstream web-features-mappings data source.
+      additionalProperties: true
     Feature:
       type: object
       properties:
@@ -1426,6 +1433,12 @@ components:
           $ref: '#/components/schemas/FeatureDeveloperSignals'
         discouraged:
           $ref: '#/components/schemas/FeatureDiscouragedInfo'
+        vendor_positions:
+          type: array
+          description: >
+            Contains standards positions from various vendors.
+          items:
+            $ref: '#/components/schemas/VendorPosition'
       required:
         - feature_id
         - name

@@ -85,6 +85,7 @@ func (c *Client) GetFeature(
 		DeveloperSignalLink:    result.DeveloperSignalLink,
 		AccordingTo:            result.AccordingTo,
 		Alternatives:           result.Alternatives,
+		VendorPositions:        result.VendorPositions,
 	}
 
 	return &actualResult, nil

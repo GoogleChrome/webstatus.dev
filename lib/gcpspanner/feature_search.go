@@ -47,6 +47,7 @@ type SpannerFeatureResult struct {
 	ChromiumUsage          *big.Rat                      `spanner:"ChromiumUsage"`
 	DeveloperSignalUpvotes *int64                        `spanner:"DeveloperSignalUpvotes"`
 	DeveloperSignalLink    *string                       `spanner:"DeveloperSignalLink"`
+	VendorPositions        spanner.NullJSON              `spanner:"VendorPositions"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
@@ -95,6 +96,7 @@ type FeatureResult struct {
 	ChromiumUsage          *big.Rat                `spanner:"ChromiumUsage"`
 	DeveloperSignalUpvotes *int64                  `spanner:"DeveloperSignalUpvotes"`
 	DeveloperSignalLink    *string                 `spanner:"DeveloperSignalLink"`
+	VendorPositions        spanner.NullJSON        `spanner:"VendorPositions"`
 }
 
 // FeatureResultPage contains the details for the feature search request.
@@ -259,6 +261,7 @@ func (c *Client) getFeatureResult(
 			ChromiumUsage:          result.ChromiumUsage,
 			DeveloperSignalUpvotes: result.DeveloperSignalUpvotes,
 			DeveloperSignalLink:    result.DeveloperSignalLink,
+			VendorPositions:        result.VendorPositions,
 		}
 		results = append(results, actualResult)
 	}
