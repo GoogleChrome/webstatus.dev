@@ -51,7 +51,11 @@ variable "timeout_seconds" {
 
 variable "short_name" {
   type        = string
-  description = "short name to describe resources. Typically 10 characters or less"
+  description = "short name to describe resources."
+  validation {
+    condition     = length(var.short_name) <= 13
+    error_message = "Short name must be 13 characters or less."
+  }
 }
 
 variable "full_name" {
