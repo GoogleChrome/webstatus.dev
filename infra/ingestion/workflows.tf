@@ -261,7 +261,7 @@ module "web_features_mapping_workflow" {
     google.public_project   = google.public_project
   }
   regions                       = var.regions
-  short_name                    = "web-features-mapping"
+  short_name                    = "feature-map"
   full_name                     = "Web Features Mapping Workflow"
   deletion_protection           = var.deletion_protection
   project_id                    = var.spanner_datails.project_id
