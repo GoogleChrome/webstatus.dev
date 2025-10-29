@@ -218,7 +218,7 @@ jsonschema: clean-jsonschema
 
 clean-jsonschema:
 	rm -rf $(JSONSCHEMA_OUT_DIR)/**/*.go
-	rm -f $(JSONSCHEMA_OUT_DIR)/**/*.ts
+	rm -rf $(JSONSCHEMA_OUT_DIR)/**/*.ts
 
 ################################
 # Lint

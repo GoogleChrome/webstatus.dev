@@ -479,7 +479,7 @@ test.describe('saved searches', () => {
     ).toBeVisible();
 
     // Reload the page to ensure the bookmark details are still there.
-    page.reload();
+    await page.reload();
     await waitForOverviewPageLoad(page);
     await expect(
       page.getByRole('heading', {name: 'Top HTML Interop issues'}),
