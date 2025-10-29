@@ -9,6 +9,7 @@
   "license": "Apache-2.0",
   "workspaces": [
     "frontend",
+    "lib/gen/jsonschema/web-platform-dx_web-features-mappings-ts",
     "lib/gen/openapi/ts-webstatus.dev-backend-types"
   ],
   "devDependencies": {

@@ -1,0 +1,10 @@
+{
+  "name": "@types/web-features-mappings",
+  "version": "1.0.0",
+  "types": "./types.d.ts",
+  "license": "Apache-2.0",
+  "scripts": {
+    "clean": "rm types.d.ts",
+    "test": "test -f types.d.ts"
+  }
+}

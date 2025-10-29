@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import {type Vendor, type Position} from 'web-features-mappings';
+
 // The VendorPosition class provides a type-safe way to handle vendor position data from the API.
 // The `vendor_positions` field in the OpenAPI spec is intentionally loosely defined to accommodate
 // the evolving schema of the web-features-mappings data. This class ensures that the frontend
@@ -28,32 +30,74 @@ export class VendorPosition {
   // A URL to the official position statement.
   url: string;
 
+  // Base record so that TypeScript will be exhaustive when checking vendors.
+  private static readonly VENDOR_DISPLAY_MAP: Record<Vendor, string> = {
+    webkit: 'WebKit',
+    mozilla: 'Mozilla',
+  };
+
+  // Actual map used for safe string lookup for vendors.
+  private static readonly VENDOR_STRING_MAP: Record<string, string> =
+    VendorPosition.VENDOR_DISPLAY_MAP;
+
+  // Base record so that TypeScript will be exhaustive when checking positions.
+  private static readonly POSITION_DISPLAY_MAP: Record<Position, string> = {
+    blocked: 'Blocked',
+    defer: 'Defer',
+    '': '',
+    negative: 'Negative',
+    neutral: 'Neutral',
+    oppose: 'Oppose',
+    positive: 'Positive',
+    support: 'Support',
+  };
+
+  // Actual map used for safe string lookup for positions.
+  private static readonly POSITION_STRING_MAP: Record<string, string> =
+    VendorPosition.POSITION_DISPLAY_MAP;
+
   private constructor(vendor: string, position: string, url: string) {
-    this.vendor = vendor;
-    this.position = position;
+    const displayVendorValue = VendorPosition.VENDOR_STRING_MAP[vendor];
+    if (displayVendorValue !== undefined) {
+      this.vendor = displayVendorValue;
+    } else {
+      // Leave as-is so that we can determine unknown positions later.
+      this.vendor = vendor;
+    }
+
+    const displayPositionValue = VendorPosition.POSITION_STRING_MAP[position];
+    if (displayPositionValue !== undefined) {
+      this.position = displayPositionValue;
+    } else {
+      // Leave as-is so that we can determine unknown positions later.
+      this.position = position;
+    }
+
     this.url = url;
   }
 
   static create(data: unknown): VendorPosition | null {
-    if (
-      typeof data === 'object' &&
-      data !== null &&
-      'vendor' in data &&
-      typeof (data as {vendor: unknown}).vendor === 'string' &&
-      (data as {vendor: string}).vendor !== '' &&
-      'position' in data &&
-      typeof (data as {position: unknown}).position === 'string' &&
-      (data as {position: string}).position !== '' &&
-      'url' in data &&
-      typeof (data as {url: unknown}).url === 'string' &&
-      (data as {url: string}).url !== ''
-    ) {
-      const vendor = (data as {vendor: string}).vendor;
-      const position = (data as {position: string}).position;
-      const url = (data as {url: string}).url;
-      return new VendorPosition(vendor, position, url);
+    if (typeof data !== 'object' || data === null) {
+      return null;
     }
-    return null;
+
+    const record = data as Record<string, unknown>;
+
+    const {vendor, position, url} = record;
+
+    if (typeof vendor !== 'string' || vendor === '') {
+      return null;
+    }
+
+    if (typeof position !== 'string' || position === '') {
+      return null;
+    }
+
+    if (typeof url !== 'string' || url === '') {
+      return null;
+    }
+
+    return new VendorPosition(vendor, position, url);
   }
 }
 

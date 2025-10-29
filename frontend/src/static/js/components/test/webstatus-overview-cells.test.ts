@@ -864,7 +864,7 @@ describe('renderFeatureName', () => {
     expect(link!.textContent!.trim()).to.equal('name');
     const tags = el.querySelectorAll('sl-tag');
     expect(tags.length).to.equal(1);
-    expect(tags[0].textContent?.trim()).to.equal('mozilla: positive');
+    expect(tags[0].textContent?.trim()).to.equal('Mozilla: Positive');
     expect(tags[0].querySelector('a')?.href).to.equal(
       'https://example.com/mozilla',
     );

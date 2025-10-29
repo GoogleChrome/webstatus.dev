@@ -206,9 +206,19 @@ jsonschema: clean-jsonschema
 		--package web_platform_dx__web_features_mappings \
 		--field-tags json
 
+	npx quicktype \
+		--src jsonschema/web-platform-dx_web-features-mappings/combined-schema.gen.json \
+		--src-lang schema \
+		--lang ts \
+		--top-level webFeaturesMapping \
+		--out lib/gen/jsonschema/web-platform-dx_web-features-mappings-ts/types.d.ts \
+		--prefer-unions \
+		--just-types
+
 
 clean-jsonschema:
 	rm -rf $(JSONSCHEMA_OUT_DIR)/**/*.go
+	rm -f $(JSONSCHEMA_OUT_DIR)/**/*.ts
 
 ################################
 # Lint

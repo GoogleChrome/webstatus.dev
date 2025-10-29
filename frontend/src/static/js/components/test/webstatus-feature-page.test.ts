@@ -617,11 +617,11 @@ describe('webstatus-feature-page', () => {
       expect(section).to.not.be.null;
       const tags = host.querySelectorAll('sl-tag');
       expect(tags.length).to.equal(2);
-      expect(tags[0].textContent?.trim()).to.equal('mozilla: positive');
+      expect(tags[0].textContent?.trim()).to.equal('Mozilla: Positive');
       expect(tags[0].querySelector('a')?.href).to.equal(
         'https://example.com/mozilla',
       );
-      expect(tags[1].textContent?.trim()).to.equal('webkit: negative');
+      expect(tags[1].textContent?.trim()).to.equal('WebKit: Negative');
       expect(tags[1].querySelector('a')?.href).to.equal(
         'https://example.com/webkit',
       );

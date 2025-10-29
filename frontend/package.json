@@ -35,6 +35,7 @@
     "@types/chai": "^5.0.1",
     "@types/mocha": "^10.0.10",
     "@types/node": "^22.9.0",
+    "@types/web-features-mappings": "file:../lib/gen/jsonschema/web-platform-dx_web-features-mappings-ts",
     "@types/webstatus.dev-backend": "file:../lib/gen/openapi/ts-webstatus.dev-backend-types",
     "@typescript-eslint/eslint-plugin": "^8.46.2",
     "@typescript-eslint/parser": "^8.44.0",
