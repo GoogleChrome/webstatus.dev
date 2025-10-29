@@ -1002,6 +1002,7 @@ func getAllVendorPositions() []string {
 			keys = append(keys, string(k))
 		}
 	}
+	slices.Sort(keys)
 
 	return keys
 
