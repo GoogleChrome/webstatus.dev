@@ -145,7 +145,7 @@ describe('VendorPosition', () => {
           url: 'https://example.com/mozilla',
         },
         {
-          vendor: 'webkit',
+          vendor: 'apple',
           position: 'negative',
           url: 'https://example.com/webkit',
         },
@@ -155,7 +155,7 @@ describe('VendorPosition', () => {
       expect(vendorPositions!.length).to.equal(2);
       expect(vendorPositions![0]).to.be.an.instanceOf(VendorPosition);
       expect(vendorPositions![0].vendor).to.equal('Mozilla');
-      expect(vendorPositions![1].vendor).to.equal('WebKit');
+      expect(vendorPositions![1].vendor).to.equal('Apple');
     });
 
     it('should filter out invalid data', () => {

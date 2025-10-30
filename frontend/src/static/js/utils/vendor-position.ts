@@ -32,7 +32,7 @@ export class VendorPosition {
 
   // Base record so that TypeScript will be exhaustive when checking vendors.
   private static readonly VENDOR_DISPLAY_MAP: Record<Vendor, string> = {
-    webkit: 'WebKit',
+    apple: 'Apple',
     mozilla: 'Mozilla',
   };
 

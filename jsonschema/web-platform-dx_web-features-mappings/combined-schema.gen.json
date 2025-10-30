@@ -191,7 +191,7 @@
           "type": "string",
           "enum": [
             "mozilla",
-            "webkit"
+            "apple"
           ]
         },
         "url": {

@@ -924,7 +924,7 @@ func createFakeVendorPositions(featureKey string) []webfeaturesmappingtypes.Stan
 				Concerns: nil,
 			},
 			{
-				Vendor:   string(web_platform_dx__web_features_mappings.Webkit),
+				Vendor:   string(web_platform_dx__web_features_mappings.Apple),
 				Position: string(web_platform_dx__web_features_mappings.Negative),
 				URL:      "https://example.com/webkit",
 				Concerns: nil,
@@ -958,7 +958,7 @@ func createFakeVendorPositions(featureKey string) []webfeaturesmappingtypes.Stan
 func getVendorToStringSet() map[web_platform_dx__web_features_mappings.Vendor]any {
 	return map[web_platform_dx__web_features_mappings.Vendor]any{
 		web_platform_dx__web_features_mappings.Mozilla: nil,
-		web_platform_dx__web_features_mappings.Webkit:  nil,
+		web_platform_dx__web_features_mappings.Apple:   nil,
 	}
 
 }
