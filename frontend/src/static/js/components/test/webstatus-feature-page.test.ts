@@ -557,4 +557,74 @@ describe('webstatus-feature-page', () => {
       expect(document.title).to.equal('New Feature');
     });
   });
+  describe('renderVendorPositions', () => {
+    let element: FeaturePage;
+    let hostElement: HTMLDivElement;
+
+    beforeEach(async () => {
+      element = await fixture(
+        html`<webstatus-feature-page
+          .location=${location}
+        ></webstatus-feature-page>`,
+      );
+      hostElement = document.createElement('div');
+    });
+
+    it('renders nothing when there are no vendor positions', async () => {
+      element.feature = {
+        feature_id: 'id',
+        name: 'name',
+      };
+      const actual = element.renderVendorPositions();
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders nothing when vendor positions is an empty array', async () => {
+      element.feature = {
+        feature_id: 'id',
+        name: 'name',
+        vendor_positions: [],
+      };
+      const actual = element.renderVendorPositions();
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      expect(host.textContent?.trim()).to.equal('');
+    });
+
+    it('renders the vendor positions', async () => {
+      element.feature = {
+        feature_id: 'id',
+        name: 'name',
+        vendor_positions: [
+          {
+            vendor: 'mozilla',
+            position: 'positive',
+            url: 'https://example.com/mozilla',
+          },
+          {
+            vendor: 'webkit',
+            position: 'negative',
+            url: 'https://example.com/webkit',
+          },
+        ],
+      };
+      const actual = element.renderVendorPositions();
+      render(actual, hostElement);
+      const host = await fixture(hostElement);
+      const section = host.querySelector('#vendor-positions');
+      expect(section).to.not.be.null;
+      const tags = host.querySelectorAll('sl-tag');
+      expect(tags.length).to.equal(2);
+      expect(tags[0].textContent?.trim()).to.equal('Mozilla: Positive');
+      expect(tags[0].querySelector('a')?.href).to.equal(
+        'https://example.com/mozilla',
+      );
+      expect(tags[1].textContent?.trim()).to.equal('WebKit: Negative');
+      expect(tags[1].querySelector('a')?.href).to.equal(
+        'https://example.com/webkit',
+      );
+    });
+  });
 });

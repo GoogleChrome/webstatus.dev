@@ -24,6 +24,7 @@ COPY package.json package.json
 COPY package-lock.json package-lock.json
 COPY ${service_dir}/package.json ${service_dir}/package.json
 COPY lib/gen/openapi/ lib/gen/openapi/
+COPY lib/gen/jsonschema/ lib/gen/jsonschema/
 WORKDIR /work/${service_dir}
 RUN --mount=type=cache,target=/root/.npm \
     npm ci --ignore-scripts --include-workspace-root=true

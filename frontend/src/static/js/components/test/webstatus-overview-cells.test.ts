@@ -816,3 +816,57 @@ describe('renderGroupCells', () => {
     expect(th!.getAttribute('class')).to.include('cell-class');
   });
 });
+
+describe('renderFeatureName', () => {
+  let container: HTMLElement;
+  let feature: components['schemas']['Feature'];
+  beforeEach(() => {
+    container = document.createElement('div');
+
+    feature = {
+      feature_id: 'id',
+      name: 'name',
+    };
+  });
+
+  it('renders feature name without vendor positions', async () => {
+    const result = CELL_DEFS[ColumnKey.Name].cellRenderer(
+      feature,
+      {search: ''},
+      {},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const link = el.querySelector('a');
+    expect(link).to.exist;
+    expect(link!.textContent!.trim()).to.equal('name');
+    const tags = el.querySelectorAll('sl-tag');
+    expect(tags.length).to.equal(0);
+  });
+
+  it('renders feature name with vendor positions', async () => {
+    feature.vendor_positions = [
+      {
+        vendor: 'mozilla',
+        position: 'positive',
+        url: 'https://example.com/mozilla',
+      },
+    ];
+    const result = CELL_DEFS[ColumnKey.Name].cellRenderer(
+      feature,
+      {search: ''},
+      {},
+    );
+    render(result, container);
+    const el = await fixture(container);
+    const link = el.querySelector('a.feature-page-link');
+    expect(link).to.exist;
+    expect(link!.textContent!.trim()).to.equal('name');
+    const tags = el.querySelectorAll('sl-tag');
+    expect(tags.length).to.equal(1);
+    expect(tags[0].textContent?.trim()).to.equal('Mozilla: Positive');
+    expect(tags[0].querySelector('a')?.href).to.equal(
+      'https://example.com/mozilla',
+    );
+  });
+});
