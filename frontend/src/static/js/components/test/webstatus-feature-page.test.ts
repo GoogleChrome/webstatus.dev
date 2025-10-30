@@ -604,7 +604,7 @@ describe('webstatus-feature-page', () => {
             url: 'https://example.com/mozilla',
           },
           {
-            vendor: 'webkit',
+            vendor: 'apple',
             position: 'negative',
             url: 'https://example.com/webkit',
           },
@@ -621,7 +621,7 @@ describe('webstatus-feature-page', () => {
       expect(tags[0].querySelector('a')?.href).to.equal(
         'https://example.com/mozilla',
       );
-      expect(tags[1].textContent?.trim()).to.equal('WebKit: Negative');
+      expect(tags[1].textContent?.trim()).to.equal('Apple: Negative');
       expect(tags[1].querySelector('a')?.href).to.equal(
         'https://example.com/webkit',
       );
