@@ -29,6 +29,7 @@ import (
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/apiv1/spannerpb"
+	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/status"
 )
@@ -424,6 +425,71 @@ type removableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable
 	externalKeyMapper[ExternalStruct, Key]
 	readOneMapper[Key] // To verify the entity exists before deleting.
 	deleteByKeyMapper[Key]
+}
+
+// creatableEntityMapper is composed for the entityCreator.
+type creatableEntityMapper[CreateRequest any, SpannerStruct any] interface {
+	baseMapper
+	NewEntity(id string, req CreateRequest) (SpannerStruct, error)
+}
+
+// entityCreator is a basic client for creating any row in the database.
+type entityCreator[
+	M creatableEntityMapper[CreateRequest, SpannerStruct],
+	CreateRequest any,
+	SpannerStruct any,
+] struct {
+	*Client
+}
+
+func newEntityCreator[
+	M creatableEntityMapper[CreateRequest, SpannerStruct],
+	CreateRequest any,
+	SpannerStruct any,
+](c *Client) *entityCreator[M, CreateRequest, SpannerStruct] {
+	return &entityCreator[M, CreateRequest, SpannerStruct]{c}
+}
+
+func (c *entityCreator[M, CreateRequest, SpannerStruct]) create(
+	ctx context.Context,
+	req CreateRequest) (string, error) {
+	var id string
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		newID, err := c.createWithTransaction(ctx, txn, req)
+		if err != nil {
+			return err
+		}
+		id = newID
+
+		return nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	return id, nil
+}
+
+func (c *entityCreator[M, CreateRequest, SpannerStruct]) createWithTransaction(
+	_ context.Context,
+	txn *spanner.ReadWriteTransaction,
+	req CreateRequest) (string, error) {
+	var mapper M
+	id := uuid.NewString()
+	entity, err := mapper.NewEntity(id, req)
+	if err != nil {
+		return "", err
+	}
+	m, err := spanner.InsertStruct(mapper.Table(), entity)
+	if err != nil {
+		return "", errors.Join(ErrInternalQueryFailure, err)
+	}
+	err = txn.BufferWrite([]*spanner.Mutation{m})
+	if err != nil {
+		return "", errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return id, nil
 }
 
 // syncableEntityMapper is composed for the entitySynchronizer. It needs
