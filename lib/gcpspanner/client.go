@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"reflect"
 	"slices"
 	"sync"
 	"time"
@@ -29,6 +30,7 @@ import (
 	"cloud.google.com/go/civil"
 	"cloud.google.com/go/spanner"
 	"cloud.google.com/go/spanner/apiv1/spannerpb"
+	"github.com/google/uuid"
 	"google.golang.org/api/iterator"
 	"google.golang.org/grpc/status"
 )
@@ -38,6 +40,9 @@ var ErrQueryReturnedNoResults = errors.New("query returned no results")
 
 // ErrInternalQueryFailure is a catch-all error for now.
 var ErrInternalQueryFailure = errors.New("internal spanner query failure")
+
+// ErrInternalMutationFailure is a generic error for when a spanner mutation fails.
+var ErrInternalMutationFailure = errors.New("internal spanner mutation failure")
 
 // ErrBadClientConfig indicates the the config to setup a Client is invalid.
 var ErrBadClientConfig = errors.New("projectID, instanceID and name must not be empty")
@@ -339,6 +344,81 @@ func encodeFeatureResultOffsetCursor(offset int) string {
 	})
 }
 
+// --- Generic Entity Lister ---
+
+// ListRequest is an interface for list requests that support pagination.
+type ListRequest interface {
+	GetPageToken() *string
+}
+
+// listableEntityMapper is composed for the entityLister.
+type listableEntityMapper[SpannerStruct any, L ListRequest] interface {
+	baseMapper
+	SelectList(req L) spanner.Statement
+	EncodePageToken(item SpannerStruct) string
+}
+
+// entityLister is a basic client for listing any rows from the database with pagination.
+type entityLister[
+	M listableEntityMapper[SpannerStruct, L],
+	SpannerStruct any,
+	L ListRequest,
+] struct {
+	*Client
+}
+
+func newEntityLister[
+	M listableEntityMapper[SpannerStruct, L],
+	SpannerStruct any,
+	L ListRequest,
+](c *Client) *entityLister[M, SpannerStruct, L] {
+	return &entityLister[M, SpannerStruct, L]{c}
+}
+
+func (c *entityLister[M, SpannerStruct, L]) list(
+	ctx context.Context,
+	req L) ([]SpannerStruct, *string, error) {
+	var mapper M
+	stmt := mapper.SelectList(req)
+	txn := c.Single()
+	defer txn.Close()
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+
+	var entities []SpannerStruct
+	// Use reflection to get PageSize from the request struct.
+	v := reflect.ValueOf(req)
+	pageSizeField := v.FieldByName("PageSize")
+	var pageSize int
+	if pageSizeField.IsValid() && pageSizeField.Kind() == reflect.Int {
+		pageSize = int(pageSizeField.Int())
+	}
+
+	for {
+		row, err := it.Next()
+		if errors.Is(err, iterator.Done) {
+			break
+		}
+		if err != nil {
+			return nil, nil, errors.Join(ErrInternalQueryFailure, err)
+		}
+		var entity SpannerStruct
+		if err := row.ToStruct(&entity); err != nil {
+			return nil, nil, err
+		}
+		entities = append(entities, entity)
+	}
+
+	var nextPageToken *string
+	if pageSize > 0 && len(entities) == pageSize {
+		lastItem := entities[len(entities)-1]
+		token := mapper.EncodePageToken(lastItem)
+		nextPageToken = &token
+	}
+
+	return entities, nextPageToken, nil
+}
+
 // --- Generic Entity Mapper Interfaces ---
 
 // baseMapper provides the table name.
@@ -424,6 +504,71 @@ type removableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable
 	externalKeyMapper[ExternalStruct, Key]
 	readOneMapper[Key] // To verify the entity exists before deleting.
 	deleteByKeyMapper[Key]
+}
+
+// creatableEntityMapper is composed for the entityCreator.
+type creatableEntityMapper[CreateRequest any, SpannerStruct any] interface {
+	baseMapper
+	NewEntity(id string, req CreateRequest) (SpannerStruct, error)
+}
+
+// entityCreator is a basic client for creating any row in the database.
+type entityCreator[
+	M creatableEntityMapper[CreateRequest, SpannerStruct],
+	CreateRequest any,
+	SpannerStruct any,
+] struct {
+	*Client
+}
+
+func newEntityCreator[
+	M creatableEntityMapper[CreateRequest, SpannerStruct],
+	CreateRequest any,
+	SpannerStruct any,
+](c *Client) *entityCreator[M, CreateRequest, SpannerStruct] {
+	return &entityCreator[M, CreateRequest, SpannerStruct]{c}
+}
+
+func (c *entityCreator[M, CreateRequest, SpannerStruct]) create(
+	ctx context.Context,
+	req CreateRequest) (*string, error) {
+	var id *string
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		newID, err := c.createWithTransaction(ctx, txn, req)
+		if err != nil {
+			return err
+		}
+		id = newID
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return id, nil
+}
+
+func (c *entityCreator[M, CreateRequest, SpannerStruct]) createWithTransaction(
+	_ context.Context,
+	txn *spanner.ReadWriteTransaction,
+	req CreateRequest) (*string, error) {
+	var mapper M
+	id := uuid.NewString()
+	entity, err := mapper.NewEntity(id, req)
+	if err != nil {
+		return nil, err
+	}
+	m, err := spanner.InsertStruct(mapper.Table(), entity)
+	if err != nil {
+		return nil, errors.Join(ErrInternalMutationFailure, err)
+	}
+	err = txn.BufferWrite([]*spanner.Mutation{m})
+	if err != nil {
+		return nil, errors.Join(ErrInternalMutationFailure, err)
+	}
+
+	return &id, nil
 }
 
 // syncableEntityMapper is composed for the entitySynchronizer. It needs

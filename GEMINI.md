@@ -200,7 +200,7 @@ This practice decouples the core application logic from the exact structure of t
   - **DO** use resilient selectors like `data-testid`.
 - **Go Unit & Integration Tests**:
   - **DO** use table-driven unit tests with mocks for dependencies at the adapter layer (`spanneradapters`).
-  - **DO** write **integration tests using `testcontainers-go`** for any changes to the `lib/gcpspanner` layer. This is especially critical when implementing or modifying a mapper. These tests must spin up a Spanner emulator and verify the mapper's logic against a real database.
+  - **DO** write **integration tests using `testcontainers-go`** for any changes to the `lib/gcpspanner` layer. This is especially critical when implementing or modifying a mapper. These tests must spin up a Spanner emulator and verify the mapper's logic against a real database. Integration tests in the `lib/gcpspanner` package utilize a `TestMain` function (see `client_test.go`) to manage a single Spanner emulator container for the entire test suite. Individual test functions should call `restartDatabaseContainer(t)` to reset the database to a clean state before execution.
   - When a refactoring changes how errors are handled (e.g., from returning an error to logging a warning and continuing), **DO** update the tests to reflect the new expected behavior. Some test cases might become obsolete and should be removed or updated.
 - **TypeScript Unit Tests**:
   - **TypeScript**: Use `npm run test -w frontend`.
@@ -228,7 +228,8 @@ The project's infrastructure is managed with **Terraform**.
 
 ### 5.5. Database Migrations & Foreign Keys
 
-- **Creation**: Use `make spanner_new_migration` to create a new migration file.
+    - Use `make spanner_new_migration` to create a new migration file. This command does not take any parameters; it automatically generates a new file with a unique name.
+
 - **Cascade Deletes**: Prefer using `ON DELETE CASCADE` for foreign key relationships to maintain data integrity. Add an integration test to verify this behavior (see `lib/gcpspanner/web_features_fk_test.go`).
 - **Cascade Caveat**: If a cascade could delete thousands of child entities, it may exceed Spanner's mutation limit. In such cases, implement the `GetChildDeleteKeyMutations` method in the parent's `spannerMapper` to handle child deletions in batches before deleting the parent.
 - **Data Migrations**: For more complex data migrations, such as renaming a feature key, a generic migrator has been introduced in `lib/gcpspanner/spanneradapters/migration.go`. This can be used to migrate data between old and new keys.
@@ -254,6 +255,23 @@ Helper scripts and small CLI tools for local development.
 ### 5.8. Code Modifications
 
 - **License Headers**: Never modify license headers manually. They are managed by the `make license-fix` command. If you see license header issues, run that command.
+
+### 5.10. Spanner Key Conventions
+
+- **Primary Keys**: All primary key columns should be named `ID`. They should be of type `STRING(36)` and use `DEFAULT (GENERATE_UUID())` to have the database generate the value. In the corresponding Go structs, this field should also be named `ID`.
+- **Foreign Keys**: Foreign key columns should follow the naming convention `<ReferredEntity>ID` (e.g., `UserID`, `ChannelID`, `SavedSearchID`). This casing should be consistent in both the database schema and the Go structs.
+
+### 5.9. Use `OptionallySet` for Updates
+
+**DO** use the `OptionallySet[T]` generic struct for fields in `Update*Request` structs. This pattern is crucial for implementing partial updates (HTTP `PATCH`). The struct, defined in `lib/gcpspanner/client.go`, contains a `Value` of the generic type and a boolean `IsSet`.
+
+In the corresponding `mergeMapper` implementation, check the `IsSet` field before applying the new value. This allows the mapper to distinguish between a field that was intentionally set to its zero value (e.g., an empty string `""` or integer `0`) and a field that was not included in the request payload at all. This prevents accidental overwrites and ensures that only explicitly provided fields are modified. See `update_user_saved_search.go` for a canonical example.
+
+### 5.10. Spanner Key Conventions
+
+- **Primary Keys**: All primary key columns should be named `ID`. They should be of type `STRING(36)` and use `DEFAULT (GENERATE_UUID())` to have the database generate the value. In the corresponding Go structs, this field should also be named `ID`.
+- **Foreign Keys**: Foreign key columns should follow the naming convention `<ReferredEntity>ID` (e.g., `UserID`, `ChannelID`, `SavedSearchID`). This casing should be consistent in both the database schema and the Go structs.
+- **UUID Generation**: When creating new entities using Spanner mutations (e.g., `spanner.InsertStruct`), the Go code **must** generate the UUID client-side (e.g., using a UUID library). This is the established pattern (`create_user_saved_search.go`) because mutation operations do not return the new ID from the database. The schema should still include `DEFAULT (GENERATE_UUID())` on the `ID` column as a best practice for data integrity, but the application code is responsible for providing the ID during insertion. Do not use DML (`INSERT ... THEN RETURN ID`) unless absolutely necessary and confirmed as an acceptable pattern.
 
 ## 6. How-To Guides
 
