@@ -16,16 +16,10 @@ package gcpspanner
 
 import (
 	"context"
-	"errors"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/grpc/codes"
 )
 
-const featureSpecsTable = "FeatureSpecs"
-
-// SpannerFeatureSpec is a wrapper for the feature spec
-// information for a feature stored in spanner.
 type SpannerFeatureSpec struct {
 	WebFeatureID string
 	FeatureSpec
@@ -35,6 +29,38 @@ type SpannerFeatureSpec struct {
 // feature in a browser.
 type FeatureSpec struct {
 	Links []string
+}
+
+const featureSpecsTable = "FeatureSpecs"
+
+type featureSpecSpannerMapper struct{}
+
+func (featureSpecSpannerMapper) Table() string {
+	return featureSpecsTable
+}
+
+func (featureSpecSpannerMapper) ToSpanner(entity *SpannerFeatureSpec) map[string]interface{} {
+	return map[string]interface{}{
+		"WebFeatureID": entity.WebFeatureID,
+		"Links":        entity.Links,
+	}
+}
+
+func (featureSpecSpannerMapper) GetKeyFromExternal(entity *SpannerFeatureSpec) string {
+	return entity.WebFeatureID
+}
+
+func (featureSpecSpannerMapper) SelectOne(key string) spanner.Statement {
+	return spanner.Statement{
+		SQL: `SELECT WebFeatureID, Links FROM FeatureSpecs WHERE WebFeatureID = @webFeatureID`,
+		Params: map[string]interface{}{
+			"webFeatureID": key,
+		},
+	}
+}
+
+func (featureSpecSpannerMapper) Merge(external *SpannerFeatureSpec, _ SpannerFeatureSpec) SpannerFeatureSpec {
+	return *external
 }
 
 // InsertFeatureSpec will insert the given feature spec information.
@@ -51,39 +77,13 @@ func (c *Client) UpsertFeatureSpec(
 	if id == nil {
 		return ErrInternalQueryFailure
 	}
-	_, err = c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		_, err := txn.ReadRow(
-			ctx,
-			featureSpecsTable,
-			spanner.Key{*id},
-			[]string{
-				"Links",
-			})
-		if err != nil {
-			// Received an error other than not found. Return now.
-			if spanner.ErrCode(err) != codes.NotFound {
-				return errors.Join(ErrInternalQueryFailure, err)
-			}
-		}
-		featureSpec := SpannerFeatureSpec{
-			WebFeatureID: *id,
-			FeatureSpec:  input,
-		}
-		m, err := spanner.InsertOrUpdateStruct(featureSpecsTable, featureSpec)
-		if err != nil {
-			return errors.Join(ErrInternalQueryFailure, err)
-		}
-		err = txn.BufferWrite([]*spanner.Mutation{m})
-		if err != nil {
-			return errors.Join(ErrInternalQueryFailure, err)
-		}
 
-		return nil
-
-	})
-	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
+	featureSpec := &SpannerFeatureSpec{
+		WebFeatureID: *id,
+		FeatureSpec:  input,
 	}
 
-	return nil
+	writer := newEntityWriter[featureSpecSpannerMapper](c)
+
+	return writer.upsert(ctx, featureSpec)
 }

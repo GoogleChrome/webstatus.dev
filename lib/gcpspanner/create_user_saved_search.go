@@ -20,8 +20,27 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
-	"github.com/google/uuid"
 )
+
+// savedSearchMapper implements the necessary interfaces for the generic helpers.
+type savedSearchMapper struct{}
+
+func (m savedSearchMapper) Table() string {
+	return savedSearchesTable
+}
+
+func (m savedSearchMapper) NewEntity(id string, req CreateUserSavedSearchRequest) (SavedSearch, error) {
+	return SavedSearch{
+		ID:          id,
+		Name:        req.Name,
+		Query:       req.Query,
+		Description: req.Description,
+		Scope:       UserPublicScope,
+		AuthorID:    req.OwnerUserID,
+		CreatedAt:   spanner.CommitTimestamp,
+		UpdatedAt:   spanner.CommitTimestamp,
+	}, nil
+}
 
 // CreateUserSavedSearchRequest is the request to create a new user saved search.
 type CreateUserSavedSearchRequest struct {
@@ -42,15 +61,21 @@ var (
 func (c *Client) CreateNewUserSavedSearch(
 	ctx context.Context,
 	newSearch CreateUserSavedSearchRequest) (*string, error) {
-	id := uuid.NewString()
-
-	return c.CreateNewUserSavedSearchWithUUID(ctx, newSearch, id)
+	return c.createNewUserSavedSearch(ctx, newSearch)
 }
 
 // CreateNewUserSavedSearchWithUUID creates a new user-owned saved search with the given UUID.
 // Useful for tests and utils. Typically, you should use CreateNewUserSavedSearch instead.
 func (c *Client) CreateNewUserSavedSearchWithUUID(
 	ctx context.Context, newSearch CreateUserSavedSearchRequest, id string) (*string, error) {
+	return c.createNewUserSavedSearch(ctx, newSearch, WithID(id))
+}
+
+func (c *Client) createNewUserSavedSearch(
+	ctx context.Context,
+	newSearch CreateUserSavedSearchRequest,
+	opts ...CreateOption) (*string, error) {
+	var newID *string
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// 1. Read the current count of owned searches
 		var count int64
@@ -76,28 +101,18 @@ func (c *Client) CreateNewUserSavedSearchWithUUID(
 			return ErrOwnerSavedSearchLimitExceeded
 		}
 
-		var mutations []*spanner.Mutation
-		// TODO: In the future, look into using an entityMapper for SavedSearch.
-		// Then, we can use createInsertMutation.
-		m1, err := spanner.InsertStruct(savedSearchesTable, SavedSearch{
-			ID:          id,
-			Name:        newSearch.Name,
-			Query:       newSearch.Query,
-			Description: newSearch.Description,
-			Scope:       UserPublicScope,
-			AuthorID:    newSearch.OwnerUserID,
-			CreatedAt:   spanner.CommitTimestamp,
-			UpdatedAt:   spanner.CommitTimestamp,
-		})
+		// 3. Create the SavedSearch entity using the generic creator
+		createdID, err := newEntityCreator[savedSearchMapper, CreateUserSavedSearchRequest, SavedSearch](c).
+			createWithTransaction(ctx, txn, newSearch, opts...)
 		if err != nil {
-			return errors.Join(ErrInternalQueryFailure, err)
+			return err
 		}
-		mutations = append(mutations, m1)
+		newID = createdID
 
-		// TODO: In the future, look into using an entityMapper for SavedSearchUserRole.
-		// Then, we can use createInsertMutation.
+		var mutations []*spanner.Mutation
+		// 4. Create the associated UserRole and Bookmark
 		m2, err := spanner.InsertStruct(savedSearchUserRolesTable, SavedSearchUserRole{
-			SavedSearchID: id,
+			SavedSearchID: *newID,
 			UserID:        newSearch.OwnerUserID,
 			UserRole:      SavedSearchOwner,
 		})
@@ -106,10 +121,8 @@ func (c *Client) CreateNewUserSavedSearchWithUUID(
 		}
 		mutations = append(mutations, m2)
 
-		// TODO: In the future, look into using an entityMapper for UserSavedSearchBookmark.
-		// Then, we can use createInsertMutation.
 		m3, err := spanner.InsertStruct(userSavedSearchBookmarksTable, UserSavedSearchBookmark{
-			SavedSearchID: id,
+			SavedSearchID: *newID,
 			UserID:        newSearch.OwnerUserID,
 		})
 		if err != nil {
@@ -129,5 +142,5 @@ func (c *Client) CreateNewUserSavedSearchWithUUID(
 		return nil, err
 	}
 
-	return &id, nil
+	return newID, nil
 }
