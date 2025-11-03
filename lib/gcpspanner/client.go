@@ -536,6 +536,28 @@ func newEntityCreator[
 	return &entityCreator[M, CreateRequest, SpannerStruct]{c}
 }
 
+func (c *entityCreator[M, CreateRequest, SpannerStruct]) create(
+	ctx context.Context,
+	req CreateRequest,
+	opts ...CreateOption) (*string, error) {
+	var id *string
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		newID, err := c.createWithTransaction(ctx, txn, req, opts...)
+		if err != nil {
+			return err
+		}
+		id = newID
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return id, nil
+}
+
 func (c *entityCreator[M, CreateRequest, SpannerStruct]) createWithTransaction(
 	_ context.Context,
 	txn *spanner.ReadWriteTransaction,
