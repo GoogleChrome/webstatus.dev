@@ -16,11 +16,58 @@ package gcpspanner
 
 import (
 	"context"
-	"errors"
 
 	"cloud.google.com/go/spanner"
-	"google.golang.org/api/iterator"
 )
+
+// userSavedSearchListerMapper implements the necessary interfaces for the generic helpers.
+type userSavedSearchListerMapper struct{}
+
+func (m userSavedSearchListerMapper) Table() string {
+	return savedSearchesTable
+}
+
+func (m userSavedSearchListerMapper) SelectList(req ListUserSavedSearchesRequest) spanner.Statement {
+	params := map[string]interface{}{
+		"userID":   req.UserID,
+		"pageSize": req.PageSize,
+	}
+
+	tmplData := listUserSavedSearchTemplateData{
+		PageFilter: "",
+	}
+
+	if req.PageToken != nil {
+		cursor, err := decodeUserSavedSearchesCursor(*req.PageToken)
+		if err == nil {
+			params["lastName"] = cursor.LastName
+			params["lastID"] = cursor.LastID
+			tmplData.PageFilter = commonListUserSavedSearchesPaginationRawTemplate
+		}
+	}
+
+	tmpl := listUserSavedSearchesBaseTemplate.Execute(tmplData)
+	stmt := spanner.NewStatement(tmpl)
+	stmt.Params = params
+
+	return stmt
+}
+
+func (m userSavedSearchListerMapper) EncodePageToken(item UserSavedSearch) string {
+	return encodeUserSavedSearchesCursor(item.ID, item.Name)
+}
+
+// ListUserSavedSearchesRequest is a request to list user saved searches.
+type ListUserSavedSearchesRequest struct {
+	UserID    string
+	PageSize  int
+	PageToken *string
+}
+
+// GetPageSize returns the page size for the request.
+func (r ListUserSavedSearchesRequest) GetPageSize() int {
+	return r.PageSize
+}
 
 const (
 	listUserSavedSearchesBaseRawTemplate = `
@@ -98,65 +145,25 @@ func encodeUserSavedSearchesCursor(id string, name string) string {
 	})
 }
 
+// TODO: Change signature to take ListUserSavedSearchesRequest.
 func (c *Client) ListUserSavedSearches(
 	ctx context.Context,
 	userID string,
 	pageSize int,
 	pageToken *string) (*UserSavedSearchesPage, error) {
-	params := map[string]interface{}{
-		"userID":   userID,
-		"pageSize": pageSize,
+	req := ListUserSavedSearchesRequest{
+		UserID:    userID,
+		PageSize:  pageSize,
+		PageToken: pageToken,
+	}
+	lister := newEntityLister[userSavedSearchListerMapper, UserSavedSearch, ListUserSavedSearchesRequest](c)
+	results, nextPageToken, err := lister.list(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
-	tmplData := listUserSavedSearchTemplateData{
-		PageFilter: "",
-	}
-
-	if pageToken != nil {
-		cursor, err := decodeUserSavedSearchesCursor(*pageToken)
-		if err != nil {
-			return nil, errors.Join(ErrInternalQueryFailure, err)
-		}
-		params["lastName"] = cursor.LastName
-		params["lastID"] = cursor.LastID
-		tmplData.PageFilter = commonListUserSavedSearchesPaginationRawTemplate
-	}
-
-	tmpl := listUserSavedSearchesBaseTemplate.Execute(tmplData)
-	stmt := spanner.NewStatement(tmpl)
-	stmt.Params = params
-
-	txn := c.Single()
-	defer txn.Close()
-	it := txn.Query(ctx, stmt)
-	defer it.Stop()
-
-	var results []UserSavedSearch
-
-	for {
-		row, err := it.Next()
-		if errors.Is(err, iterator.Done) {
-			break
-		}
-		if err != nil {
-			return nil, errors.Join(ErrInternalQueryFailure, err)
-		}
-		var result UserSavedSearch
-		if err := row.ToStruct(&result); err != nil {
-			return nil, err
-		}
-		results = append(results, result)
-	}
-	page := &UserSavedSearchesPage{
+	return &UserSavedSearchesPage{
 		Searches:      results,
-		NextPageToken: nil,
-	}
-
-	if len(results) == pageSize {
-		lastResult := results[len(results)-1]
-		token := encodeUserSavedSearchesCursor(lastResult.ID, lastResult.Name)
-		page.NextPageToken = &token
-	}
-
-	return page, nil
+		NextPageToken: nextPageToken,
+	}, nil
 }
