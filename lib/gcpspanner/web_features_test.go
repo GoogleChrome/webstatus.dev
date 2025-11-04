@@ -182,25 +182,139 @@ func TestUpsertWebFeature(t *testing.T) {
 	}
 }
 
-type syncWebFeaturesRedirectCase struct {
-	sampleWPTRunOld WPTRun
-	sampleWPTRunNew WPTRun
+func TestSyncWebFeatures(t *testing.T) {
+	ctx := context.Background()
+
+	type syncTestCase struct {
+		name          string
+		initialState  []WebFeature
+		desiredState  []WebFeature
+		expectedState []WebFeature
+	}
+
+	testCases := []syncTestCase{
+		{
+			name:          "Initial creation",
+			initialState:  nil, // No initial state
+			desiredState:  getSampleFeatures(),
+			expectedState: getSampleFeatures(),
+		},
+		{
+			name:         "Deletes features not in desired state",
+			initialState: getSampleFeatures(),
+			desiredState: []WebFeature{
+				getSampleFeatures()[0], // feature1
+				getSampleFeatures()[2], // feature3
+			},
+			expectedState: []WebFeature{
+				getSampleFeatures()[0],
+				getSampleFeatures()[2],
+			},
+		},
+		{
+			name:         "Updates existing features",
+			initialState: getSampleFeatures(),
+			desiredState: func() []WebFeature {
+				features := getSampleFeatures()
+				features[1].Name = "UPDATED Feature 2"
+				features[3].Description = "UPDATED Description 4"
+
+				return features
+			}(),
+			expectedState: func() []WebFeature {
+				features := getSampleFeatures()
+				features[1].Name = "UPDATED Feature 2"
+				features[3].Description = "UPDATED Description 4"
+
+				return features
+			}(),
+		},
+		{
+			name:         "Performs mixed insert, update, and delete",
+			initialState: getSampleFeatures(),
+			desiredState: []WebFeature{
+				{FeatureKey: "feature1", Name: "Updated Feature 1 Name", Description: "", DescriptionHTML: ""},
+				getSampleFeatures()[2], // Keep feature3
+				{FeatureKey: "feature5", Name: "New Feature 5", Description: "", DescriptionHTML: ""},
+			},
+			expectedState: []WebFeature{
+				{
+					FeatureKey:      "feature1",
+					Name:            "Updated Feature 1 Name",
+					Description:     "Wow what a feature description", // Preserved by merge logic
+					DescriptionHTML: "Feature <b>1</b> description",   // Preserved by merge logic
+				},
+				getSampleFeatures()[2], // feature3 is unchanged
+				{
+					FeatureKey:      "feature5",
+					Name:            "New Feature 5",
+					Description:     "", // New fields are empty
+					DescriptionHTML: "",
+				},
+			},
+		},
+		{
+			name:          "No changes when desired state matches current state",
+			initialState:  getSampleFeatures(),
+			desiredState:  getSampleFeatures(),
+			expectedState: getSampleFeatures(),
+		},
+		{
+			name:          "Deletes all features when desired state is empty",
+			initialState:  getSampleFeatures(),
+			desiredState:  []WebFeature{},
+			expectedState: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			restartDatabaseContainer(t)
+
+			// 1. Setup initial state if provided
+			if tc.initialState != nil {
+				if err := spannerClient.SyncWebFeatures(ctx, tc.initialState); err != nil {
+					t.Fatalf("Failed to set up initial state: %v", err)
+				}
+			}
+
+			// 2. Run the sync with the desired state
+			if err := spannerClient.SyncWebFeatures(ctx, tc.desiredState); err != nil {
+				t.Fatalf("SyncWebFeatures failed: %v", err)
+			}
+
+			// 3. Verify the final state
+			featuresInDB, err := spannerClient.ReadAllWebFeatures(ctx, t)
+			if err != nil {
+				t.Fatalf("ReadAllWebFeatures failed: %v", err)
+			}
+
+			if diff := cmp.Diff(tc.expectedState, featuresInDB); diff != "" {
+				t.Errorf("features mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
 
-func (s syncWebFeaturesRedirectCase) postFirstSyncSetup(
-	ctx context.Context, t *testing.T, featureKeyToIDMap map[string]string) {
+func setupRedirectDataAndAssert(
+	ctx context.Context,
+	t *testing.T,
+	featureKeyToIDMap map[string]string,
+) {
+	sampleWPTRunOld := getSampleRuns()[0]
+	sampleWPTRunNew := getSampleRuns()[4]
 	// Insert some data
 	// Insert WPT Runs
-	err := spannerClient.InsertWPTRun(ctx, s.sampleWPTRunOld)
+	err := spannerClient.InsertWPTRun(ctx, sampleWPTRunOld)
 	if err != nil {
 		t.Fatalf("Failed to insert run: %v", err)
 	}
-	err = spannerClient.InsertWPTRun(ctx, s.sampleWPTRunNew)
+	err = spannerClient.InsertWPTRun(ctx, sampleWPTRunNew)
 	if err != nil {
 		t.Fatalf("Failed to insert run: %v", err)
 	}
 	// Insert WPT Metrics for feature-a
-	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, s.sampleWPTRunOld.RunID,
+	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, sampleWPTRunOld.RunID,
 		map[string]WPTRunFeatureMetric{
 			"feature-a": {
 				TotalTests:        valuePtr(int64(123)),
@@ -213,7 +327,7 @@ func (s syncWebFeaturesRedirectCase) postFirstSyncSetup(
 	if err != nil {
 		t.Fatalf("Failed to insert WPT metrics: %v", err)
 	}
-	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, s.sampleWPTRunNew.RunID,
+	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, sampleWPTRunNew.RunID,
 		map[string]WPTRunFeatureMetric{
 			"feature-a": {
 				TotalTests:        valuePtr(int64(124)),
@@ -304,8 +418,13 @@ func (s syncWebFeaturesRedirectCase) postFirstSyncSetup(
 	}
 }
 
-func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
-	ctx context.Context, t *testing.T, featureKeyToIDMap map[string]string) {
+func verifyRedirectDataMovedAndAssert(
+	ctx context.Context,
+	t *testing.T,
+	featureKeyToIDMap map[string]string,
+) {
+	sampleWPTRunOld := getSampleRuns()[0]
+	sampleWPTRunNew := getSampleRuns()[4]
 	// Check that the data for feature-a is missing and that feature-b has the data
 	// WPTRunMetricData
 	metrics, err := spannerClient.getAllWPTRunFeatureMetricIDsByWebFeatureID(ctx,
@@ -324,7 +443,7 @@ func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
 	if len(metrics) != 2 {
 		t.Fatal("expected 2 WPT metrics for feature-b")
 	}
-	metric, err := spannerClient.GetMetricByRunIDAndFeatureID(ctx, s.sampleWPTRunOld.RunID, "feature-b")
+	metric, err := spannerClient.GetMetricByRunIDAndFeatureID(ctx, sampleWPTRunOld.RunID, "feature-b")
 	if err != nil {
 		t.Fatalf("unexpected error getting WPT metric. %s", err.Error())
 	}
@@ -338,7 +457,7 @@ func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
 	if diff := cmp.Diff(expectedMetric, metric); diff != "" {
 		t.Errorf("WPT metrics mismatch (-want +got):\n%s", diff)
 	}
-	metric, err = spannerClient.GetMetricByRunIDAndFeatureID(ctx, s.sampleWPTRunNew.RunID, "feature-b")
+	metric, err = spannerClient.GetMetricByRunIDAndFeatureID(ctx, sampleWPTRunNew.RunID, "feature-b")
 	if err != nil {
 		t.Fatalf("unexpected error getting WPT metric. %s", err.Error())
 	}
@@ -363,8 +482,8 @@ func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
 	expectedLatestWPTMetric := SpannerLatestWPTRunFeatureMetric{
 		RunMetricID:  metrics[0].ID,
 		WebFeatureID: featureKeyToIDMap["feature-b"],
-		BrowserName:  s.sampleWPTRunOld.BrowserName,
-		Channel:      s.sampleWPTRunOld.Channel,
+		BrowserName:  sampleWPTRunOld.BrowserName,
+		Channel:      sampleWPTRunOld.Channel,
 	}
 	if diff := cmp.Diff(expectedLatestWPTMetric, latestWPTMetric[0]); diff != "" {
 		t.Errorf("latest WPT metrics mismatch (-want +got):\n%s", diff)
@@ -411,190 +530,162 @@ func (s syncWebFeaturesRedirectCase) postSecondSyncCheck(
 	}
 }
 
-func (s syncWebFeaturesRedirectCase) secondSyncOptions() []SyncWebFeaturesOption {
-	return []SyncWebFeaturesOption{
+func TestSyncWebFeatures_Redirects(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	// 1. Setup initial state
+	initialState := []WebFeature{
+		{FeatureKey: "feature-a", Name: "Feature A", Description: "", DescriptionHTML: ""},
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
+	if err := spannerClient.SyncWebFeatures(ctx, initialState); err != nil {
+		t.Fatalf("Failed to set up initial state: %v", err)
+	}
+
+	pairs, err := spannerClient.FetchAllWebFeatureIDsAndKeys(ctx)
+	if err != nil {
+		t.Fatalf("Failed to fetch all web feature IDs and keys: %v", err)
+	}
+	featureKeyToIDMap := map[string]string{}
+	for _, pair := range pairs {
+		featureKeyToIDMap[pair.FeatureKey] = pair.ID
+	}
+
+	// 2. Add related data to the features.
+	setupRedirectDataAndAssert(ctx, t, featureKeyToIDMap)
+
+	// 3. Run the sync with the desired state to move the feature.
+	desiredState := []WebFeature{
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""}, // feature-a is removed
+	}
+	opts := []SyncWebFeaturesOption{
 		WithRedirectTargets(map[string]string{
 			"feature-a": "feature-b",
 		}),
 	}
+	if err := spannerClient.SyncWebFeatures(ctx, desiredState, opts...); err != nil {
+		t.Fatalf("SyncWebFeatures failed: %v", err)
+	}
+
+	// 4. Verify the final state
+	featuresInDB, err := spannerClient.ReadAllWebFeatures(ctx, t)
+	if err != nil {
+		t.Fatalf("ReadAllWebFeatures failed: %v", err)
+	}
+	expectedState := []WebFeature{
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
+	if diff := cmp.Diff(expectedState, featuresInDB); diff != "" {
+		t.Errorf("features mismatch (-want +got):\n%s", diff)
+	}
+
+	// 5. Verify the data was moved.
+	verifyRedirectDataMovedAndAssert(ctx, t, featureKeyToIDMap)
 }
 
-func TestSyncWebFeatures(t *testing.T) {
+func TestSyncWebFeatures_RedirectsIdempotency(t *testing.T) {
 	ctx := context.Background()
+	restartDatabaseContainer(t)
 
-	sampleWPTRunOld := getSampleRuns()[0]
-	sampleWPTRunNew := getSampleRuns()[4]
-
-	redirectCase := syncWebFeaturesRedirectCase{
-		sampleWPTRunOld: sampleWPTRunOld,
-		sampleWPTRunNew: sampleWPTRunNew,
+	// 1. Setup initial state
+	initialState := []WebFeature{
+		{FeatureKey: "feature-a", Name: "Feature A", Description: "", DescriptionHTML: ""},
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
+	if err := spannerClient.SyncWebFeatures(ctx, initialState); err != nil {
+		t.Fatalf("Failed to set up initial state: %v", err)
 	}
 
-	type syncTestCase struct {
-		name                string
-		initialState        []WebFeature
-		desiredState        []WebFeature
-		postFirstSyncSetup  func(ctx context.Context, t *testing.T, featureKeyToIDMap map[string]string)
-		secondSyncOptions   []SyncWebFeaturesOption
-		expectedState       []WebFeature
-		postSecondSyncCheck func(ctx context.Context, t *testing.T, featureKeyToIDMap map[string]string)
+	pairs, err := spannerClient.FetchAllWebFeatureIDsAndKeys(ctx)
+	if err != nil {
+		t.Fatalf("Failed to fetch all web feature IDs and keys: %v", err)
+	}
+	featureKeyToIDMap := map[string]string{}
+	for _, pair := range pairs {
+		featureKeyToIDMap[pair.FeatureKey] = pair.ID
 	}
 
-	testCases := []syncTestCase{
-		{
-			name:                "Initial creation",
-			initialState:        nil, // No initial state
-			desiredState:        getSampleFeatures(),
-			expectedState:       getSampleFeatures(),
-			postFirstSyncSetup:  nil,
-			postSecondSyncCheck: nil,
-			secondSyncOptions:   nil,
-		},
-		{
-			name:         "Deletes features not in desired state",
-			initialState: getSampleFeatures(),
-			desiredState: []WebFeature{
-				getSampleFeatures()[0], // feature1
-				getSampleFeatures()[2], // feature3
-			},
-			expectedState: []WebFeature{
-				getSampleFeatures()[0],
-				getSampleFeatures()[2],
-			},
-			postFirstSyncSetup:  nil,
-			postSecondSyncCheck: nil,
-			secondSyncOptions:   nil,
-		},
-		{
-			name:         "Updates existing features",
-			initialState: getSampleFeatures(),
-			desiredState: func() []WebFeature {
-				features := getSampleFeatures()
-				features[1].Name = "UPDATED Feature 2"
-				features[3].Description = "UPDATED Description 4"
+	// 2. Add related data to the features.
+	setupRedirectDataAndAssert(ctx, t, featureKeyToIDMap)
 
-				return features
-			}(),
-			expectedState: func() []WebFeature {
-				features := getSampleFeatures()
-				features[1].Name = "UPDATED Feature 2"
-				features[3].Description = "UPDATED Description 4"
-
-				return features
-			}(),
-			postFirstSyncSetup:  nil,
-			postSecondSyncCheck: nil,
-			secondSyncOptions:   nil,
-		},
-		{
-			name:         "Performs mixed insert, update, and delete",
-			initialState: getSampleFeatures(),
-			desiredState: []WebFeature{
-				{FeatureKey: "feature1", Name: "Updated Feature 1 Name", Description: "", DescriptionHTML: ""},
-				getSampleFeatures()[2], // Keep feature3
-				{FeatureKey: "feature5", Name: "New Feature 5", Description: "", DescriptionHTML: ""},
-			},
-			expectedState: []WebFeature{
-				{
-					FeatureKey:      "feature1",
-					Name:            "Updated Feature 1 Name",
-					Description:     "Wow what a feature description", // Preserved by merge logic
-					DescriptionHTML: "Feature <b>1</b> description",   // Preserved by merge logic
-				},
-				getSampleFeatures()[2], // feature3 is unchanged
-				{
-					FeatureKey:      "feature5",
-					Name:            "New Feature 5",
-					Description:     "", // New fields are empty
-					DescriptionHTML: "",
-				},
-			},
-			postFirstSyncSetup:  nil,
-			postSecondSyncCheck: nil,
-			secondSyncOptions:   nil,
-		},
-		{
-			name:                "No changes when desired state matches current state",
-			initialState:        getSampleFeatures(),
-			desiredState:        getSampleFeatures(),
-			expectedState:       getSampleFeatures(),
-			postFirstSyncSetup:  nil,
-			postSecondSyncCheck: nil,
-			secondSyncOptions:   nil,
-		},
-		{
-			name:                "Deletes all features when desired state is empty",
-			initialState:        getSampleFeatures(),
-			desiredState:        []WebFeature{},
-			expectedState:       nil,
-			postFirstSyncSetup:  nil,
-			postSecondSyncCheck: nil,
-			secondSyncOptions:   nil,
-		},
-		{
-			name: "Redirects feature and moves data",
-			initialState: []WebFeature{
-				{FeatureKey: "feature-a", Name: "Feature A", Description: "", DescriptionHTML: ""},
-				{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
-			},
-			desiredState: []WebFeature{
-				{FeatureKey: "feature-b", Name: "Feature B",
-					Description: "", DescriptionHTML: ""}, // feature-a is removed
-			},
-
-			postFirstSyncSetup: redirectCase.postFirstSyncSetup,
-			secondSyncOptions:  redirectCase.secondSyncOptions(),
-			expectedState: []WebFeature{
-				{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
-			},
-			postSecondSyncCheck: redirectCase.postSecondSyncCheck,
-		},
+	// 3. Run the sync to move the feature.
+	desiredState := []WebFeature{
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""}, // feature-a is removed
+	}
+	opts := []SyncWebFeaturesOption{
+		WithRedirectTargets(map[string]string{
+			"feature-a": "feature-b",
+		}),
+	}
+	if err := spannerClient.SyncWebFeatures(ctx, desiredState, opts...); err != nil {
+		t.Fatalf("SyncWebFeatures failed: %v", err)
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			restartDatabaseContainer(t)
+	// 4. Verify the data was moved correctly the first time.
+	verifyRedirectDataMovedAndAssert(ctx, t, featureKeyToIDMap)
 
-			// 1. Setup initial state if provided
-			if tc.initialState != nil {
-				if err := spannerClient.SyncWebFeatures(ctx, tc.initialState); err != nil {
-					t.Fatalf("Failed to set up initial state: %v", err)
-				}
-			}
+	// 5. Run sync again with the same redirect to ensure idempotency.
+	err = spannerClient.SyncWebFeatures(ctx, desiredState, opts...)
+	if err != nil {
+		t.Fatalf("SyncWebFeatures on second run failed unexpectedly: %v", err)
+	}
 
-			pairs, err := spannerClient.FetchAllWebFeatureIDsAndKeys(ctx)
-			if err != nil {
-				t.Fatalf("Failed to fetch all web feature IDs and keys: %v", err)
-			}
-			featureKeyToIDMap := map[string]string{}
-			for _, pair := range pairs {
-				featureKeyToIDMap[pair.FeatureKey] = pair.ID
-			}
+	// 6. Verify the data remains correctly moved after the second sync.
+	verifyRedirectDataMovedAndAssert(ctx, t, featureKeyToIDMap)
+}
 
-			// 2. Add any additional information if needed after the initial features are added.
-			if tc.postFirstSyncSetup != nil {
-				tc.postFirstSyncSetup(ctx, t, featureKeyToIDMap)
-			}
+func TestSyncWebFeatures_RedirectForMissingSource(t *testing.T) {
+	// This test case specifically targets a scenario where the `PreDeleteHook`
+	// is triggered (because other features are being deleted) and a redirect
+	// is configured for a `sourceKey` that does not exist in the database.
+	// Without the fix to issue 1990, `buildFeatureKeyToIDMap` would return
+	// `ErrQueryReturnedNoResults` when trying to get the ID for the
+	// non-existent source, causing the  entire `SyncWebFeatures` operation to
+	// fail.
+	ctx := context.Background()
+	restartDatabaseContainer(t)
 
-			// 3. Run the sync with the desired state
-			if err := spannerClient.SyncWebFeatures(ctx, tc.desiredState, tc.secondSyncOptions...); err != nil {
-				t.Fatalf("SyncWebFeatures failed: %v", err)
-			}
+	// 1. Setup initial state with two features.
+	initialState := []WebFeature{
+		{FeatureKey: "feature-a", Name: "Feature A", Description: "", DescriptionHTML: ""},
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
+	if err := spannerClient.SyncWebFeatures(ctx, initialState); err != nil {
+		t.Fatalf("Failed to set up initial state: %v", err)
+	}
 
-			// 4. Verify the final state
-			featuresInDB, err := spannerClient.ReadAllWebFeatures(ctx, t)
-			if err != nil {
-				t.Fatalf("ReadAllWebFeatures failed: %v", err)
-			}
+	// 2. Define a desired state that will delete feature-a.
+	desiredState := []WebFeature{
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
 
-			if diff := cmp.Diff(tc.expectedState, featuresInDB); diff != "" {
-				t.Errorf("features mismatch (-want +got):\n%s", diff)
-			}
+	// 3. Define a redirect from a feature that was never in the database.
+	// This simulates a scenario where a feature was moved/deleted in a previous run,
+	// but the redirect configuration remains.
+	opts := []SyncWebFeaturesOption{
+		WithRedirectTargets(map[string]string{
+			"non-existent-feature": "feature-b",
+		}),
+	}
 
-			// 5. Run post-sync check if provided
-			if tc.postSecondSyncCheck != nil {
-				tc.postSecondSyncCheck(ctx, t, featureKeyToIDMap)
-			}
-		})
+	// 4. Run the sync. Without the fix to issue 1990, this will fail inside PreDeleteHook
+	// because it tries to look up "non-existent-feature" and gets ErrQueryReturnedNoResults.
+	if err := spannerClient.SyncWebFeatures(ctx, desiredState, opts...); err != nil {
+		t.Fatalf("SyncWebFeatures failed unexpectedly: %v", err)
+	}
+
+	// 5. Verify the final state is correct.
+	featuresInDB, err := spannerClient.ReadAllWebFeatures(ctx, t)
+	if err != nil {
+		t.Fatalf("ReadAllWebFeatures failed: %v", err)
+	}
+
+	expectedState := []WebFeature{
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+	}
+
+	if diff := cmp.Diff(expectedState, featuresInDB); diff != "" {
+		t.Errorf("features mismatch (-want +got):\n%s", diff)
 	}
 }
