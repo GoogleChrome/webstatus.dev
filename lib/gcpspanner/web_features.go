@@ -17,6 +17,7 @@ package gcpspanner
 import (
 	"cmp"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -105,12 +106,26 @@ func (m webFeatureSpannerMapper) buildFeatureKeyToIDMap(ctx context.Context, c *
 	for sourceKey, targetKey := range m.RedirectTargets {
 		sourceID, err := c.GetIDFromFeatureKey(ctx, &FeatureIDFilter{featureKey: sourceKey})
 		if err != nil {
+			if errors.Is(err, ErrQueryReturnedNoResults) {
+				slog.WarnContext(ctx,
+					"source feature key not found during redirect, skipping",
+					"sourceKey", sourceKey,
+				)
+
+				continue
+			}
+			slog.ErrorContext(ctx, "unable to get ID from feature key for source key",
+				"sourceKey", sourceKey, "err", err)
+
 			return nil, err
 		}
 		featureKeyToIDMap[sourceKey] = *sourceID
 
 		targetID, err := c.GetIDFromFeatureKey(ctx, &FeatureIDFilter{featureKey: targetKey})
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to get ID from feature key for target key",
+				"targetKey", targetKey, "err", err)
+
 			return nil, err
 		}
 		featureKeyToIDMap[targetKey] = *targetID
@@ -260,6 +275,8 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 
 	featureKeyToIDMap, err := m.buildFeatureKeyToIDMap(ctx, c)
 	if err != nil {
+		slog.ErrorContext(ctx, "unable to build feature key to ID map", "err", err)
+
 		return nil, err
 	}
 
@@ -278,18 +295,27 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 
 		mutations, err := m.moveWPTRunFeatureMetrics(ctx, c, sourceID, targetID)
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to move wpt run feature metrics",
+				"sourceID", sourceID, "targetID", targetID, "err", err)
+
 			return nil, err
 		}
 		wptRunFeatureMetricMutations = append(wptRunFeatureMetricMutations, mutations...)
 
 		mutations, err = m.moveLatestWPTRunFeatureMetrics(ctx, c, sourceID, targetID)
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to move latest wpt run feature metrics",
+				"sourceID", sourceID, "targetID", targetID, "err", err)
+
 			return nil, err
 		}
 		latestWPTRunFeatureMetricMutations = append(latestWPTRunFeatureMetricMutations, mutations...)
 
 		mutations, err = m.moveWebFeatureChromiumHistogramEnumValues(ctx, c, sourceID, targetID)
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to move chromium histogram enum value",
+				"sourceID", sourceID, "targetID", targetID, "err", err)
+
 			return nil, err
 		}
 		webFeatureChromiumHistogramEnumValueMutations = append(
@@ -297,12 +323,18 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 
 		mutations, err = m.moveLatestDailyChromiumHistogramMetrics(ctx, c, sourceID, targetID)
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to move latest chromium histogram metric",
+				"sourceID", sourceID, "targetID", targetID, "err", err)
+
 			return nil, err
 		}
 		latestDailyChromiumHistogramMetricMutations = append(latestDailyChromiumHistogramMetricMutations, mutations...)
 
 		mutations, err = m.moveLatestFeatureDeveloperSignals(ctx, c, sourceID, targetID)
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to move latest feature developer signals",
+				"sourceID", sourceID, "targetID", targetID, "err", err)
+
 			return nil, err
 		}
 		latestFeatureDeveloperSignalMutations = append(latestFeatureDeveloperSignalMutations, mutations...)
