@@ -33,6 +33,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
@@ -191,6 +192,11 @@ func main() {
 		spanneradapters.NewBackend(spannerClient),
 		cache,
 		routeCacheOptions,
+		func(token string) *httpserver.UserGitHubClient {
+			return &httpserver.UserGitHubClient{
+				GitHubUserClient: gh.NewUserGitHubClient(token),
+			}
+		},
 		preRequestMiddlewares,
 		authMiddleware,
 	)

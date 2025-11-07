@@ -106,6 +106,9 @@ Shared Go libraries used by the `backend` and `workflows`.
   - **DON'T** put service-specific logic in `lib/`.
   - **DO** define new database table structs in `lib/gcpspanner`.
   - **DO** create or extend adapters in `lib/gcpspanner/spanneradapters` to expose new database queries.
+  - **DO** check for existing helper functions (e.g., `valuePtr`) within the package before adding new ones to test files.
+  - **DO** use the **Concrete Wrapper Pattern** to avoid `ireturn` linting errors while still benefiting from dependency injection.
+    - **Naming Convention**: Name the interface for its capability (e.g., `MyClient`). Name the concrete struct specifically, avoiding generic suffixes like `Wrapper` (e.g., `UserSpecificClient` to distinguish it from a general client). The factory function should be named accordingly (e.g., `newUserSpecificClient`).
 
 ### 3.2.1 The Go Mapper Pattern for Spanner
 
@@ -202,6 +205,14 @@ This practice decouples the core application logic from the exact structure of t
   - **DO** use table-driven unit tests with mocks for dependencies at the adapter layer (`spanneradapters`).
   - **DO** write **integration tests using `testcontainers-go`** for any changes to the `lib/gcpspanner` layer. This is especially critical when implementing or modifying a mapper. These tests must spin up a Spanner emulator and verify the mapper's logic against a real database.
   - When a refactoring changes how errors are handled (e.g., from returning an error to logging a warning and continuing), **DO** update the tests to reflect the new expected behavior. Some test cases might become obsolete and should be removed or updated.
+  - **DO** use the project's `valuePtr` helper function (defined in `lib/auth/types_test.go` or `lib/gh/get_current_user_test.go`) instead of `github.Ptr` when creating pointers to primitive types in tests.
+  - **Go Testing Patterns**: The Go tests in this project follow two primary patterns. Choose the appropriate one for your use case.
+    1.  **Mock Config Struct Pattern (Default)**: This is the most common pattern in the project. Use it when testing a component that has a stable, injectable dependency (e.g., an API handler that uses a database storer).
+        - **How it works**: A `Mock...Config` struct is created to hold the expected inputs and desired outputs (data and error) for a mock. The test case table is a list of these configuration structs, keeping the test logic clean and focused on the data.
+        - **Example**: See `backend/pkg/httpserver/server_test.go`.
+    2.  **Direct Function Mocking Pattern**: Use this pattern when testing a generic utility or algorithm that accepts a function as an argument, especially when the mocked function needs to have stateful behavior across multiple calls *within a single test case*.
+        - **How it works**: The test case struct contains a field for the function implementation itself (e.g., `listFunc`). This allows for defining complex behaviors, such as succeeding on the first call and failing on the second.
+        - **Example**: See the test for the generic `Paginator` in `lib/gh/paginator_test.go`.
 - **TypeScript Unit Tests**:
   - **TypeScript**: Use `npm run test -w frontend`.
 

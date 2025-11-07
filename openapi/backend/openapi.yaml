@@ -610,6 +610,24 @@ paths:
       operationId: pingUser
       security:
         - bearerAuth: []
+      requestBody:
+        description: Optional payload containing transient third-party tokens for profile syncing.
+        # Only required because our code generator currently needs a valid JSON object.
+        # https://github.com/oapi-codegen/oapi-codegen/issues/1584
+        # It can be an empty object.
+        # Once that bug is solved, we can set this back to false.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                github_token:
+                  type: string
+                  description: >
+                    The GitHub OAuth access token obtained by the frontend during interactive sign-in.
+                    Used by the backend to perform a one-time sync of user profile data (like email)
+                    directly from GitHub. This token is not stored by the backend.
       responses:
         '204':
           description: No Content

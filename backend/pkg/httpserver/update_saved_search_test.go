@@ -28,7 +28,8 @@ import (
 
 func TestUpdateSavedSearch(t *testing.T) {
 	testUser := &auth.User{
-		ID: "testID1",
+		ID:           "testID1",
+		GitHubUserID: nil,
 	}
 	// Common Request Bodies and Mock Settings
 	updateAllFieldsRequestBody := `{
@@ -354,7 +355,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 				updateUserSavedSearchCfg: tc.cfg,
 				t:                        t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
 				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)

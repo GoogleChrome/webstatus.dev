@@ -24,6 +24,11 @@ type RepoClient interface {
 	GetLatestRelease(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
 }
 
+type UsersClient interface {
+	ListEmails(ctx context.Context, opts *github.ListOptions) ([]*github.UserEmail, *github.Response, error)
+	Get(ctx context.Context, user string) (*github.User, *github.Response, error)
+}
+
 type Client struct {
 	repoClient RepoClient
 }
@@ -40,4 +45,21 @@ func NewClient(token string) *Client {
 	}
 
 	return c
+}
+
+// UserGitHubClient is a client that receives a token from a user that has installed our GitHub App.
+// It uses that token to make requests on behalf of that user to verify things about them.
+// It is different from the regular Client which is used for internal operations.
+type UserGitHubClient struct {
+	usersClient UsersClient
+}
+
+// NewUserGitHubClient creates a new UserGitHubClient with the given token.
+// Assumes that the token is not empty.
+func NewUserGitHubClient(token string) *UserGitHubClient {
+	c := github.NewClient(nil).WithAuthToken(token)
+
+	return &UserGitHubClient{
+		usersClient: c.Users,
+	}
 }

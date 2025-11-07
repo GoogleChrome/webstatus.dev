@@ -66,6 +66,23 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   // Useful for testing
   emulatorConnector: (auth: Auth, url: string) => void = connectAuthEmulator;
 
+  async signInWithGitHub(auth: Auth, provider: GithubAuthProvider) {
+    const result = await signInWithPopup(auth, provider);
+    const credential = GithubAuthProvider.credentialFromResult(result);
+    const githubToken = credential?.accessToken;
+
+    if (result.user && githubToken) {
+      try {
+        const idToken = await result.user.getIdToken();
+        await this.apiClient?.pingUser(idToken, {githubToken});
+      } catch (e) {
+        // Throw error so that webstatus-login can show a toast.
+        throw new Error(`Profile sync failed during login. Error: ${e}`);
+      }
+    }
+    return result;
+  }
+
   initFirebaseAuth() {
     if (this.firebaseApp) {
       const auth = this.authInitializer(this.firebaseApp);
@@ -74,9 +91,10 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
         auth.tenantId = this.settings.tenantID;
       }
       const provider = new GithubAuthProvider();
+      provider.addScope('user:email');
       this.firebaseAuthConfig = {
         auth: auth,
-        signIn: () => signInWithPopup(auth, provider),
+        signIn: () => this.signInWithGitHub(auth, provider),
         // Default to using the Github Provider
         provider: provider,
         icon: 'github',
@@ -90,19 +108,8 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       // Set up the callback that will detect when:
       // 1. The user first logs in
       // 2. Resuming a session
-      this.firebaseAuthConfig.auth.onAuthStateChanged(async user => {
-        if (user) {
-          // User is signed in.
-          if (this.user === null || this.user === undefined) {
-            // User was not signed in before.
-            const idToken = await user.getIdToken();
-            await this.apiClient?.pingUser(idToken);
-          }
-          this.user = user;
-        } else {
-          // User is signed out.
-          this.user = null;
-        }
+      this.firebaseAuthConfig.auth.onAuthStateChanged(user => {
+        this.user = user ? user : null;
       });
     }
   }

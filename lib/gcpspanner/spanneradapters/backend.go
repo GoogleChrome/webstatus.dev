@@ -153,6 +153,12 @@ func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
 }
 
+func (s *Backend) SyncUserProfileInfo(_ context.Context, _ backendtypes.UserProfile) error {
+	// TODO. Implement adapter logic in the future.
+
+	return nil
+}
+
 func (s *Backend) ListBrowserFeatureCountMetric(
 	ctx context.Context,
 	targetBrowser string,

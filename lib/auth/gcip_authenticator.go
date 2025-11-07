@@ -16,6 +16,7 @@ package auth
 
 import (
 	"context"
+	"log/slog"
 
 	firebaseauth "firebase.google.com/go/v4/auth"
 )
@@ -39,6 +40,28 @@ func NewGCIPAuthenticator(client UserAuthClient) *GCIPAuthenticator {
 	}
 }
 
+func extractGitHubUserIDFromToken(token *firebaseauth.Token) (*string, bool) {
+	if token.Firebase.Identities == nil {
+		return nil, false
+	}
+
+	rawGithubIdentities, ok := token.Firebase.Identities["github.com"]
+	if !ok {
+		return nil, false
+	}
+
+	githubIDs, ok := rawGithubIdentities.([]interface{})
+	if !ok || len(githubIDs) == 0 {
+		return nil, false
+	}
+
+	if githubID, ok := githubIDs[0].(string); ok {
+		return &githubID, true
+	}
+
+	return nil, false
+}
+
 // Authenticate authenticates a user using the provided ID token.
 func (a GCIPAuthenticator) Authenticate(ctx context.Context, idToken string) (*User, error) {
 	// Verify the ID token using the Firebase Auth client.
@@ -47,8 +70,15 @@ func (a GCIPAuthenticator) Authenticate(ctx context.Context, idToken string) (*U
 		return nil, err
 	}
 
+	gitHubUserID, found := extractGitHubUserIDFromToken(token)
+	if !found {
+		slog.WarnContext(ctx, "github user ID not found in token", "identities", token.Firebase.Identities,
+			"uid", token.UID)
+	}
+
 	// Create a new user object using the user's ID from the token.
 	return &User{
-		ID: token.UID,
+		ID:           token.UID,
+		GitHubUserID: gitHubUserID,
 	}, nil
 }

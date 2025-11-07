@@ -179,7 +179,8 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 				}
 
 				return &auth.User{
-					ID: testID,
+					ID:           testID,
+					GitHubUserID: nil,
 				}, nil
 			},
 			mockErrorFn: func(_ context.Context, _ int, _ http.ResponseWriter, _ error) {
@@ -188,7 +189,8 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 			expectedStatusCode: http.StatusOK,
 			expectedBody:       "next handler was called",
 			expectedUser: &auth.User{
-				ID: testID,
+				ID:           testID,
+				GitHubUserID: nil,
 			},
 		},
 	}

@@ -81,7 +81,9 @@ func createUserClaim(user User, project string) jwt.MapClaims {
 				"email": []string{
 					user.Email,
 				},
-				"github.com": []string{},
+				"github.com": []string{
+					fmt.Sprintf("%d", user.GitHubUserID),
+				},
 			},
 			"sign_in_provider": "github.com",
 		},
@@ -103,18 +105,21 @@ func getUsers() []User {
 			Email:         "test.user.1@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567890",
+			GitHubUserID:  1234567890,
 		},
 		{
 			Name:          "test user 2",
 			Email:         "test.user.2@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567891",
+			GitHubUserID:  1234567891,
 		},
 		{
 			Name:          "test user 3",
 			Email:         "test.user.3@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567892",
+			GitHubUserID:  1234567892,
 		},
 		// This user should have no data and should be used to replicate the experience of a newly logged in user.
 		{
@@ -122,24 +127,28 @@ func getUsers() []User {
 			Email:         "fresh.user@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567893",
+			GitHubUserID:  1234567893,
 		},
 		{
 			Name:          "chromium user",
 			Email:         "chromium.user@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567894",
+			GitHubUserID:  1234567894,
 		},
 		{
 			Name:          "firefox user",
 			Email:         "firefox.user@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567895",
+			GitHubUserID:  1234567895,
 		},
 		{
 			Name:          "webkit user",
 			Email:         "webkit.user@example.com",
 			EmailVerified: true,
 			UserID:        "abcdedf1234567896",
+			GitHubUserID:  1234567896,
 		},
 	}
 }
@@ -196,6 +205,8 @@ type User struct {
 	Email         string
 	EmailVerified bool
 	UserID        string
+	// Use int64 to match the type used by GitHub.
+	GitHubUserID int64
 }
 
 func main() {

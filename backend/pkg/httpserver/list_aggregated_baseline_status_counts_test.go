@@ -296,7 +296,7 @@ func TestListAggregatedBaselineStatusCounts(t *testing.T) {
 				t:                           t,
 			}
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
 				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
 				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
