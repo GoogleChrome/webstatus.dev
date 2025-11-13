@@ -421,7 +421,10 @@ export class APIClient {
     });
   }
 
-  public async pingUser(token: string): Promise<void> {
+  public async pingUser(
+    token: string,
+    pingOptions?: {githubToken?: string},
+  ): Promise<void> {
     const options: FetchOptions<
       FilterKeys<paths['/v1/users/me/ping'], 'post'>
     > = {
@@ -429,6 +432,9 @@ export class APIClient {
         Authorization: `Bearer ${token}`,
       },
       credentials: temporaryFetchOptions.credentials,
+      body: {
+        github_token: pingOptions?.githubToken,
+      },
     };
     const {error} = await this.client.POST('/v1/users/me/ping', options);
     if (error) {
