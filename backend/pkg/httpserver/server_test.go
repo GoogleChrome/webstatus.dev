@@ -32,6 +32,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 )
 
@@ -218,6 +219,11 @@ type MockRemoveUserSavedSearchBookmarkConfig struct {
 	err                   error
 }
 
+type MockSyncUserProfileInfoConfig struct {
+	expectedUserProfile backendtypes.UserProfile
+	err                 error
+}
+
 type basicHTTPTestCase[T any] struct {
 	name             string
 	cfg              *T
@@ -243,6 +249,7 @@ type MockWPTMetricsStorer struct {
 	updateUserSavedSearchCfg                          *MockUpdateUserSavedSearchConfig
 	putUserSavedSearchBookmarkCfg                     *MockPutUserSavedSearchBookmarkConfig
 	removeUserSavedSearchBookmarkCfg                  *MockRemoveUserSavedSearchBookmarkConfig
+	syncUserProfileInfoCfg                            *MockSyncUserProfileInfoConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -260,6 +267,7 @@ type MockWPTMetricsStorer struct {
 	callCountUpdateUserSavedSearch                    int
 	callCountPutUserSavedSearchBookmark               int
 	callCountRemoveUserSavedSearchBookmark            int
+	callCountSyncUserProfileInfo                      int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -477,6 +485,18 @@ func (m *MockWPTMetricsStorer) ListMissingOneImplementationFeatures(
 	}
 
 	return m.listMissingOneImplFeaturesCfg.page, m.listMissingOneImplFeaturesCfg.err
+}
+
+func (m *MockWPTMetricsStorer) SyncUserProfileInfo(_ context.Context,
+	userProfile backendtypes.UserProfile) error {
+	m.callCountSyncUserProfileInfo++
+
+	if !reflect.DeepEqual(userProfile, m.syncUserProfileInfoCfg.expectedUserProfile) {
+		m.t.Errorf("Incorrect arguments. Expected: %v, Got: { %v }",
+			m.syncUserProfileInfoCfg, userProfile)
+	}
+
+	return m.syncUserProfileInfoCfg.err
 }
 
 func (m *MockWPTMetricsStorer) ListBaselineStatusCounts(
@@ -966,7 +986,8 @@ func (m *mockServerInterface) PingUser(
 ) (backend.PingUserResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
-	panic("unimplemented")
+
+	return backend.PingUserResponseObject(backend.PingUser204Response{}), nil
 }
 
 // ListMissingOneImplementationFeatures implements backend.StrictServerInterface.
@@ -1044,4 +1065,49 @@ func getTestBaseURL(t *testing.T) *url.URL {
 	}
 
 	return baseURL
+}
+
+func setupMockGitHubUserClient(
+	t *testing.T,
+	expectedToken string,
+	getCurrentUserCfg *mockGetCurrentUserConfig,
+	listEmailsCfg *mockListEmailsConfig,
+) UserGitHubClientFactory {
+	return func(token string) *UserGitHubClient {
+		if token != expectedToken {
+			t.Errorf("Incorrect token. Expected: %s, Got: %s", expectedToken, token)
+		}
+
+		return &UserGitHubClient{
+			&mockGitHubUserClient{
+				getCurrentUserCfg: getCurrentUserCfg,
+				listEmailsCfg:     listEmailsCfg,
+				t:                 t,
+			},
+		}
+	}
+}
+
+type mockGitHubUserClient struct {
+	getCurrentUserCfg *mockGetCurrentUserConfig
+	listEmailsCfg     *mockListEmailsConfig
+	t                 *testing.T
+}
+
+type mockGetCurrentUserConfig struct {
+	err  error
+	user *gh.GitHubUser
+}
+
+type mockListEmailsConfig struct {
+	err    error
+	emails []*gh.UserEmail
+}
+
+func (m *mockGitHubUserClient) GetCurrentUser(_ context.Context) (*gh.GitHubUser, error) {
+	return m.getCurrentUserCfg.user, m.getCurrentUserCfg.err
+
+}
+func (m *mockGitHubUserClient) ListEmails(_ context.Context) ([]*gh.UserEmail, error) {
+	return m.listEmailsCfg.emails, m.listEmailsCfg.err
 }

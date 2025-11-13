@@ -28,6 +28,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 )
 
 type WebFeatureMetadataStorer interface {
@@ -144,6 +145,8 @@ type WPTMetricsStorer interface {
 		userID string,
 		savedSearchID string,
 	) error
+	SyncUserProfileInfo(ctx context.Context,
+		userProfile backendtypes.UserProfile) error
 }
 
 type Server struct {
@@ -151,7 +154,19 @@ type Server struct {
 	wptMetricsStorer        WPTMetricsStorer
 	operationResponseCaches *operationResponseCaches
 	baseURL                 *url.URL
+	userGitHubClientFactory UserGitHubClientFactory
 }
+
+type GitHubUserClient interface {
+	GetCurrentUser(ctx context.Context) (*gh.GitHubUser, error)
+	ListEmails(ctx context.Context) ([]*gh.UserEmail, error)
+}
+
+type UserGitHubClient struct {
+	GitHubUserClient
+}
+
+type UserGitHubClientFactory func(token string) *UserGitHubClient
 
 func defaultBrowsers() []backend.BrowserPathParam {
 	return []backend.BrowserPathParam{
@@ -210,6 +225,7 @@ func NewHTTPServer(
 	wptMetricsStorer WPTMetricsStorer,
 	rawBytesDataCacher RawBytesDataCacher,
 	routeCacheOptions RouteCacheOptions,
+	userGitHubClientFactory UserGitHubClientFactory,
 	preRequestValidationMiddlewares []func(http.Handler) http.Handler,
 	authMiddleware func(http.Handler) http.Handler) *http.Server {
 	// Create an instance of our handler which satisfies the generated interface
@@ -218,6 +234,7 @@ func NewHTTPServer(
 		wptMetricsStorer:        wptMetricsStorer,
 		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher, routeCacheOptions),
 		baseURL:                 baseURL,
+		userGitHubClientFactory: userGitHubClientFactory,
 	}
 
 	return createOpenAPIServerServer(port, srv, preRequestValidationMiddlewares, authMiddleware)

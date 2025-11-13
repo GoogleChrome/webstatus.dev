@@ -365,7 +365,7 @@ func TestCreateSavedSearch(t *testing.T) {
 				createUserSavedSearchCfg: tc.mockCreateUserSavedSearchConfig,
 				t:                        t,
 			}
-			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil,
+			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
 				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)

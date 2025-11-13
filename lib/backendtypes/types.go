@@ -49,3 +49,9 @@ var (
 	// between a missing value and an explicitly empty one.
 	ErrEmptyJSONValue = errors.New("JSON value is empty")
 )
+
+type UserProfile struct {
+	UserID       string
+	GitHubUserID int64
+	Emails       []string
+}
