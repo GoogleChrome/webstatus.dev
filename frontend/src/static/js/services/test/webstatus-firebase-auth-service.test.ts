@@ -26,7 +26,7 @@ import {LitElement, TemplateResult, render} from 'lit';
 import {FirebaseOptions} from 'firebase/app';
 import sinon from 'sinon';
 import '../webstatus-firebase-auth-service.js';
-import {Auth, User} from 'firebase/auth';
+import {Auth, User, GithubAuthProvider, OAuthCredential} from 'firebase/auth';
 import {
   AuthConfig,
   firebaseAuthContext,
@@ -210,7 +210,7 @@ describe('webstatus-firebase-auth-service', () => {
     assert.equal(childComponent.user, userStub);
   });
 
-  it('pings the server when a user logs in', async () => {
+  it('does NOT ping the server when a user session is restored', async () => {
     const apiClientStub = sinon.createStubInstance(APIClient);
     let authStateCallback: (user: User | null) => void = () => {};
     const authStub = {
@@ -255,7 +255,140 @@ describe('webstatus-firebase-auth-service', () => {
     authStateCallback(userStub);
     await component.updateComplete;
 
-    expect(apiClientStub.pingUser).to.have.been.calledWith('test-token');
+    // The ping should NOT be called on a simple auth state change (session restore).
+    expect(apiClientStub.pingUser).to.not.have.been.called;
+  });
+
+  describe('signInWithGitHub', () => {
+    let credentialFromResultStub: sinon.SinonStub;
+    beforeEach(() => {
+      // Stub the static method before each test in this block.
+      const credential = {
+        accessToken: 'mock-github-token',
+      } as OAuthCredential;
+      credentialFromResultStub = sinon
+        .stub(GithubAuthProvider, 'credentialFromResult')
+        .returns(credential);
+    });
+
+    afterEach(() => {
+      // Restore the original method after each test.
+      credentialFromResultStub.restore();
+    });
+
+    it('pings the server with githubToken when called', async () => {
+      const apiClientStub = sinon.createStubInstance(APIClient);
+      const idToken = 'mock-id-token';
+
+      const signInWithPopupStub = sinon.stub();
+      signInWithPopupStub.resolves({
+        user: {
+          getIdToken: sinon.stub().resolves(idToken),
+        },
+      });
+
+      const authStub = {
+        onAuthStateChanged: sinon.stub(),
+      } as unknown as Auth;
+      const providerStub = {} as GithubAuthProvider;
+
+      const root = document.createElement('div');
+      document.body.appendChild(root);
+      render(
+        html`
+          <fake-parent-element .apiClient=${apiClientStub}>
+            <webstatus-firebase-auth-service .settings=${settings}>
+            </webstatus-firebase-auth-service>
+          </fake-parent-element>
+        `,
+        root,
+      );
+
+      const parentElement = root.querySelector<FakeParentElement>(
+        'fake-parent-element',
+      );
+      assert.exists(parentElement);
+      const component = root.querySelector<WebstatusFirebaseAuthService>(
+        'webstatus-firebase-auth-service',
+      );
+      assert.exists(component);
+
+      component.authInitializer = () => authStub;
+      component.credentialGetter = signInWithPopupStub;
+      component.firebaseApp = new FakeFirebaseApp();
+
+      parentElement.requestUpdate();
+      await parentElement.updateComplete;
+      await component.updateComplete;
+
+      await component.signInWithGitHub(authStub, providerStub);
+
+      expect(apiClientStub.pingUser).to.have.been.calledWith(idToken, {
+        githubToken: 'mock-github-token',
+      });
+    });
+
+    it('throws an error if profile sync fails', async () => {
+      const apiClientStub = sinon.createStubInstance(APIClient);
+      const idToken = 'mock-id-token';
+      const errorMessage = 'API error during pingUser';
+
+      apiClientStub.pingUser.throws(new Error(errorMessage));
+
+      const signInWithPopupStub = sinon.stub();
+      signInWithPopupStub.resolves({
+        user: {
+          getIdToken: sinon.stub().resolves(idToken),
+        },
+      });
+
+      const authStub = {
+        onAuthStateChanged: sinon.stub(),
+      } as unknown as Auth;
+      const providerStub = {} as GithubAuthProvider;
+
+      const root = document.createElement('div');
+      document.body.appendChild(root);
+      render(
+        html`
+          <fake-parent-element .apiClient=${apiClientStub}>
+            <webstatus-firebase-auth-service .settings=${settings}>
+            </webstatus-firebase-auth-service>
+          </fake-parent-element>
+        `,
+        root,
+      );
+
+      const parentElement = root.querySelector<FakeParentElement>(
+        'fake-parent-element',
+      );
+      assert.exists(parentElement);
+      const component = root.querySelector<WebstatusFirebaseAuthService>(
+        'webstatus-firebase-auth-service',
+      );
+      assert.exists(component);
+
+      component.authInitializer = () => authStub;
+      component.credentialGetter = signInWithPopupStub;
+      component.firebaseApp = new FakeFirebaseApp();
+
+      parentElement.requestUpdate();
+      await parentElement.updateComplete;
+      await component.updateComplete;
+
+      let caughtError: Error | undefined;
+      try {
+        await component.signInWithGitHub(authStub, providerStub);
+      } catch (e) {
+        caughtError = e as Error;
+      }
+
+      expect(caughtError).to.be.an('Error');
+      expect(caughtError?.message).to.include(
+        'Profile sync failed during login',
+      );
+      expect(caughtError?.message).to.include(errorMessage);
+    });
   });
 
   it('calls emulatorConnector when emulatorURL is set', async () => {

@@ -204,6 +204,7 @@ This practice decouples the core application logic from the exact structure of t
   - When a refactoring changes how errors are handled (e.g., from returning an error to logging a warning and continuing), **DO** update the tests to reflect the new expected behavior. Some test cases might become obsolete and should be removed or updated.
 - **TypeScript Unit Tests**:
   - **TypeScript**: Use `npm run test -w frontend`.
+  - **ES Module Testing**: When testing components that use ES module exports directly (e.g., `signInWithPopup` from `firebase/auth`), direct stubbing with Sinon (e.g., `sinon.stub(firebaseAuth, 'signInWithPopup')`) is problematic due to module immutability. Instead, introduce a helper property (e.g., `credentialGetter`) in the component that defaults to the original ES module function but can be overridden with a Sinon stub in tests. This allows for effective mocking of ES module interactions.
 
 ### 5.3. CI/CD (`.github/`)
 

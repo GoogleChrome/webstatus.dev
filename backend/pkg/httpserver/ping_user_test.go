@@ -14,10 +14,16 @@
 package httpserver
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
+
+func testEmptyJSONObjectBody() io.Reader {
+	return strings.NewReader("{}")
+}
 
 func TestPingUser(t *testing.T) {
 	testCases := []struct {
@@ -49,7 +55,7 @@ func TestPingUser(t *testing.T) {
 				operationResponseCaches: nil,
 				baseURL:                 getTestBaseURL(t),
 			}
-			req := httptest.NewRequest(http.MethodPost, "/v1/users/me/ping", nil)
+			req := httptest.NewRequest(http.MethodPost, "/v1/users/me/ping", testEmptyJSONObjectBody())
 			assertTestServerRequest(t, &myServer, req, tc.expectedResponse, authMiddlewareOption)
 		})
 	}
