@@ -38,7 +38,8 @@ func createStringOfNLength(n int) string {
 
 func TestCreateSavedSearch(t *testing.T) {
 	testUser := &auth.User{
-		ID: "testID1",
+		ID:           "testID1",
+		GitHubUserID: nil,
 	}
 	testCases := []struct {
 		name                            string

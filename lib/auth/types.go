@@ -14,7 +14,26 @@
 
 package auth
 
+import "strconv"
+
 // User contains the details of an authenticated user.
 type User struct {
 	ID string
+	// GitHubUserID is the string representation of the GitHub user's integer ID,
+	// as returned by Firebase Auth.
+	//
+	// It is a pointer because it may be nil if the user is authenticated but not
+	// linked to GitHub, or if the ID hasn't been verified against the GitHub API yet.
+	// Verification is deferred until needed to keep most authenticated calls fast.
+	GitHubUserID *string
+}
+
+// HasGitHubID checks if the authenticated user matches a specific GitHub integer ID.
+// It handles the necessary string-to-int64 conversion safely.
+func (u User) HasGitHubUserID(in int64) bool {
+	if u.GitHubUserID == nil {
+		return false
+	}
+
+	return *u.GitHubUserID == strconv.FormatInt(in, 10)
 }
