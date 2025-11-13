@@ -27,7 +27,8 @@ import (
 
 func TestListUserSavedSearches(t *testing.T) {
 	testUser := &auth.User{
-		ID: "listUserID1",
+		ID:           "listUserID1",
+		GitHubUserID: nil,
 	}
 	testCases := []struct {
 		name                 string

@@ -28,7 +28,8 @@ import (
 
 func TestUpdateSavedSearch(t *testing.T) {
 	testUser := &auth.User{
-		ID: "testID1",
+		ID:           "testID1",
+		GitHubUserID: nil,
 	}
 	// Common Request Bodies and Mock Settings
 	updateAllFieldsRequestBody := `{
