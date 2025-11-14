@@ -61,6 +61,7 @@ func (m notificationChannelStateMapper) Merge(
 	in NotificationChannelState, existing NotificationChannelState) NotificationChannelState {
 	existing.IsDisabledBySystem = in.IsDisabledBySystem
 	existing.ConsecutiveFailures = in.ConsecutiveFailures
+	existing.UpdatedAt = in.UpdatedAt
 
 	return existing
 }

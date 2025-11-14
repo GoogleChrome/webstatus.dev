@@ -140,6 +140,7 @@ type BackendSpannerClient interface {
 	UpdateUserSavedSearch(ctx context.Context, req gcpspanner.UpdateSavedSearchRequest) error
 	AddUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	DeleteUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
+	SyncUserProfileInfo(ctx context.Context, userProfile gcpspanner.UserProfile) error
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -153,10 +154,14 @@ func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
 }
 
-func (s *Backend) SyncUserProfileInfo(_ context.Context, _ backendtypes.UserProfile) error {
-	// TODO. Implement adapter logic in the future.
-
-	return nil
+func (s *Backend) SyncUserProfileInfo(ctx context.Context, userProfile backendtypes.UserProfile) error {
+	// In the future, we can add more complex adapter logic here.
+	// For now, we just translate between the two types.
+	return s.client.SyncUserProfileInfo(ctx, gcpspanner.UserProfile{
+		UserID:       userProfile.UserID,
+		GitHubUserID: userProfile.GitHubUserID,
+		Emails:       userProfile.Emails,
+	})
 }
 
 func (s *Backend) ListBrowserFeatureCountMetric(
