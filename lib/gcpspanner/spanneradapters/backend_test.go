@@ -163,6 +163,21 @@ type mockBackendSpannerClient struct {
 
 	mockGetMovedWebFeatureDetailsByOriginalFeatureKeyCfg *mockGetMovedWebFeatureDetailsByOriginalFeatureKeyConfig
 	mockGetSplitWebFeatureByOriginalFeatureKeyCfg        *mockGetSplitWebFeatureByOriginalFeatureKeyConfig
+	mockSyncUserProfileInfoCfg                           *mockSyncUserProfileInfoConfig
+}
+
+type mockSyncUserProfileInfoConfig struct {
+	expectedUserProfile backendtypes.UserProfile
+	returnedError       error
+}
+
+func (c mockBackendSpannerClient) SyncUserProfileInfo(
+	_ context.Context, userProfile backendtypes.UserProfile) error {
+	if !reflect.DeepEqual(userProfile, c.mockSyncUserProfileInfoCfg.expectedUserProfile) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockSyncUserProfileInfoCfg.returnedError
 }
 
 // GetMovedWebFeatureDetailsByOriginalFeatureKey implements BackendSpannerClient.

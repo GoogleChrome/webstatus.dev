@@ -140,6 +140,7 @@ type BackendSpannerClient interface {
 	UpdateUserSavedSearch(ctx context.Context, req gcpspanner.UpdateSavedSearchRequest) error
 	AddUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	DeleteUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
+	SyncUserProfileInfo(ctx context.Context, userProfile backendtypes.UserProfile) error
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -153,10 +154,14 @@ func NewBackend(client BackendSpannerClient) *Backend {
 	return &Backend{client: client}
 }
 
-func (s *Backend) SyncUserProfileInfo(_ context.Context, _ backendtypes.UserProfile) error {
+func (s *Backend) SyncUserProfileInfo(ctx context.Context, userProfile backendtypes.UserProfile) error {
 	// TODO. Implement adapter logic in the future.
-
-	return nil
+	// Get the user. Get all the email channels for the user.
+	// For a given email in the incoming profile:
+	// 1. If the email is new (meaning it does not exist in the list of channels from the database), create it.
+	// 2. If the email exists (meaning it exists in the list of channels from the database), leave it alone.
+	// 3. If there is an email from the database that exists and enabled but does not exist in the incoming profile, disable it.
+	return s.client.SyncUserProfileInfo(ctx, userProfile)
 }
 
 func (s *Backend) ListBrowserFeatureCountMetric(
