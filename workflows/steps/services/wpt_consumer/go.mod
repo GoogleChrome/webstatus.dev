@@ -8,6 +8,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../../../lib/gen
 
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20251015221928-7a6ffd51e418
+	github.com/google/go-cmp v0.7.0
 	github.com/google/go-github/v75 v75.0.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20251015195846-bbfbb7f38ce2
 )

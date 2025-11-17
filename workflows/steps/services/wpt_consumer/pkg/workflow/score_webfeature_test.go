@@ -16,10 +16,10 @@ package workflow
 
 import (
 	"context"
-	"reflect"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters/wptconsumertypes"
+	"github.com/google/go-cmp/cmp"
 	"github.com/web-platform-tests/wpt.fyi/api/query"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
@@ -102,6 +102,12 @@ func getComplexWebFeaturesData() shared.WebFeaturesData {
 		"test11-missing.html": {
 			"feature1": nil,
 		},
+		"test12.optional.html": {
+			"feature1": nil,
+		},
+		"test13-optional.html": {
+			"feature6": nil,
+		},
 	}
 }
 
@@ -168,6 +174,16 @@ func getComplexSummary() ResultsSummaryFileV2 {
 			Status: string(WPTStatusEmpty),
 			Counts: []int{0, 0},
 		},
+		// Optional tests should not count.
+		"test12.optional.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{1, 1},
+		},
+		// Tests with the word optional but without the leading "." still count
+		"test13-optional.html": query.SummaryResult{
+			Status: string(WPTStatusPass),
+			Counts: []int{1, 1},
+		},
 	}
 }
 
@@ -233,8 +249,8 @@ func TestScore(t *testing.T) {
 					FeatureRunDetails: nil,
 				},
 				"feature6": {
-					TotalTests:    valuePtr[int64](5),
-					TestPass:      valuePtr[int64](2),
+					TotalTests:    valuePtr[int64](6),
+					TestPass:      valuePtr[int64](3),
 					TotalSubtests: nil,
 					SubtestPass:   nil,
 					FeatureRunDetails: map[string]interface{}{
@@ -257,8 +273,8 @@ func TestScore(t *testing.T) {
 				context.Background(),
 				&testCases[idx].testToWebFeatures,
 			)
-			if !reflect.DeepEqual(tc.expectedOutput, output) {
-				t.Errorf("unexpected score\nexpected %v\nreceived %v", tc.expectedOutput, output)
+			if diff := cmp.Diff(tc.expectedOutput, output); diff != "" {
+				t.Errorf("unexpected score (-want +got):\n%s", diff)
 			}
 		})
 	}
