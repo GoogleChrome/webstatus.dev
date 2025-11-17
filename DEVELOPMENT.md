@@ -84,14 +84,15 @@ this command or the `make port-forward-manual` command, something may be wrong.
 
 The above skaffold command deploys multiple resources:
 
-| Resource  | Description                    | Port Forwarded Address                                     | Internal Address                                    |
-| --------- | ------------------------------ | ---------------------------------------------------------- | --------------------------------------------------- |
-| backend   | Backend service in ./backend   | http://localhost:8080                                      | http://backend:8080                                 |
-| frontend  | Frontend service in ./frontend | http://localhost:5555                                      | http://frontend:5555                                |
-| datastore | Datastore Emulator             | N/A                                                        | http://datastore:8086                               |
-| spanner   | Spanner Emulator               | N/A                                                        | spanner:9010 (grpc)<br />http://spanner:9020 (rest) |
-| valkey    | Valkey                         | N/A                                                        | valkey:6379                                         |
-| auth      | Auth Emulator                  | http://localhost:9099<br />http://localhost:9100/auth (ui) | http://auth:9099<br />http://auth:9100/auth (ui)    |
+| Resource  | Description                    | Port Forwarded Address                                     | Internal Address                                                    |
+| --------- | ------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------- |
+| backend   | Backend service in ./backend   | http://localhost:8080                                      | http://backend:8080                                                 |
+| frontend  | Frontend service in ./frontend | http://localhost:5555                                      | http://frontend:5555                                                |
+| datastore | Datastore Emulator             | N/A                                                        | http://datastore:8086                                               |
+| spanner   | Spanner Emulator               | N/A                                                        | spanner:9010 (grpc)<br />http://spanner:9020 (rest)                 |
+| valkey    | Valkey                         | N/A                                                        | valkey:6379                                                         |
+| auth      | Auth Emulator                  | http://localhost:9099<br />http://localhost:9100/auth (ui) | http://auth:9099<br />http://auth:9100/auth (ui)                    |
+| wiremock  | Wiremock                       | http://localhost:8087                                      | http://api-github-mock.default.svc.cluster.local:8080 (GitHub Mock) |
 
 _In the event the servers are not responsive, make a temporary change to a file_
 _in a watched directory (e.g. backend). This will rebuild and expose the_

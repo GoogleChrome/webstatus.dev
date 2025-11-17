@@ -68,7 +68,8 @@ func (s *Server) PingUser(
 
 	if !user.HasGitHubUserID(githubUser.ID) {
 		slog.WarnContext(ctx, "user does not have specified GitHub User ID", "user", user.ID,
-			"github_username", githubUser.Username)
+			"github_username", githubUser.Username, "github_id_from_api", githubUser.ID,
+			"github_id_in_gcip_token", *user.GitHubUserID)
 
 		return backend.PingUser403JSONResponse{
 			Code:    403,

@@ -1,0 +1,25 @@
+{
+  "metadata": {
+    "notes": "Mocks the GET /user endpoint to fetch the authenticated user's profile.",
+    "docsLink": "https://docs.github.com/en/rest/users/users#get-the-authenticated-user"
+  },
+  "request": {
+    "method": "GET",
+    "urlPath": "/user"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": {
+      "login": "mock-go-service-user",
+      "id": 1234567890,
+      "node_id": "MOCKED_NODE_ID",
+      "avatar_url": "https://placehold.co/100x100/7a9a8d/ffffff?text=MockUser",
+      "name": "Local Dev User",
+      "email": "dev@mock-github.local",
+      "url": "http://github-mock-internal:8080/user"
+    }
+  }
+}
