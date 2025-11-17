@@ -104,21 +104,21 @@ func getUsers() []User {
 			Name:          "test user 1",
 			Email:         "test.user.1@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567890",
+			UserID:        "1234567890",
 			GitHubUserID:  1234567890,
 		},
 		{
 			Name:          "test user 2",
 			Email:         "test.user.2@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567891",
+			UserID:        "1234567891",
 			GitHubUserID:  1234567891,
 		},
 		{
 			Name:          "test user 3",
 			Email:         "test.user.3@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567892",
+			UserID:        "1234567892",
 			GitHubUserID:  1234567892,
 		},
 		// This user should have no data and should be used to replicate the experience of a newly logged in user.
@@ -126,28 +126,28 @@ func getUsers() []User {
 			Name:          "fresh user",
 			Email:         "fresh.user@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567893",
+			UserID:        "1234567893",
 			GitHubUserID:  1234567893,
 		},
 		{
 			Name:          "chromium user",
 			Email:         "chromium.user@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567894",
+			UserID:        "1234567894",
 			GitHubUserID:  1234567894,
 		},
 		{
 			Name:          "firefox user",
 			Email:         "firefox.user@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567895",
+			UserID:        "1234567895",
 			GitHubUserID:  1234567895,
 		},
 		{
 			Name:          "webkit user",
 			Email:         "webkit.user@example.com",
 			EmailVerified: true,
-			UserID:        "abcdedf1234567896",
+			UserID:        "1234567896",
 			GitHubUserID:  1234567896,
 		},
 	}
@@ -206,6 +206,8 @@ type User struct {
 	EmailVerified bool
 	UserID        string
 	// Use int64 to match the type used by GitHub.
+	// For now, the GitHubUserID must match the UserID in the emulator
+	// In real life, the UserID is the ID managed by GCIP. And GitHubUserID is the ID managed by GitHub.
 	GitHubUserID int64
 }
 

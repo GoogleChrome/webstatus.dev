@@ -16,7 +16,9 @@ package httpserver
 
 import (
 	"context"
+	"log/slog"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -24,7 +26,7 @@ import (
 // nolint: ireturn // Name generated from openapi
 func (s *Server) PingUser(
 	ctx context.Context,
-	_ backend.PingUserRequestObject,
+	req backend.PingUserRequestObject,
 ) (backend.PingUserResponseObject, error) {
 	userCheckResult := CheckAuthenticatedUser(ctx, "PingUser",
 		func(code int, message string) backend.PingUser500JSONResponse {
@@ -37,6 +39,74 @@ func (s *Server) PingUser(
 		return userCheckResult.Response, nil
 	}
 
-	// TODO: Implement database logic to upsert user profile.
+	user := userCheckResult.User
+	if req.Body.GithubToken == nil {
+		// Nothing to do.
+
+		return backend.PingUser204Response{}, nil
+	}
+
+	if user.GitHubUserID == nil {
+		slog.ErrorContext(ctx, "token is missing github user id", "user", user.ID)
+
+		return backend.PingUser500JSONResponse{
+			Code:    500,
+			Message: "token is missing github user id",
+		}, nil
+	}
+
+	githubClient := s.userGitHubClientFactory(*req.Body.GithubToken)
+	githubUser, err := githubClient.GetCurrentUser(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to get GitHub user", "error", err, "user", user.ID)
+
+		return backend.PingUser500JSONResponse{
+			Code:    500,
+			Message: "failed to get GitHub user",
+		}, nil
+	}
+
+	if !user.HasGitHubUserID(githubUser.ID) {
+		slog.WarnContext(ctx, "user does not have specified GitHub User ID", "user", user.ID,
+			"github_username", githubUser.Username, "github_id_from_api", githubUser.ID,
+			"github_id_in_gcip_token", *user.GitHubUserID)
+
+		return backend.PingUser403JSONResponse{
+			Code:    403,
+			Message: "user does not match specified GitHub User ID",
+		}, nil
+	}
+
+	emails, err := githubClient.ListEmails(ctx)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to list GitHub emails", "error", err, "user", user.ID,
+			"github ID", githubUser.ID)
+
+		return backend.PingUser500JSONResponse{
+			Code:    500,
+			Message: "failed to list GitHub emails",
+		}, nil
+	}
+	var verifiedEmails []string
+	for _, email := range emails {
+		if email.Verified {
+			verifiedEmails = append(verifiedEmails, email.Email)
+		}
+	}
+
+	err = s.wptMetricsStorer.SyncUserProfileInfo(ctx, backendtypes.UserProfile{
+		UserID:       user.ID,
+		GitHubUserID: githubUser.ID,
+		Emails:       verifiedEmails,
+	})
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to sync user profile", "error", err, "user", user.ID)
+
+		return backend.PingUser500JSONResponse{
+			Code:    500,
+			Message: "failed to sync user profile",
+		}, nil
+	}
+
 	return backend.PingUser204Response{}, nil
 }

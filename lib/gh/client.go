@@ -16,9 +16,19 @@ package gh
 
 import (
 	"context"
+	"net/url"
 
 	"github.com/google/go-github/v75/github"
 )
+
+type ClientOption func(*github.Client)
+
+func WithBaseURL(baseURL *url.URL) ClientOption {
+	return func(c *github.Client) {
+		c.BaseURL = baseURL
+		c.UploadURL = baseURL
+	}
+}
 
 type RepoClient interface {
 	GetLatestRelease(ctx context.Context, owner, repo string) (*github.RepositoryRelease, *github.Response, error)
@@ -35,10 +45,13 @@ type Client struct {
 
 // NewClient creates a new Github Client. If the token is not empty, it will
 // use it as the auth token to make calls.
-func NewClient(token string) *Client {
+func NewClient(token string, opts ...ClientOption) *Client {
 	ghClient := github.NewClient(nil)
 	if token != "" {
 		ghClient = ghClient.WithAuthToken(token)
+	}
+	for _, opt := range opts {
+		opt(ghClient)
 	}
 	c := &Client{
 		repoClient: ghClient.Repositories,
@@ -56,8 +69,12 @@ type UserGitHubClient struct {
 
 // NewUserGitHubClient creates a new UserGitHubClient with the given token.
 // Assumes that the token is not empty.
-func NewUserGitHubClient(token string) *UserGitHubClient {
+func NewUserGitHubClient(token string, opts ...ClientOption) *UserGitHubClient {
 	c := github.NewClient(nil).WithAuthToken(token)
+
+	for _, opt := range opts {
+		opt(c)
+	}
 
 	return &UserGitHubClient{
 		usersClient: c.Users,

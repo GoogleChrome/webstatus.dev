@@ -87,6 +87,8 @@ check-local-ports:
 	$(call wait_for_port,9100,auth-aux)
 	$(call wait_for_port,9010,spanner)
 	$(call wait_for_port,8086,datastore)
+	$(call wait_for_port,8087,wiremock)
+
 
 port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/frontend
@@ -94,12 +96,14 @@ port-forward-manual: port-forward-terminate
 	kubectl wait --for=condition=ready pod/auth
 	kubectl wait --for=condition=ready pod/datastore
 	kubectl wait --for=condition=ready pod/spanner
+	kubectl wait --for=condition=ready pod/wiremock
 	kubectl port-forward --address 127.0.0.1 pod/frontend 5555:5555 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/backend 8080:8080 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9099:9099 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/auth 9100:9100 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/spanner 9010:9010 2>&1 >/dev/null &
 	kubectl port-forward --address 127.0.0.1 pod/datastore 8086:8086 2>&1 >/dev/null &
+	kubectl port-forward --address 127.0.0.1 pod/wiremock 8087:8080 2>&1 >/dev/null &
 	make check-local-ports
 
 port-forward-terminate:
@@ -109,6 +113,7 @@ port-forward-terminate:
 	fuser -k 9100/tcp || true
 	fuser -k 9010/tcp || true
 	fuser -k 8086/tcp || true
+	fuser -k 8087/tcp || true
 
 # Prerequisite target to start minikube if necessary
 minikube-running:

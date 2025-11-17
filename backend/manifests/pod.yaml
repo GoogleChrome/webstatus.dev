@@ -57,6 +57,8 @@ spec:
         # FIREBASE_AUTH_EMULATOR_HOST is needed by the Admin SDK to skip verification
         - name: FIREBASE_AUTH_EMULATOR_HOST
           value: auth:9099
+        - name: GITHUB_API_BASE_URL
+          value: http://api-github-mock.default.svc.cluster.local:8080/
       resources:
         limits:
           cpu: 250m

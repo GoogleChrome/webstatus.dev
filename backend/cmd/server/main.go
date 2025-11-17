@@ -33,6 +33,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds/datastoreadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
 	"github.com/GoogleChrome/webstatus.dev/lib/opentelemetry"
 	"github.com/GoogleChrome/webstatus.dev/lib/valkeycache"
@@ -184,6 +185,18 @@ func main() {
 		preRequestMiddlewares = slices.Insert(preRequestMiddlewares, 0, opentelemetry.NewOpenTelemetryChiMiddleware())
 	}
 
+	var ghOptions []gh.ClientOption
+	if gitHubAPIBaseRawURL := os.Getenv("GITHUB_API_BASE_URL"); gitHubAPIBaseRawURL != "" {
+		gitHubAPIBaseURL, err := url.Parse(gitHubAPIBaseRawURL)
+		if err != nil {
+			slog.ErrorContext(ctx, "unable to parse GITHUB_API_BASE_URL", "error", err)
+			os.Exit(1)
+		}
+		slog.InfoContext(ctx, "using GITHUB_API_BASE_URL", "url", gitHubAPIBaseURL.String())
+		ghOptions = append(ghOptions, gh.WithBaseURL(gitHubAPIBaseURL))
+
+	}
+
 	srv := httpserver.NewHTTPServer(
 		"8080",
 		baseURL,
@@ -191,6 +204,11 @@ func main() {
 		spanneradapters.NewBackend(spannerClient),
 		cache,
 		routeCacheOptions,
+		func(token string) *httpserver.UserGitHubClient {
+			return &httpserver.UserGitHubClient{
+				GitHubUserClient: gh.NewUserGitHubClient(token, ghOptions...),
+			}
+		},
 		preRequestMiddlewares,
 		authMiddleware,
 	)
