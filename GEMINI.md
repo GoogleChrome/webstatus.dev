@@ -121,7 +121,7 @@ A core architectural pattern in the Go codebase is the **mapper pattern**, used 
   - `deleteByStructMapper`: Defines how to delete an entity.
   - `childDeleteMapper`: Defines how to handle child deletions in batches before deleting the parent. See the `GetChildDeleteKeyMutations` method.
 - **Implementations**: You can find many examples of mapper implementations throughout the `lib/gcpspanner/` directory (e.g., `webFeatureSpannerMapper`, `baselineStatusMapper`, `latestFeatureDeveloperSignalsMapper`). **DO** look for existing mappers before writing a new one.
-- **DO** ensure your `mergeMapper` or `mergeAndCheckChangedMapper` implementation correctly copies *all* fields that should be updated from the request/input struct to the existing entity struct. This is especially critical for fields like `UpdatedAt` (which should often be set to `spanner.CommitTimestamp` in the input struct before the merge). A missing field assignment in the `Merge` function will cause silent update failures.
+- **DO** ensure your `mergeMapper` or `mergeAndCheckChangedMapper` implementation correctly copies _all_ fields that should be updated from the request/input struct to the existing entity struct. This is especially critical for fields like `UpdatedAt` (which should often be set to `spanner.CommitTimestamp` in the input struct before the merge). A missing field assignment in the `Merge` function will cause silent update failures.
 
 #### Using Mappers within a Transaction
 
@@ -295,6 +295,7 @@ To ensure accuracy and prevent errors, it is critical to rely on the project's e
 - **DON'T** assume the existence, naming, or structure of components like API endpoints, handlers, database columns, or configuration.
 
 **Key Sources of Truth:**
+
 - **API Contracts**: For all API endpoints, request/response structures, and `operationId`s (which map to handler names), the definitive source is `openapi/backend/openapi.yaml`.
 - **Database Schema**: For table names, column names, and data types, refer to the migration files in `infra/storage/spanner/migrations/`.
 - **Search Grammar**: For valid search query syntax and keywords, the source of truth is `antlr/FeatureSearch.g4`.
@@ -398,6 +399,7 @@ For other tools defined as features in the devcontainer:
 This guide outlines the process for implementing or refactoring a Go data ingestion workflow.
 
 > **Note on Pull Requests**: For a new workflow, plan to split your work into multiple, sequential pull requests for easier review:
+>
 > 1.  **Data Layer PR**: Schema migration, new types, `gcpspanner` mapper, and client methods.
 > 2.  **Workflow Logic PR**: The consumer implementation, including its processor, parser, and downloader.
 > 3.  **Infrastructure PR**: Terraform changes to deploy the new Cloud Run Job.
