@@ -1,6 +1,6 @@
 # Gemini Code Assist Configuration for webstatus.dev
 
-<!-- Last analyzed commit: 96f9821fd3482b12fac0a787ed273675f3f82655 -->
+<!-- Last analyzed commit: 4b12e1c9bb5a928c63ac0544d9d5bfafcb6a6db2 -->
 
 This document provides context to Gemini Code Assist to help it generate more accurate and project-specific code suggestions.
 
@@ -106,6 +106,7 @@ Shared Go libraries used by the `backend` and `workflows`.
   - **DON'T** put service-specific logic in `lib/`.
   - **DO** define new database table structs in `lib/gcpspanner`.
   - **DO** create or extend adapters in `lib/gcpspanner/spanneradapters` to expose new database queries.
+  - **DON'T** import `github.com/GoogleChrome/webstatus.dev/lib/backendtypes` into `lib/gcpspanner`. Instead, define equivalent structs within `lib/gcpspanner` to maintain architectural layering and prevent circular dependencies.
 
 ### 3.2.1 The Go Mapper Pattern for Spanner
 
@@ -119,6 +120,15 @@ A core architectural pattern in the Go codebase is the **mapper pattern**, used 
   - `deleteByStructMapper`: Defines how to delete an entity.
   - `childDeleteMapper`: Defines how to handle child deletions in batches before deleting the parent. See the `GetChildDeleteKeyMutations` method.
 - **Implementations**: You can find many examples of mapper implementations throughout the `lib/gcpspanner/` directory (e.g., `webFeatureSpannerMapper`, `baselineStatusMapper`, `latestFeatureDeveloperSignalsMapper`). **DO** look for existing mappers before writing a new one.
+- **DO** ensure your `mergeMapper` or `mergeAndCheckChangedMapper` implementation correctly copies *all* fields that should be updated from the request/input struct to the existing entity struct. This is especially critical for fields like `UpdatedAt` (which should often be set to `spanner.CommitTimestamp` in the input struct before the merge). A missing field assignment in the `Merge` function will cause silent update failures.
+
+#### Using Mappers within a Transaction
+
+When you need to perform multiple database operations within a single, atomic `ReadWriteTransaction`, you must use the transactional variants of the generic helpers.
+
+- **DO** use the `...WithTransaction` variants (e.g., `createWithTransaction`, `updateWithTransaction`, `upsertWithTransaction`) when operating inside a `ReadWriteTransaction` block. These helpers correctly use the provided transaction to buffer writes.
+- **DON'T** use the standard helpers (e.g., `create`, `update`, `upsert`) inside a `ReadWriteTransaction` block. These helpers attempt to create their own new transactions, which will fail.
+- **DON'T** fall back to manual `spanner.InsertStruct` or `spanner.UpdateStruct` calls within a transaction. The transactional helpers are the correct and established pattern.
 
 ### 3.3. End-to-End Data Flow Example
 
@@ -145,9 +155,29 @@ The goal is to retrieve a specific feature's data and serve it via the REST API.
 - The data is returned up the chain. The `Backend` adapter transforms the database models into API models.
 - The `httpserver` handler caches the successful response and sends it back to the user as JSON.
 
+### 3.4. User Authentication and Notifications
+
+This section describes the components related to user accounts, authentication, and notification features.
+
+- **Authentication**: User authentication is handled via Firebase Authentication on the frontend, which integrates with GitHub as an OAuth provider. When a user signs in, the frontend receives a Firebase token and a GitHub token. The GitHub token is sent to the backend during a login sync process.
+- **User Profile Sync**: On login, the backend synchronizes the user's verified GitHub emails with their notification channels in the database. This is an example of a transactional update using the mapper pattern. The flow is as follows:
+  1. A user signs in on the frontend. The frontend sends the user's GitHub token to the backend's `/v1/users/me/ping` endpoint.
+  2. The `httpserver.PingUser` handler receives the request. It uses a `UserGitHubClient` to fetch the user's profile and verified emails from the GitHub API.
+  3. The handler then calls `spanneradapters.Backend.SyncUserProfileInfo` with the user's profile information.
+  4. The `Backend` adapter translates the `backendtypes.UserProfile` to a `gcpspanner.UserProfile` and calls `gcpspanner.Client.SyncUserProfileInfo`.
+  5. `SyncUserProfileInfo` starts a `ReadWriteTransaction`.
+  6. Inside the transaction, it fetches the user's existing `NotificationChannels` and `NotificationChannelStates`.
+  7. It then compares the existing channels with the verified emails from GitHub.
+     - New emails result in new `NotificationChannel` and `NotificationChannelState` records, created using `createWithTransaction`.
+     - Emails that were previously disabled are re-enabled using `updateWithTransaction`.
+     - Channels for emails that are no longer verified are disabled, also using `updateWithTransaction`.
+  8. The entire set of operations is committed atomically. If any step fails, the entire transaction is rolled back.
+- **Notification Channels**: The `NotificationChannels` table stores the destinations for notifications (e.g., email addresses). Each channel has a corresponding entry in the `NotificationChannelStates` table, which tracks whether the channel is enabled or disabled.
+- **Saved Search Subscriptions**: Authenticated users can save feature search queries and subscribe to receive notifications when the results of that query change. This is managed through the `UserSavedSearches` and `UserSavedSearchBookmarks` tables.
+
 ## 4. Specifications & Generated Code
 
-This section covers the specifications that define contracts and data structures, from which code is generated.
+This section covers the specifications that define contracts and data structures, from which code is generated. As outlined in the "Verify, Don't Assume" principle (Section 5.9), these files are the canonical sources of truth for their respective domains.
 
 ### 4.1. API Specification (`openapi/`)
 
@@ -256,9 +286,22 @@ Helper scripts and small CLI tools for local development.
 
 - **License Headers**: Never modify license headers manually. They are managed by the `make license-fix` command. If you see license header issues, run that command.
 
+### 5.9. Verify, Don't Assume: The Importance of Sources of Truth
+
+To ensure accuracy and prevent errors, it is critical to rely on the project's established sources of truth rather than making assumptions based on commit messages, file names, or general patterns.
+
+- **DO** always verify information against the designated source of truth before using it in code, documentation, or explanations.
+- **DON'T** assume the existence, naming, or structure of components like API endpoints, handlers, database columns, or configuration.
+
+**Key Sources of Truth:**
+- **API Contracts**: For all API endpoints, request/response structures, and `operationId`s (which map to handler names), the definitive source is `openapi/backend/openapi.yaml`.
+- **Database Schema**: For table names, column names, and data types, refer to the migration files in `infra/storage/spanner/migrations/`.
+- **Search Grammar**: For valid search query syntax and keywords, the source of truth is `antlr/FeatureSearch.g4`.
+- **External Data Schemas**: For the structure of data from external sources, consult the relevant files in `jsonschema/`.
+
 ## 6. How-To Guides
 
-This section provides step-by-step guides for common development tasks. When working on a specific part of the application, use the corresponding section in this document as your primary guide. For example:
+This section provides step-by-step guides for common development tasks. When following these guides, it is crucial to apply the "Verify, Don't Assume" principle (Section 5.9) at each step. When working on a specific part of the application, use the corresponding section in this document as your primary guide. For example:
 
 - **Adding a backend API endpoint**: Start with the "API Specification (`openapi/`)" section, then implement the logic following the patterns in the "Backend (`backend/`)" section.
 - **Adding a new frontend component**: Follow the patterns in the "Frontend (`frontend/`)" section.
@@ -395,6 +438,15 @@ This is a critical step:
 
 Run `make precommit` to ensure all linting checks and tests pass.
 
+### 6.5. How-To: Implement Go Spanner Query Best Practices
+
+This guide outlines best practices for querying Spanner in Go, focusing on readability, safety, and maintainability.
+
+1.  **Prefer `row.ToStruct` for Query Results**:
+    - **DO** use `row.ToStruct(&yourStruct)` to scan query results into a Go struct. This approach is less error-prone and more concise than manually scanning each column by name.
+    - **DON'T** manually scan each column using `r.ColumnByName("ColumnName", &yourVariable)`. This is verbose, prone to typos, and can lead to runtime errors if column names change or are misspelled.
+    - **Benefit**: `row.ToStruct` leverages struct tags (e.g., `spanner:"ColumnName"`) for automatic mapping, making your code cleaner and more robust to schema changes.
+
 ## 7. Updating the Knowledge Base
 
 To keep this document up-to-date, you can ask me to analyze the latest commits and update my knowledge base. I will use the hidden marker at the end of this file to find the commits that have been made since my last analysis.
@@ -411,6 +463,6 @@ When you give me this prompt, I will:
 
 1.  Read the `GEMINI.md` file to find the last analyzed commit SHA.
 2.  Use `git log` to find all the commits that have been made since that SHA.
-3.  Analyze the new commits to understand the changes.
+3.  Analyze the new commits, applying the "Verify, Don't Assume" principle by consulting relevant sources of truth (e.g., `openapi.yaml` for API changes, migration files for schema changes).
 4.  Update this document with the new information.
 5.  Update the last analyzed commit SHA near the top of this file.
