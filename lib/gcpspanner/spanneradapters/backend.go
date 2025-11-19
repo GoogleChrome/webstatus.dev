@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math/big"
 	"slices"
@@ -141,6 +142,21 @@ type BackendSpannerClient interface {
 	AddUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	DeleteUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	SyncUserProfileInfo(ctx context.Context, userProfile gcpspanner.UserProfile) error
+	CreateNotificationChannel(ctx context.Context, req gcpspanner.CreateNotificationChannelRequest) (*string, error)
+	GetNotificationChannel(
+		ctx context.Context, channelID string, userID string) (*gcpspanner.NotificationChannel, error)
+	UpdateNotificationChannel(ctx context.Context, req gcpspanner.UpdateNotificationChannelRequest) error
+	DeleteNotificationChannel(ctx context.Context, channelID string, userID string) error
+	ListNotificationChannels(ctx context.Context, req gcpspanner.ListNotificationChannelsRequest) (
+		[]gcpspanner.NotificationChannel, *string, error)
+	CreateSavedSearchSubscription(
+		ctx context.Context, req gcpspanner.CreateSavedSearchSubscriptionRequest) (*string, error)
+	GetSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) (
+		*gcpspanner.SavedSearchSubscription, error)
+	UpdateSavedSearchSubscription(ctx context.Context, req gcpspanner.UpdateSavedSearchSubscriptionRequest) error
+	DeleteSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) error
+	ListSavedSearchSubscriptions(ctx context.Context, req gcpspanner.ListSavedSearchSubscriptionsRequest) (
+		[]gcpspanner.SavedSearchSubscription, *string, error)
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -1230,4 +1246,302 @@ func (s *Backend) GetIDFromFeatureKey(
 	}
 
 	return id, nil
+}
+
+func (s *Backend) CreateNotificationChannel(ctx context.Context,
+	userID string, req backend.NotificationChannel) (*backend.NotificationChannelResponse, error) {
+	// Basic validation for V1 can be done here. More complex validation should be in the spanner client.
+	if req.Type != backend.NotificationChannelTypeEmail {
+		return nil, fmt.Errorf("%w: channel type %s not supported", backendtypes.ErrBadRequest, req.Type)
+	}
+
+	createReq := gcpspanner.CreateNotificationChannelRequest{
+		UserID:      userID,
+		Name:        req.Name,
+		Type:        string(req.Type),
+		EmailConfig: &gcpspanner.EmailConfig{Address: req.Value, IsVerified: false, VerificationToken: nil},
+	}
+
+	id, err := s.client.CreateNotificationChannel(ctx, createReq)
+	if err != nil {
+		// Handle specific errors from the client if necessary
+		return nil, err
+	}
+
+	// Retrieve the newly created channel to return to the client.
+	channel, err := s.client.GetNotificationChannel(ctx, *id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toBackendNotificationChannel(channel), nil
+}
+
+func (s *Backend) GetNotificationChannel(ctx context.Context,
+	userID, channelID string) (*backend.NotificationChannelResponse, error) {
+	channel, err := s.client.GetNotificationChannel(ctx, channelID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return toBackendNotificationChannel(channel), nil
+}
+
+func (s *Backend) UpdateNotificationChannel(ctx context.Context, userID,
+	channelID string, req backend.UpdateNotificationChannelRequest) (*backend.NotificationChannelResponse, error) {
+	updateReq := gcpspanner.UpdateNotificationChannelRequest{
+		ID:     channelID,
+		UserID: userID,
+		Name: gcpspanner.OptionallySet[string]{
+			Value: "",
+			IsSet: false,
+		},
+		EmailConfig: gcpspanner.OptionallySet[*gcpspanner.EmailConfig]{
+			Value: nil,
+			IsSet: false,
+		},
+	}
+
+	for _, field := range req.UpdateMask {
+		switch field {
+		case backend.UpdateNotificationChannelRequestMaskName:
+			updateReq.Name = gcpspanner.OptionallySet[string]{Value: *req.Name, IsSet: true}
+		}
+	}
+
+	err := s.client.UpdateNotificationChannel(ctx, updateReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	// Fetch the updated channel to return.
+	channel, err := s.client.GetNotificationChannel(ctx, channelID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toBackendNotificationChannel(channel), nil
+}
+
+func (s *Backend) DeleteNotificationChannel(ctx context.Context, userID, channelID string) error {
+	err := s.client.DeleteNotificationChannel(ctx, channelID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (s *Backend) ListNotificationChannels(ctx context.Context,
+	userID string, pageSize int, pageToken *string) (*backend.NotificationChannelPage, error) {
+	listReq := gcpspanner.ListNotificationChannelsRequest{
+		UserID:    userID,
+		PageSize:  pageSize,
+		PageToken: pageToken,
+	}
+	channels, _, err := s.client.ListNotificationChannels(ctx, listReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+
+	backendChannels := make([]backend.NotificationChannelResponse, 0, len(channels))
+	for i := range channels {
+		backendChannels = append(backendChannels, *toBackendNotificationChannel(&channels[i]))
+	}
+
+	return &backend.NotificationChannelPage{
+		Data: &backendChannels,
+		Metadata: &backend.PageMetadata{
+			NextPageToken: nil,
+		},
+	}, nil
+}
+
+// toBackendNotificationChannel is a helper function to convert spanner
+// notification channel to backend notification channel.
+func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *backend.NotificationChannelResponse {
+	if channel == nil {
+		return nil
+	}
+	// Convert spanner channel to backend channel
+	// This can be expanded to handle different channel types.
+	var value string
+	if channel.EmailConfig != nil {
+		value = channel.EmailConfig.Address
+	}
+
+	return &backend.NotificationChannelResponse{
+		Id:    channel.ID,
+		Name:  channel.Name,
+		Type:  backend.NotificationChannelResponseType(channel.Type),
+		Value: value,
+		// For now, assume all channels are enabled.
+		// We currently do not disable channels.
+		// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/2021
+		Status:    backend.NotificationChannelStatusEnabled,
+		CreatedAt: channel.CreatedAt,
+		UpdatedAt: channel.UpdatedAt,
+	}
+}
+
+func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
+	userID string, req backend.Subscription) (*backend.SubscriptionResponse, error) {
+	createReq := gcpspanner.CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     req.ChannelId,
+		SavedSearchID: req.SavedSearchId,
+		Triggers:      req.Triggers,
+		Frequency:     string(req.Frequency),
+	}
+
+	id, err := s.client.CreateSavedSearchSubscription(ctx, createReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Retrieve the newly created subscription to return to the client.
+	sub, err := s.client.GetSavedSearchSubscription(ctx, *id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+
+}
+
+func (s *Backend) ListSavedSearchSubscriptions(ctx context.Context,
+	userID string, pageSize int, pageToken *string) (*backend.SubscriptionPage, error) {
+	listReq := gcpspanner.ListSavedSearchSubscriptionsRequest{
+		UserID:    userID,
+		PageSize:  pageSize,
+		PageToken: pageToken,
+	}
+	subs, token, err := s.client.ListSavedSearchSubscriptions(ctx, listReq)
+	if err != nil {
+		return nil, err
+	}
+	backendSubs := make([]backend.SubscriptionResponse, 0, len(subs))
+	for i := range subs {
+		backendSubs = append(backendSubs, *toBackendSubscription(&subs[i]))
+	}
+
+	return &backend.SubscriptionPage{
+		Data: &backendSubs,
+		Metadata: &backend.PageMetadata{
+			NextPageToken: token,
+		},
+	}, nil
+}
+
+func (s *Backend) GetSavedSearchSubscription(ctx context.Context,
+	userID, subscriptionID string) (*backend.SubscriptionResponse, error) {
+	sub, err := s.client.GetSavedSearchSubscription(ctx, subscriptionID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+}
+
+func (s *Backend) UpdateSavedSearchSubscription(ctx context.Context,
+	userID, subscriptionID string, req backend.UpdateSubscriptionRequest) (*backend.SubscriptionResponse, error) {
+	updateReq := gcpspanner.UpdateSavedSearchSubscriptionRequest{
+		ID:     subscriptionID,
+		UserID: userID,
+		Triggers: gcpspanner.OptionallySet[[]string]{
+			IsSet: false,
+			Value: nil,
+		},
+		Frequency: gcpspanner.OptionallySet[string]{
+			IsSet: false,
+			Value: "",
+		},
+	}
+
+	for _, field := range req.UpdateMask {
+		switch field {
+		case backend.UpdateSubscriptionRequestMaskTriggers:
+			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{Value: *req.Triggers, IsSet: true}
+		case backend.UpdateSubscriptionRequestMaskFrequency:
+			updateReq.Frequency = gcpspanner.OptionallySet[string]{Value: string(*req.Frequency), IsSet: true}
+		}
+	}
+
+	err := s.client.UpdateSavedSearchSubscription(ctx, updateReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	// Fetch the updated subscription to return.
+	sub, err := s.client.GetSavedSearchSubscription(ctx, subscriptionID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+}
+
+func (s *Backend) DeleteSavedSearchSubscription(ctx context.Context, userID, subscriptionID string) error {
+	err := s.client.DeleteSavedSearchSubscription(ctx, subscriptionID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func toBackendSubscription(sub *gcpspanner.SavedSearchSubscription) *backend.SubscriptionResponse {
+	if sub == nil {
+		return nil
+	}
+
+	return &backend.SubscriptionResponse{
+		Id:            sub.ID,
+		ChannelId:     sub.ChannelID,
+		SavedSearchId: sub.SavedSearchID,
+		Triggers:      sub.Triggers,
+		Frequency:     backend.SubscriptionResponseFrequency(sub.Frequency),
+		CreatedAt:     sub.CreatedAt,
+		UpdatedAt:     sub.UpdatedAt,
+	}
 }
