@@ -114,7 +114,8 @@ func (m savedSearchSubscriptionMapper) SelectList(req ListSavedSearchSubscriptio
 		cursor, err := decodeCursor[savedSearchSubscriptionCursor](*req.PageToken)
 		if err == nil {
 			params["lastID"] = cursor.LastID
-			pageFilter = " AND sc.ID > @lastID"
+			params["lastUpdatedAt"] = cursor.LastUpdatedAt
+			pageFilter = " AND (sc.UpdatedAt < @lastUpdatedAt OR (sc.UpdatedAt = @lastUpdatedAt AND sc.ID > @lastID))"
 		}
 	}
 	query := fmt.Sprintf(`SELECT
@@ -122,7 +123,7 @@ func (m savedSearchSubscriptionMapper) SelectList(req ListSavedSearchSubscriptio
 	FROM SavedSearchSubscriptions sc
 	JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
 	WHERE nc.UserID = @userID %s
-	ORDER BY sc.UpdatedAt, sc.ID LIMIT @pageSize`, pageFilter)
+	ORDER BY sc.UpdatedAt DESC, sc.ID ASC LIMIT @pageSize`, pageFilter)
 
 	stmt := spanner.NewStatement(query)
 	stmt.Params = params
@@ -143,13 +144,15 @@ func (m savedSearchSubscriptionMapper) Merge(
 }
 
 type savedSearchSubscriptionCursor struct {
-	LastID string `json:"last_id"`
+	LastID        string    `json:"last_id"`
+	LastUpdatedAt time.Time `json:"last_updated_at"`
 }
 
 // EncodePageToken returns the ID of the subscription as a page token.
 func (m savedSearchSubscriptionMapper) EncodePageToken(item SavedSearchSubscription) string {
 	return encodeCursor(savedSearchSubscriptionCursor{
-		LastID: item.ID,
+		LastID:        item.ID,
+		LastUpdatedAt: item.UpdatedAt,
 	})
 }
 

@@ -110,14 +110,16 @@ func (m notificationChannelDeliveryAttemptMapper) SelectList(
 		cursor, err := decodeCursor[notificationChannelDeliveryAttemptCursor](*req.PageToken)
 		if err == nil {
 			params["lastID"] = cursor.LastID
-			pageFilter = " AND ID > @lastID"
+			params["lastAttemptTimestamp"] = cursor.LastAttemptTimestamp
+			pageFilter = " AND (AttemptTimestamp < @lastAttemptTimestamp OR " +
+				"(AttemptTimestamp = @lastAttemptTimestamp AND ID > @lastID))"
 		}
 	}
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 		SELECT ID, ChannelID, AttemptTimestamp, Status, Details
 		FROM NotificationChannelDeliveryAttempts
 		WHERE ChannelID = @channelID %s
-		ORDER BY AttemptTimestamp, ID
+		ORDER BY AttemptTimestamp DESC, ID ASC
 		LIMIT @pageSize`, pageFilter))
 	stmt.Params = params
 
@@ -125,13 +127,15 @@ func (m notificationChannelDeliveryAttemptMapper) SelectList(
 }
 
 type notificationChannelDeliveryAttemptCursor struct {
-	LastID string `json:"last_id"`
+	LastID               string    `json:"last_id"`
+	LastAttemptTimestamp time.Time `json:"last_attempt_timestamp"`
 }
 
 // EncodePageToken returns the ID of the delivery attempt as a page token.
 func (m notificationChannelDeliveryAttemptMapper) EncodePageToken(item NotificationChannelDeliveryAttempt) string {
 	return encodeCursor(notificationChannelDeliveryAttemptCursor{
-		LastID: item.ID,
+		LastID:               item.ID,
+		LastAttemptTimestamp: item.AttemptTimestamp,
 	})
 }
 
