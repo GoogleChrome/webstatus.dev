@@ -78,6 +78,26 @@ type mockGetSplitWebFeatureByOriginalFeatureKeyConfig struct {
 	returnedError      error
 }
 
+type mockGetNotificationChannelConfig struct {
+	expectedChannelID string
+	expectedUserID    string
+	result            *gcpspanner.NotificationChannel
+	returnedError     error
+}
+
+type mockDeleteNotificationChannelConfig struct {
+	expectedChannelID string
+	expectedUserID    string
+	returnedError     error
+}
+
+type mockListNotificationChannelsConfig struct {
+	expectedRequest gcpspanner.ListNotificationChannelsRequest
+	result          []gcpspanner.NotificationChannel
+	nextPageToken   *string
+	returnedError   error
+}
+
 type mockListBrowserFeatureCountMetricConfig struct {
 	result        *gcpspanner.BrowserFeatureCountResultPage
 	returnedError error
@@ -151,6 +171,9 @@ type mockBackendSpannerClient struct {
 	mockListMissingOneImplCountsCfg      mockListMissingOneImplCountsConfig
 	mockListMissingOneImplFeaturesCfg    mockListMissingOneImplFeaturesConfig
 	mockListBaselineStatusCountsCfg      mockListBaselineStatusCountsConfig
+	mockGetNotificationChannelCfg        *mockGetNotificationChannelConfig
+	mockDeleteNotificationChannelCfg     *mockDeleteNotificationChannelConfig
+	mockListNotificationChannelsCfg      *mockListNotificationChannelsConfig
 	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
 	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
 	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
@@ -357,6 +380,36 @@ func (c mockBackendSpannerClient) ListMetricsOverTimeWithAggregatedTotals(
 	}
 
 	return c.aggregationData, c.pageToken, c.err
+}
+
+func (c mockBackendSpannerClient) GetNotificationChannel(
+	_ context.Context, channelID string, userID string) (*gcpspanner.NotificationChannel, error) {
+	if channelID != c.mockGetNotificationChannelCfg.expectedChannelID ||
+		userID != c.mockGetNotificationChannelCfg.expectedUserID {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockGetNotificationChannelCfg.result, c.mockGetNotificationChannelCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) DeleteNotificationChannel(_ context.Context, channelID string, userID string) error {
+	if channelID != c.mockDeleteNotificationChannelCfg.expectedChannelID ||
+		userID != c.mockDeleteNotificationChannelCfg.expectedUserID {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockDeleteNotificationChannelCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) ListNotificationChannels(
+	_ context.Context,
+	req gcpspanner.ListNotificationChannelsRequest) ([]gcpspanner.NotificationChannel, *string, error) {
+	if !reflect.DeepEqual(req, c.mockListNotificationChannelsCfg.expectedRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockListNotificationChannelsCfg.result,
+		c.mockListNotificationChannelsCfg.nextPageToken, c.mockListNotificationChannelsCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) FeaturesSearch(
@@ -1941,6 +1994,294 @@ func (v *TestSplitFeatureVisitor) VisitMovedFeature(_ context.Context, actual ba
 	v.t.Errorf("VisitMovedFeature called unexpectedly for a SplitFeature test. Actual: %+v", actual)
 
 	return nil
+}
+
+func TestGetNotificationChannel(t *testing.T) {
+	const (
+		userID    = "user123"
+		channelID = "channel456"
+	)
+	now := time.Now()
+
+	testCases := []struct {
+		name          string
+		cfg           *mockGetNotificationChannelConfig
+		expected      *backend.NotificationChannelResponse
+		expectedError error
+	}{
+		{
+			name: "success",
+			cfg: &mockGetNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				result: &gcpspanner.NotificationChannel{
+					ID:          channelID,
+					UserID:      userID,
+					Name:        "My Email",
+					Type:        "email",
+					EmailConfig: &gcpspanner.EmailConfig{Address: "test@example.com", IsVerified: false, VerificationToken: nil},
+					CreatedAt:   now,
+					UpdatedAt:   now,
+				},
+				returnedError: nil,
+			},
+			expected: &backend.NotificationChannelResponse{
+				Id:        channelID,
+				Name:      "My Email",
+				Type:      backend.NotificationChannelResponseTypeEmail,
+				Value:     "test@example.com",
+				Status:    backend.NotificationChannelStatusEnabled,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			expectedError: nil,
+		},
+		{
+			name: "not found",
+			cfg: &mockGetNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				result:            nil,
+				returnedError:     gcpspanner.ErrQueryReturnedNoResults,
+			},
+			expected:      nil,
+			expectedError: backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name: "not authorized",
+			cfg: &mockGetNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				result:            nil,
+				returnedError:     gcpspanner.ErrMissingRequiredRole,
+			},
+			expected:      nil,
+			expectedError: backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "other error",
+			cfg: &mockGetNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				result:            nil,
+				returnedError:     errTest,
+			},
+			expected:      nil,
+			expectedError: errTest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                             t,
+				mockGetNotificationChannelCfg: tc.cfg,
+			}
+			b := NewBackend(mock)
+			resp, err := b.GetNotificationChannel(context.Background(), userID, channelID)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
+			}
+			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+				t.Errorf("response mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestDeleteNotificationChannel(t *testing.T) {
+	const (
+		userID    = "user123"
+		channelID = "channel456"
+	)
+
+	testCases := []struct {
+		name          string
+		cfg           *mockDeleteNotificationChannelConfig
+		expectedError error
+	}{
+		{
+			name: "success",
+			cfg: &mockDeleteNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				returnedError:     nil,
+			},
+			expectedError: nil,
+		},
+		{
+			name: "not found",
+			cfg: &mockDeleteNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				returnedError:     gcpspanner.ErrQueryReturnedNoResults,
+			},
+			expectedError: backendtypes.ErrEntityDoesNotExist,
+		},
+		{
+			name: "not authorized",
+			cfg: &mockDeleteNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				returnedError:     gcpspanner.ErrMissingRequiredRole,
+			},
+			expectedError: backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "other error",
+			cfg: &mockDeleteNotificationChannelConfig{
+				expectedChannelID: channelID,
+				expectedUserID:    userID,
+				returnedError:     errTest,
+			},
+			expectedError: errTest,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                                t,
+				mockDeleteNotificationChannelCfg: tc.cfg,
+			}
+			b := NewBackend(mock)
+			err := b.DeleteNotificationChannel(context.Background(), userID, channelID)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
+			}
+		})
+	}
+}
+
+func TestListNotificationChannels(t *testing.T) {
+	const (
+		userID = "user123"
+	)
+	now := time.Now()
+
+	testCases := []struct {
+		name          string
+		pageSize      int
+		pageToken     *string
+		cfg           *mockListNotificationChannelsConfig
+		expected      *backend.NotificationChannelPage
+		expectedError error
+	}{
+		{
+			name:      "success",
+			pageSize:  10,
+			pageToken: nil,
+			cfg: &mockListNotificationChannelsConfig{
+				expectedRequest: gcpspanner.ListNotificationChannelsRequest{
+					UserID:    userID,
+					PageSize:  10,
+					PageToken: nil,
+				},
+				result: []gcpspanner.NotificationChannel{
+					{
+						ID:     "id1",
+						Name:   "channel1",
+						UserID: "user",
+						Type:   "email",
+						EmailConfig: &gcpspanner.EmailConfig{Address: "1@test.com",
+							IsVerified: false, VerificationToken: nil},
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					{
+						ID:     "id2",
+						Name:   "channel2",
+						UserID: "user",
+						Type:   "email",
+						EmailConfig: &gcpspanner.EmailConfig{Address: "2@test.com",
+							IsVerified: false, VerificationToken: nil},
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+				},
+				nextPageToken: nil,
+				returnedError: nil,
+			},
+			expected: &backend.NotificationChannelPage{
+				Data: &[]backend.NotificationChannelResponse{
+					{
+						Id:        "id1",
+						Name:      "channel1",
+						Type:      backend.NotificationChannelResponseTypeEmail,
+						Value:     "1@test.com",
+						Status:    backend.NotificationChannelStatusEnabled,
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					{
+						Id:        "id2",
+						Name:      "channel2",
+						Type:      backend.NotificationChannelResponseTypeEmail,
+						Value:     "2@test.com",
+						Status:    backend.NotificationChannelStatusEnabled,
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+				},
+				Metadata: &backend.PageMetadata{NextPageToken: nil},
+			},
+			expectedError: nil,
+		},
+		{
+			name:      "db error",
+			pageSize:  10,
+			pageToken: nil,
+			cfg: &mockListNotificationChannelsConfig{
+				expectedRequest: gcpspanner.ListNotificationChannelsRequest{
+					UserID:    userID,
+					PageSize:  10,
+					PageToken: nil,
+				},
+				result:        nil,
+				nextPageToken: nil,
+				returnedError: errTest,
+			},
+			expected:      nil,
+			expectedError: errTest,
+		},
+		{
+			name:      "invalid cursor",
+			pageSize:  10,
+			pageToken: nonNilInputPageToken,
+			cfg: &mockListNotificationChannelsConfig{
+				expectedRequest: gcpspanner.ListNotificationChannelsRequest{
+					UserID:    userID,
+					PageSize:  10,
+					PageToken: nonNilInputPageToken,
+				},
+				result:        nil,
+				nextPageToken: nil,
+				returnedError: gcpspanner.ErrInvalidCursorFormat,
+			},
+			expected:      nil,
+			expectedError: backendtypes.ErrInvalidPageToken,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			//nolint: exhaustruct
+			mock := mockBackendSpannerClient{
+				t:                               t,
+				mockListNotificationChannelsCfg: tc.cfg,
+			}
+			b := NewBackend(mock)
+			resp, err := b.ListNotificationChannels(context.Background(), userID, tc.pageSize, tc.pageToken)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
+			}
+			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+				t.Errorf("response mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
 }
 
 func TestCreateUserSavedSearch(t *testing.T) {
