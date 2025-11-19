@@ -19,7 +19,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log/slog"
 	"math/big"
 	"slices"
@@ -1250,11 +1249,6 @@ func (s *Backend) GetIDFromFeatureKey(
 
 func (s *Backend) CreateNotificationChannel(ctx context.Context,
 	userID string, req backend.NotificationChannel) (*backend.NotificationChannelResponse, error) {
-	// Basic validation for V1 can be done here. More complex validation should be in the spanner client.
-	if req.Type != backend.NotificationChannelTypeEmail {
-		return nil, fmt.Errorf("%w: channel type %s not supported", backendtypes.ErrBadRequest, req.Type)
-	}
-
 	createReq := gcpspanner.CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        req.Name,

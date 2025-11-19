@@ -3434,27 +3434,6 @@ func TestCreateNotificationChannel(t *testing.T) {
 			expectedError: nil,
 		},
 		{
-			name: "unsupported channel type",
-			input: backend.NotificationChannel{
-				Name:  "",
-				Type:  "unsupported",
-				Value: "",
-			},
-			createCfg: &mockCreateNotificationChannelConfig{
-				expectedRequest: gcpspanner.CreateNotificationChannelRequest{
-					UserID:      "",
-					Name:        "",
-					Type:        "",
-					EmailConfig: nil,
-				},
-				result:        nil,
-				returnedError: nil,
-			},
-			getCfg:        nil,
-			expected:      nil,
-			expectedError: backendtypes.ErrBadRequest,
-		},
-		{
 			name: "create error",
 			input: backend.NotificationChannel{
 				Name:  channelName,

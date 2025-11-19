@@ -48,15 +48,6 @@ var (
 	// was valid but empty (e.g., an empty array or object). This allows callers to distinguish
 	// between a missing value and an explicitly empty one.
 	ErrEmptyJSONValue = errors.New("JSON value is empty")
-
-	// ErrSavedSearchNotFound indicates the saved search does not exist.
-	ErrSavedSearchNotFound = errors.New("saved search not found")
-	// ErrNotificationChannelNotFound indicates the notification channel does not exist.
-	ErrNotificationChannelNotFound = errors.New("notification channel not found")
-	// ErrSubscriptionAlreadyExists indicates the subscription already exists.
-	ErrSubscriptionAlreadyExists = errors.New("subscription already exists")
-	// ErrBadRequest indicates a bad request.
-	ErrBadRequest = errors.New("bad request")
 )
 
 type UserProfile struct {
