@@ -1402,6 +1402,131 @@ components:
       properties:
         role:
           $ref: '#/components/schemas/UserSavedSearchRole'
+    NotificationChannel:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - email
+        name:
+          type: string
+          description: The name of the channel.
+        value:
+          type: string
+          description: The address for the channel, e.g., an email address.
+      required:
+        - type
+        - value
+        - name
+    NotificationChannelResponse:
+      allOf:
+        - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
+        - $ref: '#/components/schemas/NotificationChannel'
+        - type: object
+          properties:
+            status:
+              type: string
+              enum:
+                - enabled
+                - disabled
+              x-enumNames:
+                - NotificationChannelStatusEnabled
+                - NotificationChannelStatusDisabled
+          required:
+            - status
+    NotificationChannelPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/NotificationChannelResponse'
+    UpdateNotificationChannelRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        update_mask:
+          type: array
+          description: >
+            A list of fields to update. Required. Allowed values are: `name`, `value`.
+          items:
+            type: string
+            enum:
+              - name
+            x-enumNames:
+              - UpdateNotificationChannelRequestMaskName
+          minItems: 1
+          uniqueItems: true
+      required:
+        - update_mask
+    Subscription:
+      type: object
+      properties:
+        saved_search_id:
+          type: string
+        channel_id:
+          type: string
+        triggers:
+          type: array
+          items:
+            type: string
+        frequency:
+          type: string
+          enum:
+            - daily
+          x-enumNames:
+            - SubscriptionFrequencyDaily
+      required:
+        - saved_search_id
+        - channel_id
+        - triggers
+        - frequency
+    SubscriptionResponse:
+      allOf:
+        - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
+        - $ref: '#/components/schemas/Subscription'
+    SubscriptionPage:
+      type: object
+      properties:
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionResponse'
+    UpdateSubscriptionRequest:
+      type: object
+      properties:
+        triggers:
+          type: array
+          items:
+            type: string
+        frequency:
+          type: string
+          enum:
+            - daily
+          x-enumNames:
+            - SubscriptionFrequencyDaily
+        update_mask:
+          type: array
+          description: >
+            A list of fields to update. Required. Allowed values are: `triggers`, `frequency`.
+          items:
+            type: string
+            enum:
+              - triggers
+              - frequency
+            x-enumNames:
+              - UpdateSubscriptionRequestMaskTriggers
+              - UpdateSubscriptionRequestMaskFrequency
+          minItems: 1
+          uniqueItems: true
+      required:
+        - update_mask
     UserSavedSearchPage:
       type: object
       properties:

@@ -220,6 +220,79 @@ func (c *Client) GetNotificationChannel(
 	return spannerChannel.toPublic()
 }
 
+// ListNotificationChannelsRequest is a request to list notification channels.
+type ListNotificationChannelsRequest struct {
+	UserID    string
+	PageSize  int
+	PageToken *string
+}
+
+func (r ListNotificationChannelsRequest) GetPageSize() int {
+	return r.PageSize
+}
+
+func (r ListNotificationChannelsRequest) GetPageToken() *string {
+	return r.PageToken
+}
+
+type notificationChannelCursor struct {
+	LastID string `json:"last_id"`
+}
+
+type listNotificationChannelsMapper struct{ notificationChannelMapper }
+
+func (m listNotificationChannelsMapper) EncodePageToken(item spannerNotificationChannel) string {
+	return encodeCursor(notificationChannelCursor{
+		LastID: item.ID,
+	})
+}
+
+func (m listNotificationChannelsMapper) SelectList(req ListNotificationChannelsRequest) spanner.Statement {
+	var pageFilter string
+	params := map[string]interface{}{
+		"userID":   req.UserID,
+		"pageSize": req.PageSize,
+	}
+	if req.PageToken != nil {
+		cursor, err := decodeCursor[notificationChannelCursor](*req.PageToken)
+		if err == nil {
+			params["lastID"] = cursor.LastID
+			pageFilter = " AND ID > @lastID"
+		}
+
+	}
+	query := fmt.Sprintf(`SELECT
+		ID, UserID, Name, Type, Config, CreatedAt, UpdatedAt
+	FROM NotificationChannels
+	WHERE UserID = @userID %s
+	ORDER BY UpdatedAt, ID
+	LIMIT @pageSize`, pageFilter)
+	stmt := spanner.NewStatement(query)
+	stmt.Params = params
+
+	return stmt
+}
+
+// ListNotificationChannels lists all notification channels for a user.
+func (c *Client) ListNotificationChannels(
+	ctx context.Context, req ListNotificationChannelsRequest) ([]NotificationChannel, *string, error) {
+	items, token, err := newEntityLister[listNotificationChannelsMapper](c).list(ctx, req)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	channels := make([]NotificationChannel, 0, len(items))
+	for _, item := range items {
+		channel, err := item.toPublic()
+		if err != nil {
+			return nil, nil, err
+		}
+		channels = append(channels, *channel)
+	}
+
+	return channels, token, nil
+}
+
 // UpdateNotificationChannel updates a notification channel if it belongs to the specified user.
 func (c *Client) UpdateNotificationChannel(
 	ctx context.Context, req UpdateNotificationChannelRequest) error {

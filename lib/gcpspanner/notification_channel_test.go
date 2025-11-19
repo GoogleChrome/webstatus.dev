@@ -147,3 +147,60 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 		}
 	})
 }
+
+func TestListNotificationChannels(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	userID := uuid.NewString()
+
+	baseCreateReq := CreateNotificationChannelRequest{
+		UserID: userID,
+		Name:   "Test Email",
+		Type:   "EMAIL",
+		EmailConfig: &EmailConfig{
+			Address:           "test@example.com",
+			IsVerified:        true,
+			VerificationToken: nil,
+		},
+	}
+
+	// Create a few channels to list
+	for i := 0; i < 3; i++ {
+		_, err := spannerClient.CreateNotificationChannel(ctx, baseCreateReq)
+		if err != nil {
+			t.Fatalf("failed to create notification channel for list test: %v", err)
+		}
+	}
+
+	// List first page
+	listReq1 := ListNotificationChannelsRequest{
+		UserID:    userID,
+		PageSize:  2,
+		PageToken: nil,
+	}
+	results1, nextPageToken1, err := spannerClient.ListNotificationChannels(ctx, listReq1)
+	if err != nil {
+		t.Fatalf("ListNotificationChannels page 1 failed: %v", err)
+	}
+	if len(results1) != 2 {
+		t.Errorf("expected 2 results on page 1, got %d", len(results1))
+	}
+	if nextPageToken1 == nil {
+		t.Fatal("expected a next page token on page 1, got nil")
+	}
+
+	// List second page
+	listReq2 := ListNotificationChannelsRequest{
+		UserID:    userID,
+		PageSize:  2,
+		PageToken: nextPageToken1,
+	}
+	results2, _, err := spannerClient.ListNotificationChannels(ctx, listReq2)
+	if err != nil {
+		t.Fatalf("ListNotificationChannels page 2 failed: %v", err)
+	}
+	if len(results2) < 1 {
+		t.Errorf("expected at least 1 result on page 2, got %d", len(results2))
+	}
+}
