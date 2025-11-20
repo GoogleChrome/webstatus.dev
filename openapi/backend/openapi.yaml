@@ -935,6 +935,212 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/users/me/subscriptions/saved-searches:
+    post:
+      summary: Create a subscription for a saved search
+      operationId: createSubscription
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    get:
+      summary: List subscriptions for a saved search
+      operationId: listSubscriptions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+  /v1/users/me/subscriptions/saved-searches/{subscription_id}:
+    parameters:
+      - name: subscription_id
+        in: path
+        description: Subscription ID
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get a subscription for a saved search
+      operationId: getSubscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    patch:
+      summary: Update a subscription for a saved search
+      operationId: updateSubscription
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateSubscriptionRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    delete:
+      summary: Delete a subscription for a saved search
+      operationId: deleteSubscription
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
     browserPathParam:
@@ -1463,6 +1669,22 @@ components:
           uniqueItems: true
       required:
         - update_mask
+    SubscriptionTrigger:
+      type: string
+      enum:
+        - feature_baseline_limited_to_newly
+        - feature_any_browser_implementation_complete
+        - feature_baseline_regression_newly_to_limited
+      x-enumNames:
+        - SubscriptionTriggerFeatureBaselineLimitedToNewly
+        - SubscriptionTriggerFeatureAnyBrowserImplementationComplete
+        - SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited
+    SubscriptionFrequency:
+      type: string
+      enum:
+        - daily
+      x-enumNames:
+        - SubscriptionFrequencyDaily
     Subscription:
       type: object
       properties:
@@ -1473,13 +1695,9 @@ components:
         triggers:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/SubscriptionTrigger'
         frequency:
-          type: string
-          enum:
-            - daily
-          x-enumNames:
-            - SubscriptionFrequencyDaily
+          $ref: '#/components/schemas/SubscriptionFrequency'
       required:
         - saved_search_id
         - channel_id
@@ -1504,13 +1722,9 @@ components:
         triggers:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/SubscriptionTrigger'
         frequency:
-          type: string
-          enum:
-            - daily
-          x-enumNames:
-            - SubscriptionFrequencyDaily
+          $ref: '#/components/schemas/SubscriptionFrequency'
         update_mask:
           type: array
           description: >

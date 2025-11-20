@@ -147,6 +147,15 @@ type WPTMetricsStorer interface {
 	) error
 	SyncUserProfileInfo(ctx context.Context,
 		userProfile backendtypes.UserProfile) error
+	CreateSavedSearchSubscription(ctx context.Context, userID string,
+		subscription backend.Subscription) (*backend.SubscriptionResponse, error)
+	DeleteSavedSearchSubscription(ctx context.Context, userID, subscriptionID string) error
+	GetSavedSearchSubscription(ctx context.Context,
+		userID, subscriptionID string) (*backend.SubscriptionResponse, error)
+	ListSavedSearchSubscriptions(ctx context.Context,
+		userID string, pageSize int, pageToken *string) (*backend.SubscriptionPage, error)
+	UpdateSavedSearchSubscription(ctx context.Context, userID, subscriptionID string,
+		req backend.UpdateSubscriptionRequest) (*backend.SubscriptionResponse, error)
 }
 
 type Server struct {

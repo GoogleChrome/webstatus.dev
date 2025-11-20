@@ -1334,11 +1334,15 @@ func (s *Backend) GetIDFromFeatureKey(
 
 func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 	userID string, req backend.Subscription) (*backend.SubscriptionResponse, error) {
+	triggers := make([]string, 0, len(req.Triggers))
+	for _, trigger := range req.Triggers {
+		triggers = append(triggers, string(trigger))
+	}
 	createReq := gcpspanner.CreateSavedSearchSubscriptionRequest{
 		UserID:        userID,
 		ChannelID:     req.ChannelId,
 		SavedSearchID: req.SavedSearchId,
-		Triggers:      req.Triggers,
+		Triggers:      triggers,
 		Frequency:     string(req.Frequency),
 	}
 
@@ -1415,7 +1419,11 @@ func (s *Backend) UpdateSavedSearchSubscription(ctx context.Context,
 	for _, field := range req.UpdateMask {
 		switch field {
 		case backend.UpdateSubscriptionRequestMaskTriggers:
-			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{Value: *req.Triggers, IsSet: true}
+			stringTriggers := make([]string, len(*req.Triggers))
+			for i, trigger := range *req.Triggers {
+				stringTriggers[i] = string(trigger)
+			}
+			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{Value: stringTriggers, IsSet: true}
 		case backend.UpdateSubscriptionRequestMaskFrequency:
 			updateReq.Frequency = gcpspanner.OptionallySet[string]{Value: string(*req.Frequency), IsSet: true}
 		}
@@ -1461,12 +1469,24 @@ func toBackendSubscription(sub *gcpspanner.SavedSearchSubscription) *backend.Sub
 		return nil
 	}
 
+	triggers := make([]backend.SubscriptionTrigger, 0, len(sub.Triggers))
+	for _, trigger := range sub.Triggers {
+		switch backend.SubscriptionTrigger(trigger) {
+		case backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete,
+			backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
+			backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited:
+			triggers = append(triggers, backend.SubscriptionTrigger(trigger))
+		default:
+			triggers = append(triggers, "unknown")
+		}
+	}
+
 	return &backend.SubscriptionResponse{
 		Id:            sub.ID,
 		ChannelId:     sub.ChannelID,
 		SavedSearchId: sub.SavedSearchID,
-		Triggers:      sub.Triggers,
-		Frequency:     backend.SubscriptionResponseFrequency(sub.Frequency),
+		Triggers:      triggers,
+		Frequency:     backend.SubscriptionFrequency(sub.Frequency),
 		CreatedAt:     sub.CreatedAt,
 		UpdatedAt:     sub.UpdatedAt,
 	}
