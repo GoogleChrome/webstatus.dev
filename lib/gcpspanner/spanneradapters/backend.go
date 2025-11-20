@@ -141,6 +141,14 @@ type BackendSpannerClient interface {
 	AddUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	DeleteUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	SyncUserProfileInfo(ctx context.Context, userProfile gcpspanner.UserProfile) error
+	CreateSavedSearchSubscription(
+		ctx context.Context, req gcpspanner.CreateSavedSearchSubscriptionRequest) (*string, error)
+	GetSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) (
+		*gcpspanner.SavedSearchSubscription, error)
+	UpdateSavedSearchSubscription(ctx context.Context, req gcpspanner.UpdateSavedSearchSubscriptionRequest) error
+	DeleteSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) error
+	ListSavedSearchSubscriptions(ctx context.Context, req gcpspanner.ListSavedSearchSubscriptionsRequest) (
+		[]gcpspanner.SavedSearchSubscription, *string, error)
 	GetNotificationChannel(
 		ctx context.Context, channelID string, userID string) (*gcpspanner.NotificationChannel, error)
 	ListNotificationChannels(ctx context.Context, req gcpspanner.ListNotificationChannelsRequest) (
@@ -1322,4 +1330,144 @@ func (s *Backend) GetIDFromFeatureKey(
 	}
 
 	return id, nil
+}
+
+func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
+	userID string, req backend.Subscription) (*backend.SubscriptionResponse, error) {
+	createReq := gcpspanner.CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     req.ChannelId,
+		SavedSearchID: req.SavedSearchId,
+		Triggers:      req.Triggers,
+		Frequency:     string(req.Frequency),
+	}
+
+	id, err := s.client.CreateSavedSearchSubscription(ctx, createReq)
+	if err != nil {
+		return nil, err
+	}
+
+	// Retrieve the newly created subscription to return to the client.
+	sub, err := s.client.GetSavedSearchSubscription(ctx, *id, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+
+}
+
+func (s *Backend) ListSavedSearchSubscriptions(ctx context.Context,
+	userID string, pageSize int, pageToken *string) (*backend.SubscriptionPage, error) {
+	listReq := gcpspanner.ListSavedSearchSubscriptionsRequest{
+		UserID:    userID,
+		PageSize:  pageSize,
+		PageToken: pageToken,
+	}
+	subs, token, err := s.client.ListSavedSearchSubscriptions(ctx, listReq)
+	if err != nil {
+		return nil, err
+	}
+	backendSubs := make([]backend.SubscriptionResponse, 0, len(subs))
+	for i := range subs {
+		backendSubs = append(backendSubs, *toBackendSubscription(&subs[i]))
+	}
+
+	return &backend.SubscriptionPage{
+		Data: &backendSubs,
+		Metadata: &backend.PageMetadata{
+			NextPageToken: token,
+		},
+	}, nil
+}
+
+func (s *Backend) GetSavedSearchSubscription(ctx context.Context,
+	userID, subscriptionID string) (*backend.SubscriptionResponse, error) {
+	sub, err := s.client.GetSavedSearchSubscription(ctx, subscriptionID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+}
+
+func (s *Backend) UpdateSavedSearchSubscription(ctx context.Context,
+	userID, subscriptionID string, req backend.UpdateSubscriptionRequest) (*backend.SubscriptionResponse, error) {
+	updateReq := gcpspanner.UpdateSavedSearchSubscriptionRequest{
+		ID:     subscriptionID,
+		UserID: userID,
+		Triggers: gcpspanner.OptionallySet[[]string]{
+			IsSet: false,
+			Value: nil,
+		},
+		Frequency: gcpspanner.OptionallySet[string]{
+			IsSet: false,
+			Value: "",
+		},
+	}
+
+	for _, field := range req.UpdateMask {
+		switch field {
+		case backend.UpdateSubscriptionRequestMaskTriggers:
+			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{Value: *req.Triggers, IsSet: true}
+		case backend.UpdateSubscriptionRequestMaskFrequency:
+			updateReq.Frequency = gcpspanner.OptionallySet[string]{Value: string(*req.Frequency), IsSet: true}
+		}
+	}
+
+	err := s.client.UpdateSavedSearchSubscription(ctx, updateReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	// Fetch the updated subscription to return.
+	sub, err := s.client.GetSavedSearchSubscription(ctx, subscriptionID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	return toBackendSubscription(sub), nil
+}
+
+func (s *Backend) DeleteSavedSearchSubscription(ctx context.Context, userID, subscriptionID string) error {
+	err := s.client.DeleteSavedSearchSubscription(ctx, subscriptionID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func toBackendSubscription(sub *gcpspanner.SavedSearchSubscription) *backend.SubscriptionResponse {
+	if sub == nil {
+		return nil
+	}
+
+	return &backend.SubscriptionResponse{
+		Id:            sub.ID,
+		ChannelId:     sub.ChannelID,
+		SavedSearchId: sub.SavedSearchID,
+		Triggers:      sub.Triggers,
+		Frequency:     backend.SubscriptionResponseFrequency(sub.Frequency),
+		CreatedAt:     sub.CreatedAt,
+		UpdatedAt:     sub.UpdatedAt,
+	}
 }
