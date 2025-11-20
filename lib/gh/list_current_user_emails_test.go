@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v79/github"
 )
 
 func TestUserGitHubClient_ListEmails(t *testing.T) {

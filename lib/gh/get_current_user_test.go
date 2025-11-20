@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v79/github"
 )
 
 // MockUsersClient is a mock implementation of the UsersClient interface.

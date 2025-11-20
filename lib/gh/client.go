@@ -18,7 +18,7 @@ import (
 	"context"
 	"net/url"
 
-	"github.com/google/go-github/v75/github"
+	"github.com/google/go-github/v79/github"
 )
 
 type ClientOption func(*github.Client)

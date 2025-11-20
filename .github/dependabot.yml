@@ -29,6 +29,8 @@ updates:
         versions:
           - '>=23'
           - '<24'
+          - '>=25'
+          - '<26'
 
   # Docker
   - package-ecosystem: 'docker'
