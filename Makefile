@@ -240,7 +240,9 @@ node-lint: node-install
 	npm run lint -w frontend
 	npx prettier . --check
 
+# Need to clean out the .terraform directory before linting.
 tf-lint:
+	rm -rf infra/.terraform
 	cd infra && terraform init -backend=false -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars && terraform validate
 	cd infra && terraform init -backend=false -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars && terraform validate
 	terraform fmt -recursive -check .
@@ -324,6 +326,7 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-l apache \
 	-ignore 'lib/gen/**' \
 	-ignore '**/.terraform.lock.hcl' \
+	-ignore 'frontend/build/**' \
 	-ignore 'frontend/dist/**' \
 	-ignore 'frontend/placeholder/static/index.html' \
 	-ignore 'frontend/static/**' \
