@@ -141,6 +141,11 @@ type BackendSpannerClient interface {
 	AddUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	DeleteUserSearchBookmark(ctx context.Context, req gcpspanner.UserSavedSearchBookmark) error
 	SyncUserProfileInfo(ctx context.Context, userProfile gcpspanner.UserProfile) error
+	GetNotificationChannel(
+		ctx context.Context, channelID string, userID string) (*gcpspanner.NotificationChannel, error)
+	ListNotificationChannels(ctx context.Context, req gcpspanner.ListNotificationChannelsRequest) (
+		[]gcpspanner.NotificationChannel, *string, error)
+	DeleteNotificationChannel(ctx context.Context, channelID string, userID string) error
 }
 
 // Backend converts queries to spanner to usable entities for the backend
@@ -455,6 +460,93 @@ func (s *Backend) ListBaselineStatusCounts(
 		},
 		Data: backendData,
 	}, nil
+}
+
+func (s *Backend) GetNotificationChannel(ctx context.Context,
+	userID, channelID string) (*backend.NotificationChannelResponse, error) {
+	channel, err := s.client.GetNotificationChannel(ctx, channelID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return toBackendNotificationChannel(channel), nil
+}
+
+func (s *Backend) DeleteNotificationChannel(ctx context.Context, userID, channelID string) error {
+	err := s.client.DeleteNotificationChannel(ctx, channelID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return err
+	}
+
+	return nil
+}
+
+func (s *Backend) ListNotificationChannels(ctx context.Context,
+	userID string, pageSize int, pageToken *string) (*backend.NotificationChannelPage, error) {
+	listReq := gcpspanner.ListNotificationChannelsRequest{
+		UserID:    userID,
+		PageSize:  pageSize,
+		PageToken: pageToken,
+	}
+	channels, _, err := s.client.ListNotificationChannels(ctx, listReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrInvalidCursorFormat) {
+			return nil, errors.Join(err, backendtypes.ErrInvalidPageToken)
+		}
+
+		return nil, err
+	}
+
+	backendChannels := make([]backend.NotificationChannelResponse, 0, len(channels))
+	for i := range channels {
+		backendChannels = append(backendChannels, *toBackendNotificationChannel(&channels[i]))
+	}
+
+	return &backend.NotificationChannelPage{
+		Data: &backendChannels,
+		Metadata: &backend.PageMetadata{
+			NextPageToken: nil,
+		},
+	}, nil
+}
+
+// toBackendNotificationChannel is a helper function to convert spanner
+// notification channel to backend notification channel.
+func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *backend.NotificationChannelResponse {
+	if channel == nil {
+		return nil
+	}
+	// Convert spanner channel to backend channel
+	// This can be expanded to handle different channel types.
+	var value string
+	if channel.EmailConfig != nil {
+		value = channel.EmailConfig.Address
+	}
+
+	return &backend.NotificationChannelResponse{
+		Id:    channel.ID,
+		Name:  channel.Name,
+		Type:  backend.NotificationChannelResponseType(channel.Type),
+		Value: value,
+		// For now, assume all channels are enabled.
+		// We currently do not disable channels.
+		// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/2021
+		Status:    backend.NotificationChannelStatusEnabled,
+		CreatedAt: channel.CreatedAt,
+		UpdatedAt: channel.UpdatedAt,
+	}
 }
 
 func (s *Backend) CreateUserSavedSearch(ctx context.Context, userID string,
