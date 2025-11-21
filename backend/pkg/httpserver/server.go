@@ -147,6 +147,12 @@ type WPTMetricsStorer interface {
 	) error
 	SyncUserProfileInfo(ctx context.Context,
 		userProfile backendtypes.UserProfile) error
+	GetNotificationChannel(ctx context.Context,
+		userID, channelID string) (*backend.NotificationChannelResponse, error)
+	ListNotificationChannels(ctx context.Context,
+		userID string, pageSize int, pageToken *string) (*backend.NotificationChannelPage, error)
+	DeleteNotificationChannel(ctx context.Context,
+		userID, channelID string) error
 }
 
 type Server struct {

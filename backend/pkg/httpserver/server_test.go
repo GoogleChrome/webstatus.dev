@@ -224,6 +224,27 @@ type MockSyncUserProfileInfoConfig struct {
 	err                 error
 }
 
+type MockGetNotificationChannelConfig struct {
+	expectedChannelID string
+	expectedUserID    string
+	output            *backend.NotificationChannelResponse
+	err               error
+}
+
+type MockListNotificationChannelsConfig struct {
+	expectedUserID    string
+	expectedPageSize  int
+	expectedPageToken *string
+	output            *backend.NotificationChannelPage
+	err               error
+}
+
+type MockDeleteNotificationChannelConfig struct {
+	expectedChannelID string
+	expectedUserID    string
+	err               error
+}
+
 type basicHTTPTestCase[T any] struct {
 	name             string
 	cfg              *T
@@ -250,6 +271,9 @@ type MockWPTMetricsStorer struct {
 	putUserSavedSearchBookmarkCfg                     *MockPutUserSavedSearchBookmarkConfig
 	removeUserSavedSearchBookmarkCfg                  *MockRemoveUserSavedSearchBookmarkConfig
 	syncUserProfileInfoCfg                            *MockSyncUserProfileInfoConfig
+	getNotificationChannelCfg                         *MockGetNotificationChannelConfig
+	listNotificationChannelsCfg                       *MockListNotificationChannelsConfig
+	deleteNotificationChannelCfg                      *MockDeleteNotificationChannelConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -268,6 +292,9 @@ type MockWPTMetricsStorer struct {
 	callCountPutUserSavedSearchBookmark               int
 	callCountRemoveUserSavedSearchBookmark            int
 	callCountSyncUserProfileInfo                      int
+	callCountGetNotificationChannel                   int
+	callCountListNotificationChannels                 int
+	callCountDeleteNotificationChannel                int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -653,6 +680,65 @@ func (m *MockWPTMetricsStorer) RemoveUserSavedSearchBookmark(
 	return m.removeUserSavedSearchBookmarkCfg.err
 }
 
+func (m *MockWPTMetricsStorer) GetNotificationChannel(
+	_ context.Context,
+	userID, channelID string,
+) (*backend.NotificationChannelResponse, error) {
+	m.callCountGetNotificationChannel++
+
+	if userID != m.getNotificationChannelCfg.expectedUserID ||
+		channelID != m.getNotificationChannelCfg.expectedChannelID {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
+			m.getNotificationChannelCfg.expectedUserID,
+			m.getNotificationChannelCfg.expectedChannelID,
+			userID,
+			channelID)
+	}
+
+	return m.getNotificationChannelCfg.output, m.getNotificationChannelCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListNotificationChannels(
+	_ context.Context,
+	userID string,
+	pageSize int,
+	pageToken *string,
+) (*backend.NotificationChannelPage, error) {
+	m.callCountListNotificationChannels++
+
+	if userID != m.listNotificationChannelsCfg.expectedUserID ||
+		pageSize != m.listNotificationChannelsCfg.expectedPageSize ||
+		!reflect.DeepEqual(pageToken, m.listNotificationChannelsCfg.expectedPageToken) {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %d %v ), Got: ( %s %d %v )",
+			m.listNotificationChannelsCfg.expectedUserID,
+			m.listNotificationChannelsCfg.expectedPageSize,
+			m.listNotificationChannelsCfg.expectedPageToken,
+			userID,
+			pageSize,
+			pageToken)
+	}
+
+	return m.listNotificationChannelsCfg.output, m.listNotificationChannelsCfg.err
+}
+
+func (m *MockWPTMetricsStorer) DeleteNotificationChannel(
+	_ context.Context,
+	userID, channelID string,
+) error {
+	m.callCountDeleteNotificationChannel++
+
+	if userID != m.deleteNotificationChannelCfg.expectedUserID ||
+		channelID != m.deleteNotificationChannelCfg.expectedChannelID {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
+			m.deleteNotificationChannelCfg.expectedUserID,
+			m.deleteNotificationChannelCfg.expectedChannelID,
+			userID,
+			channelID)
+	}
+
+	return m.deleteNotificationChannelCfg.err
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -973,6 +1059,39 @@ func (m *mockServerInterface) RemoveUserSavedSearchBookmark(ctx context.Context,
 // nolint: ireturn // WONTFIX - generated method signature
 func (m *mockServerInterface) UpdateSavedSearch(ctx context.Context,
 	_ backend.UpdateSavedSearchRequestObject) (backend.UpdateSavedSearchResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// DeleteNotificationChannel implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) DeleteNotificationChannel(
+	ctx context.Context,
+	_ backend.DeleteNotificationChannelRequestObject,
+) (backend.DeleteNotificationChannelResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// GetNotificationChannel implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetNotificationChannel(
+	ctx context.Context,
+	_ backend.GetNotificationChannelRequestObject,
+) (backend.GetNotificationChannelResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// ListNotificationChannels implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) ListNotificationChannels(
+	ctx context.Context,
+	_ backend.ListNotificationChannelsRequestObject,
+) (backend.ListNotificationChannelsResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")
