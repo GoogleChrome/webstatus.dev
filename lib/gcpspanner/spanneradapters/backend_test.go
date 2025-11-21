@@ -3651,16 +3651,17 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 			input: backend.Subscription{
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
-				Triggers:      []string{"trigger1"},
-				Frequency:     backend.SubscriptionFrequencySubscriptionFrequencyDaily,
+				Triggers: []backend.SubscriptionTrigger{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: backend.SubscriptionFrequencyDaily,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"trigger1"},
-					Frequency:     string(backend.SubscriptionFrequencySubscriptionFrequencyDaily),
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
 				},
 				result:        valuePtr(subID),
 				returnedError: nil,
@@ -3672,8 +3673,8 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"trigger1"},
-					Frequency:     string(backend.SubscriptionFrequencySubscriptionFrequencyDaily),
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
 					CreatedAt:     now,
 					UpdatedAt:     now,
 				},
@@ -3683,10 +3684,11 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				Id:            subID,
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
-				Triggers:      []string{"trigger1"},
-				Frequency:     backend.SubscriptionResponseFrequencySubscriptionFrequencyDaily,
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				Triggers: []backend.SubscriptionTrigger{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: backend.SubscriptionFrequencyDaily,
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
 			expectedError: nil,
 		},
@@ -3695,16 +3697,17 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 			input: backend.Subscription{
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
-				Triggers:      []string{"trigger1"},
-				Frequency:     backend.SubscriptionFrequencySubscriptionFrequencyDaily,
+				Triggers: []backend.SubscriptionTrigger{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: backend.SubscriptionFrequencyDaily,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"trigger1"},
-					Frequency:     string(backend.SubscriptionFrequencySubscriptionFrequencyDaily),
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
 				},
 				result:        nil,
 				returnedError: errTest,
@@ -3764,7 +3767,7 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						ID:            "sub1",
 						ChannelID:     "chan1",
 						SavedSearchID: "search1",
-						Triggers:      []string{"t1"},
+						Triggers:      []string{"feature_any_browser_implementation_complete"},
 						Frequency:     "daily",
 						CreatedAt:     now,
 						UpdatedAt:     now,
@@ -3779,10 +3782,11 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						Id:            "sub1",
 						ChannelId:     "chan1",
 						SavedSearchId: "search1",
-						Triggers:      []string{"t1"},
-						Frequency:     "daily",
-						CreatedAt:     now,
-						UpdatedAt:     now,
+						Triggers: []backend.SubscriptionTrigger{
+							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+						Frequency: "daily",
+						CreatedAt: now,
+						UpdatedAt: now,
 					},
 				},
 				Metadata: &backend.PageMetadata{
@@ -3851,7 +3855,7 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     "chan1",
 					SavedSearchID: "search1",
-					Triggers:      []string{"t1"},
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
 					Frequency:     "daily",
 					CreatedAt:     now,
 					UpdatedAt:     now,
@@ -3862,10 +3866,11 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 				Id:            subID,
 				ChannelId:     "chan1",
 				SavedSearchId: "search1",
-				Triggers:      []string{"t1"},
-				Frequency:     "daily",
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				Triggers: []backend.SubscriptionTrigger{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: "daily",
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
 			expectedError: nil,
 		},
@@ -3918,7 +3923,10 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 		subID  = "sub456"
 	)
 	now := time.Now()
-	updatedTriggers := []string{"new-trigger"}
+	updatedTriggers := []backend.SubscriptionTrigger{
+		backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
+		backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited,
+	}
 	updatedFrequency := backend.SubscriptionFrequencyDaily
 
 	testCases := []struct {
@@ -3942,7 +3950,10 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					ID:     subID,
 					UserID: userID,
 					Triggers: gcpspanner.OptionallySet[[]string]{
-						Value: updatedTriggers, IsSet: true,
+						Value: []string{
+							"feature_baseline_limited_to_newly",
+							"feature_baseline_regression_newly_to_limited",
+						}, IsSet: true,
 					},
 					Frequency: gcpspanner.OptionallySet[string]{IsSet: false, Value: ""},
 				},
@@ -3953,7 +3964,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				expectedUserID:         userID,
 				result: &gcpspanner.SavedSearchSubscription{
 					ID:            subID,
-					Triggers:      updatedTriggers,
+					Triggers:      []string{"feature_baseline_limited_to_newly"},
 					ChannelID:     "channel",
 					SavedSearchID: "savedsearch",
 					Frequency:     "daily",
@@ -3964,7 +3975,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 			},
 			expected: &backend.SubscriptionResponse{
 				Id:            subID,
-				Triggers:      updatedTriggers,
+				Triggers:      []backend.SubscriptionTrigger{"feature_baseline_limited_to_newly"},
 				ChannelId:     "channel",
 				SavedSearchId: "savedsearch",
 				Frequency:     "daily",
@@ -3999,7 +4010,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     "channel",
 					SavedSearchID: "savedsearchid",
-					Triggers:      []string{"old"},
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
 					Frequency:     string(updatedFrequency),
 					CreatedAt:     now,
 					UpdatedAt:     now,
@@ -4010,8 +4021,8 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				Id:            subID,
 				ChannelId:     "channel",
 				SavedSearchId: "savedsearchid",
-				Triggers:      []string{"old"},
-				Frequency:     backend.SubscriptionResponseFrequency(updatedFrequency),
+				Triggers:      []backend.SubscriptionTrigger{"feature_any_browser_implementation_complete"},
+				Frequency:     backend.SubscriptionFrequency(updatedFrequency),
 				CreatedAt:     now,
 				UpdatedAt:     now,
 			},
@@ -4027,9 +4038,14 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 			},
 			updateCfg: &mockUpdateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.UpdateSavedSearchSubscriptionRequest{
-					ID:       subID,
-					UserID:   userID,
-					Triggers: gcpspanner.OptionallySet[[]string]{Value: updatedTriggers, IsSet: true},
+					ID:     subID,
+					UserID: userID,
+					Triggers: gcpspanner.OptionallySet[[]string]{
+						Value: []string{
+							"feature_baseline_limited_to_newly",
+							"feature_baseline_regression_newly_to_limited",
+						}, IsSet: true,
+					},
 					Frequency: gcpspanner.OptionallySet[string]{
 						Value: "",
 						IsSet: false,
