@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ func TestDeleteSubscription(t *testing.T) {
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodDelete,
-				"/v1/users/me/subscriptions/saved-searches/sub-id",
+				"/v1/users/me/subscriptions/sub-id",
 				nil,
 			),
 			expectedResponse: createEmptyBodyResponse(http.StatusNoContent),
@@ -64,7 +64,7 @@ func TestDeleteSubscription(t *testing.T) {
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodDelete,
-				"/v1/users/me/subscriptions/saved-searches/sub-id",
+				"/v1/users/me/subscriptions/sub-id",
 				nil,
 			),
 			expectedResponse: testJSONResponse(http.StatusNotFound, `{"code":404,"message":"subscription not found"}`),

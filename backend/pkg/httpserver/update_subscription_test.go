@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ func TestUpdateSubscription(t *testing.T) {
 			expectedCallCount: 1,
 			request: httptest.NewRequest(
 				http.MethodPatch,
-				"/v1/users/me/subscriptions/saved-searches/sub-id",
+				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
 					{
 						"triggers":
@@ -106,7 +106,7 @@ func TestUpdateSubscription(t *testing.T) {
 			expectedCallCount: 1,
 			request: httptest.NewRequest(
 				http.MethodPatch,
-				"/v1/users/me/subscriptions/saved-searches/sub-id",
+				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
 				{
 					"triggers": ["feature_any_browser_implementation_complete"],

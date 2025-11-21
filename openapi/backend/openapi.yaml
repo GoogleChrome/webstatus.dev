@@ -935,7 +935,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/users/me/subscriptions/saved-searches:
+  /v1/users/me/subscriptions:
     post:
       summary: Create a subscription for a saved search
       operationId: createSubscription
@@ -1017,7 +1017,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-  /v1/users/me/subscriptions/saved-searches/{subscription_id}:
+  /v1/users/me/subscriptions/{subscription_id}:
     parameters:
       - name: subscription_id
         in: path

@@ -1,4 +1,4 @@
-// Copyright 2024 Google LLC
+// Copyright 2025 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -68,7 +68,7 @@ func TestCreateSubscription(t *testing.T) {
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodPost,
-				"/v1/users/me/subscriptions/saved-searches",
+				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
 					"channel_id": "channel-id",
 					"saved_search_id": "search-id",
@@ -93,7 +93,7 @@ func TestCreateSubscription(t *testing.T) {
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodPost,
-				"/v1/users/me/subscriptions/saved-searches",
+				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
 					"saved_search_id": "search-id",
 					"triggers": ["feature_any_browser_implementation_complete"],
