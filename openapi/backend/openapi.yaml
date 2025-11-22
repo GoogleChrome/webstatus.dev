@@ -935,6 +935,22 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+  /v1/users/me/subscriptions:
+    description: Operations for managing user subscriptions to saved searches.
+    # POST operation to create a new subscription (to be added in a future PR)
+    # GET operation to list user's subscriptions (to be added in a future PR)
+  /v1/users/me/subscriptions/{subscription_id}:
+    description: Operations for managing a specific user subscription.
+    parameters:
+      - name: subscription_id
+        in: path
+        description: Subscription ID
+        required: true
+        schema:
+          type: string
+    # GET operation to retrieve a specific subscription (to be added in a future PR)
+    # PATCH operation to update a specific subscription (to be added in a future PR)
+    # DELETE operation to delete a specific subscription (to be added in a future PR)
 components:
   parameters:
     browserPathParam:
@@ -1463,23 +1479,76 @@ components:
           uniqueItems: true
       required:
         - update_mask
-    Subscription:
+    EnumUnknown:
+      type: string
+      description: Represents an unknown, unsupported, or deprecated enum value.
+      enum:
+        - unknown
+      x-enumNames:
+        - EnumUnknownValue
+    SubscriptionFrequency:
+      type: string
+      description: The frequency for a subscription. Currently, only 'daily' is supported.
+      enum:
+        - daily
+      x-enumNames:
+        - SubscriptionFrequencyDaily
+    SubscriptionTriggerWritable:
+      type: string
+      description: The set of valid, user-selectable triggers for a subscription.
+      enum:
+        - feature_baseline_limited_to_newly
+        - feature_any_browser_implementation_complete
+        - feature_baseline_regression_newly_to_limited
+      x-enumNames:
+        - SubscriptionTriggerFeatureBaselineLimitedToNewly
+        - SubscriptionTriggerFeatureAnyBrowserImplementationComplete
+        - SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited
+    SubscriptionTriggerResponseValue:
+      description: >
+        Represents a subscription trigger value. Includes 'unknown' for handling deprecated triggers.
+      oneOf:
+        - $ref: '#/components/schemas/SubscriptionTriggerWritable'
+        - $ref: '#/components/schemas/EnumUnknown'
+    SubscriptionTriggerResponseItem:
       type: object
+      description: Represents a single trigger in a subscription response, indicating its status.
+      properties:
+        value:
+          $ref: '#/components/schemas/SubscriptionTriggerResponseValue'
+        raw_value:
+          type: string
+          description: >
+            The original, raw value from the database. Only present if the 'value'
+            is 'unknown', allowing clients to identify and manage deprecated triggers.
+          nullable: true
+      required:
+        - value
+    SubscriptionBase:
+      type: object
+      description: Base properties common to both subscription requests and responses.
       properties:
         saved_search_id:
           type: string
         channel_id:
           type: string
-        triggers:
-          type: array
-          items:
-            type: string
-        frequency:
-          type: string
-          enum:
-            - daily
-          x-enumNames:
-            - SubscriptionFrequencyDaily
+      required:
+        - saved_search_id
+        - channel_id
+    Subscription:
+      allOf:
+        - $ref: '#/components/schemas/SubscriptionBase'
+        - type: object
+          properties:
+            frequency:
+              $ref: '#/components/schemas/SubscriptionFrequency'
+            triggers:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubscriptionTriggerWritable'
+          required:
+            - frequency
+            - triggers
       required:
         - saved_search_id
         - channel_id
@@ -1488,7 +1557,18 @@ components:
     SubscriptionResponse:
       allOf:
         - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
-        - $ref: '#/components/schemas/Subscription'
+        - $ref: '#/components/schemas/SubscriptionBase'
+        - type: object
+          properties:
+            frequency:
+              $ref: '#/components/schemas/SubscriptionFrequency'
+            triggers:
+              type: array
+              items:
+                $ref: '#/components/schemas/SubscriptionTriggerResponseItem'
+          required:
+            - triggers
+            - frequency
     SubscriptionPage:
       type: object
       properties:
@@ -1504,13 +1584,9 @@ components:
         triggers:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/SubscriptionTriggerWritable'
         frequency:
-          type: string
-          enum:
-            - daily
-          x-enumNames:
-            - SubscriptionFrequencyDaily
+          $ref: '#/components/schemas/SubscriptionFrequency'
         update_mask:
           type: array
           description: >

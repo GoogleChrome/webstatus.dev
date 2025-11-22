@@ -17,6 +17,7 @@ package spanneradapters
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math/big"
 	"reflect"
 	"slices"
@@ -3651,16 +3652,17 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 			input: backend.Subscription{
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
-				Triggers:      []string{"trigger1"},
-				Frequency:     backend.SubscriptionFrequencySubscriptionFrequencyDaily,
+				Triggers: []backend.SubscriptionTriggerWritable{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: backend.SubscriptionFrequencyDaily,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"trigger1"},
-					Frequency:     string(backend.SubscriptionFrequencySubscriptionFrequencyDaily),
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
 				},
 				result:        valuePtr(subID),
 				returnedError: nil,
@@ -3672,8 +3674,8 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"trigger1"},
-					Frequency:     string(backend.SubscriptionFrequencySubscriptionFrequencyDaily),
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
 					CreatedAt:     now,
 					UpdatedAt:     now,
 				},
@@ -3683,28 +3685,59 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				Id:            subID,
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
-				Triggers:      []string{"trigger1"},
-				Frequency:     backend.SubscriptionResponseFrequencySubscriptionFrequencyDaily,
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				Triggers: []backend.SubscriptionTriggerResponseItem{
+					{
+						Value: attemptToStoreSubscriptionTrigger(
+							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+						RawValue: nil,
+					},
+				},
+				Frequency: backend.SubscriptionFrequencyDaily,
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
 			expectedError: nil,
 		},
 		{
-			name: "create error",
+			name: "create unauthorized",
 			input: backend.Subscription{
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
-				Triggers:      []string{"trigger1"},
-				Frequency:     backend.SubscriptionFrequencySubscriptionFrequencyDaily,
+				Triggers: []backend.SubscriptionTriggerWritable{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: backend.SubscriptionFrequencyDaily,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"trigger1"},
-					Frequency:     string(backend.SubscriptionFrequencySubscriptionFrequencyDaily),
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
+				},
+				result:        nil,
+				returnedError: gcpspanner.ErrMissingRequiredRole,
+			},
+			getCfg:        nil,
+			expected:      nil,
+			expectedError: backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "create error",
+			input: backend.Subscription{
+				ChannelId:     channelID,
+				SavedSearchId: savedSearchID,
+				Triggers: []backend.SubscriptionTriggerWritable{
+					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+				Frequency: backend.SubscriptionFrequencyDaily,
+			},
+			createCfg: &mockCreateSavedSearchSubscriptionConfig{
+				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
+					UserID:        userID,
+					ChannelID:     channelID,
+					SavedSearchID: savedSearchID,
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
+					Frequency:     string(backend.SubscriptionFrequencyDaily),
 				},
 				result:        nil,
 				returnedError: errTest,
@@ -3728,7 +3761,7 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
 			}
-			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+			if diff := cmp.Diff(tc.expected, resp, getTriggerCmpOption()); diff != "" {
 				t.Errorf("response mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -3764,7 +3797,7 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						ID:            "sub1",
 						ChannelID:     "chan1",
 						SavedSearchID: "search1",
-						Triggers:      []string{"t1"},
+						Triggers:      []string{"feature_any_browser_implementation_complete"},
 						Frequency:     "daily",
 						CreatedAt:     now,
 						UpdatedAt:     now,
@@ -3779,10 +3812,16 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						Id:            "sub1",
 						ChannelId:     "chan1",
 						SavedSearchId: "search1",
-						Triggers:      []string{"t1"},
-						Frequency:     "daily",
-						CreatedAt:     now,
-						UpdatedAt:     now,
+						Triggers: []backend.SubscriptionTriggerResponseItem{
+							{
+								Value: attemptToStoreSubscriptionTrigger(
+									backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+								RawValue: nil,
+							},
+						},
+						Frequency: "daily",
+						CreatedAt: now,
+						UpdatedAt: now,
 					},
 				},
 				Metadata: &backend.PageMetadata{
@@ -3822,7 +3861,7 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
 			}
-			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+			if diff := cmp.Diff(tc.expected, resp, getTriggerCmpOption()); diff != "" {
 				t.Errorf("response mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -3851,7 +3890,7 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     "chan1",
 					SavedSearchID: "search1",
-					Triggers:      []string{"t1"},
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
 					Frequency:     "daily",
 					CreatedAt:     now,
 					UpdatedAt:     now,
@@ -3862,10 +3901,16 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 				Id:            subID,
 				ChannelId:     "chan1",
 				SavedSearchId: "search1",
-				Triggers:      []string{"t1"},
-				Frequency:     "daily",
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				Triggers: []backend.SubscriptionTriggerResponseItem{
+					{
+						Value: attemptToStoreSubscriptionTrigger(
+							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+						RawValue: nil,
+					},
+				},
+				Frequency: "daily",
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
 			expectedError: nil,
 		},
@@ -3905,7 +3950,7 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
 			}
-			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+			if diff := cmp.Diff(tc.expected, resp, getTriggerCmpOption()); diff != "" {
 				t.Errorf("response mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -3918,7 +3963,10 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 		subID  = "sub456"
 	)
 	now := time.Now()
-	updatedTriggers := []string{"new-trigger"}
+	updatedTriggers := []backend.SubscriptionTriggerWritable{
+		backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
+		backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited,
+	}
 	updatedFrequency := backend.SubscriptionFrequencyDaily
 
 	testCases := []struct {
@@ -3942,7 +3990,10 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					ID:     subID,
 					UserID: userID,
 					Triggers: gcpspanner.OptionallySet[[]string]{
-						Value: updatedTriggers, IsSet: true,
+						Value: []string{
+							"feature_baseline_limited_to_newly",
+							"feature_baseline_regression_newly_to_limited",
+						}, IsSet: true,
 					},
 					Frequency: gcpspanner.OptionallySet[string]{IsSet: false, Value: ""},
 				},
@@ -3953,7 +4004,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				expectedUserID:         userID,
 				result: &gcpspanner.SavedSearchSubscription{
 					ID:            subID,
-					Triggers:      updatedTriggers,
+					Triggers:      []string{"feature_baseline_limited_to_newly"},
 					ChannelID:     "channel",
 					SavedSearchID: "savedsearch",
 					Frequency:     "daily",
@@ -3963,8 +4014,14 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				returnedError: nil,
 			},
 			expected: &backend.SubscriptionResponse{
-				Id:            subID,
-				Triggers:      updatedTriggers,
+				Id: subID,
+				Triggers: []backend.SubscriptionTriggerResponseItem{
+					{
+						Value: attemptToStoreSubscriptionTrigger(
+							backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
+						RawValue: nil,
+					},
+				},
 				ChannelId:     "channel",
 				SavedSearchId: "savedsearch",
 				Frequency:     "daily",
@@ -3987,7 +4044,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					UserID:   userID,
 					Triggers: gcpspanner.OptionallySet[[]string]{IsSet: false, Value: nil},
 					Frequency: gcpspanner.OptionallySet[string]{
-						Value: string(updatedFrequency), IsSet: true,
+						Value: "daily", IsSet: true,
 					},
 				},
 				returnedError: nil,
@@ -3999,7 +4056,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     "channel",
 					SavedSearchID: "savedsearchid",
-					Triggers:      []string{"old"},
+					Triggers:      []string{"feature_any_browser_implementation_complete"},
 					Frequency:     string(updatedFrequency),
 					CreatedAt:     now,
 					UpdatedAt:     now,
@@ -4010,10 +4067,16 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				Id:            subID,
 				ChannelId:     "channel",
 				SavedSearchId: "savedsearchid",
-				Triggers:      []string{"old"},
-				Frequency:     backend.SubscriptionResponseFrequency(updatedFrequency),
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				Triggers: []backend.SubscriptionTriggerResponseItem{
+					{
+						Value: attemptToStoreSubscriptionTrigger(
+							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+						RawValue: nil,
+					},
+				},
+				Frequency: backend.SubscriptionFrequency(updatedFrequency),
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
 			expectedError: nil,
 		},
@@ -4027,9 +4090,14 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 			},
 			updateCfg: &mockUpdateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.UpdateSavedSearchSubscriptionRequest{
-					ID:       subID,
-					UserID:   userID,
-					Triggers: gcpspanner.OptionallySet[[]string]{Value: updatedTriggers, IsSet: true},
+					ID:     subID,
+					UserID: userID,
+					Triggers: gcpspanner.OptionallySet[[]string]{
+						Value: []string{
+							"feature_baseline_limited_to_newly",
+							"feature_baseline_regression_newly_to_limited",
+						}, IsSet: true,
+					},
 					Frequency: gcpspanner.OptionallySet[string]{
 						Value: "",
 						IsSet: false,
@@ -4056,7 +4124,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
 			}
-			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+			if diff := cmp.Diff(tc.expected, resp, getTriggerCmpOption()); diff != "" {
 				t.Errorf("response mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -4117,4 +4185,166 @@ func TestDeleteSavedSearchSubscription(t *testing.T) {
 			}
 		})
 	}
+}
+
+func assertKnownTrigger(t *testing.T, itemIndex int,
+	actual backend.SubscriptionTriggerResponseItem, expectedValue string) {
+	t.Helper() // Marks this as a helper function for better test failure reporting.
+
+	val, err := actual.Value.AsSubscriptionTriggerWritable()
+	if err != nil {
+		t.Errorf("item %d: expected SubscriptionTriggerWritable, but it was not. err: %s", itemIndex, err)
+	}
+	if string(val) != expectedValue {
+		t.Errorf("item %d: unexpected value: got %q, want %q", itemIndex, val, expectedValue)
+	}
+	if actual.RawValue != nil {
+		t.Errorf("item %d: RawValue should be nil for known trigger, got %q", itemIndex, *actual.RawValue)
+	}
+}
+
+func assertUnknownTrigger(t *testing.T, itemIndex int,
+	actual backend.SubscriptionTriggerResponseItem, expectedValue string, expectedRawValue *string) {
+	t.Helper()
+
+	val, err := actual.Value.AsEnumUnknown()
+	if err != nil {
+		t.Errorf("item %d: expected EnumUnknown, but it was not. err : %s", itemIndex, err)
+	}
+	if string(val) != expectedValue {
+		t.Errorf("item %d: unexpected unknown value: got %q, want %q", itemIndex, val, expectedValue)
+	}
+	if actual.RawValue == nil || expectedRawValue == nil || *actual.RawValue != *expectedRawValue {
+		t.Errorf("item %d: incorrect RawValue for unknown trigger: got %v, want %v",
+			itemIndex, actual.RawValue, expectedRawValue)
+	}
+}
+
+func TestSpannerTriggersToBackendTriggers(t *testing.T) {
+	testCases := []struct {
+		name          string
+		inputTriggers []string
+		expectedItems []struct {
+			IsUnknown bool
+			Value     string
+			RawValue  *string
+		}
+	}{
+		{
+			name: "All Valid Triggers",
+			inputTriggers: []string{
+				string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+				string(backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
+			},
+			expectedItems: []struct {
+				IsUnknown bool
+				Value     string
+				RawValue  *string
+			}{
+				{IsUnknown: false,
+					Value:    string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+					RawValue: nil},
+				{IsUnknown: false,
+					Value:    string(backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
+					RawValue: nil},
+			},
+		},
+		{
+			name: "Mixed Valid and Unknown Triggers",
+			inputTriggers: []string{
+				string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+				"deprecated_trigger",
+				string(backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited),
+				"another_unknown",
+			},
+			expectedItems: []struct {
+				IsUnknown bool
+				Value     string
+				RawValue  *string
+			}{
+				{IsUnknown: false,
+					Value:    string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+					RawValue: nil},
+				{IsUnknown: true,
+					Value:    string(backend.EnumUnknownValue),
+					RawValue: valuePtr("deprecated_trigger")},
+				{IsUnknown: false,
+					Value:    string(backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited),
+					RawValue: nil},
+				{IsUnknown: true,
+					Value:    string(backend.EnumUnknownValue),
+					RawValue: valuePtr("another_unknown")},
+			},
+		},
+		{
+			name:          "All Unknown Triggers",
+			inputTriggers: []string{"unknown1", "unknown2"},
+			expectedItems: []struct {
+				IsUnknown bool
+				Value     string
+				RawValue  *string
+			}{
+				{IsUnknown: true, Value: string(backend.EnumUnknownValue), RawValue: valuePtr("unknown1")},
+				{IsUnknown: true, Value: string(backend.EnumUnknownValue), RawValue: valuePtr("unknown2")},
+			},
+		},
+		{
+			name:          "Empty Triggers",
+			inputTriggers: []string{},
+			expectedItems: []struct {
+				IsUnknown bool
+				Value     string
+				RawValue  *string
+			}{},
+		},
+		{
+			name:          "Nil Triggers",
+			inputTriggers: nil,
+			expectedItems: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			actualItems := spannerTriggersToBackendTriggers(tc.inputTriggers)
+			if tc.name == "Nil Triggers" {
+				if len(actualItems) == 0 && tc.expectedItems == nil {
+					actualItems = nil
+				} else if actualItems != nil && tc.expectedItems == nil {
+					t.Fatalf("unexpected non-nil slice for nil input: got %v", actualItems)
+				}
+			}
+
+			if len(actualItems) != len(tc.expectedItems) {
+				t.Fatalf("length mismatch: got %d, want %d", len(actualItems), len(tc.expectedItems))
+			}
+
+			for i, actual := range actualItems {
+				expected := tc.expectedItems[i]
+				if expected.IsUnknown {
+					assertUnknownTrigger(t, i, actual, expected.Value, expected.RawValue)
+				} else {
+					assertKnownTrigger(t, i, actual, expected.Value)
+				}
+			}
+		})
+	}
+}
+
+// nolint:ireturn // WONTFIX. We can't control what cmp.Transformer returns
+func getTriggerCmpOption() cmp.Option {
+	return cmp.Transformer("triggerValue", func(in backend.SubscriptionTriggerResponseValue) string {
+		// AsSubscriptionTriggerWritable returns the value and a boolean indicating if it was that type.
+		v1, err1 := in.AsSubscriptionTriggerWritable()
+		if err1 == nil {
+			return string(v1)
+		}
+		v2, err2 := in.AsEnumUnknown()
+		if err2 == nil {
+			return string(v2)
+		}
+		// Should not happen
+		panic(fmt.Sprintf("received the following errors trying to conver trigger value. err1: %s err2: %s",
+			err1, err2))
+	})
 }

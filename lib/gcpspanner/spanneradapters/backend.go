@@ -1332,18 +1332,75 @@ func (s *Backend) GetIDFromFeatureKey(
 	return id, nil
 }
 
+func backendTriggersToSpannerTriggers(backendTriggers []backend.SubscriptionTriggerWritable) []string {
+	triggers := make([]string, 0, len(backendTriggers))
+	for _, trigger := range backendTriggers {
+		triggers = append(triggers, string(trigger))
+	}
+
+	return triggers
+}
+
+func attemptToStoreSubscriptionTrigger(t backend.SubscriptionTriggerWritable) backend.SubscriptionTriggerResponseValue {
+	ret := backend.SubscriptionTriggerResponseValue{}
+	err := ret.FromSubscriptionTriggerWritable(t)
+	if err != nil {
+		slog.Warn("unable to convert trigger from database. skipping", "err", err, "value", t)
+	}
+
+	return ret
+}
+
+func attemptToStoreSubscriptionTriggerUnknown() backend.SubscriptionTriggerResponseValue {
+	ret := backend.SubscriptionTriggerResponseValue{}
+	err := ret.FromEnumUnknown(backend.EnumUnknownValue)
+	if err != nil {
+		slog.Warn("unable to convert trigger from database. skipping", "err", err)
+	}
+
+	return ret
+}
+
+func spannerTriggersToBackendTriggers(spannerTriggers []string) []backend.SubscriptionTriggerResponseItem {
+	triggers := make([]backend.SubscriptionTriggerResponseItem, 0, len(spannerTriggers))
+	for _, trigger := range spannerTriggers {
+		input := backend.SubscriptionTriggerWritable(trigger)
+		switch input {
+		case backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete,
+			backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
+			backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited:
+			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
+				Value:    attemptToStoreSubscriptionTrigger(input),
+				RawValue: nil,
+			})
+		default:
+			value := trigger
+			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
+				Value:    attemptToStoreSubscriptionTriggerUnknown(),
+				RawValue: &value,
+			})
+		}
+	}
+
+	return triggers
+}
+
 func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 	userID string, req backend.Subscription) (*backend.SubscriptionResponse, error) {
 	createReq := gcpspanner.CreateSavedSearchSubscriptionRequest{
 		UserID:        userID,
 		ChannelID:     req.ChannelId,
 		SavedSearchID: req.SavedSearchId,
-		Triggers:      req.Triggers,
+		Triggers:      backendTriggersToSpannerTriggers(req.Triggers),
 		Frequency:     string(req.Frequency),
 	}
 
 	id, err := s.client.CreateSavedSearchSubscription(ctx, createReq)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		}
+
 		return nil, err
 	}
 
@@ -1415,7 +1472,9 @@ func (s *Backend) UpdateSavedSearchSubscription(ctx context.Context,
 	for _, field := range req.UpdateMask {
 		switch field {
 		case backend.UpdateSubscriptionRequestMaskTriggers:
-			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{Value: *req.Triggers, IsSet: true}
+			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{
+				Value: backendTriggersToSpannerTriggers(*req.Triggers),
+				IsSet: true}
 		case backend.UpdateSubscriptionRequestMaskFrequency:
 			updateReq.Frequency = gcpspanner.OptionallySet[string]{Value: string(*req.Frequency), IsSet: true}
 		}
@@ -1465,8 +1524,8 @@ func toBackendSubscription(sub *gcpspanner.SavedSearchSubscription) *backend.Sub
 		Id:            sub.ID,
 		ChannelId:     sub.ChannelID,
 		SavedSearchId: sub.SavedSearchID,
-		Triggers:      sub.Triggers,
-		Frequency:     backend.SubscriptionResponseFrequency(sub.Frequency),
+		Triggers:      spannerTriggersToBackendTriggers(sub.Triggers),
+		Frequency:     backend.SubscriptionFrequency(sub.Frequency),
 		CreatedAt:     sub.CreatedAt,
 		UpdatedAt:     sub.UpdatedAt,
 	}
