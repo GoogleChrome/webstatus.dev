@@ -245,6 +245,42 @@ type MockDeleteNotificationChannelConfig struct {
 	err               error
 }
 
+type MockCreateSavedSearchSubscriptionConfig struct {
+	expectedUserID       string
+	expectedSubscription backend.Subscription
+	output               *backend.SubscriptionResponse
+	err                  error
+}
+
+type MockDeleteSavedSearchSubscriptionConfig struct {
+	expectedUserID         string
+	expectedSubscriptionID string
+	err                    error
+}
+
+type MockGetSavedSearchSubscriptionConfig struct {
+	expectedUserID         string
+	expectedSubscriptionID string
+	output                 *backend.SubscriptionResponse
+	err                    error
+}
+
+type MockListSavedSearchSubscriptionsConfig struct {
+	expectedUserID    string
+	expectedPageSize  int
+	expectedPageToken *string
+	output            *backend.SubscriptionPage
+	err               error
+}
+
+type MockUpdateSavedSearchSubscriptionConfig struct {
+	expectedUserID         string
+	expectedSubscriptionID string
+	expectedUpdateRequest  backend.UpdateSubscriptionRequest
+	output                 *backend.SubscriptionResponse
+	err                    error
+}
+
 type basicHTTPTestCase[T any] struct {
 	name             string
 	cfg              *T
@@ -274,6 +310,11 @@ type MockWPTMetricsStorer struct {
 	getNotificationChannelCfg                         *MockGetNotificationChannelConfig
 	listNotificationChannelsCfg                       *MockListNotificationChannelsConfig
 	deleteNotificationChannelCfg                      *MockDeleteNotificationChannelConfig
+	createSavedSearchSubscriptionCfg                  *MockCreateSavedSearchSubscriptionConfig
+	deleteSavedSearchSubscriptionCfg                  *MockDeleteSavedSearchSubscriptionConfig
+	getSavedSearchSubscriptionCfg                     *MockGetSavedSearchSubscriptionConfig
+	listSavedSearchSubscriptionsCfg                   *MockListSavedSearchSubscriptionsConfig
+	updateSavedSearchSubscriptionCfg                  *MockUpdateSavedSearchSubscriptionConfig
 	t                                                 *testing.T
 	callCountListMissingOneImplCounts                 int
 	callCountListMissingOneImplFeatures               int
@@ -295,6 +336,11 @@ type MockWPTMetricsStorer struct {
 	callCountGetNotificationChannel                   int
 	callCountListNotificationChannels                 int
 	callCountDeleteNotificationChannel                int
+	callCountCreateSavedSearchSubscription            int
+	callCountDeleteSavedSearchSubscription            int
+	callCountGetSavedSearchSubscription               int
+	callCountListSavedSearchSubscriptions             int
+	callCountUpdateSavedSearchSubscription            int
 }
 
 func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
@@ -306,6 +352,76 @@ func (m *MockWPTMetricsStorer) GetIDFromFeatureKey(
 	}
 
 	return m.getIDFromFeatureKeyConfig.result, m.getIDFromFeatureKeyConfig.err
+}
+
+func (m *MockWPTMetricsStorer) CreateSavedSearchSubscription(_ context.Context, userID string,
+	subscription backend.Subscription) (*backend.SubscriptionResponse, error) {
+	m.callCountCreateSavedSearchSubscription++
+	if userID != m.createSavedSearchSubscriptionCfg.expectedUserID {
+		m.t.Errorf("unexpected user id %s", userID)
+	}
+	if !reflect.DeepEqual(subscription, m.createSavedSearchSubscriptionCfg.expectedSubscription) {
+		m.t.Errorf("unexpected subscription %+v", subscription)
+	}
+
+	return m.createSavedSearchSubscriptionCfg.output, m.createSavedSearchSubscriptionCfg.err
+}
+
+func (m *MockWPTMetricsStorer) DeleteSavedSearchSubscription(_ context.Context, userID, subscriptionID string) error {
+	m.callCountDeleteSavedSearchSubscription++
+	if userID != m.deleteSavedSearchSubscriptionCfg.expectedUserID {
+		m.t.Errorf("unexpected user id %s", userID)
+	}
+	if subscriptionID != m.deleteSavedSearchSubscriptionCfg.expectedSubscriptionID {
+		m.t.Errorf("unexpected subscription id %s", subscriptionID)
+	}
+
+	return m.deleteSavedSearchSubscriptionCfg.err
+}
+
+func (m *MockWPTMetricsStorer) GetSavedSearchSubscription(_ context.Context,
+	userID, subscriptionID string) (*backend.SubscriptionResponse, error) {
+	m.callCountGetSavedSearchSubscription++
+	if userID != m.getSavedSearchSubscriptionCfg.expectedUserID {
+		m.t.Errorf("unexpected user id %s", userID)
+	}
+	if subscriptionID != m.getSavedSearchSubscriptionCfg.expectedSubscriptionID {
+		m.t.Errorf("unexpected subscription id %s", subscriptionID)
+	}
+
+	return m.getSavedSearchSubscriptionCfg.output, m.getSavedSearchSubscriptionCfg.err
+}
+
+func (m *MockWPTMetricsStorer) ListSavedSearchSubscriptions(_ context.Context,
+	userID string, pageSize int, pageToken *string) (*backend.SubscriptionPage, error) {
+	m.callCountListSavedSearchSubscriptions++
+	if userID != m.listSavedSearchSubscriptionsCfg.expectedUserID {
+		m.t.Errorf("unexpected user id %s", userID)
+	}
+	if pageSize != m.listSavedSearchSubscriptionsCfg.expectedPageSize {
+		m.t.Errorf("unexpected page size %d", pageSize)
+	}
+	if !reflect.DeepEqual(pageToken, m.listSavedSearchSubscriptionsCfg.expectedPageToken) {
+		m.t.Errorf("unexpected page token %+v", pageToken)
+	}
+
+	return m.listSavedSearchSubscriptionsCfg.output, m.listSavedSearchSubscriptionsCfg.err
+}
+
+func (m *MockWPTMetricsStorer) UpdateSavedSearchSubscription(_ context.Context, userID, subscriptionID string,
+	req backend.UpdateSubscriptionRequest) (*backend.SubscriptionResponse, error) {
+	m.callCountUpdateSavedSearchSubscription++
+	if userID != m.updateSavedSearchSubscriptionCfg.expectedUserID {
+		m.t.Errorf("unexpected user id %s", userID)
+	}
+	if subscriptionID != m.updateSavedSearchSubscriptionCfg.expectedSubscriptionID {
+		m.t.Errorf("unexpected subscription id %s", subscriptionID)
+	}
+	if !reflect.DeepEqual(req, m.updateSavedSearchSubscriptionCfg.expectedUpdateRequest) {
+		m.t.Errorf("unexpected update request %+v", req)
+	}
+
+	return m.updateSavedSearchSubscriptionCfg.output, m.updateSavedSearchSubscriptionCfg.err
 }
 
 func (m *MockWPTMetricsStorer) ListMetricsForFeatureIDBrowserAndChannel(_ context.Context,

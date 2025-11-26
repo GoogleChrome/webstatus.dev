@@ -14,7 +14,12 @@
 
 package backendtypes
 
-import "errors"
+import (
+	"errors"
+	"log/slog"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+)
 
 var (
 	// ErrInvalidPageToken indicates the page token is invalid.
@@ -54,4 +59,30 @@ type UserProfile struct {
 	UserID       string
 	GitHubUserID int64
 	Emails       []string
+}
+
+// AttemptToStoreSubscriptionTrigger attempts to convert the given subscription trigger
+// writable into a subscription trigger response value. If the conversion fails,
+// it logs a warning and returns an empty SubscriptionTriggerResponseValue.
+func AttemptToStoreSubscriptionTrigger(t backend.SubscriptionTriggerWritable) backend.SubscriptionTriggerResponseValue {
+	ret := backend.SubscriptionTriggerResponseValue{}
+	err := ret.FromSubscriptionTriggerWritable(t)
+	if err != nil {
+		slog.Warn("unable to convert trigger from database. skipping", "err", err, "value", t)
+	}
+
+	return ret
+}
+
+// AttemptToStoreSubscriptionTriggerUnknown attempts to convert an unknown subscription trigger
+// into a subscription trigger response value. If the conversion fails,
+// it logs a warning and returns an empty SubscriptionTriggerResponseValue.
+func AttemptToStoreSubscriptionTriggerUnknown() backend.SubscriptionTriggerResponseValue {
+	ret := backend.SubscriptionTriggerResponseValue{}
+	err := ret.FromEnumUnknown(backend.EnumUnknownValue)
+	if err != nil {
+		slog.Warn("unable to convert trigger from database. skipping", "err", err)
+	}
+
+	return ret
 }
