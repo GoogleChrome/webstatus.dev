@@ -1076,7 +1076,43 @@ paths:
         required: true
         schema:
           type: string
-    # GET operation to retrieve a specific subscription (to be added in a future PR)
+    # GET operation to retrieve a specific subscription
+    get:
+      summary: Get a subscription for a saved search
+      operationId: getSubscription
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
     # PATCH operation to update a specific subscription (to be added in a future PR)
     # DELETE operation to delete a specific subscription (to be added in a future PR)
 components:
@@ -1649,7 +1685,6 @@ components:
           description: >
             The original, raw value from the database. Only present if the 'value'
             is 'unknown', allowing clients to identify and manage deprecated triggers.
-          nullable: true
       required:
         - value
     SubscriptionBase:
