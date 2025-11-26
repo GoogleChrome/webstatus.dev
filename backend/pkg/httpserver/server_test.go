@@ -1265,6 +1265,16 @@ func (m *mockServerInterface) ListSubscriptions(ctx context.Context,
 	panic("unimplemented")
 }
 
+// GetSubscription implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) GetSubscription(ctx context.Context,
+	_ backend.GetSubscriptionRequestObject) (
+	backend.GetSubscriptionResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
 func (m *mockServerInterface) assertCallCount(expectedCallCount int) {
 	if m.callCount != expectedCallCount {
 		m.t.Errorf("expected mock server to be used %d times. only used %d times", expectedCallCount, m.callCount)
