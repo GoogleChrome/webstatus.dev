@@ -1066,7 +1066,46 @@ paths:
   /v1/users/me/subscriptions:
     description: Operations for managing user subscriptions to saved searches.
     # POST operation to create a new subscription (to be added in a future PR)
-    # GET operation to list user's subscriptions (to be added in a future PR)
+    # GET operation to list user's subscriptions
+    get:
+      summary: List subscriptions for a saved search
+      operationId: listSubscriptions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/users/me/subscriptions/{subscription_id}:
     description: Operations for managing a specific user subscription.
     parameters:
@@ -1649,7 +1688,6 @@ components:
           description: >
             The original, raw value from the database. Only present if the 'value'
             is 'unknown', allowing clients to identify and manage deprecated triggers.
-          nullable: true
       required:
         - value
     SubscriptionBase:
