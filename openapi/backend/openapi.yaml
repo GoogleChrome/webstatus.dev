@@ -1078,7 +1078,39 @@ paths:
           type: string
     # GET operation to retrieve a specific subscription (to be added in a future PR)
     # PATCH operation to update a specific subscription (to be added in a future PR)
-    # DELETE operation to delete a specific subscription (to be added in a future PR)
+    # DELETE operation to delete a specific subscription
+    delete:
+      summary: Delete a subscription for a saved search
+      operationId: deleteSubscription
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: No Content
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
 components:
   parameters:
     browserPathParam:
