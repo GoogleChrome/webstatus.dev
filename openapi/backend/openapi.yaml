@@ -1065,7 +1065,49 @@ paths:
                 $ref: '#/components/schemas/BasicErrorModel'
   /v1/users/me/subscriptions:
     description: Operations for managing user subscriptions to saved searches.
-    # POST operation to create a new subscription (to be added in a future PR)
+    # POST operation to create a new subscription
+    post:
+      summary: Create a subscription for a saved search
+      operationId: createSubscription
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Subscription'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionResponse'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
     # GET operation to list user's subscriptions (to be added in a future PR)
   /v1/users/me/subscriptions/{subscription_id}:
     description: Operations for managing a specific user subscription.
@@ -1649,7 +1691,6 @@ components:
           description: >
             The original, raw value from the database. Only present if the 'value'
             is 'unknown', allowing clients to identify and manage deprecated triggers.
-          nullable: true
       required:
         - value
     SubscriptionBase:
