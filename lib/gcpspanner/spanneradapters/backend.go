@@ -1341,26 +1341,6 @@ func backendTriggersToSpannerTriggers(backendTriggers []backend.SubscriptionTrig
 	return triggers
 }
 
-func attemptToStoreSubscriptionTrigger(t backend.SubscriptionTriggerWritable) backend.SubscriptionTriggerResponseValue {
-	ret := backend.SubscriptionTriggerResponseValue{}
-	err := ret.FromSubscriptionTriggerWritable(t)
-	if err != nil {
-		slog.Warn("unable to convert trigger from database. skipping", "err", err, "value", t)
-	}
-
-	return ret
-}
-
-func attemptToStoreSubscriptionTriggerUnknown() backend.SubscriptionTriggerResponseValue {
-	ret := backend.SubscriptionTriggerResponseValue{}
-	err := ret.FromEnumUnknown(backend.EnumUnknownValue)
-	if err != nil {
-		slog.Warn("unable to convert trigger from database. skipping", "err", err)
-	}
-
-	return ret
-}
-
 func spannerTriggersToBackendTriggers(spannerTriggers []string) []backend.SubscriptionTriggerResponseItem {
 	triggers := make([]backend.SubscriptionTriggerResponseItem, 0, len(spannerTriggers))
 	for _, trigger := range spannerTriggers {
@@ -1370,13 +1350,13 @@ func spannerTriggersToBackendTriggers(spannerTriggers []string) []backend.Subscr
 			backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
 			backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited:
 			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
-				Value:    attemptToStoreSubscriptionTrigger(input),
+				Value:    backendtypes.AttemptToStoreSubscriptionTrigger(input),
 				RawValue: nil,
 			})
 		default:
 			value := trigger
 			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
-				Value:    attemptToStoreSubscriptionTriggerUnknown(),
+				Value:    backendtypes.AttemptToStoreSubscriptionTriggerUnknown(),
 				RawValue: &value,
 			})
 		}

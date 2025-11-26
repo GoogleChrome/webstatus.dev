@@ -3687,7 +3687,7 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
-						Value: attemptToStoreSubscriptionTrigger(
+						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
 							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
 						RawValue: nil,
 					},
@@ -3814,7 +3814,7 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						SavedSearchId: "search1",
 						Triggers: []backend.SubscriptionTriggerResponseItem{
 							{
-								Value: attemptToStoreSubscriptionTrigger(
+								Value: backendtypes.AttemptToStoreSubscriptionTrigger(
 									backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
 								RawValue: nil,
 							},
@@ -3903,7 +3903,7 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 				SavedSearchId: "search1",
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
-						Value: attemptToStoreSubscriptionTrigger(
+						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
 							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
 						RawValue: nil,
 					},
@@ -4017,7 +4017,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				Id: subID,
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
-						Value: attemptToStoreSubscriptionTrigger(
+						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
 							backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
 						RawValue: nil,
 					},
@@ -4069,7 +4069,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				SavedSearchId: "savedsearchid",
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
-						Value: attemptToStoreSubscriptionTrigger(
+						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
 							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
 						RawValue: nil,
 					},

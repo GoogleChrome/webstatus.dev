@@ -153,6 +153,15 @@ type WPTMetricsStorer interface {
 		userID string, pageSize int, pageToken *string) (*backend.NotificationChannelPage, error)
 	DeleteNotificationChannel(ctx context.Context,
 		userID, channelID string) error
+	CreateSavedSearchSubscription(ctx context.Context, userID string,
+		subscription backend.Subscription) (*backend.SubscriptionResponse, error)
+	DeleteSavedSearchSubscription(ctx context.Context, userID, subscriptionID string) error
+	GetSavedSearchSubscription(ctx context.Context,
+		userID, subscriptionID string) (*backend.SubscriptionResponse, error)
+	ListSavedSearchSubscriptions(ctx context.Context,
+		userID string, pageSize int, pageToken *string) (*backend.SubscriptionPage, error)
+	UpdateSavedSearchSubscription(ctx context.Context, userID, subscriptionID string,
+		req backend.UpdateSubscriptionRequest) (*backend.SubscriptionResponse, error)
 }
 
 type Server struct {
