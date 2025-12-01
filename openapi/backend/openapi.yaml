@@ -1108,7 +1108,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
-    # GET operation to list user's subscriptions (to be added in a future PR)
+    # GET operation to list user's subscriptions
+    get:
+      summary: List subscriptions for a saved search
+      operationId: listSubscriptions
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/paginationTokenParam'
+        - $ref: '#/components/parameters/paginationSizeParam'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubscriptionPage'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/users/me/subscriptions/{subscription_id}:
     description: Operations for managing a specific user subscription.
     parameters:
