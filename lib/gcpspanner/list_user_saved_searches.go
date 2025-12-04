@@ -167,3 +167,30 @@ func (c *Client) ListUserSavedSearches(
 		NextPageToken: nextPageToken,
 	}, nil
 }
+
+type savedSearchIDContainer struct {
+	ID string `spanner:"ID"`
+}
+
+func (m userSavedSearchListerMapper) SelectAll() spanner.Statement {
+	return spanner.Statement{
+		SQL:    "SELECT ID FROM SavedSearches",
+		Params: nil,
+	}
+}
+
+// Used by the Cloud Scheduler batch job to find all entities to process.
+func (c *Client) ListAllSavedSearchIDs(
+	ctx context.Context) ([]string, error) {
+	ret, err := newAllEntityReader[userSavedSearchListerMapper, savedSearchIDContainer](c).readAll(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]string, 0, len(ret))
+	for _, r := range ret {
+		ids = append(ids, r.ID)
+	}
+
+	return ids, nil
+}
