@@ -84,6 +84,11 @@ type Client struct {
 	batchWriter
 	batchSize    int
 	batchWriters int
+	timeNow      func() time.Time
+}
+
+func (c *Client) setTimeNowForTesting(timeNow func() time.Time) {
+	c.timeNow = timeNow
 }
 
 type batchWriter interface {
@@ -217,6 +222,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		bw,
 		defaultBatchSize,
 		defaultBatchWriters,
+		time.Now,
 	}, nil
 }
 
@@ -988,6 +994,84 @@ func (c *entityRemover[M, ExternalStruct, SpannerStruct, Key]) removeWithTransac
 	}
 
 	return nil
+}
+
+// entityMutator is a client for performing transactional Read-Inspect-Write operations.
+type entityMutator[
+	M readOneMapper[Key],
+	SpannerStruct any,
+	Key comparable,
+] struct {
+	*Client
+}
+
+func newEntityMutator[
+	M readOneMapper[Key],
+	SpannerStruct any,
+	Key comparable,
+](c *Client) *entityMutator[M, SpannerStruct, Key] {
+	return &entityMutator[M, SpannerStruct, Key]{c}
+}
+
+// readInspectMutateWithTransaction is a generic helper for "Read-Modify-Write" transactions.
+func (c *entityMutator[M, SpannerStruct, Key]) readInspectMutateWithTransaction(
+	ctx context.Context,
+	key Key,
+	// The callback receives the pointer to the struct (or nil if not found).
+	// It returns a Mutation to apply, or an error to Abort the transaction.
+	logicFn func(ctx context.Context, existing *SpannerStruct) (*spanner.Mutation, error),
+	txn *spanner.ReadWriteTransaction,
+) error {
+	var mapper M
+	stmt := mapper.SelectOne(key)
+
+	// 1. READ
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	row, err := it.Next()
+
+	var existing *SpannerStruct
+	if err == nil {
+		// Found the row
+		existing = new(SpannerStruct)
+		if err := row.ToStruct(existing); err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		}
+	} else if errors.Is(err, iterator.Done) {
+		// Row not found (valid for Insert scenarios)
+		existing = nil
+	} else {
+		return errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	// 2. INSPECT & LOGIC
+	mutation, err := logicFn(ctx, existing)
+	if err != nil {
+		return err // This aborts the transaction
+	}
+
+	// 3. MUTATE (If logic didn't error, apply the change)
+	if mutation != nil {
+		return txn.BufferWrite([]*spanner.Mutation{mutation})
+	}
+
+	return nil
+}
+
+// readInspectMutate is a generic helper for "Read-Modify-Write" transactions.
+// It reads the row (if it exists), passes it to your callback logic, and applies the returned mutation.
+func (c *entityMutator[M, SpannerStruct, Key]) readInspectMutate(
+	ctx context.Context,
+	key Key,
+	// The callback receives the pointer to the struct (or nil if not found).
+	// It returns a Mutation to apply, or an error to Abort the transaction.
+	logicFn func(ctx context.Context, existing *SpannerStruct) (*spanner.Mutation, error),
+) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		return c.readInspectMutateWithTransaction(ctx, key, logicFn, txn)
+	})
+
+	return err
 }
 
 // allByKeysEntityReader handles the reading of a Spanner table with a set of key(s).
