@@ -340,3 +340,144 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 		t.Errorf("expected at least 1 result on page 2, got %d", len(results2))
 	}
 }
+
+func TestFindAllActivePushSubscriptions(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	// User and Search setup
+	userID := uuid.NewString()
+	savedSearchIDPtr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+		Name: "Test Search", Query: "is:test", OwnerUserID: userID, Description: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create saved search: %v", err)
+	}
+	savedSearchID := *savedSearchIDPtr
+
+	// Channel 1: Valid, active EMAIL channel
+	emailChannelReq := CreateNotificationChannelRequest{
+		UserID: userID, Name: "Email", Type: "EMAIL",
+		EmailConfig: &EmailConfig{Address: "active@example.com", IsVerified: true, VerificationToken: nil},
+	}
+	emailChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, emailChannelReq)
+	if err != nil {
+		t.Fatalf("failed to create email channel: %v", err)
+	}
+	emailChannelID := *emailChannelIDPtr
+
+	// Channel 2: Valid, active WEBHOOK channel
+	// TODO: Enable webhook channel tests once webhooks are supported.
+	// webhookChannelReq := CreateNotificationChannelRequest{
+	// 	UserID: userID, Name: "Webhook", Type: "WEBHOOK",
+	// 	WebhookConfig: &WebhookConfig{URL: "https://example.com/webhook", IsVerified: true},
+	// }
+	// webhookChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, webhookChannelReq)
+	// if err != nil {
+	// 	t.Fatalf("failed to create webhook channel: %v", err)
+	// }
+	// webhookChannelID := *webhookChannelIDPtr
+
+	// Channel 3: RSS channel (should be ignored)
+	rssChannelReq := CreateNotificationChannelRequest{UserID: userID, Name: "RSS", Type: "RSS", EmailConfig: nil}
+	rssChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, rssChannelReq)
+	if err != nil {
+		t.Fatalf("failed to create rss channel: %v", err)
+	}
+	rssChannelID := *rssChannelIDPtr
+
+	// Channel 4: Disabled EMAIL channel (should be ignored)
+	disabledEmailReq := CreateNotificationChannelRequest{
+		UserID: userID, Name: "Disabled", Type: "EMAIL",
+		EmailConfig: &EmailConfig{Address: "disabled@example.com", IsVerified: true, VerificationToken: nil},
+	}
+	disabledChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, disabledEmailReq)
+	if err != nil {
+		t.Fatalf("failed to create disabled email channel: %v", err)
+	}
+	disabledChannelID := *disabledChannelIDPtr
+	// Manually disable it
+	err = spannerClient.UpsertNotificationChannelState(ctx, NotificationChannelState{
+		ChannelID:           disabledChannelID,
+		ConsecutiveFailures: 3,
+		UpdatedAt:           time.Now(),
+		CreatedAt:           time.Now(),
+		IsDisabledBySystem:  true,
+	})
+	if err != nil {
+		t.Fatalf("failed to disable channel: %v", err)
+	}
+
+	// Subscription 1: Correct, on active EMAIL channel
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE", Triggers: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create sub 1: %v", err)
+	}
+
+	// Subscription 2: Correct, on active WEBHOOK channel
+	// TODO: Enable webhook channel tests once webhooks are supported.
+	// _, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+	// 	UserID: userID, ChannelID: webhookChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE",
+	// })
+	// if err != nil {
+	// 	t.Fatalf("failed to create sub 2: %v", err)
+	// }
+
+	// Subscription 3: Wrong frequency
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID, Frequency: "WEEKLY", Triggers: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create sub 3: %v", err)
+	}
+
+	// Subscription 4: Non-push channel (RSS)
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID: userID, ChannelID: rssChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE", Triggers: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create sub 4: %v", err)
+	}
+
+	// Subscription 5: Disabled channel
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID: userID, ChannelID: disabledChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE",
+		Triggers: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create sub 5: %v", err)
+	}
+
+	// Find subscribers
+	subscribers, err := spannerClient.FindAllActivePushSubscriptions(ctx, savedSearchID, "IMMEDIATE")
+	if err != nil {
+		t.Fatalf("FindAllActivePushSubscriptions failed: %v", err)
+	}
+
+	// Assertions
+	if len(subscribers) != 1 {
+		t.Fatalf("expected 1 subscribers, got %d", len(subscribers))
+	}
+
+	foundEmail := false
+
+	// Check for webhook once enabled.
+	// foundWebhook := false
+	for _, sub := range subscribers {
+		if sub.ChannelID == emailChannelID {
+			foundEmail = true
+		}
+		// if sub.ChannelID == webhookChannelID {
+		// 	foundWebhook = true
+		// }
+	}
+
+	if !foundEmail {
+		t.Error("did not find the expected EMAIL subscriber")
+	}
+	// if !foundWebhook {
+	// 	t.Error("did not find the expected WEBHOOK subscriber")
+	// }
+}

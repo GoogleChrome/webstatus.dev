@@ -303,3 +303,67 @@ func (c *Client) ListSavedSearchSubscriptions(
 	ctx context.Context, req ListSavedSearchSubscriptionsRequest) ([]SavedSearchSubscription, *string, error) {
 	return newEntityLister[savedSearchSubscriptionMapper](c).list(ctx, req)
 }
+
+type SubscriberDestination struct {
+	SubscriptionID string           `spanner:"ID"`
+	UserID         string           `spanner:"UserID"`
+	ChannelID      string           `spanner:"ChannelID"`
+	Type           string           `spanner:"Type"`
+	Config         spanner.NullJSON `spanner:"Config"`
+}
+
+type readAllActivePushSubscriptionsMapper struct {
+	baseSavedSearchSubscriptionMapper
+}
+
+type activePushSubscriptionKey struct {
+	SavedSearchID string
+	Frequency     string
+}
+
+func (m readAllActivePushSubscriptionsMapper) SelectAllByKeys(key activePushSubscriptionKey) spanner.Statement {
+	// We are looking for subscriptions that match the Event's criteria.
+	// We only want PUSH channels (Email/Webhook), not RSS.
+	// We LEFT JOIN NotificationChannelStates to check if the channel is healthy.
+	return spanner.Statement{
+		SQL: `SELECT
+			sc.ID,
+			nc.UserID,
+			sc.ChannelID,
+			nc.Type,
+			nc.Config
+		FROM SavedSearchSubscriptions sc
+		JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
+		LEFT JOIN NotificationChannelStates AS cs ON nc.ID = cs.ChannelID
+		WHERE
+			sc.SavedSearchID = @savedSearchID
+			AND sc.Frequency = @frequency
+			AND nc.Type IN ('EMAIL', 'WEBHOOK')
+			AND (cs.IsDisabledBySystem IS NULL OR cs.IsDisabledBySystem = FALSE)`,
+		Params: map[string]interface{}{
+			"savedSearchID": key.SavedSearchID,
+			"frequency":     key.Frequency,
+		},
+	}
+}
+
+// FindAllActivePushSubscriptions
+// Finds all active subscriptions for the given Search + Frequency
+// AND joins them with their NotificationChannel to get the delivery address.
+// It also filters out channels that have been disabled by the system (Health Status).
+func (c *Client) FindAllActivePushSubscriptions(
+	ctx context.Context,
+	savedSearchID string,
+	frequency string,
+) ([]SubscriberDestination, error) {
+	return newAllByKeysEntityReader[
+		readAllActivePushSubscriptionsMapper,
+		activePushSubscriptionKey,
+		SubscriberDestination](c).readAllByKeys(
+		ctx,
+		activePushSubscriptionKey{
+			SavedSearchID: savedSearchID,
+			Frequency:     frequency,
+		},
+	)
+}

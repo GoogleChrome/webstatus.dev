@@ -280,3 +280,31 @@ func userSavedSearchesPageEquality(left, right *UserSavedSearchesPage) bool {
 		return userSavedSearchEquality(&a, &b)
 	})
 }
+
+func TestListAllSavedSearchIDs(t *testing.T) {
+	restartDatabaseContainer(t)
+	searches := loadFakeSavedSearches(t)
+
+	t.Run("list all saved search IDs", func(t *testing.T) {
+		ids, err := spannerClient.ListAllSavedSearchIDs(context.Background())
+		if err != nil {
+			t.Errorf("expected nil error. received %s", err)
+		}
+
+		if len(ids) != len(searches) {
+			t.Errorf("expected %d results. received %d", len(searches), len(ids))
+		}
+
+		expectedIDs := make([]string, len(searches))
+		for idx, search := range searches {
+			expectedIDs[idx] = search.ID
+		}
+
+		slices.Sort(ids)
+		slices.Sort(expectedIDs)
+
+		if !slices.Equal(ids, expectedIDs) {
+			t.Errorf("expected IDs %v but received %v", expectedIDs, ids)
+		}
+	})
+}
