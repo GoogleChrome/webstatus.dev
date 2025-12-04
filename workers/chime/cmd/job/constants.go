@@ -1,0 +1,210 @@
+package main
+
+const htmlEmail = `
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebStatus.dev Notification</title>
+    <style>
+        /* Base Resets */
+        body { margin: 0; padding: 0; width: 100% !important; -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; font-family: 'Segoe UI', Helvetica, Arial, sans-serif; background-color: #f4f6f8; }
+        table { border-spacing: 0; border-collapse: collapse; }
+        img { border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
+
+        /* Utility Classes */
+        .container { max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .header { background-color: #1a73e8; padding: 30px 40px; text-align: center; }
+        .content { padding: 40px; }
+        .footer { background-color: #f8f9fa; padding: 30px; text-align: center; font-size: 12px; color: #5f6368; }
+
+        /* Typography */
+        h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 600; }
+        h2 { color: #202124; margin: 0 0 15px 0; font-size: 18px; font-weight: 600; border-bottom: 2px solid #f1f3f4; padding-bottom: 10px; }
+        p { color: #3c4043; font-size: 16px; line-height: 1.5; margin: 0 0 20px 0; }
+
+        /* Feature Cards */
+        .feature-item { width: 100%; margin-bottom: 15px; border: 1px solid #e0e0e0; border-radius: 6px; }
+        .feature-header { padding: 12px 15px; background-color: #f8f9fa; font-weight: 600; color: #202124; border-bottom: 1px solid #e0e0e0; }
+        .feature-body { padding: 12px 15px; }
+        .change-row { font-size: 14px; color: #3c4043; padding: 4px 0; }
+
+        /* Status Badges & Colors */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Change Types */
+        .type-proactive { border-left: 4px solid #1a73e8; } /* Blue */
+        .type-added { border-left: 4px solid #1e8e3e; }     /* Green */
+        .type-removed { border-left: 4px solid #d93025; }   /* Red */
+        .type-changed { border-left: 4px solid #f9ab00; }   /* Yellow */
+
+        /* Button */
+        .btn-primary { display: inline-block; background-color: #1a73e8; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 600; margin-top: 10px; }
+
+        /* Links */
+        a { color: #1a73e8; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+    <!-- Main Wrapper -->
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f4f6f8; padding: 20px 0;">
+        <tr>
+            <td align="center">
+
+                <!-- Email Container -->
+                <div class="container">
+
+                    <!-- Header -->
+                    <div class="header">
+                        <!-- Logo Placeholder -->
+                        <!-- <img src="https://webstatus.dev/logo.png" width="150" alt="webstatus.dev" style="margin-bottom: 15px;"> -->
+                        <h1>Weekly Digest</h1>
+                    </div>
+
+                    <!-- Body Content -->
+                    <div class="content">
+
+                        <!-- Greeting & Summary -->
+                        <p>Hi there,</p>
+                        <p>Here is your weekly update for your saved search <strong>"James's Picks"</strong>. There were <strong>408 total changes</strong> detected in the last 7 days.</p>
+
+                        <!-- SECTION 1: PROACTIVE ALERTS (The most important stuff) -->
+                        <!-- Template Logic: If Proactive items exist -->
+                        <div style="margin-top: 30px;">
+                            <h2>Upcoming Milestones 🚀</h2>
+
+                            <!-- Item 1 -->
+                            <table class="feature-item type-proactive" role="presentation">
+                                <tr>
+                                    <td>
+                                        <div class="feature-header">
+                                            CSS :has() pseudo-class
+                                            <span style="float: right; color: #1a73e8; font-size: 12px;">PROACTIVE</span>
+                                        </div>
+                                        <div class="feature-body">
+                                            <div class="change-row">
+                                                <strong>Baseline Status:</strong> Projected to become <span class="badge" style="background: #e8f0fe; color: #1a73e8;">Widely Available</span> in <strong>~14 days</strong>.
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- SECTION 2: RECENT CHANGES -->
+                        <div style="margin-top: 30px;">
+                            <h2>Recent Changes</h2>
+
+                            <!-- Item 2: CHANGED -->
+                            <table class="feature-item type-changed" role="presentation">
+                                <tr>
+                                    <td>
+                                        <div class="feature-header">
+                                            CSS Nesting
+                                            <span style="float: right; color: #f9ab00; font-size: 12px;">CHANGED</span>
+                                        </div>
+                                        <div class="feature-body">
+                                            <div class="change-row">
+                                                <strong>Baseline Status:</strong> Changed from <span style="color:#5f6368; text-decoration: line-through;">Limited</span> to <span class="badge" style="background: #e6f4ea; color: #1e8e3e;">Newly Available</span>
+                                            </div>
+                                            <div class="change-row">
+                                                <strong>Developer Signals:</strong> Upvotes increased to <strong>250</strong> (+130)
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Item 3: ADDED -->
+                            <table class="feature-item type-added" role="presentation">
+                                <tr>
+                                    <td>
+                                        <div class="feature-header">
+                                            Temporal API
+                                            <span style="float: right; color: #1e8e3e; font-size: 12px;">ADDED</span>
+                                        </div>
+                                        <div class="feature-body">
+                                            <div class="change-row">
+                                                Feature added to search results.
+                                            </div>
+                                            <div class="change-row">
+                                                <strong>Current Status:</strong> Limited Availability
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+
+                            <!-- Item 4: REMOVED -->
+                            <table class="feature-item type-removed" role="presentation">
+                                <tr>
+                                    <td>
+                                        <div class="feature-header">
+                                            WebSQL
+                                            <span style="float: right; color: #d93025; font-size: 12px;">REMOVED</span>
+                                        </div>
+                                        <div class="feature-body">
+                                            <div class="change-row">
+                                                Feature no longer matches search criteria.
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- Truncation Notice / Call to Action -->
+                        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #f1f3f4;">
+                            <p style="color: #5f6368; font-style: italic; margin-bottom: 20px;">
+                                ...and 403 other changes.
+                            </p>
+                            <a href="https://webstatus.dev/changes/view?event_id=evt-xyz-999" class="btn-primary">
+                                View Full Diff Log (408 items)
+                            </a>
+                        </div>
+
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="footer">
+                        <p>
+                            You received this email because you subscribed to "James's Picks" on webstatus.dev.
+                            <br>
+                            <a href="https://webstatus.dev/saved-searches/ss-123">View Search Settings</a>
+                            &nbsp;|&nbsp;
+                            <!-- Unsubscribe Link using the SubscriptionID from our previous logic -->
+                            <a href="https://webstatus.dev/subs/manage?unsubscribe=sub-123" style="color: #5f6368; text-decoration: underline;">Unsubscribe</a>
+                        </p>
+                        <p style="margin-top: 20px;">
+                            &copy; 2025 WebStatus.dev Project
+                        </p>
+                    </div>
+
+                </div>
+            </td>
+        </tr>
+    </table>
+
+</body>
+</html>
+`
+
+const textEmail = `
+Subject: Weekly Digest for "James's Picks" (408 changes)
+
+WEBSTATUS.DEV WEEKLY DIGEST
+
+Hi there,
+Here is your weekly update for your saved search "James's Picks".
+There were 408 total changes detected in the last 7 days.
+
+UPCOMING MILESTONES 🚀
+- CSS :has() pseudo-class
+[PROACTIVE]
+Baseline Status: Projected to become "Widely Available" in ~14 days.
+RECENT CHANGES
+CSS Nesting [CHANGED]Baseline Status: Changed from "Limited" to "Newly Available"Developer Signals: Upvotes increased to 250 (+130)Temporal API [ADDED]Feature added to search results.Current Status: Limited AvailabilityWebSQL [REMOVED]Feature no longer matches search criteria....and 403 other changes.============================================================ VIEW FULL LOG: https://webstatus.dev/changes/view?event_id=evt-xyz-999Manage your subscription:View Search: https://www.google.com/search?q=https://webstatus.dev/saved-searches/ss-123Unsubscribe: https://www.google.com/search?q=https://webstatus.dev/subs/manage%3Funsubscribe%3Dsub-123© 2025 WebStatus.dev Project
+`

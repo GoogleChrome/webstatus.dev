@@ -1,0 +1,14 @@
+apiVersion: run.googleapis.com/v1
+kind: Job
+metadata:
+  name: chime-test-job-jcsiii
+  annotations:
+    run.googleapis.com/launch-stage: BETA
+spec:
+  template:
+    spec:
+      template:
+        spec:
+          serviceAccountName: emailer-job-staging@webstatus-dev-internal-staging.iam.gserviceaccount.com
+          containers:
+            - image: europe-west1-docker.pkg.dev/webstatus-dev-internal-staging/staging-docker-repository/chime_test_image
