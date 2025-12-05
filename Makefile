@@ -8,6 +8,7 @@ DOCKERFILES := \
 	otel/Dockerfile \
 	./.dev/auth/Dockerfile \
 	./.dev/datastore/Dockerfile \
+	./.dev/pubsub/Dockerfile \
 	./.dev/spanner/Dockerfile \
 	./.dev/valkey/Dockerfile \
 	./.devcontainer/Dockerfile
