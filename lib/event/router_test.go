@@ -67,13 +67,13 @@ func TestNew(t *testing.T) {
 	// Generate payload
 	data, err := New(event)
 	if err != nil {
-		t.Fatalf("NewEvent failed: %v", err)
+		t.Fatalf("New failed: %v", err)
 	}
 
 	// Verify JSON structure manually
 	var raw map[string]interface{}
 	if err := json.Unmarshal(data, &raw); err != nil {
-		t.Fatalf("NewEvent generated invalid JSON: %v", err)
+		t.Fatalf("New generated invalid JSON: %v", err)
 	}
 
 	if raw["kind"] != testEventKind {
@@ -156,7 +156,7 @@ func TestHandleMessageErrors(t *testing.T) {
 		},
 		{
 			name:          "unknown handler",
-			input:         mustNewEvent(TestEventV2{ID: "id", Priority: 0}),
+			input:         mustNew(TestEventV2{ID: "id", Priority: 0}),
 			errorContains: "no handler registered",
 		},
 		{
@@ -188,7 +188,7 @@ func TestHandleMessageErrors(t *testing.T) {
 }
 
 // Helper to ignore errors in test table setup.
-func mustNewEvent[T Event](e T) []byte {
+func mustNew[T Event](e T) []byte {
 	b, err := New(e)
 	if err != nil {
 		panic(err)

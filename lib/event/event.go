@@ -26,7 +26,7 @@ type Event interface {
 	APIVersion() string
 }
 
-// NewEvent creates a publishable JSON payload for the given event.
+// New creates a publishable JSON payload for the given event.
 // It wraps the event data in the standard envelope with the correct Kind and APIVersion.
 func New[T Event](payload T) ([]byte, error) {
 	env := envelope{
