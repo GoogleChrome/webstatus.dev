@@ -19,9 +19,25 @@ import (
 	"fmt"
 )
 
-// Payload represents a complete, versioned data structure.
-// This struct maps to the ENTIRE content of the blob (excluding headers, which are injected).
-// Typically, the implementing struct should have json tags for "metadata" and "data".
+// Payload represents a complete, versioned data structure intended for storage as a blob.
+//
+// The Kind() and Version() methods are crucial for the migration system.
+// - Kind() returns a stable, machine-readable name for the data type (e.g., "SavedSearchSnapshot").
+// - Version() returns the specific schema version of the struct (e.g., "v1", "v2").
+//
+// Together, they allow the Migrator to identify the exact schema of a raw blob
+// and apply the correct upgrade logic.
+//
+// Example Implementation:
+//
+//	const myKind = "MyDataType"
+//
+//	type MyDataV1 struct {
+//		Name string `json:"name"`
+//	}
+//
+//	func (d MyDataV1) Kind() string    { return myKind }
+//	func (d MyDataV1) Version() string { return "v1" }
 type Payload interface {
 	Kind() string
 	Version() string
@@ -44,20 +60,27 @@ func NewBlob(p Payload) ([]byte, error) {
 		return nil, fmt.Errorf("failed to marshal payload: %w", err)
 	}
 
-	// 2. Unmarshal into a map to inject headers
+	// 2. Inject headers
+	return injectHeaders(b, p.Kind(), p.Version())
+}
+
+// injectHeaders takes a marshaled payload, unmarshals it into a map,
+// injects the standard apiVersion and kind headers, and remarshals it.
+func injectHeaders(payloadBytes []byte, kind, version string) ([]byte, error) {
+	// Unmarshal into a map to inject headers
 	// This creates a flat JSON object: { "apiVersion": "v1", "kind": "...", "metadata": {...}, "data": {...} }
 	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(b, &raw); err != nil {
-		return nil, fmt.Errorf("payload must be a JSON object: %w", err)
+	if err := json.Unmarshal(payloadBytes, &raw); err != nil {
+		// This can happen if the payload is not a JSON object (e.g. a raw string)
+		return nil, fmt.Errorf("payload is not a JSON object: %w", err)
 	}
 
-	// 3. Inject Identity Headers
-	// We do this dynamically so they match the Kind()/Version() methods strictly.
-	verBytes, err := json.Marshal(p.Version())
+	// Inject Identity Headers
+	verBytes, err := json.Marshal(version)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal version header: %w", err)
 	}
-	kindBytes, err := json.Marshal(p.Kind())
+	kindBytes, err := json.Marshal(kind)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal kind header: %w", err)
 	}
@@ -164,23 +187,7 @@ func Apply[Target Payload](m *Migrator, fullBlob []byte) ([]byte, error) {
 	}
 
 	// 3. Re-inject Headers for the final blob
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(finalBytes, &raw); err != nil {
-		return nil, fmt.Errorf("final migration result is not a JSON object: %w", err)
-	}
-
-	verBytes, err := json.Marshal(finalVer)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal version header: %w", err)
-	}
-	kindBytes, err := json.Marshal(finalKind)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal kind header: %w", err)
-	}
-	raw["apiVersion"] = verBytes
-	raw["kind"] = kindBytes
-
-	return json.Marshal(raw)
+	return injectHeaders(finalBytes, finalKind, finalVer)
 }
 
 func (m *Migrator) applyInternal(blob []byte, currentKind, currentVersion, targetKind, targetVersion string) (
