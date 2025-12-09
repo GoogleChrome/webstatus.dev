@@ -141,6 +141,7 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 	ttl := 10 * time.Minute
 	initialBlobPath := "path/initial"
 	newStatePath := "path/new"
+	newDiffBlobPath := "path/diff/new"
 
 	// Fixed time for deterministic tests
 	fixedTime := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
@@ -167,14 +168,13 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 					SnapshotType:  SavedSearchSnapshotType(snapshotType),
 					Timestamp:     spanner.CommitTimestamp,
 					EventType:     "IMMEDIATE_DIFF",
-					Reason:        "DATA_UPDATED",
+					Reasons:       []string{"DATA_UPDATED", "QUERY_CHANGED"},
 					BlobPath:      newStatePath,
-					DataVersion:   "v1",
+					DiffBlobPath:  newDiffBlobPath,
 					Summary: spanner.NullJSON{
 						Value: nil,
 						Valid: false,
 					},
-					DiffKind: nil,
 				}
 			},
 			newStatePath: newStatePath,
@@ -188,14 +188,13 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 					SnapshotType:  SavedSearchSnapshotType(snapshotType),
 					Timestamp:     spanner.CommitTimestamp,
 					EventType:     "IMMEDIATE_DIFF",
-					Reason:        "DATA_UPDATED",
+					Reasons:       []string{"DATA_UPDATED", "QUERY_CHANGED"},
 					BlobPath:      newStatePath,
-					DataVersion:   "v1",
+					DiffBlobPath:  newDiffBlobPath,
 					Summary: spanner.NullJSON{
 						Value: nil,
 						Valid: false,
 					},
-					DiffKind: nil,
 				})
 				assertStateAndLockKept(ctx, t, savedSearchID, snapshotType, newStatePath, workerID, initialExpiration)
 			},
@@ -212,14 +211,13 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 					SnapshotType:  SavedSearchSnapshotType(snapshotType),
 					Timestamp:     spanner.CommitTimestamp,
 					EventType:     "IMMEDIATE_DIFF",
-					Reason:        "DATA_UPDATED",
+					Reasons:       []string{"DATA_UPDATED"},
 					BlobPath:      newStatePath,
-					DataVersion:   "v1",
+					DiffBlobPath:  newDiffBlobPath,
 					Summary: spanner.NullJSON{
 						Value: nil,
 						Valid: false,
 					},
-					DiffKind: nil,
 				}
 			},
 			newStatePath: newStatePath,
@@ -244,14 +242,13 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 					SnapshotType:  SavedSearchSnapshotType(snapshotType),
 					Timestamp:     spanner.CommitTimestamp,
 					EventType:     "IMMEDIATE_DIFF",
-					Reason:        "DATA_UPDATED",
+					Reasons:       []string{"DATA_UPDATED"},
 					BlobPath:      newStatePath,
-					DataVersion:   "v1",
+					DiffBlobPath:  newDiffBlobPath,
 					Summary: spanner.NullJSON{
 						Value: nil,
 						Valid: false,
 					},
-					DiffKind: nil,
 				}
 			},
 			newStatePath: newStatePath,
