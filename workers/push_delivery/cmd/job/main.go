@@ -56,8 +56,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	// For publishing to push destintations
-	// Email
+	// For publishing to push destinations
+	// Push destination 1: Email
 	emailTopicID := os.Getenv("EMAIL_TOPIC_ID")
 	if emailTopicID == "" {
 		slog.ErrorContext(ctx, "EMAIL_TOPIC_ID is not set. exiting...")
@@ -82,6 +82,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/1851
 	// Nil handler for now. Will fix later
 	err = queueClient.Subscribe(ctx, notificationSubID, nil)
 	if err != nil {

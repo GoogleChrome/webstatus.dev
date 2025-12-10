@@ -61,6 +61,7 @@ func main() {
 		os.Exit(1)
 	}
 
+	// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/1852
 	// Nil handler for now. Will fix later
 	err = queueClient.Subscribe(ctx, emailSubID, nil)
 	if err != nil {
