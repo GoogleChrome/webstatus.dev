@@ -25,3 +25,19 @@ var ErrPreconditionFailed = errors.New("blob precondition failed")
 // ErrBlobNotFound indicates the requested object does not exist.
 // Workers should handle this as a "Cold Start" or empty state.
 var ErrBlobNotFound = errors.New("blob not found")
+
+// ErrMigrationPathNotFound indicates that no registered migration handler exists
+// to transform the data from the current state to the next step towards the target.
+var ErrMigrationPathNotFound = errors.New("migration path not found")
+
+// ErrMigrationCycle indicates that the migration graph contains an infinite loop
+// (e.g. v1 -> v2 -> v1).
+var ErrMigrationCycle = errors.New("migration cycle detected")
+
+// ErrMaxMigrationDepth indicates that the migration exceeded the safety limit
+// of iterations.
+var ErrMaxMigrationDepth = errors.New("max migration depth exceeded")
+
+// ErrInvalidHandlerRegistration indicates an attempt to register a migration
+// where the source and destination types are identical.
+var ErrInvalidHandlerRegistration = errors.New("invalid migration handler registration")
