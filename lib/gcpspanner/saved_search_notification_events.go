@@ -29,11 +29,10 @@ type SavedSearchNotificationEvent struct {
 	SnapshotType  SavedSearchSnapshotType `spanner:"SnapshotType"`
 	Timestamp     time.Time               `spanner:"Timestamp"`
 	EventType     string                  `spanner:"EventType"`
-	Reason        string                  `spanner:"Reason"`
+	Reasons       []string                `spanner:"Reasons"`
 	BlobPath      string                  `spanner:"BlobPath"`
+	DiffBlobPath  string                  `spanner:"DiffBlobPath"`
 	Summary       spanner.NullJSON        `spanner:"Summary"`
-	DiffKind      *string                 `spanner:"DiffKind"`
-	DataVersion   string                  `spanner:"DataVersion"`
 }
 
 type SavedSearchNotificationCreateRequest struct {
@@ -41,11 +40,10 @@ type SavedSearchNotificationCreateRequest struct {
 	SnapshotType  SavedSearchSnapshotType `spanner:"SnapshotType"`
 	Timestamp     time.Time               `spanner:"Timestamp"`
 	EventType     string                  `spanner:"EventType"`
-	Reason        string                  `spanner:"Reason"`
+	Reasons       []string                `spanner:"Reasons"`
 	BlobPath      string                  `spanner:"BlobPath"`
+	DiffBlobPath  string                  `spanner:"DiffBlobPath"`
 	Summary       spanner.NullJSON        `spanner:"Summary"`
-	DiffKind      *string                 `spanner:"DiffKind"`
-	DataVersion   string                  `spanner:"DataVersion"`
 }
 
 func (c *Client) GetSavedSearchNotificationEvent(
@@ -77,11 +75,10 @@ func (m savedSearchNotificationEventMapper) NewEntity(id string, req SavedSearch
 		SnapshotType:  req.SnapshotType,
 		Timestamp:     req.Timestamp,
 		EventType:     req.EventType,
-		Reason:        req.Reason,
+		Reasons:       req.Reasons,
 		BlobPath:      req.BlobPath,
 		Summary:       req.Summary,
-		DiffKind:      req.DiffKind,
-		DataVersion:   req.DataVersion,
+		DiffBlobPath:  req.DiffBlobPath,
 	}, nil
 }
 
