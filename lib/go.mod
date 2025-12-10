@@ -4,6 +4,7 @@ go 1.25.3
 
 require (
 	cloud.google.com/go/datastore v1.21.0
+	cloud.google.com/go/pubsub/v2 v2.0.0
 	cloud.google.com/go/spanner v1.86.1
 	cloud.google.com/go/storage v1.57.2
 	firebase.google.com/go/v4 v4.18.0
