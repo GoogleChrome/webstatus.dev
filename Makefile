@@ -427,6 +427,9 @@ go-workspace-setup: go-workspace-clean
 		go work use ./lib/gen && \
 		go work use ./tools && \
 		go work use ./util && \
+		go work use ./workers/email && \
+		go work use ./workers/event_producer && \
+		go work use ./workers/push_delivery && \
 		go work use ./workflows/steps/services/bcd_consumer && \
 		go work use ./workflows/steps/services/chromium_histogram_enums && \
 		go work use ./workflows/steps/services/developer_signals_consumer && \

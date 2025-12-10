@@ -59,9 +59,12 @@ while ! curl -s -o /dev/null "localhost:$PORT"; do
   echo "waiting until pubsub emulator responds before finishing setup"
 done
 
-
-create_topic "my-new-topic"
-create_subscription "my-new-topic" "my-new-sub"
+create_topic "ingestion-jobs-topic-id"
+create_subscription "ingestion-jobs-topic-id" "ingestion-jobs-sub-id"
+create_topic "notification-events-topic-id"
+create_subscription "notification-events-topic-id" "notification-events-sub-id"
+create_topic "chime-delivery-topic-id"
+create_subscription "chime-delivery-topic-id" "chime-delivery-sub-id"
 
 echo "Pub/Sub setup for webstatus.dev finished"
 

@@ -14,5 +14,8 @@
 
 FROM fsouza/fake-gcs-server:1.52.3
 
+# Create a test bucket and land a sample file in there.
+RUN mkdir -p /data/state-bucket && touch /data/state-bucket/sample.txt
+
 # https://cloud.google.com/datastore/docs/tools/datastore-emulator
 CMD ["-scheme", "http", "-public-host", "gcs:4443", "-external-url", "http://gcs:4443"]
