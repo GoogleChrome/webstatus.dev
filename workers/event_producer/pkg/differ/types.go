@@ -15,6 +15,7 @@
 package differ
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -22,6 +23,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
@@ -52,6 +55,26 @@ const (
 	ReasonUnmatched ChangeReason = "unmatched"
 	ReasonDeleted   ChangeReason = "deleted"
 )
+
+// FeatureFetcher abstracts the external API.
+type FeatureFetcher interface {
+	FetchFeatures(ctx context.Context, query string) ([]backend.Feature, error)
+	GetFeature(ctx context.Context, featureID string) (*backendtypes.GetFeatureResult, error)
+}
+
+type FeatureDiffer struct {
+	client   FeatureFetcher
+	migrator *blobtypes.Migrator
+}
+
+func NewFeatureDiffer(client FeatureFetcher) *FeatureDiffer {
+	m := blobtypes.NewMigrator()
+
+	return &FeatureDiffer{
+		client:   client,
+		migrator: m,
+	}
+}
 
 // --- Generics ---
 
