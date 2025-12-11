@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
 func TestOptionallySet_Marshaling(t *testing.T) {
@@ -218,7 +219,7 @@ func TestSummarize(t *testing.T) {
 		name         string
 		diff         FeatureDiff
 		expectedText string
-		expectedCats SummaryCategories
+		expectedCats workertypes.SummaryCategories
 	}{
 		{
 			name: "Empty",
@@ -231,7 +232,7 @@ func TestSummarize(t *testing.T) {
 				Splits:       nil,
 			},
 			expectedText: "No changes detected",
-			expectedCats: SummaryCategories{
+			expectedCats: workertypes.SummaryCategories{
 				QueryChanged:    0,
 				Added:           0,
 				Removed:         0,
@@ -297,7 +298,7 @@ func TestSummarize(t *testing.T) {
 			// 1 features split, 3 features updated"
 			expectedText: "Search criteria updated, 2 features added, 1 features removed, 1 features moved/renamed, " +
 				"1 features split, 3 features updated",
-			expectedCats: SummaryCategories{
+			expectedCats: workertypes.SummaryCategories{
 				QueryChanged:    1,
 				Added:           2,
 				Removed:         1,
