@@ -9,6 +9,7 @@ replace github.com/GoogleChrome/webstatus.dev/lib/gen => ../../lib/gen
 require (
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-00010101000000-000000000000
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251119220853-b545639c35ae
+	github.com/google/go-cmp v0.7.0
 )
 
 require (
