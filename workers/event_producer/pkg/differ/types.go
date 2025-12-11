@@ -35,7 +35,7 @@ const (
 	// KindFeatureListDiff identifies a delta report of feature changes.
 	KindFeatureListDiff = "FeatureListDiff"
 
-	// V1FeatureListDiff identifies version v1 of the FeatureListSnapshot schema.
+	// V1FeatureListDiff identifies version v1 of the FeatureListDiff schema.
 	V1FeatureListDiff = "v1"
 )
 
