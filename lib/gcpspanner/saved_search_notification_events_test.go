@@ -132,6 +132,10 @@ func assertStateUnchanged(
 	}
 }
 
+type testStructJSON struct {
+	Value string `json:"value"`
+}
+
 func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 	ctx := context.Background()
 
@@ -150,6 +154,7 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 	testCases := []struct {
 		name              string
 		setup             func(t *testing.T, savedSearchID string)
+		createOptions     []CreateOption
 		event             func(savedSearchID string) SavedSearchNotificationCreateRequest
 		newStatePath      string
 		workerID          string
@@ -162,6 +167,53 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 				t.Helper()
 				setupLockAndInitialState(ctx, t, savedSearchID, snapshotType, workerID, initialBlobPath, ttl, fixedTime)
 			},
+			createOptions: nil,
+			event: func(savedSearchID string) SavedSearchNotificationCreateRequest {
+				return SavedSearchNotificationCreateRequest{
+					SavedSearchID: savedSearchID,
+					SnapshotType:  SavedSearchSnapshotType(snapshotType),
+					Timestamp:     spanner.CommitTimestamp,
+					EventType:     "IMMEDIATE_DIFF",
+					Reasons:       []string{"DATA_UPDATED", "QUERY_CHANGED"},
+					BlobPath:      newStatePath,
+					DiffBlobPath:  newDiffBlobPath,
+					Summary: spanner.NullJSON{
+						Value: testStructJSON{
+							Value: "test",
+						},
+						Valid: true,
+					},
+				}
+			},
+			newStatePath: newStatePath,
+			workerID:     workerID,
+			expectedErr:  nil,
+			assertAfterAction: func(t *testing.T, savedSearchID string, eventID *string) {
+				t.Helper()
+				assertPublishedEvent(ctx, t, SavedSearchNotificationEvent{
+					ID:            *eventID,
+					SavedSearchID: savedSearchID,
+					SnapshotType:  SavedSearchSnapshotType(snapshotType),
+					Timestamp:     spanner.CommitTimestamp,
+					EventType:     "IMMEDIATE_DIFF",
+					Reasons:       []string{"DATA_UPDATED", "QUERY_CHANGED"},
+					BlobPath:      newStatePath,
+					DiffBlobPath:  newDiffBlobPath,
+					Summary: spanner.NullJSON{
+						Value: map[string]any{"value": string("test")},
+						Valid: true,
+					},
+				})
+				assertStateAndLockKept(ctx, t, savedSearchID, snapshotType, newStatePath, workerID, initialExpiration)
+			},
+		},
+		{
+			name: "success - publish event and update state, keeping lock with provided ID 'foo'",
+			setup: func(t *testing.T, savedSearchID string) {
+				t.Helper()
+				setupLockAndInitialState(ctx, t, savedSearchID, snapshotType, workerID, initialBlobPath, ttl, fixedTime)
+			},
+			createOptions: []CreateOption{WithID("foo")},
 			event: func(savedSearchID string) SavedSearchNotificationCreateRequest {
 				return SavedSearchNotificationCreateRequest{
 					SavedSearchID: savedSearchID,
@@ -180,10 +232,10 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 			newStatePath: newStatePath,
 			workerID:     workerID,
 			expectedErr:  nil,
-			assertAfterAction: func(t *testing.T, savedSearchID string, eventID *string) {
+			assertAfterAction: func(t *testing.T, savedSearchID string, _ *string) {
 				t.Helper()
 				assertPublishedEvent(ctx, t, SavedSearchNotificationEvent{
-					ID:            *eventID,
+					ID:            "foo",
 					SavedSearchID: savedSearchID,
 					SnapshotType:  SavedSearchSnapshotType(snapshotType),
 					Timestamp:     spanner.CommitTimestamp,
@@ -205,6 +257,7 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 				t.Helper()
 				setupLockAndInitialState(ctx, t, savedSearchID, snapshotType, workerID, initialBlobPath, ttl, fixedTime)
 			},
+			createOptions: nil,
 			event: func(savedSearchID string) SavedSearchNotificationCreateRequest {
 				return SavedSearchNotificationCreateRequest{
 					SavedSearchID: savedSearchID,
@@ -251,9 +304,10 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 					},
 				}
 			},
-			newStatePath: newStatePath,
-			workerID:     workerID,
-			expectedErr:  ErrQueryReturnedNoResults,
+			createOptions: nil,
+			newStatePath:  newStatePath,
+			workerID:      workerID,
+			expectedErr:   ErrQueryReturnedNoResults,
 			assertAfterAction: func(t *testing.T, _ string, _ *string) {
 				t.Helper()
 				// No event should be published
@@ -273,7 +327,8 @@ func TestPublishSavedSearchNotificationEvent(t *testing.T) {
 			tc.setup(t, savedSearchID)
 			event := tc.event(savedSearchID)
 
-			eventID, err := spannerClient.PublishSavedSearchNotificationEvent(ctx, event, tc.newStatePath, tc.workerID)
+			eventID, err := spannerClient.PublishSavedSearchNotificationEvent(ctx, event, tc.newStatePath, tc.workerID,
+				tc.createOptions...)
 
 			if !errors.Is(err, tc.expectedErr) {
 				t.Errorf("PublishSavedSearchNotificationEvent() error = %v, want %v", err, tc.expectedErr)

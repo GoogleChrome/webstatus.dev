@@ -26,6 +26,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
 const (
@@ -256,27 +257,9 @@ type FeatureModified struct {
 	BrowserChanges map[backend.SupportedBrowsers]*Change[string] `json:"browserChanges,omitzero"`
 }
 
-// SummaryCategories defines the specific counts for different change types.
-type SummaryCategories struct {
-	QueryChanged    int `json:"query_changed,omitzero"`
-	Added           int `json:"added,omitzero"`
-	Removed         int `json:"removed,omitzero"`
-	Moved           int `json:"moved,omitzero"`
-	Split           int `json:"split,omitzero"`
-	Updated         int `json:"updated,omitzero"`
-	UpdatedImpl     int `json:"updated_impl,omitzero"`
-	UpdatedRename   int `json:"updated_rename,omitzero"`
-	UpdatedBaseline int `json:"updated_baseline,omitzero"`
-}
-
-// EventSummary matches the JSON structure stored in the database 'Summary' column.
-type EventSummary struct {
-	Text       string            `json:"text"`
-	Categories SummaryCategories `json:"categories,omitzero"`
-}
-
-func (d FeatureDiff) Summarize() EventSummary {
-	var s EventSummary
+func (d FeatureDiff) Summarize() workertypes.EventSummary {
+	var s workertypes.EventSummary
+	s.SchemaVersion = workertypes.VersionEventSummaryV1
 	var parts []string
 
 	if d.QueryChanged {
