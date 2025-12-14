@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
@@ -110,12 +111,12 @@ func TestOptionallySet_UnmarshalMissing(t *testing.T) {
 func TestHasChanges(t *testing.T) {
 	tests := []struct {
 		name     string
-		diff     FeatureDiff
+		diff     FeatureDiffV1
 		expected bool
 	}{
 		{
 			name: "No Changes",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
@@ -127,7 +128,7 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Query Changed",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: true,
 				Added:        nil,
 				Removed:      nil,
@@ -139,9 +140,9 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Added",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
-				Added:        []FeatureAdded{{ID: "1", Name: "A", Reason: ReasonNewMatch}},
+				Added:        []FeatureDiffV1FeatureAdded{{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil}},
 				Removed:      nil,
 				Modified:     nil,
 				Moves:        nil,
@@ -151,10 +152,10 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Removed",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
-				Removed:      []FeatureRemoved{{ID: "1", Name: "A", Reason: ReasonUnmatched}},
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "1", Name: "A", Reason: ReasonUnmatched}},
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
@@ -163,16 +164,28 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Modified",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureModified{{
-					ID:             "1",
-					Name:           "A",
-					NameChange:     nil,
-					BaselineChange: &Change[backend.BaselineInfoStatus]{From: "a", To: "b"},
+				Modified: []FeatureDiffV1FeatureModified{{
+					ID:         "1",
+					Name:       "A",
+					Docs:       nil,
+					NameChange: nil,
+					BaselineChange: &Change[BaselineState]{
+						From: BaselineState{
+							Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "a", IsSet: true},
+							LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
+							HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						},
+						To: BaselineState{
+							Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "b", IsSet: true},
+							LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
+							HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						}},
 					BrowserChanges: nil,
+					DocsChange:     nil,
 				}},
 				Moves:  nil,
 				Splits: nil,
@@ -181,25 +194,25 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Moves",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
-				Moves:        []FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
+				Moves:        []FeatureDiffV1FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
 				Splits:       nil,
 			},
 			expected: true,
 		},
 		{
 			name: "Splits",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
 				Moves:        nil,
-				Splits:       []FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
+				Splits:       []FeatureDiffV1FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
 			},
 			expected: true,
 		},
@@ -214,16 +227,31 @@ func TestHasChanges(t *testing.T) {
 	}
 }
 
+func testBaselineChange() *Change[BaselineState] {
+	return &Change[BaselineState]{
+		From: BaselineState{
+			Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "limited", IsSet: true},
+			LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
+			HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+		},
+		To: BaselineState{
+			Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "newly", IsSet: true},
+			LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
+			HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+		},
+	}
+}
+
 func TestSummarize(t *testing.T) {
 	tests := []struct {
 		name         string
-		diff         FeatureDiff
+		diff         FeatureDiffV1
 		expectedText string
 		expectedCats workertypes.SummaryCategories
 	}{
 		{
 			name: "Empty",
-			diff: FeatureDiff{
+			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
@@ -245,54 +273,225 @@ func TestSummarize(t *testing.T) {
 			},
 		},
 		{
-			name: "Complex Update",
-			diff: FeatureDiff{
-				QueryChanged: true,
-				Added: []FeatureAdded{
-					{ID: "1", Name: "A", Reason: ReasonNewMatch},
-					{ID: "2", Name: "B", Reason: ReasonNewMatch},
-				},
-				Removed: []FeatureRemoved{
-					{ID: "3", Name: "C", Reason: ReasonUnmatched},
-				},
-				Moves: []FeatureMoved{
-					{FromID: "4", ToID: "5", FromName: "D", ToName: "E"},
-				},
-				Splits: []FeatureSplit{
-					{FromID: "6", FromName: "F", To: []FeatureAdded{{ID: "7", Name: "G", Reason: ReasonNewMatch}}},
-				},
-				Modified: []FeatureModified{
+			name: "Only Baseline Change",
+			diff: FeatureDiffV1{
+				QueryChanged: false,
+				Added:        nil,
+				Removed:      nil,
+				Modified: []FeatureDiffV1FeatureModified{
 					{
-						ID:             "8",
-						Name:           "H",
+						ID:             "1",
+						Name:           "Feature A",
+						Docs:           nil,
 						NameChange:     nil,
-						BaselineChange: &Change[backend.BaselineInfoStatus]{From: "limited", To: "newly"},
+						BaselineChange: testBaselineChange(),
 						BrowserChanges: nil,
+						DocsChange:     nil,
 					},
+				},
+				Moves:  nil,
+				Splits: nil,
+			},
+			expectedText: "1 features updated",
+			expectedCats: workertypes.SummaryCategories{
+				QueryChanged:    0,
+				Added:           0,
+				Removed:         0,
+				Moved:           0,
+				Split:           0,
+				Updated:         1,
+				UpdatedImpl:     0,
+				UpdatedRename:   0,
+				UpdatedBaseline: 1,
+			},
+		},
+		{
+			name: "Only Name Change",
+			diff: FeatureDiffV1{
+				QueryChanged: false,
+				Added:        nil,
+				Removed:      nil,
+				Modified: []FeatureDiffV1FeatureModified{
 					{
-						ID:             "9",
-						Name:           "I",
-						NameChange:     nil,
-						BaselineChange: nil,
-						BrowserChanges: map[backend.SupportedBrowsers]*Change[string]{
-							backend.Chrome:         {From: "unavailable", To: "available"},
-							backend.ChromeAndroid:  nil,
-							backend.Edge:           nil,
-							backend.Firefox:        nil,
-							backend.FirefoxAndroid: nil,
-							backend.Safari:         nil,
-							backend.SafariIos:      nil,
-						},
-					},
-					{
-						ID:             "10",
-						Name:           "J",
+						ID:             "1",
+						Name:           "Feature A",
+						Docs:           nil,
 						NameChange:     &Change[string]{From: "Old", To: "New"},
 						BaselineChange: nil,
 						BrowserChanges: nil,
+						DocsChange:     nil,
 					},
 				},
+				Moves:  nil,
+				Splits: nil,
 			},
+			expectedText: "1 features updated",
+			expectedCats: workertypes.SummaryCategories{
+				QueryChanged:    0,
+				Added:           0,
+				Removed:         0,
+				Moved:           0,
+				Split:           0,
+				Updated:         1,
+				UpdatedImpl:     0,
+				UpdatedRename:   1,
+				UpdatedBaseline: 0,
+			},
+		},
+		{
+			name: "Only Browser Change",
+			diff: FeatureDiffV1{
+				QueryChanged: false,
+				Added:        nil,
+				Removed:      nil,
+				Modified: []FeatureDiffV1FeatureModified{
+					{
+						ID:             "1",
+						Name:           "Feature A",
+						Docs:           nil,
+						NameChange:     nil,
+						BaselineChange: nil,
+						BrowserChanges: map[backend.SupportedBrowsers]*Change[BrowserState]{
+							backend.Chrome: {
+								From: BrowserState{
+									Status: OptionallySet[backend.BrowserImplementationStatus]{
+										Value: "unavailable",
+										IsSet: true,
+									},
+									Version: OptionallySet[*string]{
+										Value: nil,
+										IsSet: false,
+									},
+									Date: OptionallySet[*time.Time]{
+										Value: nil,
+										IsSet: false,
+									},
+								},
+								To: BrowserState{
+									Status: OptionallySet[backend.BrowserImplementationStatus]{
+										Value: "available",
+										IsSet: false,
+									},
+									Version: OptionallySet[*string]{
+										Value: nil,
+										IsSet: false,
+									},
+									Date: OptionallySet[*time.Time]{
+										Value: nil,
+										IsSet: false,
+									},
+								},
+							},
+							backend.ChromeAndroid:  nil,
+							backend.Firefox:        nil,
+							backend.FirefoxAndroid: nil,
+							backend.Edge:           nil,
+							backend.Safari:         nil,
+							backend.SafariIos:      nil,
+						},
+						DocsChange: nil,
+					},
+				},
+				Moves:  nil,
+				Splits: nil,
+			},
+			expectedText: "1 features updated",
+			expectedCats: workertypes.SummaryCategories{
+				QueryChanged:    0,
+				Added:           0,
+				Removed:         0,
+				Moved:           0,
+				Split:           0,
+				Updated:         1,
+				UpdatedImpl:     1,
+				UpdatedRename:   0,
+				UpdatedBaseline: 0,
+			},
+		},
+		{
+			name: "Complex Update",
+			diff: FeatureDiffV1{
+				QueryChanged: true,
+				Added: []FeatureDiffV1FeatureAdded{
+					{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "2", Name: "B", Reason: ReasonNewMatch, Docs: nil},
+				},
+				Removed: []FeatureDiffV1FeatureRemoved{
+					{ID: "3", Name: "C", Reason: ReasonUnmatched},
+				},
+				Moves: []FeatureDiffV1FeatureMoved{
+					{FromID: "4", ToID: "5", FromName: "D", ToName: "E"},
+				},
+				Splits: []FeatureDiffV1FeatureSplit{
+					{FromID: "6", FromName: "F", To: []FeatureDiffV1FeatureAdded{
+						{ID: "7", Name: "G", Reason: ReasonNewMatch, Docs: nil}}},
+				},
+				Modified: []FeatureDiffV1FeatureModified{
+					{
+						ID:             "8",
+						Name:           "H",
+						Docs:           nil,
+						NameChange:     nil,
+						BaselineChange: testBaselineChange(),
+						BrowserChanges: nil,
+						DocsChange:     nil,
+					},
+					{
+						ID:             "10",
+						Name:           "",
+						Docs:           nil,
+						NameChange:     &Change[string]{From: "Old", To: "New"},
+						BaselineChange: nil,
+						BrowserChanges: nil,
+						DocsChange:     nil,
+					},
+					{
+						ID:             "12",
+						Name:           "I",
+						Docs:           nil,
+						NameChange:     nil,
+						BaselineChange: nil,
+						BrowserChanges: map[backend.SupportedBrowsers]*Change[BrowserState]{
+							backend.Chrome: {
+								From: BrowserState{
+									Status: OptionallySet[backend.BrowserImplementationStatus]{
+										Value: "unavailable",
+										IsSet: true,
+									},
+									Version: OptionallySet[*string]{
+										Value: nil,
+										IsSet: false,
+									},
+									Date: OptionallySet[*time.Time]{
+										Value: nil,
+										IsSet: false,
+									},
+								},
+								To: BrowserState{
+									Status: OptionallySet[backend.BrowserImplementationStatus]{
+										Value: "available",
+										IsSet: false,
+									},
+									Version: OptionallySet[*string]{
+										Value: nil,
+										IsSet: false,
+									},
+									Date: OptionallySet[*time.Time]{
+										Value: nil,
+										IsSet: false,
+									},
+								},
+							},
+							backend.ChromeAndroid:  nil,
+							backend.Firefox:        nil,
+							backend.FirefoxAndroid: nil,
+							backend.Edge:           nil,
+							backend.Safari:         nil,
+							backend.SafariIos:      nil,
+						},
+						DocsChange: nil,
+					},
+				}},
 			// Note: The text output order depends on the implementation of Summarize.
 			// "Search criteria updated, 2 features added, 1 features removed, 1 features moved/renamed,
 			// 1 features split, 3 features updated"
@@ -327,32 +526,32 @@ func TestSummarize(t *testing.T) {
 }
 
 func TestFeatureDiff_Sort(t *testing.T) {
-	diff := FeatureDiff{
+	diff := FeatureDiffV1{
 		QueryChanged: false,
-		Added: []FeatureAdded{
-			{ID: "2", Name: "B", Reason: ReasonNewMatch},
-			{ID: "1", Name: "A", Reason: ReasonNewMatch},
-			{ID: "3", Name: "A", Reason: ReasonNewMatch}, // Same Name, Diff ID
+		Added: []FeatureDiffV1FeatureAdded{
+			{ID: "2", Name: "B", Reason: ReasonNewMatch, Docs: nil},
+			{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
+			{ID: "3", Name: "A", Reason: ReasonNewMatch, Docs: nil}, // Same Name, Diff ID
 		},
-		Removed: []FeatureRemoved{
+		Removed: []FeatureDiffV1FeatureRemoved{
 			{ID: "2", Name: "B", Reason: ReasonUnmatched},
 			{ID: "1", Name: "A", Reason: ReasonUnmatched},
 		},
-		Modified: []FeatureModified{
-			{ID: "2", Name: "B", NameChange: nil, BaselineChange: nil, BrowserChanges: nil},
-			{ID: "1", Name: "A", NameChange: nil, BaselineChange: nil, BrowserChanges: nil},
+		Modified: []FeatureDiffV1FeatureModified{
+			{ID: "2", Name: "B", NameChange: nil, BaselineChange: nil, BrowserChanges: nil, Docs: nil, DocsChange: nil},
+			{ID: "1", Name: "A", NameChange: nil, BaselineChange: nil, BrowserChanges: nil, Docs: nil, DocsChange: nil},
 		},
-		Moves: []FeatureMoved{
+		Moves: []FeatureDiffV1FeatureMoved{
 			{FromID: "2", FromName: "B", ToID: "20", ToName: ""},
 			{FromID: "1", FromName: "A", ToID: "10", ToName: ""},
 		},
-		Splits: []FeatureSplit{
+		Splits: []FeatureDiffV1FeatureSplit{
 			{
 				FromID:   "2",
 				FromName: "B",
-				To: []FeatureAdded{
-					{ID: "20", Name: "Y", Reason: ReasonNewMatch},
-					{ID: "10", Name: "X", Reason: ReasonNewMatch},
+				To: []FeatureDiffV1FeatureAdded{
+					{ID: "20", Name: "Y", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "10", Name: "X", Reason: ReasonNewMatch, Docs: nil},
 				},
 			},
 			{

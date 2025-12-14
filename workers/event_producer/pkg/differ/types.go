@@ -43,6 +43,40 @@ const (
 	V1FeatureListDiff = "v1"
 )
 
+// BlobFormat defines the serialization format and file extension for blobs.
+type BlobFormat string
+
+const (
+	// BlobFormatJSON indicates the blob is serialized as standard JSON.
+	BlobFormatJSON BlobFormat = "json"
+)
+
+// DiffResult encapsulates the complete output of a Run.
+// It provides the caller with opaque bytes for storage and structured data for the DB,
+// isolating them from the internal versioning of FeatureDiff or Snapshot structs.
+type DiffResult struct {
+	HasChanges bool
+
+	// Format indicates the serialization format of StateBytes and DiffBytes.
+	// The consumer should use this to determine the file extension (e.g. ".json").
+	Format BlobFormat
+
+	// State Persistence
+	// The new state snapshot to be saved to blob storage.
+	StateBytes []byte
+	StateID    string // The unique ID generated for this snapshot (e.g. "state_<timestamp>")
+
+	// Diff Persistence
+	// The diff blob to be saved to blob storage. Only present if HasChanges is true.
+	DiffBytes []byte
+	DiffID    string // The unique ID generated for this event (UUID).
+
+	// DB Event Data
+	// Structured data required to publish the notification event to the database.
+	Summary workertypes.EventSummary
+	Reasons []string // e.g. ["DATA_UPDATED", "QUERY_EDITED"]
+}
+
 var (
 	ErrTransient = errors.New("transient failure")
 	ErrFatal     = errors.New("fatal error")
@@ -66,24 +100,47 @@ type FeatureFetcher interface {
 type FeatureDiffer struct {
 	client   FeatureFetcher
 	migrator *blobtypes.Migrator
+	// For testing purposes
+	idGen idGenerator
+	now   func() time.Time
 }
 
 func NewFeatureDiffer(client FeatureFetcher) *FeatureDiffer {
 	m := blobtypes.NewMigrator()
-
-	return &FeatureDiffer{
+	d := &FeatureDiffer{
 		client:   client,
 		migrator: m,
+		idGen:    &defaultIDGenerator{},
+		now:      time.Now,
 	}
+
+	return d
 }
 
 // --- Generics ---
 
 // OptionallySet allows distinguishing between "Missing Field" (Schema Cold Start)
 // and "Zero Value" (Valid Data).
+//
+// ARCHITECTURE NOTE:
+// This wrapper is used exclusively for STATE types (Snapshots) stored in GCS.
+// It allows us to safely evolve the schema over time.
+//
+// - If a field is added to the struct, old blobs won't have it.
+// - json.Unmarshal skips it, leaving IsSet=false.
+// - The Comparator sees IsSet=false and skips diffing that field.
+//
+// Do NOT use this for Diff/Event types, as they are generated fresh and do not
+// have "missing history" problems.
 type OptionallySet[T any] struct {
 	Value T
 	IsSet bool
+}
+
+// IsZero enables the 'omitzero' JSON tag to work correctly.
+// If IsSet is false, this struct is considered "Zero" and will be omitted from JSON output.
+func (o OptionallySet[T]) IsZero() bool {
+	return !o.IsSet
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface.
@@ -116,64 +173,131 @@ func (s FeatureListSnapshot) Kind() string    { return KindFeatureListSnapshot }
 func (s FeatureListSnapshot) Version() string { return V1FeatureListSnapshot }
 
 type StateMetadata struct {
+	ID             string    `json:"id"`
 	GeneratedAt    time.Time `json:"generatedAt"`
 	SearchID       string    `json:"searchId"`
 	QuerySignature string    `json:"querySignature"`
+	EventID        string    `json:"eventId,omitempty"`
 }
 
 type FeatureListData struct {
 	Features map[string]ComparableFeature `json:"features"`
 }
 
+// BaselineState captures the full status context for a feature's baseline.
+// We use OptionallySet for fields here to ensure consistency with other state structs.
+type BaselineState struct {
+	Status   OptionallySet[backend.BaselineInfoStatus] `json:"status,omitzero"`
+	LowDate  OptionallySet[*time.Time]                 `json:"lowDate,omitzero"`
+	HighDate OptionallySet[*time.Time]                 `json:"highDate,omitzero"`
+}
+
 // ComparableFeature is the struct we generate the signature from.
 type ComparableFeature struct {
-	ID             string                                    `json:"id"`
-	Name           OptionallySet[string]                     `json:"name"`
-	BaselineStatus OptionallySet[backend.BaselineInfoStatus] `json:"baselineStatus"`
-	BrowserImpls   BrowserImplementations                    `json:"browserImplementations"`
+	ID             string                                `json:"id"`
+	Name           OptionallySet[string]                 `json:"name,omitzero"`
+	BaselineStatus OptionallySet[BaselineState]          `json:"baselineStatus,omitzero"`
+	BrowserImpls   OptionallySet[BrowserImplementations] `json:"browserImplementations,omitzero"`
+	Docs           OptionallySet[Docs]                   `json:"docs,omitzero"`
+}
+
+type Docs struct {
+	MdnDocs OptionallySet[[]MdnDoc] `json:"mdnDocs,omitzero"`
+}
+
+// Representation of https://github.com/web-platform-dx/web-features-mappings/blob/main/mappings/mdn-docs.json
+// Mapping data can change structure so mark all of these as pointers.
+type MdnDoc struct {
+	URL   OptionallySet[*string] `json:"url,omitzero"`
+	Title OptionallySet[*string] `json:"title,omitzero"`
+	Slug  OptionallySet[*string] `json:"slug,omitzero"`
+}
+
+// setBrowserState is a helper to set the correct browser field in BrowserImplementations.
+func (b *BrowserImplementations) setBrowserState(browser backend.SupportedBrowsers, state OptionallySet[BrowserState]) {
+	switch browser {
+	case backend.Chrome:
+		b.Chrome = state
+	case backend.ChromeAndroid:
+		b.ChromeAndroid = state
+	case backend.Edge:
+		b.Edge = state
+	case backend.Firefox:
+		b.Firefox = state
+	case backend.FirefoxAndroid:
+		b.FirefoxAndroid = state
+	case backend.Safari:
+		b.Safari = state
+	case backend.SafariIos:
+		b.SafariIos = state
+	}
 }
 
 // BrowserImplementations defines the specific browsers we track.
 // Using a struct with OptionallySet allows us to add new browsers (e.g. Ladybird)
 // in the future without triggering false "Added" alerts on old blobs.
 type BrowserImplementations struct {
-	Chrome         OptionallySet[string] `json:"chrome"`
-	ChromeAndroid  OptionallySet[string] `json:"chrome_android"`
-	Edge           OptionallySet[string] `json:"edge"`
-	Firefox        OptionallySet[string] `json:"firefox"`
-	FirefoxAndroid OptionallySet[string] `json:"firefox_android"`
-	Safari         OptionallySet[string] `json:"safari"`
-	SafariIos      OptionallySet[string] `json:"safari_ios"`
+	Chrome         OptionallySet[BrowserState] `json:"chrome"`
+	ChromeAndroid  OptionallySet[BrowserState] `json:"chrome_android"`
+	Edge           OptionallySet[BrowserState] `json:"edge"`
+	Firefox        OptionallySet[BrowserState] `json:"firefox"`
+	FirefoxAndroid OptionallySet[BrowserState] `json:"firefox_android"`
+	Safari         OptionallySet[BrowserState] `json:"safari"`
+	SafariIos      OptionallySet[BrowserState] `json:"safari_ios"`
+}
+
+// BrowserState captures the implementation details for a specific browser.
+type BrowserState struct {
+	Status  OptionallySet[backend.BrowserImplementationStatus] `json:"status,omitzero"`
+	Date    OptionallySet[*time.Time]                          `json:"date,omitzero"`
+	Version OptionallySet[*string]                             `json:"version,omitzero"`
 }
 
 // --- Diff Types (Output of Ingestion / Input of Delivery) ---
+// These types represent the EVENT generated by comparing two States.
+// We do NOT use OptionallySet here because Diffs are immutable records created
+// at a point in time. If a field is empty in a Diff, it simply means no change occurred
+// or the data wasn't available, which is handled by pointers or zero values.
 
-type FeatureDiffSnapshot struct {
-	Metadata DiffMetadata `json:"metadata"`
-	Data     FeatureDiff  `json:"data"`
+// LatestFeatureDiff is an alias for the latest version of the FeatureDiff struct.
+// When a new version is created (e.g. FeatureDiffV2), this alias should be updated to point to the new version.
+type LatestFeatureDiff = FeatureDiffV1
+
+// LatestFeatureDiffSnapshot is an alias for the latest version of the FeatureDiffSnapshot struct.
+type LatestFeatureDiffSnapshot = FeatureDiffSnapshotV1
+
+// LatestFeatureDiffVersion is a constant for the latest version of the FeatureListDiff schema.
+const LatestFeatureDiffVersion = V1FeatureListDiff
+
+type FeatureDiffSnapshotV1 struct {
+	Metadata DiffMetadataV1 `json:"metadata"`
+	Data     FeatureDiffV1  `json:"data"`
 }
 
-func (d FeatureDiffSnapshot) Kind() string    { return KindFeatureListDiff }
-func (d FeatureDiffSnapshot) Version() string { return V1FeatureListDiff }
+func (d FeatureDiffSnapshotV1) Kind() string    { return KindFeatureListDiff }
+func (d FeatureDiffSnapshotV1) Version() string { return V1FeatureListDiff }
 
-type DiffMetadata struct {
-	GeneratedAt time.Time `json:"generatedAt"`
-	EventID     string    `json:"eventId"`
-	SearchID    string    `json:"searchId"`
+type DiffMetadataV1 struct {
+	GeneratedAt     time.Time `json:"generatedAt"`
+	EventID         string    `json:"eventId"`
+	SearchID        string    `json:"searchId"`
+	ID              string    `json:"id"`
+	PreviousStateID string    `json:"previousStateId,omitempty"`
+	NewStateID      string    `json:"newStateId"`
 }
 
-type FeatureDiff struct {
-	QueryChanged bool              `json:"queryChanged"`
-	Added        []FeatureAdded    `json:"added"`
-	Removed      []FeatureRemoved  `json:"removed"`
-	Modified     []FeatureModified `json:"modified"`
-	Moves        []FeatureMoved    `json:"moves"`
-	Splits       []FeatureSplit    `json:"splits"`
+type FeatureDiffV1 struct {
+	QueryChanged bool                           `json:"queryChanged,omitempty"`
+	Added        []FeatureDiffV1FeatureAdded    `json:"added,omitempty"`
+	Removed      []FeatureDiffV1FeatureRemoved  `json:"removed,omitempty"`
+	Modified     []FeatureDiffV1FeatureModified `json:"modified,omitempty"`
+	Moves        []FeatureDiffV1FeatureMoved    `json:"moves,omitempty"`
+	Splits       []FeatureDiffV1FeatureSplit    `json:"splits,omitempty"`
 }
 
 // Sort orders all slices deterministically by Name (primary) and ID (secondary).
 // This ensures stable JSON output and organized UI/Email lists.
-func (d *FeatureDiff) Sort() {
+func (d *FeatureDiffV1) Sort() {
 	sort.Slice(d.Added, func(i, j int) bool {
 		if d.Added[i].Name != d.Added[j].Name {
 			return d.Added[i].Name < d.Added[j].Name
@@ -223,41 +347,44 @@ func (d *FeatureDiff) Sort() {
 	}
 }
 
-type FeatureAdded struct {
+type FeatureDiffV1FeatureAdded struct {
+	ID     string       `json:"id"`
+	Name   string       `json:"name"`
+	Reason ChangeReason `json:"reason"`
+	Docs   *Docs        `json:"docs,omitempty"`
+}
+
+type FeatureDiffV1FeatureRemoved struct {
 	ID     string       `json:"id"`
 	Name   string       `json:"name"`
 	Reason ChangeReason `json:"reason"`
 }
 
-type FeatureRemoved struct {
-	ID     string       `json:"id"`
-	Name   string       `json:"name"`
-	Reason ChangeReason `json:"reason"`
-}
-
-type FeatureMoved struct {
+type FeatureDiffV1FeatureMoved struct {
 	FromID   string `json:"fromId"`
 	ToID     string `json:"toId"`
 	FromName string `json:"fromName"`
 	ToName   string `json:"toName"`
 }
 
-type FeatureSplit struct {
-	FromID   string         `json:"fromId"`
-	FromName string         `json:"fromName"`
-	To       []FeatureAdded `json:"to"`
+type FeatureDiffV1FeatureSplit struct {
+	FromID   string                      `json:"fromId"`
+	FromName string                      `json:"fromName"`
+	To       []FeatureDiffV1FeatureAdded `json:"to"`
 }
 
-type FeatureModified struct {
+type FeatureDiffV1FeatureModified struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
+	Docs *Docs  `json:"docs,omitempty"`
 
-	NameChange     *Change[string]                               `json:"nameChange,omitzero"`
-	BaselineChange *Change[backend.BaselineInfoStatus]           `json:"baselineChange,omitzero"`
-	BrowserChanges map[backend.SupportedBrowsers]*Change[string] `json:"browserChanges,omitzero"`
+	NameChange     *Change[string]                                     `json:"nameChange,omitempty"`
+	BaselineChange *Change[BaselineState]                              `json:"baselineChange,omitempty"`
+	BrowserChanges map[backend.SupportedBrowsers]*Change[BrowserState] `json:"browserChanges,omitempty"`
+	DocsChange     *Change[Docs]                                       `json:"docsChange,omitempty"`
 }
 
-func (d FeatureDiff) Summarize() workertypes.EventSummary {
+func (d FeatureDiffV1) Summarize() workertypes.EventSummary {
 	var s workertypes.EventSummary
 	s.SchemaVersion = workertypes.VersionEventSummaryV1
 	var parts []string
@@ -310,7 +437,7 @@ func (d FeatureDiff) Summarize() workertypes.EventSummary {
 	return s
 }
 
-func (d FeatureDiff) HasChanges() bool {
+func (d FeatureDiffV1) HasChanges() bool {
 	return d.QueryChanged || len(d.Added) > 0 || len(d.Removed) > 0 ||
 		len(d.Modified) > 0 || len(d.Moves) > 0 || len(d.Splits) > 0
 }

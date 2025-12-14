@@ -53,17 +53,17 @@ func (m *mockReconcileClient) GetFeature(
 func TestReconcileHistory(t *testing.T) {
 	tests := []struct {
 		name         string
-		initialDiff  *FeatureDiff
+		initialDiff  *FeatureDiffV1
 		mockResults  map[string]*backendtypes.GetFeatureResult
 		mockErrors   map[string]error
-		expectedDiff *FeatureDiff
+		expectedDiff *FeatureDiffV1
 		wantErr      bool
 	}{
 		{
 			name: "Scenario 1: Feature Moved (Rename)",
-			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch}},
+			initialDiff: &FeatureDiffV1{
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
+				Added:        []FeatureDiffV1FeatureAdded{{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -75,10 +75,10 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
+			expectedDiff: &FeatureDiffV1{
 				Removed: nil, // Should be cleared
 				Added:   nil, // Should be cleared
-				Moves: []FeatureMoved{
+				Moves: []FeatureDiffV1FeatureMoved{
 					{FromID: "old-id", FromName: "Old Name", ToID: "new-id", ToName: "New Name"},
 				},
 				QueryChanged: false,
@@ -89,11 +89,11 @@ func TestReconcileHistory(t *testing.T) {
 		},
 		{
 			name: "Scenario 2: Feature Split (Full)",
-			initialDiff: &FeatureDiff{
-				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
-				Added: []FeatureAdded{
-					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
-					{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch},
+			initialDiff: &FeatureDiffV1{
+				Removed: []FeatureDiffV1FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
+				Added: []FeatureDiffV1FeatureAdded{
+					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch, Docs: nil},
 				},
 				QueryChanged: false,
 				Modified:     nil,
@@ -111,16 +111,16 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
+			expectedDiff: &FeatureDiffV1{
 				Removed: nil,
 				Added:   nil,
-				Splits: []FeatureSplit{
+				Splits: []FeatureDiffV1FeatureSplit{
 					{
 						FromID:   "monolith",
 						FromName: "Monolith Feature",
-						To: []FeatureAdded{
-							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
-							{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch},
+						To: []FeatureDiffV1FeatureAdded{
+							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
+							{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch, Docs: nil},
 						},
 					},
 				},
@@ -133,11 +133,10 @@ func TestReconcileHistory(t *testing.T) {
 		{
 			name: "Scenario 3: Feature Split (Partial / Out of Scope)",
 			// 'part-2' matches the split definition but isn't in the Added list (maybe filtered out by query)
-			initialDiff: &FeatureDiff{
-				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
-				Added: []FeatureAdded{
-					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
-				},
+			initialDiff: &FeatureDiffV1{
+				Removed: []FeatureDiffV1FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
+				Added: []FeatureDiffV1FeatureAdded{
+					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -154,16 +153,15 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
+			expectedDiff: &FeatureDiffV1{
 				Removed: nil,
 				Added:   nil,
-				Splits: []FeatureSplit{
+				Splits: []FeatureDiffV1FeatureSplit{
 					{
 						FromID:   "monolith",
 						FromName: "Monolith Feature",
-						// Only part-1 is included because part-2 wasn't in the 'Added' list
-						To: []FeatureAdded{
-							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
+						To: []FeatureDiffV1FeatureAdded{
+							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
 						},
 					},
 				},
@@ -175,8 +173,8 @@ func TestReconcileHistory(t *testing.T) {
 		},
 		{
 			name: "Scenario 4: Regular Removal (No Move/Split)",
-			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched}},
+			initialDiff: &FeatureDiffV1{
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
@@ -200,9 +198,9 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
+			expectedDiff: &FeatureDiffV1{
 				// Remains in Removed list
-				Removed:      []FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched}},
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
@@ -213,8 +211,8 @@ func TestReconcileHistory(t *testing.T) {
 		},
 		{
 			name: "Scenario 5: Hard Delete (EntityDoesNotExist)",
-			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonUnmatched}},
+			initialDiff: &FeatureDiffV1{
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonUnmatched}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
@@ -225,9 +223,9 @@ func TestReconcileHistory(t *testing.T) {
 			mockErrors: map[string]error{
 				"deleted-id": backendtypes.ErrEntityDoesNotExist,
 			},
-			expectedDiff: &FeatureDiff{
+			expectedDiff: &FeatureDiffV1{
 				// Remains in Removed list, but Reason updated to Deleted
-				Removed:      []FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
@@ -240,9 +238,11 @@ func TestReconcileHistory(t *testing.T) {
 			name: "Scenario 6: Move Target Missing from Added List",
 			// History says A moved to B, but B is NOT in the Added list.
 			// Should act as a regular removal.
-			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch}},
+			initialDiff: &FeatureDiffV1{
+				Removed: []FeatureDiffV1FeatureRemoved{
+					{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
+				Added: []FeatureDiffV1FeatureAdded{
+					{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -254,9 +254,11 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch}},
+			expectedDiff: &FeatureDiffV1{
+				Removed: []FeatureDiffV1FeatureRemoved{
+					{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
+				Added: []FeatureDiffV1FeatureAdded{
+					{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -266,8 +268,9 @@ func TestReconcileHistory(t *testing.T) {
 		},
 		{
 			name: "Scenario 7: DB Error",
-			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "error-id", Name: "Error Feature", Reason: ReasonUnmatched}},
+			initialDiff: &FeatureDiffV1{
+				Removed: []FeatureDiffV1FeatureRemoved{
+					{ID: "error-id", Name: "Error Feature", Reason: ReasonUnmatched}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
@@ -285,9 +288,9 @@ func TestReconcileHistory(t *testing.T) {
 			name: "Scenario 8: Split Targets Completely Missing",
 			// History says A split into B, but B is NOT in the Added list.
 			// Should act as a regular removal (hitting the 'else' block).
-			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch}},
+			initialDiff: &FeatureDiffV1{
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
+				Added:        []FeatureDiffV1FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -303,9 +306,9 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch}},
+			expectedDiff: &FeatureDiffV1{
+				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
+				Added:        []FeatureDiffV1FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -317,11 +320,11 @@ func TestReconcileHistory(t *testing.T) {
 			name: "Scenario 9: Unrelated Additions Preserved",
 			// A moved to B. C is just a new feature.
 			// Result should be Move(A->B) + Added(C). B should NOT be in Added list.
-			initialDiff: &FeatureDiff{
-				Removed: []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added: []FeatureAdded{
-					{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch},
-					{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch},
+			initialDiff: &FeatureDiffV1{
+				Removed: []FeatureDiffV1FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
+				Added: []FeatureDiffV1FeatureAdded{
+					{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch, Docs: nil},
 				},
 				QueryChanged: false,
 				Modified:     nil,
@@ -334,10 +337,10 @@ func TestReconcileHistory(t *testing.T) {
 				),
 			},
 			mockErrors: nil,
-			expectedDiff: &FeatureDiff{
+			expectedDiff: &FeatureDiffV1{
 				Removed: nil,
-				Added:   []FeatureAdded{{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch}},
-				Moves: []FeatureMoved{
+				Added:   []FeatureDiffV1FeatureAdded{{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch, Docs: nil}},
+				Moves: []FeatureDiffV1FeatureMoved{
 					{FromID: "old-id", FromName: "Old Name", ToID: "new-id", ToName: "New Name"},
 				},
 				QueryChanged: false,

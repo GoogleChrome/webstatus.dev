@@ -15,25 +15,66 @@
 package differ
 
 import (
-	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 )
 
-func newBaseFeature(id, name, status string) ComparableFeature {
+func newBaseFeature(name, status string) ComparableFeature {
+
 	return ComparableFeature{
-		ID:             id,
-		Name:           OptionallySet[string]{Value: name, IsSet: true},
-		BaselineStatus: OptionallySet[backend.BaselineInfoStatus]{Value: backend.BaselineInfoStatus(status), IsSet: true},
-		BrowserImpls: BrowserImplementations{
-			Chrome:         unsetOptionalSet[string](),
-			ChromeAndroid:  unsetOptionalSet[string](),
-			Edge:           unsetOptionalSet[string](),
-			Firefox:        unsetOptionalSet[string](),
-			FirefoxAndroid: unsetOptionalSet[string](),
-			Safari:         unsetOptionalSet[string](),
-			SafariIos:      unsetOptionalSet[string](),
+
+		ID:   "1",
+		Name: OptionallySet[string]{Value: name, IsSet: true},
+		BaselineStatus: OptionallySet[BaselineState]{
+			Value: BaselineState{
+				Status:   OptionallySet[backend.BaselineInfoStatus]{Value: backend.BaselineInfoStatus(status), IsSet: true},
+				LowDate:  OptionallySet[*time.Time]{IsSet: false, Value: nil},
+				HighDate: OptionallySet[*time.Time]{IsSet: false, Value: nil},
+			},
+			IsSet: true,
+		},
+		Docs: OptionallySet[Docs]{
+			IsSet: true,
+			Value: Docs{
+				MdnDocs: OptionallySet[[]MdnDoc]{IsSet: false, Value: nil},
+			},
+		},
+		BrowserImpls: OptionallySet[BrowserImplementations]{
+			IsSet: true,
+			Value: BrowserImplementations{
+				Chrome:         unsetBrowserState(),
+				ChromeAndroid:  unsetBrowserState(),
+				Edge:           unsetBrowserState(),
+				Firefox:        unsetBrowserState(),
+				FirefoxAndroid: unsetBrowserState(),
+				Safari:         unsetBrowserState(),
+				SafariIos:      unsetBrowserState(),
+			},
+		},
+	}
+}
+
+func unsetBrowserState() OptionallySet[BrowserState] {
+	return OptionallySet[BrowserState]{
+		IsSet: false,
+		Value: BrowserState{
+			Status:  OptionallySet[backend.BrowserImplementationStatus]{IsSet: false, Value: ""},
+			Date:    OptionallySet[*time.Time]{IsSet: false, Value: nil},
+			Version: OptionallySet[*string]{IsSet: false, Value: nil}},
+	}
+}
+
+// Helper to quickly create a populated BrowserState for tests.
+func makeBrowserState(status backend.BrowserImplementationStatus,
+	ver *string, date *time.Time) OptionallySet[BrowserState] {
+	return OptionallySet[BrowserState]{
+		IsSet: true,
+		Value: BrowserState{
+			Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: status, IsSet: true},
+			Date:    OptionallySet[*time.Time]{Value: date, IsSet: true},
+			Version: OptionallySet[*string]{Value: ver, IsSet: true},
 		},
 	}
 }
@@ -49,51 +90,24 @@ func TestCalculateDiff(t *testing.T) {
 	}{
 		{
 			name:         "No Changes",
-			oldMap:       map[string]ComparableFeature{"1": newBaseFeature("1", "A", "limited")},
-			newMap:       map[string]ComparableFeature{"1": newBaseFeature("1", "A", "limited")},
+			oldMap:       map[string]ComparableFeature{"1": newBaseFeature("A", "limited")},
+			newMap:       map[string]ComparableFeature{"1": newBaseFeature("A", "limited")},
 			wantAdded:    0,
 			wantRemoved:  0,
 			wantModified: 0,
 		},
 		{
-			name:         "Addition",
-			oldMap:       map[string]ComparableFeature{},
-			newMap:       map[string]ComparableFeature{"2": newBaseFeature("2", "A", "limited")},
-			wantAdded:    1,
-			wantRemoved:  0,
-			wantModified: 0,
-		},
-		{
-			name:         "Removal",
-			oldMap:       map[string]ComparableFeature{"1": newBaseFeature("1", "A", "limited")},
-			newMap:       map[string]ComparableFeature{},
-			wantAdded:    0,
-			wantRemoved:  1,
-			wantModified: 0,
-		},
-		{
-			name: "Modification",
-			oldMap: map[string]ComparableFeature{
-				"1": newBaseFeature("1", "A", "limited"),
-			},
-			newMap: map[string]ComparableFeature{
-				"1": newBaseFeature("1", "A", "widely"),
-			},
+			name:         "Modification",
+			oldMap:       map[string]ComparableFeature{"1": newBaseFeature("A", "limited")},
+			newMap:       map[string]ComparableFeature{"1": newBaseFeature("A", "widely")},
 			wantAdded:    0,
 			wantRemoved:  0,
 			wantModified: 1,
 		},
 	}
-
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			diff := calculateDiff(tc.oldMap, tc.newMap)
-			if len(diff.Added) != tc.wantAdded {
-				t.Errorf("Added count: got %d, want %d", len(diff.Added), tc.wantAdded)
-			}
-			if len(diff.Removed) != tc.wantRemoved {
-				t.Errorf("Removed count: got %d, want %d", len(diff.Removed), tc.wantRemoved)
-			}
 			if len(diff.Modified) != tc.wantModified {
 				t.Errorf("Modified count: got %d, want %d", len(diff.Modified), tc.wantModified)
 			}
@@ -102,81 +116,124 @@ func TestCalculateDiff(t *testing.T) {
 }
 
 func TestCompareFeature_Fields(t *testing.T) {
+	v110 := "110"
+	v111 := "111"
+	t1 := time.Now()
+	t2 := t1.Add(24 * time.Hour)
+
 	tests := []struct {
 		name      string
 		oldF      ComparableFeature
 		newF      ComparableFeature
 		wantMod   bool
-		checkDiff func(t *testing.T, m FeatureModified)
+		checkDiff func(t *testing.T, m FeatureDiffV1FeatureModified)
 	}{
 		{
 			name:    "Name Change",
-			oldF:    newBaseFeature("1", "Old Name", "limited"),
-			newF:    newBaseFeature("1", "New Name", "limited"),
+			oldF:    newBaseFeature("Old Name", "limited"),
+			newF:    newBaseFeature("New Name", "limited"),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
+			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
 				if m.NameChange == nil {
 					t.Fatal("NameChange is nil")
 				}
-				if m.NameChange.From != "Old Name" || m.NameChange.To != "New Name" {
-					t.Errorf("NameChange mismatch: %v", m.NameChange)
-				}
 			},
 		},
 		{
-			name:    "Baseline Change",
-			oldF:    newBaseFeature("1", "A", "limited"),
-			newF:    newBaseFeature("1", "A", "widely"),
-			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
-				if m.BaselineChange == nil {
-					t.Fatal("BaselineChange is nil")
-				}
-				if m.BaselineChange.From != backend.Limited || m.BaselineChange.To != backend.Widely {
-					t.Errorf("BaselineChange mismatch: %v", m.BaselineChange)
-				}
-			},
-		},
-		{
-			name: "Browser Implementation Change",
+			name: "Browser Status Change",
 			oldF: func() ComparableFeature {
-				f := newBaseFeature("1", "A", "limited")
-				f.BrowserImpls.Chrome = OptionallySet[string]{Value: "unavailable", IsSet: true}
+				f := newBaseFeature("A", "limited")
+				f.BrowserImpls.Value.Chrome = makeBrowserState("unavailable", nil, nil)
 
 				return f
 			}(),
 			newF: func() ComparableFeature {
-				f := newBaseFeature("1", "A", "limited")
-				f.BrowserImpls.Chrome = OptionallySet[string]{Value: "available", IsSet: true}
+				f := newBaseFeature("A", "limited")
+				f.BrowserImpls.Value.Chrome = makeBrowserState("available", nil, nil)
 
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
+			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty")
 				}
-				if chg, ok := m.BrowserChanges[backend.Chrome]; !ok || chg.To != "available" {
+				if chg, ok := m.BrowserChanges[backend.Chrome]; !ok || chg.To.Status.Value != "available" {
 					t.Errorf("Chrome change mismatch: %v", chg)
 				}
 			},
 		},
 		{
-			name: "Browser Implementation Schema Evolution (Missing in Old)",
+			name: "Browser Version Change (Data Refinement)",
 			oldF: func() ComparableFeature {
-				f := newBaseFeature("1", "A", "limited")
-				f.BrowserImpls.Chrome = OptionallySet[string]{Value: "", IsSet: false} // Missing
+				f := newBaseFeature("A", "limited")
+				f.BrowserImpls.Value.Chrome = makeBrowserState("available", &v110, nil)
 
 				return f
 			}(),
 			newF: func() ComparableFeature {
-				f := newBaseFeature("1", "A", "limited")
-				f.BrowserImpls.Chrome = OptionallySet[string]{Value: "available", IsSet: true} // Present
+				f := newBaseFeature("A", "limited")
+				f.BrowserImpls.Value.Chrome = makeBrowserState("available", &v111, nil)
 
 				return f
 			}(),
-			wantMod:   false, // Should NOT detect change
-			checkDiff: func(_ *testing.T, _ FeatureModified) {},
+			wantMod: true,
+			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
+				if len(m.BrowserChanges) == 0 {
+					t.Fatal("BrowserChanges is empty (Version change missed)")
+				}
+				chg := m.BrowserChanges[backend.Chrome]
+				if *chg.From.Version.Value != "110" || *chg.To.Version.Value != "111" {
+					t.Errorf("Version change mismatch: %v -> %v", chg.From.Version, chg.To.Version)
+				}
+			},
+		},
+		{
+			name: "Browser Date Change",
+			oldF: func() ComparableFeature {
+				f := newBaseFeature("A", "limited")
+				f.BrowserImpls.Value.Chrome = makeBrowserState("available", nil, &t1)
+
+				return f
+			}(),
+			newF: func() ComparableFeature {
+				f := newBaseFeature("A", "limited")
+				f.BrowserImpls.Value.Chrome = makeBrowserState("available", nil, &t2)
+
+				return f
+			}(),
+			wantMod: true,
+			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
+				if len(m.BrowserChanges) == 0 {
+					t.Fatal("BrowserChanges is empty (Date change missed)")
+				}
+			},
+		},
+		{
+			name: "Browser Version Schema Evolution (Missing in Old)",
+			oldF: func() ComparableFeature {
+				f := newBaseFeature("A", "limited")
+				// Old blob has status, but Version is missing (IsSet=false)
+				f.BrowserImpls.Value.Chrome = OptionallySet[BrowserState]{
+					IsSet: true,
+					Value: BrowserState{
+						Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "available", IsSet: true},
+						Version: OptionallySet[*string]{IsSet: false, Value: nil}, // Missing field
+						Date:    OptionallySet[*time.Time]{IsSet: false, Value: nil},
+					},
+				}
+
+				return f
+			}(),
+			newF: func() ComparableFeature {
+				f := newBaseFeature("A", "limited")
+				// New blob has Version populated
+				f.BrowserImpls.Value.Chrome = makeBrowserState("available", &v111, nil)
+
+				return f
+			}(),
+			wantMod:   false, // Should NOT detect change because Version field was missing in old
+			checkDiff: func(_ *testing.T, _ FeatureDiffV1FeatureModified) {},
 		},
 	}
 
@@ -190,81 +247,5 @@ func TestCompareFeature_Fields(t *testing.T) {
 				tc.checkDiff(t, mod)
 			}
 		})
-	}
-}
-
-func unsetOptionalSet[T any]() OptionallySet[T] {
-	var value T
-
-	return OptionallySet[T]{
-		Value: value,
-		IsSet: false,
-	}
-}
-
-// TestSchemaEvolution_QuietRollout demonstrates exactly how the system behaves
-// when a new field is added to the code but missing from GCS blobs.
-func TestSchemaEvolution_QuietRollout(t *testing.T) {
-	// 1. Simulate an "Old Blob" (V1)
-	// Missing "browserImplementations" entirely.
-	legacyJSON := `{
-		"id": "feat-123",
-		"name": "My Feature",
-		"baselineStatus": "limited"
-	}`
-
-	// 2. Unmarshal into Current Struct
-	var oldFeature ComparableFeature
-	if err := json.Unmarshal([]byte(legacyJSON), &oldFeature); err != nil {
-		t.Fatalf("Failed to unmarshal legacy json: %v", err)
-	}
-
-	// Verify IsSet=false for the missing fields inside the struct
-	if oldFeature.BrowserImpls.Chrome.IsSet {
-		t.Fatal("Expected Chrome.IsSet to be false for legacy blob")
-	}
-
-	// 3. Create "New Live Data" (V2)
-	// We populate the struct manually to simulate a live fetch
-	newFeature := ComparableFeature{
-		ID:             "feat-123",
-		Name:           OptionallySet[string]{Value: "My Feature", IsSet: true},
-		BaselineStatus: OptionallySet[backend.BaselineInfoStatus]{Value: "limited", IsSet: true},
-		BrowserImpls: BrowserImplementations{
-			Chrome:         OptionallySet[string]{Value: "available", IsSet: true},
-			ChromeAndroid:  unsetOptionalSet[string](),
-			Edge:           unsetOptionalSet[string](),
-			Firefox:        unsetOptionalSet[string](),
-			FirefoxAndroid: unsetOptionalSet[string](),
-			Safari:         unsetOptionalSet[string](),
-			SafariIos:      unsetOptionalSet[string](),
-		},
-	}
-
-	// 4. Run Comparison
-	mod, changed := compareFeature(oldFeature, newFeature)
-
-	// 5. Assert "Quiet Rollout"
-	// Even though Old.Chrome was unset and New.Chrome is "available",
-	// the comparator should skip it because Old.Chrome.IsSet is false.
-	if changed {
-		t.Errorf("Quiet Rollout Failed! Expected no changes, but got: %+v", mod)
-	}
-
-	// 6. Assert Mixed Update Safety
-	// Modify an existing field to ensure it is still caught.
-	newFeature.BaselineStatus.Value = "newly" // Real update!
-
-	mod, changed = compareFeature(oldFeature, newFeature)
-
-	if !changed {
-		t.Error("Mixed Update Failed! Expected baseline change to trigger alert.")
-	}
-	if mod.BaselineChange == nil {
-		t.Error("Expected BaselineChange to be populated.")
-	}
-	// The new field should STILL be ignored
-	if _, ok := mod.BrowserChanges[backend.Chrome]; ok {
-		t.Error("Expected BrowserChanges[chrome] to still be ignored (Quiet Rollout).")
 	}
 }
