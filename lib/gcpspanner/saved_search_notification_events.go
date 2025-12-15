@@ -86,7 +86,7 @@ func (m savedSearchNotificationEventMapper) NewEntity(id string, req SavedSearch
 // This saves the event and updates the state pointer, but explicitly KEEPS the lock.
 // The worker is expected to call ReleaseLock via defer.
 func (c *Client) PublishSavedSearchNotificationEvent(ctx context.Context,
-	event SavedSearchNotificationCreateRequest, newStatePath, workerID string) (*string, error) {
+	event SavedSearchNotificationCreateRequest, newStatePath, workerID string, opts ...CreateOption) (*string, error) {
 	var id *string
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// Check Lock & Update State (Using ReadInspectMutateWithTransaction)
@@ -121,7 +121,8 @@ func (c *Client) PublishSavedSearchNotificationEvent(ctx context.Context,
 		}
 
 		// Insert Event
-		newID, err := newEntityCreator[savedSearchNotificationEventMapper](c).createWithTransaction(ctx, txn, event)
+		newID, err := newEntityCreator[savedSearchNotificationEventMapper](c).createWithTransaction(ctx, txn, event,
+			opts...)
 		if err != nil {
 			return err
 		}
