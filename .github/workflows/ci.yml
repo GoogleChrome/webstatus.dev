@@ -83,7 +83,7 @@ jobs:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: never
           runCmd: CI=true make playwright-test
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@v6
         if: ${{ !cancelled() }}
         with:
           name: playwright-report
