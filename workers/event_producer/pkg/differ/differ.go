@@ -22,6 +22,7 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
 	"github.com/google/uuid"
 )
 
@@ -71,7 +72,7 @@ func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
 	data.OldSnapshot = prevCtx.Snapshot
 
 	// 4. Compute Pure Diff
-	var diff *LatestFeatureDiff
+	var diff *v1.LatestFeatureDiff
 	// We check data.TargetSnapshot != nil because if the Flush Strategy failed (in executePlan),
 	// it returns nil to signal "Skip Diffing".
 	// toSnapshot() guarantees a non-nil map (empty map) for valid empty results,
@@ -79,7 +80,7 @@ func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
 	if !plan.IsColdStart && data.TargetSnapshot != nil {
 		diff = calculateDiff(data.OldSnapshot, data.TargetSnapshot)
 	} else {
-		diff = new(LatestFeatureDiff)
+		diff = new(v1.LatestFeatureDiff)
 	}
 
 	// 5. Reconcile History
@@ -146,10 +147,10 @@ func (d *FeatureDiffer) serializeState(
 
 func (d *FeatureDiffer) serializeDiff(
 	searchID, eventID, diffID, previousStateID, newStateID string,
-	diff *LatestFeatureDiff,
+	diff *v1.LatestFeatureDiff,
 ) ([]byte, error) {
-	diffPayload := LatestFeatureDiffSnapshot{
-		Metadata: DiffMetadataV1{
+	diffPayload := v1.LatestFeatureDiffSnapshot{
+		Metadata: v1.DiffMetadataV1{
 			GeneratedAt:     d.now(),
 			EventID:         eventID,
 			SearchID:        searchID,
@@ -200,7 +201,7 @@ func (d *FeatureDiffer) loadPreviousContext(bytes []byte) (previousContext, erro
 	}, nil
 }
 
-func determineReasons(diff *LatestFeatureDiff) []string {
+func determineReasons(diff *v1.LatestFeatureDiff) []string {
 	var reasons []string
 	if diff.QueryChanged {
 		reasons = append(reasons, "QUERY_EDITED")
@@ -410,8 +411,4 @@ func toComparable(f backend.Feature) ComparableFeature {
 	}
 
 	return cf
-}
-
-func ptrToSet[T any](val T) OptionallySet[T] {
-	return OptionallySet[T]{Value: val, IsSet: true}
 }

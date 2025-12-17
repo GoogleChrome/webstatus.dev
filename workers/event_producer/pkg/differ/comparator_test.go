@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
 )
 
 func newBaseFeature(name, status string) ComparableFeature {
@@ -126,14 +127,14 @@ func TestCompareFeature_Fields(t *testing.T) {
 		oldF      ComparableFeature
 		newF      ComparableFeature
 		wantMod   bool
-		checkDiff func(t *testing.T, m FeatureModified)
+		checkDiff func(t *testing.T, m v1.FeatureModified)
 	}{
 		{
 			name:    "Name Change",
 			oldF:    newBaseFeature("Old Name", "limited"),
 			newF:    newBaseFeature("New Name", "limited"),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
+			checkDiff: func(t *testing.T, m v1.FeatureModified) {
 				if m.NameChange == nil {
 					t.Fatal("NameChange is nil")
 				}
@@ -154,11 +155,11 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
+			checkDiff: func(t *testing.T, m v1.FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty")
 				}
-				if chg, ok := m.BrowserChanges[backend.Chrome]; !ok || chg.To.Status.Value != "available" {
+				if chg, ok := m.BrowserChanges[backend.Chrome]; !ok || chg.To.Status != "available" {
 					t.Errorf("Chrome change mismatch: %v", chg)
 				}
 			},
@@ -178,12 +179,12 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
+			checkDiff: func(t *testing.T, m v1.FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty (Version change missed)")
 				}
 				chg := m.BrowserChanges[backend.Chrome]
-				if *chg.From.Version.Value != "110" || *chg.To.Version.Value != "111" {
+				if *chg.From.Version != "110" || *chg.To.Version != "111" {
 					t.Errorf("Version change mismatch: %v -> %v", chg.From.Version, chg.To.Version)
 				}
 			},
@@ -203,7 +204,7 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureModified) {
+			checkDiff: func(t *testing.T, m v1.FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty (Date change missed)")
 				}
@@ -233,7 +234,7 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod:   false, // Should NOT detect change because Version field was missing in old
-			checkDiff: func(_ *testing.T, _ FeatureModified) {},
+			checkDiff: func(_ *testing.T, _ v1.FeatureModified) {},
 		},
 	}
 

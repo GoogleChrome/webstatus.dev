@@ -18,10 +18,10 @@ import (
 	"encoding/json"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
 )
 
 func TestOptionallySet_Marshaling(t *testing.T) {
@@ -111,12 +111,12 @@ func TestOptionallySet_UnmarshalMissing(t *testing.T) {
 func TestHasChanges(t *testing.T) {
 	tests := []struct {
 		name     string
-		diff     FeatureDiffV1
+		diff     v1.FeatureDiffV1
 		expected bool
 	}{
 		{
 			name: "No Changes",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
@@ -128,7 +128,7 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Query Changed",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: true,
 				Added:        nil,
 				Removed:      nil,
@@ -140,9 +140,9 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Added",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
-				Added:        []FeatureAdded{{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil}},
+				Added:        []v1.FeatureAdded{{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil}},
 				Removed:      nil,
 				Modified:     nil,
 				Moves:        nil,
@@ -152,10 +152,10 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Removed",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
-				Removed:      []FeatureRemoved{{ID: "1", Name: "A", Reason: ReasonUnmatched}},
+				Removed:      []v1.FeatureRemoved{{ID: "1", Name: "A", Reason: v1.ReasonUnmatched}},
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
@@ -164,25 +164,25 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Modified",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureModified{{
+				Modified: []v1.FeatureModified{{
 					ID:         "1",
 					Name:       "A",
 					Docs:       nil,
 					NameChange: nil,
-					BaselineChange: &Change[BaselineState]{
-						From: BaselineState{
-							Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "a", IsSet: true},
-							LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
-							HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+					BaselineChange: &v1.Change[v1.BaselineState]{
+						From: v1.BaselineState{
+							Status:   "a",
+							LowDate:  nil,
+							HighDate: nil,
 						},
-						To: BaselineState{
-							Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "b", IsSet: true},
-							LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
-							HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						To: v1.BaselineState{
+							Status:   "b",
+							LowDate:  nil,
+							HighDate: nil,
 						}},
 					BrowserChanges: nil,
 					DocsChange:     nil,
@@ -194,25 +194,25 @@ func TestHasChanges(t *testing.T) {
 		},
 		{
 			name: "Moves",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
-				Moves:        []FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
+				Moves:        []v1.FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
 				Splits:       nil,
 			},
 			expected: true,
 		},
 		{
 			name: "Splits",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
 				Moves:        nil,
-				Splits:       []FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
+				Splits:       []v1.FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
 			},
 			expected: true,
 		},
@@ -227,17 +227,17 @@ func TestHasChanges(t *testing.T) {
 	}
 }
 
-func testBaselineChange() *Change[BaselineState] {
-	return &Change[BaselineState]{
-		From: BaselineState{
-			Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "limited", IsSet: true},
-			LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
-			HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+func testBaselineChange() *v1.Change[v1.BaselineState] {
+	return &v1.Change[v1.BaselineState]{
+		From: v1.BaselineState{
+			Status:   "limited",
+			LowDate:  nil,
+			HighDate: nil,
 		},
-		To: BaselineState{
-			Status:   OptionallySet[backend.BaselineInfoStatus]{Value: "newly", IsSet: true},
-			LowDate:  OptionallySet[*time.Time]{Value: nil, IsSet: false},
-			HighDate: OptionallySet[*time.Time]{Value: nil, IsSet: false},
+		To: v1.BaselineState{
+			Status:   "newly",
+			LowDate:  nil,
+			HighDate: nil,
 		},
 	}
 }
@@ -245,13 +245,13 @@ func testBaselineChange() *Change[BaselineState] {
 func TestSummarize(t *testing.T) {
 	tests := []struct {
 		name         string
-		diff         FeatureDiffV1
+		diff         v1.FeatureDiffV1
 		expectedText string
 		expectedCats workertypes.SummaryCategories
 	}{
 		{
 			name: "Empty",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
@@ -274,11 +274,11 @@ func TestSummarize(t *testing.T) {
 		},
 		{
 			name: "Only Baseline Change",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureModified{
+				Modified: []v1.FeatureModified{
 					{
 						ID:             "1",
 						Name:           "Feature A",
@@ -307,16 +307,16 @@ func TestSummarize(t *testing.T) {
 		},
 		{
 			name: "Only Name Change",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureModified{
+				Modified: []v1.FeatureModified{
 					{
 						ID:             "1",
 						Name:           "Feature A",
 						Docs:           nil,
-						NameChange:     &Change[string]{From: "Old", To: "New"},
+						NameChange:     &v1.Change[string]{From: "Old", To: "New"},
 						BaselineChange: nil,
 						BrowserChanges: nil,
 						DocsChange:     nil,
@@ -340,46 +340,28 @@ func TestSummarize(t *testing.T) {
 		},
 		{
 			name: "Only Browser Change",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureModified{
+				Modified: []v1.FeatureModified{
 					{
 						ID:             "1",
 						Name:           "Feature A",
 						Docs:           nil,
 						NameChange:     nil,
 						BaselineChange: nil,
-						BrowserChanges: map[backend.SupportedBrowsers]*Change[BrowserState]{
+						BrowserChanges: map[backend.SupportedBrowsers]*v1.Change[v1.BrowserState]{
 							backend.Chrome: {
-								From: BrowserState{
-									Status: OptionallySet[backend.BrowserImplementationStatus]{
-										Value: "unavailable",
-										IsSet: true,
-									},
-									Version: OptionallySet[*string]{
-										Value: nil,
-										IsSet: false,
-									},
-									Date: OptionallySet[*time.Time]{
-										Value: nil,
-										IsSet: false,
-									},
+								From: v1.BrowserState{
+									Status:  "unavailable",
+									Version: nil,
+									Date:    nil,
 								},
-								To: BrowserState{
-									Status: OptionallySet[backend.BrowserImplementationStatus]{
-										Value: "available",
-										IsSet: false,
-									},
-									Version: OptionallySet[*string]{
-										Value: nil,
-										IsSet: false,
-									},
-									Date: OptionallySet[*time.Time]{
-										Value: nil,
-										IsSet: false,
-									},
+								To: v1.BrowserState{
+									Status:  "available",
+									Version: nil,
+									Date:    nil,
 								},
 							},
 							backend.ChromeAndroid:  nil,
@@ -410,23 +392,23 @@ func TestSummarize(t *testing.T) {
 		},
 		{
 			name: "Complex Update",
-			diff: FeatureDiffV1{
+			diff: v1.FeatureDiffV1{
 				QueryChanged: true,
-				Added: []FeatureAdded{
-					{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
-					{ID: "2", Name: "B", Reason: ReasonNewMatch, Docs: nil},
+				Added: []v1.FeatureAdded{
+					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil},
+					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: nil},
 				},
-				Removed: []FeatureRemoved{
-					{ID: "3", Name: "C", Reason: ReasonUnmatched},
+				Removed: []v1.FeatureRemoved{
+					{ID: "3", Name: "C", Reason: v1.ReasonUnmatched},
 				},
-				Moves: []FeatureMoved{
+				Moves: []v1.FeatureMoved{
 					{FromID: "4", ToID: "5", FromName: "D", ToName: "E"},
 				},
-				Splits: []FeatureSplit{
-					{FromID: "6", FromName: "F", To: []FeatureAdded{
-						{ID: "7", Name: "G", Reason: ReasonNewMatch, Docs: nil}}},
+				Splits: []v1.FeatureSplit{
+					{FromID: "6", FromName: "F", To: []v1.FeatureAdded{
+						{ID: "7", Name: "G", Reason: v1.ReasonNewMatch, Docs: nil}}},
 				},
-				Modified: []FeatureModified{
+				Modified: []v1.FeatureModified{
 					{
 						ID:             "8",
 						Name:           "H",
@@ -440,7 +422,7 @@ func TestSummarize(t *testing.T) {
 						ID:             "10",
 						Name:           "",
 						Docs:           nil,
-						NameChange:     &Change[string]{From: "Old", To: "New"},
+						NameChange:     &v1.Change[string]{From: "Old", To: "New"},
 						BaselineChange: nil,
 						BrowserChanges: nil,
 						DocsChange:     nil,
@@ -451,35 +433,17 @@ func TestSummarize(t *testing.T) {
 						Docs:           nil,
 						NameChange:     nil,
 						BaselineChange: nil,
-						BrowserChanges: map[backend.SupportedBrowsers]*Change[BrowserState]{
+						BrowserChanges: map[backend.SupportedBrowsers]*v1.Change[v1.BrowserState]{
 							backend.Chrome: {
-								From: BrowserState{
-									Status: OptionallySet[backend.BrowserImplementationStatus]{
-										Value: "unavailable",
-										IsSet: true,
-									},
-									Version: OptionallySet[*string]{
-										Value: nil,
-										IsSet: false,
-									},
-									Date: OptionallySet[*time.Time]{
-										Value: nil,
-										IsSet: false,
-									},
+								From: v1.BrowserState{
+									Status:  "unavailable",
+									Version: nil,
+									Date:    nil,
 								},
-								To: BrowserState{
-									Status: OptionallySet[backend.BrowserImplementationStatus]{
-										Value: "available",
-										IsSet: false,
-									},
-									Version: OptionallySet[*string]{
-										Value: nil,
-										IsSet: false,
-									},
-									Date: OptionallySet[*time.Time]{
-										Value: nil,
-										IsSet: false,
-									},
+								To: v1.BrowserState{
+									Status:  "available",
+									Version: nil,
+									Date:    nil,
 								},
 							},
 							backend.ChromeAndroid:  nil,
@@ -491,7 +455,8 @@ func TestSummarize(t *testing.T) {
 						},
 						DocsChange: nil,
 					},
-				}},
+				},
+			},
 			// Note: The text output order depends on the implementation of Summarize.
 			// "Search criteria updated, 2 features added, 1 features removed, 1 features moved/renamed,
 			// 1 features split, 3 features updated"
@@ -526,32 +491,32 @@ func TestSummarize(t *testing.T) {
 }
 
 func TestFeatureDiff_Sort(t *testing.T) {
-	diff := FeatureDiffV1{
+	diff := v1.FeatureDiffV1{
 		QueryChanged: false,
-		Added: []FeatureAdded{
-			{ID: "2", Name: "B", Reason: ReasonNewMatch, Docs: nil},
-			{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
-			{ID: "3", Name: "A", Reason: ReasonNewMatch, Docs: nil}, // Same Name, Diff ID
+		Added: []v1.FeatureAdded{
+			{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: nil},
+			{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil},
+			{ID: "3", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil}, // Same Name, Diff ID
 		},
-		Removed: []FeatureRemoved{
-			{ID: "2", Name: "B", Reason: ReasonUnmatched},
-			{ID: "1", Name: "A", Reason: ReasonUnmatched},
+		Removed: []v1.FeatureRemoved{
+			{ID: "2", Name: "B", Reason: v1.ReasonUnmatched},
+			{ID: "1", Name: "A", Reason: v1.ReasonUnmatched},
 		},
-		Modified: []FeatureModified{
+		Modified: []v1.FeatureModified{
 			{ID: "2", Name: "B", NameChange: nil, BaselineChange: nil, BrowserChanges: nil, Docs: nil, DocsChange: nil},
 			{ID: "1", Name: "A", NameChange: nil, BaselineChange: nil, BrowserChanges: nil, Docs: nil, DocsChange: nil},
 		},
-		Moves: []FeatureMoved{
+		Moves: []v1.FeatureMoved{
 			{FromID: "2", FromName: "B", ToID: "20", ToName: ""},
 			{FromID: "1", FromName: "A", ToID: "10", ToName: ""},
 		},
-		Splits: []FeatureSplit{
+		Splits: []v1.FeatureSplit{
 			{
 				FromID:   "2",
 				FromName: "B",
-				To: []FeatureAdded{
-					{ID: "20", Name: "Y", Reason: ReasonNewMatch, Docs: nil},
-					{ID: "10", Name: "X", Reason: ReasonNewMatch, Docs: nil},
+				To: []v1.FeatureAdded{
+					{ID: "20", Name: "Y", Reason: v1.ReasonNewMatch, Docs: nil},
+					{ID: "10", Name: "X", Reason: v1.ReasonNewMatch, Docs: nil},
 				},
 			},
 			{

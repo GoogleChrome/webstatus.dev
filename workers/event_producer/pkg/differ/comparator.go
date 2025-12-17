@@ -21,20 +21,21 @@ import (
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
 )
 
-func calculateDiff(oldMap, newMap map[string]ComparableFeature) *LatestFeatureDiff {
-	diff := new(LatestFeatureDiff)
+func calculateDiff(oldMap, newMap map[string]ComparableFeature) *v1.LatestFeatureDiff {
+	diff := new(v1.LatestFeatureDiff)
 
 	for id, newF := range newMap {
 		oldF, exists := oldMap[id]
 		if !exists {
-			var docs *Docs
+			var docs *v1.Docs
 			if newF.Docs.IsSet {
-				docs = &newF.Docs.Value
+				docs = valuePtr(toV1Docs(newF.Docs.Value))
 			}
-			diff.Added = append(diff.Added, FeatureAdded{
-				ID: id, Name: newF.Name.Value, Docs: docs, Reason: ReasonNewMatch,
+			diff.Added = append(diff.Added, v1.FeatureAdded{
+				ID: id, Name: newF.Name.Value, Docs: docs, Reason: v1.ReasonNewMatch,
 			})
 
 			continue
@@ -47,8 +48,8 @@ func calculateDiff(oldMap, newMap map[string]ComparableFeature) *LatestFeatureDi
 
 	for id, oldF := range oldMap {
 		if _, exists := newMap[id]; !exists {
-			diff.Removed = append(diff.Removed, FeatureRemoved{
-				ID: id, Name: oldF.Name.Value, Reason: ReasonUnmatched,
+			diff.Removed = append(diff.Removed, v1.FeatureRemoved{
+				ID: id, Name: oldF.Name.Value, Reason: v1.ReasonUnmatched,
 			})
 		}
 	}
@@ -56,8 +57,12 @@ func calculateDiff(oldMap, newMap map[string]ComparableFeature) *LatestFeatureDi
 	return diff
 }
 
-func compareFeature(oldF, newF ComparableFeature) (FeatureModified, bool) {
-	mod := FeatureModified{
+func valuePtr[T any](v T) *T {
+	return &v
+}
+
+func compareFeature(oldF, newF ComparableFeature) (v1.FeatureModified, bool) {
+	mod := v1.FeatureModified{
 		ID:             newF.ID,
 		Name:           newF.Name.Value,
 		Docs:           nil,
@@ -98,9 +103,9 @@ func compareFeature(oldF, newF ComparableFeature) (FeatureModified, bool) {
 }
 
 // compareName checks for a name change.
-func compareName(oldName, newName OptionallySet[string]) (*Change[string], bool) {
+func compareName(oldName, newName OptionallySet[string]) (*v1.Change[string], bool) {
 	if oldName.IsSet && oldName.Value != newName.Value {
-		return &Change[string]{From: oldName.Value, To: newName.Value}, true
+		return &v1.Change[string]{From: oldName.Value, To: newName.Value}, true
 	}
 
 	return nil, false
@@ -108,14 +113,14 @@ func compareName(oldName, newName OptionallySet[string]) (*Change[string], bool)
 
 // compareBaseline checks for a baseline status change.
 func compareBaseline(
-	oldStatus, newStatus OptionallySet[BaselineState]) (*Change[BaselineState], bool) {
+	oldStatus, newStatus OptionallySet[BaselineState]) (*v1.Change[v1.BaselineState], bool) {
 	if oldStatus.IsSet {
 		oldBase := oldStatus.Value
 		newBase := newStatus.Value
-		if oldBase.Status.IsSet && oldBase.Status.Value != newBase.Status.Value {
-			return &Change[BaselineState]{
-				From: oldBase,
-				To:   newBase,
+		if oldBase.Status.IsSet && oldBase.Status.Value != newBase.Status.Value { //nolint:staticcheck
+			return &v1.Change[v1.BaselineState]{
+				From: toV1BaselineState(oldBase),
+				To:   toV1BaselineState(newBase),
 			}, true
 		}
 	}
@@ -125,8 +130,9 @@ func compareBaseline(
 
 // compareBrowserImpls checks for changes in browser implementations.
 func compareBrowserImpls(
-	oldImpls, newImpls OptionallySet[BrowserImplementations]) (map[backend.SupportedBrowsers]*Change[BrowserState], bool) {
-	changes := make(map[backend.SupportedBrowsers]*Change[BrowserState])
+	oldImpls, newImpls OptionallySet[BrowserImplementations],
+) (map[backend.SupportedBrowsers]*v1.Change[v1.BrowserState], bool) {
+	changes := make(map[backend.SupportedBrowsers]*v1.Change[v1.BrowserState])
 	hasChanged := false
 
 	if !oldImpls.IsSet {
@@ -151,7 +157,7 @@ func compareBrowserImpls(
 
 	for key, data := range browserMap {
 		if change, changed := compareBrowserState(data.Old, data.New); changed {
-			changes[key] = change
+			changes[key] = toV1BrowserChange(change)
 			hasChanged = true
 		}
 	}
@@ -160,7 +166,7 @@ func compareBrowserImpls(
 }
 
 // compareBrowserState checks for changes in a single browser's state.
-func compareBrowserState(oldB, newB OptionallySet[BrowserState]) (*Change[BrowserState], bool) {
+func compareBrowserState(oldB, newB OptionallySet[BrowserState]) (*v1.Change[BrowserState], bool) {
 	if !oldB.IsSet {
 		return nil, false
 	}
@@ -178,7 +184,7 @@ func compareBrowserState(oldB, newB OptionallySet[BrowserState]) (*Change[Browse
 	}
 
 	if isChanged {
-		return &Change[BrowserState]{
+		return &v1.Change[BrowserState]{
 			From: oldB.Value,
 			To:   newB.Value,
 		}, true
@@ -188,7 +194,7 @@ func compareBrowserState(oldB, newB OptionallySet[BrowserState]) (*Change[Browse
 }
 
 // compareDocs checks for changes in the documentation links.
-func compareDocs(oldDocs, newDocs OptionallySet[Docs]) (*Change[Docs], bool) {
+func compareDocs(oldDocs, newDocs OptionallySet[Docs]) (*v1.Change[v1.Docs], bool) {
 	if !oldDocs.IsSet {
 		return nil, false
 	}
@@ -217,13 +223,67 @@ func compareDocs(oldDocs, newDocs OptionallySet[Docs]) (*Change[Docs], bool) {
 		return reflect.DeepEqual(a.URL.Value, b.URL.Value)
 	}
 	if !slices.EqualFunc(oldMdnDocs, newMdnDocs, mdnDocsEqual) {
-		return &Change[Docs]{
-			From: oldDocs.Value,
-			To:   newDocs.Value,
+		return &v1.Change[v1.Docs]{
+			From: toV1Docs(oldDocs.Value),
+			To:   toV1Docs(newDocs.Value),
 		}, true
 	}
 
 	return nil, false
+}
+
+func toV1BaselineState(bs BaselineState) v1.BaselineState {
+	var status backend.BaselineInfoStatus
+	if bs.Status.IsSet {
+		status = bs.Status.Value
+	}
+
+	// Pointers are copied directly, as they are already *time.Time
+	return v1.BaselineState{
+		Status:   status,
+		LowDate:  bs.LowDate.Value,
+		HighDate: bs.HighDate.Value,
+	}
+}
+
+func toV1BrowserChange(change *v1.Change[BrowserState]) *v1.Change[v1.BrowserState] {
+	if change == nil {
+		return nil
+	}
+
+	return &v1.Change[v1.BrowserState]{
+		From: v1.BrowserState{
+			Status:  change.From.Status.Value,
+			Version: change.From.Version.Value,
+			Date:    change.From.Date.Value,
+		},
+		To: v1.BrowserState{
+			Status:  change.To.Status.Value,
+			Version: change.To.Version.Value,
+			Date:    change.To.Date.Value,
+		},
+	}
+}
+
+func toV1Docs(d Docs) v1.Docs {
+	var mdnDocs []v1.MdnDoc
+	if d.MdnDocs.IsSet {
+		for _, doc := range d.MdnDocs.Value {
+			var url, title, slug *string
+			if doc.URL.IsSet {
+				url = doc.URL.Value
+			}
+			if doc.Title.IsSet {
+				title = doc.Title.Value
+			}
+			if doc.Slug.IsSet {
+				slug = doc.Slug.Value
+			}
+			mdnDocs = append(mdnDocs, v1.MdnDoc{URL: url, Title: title, Slug: slug})
+		}
+	}
+
+	return v1.Docs{MdnDocs: mdnDocs}
 }
 
 func pointersEqual[T comparable](a, b *T) bool {

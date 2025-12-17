@@ -25,6 +25,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/oapi-codegen/runtime/types"
@@ -182,12 +183,14 @@ func expectStateBlob(t *testing.T, runTime time.Time, searchID, query, eventID s
 }
 
 // expectDiffBlob generates the expected JSON string for the Diff Blob.
-func expectDiffBlob(t *testing.T, runTime time.Time, searchID, prevStateID, eventID string, diff FeatureDiffV1) string {
+func expectDiffBlob(
+	t *testing.T, runTime time.Time, searchID, prevStateID, eventID string, diff v1.FeatureDiffV1,
+) string {
 	// Need to Sort the diff before serializing for consistent ordering
 	diff.Sort()
 
-	return string(mustGenerateBlob(t, FeatureDiffSnapshotV1{
-		Metadata: DiffMetadataV1{
+	return string(mustGenerateBlob(t, v1.FeatureDiffSnapshotV1{
+		Metadata: v1.DiffMetadataV1{
 			GeneratedAt:     runTime,
 			EventID:         eventID,
 			ID:              "test-diff-id",
@@ -270,7 +273,7 @@ func TestRun(t *testing.T) {
 				StateBlob: expectStateBlob(t, runTime, searchID, "group:css", eventID, []backend.Feature{
 					makeFeature("1", "Grid", withLimitedBaselineStatus()),
 				}),
-				DiffBlob: expectDiffBlob(t, runTime, searchID, "", eventID, FeatureDiffV1{
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "", eventID, v1.FeatureDiffV1{
 					QueryChanged: false,
 					Added:        nil,
 					Removed:      nil,
@@ -356,24 +359,24 @@ func TestRun(t *testing.T) {
 				StateBlob: expectStateBlob(t, runTime, searchID, "group:css", eventID, []backend.Feature{
 					makeFeature("1", "Grid", withHighBaselineStatus(lowDate, highDate)),
 				}),
-				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, FeatureDiffV1{
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
 					QueryChanged: false,
 					Added:        nil,
 					Removed:      nil,
-					Modified: []FeatureModified{
+					Modified: []v1.FeatureModified{
 						{
 							ID:   "1",
 							Name: "Grid",
-							BaselineChange: &Change[BaselineState]{
-								From: BaselineState{
-									Status:   ptrToSet(backend.Limited),
-									LowDate:  ptrToSet[*time.Time](nil),
-									HighDate: ptrToSet[*time.Time](nil),
+							BaselineChange: &v1.Change[v1.BaselineState]{
+								From: v1.BaselineState{
+									Status:   backend.Limited,
+									LowDate:  nil,
+									HighDate: nil,
 								},
-								To: BaselineState{
-									Status:   ptrToSet(backend.Widely),
-									LowDate:  ptrToSet(&lowDate),
-									HighDate: ptrToSet(&highDate),
+								To: v1.BaselineState{
+									Status:   backend.Widely,
+									LowDate:  &lowDate,
+									HighDate: &highDate,
 								},
 							},
 							NameChange:     nil,
@@ -425,24 +428,24 @@ func TestRun(t *testing.T) {
 					},
 				},
 				StateBlob: expectStateBlob(t, runTime, searchID, "group:new", eventID, []backend.Feature{}),
-				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, FeatureDiffV1{
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
 					QueryChanged: true,
 					Added:        nil,
 					Removed:      nil,
-					Modified: []FeatureModified{
+					Modified: []v1.FeatureModified{
 						{
 							ID:   "1",
 							Name: "OldFeature",
-							BaselineChange: &Change[BaselineState]{
-								From: BaselineState{
-									Status:   ptrToSet(backend.Limited),
-									LowDate:  ptrToSet[*time.Time](nil),
-									HighDate: ptrToSet[*time.Time](nil),
+							BaselineChange: &v1.Change[v1.BaselineState]{
+								From: v1.BaselineState{
+									Status:   backend.Limited,
+									LowDate:  nil,
+									HighDate: nil,
 								},
-								To: BaselineState{
-									Status:   ptrToSet(backend.Widely),
-									LowDate:  ptrToSet(&lowDate),
-									HighDate: ptrToSet(&highDate),
+								To: v1.BaselineState{
+									Status:   backend.Widely,
+									LowDate:  &lowDate,
+									HighDate: &highDate,
 								},
 							},
 							NameChange:     nil,
@@ -497,7 +500,7 @@ func TestRun(t *testing.T) {
 				StateBlob: expectStateBlob(t, runTime, searchID, "group:new", eventID, []backend.Feature{
 					makeFeature("2", "NewFeature", withLimitedBaselineStatus()),
 				}),
-				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, FeatureDiffV1{
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
 					QueryChanged: true,
 					Added:        nil,
 					Removed:      nil,
@@ -549,12 +552,12 @@ func TestRun(t *testing.T) {
 				StateBlob: expectStateBlob(t, runTime, searchID, "group:css", eventID, []backend.Feature{
 					makeFeature("new-id", "New Name", withLimitedBaselineStatus()),
 				}),
-				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, FeatureDiffV1{
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
 					QueryChanged: false,
 					Added:        nil,
 					Removed:      nil,
 					Modified:     nil,
-					Moves: []FeatureMoved{
+					Moves: []v1.FeatureMoved{
 						{FromID: "old-id", ToID: "new-id", FromName: "Old Name", ToName: "New Name"},
 					},
 					Splits: nil,
@@ -920,13 +923,13 @@ func docs(isSet bool) OptionallySet[Docs] {
 func TestDiffSerialization(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    FeatureDiffV1
+		input    v1.FeatureDiffV1
 		wantJSON string
 	}{
 		{
 			name: "Empty Diff (All Zero)",
 			// All slices are nil, bool is false. omitempty handles this.
-			input: FeatureDiffV1{
+			input: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
@@ -938,11 +941,11 @@ func TestDiffSerialization(t *testing.T) {
 		},
 		{
 			name: "Partial Diff",
-			input: FeatureDiffV1{
+			input: v1.FeatureDiffV1{
 				QueryChanged: true,
-				Added: []FeatureAdded{
+				Added: []v1.FeatureAdded{
 					// Docs is nil (pointer), so it should be omitted.
-					{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil},
 				},
 				Removed:  nil,
 				Modified: nil,
@@ -953,12 +956,12 @@ func TestDiffSerialization(t *testing.T) {
 		},
 		{
 			name: "Moves Only",
-			input: FeatureDiffV1{
+			input: v1.FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
-				Moves: []FeatureMoved{
+				Moves: []v1.FeatureMoved{
 					{FromID: "A", ToID: "B", FromName: "", ToName: ""},
 				},
 				Splits: nil,
@@ -978,7 +981,7 @@ func TestDiffSerialization(t *testing.T) {
 				t.Errorf("JSON mismatch.\nGot:  %s\nWant: %s", got, tc.wantJSON)
 			}
 
-			var restored FeatureDiffV1
+			var restored v1.FeatureDiffV1
 			if err := json.Unmarshal(b, &restored); err != nil {
 				t.Fatalf("Unmarshal failed: %v", err)
 			}
