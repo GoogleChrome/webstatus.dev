@@ -142,7 +142,7 @@ func TestHasChanges(t *testing.T) {
 			name: "Added",
 			diff: FeatureDiffV1{
 				QueryChanged: false,
-				Added:        []FeatureDiffV1FeatureAdded{{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil}},
+				Added:        []FeatureAdded{{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil}},
 				Removed:      nil,
 				Modified:     nil,
 				Moves:        nil,
@@ -155,7 +155,7 @@ func TestHasChanges(t *testing.T) {
 			diff: FeatureDiffV1{
 				QueryChanged: false,
 				Added:        nil,
-				Removed:      []FeatureDiffV1FeatureRemoved{{ID: "1", Name: "A", Reason: ReasonUnmatched}},
+				Removed:      []FeatureRemoved{{ID: "1", Name: "A", Reason: ReasonUnmatched}},
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
@@ -168,7 +168,7 @@ func TestHasChanges(t *testing.T) {
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureDiffV1FeatureModified{{
+				Modified: []FeatureModified{{
 					ID:         "1",
 					Name:       "A",
 					Docs:       nil,
@@ -199,7 +199,7 @@ func TestHasChanges(t *testing.T) {
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
-				Moves:        []FeatureDiffV1FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
+				Moves:        []FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
 				Splits:       nil,
 			},
 			expected: true,
@@ -212,7 +212,7 @@ func TestHasChanges(t *testing.T) {
 				Removed:      nil,
 				Modified:     nil,
 				Moves:        nil,
-				Splits:       []FeatureDiffV1FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
+				Splits:       []FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
 			},
 			expected: true,
 		},
@@ -278,7 +278,7 @@ func TestSummarize(t *testing.T) {
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureDiffV1FeatureModified{
+				Modified: []FeatureModified{
 					{
 						ID:             "1",
 						Name:           "Feature A",
@@ -311,7 +311,7 @@ func TestSummarize(t *testing.T) {
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureDiffV1FeatureModified{
+				Modified: []FeatureModified{
 					{
 						ID:             "1",
 						Name:           "Feature A",
@@ -344,7 +344,7 @@ func TestSummarize(t *testing.T) {
 				QueryChanged: false,
 				Added:        nil,
 				Removed:      nil,
-				Modified: []FeatureDiffV1FeatureModified{
+				Modified: []FeatureModified{
 					{
 						ID:             "1",
 						Name:           "Feature A",
@@ -412,21 +412,21 @@ func TestSummarize(t *testing.T) {
 			name: "Complex Update",
 			diff: FeatureDiffV1{
 				QueryChanged: true,
-				Added: []FeatureDiffV1FeatureAdded{
+				Added: []FeatureAdded{
 					{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
 					{ID: "2", Name: "B", Reason: ReasonNewMatch, Docs: nil},
 				},
-				Removed: []FeatureDiffV1FeatureRemoved{
+				Removed: []FeatureRemoved{
 					{ID: "3", Name: "C", Reason: ReasonUnmatched},
 				},
-				Moves: []FeatureDiffV1FeatureMoved{
+				Moves: []FeatureMoved{
 					{FromID: "4", ToID: "5", FromName: "D", ToName: "E"},
 				},
-				Splits: []FeatureDiffV1FeatureSplit{
-					{FromID: "6", FromName: "F", To: []FeatureDiffV1FeatureAdded{
+				Splits: []FeatureSplit{
+					{FromID: "6", FromName: "F", To: []FeatureAdded{
 						{ID: "7", Name: "G", Reason: ReasonNewMatch, Docs: nil}}},
 				},
-				Modified: []FeatureDiffV1FeatureModified{
+				Modified: []FeatureModified{
 					{
 						ID:             "8",
 						Name:           "H",
@@ -528,28 +528,28 @@ func TestSummarize(t *testing.T) {
 func TestFeatureDiff_Sort(t *testing.T) {
 	diff := FeatureDiffV1{
 		QueryChanged: false,
-		Added: []FeatureDiffV1FeatureAdded{
+		Added: []FeatureAdded{
 			{ID: "2", Name: "B", Reason: ReasonNewMatch, Docs: nil},
 			{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
 			{ID: "3", Name: "A", Reason: ReasonNewMatch, Docs: nil}, // Same Name, Diff ID
 		},
-		Removed: []FeatureDiffV1FeatureRemoved{
+		Removed: []FeatureRemoved{
 			{ID: "2", Name: "B", Reason: ReasonUnmatched},
 			{ID: "1", Name: "A", Reason: ReasonUnmatched},
 		},
-		Modified: []FeatureDiffV1FeatureModified{
+		Modified: []FeatureModified{
 			{ID: "2", Name: "B", NameChange: nil, BaselineChange: nil, BrowserChanges: nil, Docs: nil, DocsChange: nil},
 			{ID: "1", Name: "A", NameChange: nil, BaselineChange: nil, BrowserChanges: nil, Docs: nil, DocsChange: nil},
 		},
-		Moves: []FeatureDiffV1FeatureMoved{
+		Moves: []FeatureMoved{
 			{FromID: "2", FromName: "B", ToID: "20", ToName: ""},
 			{FromID: "1", FromName: "A", ToID: "10", ToName: ""},
 		},
-		Splits: []FeatureDiffV1FeatureSplit{
+		Splits: []FeatureSplit{
 			{
 				FromID:   "2",
 				FromName: "B",
-				To: []FeatureDiffV1FeatureAdded{
+				To: []FeatureAdded{
 					{ID: "20", Name: "Y", Reason: ReasonNewMatch, Docs: nil},
 					{ID: "10", Name: "X", Reason: ReasonNewMatch, Docs: nil},
 				},

@@ -112,12 +112,12 @@ func (v *reconciliationVisitor) VisitSplitFeature(_ context.Context, result back
 // based on the provided renames map (OldID -> NewID).
 func reconcileMoves(diff *LatestFeatureDiff, renames map[string]string) {
 	// Index the Added list for O(1) lookups
-	addedMap := make(map[string]FeatureDiffV1FeatureAdded)
+	addedMap := make(map[string]FeatureAdded)
 	for _, a := range diff.Added {
 		addedMap[a.ID] = a
 	}
 
-	var newRemoved []FeatureDiffV1FeatureRemoved
+	var newRemoved []FeatureRemoved
 	newMoves := diff.Moves
 
 	for _, r := range diff.Removed {
@@ -128,7 +128,7 @@ func reconcileMoves(diff *LatestFeatureDiff, renames map[string]string) {
 		// If the target ID is missing (e.g. filtered out by the user's query), we treat the original
 		// item as simply Removed.
 		if isRenamed && isAdded {
-			newMoves = append(newMoves, FeatureDiffV1FeatureMoved{
+			newMoves = append(newMoves, FeatureMoved{
 				FromID:   r.ID,
 				ToID:     newID,
 				FromName: r.Name,
@@ -142,7 +142,7 @@ func reconcileMoves(diff *LatestFeatureDiff, renames map[string]string) {
 	}
 
 	// Reconstruct the Added list with only the remaining (unclaimed) items.
-	var newAdded []FeatureDiffV1FeatureAdded
+	var newAdded []FeatureAdded
 	for _, a := range diff.Added {
 		if _, exists := addedMap[a.ID]; exists {
 			newAdded = append(newAdded, a)
@@ -157,17 +157,17 @@ func reconcileMoves(diff *LatestFeatureDiff, renames map[string]string) {
 // reconcileSplits modifies the diff in-place. It pairs Removed items with one or more Added items
 // based on the provided splits map (OldID -> [NewID...]).
 func reconcileSplits(diff *LatestFeatureDiff, splits map[string][]string) {
-	addedMap := make(map[string]FeatureDiffV1FeatureAdded)
+	addedMap := make(map[string]FeatureAdded)
 	for _, a := range diff.Added {
 		addedMap[a.ID] = a
 	}
 
-	var newRemoved []FeatureDiffV1FeatureRemoved
+	var newRemoved []FeatureRemoved
 	newSplits := diff.Splits
 
 	for _, r := range diff.Removed {
 		targetIDs, isSplit := splits[r.ID]
-		var foundTargets []FeatureDiffV1FeatureAdded
+		var foundTargets []FeatureAdded
 		foundAny := false
 
 		if isSplit {
@@ -184,7 +184,7 @@ func reconcileSplits(diff *LatestFeatureDiff, splits map[string][]string) {
 		}
 
 		if foundAny {
-			newSplits = append(newSplits, FeatureDiffV1FeatureSplit{
+			newSplits = append(newSplits, FeatureSplit{
 				FromID:   r.ID,
 				FromName: r.Name,
 				To:       foundTargets,
@@ -194,7 +194,7 @@ func reconcileSplits(diff *LatestFeatureDiff, splits map[string][]string) {
 		}
 	}
 
-	var newAdded []FeatureDiffV1FeatureAdded
+	var newAdded []FeatureAdded
 	for _, a := range diff.Added {
 		if _, exists := addedMap[a.ID]; exists {
 			newAdded = append(newAdded, a)

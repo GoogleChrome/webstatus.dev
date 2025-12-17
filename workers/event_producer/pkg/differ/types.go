@@ -287,12 +287,12 @@ type DiffMetadataV1 struct {
 }
 
 type FeatureDiffV1 struct {
-	QueryChanged bool                           `json:"queryChanged,omitempty"`
-	Added        []FeatureDiffV1FeatureAdded    `json:"added,omitempty"`
-	Removed      []FeatureDiffV1FeatureRemoved  `json:"removed,omitempty"`
-	Modified     []FeatureDiffV1FeatureModified `json:"modified,omitempty"`
-	Moves        []FeatureDiffV1FeatureMoved    `json:"moves,omitempty"`
-	Splits       []FeatureDiffV1FeatureSplit    `json:"splits,omitempty"`
+	QueryChanged bool              `json:"queryChanged,omitempty"`
+	Added        []FeatureAdded    `json:"added,omitempty"`
+	Removed      []FeatureRemoved  `json:"removed,omitempty"`
+	Modified     []FeatureModified `json:"modified,omitempty"`
+	Moves        []FeatureMoved    `json:"moves,omitempty"`
+	Splits       []FeatureSplit    `json:"splits,omitempty"`
 }
 
 // Sort orders all slices deterministically by Name (primary) and ID (secondary).
@@ -347,33 +347,33 @@ func (d *FeatureDiffV1) Sort() {
 	}
 }
 
-type FeatureDiffV1FeatureAdded struct {
+type FeatureAdded struct {
 	ID     string       `json:"id"`
 	Name   string       `json:"name"`
 	Reason ChangeReason `json:"reason"`
 	Docs   *Docs        `json:"docs,omitempty"`
 }
 
-type FeatureDiffV1FeatureRemoved struct {
+type FeatureRemoved struct {
 	ID     string       `json:"id"`
 	Name   string       `json:"name"`
 	Reason ChangeReason `json:"reason"`
 }
 
-type FeatureDiffV1FeatureMoved struct {
+type FeatureMoved struct {
 	FromID   string `json:"fromId"`
 	ToID     string `json:"toId"`
 	FromName string `json:"fromName"`
 	ToName   string `json:"toName"`
 }
 
-type FeatureDiffV1FeatureSplit struct {
-	FromID   string                      `json:"fromId"`
-	FromName string                      `json:"fromName"`
-	To       []FeatureDiffV1FeatureAdded `json:"to"`
+type FeatureSplit struct {
+	FromID   string         `json:"fromId"`
+	FromName string         `json:"fromName"`
+	To       []FeatureAdded `json:"to"`
 }
 
-type FeatureDiffV1FeatureModified struct {
+type FeatureModified struct {
 	ID   string `json:"id"`
 	Name string `json:"name"`
 	Docs *Docs  `json:"docs,omitempty"`

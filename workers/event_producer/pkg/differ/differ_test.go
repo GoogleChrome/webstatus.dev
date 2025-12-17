@@ -360,7 +360,7 @@ func TestRun(t *testing.T) {
 					QueryChanged: false,
 					Added:        nil,
 					Removed:      nil,
-					Modified: []FeatureDiffV1FeatureModified{
+					Modified: []FeatureModified{
 						{
 							ID:   "1",
 							Name: "Grid",
@@ -429,7 +429,7 @@ func TestRun(t *testing.T) {
 					QueryChanged: true,
 					Added:        nil,
 					Removed:      nil,
-					Modified: []FeatureDiffV1FeatureModified{
+					Modified: []FeatureModified{
 						{
 							ID:   "1",
 							Name: "OldFeature",
@@ -554,7 +554,7 @@ func TestRun(t *testing.T) {
 					Added:        nil,
 					Removed:      nil,
 					Modified:     nil,
-					Moves: []FeatureDiffV1FeatureMoved{
+					Moves: []FeatureMoved{
 						{FromID: "old-id", ToID: "new-id", FromName: "Old Name", ToName: "New Name"},
 					},
 					Splits: nil,
@@ -940,7 +940,7 @@ func TestDiffSerialization(t *testing.T) {
 			name: "Partial Diff",
 			input: FeatureDiffV1{
 				QueryChanged: true,
-				Added: []FeatureDiffV1FeatureAdded{
+				Added: []FeatureAdded{
 					// Docs is nil (pointer), so it should be omitted.
 					{ID: "1", Name: "A", Reason: ReasonNewMatch, Docs: nil},
 				},
@@ -958,7 +958,7 @@ func TestDiffSerialization(t *testing.T) {
 				Added:        nil,
 				Removed:      nil,
 				Modified:     nil,
-				Moves: []FeatureDiffV1FeatureMoved{
+				Moves: []FeatureMoved{
 					{FromID: "A", ToID: "B", FromName: "", ToName: ""},
 				},
 				Splits: nil,

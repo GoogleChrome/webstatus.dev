@@ -33,7 +33,7 @@ func calculateDiff(oldMap, newMap map[string]ComparableFeature) *LatestFeatureDi
 			if newF.Docs.IsSet {
 				docs = &newF.Docs.Value
 			}
-			diff.Added = append(diff.Added, FeatureDiffV1FeatureAdded{
+			diff.Added = append(diff.Added, FeatureAdded{
 				ID: id, Name: newF.Name.Value, Docs: docs, Reason: ReasonNewMatch,
 			})
 
@@ -47,7 +47,7 @@ func calculateDiff(oldMap, newMap map[string]ComparableFeature) *LatestFeatureDi
 
 	for id, oldF := range oldMap {
 		if _, exists := newMap[id]; !exists {
-			diff.Removed = append(diff.Removed, FeatureDiffV1FeatureRemoved{
+			diff.Removed = append(diff.Removed, FeatureRemoved{
 				ID: id, Name: oldF.Name.Value, Reason: ReasonUnmatched,
 			})
 		}
@@ -56,8 +56,8 @@ func calculateDiff(oldMap, newMap map[string]ComparableFeature) *LatestFeatureDi
 	return diff
 }
 
-func compareFeature(oldF, newF ComparableFeature) (FeatureDiffV1FeatureModified, bool) {
-	mod := FeatureDiffV1FeatureModified{
+func compareFeature(oldF, newF ComparableFeature) (FeatureModified, bool) {
+	mod := FeatureModified{
 		ID:             newF.ID,
 		Name:           newF.Name.Value,
 		Docs:           nil,

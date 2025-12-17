@@ -126,14 +126,14 @@ func TestCompareFeature_Fields(t *testing.T) {
 		oldF      ComparableFeature
 		newF      ComparableFeature
 		wantMod   bool
-		checkDiff func(t *testing.T, m FeatureDiffV1FeatureModified)
+		checkDiff func(t *testing.T, m FeatureModified)
 	}{
 		{
 			name:    "Name Change",
 			oldF:    newBaseFeature("Old Name", "limited"),
 			newF:    newBaseFeature("New Name", "limited"),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
+			checkDiff: func(t *testing.T, m FeatureModified) {
 				if m.NameChange == nil {
 					t.Fatal("NameChange is nil")
 				}
@@ -154,7 +154,7 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
+			checkDiff: func(t *testing.T, m FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty")
 				}
@@ -178,7 +178,7 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
+			checkDiff: func(t *testing.T, m FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty (Version change missed)")
 				}
@@ -203,7 +203,7 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod: true,
-			checkDiff: func(t *testing.T, m FeatureDiffV1FeatureModified) {
+			checkDiff: func(t *testing.T, m FeatureModified) {
 				if len(m.BrowserChanges) == 0 {
 					t.Fatal("BrowserChanges is empty (Date change missed)")
 				}
@@ -233,7 +233,7 @@ func TestCompareFeature_Fields(t *testing.T) {
 				return f
 			}(),
 			wantMod:   false, // Should NOT detect change because Version field was missing in old
-			checkDiff: func(_ *testing.T, _ FeatureDiffV1FeatureModified) {},
+			checkDiff: func(_ *testing.T, _ FeatureModified) {},
 		},
 	}
 
