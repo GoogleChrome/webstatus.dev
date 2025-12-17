@@ -22,7 +22,9 @@ import (
 
 	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+	snapshotV1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurelistsnapshot/v1"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurestate"
 	"github.com/google/uuid"
 )
 
@@ -72,36 +74,24 @@ func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
 	data.OldSnapshot = prevCtx.Snapshot
 
 	// 4. Compute Pure Diff
-	var diff *v1.LatestFeatureDiff
-	// We check data.TargetSnapshot != nil because if the Flush Strategy failed (in executePlan),
-	// it returns nil to signal "Skip Diffing".
-	// toSnapshot() guarantees a non-nil map (empty map) for valid empty results,
-	// so nil strictly means "Data Not Available".
-	if !plan.IsColdStart && data.TargetSnapshot != nil {
-		diff = calculateDiff(data.OldSnapshot, data.TargetSnapshot)
-	} else {
-		diff = new(v1.LatestFeatureDiff)
+	diffResult, err := d.comparator.Compare(data.OldSnapshot, data.TargetSnapshot)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to compare snapshots: %w", ErrFatal, err)
 	}
 
 	// 5. Reconcile History
-	if len(diff.Removed) > 0 && !plan.IsColdStart {
-		diff, err = d.reconcileHistory(ctx, diff)
-		if err != nil {
-			return nil, fmt.Errorf("%w: failed to reconcile history: %w", ErrTransient, err)
-		}
+	reconciledDiff, err := d.comparator.ReconcileHistory(ctx, diffResult.Diff)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to reconcile history: %w", ErrTransient, err)
 	}
+	diffResult.Diff = reconciledDiff
 
 	if plan.QueryChanged {
-		diff.QueryChanged = true
-	}
-
-	// 6. Finalize (Sort & Decide)
-	if diff != nil {
-		diff.Sort()
+		diffResult.SetQueryChanged(true)
 	}
 
 	// 7. Output Decision
-	result.HasChanges = diff.HasChanges() || plan.IsColdStart || plan.QueryChanged
+	result.HasChanges = diffResult.HasChanges() || plan.IsColdStart || plan.QueryChanged
 	if !result.HasChanges {
 		return result, nil
 	}
@@ -113,11 +103,11 @@ func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
 	}
 
 	// Calculate DB Metadata (Reasons & Summary)
-	result.Reasons = determineReasons(diff)
-	result.Summary = diff.Summarize()
+	result.Reasons = determineReasons(diffResult)
+	result.Summary = diffResult.Summarize()
 
-	// Serialize Diff (Lineage Tracking)
-	result.DiffBytes, err = d.serializeDiff(searchID, eventID, result.DiffID, prevCtx.ID, result.StateID, diff)
+	// Serialize Diff
+	result.DiffBytes, err = diffResult.Bytes()
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to serialize diff: %w", ErrFatal, err)
 	}
@@ -127,17 +117,17 @@ func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
 
 func (d *FeatureDiffer) serializeState(
 	searchID, stateID, query, eventID string,
-	snapshot map[string]ComparableFeature,
+	snapshot map[string]featurestate.ComparableFeature,
 ) ([]byte, error) {
-	payload := FeatureListSnapshot{
-		Metadata: StateMetadata{
+	payload := snapshotV1.FeatureListSnapshotV1{
+		Metadata: snapshotV1.StateMetadataV1{
 			GeneratedAt:    d.now(),
 			ID:             stateID,
 			SearchID:       searchID,
 			QuerySignature: query,
 			EventID:        eventID,
 		},
-		Data: FeatureListData{
+		Data: snapshotV1.FeatureListDataV1{
 			Features: snapshot,
 		},
 	}
@@ -145,31 +135,12 @@ func (d *FeatureDiffer) serializeState(
 	return blobtypes.NewBlob(payload)
 }
 
-func (d *FeatureDiffer) serializeDiff(
-	searchID, eventID, diffID, previousStateID, newStateID string,
-	diff *v1.LatestFeatureDiff,
-) ([]byte, error) {
-	diffPayload := v1.LatestFeatureDiffSnapshot{
-		Metadata: v1.DiffMetadataV1{
-			GeneratedAt:     d.now(),
-			EventID:         eventID,
-			SearchID:        searchID,
-			PreviousStateID: previousStateID,
-			NewStateID:      newStateID,
-			ID:              diffID,
-		},
-		Data: *diff,
-	}
-
-	return blobtypes.NewBlob(diffPayload)
-}
-
 // --- Internal Helper: Context Loading ---
 
 type previousContext struct {
 	ID        string
 	Signature string
-	Snapshot  map[string]ComparableFeature
+	Snapshot  map[string]featurestate.ComparableFeature
 	IsEmpty   bool
 }
 
@@ -183,12 +154,12 @@ func (d *FeatureDiffer) loadPreviousContext(bytes []byte) (previousContext, erro
 		}, nil
 	}
 
-	migratedBytes, err := blobtypes.Apply[FeatureListSnapshot](d.migrator, bytes)
+	migratedBytes, err := blobtypes.Apply[snapshotV1.FeatureListSnapshotV1](d.migrator, bytes)
 	if err != nil {
 		return previousContext{}, err
 	}
 
-	var snapshot FeatureListSnapshot
+	var snapshot snapshotV1.FeatureListSnapshotV1
 	if err := json.Unmarshal(migratedBytes, &snapshot); err != nil {
 		return previousContext{}, fmt.Errorf("failed to unmarshal snapshot: %w", err)
 	}
@@ -201,13 +172,14 @@ func (d *FeatureDiffer) loadPreviousContext(bytes []byte) (previousContext, erro
 	}, nil
 }
 
-func determineReasons(diff *v1.LatestFeatureDiff) []string {
+func determineReasons(diff *workertypes.DiffResult) []string {
 	var reasons []string
-	if diff.QueryChanged {
+	summary := diff.Summarize()
+	if summary.Categories.QueryChanged > 0 {
 		reasons = append(reasons, "QUERY_EDITED")
 	}
-	if len(diff.Added) > 0 || len(diff.Removed) > 0 || len(diff.Modified) > 0 ||
-		len(diff.Moves) > 0 || len(diff.Splits) > 0 {
+	if summary.Categories.Added > 0 || summary.Categories.Removed > 0 || summary.Categories.Updated > 0 ||
+		summary.Categories.Moved > 0 || summary.Categories.Split > 0 {
 		reasons = append(reasons, "DATA_UPDATED")
 	}
 
@@ -248,9 +220,9 @@ func (d *FeatureDiffer) determinePlan(currentQuery string, prev previousContext)
 // --- Internal Helper: Execution ---
 
 type executionData struct {
-	OldSnapshot    map[string]ComparableFeature
-	TargetSnapshot map[string]ComparableFeature
-	NewSnapshot    map[string]ComparableFeature
+	OldSnapshot    map[string]featurestate.ComparableFeature
+	TargetSnapshot map[string]featurestate.ComparableFeature
+	NewSnapshot    map[string]featurestate.ComparableFeature
 }
 
 func (d *FeatureDiffer) executePlan(ctx context.Context, plan executionPlan) (executionData, error) {
@@ -289,8 +261,8 @@ func (d *FeatureDiffer) executePlan(ctx context.Context, plan executionPlan) (ex
 	return data, nil
 }
 
-func toSnapshot(features []backend.Feature) map[string]ComparableFeature {
-	m := make(map[string]ComparableFeature)
+func toSnapshot(features []backend.Feature) map[string]featurestate.ComparableFeature {
+	m := make(map[string]featurestate.ComparableFeature)
 	for _, f := range features {
 		m[f.FeatureId] = toComparable(f)
 	}
@@ -298,7 +270,7 @@ func toSnapshot(features []backend.Feature) map[string]ComparableFeature {
 	return m
 }
 
-func toComparable(f backend.Feature) ComparableFeature {
+func toComparable(f backend.Feature) featurestate.ComparableFeature {
 	status := backend.Limited
 	var lowDate, highDate *time.Time
 	if f.Baseline != nil {
@@ -315,62 +287,69 @@ func toComparable(f backend.Feature) ComparableFeature {
 		}
 	}
 
-	baseline := BaselineState{
-		Status:   OptionallySet[backend.BaselineInfoStatus]{Value: status, IsSet: true},
-		LowDate:  OptionallySet[*time.Time]{Value: lowDate, IsSet: true},
-		HighDate: OptionallySet[*time.Time]{Value: highDate, IsSet: true},
+	baseline := featurestate.BaselineState{
+		Status:   featurestate.OptionallySet[backend.BaselineInfoStatus]{Value: status, IsSet: true},
+		LowDate:  featurestate.OptionallySet[*time.Time]{Value: lowDate, IsSet: true},
+		HighDate: featurestate.OptionallySet[*time.Time]{Value: highDate, IsSet: true},
 	}
 
-	docs := Docs{
-		MdnDocs: OptionallySet[[]MdnDoc]{
+	docs := featurestate.Docs{
+		MdnDocs: featurestate.OptionallySet[[]featurestate.MdnDoc]{
 			Value: nil,
 			// TODO: Set to true when https://github.com/GoogleChrome/webstatus.dev/issues/930 is supported.
 			IsSet: false,
 		},
 	}
 
-	cf := ComparableFeature{
+	cf := featurestate.ComparableFeature{
 		ID:             f.FeatureId,
-		Name:           OptionallySet[string]{Value: f.Name, IsSet: true},
-		BaselineStatus: OptionallySet[BaselineState]{Value: baseline, IsSet: true},
-		Docs:           OptionallySet[Docs]{Value: docs, IsSet: true},
-		BrowserImpls: OptionallySet[BrowserImplementations]{
-			Value: BrowserImplementations{
-				Chrome: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
-				ChromeAndroid: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
-				Edge: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
-				Firefox: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
-				FirefoxAndroid: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
-				Safari: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
-				SafariIos: OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-					Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-					Version: OptionallySet[*string]{Value: nil, IsSet: false},
-				}},
+		Name:           featurestate.OptionallySet[string]{Value: f.Name, IsSet: true},
+		BaselineStatus: featurestate.OptionallySet[featurestate.BaselineState]{Value: baseline, IsSet: true},
+		Docs:           featurestate.OptionallySet[featurestate.Docs]{Value: docs, IsSet: true},
+		BrowserImpls: featurestate.OptionallySet[featurestate.BrowserImplementations]{
+			Value: featurestate.BrowserImplementations{
+				Chrome: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
+				ChromeAndroid: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
+				Edge: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
+				Firefox: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
+				FirefoxAndroid: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
+				Safari: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
+				SafariIos: featurestate.OptionallySet[featurestate.BrowserState]{
+					Value: featurestate.BrowserState{
+						Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+						Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+						Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+					}, IsSet: false},
 			},
 			IsSet: true,
 		},
@@ -378,36 +357,38 @@ func toComparable(f backend.Feature) ComparableFeature {
 
 	if f.BrowserImplementations != nil {
 		raw := *f.BrowserImplementations
-		getStatus := func(key string) OptionallySet[BrowserState] {
+		getStatus := func(key string) featurestate.OptionallySet[featurestate.BrowserState] {
 			if impl, ok := raw[key]; ok && impl.Status != nil {
 				var t *time.Time
 				if impl.Date != nil {
 					val := impl.Date.Time
 					t = &val
 				}
-				bs := BrowserState{
-					Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: *impl.Status, IsSet: true},
-					Date:    OptionallySet[*time.Time]{Value: t, IsSet: true},
-					Version: OptionallySet[*string]{Value: impl.Version, IsSet: true},
+				bs := featurestate.BrowserState{
+					Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: *impl.Status, IsSet: true},
+					Date:    featurestate.OptionallySet[*time.Time]{Value: t, IsSet: true},
+					Version: featurestate.OptionallySet[*string]{Value: impl.Version, IsSet: true},
 				}
 
-				return OptionallySet[BrowserState]{Value: bs, IsSet: true}
+				return featurestate.OptionallySet[featurestate.BrowserState]{Value: bs, IsSet: true}
 			}
 
-			return OptionallySet[BrowserState]{IsSet: false, Value: BrowserState{
-				Status:  OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
-				Date:    OptionallySet[*time.Time]{Value: nil, IsSet: false},
-				Version: OptionallySet[*string]{Value: nil, IsSet: false},
-			}}
+			return featurestate.OptionallySet[featurestate.BrowserState]{
+				IsSet: false,
+				Value: featurestate.BrowserState{
+					Status:  featurestate.OptionallySet[backend.BrowserImplementationStatus]{Value: "", IsSet: false},
+					Date:    featurestate.OptionallySet[*time.Time]{Value: nil, IsSet: false},
+					Version: featurestate.OptionallySet[*string]{Value: nil, IsSet: false},
+				}}
 		}
 
-		cf.BrowserImpls.Value.Chrome = getStatus(string(backend.Chrome))
-		cf.BrowserImpls.Value.ChromeAndroid = getStatus(string(backend.ChromeAndroid))
-		cf.BrowserImpls.Value.Edge = getStatus(string(backend.Edge))
-		cf.BrowserImpls.Value.Firefox = getStatus(string(backend.Firefox))
-		cf.BrowserImpls.Value.FirefoxAndroid = getStatus(string(backend.FirefoxAndroid))
-		cf.BrowserImpls.Value.Safari = getStatus(string(backend.Safari))
-		cf.BrowserImpls.Value.SafariIos = getStatus(string(backend.SafariIos))
+		cf.BrowserImpls.Value.SetBrowserState(backend.Chrome, getStatus(string(backend.Chrome)))
+		cf.BrowserImpls.Value.SetBrowserState(backend.ChromeAndroid, getStatus(string(backend.ChromeAndroid)))
+		cf.BrowserImpls.Value.SetBrowserState(backend.Edge, getStatus(string(backend.Edge)))
+		cf.BrowserImpls.Value.SetBrowserState(backend.Firefox, getStatus(string(backend.Firefox)))
+		cf.BrowserImpls.Value.SetBrowserState(backend.FirefoxAndroid, getStatus(string(backend.FirefoxAndroid)))
+		cf.BrowserImpls.Value.SetBrowserState(backend.Safari, getStatus(string(backend.Safari)))
+		cf.BrowserImpls.Value.SetBrowserState(backend.SafariIos, getStatus(string(backend.SafariIos)))
 	}
 
 	return cf
