@@ -15,11 +15,15 @@
 package differ
 
 import (
+	"context"
 	"errors"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurestate"
 )
 
 // BlobFormat defines the serialization format and file extension for blobs.
@@ -38,7 +42,7 @@ type DiffResult struct {
 	StateID    string
 	DiffBytes  []byte
 	DiffID     string
-	Summary    workertypes.EventSummary
+	Summary    []byte
 	Reasons    []string
 }
 
@@ -55,7 +59,32 @@ type FeatureDiffer struct {
 	now        func() time.Time
 }
 
-func NewFeatureDiffer(client workertypes.FeatureFetcher, comparator workertypes.Comparator) *FeatureDiffer {
+// Diff encapsulates the result of a comparison.
+type Diff interface {
+	HasChanges() bool
+	Summarize() EventSummary
+	Bytes() ([]byte, error)
+	SetQueryChanged(changed bool)
+}
+
+// Comparator defines the contract for comparing feature states.
+type Comparator interface {
+	// Compare takes the old and new feature states and returns a concrete DiffResult.
+	Compare(
+		oldState map[string]featurestate.ComparableFeature,
+		newState map[string]featurestate.ComparableFeature,
+	) (*DiffResult, error)
+	// ReconcileHistory takes a diff and resolves historical changes like moves and splits.
+	ReconcileHistory(ctx context.Context, diff Diff) (*DiffResult, error)
+}
+
+// FeatureFetcher abstracts the external API.
+type FeatureFetcher interface {
+	FetchFeatures(ctx context.Context, query string) ([]backend.Feature, error)
+	GetFeature(ctx context.Context, featureID string) (*backendtypes.GetFeatureResult, error)
+}
+
+func NewFeatureDiffer(client FeatureFetcher, comparator Comparator) *FeatureDiffer {
 	m := blobtypes.NewMigrator()
 
 	return &FeatureDiffer{
