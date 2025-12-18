@@ -154,6 +154,7 @@ func compareFeature(oldF, newF featurestate.ComparableFeature) (FeatureModified,
 	return mod, hasMods
 }
 
+// compareName checks for a name change.
 func compareName(oldName, newName featurestate.OptionallySet[string]) (*Change[string], bool) {
 	if oldName.IsSet && oldName.Value != newName.Value {
 		return &Change[string]{From: oldName.Value, To: newName.Value}, true
@@ -162,6 +163,7 @@ func compareName(oldName, newName featurestate.OptionallySet[string]) (*Change[s
 	return nil, false
 }
 
+// compareBaseline checks for a baseline status change.
 func compareBaseline(
 	oldStatus, newStatus featurestate.OptionallySet[featurestate.BaselineState],
 ) (*Change[BaselineState], bool) {
@@ -179,6 +181,7 @@ func compareBaseline(
 	return nil, false
 }
 
+// compareBrowserImpls checks for changes in browser implementations.
 func compareBrowserImpls(
 	oldImpls, newImpls featurestate.OptionallySet[featurestate.BrowserImplementations],
 ) (map[backend.SupportedBrowsers]*Change[BrowserState], bool) {
@@ -215,16 +218,20 @@ func compareBrowserImpls(
 	return changes, hasChanged
 }
 
+// compareBrowserState checks for changes in a single browser's state.
 func compareBrowserState(
 	oldB, newB featurestate.OptionallySet[featurestate.BrowserState],
 ) (*Change[featurestate.BrowserState], bool) {
 	if !oldB.IsSet {
 		return nil, false
 	}
+	// Check Status
 	isChanged := oldB.Value.Status.IsSet && oldB.Value.Status.Value != newB.Value.Status.Value
+	// Check Version
 	if !isChanged && oldB.Value.Version.IsSet && !pointersEqual(oldB.Value.Version.Value, newB.Value.Version.Value) {
 		isChanged = true
 	}
+	// Check Date
 	if !isChanged && oldB.Value.Date.IsSet && !pointersEqualFn(oldB.Value.Date.Value, newB.Value.Date.Value, timeEqual) {
 		isChanged = true
 	}
@@ -239,6 +246,7 @@ func compareBrowserState(
 	return nil, false
 }
 
+// compareDocs checks for changes in the documentation links.
 func compareDocs(oldDocs, newDocs featurestate.OptionallySet[featurestate.Docs]) (*Change[Docs], bool) {
 	if !oldDocs.IsSet || !oldDocs.Value.MdnDocs.IsSet {
 
