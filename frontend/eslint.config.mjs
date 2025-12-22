@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+import {defineConfig} from 'eslint/config';
 import typescriptEslint from '@typescript-eslint/eslint-plugin';
 import globals from 'globals';
 import tsParser from '@typescript-eslint/parser';
@@ -21,6 +22,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import js from '@eslint/js';
 import {FlatCompat} from '@eslint/eslintrc';
+import gts from 'gts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,7 +32,8 @@ const compat = new FlatCompat({
   allConfig: js.configs.all,
 });
 
-export default [
+export default defineConfig([
+  ...gts,
   {
     ignores: [
       '**/rollup.config.mjs',
@@ -41,7 +44,7 @@ export default [
       'coverage/lcov-report/*',
     ],
   },
-  ...compat.extends('../node_modules/gts/', 'plugin:lit/recommended'),
+  ...compat.extends('plugin:lit/recommended'),
   {
     plugins: {
       '@typescript-eslint': typescriptEslint,
@@ -95,4 +98,4 @@ export default [
       '@typescript-eslint/no-floating-promises': 'off',
     },
   },
-];
+]);
