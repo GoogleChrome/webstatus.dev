@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package differ
+package v1
 
 import (
 	"context"
@@ -21,7 +21,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 )
 
-// reconcileHistory analyzes the "Removed" list to detect if features were actually Moved or Split
+// ReconcileHistory analyzes the "Removed" list to detect if features were actually Moved or Split
 // rather than deleted.
 //
 // It performs a "Detective" pass:
@@ -31,18 +31,18 @@ import (
 //
 // This transforms a confusing [Removed: "Grid", Added: "CSS Grid"] diff into a clear
 // [Moved: "Grid" -> "CSS Grid"] diff.
-func (d *FeatureDiffer) reconcileHistory(ctx context.Context, diff *FeatureDiff) (*FeatureDiff, error) {
+func (w *FeatureDiffWorkflow) ReconcileHistory(ctx context.Context) error {
 	renames := make(map[string]string)
 	splits := make(map[string][]string)
 	visitor := &reconciliationVisitor{renames: renames, splits: splits, currentID: ""}
 
 	// Phase 1: Investigation
 	// Iterate through all removed features to build a map of their historical outcomes.
-	for i := range diff.Removed {
-		r := &diff.Removed[i]
+	for i := range w.diff.Removed {
+		r := &w.diff.Removed[i]
 
 		// Check the current status of the removed feature ID in the database.
-		result, err := d.client.GetFeature(ctx, r.ID)
+		result, err := w.fetcher.GetFeature(ctx, r.ID)
 		if err != nil {
 			// If the entity is completely gone from the DB, it's a true deletion.
 			// We update the reason to allow for specific UI messaging (e.g. "Deleted from platform").
@@ -52,7 +52,7 @@ func (d *FeatureDiffer) reconcileHistory(ctx context.Context, diff *FeatureDiff)
 				continue
 			}
 
-			return nil, err
+			return err
 		}
 
 		// Update the visitor context so it knows which OldID owns the result we are about to visit.
@@ -60,20 +60,20 @@ func (d *FeatureDiffer) reconcileHistory(ctx context.Context, diff *FeatureDiff)
 
 		// Dispatch based on whether the feature is Regular (exists), Moved, or Split.
 		if err := result.Visit(ctx, visitor); err != nil {
-			return nil, err
+			return err
 		}
 	}
 
 	// Phase 2: Correlation
 	// If we found any history records, try to match them with the 'Added' list.
 	if len(renames) > 0 {
-		reconcileMoves(diff, renames)
+		reconcileMoves(w.diff, renames)
 	}
 	if len(splits) > 0 {
-		reconcileSplits(diff, splits)
+		reconcileSplits(w.diff, splits)
 	}
 
-	return diff, nil
+	return nil
 }
 
 // reconciliationVisitor implements the Visitor pattern to populate the renames/splits maps

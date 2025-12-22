@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package differ
+package v1
 
 import (
 	"context"
@@ -63,7 +63,7 @@ func TestReconcileHistory(t *testing.T) {
 			name: "Scenario 1: Feature Moved (Rename)",
 			initialDiff: &FeatureDiff{
 				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch}},
+				Added:        []FeatureAdded{{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -92,8 +92,8 @@ func TestReconcileHistory(t *testing.T) {
 			initialDiff: &FeatureDiff{
 				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
 				Added: []FeatureAdded{
-					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
-					{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch},
+					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch, Docs: nil},
 				},
 				QueryChanged: false,
 				Modified:     nil,
@@ -119,8 +119,8 @@ func TestReconcileHistory(t *testing.T) {
 						FromID:   "monolith",
 						FromName: "Monolith Feature",
 						To: []FeatureAdded{
-							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
-							{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch},
+							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
+							{ID: "part-2", Name: "Part 2", Reason: ReasonNewMatch, Docs: nil},
 						},
 					},
 				},
@@ -136,7 +136,7 @@ func TestReconcileHistory(t *testing.T) {
 			initialDiff: &FeatureDiff{
 				Removed: []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
 				Added: []FeatureAdded{
-					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
+					{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
 				},
 				QueryChanged: false,
 				Modified:     nil,
@@ -163,7 +163,7 @@ func TestReconcileHistory(t *testing.T) {
 						FromName: "Monolith Feature",
 						// Only part-1 is included because part-2 wasn't in the 'Added' list
 						To: []FeatureAdded{
-							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch},
+							{ID: "part-1", Name: "Part 1", Reason: ReasonNewMatch, Docs: nil},
 						},
 					},
 				},
@@ -242,7 +242,7 @@ func TestReconcileHistory(t *testing.T) {
 			// Should act as a regular removal.
 			initialDiff: &FeatureDiff{
 				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch}},
+				Added:        []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -256,7 +256,7 @@ func TestReconcileHistory(t *testing.T) {
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
 				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch}},
+				Added:        []FeatureAdded{{ID: "unrelated-id", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -287,7 +287,7 @@ func TestReconcileHistory(t *testing.T) {
 			// Should act as a regular removal (hitting the 'else' block).
 			initialDiff: &FeatureDiff{
 				Removed:      []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch}},
+				Added:        []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -305,7 +305,7 @@ func TestReconcileHistory(t *testing.T) {
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
 				Removed:      []FeatureRemoved{{ID: "monolith", Name: "Monolith Feature", Reason: ReasonUnmatched}},
-				Added:        []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch}},
+				Added:        []FeatureAdded{{ID: "unrelated", Name: "Unrelated", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
@@ -320,8 +320,8 @@ func TestReconcileHistory(t *testing.T) {
 			initialDiff: &FeatureDiff{
 				Removed: []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
 				Added: []FeatureAdded{
-					{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch},
-					{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch},
+					{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil},
+					{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch, Docs: nil},
 				},
 				QueryChanged: false,
 				Modified:     nil,
@@ -336,7 +336,7 @@ func TestReconcileHistory(t *testing.T) {
 			mockErrors: nil,
 			expectedDiff: &FeatureDiff{
 				Removed: nil,
-				Added:   []FeatureAdded{{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch}},
+				Added:   []FeatureAdded{{ID: "extra-id", Name: "Extra Feature", Reason: ReasonNewMatch, Docs: nil}},
 				Moves: []FeatureMoved{
 					{FromID: "old-id", FromName: "Old Name", ToID: "new-id", ToName: "New Name"},
 				},
@@ -354,7 +354,7 @@ func TestReconcileHistory(t *testing.T) {
 				results: tc.mockResults,
 				errors:  tc.mockErrors,
 			}
-			differ := NewFeatureDiffer(client)
+			w := NewFeatureDiffWorkflow(client, nil)
 
 			// We manually sort inputs here to ensure the test case inputs match
 			// what a real system might produce before reconciliation.
@@ -363,7 +363,9 @@ func TestReconcileHistory(t *testing.T) {
 				tc.initialDiff.Sort()
 			}
 
-			gotDiff, err := differ.reconcileHistory(context.Background(), tc.initialDiff)
+			w.diff = tc.initialDiff
+
+			err := w.ReconcileHistory(context.Background())
 
 			if tc.wantErr {
 				if err == nil {
@@ -376,14 +378,11 @@ func TestReconcileHistory(t *testing.T) {
 				t.Fatalf("reconcileHistory() unexpected error: %v", err)
 			}
 
-			if gotDiff != nil {
-				gotDiff.Sort()
-			}
 			if tc.expectedDiff != nil {
 				tc.expectedDiff.Sort()
 			}
 
-			if diff := cmp.Diff(tc.expectedDiff, gotDiff); diff != "" {
+			if diff := cmp.Diff(tc.expectedDiff, w.diff); diff != "" {
 				t.Errorf("reconcileHistory() mismatch. (-want +got):\n%s", diff)
 			}
 		})

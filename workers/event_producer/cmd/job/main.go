@@ -81,9 +81,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	// eventProducer := producer.NewEventProducer(nil, nil, nil, nil)
+
 	// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/1848
 	// Nil handler for now. Will fix later
-	err = queueClient.Subscribe(ctx, ingestionSubID, nil)
+	err = queueClient.Subscribe(ctx, ingestionSubID, func(_ context.Context, _ []byte) error {
+		// // A. Parse the Command
+		// var cmd search.CheckSearchRequest
+		// if err := json.Unmarshal(msg, &cmd); err != nil {
+		// 	return err // Dead letter this message
+		// }
+
+		// // B. Extract the Trigger ID (usually from the Pub/Sub message ID)
+		// // If your router provides metadata, use that. Otherwise, generate one or use the request.
+		// triggerID := mylib.GetMessageID(ctx)
+
+		// log.Printf("Received check request for search %s (Source: %s)", cmd.SearchID, cmd.Source)
+
+		// // C. Call the Business Logic
+		// // Notice we pass the query from the command directly to the producer.
+		// err := eventProducer.ProcessSearch(ctx, cmd.SearchID, cmd.Query, triggerID)
+		// if err != nil {
+		// 	log.Printf("Failed to process search %s: %v", cmd.SearchID, err)
+		// 	return err // Nack the message to retry
+		// }
+
+		return nil
+	})
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to connect to subscription", "error", err)
 		os.Exit(1)
