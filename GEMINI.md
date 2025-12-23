@@ -100,6 +100,9 @@ Shared Go libraries used by the `backend` and `workflows`.
   - **`lib/fetchtypes`**: A common module for making HTTP requests.
   - **`lib/developersignaltypes`**: Types related to developer signals.
   - **`lib/webdxfeaturetypes`**: Types related to web features from the `web-platform-dx/web-features` repository.
+  - **`lib/workertypes/comparables`**: Canonical, in-memory representations of data used for diffing and business logic. Decoupled from storage versions.
+  - **`lib/generic`**: General-purpose utilities, such as OptionallySet[T] for handling optional fields in structs.
+  - **`lib/event`**: Shared definitions for events passed between workers (e.g., FeatureDiffEvent).
 
 - **"Do's and Don'ts" (Libraries)**:
   - **DO** place reusable Go code shared between services here.
@@ -300,6 +303,19 @@ To ensure accuracy and prevent errors, it is critical to rely on the project's e
 - **Database Schema**: For table names, column names, and data types, refer to the migration files in `infra/storage/spanner/migrations/`.
 - **Search Grammar**: For valid search query syntax and keywords, the source of truth is `antlr/FeatureSearch.g4`.
 - **External Data Schemas**: For the structure of data from external sources, consult the relevant files in `jsonschema/`.
+
+### 5.10. Blob Storage & Schema Evolution
+
+The project uses GCS blobs to store state for features like "Saved Search Notifications". Because these files persist indefinitely, the code must handle schema evolution gracefully without breaking old data.
+
+- **Canonical vs. Storage Types:** We separate the internal business logic types (lib/workertypes/comparables) from the persistent storage types (lib/blobtypes/v1). Adapters convert between them.
+- **The "OptionallySet" Pattern:** To distinguish between a field that is "missing" (from an old blob) and a field that is "present but empty" (new data), we use the generic.OptionallySet[T] wrapper.
+  - **Old Blob:** Field is missing -> IsSet: false. Logic ignores it (Quiet Rollout).
+  - **New Data:** Field is present -> IsSet: true. Logic processes it.
+
+- Do's and Don'ts:
+  - **DO** wrap new fields in OptionallySet when adding them to storage structs.
+  - **DON'T** change the meaning of existing fields in lib/blobtypes; create a new version (v2) if a breaking change is needed.
 
 ## 6. How-To Guides
 
