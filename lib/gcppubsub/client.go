@@ -61,13 +61,13 @@ func (c *Client) Publish(ctx context.Context, topicID string, data []byte) (stri
 }
 
 func (c *Client) Subscribe(ctx context.Context, subID string,
-	handler func(ctx context.Context, data []byte) error) error {
+	handler func(ctx context.Context, msgID string, data []byte) error) error {
 	sub := c.client.Subscriber(subID)
 
 	// Receive blocks until ctx is cancelled.
 	err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
 		// Execute the worker's handler
-		workErr := handler(ctx, msg.Data)
+		workErr := handler(ctx, msg.ID, msg.Data)
 		if workErr == nil {
 			// ACK: Success
 			msg.Ack()
