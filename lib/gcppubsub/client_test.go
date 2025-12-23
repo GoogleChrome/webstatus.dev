@@ -156,6 +156,11 @@ func createTestSubscription(t *testing.T, topicID, subID string, seconds int32) 
 	}
 }
 
+type handlerDetails struct {
+	id   string
+	data string
+}
+
 func TestPublishAndSubscribe(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -180,12 +185,12 @@ func TestPublishAndSubscribe(t *testing.T) {
 	}
 
 	// 4. Subscribe and Verify
-	received := make(chan string, 1)
+	received := make(chan handlerDetails, 1)
 
 	// Start subscriber in goroutine
 	go func() {
-		err := pubsubClient.Subscribe(ctx, subID, func(_ context.Context, data []byte) error {
-			received <- string(data)
+		err := pubsubClient.Subscribe(ctx, subID, func(_ context.Context, id string, data []byte) error {
+			received <- handlerDetails{id: id, data: string(data)}
 
 			return nil // ACK
 		})
@@ -195,13 +200,31 @@ func TestPublishAndSubscribe(t *testing.T) {
 	}()
 
 	select {
-	case data := <-received:
+	case container := <-received:
+		data := container.data
 		if data != string(msgData) {
 			t.Errorf("Expected message %q, got %q", string(msgData), data)
+		}
+		if container.id != msgID {
+			t.Errorf("Expected message ID %q, got %q", msgID, container.id)
+		}
+		if container.id == "" {
+			t.Error("Expected non-empty message ID")
 		}
 	case <-ctx.Done():
 		t.Fatal("Timeout waiting for message")
 	}
+}
+
+// Helper to check handler details. Does not do assertions. Only logs for debugging purposes.
+func isExpectedMessage(t *testing.T, expectedData, actualData []byte, expectedID, actualID string) bool {
+	ret := string(expectedData) == string(actualData) && expectedID == actualID
+	if !ret {
+		t.Logf("expectedData: %s, actualData: %s, expectedID: %s, actualID: %s",
+			expectedData, actualData, expectedID, actualID)
+	}
+
+	return ret
 }
 
 func TestSubscribe_ErrorHandling(t *testing.T) {
@@ -217,7 +240,7 @@ func TestSubscribe_ErrorHandling(t *testing.T) {
 
 	// Case 1: Transient Error (Should Retry)
 	t.Run("TransientError_Retries", func(t *testing.T) {
-		_, err := pubsubClient.Publish(ctx, topicID, []byte("retry-me"))
+		msgID, err := pubsubClient.Publish(ctx, topicID, []byte("retry-me"))
 		if err != nil {
 			// Should not error out of Publish
 			t.Fatalf("Publish failed: %v", err)
@@ -227,8 +250,8 @@ func TestSubscribe_ErrorHandling(t *testing.T) {
 		done := make(chan struct{})
 
 		go func() {
-			err := pubsubClient.Subscribe(ctx, subID, func(_ context.Context, data []byte) error {
-				if string(data) != "retry-me" {
+			err := pubsubClient.Subscribe(ctx, subID, func(_ context.Context, id string, data []byte) error {
+				if !isExpectedMessage(t, []byte("retry-me"), data, msgID, id) {
 					return nil // Ignore other messages
 				}
 
@@ -264,7 +287,7 @@ func TestSubscribe_ErrorHandling(t *testing.T) {
 		permSubID := "perm-error-sub"
 		createTestSubscription(t, topicID, permSubID, 1)
 
-		_, err := pubsubClient.Publish(ctx, topicID, []byte("bad-data"))
+		msgID, err := pubsubClient.Publish(ctx, topicID, []byte("bad-data"))
 		if err != nil {
 			// Should not error out of Publish
 			t.Fatalf("Publish failed: %v", err)
@@ -273,8 +296,8 @@ func TestSubscribe_ErrorHandling(t *testing.T) {
 		var attempts atomic.Int32
 
 		go func() {
-			err := pubsubClient.Subscribe(ctx, permSubID, func(_ context.Context, data []byte) error {
-				if string(data) != "bad-data" {
+			err := pubsubClient.Subscribe(ctx, permSubID, func(_ context.Context, id string, data []byte) error {
+				if !isExpectedMessage(t, []byte("bad-data"), data, msgID, id) {
 					return nil
 				}
 				attempts.Add(1)

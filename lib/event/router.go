@@ -21,7 +21,7 @@ import (
 )
 
 // TypedHandler is a function that processes a specific, strongly-typed struct.
-type TypedHandler[T Event] func(ctx context.Context, event T) error
+type TypedHandler[T Event] func(ctx context.Context, eventID string, event T) error
 
 // Router acts as a multiplexer for incoming Pub/Sub messages.
 // It automatically handles parsing the envelope, unmarshalling the payload,
@@ -40,7 +40,7 @@ func NewRouter() *Router {
 // route hides the generic type T behind a common interface for dispatching.
 type route interface {
 	Matches(kind, version string) bool
-	Dispatch(ctx context.Context, data json.RawMessage) error
+	Dispatch(ctx context.Context, eventID string, data json.RawMessage) error
 }
 
 // Register adds a new handler for a specific Kind and APIVersion.
@@ -67,7 +67,7 @@ func Register[T Event](r *Router, handler TypedHandler[T]) {
 }
 
 // HandleMessage is the single entry point.
-func (r *Router) HandleMessage(ctx context.Context, data []byte) error {
+func (r *Router) HandleMessage(ctx context.Context, eventID string, data []byte) error {
 	// 1. Efficient Peek: We only parse the metadata fields.
 	// The rest of the JSON is captured as RawMessage without full decoding.
 	var env envelope
@@ -80,7 +80,7 @@ func (r *Router) HandleMessage(ctx context.Context, data []byte) error {
 		if route.Matches(env.Kind, env.APIVersion) {
 			// 3. Dispatch using only the inner 'data' payload
 
-			return route.Dispatch(ctx, env.Data)
+			return route.Dispatch(ctx, eventID, env.Data)
 		}
 	}
 
@@ -104,7 +104,7 @@ func (tr *typedRoute[T]) Matches(kind, version string) bool {
 	return tr.kind == kind && tr.version == version
 }
 
-func (tr *typedRoute[T]) Dispatch(ctx context.Context, data json.RawMessage) error {
+func (tr *typedRoute[T]) Dispatch(ctx context.Context, eventID string, data json.RawMessage) error {
 	// 1. Final Parse: Convert bytes directly to T
 	var payload T
 	if err := json.Unmarshal(data, &payload); err != nil {
@@ -112,5 +112,5 @@ func (tr *typedRoute[T]) Dispatch(ctx context.Context, data json.RawMessage) err
 	}
 
 	// 2. Execute Handler
-	return tr.handler(ctx, payload)
+	return tr.handler(ctx, eventID, payload)
 }

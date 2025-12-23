@@ -51,7 +51,7 @@ func TestRegister(t *testing.T) {
 		}()
 
 		r := NewRouter()
-		handler := func(_ context.Context, _ TestEventV1) error { return nil }
+		handler := func(_ context.Context, _ string, _ TestEventV1) error { return nil }
 
 		// Register first time - should succeed
 		Register(r, handler)
@@ -96,19 +96,29 @@ func TestHandleMessageSuccess(t *testing.T) {
 	r := NewRouter()
 
 	var handledV1, handledV2 bool
+	eventID1 := "event1"
+	eventID2 := "event2"
 
-	testHandler1 := func(_ context.Context, e TestEventV1) error {
+	testHandler1 := func(_ context.Context, eventID string, e TestEventV1) error {
 		handledV1 = true
 		if e.ID != "v1-id" {
 			t.Errorf("v1 handler received wrong ID: %s", e.ID)
 		}
 
+		if eventID != "event1" {
+			t.Errorf("v1 handler received wrong eventID: %s", eventID)
+		}
+
 		return nil
 	}
-	testHandler2 := func(_ context.Context, e TestEventV2) error {
+	testHandler2 := func(_ context.Context, eventID string, e TestEventV2) error {
 		handledV2 = true
 		if e.ID != "v2-id" || e.Priority != 5 {
 			t.Errorf("v2 handler received wrong data: %+v", e)
+		}
+
+		if eventID != "event2" {
+			t.Errorf("v2 handler received wrong eventID: %s", eventID)
 		}
 
 		return nil
@@ -123,7 +133,7 @@ func TestHandleMessageSuccess(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create v1 event: %v", err)
 	}
-	if err := r.HandleMessage(t.Context(), v1Payload); err != nil {
+	if err := r.HandleMessage(t.Context(), eventID1, v1Payload); err != nil {
 		t.Errorf("failed to handle v1: %v", err)
 	}
 	if !handledV1 {
@@ -132,7 +142,7 @@ func TestHandleMessageSuccess(t *testing.T) {
 
 	// Create and route V2 event
 	v2Payload, _ := New(TestEventV2{ID: "v2-id", Priority: 5})
-	if err := r.HandleMessage(t.Context(), v2Payload); err != nil {
+	if err := r.HandleMessage(t.Context(), eventID2, v2Payload); err != nil {
 		t.Errorf("failed to handle v2: %v", err)
 	}
 	if !handledV2 {
@@ -142,7 +152,7 @@ func TestHandleMessageSuccess(t *testing.T) {
 
 func TestHandleMessageErrors(t *testing.T) {
 	r := NewRouter()
-	Register(r, func(_ context.Context, _ TestEventV1) error { return nil })
+	Register(r, func(_ context.Context, _ string, _ TestEventV1) error { return nil })
 
 	tests := []struct {
 		name          string
@@ -169,7 +179,7 @@ func TestHandleMessageErrors(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := r.HandleMessage(t.Context(), tc.input)
+			err := r.HandleMessage(t.Context(), "id", tc.input)
 
 			if err == nil {
 				t.Fatal("expected error, got nil")
