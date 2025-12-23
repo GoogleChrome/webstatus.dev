@@ -16,7 +16,16 @@ package workertypes
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"strings"
+
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
+)
+
+var (
+	ErrUnknownSummaryVersion    = errors.New("unknown summary version")
+	ErrFailedToSerializeSummary = errors.New("failed to serialize summary")
 )
 
 const (
@@ -101,6 +110,89 @@ func ParseEventSummary(data []byte, v SummaryVisitor) error {
 
 		return v.VisitV1(s)
 	default:
-		return fmt.Errorf("unknown summary version: %q", header.SchemaVersion)
+		return fmt.Errorf("%w: %q", ErrUnknownSummaryVersion, header.SchemaVersion)
 	}
+}
+
+type FeatureDiffV1SummaryGenerator struct{}
+
+// GenerateJSONEventSummaryFromFeatureDiffV1 generates and serializes.
+func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
+	d v1.FeatureDiff) ([]byte, error) {
+	var s EventSummary
+	s.SchemaVersion = VersionEventSummaryV1
+	var parts []string
+
+	if d.QueryChanged {
+		parts = append(parts, "Search criteria updated")
+		s.Categories.QueryChanged = 1
+	}
+
+	if len(d.Added) > 0 {
+		parts = append(parts, fmt.Sprintf("%d features added", len(d.Added)))
+		s.Categories.Added = len(d.Added)
+	}
+	if len(d.Removed) > 0 {
+		parts = append(parts, fmt.Sprintf("%d features removed", len(d.Removed)))
+		s.Categories.Removed = len(d.Removed)
+	}
+	if len(d.Moves) > 0 {
+		parts = append(parts, fmt.Sprintf("%d features moved/renamed", len(d.Moves)))
+		s.Categories.Moved = len(d.Moves)
+	}
+	if len(d.Splits) > 0 {
+		parts = append(parts, fmt.Sprintf("%d features split", len(d.Splits)))
+		s.Categories.Split = len(d.Splits)
+	}
+
+	if len(d.Modified) > 0 {
+		parts = append(parts, fmt.Sprintf("%d features updated", len(d.Modified)))
+		s.Categories.Updated = len(d.Modified)
+
+		for _, m := range d.Modified {
+			if len(m.BrowserChanges) > 0 {
+				s.Categories.UpdatedImpl++
+			}
+			if m.NameChange != nil {
+				s.Categories.UpdatedRename++
+			}
+			if m.BaselineChange != nil {
+				s.Categories.UpdatedBaseline++
+			}
+		}
+	}
+
+	if len(parts) == 0 {
+		s.Text = "No changes detected"
+	} else {
+		s.Text = strings.Join(parts, ", ")
+	}
+
+	b, err := json.Marshal(s)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrFailedToSerializeSummary, err)
+	}
+
+	return b, nil
+}
+
+type Reason string
+
+const (
+	ReasonQueryChanged = "QUERY_CHANGED"
+	ReasonDataUpdated  = "DATA_UPDATED"
+)
+
+type PublishEventRequest struct {
+	EventID  string
+	StateID  string
+	DiffID   string
+	SearchID string
+	Summary  []byte
+	Reasons  []Reason
+}
+
+type LatestEventInfo struct {
+	EventID string
+	StateID string
 }
