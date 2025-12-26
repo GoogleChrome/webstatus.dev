@@ -19,7 +19,9 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/workers/event_producer/pkg/differ"
 )
@@ -37,6 +39,10 @@ type BlobStorage interface {
 
 // EventMetadataStore handles the publishing and retrieval of event metadata.
 type EventMetadataStore interface {
+	AcquireLock(ctx context.Context, searchID string, frequency workertypes.JobFrequency,
+		workerID string, lockTTL time.Duration) error
+	ReleaseLock(ctx context.Context, searchID string, frequency workertypes.JobFrequency,
+		workerID string) error
 	PublishEvent(ctx context.Context, req workertypes.PublishEventRequest) error
 	// GetLatestEvent retrieves the last known event for a search to establish continuity.
 	GetLatestEvent(ctx context.Context,
@@ -74,10 +80,28 @@ func baseblobname(id string) string {
 	return fmt.Sprintf("%s.json", id)
 }
 
+func getDefaultLockTTL() time.Duration {
+	return 2 * time.Minute
+}
+
 // ProcessSearch is the main entry point triggered when a search query needs to be checked.
 // triggerID is the unique ID for this execution (e.g., from a Pub/Sub message).
 func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, query string,
 	frequency workertypes.JobFrequency, triggerID string) error {
+	// 0. Acquire Lock
+	// TODO: For now, use the triggerID as the worker ID.
+	// https://github.com/GoogleChrome/webstatus.dev/issues/2123
+	workerID := triggerID
+	if err := p.metaStore.AcquireLock(ctx, searchID, frequency, workerID, getDefaultLockTTL()); err != nil {
+		slog.ErrorContext(ctx, "failed to acquire lock", "search_id", searchID, "worker_id", workerID, "error", err)
+
+		return fmt.Errorf("%w: failed to acquire lock: %w", event.ErrTransientFailure, err)
+	}
+	defer func() {
+		if err := p.metaStore.ReleaseLock(ctx, searchID, frequency, workerID); err != nil {
+			slog.ErrorContext(ctx, "failed to release lock", "search_id", searchID, "worker_id", workerID, "error", err)
+		}
+	}()
 	// 1. Fetch Previous State
 	// We need the last known state to compute the diff.
 	lastEvent, err := p.metaStore.GetLatestEvent(ctx, frequency, searchID)
