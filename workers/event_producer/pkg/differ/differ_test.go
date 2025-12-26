@@ -16,14 +16,17 @@ package differ
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+	v1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurediff/v1"
+	snapshotV1 "github.com/GoogleChrome/webstatus.dev/lib/workertypes/featurelistsnapshot/v1"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/oapi-codegen/runtime/types"
@@ -80,11 +83,39 @@ func (m *mockFetcher) GetFeature(_ context.Context, id string) (*backendtypes.Ge
 	), nil
 }
 
-// Helper to construct a backend.Feature with minimal fields.
-func makeFeature(id, name, status string) backend.Feature {
-	s := backend.BaselineInfoStatus(status)
+type testFeatureOption func(*backend.Feature)
 
-	return backend.Feature{
+func withHighBaselineStatus(lowDate, highDate time.Time) testFeatureOption {
+	val := backend.Widely
+
+	return func(f *backend.Feature) {
+		f.Baseline = &backend.BaselineInfo{
+			Status: &val,
+			LowDate: &types.Date{
+				Time: lowDate,
+			},
+			HighDate: &types.Date{
+				Time: highDate,
+			},
+		}
+	}
+}
+
+func withLimitedBaselineStatus() testFeatureOption {
+	val := backend.Limited
+
+	return func(f *backend.Feature) {
+		f.Baseline = &backend.BaselineInfo{
+			Status:   &val,
+			LowDate:  nil,
+			HighDate: nil,
+		}
+	}
+}
+
+// Helper to construct a backend.Feature with minimal fields.
+func makeFeature(id, name string, opts ...testFeatureOption) backend.Feature {
+	f := backend.Feature{
 		FeatureId:              id,
 		Name:                   name,
 		Spec:                   nil,
@@ -94,24 +125,26 @@ func makeFeature(id, name, status string) backend.Feature {
 		VendorPositions:        nil,
 		DeveloperSignals:       nil,
 		BrowserImplementations: nil,
-		Baseline: &backend.BaselineInfo{
-			Status:   &s,
-			LowDate:  nil,
-			HighDate: nil,
-		},
+		Baseline:               nil,
 	}
+	for _, opt := range opts {
+		opt(&f)
+	}
+
+	return f
 }
 
 // Helper to create a previous state blob using the real serialization logic.
 func makeStateBlob(t *testing.T, searchID, query string, features []backend.Feature) []byte {
 	snapshot := toSnapshot(features)
-	payload := FeatureListSnapshot{
-		Metadata: StateMetadata{
-			GeneratedAt:    time.Now(),
+	payload := snapshotV1.FeatureListSnapshotV1{
+		Metadata: snapshotV1.StateMetadataV1{GeneratedAt: time.Now(),
 			SearchID:       searchID,
 			QuerySignature: query,
+			ID:             "prev_state_123",
+			EventID:        "",
 		},
-		Data: FeatureListData{
+		Data: snapshotV1.FeatureListDataV1{
 			Features: snapshot,
 		},
 	}
@@ -123,216 +156,90 @@ func makeStateBlob(t *testing.T, searchID, query string, features []backend.Feat
 	return b
 }
 
-func TestRun(t *testing.T) {
-	ctx := context.Background()
-	searchID := "search-123"
-
-	tests := []struct {
-		name         string
-		query        string
-		oldStateBlob []byte
-		mock         *mockFetcher
-		wantDiff     *FeatureDiff
-		wantWrite    bool
-		wantErr      bool
-	}{
-		{
-			name:         "Cold Start",
-			query:        "group:css",
-			oldStateBlob: nil,
-			mock: &mockFetcher{
-				queryResults: map[string][]backend.Feature{
-					"group:css": {makeFeature("1", "Grid", "limited")},
-				},
-				featureDetails: nil,
-				featureErrors:  nil,
-				fetchError:     nil,
-			},
-			wantDiff: &FeatureDiff{
-				QueryChanged: false,
-				Added:        nil,
-				Removed:      nil,
-				Modified:     nil,
-				Moves:        nil,
-				Splits:       nil,
-			},
-			wantWrite: true,
-			wantErr:   false,
-		}, {
-			name:  "No Changes",
-			query: "group:css",
-			oldStateBlob: makeStateBlob(t, searchID, "group:css", []backend.Feature{
-				makeFeature("1", "Grid", "limited"),
-			}),
-			mock: &mockFetcher{
-				queryResults: map[string][]backend.Feature{
-					"group:css": {makeFeature("1", "Grid", "limited")},
-				},
-				featureDetails: nil,
-				featureErrors:  nil,
-				fetchError:     nil,
-			},
-			wantDiff:  nil,
-			wantWrite: false,
-			wantErr:   false,
-		},
-		{
-			name:  "Data Update",
-			query: "group:css",
-			oldStateBlob: makeStateBlob(t, searchID, "group:css", []backend.Feature{
-				makeFeature("1", "Grid", "limited"),
-			}),
-			mock: &mockFetcher{
-				queryResults: map[string][]backend.Feature{
-					"group:css": {makeFeature("1", "Grid", "widely")},
-				},
-				featureDetails: nil,
-				featureErrors:  nil,
-				fetchError:     nil,
-			},
-			wantDiff: &FeatureDiff{
-				QueryChanged: false,
-				Added:        nil,
-				Removed:      nil,
-				Modified: []FeatureModified{
-					{
-						ID:   "1",
-						Name: "Grid",
-						BaselineChange: &Change[backend.BaselineInfoStatus]{
-							From: backend.Limited,
-							To:   backend.Widely,
-						},
-						NameChange:     nil,
-						BrowserChanges: nil,
-					},
-				},
-				Moves:  nil,
-				Splits: nil,
-			},
-			wantWrite: true,
-			wantErr:   false,
-		},
-		{
-			name:  "Query Change (Flush Success)",
-			query: "group:new",
-			oldStateBlob: makeStateBlob(t, searchID, "group:old", []backend.Feature{
-				makeFeature("1", "OldFeature", "limited"),
-			}),
-			mock: &mockFetcher{
-				queryResults: map[string][]backend.Feature{
-					"group:new": {},
-					// Old query shows update happened before switch
-					"group:old": {makeFeature("1", "OldFeature", "widely")},
-				},
-				featureDetails: nil,
-				featureErrors:  nil,
-				fetchError:     nil,
-			},
-			wantDiff: &FeatureDiff{
-				QueryChanged: true,
-				Added:        nil,
-				Removed:      nil,
-				Modified: []FeatureModified{
-					{
-						ID:   "1",
-						Name: "OldFeature",
-						BaselineChange: &Change[backend.BaselineInfoStatus]{
-							From: backend.Limited,
-							To:   backend.Widely,
-						},
-						NameChange:     nil,
-						BrowserChanges: nil,
-					},
-				},
-				Moves:  nil,
-				Splits: nil,
-			},
-			wantWrite: true,
-			wantErr:   false,
-		},
-		{
-			name:  "Query Change (Flush Failed)",
-			query: "group:new",
-			// Old state has a query "error:old" which will trigger mock error
-			oldStateBlob: makeStateBlob(t, searchID, "error:old", []backend.Feature{
-				makeFeature("1", "OldFeature", "limited"),
-			}),
-			mock: &mockFetcher{
-				queryResults: map[string][]backend.Feature{
-					"group:new": {makeFeature("2", "NewFeature", "limited")},
-				},
-				featureDetails: nil,
-				featureErrors:  nil,
-				fetchError:     nil,
-			},
-			// Expectation: Fallback logic kicks in. We skip diffing the data.
-			// Result is just QueryChanged=true, with NO removals/adds reported.
-			wantDiff: &FeatureDiff{
-				QueryChanged: true,
-				Added:        nil,
-				Removed:      nil,
-				Modified:     nil,
-				Moves:        nil,
-				Splits:       nil,
-			},
-			wantWrite: true,
-			wantErr:   false,
-		},
-		{
-			name:  "Reconciliation (Move)",
-			query: "group:css",
-			oldStateBlob: makeStateBlob(t, searchID, "group:css", []backend.Feature{
-				makeFeature("old-id", "Old Name", "limited"),
-			}),
-			mock: &mockFetcher{
-				queryResults: map[string][]backend.Feature{
-					"group:css": {makeFeature("new-id", "New Name", "limited")},
-				},
-				featureDetails: map[string]*backendtypes.GetFeatureResult{
-					"old-id": backendtypes.NewGetFeatureResult(
-						backendtypes.NewMovedFeatureResult("new-id"),
-					),
-				},
-				featureErrors: nil,
-				fetchError:    nil,
-			},
-			wantDiff: &FeatureDiff{
-				QueryChanged: false,
-				Added:        nil,
-				Removed:      nil,
-				Modified:     nil,
-				Moves: []FeatureMoved{
-					{FromID: "old-id", ToID: "new-id", FromName: "Old Name", ToName: "New Name"},
-				},
-				Splits: nil,
-			},
-			wantWrite: true,
-			wantErr:   false,
-		},
+func mustGenerateBlob[T blobtypes.Payload](t *testing.T, v T) []byte {
+	b, err := blobtypes.NewBlob(v)
+	if err != nil {
+		t.Fatalf("failed to create blob: %v", err)
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			d := NewFeatureDiffer(tc.mock)
+	return b
+}
 
-			newState, diff, shouldWrite, err := d.Run(ctx, searchID, tc.query, tc.oldStateBlob)
+// expectStateBlob generates the expected JSON string for the State Blob.
+func expectStateBlob(t *testing.T, runTime time.Time, searchID, query, eventID string,
+	features []backend.Feature) string {
+	return string(mustGenerateBlob(t, snapshotV1.FeatureListSnapshotV1{
+		Metadata: snapshotV1.StateMetadataV1{
+			GeneratedAt:    runTime,
+			SearchID:       searchID,
+			ID:             "test-state-id",
+			EventID:        eventID,
+			QuerySignature: query,
+		},
+		Data: snapshotV1.FeatureListDataV1{
+			Features: toSnapshot(features),
+		},
+	}))
+}
 
-			// Helper 1: Verify Error state
-			if checkRunError(t, tc.wantErr, err) {
-				return
-			}
+// expectDiffBlob generates the expected JSON string for the Diff Blob.
+func expectDiffBlob(
+	t *testing.T, runTime time.Time, searchID, prevStateID, eventID string, diff v1.FeatureDiffV1,
+) string {
+	// Need to Sort the diff before serializing for consistent ordering
+	diff.Sort()
 
-			// Helper 2: Verify Diff output
-			checkRunDiff(t, tc.wantDiff, diff)
+	return string(mustGenerateBlob(t, v1.FeatureDiffSnapshotV1{
+		Metadata: v1.DiffMetadataV1{
+			GeneratedAt:     runTime,
+			EventID:         eventID,
+			ID:              "test-diff-id",
+			SearchID:        searchID,
+			PreviousStateID: prevStateID,
+			NewStateID:      "test-state-id",
+		},
+		Data: diff,
+	}))
+}
 
-			// Verify Write logic
-			if shouldWrite != tc.wantWrite {
-				t.Errorf("shouldWrite = %v, want %v", shouldWrite, tc.wantWrite)
-			}
-			if tc.wantWrite && len(newState) == 0 {
-				t.Error("Expected newState bytes, got empty")
-			}
-		})
+// ExpectedDiffResult defines the expected outcome of a Run.
+// Blobs are represented as JSON strings to allow for flexible structure comparison.
+type ExpectedDiffResult struct {
+	HasChanges bool
+	Reasons    []string
+	Summary    workertypes.EventSummary
+	StateID    string
+	DiffID     string
+	// JSON strings representing the expected blob content.
+	// These will be compared against the actual bytes by decoding both into interface{}.
+	StateBlob string
+	DiffBlob  string
+}
+
+// mockIDGenerator for deterministic tests.
+type mockIDGenerator struct{}
+
+func (m *mockIDGenerator) NewStateID() string { return "test-state-id" }
+func (m *mockIDGenerator) NewDiffID() string  { return "test-diff-id" }
+
+// compareJSON unmarshals both inputs into interface{} containers and compares them using cmp.Diff.
+func compareJSON(t *testing.T, name string, wantStr string, gotBytes []byte) {
+	t.Helper()
+	var want, got interface{}
+
+	if wantStr == "" {
+		t.Fatalf("%s expectation is empty, but got bytes", name)
+	}
+
+	if err := json.Unmarshal([]byte(wantStr), &want); err != nil {
+		t.Fatalf("%s: failed to unmarshal expected JSON string: %v", name, err)
+	}
+	if err := json.Unmarshal(gotBytes, &got); err != nil {
+		t.Fatalf("%s: failed to unmarshal actual bytes: %v", name, err)
+	}
+
+	if d := cmp.Diff(want, got); d != "" {
+		t.Errorf("%s mismatch (-want +got):\n%s", name, d)
 	}
 }
 
@@ -354,137 +261,396 @@ func checkRunError(t *testing.T, wantErr bool, err error) bool {
 	return false
 }
 
-// checkRunDiff handles comparing the expected diff with the actual diff.
-func checkRunDiff(t *testing.T, wantDiff, gotDiff *FeatureDiff) {
-	t.Helper()
-	if wantDiff != nil {
-		if gotDiff == nil {
-			t.Fatal("Expected diff, got nil")
-		}
-		// Sort for deterministic comparison
-		gotDiff.Sort()
-		wantDiff.Sort()
-
-		if d := cmp.Diff(wantDiff, gotDiff, cmpopts.EquateEmpty()); d != "" {
-			t.Errorf("Diff mismatch (-want +got):\n%s", d)
-		}
-	} else {
-		if gotDiff != nil {
-			t.Errorf("Expected nil diff, got: %+v", gotDiff)
-		}
-	}
-}
-
-func TestToComparable(t *testing.T) {
-	avail := backend.Available
-	unavail := backend.Unavailable
-	status := backend.Widely
-	date := types.Date{Time: time.Now()}
+// TestRun is for full integration testing of the differ.Run function.
+// This test is critical for verifying the end-to-end behavior of the diffing engine,
+// including cold starts, data updates, query changes, and historical reconciliation (moves/splits).
+func TestRun(t *testing.T) {
+	ctx := context.Background()
+	searchID := "search-123"
+	lowDate := time.Date(2000, time.April, 1, 1, 1, 1, 1, time.UTC)
+	highDate := time.Date(2000, time.April, 2, 1, 1, 1, 1, time.UTC)
+	runTime := time.Date(2025, time.January, 1, 12, 0, 0, 0, time.UTC)
+	eventID := "eventID"
 
 	tests := []struct {
-		name string
-		in   backend.Feature
-		want ComparableFeature
+		name         string
+		query        string
+		oldStateBlob []byte
+		mock         *mockFetcher
+		want         ExpectedDiffResult
+		wantErr      bool
 	}{
 		{
-			name: "Fully Populated",
-			in: backend.Feature{
-				FeatureId:   "feat-1",
-				Name:        "Feature One",
-				Spec:        nil,
-				Discouraged: nil,
-				Usage:       nil,
-				Wpt:         nil,
-				Baseline: &backend.BaselineInfo{
-					Status:   &status,
-					LowDate:  nil,
-					HighDate: nil,
+			name:         "Cold Start",
+			query:        "group:css",
+			oldStateBlob: nil,
+			mock: &mockFetcher{
+				queryResults: map[string][]backend.Feature{
+					"group:css": {makeFeature("1", "Grid", withLimitedBaselineStatus())},
 				},
-				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"chrome":  {Status: &avail, Date: &date, Version: nil},
-					"firefox": {Status: &unavail, Date: nil, Version: nil},
-					"safari":  {Status: &avail, Date: nil, Version: nil},
-					"unknown": {Status: &avail, Date: nil, Version: nil}, // Should be ignored
-				},
-				VendorPositions:  nil,
-				DeveloperSignals: nil,
+				featureDetails: nil,
+				featureErrors:  nil,
+				fetchError:     nil,
 			},
-			want: createExpectedFeature("feat-1", "Feature One", backend.Widely, map[backend.SupportedBrowsers]string{
-				backend.Chrome:         "available",
-				backend.ChromeAndroid:  "",
-				backend.Firefox:        "unavailable",
-				backend.FirefoxAndroid: "",
-				backend.Safari:         "available",
-				backend.SafariIos:      "",
-				backend.Edge:           "",
+			want: ExpectedDiffResult{
+				HasChanges: true,
+				Reasons:    nil,
+				Summary: workertypes.EventSummary{
+					SchemaVersion: workertypes.VersionEventSummaryV1,
+					Text:          "No changes detected",
+					Categories: workertypes.SummaryCategories{
+						QueryChanged:    0,
+						Added:           0,
+						Removed:         0,
+						Moved:           0,
+						Split:           0,
+						Updated:         0,
+						UpdatedImpl:     0,
+						UpdatedRename:   0,
+						UpdatedBaseline: 0,
+					},
+				},
+				StateID: "test-state-id",
+				DiffID:  "test-diff-id",
+				StateBlob: expectStateBlob(t, runTime, searchID, "group:css", eventID, []backend.Feature{
+					makeFeature("1", "Grid", withLimitedBaselineStatus()),
+				}),
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "", eventID, v1.FeatureDiffV1{
+					QueryChanged: false,
+					Added:        nil,
+					Removed:      nil,
+					Modified:     nil,
+					Moves:        nil,
+					Splits:       nil,
+				}),
+			},
+			wantErr: false,
+		}, {
+			name:  "No Changes",
+			query: "group:css",
+			oldStateBlob: makeStateBlob(t, searchID, "group:css", []backend.Feature{
+				makeFeature("1", "Grid", withLimitedBaselineStatus()),
 			}),
+			mock: &mockFetcher{
+				queryResults: map[string][]backend.Feature{
+					"group:css": {makeFeature("1", "Grid", withLimitedBaselineStatus())},
+				},
+				featureDetails: nil,
+				featureErrors:  nil,
+				fetchError:     nil,
+			},
+			want: ExpectedDiffResult{
+				HasChanges: false,
+				Reasons:    nil,
+				Summary: workertypes.EventSummary{
+					SchemaVersion: workertypes.VersionEventSummaryV1,
+					Text:          "",
+					Categories: workertypes.SummaryCategories{
+						QueryChanged:    0,
+						Added:           0,
+						Removed:         0,
+						Moved:           0,
+						Split:           0,
+						Updated:         0,
+						UpdatedImpl:     0,
+						UpdatedRename:   0,
+						UpdatedBaseline: 0,
+					},
+				},
+				StateID:   "",
+				DiffID:    "",
+				StateBlob: "",
+				DiffBlob:  "",
+			},
+			wantErr: false,
 		},
 		{
-			name: "Minimal (Nil Maps)",
-			in: backend.Feature{
-				FeatureId:              "feat-2",
-				Name:                   "Minimal Feature",
-				Baseline:               nil,
-				Spec:                   nil,
-				BrowserImplementations: nil,
-				Discouraged:            nil,
-				Usage:                  nil,
-				Wpt:                    nil,
-				VendorPositions:        nil,
-				DeveloperSignals:       nil,
+			name:  "Data Update",
+			query: "group:css",
+			oldStateBlob: makeStateBlob(t, searchID, "group:css", []backend.Feature{
+				makeFeature("1", "Grid", withLimitedBaselineStatus()),
+			}),
+			mock: &mockFetcher{
+				queryResults: map[string][]backend.Feature{
+					"group:css": {makeFeature("1", "Grid", withHighBaselineStatus(lowDate, highDate))},
+				},
+				featureDetails: nil,
+				featureErrors:  nil,
+				fetchError:     nil,
 			},
-			want: createExpectedFeature("feat-2", "Minimal Feature", backend.Limited, nil),
+			want: ExpectedDiffResult{
+				HasChanges: true,
+				Reasons:    []string{"DATA_UPDATED"},
+				StateID:    "test-state-id",
+				DiffID:     "test-diff-id",
+				Summary: workertypes.EventSummary{
+					SchemaVersion: workertypes.VersionEventSummaryV1,
+					Text:          "1 features updated",
+					Categories: workertypes.SummaryCategories{
+						QueryChanged:    0,
+						Added:           0,
+						Removed:         0,
+						Moved:           0,
+						Split:           0,
+						Updated:         1,
+						UpdatedImpl:     0,
+						UpdatedRename:   0,
+						UpdatedBaseline: 1,
+					},
+				},
+				StateBlob: expectStateBlob(t, runTime, searchID, "group:css", eventID, []backend.Feature{
+					makeFeature("1", "Grid", withHighBaselineStatus(lowDate, highDate)),
+				}),
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
+					QueryChanged: false,
+					Added:        nil,
+					Removed:      nil,
+					Modified: []v1.FeatureModified{
+						{
+							ID:   "1",
+							Name: "Grid",
+							BaselineChange: &v1.Change[v1.BaselineState]{
+								From: v1.BaselineState{
+									Status:   backend.Limited,
+									LowDate:  nil,
+									HighDate: nil,
+								},
+								To: v1.BaselineState{
+									Status:   backend.Widely,
+									LowDate:  &lowDate,
+									HighDate: &highDate,
+								},
+							},
+							NameChange:     nil,
+							BrowserChanges: nil,
+							Docs:           nil,
+							DocsChange:     nil,
+						},
+					},
+					Moves:  nil,
+					Splits: nil,
+				}),
+			},
+			wantErr: false,
+		},
+		{
+			name:  "Query Change (Flush Success)",
+			query: "group:new",
+			oldStateBlob: makeStateBlob(t, searchID, "group:old", []backend.Feature{
+				makeFeature("1", "OldFeature", withLimitedBaselineStatus()),
+			}),
+			mock: &mockFetcher{
+				queryResults: map[string][]backend.Feature{
+					"group:new": {},
+					// Old query shows update happened before switch
+					"group:old": {makeFeature("1", "OldFeature", withHighBaselineStatus(lowDate, highDate))},
+				},
+				featureDetails: nil,
+				featureErrors:  nil,
+				fetchError:     nil,
+			},
+			want: ExpectedDiffResult{
+				HasChanges: true,
+				Reasons:    []string{"DATA_UPDATED", "QUERY_EDITED"},
+				StateID:    "test-state-id",
+				DiffID:     "test-diff-id",
+				Summary: workertypes.EventSummary{
+					SchemaVersion: workertypes.VersionEventSummaryV1,
+					Text:          "Search criteria updated, 1 features updated",
+					Categories: workertypes.SummaryCategories{
+						QueryChanged:    1,
+						Added:           0,
+						Removed:         0,
+						Moved:           0,
+						Split:           0,
+						Updated:         1,
+						UpdatedImpl:     0,
+						UpdatedRename:   0,
+						UpdatedBaseline: 1,
+					},
+				},
+				StateBlob: expectStateBlob(t, runTime, searchID, "group:new", eventID, []backend.Feature{}),
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
+					QueryChanged: true,
+					Added:        nil,
+					Removed:      nil,
+					Modified: []v1.FeatureModified{
+						{
+							ID:   "1",
+							Name: "OldFeature",
+							BaselineChange: &v1.Change[v1.BaselineState]{
+								From: v1.BaselineState{
+									Status:   backend.Limited,
+									LowDate:  nil,
+									HighDate: nil,
+								},
+								To: v1.BaselineState{
+									Status:   backend.Widely,
+									LowDate:  &lowDate,
+									HighDate: &highDate,
+								},
+							},
+							NameChange:     nil,
+							BrowserChanges: nil,
+							Docs:           nil,
+							DocsChange:     nil,
+						},
+					},
+					Moves:  nil,
+					Splits: nil,
+				}),
+			},
+			wantErr: false,
+		},
+		{
+			name:  "Query Change (Flush Failed)",
+			query: "group:new",
+			// Old state has a query "error:old" which will trigger mock error
+			oldStateBlob: makeStateBlob(t, searchID, "error:old", []backend.Feature{
+				makeFeature("1", "OldFeature", withLimitedBaselineStatus()),
+			}),
+			mock: &mockFetcher{
+				queryResults: map[string][]backend.Feature{
+					"group:new": {makeFeature("2", "NewFeature", withLimitedBaselineStatus())},
+				},
+				featureDetails: nil,
+				featureErrors:  nil,
+				fetchError:     nil,
+			},
+			// Expectation: Fallback logic kicks in. We skip diffing the data.
+			// Result is just QueryChanged=true, with NO removals/adds reported.
+			want: ExpectedDiffResult{
+				HasChanges: true,
+				Reasons:    []string{"QUERY_EDITED"},
+				StateID:    "test-state-id",
+				DiffID:     "test-diff-id",
+				Summary: workertypes.EventSummary{
+					SchemaVersion: workertypes.VersionEventSummaryV1,
+					Text:          "Search criteria updated",
+					Categories: workertypes.SummaryCategories{
+						QueryChanged:    1,
+						Added:           0,
+						Removed:         0,
+						Moved:           0,
+						Split:           0,
+						Updated:         0,
+						UpdatedImpl:     0,
+						UpdatedRename:   0,
+						UpdatedBaseline: 0,
+					},
+				},
+				StateBlob: expectStateBlob(t, runTime, searchID, "group:new", eventID, []backend.Feature{
+					makeFeature("2", "NewFeature", withLimitedBaselineStatus()),
+				}),
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
+					QueryChanged: true,
+					Added:        nil,
+					Removed:      nil,
+					Modified:     nil,
+					Moves:        nil,
+					Splits:       nil,
+				}),
+			},
+			wantErr: false,
+		},
+		{
+			name:  "Reconciliation (Move)",
+			query: "group:css",
+			oldStateBlob: makeStateBlob(t, searchID, "group:css", []backend.Feature{
+				makeFeature("old-id", "Old Name", withLimitedBaselineStatus()),
+			}),
+			mock: &mockFetcher{
+				queryResults: map[string][]backend.Feature{
+					"group:css": {makeFeature("new-id", "New Name", withLimitedBaselineStatus())},
+				},
+				featureDetails: map[string]*backendtypes.GetFeatureResult{
+					"old-id": backendtypes.NewGetFeatureResult(
+						backendtypes.NewMovedFeatureResult("new-id"),
+					),
+				},
+				featureErrors: nil,
+				fetchError:    nil,
+			},
+			want: ExpectedDiffResult{
+				HasChanges: true,
+				Reasons:    []string{"DATA_UPDATED"},
+				StateID:    "test-state-id",
+				DiffID:     "test-diff-id",
+				Summary: workertypes.EventSummary{
+					SchemaVersion: workertypes.VersionEventSummaryV1,
+					Text:          "1 features moved/renamed",
+					Categories: workertypes.SummaryCategories{
+						QueryChanged:    0,
+						Added:           0,
+						Removed:         0,
+						Moved:           1,
+						Split:           0,
+						Updated:         0,
+						UpdatedImpl:     0,
+						UpdatedRename:   0,
+						UpdatedBaseline: 0,
+					},
+				},
+				StateBlob: expectStateBlob(t, runTime, searchID, "group:css", eventID, []backend.Feature{
+					makeFeature("new-id", "New Name", withLimitedBaselineStatus()),
+				}),
+				DiffBlob: expectDiffBlob(t, runTime, searchID, "prev_state_123", eventID, v1.FeatureDiffV1{
+					QueryChanged: false,
+					Added:        nil,
+					Removed:      nil,
+					Modified:     nil,
+					Moves: []v1.FeatureMoved{
+						{FromID: "old-id", ToID: "new-id", FromName: "Old Name", ToName: "New Name"},
+					},
+					Splits: nil,
+				}),
+			},
+			wantErr: false,
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := toComparable(tc.in)
-			if !reflect.DeepEqual(got, tc.want) {
-				t.Errorf("toComparable mismatch.\nGot:  %+v\nWant: %+v", got, tc.want)
+			d := NewFeatureDiffer(tc.mock, v1.NewComparatorV1(tc.mock))
+			d.idGen = &mockIDGenerator{}
+			d.now = func() time.Time { return runTime }
+
+			result, err := d.Run(ctx, searchID, tc.query, eventID, tc.oldStateBlob)
+
+			// Helper 1: Verify Error state
+			if checkRunError(t, tc.wantErr, err) {
+				return
 			}
+
+			if result.HasChanges != tc.want.HasChanges {
+				t.Errorf("HasChanges = %v, want %v", result.HasChanges, tc.want.HasChanges)
+			}
+
+			if !tc.want.HasChanges {
+				return
+			}
+
+			// Validate Metadata
+			if result.StateID != tc.want.StateID {
+				t.Errorf("StateID mismatch. Got %s, Want %s", result.StateID, tc.want.StateID)
+			}
+			if result.DiffID != tc.want.DiffID {
+				t.Errorf("DiffID mismatch. Got %s, Want %s", result.DiffID, tc.want.DiffID)
+			}
+
+			// Reasons: sort before compare
+			less := func(a, b string) bool { return a < b }
+			if d := cmp.Diff(tc.want.Reasons, result.Reasons, cmpopts.SortSlices(less), cmpopts.EquateEmpty()); d != "" {
+				t.Errorf("Reasons mismatch (-want +got):\n%s", d)
+			}
+			// Summary
+			if d := cmp.Diff(tc.want.Summary, result.Summary, cmpopts.EquateEmpty()); d != "" {
+				t.Errorf("Summary mismatch (-want +got):\n%s", d)
+			}
+
+			// Validate Blobs via flexible JSON comparison
+			compareJSON(t, "StateBytes", tc.want.StateBlob, result.StateBytes)
+			compareJSON(t, "DiffBytes", tc.want.DiffBlob, result.DiffBytes)
 		})
-	}
-}
-
-// createExpectedFeature constructs a ComparableFeature with all OptionallySet fields initialized.
-// This is required to pass the exhaustruct linter in tests.
-func createExpectedFeature(id, name string, baseline backend.BaselineInfoStatus,
-	browsers map[backend.SupportedBrowsers]string) ComparableFeature {
-	cf := ComparableFeature{
-		ID:             id,
-		Name:           OptionallySet[string]{Value: name, IsSet: true},
-		BaselineStatus: OptionallySet[backend.BaselineInfoStatus]{Value: baseline, IsSet: true},
-		BrowserImpls: BrowserImplementations{
-			// Initialize all to IsSet=false by default
-			Chrome:         OptionallySet[string]{IsSet: false, Value: ""},
-			ChromeAndroid:  OptionallySet[string]{IsSet: false, Value: ""},
-			Edge:           OptionallySet[string]{IsSet: false, Value: ""},
-			Firefox:        OptionallySet[string]{IsSet: false, Value: ""},
-			FirefoxAndroid: OptionallySet[string]{IsSet: false, Value: ""},
-			Safari:         OptionallySet[string]{IsSet: false, Value: ""},
-			SafariIos:      OptionallySet[string]{IsSet: false, Value: ""},
-		},
-	}
-
-	// Override specific browsers if provided
-	if browsers != nil {
-		setIfPresent(browsers, "chrome", &cf.BrowserImpls.Chrome)
-		setIfPresent(browsers, "chrome_android", &cf.BrowserImpls.ChromeAndroid)
-		setIfPresent(browsers, "edge", &cf.BrowserImpls.Edge)
-		setIfPresent(browsers, "firefox", &cf.BrowserImpls.Firefox)
-		setIfPresent(browsers, "firefox_android", &cf.BrowserImpls.FirefoxAndroid)
-		setIfPresent(browsers, "safari", &cf.BrowserImpls.Safari)
-		setIfPresent(browsers, "safari_ios", &cf.BrowserImpls.SafariIos)
-	}
-
-	return cf
-}
-
-func setIfPresent[K comparable, V any](m map[K]V, key K, target *OptionallySet[V]) {
-	var zero V
-	if val, ok := m[key]; ok && !reflect.DeepEqual(zero, val) {
-		target.IsSet = true
-		target.Value = val
 	}
 }
