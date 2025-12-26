@@ -349,3 +349,55 @@ func TestGetSavedSearchNotificationEvent_NotFound(t *testing.T) {
 		t.Errorf("expected ErrQueryReturnedNoResults, got %v", err)
 	}
 }
+
+func TestGetLatestSavedSearchNotificationEvent(t *testing.T) {
+	ctx := t.Context()
+	restartDatabaseContainer(t)
+	// Insert multiple events for the same saved search and snapshot type
+	savedSearchID := createSavedSearchForNotificationTests(ctx, t)
+	snapshotType := SavedSearchSnapshotType("compat-stats")
+
+	eventTimes := []time.Time{
+		time.Date(2025, 1, 1, 10, 0, 0, 0, time.UTC),
+		time.Date(2025, 1, 1, 11, 0, 0, 0, time.UTC),
+		time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC),
+	}
+	// Setup and acquire lock
+	setupLockAndInitialState(ctx, t, savedSearchID, string(snapshotType), "worker-1", "path/initial", 10*time.Minute,
+		time.Date(2025, 1, 1, 9, 0, 0, 0, time.UTC))
+
+	var latestEventID string
+	for i, eventTime := range eventTimes {
+		eventID := "event-" + string(rune('A'+i))
+		_, err := spannerClient.PublishSavedSearchNotificationEvent(ctx, SavedSearchNotificationCreateRequest{
+			SavedSearchID: savedSearchID,
+			SnapshotType:  snapshotType,
+			Timestamp:     eventTime,
+			EventType:     "IMMEDIATE_DIFF",
+			Reasons:       []string{"DATA_UPDATED"},
+			BlobPath:      "path/" + eventID,
+			DiffBlobPath:  "diff/path/" + eventID,
+			Summary: spanner.NullJSON{
+				Value: nil,
+				Valid: false,
+			},
+		}, "path/"+eventID, "worker-1", WithID(eventID))
+		if err != nil {
+			t.Fatalf("PublishSavedSearchNotificationEvent() failed: %v", err)
+		}
+		latestEventID = eventID
+	}
+
+	// Now retrieve the latest event
+	latestEvent, err := spannerClient.GetLatestSavedSearchNotificationEvent(ctx, savedSearchID, snapshotType)
+	if err != nil {
+		t.Fatalf("GetLatestSavedSearchNotificationEvent() failed: %v", err)
+	}
+
+	if latestEvent.ID != latestEventID {
+		t.Errorf("Latest event ID mismatch: got %s, want %s", latestEvent.ID, latestEventID)
+	}
+	if !latestEvent.Timestamp.Equal(eventTimes[2]) {
+		t.Errorf("Latest event Timestamp mismatch: got %v, want %v", latestEvent.Timestamp, eventTimes[2])
+	}
+}

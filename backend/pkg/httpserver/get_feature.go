@@ -82,7 +82,7 @@ func (s *Server) GetFeature(
 	}
 	result, err := s.wptMetricsStorer.GetFeature(ctx, request.FeatureId,
 		getWPTMetricViewOrDefault(request.Params.WptMetricView),
-		defaultBrowsers(),
+		backendtypes.DefaultBrowsers(),
 	)
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {

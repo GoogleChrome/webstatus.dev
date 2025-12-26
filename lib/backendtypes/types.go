@@ -86,3 +86,15 @@ func AttemptToStoreSubscriptionTriggerUnknown() backend.SubscriptionTriggerRespo
 
 	return ret
 }
+
+func DefaultBrowsers() []backend.BrowserPathParam {
+	return []backend.BrowserPathParam{
+		backend.Chrome,
+		backend.Edge,
+		backend.Firefox,
+		backend.Safari,
+		backend.ChromeAndroid,
+		backend.FirefoxAndroid,
+		backend.SafariIos,
+	}
+}
