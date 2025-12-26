@@ -31,20 +31,21 @@ type FeatureDiffer interface {
 
 // BlobStorage handles the persistence of opaque data blobs (State Snapshots and Diff Reports).
 type BlobStorage interface {
-	Store(ctx context.Context, key string, data []byte) error
-	Get(ctx context.Context, key string) ([]byte, error)
+	Store(ctx context.Context, dirs []string, key string, data []byte) (string, error)
+	Get(ctx context.Context, fullpath string) ([]byte, error)
 }
 
 // EventMetadataStore handles the publishing and retrieval of event metadata.
 type EventMetadataStore interface {
 	PublishEvent(ctx context.Context, req workertypes.PublishEventRequest) error
 	// GetLatestEvent retrieves the last known event for a search to establish continuity.
-	GetLatestEvent(ctx context.Context, searchID string) (*workertypes.LatestEventInfo, error)
+	GetLatestEvent(ctx context.Context,
+		frequency workertypes.JobFrequency, searchID string) (*workertypes.LatestEventInfo, error)
 }
 
 // EventPublisher handles broadcasting the event to the rest of the system (e.g. via Pub/Sub).
 type EventPublisher interface {
-	Publish(ctx context.Context, req workertypes.PublishEventRequest) error
+	Publish(ctx context.Context, req workertypes.PublishEventRequest) (string, error)
 }
 
 // EventProducer orchestrates the diffing and publishing pipeline.
@@ -64,20 +65,30 @@ func NewEventProducer(d FeatureDiffer, b BlobStorage, m EventMetadataStore, p Ev
 	}
 }
 
+const (
+	StateDir = "state"
+	DiffDir  = "diff"
+)
+
+func baseblobname(id string) string {
+	return fmt.Sprintf("%s.json", id)
+}
+
 // ProcessSearch is the main entry point triggered when a search query needs to be checked.
 // triggerID is the unique ID for this execution (e.g., from a Pub/Sub message).
-func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, query string, triggerID string) error {
+func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, query string,
+	frequency workertypes.JobFrequency, triggerID string) error {
 	// 1. Fetch Previous State
 	// We need the last known state to compute the diff.
-	lastEvent, err := p.metaStore.GetLatestEvent(ctx, searchID)
+	lastEvent, err := p.metaStore.GetLatestEvent(ctx, frequency, searchID)
 	if err != nil {
 		return fmt.Errorf("failed to get latest event info: %w", err)
 	}
 
 	var previousStateBytes []byte
-	if lastEvent != nil && lastEvent.StateID != "" {
+	if lastEvent != nil && lastEvent.StateBlobPath != "" {
 		// If we have history, fetch the actual bytes from "Cold Storage"
-		previousStateBytes, err = p.blobStore.Get(ctx, lastEvent.StateID)
+		previousStateBytes, err = p.blobStore.Get(ctx, lastEvent.StateBlobPath)
 		if err != nil {
 			return fmt.Errorf("failed to fetch previous state blob: %w", err)
 		}
@@ -99,24 +110,32 @@ func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, quer
 	// 3. Store Artifacts (Blob Storage)
 	// We have to save both the Full State and the Diff.
 	// Note: We are trusting the Differ to have generated valid IDs in the result.
-	if err := p.blobStore.Store(ctx, result.State.ID, result.State.Bytes); err != nil {
+	statePath, err := p.blobStore.Store(ctx, []string{StateDir}, baseblobname(result.State.ID), result.State.Bytes)
+	if err != nil {
 		return fmt.Errorf("failed to store state blob: %w", err)
 	}
 
+	var diffPath string
 	if len(result.Diff.Bytes) > 0 {
-		if err := p.blobStore.Store(ctx, result.Diff.ID, result.Diff.Bytes); err != nil {
+		if diffPath, err = p.blobStore.Store(ctx, []string{DiffDir},
+			baseblobname(result.Diff.ID), result.Diff.Bytes); err != nil {
 			return fmt.Errorf("failed to store diff blob: %w", err)
 		}
 	}
 
 	// 4. Publish Metadata (Hot Storage)
 	req := workertypes.PublishEventRequest{
-		EventID:  triggerID,
-		SearchID: searchID,
-		StateID:  result.State.ID,
-		DiffID:   result.Diff.ID,
-		Summary:  result.Summary,
-		Reasons:  result.Reasons,
+		EventID:       triggerID,
+		SearchID:      searchID,
+		StateID:       result.State.ID,
+		StateBlobPath: statePath,
+		DiffID:        result.Diff.ID,
+		DiffBlobPath:  diffPath,
+		Summary:       result.Summary,
+		Reasons:       result.Reasons,
+		Frequency:     frequency,
+		Query:         query,
+		GeneratedAt:   result.GeneratedAt,
 	}
 
 	if err := p.metaStore.PublishEvent(ctx, req); err != nil {
@@ -125,11 +144,13 @@ func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, quer
 
 	// 6. Publish Notification (Topic)
 	// Notify downstream workers that a new event is available.
-	if err := p.publisher.Publish(ctx, req); err != nil {
+	eventID, err := p.publisher.Publish(ctx, req)
+	if err != nil {
 		return fmt.Errorf("failed to publish event notification: %w", err)
 	}
 
-	slog.InfoContext(ctx, "event published successfully", "event_id", triggerID, "reasons", result.Reasons)
+	slog.InfoContext(ctx, "event published successfully", "event_id", triggerID, "reasons", result.Reasons,
+		"downstream_event_id", eventID)
 
 	return nil
 }

@@ -122,4 +122,7 @@ type DiffResult struct {
 
 	// Reasons contains machine-readable tags explaining the event (e.g. "DATA_UPDATED", "QUERY_EDITED").
 	Reasons []workertypes.Reason
+
+	// Timestamp that the diff was generated
+	GeneratedAt time.Time
 }
