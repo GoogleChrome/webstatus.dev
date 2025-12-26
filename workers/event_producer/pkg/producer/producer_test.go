@@ -94,6 +94,17 @@ type mockEventMetadataStore struct {
 		info *workertypes.LatestEventInfo
 		err  error
 	}
+	acquireLockReturns error
+	releaseLockReturns error
+}
+
+func (m *mockEventMetadataStore) AcquireLock(_ context.Context, _ string, _ workertypes.JobFrequency, _ string,
+	_ time.Duration) error {
+	return m.acquireLockReturns
+}
+
+func (m *mockEventMetadataStore) ReleaseLock(_ context.Context, _ string, _ workertypes.JobFrequency, _ string) error {
+	return m.releaseLockReturns
 }
 
 func (m *mockEventMetadataStore) PublishEvent(_ context.Context, req workertypes.PublishEventRequest) error {
