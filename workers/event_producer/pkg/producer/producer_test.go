@@ -18,6 +18,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/workers/event_producer/pkg/differ"
@@ -51,23 +52,31 @@ func (m *mockFeatureDiffer) Run(_ context.Context, searchID, query, eventID stri
 	return m.runReturns.result, m.runReturns.err
 }
 
+type storeCall struct {
+	key  string
+	dirs []string
+}
+
 type mockBlobStorage struct {
-	storeCalls  map[string][]byte
+	storeCalls  map[string]storeCall
 	storeErrors map[string]error
 	getResults  map[string][]byte
 	getErrors   map[string]error
 }
 
-func (m *mockBlobStorage) Store(_ context.Context, key string, data []byte) error {
+func (m *mockBlobStorage) Store(_ context.Context, dirs []string, key string, _ []byte) (string, error) {
 	if err, ok := m.storeErrors[key]; ok {
-		return err
+		return "", err
 	}
 	if m.storeCalls == nil {
-		m.storeCalls = make(map[string][]byte)
+		m.storeCalls = make(map[string]storeCall)
 	}
-	m.storeCalls[key] = data
+	m.storeCalls[key] = storeCall{
+		key:  key,
+		dirs: dirs,
+	}
 
-	return nil
+	return "full-path/" + key, nil
 }
 
 func (m *mockBlobStorage) Get(_ context.Context, key string) ([]byte, error) {
@@ -93,19 +102,21 @@ func (m *mockEventMetadataStore) PublishEvent(_ context.Context, req workertypes
 	return m.publishEventReturns
 }
 
-func (m *mockEventMetadataStore) GetLatestEvent(_ context.Context, _ string) (*workertypes.LatestEventInfo, error) {
+func (m *mockEventMetadataStore) GetLatestEvent(_ context.Context,
+	_ workertypes.JobFrequency, _ string) (*workertypes.LatestEventInfo, error) {
 	return m.getLatestEventReturns.info, m.getLatestEventReturns.err
 }
 
 type mockEventPublisher struct {
-	publishCalledWith workertypes.PublishEventRequest
-	publishReturns    error
+	publishCalledWith   workertypes.PublishEventRequest
+	publishReturnID     string
+	publishReturnsError error
 }
 
-func (m *mockEventPublisher) Publish(_ context.Context, req workertypes.PublishEventRequest) error {
+func (m *mockEventPublisher) Publish(_ context.Context, req workertypes.PublishEventRequest) (string, error) {
 	m.publishCalledWith = req
 
-	return m.publishReturns
+	return m.publishReturnID, m.publishReturnsError
 }
 
 func TestProcessSearch_Success(t *testing.T) {
@@ -113,6 +124,8 @@ func TestProcessSearch_Success(t *testing.T) {
 	searchID := "search-abc"
 	triggerID := "trigger-123"
 	query := "q=test"
+	frequency := workertypes.JobFrequency("asap")
+	expectedDate := time.Date(2000, time.April, 1, 1, 1, 1, 0, time.UTC)
 
 	// 1. Define a helper struct for mocks to fix lll and function signature complexity
 	type testMocks struct {
@@ -135,28 +148,34 @@ func TestProcessSearch_Success(t *testing.T) {
 			setup: func(m *testMocks) {
 				m.meta.getLatestEventReturns.info = nil
 				m.differ.runReturns.result = &differ.DiffResult{
-					State:   differ.BlobArtifact{ID: "state-1", Bytes: []byte("state-data")},
-					Diff:    differ.BlobArtifact{ID: "diff-1", Bytes: []byte("diff-data")},
-					Summary: []byte("summary"),
-					Reasons: []workertypes.Reason{workertypes.ReasonDataUpdated},
+					State:       differ.BlobArtifact{ID: "state-1", Bytes: []byte("state-data")},
+					Diff:        differ.BlobArtifact{ID: "diff-1", Bytes: []byte("diff-data")},
+					Summary:     []byte("summary"),
+					Reasons:     []workertypes.Reason{workertypes.ReasonDataUpdated},
+					GeneratedAt: expectedDate,
 				}
 			},
 			expectedReq: workertypes.PublishEventRequest{
-				EventID:  triggerID,
-				SearchID: searchID,
-				StateID:  "state-1",
-				DiffID:   "diff-1",
-				Summary:  []byte("summary"),
-				Reasons:  []workertypes.Reason{workertypes.ReasonDataUpdated},
+				EventID:       triggerID,
+				SearchID:      searchID,
+				StateID:       "state-1",
+				StateBlobPath: "full-path/state-1.json",
+				DiffID:        "diff-1",
+				DiffBlobPath:  "full-path/diff-1.json",
+				Query:         "q=test",
+				Summary:       []byte("summary"),
+				Reasons:       []workertypes.Reason{workertypes.ReasonDataUpdated},
+				Frequency:     frequency,
+				GeneratedAt:   expectedDate,
 			},
 			verify: func(t *testing.T, m *testMocks) {
 				if m.differ.runCalledWith.previousStateBytes != nil {
 					t.Error("expected previousStateBytes to be nil on first run")
 				}
-				if _, ok := m.blob.storeCalls["state-1"]; !ok {
+				if _, ok := m.blob.storeCalls["state-1.json"]; !ok {
 					t.Error("expected state blob to be stored")
 				}
-				if _, ok := m.blob.storeCalls["diff-1"]; !ok {
+				if _, ok := m.blob.storeCalls["diff-1.json"]; !ok {
 					t.Error("expected diff blob to be stored")
 				}
 			},
@@ -165,34 +184,38 @@ func TestProcessSearch_Success(t *testing.T) {
 			name: "Subsequent run with changes",
 			setup: func(m *testMocks) {
 				m.meta.getLatestEventReturns.info = &workertypes.LatestEventInfo{
-					EventID: "",
-					StateID: "prev-state-0",
+					EventID:       "",
+					StateBlobPath: "prev-state-0",
 				}
 				m.blob.getResults = map[string][]byte{
 					"prev-state-0": []byte("old-state-data"),
 				}
 				m.differ.runReturns.result = &differ.DiffResult{
-					State:   differ.BlobArtifact{ID: "state-2", Bytes: []byte("new-state-data")},
-					Diff:    differ.BlobArtifact{ID: "diff-2", Bytes: []byte("new-diff-data")},
-					Summary: []byte("new-summary"),
-					Reasons: []workertypes.Reason{workertypes.ReasonQueryChanged},
+					State:       differ.BlobArtifact{ID: "state-2", Bytes: []byte("new-state-data")},
+					Diff:        differ.BlobArtifact{ID: "diff-2", Bytes: []byte("new-diff-data")},
+					Summary:     []byte("new-summary"),
+					Reasons:     []workertypes.Reason{workertypes.ReasonQueryChanged},
+					GeneratedAt: expectedDate,
 				}
 			},
-			// To satisfy exhaustruct, we define zero values explicitly if needed,
-			// or just the fields we verify.
 			expectedReq: workertypes.PublishEventRequest{
-				EventID:  triggerID,
-				SearchID: searchID,
-				StateID:  "state-2",
-				DiffID:   "diff-2",
-				Summary:  []byte("new-summary"),
-				Reasons:  []workertypes.Reason{workertypes.ReasonQueryChanged},
+				EventID:       triggerID,
+				SearchID:      searchID,
+				StateID:       "state-2",
+				StateBlobPath: "full-path/state-2.json",
+				DiffID:        "diff-2",
+				DiffBlobPath:  "full-path/diff-2.json",
+				Query:         "q=test",
+				Summary:       []byte("new-summary"),
+				Reasons:       []workertypes.Reason{workertypes.ReasonQueryChanged},
+				Frequency:     "asap",
+				GeneratedAt:   expectedDate,
 			},
 			verify: func(t *testing.T, m *testMocks) {
 				if string(m.differ.runCalledWith.previousStateBytes) != "old-state-data" {
 					t.Errorf("got prev state %s", m.differ.runCalledWith.previousStateBytes)
 				}
-				if _, ok := m.blob.storeCalls["state-2"]; !ok {
+				if _, ok := m.blob.storeCalls["state-2.json"]; !ok {
 					t.Error("expected new state blob to be stored")
 				}
 			},
@@ -212,7 +235,7 @@ func TestProcessSearch_Success(t *testing.T) {
 
 			// Execute
 			producer := NewEventProducer(mocks.differ, mocks.blob, mocks.meta, mocks.pub)
-			err := producer.ProcessSearch(ctx, searchID, query, triggerID)
+			err := producer.ProcessSearch(ctx, searchID, query, frequency, triggerID)
 
 			// Verify
 			if err != nil {
@@ -248,7 +271,7 @@ func TestProcessSearch_NoChanges(t *testing.T) {
 	differMock.runReturns.err = differ.ErrNoChangesDetected
 
 	producer := NewEventProducer(differMock, blobMock, metaMock, pubMock)
-	err := producer.ProcessSearch(ctx, "search-id", "q=test", "trigger-id")
+	err := producer.ProcessSearch(ctx, "search-id", "q=test", "asap", "trigger-id")
 
 	if err != nil {
 		t.Fatalf("expected nil error for no changes, got %v", err)
@@ -278,6 +301,7 @@ func TestProcessSearch_Failures(t *testing.T) {
 		setup  func(*testMocks)
 		verify func(*testing.T, *testMocks)
 	}
+	expectedDate := time.Date(2000, time.April, 1, 1, 1, 1, 0, time.UTC)
 
 	tests := []testCase{
 		{
@@ -291,8 +315,8 @@ func TestProcessSearch_Failures(t *testing.T) {
 			name: "Get blob fails",
 			setup: func(m *testMocks) {
 				m.meta.getLatestEventReturns.info = &workertypes.LatestEventInfo{
-					EventID: "",
-					StateID: "prev-state-x",
+					EventID:       "",
+					StateBlobPath: "prev-state-x",
 				}
 				m.blob.getErrors = map[string]error{"prev-state-x": errors.New("gcs error")}
 			},
@@ -311,17 +335,18 @@ func TestProcessSearch_Failures(t *testing.T) {
 			setup: func(m *testMocks) {
 				m.meta.getLatestEventReturns.info = nil
 				m.differ.runReturns.result = &differ.DiffResult{
-					State:   differ.BlobArtifact{ID: "state-fail", Bytes: []byte("state")},
-					Diff:    differ.BlobArtifact{ID: "diff-fail", Bytes: []byte("diff")},
-					Summary: nil,
-					Reasons: nil,
+					State:       differ.BlobArtifact{ID: "state-fail", Bytes: []byte("state")},
+					Diff:        differ.BlobArtifact{ID: "diff-fail", Bytes: []byte("diff")},
+					Summary:     nil,
+					Reasons:     nil,
+					GeneratedAt: expectedDate,
 				}
 				m.blob.storeErrors = map[string]error{
-					"state-fail": errors.New("storage error"),
+					"state-fail.json": errors.New("storage error"),
 				}
 			},
 			verify: func(t *testing.T, m *testMocks) {
-				if _, ok := m.blob.storeCalls["diff-fail"]; ok {
+				if _, ok := m.blob.storeCalls["diff-fail.json"]; ok {
 					t.Error("should not have tried to store diff blob when state blob failed")
 				}
 				if m.meta.publishEventCalledWith.EventID != "" {
@@ -334,15 +359,16 @@ func TestProcessSearch_Failures(t *testing.T) {
 			setup: func(m *testMocks) {
 				m.meta.getLatestEventReturns.info = nil
 				m.differ.runReturns.result = &differ.DiffResult{
-					State:   differ.BlobArtifact{ID: "state-1", Bytes: []byte("state-data")},
-					Diff:    differ.BlobArtifact{ID: "diff-1", Bytes: []byte("diff-data")},
-					Summary: nil,
-					Reasons: nil,
+					State:       differ.BlobArtifact{ID: "state-1", Bytes: []byte("state-data")},
+					Diff:        differ.BlobArtifact{ID: "diff-1", Bytes: []byte("diff-data")},
+					Summary:     nil,
+					Reasons:     nil,
+					GeneratedAt: expectedDate,
 				}
 				m.meta.publishEventReturns = errors.New("metadata store error")
 			},
 			verify: func(t *testing.T, m *testMocks) {
-				if _, ok := m.blob.storeCalls["state-1"]; !ok {
+				if _, ok := m.blob.storeCalls["state-1.json"]; !ok {
 					t.Error("expected state blob to be stored even if metadata publish fails")
 				}
 			},
@@ -352,12 +378,13 @@ func TestProcessSearch_Failures(t *testing.T) {
 			setup: func(m *testMocks) {
 				m.meta.getLatestEventReturns.info = nil
 				m.differ.runReturns.result = &differ.DiffResult{
-					State:   differ.BlobArtifact{ID: "state-1", Bytes: []byte("state-data")},
-					Diff:    differ.BlobArtifact{ID: "diff-1", Bytes: []byte("diff-data")},
-					Summary: nil,
-					Reasons: nil,
+					State:       differ.BlobArtifact{ID: "state-1", Bytes: []byte("state-data")},
+					Diff:        differ.BlobArtifact{ID: "diff-1", Bytes: []byte("diff-data")},
+					Summary:     nil,
+					Reasons:     nil,
+					GeneratedAt: expectedDate,
 				}
-				m.pub.publishReturns = errors.New("pubsub error")
+				m.pub.publishReturnsError = errors.New("pubsub error")
 			},
 			verify: nil,
 		},
@@ -374,7 +401,7 @@ func TestProcessSearch_Failures(t *testing.T) {
 			tc.setup(mocks)
 
 			producer := NewEventProducer(mocks.differ, mocks.blob, mocks.meta, mocks.pub)
-			err := producer.ProcessSearch(ctx, "search-abc", "q=test", "trigger-123")
+			err := producer.ProcessSearch(ctx, "search-abc", "q=test", "asap", "trigger-123")
 
 			if err == nil {
 				t.Error("ProcessSearch() expected error, got nil")

@@ -227,10 +227,11 @@ func TestRun(t *testing.T) {
 				workflow.summaryResult = []byte("summary")
 			},
 			wantResult: &DiffResult{
-				State:   BlobArtifact{ID: "state-id", Bytes: []byte("new-state")},
-				Diff:    BlobArtifact{ID: "event-456", Bytes: []byte("diff-output")},
-				Summary: []byte("summary"),
-				Reasons: nil,
+				State:       BlobArtifact{ID: "state-id", Bytes: []byte("new-state")},
+				Diff:        BlobArtifact{ID: "event-456", Bytes: []byte("diff-output")},
+				Summary:     []byte("summary"),
+				Reasons:     nil,
+				GeneratedAt: fixedTime,
 			},
 			wantErr: nil,
 			verifyMocks: func(t *testing.T, adapter *mockStateAdapter,
@@ -278,10 +279,11 @@ func TestRun(t *testing.T) {
 				workflow.summaryResult = []byte("summary-updated")
 			},
 			wantResult: &DiffResult{
-				State:   BlobArtifact{ID: "state-id", Bytes: []byte("new-state-updated")},
-				Diff:    BlobArtifact{ID: "event-456", Bytes: []byte("diff-updated")},
-				Summary: []byte("summary-updated"),
-				Reasons: []workertypes.Reason{workertypes.ReasonDataUpdated},
+				State:       BlobArtifact{ID: "state-id", Bytes: []byte("new-state-updated")},
+				Diff:        BlobArtifact{ID: "event-456", Bytes: []byte("diff-updated")},
+				Summary:     []byte("summary-updated"),
+				Reasons:     []workertypes.Reason{workertypes.ReasonDataUpdated},
+				GeneratedAt: fixedTime,
 			},
 			wantErr:     nil,
 			verifyMocks: noopVerifyMocks,
@@ -306,10 +308,11 @@ func TestRun(t *testing.T) {
 				workflow.summaryResult = []byte("summary-query-change")
 			},
 			wantResult: &DiffResult{
-				State:   BlobArtifact{ID: "state-id", Bytes: []byte("new-state-after-query-change")},
-				Diff:    BlobArtifact{ID: "event-456", Bytes: []byte("diff-after-query-change")},
-				Summary: []byte("summary-query-change"),
-				Reasons: []workertypes.Reason{workertypes.ReasonQueryChanged},
+				State:       BlobArtifact{ID: "state-id", Bytes: []byte("new-state-after-query-change")},
+				Diff:        BlobArtifact{ID: "event-456", Bytes: []byte("diff-after-query-change")},
+				Summary:     []byte("summary-query-change"),
+				Reasons:     []workertypes.Reason{workertypes.ReasonQueryChanged},
+				GeneratedAt: fixedTime,
 			},
 			wantErr: nil,
 			verifyMocks: func(t *testing.T, _ *mockStateAdapter,
@@ -341,10 +344,11 @@ func TestRun(t *testing.T) {
 				workflow.summaryResult = []byte("summary-flush-failed")
 			},
 			wantResult: &DiffResult{
-				State:   BlobArtifact{ID: "state-id", Bytes: []byte("new-state-flush-failed")},
-				Diff:    BlobArtifact{ID: "event-456", Bytes: []byte("diff-flush-failed")},
-				Summary: []byte("summary-flush-failed"),
-				Reasons: []workertypes.Reason{workertypes.ReasonQueryChanged},
+				State:       BlobArtifact{ID: "state-id", Bytes: []byte("new-state-flush-failed")},
+				Diff:        BlobArtifact{ID: "event-456", Bytes: []byte("diff-flush-failed")},
+				Summary:     []byte("summary-flush-failed"),
+				Reasons:     []workertypes.Reason{workertypes.ReasonQueryChanged},
+				GeneratedAt: fixedTime,
 			},
 			wantErr: nil,
 			verifyMocks: func(t *testing.T, _ *mockStateAdapter,
