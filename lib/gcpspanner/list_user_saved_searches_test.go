@@ -281,30 +281,33 @@ func userSavedSearchesPageEquality(left, right *UserSavedSearchesPage) bool {
 	})
 }
 
-func TestListAllSavedSearchIDs(t *testing.T) {
+func TestListAllSavedSearches(t *testing.T) {
 	restartDatabaseContainer(t)
 	searches := loadFakeSavedSearches(t)
 
 	t.Run("list all saved search IDs", func(t *testing.T) {
-		ids, err := spannerClient.ListAllSavedSearchIDs(context.Background())
+		details, err := spannerClient.ListAllSavedSearches(context.Background())
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
 		}
 
-		if len(ids) != len(searches) {
-			t.Errorf("expected %d results. received %d", len(searches), len(ids))
+		if len(details) != len(searches) {
+			t.Errorf("expected %d results. received %d", len(searches), len(details))
 		}
 
-		expectedIDs := make([]string, len(searches))
+		// Build expected details list from created searches (which have generated IDs)
+		expectedDetails := make([]SavedSearchBriefDetails, len(searches))
 		for idx, search := range searches {
-			expectedIDs[idx] = search.ID
+			expectedDetails[idx] = SavedSearchBriefDetails{ID: search.ID, Query: search.Query}
 		}
 
-		slices.Sort(ids)
-		slices.Sort(expectedIDs)
+		slices.SortFunc(expectedDetails, sortSavedSearchBriefDetails)
+		slices.SortFunc(details, sortSavedSearchBriefDetails)
 
-		if !slices.Equal(ids, expectedIDs) {
-			t.Errorf("expected IDs %v but received %v", expectedIDs, ids)
+		if !slices.Equal(details, expectedDetails) {
+			t.Errorf("expected IDs %v but received %v", expectedDetails, details)
 		}
 	})
 }
+
+func sortSavedSearchBriefDetails(a, b SavedSearchBriefDetails) int { return cmp.Compare(a.ID, b.ID) }
