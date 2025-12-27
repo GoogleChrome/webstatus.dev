@@ -18,6 +18,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 )
 
 // TypedHandler is a function that processes a specific, strongly-typed struct.
@@ -68,6 +69,7 @@ func Register[T Event](r *Router, handler TypedHandler[T]) {
 
 // HandleMessage is the single entry point.
 func (r *Router) HandleMessage(ctx context.Context, eventID string, data []byte) error {
+	slog.InfoContext(ctx, "received a message", "eventID", eventID, "data", string(data))
 	// 1. Efficient Peek: We only parse the metadata fields.
 	// The rest of the JSON is captured as RawMessage without full decoding.
 	var env envelope

@@ -54,11 +54,14 @@ create_subscription() {
 }
 
 gcloud beta emulators pubsub start --project="$PROJECT_ID" --host-port="0.0.0.0:$PORT" &
-while ! curl -s -o /dev/null "localhost:$PORT"; do
+while ! curl -s -f "http://0.0.0.0:${PORT}/v1/projects/${PROJECT_ID}/topics"; do
   sleep 1 # Wait 1 second before checking again
   echo "waiting until pubsub emulator responds before finishing setup"
 done
 
+
+create_topic "batch-updates-topic-id"
+create_subscription "batch-updates-topic-id" "batch-updates-sub-id"
 create_topic "ingestion-jobs-topic-id"
 create_subscription "ingestion-jobs-topic-id" "ingestion-jobs-sub-id"
 create_topic "notification-events-topic-id"
