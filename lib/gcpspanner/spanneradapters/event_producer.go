@@ -224,3 +224,30 @@ func (e *EventProducer) PublishEvent(ctx context.Context, req workertypes.Publis
 
 	return nil
 }
+
+type BatchEventProducerSpannerClient interface {
+	ListAllSavedSearches(
+		ctx context.Context) ([]gcpspanner.SavedSearchBriefDetails, error)
+}
+
+type BatchEventProducer struct {
+	client BatchEventProducerSpannerClient
+}
+
+func NewBatchEventProducer(client BatchEventProducerSpannerClient) *BatchEventProducer {
+	return &BatchEventProducer{client: client}
+}
+
+func (b *BatchEventProducer) ListAllSavedSearches(ctx context.Context) ([]workertypes.SearchJob, error) {
+	details, err := b.client.ListAllSavedSearches(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	jobs := make([]workertypes.SearchJob, 0, len(details))
+	for _, detail := range details {
+		jobs = append(jobs, workertypes.SearchJob{ID: detail.ID, Query: detail.Query})
+	}
+
+	return jobs, nil
+}
