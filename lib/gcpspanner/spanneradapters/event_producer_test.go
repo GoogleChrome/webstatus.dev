@@ -653,3 +653,72 @@ func TestEventProducerDiffer_FetchFeatures(t *testing.T) {
 		t.Error("Second page token mismatch")
 	}
 }
+
+type mockBatchEventProducerSpannerClient struct {
+	listAllSavedSearchesCalled bool
+	listAllSavedSearchesResp   []gcpspanner.SavedSearchBriefDetails
+	listAllSavedSearchesErr    error
+}
+
+func (m *mockBatchEventProducerSpannerClient) ListAllSavedSearches(
+	_ context.Context) ([]gcpspanner.SavedSearchBriefDetails, error) {
+	m.listAllSavedSearchesCalled = true
+
+	return m.listAllSavedSearchesResp, m.listAllSavedSearchesErr
+}
+
+func TestBatchEventProducer_ListAllSavedSearches(t *testing.T) {
+	tests := []struct {
+		name           string
+		mockResp       []gcpspanner.SavedSearchBriefDetails
+		mockErr        error
+		wantSearchJobs []workertypes.SearchJob
+		wantErr        bool
+	}{
+		{
+			name:           "success with searches",
+			mockResp:       []gcpspanner.SavedSearchBriefDetails{{ID: "s1", Query: "q1"}, {ID: "s2", Query: "q2"}},
+			mockErr:        nil,
+			wantSearchJobs: []workertypes.SearchJob{{ID: "s1", Query: "q1"}, {ID: "s2", Query: "q2"}},
+			wantErr:        false,
+		},
+		{
+			name:           "success empty list",
+			mockResp:       []gcpspanner.SavedSearchBriefDetails{},
+			mockErr:        nil,
+			wantSearchJobs: []workertypes.SearchJob{},
+			wantErr:        false,
+		},
+		{
+			name:           "lister error",
+			mockResp:       nil,
+			mockErr:        errors.New("db error"),
+			wantSearchJobs: nil,
+			wantErr:        true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			mock := new(mockBatchEventProducerSpannerClient)
+			mock.listAllSavedSearchesResp = tc.mockResp
+			mock.listAllSavedSearchesErr = tc.mockErr
+
+			adapter := NewBatchEventProducer(mock)
+
+			searchJobs, err := adapter.ListAllSavedSearches(context.Background())
+
+			if (err != nil) != tc.wantErr {
+				t.Errorf("ListAllSavedSearchIDs() error = %v, wantErr %v", err, tc.wantErr)
+			}
+
+			if !mock.listAllSavedSearchesCalled {
+				t.Fatal("ListAllSavedSearchIDs not called")
+			}
+
+			if diff := cmp.Diff(tc.wantSearchJobs, searchJobs); diff != "" {
+				t.Errorf("ListAllSavedSearchIDs() mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
