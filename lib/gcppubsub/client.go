@@ -73,6 +73,7 @@ func (c *Client) Subscribe(ctx context.Context, subID string,
 			msg.Ack()
 		} else if errors.Is(workErr, event.ErrTransientFailure) {
 			// NACK: Retry later
+			slog.WarnContext(ctx, "transient failure, will retry", "error", workErr)
 			msg.Nack()
 		} else {
 			// ACK: Permanent failure or unknown error, do not retry
