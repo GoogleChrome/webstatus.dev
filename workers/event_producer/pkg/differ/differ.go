@@ -16,21 +16,48 @@ package differ
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/blobtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
+	"github.com/GoogleChrome/webstatus.dev/lib/generic"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
+	"github.com/google/uuid"
 )
 
+type idGenerator interface {
+	NewStateID() string
+	NewDiffID() string
+}
+
+type defaultIDGenerator struct{}
+
+func (g *defaultIDGenerator) NewStateID() string {
+	return fmt.Sprintf("state_%s", g.newUUID())
+}
+
+func (g *defaultIDGenerator) NewDiffID() string {
+	return fmt.Sprintf("diff_%s", g.newUUID())
+}
+
+func (g *defaultIDGenerator) newUUID() string {
+	return uuid.New().String()
+}
+
 // Run executes the core diffing pipeline.
-func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
-	previousStateBytes []byte) ([]byte, *FeatureDiff, bool, error) {
+func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query string, eventID string,
+	previousStateBytes []byte) (*DiffResult, error) {
 	// 1. Load Context
-	prevCtx, err := d.loadPreviousContext(previousStateBytes)
+	snapshot, id, signature, isEmpty, err := d.stateAdapter.Load(previousStateBytes)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("%w: failed to load previous state: %w", ErrFatal, err)
+		return nil, fmt.Errorf("%w: failed to load previous state: %w", ErrFatal, err)
+	}
+	prevCtx := previousContext{
+		Signature: signature,
+		Snapshot:  snapshot,
+		IsEmpty:   isEmpty,
+		ID:        id,
 	}
 
 	// 2. Plan
@@ -39,96 +66,92 @@ func (d *FeatureDiffer) Run(ctx context.Context, searchID string, query string,
 	// 3. Execute Fetch
 	data, err := d.executePlan(ctx, plan)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("%w: failed to fetch data: %w", ErrTransient, err)
+		return nil, fmt.Errorf("%w: failed to fetch data: %w", ErrTransient, err)
 	}
 	data.OldSnapshot = prevCtx.Snapshot
 
 	// 4. Compute Pure Diff
-	var diff *FeatureDiff
 	// We check data.TargetSnapshot != nil because if the Flush Strategy failed (in executePlan),
 	// it returns nil to signal "Skip Diffing".
 	// toSnapshot() guarantees a non-nil map (empty map) for valid empty results,
 	// so nil strictly means "Data Not Available".
 	if !plan.IsColdStart && data.TargetSnapshot != nil {
-		diff = calculateDiff(data.OldSnapshot, data.TargetSnapshot)
-	} else {
-		diff = new(FeatureDiff)
+		d.workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot)
 	}
 
 	// 5. Reconcile History
-	if len(diff.Removed) > 0 && !plan.IsColdStart {
-		diff, err = d.reconcileHistory(ctx, diff)
+	if d.workflow.HasRemovedFeatures() && !plan.IsColdStart {
+		err = d.workflow.ReconcileHistory(ctx)
 		if err != nil {
-			return nil, nil, false, fmt.Errorf("%w: failed to reconcile history: %w", ErrTransient, err)
+			return nil, fmt.Errorf("%w: failed to reconcile history: %w", ErrTransient, err)
 		}
 	}
 
 	if plan.QueryChanged {
-		diff.QueryChanged = true
+		d.workflow.SetQueryChanged(true)
 	}
 
-	// 6. Finalize (Sort & Decide)
-	if diff != nil {
-		diff.Sort()
-	}
-
-	// 7. Output Decision
-	shouldWrite := diff.HasChanges() || plan.IsColdStart || plan.QueryChanged
+	// 6. Output Decision
+	// We force shouldWrite to true (meaning "should persist") if:
+	// - diff.HasChanges(): Actual data differences (Added/Removed/Modified) exist.
+	// - plan.IsColdStart: This is the first run. We must persist the initial StateBytes
+	//   as a baseline, even if the generated diff is empty (no changes relative to "nothing").
+	// - plan.QueryChanged: The query signature changed. We must persist the new StateBytes
+	//   linked to the new query so future runs compare against the correct context,
+	//   even if the feature list data happens to be identical.
+	shouldWrite := d.workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged
 	if !shouldWrite {
-		return nil, nil, false, nil
+		return nil, ErrNoChangesDetected
 	}
 
-	newStateBytes, err := d.serializeState(searchID, query, data.NewSnapshot)
+	finalDiff := d.workflow.GetDiff()
+	newStateID := d.idGenerator.NewStateID()
+	diffID := d.idGenerator.NewDiffID()
+
+	diffBytes, err := d.diffSerializer.Serialize(diffID, searchID, eventID, newStateID,
+		prevCtx.ID, finalDiff, d.timeNow())
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("%w: failed to serialize new state: %w", ErrFatal, err)
+		return nil, fmt.Errorf("%w, failed to serialize diff: %w", ErrFatal, err)
 	}
 
-	return newStateBytes, diff, true, nil
+	newStateBytes, err := d.stateAdapter.Serialize(newStateID, searchID, eventID, query, d.timeNow(), data.NewSnapshot)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to serialize new state: %w", ErrFatal, err)
+	}
+
+	summaryBytes, err := d.workflow.GenerateJSONSummary()
+	if err != nil {
+		return nil, fmt.Errorf("failed to generate summary: %w", err)
+	}
+
+	return &DiffResult{
+		State:   BlobArtifact{ID: newStateID, Bytes: newStateBytes},
+		Diff:    BlobArtifact{ID: eventID, Bytes: diffBytes},
+		Summary: summaryBytes,
+		Reasons: d.determineReasons(plan),
+	}, nil
 }
 
-func (d *FeatureDiffer) serializeState(searchID, query string, snapshot map[string]ComparableFeature) ([]byte, error) {
-	payload := FeatureListSnapshot{
-		Metadata: StateMetadata{
-			GeneratedAt:    time.Now(),
-			SearchID:       searchID,
-			QuerySignature: query,
-		},
-		Data: FeatureListData{
-			Features: snapshot,
-		},
+func (d *FeatureDiffer[D]) determineReasons(plan executionPlan) []workertypes.Reason {
+	var reasons []workertypes.Reason
+	if plan.QueryChanged {
+		reasons = append(reasons, workertypes.ReasonQueryChanged)
 	}
 
-	return blobtypes.NewBlob(payload)
+	if d.workflow.HasDataChanges() {
+		reasons = append(reasons, workertypes.ReasonDataUpdated)
+	}
+
+	return reasons
 }
 
 // --- Internal Helper: Context Loading ---
 
 type previousContext struct {
 	Signature string
-	Snapshot  map[string]ComparableFeature
+	Snapshot  map[string]comparables.Feature
 	IsEmpty   bool
-}
-
-func (d *FeatureDiffer) loadPreviousContext(bytes []byte) (previousContext, error) {
-	if len(bytes) == 0 {
-		return previousContext{IsEmpty: true, Signature: "", Snapshot: nil}, nil
-	}
-
-	migratedBytes, err := blobtypes.Apply[FeatureListSnapshot](d.migrator, bytes)
-	if err != nil {
-		return previousContext{}, err
-	}
-
-	var snapshot FeatureListSnapshot
-	if err := json.Unmarshal(migratedBytes, &snapshot); err != nil {
-		return previousContext{}, fmt.Errorf("failed to unmarshal snapshot: %w", err)
-	}
-
-	return previousContext{
-		Signature: snapshot.Metadata.QuerySignature,
-		Snapshot:  snapshot.Data.Features,
-		IsEmpty:   false,
-	}, nil
+	ID        string
 }
 
 // --- Internal Helper: Planning ---
@@ -140,7 +163,7 @@ type executionPlan struct {
 	PreviousQuery string
 }
 
-func (d *FeatureDiffer) determinePlan(currentQuery string, prev previousContext) executionPlan {
+func (d *FeatureDiffer[D]) determinePlan(currentQuery string, prev previousContext) executionPlan {
 	plan := executionPlan{
 		CurrentQuery:  currentQuery,
 		PreviousQuery: "",
@@ -165,12 +188,12 @@ func (d *FeatureDiffer) determinePlan(currentQuery string, prev previousContext)
 // --- Internal Helper: Execution ---
 
 type executionData struct {
-	OldSnapshot    map[string]ComparableFeature
-	TargetSnapshot map[string]ComparableFeature
-	NewSnapshot    map[string]ComparableFeature
+	OldSnapshot    map[string]comparables.Feature
+	TargetSnapshot map[string]comparables.Feature
+	NewSnapshot    map[string]comparables.Feature
 }
 
-func (d *FeatureDiffer) executePlan(ctx context.Context, plan executionPlan) (executionData, error) {
+func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) (executionData, error) {
 	data := executionData{
 		OldSnapshot:    nil,
 		TargetSnapshot: nil,
@@ -206,8 +229,8 @@ func (d *FeatureDiffer) executePlan(ctx context.Context, plan executionPlan) (ex
 	return data, nil
 }
 
-func toSnapshot(features []backend.Feature) map[string]ComparableFeature {
-	m := make(map[string]ComparableFeature)
+func toSnapshot(features []backend.Feature) map[string]comparables.Feature {
+	m := make(map[string]comparables.Feature)
 	for _, f := range features {
 		m[f.FeatureId] = toComparable(f)
 	}
@@ -215,48 +238,84 @@ func toSnapshot(features []backend.Feature) map[string]ComparableFeature {
 	return m
 }
 
-func toComparable(f backend.Feature) ComparableFeature {
+func toComparable(f backend.Feature) comparables.Feature {
 	status := backend.Limited
-	if f.Baseline != nil && f.Baseline.Status != nil {
-		status = *f.Baseline.Status
-	}
-	cf := ComparableFeature{
-		ID:             f.FeatureId,
-		Name:           OptionallySet[string]{Value: f.Name, IsSet: true},
-		BaselineStatus: OptionallySet[backend.BaselineInfoStatus]{Value: status, IsSet: true},
-		BrowserImpls: BrowserImplementations{
-			Chrome:         OptionallySet[string]{Value: "", IsSet: false},
-			ChromeAndroid:  OptionallySet[string]{Value: "", IsSet: false},
-			Edge:           OptionallySet[string]{Value: "", IsSet: false},
-			Firefox:        OptionallySet[string]{Value: "", IsSet: false},
-			FirefoxAndroid: OptionallySet[string]{Value: "", IsSet: false},
-			Safari:         OptionallySet[string]{Value: "", IsSet: false},
-			SafariIos:      OptionallySet[string]{Value: "", IsSet: false},
-		},
-	}
-
-	// Manually map known browsers from the map to the struct.
-	// This hardcoding is intentional: it ensures we only track what we have defined in the struct,
-	// allowing us to control schema evolution via struct updates.
-	if f.BrowserImplementations != nil {
-		raw := *f.BrowserImplementations
-		getStatus := func(key string) OptionallySet[string] {
-			if impl, ok := raw[key]; ok && impl.Status != nil {
-				return OptionallySet[string]{Value: string(*impl.Status), IsSet: true}
-			}
-
-			return OptionallySet[string]{Value: "", IsSet: false}
+	var lowDate, highDate *time.Time
+	if f.Baseline != nil {
+		if f.Baseline.Status != nil {
+			status = *f.Baseline.Status
 		}
+		if f.Baseline.LowDate != nil {
+			t := f.Baseline.LowDate.Time
+			lowDate = &t
+		}
+		if f.Baseline.HighDate != nil {
+			t := f.Baseline.HighDate.Time
+			highDate = &t
+		}
+	}
 
-		// Map to struct fields using backend constants or strings
-		cf.BrowserImpls.Chrome = getStatus(string(backend.Chrome))
-		cf.BrowserImpls.ChromeAndroid = getStatus(string(backend.ChromeAndroid))
-		cf.BrowserImpls.Edge = getStatus(string(backend.Edge))
-		cf.BrowserImpls.Firefox = getStatus(string(backend.Firefox))
-		cf.BrowserImpls.FirefoxAndroid = getStatus(string(backend.FirefoxAndroid))
-		cf.BrowserImpls.Safari = getStatus(string(backend.Safari))
-		cf.BrowserImpls.SafariIos = getStatus(string(backend.SafariIos))
+	baseline := comparables.BaselineState{
+		Status:   generic.OptionallySet[backend.BaselineInfoStatus]{Value: status, IsSet: true},
+		LowDate:  generic.OptionallySet[*time.Time]{Value: lowDate, IsSet: true},
+		HighDate: generic.OptionallySet[*time.Time]{Value: highDate, IsSet: true},
+	}
+
+	cf := comparables.Feature{
+		ID:             f.FeatureId,
+		Name:           generic.OptionallySet[string]{Value: f.Name, IsSet: true},
+		BaselineStatus: generic.OptionallySet[comparables.BaselineState]{Value: baseline, IsSet: true},
+		// TODO: Handle Docs when https://github.com/GoogleChrome/webstatus.dev/issues/930 is supported.
+		Docs:         generic.UnsetOpt[comparables.Docs](),
+		BrowserImpls: generic.UnsetOpt[comparables.BrowserImplementations](),
+	}
+
+	if f.BrowserImplementations == nil {
+		return cf
+	}
+
+	raw := *f.BrowserImplementations
+	cf.BrowserImpls = generic.OptionallySet[comparables.BrowserImplementations]{
+		Value: comparables.BrowserImplementations{
+			Chrome:         toComparableBrowserState(raw[string(backend.Chrome)]),
+			ChromeAndroid:  toComparableBrowserState(raw[string(backend.ChromeAndroid)]),
+			Edge:           toComparableBrowserState(raw[string(backend.Edge)]),
+			Firefox:        toComparableBrowserState(raw[string(backend.Firefox)]),
+			FirefoxAndroid: toComparableBrowserState(raw[string(backend.FirefoxAndroid)]),
+			Safari:         toComparableBrowserState(raw[string(backend.Safari)]),
+			SafariIos:      toComparableBrowserState(raw[string(backend.SafariIos)]),
+		},
+		IsSet: true,
 	}
 
 	return cf
+}
+
+// toComparableBrowserState converts a single browser implementation from the backend API
+// into the canonical comparable format.
+func toComparableBrowserState(impl backend.BrowserImplementation) generic.OptionallySet[comparables.BrowserState] {
+	var status backend.BrowserImplementationStatus
+	if impl.Status != nil {
+		status = *impl.Status
+	}
+
+	var date *time.Time
+	if impl.Date != nil {
+		date = &impl.Date.Time
+	}
+
+	// An empty struct from the map lookup indicates the browser was not present.
+	// In this case, we return an unset OptionallySet.
+	if impl.Status == nil && impl.Date == nil && impl.Version == nil {
+		return generic.UnsetOpt[comparables.BrowserState]()
+	}
+
+	return generic.OptionallySet[comparables.BrowserState]{
+		Value: comparables.BrowserState{
+			Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: status, IsSet: true},
+			Version: generic.OptionallySet[*string]{Value: impl.Version, IsSet: impl.Version != nil},
+			Date:    generic.OptionallySet[*time.Time]{Value: date, IsSet: date != nil},
+		},
+		IsSet: true,
+	}
 }
