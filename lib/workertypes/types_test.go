@@ -67,6 +67,8 @@ func TestParseEventSummary(t *testing.T) {
 					UpdatedRename:   0,
 					UpdatedBaseline: 0,
 				},
+				Truncated:  false,
+				Highlights: nil,
 			},
 			wantErr: false,
 		},
@@ -118,6 +120,7 @@ func TestParseEventSummary(t *testing.T) {
 }
 
 func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
+	newlyDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 	tests := []struct {
 		name          string
 		diff          v1.FeatureDiff
@@ -134,7 +137,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Moves:        nil,
 				Splits:       nil,
 			},
-			expected:      `{"schemaVersion":"v1","text":"No changes detected"}`,
+			expected:      `{"schemaVersion":"v1","text":"No changes detected","truncated":false,"highlights":null}`,
 			expectedError: nil,
 		},
 		{
@@ -143,7 +146,9 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				QueryChanged: true,
 				Added: []v1.FeatureAdded{
 					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil},
-					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: nil},
+					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: &v1.Docs{
+						MdnDocs: []v1.MdnDoc{{URL: "https://mdn.io/B", Title: generic.ValuePtr("B"), Slug: generic.ValuePtr("slug-b")}},
+					}},
 				},
 				Removed: []v1.FeatureRemoved{
 					{ID: "3", Name: "C", Reason: v1.ReasonUnmatched},
@@ -167,7 +172,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 							},
 							To: v1.BaselineState{
 								Status:   generic.SetOpt(v1.Newly),
-								LowDate:  generic.UnsetOpt[*time.Time](),
+								LowDate:  generic.SetOpt(&newlyDate),
 								HighDate: generic.UnsetOpt[*time.Time](),
 							},
 						},
@@ -188,7 +193,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 							}, To: v1.BrowserState{
 								Status:  generic.SetOpt(v1.Available),
 								Date:    generic.UnsetOpt[*time.Time](),
-								Version: generic.UnsetOpt[*string](),
+								Version: generic.SetOpt(generic.ValuePtr("123")),
 							}},
 							v1.ChromeAndroid:  nil,
 							v1.Edge:           nil,
@@ -213,21 +218,116 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 			},
 
 			expected: `{
-"schemaVersion":"v1",
-"text":"Search criteria updated, 2 features added, 1 features removed, ` +
+    "schemaVersion": "v1",
+    "text": "Search criteria updated, 2 features added, 1 features removed, ` +
 				`1 features moved/renamed, 1 features split, 3 features updated",
-"categories":
-	{
-		"query_changed":1,
-		"added":2,
-		"removed":1,
-		"moved":1,
-		"split":1,
-		"updated":3,
-		"updated_impl":1,
-		"updated_rename":1,
-		"updated_baseline":1
-	}
+    "categories": {
+        "query_changed": 1,
+        "added": 2,
+        "removed": 1,
+        "moved": 1,
+        "split": 1,
+        "updated": 3,
+        "updated_impl": 1,
+        "updated_rename": 1,
+        "updated_baseline": 1
+    },
+    "truncated": false,
+    "highlights": [
+        {
+            "type": "Changed",
+            "feature_id": "8",
+            "feature_name": "H",
+            "baseline_change": {
+                "from": {
+                    "status": "limited"
+                },
+                "to": {
+                    "status": "newly",
+                    "low_date": "2025-01-01T00:00:00Z"
+                }
+            }
+        },
+        {
+            "type": "Changed",
+            "feature_id": "9",
+            "feature_name": "I",
+            "browser_changes": {
+                "chrome": {
+                    "from": {
+                        "status": "unavailable"
+                    },
+                    "to": {
+                        "status": "available",
+                        "version": "123"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Changed",
+            "feature_id": "10",
+            "feature_name": "J",
+            "name_change": {
+                "from": "Old",
+                "to": "New"
+            }
+        },
+        {
+            "type": "Added",
+            "feature_id": "1",
+            "feature_name": "A"
+        },
+        {
+            "type": "Added",
+            "feature_id": "2",
+            "feature_name": "B",
+            "doc_links": [
+                {
+                    "url": "https://mdn.io/B",
+                    "title": "B",
+                    "slug": "slug-b"
+                }
+            ]
+        },
+        {
+            "type": "Removed",
+            "feature_id": "3",
+            "feature_name": "C"
+        },
+        {
+            "type": "Moved",
+            "feature_id": "5",
+            "feature_name": "E",
+            "moved": {
+                "from": {
+                    "id": "4",
+                    "name": "D"
+                },
+                "to": {
+                    "id": "5",
+                    "name": "E"
+                }
+            }
+        },
+        {
+            "type": "Split",
+            "feature_id": "6",
+            "feature_name": "F",
+            "split": {
+                "from": {
+                    "id": "6",
+                    "name": "F"
+                },
+                "to": [
+                    {
+                        "id": "7",
+                        "name": "G"
+                    }
+                ]
+            }
+        }
+    ]
 }`,
 			expectedError: nil,
 		},
