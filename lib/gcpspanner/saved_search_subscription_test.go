@@ -58,8 +58,8 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 		UserID:        userID,
 		ChannelID:     channelID,
 		SavedSearchID: savedSearchID,
-		Triggers:      []string{"spec.links"},
-		Frequency:     "DAILY",
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
 	}
 	subIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, createReq)
 	if err != nil {
@@ -128,8 +128,8 @@ func TestGetSavedSearchSubscriptionFailsForWrongUser(t *testing.T) {
 		UserID:        userID,
 		ChannelID:     channelID,
 		SavedSearchID: savedSearchID,
-		Triggers:      []string{"baseline.status"},
-		Frequency:     "IMMEDIATE",
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
 	}
 
 	subToUpdateIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
@@ -178,8 +178,8 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 		UserID:        userID,
 		ChannelID:     channelID,
 		SavedSearchID: savedSearchID,
-		Triggers:      []string{"baseline.status"},
-		Frequency:     "IMMEDIATE",
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToNewly},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
 	}
 
 	subToUpdateIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
@@ -189,10 +189,11 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 	subToUpdateID := *subToUpdateIDPtr
 
 	updateReq := UpdateSavedSearchSubscriptionRequest{
-		ID:        subToUpdateID,
-		UserID:    userID,
-		Triggers:  OptionallySet[[]string]{Value: []string{"developer_signals.upvotes"}, IsSet: true},
-		Frequency: OptionallySet[string]{Value: "WEEKLY_DIGEST", IsSet: true},
+		ID:     subToUpdateID,
+		UserID: userID,
+		Triggers: OptionallySet[[]SubscriptionTrigger]{Value: []SubscriptionTrigger{
+			SubscriptionTriggerBrowserImplementationAnyComplete}, IsSet: true},
+		Frequency: OptionallySet[SavedSearchSnapshotType]{Value: SavedSearchSnapshotTypeWeekly, IsSet: true},
 	}
 	err = spannerClient.UpdateSavedSearchSubscription(ctx, updateReq)
 	if err != nil {
@@ -203,8 +204,12 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSavedSearchSubscription after update failed: %v", err)
 	}
-	if retrieved.Frequency != "WEEKLY_DIGEST" {
+	if retrieved.Frequency != SavedSearchSnapshotTypeWeekly {
 		t.Errorf("expected updated frequency, got %s", retrieved.Frequency)
+	}
+	expectedTriggers := []SubscriptionTrigger{SubscriptionTriggerBrowserImplementationAnyComplete}
+	if diff := cmp.Diff(expectedTriggers, retrieved.Triggers); diff != "" {
+		t.Errorf("updated triggers mismatch (-want +got):\n%s", diff)
 	}
 }
 
@@ -242,8 +247,8 @@ func TestDeleteSavedSearchSubscription(t *testing.T) {
 		UserID:        userID,
 		ChannelID:     channelID,
 		SavedSearchID: savedSearchID,
-		Triggers:      []string{"baseline.status"},
-		Frequency:     "IMMEDIATE",
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToNewly},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
 	}
 
 	subToDeleteIDPtr, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
@@ -297,8 +302,8 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 		UserID:        userID,
 		ChannelID:     channelID,
 		SavedSearchID: savedSearchID,
-		Triggers:      []string{"baseline.status"},
-		Frequency:     "IMMEDIATE",
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselinePromoteToNewly},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
 	}
 
 	// Create a few subscriptions to list
@@ -410,7 +415,8 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 
 	// Subscription 1: Correct, on active EMAIL channel
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
-		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE", Triggers: nil,
+		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID,
+		Frequency: SavedSearchSnapshotTypeImmediate, Triggers: nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 1: %v", err)
@@ -419,7 +425,8 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// Subscription 2: Correct, on active WEBHOOK channel
 	// TODO: Enable webhook channel tests once webhooks are supported.
 	// _, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
-	// 	UserID: userID, ChannelID: webhookChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE",
+	// 	UserID: userID, ChannelID: webhookChannelID, SavedSearchID: savedSearchID,
+	// 		Frequency: SavedSearchSnapshotTypeImmediate,
 	// })
 	// if err != nil {
 	// 	t.Fatalf("failed to create sub 2: %v", err)
@@ -435,7 +442,8 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 
 	// Subscription 4: Non-push channel (RSS)
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
-		UserID: userID, ChannelID: rssChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE", Triggers: nil,
+		UserID: userID, ChannelID: rssChannelID, SavedSearchID: savedSearchID,
+		Frequency: SavedSearchSnapshotTypeImmediate, Triggers: nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 4: %v", err)
@@ -443,15 +451,17 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 
 	// Subscription 5: Disabled channel
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
-		UserID: userID, ChannelID: disabledChannelID, SavedSearchID: savedSearchID, Frequency: "IMMEDIATE",
-		Triggers: nil,
+		UserID: userID, ChannelID: disabledChannelID, SavedSearchID: savedSearchID,
+		Frequency: SavedSearchSnapshotTypeImmediate,
+		Triggers:  nil,
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 5: %v", err)
 	}
 
 	// Find subscribers
-	subscribers, err := spannerClient.FindAllActivePushSubscriptions(ctx, savedSearchID, "IMMEDIATE")
+	subscribers, err := spannerClient.FindAllActivePushSubscriptions(ctx, savedSearchID,
+		SavedSearchSnapshotTypeImmediate)
 	if err != nil {
 		t.Fatalf("FindAllActivePushSubscriptions failed: %v", err)
 	}

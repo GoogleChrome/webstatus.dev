@@ -181,7 +181,7 @@ func TestSubscribe_RoutesRefreshSearchCommand(t *testing.T) {
 	refreshCmd := refreshv1.RefreshSearchCommand{
 		SearchID:  "s1",
 		Query:     "q1",
-		Frequency: "DAILY",
+		Frequency: "IMMEDIATE",
 		Timestamp: time.Time{},
 	}
 	ceWrapper := map[string]interface{}{
@@ -202,7 +202,7 @@ func TestSubscribe_RoutesRefreshSearchCommand(t *testing.T) {
 	expectedCall := searchCall{
 		SearchID:  "s1",
 		Query:     "q1",
-		Frequency: workertypes.FrequencyDaily,
+		Frequency: workertypes.FrequencyImmediate,
 		TriggerID: "msg-1",
 	}
 
@@ -293,7 +293,7 @@ func TestPublisher_Publish(t *testing.T) {
 		EventID:       "evt-1",
 		SearchID:      "search-1",
 		Query:         "query-1",
-		Frequency:     "DAILY",
+		Frequency:     workertypes.FrequencyImmediate,
 		Reasons:       []workertypes.Reason{workertypes.ReasonDataUpdated},
 		Summary:       []byte(`{"added": 1}`),
 		StateID:       "state-id-1",
@@ -332,7 +332,7 @@ func TestPublisher_Publish(t *testing.T) {
 			"diff_blob_path":  "gs://bucket/diff-blob",
 			"reasons":         []interface{}{"DATA_UPDATED"},
 			"generated_at":    now.Format(time.RFC3339),
-			"frequency":       "DAILY",
+			"frequency":       "IMMEDIATE",
 		},
 	}
 

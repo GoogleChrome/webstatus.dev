@@ -572,7 +572,6 @@ type JobFrequency string
 const (
 	FrequencyUnknown   JobFrequency = "UNKNOWN"
 	FrequencyImmediate JobFrequency = "IMMEDIATE"
-	FrequencyDaily     JobFrequency = "DAILY"
 	FrequencyWeekly    JobFrequency = "WEEKLY"
 	FrequencyMonthly   JobFrequency = "MONTHLY"
 )
