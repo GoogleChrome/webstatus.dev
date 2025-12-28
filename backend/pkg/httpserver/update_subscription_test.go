@@ -50,7 +50,7 @@ func TestUpdateSubscription(t *testing.T) {
 				expectedSubscriptionID: "sub-id",
 				expectedUpdateRequest: backend.UpdateSubscriptionRequest{
 					Triggers: &[]backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 					UpdateMask: []backend.UpdateSubscriptionRequestUpdateMask{
 						backend.UpdateSubscriptionRequestMaskTriggers},
 					Frequency: nil,
@@ -62,7 +62,7 @@ func TestUpdateSubscription(t *testing.T) {
 					Triggers: []backend.SubscriptionTriggerResponseItem{
 						{
 							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-								backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+								backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 							RawValue: nil,
 						},
 					},
@@ -79,7 +79,7 @@ func TestUpdateSubscription(t *testing.T) {
 				strings.NewReader(`
 					{
 						"triggers":
-							["feature_any_browser_implementation_complete"],
+							["feature_browser_implementation_any_complete"],
 						"update_mask": ["triggers"]
 					}`)),
 			expectedResponse: testJSONResponse(http.StatusOK,
@@ -87,7 +87,7 @@ func TestUpdateSubscription(t *testing.T) {
 					"id":"sub-id",
 					"channel_id":"channel-id",
 					"saved_search_id":"search-id",
-					"triggers": [{"value":"feature_any_browser_implementation_complete"}],
+					"triggers": [{"value":"feature_browser_implementation_any_complete"}],
 					"frequency":"daily",
 					"created_at":"`+now.Format(time.RFC3339Nano)+`",
 					"updated_at":"`+now.Format(time.RFC3339Nano)+`"
@@ -101,7 +101,7 @@ func TestUpdateSubscription(t *testing.T) {
 				expectedSubscriptionID: "sub-id",
 				expectedUpdateRequest: backend.UpdateSubscriptionRequest{
 					Triggers: &[]backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete,
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete,
 					},
 					Frequency: nil,
 					UpdateMask: []backend.UpdateSubscriptionRequestUpdateMask{
@@ -116,7 +116,7 @@ func TestUpdateSubscription(t *testing.T) {
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
 				{
-					"triggers": ["feature_any_browser_implementation_complete"],
+					"triggers": ["feature_browser_implementation_any_complete"],
 					"update_mask": ["triggers"]
 				}`)),
 			expectedResponse: testJSONResponse(http.StatusNotFound, `
@@ -134,7 +134,7 @@ func TestUpdateSubscription(t *testing.T) {
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
 				{
-					"triggers": ["feature_any_browser_implementation_complete"],
+					"triggers": ["feature_browser_implementation_any_complete"],
 					"update_mask": ["invalid_field"]
 				}`)),
 			expectedResponse: testJSONResponse(http.StatusBadRequest, `
@@ -155,7 +155,7 @@ func TestUpdateSubscription(t *testing.T) {
 				expectedSubscriptionID: "sub-id",
 				expectedUpdateRequest: backend.UpdateSubscriptionRequest{
 					Triggers: &[]backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 					UpdateMask: []backend.UpdateSubscriptionRequestUpdateMask{
 						backend.UpdateSubscriptionRequestMaskTriggers},
 					Frequency: nil,
@@ -169,7 +169,7 @@ func TestUpdateSubscription(t *testing.T) {
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
 				{
-					"triggers": ["feature_any_browser_implementation_complete"],
+					"triggers": ["feature_browser_implementation_any_complete"],
 					"update_mask": ["triggers"]
 				}`)),
 			expectedResponse: testJSONResponse(http.StatusForbidden, `
@@ -186,7 +186,7 @@ func TestUpdateSubscription(t *testing.T) {
 				expectedSubscriptionID: "sub-id",
 				expectedUpdateRequest: backend.UpdateSubscriptionRequest{
 					Triggers: &[]backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 					UpdateMask: []backend.UpdateSubscriptionRequestUpdateMask{
 						backend.UpdateSubscriptionRequestMaskTriggers},
 					Frequency: nil,
@@ -200,7 +200,7 @@ func TestUpdateSubscription(t *testing.T) {
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
 				{
-					"triggers": ["feature_any_browser_implementation_complete"],
+					"triggers": ["feature_browser_implementation_any_complete"],
 					"update_mask": ["triggers"]
 				}`)),
 			expectedResponse: testJSONResponse(http.StatusInternalServerError, `
@@ -250,7 +250,7 @@ func TestValidateSubscriptionUpdate(t *testing.T) {
 			name: "valid update",
 			input: &backend.UpdateSubscriptionRequest{
 				Triggers: &[]backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 				UpdateMask: []backend.UpdateSubscriptionRequestUpdateMask{
 					backend.UpdateSubscriptionRequestMaskTriggers},
 				Frequency: nil,
@@ -261,7 +261,7 @@ func TestValidateSubscriptionUpdate(t *testing.T) {
 			name: "invalid update mask",
 			input: &backend.UpdateSubscriptionRequest{
 				Triggers: &[]backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 				UpdateMask: []backend.UpdateSubscriptionRequestUpdateMask{
 					"invalid_field"},
 				Frequency: nil,
@@ -290,7 +290,7 @@ func TestValidateSubscriptionUpdate(t *testing.T) {
 			name: "nil update mask",
 			input: &backend.UpdateSubscriptionRequest{
 				Triggers: &[]backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 				UpdateMask: nil,
 				Frequency:  nil,
 			},

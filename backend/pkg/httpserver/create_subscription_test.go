@@ -51,8 +51,8 @@ func TestCreateSubscription(t *testing.T) {
 					ChannelId:     "channel-id",
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-					Frequency: "daily",
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+					Frequency: "immediate",
 				},
 				output: &backend.SubscriptionResponse{
 					Id:            "sub-id",
@@ -61,11 +61,11 @@ func TestCreateSubscription(t *testing.T) {
 					Triggers: []backend.SubscriptionTriggerResponseItem{
 						{
 							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-								backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+								backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 							RawValue: nil,
 						},
 					},
-					Frequency: "daily",
+					Frequency: "immediate",
 					CreatedAt: now,
 					UpdatedAt: now,
 				},
@@ -79,16 +79,16 @@ func TestCreateSubscription(t *testing.T) {
 				strings.NewReader(`{
 					"channel_id": "channel-id",
 					"saved_search_id": "search-id",
-					"triggers": ["feature_any_browser_implementation_complete"],
-					"frequency": "daily"
+					"triggers": ["feature_browser_implementation_any_complete"],
+					"frequency": "immediate"
 				}`),
 			),
 			expectedResponse: testJSONResponse(http.StatusCreated, `{
 				"id":"sub-id",
 				"channel_id":"channel-id",
 				"saved_search_id":"search-id",
-				"triggers": [{"value":"feature_any_browser_implementation_complete"}],
-				"frequency":"daily",
+				"triggers": [{"value":"feature_browser_implementation_any_complete"}],
+				"frequency":"immediate",
 				"created_at":"`+now.Format(time.RFC3339Nano)+`",
 				"updated_at":"`+now.Format(time.RFC3339Nano)+`"
 			}`),
@@ -103,8 +103,8 @@ func TestCreateSubscription(t *testing.T) {
 				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
 					"saved_search_id": "search-id",
-					"triggers": ["feature_any_browser_implementation_complete"],
-					"frequency": "daily"
+					"triggers": ["feature_browser_implementation_any_complete"],
+					"frequency": "immediate"
 				}`),
 			),
 			expectedResponse: testJSONResponse(http.StatusBadRequest, `
@@ -124,8 +124,8 @@ func TestCreateSubscription(t *testing.T) {
 					ChannelId:     "channel-id",
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-					Frequency: "daily",
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+					Frequency: "immediate",
 				},
 				output: nil,
 				err:    backendtypes.ErrUserNotAuthorizedForAction,
@@ -138,8 +138,8 @@ func TestCreateSubscription(t *testing.T) {
 				strings.NewReader(`{
 					"channel_id": "channel-id",
 					"saved_search_id": "search-id",
-					"triggers": ["feature_any_browser_implementation_complete"],
-					"frequency": "daily"
+					"triggers": ["feature_browser_implementation_any_complete"],
+					"frequency": "immediate"
 				}`)),
 			expectedResponse: testJSONResponse(http.StatusForbidden, `{
 				"code":403,
@@ -154,8 +154,8 @@ func TestCreateSubscription(t *testing.T) {
 					ChannelId:     "channel-id",
 					SavedSearchId: "search-id",
 					Triggers: []backend.SubscriptionTriggerWritable{
-						backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-					Frequency: "daily",
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+					Frequency: "immediate",
 				},
 				output: nil,
 				err:    fmt.Errorf("database error"),
@@ -168,8 +168,8 @@ func TestCreateSubscription(t *testing.T) {
 				strings.NewReader(`{
 					"channel_id": "channel-id",
 					"saved_search_id": "search-id",
-					"triggers": ["feature_any_browser_implementation_complete"],
-					"frequency": "daily"
+					"triggers": ["feature_browser_implementation_any_complete"],
+					"frequency": "immediate"
 				}`)),
 			expectedResponse: testJSONResponse(http.StatusInternalServerError, `{
 				"code":500,
@@ -214,8 +214,8 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 				ChannelId:     "channel-id",
 				SavedSearchId: "search-id",
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-				Frequency: backend.SubscriptionFrequencyDaily,
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			want: nil,
 		},
@@ -225,8 +225,8 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 				ChannelId:     "",
 				SavedSearchId: "searchid",
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-				Frequency: backend.SubscriptionFrequencyDaily,
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
@@ -240,8 +240,8 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 				ChannelId:     "channelid",
 				SavedSearchId: "",
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-				Frequency: backend.SubscriptionFrequencyDaily,
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
@@ -256,7 +256,7 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 				SavedSearchId: "searchid",
 				Triggers: []backend.SubscriptionTriggerWritable{
 					"invalid_trigger"},
-				Frequency: backend.SubscriptionFrequencyDaily,
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			want: &fieldValidationErrors{
 				fieldErrorMap: map[string]string{
@@ -270,7 +270,7 @@ func TestValidateSubscriptionCreation(t *testing.T) {
 				ChannelId:     "channelid",
 				SavedSearchId: "searchid",
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
 				Frequency: "invalid_frequency",
 			},
 			want: &fieldValidationErrors{

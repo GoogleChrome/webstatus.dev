@@ -29,30 +29,41 @@ const savedSearchSubscriptionTable = "SavedSearchSubscriptions"
 
 // SavedSearchSubscription represents a row in the SavedSearchSubscription table.
 type SavedSearchSubscription struct {
-	ID            string    `spanner:"ID"`
-	ChannelID     string    `spanner:"ChannelID"`
-	SavedSearchID string    `spanner:"SavedSearchID"`
-	Triggers      []string  `spanner:"Triggers"`
-	Frequency     string    `spanner:"Frequency"`
-	CreatedAt     time.Time `spanner:"CreatedAt"`
-	UpdatedAt     time.Time `spanner:"UpdatedAt"`
+	ID            string                  `spanner:"ID"`
+	ChannelID     string                  `spanner:"ChannelID"`
+	SavedSearchID string                  `spanner:"SavedSearchID"`
+	Triggers      []SubscriptionTrigger   `spanner:"Triggers"`
+	Frequency     SavedSearchSnapshotType `spanner:"Frequency"`
+	CreatedAt     time.Time               `spanner:"CreatedAt"`
+	UpdatedAt     time.Time               `spanner:"UpdatedAt"`
 }
+
+type SubscriptionTrigger string
+
+const (
+	SubscriptionTriggerBrowserImplementationAnyComplete SubscriptionTrigger = "feature.browser_implementation." +
+		"any_complete"
+	SubscriptionTriggerFeatureBaselinePromoteToNewly      SubscriptionTrigger = "feature.baseline.promote_to_newly"
+	SubscriptionTriggerFeatureBaselinePromoteToWidely     SubscriptionTrigger = "feature.baseline.promote_to_widely"
+	SubscriptionTriggerFeatureBaselineRegressionToLimited SubscriptionTrigger = "feature.baseline.regression_to_limited"
+	SubscriptionTriggerUnknown                            SubscriptionTrigger = "unknown"
+)
 
 // CreateSavedSearchSubscriptionRequest is the request to create a subscription.
 type CreateSavedSearchSubscriptionRequest struct {
 	UserID        string
 	ChannelID     string
 	SavedSearchID string
-	Triggers      []string
-	Frequency     string
+	Triggers      []SubscriptionTrigger
+	Frequency     SavedSearchSnapshotType
 }
 
 // UpdateSavedSearchSubscriptionRequest is a request to update a saved search subscription.
 type UpdateSavedSearchSubscriptionRequest struct {
 	ID        string
 	UserID    string
-	Triggers  OptionallySet[[]string]
-	Frequency OptionallySet[string]
+	Triggers  OptionallySet[[]SubscriptionTrigger]
+	Frequency OptionallySet[SavedSearchSnapshotType]
 }
 
 // ListSavedSearchSubscriptionsRequest is a request to list saved search subscriptions.
@@ -318,7 +329,7 @@ type readAllActivePushSubscriptionsMapper struct {
 
 type activePushSubscriptionKey struct {
 	SavedSearchID string
-	Frequency     string
+	Frequency     SavedSearchSnapshotType
 }
 
 func (m readAllActivePushSubscriptionsMapper) SelectAllByKeys(key activePushSubscriptionKey) spanner.Statement {
@@ -354,7 +365,7 @@ func (m readAllActivePushSubscriptionsMapper) SelectAllByKeys(key activePushSubs
 func (c *Client) FindAllActivePushSubscriptions(
 	ctx context.Context,
 	savedSearchID string,
-	frequency string,
+	frequency SavedSearchSnapshotType,
 ) ([]SubscriberDestination, error) {
 	return newAllByKeysEntityReader[
 		readAllActivePushSubscriptionsMapper,
