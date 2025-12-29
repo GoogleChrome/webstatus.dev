@@ -174,11 +174,11 @@ type SummaryHighlight struct {
 	DocLinks    []DocLink            `json:"doc_links,omitempty"`
 
 	// Strongly typed change fields to support i18n and avoid interface{}
-	NameChange     *Change[string]                      `json:"name_change,omitempty"`
-	BaselineChange *Change[BaselineValue]               `json:"baseline_change,omitempty"`
-	BrowserChanges map[BrowserName]Change[BrowserValue] `json:"browser_changes,omitempty"`
-	Moved          *Change[FeatureRef]                  `json:"moved,omitempty"`
-	Split          *SplitChange                         `json:"split,omitempty"`
+	NameChange     *Change[string]                       `json:"name_change,omitempty"`
+	BaselineChange *Change[BaselineValue]                `json:"baseline_change,omitempty"`
+	BrowserChanges map[BrowserName]*Change[BrowserValue] `json:"browser_changes,omitempty"`
+	Moved          *Change[FeatureRef]                   `json:"moved,omitempty"`
+	Split          *SplitChange                          `json:"split,omitempty"`
 }
 
 // SummaryVisitor defines the contract for consuming immutable Event Summaries.
@@ -342,7 +342,7 @@ func (g FeatureDiffV1SummaryGenerator) processModified(highlights []SummaryHighl
 		}
 
 		if len(m.BrowserChanges) > 0 {
-			h.BrowserChanges = make(map[BrowserName]Change[BrowserValue])
+			h.BrowserChanges = make(map[BrowserName]*Change[BrowserValue])
 			for b, c := range m.BrowserChanges {
 				if c == nil {
 					continue
@@ -366,7 +366,7 @@ func (g FeatureDiffV1SummaryGenerator) processModified(highlights []SummaryHighl
 				default:
 					continue
 				}
-				h.BrowserChanges[key] = Change[BrowserValue]{
+				h.BrowserChanges[key] = &Change[BrowserValue]{
 					From: toBrowserValue(c.From),
 					To:   toBrowserValue(c.To),
 				}

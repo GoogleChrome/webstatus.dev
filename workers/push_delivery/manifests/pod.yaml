@@ -33,15 +33,11 @@ spec:
         - name: SPANNER_EMULATOR_HOST
           value: 'spanner:9010'
         - name: PUBSUB_EMULATOR_HOST
-          value: 'http://pubsub:8086'
+          value: 'pubsub:8060'
         - name: NOTIFICATION_SUBSCRIPTION_ID
           value: 'notification-events-sub-id'
         - name: EMAIL_TOPIC_ID
           value: 'chime-delivery-topic-id'
-        - name: STATE_BLOB_BUCKET
-          value: 'state-bucket'
-        - name: STORAGE_EMULATOR_HOST
-          value: 'http://gcs:4443'
       resources:
         limits:
           cpu: 250m

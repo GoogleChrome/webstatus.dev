@@ -19,7 +19,6 @@ metadata:
 requires:
   - path: ../../.dev/pubsub
   - path: ../../.dev/spanner
-  - path: ../../.dev/gcs
 profiles:
   - name: local
     build:

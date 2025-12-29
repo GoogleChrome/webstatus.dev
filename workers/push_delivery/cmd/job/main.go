@@ -19,9 +19,11 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gcpgcs"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/workers/push_delivery/pkg/dispatcher"
 )
 
 func main() {
@@ -64,29 +66,22 @@ func main() {
 		os.Exit(1)
 	}
 
-	stateBlobBucket := os.Getenv("STATE_BLOB_BUCKET")
-	if stateBlobBucket == "" {
-		slog.ErrorContext(ctx, "STATE_BLOB_BUCKET is not set. exiting...")
-		os.Exit(1)
-	}
-
 	queueClient, err := gcppubsub.NewClient(ctx, projectID)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to create pub sub client", "error", err)
 		os.Exit(1)
 	}
 
-	_, err = gcpgcs.NewClient(ctx, stateBlobBucket)
-	if err != nil {
-		slog.ErrorContext(ctx, "unable to create gcs client", "error", err)
-		os.Exit(1)
-	}
-
-	// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/1851
-	// Nil handler for now. Will fix later
-	err = queueClient.Subscribe(ctx, notificationSubID, nil)
-	if err != nil {
-		slog.ErrorContext(ctx, "unable to connect to subscription", "error", err)
+	listener := gcppubsubadapters.NewPushDeliverySubscriberAdapter(
+		dispatcher.NewDispatcher(
+			spanneradapters.NewPushDeliverySubscriberFinder(spannerClient),
+			gcppubsubadapters.NewPushDeliveryPublisher(queueClient, emailTopicID),
+		),
+		queueClient,
+		notificationSubID,
+	)
+	if err := listener.Subscribe(ctx); err != nil {
+		slog.ErrorContext(ctx, "Push delivery subscriber failed", "error", err)
 		os.Exit(1)
 	}
 }

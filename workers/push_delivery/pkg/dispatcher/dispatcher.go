@@ -171,6 +171,7 @@ func (g *deliveryJobGenerator) JobCount() int {
 
 // shouldNotifyV1 determines if the V1 event summary matches any of the user's triggers.
 func shouldNotifyV1(triggers []workertypes.JobTrigger, summary workertypes.EventSummary) bool {
+	// 1. Determine if summary has changes.
 	hasChanges := summary.Categories.Added > 0 ||
 		summary.Categories.Removed > 0 ||
 		summary.Categories.Updated > 0 ||
@@ -182,6 +183,49 @@ func shouldNotifyV1(triggers []workertypes.JobTrigger, summary workertypes.Event
 		return false
 	}
 
-	// For V1, if the user has ANY triggers, and there ARE changes, we notify.
-	return len(triggers) > 0
+	// 2. If user has no triggers.
+	// Assuming empty triggers = no notifications for safety.
+	if len(triggers) == 0 {
+		return false
+	}
+
+	// 3. Iterate triggers and check highlights
+	for _, t := range triggers {
+		if matchesTrigger(t, summary) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func matchesTrigger(t workertypes.JobTrigger, summary workertypes.EventSummary) bool {
+	for _, h := range summary.Highlights {
+		switch t {
+		case workertypes.FeaturePromotedToNewly:
+			if h.BaselineChange != nil && h.BaselineChange.To.Status == workertypes.BaselineStatusNewly {
+				return true
+			}
+		case workertypes.FeaturePromotedToWidely:
+			if h.BaselineChange != nil && h.BaselineChange.To.Status == workertypes.BaselineStatusWidely {
+				return true
+			}
+		case workertypes.FeatureRegressedToLimited:
+			if h.BaselineChange != nil && h.BaselineChange.To.Status == workertypes.BaselineStatusLimited {
+				return true
+			}
+		case workertypes.BrowserImplementationAnyComplete:
+			// BrowserChanges is a map, so we iterate values
+			for _, change := range h.BrowserChanges {
+				if change == nil {
+					continue
+				}
+				if change.To.Status == workertypes.BrowserStatusAvailable {
+					return true
+				}
+			}
+		}
+	}
+
+	return false
 }
