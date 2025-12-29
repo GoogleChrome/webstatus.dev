@@ -159,5 +159,11 @@ func (a *EventProducerPublisherAdapter) Publish(ctx context.Context,
 		return "", err
 	}
 
-	return a.eventPublisher.Publish(ctx, a.topicID, b)
+	id, err := a.eventPublisher.Publish(ctx, a.topicID, b)
+	if err != nil {
+		return "", err
+	}
+	slog.InfoContext(ctx, "published feature diff event", "id", id, "eventID", req.EventID)
+
+	return id, nil
 }
