@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	v1 "github.com/GoogleChrome/webstatus.dev/lib/blobtypes/featurelistdiff/v1"
 )
@@ -184,15 +185,31 @@ const (
 )
 
 type PublishEventRequest struct {
-	EventID  string
-	StateID  string
-	DiffID   string
-	SearchID string
-	Summary  []byte
-	Reasons  []Reason
+	EventID       string
+	StateID       string
+	StateBlobPath string
+	DiffID        string
+	DiffBlobPath  string
+	SearchID      string
+	Query         string
+	Summary       []byte
+	Reasons       []Reason
+	Frequency     JobFrequency
+	GeneratedAt   time.Time
 }
 
 type LatestEventInfo struct {
-	EventID string
-	StateID string
+	EventID       string
+	StateBlobPath string
 }
+
+// JobFrequency defines how often a saved search should be checked.
+type JobFrequency string
+
+const (
+	FrequencyUnknown   JobFrequency = "UNKNOWN"
+	FrequencyImmediate JobFrequency = "IMMEDIATE"
+	FrequencyDaily     JobFrequency = "DAILY"
+	FrequencyWeekly    JobFrequency = "WEEKLY"
+	FrequencyMonthly   JobFrequency = "MONTHLY"
+)

@@ -108,13 +108,15 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	newStateID := d.idGenerator.NewStateID()
 	diffID := d.idGenerator.NewDiffID()
 
+	t := d.timeNow()
+
 	diffBytes, err := d.diffSerializer.Serialize(diffID, searchID, eventID, newStateID,
-		prevCtx.ID, finalDiff, d.timeNow())
+		prevCtx.ID, finalDiff, t)
 	if err != nil {
 		return nil, fmt.Errorf("%w, failed to serialize diff: %w", ErrFatal, err)
 	}
 
-	newStateBytes, err := d.stateAdapter.Serialize(newStateID, searchID, eventID, query, d.timeNow(), data.NewSnapshot)
+	newStateBytes, err := d.stateAdapter.Serialize(newStateID, searchID, eventID, query, t, data.NewSnapshot)
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to serialize new state: %w", ErrFatal, err)
 	}
@@ -125,10 +127,11 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	}
 
 	return &DiffResult{
-		State:   BlobArtifact{ID: newStateID, Bytes: newStateBytes},
-		Diff:    BlobArtifact{ID: eventID, Bytes: diffBytes},
-		Summary: summaryBytes,
-		Reasons: d.determineReasons(plan),
+		State:       BlobArtifact{ID: newStateID, Bytes: newStateBytes},
+		Diff:        BlobArtifact{ID: eventID, Bytes: diffBytes},
+		Summary:     summaryBytes,
+		Reasons:     d.determineReasons(plan),
+		GeneratedAt: t,
 	}, nil
 }
 
