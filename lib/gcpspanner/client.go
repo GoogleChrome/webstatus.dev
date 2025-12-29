@@ -81,6 +81,7 @@ type Client struct {
 	featureSearchQuery  FeatureSearchBaseQuery
 	missingOneImplQuery MissingOneImplementationQuery
 	searchCfg           searchConfig
+	notificationCfg     notificationConfig
 	batchWriter
 	batchSize    int
 	batchWriters int
@@ -140,10 +141,17 @@ type searchConfig struct {
 	maxBookmarksPerUser uint32
 }
 
+// notificationConfig holds the application configuation for notifications.
+type notificationConfig struct {
+	// Max number of consecutive failures per channel
+	maxConsecutiveFailuresPerChannel uint32
+}
+
 const defaultMaxOwnedSearchesPerUser = 25
 const defaultMaxBookmarksPerUser = 25
 const defaultBatchSize = 5000
 const defaultBatchWriters = 8
+const defaultMaxConsecutiveFailuresPerChannel = 5
 
 func combineAndDeduplicate(excluded []string, discouraged []string) []string {
 	if excluded == nil && discouraged == nil {
@@ -218,6 +226,9 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		searchConfig{
 			maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser,
 			maxBookmarksPerUser:     defaultMaxBookmarksPerUser,
+		},
+		notificationConfig{
+			maxConsecutiveFailuresPerChannel: defaultMaxConsecutiveFailuresPerChannel,
 		},
 		bw,
 		defaultBatchSize,

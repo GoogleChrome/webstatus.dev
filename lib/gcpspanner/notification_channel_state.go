@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -77,4 +78,106 @@ func (c *Client) GetNotificationChannelState(
 	ctx context.Context, channelID string) (*NotificationChannelState, error) {
 	return newEntityReader[notificationChannelStateMapper,
 		NotificationChannelState, string](c).readRowByKey(ctx, channelID)
+}
+
+// RecordNotificationChannelSuccess resets the consecutive failures count in the NotificationChannelStates table
+// and logs a successful delivery attempt in the NotificationChannelDeliveryAttempts table.
+func (c *Client) RecordNotificationChannelSuccess(
+	ctx context.Context, channelID string, timestamp time.Time, eventID string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Update NotificationChannelStates
+		err := newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx, txn,
+			NotificationChannelState{
+				ChannelID:           channelID,
+				IsDisabledBySystem:  false,
+				ConsecutiveFailures: 0,
+				CreatedAt:           timestamp,
+				UpdatedAt:           timestamp,
+			})
+		if err != nil {
+			return err
+		}
+
+		_, err = c.createNotificationChannelDeliveryAttemptWithTransaction(ctx, txn,
+			CreateNotificationChannelDeliveryAttemptRequest{
+				ChannelID:        channelID,
+				AttemptTimestamp: timestamp,
+				Status:           DeliveryAttemptStatusSuccess,
+				Details: spanner.NullJSON{Value: AttemptDetails{
+					EventID: eventID,
+					Message: "delivered"}, Valid: true},
+			})
+
+		return err
+	})
+
+	return err
+
+}
+
+// RecordNotificationChannelFailure increments the consecutive failures count in the NotificationChannelStates table
+// and logs a failure delivery attempt in the NotificationChannelDeliveryAttempts table.
+// If isPermanent is true, it increments the failure count and potentially disables the channel.
+// If isPermanent is false (transient), it logs the error but does not penalize the channel health.
+func (c *Client) RecordNotificationChannelFailure(
+	ctx context.Context, channelID string, errorMsg string, timestamp time.Time,
+	isPermanent bool, eventID string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		// Read current state
+		state, err := newEntityReader[notificationChannelStateMapper, NotificationChannelState, string](c).
+			readRowByKeyWithTransaction(ctx, channelID, txn)
+		if err != nil && !errors.Is(err, ErrQueryReturnedNoResults) {
+			return err
+		} else if errors.Is(err, ErrQueryReturnedNoResults) {
+			state = &NotificationChannelState{
+				ChannelID:           channelID,
+				CreatedAt:           timestamp,
+				UpdatedAt:           timestamp,
+				IsDisabledBySystem:  false,
+				ConsecutiveFailures: 0,
+			}
+		}
+
+		// Calculate new state
+		if isPermanent {
+			state.ConsecutiveFailures++
+		}
+		state.UpdatedAt = timestamp
+		state.IsDisabledBySystem = state.ConsecutiveFailures >= int64(
+			c.notificationCfg.maxConsecutiveFailuresPerChannel)
+
+		// Update NotificationChannelStates
+		err = newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx,
+			txn, NotificationChannelState{
+				ChannelID:           channelID,
+				IsDisabledBySystem:  state.IsDisabledBySystem,
+				ConsecutiveFailures: state.ConsecutiveFailures,
+				CreatedAt:           state.CreatedAt,
+				UpdatedAt:           state.UpdatedAt,
+			})
+		if err != nil {
+			return err
+		}
+
+		// Log attempt
+		_, err = c.createNotificationChannelDeliveryAttemptWithTransaction(ctx, txn,
+			CreateNotificationChannelDeliveryAttemptRequest{
+				ChannelID:        channelID,
+				AttemptTimestamp: timestamp,
+				Status:           DeliveryAttemptStatusFailure,
+				Details: spanner.NullJSON{Value: AttemptDetails{
+					EventID: eventID,
+					Message: errorMsg}, Valid: true},
+			})
+
+		return err
+
+	})
+
+	return err
+}
+
+type AttemptDetails struct {
+	Message string `json:"message"`
+	EventID string `json:"event_id"`
 }
