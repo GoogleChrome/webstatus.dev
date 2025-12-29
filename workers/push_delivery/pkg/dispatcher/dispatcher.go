@@ -170,7 +170,7 @@ func (g *deliveryJobGenerator) JobCount() int {
 }
 
 // shouldNotifyV1 determines if the V1 event summary matches any of the user's triggers.
-func shouldNotifyV1(triggers []string, summary workertypes.EventSummary) bool {
+func shouldNotifyV1(triggers []workertypes.JobTrigger, summary workertypes.EventSummary) bool {
 	hasChanges := summary.Categories.Added > 0 ||
 		summary.Categories.Removed > 0 ||
 		summary.Categories.Updated > 0 ||
