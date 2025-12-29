@@ -588,3 +588,45 @@ type SearchJob struct {
 	ID    string
 	Query string
 }
+
+// EmailSubscriber represents a subscriber using an Email channel.
+type EmailSubscriber struct {
+	SubscriptionID string
+	UserID         string
+	Triggers       []string
+	EmailAddress   string
+}
+
+// SubscriberSet groups subscribers by channel type to avoid runtime type assertions.
+type SubscriberSet struct {
+	Emails []EmailSubscriber
+	// Future channel types (e.g. Webhook) can be added here.
+}
+
+// DeliveryMetadata contains the necessary context from the original event
+// required for rendering notifications (e.g. generating links), decoupled from the upstream event format.
+type DeliveryMetadata struct {
+	EventID     string
+	SearchID    string
+	Query       string
+	Frequency   JobFrequency
+	GeneratedAt time.Time
+}
+
+type DispatchEventMetadata struct {
+	EventID     string
+	SearchID    string
+	Frequency   JobFrequency
+	Query       string
+	GeneratedAt time.Time
+}
+
+// EmailDeliveryJob represents a task to send an email.
+type EmailDeliveryJob struct {
+	SubscriptionID string
+	RecipientEmail string
+	// SummaryRaw is the opaque JSON payload describing the event.
+	SummaryRaw []byte
+	// Metadata contains context for links and tracking.
+	Metadata DeliveryMetadata
+}

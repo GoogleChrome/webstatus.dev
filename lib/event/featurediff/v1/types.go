@@ -69,6 +69,23 @@ type FeatureDiffEvent struct {
 func (FeatureDiffEvent) Kind() string       { return "FeatureDiffEvent" }
 func (FeatureDiffEvent) APIVersion() string { return "v1" }
 
+func (f JobFrequency) ToWorkertypes() workertypes.JobFrequency {
+	switch f {
+	case FrequencyImmediate:
+		return workertypes.FrequencyImmediate
+	case FrequencyDaily:
+		return workertypes.FrequencyDaily
+	case FrequencyWeekly:
+		return workertypes.FrequencyWeekly
+	case FrequencyMonthly:
+		return workertypes.FrequencyMonthly
+	case FrequencyUnknown:
+		return workertypes.FrequencyUnknown
+	}
+
+	return workertypes.FrequencyUnknown
+}
+
 func ToJobFrequency(freq workertypes.JobFrequency) JobFrequency {
 	switch freq {
 	case workertypes.FrequencyImmediate:
