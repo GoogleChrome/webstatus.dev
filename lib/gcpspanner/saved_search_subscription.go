@@ -315,12 +315,23 @@ func (c *Client) ListSavedSearchSubscriptions(
 	return newEntityLister[savedSearchSubscriptionMapper](c).list(ctx, req)
 }
 
+type spannerSubscriberDestination struct {
+	SubscriptionID string                `spanner:"ID"`
+	UserID         string                `spanner:"UserID"`
+	ChannelID      string                `spanner:"ChannelID"`
+	Type           string                `spanner:"Type"`
+	Triggers       []SubscriptionTrigger `spanner:"Triggers"`
+	Config         spanner.NullJSON      `spanner:"Config"`
+}
+
 type SubscriberDestination struct {
-	SubscriptionID string           `spanner:"ID"`
-	UserID         string           `spanner:"UserID"`
-	ChannelID      string           `spanner:"ChannelID"`
-	Type           string           `spanner:"Type"`
-	Config         spanner.NullJSON `spanner:"Config"`
+	SubscriptionID string
+	UserID         string
+	ChannelID      string
+	Type           string
+	Triggers       []SubscriptionTrigger
+	// If type is EMAIL, EmailConfig is set.
+	EmailConfig *EmailConfig
 }
 
 type readAllActivePushSubscriptionsMapper struct {
@@ -341,6 +352,7 @@ func (m readAllActivePushSubscriptionsMapper) SelectAllByKeys(key activePushSubs
 			sc.ID,
 			nc.UserID,
 			sc.ChannelID,
+			sc.Triggers,
 			nc.Type,
 			nc.Config
 		FROM SavedSearchSubscriptions sc
@@ -367,14 +379,36 @@ func (c *Client) FindAllActivePushSubscriptions(
 	savedSearchID string,
 	frequency SavedSearchSnapshotType,
 ) ([]SubscriberDestination, error) {
-	return newAllByKeysEntityReader[
+	values, err := newAllByKeysEntityReader[
 		readAllActivePushSubscriptionsMapper,
 		activePushSubscriptionKey,
-		SubscriberDestination](c).readAllByKeys(
+		spannerSubscriberDestination](c).readAllByKeys(
 		ctx,
 		activePushSubscriptionKey{
 			SavedSearchID: savedSearchID,
 			Frequency:     frequency,
 		},
 	)
+	if err != nil {
+		return nil, err
+	}
+	results := make([]SubscriberDestination, 0, len(values))
+	for _, v := range values {
+		dest := SubscriberDestination{
+			SubscriptionID: v.SubscriptionID,
+			UserID:         v.UserID,
+			ChannelID:      v.ChannelID,
+			Type:           v.Type,
+			Triggers:       v.Triggers,
+			EmailConfig:    nil,
+		}
+		subscriptionConfigs, err := loadSubscriptionConfigs(v.Type, v.Config)
+		if err != nil {
+			return nil, err
+		}
+		dest.EmailConfig = subscriptionConfigs.EmailConfig
+		results = append(results, dest)
+	}
+
+	return results, nil
 }

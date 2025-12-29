@@ -588,11 +588,20 @@ type SearchJob struct {
 	Query string
 }
 
+type JobTrigger string
+
+const (
+	FeaturePromotedToNewly           JobTrigger = "FEATURE_PROMOTED_TO_NEWLY"
+	FeaturePromotedToWidely          JobTrigger = "FEATURE_PROMOTED_TO_WIDELY"
+	FeatureRegressedToLimited        JobTrigger = "FEATURE_REGRESSED_TO_LIMITED"
+	BrowserImplementationAnyComplete JobTrigger = "BROWSER_IMPLEMENTATION_ANY_COMPLETE"
+)
+
 // EmailSubscriber represents a subscriber using an Email channel.
 type EmailSubscriber struct {
 	SubscriptionID string
 	UserID         string
-	Triggers       []string
+	Triggers       []JobTrigger
 	EmailAddress   string
 }
 

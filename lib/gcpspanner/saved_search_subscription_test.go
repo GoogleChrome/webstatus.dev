@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"context"
+	"slices"
 	"testing"
 	"time"
 
@@ -416,7 +417,12 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// Subscription 1: Correct, on active EMAIL channel
 	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
 		UserID: userID, ChannelID: emailChannelID, SavedSearchID: savedSearchID,
-		Frequency: SavedSearchSnapshotTypeImmediate, Triggers: nil,
+		Frequency: SavedSearchSnapshotTypeImmediate, Triggers: []SubscriptionTrigger{
+			SubscriptionTriggerFeatureBaselineRegressionToLimited,
+			SubscriptionTriggerBrowserImplementationAnyComplete,
+			SubscriptionTriggerFeatureBaselinePromoteToNewly,
+			SubscriptionTriggerFeatureBaselinePromoteToWidely,
+		},
 	})
 	if err != nil {
 		t.Fatalf("failed to create sub 1: %v", err)
@@ -477,6 +483,34 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// foundWebhook := false
 	for _, sub := range subscribers {
 		if sub.ChannelID == emailChannelID {
+			// Do the comparison for the email subscriber details
+			if sub.Type != "EMAIL" {
+				t.Errorf("expected EMAIL type for email channel, got %s", sub.Type)
+
+				continue
+			}
+			if sub.EmailConfig == nil {
+				t.Error("expected EmailConfig to be set for email subscriber, got nil")
+
+				continue
+			}
+			if sub.EmailConfig.Address != "active@example.com" {
+				t.Errorf("expected address to be active@example.com, got %s", sub.EmailConfig.Address)
+
+				continue
+			}
+			expectedTriggers := []SubscriptionTrigger{
+				SubscriptionTriggerFeatureBaselineRegressionToLimited,
+				SubscriptionTriggerBrowserImplementationAnyComplete,
+				SubscriptionTriggerFeatureBaselinePromoteToNewly,
+				SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			}
+			if !slices.Equal(expectedTriggers, sub.Triggers) {
+				t.Errorf("expected triggers %v, got %v", expectedTriggers, sub.Triggers)
+
+				continue
+			}
+
 			foundEmail = true
 		}
 		// if sub.ChannelID == webhookChannelID {
