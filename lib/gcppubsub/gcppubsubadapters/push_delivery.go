@@ -55,9 +55,11 @@ func (p *PushDeliveryPublisher) PublishEmailJob(ctx context.Context, job workert
 		return err
 	}
 
-	if _, err := p.client.Publish(ctx, p.emailTopic, b); err != nil {
+	id, err := p.client.Publish(ctx, p.emailTopic, b)
+	if err != nil {
 		return fmt.Errorf("failed to publish email job: %w", err)
 	}
+	slog.InfoContext(ctx, "published email job", "id", id, "eventID", job.Metadata.EventID)
 
 	return nil
 }
