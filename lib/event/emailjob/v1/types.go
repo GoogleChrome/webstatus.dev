@@ -30,6 +30,8 @@ type EmailJobEvent struct {
 	SummaryRaw []byte `json:"summary_raw"`
 	// Metadata contains additional metadata about the event.
 	Metadata EmailJobEventMetadata `json:"metadata"`
+	// ChannelID is the ID of the channel associated with this job.
+	ChannelID string `json:"channel_id"`
 }
 
 type EmailJobEventMetadata struct {
