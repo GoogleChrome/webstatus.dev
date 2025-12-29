@@ -144,17 +144,34 @@ func (c *NotificationChannel) toSpanner() *spannerNotificationChannel {
 // toPublic converts the internal spannerNotificationChannel to the public NotificationChannel for reading.
 func (sc *spannerNotificationChannel) toPublic() (*NotificationChannel, error) {
 	ret := &sc.NotificationChannel
-	if sc.Config.Valid {
-		bytes, err := json.Marshal(sc.Config.Value)
-		if err != nil {
-			return nil, err
-		}
-		var emailConfig EmailConfig
-		if err := json.Unmarshal(bytes, &emailConfig); err != nil {
-			return nil, err
-		}
-		ret.EmailConfig = &emailConfig
+	subscriptionConfigs, err := loadSubscriptionConfigs(sc.Type, sc.Config)
+	if err != nil {
+		return nil, err
 	}
+	ret.EmailConfig = subscriptionConfigs.EmailConfig
+
+	return ret, nil
+}
+
+type subscriptionConfigs struct {
+	EmailConfig *EmailConfig
+}
+
+func loadSubscriptionConfigs(_ string, config spanner.NullJSON) (subscriptionConfigs, error) {
+	var ret subscriptionConfigs
+	if !config.Valid {
+		return ret, nil
+	}
+	// For now, only email config is supported.
+	bytes, err := json.Marshal(config.Value)
+	if err != nil {
+		return ret, err
+	}
+	var emailConfig EmailConfig
+	if err := json.Unmarshal(bytes, &emailConfig); err != nil {
+		return ret, err
+	}
+	ret.EmailConfig = &emailConfig
 
 	return ret, nil
 }
