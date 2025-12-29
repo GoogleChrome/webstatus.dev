@@ -33,7 +33,7 @@ spec:
         - name: SPANNER_EMULATOR_HOST
           value: 'spanner:9010'
         - name: PUBSUB_EMULATOR_HOST
-          value: 'http://pubsub:8086'
+          value: 'pubsub:8060'
         - name: EMAIL_SUBSCRIPTION_ID
           value: 'chime-delivery-sub-id'
       resources:
