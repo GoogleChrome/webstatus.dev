@@ -20,8 +20,12 @@ import (
 	"os"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpgcs"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpgcs/gcpgcsadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/workers/event_producer/pkg/producer"
 )
 
 func main() {
@@ -56,6 +60,20 @@ func main() {
 		os.Exit(1)
 	}
 
+	// For publishing to ingestion events to fan-out
+	ingestionTopicID := os.Getenv("INGESTION_TOPIC_ID")
+	if ingestionTopicID == "" {
+		slog.ErrorContext(ctx, "INGESTION_TOPIC_ID is not set. exiting...")
+		os.Exit(1)
+	}
+
+	// For subscribing to batch events
+	batchSubID := os.Getenv("BATCH_UPDATE_SUBSCRIPTION_ID")
+	if batchSubID == "" {
+		slog.ErrorContext(ctx, "BATCH_UPDATE_SUBSCRIPTION_ID is not set. exiting...")
+		os.Exit(1)
+	}
+
 	// For publishing to notification events
 	notificationTopicID := os.Getenv("NOTIFICATION_TOPIC_ID")
 	if notificationTopicID == "" {
@@ -75,17 +93,30 @@ func main() {
 		os.Exit(1)
 	}
 
-	_, err = gcpgcs.NewClient(ctx, stateBlobBucket)
+	blobClient, err := gcpgcs.NewClient(ctx, stateBlobBucket)
 	if err != nil {
 		slog.ErrorContext(ctx, "unable to create gcs client", "error", err)
 		os.Exit(1)
 	}
+	blobAdapter := gcpgcsadapters.NewEventProducer(blobClient, stateBlobBucket)
 
-	// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/1848
-	// Nil handler for now. Will fix later
-	err = queueClient.Subscribe(ctx, ingestionSubID, nil)
+	p := producer.NewEventProducer(
+		producer.NewDiffer(spanneradapters.NewEventProducerDiffer(spanneradapters.NewBackend(spannerClient))),
+		blobAdapter, spanneradapters.NewEventProducer(spannerClient),
+		gcppubsubadapters.NewEventProducerPublisherAdapter(queueClient, notificationTopicID))
+	batch := producer.NewBatchUpdateHandler(spanneradapters.NewBatchEventProducer(spannerClient),
+		gcppubsubadapters.NewBatchFanOutPublisherAdapter(queueClient, ingestionTopicID))
+	listener := gcppubsubadapters.NewEventProducerSubscriberAdapter(
+		p, batch, queueClient, gcppubsubadapters.SubscriberConfig{
+			SearchSubscriptionID:      ingestionSubID,
+			BatchUpdateSubscriptionID: batchSubID,
+		})
+	// Start listening to ingestion events
+	slog.InfoContext(ctx, "starting event producer subscriber for ingestion events")
+	err = listener.Subscribe(ctx)
 	if err != nil {
-		slog.ErrorContext(ctx, "unable to connect to subscription", "error", err)
+		slog.ErrorContext(ctx, "unable to start subscriber", "error", err)
 		os.Exit(1)
 	}
+
 }
