@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -43,25 +44,37 @@ func (m *mockEmailSender) Send(_ context.Context, to, subject, body string) erro
 	return m.sendErr
 }
 
+type successCall struct {
+	channelID    string
+	emailEventID string
+	timestamp    time.Time
+}
+
 type mockChannelStateManager struct {
-	successCalls []string // channelIDs
+	successCalls []successCall
 	failureCalls []failureCall
 	recordErr    error
 }
 
 type failureCall struct {
-	channelID string
-	err       error
+	channelID            string
+	emailEventID         string
+	err                  error
+	isPermanentUserError bool
+	timestamp            time.Time
 }
 
-func (m *mockChannelStateManager) RecordSuccess(_ context.Context, channelID string) error {
-	m.successCalls = append(m.successCalls, channelID)
+func (m *mockChannelStateManager) RecordSuccess(_ context.Context, channelID string,
+	timestamp time.Time, emailEventID string) error {
+	m.successCalls = append(m.successCalls, successCall{channelID, emailEventID, timestamp})
 
 	return m.recordErr
 }
 
-func (m *mockChannelStateManager) RecordFailure(_ context.Context, channelID string, err error) error {
-	m.failureCalls = append(m.failureCalls, failureCall{channelID, err})
+func (m *mockChannelStateManager) RecordFailure(_ context.Context, channelID string, err error,
+	timestamp time.Time, isPermanentUserError bool, emailEventID string,
+) error {
+	m.failureCalls = append(m.failureCalls, failureCall{channelID, emailEventID, err, isPermanentUserError, timestamp})
 
 	return m.recordErr
 }
@@ -70,10 +83,10 @@ type mockTemplateRenderer struct {
 	renderSubject string
 	renderBody    string
 	renderErr     error
-	renderInput   workertypes.EmailDeliveryJob
+	renderInput   workertypes.IncomingEmailDeliveryJob
 }
 
-func (m *mockTemplateRenderer) RenderDigest(job workertypes.EmailDeliveryJob) (string, string, error) {
+func (m *mockTemplateRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (string, string, error) {
 	m.renderInput = job
 
 	return m.renderSubject, m.renderBody, m.renderErr
@@ -95,16 +108,23 @@ func testMetadata() workertypes.DeliveryMetadata {
 	}
 }
 
+func fakeNow() time.Time {
+	return time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+}
+
 // --- Tests ---
 
 func TestProcessMessage_Success(t *testing.T) {
 	ctx := context.Background()
-	job := workertypes.EmailDeliveryJob{
-		SubscriptionID: "sub-1",
-		Metadata:       testMetadata(),
-		RecipientEmail: "user@example.com",
-		SummaryRaw:     []byte("{}"),
-		ChannelID:      "chan-1",
+	job := workertypes.IncomingEmailDeliveryJob{
+		EmailDeliveryJob: workertypes.EmailDeliveryJob{
+			SubscriptionID: "sub-1",
+			Metadata:       testMetadata(),
+			RecipientEmail: "user@example.com",
+			SummaryRaw:     []byte("{}"),
+			ChannelID:      "chan-1",
+		},
+		EmailEventID: "job-id",
 	}
 
 	sender := new(mockEmailSender)
@@ -114,6 +134,7 @@ func TestProcessMessage_Success(t *testing.T) {
 	renderer.renderBody = "Body"
 
 	h := NewSender(sender, stateManager, renderer)
+	h.now = fakeNow
 
 	err := h.ProcessMessage(ctx, job)
 	if err != nil {
@@ -137,19 +158,28 @@ func TestProcessMessage_Success(t *testing.T) {
 	if len(stateManager.successCalls) != 1 {
 		t.Errorf("Expected 1 success record, got %d", len(stateManager.successCalls))
 	}
-	if stateManager.successCalls[0] != testChannelID {
-		t.Errorf("Success recorded for wrong channel: %s", stateManager.successCalls[0])
+	if stateManager.successCalls[0].channelID != testChannelID {
+		t.Errorf("Success recorded for wrong channel: %v", stateManager.successCalls[0])
+	}
+	if stateManager.successCalls[0].emailEventID != "job-id" {
+		t.Errorf("Success recorded for wrong event: %v", stateManager.successCalls[0])
+	}
+	if !stateManager.successCalls[0].timestamp.Equal(fakeNow()) {
+		t.Errorf("Success recorded with wrong timestamp: %v", stateManager.successCalls[0])
 	}
 }
 
 func TestProcessMessage_RenderError(t *testing.T) {
 	ctx := context.Background()
-	job := workertypes.EmailDeliveryJob{
-		SubscriptionID: "sub-1",
-		Metadata:       testMetadata(),
-		RecipientEmail: "user@example.com",
-		SummaryRaw:     []byte("{}"),
-		ChannelID:      "chan-1",
+	job := workertypes.IncomingEmailDeliveryJob{
+		EmailDeliveryJob: workertypes.EmailDeliveryJob{
+			SubscriptionID: "sub-1",
+			Metadata:       testMetadata(),
+			RecipientEmail: "user@example.com",
+			SummaryRaw:     []byte("{}"),
+			ChannelID:      "chan-1",
+		},
+		EmailEventID: "job-id",
 	}
 
 	sender := new(mockEmailSender)
@@ -158,10 +188,16 @@ func TestProcessMessage_RenderError(t *testing.T) {
 	renderer.renderErr = errors.New("template error")
 
 	h := NewSender(sender, stateManager, renderer)
+	h.now = fakeNow
 
-	// Should return nil (ACK) for rendering error (assuming permanent for now)
-	if err := h.ProcessMessage(ctx, job); err != nil {
-		t.Errorf("Expected nil error for render failure, got %v", err)
+	// Should return non transient error (ACK) for rendering error
+	err := h.ProcessMessage(ctx, job)
+	if errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("Expected non transient error for render failure, got %v", err)
+	}
+
+	if !errors.Is(err, renderer.renderErr) {
+		t.Errorf("Expected configured renderer error, got %v", err)
 	}
 
 	// Should record failure
@@ -177,34 +213,81 @@ func TestProcessMessage_RenderError(t *testing.T) {
 
 func TestProcessMessage_SendError(t *testing.T) {
 	ctx := context.Background()
-	job := workertypes.EmailDeliveryJob{
-		SubscriptionID: "sub-1",
-		Metadata:       testMetadata(),
-		RecipientEmail: "user@example.com",
-		SummaryRaw:     []byte("{}"),
-		ChannelID:      "chan-1",
+	job := workertypes.IncomingEmailDeliveryJob{
+		EmailDeliveryJob: workertypes.EmailDeliveryJob{
+			SubscriptionID: "sub-1",
+			Metadata:       testMetadata(),
+			RecipientEmail: "user@example.com",
+			SummaryRaw:     []byte("{}"),
+			ChannelID:      "chan-1",
+		},
+		EmailEventID: "job-id",
 	}
 
-	sendErr := errors.New("smtp timeout")
-	sender := &mockEmailSender{sendErr: sendErr, sentCalls: nil}
-	stateManager := new(mockChannelStateManager)
-	renderer := new(mockTemplateRenderer)
-	renderer.renderSubject = "S"
-	renderer.renderBody = "B"
-
-	h := NewSender(sender, stateManager, renderer)
-
-	// Should return error (NACK) for send failure to allow retry
-	err := h.ProcessMessage(ctx, job)
-	if !errors.Is(err, sendErr) {
-		t.Errorf("Expected send error to propagate, got %v", err)
+	testCases := []struct {
+		name                 string
+		sendErr              error
+		isPermanentUserError bool
+		wantNack             bool
+	}{
+		{
+			"regular error = NACK",
+			errors.New("send error"),
+			false,
+			true,
+		},
+		{
+			"user error = ACK",
+			workertypes.ErrUnrecoverableUserFailureEmailSending,
+			true,
+			false,
+		},
+		{
+			"system error = ACK",
+			workertypes.ErrUnrecoverableSystemFailureEmailSending,
+			false,
+			false,
+		},
 	}
 
-	// Should record failure in DB as well
-	if len(stateManager.failureCalls) != 1 {
-		t.Fatal("Expected failure recording")
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			sender := &mockEmailSender{sendErr: tc.sendErr, sentCalls: nil}
+			stateManager := new(mockChannelStateManager)
+			renderer := new(mockTemplateRenderer)
+			renderer.renderSubject = "S"
+			renderer.renderBody = "B"
+
+			h := NewSender(sender, stateManager, renderer)
+			h.now = fakeNow
+
+			err := h.ProcessMessage(ctx, job)
+			if !errors.Is(err, tc.sendErr) {
+				t.Errorf("Expected send error %v, got %v", tc.sendErr, err)
+			}
+			// Should record failure in DB as well
+			if len(stateManager.failureCalls) != 1 {
+				t.Fatal("Expected failure recording")
+			}
+			if stateManager.failureCalls[0].channelID != testChannelID {
+				t.Errorf("Recorded failure for wrong channel")
+			}
+			if stateManager.failureCalls[0].emailEventID != "job-id" {
+				t.Errorf("Recorded failure for wrong event")
+			}
+			if tc.isPermanentUserError != stateManager.failureCalls[0].isPermanentUserError {
+				t.Errorf("Recorded failure for wrong error type")
+			}
+			if !stateManager.failureCalls[0].timestamp.Equal(fakeNow()) {
+				t.Errorf("Recorded failure for wrong timestamp")
+			}
+
+			if tc.wantNack {
+				if !errors.Is(err, event.ErrTransientFailure) {
+					t.Errorf("Expected transient failure for NACK, got %v", err)
+				}
+			}
+		})
 	}
-	if stateManager.failureCalls[0].channelID != testChannelID {
-		t.Errorf("Recorded failure for wrong channel")
-	}
+
 }
