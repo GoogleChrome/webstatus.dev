@@ -59,6 +59,7 @@ func (f *PushDeliverySubscriberFinder) FindSubscribers(ctx context.Context, sear
 				UserID:         dest.UserID,
 				Triggers:       convertSpannerTriggersToJobTriggers(dest.Triggers),
 				EmailAddress:   dest.EmailConfig.Address,
+				ChannelID:      dest.ChannelID,
 			})
 		}
 	}

@@ -137,6 +137,7 @@ func TestProcessEvent_Success(t *testing.T) {
 				UserID:         "user-1",
 				Triggers:       []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly}, // Matches
 				EmailAddress:   "user1@example.com",
+				ChannelID:      "chan-1",
 			},
 			{
 				SubscriptionID: "sub-2",
@@ -144,6 +145,7 @@ func TestProcessEvent_Success(t *testing.T) {
 				// Does not match (summary is Newly)
 				Triggers:     []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
 				EmailAddress: "user2@example.com",
+				ChannelID:    "chan-2",
 			},
 		},
 	}
@@ -210,6 +212,7 @@ func TestProcessEvent_Success(t *testing.T) {
 			Frequency:   frequency,
 			GeneratedAt: generatedAt,
 		},
+		ChannelID: "chan-1",
 	}
 
 	if diff := cmp.Diff(expectedJob, job); diff != "" {
@@ -241,6 +244,7 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 				UserID:         "user-1",
 				Triggers:       []workertypes.JobTrigger{"any_change"},
 				EmailAddress:   "user1@example.com",
+				ChannelID:      "chan-1",
 			},
 		},
 	}
@@ -323,9 +327,9 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	subSet := &workertypes.SubscriberSet{
 		Emails: []workertypes.EmailSubscriber{
 			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
-				UserID: "u1", EmailAddress: "e1"},
+				UserID: "u1", EmailAddress: "e1", ChannelID: "chan-1"},
 			{SubscriptionID: "sub-2", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
-				UserID: "u2", EmailAddress: "e2"},
+				UserID: "u2", EmailAddress: "e2", ChannelID: "chan-2"},
 		},
 	}
 
@@ -371,6 +375,9 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	if publisher.emailJobs[0].SubscriptionID != "sub-2" {
 		t.Errorf("Expected sub-2 to succeed, got %s", publisher.emailJobs[0].SubscriptionID)
 	}
+	if publisher.emailJobs[0].ChannelID != "chan-2" {
+		t.Errorf("Expected chan-2 to succeed, got %s", publisher.emailJobs[0].ChannelID)
+	}
 	assertFindSubscribersCalledWith(t, finder, generic.ValuePtr(emptyFinderReq()))
 }
 
@@ -378,7 +385,8 @@ func TestProcessEvent_JobCount(t *testing.T) {
 	// Verify that if no jobs are generated (e.g. no matching triggers), ProcessEvent returns early/cleanly.
 	subSet := &workertypes.SubscriberSet{
 		Emails: []workertypes.EmailSubscriber{
-			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{}, EmailAddress: "e1", UserID: "u1"}, // No match
+			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{}, EmailAddress: "e1", UserID: "u1",
+				ChannelID: "chan-1"}, // No match
 		},
 	}
 	finder := &mockSubscriptionFinder{

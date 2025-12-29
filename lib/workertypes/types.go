@@ -603,6 +603,7 @@ type EmailSubscriber struct {
 	UserID         string
 	Triggers       []JobTrigger
 	EmailAddress   string
+	ChannelID      string
 }
 
 // SubscriberSet groups subscribers by channel type to avoid runtime type assertions.
@@ -633,6 +634,7 @@ type DispatchEventMetadata struct {
 type EmailDeliveryJob struct {
 	SubscriptionID string
 	RecipientEmail string
+	ChannelID      string
 	// SummaryRaw is the opaque JSON payload describing the event.
 	SummaryRaw []byte
 	// Metadata contains context for links and tracking.

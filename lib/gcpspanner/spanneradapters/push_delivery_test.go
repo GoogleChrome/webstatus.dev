@@ -94,6 +94,7 @@ func TestFindSubscribers(t *testing.T) {
 							workertypes.FeaturePromotedToNewly,
 							workertypes.FeaturePromotedToWidely,
 						},
+						ChannelID: "chan-1",
 					},
 				},
 			},
@@ -140,6 +141,7 @@ func TestFindSubscribers(t *testing.T) {
 						Triggers: []workertypes.JobTrigger{
 							workertypes.BrowserImplementationAnyComplete,
 						},
+						ChannelID: "chan-1",
 					},
 				},
 			},
@@ -210,6 +212,7 @@ func TestFindSubscribers(t *testing.T) {
 						Triggers: []workertypes.JobTrigger{
 							"", // Unknown triggers map to empty string/zero value in current implementation
 						},
+						ChannelID: "chan-1",
 					},
 				},
 			},

@@ -49,6 +49,7 @@ func (p *PushDeliveryPublisher) PublishEmailJob(ctx context.Context, job workert
 			Frequency:   v1.ToJobFrequency(job.Metadata.Frequency),
 			GeneratedAt: job.Metadata.GeneratedAt,
 		},
+		ChannelID: job.ChannelID,
 	})
 	if err != nil {
 		return err
