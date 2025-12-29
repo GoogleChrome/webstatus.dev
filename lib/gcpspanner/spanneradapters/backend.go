@@ -1332,29 +1332,49 @@ func (s *Backend) GetIDFromFeatureKey(
 	return id, nil
 }
 
-func backendTriggersToSpannerTriggers(backendTriggers []backend.SubscriptionTriggerWritable) []string {
-	triggers := make([]string, 0, len(backendTriggers))
+func backendTriggersToSpannerTriggers(
+	backendTriggers []backend.SubscriptionTriggerWritable) []gcpspanner.SubscriptionTrigger {
+	triggers := make([]gcpspanner.SubscriptionTrigger, 0, len(backendTriggers))
 	for _, trigger := range backendTriggers {
-		triggers = append(triggers, string(trigger))
+		triggers = append(triggers, toSpannerSubscriptionTrigger(trigger))
 	}
 
 	return triggers
 }
 
-func spannerTriggersToBackendTriggers(spannerTriggers []string) []backend.SubscriptionTriggerResponseItem {
+func spannerTriggersToBackendTriggers(
+	spannerTriggers []gcpspanner.SubscriptionTrigger) []backend.SubscriptionTriggerResponseItem {
 	triggers := make([]backend.SubscriptionTriggerResponseItem, 0, len(spannerTriggers))
 	for _, trigger := range spannerTriggers {
-		input := backend.SubscriptionTriggerWritable(trigger)
-		switch input {
-		case backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete,
-			backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
-			backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited:
+		switch trigger {
+		case gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete:
 			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
-				Value:    backendtypes.AttemptToStoreSubscriptionTrigger(input),
+				Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 				RawValue: nil,
 			})
+		case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly:
+			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
+				Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+					backend.SubscriptionTriggerFeatureBaselineToNewly),
+				RawValue: nil,
+			})
+		case gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely:
+			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
+				Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+					backend.SubscriptionTriggerFeatureBaselineToWidely),
+				RawValue: nil,
+			})
+		case gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited:
+			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
+				Value: backendtypes.AttemptToStoreSubscriptionTrigger(
+					backend.SubscriptionTriggerFeatureBaselineRegressionToLimited),
+				RawValue: nil,
+			})
+		case gcpspanner.SubscriptionTriggerUnknown:
+			fallthrough
 		default:
-			value := trigger
+			value := string(trigger)
 			triggers = append(triggers, backend.SubscriptionTriggerResponseItem{
 				Value:    backendtypes.AttemptToStoreSubscriptionTriggerUnknown(),
 				RawValue: &value,
@@ -1365,14 +1385,63 @@ func spannerTriggersToBackendTriggers(spannerTriggers []string) []backend.Subscr
 	return triggers
 }
 
+func toBackendSubscriptionFrequency(freq gcpspanner.SavedSearchSnapshotType) backend.SubscriptionFrequency {
+	switch freq {
+	case gcpspanner.SavedSearchSnapshotTypeImmediate:
+		return backend.SubscriptionFrequencyImmediate
+	case gcpspanner.SavedSearchSnapshotTypeWeekly:
+		return backend.SubscriptionFrequencyWeekly
+	case gcpspanner.SavedSearchSnapshotTypeMonthly:
+		return backend.SubscriptionFrequencyMonthly
+	case gcpspanner.SavedSearchSnapshotTypeUnknown:
+		break
+	}
+
+	slog.WarnContext(context.TODO(), "unknown subscription frequency from spanner", "frequency", freq)
+
+	// Should not reach here normally. The database should not have unknown frequencies.
+	return backend.SubscriptionFrequencyImmediate
+}
+
+func toSpannerSubscriptionFrequency(freq backend.SubscriptionFrequency) gcpspanner.SavedSearchSnapshotType {
+	switch freq {
+	case backend.SubscriptionFrequencyImmediate:
+		return gcpspanner.SavedSearchSnapshotTypeImmediate
+	case backend.SubscriptionFrequencyWeekly:
+		return gcpspanner.SavedSearchSnapshotTypeWeekly
+	case backend.SubscriptionFrequencyMonthly:
+		return gcpspanner.SavedSearchSnapshotTypeMonthly
+	}
+
+	// Should not reach here normally. The http layer already checks for valid frequencies, default to unknown.
+	return gcpspanner.SavedSearchSnapshotTypeUnknown
+}
+
+func toSpannerSubscriptionTrigger(trigger backend.SubscriptionTriggerWritable) gcpspanner.SubscriptionTrigger {
+	switch trigger {
+	case backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete:
+		return gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete
+	case backend.SubscriptionTriggerFeatureBaselineToNewly:
+		return gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly
+	case backend.SubscriptionTriggerFeatureBaselineToWidely:
+		return gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely
+	case backend.SubscriptionTriggerFeatureBaselineRegressionToLimited:
+		return gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited
+	}
+
+	// Should not reach here normally. The http layer already checks for valid triggers, default to unknown.
+	return gcpspanner.SubscriptionTriggerUnknown
+}
+
 func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 	userID string, req backend.Subscription) (*backend.SubscriptionResponse, error) {
+	spannerFreq := toSpannerSubscriptionFrequency(req.Frequency)
 	createReq := gcpspanner.CreateSavedSearchSubscriptionRequest{
 		UserID:        userID,
 		ChannelID:     req.ChannelId,
 		SavedSearchID: req.SavedSearchId,
 		Triggers:      backendTriggersToSpannerTriggers(req.Triggers),
-		Frequency:     string(req.Frequency),
+		Frequency:     spannerFreq,
 	}
 
 	id, err := s.client.CreateSavedSearchSubscription(ctx, createReq)
@@ -1439,11 +1508,11 @@ func (s *Backend) UpdateSavedSearchSubscription(ctx context.Context,
 	updateReq := gcpspanner.UpdateSavedSearchSubscriptionRequest{
 		ID:     subscriptionID,
 		UserID: userID,
-		Triggers: gcpspanner.OptionallySet[[]string]{
+		Triggers: gcpspanner.OptionallySet[[]gcpspanner.SubscriptionTrigger]{
 			IsSet: false,
 			Value: nil,
 		},
-		Frequency: gcpspanner.OptionallySet[string]{
+		Frequency: gcpspanner.OptionallySet[gcpspanner.SavedSearchSnapshotType]{
 			IsSet: false,
 			Value: "",
 		},
@@ -1452,11 +1521,12 @@ func (s *Backend) UpdateSavedSearchSubscription(ctx context.Context,
 	for _, field := range req.UpdateMask {
 		switch field {
 		case backend.UpdateSubscriptionRequestMaskTriggers:
-			updateReq.Triggers = gcpspanner.OptionallySet[[]string]{
+			updateReq.Triggers = gcpspanner.OptionallySet[[]gcpspanner.SubscriptionTrigger]{
 				Value: backendTriggersToSpannerTriggers(*req.Triggers),
 				IsSet: true}
 		case backend.UpdateSubscriptionRequestMaskFrequency:
-			updateReq.Frequency = gcpspanner.OptionallySet[string]{Value: string(*req.Frequency), IsSet: true}
+			updateReq.Frequency = gcpspanner.OptionallySet[gcpspanner.SavedSearchSnapshotType]{
+				Value: toSpannerSubscriptionFrequency(*req.Frequency), IsSet: true}
 		}
 	}
 
@@ -1505,7 +1575,7 @@ func toBackendSubscription(sub *gcpspanner.SavedSearchSubscription) *backend.Sub
 		ChannelId:     sub.ChannelID,
 		SavedSearchId: sub.SavedSearchID,
 		Triggers:      spannerTriggersToBackendTriggers(sub.Triggers),
-		Frequency:     backend.SubscriptionFrequency(sub.Frequency),
+		Frequency:     toBackendSubscriptionFrequency(sub.Frequency),
 		CreatedAt:     sub.CreatedAt,
 		UpdatedAt:     sub.UpdatedAt,
 	}

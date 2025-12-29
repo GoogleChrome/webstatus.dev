@@ -100,7 +100,7 @@ func TestProcessBatchUpdate(t *testing.T) {
 			pub := &mockCommandPublisher{err: tc.pubErr, commands: nil}
 			handler := NewBatchUpdateHandler(lister, pub)
 
-			err := handler.ProcessBatchUpdate(context.Background(), "trigger-1", workertypes.FrequencyDaily)
+			err := handler.ProcessBatchUpdate(context.Background(), "trigger-1", workertypes.FrequencyImmediate)
 
 			if (err != nil) != tc.wantErr {
 				t.Errorf("ProcessBatchUpdate() error = %v, wantErr %v", err, tc.wantErr)
@@ -121,7 +121,7 @@ func TestProcessBatchUpdate(t *testing.T) {
 				if pub.commands[0].SearchID != "s1" {
 					t.Errorf("Command data mismatch")
 				}
-				if pub.commands[0].Frequency != workertypes.FrequencyDaily {
+				if pub.commands[0].Frequency != workertypes.FrequencyImmediate {
 					t.Errorf("Frequency mismatch")
 				}
 			}

@@ -29,9 +29,10 @@ import (
 // The exhaustive linter is configured to check that this map is complete.
 func getAllSubscriptionTriggersSet() map[backend.SubscriptionTriggerWritable]any {
 	return map[backend.SubscriptionTriggerWritable]any{
-		backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete: nil,
-		backend.SubscriptionTriggerFeatureBaselineLimitedToNewly:           nil,
-		backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited: nil,
+		backend.SubscriptionTriggerFeatureBaselineToNewly:                  nil,
+		backend.SubscriptionTriggerFeatureBaselineToWidely:                 nil,
+		backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete: nil,
+		backend.SubscriptionTriggerFeatureBaselineRegressionToLimited:      nil,
 	}
 }
 
@@ -76,7 +77,9 @@ func validateSubscriptionTrigger(trigger *[]backend.SubscriptionTriggerWritable,
 // The exhaustive linter is configured to check that this map is complete.
 func getAllSubscriptionFrequenciesSet() map[backend.SubscriptionFrequency]any {
 	return map[backend.SubscriptionFrequency]any{
-		backend.SubscriptionFrequencyDaily: nil,
+		backend.SubscriptionFrequencyImmediate: nil,
+		backend.SubscriptionFrequencyWeekly:    nil,
+		backend.SubscriptionFrequencyMonthly:   nil,
 	}
 }
 

@@ -37,6 +37,7 @@ const (
 	SavedSearchSnapshotTypeImmediate SavedSearchSnapshotType = "IMMEDIATE"
 	SavedSearchSnapshotTypeWeekly    SavedSearchSnapshotType = "WEEKLY"
 	SavedSearchSnapshotTypeMonthly   SavedSearchSnapshotType = "MONTHLY"
+	SavedSearchSnapshotTypeUnknown   SavedSearchSnapshotType = "UNKNOWN"
 )
 
 type SavedSearchState struct {
