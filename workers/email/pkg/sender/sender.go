@@ -16,8 +16,11 @@ package sender
 
 import (
 	"context"
+	"errors"
 	"log/slog"
+	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
@@ -26,18 +29,20 @@ type EmailSender interface {
 }
 
 type ChannelStateManager interface {
-	RecordSuccess(ctx context.Context, channelID string) error
-	RecordFailure(ctx context.Context, channelID string, err error) error
+	RecordSuccess(ctx context.Context, channelID string, timestamp time.Time, eventID string) error
+	RecordFailure(ctx context.Context, channelID string, err error,
+		timestamp time.Time, permanentUserFailure bool, emailEventID string) error
 }
 
 type TemplateRenderer interface {
-	RenderDigest(job workertypes.EmailDeliveryJob) (string, string, error)
+	RenderDigest(job workertypes.IncomingEmailDeliveryJob) (string, string, error)
 }
 
 type Sender struct {
 	sender       EmailSender
 	stateManager ChannelStateManager
 	renderer     TemplateRenderer
+	now          func() time.Time
 }
 
 func NewSender(
@@ -49,36 +54,43 @@ func NewSender(
 		sender:       sender,
 		stateManager: stateManager,
 		renderer:     renderer,
+		now:          time.Now,
 	}
 }
 
-func (s *Sender) ProcessMessage(ctx context.Context, job workertypes.EmailDeliveryJob) error {
+func (s *Sender) ProcessMessage(ctx context.Context, job workertypes.IncomingEmailDeliveryJob) error {
 	// 1. Render (Parsing happens inside RenderDigest implementation)
 	subject, body, err := s.renderer.RenderDigest(job)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to render email", "subscription_id", job.SubscriptionID, "error", err)
-		if err := s.stateManager.RecordFailure(ctx, job.ChannelID, err); err != nil {
-			slog.ErrorContext(ctx, "failed to record channel failure", "channel_id", job.ChannelID, "error", err)
+		if dbErr := s.stateManager.RecordFailure(ctx, job.ChannelID, err, s.now(), false, job.EmailEventID); dbErr != nil {
+			slog.ErrorContext(ctx, "failed to record channel failure", "channel_id", job.ChannelID, "error", dbErr)
 		}
-		// Rendering errors might be transient or permanent. Assuming permanent for template bugs.
-		return nil
+
+		return err
 	}
 
 	// 2. Send
 	if err := s.sender.Send(ctx, job.RecipientEmail, subject, body); err != nil {
+		isPermanentUserError := errors.Is(err, workertypes.ErrUnrecoverableUserFailureEmailSending)
+		isPermanent := errors.Is(err, workertypes.ErrUnrecoverableSystemFailureEmailSending) ||
+			isPermanentUserError
 		slog.ErrorContext(ctx, "failed to send email", "recipient", job.RecipientEmail, "error", err)
 		// Record failure in DB
-		if dbErr := s.stateManager.RecordFailure(ctx, job.ChannelID, err); dbErr != nil {
+		if dbErr := s.stateManager.RecordFailure(ctx, job.ChannelID, err, s.now(),
+			isPermanentUserError, job.EmailEventID); dbErr != nil {
 			slog.ErrorContext(ctx, "failed to record channel failure", "channel_id", job.ChannelID, "error", dbErr)
 		}
+		if isPermanent {
+			return err
+		}
 
-		// Return error to NACK the message and retry sending?
-		// Sending failures (network, rate limit) are often transient.
-		return err
+		// If not permanent, wrap with ErrTransient to trigger NACK (which will retry)
+		return errors.Join(event.ErrTransientFailure, err)
 	}
 
 	// 3. Success
-	if err := s.stateManager.RecordSuccess(ctx, job.ChannelID); err != nil {
+	if err := s.stateManager.RecordSuccess(ctx, job.ChannelID, s.now(), job.EmailEventID); err != nil {
 		// Non-critical error, but good to log
 		slog.WarnContext(ctx, "failed to record channel success", "channel_id", job.ChannelID, "error", err)
 	}
