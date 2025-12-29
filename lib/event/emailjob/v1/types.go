@@ -59,6 +59,21 @@ const (
 	FrequencyMonthly   JobFrequency = "MONTHLY"
 )
 
+func (f JobFrequency) ToWorkerTypeJobFrequency() workertypes.JobFrequency {
+	switch f {
+	case FrequencyImmediate:
+		return workertypes.FrequencyImmediate
+	case FrequencyWeekly:
+		return workertypes.FrequencyWeekly
+	case FrequencyMonthly:
+		return workertypes.FrequencyMonthly
+	case FrequencyUnknown:
+		return workertypes.FrequencyUnknown
+	}
+
+	return workertypes.FrequencyUnknown
+}
+
 func ToJobFrequency(freq workertypes.JobFrequency) JobFrequency {
 	switch freq {
 	case workertypes.FrequencyImmediate:
