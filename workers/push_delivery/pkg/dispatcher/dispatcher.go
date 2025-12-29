@@ -153,6 +153,7 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 			RecipientEmail: sub.EmailAddress,
 			SummaryRaw:     g.rawSummary,
 			Metadata:       deliveryMetadata,
+			ChannelID:      sub.ChannelID,
 		})
 	}
 
