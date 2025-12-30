@@ -113,6 +113,10 @@ type DocLink struct {
 	Slug  *string `json:"slug,omitempty"`
 }
 
+type Docs struct {
+	MDNDocs []DocLink `json:"mdn_docs,omitempty"`
+}
+
 type BaselineStatus string
 
 const (
@@ -174,7 +178,7 @@ type SummaryHighlight struct {
 	Type        SummaryHighlightType `json:"type"`
 	FeatureID   string               `json:"feature_id"`
 	FeatureName string               `json:"feature_name"`
-	DocLinks    []DocLink            `json:"doc_links,omitempty"`
+	Docs        *Docs                `json:"docs,omitempty"`
 
 	// Strongly typed change fields to support i18n and avoid interface{}
 	NameChange     *Change[string]                       `json:"name_change,omitempty"`
@@ -331,7 +335,7 @@ func (g FeatureDiffV1SummaryGenerator) processModified(highlights []SummaryHighl
 			Type:           SummaryHighlightTypeChanged,
 			FeatureID:      m.ID,
 			FeatureName:    m.Name,
-			DocLinks:       toDocLinks(m.Docs),
+			Docs:           toDocLinks(m.Docs),
 			NameChange:     nil,
 			BaselineChange: nil,
 			BrowserChanges: nil,
@@ -400,7 +404,7 @@ func (g FeatureDiffV1SummaryGenerator) processAdded(highlights []SummaryHighligh
 			Type:           SummaryHighlightTypeAdded,
 			FeatureID:      a.ID,
 			FeatureName:    a.Name,
-			DocLinks:       toDocLinks(a.Docs),
+			Docs:           toDocLinks(a.Docs),
 			NameChange:     nil,
 			BaselineChange: nil,
 			BrowserChanges: nil,
@@ -422,7 +426,7 @@ func (g FeatureDiffV1SummaryGenerator) processRemoved(highlights []SummaryHighli
 			Type:           SummaryHighlightTypeRemoved,
 			FeatureID:      r.ID,
 			FeatureName:    r.Name,
-			DocLinks:       nil,
+			Docs:           nil,
 			Moved:          nil,
 			Split:          nil,
 			BaselineChange: nil,
@@ -444,7 +448,7 @@ func (g FeatureDiffV1SummaryGenerator) processDeleted(highlights []SummaryHighli
 			Type:           SummaryHighlightTypeDeleted,
 			FeatureID:      r.ID,
 			FeatureName:    r.Name,
-			DocLinks:       nil,
+			Docs:           nil,
 			Moved:          nil,
 			Split:          nil,
 			BaselineChange: nil,
@@ -473,7 +477,7 @@ func (g FeatureDiffV1SummaryGenerator) processMoves(highlights []SummaryHighligh
 			BrowserChanges: nil,
 			BaselineChange: nil,
 			NameChange:     nil,
-			DocLinks:       nil,
+			Docs:           nil,
 			Split:          nil,
 		})
 	}
@@ -503,27 +507,29 @@ func (g FeatureDiffV1SummaryGenerator) processSplits(highlights []SummaryHighlig
 			BrowserChanges: nil,
 			BaselineChange: nil,
 			NameChange:     nil,
-			DocLinks:       nil,
+			Docs:           nil,
 		})
 	}
 
 	return highlights, false
 }
 
-func toDocLinks(docs *v1.Docs) []DocLink {
+func toDocLinks(docs *v1.Docs) *Docs {
 	if docs == nil {
 		return nil
 	}
-	links := make([]DocLink, 0, len(docs.MdnDocs))
+	ret := new(Docs)
+	mdnDocs := make([]DocLink, 0, len(docs.MdnDocs))
 	for _, d := range docs.MdnDocs {
-		links = append(links, DocLink{
+		mdnDocs = append(mdnDocs, DocLink{
 			URL:   d.URL,
 			Title: d.Title,
 			Slug:  d.Slug,
 		})
 	}
+	ret.MDNDocs = mdnDocs
 
-	return links
+	return ret
 }
 
 func toBaselineValue(s v1.BaselineState) BaselineValue {
