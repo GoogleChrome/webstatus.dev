@@ -76,6 +76,7 @@ func (a *EmailWorkerSubscriberAdapter) handleEmailJobEvent(
 				Frequency:   event.Metadata.Frequency.ToWorkerTypeJobFrequency(),
 				GeneratedAt: event.Metadata.GeneratedAt,
 			},
+			Triggers: event.ToWorkerTypeJobTriggers(),
 		},
 		EmailEventID: msgID,
 	}

@@ -32,6 +32,8 @@ type EmailJobEvent struct {
 	Metadata EmailJobEventMetadata `json:"metadata"`
 	// ChannelID is the ID of the channel associated with this job.
 	ChannelID string `json:"channel_id"`
+	// Triggers is a list of triggers associated with this job.
+	Triggers []JobTrigger `json:"triggers"`
 }
 
 type EmailJobEventMetadata struct {
@@ -87,4 +89,72 @@ func ToJobFrequency(freq workertypes.JobFrequency) JobFrequency {
 	}
 
 	return FrequencyUnknown
+}
+
+type JobTrigger string
+
+const (
+	FeaturePromotedToNewly           JobTrigger = "FEATURE_PROMOTED_TO_NEWLY"
+	FeaturePromotedToWidely          JobTrigger = "FEATURE_PROMOTED_TO_WIDELY"
+	FeatureRegressedToLimited        JobTrigger = "FEATURE_REGRESSED_TO_LIMITED"
+	BrowserImplementationAnyComplete JobTrigger = "BROWSER_IMPLEMENTATION_ANY_COMPLETE"
+	UnknownJobTrigger                JobTrigger = "UNKNOWN"
+)
+
+func (e EmailJobEvent) ToWorkerTypeJobTriggers() []workertypes.JobTrigger {
+	if e.Triggers == nil {
+		return nil
+	}
+
+	triggers := make([]workertypes.JobTrigger, 0, len(e.Triggers))
+	for _, t := range e.Triggers {
+		triggers = append(triggers, t.ToWorkerTypeJobTrigger())
+	}
+
+	return triggers
+}
+
+func (t JobTrigger) ToWorkerTypeJobTrigger() workertypes.JobTrigger {
+	switch t {
+	case FeaturePromotedToNewly:
+		return workertypes.FeaturePromotedToNewly
+	case FeaturePromotedToWidely:
+		return workertypes.FeaturePromotedToWidely
+	case FeatureRegressedToLimited:
+		return workertypes.FeatureRegressedToLimited
+	case BrowserImplementationAnyComplete:
+		return workertypes.BrowserImplementationAnyComplete
+	case UnknownJobTrigger:
+		break
+	}
+
+	return ""
+}
+
+func ToJobTrigger(trigger workertypes.JobTrigger) JobTrigger {
+	switch trigger {
+	case workertypes.FeaturePromotedToNewly:
+		return FeaturePromotedToNewly
+	case workertypes.FeaturePromotedToWidely:
+		return FeaturePromotedToWidely
+	case workertypes.FeatureRegressedToLimited:
+		return FeatureRegressedToLimited
+	case workertypes.BrowserImplementationAnyComplete:
+		return BrowserImplementationAnyComplete
+	}
+
+	return UnknownJobTrigger
+}
+
+func ToJobTriggers(triggers []workertypes.JobTrigger) []JobTrigger {
+	if triggers == nil {
+		return nil
+	}
+
+	jobTriggers := make([]JobTrigger, 0, len(triggers))
+	for _, t := range triggers {
+		jobTriggers = append(jobTriggers, ToJobTrigger(t))
+	}
+
+	return jobTriggers
 }
