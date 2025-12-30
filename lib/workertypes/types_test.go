@@ -60,6 +60,7 @@ func TestParseEventSummary(t *testing.T) {
 					QueryChanged:    0,
 					Added:           0,
 					Removed:         0,
+					Deleted:         0,
 					Moved:           0,
 					Split:           0,
 					Updated:         0,
@@ -121,6 +122,7 @@ func TestParseEventSummary(t *testing.T) {
 
 func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 	newlyDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	browserImplDate := time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)
 	tests := []struct {
 		name          string
 		diff          v1.FeatureDiff
@@ -136,6 +138,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			expected:      `{"schemaVersion":"v1","text":"No changes detected","truncated":false,"highlights":null}`,
 			expectedError: nil,
@@ -152,6 +155,9 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				},
 				Removed: []v1.FeatureRemoved{
 					{ID: "3", Name: "C", Reason: v1.ReasonUnmatched},
+				},
+				Deleted: []v1.FeatureDeleted{
+					{ID: "4", Name: "D", Reason: v1.ReasonDeleted},
 				},
 				Moves: []v1.FeatureMoved{
 					{FromID: "4", ToID: "5", FromName: "D", ToName: "E"},
@@ -192,7 +198,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 								Version: generic.UnsetOpt[*string](),
 							}, To: v1.BrowserState{
 								Status:  generic.SetOpt(v1.Available),
-								Date:    generic.UnsetOpt[*time.Time](),
+								Date:    generic.SetOpt(&browserImplDate),
 								Version: generic.SetOpt(generic.ValuePtr("123")),
 							}},
 							v1.ChromeAndroid:  nil,
@@ -220,11 +226,12 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 			expected: `{
     "schemaVersion": "v1",
     "text": "Search criteria updated, 2 features added, 1 features removed, ` +
-				`1 features moved/renamed, 1 features split, 3 features updated",
+				`1 features deleted, 1 features moved/renamed, 1 features split, 3 features updated",
     "categories": {
         "query_changed": 1,
         "added": 2,
         "removed": 1,
+		"deleted": 1,
         "moved": 1,
         "split": 1,
         "updated": 3,
@@ -258,6 +265,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
                         "status": "unavailable"
                     },
                     "to": {
+						"date": "2024-01-01T00:00:00Z",
                         "status": "available",
                         "version": "123"
                     }
@@ -294,6 +302,11 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
             "type": "Removed",
             "feature_id": "3",
             "feature_name": "C"
+        },
+		{
+            "type": "Deleted",
+            "feature_id": "4",
+            "feature_name": "D"
         },
         {
             "type": "Moved",

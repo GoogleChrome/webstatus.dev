@@ -71,6 +71,7 @@ func createTestSummary(hasChanges bool) workertypes.EventSummary {
 	categories := workertypes.SummaryCategories{
 		QueryChanged:    0,
 		Added:           0,
+		Deleted:         0,
 		Removed:         0,
 		Moved:           0,
 		Split:           0,
@@ -429,10 +430,12 @@ func newBaselineValue(status workertypes.BaselineStatus) workertypes.BaselineVal
 
 func newBrowserValue(status workertypes.BrowserStatus) workertypes.BrowserValue {
 	version := "100"
+	testDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
 
 	return workertypes.BrowserValue{
 		Status:  status,
 		Version: &version,
+		Date:    &testDate,
 	}
 }
 

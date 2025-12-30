@@ -63,6 +63,7 @@ func TestReconcileHistory(t *testing.T) {
 			name: "Scenario 1: Feature Moved (Rename)",
 			initialDiff: &FeatureDiff{
 				Removed:      []FeatureRemoved{{ID: "old-id", Name: "Old Name", Reason: ReasonUnmatched}},
+				Deleted:      nil,
 				Added:        []FeatureAdded{{ID: "new-id", Name: "New Name", Reason: ReasonNewMatch, Docs: nil}},
 				QueryChanged: false,
 				Modified:     nil,
@@ -84,6 +85,7 @@ func TestReconcileHistory(t *testing.T) {
 				QueryChanged: false,
 				Modified:     nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			wantErr: false,
 		},
@@ -99,6 +101,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: map[string]*backendtypes.GetFeatureResult{
 				"monolith": backendtypes.NewGetFeatureResult(
@@ -127,6 +130,7 @@ func TestReconcileHistory(t *testing.T) {
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
+				Deleted:      nil,
 			},
 			wantErr: false,
 		},
@@ -142,6 +146,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: map[string]*backendtypes.GetFeatureResult{
 				"monolith": backendtypes.NewGetFeatureResult(
@@ -170,6 +175,7 @@ func TestReconcileHistory(t *testing.T) {
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
+				Deleted:      nil,
 			},
 			wantErr: false,
 		},
@@ -182,6 +188,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: map[string]*backendtypes.GetFeatureResult{
 				"removed-id": backendtypes.NewGetFeatureResult(
@@ -208,26 +215,29 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			wantErr: false,
 		},
 		{
 			name: "Scenario 5: Hard Delete (EntityDoesNotExist)",
 			initialDiff: &FeatureDiff{
-				Removed:      []FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonUnmatched}},
+				Deleted:      []FeatureDeleted{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Removed:      nil,
 			},
 			mockResults: nil,
 			mockErrors: map[string]error{
 				"deleted-id": backendtypes.ErrEntityDoesNotExist,
 			},
 			expectedDiff: &FeatureDiff{
-				// Remains in Removed list, but Reason updated to Deleted
-				Removed:      []FeatureRemoved{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
+				// Should be moved to Deleted list
+				Removed:      nil,
+				Deleted:      []FeatureDeleted{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
 				Added:        nil,
 				QueryChanged: false,
 				Modified:     nil,
@@ -247,6 +257,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: map[string]*backendtypes.GetFeatureResult{
 				"old-id": backendtypes.NewGetFeatureResult(
@@ -261,6 +272,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			wantErr: false,
 		},
@@ -273,6 +285,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: nil,
 			mockErrors: map[string]error{
@@ -292,6 +305,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: map[string]*backendtypes.GetFeatureResult{
 				"monolith": backendtypes.NewGetFeatureResult(
@@ -310,6 +324,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			wantErr: false,
 		},
@@ -327,6 +342,7 @@ func TestReconcileHistory(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			mockResults: map[string]*backendtypes.GetFeatureResult{
 				"old-id": backendtypes.NewGetFeatureResult(
@@ -342,6 +358,51 @@ func TestReconcileHistory(t *testing.T) {
 				},
 				QueryChanged: false,
 				Modified:     nil,
+				Splits:       nil,
+				Deleted:      nil,
+			},
+			wantErr: false,
+		},
+		{
+			name: "Scenario 10: Mixed Removed and Deleted",
+			initialDiff: &FeatureDiff{
+				Removed: []FeatureRemoved{
+					{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonUnmatched},
+					{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched},
+				},
+				Added:        nil,
+				QueryChanged: false,
+				Modified:     nil,
+				Moves:        nil,
+				Splits:       nil,
+				Deleted:      nil,
+			},
+			mockResults: map[string]*backendtypes.GetFeatureResult{
+				"removed-id": backendtypes.NewGetFeatureResult(
+					backendtypes.NewRegularFeatureResult(&backend.Feature{
+						FeatureId:              "removed-id",
+						Name:                   "",
+						Spec:                   nil,
+						Baseline:               nil,
+						BrowserImplementations: nil,
+						Discouraged:            nil,
+						Usage:                  nil,
+						Wpt:                    nil,
+						VendorPositions:        nil,
+						DeveloperSignals:       nil,
+					}),
+				),
+			},
+			mockErrors: map[string]error{
+				"deleted-id": backendtypes.ErrEntityDoesNotExist,
+			},
+			expectedDiff: &FeatureDiff{
+				Removed:      []FeatureRemoved{{ID: "removed-id", Name: "Removed Feature", Reason: ReasonUnmatched}},
+				Deleted:      []FeatureDeleted{{ID: "deleted-id", Name: "Deleted Feature", Reason: ReasonDeleted}},
+				Added:        nil,
+				QueryChanged: false,
+				Modified:     nil,
+				Moves:        nil,
 				Splits:       nil,
 			},
 			wantErr: false,

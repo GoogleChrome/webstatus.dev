@@ -38,22 +38,27 @@ func (w *FeatureDiffWorkflow) ReconcileHistory(ctx context.Context) error {
 
 	// Phase 1: Investigation
 	// Iterate through all removed features to build a map of their historical outcomes.
-	for i := range w.diff.Removed {
-		r := &w.diff.Removed[i]
-
+	remainingRemoved := make([]FeatureRemoved, 0, len(w.diff.Removed))
+	for _, r := range w.diff.Removed {
 		// Check the current status of the removed feature ID in the database.
 		result, err := w.fetcher.GetFeature(ctx, r.ID)
 		if err != nil {
 			// If the entity is completely gone from the DB, it's a true deletion.
-			// We update the reason to allow for specific UI messaging (e.g. "Deleted from platform").
 			if errors.Is(err, backendtypes.ErrEntityDoesNotExist) {
-				r.Reason = ReasonDeleted
+				w.diff.Deleted = append(w.diff.Deleted, FeatureDeleted{
+					ID:     r.ID,
+					Name:   r.Name,
+					Reason: ReasonDeleted,
+				})
 
 				continue
 			}
 
 			return err
 		}
+
+		// If the feature was not deleted, keep it in the list to check for moves/splits.
+		remainingRemoved = append(remainingRemoved, r)
 
 		// Update the visitor context so it knows which OldID owns the result we are about to visit.
 		visitor.currentID = r.ID
@@ -62,6 +67,10 @@ func (w *FeatureDiffWorkflow) ReconcileHistory(ctx context.Context) error {
 		if err := result.Visit(ctx, visitor); err != nil {
 			return err
 		}
+	}
+	// Update the diff with the (now smaller) list of removed items to check.
+	if len(remainingRemoved) > 0 {
+		w.diff.Removed = remainingRemoved
 	}
 
 	// Phase 2: Correlation

@@ -94,6 +94,7 @@ type FeatureDiff struct {
 	QueryChanged bool              `json:"queryChanged,omitempty"`
 	Added        []FeatureAdded    `json:"added,omitempty"`
 	Removed      []FeatureRemoved  `json:"removed,omitempty"`
+	Deleted      []FeatureDeleted  `json:"deleted,omitempty"`
 	Modified     []FeatureModified `json:"modified,omitempty"`
 	Moves        []FeatureMoved    `json:"moves,omitempty"`
 	Splits       []FeatureSplit    `json:"splits,omitempty"`
@@ -124,6 +125,13 @@ func (d *FeatureDiff) Sort() {
 		}
 
 		return d.Removed[i].ID < d.Removed[j].ID
+	})
+	sort.Slice(d.Deleted, func(i, j int) bool {
+		if d.Deleted[i].Name != d.Deleted[j].Name {
+			return d.Deleted[i].Name < d.Deleted[j].Name
+		}
+
+		return d.Deleted[i].ID < d.Deleted[j].ID
 	})
 	sort.Slice(d.Modified, func(i, j int) bool {
 		if d.Modified[i].Name != d.Modified[j].Name {
@@ -182,6 +190,12 @@ type FeatureRemoved struct {
 	Reason ChangeReason `json:"reason"`
 }
 
+type FeatureDeleted struct {
+	ID     string       `json:"id"`
+	Name   string       `json:"name"`
+	Reason ChangeReason `json:"reason"`
+}
+
 type FeatureMoved struct {
 	FromID   string `json:"fromId"`
 	ToID     string `json:"toId"`
@@ -223,7 +237,7 @@ func (d FeatureDiff) HasChanges() bool {
 }
 
 func (d FeatureDiff) HasDataChanges() bool {
-	return len(d.Added) > 0 || len(d.Removed) > 0 ||
+	return len(d.Added) > 0 || len(d.Removed) > 0 || len(d.Deleted) > 0 ||
 		len(d.Modified) > 0 || len(d.Moves) > 0 || len(d.Splits) > 0
 }
 
