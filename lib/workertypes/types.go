@@ -78,6 +78,7 @@ type SummaryCategories struct {
 	QueryChanged    int `json:"query_changed,omitzero"`
 	Added           int `json:"added,omitzero"`
 	Removed         int `json:"removed,omitzero"`
+	Deleted         int `json:"deleted,omitzero"`
 	Moved           int `json:"moved,omitzero"`
 	Split           int `json:"split,omitzero"`
 	Updated         int `json:"updated,omitzero"`
@@ -138,6 +139,7 @@ const (
 type BrowserValue struct {
 	Status  BrowserStatus `json:"status"`
 	Version *string       `json:"version,omitempty"`
+	Date    *time.Time    `json:"date,omitempty"`
 }
 
 type BrowserName string
@@ -160,6 +162,7 @@ const (
 	SummaryHighlightTypeChanged SummaryHighlightType = "Changed"
 	SummaryHighlightTypeMoved   SummaryHighlightType = "Moved"
 	SummaryHighlightTypeSplit   SummaryHighlightType = "Split"
+	SummaryHighlightTypeDeleted SummaryHighlightType = "Deleted"
 )
 
 type SplitChange struct {
@@ -250,6 +253,10 @@ func (g FeatureDiffV1SummaryGenerator) calculateCategoriesAndText(d v1.FeatureDi
 		parts = append(parts, fmt.Sprintf("%d features removed", len(d.Removed)))
 		c.Removed = len(d.Removed)
 	}
+	if len(d.Deleted) > 0 {
+		parts = append(parts, fmt.Sprintf("%d features deleted", len(d.Deleted)))
+		c.Deleted = len(d.Deleted)
+	}
 	if len(d.Moves) > 0 {
 		parts = append(parts, fmt.Sprintf("%d features moved/renamed", len(d.Moves)))
 		c.Moved = len(d.Moves)
@@ -295,6 +302,10 @@ func (g FeatureDiffV1SummaryGenerator) generateHighlights(d v1.FeatureDiff) ([]S
 	}
 
 	if highlights, truncated = g.processRemoved(highlights, d.Removed); truncated {
+		return highlights, true
+	}
+
+	if highlights, truncated = g.processDeleted(highlights, d.Deleted); truncated {
 		return highlights, true
 	}
 
@@ -423,6 +434,28 @@ func (g FeatureDiffV1SummaryGenerator) processRemoved(highlights []SummaryHighli
 	return highlights, false
 }
 
+func (g FeatureDiffV1SummaryGenerator) processDeleted(highlights []SummaryHighlight,
+	deleted []v1.FeatureDeleted) ([]SummaryHighlight, bool) {
+	for _, r := range deleted {
+		if len(highlights) >= MaxHighlights {
+			return highlights, true
+		}
+		highlights = append(highlights, SummaryHighlight{
+			Type:           SummaryHighlightTypeDeleted,
+			FeatureID:      r.ID,
+			FeatureName:    r.Name,
+			DocLinks:       nil,
+			Moved:          nil,
+			Split:          nil,
+			BaselineChange: nil,
+			NameChange:     nil,
+			BrowserChanges: nil,
+		})
+	}
+
+	return highlights, false
+}
+
 func (g FeatureDiffV1SummaryGenerator) processMoves(highlights []SummaryHighlight,
 	moves []v1.FeatureMoved) ([]SummaryHighlight, bool) {
 	for _, m := range moves {
@@ -524,6 +557,7 @@ func toBrowserValue(s v1.BrowserState) BrowserValue {
 	val := BrowserValue{
 		Status:  BrowserStatusUnknown,
 		Version: nil,
+		Date:    nil,
 	}
 	if s.Status.IsSet {
 		switch s.Status.Value {
@@ -535,6 +569,10 @@ func toBrowserValue(s v1.BrowserState) BrowserValue {
 	}
 	if s.Version.IsSet {
 		val.Version = s.Version.Value
+	}
+
+	if s.Date.IsSet {
+		val.Date = s.Date.Value
 	}
 
 	return val
