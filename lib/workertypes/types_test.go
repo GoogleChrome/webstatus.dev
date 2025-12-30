@@ -290,13 +290,15 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
             "type": "Added",
             "feature_id": "2",
             "feature_name": "B",
-            "doc_links": [
-                {
-                    "url": "https://mdn.io/B",
-                    "title": "B",
-                    "slug": "slug-b"
-                }
-            ]
+            "docs": {
+                "mdn_docs": [
+					{
+						"url": "https://mdn.io/B",
+						"title": "B",
+						"slug": "slug-b"
+					}
+            	]
+			}
         },
         {
             "type": "Removed",
