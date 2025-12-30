@@ -123,6 +123,9 @@ func TestProcessMessage_Success(t *testing.T) {
 			RecipientEmail: "user@example.com",
 			SummaryRaw:     []byte("{}"),
 			ChannelID:      "chan-1",
+			Triggers: []workertypes.JobTrigger{
+				workertypes.BrowserImplementationAnyComplete,
+			},
 		},
 		EmailEventID: "job-id",
 	}
@@ -178,6 +181,7 @@ func TestProcessMessage_RenderError(t *testing.T) {
 			RecipientEmail: "user@example.com",
 			SummaryRaw:     []byte("{}"),
 			ChannelID:      "chan-1",
+			Triggers:       nil,
 		},
 		EmailEventID: "job-id",
 	}
@@ -220,6 +224,7 @@ func TestProcessMessage_SendError(t *testing.T) {
 			RecipientEmail: "user@example.com",
 			SummaryRaw:     []byte("{}"),
 			ChannelID:      "chan-1",
+			Triggers:       nil,
 		},
 		EmailEventID: "job-id",
 	}

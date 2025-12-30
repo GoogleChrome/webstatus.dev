@@ -96,6 +96,28 @@ type EventSummary struct {
 	Highlights    []SummaryHighlight `json:"highlights"`
 }
 
+func (h SummaryHighlight) MatchesTrigger(t JobTrigger) bool {
+	switch t {
+	case FeaturePromotedToNewly:
+		return h.BaselineChange != nil && h.BaselineChange.To.Status == BaselineStatusNewly
+	case FeaturePromotedToWidely:
+		return h.BaselineChange != nil && h.BaselineChange.To.Status == BaselineStatusWidely
+	case FeatureRegressedToLimited:
+		return h.BaselineChange != nil && h.BaselineChange.To.Status == BaselineStatusLimited
+	case BrowserImplementationAnyComplete:
+		for _, change := range h.BrowserChanges {
+			if change == nil {
+				continue
+			}
+			if change.To.Status == BrowserStatusAvailable {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // Change represents a value transition from Old to New.
 type Change[T any] struct {
 	From T `json:"from"`
@@ -679,6 +701,7 @@ type EmailDeliveryJob struct {
 	SubscriptionID string
 	RecipientEmail string
 	ChannelID      string
+	Triggers       []JobTrigger
 	// SummaryRaw is the opaque JSON payload describing the event.
 	SummaryRaw []byte
 	// Metadata contains context for links and tracking.
