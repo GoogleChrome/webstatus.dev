@@ -7,6 +7,7 @@ jsonschema/mdn_browser-compat-data
 jsonschema/web-platform-dx_web-features
 jsonschema/web-platform-dx_web-features-mappings
 docs/schema
+workers/email/pkg/digest/testdata/digest.golden.html
 workflows/steps/services/bcd_consumer/pkg/data/testdata/data.json
 workflows/steps/services/web_feature_consumer/pkg/data/testdata/v3.data.json
 workflows/steps/services/developer_signals_consumer/pkg/data/testdata/web-features-signals.json
