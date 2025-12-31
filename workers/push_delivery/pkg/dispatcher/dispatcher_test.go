@@ -206,6 +206,7 @@ func TestProcessEvent_Success(t *testing.T) {
 		SubscriptionID: "sub-1",
 		RecipientEmail: "user1@example.com",
 		SummaryRaw:     summaryBytes,
+		Triggers:       []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
 		Metadata: workertypes.DeliveryMetadata{
 			EventID:     eventID,
 			SearchID:    searchID,

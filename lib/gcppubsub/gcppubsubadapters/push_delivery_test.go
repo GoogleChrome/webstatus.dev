@@ -112,6 +112,10 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 			GeneratedAt: time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC),
 		},
 		ChannelID: "chan-1",
+		Triggers: []workertypes.JobTrigger{
+			workertypes.FeaturePromotedToNewly,
+			workertypes.FeaturePromotedToWidely,
+		},
 	}
 
 	err := publisher.PublishEmailJob(context.Background(), job)
@@ -135,6 +139,7 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 			"subscription_id": "sub-1",
 			"recipient_email": "test@example.com",
 			"summary_raw":     base64.StdEncoding.EncodeToString([]byte(`{"text": "Test Body"}`)),
+			"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
 			"metadata": map[string]interface{}{
 				"event_id":     "event-1",
 				"search_id":    "search-1",

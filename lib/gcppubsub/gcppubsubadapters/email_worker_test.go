@@ -111,6 +111,9 @@ func TestEmailWorkerSubscriberAdapter_RoutesEmailJobEvent(t *testing.T) {
 			Frequency:   v1.FrequencyMonthly,
 			GeneratedAt: now,
 		},
+		Triggers: []v1.JobTrigger{
+			v1.BrowserImplementationAnyComplete,
+		},
 	}
 
 	ceWrapper := map[string]interface{}{
@@ -144,6 +147,9 @@ func TestEmailWorkerSubscriberAdapter_RoutesEmailJobEvent(t *testing.T) {
 				Query:       "is:open",
 				Frequency:   workertypes.FrequencyMonthly,
 				GeneratedAt: now,
+			},
+			Triggers: []workertypes.JobTrigger{
+				workertypes.BrowserImplementationAnyComplete,
 			},
 		},
 		EmailEventID: msgID,
