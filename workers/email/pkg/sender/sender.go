@@ -25,7 +25,7 @@ import (
 )
 
 type EmailSender interface {
-	Send(ctx context.Context, to string, subject string, htmlBody string) error
+	Send(ctx context.Context, id string, to string, subject string, htmlBody string) error
 }
 
 type ChannelStateManager interface {
@@ -71,7 +71,7 @@ func (s *Sender) ProcessMessage(ctx context.Context, job workertypes.IncomingEma
 	}
 
 	// 2. Send
-	if err := s.sender.Send(ctx, job.RecipientEmail, subject, body); err != nil {
+	if err := s.sender.Send(ctx, job.EmailEventID, job.RecipientEmail, subject, body); err != nil {
 		isPermanentUserError := errors.Is(err, workertypes.ErrUnrecoverableUserFailureEmailSending)
 		isPermanent := errors.Is(err, workertypes.ErrUnrecoverableSystemFailureEmailSending) ||
 			isPermanentUserError

@@ -33,13 +33,14 @@ type mockEmailSender struct {
 }
 
 type sentCall struct {
+	id      string
 	to      string
 	subject string
 	body    string
 }
 
-func (m *mockEmailSender) Send(_ context.Context, to, subject, body string) error {
-	m.sentCalls = append(m.sentCalls, sentCall{to, subject, body})
+func (m *mockEmailSender) Send(_ context.Context, id, to, subject, body string) error {
+	m.sentCalls = append(m.sentCalls, sentCall{id, to, subject, body})
 
 	return m.sendErr
 }
@@ -114,6 +115,8 @@ func fakeNow() time.Time {
 
 // --- Tests ---
 
+const testEmailEventID = "job-id"
+
 func TestProcessMessage_Success(t *testing.T) {
 	ctx := context.Background()
 	job := workertypes.IncomingEmailDeliveryJob{
@@ -127,7 +130,7 @@ func TestProcessMessage_Success(t *testing.T) {
 				workertypes.BrowserImplementationAnyComplete,
 			},
 		},
-		EmailEventID: "job-id",
+		EmailEventID: testEmailEventID,
 	}
 
 	sender := new(mockEmailSender)
@@ -155,6 +158,15 @@ func TestProcessMessage_Success(t *testing.T) {
 	}
 	if sender.sentCalls[0].to != "user@example.com" {
 		t.Errorf("Recipient mismatch: %s", sender.sentCalls[0].to)
+	}
+	if sender.sentCalls[0].id != testEmailEventID {
+		t.Errorf("Event ID mismatch: %s", sender.sentCalls[0].id)
+	}
+	if sender.sentCalls[0].subject != "Subject" {
+		t.Errorf("Subject mismatch: %s", sender.sentCalls[0].subject)
+	}
+	if sender.sentCalls[0].body != "Body" {
+		t.Errorf("Body mismatch: %s", sender.sentCalls[0].body)
 	}
 
 	// Verify State
