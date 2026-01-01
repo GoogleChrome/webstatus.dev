@@ -17,10 +17,16 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/url"
 	"os"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/email/chime/chimeadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
+	"github.com/GoogleChrome/webstatus.dev/workers/email/pkg/digest"
+	"github.com/GoogleChrome/webstatus.dev/workers/email/pkg/sender"
 )
 
 func main() {
@@ -48,6 +54,18 @@ func main() {
 		spannerClient.SetMisingOneImplementationQuery(gcpspanner.LocalMissingOneImplementationQuery{})
 	}
 
+	baseURL := os.Getenv("FRONTEND_BASE_URL")
+	if baseURL == "" {
+		slog.ErrorContext(ctx, "FRONTEND_BASE_URL is not set. exiting...")
+		os.Exit(1)
+	}
+
+	parsedBaseURL, err := url.Parse(baseURL)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to parse FRONTEND_BASE_URL", "error", err.Error())
+		os.Exit(1)
+	}
+
 	// For subscribing to email events
 	emailSubID := os.Getenv("EMAIL_SUBSCRIPTION_ID")
 	if emailSubID == "" {
@@ -61,11 +79,20 @@ func main() {
 		os.Exit(1)
 	}
 
-	// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/1852
-	// Nil handler for now. Will fix later
-	err = queueClient.Subscribe(ctx, emailSubID, nil)
+	renderer, err := digest.NewHTMLRenderer(parsedBaseURL.String())
 	if err != nil {
-		slog.ErrorContext(ctx, "unable to connect to subscription", "error", err)
+		// If the template is not valid, the renderer will fail.
+		slog.ErrorContext(ctx, "unable to create renderer", "error", err)
+		os.Exit(1)
+	}
+
+	listener := gcppubsubadapters.NewEmailWorkerSubscriberAdapter(sender.NewSender(
+		chimeadapters.NewEmailWorkerChimeAdapter(nil),
+		spanneradapters.NewEmailWorkerChannelStateManager(spannerClient),
+		renderer,
+	), queueClient, emailSubID)
+	if err := listener.Subscribe(ctx); err != nil {
+		slog.ErrorContext(ctx, "worker subscriber failed", "error", err)
 		os.Exit(1)
 	}
 }
