@@ -183,18 +183,6 @@ type UserGitHubClient struct {
 
 type UserGitHubClientFactory func(token string) *UserGitHubClient
 
-func defaultBrowsers() []backend.BrowserPathParam {
-	return []backend.BrowserPathParam{
-		backend.Chrome,
-		backend.Edge,
-		backend.Firefox,
-		backend.Safari,
-		backend.ChromeAndroid,
-		backend.FirefoxAndroid,
-		backend.SafariIos,
-	}
-}
-
 func getPageSizeOrDefault(pageSize *int) int {
 	// maxPageSize comes from the <repo_root>/openapi/backend/openapi.yaml
 	maxPageSize := 100

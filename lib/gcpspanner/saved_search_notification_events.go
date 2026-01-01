@@ -133,3 +133,42 @@ func (c *Client) PublishSavedSearchNotificationEvent(ctx context.Context,
 
 	return id, err
 }
+
+type savedSearchNotificationEventBySearchAndSnapshotTypeKey struct {
+	SavedSearchID string
+	SnapshotType  SavedSearchSnapshotType
+}
+
+type savedSearchNotificationEventBySearchAndSnapshotTypeMapper struct{}
+
+func (m savedSearchNotificationEventBySearchAndSnapshotTypeMapper) Table() string {
+	return savedSearchNotificationEventsTable
+}
+
+func (m savedSearchNotificationEventBySearchAndSnapshotTypeMapper) SelectOne(
+	key savedSearchNotificationEventBySearchAndSnapshotTypeKey) spanner.Statement {
+	return spanner.Statement{
+		SQL: `SELECT * FROM SavedSearchNotificationEvents
+			  WHERE SavedSearchId = @SavedSearchId AND SnapshotType = @SnapshotType
+			  ORDER BY Timestamp DESC
+			  LIMIT 1`,
+		Params: map[string]any{
+			"SavedSearchId": key.SavedSearchID,
+			"SnapshotType":  key.SnapshotType,
+		},
+	}
+}
+
+func (c *Client) GetLatestSavedSearchNotificationEvent(
+	ctx context.Context, savedSearchID string,
+	snapshotType SavedSearchSnapshotType) (*SavedSearchNotificationEvent, error) {
+	r := newEntityReader[savedSearchNotificationEventBySearchAndSnapshotTypeMapper, SavedSearchNotificationEvent,
+		savedSearchNotificationEventBySearchAndSnapshotTypeKey](c)
+
+	key := savedSearchNotificationEventBySearchAndSnapshotTypeKey{
+		SavedSearchID: savedSearchID,
+		SnapshotType:  snapshotType,
+	}
+
+	return r.readRowByKey(ctx, key)
+}

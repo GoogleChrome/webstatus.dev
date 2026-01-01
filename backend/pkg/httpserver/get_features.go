@@ -69,7 +69,7 @@ func (s *Server) ListFeatures(
 		node,
 		req.Params.Sort,
 		getWPTMetricViewOrDefault(req.Params.WptMetricView),
-		defaultBrowsers(),
+		backendtypes.DefaultBrowsers(),
 	)
 
 	if err != nil {
