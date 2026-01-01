@@ -36,6 +36,8 @@ spec:
           value: 'pubsub:8060'
         - name: EMAIL_SUBSCRIPTION_ID
           value: 'chime-delivery-sub-id'
+        - name: FRONTEND_BASE_URL
+          value: 'http://localhost:5555'
       resources:
         limits:
           cpu: 250m
