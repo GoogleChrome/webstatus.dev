@@ -69,6 +69,8 @@ The frontend Single Page Application (SPA).
   - **DON'T** introduce other UI frameworks like React or Vue.
   - **DO** use the Lit Context and service container pattern to access shared services.
   - **DON'T** create new global state management solutions.
+  - **DON'T** render the full page layout (header, sidebar, main container) inside a page component. DO focus on rendering only the specific content for that route. The main `webstatus-app` component provides the overall page shell.
+  - **DON'T** add generic class names (e.g., `.card`, `.container`) to `shared-css.ts`. DO leverage Shadow DOM encapsulation by defining component-specific styles within the component's `static styles` block. Use composition with slots (e.g., a `<webstatus-notification-panel>` component) for reusable layout patterns instead of shared global CSS classes.
   - **DO** add Playwright tests for new user-facing features and unit tests for component logic.
 
 #### Workflows / Data Ingestion Jobs (`workflows/`)
@@ -165,17 +167,17 @@ This section describes the components related to user accounts, authentication, 
 
 - **Authentication**: User authentication is handled via Firebase Authentication on the frontend, which integrates with GitHub as an OAuth provider. When a user signs in, the frontend receives a Firebase token and a GitHub token. The GitHub token is sent to the backend during a login sync process.
 - **User Profile Sync**: On login, the backend synchronizes the user's verified GitHub emails with their notification channels in the database. This is an example of a transactional update using the mapper pattern. The flow is as follows:
-  1. A user signs in on the frontend. The frontend sends the user's GitHub token to the backend's `/v1/users/me/ping` endpoint.
-  2. The `httpserver.PingUser` handler receives the request. It uses a `UserGitHubClient` to fetch the user's profile and verified emails from the GitHub API.
-  3. The handler then calls `spanneradapters.Backend.SyncUserProfileInfo` with the user's profile information.
-  4. The `Backend` adapter translates the `backendtypes.UserProfile` to a `gcpspanner.UserProfile` and calls `gcpspanner.Client.SyncUserProfileInfo`.
-  5. `SyncUserProfileInfo` starts a `ReadWriteTransaction`.
-  6. Inside the transaction, it fetches the user's existing `NotificationChannels` and `NotificationChannelStates`.
-  7. It then compares the existing channels with the verified emails from GitHub.
-     - New emails result in new `NotificationChannel` and `NotificationChannelState` records, created using `createWithTransaction`.
-     - Emails that were previously disabled are re-enabled using `updateWithTransaction`.
-     - Channels for emails that are no longer verified are disabled, also using `updateWithTransaction`.
-  8. The entire set of operations is committed atomically. If any step fails, the entire transaction is rolled back.
+  1.  A user signs in on the frontend. The frontend sends the user's GitHub token to the backend's `/v1/users/me/ping` endpoint.
+  2.  The `httpserver.PingUser` handler receives the request. It uses a `UserGitHubClient` to fetch the user's profile and verified emails from the GitHub API.
+  3.  The handler then calls `spanneradapters.Backend.SyncUserProfileInfo` with the user's profile information.
+  4.  The `Backend` adapter translates the `backendtypes.UserProfile` to a `gcpspanner.UserProfile` and calls `gcpspanner.Client.SyncUserProfileInfo`.
+  5.  `SyncUserProfileInfo` starts a `ReadWriteTransaction`.
+  6.  Inside the transaction, it fetches the user's existing `NotificationChannels` and `NotificationChannelStates`.
+  7.  It then compares the existing channels with the verified emails from GitHub.
+      - New emails result in new `NotificationChannel` and `NotificationChannelState` records, created using `createWithTransaction`.
+      - Emails that were previously disabled are re-enabled using `updateWithTransaction`.
+      - Channels for emails that are no longer verified are disabled, also using `updateWithTransaction`.
+  8.  The entire set of operations is committed atomically. If any step fails, the entire transaction is rolled back.
 - **Notification Channels**: The `NotificationChannels` table stores the destinations for notifications (e.g., email addresses). Each channel has a corresponding entry in the `NotificationChannelStates` table, which tracks whether the channel is enabled or disabled.
 - **Saved Search Subscriptions**: Authenticated users can save feature search queries and subscribe to receive notifications when the results of that query change. This is managed through the `UserSavedSearches` and `UserSavedSearchBookmarks` tables.
 
@@ -232,6 +234,7 @@ This practice decouples the core application logic from the exact structure of t
   - **DO** add E2E tests for critical user journeys.
   - **DON'T** write E2E tests for small component-level interactions.
   - **DO** use resilient selectors like `data-testid`.
+  - **DO** move the mouse to a neutral position (e.g., `page.mouse.move(0, 0)`) before taking a screenshot to avoid flaky tests caused by unintended hover effects.
 - **Go Unit & Integration Tests**:
   - **DO** use table-driven unit tests with mocks for dependencies at the adapter layer (`spanneradapters`).
   - **DO** write **integration tests using `testcontainers-go`** for any changes to the `lib/gcpspanner` layer. This is especially critical when implementing or modifying a mapper. These tests must spin up a Spanner emulator and verify the mapper's logic against a real database.
@@ -239,6 +242,7 @@ This practice decouples the core application logic from the exact structure of t
 - **TypeScript Unit Tests**:
   - **TypeScript**: Use `npm run test -w frontend`.
   - **ES Module Testing**: When testing components that use ES module exports directly (e.g., `signInWithPopup` from `firebase/auth`), direct stubbing with Sinon (e.g., `sinon.stub(firebaseAuth, 'signInWithPopup')`) is problematic due to module immutability. Instead, introduce a helper property (e.g., `credentialGetter`) in the component that defaults to the original ES module function but can be overridden with a Sinon stub in tests. This allows for effective mocking of ES module interactions.
+  - **DO** prefer using generic arguments for `querySelector` in tests (e.g., `querySelector<HTMLSlotElement>('slot[name="content"]')`) to improve type safety and avoid unnecessary casting.
 
 ### 5.3. CI/CD (`.github/`)
 
