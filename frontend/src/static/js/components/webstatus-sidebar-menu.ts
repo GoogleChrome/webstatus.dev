@@ -50,11 +50,14 @@ import {
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
+import {User} from 'firebase/auth';
+import {firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
   FEATURES = 'features-item',
   STATISTICS = 'statistics-item',
+  NOTIFICATION_CHANNELS = 'notification-channels-item',
 }
 
 interface NavigationItem {
@@ -74,6 +77,10 @@ const navigationMap: NavigationMap = {
   [NavigationItemKey.STATISTICS]: {
     id: NavigationItemKey.STATISTICS,
     path: '/stats',
+  },
+  [NavigationItemKey.NOTIFICATION_CHANNELS]: {
+    id: NavigationItemKey.NOTIFICATION_CHANNELS,
+    path: '/settings/notification-channels',
   },
 };
 
@@ -151,6 +158,10 @@ export class WebstatusSidebarMenu extends LitElement {
   @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
   appBookmarkInfo?: AppBookmarkInfo;
+
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  user: User | null | undefined;
 
   // For now, unconditionally open the features dropdown.
   @state()
@@ -371,6 +382,28 @@ export class WebstatusSidebarMenu extends LitElement {
     `;
   }
 
+  renderSettingsMenu(): TemplateResult {
+    if (this.user === undefined) {
+      return html`${nothing}`;
+    }
+    if (this.user === null) {
+      return html`${nothing}`;
+    }
+
+    return html`
+      <sl-divider></sl-divider>
+      <sl-tree-item id="notifications-channels-item">
+        <sl-icon name="mailbox-flag"></sl-icon>
+        <a
+          class="features-link"
+          href="${navigationMap[NavigationItemKey.NOTIFICATION_CHANNELS].path}"
+        >
+          Notification Channels
+        </a>
+      </sl-tree-item>
+    `;
+  }
+
   render(): TemplateResult {
     return html`
       <sl-tree>
@@ -396,7 +429,7 @@ export class WebstatusSidebarMenu extends LitElement {
         <sl-tree-item id="{NavigationItemKey.STATISTICS}">
           <sl-icon name="heart-pulse"></sl-icon> Statistics
         </sl-tree-item> -->
-        ${this.renderUserSavedSearches()}
+        ${this.renderUserSavedSearches()} ${this.renderSettingsMenu()}
 
         <sl-divider aria-hidden="true"></sl-divider>
         <sl-tree-item class="report-issue-item">
