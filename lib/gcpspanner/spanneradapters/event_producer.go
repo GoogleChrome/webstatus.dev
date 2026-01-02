@@ -75,7 +75,7 @@ func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) (
 	}
 	var features []backend.Feature
 
-	s := backend.NameAsc
+	defaultSort := backend.NameAsc
 	var pageToken *string
 	for {
 		featurePage, err := e.backendAdapter.FeaturesSearch(
@@ -84,7 +84,7 @@ func (e *EventProducerDiffer) FetchFeatures(ctx context.Context, query string) (
 			// TODO: Use helper for page size https://github.com/GoogleChrome/webstatus.dev/issues/2122
 			100,
 			node,
-			&s,
+			&defaultSort,
 			//TODO: Use helper for test type https://github.com/GoogleChrome/webstatus.dev/issues/2122
 			backend.TestCounts,
 			backendtypes.DefaultBrowsers(),
