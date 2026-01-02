@@ -54,6 +54,7 @@ export type BrowsersParameter = components['parameters']['browserPathParam'];
 type PageablePath =
   | '/v1/features'
   | '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}'
+  | '/v1/users/me/notification-channels'
   | '/v1/stats/features/browsers/{browser}/feature_counts'
   | '/v1/users/me/saved-searches'
   | '/v1/stats/baseline_status/low_date_feature_counts';
@@ -415,6 +416,28 @@ export class APIClient {
       '/v1/users/me/saved-searches',
       SavedSearchResponsePage
     >('/v1/users/me/saved-searches', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  public async listNotificationChannels(
+    token: string,
+  ): Promise<components['schemas']['NotificationChannelResponse'][]> {
+    type NotificationChannelPage = SuccessResponsePageableData<
+      paths['/v1/users/me/notification-channels']['get'],
+      FetchOptions<
+        FilterKeys<paths['/v1/users/me/notification-channels'], 'get'>
+      >,
+      'application/json',
+      '/v1/users/me/notification-channels'
+    >;
+
+    return this.getAllPagesOfData<
+      '/v1/users/me/notification-channels',
+      NotificationChannelPage
+    >('/v1/users/me/notification-channels', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
