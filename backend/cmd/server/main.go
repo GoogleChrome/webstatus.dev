@@ -28,6 +28,8 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/backend/pkg/httpserver"
 	"github.com/GoogleChrome/webstatus.dev/lib/auth"
 	"github.com/GoogleChrome/webstatus.dev/lib/cachetypes"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
+	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gds"
@@ -197,11 +199,30 @@ func main() {
 
 	}
 
+	pubsubProjectID := os.Getenv("PUBSUB_PROJECT_ID")
+	if pubsubProjectID == "" {
+		slog.ErrorContext(ctx, "missing pubsub project id")
+		os.Exit(1)
+	}
+
+	ingestionTopicID := os.Getenv("INGESTION_TOPIC_ID")
+	if ingestionTopicID == "" {
+		slog.ErrorContext(ctx, "missing ingestion topic id")
+		os.Exit(1)
+	}
+
+	queueClient, err := gcppubsub.NewClient(ctx, pubsubProjectID)
+	if err != nil {
+		slog.ErrorContext(ctx, "unable to create pub sub client", "error", err)
+		os.Exit(1)
+	}
+
 	srv := httpserver.NewHTTPServer(
 		"8080",
 		baseURL,
 		datastoreadapters.NewBackend(fs),
 		spanneradapters.NewBackend(spannerClient),
+		gcppubsubadapters.NewBackendAdapter(queueClient, ingestionTopicID),
 		cache,
 		routeCacheOptions,
 		func(token string) *httpserver.UserGitHubClient {

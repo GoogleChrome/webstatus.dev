@@ -107,6 +107,7 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
 				operationResponseCaches: nil,
+				eventPublisher:          nil,
 				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{authMiddlewareOption}...)

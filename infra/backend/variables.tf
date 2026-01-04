@@ -108,3 +108,5 @@ variable "backend_api_url" {
   type = string
 }
 
+variable "pubsub_project_id" { type = string }
+variable "ingestion_topic_id" { type = string }

@@ -124,6 +124,8 @@ module "backend" {
   firebase_settings = {
     tenant_id = module.auth.tenant_id
   }
+  pubsub_project_id  = var.projects.internal
+  ingestion_topic_id = module.pubsub.ingestion_topic_id
 }
 
 module "frontend" {

@@ -61,6 +61,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 	testCases := []struct {
 		name                 string
 		cfg                  *MockUpdateUserSavedSearchConfig
+		publishCfg           *MockPublishSearchConfigurationChangedConfig
 		authMiddlewareOption testServerOption
 		request              *http.Request
 		expectedResponse     *http.Response
@@ -68,6 +69,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 		{
 			name:                 "missing body update error",
 			cfg:                  nil,
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodPatch,
@@ -81,6 +83,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 		{
 			name:                 "empty update mask error",
 			cfg:                  nil,
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodPatch,
@@ -94,6 +97,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 		{
 			name:                 "update with invalid masks error",
 			cfg:                  nil,
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodPatch,
@@ -110,6 +114,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 		{
 			name:                 "missing fields, all update masks set, update error",
 			cfg:                  nil,
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 			request: httptest.NewRequest(
 				http.MethodPatch,
@@ -138,6 +143,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 				output:                nil,
 				err:                   backendtypes.ErrUserNotAuthorizedForAction,
 			},
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
 			request: httptest.NewRequest(
@@ -161,6 +167,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 				output:                nil,
 				err:                   backendtypes.ErrEntityDoesNotExist,
 			},
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
 			request: httptest.NewRequest(
@@ -184,6 +191,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 				output:                nil,
 				err:                   errTest,
 			},
+			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
 			request: httptest.NewRequest(
@@ -220,6 +228,25 @@ func TestUpdateSavedSearch(t *testing.T) {
 				},
 				err: nil,
 			},
+			publishCfg: &MockPublishSearchConfigurationChangedConfig{
+				expectedResp: &backend.SavedSearchResponse{
+					Id:          "saved-search-id",
+					Name:        "test name",
+					Query:       `name:"test"`,
+					Description: valuePtr("test description"),
+					Permissions: &backend.UserSavedSearchPermissions{
+						Role: valuePtr(backend.SavedSearchOwner),
+					},
+					BookmarkStatus: &backend.UserSavedSearchBookmark{
+						Status: backend.BookmarkActive,
+					},
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				expectedIsCreation: false,
+				expectedUserID:     "testID1",
+				err:                nil,
+			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
 			request: httptest.NewRequest(
@@ -245,7 +272,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			),
 		},
 		{
-			name: "success, all fields, clear description with explicit null",
+			name: "success, all fields, clear description with explicit null, failed publish",
 			cfg: &MockUpdateUserSavedSearchConfig{
 				expectedSavedSearchID: "saved-search-id",
 				expectedUserID:        "testID1",
@@ -265,6 +292,25 @@ func TestUpdateSavedSearch(t *testing.T) {
 					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				},
 				err: nil,
+			},
+			publishCfg: &MockPublishSearchConfigurationChangedConfig{
+				expectedResp: &backend.SavedSearchResponse{
+					Id:          "saved-search-id",
+					Name:        "test name",
+					Query:       `name:"test"`,
+					Description: nil,
+					Permissions: &backend.UserSavedSearchPermissions{
+						Role: valuePtr(backend.SavedSearchOwner),
+					},
+					BookmarkStatus: &backend.UserSavedSearchBookmark{
+						Status: backend.BookmarkActive,
+					},
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				expectedIsCreation: false,
+				expectedUserID:     "testID1",
+				err:                errTest,
 			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
@@ -318,6 +364,25 @@ func TestUpdateSavedSearch(t *testing.T) {
 				},
 				err: nil,
 			},
+			publishCfg: &MockPublishSearchConfigurationChangedConfig{
+				expectedResp: &backend.SavedSearchResponse{
+					Id:          "saved-search-id",
+					Name:        "test name",
+					Query:       `name:"test"`,
+					Description: nil,
+					Permissions: &backend.UserSavedSearchPermissions{
+						Role: valuePtr(backend.SavedSearchOwner),
+					},
+					BookmarkStatus: &backend.UserSavedSearchBookmark{
+						Status: backend.BookmarkActive,
+					},
+					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				},
+				expectedUserID:     "testID1",
+				expectedIsCreation: false,
+				err:                nil,
+			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
 			request: httptest.NewRequest(
@@ -355,8 +420,13 @@ func TestUpdateSavedSearch(t *testing.T) {
 				updateUserSavedSearchCfg: tc.cfg,
 				t:                        t,
 			}
+			mockPublisher := &MockEventPublisher{
+				t: t,
+				callCountPublishSearchConfigurationChanged: 0,
+				publishSearchConfigurationChangedCfg:       tc.publishCfg,
+			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
-				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
+				operationResponseCaches: nil, baseURL: getTestBaseURL(t), eventPublisher: mockPublisher}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
 		})
