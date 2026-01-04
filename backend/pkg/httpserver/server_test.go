@@ -855,6 +855,38 @@ func (m *MockWPTMetricsStorer) DeleteNotificationChannel(
 	return m.deleteNotificationChannelCfg.err
 }
 
+type MockPublishSearchConfigurationChangedConfig struct {
+	expectedResp       *backend.SavedSearchResponse
+	expectedUserID     string
+	expectedIsCreation bool
+	err                error
+}
+
+type MockEventPublisher struct {
+	t                                          *testing.T
+	callCountPublishSearchConfigurationChanged int
+	publishSearchConfigurationChangedCfg       *MockPublishSearchConfigurationChangedConfig
+}
+
+func (m *MockEventPublisher) PublishSearchConfigurationChanged(
+	_ context.Context,
+	resp *backend.SavedSearchResponse,
+	userID string,
+	isCreation bool) error {
+	m.callCountPublishSearchConfigurationChanged++
+	if !reflect.DeepEqual(resp, m.publishSearchConfigurationChangedCfg.expectedResp) {
+		m.t.Errorf("unexpected response %+v", resp)
+	}
+	if userID != m.publishSearchConfigurationChangedCfg.expectedUserID {
+		m.t.Errorf("unexpected user id %s", userID)
+	}
+	if isCreation != m.publishSearchConfigurationChangedCfg.expectedIsCreation {
+		m.t.Errorf("unexpected is creation %t", isCreation)
+	}
+
+	return m.publishSearchConfigurationChangedCfg.err
+}
+
 func TestGetPageSizeOrDefault(t *testing.T) {
 	testCases := []struct {
 		name          string
