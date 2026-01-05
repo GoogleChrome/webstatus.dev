@@ -38,6 +38,12 @@ spec:
           value: 'chime-delivery-sub-id'
         - name: FRONTEND_BASE_URL
           value: 'http://localhost:5555'
+        - name: SMTP_HOST
+          value: 'mailpit'
+        - name: SMTP_PORT
+          value: '1025'
+        - name: FROM_ADDRESS
+          value: 'test@webstatus.dev'
       resources:
         limits:
           cpu: 250m

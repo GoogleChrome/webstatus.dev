@@ -93,7 +93,7 @@ The above skaffold command deploys multiple resources:
 | valkey    | Valkey                         | N/A                                                        | valkey:6379                                                         |
 | auth      | Auth Emulator                  | http://localhost:9099<br />http://localhost:9100/auth (ui) | http://auth:9099<br />http://auth:9100/auth (ui)                    |
 | wiremock  | Wiremock                       | http://localhost:8087                                      | http://api-github-mock.default.svc.cluster.local:8080 (GitHub Mock) |
-| pubsub    | Pub/Sub Emulator               | N/A                                                        | http://pubsub:8060                                                  |
+| pubsub    | Pub/Sub Emulator               | http://localhost:8060                                      | http://pubsub:8060                                                  |
 | gcs       | GCS Emulator                   | N/A                                                        | http://gcs:4443                                                     |
 
 _In the event the servers are not responsive, make a temporary change to a file_

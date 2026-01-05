@@ -124,3 +124,30 @@ func calculateAllFeatureGroupLookups(
 		}
 	}
 }
+
+// AddFeatureToGroup adds a feature to a group.
+func (c *Client) AddFeatureToGroup(ctx context.Context, featureKey, groupKey string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		featureID, err := c.GetIDFromFeatureKey(ctx, NewFeatureKeyFilter(featureKey))
+		if err != nil {
+			return err
+		}
+		groupID, err := c.GetGroupIDFromGroupKey(ctx, groupKey)
+		if err != nil {
+			return err
+		}
+		m, err := spanner.InsertStruct(featureGroupKeysLookupTable, spannerFeatureGroupKeysLookup{
+			GroupID:           *groupID,
+			GroupKeyLowercase: groupKey,
+			WebFeatureID:      *featureID,
+			Depth:             0,
+		})
+		if err != nil {
+			return err
+		}
+
+		return txn.BufferWrite([]*spanner.Mutation{m})
+	})
+
+	return err
+}

@@ -12,30 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta9
-kind: Config
+apiVersion: v1
+kind: Pod
 metadata:
-  name: email-config
-requires:
-  - path: ../../.dev/pubsub
-  - path: ../../.dev/spanner
-  - path: ../../.dev/mailpit
-profiles:
-  - name: local
-    build:
-      artifacts:
-        - image: email
-          context: ../..
-          runtimeType: go
-          docker:
-            dockerfile: images/go_service.Dockerfile
-            buildArgs:
-              service_dir: workers/email
-              MAIN_BINARY: job
-      local:
-        useBuildkit: true
-    manifests:
-      rawYaml:
-        - manifests/*
-    deploy:
-      kubectl: {}
+  name: mailpit
+  labels:
+    app.kubernetes.io/name: mailpit
+spec:
+  containers:
+    - name: mailpit
+      image: mailpit
+      imagePullPolicy: Never # Need this for pushing directly into minikube
+      ports:
+        - containerPort: 1025
+          name: smtp-port
+        - containerPort: 8025
+          name: web-ui-port
+      readinessProbe:
+        tcpSocket:
+          port: 1025
+        initialDelaySeconds: 10
+      resources:
+        limits:
+          cpu: 250m
+          memory: 128Mi
+        requests:
+          cpu: 100m
+          memory: 64Mi

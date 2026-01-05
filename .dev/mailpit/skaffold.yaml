@@ -1,11 +1,11 @@
 # Copyright 2025 Google LLC
-
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
-
-#     https://www.apache.org/licenses/LICENSE-2.0
-
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
 # Unless required by applicable law or agreed to in writing, software
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -15,23 +15,13 @@
 apiVersion: skaffold/v4beta9
 kind: Config
 metadata:
-  name: email-config
-requires:
-  - path: ../../.dev/pubsub
-  - path: ../../.dev/spanner
-  - path: ../../.dev/mailpit
+  name: mailpit-config
 profiles:
   - name: local
     build:
       artifacts:
-        - image: email
-          context: ../..
-          runtimeType: go
-          docker:
-            dockerfile: images/go_service.Dockerfile
-            buildArgs:
-              service_dir: workers/email
-              MAIN_BINARY: job
+        - image: mailpit
+          context: .
       local:
         useBuildkit: true
     manifests:

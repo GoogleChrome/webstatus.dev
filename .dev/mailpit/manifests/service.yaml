@@ -12,30 +12,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-apiVersion: skaffold/v4beta9
-kind: Config
+apiVersion: v1
+kind: Service
 metadata:
-  name: email-config
-requires:
-  - path: ../../.dev/pubsub
-  - path: ../../.dev/spanner
-  - path: ../../.dev/mailpit
-profiles:
-  - name: local
-    build:
-      artifacts:
-        - image: email
-          context: ../..
-          runtimeType: go
-          docker:
-            dockerfile: images/go_service.Dockerfile
-            buildArgs:
-              service_dir: workers/email
-              MAIN_BINARY: job
-      local:
-        useBuildkit: true
-    manifests:
-      rawYaml:
-        - manifests/*
-    deploy:
-      kubectl: {}
+  name: mailpit
+spec:
+  selector:
+    app.kubernetes.io/name: mailpit
+  ports:
+    - name: smtp
+      protocol: TCP
+      port: 1025
+      targetPort: smtp-port
+    - name: web-ui
+      protocol: TCP
+      port: 8025
+      targetPort: web-ui-port
