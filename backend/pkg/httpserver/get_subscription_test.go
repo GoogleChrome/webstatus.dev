@@ -144,6 +144,7 @@ func TestGetSubscription(t *testing.T) {
 				metadataStorer:          nil,
 				userGitHubClientFactory: nil,
 				operationResponseCaches: nil,
+				eventPublisher:          nil,
 				baseURL:                 getTestBaseURL(t),
 			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse, tc.authMiddlewareOption)

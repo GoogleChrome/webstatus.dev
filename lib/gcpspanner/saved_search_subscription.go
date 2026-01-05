@@ -412,3 +412,27 @@ func (c *Client) FindAllActivePushSubscriptions(
 
 	return results, nil
 }
+
+// DeleteUserSubscriptions deletes all saved search subscriptions for a given list of user IDs.
+// Used for E2E tests.
+func (c *Client) DeleteUserSubscriptions(ctx context.Context, userIDs []string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		_, err := txn.Update(ctx, spanner.Statement{
+			SQL: `DELETE FROM SavedSearchSubscriptions WHERE ChannelID IN
+					(SELECT ID FROM NotificationChannels WHERE UserID IN UNNEST(@userIDs))`,
+			Params: map[string]interface{}{
+				"userIDs": userIDs,
+			},
+		})
+		if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete user subscriptions: %w", err)
+	}
+
+	return nil
+}

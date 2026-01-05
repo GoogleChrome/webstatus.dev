@@ -106,7 +106,7 @@ func TestRemoveUserSavedSearchBookmark(t *testing.T) {
 				t:                                t,
 			}
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
-				operationResponseCaches: nil, baseURL: getTestBaseURL(t)}
+				operationResponseCaches: nil, baseURL: getTestBaseURL(t), eventPublisher: nil}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{authMiddlewareOption}...)
 			assertMocksExpectations(t, 1, mockStorer.callCountRemoveUserSavedSearchBookmark,

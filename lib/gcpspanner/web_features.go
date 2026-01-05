@@ -513,6 +513,22 @@ func (c *Client) FetchAllFeatureKeys(ctx context.Context) ([]string, error) {
 	return fetchSingleColumnValuesWithTransaction[string](ctx, txn, webFeaturesTable, "FeatureKey")
 }
 
+// UpdateFeatureDescription updates the description of a web feature.
+// Useful for e2e tests.
+func (c *Client) UpdateFeatureDescription(
+	ctx context.Context, featureKey, newDescription string) error {
+	_, err := c.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+		return txn.BufferWrite([]*spanner.Mutation{
+			spanner.Update(webFeaturesTable,
+				[]string{"FeatureKey", "Description"},
+				[]any{featureKey, newDescription},
+			),
+		})
+	})
+
+	return err
+}
+
 type SpannerFeatureIDAndKey struct {
 	ID         string `spanner:"ID"`
 	FeatureKey string `spanner:"FeatureKey"`

@@ -19,6 +19,7 @@ metadata:
 requires:
   - path: ../../.dev/pubsub
   - path: ../../.dev/spanner
+  - path: ../../.dev/mailpit
 profiles:
   - name: local
     build:

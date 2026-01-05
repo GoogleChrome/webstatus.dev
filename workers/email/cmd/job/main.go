@@ -19,8 +19,13 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"strconv"
+	"strings"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/email/chime"
 	"github.com/GoogleChrome/webstatus.dev/lib/email/chime/chimeadapters"
+	"github.com/GoogleChrome/webstatus.dev/lib/email/smtpsender"
+	"github.com/GoogleChrome/webstatus.dev/lib/email/smtpsender/smtpsenderadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
@@ -28,6 +33,33 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/workers/email/pkg/digest"
 	"github.com/GoogleChrome/webstatus.dev/workers/email/pkg/sender"
 )
+
+func getSMTPSender(ctx context.Context, smtpHost string) *smtpsenderadapters.EmailWorkerSMTPAdapter {
+	slog.InfoContext(ctx, "using smtp email sender")
+	smtpPortStr := os.Getenv("SMTP_PORT")
+	smtpPort, err := strconv.Atoi(smtpPortStr)
+	if err != nil {
+		slog.ErrorContext(ctx, "invalid SMTP_PORT", "error", err)
+		os.Exit(1)
+	}
+	smtpUsername := os.Getenv("SMTP_USERNAME")
+	smtpPassword := os.Getenv("SMTP_PASSWORD")
+	fromAddress := os.Getenv("FROM_ADDRESS")
+
+	smtpCfg := smtpsender.SMTPClientConfig{
+		Host:     smtpHost,
+		Port:     smtpPort,
+		Username: smtpUsername,
+		Password: smtpPassword,
+	}
+	smtpClient, err := smtpsender.NewClient(smtpCfg, fromAddress)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create smtp client", "error", err)
+		os.Exit(1)
+	}
+
+	return smtpsenderadapters.NewEmailWorkerSMTPAdapter(smtpClient)
+}
 
 func main() {
 	ctx := context.Background()
@@ -86,8 +118,33 @@ func main() {
 		os.Exit(1)
 	}
 
+	var emailSender sender.EmailSender
+	smtpHost := os.Getenv("SMTP_HOST")
+	if smtpHost != "" {
+		emailSender = getSMTPSender(ctx, smtpHost)
+	} else {
+		slog.InfoContext(ctx, "using chime email sender")
+		chimeEnvStr := os.Getenv("CHIME_ENV")
+		chimeEnv := chime.EnvProd
+		if chimeEnvStr == "autopush" {
+			chimeEnv = chime.EnvAutopush
+		}
+		chimeBCC := os.Getenv("CHIME_BCC")
+		bccList := []string{}
+		if chimeBCC != "" {
+			bccList = strings.Split(chimeBCC, ",")
+		}
+		fromAddress := os.Getenv("FROM_ADDRESS")
+		chimeSender, err := chime.NewChimeSender(ctx, chimeEnv, bccList, fromAddress, nil)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to create chime sender", "error", err)
+			os.Exit(1)
+		}
+		emailSender = chimeadapters.NewEmailWorkerChimeAdapter(chimeSender)
+	}
+
 	listener := gcppubsubadapters.NewEmailWorkerSubscriberAdapter(sender.NewSender(
-		chimeadapters.NewEmailWorkerChimeAdapter(nil),
+		emailSender,
 		spanneradapters.NewEmailWorkerChannelStateManager(spannerClient),
 		renderer,
 	), queueClient, emailSubID)

@@ -59,6 +59,12 @@ spec:
           value: auth:9099
         - name: GITHUB_API_BASE_URL
           value: http://api-github-mock.default.svc.cluster.local:8080/
+        - name: PUBSUB_PROJECT_ID
+          value: local
+        - name: PUBSUB_EMULATOR_HOST
+          value: pubsub:8060
+        - name: INGESTION_TOPIC_ID
+          value: 'ingestion-jobs-topic-id'
       resources:
         limits:
           cpu: 250m

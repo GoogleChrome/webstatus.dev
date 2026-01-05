@@ -114,7 +114,9 @@ func TestGetFeatureMetadata(t *testing.T) {
 			mockCacher := NewMockRawBytesDataCacher(t, tc.expectedCacheCalls, tc.expectedGetCalls)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: mockMetadataStorer, userGitHubClientFactory: nil,
 				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
-				baseURL:                 getTestBaseURL(t)}
+				baseURL:                 getTestBaseURL(t),
+				eventPublisher:          nil,
+			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			mockCacher.AssertExpectations()
 			// TODO: Start tracking call count and assert call count.

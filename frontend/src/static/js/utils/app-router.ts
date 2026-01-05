@@ -22,6 +22,7 @@ import '../components/webstatus-stats-page.js';
 import '../components/webstatus-notfound-error-page.js';
 import '../components/webstatus-feature-gone-split-page.js';
 import '../components/webstatus-notification-channels-page.js';
+import '../components/webstatus-subscriptions-page.js';
 
 export const initRouter = async (element: HTMLElement): Promise<Router> => {
   const router = new Router(element);
@@ -41,6 +42,10 @@ export const initRouter = async (element: HTMLElement): Promise<Router> => {
     {
       component: 'webstatus-notification-channels-page',
       path: '/settings/notification-channels',
+    },
+    {
+      component: 'webstatus-subscriptions-page',
+      path: '/settings/subscriptions',
     },
     {
       component: 'webstatus-feature-gone-split-page',

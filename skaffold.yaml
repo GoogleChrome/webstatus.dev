@@ -19,3 +19,4 @@ metadata:
 requires:
   - path: ./backend
   - path: ./frontend
+  - path: ./workers

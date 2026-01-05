@@ -267,6 +267,7 @@ func TestPingUser(t *testing.T) {
 				),
 				operationResponseCaches: nil,
 				baseURL:                 getTestBaseURL(t),
+				eventPublisher:          nil,
 			}
 
 			req := httptest.NewRequest(http.MethodPost, "/v1/users/me/ping", tc.body)

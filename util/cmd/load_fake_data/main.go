@@ -248,6 +248,13 @@ func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authCl
 		return nil
 	}
 
+	// Delete all subscriptions for the test users.
+	err := spannerClient.DeleteUserSubscriptions(ctx, userIDs)
+	if err != nil {
+		return fmt.Errorf("failed to delete test user subscriptions: %w", err)
+	}
+	slog.InfoContext(ctx, "Deleted subscriptions for test users")
+
 	for _, userID := range userIDs {
 		page, err := spannerClient.ListUserSavedSearches(ctx, userID, 1000, nil)
 		if err != nil {
@@ -740,6 +747,59 @@ func generateSavedSearchBookmarks(ctx context.Context, spannerClient *gcpspanner
 	return len(bookmarksToInsert), nil
 }
 
+func generateSubscriptions(ctx context.Context, spannerClient *gcpspanner.Client,
+	authClient *auth.Client) (int, error) {
+	// Get the channel ID for test.user.1@example.com's primary email.
+	userID, err := findUserIDByEmail(ctx, "test.user.1@example.com", authClient)
+	if err != nil {
+		return 0, fmt.Errorf("could not find userID for test.user.1@example.com: %w", err)
+	}
+	channels, _, err := spannerClient.ListNotificationChannels(ctx, gcpspanner.ListNotificationChannelsRequest{
+		UserID:    userID,
+		PageSize:  100,
+		PageToken: nil,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("could not list notification channels for user %s: %w", userID, err)
+	}
+	if len(channels) == 0 {
+		return 0, fmt.Errorf("no notification channels found for user %s", userID)
+	}
+	primaryChannelID := channels[0].ID
+
+	subscriptionsToInsert := []struct {
+		SavedSearchUUID string
+		ChannelID       string
+		Frequency       gcpspanner.SavedSearchSnapshotType
+		Triggers        []gcpspanner.SubscriptionTrigger
+	}{
+		{
+			// Subscription for "my first project query"
+			SavedSearchUUID: "74bdb85f-59d3-43b0-8061-20d5818e8c97",
+			ChannelID:       primaryChannelID,
+			Frequency:       gcpspanner.SavedSearchSnapshotTypeWeekly,
+			Triggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
+			},
+		},
+	}
+
+	for _, sub := range subscriptionsToInsert {
+		_, err := spannerClient.CreateSavedSearchSubscription(ctx, gcpspanner.CreateSavedSearchSubscriptionRequest{
+			UserID:        userID,
+			ChannelID:     sub.ChannelID,
+			SavedSearchID: sub.SavedSearchUUID,
+			Triggers:      sub.Triggers,
+			Frequency:     sub.Frequency,
+		})
+		if err != nil {
+			return 0, fmt.Errorf("failed to create subscription for saved search %s: %w", sub.SavedSearchUUID, err)
+		}
+	}
+
+	return len(subscriptionsToInsert), nil
+}
+
 func generateUserData(ctx context.Context, spannerClient *gcpspanner.Client,
 	authClient *auth.Client) error {
 	savedSearchesCount, err := generateSavedSearches(ctx, spannerClient, authClient)
@@ -756,6 +816,13 @@ func generateUserData(ctx context.Context, spannerClient *gcpspanner.Client,
 	}
 	slog.InfoContext(ctx, "saved search bookmarks generated",
 		"amount of bookmarks created", bookmarkCount)
+
+	subscriptionsCount, err := generateSubscriptions(ctx, spannerClient, authClient)
+	if err != nil {
+		return fmt.Errorf("subscriptions generation failed %w", err)
+	}
+	slog.InfoContext(ctx, "subscriptions generated",
+		"amount of subscriptions created", subscriptionsCount)
 
 	return nil
 }
@@ -1354,6 +1421,7 @@ func main() {
 		datastoreDatabase = flag.String("datastore_database", "", "Datastore Database")
 		scope             = flag.String("scope", "all", "Scope of data generation: all, user")
 		resetFlag         = flag.Bool("reset", false, "Reset test user data before loading")
+		triggerScenario   = flag.String("trigger-scenario", "", "Trigger a specific data change scenario for E2E tests")
 	)
 	flag.Parse()
 
@@ -1387,6 +1455,16 @@ func main() {
 	gofakeit.GlobalFaker = gofakeit.New(seedValue)
 
 	ctx := context.Background()
+	if *triggerScenario != "" {
+		err := triggerDataChange(ctx, spannerClient, *triggerScenario)
+		if err != nil {
+			slog.ErrorContext(ctx, "Failed to trigger data change", "scenario", *triggerScenario, "error", err)
+			os.Exit(1)
+		}
+		slog.InfoContext(ctx, "Data change triggered successfully", "scenario", *triggerScenario)
+
+		return // Exit immediately after triggering the change
+	}
 
 	var finalErr error
 
@@ -1425,5 +1503,36 @@ func main() {
 		slog.ErrorContext(ctx, "Data generation failed", "scope", *scope, "reset", *resetFlag, "error", finalErr)
 		os.Exit(1)
 	}
+
 	slog.InfoContext(ctx, "loading fake data successful")
+}
+
+func triggerDataChange(ctx context.Context, spannerClient *gcpspanner.Client, scenario string) error {
+	slog.InfoContext(ctx, "Triggering data change", "scenario", scenario)
+	// These feature keys are used in the E2E tests.
+	const nonMatchingFeatureKey = "popover"
+	const matchingFeatureKey = "popover"
+	const batchChangeFeatureKey = "dialog"
+	const batchChangeGroupKey = "css"
+
+	switch scenario {
+	case "non-matching":
+		// Change a property that the test subscription is not listening for.
+		return spannerClient.UpdateFeatureDescription(ctx, nonMatchingFeatureKey, "A non-matching change")
+	case "matching":
+		// Change the BaselineStatus to 'widely' to match the test subscription's trigger.
+		status := gcpspanner.BaselineStatusHigh
+
+		return spannerClient.UpsertFeatureBaselineStatus(ctx, matchingFeatureKey, gcpspanner.FeatureBaselineStatus{
+			Status: &status,
+			// In reality, these would be set, but we are strictly testing the transition of baseline status.
+			LowDate:  nil,
+			HighDate: nil,
+		})
+	case "batch-change":
+		// Change a feature to match the 'group:css' search criteria.
+		return spannerClient.AddFeatureToGroup(ctx, batchChangeFeatureKey, batchChangeGroupKey)
+	default:
+		return fmt.Errorf("unknown trigger scenario: %s", scenario)
+	}
 }

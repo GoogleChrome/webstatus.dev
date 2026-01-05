@@ -176,5 +176,11 @@ func (s *Server) CreateSavedSearch(ctx context.Context, request backend.CreateSa
 		}, nil
 	}
 
+	err = s.eventPublisher.PublishSearchConfigurationChanged(ctx, output, user.ID, true)
+	if err != nil {
+		// We should not mark this as a failure. Only log it.
+		slog.WarnContext(ctx, "unable to publish search configuration changed event during create", "error", err)
+	}
+
 	return backend.CreateSavedSearch201JSONResponse(*output), nil
 }
