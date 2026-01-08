@@ -71,6 +71,7 @@ export const TOP_CSS_INTEROP_ISSUES: string[] = [
   'anchor-positioning',
   'scroll-driven-animations',
   'view-transitions',
+  'cross-document-view-transitions',
   'container-style-queries',
   'nesting',
   'has',
@@ -86,11 +87,12 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'anchor-positioning',
   'customizable-select',
   'dialog',
+  'view-transitions',
   'cross-document-view-transitions',
   'file-system-access',
   'input-date-time',
   'invoker-command',
-  'web-usb',
+  'webusb',
 ];
 
 // This focus area to web feature mapping is defined at
@@ -166,7 +168,7 @@ export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
     name: 'Top HTML Interop issues',
     query: `id:${TOP_HTML_INTEROP_ISSUES.join(' OR id:')}`,
     description:
-      "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2025 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements.",
+      "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2025 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
     is_ordered: true,
     override_num_param: 25,
   },
