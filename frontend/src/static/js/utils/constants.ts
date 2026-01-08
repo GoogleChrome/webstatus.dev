@@ -92,7 +92,7 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'cross-document-view-transitions',
   'file-system-access',
   'input-date-time',
-  'invoker-command',
+  'invoker-commands',
 ];
 
 // This focus area to web feature mapping is defined at
