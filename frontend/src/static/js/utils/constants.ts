@@ -86,13 +86,13 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'select'
   'anchor-positioning',
   'customizable-select',
+  'shadow-dom',
   'dialog',
   'view-transitions',
   'cross-document-view-transitions',
   'file-system-access',
   'input-date-time',
   'invoker-command',
-  'webusb',
 ];
 
 // This focus area to web feature mapping is defined at
