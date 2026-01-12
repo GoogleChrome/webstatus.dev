@@ -47,7 +47,12 @@ import {
   CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
 
-import {CELL_DEFS, getBrowserAndChannel} from './webstatus-overview-cells.js';
+import {
+  BrowserAvailabilityColumnKeys,
+  CELL_DEFS,
+  getBrowserAndChannel,
+  getBrowserFromAvailabilityColumn,
+} from './webstatus-overview-cells.js';
 import {
   ColumnKey,
   parseColumnsSpec,
@@ -212,18 +217,22 @@ export class WebstatusOverviewFilters extends LitElement {
     const columns: string[] = [];
     const columnKeys = parseColumnsSpec(getColumnsSpec(this.location));
 
+    const pushBrowserAvailabilityName = (
+      browserColumnKey: BrowserAvailabilityColumnKeys,
+    ) => {
+      const browser = getBrowserFromAvailabilityColumn(browserColumnKey);
+      const browserLabel = BROWSER_ID_TO_LABEL[browser];
+      columns.push(`${browserLabel} Availability Status`);
+      columns.push(`${browserLabel} Availability Version`);
+      columns.push(`${browserLabel} Availability Date`);
+    };
+
     const pushBrowserChannelName = (
       browserColumnKey: BrowserChannelColumnKeys,
     ) => {
-      const name = CELL_DEFS[browserColumnKey].nameInDialog;
-
       const {browser, channel} = getBrowserAndChannel(browserColumnKey);
       const browserLabel = BROWSER_ID_TO_LABEL[browser];
       const channelLabel = CHANNEL_ID_TO_LABEL[channel];
-
-      if (channel === 'stable') {
-        columns.push(name);
-      }
       columns.push(`${browserLabel} WPT ${channelLabel} Score`);
     };
 
@@ -258,6 +267,15 @@ export class WebstatusOverviewFilters extends LitElement {
         case ColumnKey.ExpSafariIos:
           pushBrowserChannelName(columnKey);
           break;
+        case ColumnKey.AvailabilityChrome:
+        case ColumnKey.AvailabilityEdge:
+        case ColumnKey.AvailabilityFirefox:
+        case ColumnKey.AvailabilitySafari:
+        case ColumnKey.AvailabilityChromeAndroid:
+        case ColumnKey.AvailabilityFirefoxAndroid:
+        case ColumnKey.AvailabilitySafariIos:
+          pushBrowserAvailabilityName(columnKey);
+          break;
       }
     });
 
@@ -272,17 +290,29 @@ export class WebstatusOverviewFilters extends LitElement {
         feature.developer_signals?.upvotes?.toString() || '';
       const row: string[] = [];
 
+      const pushBrowserAvailabilityValue = (
+        browserColumnKey: BrowserAvailabilityColumnKeys,
+      ) => {
+        const browser = getBrowserFromAvailabilityColumn(browserColumnKey);
+        const browserImplStatus =
+          (browserImpl && browserImpl[browser]?.status) || 'unavailable';
+        const browserImplVersion =
+          (browserImpl && browserImpl[browser]?.version) || '';
+        const browserImplDate =
+          (browserImpl && browserImpl[browser]?.date) || '';
+
+        row.push(browserImplStatus);
+        row.push(browserImplVersion);
+        row.push(browserImplDate);
+      };
+
       const pushBrowserChannelValue = (
         browserColumnKey: BrowserChannelColumnKeys,
       ) => {
         const {browser, channel} = getBrowserAndChannel(browserColumnKey);
-        const browserImplDate = browserImpl && browserImpl[browser]?.date;
         const wptScore = wptData?.[channel]?.[browser]?.score;
-
-        if (channel === 'stable') {
-          row.push(browserImplDate || '');
-        }
-        row.push(String(wptScore) || '');
+        const wptScoreString = wptScore ? String(wptScore) : '';
+        row.push(wptScoreString);
       };
 
       // Iterate over the current columns to get the values for each column.
@@ -309,6 +339,15 @@ export class WebstatusOverviewFilters extends LitElement {
           case ColumnKey.ExpFirefox:
           case ColumnKey.ExpSafari:
             pushBrowserChannelValue(key);
+            break;
+          case ColumnKey.AvailabilityChrome:
+          case ColumnKey.AvailabilityEdge:
+          case ColumnKey.AvailabilityFirefox:
+          case ColumnKey.AvailabilitySafari:
+          case ColumnKey.AvailabilityChromeAndroid:
+          case ColumnKey.AvailabilityFirefoxAndroid:
+          case ColumnKey.AvailabilitySafariIos:
+            pushBrowserAvailabilityValue(key);
             break;
         }
       }

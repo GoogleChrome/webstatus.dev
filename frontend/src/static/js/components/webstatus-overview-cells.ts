@@ -141,6 +141,15 @@ export const DEFAULT_COLUMN_OPTIONS: ColumnOptionKey[] = [
   // ColumnOptionKey.BaselineStatusLowDate,
 ];
 
+export type BrowserAvailabilityColumnKeys =
+  | ColumnKey.AvailabilityChrome
+  | ColumnKey.AvailabilityEdge
+  | ColumnKey.AvailabilityFirefox
+  | ColumnKey.AvailabilitySafari
+  | ColumnKey.AvailabilityChromeAndroid
+  | ColumnKey.AvailabilityFirefoxAndroid
+  | ColumnKey.AvailabilitySafariIos;
+
 export type BrowserChannelColumnKeys =
   | ColumnKey.StableChrome
   | ColumnKey.StableEdge
@@ -492,6 +501,16 @@ export const renderBrowserQualityExp: CellRenderer = (
   const score: number | undefined =
     feature.wpt?.experimental?.[browser!]?.score;
   return renderPercentage(score);
+};
+
+export const getBrowserFromAvailabilityColumn = (
+  columnKey: BrowserAvailabilityColumnKeys,
+): components['parameters']['browserPathParam'] => {
+  const browser = CELL_DEFS[columnKey].options.browser;
+  if (!browser) {
+    throw new Error('browser is undefined');
+  }
+  return browser;
 };
 
 export const getBrowserAndChannel = (
