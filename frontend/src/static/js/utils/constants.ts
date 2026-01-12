@@ -81,6 +81,9 @@ export const TOP_CSS_INTEROP_ISSUES: string[] = [
   'grid',
 ];
 
+// Note: This list is used in getSpecialFeatureDetails in util/cmd/load_fake_data/main.go
+// Changes to this will need to be reflected there for the playwright tests to pass.
+// See e2e/tests/overview-page.spec.ts for the applicable tests.
 export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'customizable-select',
   'popover',
@@ -93,7 +96,7 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'file-system-access',
   'input-date-time',
   'invoker-commands',
-  'webusb'
+  'webusb',
 ];
 
 // This focus area to web feature mapping is defined at
