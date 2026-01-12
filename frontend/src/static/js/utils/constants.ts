@@ -83,9 +83,9 @@ export const TOP_CSS_INTEROP_ISSUES: string[] = [
 
 export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'popover',
-  'select',
-  'anchor-positioning',
   'customizable-select',
+  'anchor-positioning',
+  'customized-built-in-elements',
   'shadow-dom',
   'dialog',
   'view-transitions',
@@ -93,6 +93,7 @@ export const TOP_HTML_INTEROP_ISSUES: string[] = [
   'file-system-access',
   'input-date-time',
   'invoker-commands',
+  'webusb'
 ];
 
 // This focus area to web feature mapping is defined at
