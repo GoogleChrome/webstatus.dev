@@ -69,30 +69,34 @@ export interface OpenSavedSearchEvent {
 
 export const TOP_CSS_INTEROP_ISSUES: string[] = [
   'anchor-positioning',
-  'container-queries',
-  'has',
-  'nesting',
-  'view-transitions',
-  'subgrid',
-  'grid',
-  'scrollbar-gutter',
-  'scrollbar-width',
-  'scrollbar-color',
   'scroll-driven-animations',
+  'view-transitions',
+  'cross-document-view-transitions',
+  'container-style-queries',
+  'nesting',
+  'has',
+  'container-queries',
   'scope',
+  'if',
+  'grid',
 ];
 
+// Note: This list is used in getSpecialFeatureDetails in util/cmd/load_fake_data/main.go
+// Changes to this will need to be reflected there for the playwright tests to pass.
+// See e2e/tests/overview-page.spec.ts for the applicable tests.
 export const TOP_HTML_INTEROP_ISSUES: string[] = [
+  'customizable-select',
   'popover',
   'anchor-positioning',
-  'cross-document-view-transitions',
-  'dialog',
-  'datalist',
   'customized-built-in-elements',
+  'shadow-dom',
+  'dialog',
+  'view-transitions',
+  'cross-document-view-transitions',
   'file-system-access',
-  'scroll-driven-animations',
-  'notifications',
-  'web-bluetooth',
+  'input-date-time',
+  'invoker-commands',
+  'webusb',
 ];
 
 // This focus area to web feature mapping is defined at
@@ -160,7 +164,7 @@ export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
     name: 'Top CSS Interop issues',
     query: `id:${TOP_CSS_INTEROP_ISSUES.join(' OR id:')}`,
     description:
-      "This list reflects the top 10 interoperability pain points identified by developers in the State of CSS 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
+      "This list reflects the top 10 interoperability pain points identified by developers in the State of CSS 2025 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
     is_ordered: true,
     override_num_param: 25,
   },
@@ -168,7 +172,7 @@ export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
     name: 'Top HTML Interop issues',
     query: `id:${TOP_HTML_INTEROP_ISSUES.join(' OR id:')}`,
     description:
-      "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2024 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements.",
+      "This list reflects the top 10 interoperability pain points identified by developers in the State of HTML 2025 survey. We have also included their implementation status across Baseline browsers. You will notice that in some cases the items are already Baseline features, but may not have have been Baseline for long enough for developers to use with their target audience's browser support requirements. Since some voted-on pain points involve multiple web features, the list extends beyond 10 individual items for clarity and comprehensive coverage.",
     is_ordered: true,
     override_num_param: 25,
   },

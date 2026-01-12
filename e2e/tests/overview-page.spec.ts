@@ -22,6 +22,8 @@ import {
   waitForOverviewPageLoad,
 } from './utils';
 
+const DEFAULT_PAGE_SIZE = 25;
+
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const pageContainer = page.locator('.page-container');
@@ -72,7 +74,7 @@ test('shows an error that their query is invalid', async ({page}) => {
 test('shows an unknown error when there is an internal error', async ({
   page,
 }) => {
-  await page.route('**/v1/features?page_size=25', route =>
+  await page.route('**/v1/features?page_size=' + DEFAULT_PAGE_SIZE, route =>
     route.fulfill({
       status: 500,
       contentType: 'application/json',
@@ -388,14 +390,14 @@ test.describe('saved searches', () => {
         1,
         'http://localhost:8080/v1/saved-searches/a09386fe-65f1-4640-b28d-3cf2f2de69c9',
       );
-      await verifyTableRowCount(25);
+      await verifyTableRowCount(DEFAULT_PAGE_SIZE);
     });
 
     await test.step('Navigate to next page (1)', async () => {
       await clickNextPage();
       const featureCount = await getOverviewPageFeatureCount(page);
       expect(featureCount, 'Feature count should be 73').toEqual(73);
-      await verifyTableRowCount(25);
+      await verifyTableRowCount(DEFAULT_PAGE_SIZE);
       await verifyFeaturesRequest(
         'baseline_status:limited OR available_on:chrome',
       );
@@ -468,7 +470,11 @@ test.describe('saved searches', () => {
         return url.pathname.split('/').pop();
       }),
     );
-    expect(rowIDs.length).toBe(10);
+    // Assert that data is loaded.
+    expect(rowIDs.length).toBeGreaterThan(0);
+    // Assert that it does not exceed the default page size
+    expect(rowIDs.length).toBeLessThanOrEqual(DEFAULT_PAGE_SIZE);
+
     // rowIDs should match ids in the same order.
     expect(rowIDs).toStrictEqual(ids);
     await expect(

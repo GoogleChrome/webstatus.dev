@@ -95,6 +95,11 @@ func getSpecialFeatureDetails() []struct {
 		id   string
 	}{
 		// Top HTML Interop Issues
+		// Copied from TOP_HTML_INTEROP_ISSUES in frontend/src/static/js/utils/constants.ts
+		{
+			name: "Customizable Select",
+			id:   "customizable-select",
+		},
 		{
 			name: "Popover",
 			id:   "popover",
@@ -105,36 +110,40 @@ func getSpecialFeatureDetails() []struct {
 			id:   featurePageFeatureKey,
 		},
 		{
-			name: "Cross-Document View Transitions",
-			id:   "cross-document-view-transitions",
+			name: "Customized Built-in Elements",
+			id:   "customized-built-in-elements",
+		},
+		{
+			name: "Shadow DOM",
+			id:   "shadow-dom",
 		},
 		{
 			name: "Dialog",
 			id:   "dialog",
 		},
 		{
-			name: "Data List",
-			id:   "datalist",
+			name: "View Transitions",
+			id:   "view-transitions",
 		},
 		{
-			name: "Customized Built-in Elements",
-			id:   "customized-built-in-elements",
+			name: "Cross Document View Transitions",
+			id:   "cross-document-view-transitions",
 		},
 		{
 			name: "File System Access",
 			id:   "file-system-access",
 		},
 		{
-			name: "Scroll-Driven Animations",
-			id:   "scroll-driven-animations",
+			name: "Input Date Time",
+			id:   "input-date-time",
 		},
 		{
-			name: "Notifications",
-			id:   "notifications",
+			name: "Invoker Commands",
+			id:   "invoker-commands",
 		},
 		{
-			name: "Web Bluetooth",
-			id:   "web-bluetooth",
+			name: "WebUSB",
+			id:   "webusb",
 		},
 		// Feature evolution
 		// old-feature will be moved to new-feature
