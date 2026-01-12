@@ -82,8 +82,8 @@ export const TOP_CSS_INTEROP_ISSUES: string[] = [
 ];
 
 export const TOP_HTML_INTEROP_ISSUES: string[] = [
-  'popover',
   'customizable-select',
+  'popover',
   'anchor-positioning',
   'customized-built-in-elements',
   'shadow-dom',
