@@ -33,7 +33,7 @@ spec:
         - name: SPANNER_EMULATOR_HOST
           value: 'spanner:9010'
         - name: PUBSUB_EMULATOR_HOST
-          value: 'http://pubsub:8086'
+          value: 'pubsub:8060'
         - name: INGESTION_SUBSCRIPTION_ID
           value: 'ingestion-jobs-sub-id'
         - name: NOTIFICATION_TOPIC_ID
@@ -42,6 +42,10 @@ spec:
           value: 'state-bucket'
         - name: STORAGE_EMULATOR_HOST
           value: 'http://gcs:4443'
+        - name: BATCH_UPDATE_SUBSCRIPTION_ID
+          value: 'batch-updates-sub-id'
+        - name: INGESTION_TOPIC_ID
+          value: 'ingestion-jobs-topic-id'
       resources:
         limits:
           cpu: 250m
