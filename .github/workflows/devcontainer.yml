@@ -18,6 +18,10 @@ on:
   schedule:
     - cron: '0 0 * * 2' # Runs every Tuesday at midnight UTC
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   GO_VERSION: '1.25'
   NODE_VERSION: '24'
