@@ -213,3 +213,15 @@ const (
 	FrequencyWeekly    JobFrequency = "WEEKLY"
 	FrequencyMonthly   JobFrequency = "MONTHLY"
 )
+
+type RefreshSearchCommand struct {
+	SearchID  string
+	Query     string
+	Frequency JobFrequency
+	Timestamp time.Time
+}
+
+type SearchJob struct {
+	ID    string
+	Query string
+}
