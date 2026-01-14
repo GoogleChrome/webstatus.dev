@@ -111,6 +111,7 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 			Frequency:   workertypes.FrequencyMonthly,
 			GeneratedAt: time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC),
 		},
+		ChannelID: "chan-1",
 	}
 
 	err := publisher.PublishEmailJob(context.Background(), job)
@@ -141,6 +142,7 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 				"frequency":    "MONTHLY",
 				"generated_at": "2025-01-01T12:00:00Z",
 			},
+			"channel_id": "chan-1",
 		},
 	}
 
