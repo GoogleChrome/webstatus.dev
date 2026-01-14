@@ -43,9 +43,10 @@ func TestCreateNotificationChannelDeliveryAttempt(t *testing.T) {
 	channelID := *channelIDPtr
 
 	req := CreateNotificationChannelDeliveryAttemptRequest{
-		ChannelID:        channelID,
-		Status:           "SUCCESS",
-		Details:          spanner.NullJSON{Value: map[string]interface{}{"info": "delivered"}, Valid: true},
+		ChannelID: channelID,
+		Status:    "SUCCESS",
+		Details: spanner.NullJSON{Value: map[string]interface{}{
+			"event_id": "evt-123", "message": "delivered"}, Valid: true},
 		AttemptTimestamp: time.Now(),
 	}
 
@@ -70,6 +71,15 @@ func TestCreateNotificationChannelDeliveryAttempt(t *testing.T) {
 
 	if retrieved.AttemptTimestamp.IsZero() {
 		t.Error("expected a non-zero commit timestamp")
+	}
+	if retrieved.AttemptDetails == nil {
+		t.Fatal("expected details to be non-nil")
+	}
+	if retrieved.AttemptDetails.Message != "delivered" {
+		t.Errorf("expected details info to be 'delivered', got %s", retrieved.AttemptDetails.Message)
+	}
+	if retrieved.AttemptDetails.EventID != "evt-123" {
+		t.Errorf("expected details eventID to be 'evt-123', got %s", retrieved.AttemptDetails.EventID)
 	}
 }
 
@@ -200,5 +210,128 @@ func TestCreateNotificationChannelDeliveryAttemptConcurrency(t *testing.T) {
 	}
 	if len(attempts) != maxDeliveryAttemptsToKeep {
 		t.Errorf("expected %d attempts, got %d", maxDeliveryAttemptsToKeep, len(attempts))
+	}
+}
+
+func TestListNotificationChannelDeliveryAttemptsPagination(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+	// We need a channel to associate the attempt with.
+	userID := uuid.NewString()
+	createReq := CreateNotificationChannelRequest{
+		UserID:      userID,
+		Name:        "Test Channel",
+		Type:        "EMAIL",
+		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+	}
+	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
+	if err != nil {
+		t.Fatalf("failed to create notification channel: %v", err)
+	}
+	channelID := *channelIDPtr
+
+	// Create more attempts than the page size to test pagination.
+	totalAttempts := 5
+	for i := 0; i < totalAttempts; i++ {
+		// The sleep is a simple way to ensure distinct AttemptTimestamps for ordering.
+		time.Sleep(1 * time.Millisecond)
+		req := CreateNotificationChannelDeliveryAttemptRequest{
+			ChannelID:        channelID,
+			Status:           "SUCCESS",
+			Details:          spanner.NullJSON{Value: nil, Valid: false},
+			AttemptTimestamp: time.Now(),
+		}
+		_, err := spannerClient.CreateNotificationChannelDeliveryAttempt(ctx, req)
+		if err != nil {
+			t.Fatalf("CreateNotificationChannelDeliveryAttempt (pagination test) failed: %v", err)
+		}
+	}
+
+	// 1. First Page
+	pageSize := 2
+	listReq1 := ListNotificationChannelDeliveryAttemptsRequest{
+		ChannelID: channelID,
+		PageSize:  pageSize,
+		PageToken: nil,
+	}
+	attempts1, nextToken1, err := spannerClient.ListNotificationChannelDeliveryAttempts(ctx, listReq1)
+	if err != nil {
+		t.Fatalf("ListNotificationChannelDeliveryAttempts (page 1) failed: %v", err)
+	}
+	if len(attempts1) != pageSize {
+		t.Errorf("expected %d attempts on page 1, got %d", pageSize, len(attempts1))
+	}
+	if nextToken1 == nil {
+		t.Fatal("expected a next page token, but got nil")
+	}
+
+	// 2. Second Page
+	listReq2 := ListNotificationChannelDeliveryAttemptsRequest{
+		ChannelID: channelID,
+		PageSize:  pageSize,
+		PageToken: nextToken1,
+	}
+	attempts2, nextToken2, err := spannerClient.ListNotificationChannelDeliveryAttempts(ctx, listReq2)
+	if err != nil {
+		t.Fatalf("ListNotificationChannelDeliveryAttempts (page 2) failed: %v", err)
+	}
+	if len(attempts2) != pageSize {
+		t.Errorf("expected %d attempts on page 2, got %d", pageSize, len(attempts2))
+	}
+	if nextToken2 == nil {
+		t.Fatal("expected a next page token, but got nil")
+	}
+
+	// 3. Third and Final Page
+	listReq3 := ListNotificationChannelDeliveryAttemptsRequest{
+		ChannelID: channelID,
+		PageSize:  pageSize,
+		PageToken: nextToken2,
+	}
+	attempts3, nextToken3, err := spannerClient.ListNotificationChannelDeliveryAttempts(ctx, listReq3)
+	if err != nil {
+		t.Fatalf("ListNotificationChannelDeliveryAttempts (page 3) failed: %v", err)
+	}
+	if len(attempts3) != 1 {
+		t.Errorf("expected 1 attempt on page 3, got %d", len(attempts3))
+	}
+	if nextToken3 != nil {
+		t.Errorf("expected no next page token, but got one: %s", *nextToken3)
+	}
+}
+
+func TestToPublic(t *testing.T) {
+	attempt := spannerNotificationChannelDeliveryAttempt{
+		ID:               "test-id",
+		ChannelID:        "test-channel-id",
+		AttemptTimestamp: time.Now(),
+		Status:           DeliveryAttemptStatusSuccess,
+		Details: spanner.NullJSON{Value: map[string]interface{}{"message": "test-info",
+			"event_id": "test-event-id"}, Valid: true},
+		AttemptDetails: nil,
+	}
+
+	publicAttempt, err := attempt.toPublic()
+	if err != nil {
+		t.Fatalf("toPublic() failed: %v", err)
+	}
+
+	if publicAttempt.ID != attempt.ID {
+		t.Errorf("expected ID %s, got %s", attempt.ID, publicAttempt.ID)
+	}
+	if publicAttempt.ChannelID != attempt.ChannelID {
+		t.Errorf("expected ChannelID %s, got %s", attempt.ChannelID, publicAttempt.ChannelID)
+	}
+	if publicAttempt.Status != attempt.Status {
+		t.Errorf("expected Status %s, got %s", attempt.Status, publicAttempt.Status)
+	}
+	if publicAttempt.AttemptDetails == nil {
+		t.Fatal("expected AttemptDetails to be non-nil")
+	}
+	if publicAttempt.AttemptDetails.Message != "test-info" {
+		t.Errorf("expected AttemptDetails.Message %s, got %s", "test-info", publicAttempt.AttemptDetails.Message)
+	}
+	if publicAttempt.AttemptDetails.EventID != "test-event-id" {
+		t.Errorf("expected AttemptDetails.EventID %s, got %s", "test-event-id", publicAttempt.AttemptDetails.EventID)
 	}
 }
