@@ -36,6 +36,7 @@ func TestHasChanges(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			expected: false,
 		},
@@ -48,6 +49,7 @@ func TestHasChanges(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			expected: true,
 		},
@@ -60,6 +62,7 @@ func TestHasChanges(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			expected: true,
 		},
@@ -72,6 +75,22 @@ func TestHasChanges(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       nil,
+				Deleted:      nil,
+			},
+			expected: true,
+		},
+		{
+			name: "Deleted",
+			diff: FeatureDiff{
+				QueryChanged: false,
+				Added:        nil,
+				Removed:      nil,
+				Modified:     nil,
+				Moves:        nil,
+				Splits:       nil,
+				Deleted: []FeatureDeleted{
+					{ID: "1", Name: "A", Reason: ReasonDeleted},
+				},
 			},
 			expected: true,
 		},
@@ -101,8 +120,9 @@ func TestHasChanges(t *testing.T) {
 					BrowserChanges: nil,
 					DocsChange:     nil,
 				}},
-				Moves:  nil,
-				Splits: nil,
+				Moves:   nil,
+				Splits:  nil,
+				Deleted: nil,
 			},
 			expected: true,
 		},
@@ -115,6 +135,7 @@ func TestHasChanges(t *testing.T) {
 				Modified:     nil,
 				Moves:        []FeatureMoved{{FromID: "A", ToID: "B", FromName: "A", ToName: "B"}},
 				Splits:       nil,
+				Deleted:      nil,
 			},
 			expected: true,
 		},
@@ -127,6 +148,7 @@ func TestHasChanges(t *testing.T) {
 				Modified:     nil,
 				Moves:        nil,
 				Splits:       []FeatureSplit{{FromID: "A", FromName: "A", To: nil}},
+				Deleted:      nil,
 			},
 			expected: true,
 		},
@@ -176,6 +198,10 @@ func TestFeatureDiff_Sort(t *testing.T) {
 				To:       nil,
 			},
 		},
+		Deleted: []FeatureDeleted{
+			{ID: "2", Name: "B", Reason: ReasonDeleted},
+			{ID: "1", Name: "A", Reason: ReasonDeleted},
+		},
 	}
 
 	diff.Sort()
@@ -188,6 +214,11 @@ func TestFeatureDiff_Sort(t *testing.T) {
 	// Removed: A(1), B(2)
 	if diff.Removed[0].ID != "1" || diff.Removed[1].ID != "2" {
 		t.Errorf("Removed sort failed: %+v", diff.Removed)
+	}
+
+	// Deleted: A(1), B(2)
+	if diff.Deleted[0].ID != "1" || diff.Deleted[1].ID != "2" {
+		t.Errorf("Deleted sort failed: %+v", diff.Deleted)
 	}
 
 	// Modified: A(1), B(2)

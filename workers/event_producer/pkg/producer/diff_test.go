@@ -163,6 +163,7 @@ func TestV1DiffSerializer_Serialize(t *testing.T) {
 	diff := &featurelistdiffv1.FeatureDiff{
 		QueryChanged: false,
 		Added:        []featurelistdiffv1.FeatureAdded{{ID: "feat-a", Name: "Feature A", Reason: "", Docs: nil}},
+		Deleted:      nil,
 		Removed:      nil,
 		Modified:     nil,
 		Moves:        nil,
