@@ -135,14 +135,15 @@ func TestProcessEvent_Success(t *testing.T) {
 			{
 				SubscriptionID: "sub-1",
 				UserID:         "user-1",
-				Triggers:       []workertypes.JobTrigger{"any_change"}, // Matches logic in shouldNotifyV1
+				Triggers:       []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly}, // Matches
 				EmailAddress:   "user1@example.com",
 			},
 			{
 				SubscriptionID: "sub-2",
 				UserID:         "user-2",
-				Triggers:       []workertypes.JobTrigger{}, // Empty triggers = no notify
-				EmailAddress:   "user2@example.com",
+				// Does not match (summary is Newly)
+				Triggers:     []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+				EmailAddress: "user2@example.com",
 			},
 		},
 	}
@@ -159,6 +160,24 @@ func TestProcessEvent_Success(t *testing.T) {
 
 	// Create a summary that HAS changes so notification logic proceeds.
 	summary := createTestSummary(true)
+	summary.Categories.UpdatedBaseline = 1
+	summary.Categories.Updated = 1
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:        workertypes.SummaryHighlightTypeChanged,
+			FeatureID:   "test-feature-id",
+			FeatureName: "Test Feature",
+			DocLinks:    nil,
+			NameChange:  nil,
+			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+				From: newBaselineValue(workertypes.BaselineStatusLimited),
+				To:   newBaselineValue(workertypes.BaselineStatusNewly),
+			},
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
 	parser := mockParserFactory(summary, nil)
 
 	d := NewDispatcher(finder, publisher)
@@ -303,8 +322,10 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	// Two subscribers
 	subSet := &workertypes.SubscriberSet{
 		Emails: []workertypes.EmailSubscriber{
-			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{"change"}, UserID: "u1", EmailAddress: "e1"},
-			{SubscriptionID: "sub-2", Triggers: []workertypes.JobTrigger{"change"}, UserID: "u2", EmailAddress: "e2"},
+			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+				UserID: "u1", EmailAddress: "e1"},
+			{SubscriptionID: "sub-2", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+				UserID: "u2", EmailAddress: "e2"},
 		},
 	}
 
@@ -326,8 +347,10 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 		},
 	}
 
+	summaryWithNewly := withBaselineHighlight(createTestSummary(false),
+		workertypes.BaselineStatusLimited, workertypes.BaselineStatusNewly)
 	d := NewDispatcher(finder, publisher)
-	d.parser = mockParserFactory(createTestSummary(true), nil)
+	d.parser = mockParserFactory(summaryWithNewly, nil)
 
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     "",
@@ -382,4 +405,192 @@ func TestProcessEvent_JobCount(t *testing.T) {
 		t.Error("Expected 0 jobs")
 	}
 	assertFindSubscribersCalledWith(t, finder, generic.ValuePtr(emptyFinderReq()))
+}
+
+// --- shouldNotifyV1 Test Helpers ---
+
+func newBaselineValue(status workertypes.BaselineStatus) workertypes.BaselineValue {
+	t := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	return workertypes.BaselineValue{
+		Status:   status,
+		LowDate:  &t,
+		HighDate: nil,
+	}
+}
+
+func newBrowserValue(status workertypes.BrowserStatus) workertypes.BrowserValue {
+	version := "100"
+
+	return workertypes.BrowserValue{
+		Status:  status,
+		Version: &version,
+	}
+}
+
+func withBaselineHighlight(
+	s workertypes.EventSummary, from, to workertypes.BaselineStatus) workertypes.EventSummary {
+	s.Highlights = append(s.Highlights, workertypes.SummaryHighlight{
+		Type:        workertypes.SummaryHighlightTypeChanged,
+		FeatureID:   "test-feature-id",
+		FeatureName: "Test Feature",
+		DocLinks:    nil,
+		BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+			From: newBaselineValue(from),
+			To:   newBaselineValue(to),
+		},
+		BrowserChanges: nil,
+		NameChange:     nil,
+		Moved:          nil,
+		Split:          nil,
+	})
+	s.Categories.Updated = 1
+	s.Categories.UpdatedBaseline = 1
+
+	return s
+}
+
+func withBrowserChangeHighlight(
+	s workertypes.EventSummary, from, to workertypes.BrowserStatus) workertypes.EventSummary {
+	s.Highlights = append(s.Highlights, workertypes.SummaryHighlight{
+		Type:           workertypes.SummaryHighlightTypeChanged,
+		FeatureID:      "test-feature-id",
+		FeatureName:    "Test Feature",
+		DocLinks:       nil,
+		BaselineChange: nil,
+		BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
+			workertypes.BrowserChrome: {
+				From: newBrowserValue(from),
+				To:   newBrowserValue(to),
+			},
+			workertypes.BrowserChromeAndroid:  nil,
+			workertypes.BrowserFirefox:        nil,
+			workertypes.BrowserFirefoxAndroid: nil,
+			workertypes.BrowserEdge:           nil,
+			workertypes.BrowserSafari:         nil,
+			workertypes.BrowserSafariIos:      nil,
+		},
+		NameChange: nil,
+		Moved:      nil,
+		Split:      nil,
+	})
+	s.Categories.Updated = 1
+	s.Categories.UpdatedImpl = 1
+
+	return s
+}
+
+func TestShouldNotifyV1(t *testing.T) {
+	summaryWithNewly := withBaselineHighlight(createTestSummary(false),
+		workertypes.BaselineStatusLimited, workertypes.BaselineStatusNewly)
+	summaryWithWidely := withBaselineHighlight(createTestSummary(false),
+		workertypes.BaselineStatusNewly, workertypes.BaselineStatusWidely)
+	summaryWithLimited := withBaselineHighlight(createTestSummary(false),
+		workertypes.BaselineStatusWidely, workertypes.BaselineStatusLimited)
+	summaryWithBrowserAvailable := withBrowserChangeHighlight(createTestSummary(false),
+		workertypes.BrowserStatusUnknown, workertypes.BrowserStatusAvailable)
+	summaryWithBrowserInDev := withBrowserChangeHighlight(createTestSummary(false),
+		workertypes.BrowserStatusUnknown, workertypes.BrowserStatusUnknown)
+	summaryQueryChanged := createTestSummary(false)
+	summaryQueryChanged.Categories.QueryChanged = 1
+
+	testCases := []struct {
+		name     string
+		triggers []workertypes.JobTrigger
+		summary  workertypes.EventSummary
+		want     bool
+	}{
+		{
+			name:     "no changes should return false",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+			summary:  createTestSummary(false),
+			want:     false,
+		},
+		{
+			name:     "changes but no triggers should return false",
+			triggers: []workertypes.JobTrigger{},
+			summary:  createTestSummary(true),
+			want:     false,
+		},
+		{
+			name:     "changes and triggers but no highlights should return false",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+			summary:  createTestSummary(true),
+			want:     false,
+		},
+		{
+			name:     "changes, triggers, highlights, but no match should return false",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+			summary:  summaryWithNewly,
+			want:     false,
+		},
+		{
+			name:     "match on FeaturePromotedToNewly should return true",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+			summary:  summaryWithNewly,
+			want:     true,
+		},
+		{
+			name:     "match on FeaturePromotedToWidely should return true",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+			summary:  summaryWithWidely,
+			want:     true,
+		},
+		{
+			name:     "match on FeatureRegressedToLimited should return true",
+			triggers: []workertypes.JobTrigger{workertypes.FeatureRegressedToLimited},
+			summary:  summaryWithLimited,
+			want:     true,
+		},
+		{
+			name:     "match on BrowserImplementationAnyComplete should return true",
+			triggers: []workertypes.JobTrigger{workertypes.BrowserImplementationAnyComplete},
+			summary:  summaryWithBrowserAvailable,
+			want:     true,
+		},
+		{
+			name:     "no match on BrowserImplementation when status is not Available",
+			triggers: []workertypes.JobTrigger{workertypes.BrowserImplementationAnyComplete},
+			summary:  summaryWithBrowserInDev,
+			want:     false,
+		},
+		{
+			name: "multiple triggers with one match should return true",
+			triggers: []workertypes.JobTrigger{
+				workertypes.FeaturePromotedToWidely, workertypes.FeaturePromotedToNewly},
+			summary: summaryWithNewly,
+			want:    true,
+		},
+		{
+			name:     "multiple highlights with one match should return true",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+			summary: withBaselineHighlight(summaryWithNewly,
+				workertypes.BaselineStatusNewly, workertypes.BaselineStatusWidely),
+			want: true,
+		},
+		{
+			name: "QueryChanged is considered a change and matches with highlight",
+			triggers: []workertypes.JobTrigger{
+				workertypes.FeaturePromotedToNewly,
+			},
+			summary: withBaselineHighlight(summaryQueryChanged,
+				workertypes.BaselineStatusLimited, workertypes.BaselineStatusNewly),
+			want: true,
+		},
+		{
+			name:     "no match when baseline highlight has wrong status",
+			triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+			summary:  summaryWithWidely,
+			want:     false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := shouldNotifyV1(tc.triggers, tc.summary)
+			if got != tc.want {
+				t.Errorf("shouldNotifyV1() = %v, want %v", got, tc.want)
+			}
+		})
+	}
 }
