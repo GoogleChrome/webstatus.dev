@@ -183,13 +183,7 @@ func shouldNotifyV1(triggers []workertypes.JobTrigger, summary workertypes.Event
 		return false
 	}
 
-	// 2. If user has no triggers.
-	// Assuming empty triggers = no notifications for safety.
-	if len(triggers) == 0 {
-		return false
-	}
-
-	// 3. Iterate triggers and check highlights
+	// 2. Iterate triggers and check highlights.
 	for _, t := range triggers {
 		if matchesTrigger(t, summary) {
 			return true
