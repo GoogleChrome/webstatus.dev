@@ -3653,16 +3653,17 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-				Frequency: backend.SubscriptionFrequencyDaily,
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"feature_any_browser_implementation_complete"},
-					Frequency:     string(backend.SubscriptionFrequencyDaily),
+					Triggers: []gcpspanner.SubscriptionTrigger{
+						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
 				},
 				result:        valuePtr(subID),
 				returnedError: nil,
@@ -3674,8 +3675,8 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"feature_any_browser_implementation_complete"},
-					Frequency:     string(backend.SubscriptionFrequencyDaily),
+					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
 					CreatedAt:     now,
 					UpdatedAt:     now,
 				},
@@ -3688,11 +3689,11 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+							backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 						RawValue: nil,
 					},
 				},
-				Frequency: backend.SubscriptionFrequencyDaily,
+				Frequency: backend.SubscriptionFrequencyImmediate,
 				CreatedAt: now,
 				UpdatedAt: now,
 			},
@@ -3704,16 +3705,16 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-				Frequency: backend.SubscriptionFrequencyDaily,
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"feature_any_browser_implementation_complete"},
-					Frequency:     string(backend.SubscriptionFrequencyDaily),
+					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
 				},
 				result:        nil,
 				returnedError: gcpspanner.ErrMissingRequiredRole,
@@ -3728,16 +3729,16 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 				ChannelId:     channelID,
 				SavedSearchId: savedSearchID,
 				Triggers: []backend.SubscriptionTriggerWritable{
-					backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete},
-				Frequency: backend.SubscriptionFrequencyDaily,
+					backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+				Frequency: backend.SubscriptionFrequencyImmediate,
 			},
 			createCfg: &mockCreateSavedSearchSubscriptionConfig{
 				expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
 					UserID:        userID,
 					ChannelID:     channelID,
 					SavedSearchID: savedSearchID,
-					Triggers:      []string{"feature_any_browser_implementation_complete"},
-					Frequency:     string(backend.SubscriptionFrequencyDaily),
+					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
 				},
 				result:        nil,
 				returnedError: errTest,
@@ -3797,8 +3798,8 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						ID:            "sub1",
 						ChannelID:     "chan1",
 						SavedSearchID: "search1",
-						Triggers:      []string{"feature_any_browser_implementation_complete"},
-						Frequency:     "daily",
+						Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
 						CreatedAt:     now,
 						UpdatedAt:     now,
 					},
@@ -3815,11 +3816,11 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 						Triggers: []backend.SubscriptionTriggerResponseItem{
 							{
 								Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-									backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+									backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 								RawValue: nil,
 							},
 						},
-						Frequency: "daily",
+						Frequency: backend.SubscriptionFrequencyImmediate,
 						CreatedAt: now,
 						UpdatedAt: now,
 					},
@@ -3890,8 +3891,8 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     "chan1",
 					SavedSearchID: "search1",
-					Triggers:      []string{"feature_any_browser_implementation_complete"},
-					Frequency:     "daily",
+					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
 					CreatedAt:     now,
 					UpdatedAt:     now,
 				},
@@ -3904,11 +3905,11 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+							backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 						RawValue: nil,
 					},
 				},
-				Frequency: "daily",
+				Frequency: backend.SubscriptionFrequencyImmediate,
 				CreatedAt: now,
 				UpdatedAt: now,
 			},
@@ -3964,10 +3965,11 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 	)
 	now := time.Now()
 	updatedTriggers := []backend.SubscriptionTriggerWritable{
-		backend.SubscriptionTriggerFeatureBaselineLimitedToNewly,
-		backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited,
+		backend.SubscriptionTriggerFeatureBaselineToNewly,
+		backend.SubscriptionTriggerFeatureBaselineRegressionToLimited,
 	}
-	updatedFrequency := backend.SubscriptionFrequencyDaily
+	updatedFrequency := backend.SubscriptionFrequencyImmediate
+	updatedSpannerFrequency := gcpspanner.SavedSearchSnapshotTypeImmediate
 
 	testCases := []struct {
 		name          string
@@ -3989,13 +3991,13 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				expectedRequest: gcpspanner.UpdateSavedSearchSubscriptionRequest{
 					ID:     subID,
 					UserID: userID,
-					Triggers: gcpspanner.OptionallySet[[]string]{
-						Value: []string{
-							"feature_baseline_limited_to_newly",
-							"feature_baseline_regression_newly_to_limited",
+					Triggers: gcpspanner.OptionallySet[[]gcpspanner.SubscriptionTrigger]{
+						Value: []gcpspanner.SubscriptionTrigger{
+							gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
+							gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited,
 						}, IsSet: true,
 					},
-					Frequency: gcpspanner.OptionallySet[string]{IsSet: false, Value: ""},
+					Frequency: gcpspanner.OptionallySet[gcpspanner.SavedSearchSnapshotType]{IsSet: false, Value: ""},
 				},
 				returnedError: nil,
 			},
@@ -4003,11 +4005,12 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				expectedSubscriptionID: subID,
 				expectedUserID:         userID,
 				result: &gcpspanner.SavedSearchSubscription{
-					ID:            subID,
-					Triggers:      []string{"feature_baseline_limited_to_newly"},
+					ID: subID,
+					Triggers: []gcpspanner.SubscriptionTrigger{
+						gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly},
 					ChannelID:     "channel",
 					SavedSearchID: "savedsearch",
-					Frequency:     "daily",
+					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
 					CreatedAt:     now,
 					UpdatedAt:     now,
 				},
@@ -4018,13 +4021,13 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-							backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
+							backend.SubscriptionTriggerFeatureBaselineToNewly),
 						RawValue: nil,
 					},
 				},
 				ChannelId:     "channel",
 				SavedSearchId: "savedsearch",
-				Frequency:     "daily",
+				Frequency:     backend.SubscriptionFrequencyImmediate,
 				CreatedAt:     now,
 				UpdatedAt:     now,
 			},
@@ -4042,9 +4045,9 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				expectedRequest: gcpspanner.UpdateSavedSearchSubscriptionRequest{
 					ID:       subID,
 					UserID:   userID,
-					Triggers: gcpspanner.OptionallySet[[]string]{IsSet: false, Value: nil},
-					Frequency: gcpspanner.OptionallySet[string]{
-						Value: "daily", IsSet: true,
+					Triggers: gcpspanner.OptionallySet[[]gcpspanner.SubscriptionTrigger]{IsSet: false, Value: nil},
+					Frequency: gcpspanner.OptionallySet[gcpspanner.SavedSearchSnapshotType]{
+						Value: gcpspanner.SavedSearchSnapshotTypeImmediate, IsSet: true,
 					},
 				},
 				returnedError: nil,
@@ -4056,10 +4059,11 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 					ID:            subID,
 					ChannelID:     "channel",
 					SavedSearchID: "savedsearchid",
-					Triggers:      []string{"feature_any_browser_implementation_complete"},
-					Frequency:     string(updatedFrequency),
-					CreatedAt:     now,
-					UpdatedAt:     now,
+					Triggers: []gcpspanner.SubscriptionTrigger{
+						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+					Frequency: updatedSpannerFrequency,
+					CreatedAt: now,
+					UpdatedAt: now,
 				},
 				returnedError: nil,
 			},
@@ -4070,7 +4074,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
-							backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+							backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 						RawValue: nil,
 					},
 				},
@@ -4092,13 +4096,13 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 				expectedRequest: gcpspanner.UpdateSavedSearchSubscriptionRequest{
 					ID:     subID,
 					UserID: userID,
-					Triggers: gcpspanner.OptionallySet[[]string]{
-						Value: []string{
-							"feature_baseline_limited_to_newly",
-							"feature_baseline_regression_newly_to_limited",
+					Triggers: gcpspanner.OptionallySet[[]gcpspanner.SubscriptionTrigger]{
+						Value: []gcpspanner.SubscriptionTrigger{
+							gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
+							gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited,
 						}, IsSet: true,
 					},
-					Frequency: gcpspanner.OptionallySet[string]{
+					Frequency: gcpspanner.OptionallySet[gcpspanner.SavedSearchSnapshotType]{
 						Value: "",
 						IsSet: false,
 					},
@@ -4223,7 +4227,7 @@ func assertUnknownTrigger(t *testing.T, itemIndex int,
 func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 	testCases := []struct {
 		name          string
-		inputTriggers []string
+		inputTriggers []gcpspanner.SubscriptionTrigger
 		expectedItems []struct {
 			IsUnknown bool
 			Value     string
@@ -4232,9 +4236,9 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 	}{
 		{
 			name: "All Valid Triggers",
-			inputTriggers: []string{
-				string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
-				string(backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
+			inputTriggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
 			},
 			expectedItems: []struct {
 				IsUnknown bool
@@ -4242,19 +4246,19 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 				RawValue  *string
 			}{
 				{IsUnknown: false,
-					Value:    string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+					Value:    string(backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 					RawValue: nil},
 				{IsUnknown: false,
-					Value:    string(backend.SubscriptionTriggerFeatureBaselineLimitedToNewly),
+					Value:    string(backend.SubscriptionTriggerFeatureBaselineToNewly),
 					RawValue: nil},
 			},
 		},
 		{
 			name: "Mixed Valid and Unknown Triggers",
-			inputTriggers: []string{
-				string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+			inputTriggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
 				"deprecated_trigger",
-				string(backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited),
+				gcpspanner.SubscriptionTriggerFeatureBaselineRegressionToLimited,
 				"another_unknown",
 			},
 			expectedItems: []struct {
@@ -4263,13 +4267,13 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 				RawValue  *string
 			}{
 				{IsUnknown: false,
-					Value:    string(backend.SubscriptionTriggerFeatureAnyBrowserImplementationComplete),
+					Value:    string(backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete),
 					RawValue: nil},
 				{IsUnknown: true,
 					Value:    string(backend.EnumUnknownValue),
 					RawValue: valuePtr("deprecated_trigger")},
 				{IsUnknown: false,
-					Value:    string(backend.SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited),
+					Value:    string(backend.SubscriptionTriggerFeatureBaselineRegressionToLimited),
 					RawValue: nil},
 				{IsUnknown: true,
 					Value:    string(backend.EnumUnknownValue),
@@ -4278,7 +4282,7 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 		},
 		{
 			name:          "All Unknown Triggers",
-			inputTriggers: []string{"unknown1", "unknown2"},
+			inputTriggers: []gcpspanner.SubscriptionTrigger{"unknown1", "unknown2"},
 			expectedItems: []struct {
 				IsUnknown bool
 				Value     string
@@ -4290,7 +4294,7 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 		},
 		{
 			name:          "Empty Triggers",
-			inputTriggers: []string{},
+			inputTriggers: []gcpspanner.SubscriptionTrigger{},
 			expectedItems: []struct {
 				IsUnknown bool
 				Value     string

@@ -38,7 +38,7 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 			cmd: workertypes.RefreshSearchCommand{
 				SearchID:  "search-123",
 				Query:     "query=abc",
-				Frequency: workertypes.FrequencyDaily,
+				Frequency: workertypes.FrequencyImmediate,
 				Timestamp: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			publishErr: nil,
@@ -49,7 +49,7 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 				"data": {
 					"search_id": "search-123",
 					"query": "query=abc",
-					"frequency": "DAILY",
+					"frequency": "IMMEDIATE",
 					"timestamp": "2025-01-01T00:00:00Z"
 				}
 			}`,
@@ -59,7 +59,7 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 			cmd: workertypes.RefreshSearchCommand{
 				SearchID:  "search-123",
 				Query:     "query=abc",
-				Frequency: workertypes.FrequencyDaily,
+				Frequency: workertypes.FrequencyImmediate,
 				Timestamp: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			publishErr:   errors.New("pubsub error"),

@@ -1813,22 +1813,28 @@ components:
         - EnumUnknownValue
     SubscriptionFrequency:
       type: string
-      description: The frequency for a subscription. Currently, only 'daily' is supported.
+      description: The frequency for a subscription.
       enum:
-        - daily
+        - immediate
+        - weekly
+        - monthly
       x-enumNames:
-        - SubscriptionFrequencyDaily
+        - SubscriptionFrequencyImmediate
+        - SubscriptionFrequencyWeekly
+        - SubscriptionFrequencyMonthly
     SubscriptionTriggerWritable:
       type: string
       description: The set of valid, user-selectable triggers for a subscription.
       enum:
-        - feature_baseline_limited_to_newly
-        - feature_any_browser_implementation_complete
-        - feature_baseline_regression_newly_to_limited
+        - feature_baseline_to_newly
+        - feature_baseline_to_widely
+        - feature_browser_implementation_any_complete
+        - feature_baseline_regression_to_limited
       x-enumNames:
-        - SubscriptionTriggerFeatureBaselineLimitedToNewly
-        - SubscriptionTriggerFeatureAnyBrowserImplementationComplete
-        - SubscriptionTriggerFeatureBaselineRegressionNewlyToLimited
+        - SubscriptionTriggerFeatureBaselineToNewly
+        - SubscriptionTriggerFeatureBaselineToWidely
+        - SubscriptionTriggerFeatureBrowserImplementationAnyComplete
+        - SubscriptionTriggerFeatureBaselineRegressionToLimited
     SubscriptionTriggerResponseValue:
       description: >
         Represents a subscription trigger value. Includes 'unknown' for handling deprecated triggers.

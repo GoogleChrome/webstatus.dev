@@ -200,8 +200,8 @@ func TestEventProducer_ReleaseLock(t *testing.T) {
 		wantErr          bool
 	}{
 		{
-			name:             "Daily maps to Immediate (as per implementation)",
-			freq:             workertypes.FrequencyDaily,
+			name:             "Regular release",
+			freq:             workertypes.FrequencyImmediate,
 			wantSnapshotType: gcpspanner.SavedSearchSnapshotTypeImmediate,
 			mockErr:          nil,
 			wantErr:          false,
@@ -432,7 +432,7 @@ func TestEventProducer_GetLatestEvent(t *testing.T) {
 		},
 		{
 			name:             "Spanner error",
-			freq:             workertypes.FrequencyDaily,
+			freq:             workertypes.FrequencyImmediate,
 			wantSnapshotType: gcpspanner.SavedSearchSnapshotTypeImmediate,
 			mockResp:         nil,
 			mockErr:          errors.New("db error"),

@@ -134,16 +134,17 @@ func NewEventProducer(client EventProducerSpannerClient) *EventProducer {
 
 func convertFrequencyToSnapshotType(freq workertypes.JobFrequency) gcpspanner.SavedSearchSnapshotType {
 	switch freq {
-	// Eventually daily and unknown will be their own types.
-	case workertypes.FrequencyImmediate, workertypes.FrequencyDaily, workertypes.FrequencyUnknown:
+	case workertypes.FrequencyImmediate:
 		return gcpspanner.SavedSearchSnapshotTypeImmediate
 	case workertypes.FrequencyWeekly:
 		return gcpspanner.SavedSearchSnapshotTypeWeekly
 	case workertypes.FrequencyMonthly:
 		return gcpspanner.SavedSearchSnapshotTypeMonthly
+	case workertypes.FrequencyUnknown:
+		return gcpspanner.SavedSearchSnapshotTypeUnknown
 	}
 
-	return gcpspanner.SavedSearchSnapshotTypeImmediate
+	return gcpspanner.SavedSearchSnapshotTypeUnknown
 }
 
 func convertWorktypeReasonsToSpanner(reasons []workertypes.Reason) []string {
