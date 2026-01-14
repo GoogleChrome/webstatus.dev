@@ -135,13 +135,13 @@ func TestProcessEvent_Success(t *testing.T) {
 			{
 				SubscriptionID: "sub-1",
 				UserID:         "user-1",
-				Triggers:       []string{"any_change"}, // Matches logic in shouldNotifyV1
+				Triggers:       []workertypes.JobTrigger{"any_change"}, // Matches logic in shouldNotifyV1
 				EmailAddress:   "user1@example.com",
 			},
 			{
 				SubscriptionID: "sub-2",
 				UserID:         "user-2",
-				Triggers:       []string{}, // Empty triggers = no notify
+				Triggers:       []workertypes.JobTrigger{}, // Empty triggers = no notify
 				EmailAddress:   "user2@example.com",
 			},
 		},
@@ -220,7 +220,7 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 			{
 				SubscriptionID: "sub-1",
 				UserID:         "user-1",
-				Triggers:       []string{"any_change"},
+				Triggers:       []workertypes.JobTrigger{"any_change"},
 				EmailAddress:   "user1@example.com",
 			},
 		},
@@ -303,8 +303,8 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	// Two subscribers
 	subSet := &workertypes.SubscriberSet{
 		Emails: []workertypes.EmailSubscriber{
-			{SubscriptionID: "sub-1", Triggers: []string{"change"}, UserID: "u1", EmailAddress: "e1"},
-			{SubscriptionID: "sub-2", Triggers: []string{"change"}, UserID: "u2", EmailAddress: "e2"},
+			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{"change"}, UserID: "u1", EmailAddress: "e1"},
+			{SubscriptionID: "sub-2", Triggers: []workertypes.JobTrigger{"change"}, UserID: "u2", EmailAddress: "e2"},
 		},
 	}
 
@@ -355,7 +355,7 @@ func TestProcessEvent_JobCount(t *testing.T) {
 	// Verify that if no jobs are generated (e.g. no matching triggers), ProcessEvent returns early/cleanly.
 	subSet := &workertypes.SubscriberSet{
 		Emails: []workertypes.EmailSubscriber{
-			{SubscriptionID: "sub-1", Triggers: []string{}, EmailAddress: "e1", UserID: "u1"}, // No match
+			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{}, EmailAddress: "e1", UserID: "u1"}, // No match
 		},
 	}
 	finder := &mockSubscriptionFinder{
