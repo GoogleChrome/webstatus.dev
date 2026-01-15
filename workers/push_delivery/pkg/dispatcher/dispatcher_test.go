@@ -170,7 +170,7 @@ func TestProcessEvent_Success(t *testing.T) {
 			Type:        workertypes.SummaryHighlightTypeChanged,
 			FeatureID:   "test-feature-id",
 			FeatureName: "Test Feature",
-			DocLinks:    nil,
+			Docs:        nil,
 			NameChange:  nil,
 			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
 				From: newBaselineValue(workertypes.BaselineStatusLimited),
@@ -445,7 +445,7 @@ func withBaselineHighlight(
 		Type:        workertypes.SummaryHighlightTypeChanged,
 		FeatureID:   "test-feature-id",
 		FeatureName: "Test Feature",
-		DocLinks:    nil,
+		Docs:        nil,
 		BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
 			From: newBaselineValue(from),
 			To:   newBaselineValue(to),
@@ -467,7 +467,7 @@ func withBrowserChangeHighlight(
 		Type:           workertypes.SummaryHighlightTypeChanged,
 		FeatureID:      "test-feature-id",
 		FeatureName:    "Test Feature",
-		DocLinks:       nil,
+		Docs:           nil,
 		BaselineChange: nil,
 		BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 			workertypes.BrowserChrome: {
