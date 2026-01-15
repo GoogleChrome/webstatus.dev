@@ -28,7 +28,7 @@ type notificationChannelWithState struct {
 	ID                  string
 	UserID              string
 	Name                string
-	Type                string
+	Type                NotificationChannelType
 	Config              spanner.NullJSON
 	CreatedAt           time.Time
 	UpdatedAt           time.Time

@@ -517,6 +517,17 @@ func (s *Backend) ListNotificationChannels(ctx context.Context,
 		return nil, err
 	}
 
+	// Sort channels to ensure a consistent order.
+	// Primary sort: UpdatedAt DESC
+	// Secondary sort: Type-specific key ASC (as a tie-breaker)
+	slices.SortFunc(channels, func(a, b gcpspanner.NotificationChannel) int {
+		if res := b.UpdatedAt.Compare(a.UpdatedAt); res != 0 {
+			return res
+		}
+
+		return cmp.Compare(getChannelSortKey(a), getChannelSortKey(b))
+	})
+
 	backendChannels := make([]backend.NotificationChannelResponse, 0, len(channels))
 	for i := range channels {
 		backendChannels = append(backendChannels, *toBackendNotificationChannel(&channels[i]))
@@ -530,10 +541,24 @@ func (s *Backend) ListNotificationChannels(ctx context.Context,
 	}, nil
 }
 
+// getChannelSortKey returns a string to be used for secondary sorting of notification channels.
+func getChannelSortKey(channel gcpspanner.NotificationChannel) string {
+	switch channel.Type {
+	case gcpspanner.NotificationChannelTypeEmail:
+		if channel.EmailConfig != nil {
+			return channel.EmailConfig.Address
+		}
+		// Add cases for other channel types here in the future.
+	}
+
+	return "" // Default sort key if type is unknown or has no specific key.
+}
+
 // toBackendNotificationChannel is a helper function to convert spanner
 // notification channel to backend notification channel.
 func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *backend.NotificationChannelResponse {
 	if channel == nil {
+
 		return nil
 	}
 	// Convert spanner channel to backend channel

@@ -34,7 +34,7 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 	baseCreateReq := CreateNotificationChannelRequest{
 		UserID: userID,
 		Name:   "Test Email",
-		Type:   "EMAIL",
+		Type:   NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{
 			Address:           "test@example.com",
 			IsVerified:        true,
@@ -59,7 +59,7 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 		createReq := CreateNotificationChannelRequest{
 			UserID: userID,
 			Name:   "A new channel",
-			Type:   "EMAIL",
+			Type:   NotificationChannelTypeEmail,
 			EmailConfig: &EmailConfig{
 				Address:           "new@example.com",
 				IsVerified:        false,
@@ -157,7 +157,7 @@ func TestListNotificationChannels(t *testing.T) {
 	baseCreateReq := CreateNotificationChannelRequest{
 		UserID: userID,
 		Name:   "Test Email",
-		Type:   "EMAIL",
+		Type:   NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{
 			Address:           "test@example.com",
 			IsVerified:        true,
