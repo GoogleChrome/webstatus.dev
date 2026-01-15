@@ -154,6 +154,7 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 			SummaryRaw:     g.rawSummary,
 			Metadata:       deliveryMetadata,
 			ChannelID:      sub.ChannelID,
+			Triggers:       sub.Triggers,
 		})
 	}
 
@@ -196,29 +197,8 @@ func shouldNotifyV1(triggers []workertypes.JobTrigger, summary workertypes.Event
 
 func matchesTrigger(t workertypes.JobTrigger, summary workertypes.EventSummary) bool {
 	for _, h := range summary.Highlights {
-		switch t {
-		case workertypes.FeaturePromotedToNewly:
-			if h.BaselineChange != nil && h.BaselineChange.To.Status == workertypes.BaselineStatusNewly {
-				return true
-			}
-		case workertypes.FeaturePromotedToWidely:
-			if h.BaselineChange != nil && h.BaselineChange.To.Status == workertypes.BaselineStatusWidely {
-				return true
-			}
-		case workertypes.FeatureRegressedToLimited:
-			if h.BaselineChange != nil && h.BaselineChange.To.Status == workertypes.BaselineStatusLimited {
-				return true
-			}
-		case workertypes.BrowserImplementationAnyComplete:
-			// BrowserChanges is a map, so we iterate values
-			for _, change := range h.BrowserChanges {
-				if change == nil {
-					continue
-				}
-				if change.To.Status == workertypes.BrowserStatusAvailable {
-					return true
-				}
-			}
+		if h.MatchesTrigger(t) {
+			return true
 		}
 	}
 
