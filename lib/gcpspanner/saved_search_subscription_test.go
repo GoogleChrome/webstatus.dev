@@ -35,7 +35,7 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 	channelReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
@@ -105,7 +105,7 @@ func TestGetSavedSearchSubscriptionFailsForWrongUser(t *testing.T) {
 	channelReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
@@ -155,7 +155,7 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 	channelReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
@@ -224,7 +224,7 @@ func TestDeleteSavedSearchSubscription(t *testing.T) {
 	channelReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
@@ -279,7 +279,7 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 	channelReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
@@ -363,7 +363,7 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 
 	// Channel 1: Valid, active EMAIL channel
 	emailChannelReq := CreateNotificationChannelRequest{
-		UserID: userID, Name: "Email", Type: "EMAIL",
+		UserID: userID, Name: "Email", Type: NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "active@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	emailChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, emailChannelReq)
@@ -394,7 +394,7 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 
 	// Channel 4: Disabled EMAIL channel (should be ignored)
 	disabledEmailReq := CreateNotificationChannelRequest{
-		UserID: userID, Name: "Disabled", Type: "EMAIL",
+		UserID: userID, Name: "Disabled", Type: NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "disabled@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	disabledChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, disabledEmailReq)
@@ -484,7 +484,7 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	for _, sub := range subscribers {
 		if sub.ChannelID == emailChannelID {
 			// Do the comparison for the email subscriber details
-			if sub.Type != "EMAIL" {
+			if sub.Type != NotificationChannelTypeEmail {
 				t.Errorf("expected EMAIL type for email channel, got %s", sub.Type)
 
 				continue

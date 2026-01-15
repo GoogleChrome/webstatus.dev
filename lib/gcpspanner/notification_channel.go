@@ -37,13 +37,13 @@ type EmailConfig struct {
 
 // NotificationChannel represents a user-facing notification channel.
 type NotificationChannel struct {
-	ID          string       `spanner:"ID"`
-	UserID      string       `spanner:"UserID"`
-	Name        string       `spanner:"Name"`
-	Type        string       `spanner:"Type"`
-	EmailConfig *EmailConfig `spanner:"-"`
-	CreatedAt   time.Time    `spanner:"CreatedAt"`
-	UpdatedAt   time.Time    `spanner:"UpdatedAt"`
+	ID          string                  `spanner:"ID"`
+	UserID      string                  `spanner:"UserID"`
+	Name        string                  `spanner:"Name"`
+	Type        NotificationChannelType `spanner:"Type"`
+	EmailConfig *EmailConfig            `spanner:"-"`
+	CreatedAt   time.Time               `spanner:"CreatedAt"`
+	UpdatedAt   time.Time               `spanner:"UpdatedAt"`
 }
 
 // spannerNotificationChannel is the internal struct for Spanner mapping.
@@ -52,11 +52,33 @@ type spannerNotificationChannel struct {
 	Config spanner.NullJSON `spanner:"Config"`
 }
 
+type NotificationChannelType string
+
+const (
+	NotificationChannelTypeEmail NotificationChannelType = "email"
+)
+
+func getAllNotificationTypes() []NotificationChannelType {
+	// Use a map so that exhaustive linter will pick up new ones.
+	// Then convert the keys to a slice.
+	types := map[NotificationChannelType]any{
+		NotificationChannelTypeEmail: nil,
+	}
+
+	ret := make([]NotificationChannelType, 0, len(types))
+	for t := range types {
+		ret = append(ret, t)
+	}
+
+	return ret
+
+}
+
 // CreateNotificationChannelRequest is the request to create a channel.
 type CreateNotificationChannelRequest struct {
 	UserID      string
 	Name        string
-	Type        string
+	Type        NotificationChannelType
 	EmailConfig *EmailConfig
 }
 
@@ -157,7 +179,7 @@ type subscriptionConfigs struct {
 	EmailConfig *EmailConfig
 }
 
-func loadSubscriptionConfigs(_ string, config spanner.NullJSON) (subscriptionConfigs, error) {
+func loadSubscriptionConfigs(_ NotificationChannelType, config spanner.NullJSON) (subscriptionConfigs, error) {
 	var ret subscriptionConfigs
 	if !config.Valid {
 		return ret, nil

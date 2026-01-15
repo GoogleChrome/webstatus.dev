@@ -316,19 +316,19 @@ func (c *Client) ListSavedSearchSubscriptions(
 }
 
 type spannerSubscriberDestination struct {
-	SubscriptionID string                `spanner:"ID"`
-	UserID         string                `spanner:"UserID"`
-	ChannelID      string                `spanner:"ChannelID"`
-	Type           string                `spanner:"Type"`
-	Triggers       []SubscriptionTrigger `spanner:"Triggers"`
-	Config         spanner.NullJSON      `spanner:"Config"`
+	SubscriptionID string                  `spanner:"ID"`
+	UserID         string                  `spanner:"UserID"`
+	ChannelID      string                  `spanner:"ChannelID"`
+	Type           NotificationChannelType `spanner:"Type"`
+	Triggers       []SubscriptionTrigger   `spanner:"Triggers"`
+	Config         spanner.NullJSON        `spanner:"Config"`
 }
 
 type SubscriberDestination struct {
 	SubscriptionID string
 	UserID         string
 	ChannelID      string
-	Type           string
+	Type           NotificationChannelType
 	Triggers       []SubscriptionTrigger
 	// If type is EMAIL, EmailConfig is set.
 	EmailConfig *EmailConfig
@@ -361,11 +361,12 @@ func (m readAllActivePushSubscriptionsMapper) SelectAllByKeys(key activePushSubs
 		WHERE
 			sc.SavedSearchID = @savedSearchID
 			AND sc.Frequency = @frequency
-			AND nc.Type IN ('EMAIL', 'WEBHOOK')
+			AND nc.Type IN UNNEST(@notificationTypes)
 			AND (cs.IsDisabledBySystem IS NULL OR cs.IsDisabledBySystem = FALSE)`,
 		Params: map[string]interface{}{
-			"savedSearchID": key.SavedSearchID,
-			"frequency":     key.Frequency,
+			"savedSearchID":     key.SavedSearchID,
+			"frequency":         key.Frequency,
+			"notificationTypes": getAllNotificationTypes(),
 		},
 	}
 }

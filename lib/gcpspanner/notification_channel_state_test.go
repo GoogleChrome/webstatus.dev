@@ -34,7 +34,7 @@ func TestNotificationChannelStateOperations(t *testing.T) {
 	createReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test Channel",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)

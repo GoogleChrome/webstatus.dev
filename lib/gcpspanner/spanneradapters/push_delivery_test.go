@@ -71,7 +71,7 @@ func TestFindSubscribers(t *testing.T) {
 				{
 					SubscriptionID: "sub-1",
 					UserID:         "user-1",
-					Type:           "EMAIL",
+					Type:           gcpspanner.NotificationChannelTypeEmail,
 					ChannelID:      "chan-1",
 					EmailConfig: &gcpspanner.EmailConfig{
 						Address:           "test@example.com",
@@ -112,7 +112,7 @@ func TestFindSubscribers(t *testing.T) {
 				{
 					UserID:         "user-1",
 					SubscriptionID: "sub-1",
-					Type:           "EMAIL",
+					Type:           gcpspanner.NotificationChannelTypeEmail,
 					ChannelID:      "chan-1",
 					EmailConfig: &gcpspanner.EmailConfig{
 						Address:           "test@example.com",
@@ -168,7 +168,7 @@ func TestFindSubscribers(t *testing.T) {
 				{
 					UserID:         "user-1",
 					SubscriptionID: "sub-1",
-					Type:           "EMAIL",
+					Type:           gcpspanner.NotificationChannelTypeEmail,
 					ChannelID:      "chan-1",
 					Triggers:       nil,
 					EmailConfig:    nil, // Missing config should be skipped
@@ -190,7 +190,7 @@ func TestFindSubscribers(t *testing.T) {
 				{
 					UserID:         "user-1",
 					SubscriptionID: "sub-1",
-					Type:           "EMAIL",
+					Type:           gcpspanner.NotificationChannelTypeEmail,
 					ChannelID:      "chan-1",
 					EmailConfig: &gcpspanner.EmailConfig{
 						Address:           "test@example.com",

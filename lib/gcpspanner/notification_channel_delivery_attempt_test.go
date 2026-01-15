@@ -33,7 +33,7 @@ func TestCreateNotificationChannelDeliveryAttempt(t *testing.T) {
 	createReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test Channel",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
@@ -92,7 +92,7 @@ func TestCreateNotificationChannelDeliveryAttemptPruning(t *testing.T) {
 	createReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test Channel",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
@@ -164,7 +164,7 @@ func TestCreateNotificationChannelDeliveryAttemptConcurrency(t *testing.T) {
 	createReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test Channel",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	concurrentChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
@@ -221,7 +221,7 @@ func TestListNotificationChannelDeliveryAttemptsPagination(t *testing.T) {
 	createReq := CreateNotificationChannelRequest{
 		UserID:      userID,
 		Name:        "Test Channel",
-		Type:        "EMAIL",
+		Type:        NotificationChannelTypeEmail,
 		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
