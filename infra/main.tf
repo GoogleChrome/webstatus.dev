@@ -152,3 +152,52 @@ module "frontend" {
   min_instance_count = var.frontend_min_instance_count
   max_instance_count = var.frontend_max_instance_count
 }
+
+module "pubsub" {
+  source = "./pubsub"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+
+  env_id                   = var.env_id
+  project_id               = var.projects.internal
+  notification_channel_ids = var.notification_channel_ids
+}
+
+module "workers" {
+  source = "./workers"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+
+  internal_project_id = var.projects.internal
+  env_id              = var.env_id
+
+  # Regions
+  regions = local.regions
+  # Dependencies
+  docker_repository_details = module.storage.docker_repository_details
+  spanner_details           = module.storage.spanner_info
+  state_bucket_name         = module.storage.notification_state_bucket_name
+
+  pubsub_details = {
+    ingestion_subscription_id    = module.pubsub.ingestion_subscription_id
+    ingestion_topic_id           = module.pubsub.ingestion_topic_id
+    batch_topic_id               = module.pubsub.batch_updates_topic_id
+    batch_subscription_id        = module.pubsub.batch_updates_subscription_id
+    notification_topic_id        = module.pubsub.notification_topic_id
+    notification_subscription_id = module.pubsub.notification_subscription_id
+    email_topic_id               = module.pubsub.email_delivery_topic_id
+    email_subscription_id        = module.pubsub.email_delivery_subscription_id
+  }
+
+  worker_instance_count = {
+    event_producer_count = 1
+    push_delivery_count  = 1
+    email_count          = 1
+  }
+  frontend_base_url = var.frontend_base_url
+
+  email_service_account_email = var.email_service_account_email
+  deletion_protection         = var.deletion_protection
+}

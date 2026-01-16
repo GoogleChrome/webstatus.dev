@@ -17,6 +17,7 @@ package spanneradapters
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -179,6 +180,10 @@ func (e *EventProducer) GetLatestEvent(ctx context.Context, frequency workertype
 
 	event, err := e.client.GetLatestSavedSearchNotificationEvent(ctx, searchID, snapshotType)
 	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, workertypes.ErrLatestEventNotFound)
+		}
+
 		return nil, err
 	}
 

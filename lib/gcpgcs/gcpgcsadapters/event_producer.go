@@ -36,9 +36,7 @@ func NewEventProducer(client EventProducerBlobStorageClient, bucketName string) 
 }
 
 func (e *EventProducer) Store(ctx context.Context, dirs []string, key string, data []byte) (string, error) {
-	filepath := append([]string{e.bucketName}, dirs...)
-	// Add the key as the final element.
-	filepath = append(filepath, key)
+	filepath := append(dirs, key)
 	path := path.Join(filepath...)
 	if err := e.client.WriteBlob(ctx, path, data, blobtypes.WithContentType("application/json")); err != nil {
 		return "", err

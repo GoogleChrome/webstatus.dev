@@ -40,6 +40,7 @@ frontend_docker_build_target = "static"
 
 backend_domains                      = ["api.webstatus.dev"]
 frontend_domains                     = ["webstatus.dev", "www.webstatus.dev"]
+frontend_base_url                    = "https://webstatus.dev"
 custom_ssl_certificates_for_frontend = []
 custom_ssl_certificates_for_backend  = []
 
@@ -97,3 +98,4 @@ auth_github_config_locations = {
 backend_min_instance_count  = 1
 frontend_min_instance_count = 1
 notification_channel_ids    = ["projects/web-compass-prod/notificationChannels/4991947607216940054"]
+email_service_account_email = "emailer-job-prod@webstatus-dev-internal-prod.iam.gserviceaccount.com"

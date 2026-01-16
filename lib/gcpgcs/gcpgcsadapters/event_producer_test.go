@@ -74,7 +74,7 @@ func TestStore(t *testing.T) {
 			dirs:         []string{},
 			key:          "file.json",
 			mockErr:      nil,
-			expectedPath: "test-bucket/file.json",
+			expectedPath: "file.json",
 			wantErr:      false,
 		},
 		{
@@ -82,7 +82,7 @@ func TestStore(t *testing.T) {
 			dirs:         []string{"folder1", "folder2"},
 			key:          "file.json",
 			mockErr:      nil,
-			expectedPath: "test-bucket/folder1/folder2/file.json",
+			expectedPath: "folder1/folder2/file.json",
 			wantErr:      false,
 		},
 		{
@@ -90,7 +90,7 @@ func TestStore(t *testing.T) {
 			dirs:         []string{"folder"},
 			key:          "file.json",
 			mockErr:      errors.New("gcs error"),
-			expectedPath: "test-bucket/folder/file.json",
+			expectedPath: "folder/file.json",
 			wantErr:      true,
 		},
 	}
@@ -143,7 +143,7 @@ func TestStore(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	bucketName := "test-bucket"
-	fullPath := "test-bucket/folder/file.json"
+	fullPath := "folder/file.json"
 	data := []byte("test-data")
 
 	tests := []struct {

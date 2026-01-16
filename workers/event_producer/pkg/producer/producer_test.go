@@ -279,6 +279,7 @@ func TestProcessSearch_NoChanges(t *testing.T) {
 	pubMock := new(mockEventPublisher)
 
 	metaMock.getLatestEventReturns.info = nil
+	metaMock.getLatestEventReturns.err = workertypes.ErrLatestEventNotFound
 	differMock.runReturns.err = differ.ErrNoChangesDetected
 
 	producer := NewEventProducer(differMock, blobMock, metaMock, pubMock)
