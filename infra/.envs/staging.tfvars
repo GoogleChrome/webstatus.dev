@@ -38,8 +38,9 @@ google_analytics_id = "G-EPZE5TL134"
 
 frontend_docker_build_target = "static"
 
-backend_domains  = ["api-webstatus-dev.corp.goog"]
-frontend_domains = ["website-webstatus-dev.corp.goog"]
+backend_domains   = ["api-webstatus-dev.corp.goog"]
+frontend_domains  = ["website-webstatus-dev.corp.goog"]
+frontend_base_url = "https://website-webstatus-dev.corp.goog"
 
 # Temporary for UbP.
 custom_ssl_certificates_for_frontend = ["ub-self-sign"]
@@ -100,3 +101,4 @@ auth_github_config_locations = {
 backend_min_instance_count  = 0
 frontend_min_instance_count = 0
 notification_channel_ids    = ["projects/web-compass-staging/notificationChannels/7136127183667686021"]
+email_service_account_email = "emailer-job-staging@webstatus-dev-internal-staging.iam.gserviceaccount.com"

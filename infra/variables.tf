@@ -55,6 +55,7 @@ locals {
     var.spanner_region_override,
   "regional-${keys(var.region_information)[0]}")
   region_to_subnet_map = { for region, info in var.region_information : region => info.networks }
+  regions              = keys(var.region_information)
 }
 
 variable "secret_ids" {
@@ -202,4 +203,14 @@ variable "frontend_max_instance_count" {
 variable "notification_channel_ids" {
   description = "A list of notification channel ids to send alerts to."
   type        = list(string)
+}
+
+variable "email_service_account_email" {
+  description = "Pre-existing Service Account email for the Email Worker"
+  type        = string
+}
+
+variable "frontend_base_url" {
+  type        = string
+  description = "Frontend base URL. Useful for email notifications for assets."
 }

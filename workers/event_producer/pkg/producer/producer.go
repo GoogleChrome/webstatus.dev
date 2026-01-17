@@ -105,7 +105,7 @@ func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, quer
 	// 1. Fetch Previous State
 	// We need the last known state to compute the diff.
 	lastEvent, err := p.metaStore.GetLatestEvent(ctx, frequency, searchID)
-	if err != nil {
+	if err != nil && !errors.Is(err, workertypes.ErrLatestEventNotFound) {
 		return fmt.Errorf("failed to get latest event info: %w", err)
 	}
 
@@ -114,8 +114,13 @@ func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, quer
 		// If we have history, fetch the actual bytes from "Cold Storage"
 		previousStateBytes, err = p.blobStore.Get(ctx, lastEvent.StateBlobPath)
 		if err != nil {
+			slog.ErrorContext(ctx, "unable to fetch previous state blob", "error", err, "search_id", searchID,
+				"state_blob_path", lastEvent.StateBlobPath)
+
 			return fmt.Errorf("failed to fetch previous state blob: %w", err)
 		}
+	} else {
+		slog.InfoContext(ctx, "no prior history found", "search_id", searchID)
 	}
 
 	// 2. Run the Differ

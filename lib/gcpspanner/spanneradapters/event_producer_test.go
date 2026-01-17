@@ -416,7 +416,7 @@ func TestEventProducer_GetLatestEvent(t *testing.T) {
 		mockResp         *gcpspanner.SavedSearchNotificationEvent
 		mockErr          error
 		wantInfo         *workertypes.LatestEventInfo
-		wantErr          bool
+		expectedError    error
 	}{
 		{
 			name:             "Found event",
@@ -428,16 +428,25 @@ func TestEventProducer_GetLatestEvent(t *testing.T) {
 				EventID:       "event-123",
 				StateBlobPath: "gs://bucket/blob",
 			},
-			wantErr: false,
+			expectedError: nil,
+		},
+		{
+			name:             "No event found",
+			freq:             workertypes.FrequencyImmediate,
+			wantSnapshotType: gcpspanner.SavedSearchSnapshotTypeImmediate,
+			mockResp:         nil,
+			mockErr:          gcpspanner.ErrQueryReturnedNoResults,
+			wantInfo:         nil,
+			expectedError:    workertypes.ErrLatestEventNotFound,
 		},
 		{
 			name:             "Spanner error",
 			freq:             workertypes.FrequencyImmediate,
 			wantSnapshotType: gcpspanner.SavedSearchSnapshotTypeImmediate,
 			mockResp:         nil,
-			mockErr:          errors.New("db error"),
+			mockErr:          errTest,
 			wantInfo:         nil,
-			wantErr:          true,
+			expectedError:    errTest,
 		},
 	}
 
@@ -451,8 +460,8 @@ func TestEventProducer_GetLatestEvent(t *testing.T) {
 
 			info, err := adapter.GetLatestEvent(context.Background(), tc.freq, "search-1")
 
-			if (err != nil) != tc.wantErr {
-				t.Errorf("GetLatestEvent() error = %v, wantErr %v", err, tc.wantErr)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("GetLatestEvent() error = %v, wantErr %v", err, tc.expectedError)
 			}
 
 			if !mock.getLatestEventCalled {

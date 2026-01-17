@@ -27,6 +27,7 @@ import (
 var (
 	ErrUnknownSummaryVersion    = errors.New("unknown summary version")
 	ErrFailedToSerializeSummary = errors.New("failed to serialize summary")
+	ErrLatestEventNotFound      = errors.New("latest event not found")
 )
 
 const (
