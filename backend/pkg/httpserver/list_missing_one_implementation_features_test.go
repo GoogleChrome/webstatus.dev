@@ -199,6 +199,7 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 			mockCacher := NewMockRawBytesDataCacher(t, nil, nil)
 			myServer := Server{wptMetricsStorer: mockStorer, metadataStorer: nil, userGitHubClientFactory: nil,
 				operationResponseCaches: initOperationResponseCaches(mockCacher, getTestRouteCacheOptions()),
+				eventPublisher:          nil,
 				baseURL:                 getTestBaseURL(t)}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse)
 			assertMocksExpectations(t, tc.expectedCallCount, mockStorer.callCountListMissingOneImplFeatures,

@@ -170,6 +170,7 @@ type Server struct {
 	operationResponseCaches *operationResponseCaches
 	baseURL                 *url.URL
 	userGitHubClientFactory UserGitHubClientFactory
+	eventPublisher          EventPublisher
 }
 
 type GitHubUserClient interface {
@@ -221,11 +222,17 @@ type RouteCacheOptions struct {
 	AggregatedFeatureStatsOptions []cachetypes.CacheOption
 }
 
+type EventPublisher interface {
+	PublishSearchConfigurationChanged(ctx context.Context, resp *backend.SavedSearchResponse,
+		userID string, isCreation bool) error
+}
+
 func NewHTTPServer(
 	port string,
 	baseURL *url.URL,
 	metadataStorer WebFeatureMetadataStorer,
 	wptMetricsStorer WPTMetricsStorer,
+	eventPublisher EventPublisher,
 	rawBytesDataCacher RawBytesDataCacher,
 	routeCacheOptions RouteCacheOptions,
 	userGitHubClientFactory UserGitHubClientFactory,
@@ -235,6 +242,7 @@ func NewHTTPServer(
 	srv := &Server{
 		metadataStorer:          metadataStorer,
 		wptMetricsStorer:        wptMetricsStorer,
+		eventPublisher:          eventPublisher,
 		operationResponseCaches: initOperationResponseCaches(rawBytesDataCacher, routeCacheOptions),
 		baseURL:                 baseURL,
 		userGitHubClientFactory: userGitHubClientFactory,

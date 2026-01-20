@@ -139,6 +139,14 @@ resource "google_cloud_run_v2_service" "service" {
         name  = "BASE_URL"
         value = var.backend_api_url
       }
+      env {
+        name  = "INGESTION_TOPIC_ID"
+        value = var.ingestion_topic_id
+      }
+      env {
+        name  = "PUBSUB_PROJECT_ID"
+        value = var.pubsub_project_id
+      }
     }
     containers {
       name  = "otel"
@@ -212,6 +220,13 @@ resource "google_cloud_run_service_iam_member" "public" {
   service  = each.value.name
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+resource "google_pubsub_topic_iam_member" "pub" {
+  topic    = var.ingestion_topic_id
+  role     = "roles/pubsub.publisher"
+  member   = "serviceAccount:${google_service_account.backend.email}"
+  provider = google.internal_project
 }
 
 resource "google_compute_region_network_endpoint_group" "neg" {

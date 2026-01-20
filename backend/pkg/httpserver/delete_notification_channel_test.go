@@ -95,6 +95,7 @@ func TestDeleteNotificationChannel(t *testing.T) {
 				metadataStorer:          nil,
 				operationResponseCaches: nil,
 				userGitHubClientFactory: nil,
+				eventPublisher:          nil,
 			}
 			assertTestServerRequest(t, &myServer, tc.request, tc.expectedResponse,
 				[]testServerOption{tc.authMiddlewareOption}...)
