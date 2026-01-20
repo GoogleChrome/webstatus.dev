@@ -19,7 +19,7 @@
     "eslint-plugin-n": "^17.23.1",
     "gts": "^7.0.0",
     "openapi-typescript": "7.10.1",
-    "prettier": "3.7.4",
+    "prettier": "3.8.0",
     "quicktype": "23.2.6",
     "stylelint": "^16.26.1",
     "stylelint-config-standard": "^39.0.1"
