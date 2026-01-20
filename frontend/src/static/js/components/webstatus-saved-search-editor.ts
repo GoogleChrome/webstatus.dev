@@ -155,7 +155,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
       this._currentTask = new Task(this, {
         autoRun: false,
         task: async ([name, description, query, user, apiClient]) => {
-          const token = await user!.getIdToken();
+          const token = await user!.user.getIdToken();
           return apiClient!.createSavedSearch(token, {
             name: name,
             description: description !== '' ? description : undefined,
@@ -236,7 +236,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
           user,
           apiClient,
         ]) => {
-          const token = await user.getIdToken();
+          const token = await user.user.getIdToken();
           const update: UpdateSavedSearchInput = {
             id: savedSearch.id,
             name: name !== savedSearch.name ? name : undefined,
@@ -288,7 +288,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
     this._currentTask = new Task(this, {
       autoRun: false,
       task: async ([savedSearchID, user, apiClient]) => {
-        const token = await user!.getIdToken();
+        const token = await user!.user.getIdToken();
         await apiClient!.removeSavedSearchByID(savedSearchID!, token);
         return savedSearchID!;
       },

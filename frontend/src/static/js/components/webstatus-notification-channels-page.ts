@@ -16,10 +16,9 @@
 import {consume} from '@lit/context';
 import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
-import {User} from 'firebase/auth';
 import {Task} from '@lit/task';
 
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {APIClient} from '../api/client.js';
 import {components} from 'webstatus.dev-backend';
@@ -65,7 +64,7 @@ export class WebstatusNotificationChannelsPage extends LitElement {
         return;
       }
 
-      const token = await this.user.getIdToken();
+      const token = await this.user.user.getIdToken();
       const channels = await this.apiClient
         .listNotificationChannels(token)
         .catch(e => {

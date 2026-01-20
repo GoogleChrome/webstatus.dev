@@ -44,7 +44,9 @@ describe('webstatus-saved-search-editor', () => {
   };
 
   const mockUser: User = {
-    getIdToken: sinon.stub().resolves('mock-token'),
+    user: {
+      getIdToken: sinon.stub().resolves('mock-token'),
+    },
   } as unknown as User;
 
   async function setupComponent(

@@ -45,8 +45,7 @@ import {
   navigateToUrl,
 } from '../utils/app-router.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
-import {User} from 'firebase/auth';
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {firebaseUserContext, User} from '../contexts/firebase-user-context.js';
 import {Task, TaskStatus} from '@lit/task';
 import {NotFoundError, ApiError} from '../api/errors.js';
 import {TaskTracker} from '../utils/task-tracker.js';
@@ -121,7 +120,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       }
       let token: string | undefined;
       if (user) {
-        token = await user.getIdToken();
+        token = await user.user.getIdToken();
       }
       this._userSavedSearchByIDTaskTracker = {
         status: TaskStatus.PENDING,
@@ -203,7 +202,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       if (user === null) {
         return undefined;
       }
-      const token = await user!.getIdToken();
+      const token = await user!.user.getIdToken();
       this._userSavedSearchesTaskTracker = {
         status: TaskStatus.PENDING,
         data: undefined,

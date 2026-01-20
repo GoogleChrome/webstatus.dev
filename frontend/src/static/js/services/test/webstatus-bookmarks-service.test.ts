@@ -449,7 +449,10 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .user=${{
-            getIdToken: async () => 'test-token',
+            user: {
+              getIdToken: async () => 'test-token',
+            },
+            syncState: 'idle',
           } as User}
         ></webstatus-bookmarks-service>`,
       );
@@ -474,7 +477,10 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .user=${{
-            getIdToken: async () => 'test-token',
+            user: {
+              getIdToken: async () => 'test-token',
+            },
+            syncState: 'idle',
           } as User}
         ></webstatus-bookmarks-service>`,
       );
@@ -506,7 +512,10 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .user=${{
-            getIdToken: async () => 'test-token',
+            user: {
+              getIdToken: async () => 'test-token',
+            },
+            syncState: 'idle',
           } as User}
         ></webstatus-bookmarks-service>`,
       );

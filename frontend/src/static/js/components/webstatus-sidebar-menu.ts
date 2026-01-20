@@ -50,8 +50,7 @@ import {
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
-import {User} from 'firebase/auth';
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {

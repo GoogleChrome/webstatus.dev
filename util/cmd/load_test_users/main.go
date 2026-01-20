@@ -98,6 +98,7 @@ func createUserClaim(user User, project string) jwt.MapClaims {
 }
 
 // getUsers contains the list of users to create.
+// Any updates should be reflected in e2e/tests/utils.ts as well.
 func getUsers() []User {
 	return []User{
 		{

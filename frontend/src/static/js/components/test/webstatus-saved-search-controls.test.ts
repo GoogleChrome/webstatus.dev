@@ -84,7 +84,10 @@ describe('WebstatusSavedSearchControls', () => {
   beforeEach(async () => {
     apiClientMock = sinon.createStubInstance(APIClient);
     userMock = {
-      getIdToken: sinon.stub().resolves('mock-token'),
+      user: {
+        getIdToken: sinon.stub().resolves('mock-token'),
+      },
+      syncState: 'idle',
     } as unknown as User;
 
     toastStub = sinon.stub(toastUtils.Toast.prototype, 'toast');
@@ -227,7 +230,8 @@ describe('WebstatusSavedSearchControls', () => {
 
       const event = await eventPromise;
 
-      expect((userMock.getIdToken as sinon.SinonStub).calledOnce).to.be.true;
+      expect((userMock.user.getIdToken as sinon.SinonStub).calledOnce).to.be
+        .true;
       expect(
         apiClientMock.putUserSavedSearchBookmark,
       ).to.have.been.calledOnceWith(
@@ -366,7 +370,8 @@ describe('WebstatusSavedSearchControls', () => {
 
       const event = await eventPromise;
 
-      expect((userMock.getIdToken as sinon.SinonStub).calledOnce).to.be.true;
+      expect((userMock.user.getIdToken as sinon.SinonStub).calledOnce).to.be
+        .true;
       expect(
         apiClientMock.removeUserSavedSearchBookmark,
       ).to.have.been.calledOnceWith(

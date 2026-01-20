@@ -15,19 +15,30 @@
  */
 
 import {consume} from '@lit/context';
-import {LitElement, type TemplateResult, html, nothing} from 'lit';
+import {LitElement, type TemplateResult, css, html, nothing} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 
-import {User} from 'firebase/auth';
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
 import {
   AuthConfig,
   firebaseAuthContext,
 } from '../contexts/firebase-auth-context.js';
 import {toast} from '../utils/toast.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-login')
 export class WebstatusLogin extends LitElement {
+  static get styles() {
+    return [
+      SHARED_STYLES,
+      css`
+        .error-icon {
+          color: red;
+        }
+      `,
+    ];
+  }
+
   @consume({context: firebaseAuthContext, subscribe: true})
   @state()
   firebaseAuthConfig?: AuthConfig;
@@ -75,16 +86,52 @@ export class WebstatusLogin extends LitElement {
     user: User,
     authConfig: AuthConfig,
   ): TemplateResult {
+    const isSyncing = user.syncState === 'syncing';
+    const email = user.user.email;
     return html`
       <sl-dropdown>
-        <sl-button slot="trigger" caret
-          ><sl-icon slot="prefix" name="${authConfig.icon}"></sl-icon
-          >${user.email}</sl-button
+        <sl-button
+          slot="trigger"
+          caret
+          ?loading=${isSyncing}
+          ?disabled=${isSyncing}
         >
+          <sl-icon slot="prefix" name="${authConfig.icon}"></sl-icon>
+          ${email}
+        </sl-button>
         <sl-menu>
-          <sl-menu-item @click=${() => this.handleLogOutClick(authConfig)}
-            >Sign out</sl-menu-item
-          >
+          <sl-menu-item @click=${() => this.handleLogOutClick(authConfig)}>
+            Sign out
+          </sl-menu-item>
+        </sl-menu>
+      </sl-dropdown>
+    `;
+  }
+
+  renderAuthenticatedErrorButton(
+    user: User,
+    authConfig: AuthConfig,
+  ): TemplateResult {
+    const email = user.user.email;
+    return html`
+      <sl-dropdown>
+        <sl-button
+          slot="trigger"
+          caret
+          data-testid="error-while-syncing-button"
+        >
+          <sl-icon
+            slot="prefix"
+            name="exclamation-triangle"
+            class="error-icon"
+            data-testid="error-icon"
+          ></sl-icon>
+          ${email}
+        </sl-button>
+        <sl-menu>
+          <sl-menu-item @click=${() => this.handleLogOutClick(authConfig)}>
+            Sign out
+          </sl-menu-item>
         </sl-menu>
       </sl-dropdown>
     `;
@@ -102,6 +149,21 @@ export class WebstatusLogin extends LitElement {
     }
 
     // Authenticated user.
-    return this.renderAuthenticatedButton(this.user, this.firebaseAuthConfig);
+    switch (this.user.syncState) {
+      case 'syncing':
+      case 'idle':
+        return this.renderAuthenticatedButton(
+          this.user,
+          this.firebaseAuthConfig,
+        );
+      case 'error':
+        return this.renderAuthenticatedErrorButton(
+          this.user,
+          this.firebaseAuthConfig,
+        );
+      default:
+        // Should not happen.
+        return html`${nothing}`;
+    }
   }
 }

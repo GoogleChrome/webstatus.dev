@@ -103,7 +103,7 @@ export class WebstatusSavedSearchControls extends LitElement {
         savedSearchID,
         isBookmarkStatusActive,
       ]) => {
-        const token = await user.getIdToken();
+        const token = await user.user.getIdToken();
         if (isBookmarkStatusActive) {
           await apiClient.removeUserSavedSearchBookmark(savedSearchID, token);
         } else {

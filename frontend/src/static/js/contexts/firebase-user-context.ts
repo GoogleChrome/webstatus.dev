@@ -15,9 +15,14 @@
  */
 
 import {createContext} from '@lit/context';
+import type {User as FirebaseUser} from 'firebase/auth';
 
-import type {User} from 'firebase/auth';
-export type {User} from 'firebase/auth';
+export type SyncState = 'idle' | 'syncing' | 'error';
+
+export interface User {
+  user: FirebaseUser;
+  syncState: SyncState;
+}
 
 // User means there is an authenticated user
 // null means no authenticated user is active
