@@ -24,7 +24,7 @@ import {SlAlert, SlDialog, SlInput, SlTextarea} from '@shoelace-style/shoelace';
 import {Toast} from '../../utils/toast.js';
 import {type WebstatusTypeahead} from '../webstatus-typeahead.js';
 import {taskUpdateComplete} from './test-helpers.js';
-import {User} from '../../contexts/firebase-user-context.js';
+import {UserContext} from '../../contexts/firebase-user-context.js';
 import {InternalServerError} from '../../api/errors.js';
 import {TaskStatus} from '@lit/task';
 describe('webstatus-saved-search-editor', () => {
@@ -43,11 +43,11 @@ describe('webstatus-saved-search-editor', () => {
     permissions: {role: 'saved_search_owner'},
   };
 
-  const mockUser: User = {
+  const mockUserContext: UserContext = {
     user: {
       getIdToken: sinon.stub().resolves('mock-token'),
     },
-  } as unknown as User;
+  } as unknown as UserContext;
 
   async function setupComponent(
     operation: 'save' | 'edit' | 'delete',
@@ -59,7 +59,7 @@ describe('webstatus-saved-search-editor', () => {
 
     const component = await fixture<WebstatusSavedSearchEditor>(html`
       <webstatus-saved-search-editor
-        .user=${mockUser}
+        .userContext=${mockUserContext}
         .apiClient=${apiClientStub}
       ></webstatus-saved-search-editor>
     `);

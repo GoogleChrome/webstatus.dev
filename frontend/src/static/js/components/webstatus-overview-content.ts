@@ -39,7 +39,10 @@ import {
   SavedSearchScope,
 } from '../contexts/app-bookmark-info-context.js';
 import {consume} from '@lit/context';
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 import {
@@ -81,7 +84,7 @@ export class WebstatusOverviewContent extends LitElement {
 
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   @query('webstatus-saved-search-editor')
   savedSearchEditor!: WebstatusSavedSearchEditor;
@@ -232,7 +235,7 @@ export class WebstatusOverviewContent extends LitElement {
           .appBookmarkInfo=${this.appBookmarkInfo}
           .activeQuery=${this.activeQuery}
           .savedSearch=${userSavedSearch?.value}
-          .user=${this.user}
+          .userContext=${this.userContext}
           .apiClient=${this.apiClient}
         ></webstatus-overview-filters>
         <br />
@@ -250,7 +253,7 @@ export class WebstatusOverviewContent extends LitElement {
       </div>
       <webstatus-saved-search-editor
         .apiClient=${this.apiClient!}
-        .user=${this.user!}
+        .userContext=${this.userContext!}
         .savedSearch=${userSavedSearch?.value}
         .location=${this.location}
       ></webstatus-saved-search-editor>

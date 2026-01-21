@@ -18,7 +18,10 @@ import {LitElement, css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {APIClient} from '../api/client.js';
 import {components} from 'webstatus.dev-backend';
@@ -44,7 +47,7 @@ export class WebstatusNotificationChannelsPage extends LitElement {
 
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   @consume({context: apiClientContext})
   @state()
@@ -55,16 +58,16 @@ export class WebstatusNotificationChannelsPage extends LitElement {
 
   private _channelsTask = new Task(this, {
     task: async () => {
-      if (this.user === null) {
+      if (this.userContext === null) {
         navigateToUrl('/');
         void toast('You must be logged in to view this page.', 'danger');
         return;
       }
-      if (this.user === undefined) {
+      if (this.userContext === undefined) {
         return;
       }
 
-      const token = await this.user.user.getIdToken();
+      const token = await this.userContext.user.getIdToken();
       const channels = await this.apiClient
         .listNotificationChannels(token)
         .catch(e => {
@@ -77,7 +80,7 @@ export class WebstatusNotificationChannelsPage extends LitElement {
         });
       this.emailChannels = channels.filter(c => c.type === 'email');
     },
-    args: () => [this.user],
+    args: () => [this.userContext],
   });
 
   render() {

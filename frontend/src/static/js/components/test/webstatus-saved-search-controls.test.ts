@@ -20,7 +20,7 @@ import {TaskStatus} from '@lit/task';
 
 import '../webstatus-saved-search-controls.js';
 import {WebstatusSavedSearchControls} from '../webstatus-saved-search-controls.js';
-import {User} from '../../contexts/firebase-user-context.js';
+import {UserContext} from '../../contexts/firebase-user-context.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
@@ -38,7 +38,7 @@ import {SlIconButton} from '@shoelace-style/shoelace';
 describe('WebstatusSavedSearchControls', () => {
   let element: WebstatusSavedSearchControls;
   let apiClientMock: sinon.SinonStubbedInstance<APIClient>;
-  let userMock: User;
+  let userMock: UserContext;
   let typeaheadMock: WebstatusTypeahead;
   let formatOverviewPageUrlStub: sinon.SinonStub;
   let openSavedSearch: sinon.SinonStub;
@@ -88,7 +88,7 @@ describe('WebstatusSavedSearchControls', () => {
         getIdToken: sinon.stub().resolves('mock-token'),
       },
       syncState: 'idle',
-    } as unknown as User;
+    } as unknown as UserContext;
 
     toastStub = sinon.stub(toastUtils.Toast.prototype, 'toast');
 
@@ -101,7 +101,7 @@ describe('WebstatusSavedSearchControls', () => {
     element = await fixture<WebstatusSavedSearchControls>(html`
       <webstatus-saved-search-controls
         .apiClient=${apiClientMock}
-        .user=${userMock}
+        .userContext=${userMock}
         .location=${mockLocation}
         .overviewPageQueryInput=${typeaheadMock}
         .openSavedSearchDialog=${(

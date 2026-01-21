@@ -33,7 +33,7 @@ import {
   firebaseAuthContext,
 } from '../../contexts/firebase-auth-context.js';
 import {
-  User,
+  UserContext,
   firebaseUserContext,
 } from '../../contexts/firebase-user-context.js';
 import {apiClientContext} from '../../contexts/api-client-context.js';
@@ -68,7 +68,7 @@ describe('webstatus-firebase-auth-service', () => {
       getIdToken: sinon.stub().resolves('test-token'),
     } as unknown as FirebaseUser,
     syncState: 'idle',
-  } as User;
+  } as UserContext;
 
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusFirebaseAuthService>(
@@ -176,7 +176,7 @@ describe('webstatus-firebase-auth-service', () => {
     class FakeChildElement extends LitElement {
       @consume({context: firebaseUserContext, subscribe: true})
       @property({attribute: false})
-      user: User | null | undefined;
+      userContext: UserContext | null | undefined;
     }
     const root = document.createElement('div');
     document.body.appendChild(root);
@@ -214,8 +214,8 @@ describe('webstatus-firebase-auth-service', () => {
     await childComponent.updateComplete;
 
     // Ensure it gets the same user via context.
-    assert.deepEqual(component.user, userStub);
-    assert.deepEqual(childComponent.user, userStub);
+    assert.deepEqual(component.userContext, userStub);
+    assert.deepEqual(childComponent.userContext, userStub);
   });
 
   it('does NOT ping the server when a user session is restored', async () => {

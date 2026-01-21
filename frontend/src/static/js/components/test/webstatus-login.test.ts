@@ -20,7 +20,7 @@ import '../webstatus-login.js';
 import {AuthConfig} from '../../contexts/firebase-auth-context.js';
 import {Auth, AuthProvider} from 'firebase/auth';
 import type {User as FirebaseUser} from 'firebase/auth';
-import {User} from '../../contexts/firebase-user-context.js';
+import {UserContext} from '../../contexts/firebase-user-context.js';
 import sinon from 'sinon';
 
 describe('webstatus-login', () => {
@@ -68,14 +68,14 @@ describe('webstatus-login', () => {
   });
 
   it('renders the authenticated button when user is defined and idle', async () => {
-    const userStub: User = {
+    const userStub: UserContext = {
       user: firebaseUserStub,
       syncState: 'idle',
     };
 
     const component = await fixture<WebstatusLogin>(html`
       <webstatus-login
-        .user=${userStub}
+        .userContext=${userStub}
         .firebaseAuthConfig=${authConfigStub}
       ></webstatus-login>
     `);
@@ -94,14 +94,14 @@ describe('webstatus-login', () => {
   });
 
   it('renders syncing state correctly', async () => {
-    const userStub: User = {
+    const userStub: UserContext = {
       user: firebaseUserStub,
       syncState: 'syncing',
     };
 
     const component = await fixture<WebstatusLogin>(html`
       <webstatus-login
-        .user=${userStub}
+        .userContext=${userStub}
         .firebaseAuthConfig=${authConfigStub}
       ></webstatus-login>
     `);
@@ -112,14 +112,14 @@ describe('webstatus-login', () => {
   });
 
   it('renders error state correctly', async () => {
-    const userStub: User = {
+    const userStub: UserContext = {
       user: firebaseUserStub,
       syncState: 'error',
     };
 
     const component = await fixture<WebstatusLogin>(html`
       <webstatus-login
-        .user=${userStub}
+        .userContext=${userStub}
         .firebaseAuthConfig=${authConfigStub}
       ></webstatus-login>
     `);
@@ -141,14 +141,14 @@ describe('webstatus-login', () => {
   });
 
   it('triggers signOut when logout button is clicked', async () => {
-    const userStub: User = {
+    const userStub: UserContext = {
       user: firebaseUserStub,
       syncState: 'idle',
     };
 
     const component = await fixture<WebstatusLogin>(html`
       <webstatus-login
-        .user=${userStub}
+        .userContext=${userStub}
         .firebaseAuthConfig=${authConfigStub}
       ></webstatus-login>
     `);

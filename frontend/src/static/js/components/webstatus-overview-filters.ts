@@ -68,7 +68,7 @@ import {
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {UserSavedSearch, VOCABULARY} from '../utils/constants.js';
-import {User} from '../contexts/firebase-user-context.js';
+import {UserContext} from '../contexts/firebase-user-context.js';
 
 const WEBSTATUS_FEATURE_OVERVIEW_CSV_FILENAME =
   'webstatus-feature-overview.csv';
@@ -86,7 +86,7 @@ export class WebstatusOverviewFilters extends LitElement {
   appBookmarkInfo?: AppBookmarkInfo;
 
   @property({type: Object})
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   @property({type: String})
   activeQuery: string = '';
@@ -412,13 +412,16 @@ export class WebstatusOverviewFilters extends LitElement {
           <sl-icon slot="prefix" name="search"></sl-icon>
         </sl-button>
       </webstatus-typeahead>
-      ${this.user && this.apiClient
-        ? this.renderSavedSearchControls(this.user, this.apiClient)
+      ${this.userContext && this.apiClient
+        ? this.renderSavedSearchControls(this.userContext, this.apiClient)
         : nothing}
     `;
   }
 
-  renderSavedSearchControls(user: User, apiClient: APIClient): TemplateResult {
+  renderSavedSearchControls(
+    userContext: UserContext,
+    apiClient: APIClient,
+  ): TemplateResult {
     if (this.typeaheadRef.value === undefined) {
       return html``;
     }
@@ -433,7 +436,7 @@ export class WebstatusOverviewFilters extends LitElement {
         <div slot="anchor" class="popup-anchor saved-search-controls"></div>
         <div class="popup-content">
           <webstatus-saved-search-controls
-            .user=${user}
+            .userContext=${userContext}
             .apiClient=${apiClient}
             .savedSearch=${this.savedSearch}
             .location=${this.location}

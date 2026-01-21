@@ -38,7 +38,7 @@ import {TaskStatus} from '@lit/task';
 import sinon from 'sinon';
 import {NotFoundError, ApiError} from '../../api/errors.js';
 import {Toast} from '../../utils/toast.js';
-import {User} from '../../contexts/firebase-user-context.js';
+import {UserContext} from '../../contexts/firebase-user-context.js';
 
 @customElement('test-bookmark-consumer')
 class TestBookmarkConsumer extends LitElement {
@@ -69,7 +69,7 @@ describe('webstatus-bookmarks-service', () => {
   });
   it('can be added to the page with the defaults', async () => {
     const component = await fixture<WebstatusBookmarksService>(
-      html`<webstatus-bookmarks-service .user=${null}>
+      html`<webstatus-bookmarks-service .userContext=${null}>
       </webstatus-bookmarks-service>`,
     );
     expect(component).to.exist;
@@ -85,7 +85,7 @@ describe('webstatus-bookmarks-service', () => {
     const el = await fixture<WebstatusBookmarksService>(html`
       <webstatus-bookmarks-service
         .getLocation=${getLocationStub}
-        .user=${null}
+        .userContext=${null}
       >
         <test-bookmark-consumer></test-bookmark-consumer>
       </webstatus-bookmarks-service>
@@ -113,7 +113,7 @@ describe('webstatus-bookmarks-service', () => {
     const el = await fixture<WebstatusBookmarksService>(html`
       <webstatus-bookmarks-service
         .getLocation=${getLocationStub}
-        .user=${null}
+        .userContext=${null}
       >
         <test-bookmark-consumer></test-bookmark-consumer>
       </webstatus-bookmarks-service>
@@ -184,7 +184,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
-          .user=${null}
+          .userContext=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -218,7 +218,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
-          .user=${null}
+          .userContext=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -251,7 +251,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
-          .user=${null}
+          .userContext=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -282,7 +282,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
-          .user=${null}
+          .userContext=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -317,7 +317,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
           .getSearchID=${() => 'test'}
-          .user=${null}
+          .userContext=${null}
           .getLocation=${() => {
             return {
               search: '?search_id=test',
@@ -365,7 +365,7 @@ describe('webstatus-bookmarks-service', () => {
           .getSearchID=${getSearchIDStub}
           .updatePageUrl=${updatePageUrlStub}
           .getLocation=${getLocationStub}
-          .user=${null}
+          .userContext=${null}
         ></webstatus-bookmarks-service>`,
       );
       await waitUntil(
@@ -406,7 +406,7 @@ describe('webstatus-bookmarks-service', () => {
           .apiClient=${apiClientStub}
           .getSearchID=${getSearchIDStub}
           .getLocation=${getLocationStub}
-          .user=${null}
+          .userContext=${null}
         ></webstatus-bookmarks-service>`,
       );
 
@@ -448,12 +448,12 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .user=${{
+          .userContext=${{
             user: {
               getIdToken: async () => 'test-token',
             },
             syncState: 'idle',
-          } as User}
+          } as UserContext}
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
@@ -476,12 +476,12 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .user=${{
+          .userContext=${{
             user: {
               getIdToken: async () => 'test-token',
             },
             syncState: 'idle',
-          } as User}
+          } as UserContext}
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
@@ -511,12 +511,12 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .user=${{
+          .userContext=${{
             user: {
               getIdToken: async () => 'test-token',
             },
             syncState: 'idle',
-          } as User}
+          } as UserContext}
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.equal(
@@ -531,7 +531,7 @@ describe('webstatus-bookmarks-service', () => {
       const service = await fixture<WebstatusBookmarksService>(
         html`<webstatus-bookmarks-service
           .apiClient=${apiClientStub}
-          .user=${null}
+          .userContext=${null}
         ></webstatus-bookmarks-service>`,
       );
       expect(service.appBookmarkInfo.userSavedSearchesTask?.status).to.eq(
@@ -664,7 +664,7 @@ describe('webstatus-bookmarks-service', () => {
         html`<webstatus-bookmarks-service
           .getLocation=${getLocationStub}
           .updatePageUrl=${updatePageUrlStub}
-          .user=${null}
+          .userContext=${null}
         ></webstatus-bookmarks-service>`,
       );
       // Ensure initial state is set for handlers

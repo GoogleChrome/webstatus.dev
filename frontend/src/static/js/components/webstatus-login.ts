@@ -18,7 +18,10 @@ import {consume} from '@lit/context';
 import {LitElement, type TemplateResult, css, html, nothing} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 import {
   AuthConfig,
   firebaseAuthContext,
@@ -45,10 +48,10 @@ export class WebstatusLogin extends LitElement {
 
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   handleLogInClick(authConfig: AuthConfig) {
-    if (this.user === undefined || this.user === null) {
+    if (this.userContext === undefined || this.userContext === null) {
       authConfig.signIn().catch(async error => {
         await toast(
           `Failed to login: ${error.message ?? 'unknown'}`,
@@ -83,11 +86,11 @@ export class WebstatusLogin extends LitElement {
   }
 
   renderAuthenticatedButton(
-    user: User,
+    userContext: UserContext,
     authConfig: AuthConfig,
   ): TemplateResult {
-    const isSyncing = user.syncState === 'syncing';
-    const email = user.user.email;
+    const isSyncing = userContext.syncState === 'syncing';
+    const email = userContext.user.email;
     return html`
       <sl-dropdown>
         <sl-button
@@ -109,10 +112,10 @@ export class WebstatusLogin extends LitElement {
   }
 
   renderAuthenticatedErrorButton(
-    user: User,
+    userContext: UserContext,
     authConfig: AuthConfig,
   ): TemplateResult {
-    const email = user.user.email;
+    const email = userContext.user.email;
     return html`
       <sl-dropdown>
         <sl-button
@@ -144,21 +147,21 @@ export class WebstatusLogin extends LitElement {
     }
 
     // Unauthenticated user.
-    if (this.user === undefined || this.user === null) {
+    if (this.userContext === undefined || this.userContext === null) {
       return this.renderLoginButton(this.firebaseAuthConfig);
     }
 
     // Authenticated user.
-    switch (this.user.syncState) {
+    switch (this.userContext.syncState) {
       case 'syncing':
       case 'idle':
         return this.renderAuthenticatedButton(
-          this.user,
+          this.userContext,
           this.firebaseAuthConfig,
         );
       case 'error':
         return this.renderAuthenticatedErrorButton(
-          this.user,
+          this.userContext,
           this.firebaseAuthConfig,
         );
       default:
