@@ -57,6 +57,7 @@ type PageablePath =
   | '/v1/users/me/notification-channels'
   | '/v1/stats/features/browsers/{browser}/feature_counts'
   | '/v1/users/me/saved-searches'
+  | '/v1/users/me/subscriptions'
   | '/v1/stats/baseline_status/low_date_feature_counts';
 
 type SuccessResponsePageableData<
@@ -846,6 +847,145 @@ export class APIClient {
     };
     const response = await this.client.PATCH(
       '/v1/saved-searches/{search_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+    return response.data;
+  }
+
+  public async getSubscription(
+    subscriptionId: string,
+    token: string,
+  ): Promise<components['schemas']['SubscriptionResponse']> {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          subscription_id: subscriptionId,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const response = await this.client.GET(
+      '/v1/users/me/subscriptions/{subscription_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  public async deleteSubscription(subscriptionId: string, token: string) {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          subscription_id: subscriptionId,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const response = await this.client.DELETE(
+      '/v1/users/me/subscriptions/{subscription_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
+  public async listSubscriptions(
+    token: string,
+  ): Promise<components['schemas']['SubscriptionResponse'][]> {
+    type SubscriptionPage = SuccessResponsePageableData<
+      paths['/v1/users/me/subscriptions']['get'],
+      ParamsOption<'/v1/users/me/subscriptions'>,
+      'application/json',
+      '/v1/users/me/subscriptions'
+    >;
+
+    return this.getAllPagesOfData<
+      '/v1/users/me/subscriptions',
+      SubscriptionPage
+    >('/v1/users/me/subscriptions', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  public async createSubscription(
+    token: string,
+    subscription: components['schemas']['Subscription'],
+  ): Promise<components['schemas']['SubscriptionResponse']> {
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/users/me/subscriptions'], 'post'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: subscription,
+      credentials: temporaryFetchOptions.credentials,
+    };
+    const response = await this.client.POST(
+      '/v1/users/me/subscriptions',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+    return response.data;
+  }
+
+  public async updateSubscription(
+    subscriptionId: string,
+    token: string,
+    updates: {
+      triggers?: components['schemas']['SubscriptionTriggerWritable'][];
+      frequency?: components['schemas']['SubscriptionFrequency'];
+    },
+  ): Promise<components['schemas']['SubscriptionResponse']> {
+    const req: components['schemas']['UpdateSubscriptionRequest'] = {
+      update_mask: [],
+    };
+    if (updates.triggers !== undefined) {
+      req.update_mask.push('triggers');
+      req.triggers = updates.triggers;
+    }
+    if (updates.frequency !== undefined) {
+      req.update_mask.push('frequency');
+      req.frequency = updates.frequency;
+    }
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/users/me/subscriptions/{subscription_id}'], 'patch'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      params: {
+        path: {
+          subscription_id: subscriptionId,
+        },
+      },
+      body: req,
+      credentials: temporaryFetchOptions.credentials,
+    };
+    const response = await this.client.PATCH(
+      '/v1/users/me/subscriptions/{subscription_id}',
       options,
     );
     const error = response.error;
