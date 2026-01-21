@@ -30,6 +30,8 @@ import {type components} from 'webstatus.dev-backend';
 import './webstatus-overview-data-loader.js';
 import './webstatus-overview-filters.js';
 import './webstatus-overview-pagination.js';
+import './webstatus-subscribe-button.js';
+import './webstatus-manage-subscriptions-dialog.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
@@ -56,6 +58,13 @@ import {
   SavedSearchOperationType,
   UserSavedSearch,
 } from '../utils/constants.js';
+import {SubscribeEvent} from './webstatus-subscribe-button.js';
+import {ifDefined} from 'lit/directives/if-defined.js';
+import {toast} from '../utils/toast.js';
+import {
+  SubscriptionSaveErrorEvent,
+  SubscriptionDeleteErrorEvent,
+} from './webstatus-manage-subscriptions-dialog.js';
 
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
@@ -88,6 +97,12 @@ export class WebstatusOverviewContent extends LitElement {
 
   @query('webstatus-saved-search-editor')
   savedSearchEditor!: WebstatusSavedSearchEditor;
+
+  @state()
+  private _isSubscriptionDialogOpen = false;
+
+  @state()
+  private _activeSavedSearchId: string | undefined = undefined;
 
   static get styles(): CSSResultGroup {
     return [
@@ -238,6 +253,12 @@ export class WebstatusOverviewContent extends LitElement {
           .userContext=${this.userContext}
           .apiClient=${this.apiClient}
         ></webstatus-overview-filters>
+        ${userSavedSearch
+          ? html`<webstatus-subscribe-button
+              saved-search-id=${userSavedSearch.value.id}
+              @subscribe=${this._handleSubscribe}
+            ></webstatus-subscribe-button>`
+          : nothing}
         <br />
 
         <webstatus-overview-data-loader
@@ -257,6 +278,39 @@ export class WebstatusOverviewContent extends LitElement {
         .savedSearch=${userSavedSearch?.value}
         .location=${this.location}
       ></webstatus-saved-search-editor>
+      <webstatus-manage-subscriptions-dialog
+        ?open=${this._isSubscriptionDialogOpen}
+        saved-search-id=${ifDefined(this._activeSavedSearchId)}
+        @sl-hide=${() => (this._isSubscriptionDialogOpen = false)}
+        @subscription-save-success=${this._handleSubscriptionSaveSuccess}
+        @subscription-save-error=${this._handleSubscriptionSaveError}
+        @subscription-delete-success=${this._handleSubscriptionDeleteSuccess}
+        @subscription-delete-error=${this._handleSubscriptionDeleteError}
+      >
+      </webstatus-manage-subscriptions-dialog>
     `;
+  }
+
+  private _handleSubscribe(e: SubscribeEvent) {
+    this._activeSavedSearchId = e.detail.savedSearchId;
+    this._isSubscriptionDialogOpen = true;
+  }
+
+  private _handleSubscriptionSaveSuccess() {
+    this._isSubscriptionDialogOpen = false;
+    void toast('Subscription saved!', 'success');
+  }
+
+  private _handleSubscriptionSaveError(e: SubscriptionSaveErrorEvent) {
+    void toast(`Error saving subscription: ${e.detail.message}`, 'danger');
+  }
+
+  private _handleSubscriptionDeleteSuccess() {
+    this._isSubscriptionDialogOpen = false;
+    void toast('Subscription deleted!', 'success');
+  }
+
+  private _handleSubscriptionDeleteError(e: SubscriptionDeleteErrorEvent) {
+    void toast(`Error deleting subscription: ${e.detail.message}`, 'danger');
   }
 }
