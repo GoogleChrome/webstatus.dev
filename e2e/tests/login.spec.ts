@@ -15,7 +15,89 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {loginAsUser} from './utils';
+import {dismissToast, freezeAnimations, loginAsUser, testUsers} from './utils';
+
+test.describe('Login Component States', () => {
+  test('displays spinner and is disabled during profile sync', async ({
+    page,
+  }) => {
+    // Intercept the pingUser request to introduce a delay.
+    await page.route('**/v1/users/me/ping', async route => {
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Delay to ensure 'syncing' state is capturable
+      await route.continue();
+    });
+
+    await freezeAnimations(page);
+    // Perform login and wait for the 'syncing' state.
+    await loginAsUser(page, 'test user 1', {waitFor: 'syncing'});
+
+    // The button should be in a loading state.
+    const loginButton = page.getByRole('button', {
+      name: testUsers['test user 1'],
+    });
+    await expect(loginButton.locator('sl-spinner')).toBeVisible();
+    await expect(loginButton).toBeDisabled();
+
+    // Take a screenshot for visual regression.
+    await page.mouse.move(0, 0); // Move mouse to avoid hover effects.
+    await expect(page.locator('webstatus-header')).toHaveScreenshot(
+      'login-syncing-state.png',
+    );
+
+    // Now, wait for the sync to complete and verify the final state.
+    await expect(loginButton.locator('sl-spinner')).toBeHidden();
+    await expect(loginButton).not.toBeDisabled();
+  });
+
+  test('displays an error icon if profile sync fails', async ({page}) => {
+    // Intercept the pingUser request and make it fail.
+    await page.route('**/v1/users/me/ping', route => {
+      route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({message: 'Internal Server Error'}),
+      });
+    });
+
+    // Perform the login and wait for the 'error' state.
+    await loginAsUser(page, 'test user 1', {waitFor: 'error'});
+
+    const loginButton = page.getByRole('button', {
+      name: testUsers['test user 1'],
+    });
+
+    // Check the button's state.
+    await expect(loginButton).toBeVisible();
+    await expect(loginButton).not.toBeDisabled();
+
+    // Dismiss the toast.
+    await dismissToast(page);
+
+    // Take a screenshot for visual regression.
+    await page.mouse.move(0, 0);
+    await expect(page.locator('webstatus-header')).toHaveScreenshot(
+      'login-error-state.png',
+    );
+  });
+
+  test('displays the idle state after a successful login', async ({page}) => {
+    // Perform a standard successful login using the main helper (waits for 'idle' by default).
+    await loginAsUser(page, 'test user 1');
+
+    const loginButton = page.getByRole('button', {
+      name: testUsers['test user 1'],
+    });
+    await expect(loginButton).toBeVisible();
+    await expect(loginButton.locator('sl-spinner')).toBeHidden();
+    await expect(loginButton).not.toBeDisabled();
+
+    // Take a screenshot for visual regression.
+    await page.mouse.move(0, 0);
+    await expect(page.locator('webstatus-header')).toHaveScreenshot(
+      'login-idle-state.png',
+    );
+  });
+});
 
 test('matches the screenshot for unauthenticated user', async ({page}) => {
   await page.goto('http://localhost:5555/');

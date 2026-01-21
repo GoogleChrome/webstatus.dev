@@ -32,7 +32,10 @@ import {
   getAuth,
   signInWithPopup,
 } from 'firebase/auth';
-import {User, firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 import {ServiceElement} from './service-element.js';
 
 interface FirebaseAuthSettings {
@@ -55,7 +58,7 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
 
   @provide({context: firebaseUserContext})
   @state()
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   @consume({context: apiClientContext, subscribe: true})
   @state()
@@ -74,20 +77,43 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
   ) => Promise<UserCredential> = signInWithPopup;
 
   async signInWithGitHub(auth: Auth, provider: GithubAuthProvider) {
-    const result = await this.credentialGetter(auth, provider);
-    const credential = GithubAuthProvider.credentialFromResult(result);
-    const githubToken = credential?.accessToken;
+    try {
+      const result = await this.credentialGetter(auth, provider); // This triggers onAuthStateChanged, which sets this.user
 
-    if (result.user && githubToken) {
-      try {
-        const idToken = await result.user.getIdToken();
-        await this.apiClient?.pingUser(idToken, {githubToken});
-      } catch (e) {
-        // Throw error so that webstatus-login can show a toast.
-        throw new Error(`Profile sync failed during login. Error: ${e}`);
+      // Now that the user is authenticated via Firebase, set the state to syncing.
+      if (this.userContext) {
+        this.userContext = {...this.userContext, syncState: 'syncing'};
       }
+
+      const credential = GithubAuthProvider.credentialFromResult(result);
+      const githubToken = credential?.accessToken;
+
+      if (result.user && githubToken) {
+        try {
+          const idToken = await result.user.getIdToken();
+          await this.apiClient?.pingUser(idToken, {githubToken});
+          if (this.userContext) {
+            this.userContext = {...this.userContext, syncState: 'idle'};
+          }
+        } catch (e) {
+          if (this.userContext) {
+            this.userContext = {...this.userContext, syncState: 'error'};
+          }
+          // Throw error so that webstatus-login can show a toast.
+          throw new Error(`Profile sync failed during login. Error: ${e}`);
+        }
+      } else if (this.userContext) {
+        // Handle cases where login succeeds but we don't get a token.
+        this.userContext = {...this.userContext, syncState: 'idle'};
+      }
+      return result;
+    } catch (e) {
+      // Handle errors from credentialGetter (e.g., user closes popup).
+      if (this.userContext) {
+        this.userContext = {...this.userContext, syncState: 'error'};
+      }
+      throw e;
     }
-    return result;
   }
 
   initFirebaseAuth() {
@@ -115,8 +141,12 @@ export class WebstatusFirebaseAuthService extends ServiceElement {
       // Set up the callback that will detect when:
       // 1. The user first logs in
       // 2. Resuming a session
-      this.firebaseAuthConfig.auth.onAuthStateChanged(user => {
-        this.user = user ? user : null;
+      this.firebaseAuthConfig.auth.onAuthStateChanged(firebaseUser => {
+        if (firebaseUser) {
+          this.userContext = {user: firebaseUser, syncState: 'idle'};
+        } else {
+          this.userContext = null;
+        }
       });
     }
   }

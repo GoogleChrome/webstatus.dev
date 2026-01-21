@@ -26,12 +26,16 @@ import {LitElement, TemplateResult, render} from 'lit';
 import {FirebaseOptions} from 'firebase/app';
 import sinon from 'sinon';
 import '../webstatus-firebase-auth-service.js';
-import {Auth, User, GithubAuthProvider, OAuthCredential} from 'firebase/auth';
+import {Auth, GithubAuthProvider, OAuthCredential} from 'firebase/auth';
+import type {User as FirebaseUser} from 'firebase/auth';
 import {
   AuthConfig,
   firebaseAuthContext,
 } from '../../contexts/firebase-auth-context.js';
-import {firebaseUserContext} from '../../contexts/firebase-user-context.js';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../../contexts/firebase-user-context.js';
 import {apiClientContext} from '../../contexts/api-client-context.js';
 import {APIClient} from '../../api/client.js';
 
@@ -60,8 +64,12 @@ describe('webstatus-firebase-auth-service', () => {
     tenantID: 'tenantID',
   };
   const userStub = {
-    getIdToken: sinon.stub().resolves('test-token'),
-  } as unknown as User;
+    user: {
+      getIdToken: sinon.stub().resolves('test-token'),
+    } as unknown as FirebaseUser,
+    syncState: 'idle',
+  } as UserContext;
+
   it('can be added to the page with the settings', async () => {
     const component = await fixture<WebstatusFirebaseAuthService>(
       html`<webstatus-firebase-auth-service .settings=${settings}>
@@ -132,8 +140,8 @@ describe('webstatus-firebase-auth-service', () => {
     );
     assert.exists(childComponent);
     const authStub = {
-      onAuthStateChanged: (callback: (user?: User) => void) =>
-        callback(userStub),
+      onAuthStateChanged: (callback: (user?: FirebaseUser) => void) =>
+        callback(userStub.user),
     } as Auth;
     component.authInitializer = () => authStub;
     const firebaseApp = new FakeFirebaseApp();
@@ -168,7 +176,7 @@ describe('webstatus-firebase-auth-service', () => {
     class FakeChildElement extends LitElement {
       @consume({context: firebaseUserContext, subscribe: true})
       @property({attribute: false})
-      user: User | null | undefined;
+      userContext: UserContext | null | undefined;
     }
     const root = document.createElement('div');
     document.body.appendChild(root);
@@ -186,9 +194,9 @@ describe('webstatus-firebase-auth-service', () => {
       'fake-child-auth-element-2',
     );
     assert.exists(childComponent);
-    let authStateCallback: (user: User | null) => void = () => {};
+    let authStateCallback: (user: FirebaseUser | null) => void = () => {};
     const authStub = {
-      onAuthStateChanged: (callback: (user: User | null) => void) => {
+      onAuthStateChanged: (callback: (user: FirebaseUser | null) => void) => {
         authStateCallback = callback;
       },
     } as Auth;
@@ -201,20 +209,20 @@ describe('webstatus-firebase-auth-service', () => {
 
     // Simulate user logging in.
     component.initFirebaseAuth();
-    authStateCallback(userStub);
+    authStateCallback(userStub.user);
     await component.updateComplete;
     await childComponent.updateComplete;
 
     // Ensure it gets the same user via context.
-    assert.equal(component.user, userStub);
-    assert.equal(childComponent.user, userStub);
+    assert.deepEqual(component.userContext, userStub);
+    assert.deepEqual(childComponent.userContext, userStub);
   });
 
   it('does NOT ping the server when a user session is restored', async () => {
     const apiClientStub = sinon.createStubInstance(APIClient);
-    let authStateCallback: (user: User | null) => void = () => {};
+    let authStateCallback: (user: FirebaseUser | null) => void = () => {};
     const authStub = {
-      onAuthStateChanged: (callback: (user: User | null) => void) => {
+      onAuthStateChanged: (callback: (user: FirebaseUser | null) => void) => {
         authStateCallback = callback;
       },
     } as Auth;
@@ -252,7 +260,7 @@ describe('webstatus-firebase-auth-service', () => {
     await component.updateComplete;
 
     // Simulate user logging in.
-    authStateCallback(userStub);
+    authStateCallback(userStub.user);
     await component.updateComplete;
 
     // The ping should NOT be called on a simple auth state change (session restore).
@@ -401,8 +409,8 @@ describe('webstatus-firebase-auth-service', () => {
     document.body.appendChild(root);
     const emulatorConnectorStub = sinon.stub();
     const authStub = {
-      onAuthStateChanged: (callback: (user?: User) => void) =>
-        callback(userStub),
+      onAuthStateChanged: (callback: (user?: FirebaseUser) => void) =>
+        callback(userStub.user),
     } as Auth;
 
     render(

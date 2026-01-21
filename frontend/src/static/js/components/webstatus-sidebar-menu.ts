@@ -50,8 +50,10 @@ import {
   savedSearchHelpers,
 } from '../contexts/app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
-import {User} from 'firebase/auth';
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
 
 // Map from sl-tree-item ids to paths.
 enum NavigationItemKey {
@@ -161,7 +163,7 @@ export class WebstatusSidebarMenu extends LitElement {
 
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   // For now, unconditionally open the features dropdown.
   @state()
@@ -383,10 +385,10 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   renderSettingsMenu(): TemplateResult {
-    if (this.user === undefined) {
+    if (this.userContext === undefined) {
       return html`${nothing}`;
     }
-    if (this.user === null) {
+    if (this.userContext === null) {
       return html`${nothing}`;
     }
 

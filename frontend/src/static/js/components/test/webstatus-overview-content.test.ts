@@ -23,18 +23,18 @@ import {APIClient} from '../../api/client.js';
 import {stub} from 'sinon'; // Make sure you have sinon installed
 import {savedSearchHelpers} from '../../contexts/app-bookmark-info-context.js';
 import sinon from 'sinon';
-import {User} from 'firebase/auth';
 import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
   UserSavedSearch,
 } from '../../utils/constants.js';
+import {UserContext} from '../../contexts/firebase-user-context.js';
 
 describe('webstatus-overview-content', () => {
   let element: WebstatusOverviewContent;
   let apiClientMock: sinon.SinonStubbedInstance<APIClient>;
-  let userMock: User;
+  let userMock: UserContext;
   let editor: WebstatusSavedSearchEditor;
   let editorIsOpenStub: sinon.SinonStub;
   let editorOpenSpy: sinon.SinonSpy;
@@ -57,13 +57,15 @@ describe('webstatus-overview-content', () => {
   beforeEach(async () => {
     apiClientMock = sinon.createStubInstance(APIClient);
     userMock = {
-      getIdToken: sinon.stub().resolves('mock-token'),
-    } as unknown as User;
+      user: {
+        getIdToken: sinon.stub().resolves('mock-token'),
+      },
+    } as unknown as UserContext;
 
     element = await fixture<WebstatusOverviewContent>(html`
       <webstatus-overview-content
         .apiClient=${apiClientMock}
-        .user=${userMock}
+        .userContext=${userMock}
         .location=${mockLocation}
       >
       </webstatus-overview-content>

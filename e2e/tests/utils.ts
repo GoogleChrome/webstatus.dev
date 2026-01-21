@@ -79,7 +79,22 @@ export async function getOverviewPageFeatureCount(page: Page): Promise<number> {
   return parseInt(text.match(regex)![1]);
 }
 
-export async function loginAsUser(page: Page, username: string) {
+// Based on util/cmd/load_test_users/main.go
+export const testUsers = {
+  'test user 1': 'test.user.1@example.com',
+  'test user 2': 'test.user.2@example.com',
+  'test user 3': 'test.user.3@example.com',
+  'fresh user': 'fresh.user@example.com',
+  'chromium user': 'chromium.user@example.com',
+  'firefox user': 'firefox.user@example.com',
+  'webkit user': 'webkit.user@example.com',
+};
+
+export async function loginAsUser(
+  page: Page,
+  username: keyof typeof testUsers,
+  options: {waitFor: 'idle' | 'syncing' | 'error'} = {waitFor: 'idle'},
+) {
   // Clicking the log in button will create a popup that we need to capture.
   const popupPromise = page.waitForEvent('popup');
   await page.goto('http://localhost:5555/');
@@ -90,9 +105,57 @@ export async function loginAsUser(page: Page, username: string) {
   await popup.getByText(username).hover(); // Needed for Firefox for some reason.
   await popup.getByText(username).click();
   await popup.waitForEvent('close');
+
+  const email = testUsers[username];
+  const loginButton = page.getByRole('button', {name: email});
+
+  // Wait for the button to become visible on the main page.
+  await expect(loginButton).toBeVisible();
+
+  switch (options.waitFor) {
+    case 'syncing':
+      // Wait for the loading spinner on the user button to appear.
+      await expect(loginButton.locator('sl-spinner')).toBeVisible();
+      break;
+    case 'error':
+      // Wait for the error icon to be present in the DOM.
+      await expect(
+        page
+          .getByTestId('error-while-syncing-button')
+          .getByTestId('error-icon'),
+      ).toBeVisible();
+      break;
+    case 'idle':
+    default:
+      // Wait for the loading spinner on the user button to disappear.
+      await expect(loginButton.locator('sl-spinner')).toBeHidden();
+      break;
+  }
 }
 
-export async function goTo404Page(page, query: string): Promise<void> {
+export async function dismissToast(page: Page) {
+  const toast = page.locator('sl-alert[variant="danger"][open]');
+  await toast.locator('sl-icon-button[name="x-lg"]').click();
+  await expect(toast).not.toBeVisible();
+}
+
+export async function freezeAnimations(page: Page) {
+  await page.addStyleTag({
+    content: `
+      *,
+      *::before,
+      *::after {
+        animation-play-state: paused !important;
+        animation-duration: 0.01s !important;
+        animation-iteration-count: 1 !important;
+        caret-color: transparent !important;
+        transition: none !important;
+      }
+    `,
+  });
+}
+
+export async function goTo404Page(page: Page, query: string): Promise<void> {
   await page.goto(`${BASE_URL}/features/${query}`);
   await expect(page).toHaveURL(
     `${BASE_URL}/errors-404/feature-not-found?q=${query}`,
@@ -103,7 +166,7 @@ export async function goTo404Page(page, query: string): Promise<void> {
 }
 
 export async function expect404PageButtons(
-  page,
+  page: Page,
   {hasSearch}: {hasSearch: boolean},
 ) {
   await expect(page.locator('#error-action-home-btn')).toBeVisible();

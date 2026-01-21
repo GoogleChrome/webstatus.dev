@@ -25,6 +25,7 @@ export interface AuthConfig {
   provider: AuthProvider;
   icon: authIcon;
   signIn: () => Promise<UserCredential>;
+  isSyncing?: boolean;
 }
 
 export const firebaseAuthContext = createContext<AuthConfig | undefined>(

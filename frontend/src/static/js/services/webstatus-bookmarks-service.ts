@@ -45,8 +45,10 @@ import {
   navigateToUrl,
 } from '../utils/app-router.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
-import {User} from 'firebase/auth';
-import {firebaseUserContext} from '../contexts/firebase-user-context.js';
+import {
+  firebaseUserContext,
+  UserContext,
+} from '../contexts/firebase-user-context.js';
 import {Task, TaskStatus} from '@lit/task';
 import {NotFoundError, ApiError} from '../api/errors.js';
 import {TaskTracker} from '../utils/task-tracker.js';
@@ -78,7 +80,7 @@ export class WebstatusBookmarksService extends ServiceElement {
   apiClient?: APIClient;
   @consume({context: firebaseUserContext, subscribe: true})
   @state()
-  user: User | null | undefined;
+  userContext: UserContext | null | undefined;
 
   _userSavedSearchByIDTaskTracker?: TaskTracker<
     UserSavedSearch,
@@ -99,9 +101,9 @@ export class WebstatusBookmarksService extends ServiceElement {
         this._currentSearchID,
         this._currentSearchQuery,
         this.apiClient,
-        this.user,
+        this.userContext,
       ] as const,
-    task: async ([searchID, searchQuery, apiClient, user]) => {
+    task: async ([searchID, searchQuery, apiClient, userContext]) => {
       if (searchID === '') {
         return undefined;
       }
@@ -120,8 +122,8 @@ export class WebstatusBookmarksService extends ServiceElement {
         };
       }
       let token: string | undefined;
-      if (user) {
-        token = await user.getIdToken();
+      if (userContext) {
+        token = await userContext.user.getIdToken();
       }
       this._userSavedSearchByIDTaskTracker = {
         status: TaskStatus.PENDING,
@@ -198,12 +200,12 @@ export class WebstatusBookmarksService extends ServiceElement {
 
   loadingUserSavedSearchesTask = new Task(this, {
     autoRun: false,
-    args: () => [this.apiClient, this.user] as const,
-    task: async ([apiClient, user]) => {
-      if (user === null) {
+    args: () => [this.apiClient, this.userContext] as const,
+    task: async ([apiClient, userContext]) => {
+      if (userContext === null) {
         return undefined;
       }
-      const token = await user!.getIdToken();
+      const token = await userContext!.user.getIdToken();
       this._userSavedSearchesTaskTracker = {
         status: TaskStatus.PENDING,
         data: undefined,
@@ -255,10 +257,10 @@ export class WebstatusBookmarksService extends ServiceElement {
     if (
       changedProperties.has('_currentLocation') ||
       changedProperties.has('apiClient') ||
-      changedProperties.has('user')
+      changedProperties.has('userContext')
     ) {
       // If the user's status has not been decided yet, wait
-      if (this.user === undefined) {
+      if (this.userContext === undefined) {
         return;
       }
       const incomingSearchID = this.getSearchID(
@@ -282,9 +284,10 @@ export class WebstatusBookmarksService extends ServiceElement {
     }
 
     if (
-      (changedProperties.has('apiClient') || changedProperties.has('user')) &&
+      (changedProperties.has('apiClient') ||
+        changedProperties.has('userContext')) &&
       this.apiClient !== undefined &&
-      this.user !== undefined
+      this.userContext !== undefined
     ) {
       void this.loadingUserSavedSearchesTask.run();
     }

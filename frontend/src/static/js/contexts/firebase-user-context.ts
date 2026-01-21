@@ -15,13 +15,18 @@
  */
 
 import {createContext} from '@lit/context';
+import type {User as FirebaseUser} from 'firebase/auth';
 
-import type {User} from 'firebase/auth';
-export type {User} from 'firebase/auth';
+export type SyncState = 'idle' | 'syncing' | 'error';
+
+export interface UserContext {
+  user: FirebaseUser;
+  syncState: SyncState;
+}
 
 // User means there is an authenticated user
 // null means no authenticated user is active
 // undefined means a decision has not been made yet about the current user.
-export const firebaseUserContext = createContext<User | null | undefined>(
-  'firebase-user',
-);
+export const firebaseUserContext = createContext<
+  UserContext | null | undefined
+>('firebase-user');

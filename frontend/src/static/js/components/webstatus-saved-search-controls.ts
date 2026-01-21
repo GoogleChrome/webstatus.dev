@@ -17,7 +17,7 @@
 import {LitElement, TemplateResult, css, html, nothing} from 'lit';
 import {customElement, property, query, state} from 'lit/decorators.js';
 import {APIClient} from '../contexts/api-client-context.js';
-import {User} from '../contexts/firebase-user-context.js';
+import {UserContext} from '../contexts/firebase-user-context.js';
 import {
   BookmarkOwnerRole,
   BookmarkStatusActive,
@@ -41,7 +41,7 @@ export class WebstatusSavedSearchControls extends LitElement {
   apiClient!: APIClient;
 
   @property({type: Object})
-  user!: User;
+  userContext!: UserContext;
 
   @property({type: Object})
   savedSearch?: UserSavedSearch;
@@ -99,11 +99,11 @@ export class WebstatusSavedSearchControls extends LitElement {
       autoRun: false,
       task: async ([
         apiClient,
-        user,
+        userContext,
         savedSearchID,
         isBookmarkStatusActive,
       ]) => {
-        const token = await user.getIdToken();
+        const token = await userContext.user.getIdToken();
         if (isBookmarkStatusActive) {
           await apiClient.removeUserSavedSearchBookmark(savedSearchID, token);
         } else {
@@ -115,7 +115,7 @@ export class WebstatusSavedSearchControls extends LitElement {
       },
       args: () => [
         this.apiClient,
-        this.user,
+        this.userContext,
         savedSearch.id,
         isBookmarkStatusActive,
       ],

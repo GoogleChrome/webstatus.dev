@@ -27,7 +27,7 @@ import {WebstatusTypeahead} from './webstatus-typeahead.js';
 import {Task, TaskStatus} from '@lit/task';
 import {APIClient, UpdateSavedSearchInput} from '../api/client.js';
 import {Toast} from '../utils/toast.js';
-import {User} from '../contexts/firebase-user-context.js';
+import {UserContext} from '../contexts/firebase-user-context.js';
 import {ApiError} from '../api/errors.js';
 
 interface OperationConfig {
@@ -75,7 +75,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
   apiClient!: APIClient;
 
   @property({type: Object})
-  user!: User;
+  userContext!: UserContext;
 
   // This is the value from the typeahead on the overview page so that we can carry over the user's existing query.
   @state()
@@ -154,8 +154,8 @@ export class WebstatusSavedSearchEditor extends LitElement {
       await this.editorAlert?.hide();
       this._currentTask = new Task(this, {
         autoRun: false,
-        task: async ([name, description, query, user, apiClient]) => {
-          const token = await user!.getIdToken();
+        task: async ([name, description, query, userContext, apiClient]) => {
+          const token = await userContext!.user.getIdToken();
           return apiClient!.createSavedSearch(token, {
             name: name,
             description: description !== '' ? description : undefined,
@@ -166,7 +166,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
           this.nameInput!.value,
           this.descriptionInput!.value,
           this.queryInput!.value,
-          this.user,
+          this.userContext,
           this.apiClient,
         ],
         onComplete: async result => {
@@ -233,10 +233,10 @@ export class WebstatusSavedSearchEditor extends LitElement {
           name,
           description,
           query,
-          user,
+          userContext,
           apiClient,
         ]) => {
-          const token = await user.getIdToken();
+          const token = await userContext.user.getIdToken();
           const update: UpdateSavedSearchInput = {
             id: savedSearch.id,
             name: name !== savedSearch.name ? name : undefined,
@@ -253,7 +253,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
           this.nameInput!.value,
           this.descriptionInput!.value,
           this.queryInput!.value,
-          this.user,
+          this.userContext,
           this.apiClient,
         ],
         onComplete: async result => {
@@ -287,12 +287,12 @@ export class WebstatusSavedSearchEditor extends LitElement {
   async handleDelete() {
     this._currentTask = new Task(this, {
       autoRun: false,
-      task: async ([savedSearchID, user, apiClient]) => {
-        const token = await user!.getIdToken();
+      task: async ([savedSearchID, userContext, apiClient]) => {
+        const token = await userContext!.user.getIdToken();
         await apiClient!.removeSavedSearchByID(savedSearchID!, token);
         return savedSearchID!;
       },
-      args: () => [this.savedSearch?.id, this.user, this.apiClient],
+      args: () => [this.savedSearch?.id, this.userContext, this.apiClient],
       onComplete: async savedSearchID => {
         this.dispatchEvent(
           new CustomEvent('saved-search-deleted', {
