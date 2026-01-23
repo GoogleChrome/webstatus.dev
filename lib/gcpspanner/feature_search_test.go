@@ -78,7 +78,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		},
 	}
 	for _, feature := range sampleFeatures {
-		id, err := client.UpsertWebFeature(ctx, feature)
+		id, err := client.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}

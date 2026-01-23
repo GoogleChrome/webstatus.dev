@@ -33,7 +33,7 @@ func setupRequiredTablesForWebFeatureSnapshot(
 	ret := map[string]string{}
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		id, err := spannerClient.UpsertWebFeature(ctx, feature)
+		id, err := spannerClient.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 
