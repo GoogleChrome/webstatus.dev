@@ -14,40 +14,81 @@
  * limitations under the License.
  */
 
-import {LitElement, html, css, TemplateResult} from 'lit';
-import {customElement, property} from 'lit/decorators.js';
+import {LitElement, html, TemplateResult} from 'lit';
+import {customElement, property, state} from 'lit/decorators.js';
+import {consume} from '@lit/context';
+import {
+  UserContext,
+  firebaseUserContext,
+} from '../contexts/firebase-user-context.js';
+import {toast} from '../utils/toast.js';
 
-export class SubscribeEvent extends CustomEvent<{savedSearchId: string}> {
-  constructor(savedSearchId: string) {
-    super('subscribe', {
-      bubbles: true,
-      composed: true,
-      detail: {savedSearchId},
-    });
-  }
-}
+import {
+  SubscriptionDeleteErrorEvent,
+  SubscriptionSaveErrorEvent,
+} from './webstatus-manage-subscriptions-dialog.js';
 
 @customElement('webstatus-subscribe-button')
 export class SubscribeButton extends LitElement {
-  @property({type: String, attribute: 'saved-search-id'})
+  @consume({context: firebaseUserContext, subscribe: true})
+  @state()
+  userContext: UserContext | null | undefined;
+
+  @property({type: String})
   savedSearchId = '';
 
-  static styles = css`
-    sl-button::part(base) {
-      font-size: var(--sl-button-font-size-medium);
-    }
-  `;
+  @property({attribute: false})
+  toaster = toast;
 
-  private _handleClick() {
-    this.dispatchEvent(new SubscribeEvent(this.savedSearchId));
-  }
+  @state()
+  private _isSubscriptionDialogOpen = false;
 
   render(): TemplateResult {
+    if (!this.userContext || !this.savedSearchId) {
+      return html``;
+    }
+
     return html`
-      <sl-button variant="primary" @click=${this._handleClick}>
+      <sl-button variant="primary" @click=${() => (this._isSubscriptionDialogOpen = true)}>
         <sl-icon slot="prefix" name="bell"></sl-icon>
-        Subscribe to updates
+        Subscribe
       </sl-button>
+
+      <webstatus-manage-subscriptions-dialog
+        ?open=${this._isSubscriptionDialogOpen}
+        .savedSearchId=${this.savedSearchId}
+        @subscription-dialog-close=${() =>
+          (this._isSubscriptionDialogOpen = false)}
+        @subscription-save-success=${this._handleSubscriptionSaveSuccess}
+        @subscription-save-error=${this._handleSubscriptionSaveError}
+        @subscription-delete-success=${this._handleSubscriptionDeleteSuccess}
+        @subscription-delete-error=${this._handleSubscriptionDeleteError}
+      >
+      </webstatus-manage-subscriptions-dialog>
     `;
+  }
+
+  private _handleSubscriptionSaveSuccess() {
+    this._isSubscriptionDialogOpen = false;
+    void this.toaster('Subscription saved!', 'success');
+  }
+
+  private _handleSubscriptionSaveError(e: SubscriptionSaveErrorEvent) {
+    void this.toaster(
+      `Error saving subscription: ${e.detail.message}`,
+      'danger',
+    );
+  }
+
+  private _handleSubscriptionDeleteSuccess() {
+    this._isSubscriptionDialogOpen = false;
+    void this.toaster('Subscription deleted!', 'success');
+  }
+
+  private _handleSubscriptionDeleteError(e: SubscriptionDeleteErrorEvent) {
+    void this.toaster(
+      `Error deleting subscription: ${e.detail.message}`,
+      'danger',
+    );
   }
 }

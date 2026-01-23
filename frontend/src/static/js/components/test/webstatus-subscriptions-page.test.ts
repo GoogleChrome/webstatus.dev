@@ -62,12 +62,27 @@ describe('webstatus-subscriptions-page', () => {
       bookmark_status: {status: 'bookmark_none'},
     },
   ];
+  const mockNotificationChannels: components['schemas']['NotificationChannelResponse'][] =
+    [
+      {
+        id: 'channel1',
+        name: 'test@example.com',
+        type: 'email',
+        value: 'test@example.com',
+        created_at: new Date().toISOString(),
+        status: 'enabled',
+        updated_at: new Date().toISOString(),
+      },
+    ];
 
   beforeEach(async () => {
     sandbox = sinon.createSandbox();
     apiClient = {
       listSubscriptions: sandbox.stub().resolves(mockSubscriptions),
       getAllUserSavedSearches: sandbox.stub().resolves(mockSavedSearches),
+      listNotificationChannels: sandbox
+        .stub()
+        .resolves(mockNotificationChannels),
     } as unknown as APIClient;
     user = {user: {getIdToken: async () => 'test-token'}} as UserContext;
     mockLocationHelper = mockLocation();
@@ -87,9 +102,22 @@ describe('webstatus-subscriptions-page', () => {
     sandbox.restore();
   });
 
-  it('renders a loading spinner initially', () => {
-    // This is hard to test reliably as the task starts immediately.
-    // We'll focus on the complete and error states.
+  it('renders a skeleton when user context is loading', async () => {
+    element.userContext = undefined;
+    await element.updateComplete;
+    const skeleton = element.shadowRoot?.querySelector('.subscription-item');
+    expect(skeleton).to.exist;
+    expect(skeleton?.querySelector('sl-skeleton')).to.exist;
+  });
+
+  it('renders a login prompt when user is logged out', async () => {
+    element.userContext = null;
+    await element.updateComplete;
+    const loginPrompt = element.shadowRoot?.querySelector('.login-prompt');
+    expect(loginPrompt).to.exist;
+    expect(loginPrompt?.textContent).to.include(
+      'Please log in to manage your subscriptions.',
+    );
   });
 
   it('fetches and renders subscriptions', async () => {
@@ -102,8 +130,17 @@ describe('webstatus-subscriptions-page', () => {
     );
     const renderedText = element.shadowRoot?.textContent;
     expect(renderedText).to.include('Test Search 1');
-    expect(renderedText).to.include('channel1');
-    expect(renderedText).to.include('weekly');
+    expect(renderedText).to.include('test@example.com');
+    expect(renderedText).to.include('Weekly'); // Check for title-cased
+  });
+
+  it('renders the correct channel icon', async () => {
+    await element['_loadingTask'].taskComplete;
+    await element.updateComplete;
+
+    const icon = element.shadowRoot?.querySelector('sl-icon');
+    expect(icon).to.exist;
+    expect(icon?.name).to.equal('envelope');
   });
 
   it('opens dialog on unsubscribe link', async () => {

@@ -163,6 +163,34 @@ describe('webstatus-manage-subscriptions-dialog', () => {
     expect(errorContent).to.include('Failed to fetch channels');
   });
 
+  it('renders a subscription indicator for subscribed channels', async () => {
+    element.open = true;
+    await element['_loadingTask'].run();
+    await element.updateComplete;
+
+    const channelItems =
+      element.shadowRoot?.querySelectorAll('.channel-item') || [];
+    const initialSubChannelItem = Array.from(channelItems).find(item =>
+      item.textContent?.includes(mockNotificationChannels[0].name),
+    );
+
+    const indicator = initialSubChannelItem?.querySelector(
+      'sl-icon[name="circle-fill"].subscription-indicator',
+    );
+    expect(indicator).to.exist;
+  });
+
+  it('pre-selects channel when subscriptionId is provided', async () => {
+    element.subscriptionId = mockInitialSubscription.id;
+    element.open = true;
+    await element['_loadingTask'].run();
+    await element.updateComplete;
+
+    expect(element['_activeChannelId']).to.equal(
+      mockInitialSubscription.channel_id,
+    );
+  });
+
   it('fetches data when opened for a saved search', async () => {
     element.open = true;
     await element['_loadingTask'].run(); // Explicitly re-run the task

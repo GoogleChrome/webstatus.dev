@@ -16,8 +16,8 @@
 
 import {consume} from '@lit/context';
 import {Task} from '@lit/task';
-import {LitElement, html, css, TemplateResult} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {LitElement, html, css, TemplateResult, nothing} from 'lit';
+import {customElement, property, query, state} from 'lit/decorators.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {APIClient} from '../api/client.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
@@ -26,7 +26,11 @@ import {
   UserContext,
   firebaseUserContext,
 } from '../contexts/firebase-user-context.js';
-import {SlCheckbox, SlRadioGroup} from '@shoelace-style/shoelace';
+import {SlCheckbox, SlDialog, SlRadioGroup} from '@shoelace-style/shoelace';
+
+const FREQUENCY_CONFIG: ReadonlyArray<
+  components['schemas']['SubscriptionFrequency']
+> = ['immediate', 'weekly', 'monthly'];
 
 export class SubscriptionSaveSuccessEvent extends CustomEvent<void> {
   constructor() {
@@ -57,6 +61,12 @@ export class SubscriptionDeleteErrorEvent extends CustomEvent<Error> {
       composed: true,
       detail: error,
     });
+  }
+}
+
+export class SubscriptionDialogCloseEvent extends CustomEvent<void> {
+  constructor() {
+    super('subscription-dialog-close', {bubbles: true, composed: true});
   }
 }
 
@@ -126,6 +136,12 @@ export class ManageSubscriptionsDialog extends LitElement {
 
   @property({type: Boolean})
   open = false;
+  /**
+   * This property is controlled by the parent component.
+   * The dialog does not set `this.open = false` directly.
+   * Instead, it calls `this._mainDialog.hide()` which emits `sl-hide`,
+   * expecting the parent to update this `open` property.
+   */
 
   @state()
   private _notificationChannels: components['schemas']['NotificationChannelResponse'][] =
@@ -168,6 +184,9 @@ export class ManageSubscriptionsDialog extends LitElement {
   @state()
   private _pendingChannelId = '';
 
+  @state()
+  private _isClosing = false;
+
   static _TRIGGER_CONFIG: {
     value: components['schemas']['SubscriptionTriggerWritable'];
     label: string;
@@ -194,8 +213,79 @@ export class ManageSubscriptionsDialog extends LitElement {
     return [
       SHARED_STYLES,
       css`
-        .dialog-overview {
-          --sl-dialog-width: 80vw;
+        .dialog-content-layout {
+          display: flex;
+          flex-wrap: wrap;
+          gap: var(--sl-spacing-large);
+          align-items: stretch; /* Ensures columns are equal height */
+        }
+
+        .channel-list {
+          flex: 1 1 300px;
+          border: 1px solid var(--sl-color-neutral-200);
+          border-radius: var(--sl-border-radius-medium);
+          padding: var(--sl-spacing-small);
+          max-height: 450px; /* Give the list a max height */
+          overflow-y: auto; /* Allow scrolling if it exceeds max-height */
+        }
+
+        .channel-item {
+          display: flex;
+          align-items: center;
+          gap: var(--sl-spacing-small);
+          padding: var(--sl-spacing-small);
+          cursor: pointer;
+          border-radius: var(--sl-border-radius-medium);
+          margin-bottom: var(--sl-spacing-2x-small);
+          color: var(--sl-color-neutral-700);
+        }
+        .channel-item:hover {
+          background-color: var(--sl-color-neutral-100);
+        }
+        .channel-item.selected {
+          background-color: var(--sl-color-primary-100);
+          font-weight: var(--sl-font-weight-bold);
+          border-left: 3px solid var(--sl-color-primary-600);
+          color: var(--sl-color-primary-800);
+        }
+        .channel-item.selected sl-icon {
+          color: var(--sl-color-primary-600);
+        }
+        .settings-panel {
+          flex: 2 1 400px;
+          display: flex;
+          flex-direction: column;
+          gap: var(--sl-spacing-large);
+        }
+
+        .settings-panel sl-card {
+          flex: 1 0 auto; /* Allow cards to grow but not shrink within the column */
+        }
+        .settings-panel sl-checkbox {
+          display: block;
+          margin-bottom: var(--sl-spacing-2x-small);
+        }
+        h3 {
+          font-size: var(--sl-font-size-medium);
+          font-weight: var(--sl-font-weight-bold);
+          margin: 0 0 var(--sl-spacing-medium) 0;
+          color: var(--sl-color-neutral-900);
+        }
+        .footer-actions {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          flex-wrap: wrap; /* Allow buttons to wrap on small screens */
+          gap: var(--sl-spacing-small);
+        }
+        .channel-header {
+          justify-content: space-between;
+          align-items: center;
+        }
+        .subscription-indicator {
+          color: var(--sl-color-success-500);
+          font-size: var(--sl-font-size-x-small);
         }
       `,
     ];
@@ -268,17 +358,32 @@ export class ManageSubscriptionsDialog extends LitElement {
         }
 
         await Promise.all(promises);
+
+        // If a subscriptionId is provided (i.e., we are in "edit" mode),
+        // find the corresponding subscription and pre-select its channel.
+        if (this.subscriptionId) {
+          const subToEdit = this._subscriptionsForSavedSearch.find(
+            s => s.id === this.subscriptionId,
+          );
+          if (subToEdit) {
+            this._switchChannel(subToEdit.channel_id);
+          }
+        }
       },
     });
   }
+
+  @query('sl-dialog.dialog-main')
+  _mainDialog!: SlDialog;
 
   render(): TemplateResult {
     return html`
       <sl-dialog
         label="Manage notifications"
-        class="dialog-overview"
+        class="dialog-main"
+        style="--width: min(90vw, 991px);"
         ?open=${this.open}
-        @sl-hide=${() => (this.open = false)}
+        @sl-request-close=${this._handleRequestClose}
       >
         ${this._loadingTask.render({
           pending: () => html`<sl-spinner></sl-spinner>`,
@@ -291,7 +396,7 @@ export class ManageSubscriptionsDialog extends LitElement {
         label="Unsaved Changes"
         class="dialog-confirm"
         ?open=${this._isConfirmDialogOpen}
-        @sl-hide=${() => (this._isConfirmDialogOpen = false)}
+        @sl-hide=${this._onConfirmDialogHide}
       >
         <p>You have unsaved changes. Do you want to discard them?</p>
         <sl-button
@@ -307,6 +412,20 @@ export class ManageSubscriptionsDialog extends LitElement {
         >
       </sl-dialog>
     `;
+  }
+
+  private _handleRequestClose(event: CustomEvent) {
+    if (this.isDirty) {
+      event.preventDefault();
+      this._isClosing = true;
+      this._isConfirmDialogOpen = true;
+    }
+  }
+
+  private _onConfirmDialogHide(event: CustomEvent) {
+    // Stop the hide event from bubbling up to the parent component.
+    event.stopPropagation();
+    this._isConfirmDialogOpen = false;
   }
 
   renderContent(): TemplateResult {
@@ -327,86 +446,145 @@ export class ManageSubscriptionsDialog extends LitElement {
       `;
     }
 
+    const isNewSubscription = this._subscription === null;
+
     return html`
       ${this.renderAlert()}
       <p>
         Select how and when you want to get updates for
-        <strong
-          >${this._subscription?.saved_search_id ??
-          this._savedSearch?.name}</strong
-        >.
+        <strong>${this._savedSearch?.name}</strong>.
       </p>
 
-      <div class="hbox" style="gap: var(--sl-spacing-large)">
-        <div class="vbox" style="flex: 1">
+      <div class="dialog-content-layout">
+        <div class="channel-list">
           <h3>Notification channels</h3>
           ${this._notificationChannels.map(
             channel => html`
-              <sl-radio-button
-                ?checked=${this._activeChannelId === channel.id}
-                @sl-change=${() => {
-                  this._handleChannelChange(channel.id);
-                }}
-                >${channel.name} (${channel.type})</sl-radio-button
+              <div
+                class="channel-item ${this._activeChannelId === channel.id
+                  ? 'selected'
+                  : ''}"
+                @click=${() => this._handleChannelChange(channel.id)}
+                role="radio"
+                aria-checked=${this._activeChannelId === channel.id}
+                tabindex="0"
               >
+                <sl-icon name=${this._getChannelIcon(channel.type)}></sl-icon>
+                <span>${channel.name}</span>
+                ${this._subscriptionsForSavedSearch.some(
+                  s => s.channel_id === channel.id,
+                )
+                  ? html`<sl-icon
+                      class="subscription-indicator"
+                      name="circle-fill"
+                    ></sl-icon>`
+                  : nothing}
+              </div>
             `,
           )}
         </div>
-        <div class="vbox" style="flex: 1">
-          <h3>Triggers</h3>
-          <p>Get an update when a feature...</p>
-          ${ManageSubscriptionsDialog._TRIGGER_CONFIG.map(
-            trigger => html`
-              <sl-checkbox
-                .checked=${this._selectedTriggers.includes(trigger.value)}
-                @sl-change=${(e: CustomEvent) => {
-                  const checkbox = e.target;
-                  if (checkbox instanceof SlCheckbox) {
-                    if (checkbox.checked) {
-                      this._selectedTriggers.push(trigger.value);
-                    } else {
-                      this._selectedTriggers = this._selectedTriggers.filter(
-                        t => t !== trigger.value,
-                      );
-                    }
-                  }
-                }}
-                >...${trigger.label}</sl-checkbox
-              >
-            `,
-          )}
-        </div>
-        <div class="vbox" style="flex: 1">
-          <h3>Frequency</h3>
-          <sl-radio-group
-            name="frequency"
-            .value=${this._selectedFrequency}
-            @sl-change=${(e: CustomEvent) => {
-              const radioGroup = e.target;
-              if (radioGroup instanceof SlRadioGroup) {
-                const value = radioGroup.value;
-                if (isSubscriptionFrequency(value)) {
-                  this._selectedFrequency = value;
-                }
-              }
-            }}
-          >
-            <sl-radio-button value="immediate">Immediately</sl-radio-button>
-            <sl-radio-button value="weekly">Weekly updates</sl-radio-button>
-            <sl-radio-button value="monthly">Monthly updates</sl-radio-button>
-          </sl-radio-group>
+
+        <div class="settings-panel">
+          ${this._activeChannelId
+            ? html`
+                <sl-card>
+                  <h3>Triggers</h3>
+                  <p>Get an update when a feature...</p>
+                  ${ManageSubscriptionsDialog._TRIGGER_CONFIG.map(
+                    trigger => html`
+                      <sl-checkbox
+                        .checked=${this._selectedTriggers.includes(
+                          trigger.value,
+                        )}
+                        @sl-change=${(e: CustomEvent) => {
+                          const checkbox = e.target;
+                          if (checkbox instanceof SlCheckbox) {
+                            if (checkbox.checked) {
+                              this._selectedTriggers.push(trigger.value);
+                            } else {
+                              this._selectedTriggers =
+                                this._selectedTriggers.filter(
+                                  t => t !== trigger.value,
+                                );
+                            }
+                            this.requestUpdate(); // Manually trigger update for isDirty check
+                          }
+                        }}
+                        >...${trigger.label}</sl-checkbox
+                      >
+                    `,
+                  )}
+                </sl-card>
+
+                <sl-card>
+                  <h3>Frequency</h3>
+                  <sl-radio-group
+                    name="frequency"
+                    .value=${this._selectedFrequency}
+                    @sl-change=${(e: CustomEvent) => {
+                      const radioGroup = e.target;
+                      if (radioGroup instanceof SlRadioGroup) {
+                        const value = radioGroup.value;
+                        if (isSubscriptionFrequency(value)) {
+                          this._selectedFrequency = value;
+                        }
+                      }
+                    }}
+                  >
+                    ${FREQUENCY_CONFIG.map(
+                      f =>
+                        html`<sl-radio value=${f}
+                          >${f.charAt(0).toUpperCase() + f.slice(1)}</sl-radio
+                        >`,
+                    )}
+                  </sl-radio-group>
+                </sl-card>
+              `
+            : html`<sl-card>
+                <p>
+                  Please select a notification channel to configure its
+                  settings.
+                </p>
+              </sl-card>`}
         </div>
       </div>
 
-      <sl-button
-        slot="footer"
-        variant="primary"
-        ?disabled=${!this.isDirty}
-        .loading=${this._actionState.phase === 'saving'}
-        @click=${this._handleSave}
-        >Save</sl-button
-      >
+      <div slot="footer" class="footer-actions">
+        <sl-button variant="text">Manage notification channels</sl-button>
+        <div class="hbox" style="gap: var(--sl-spacing-small)">
+          ${!isNewSubscription
+            ? html`<sl-button
+                variant="danger"
+                outline
+                .loading=${this._actionState.phase === 'deleting'}
+                @click=${this._handleDelete}
+                >Delete Subscription</sl-button
+              >`
+            : nothing}
+          <sl-button
+            variant="primary"
+            ?disabled=${!this._activeChannelId ||
+            (!this.isDirty && !isNewSubscription)}
+            .loading=${this._actionState.phase === 'saving'}
+            @click=${this._handleSave}
+            >${isNewSubscription
+              ? 'Create Subscription'
+              : 'Save preferences'}</sl-button
+          >
+        </div>
+      </div>
     `;
+  }
+
+  private _getChannelIcon(
+    type: components['schemas']['NotificationChannel']['type'],
+  ): string {
+    switch (type) {
+      case 'email':
+        return 'envelope';
+      default:
+        return 'bell';
+    }
   }
 
   private async _handleSave() {
@@ -524,6 +702,7 @@ export class ManageSubscriptionsDialog extends LitElement {
   private _handleChannelChange(channelId: string) {
     if (this.isDirty) {
       this._pendingChannelId = channelId;
+      this._isClosing = false; // Explicitly set intent to switch, not close.
       this._isConfirmDialogOpen = true;
       return;
     }
@@ -533,9 +712,18 @@ export class ManageSubscriptionsDialog extends LitElement {
   private _handleConfirmChange(confirmed: boolean) {
     this._isConfirmDialogOpen = false;
     if (confirmed) {
-      this._switchChannel(this._pendingChannelId);
+      if (this._isClosing) {
+        // User wanted to close the dialog and confirmed discarding changes.
+        this._mainDialog.hide();
+        this.dispatchEvent(new SubscriptionDialogCloseEvent());
+      } else if (this._pendingChannelId) {
+        // User wanted to switch channels and confirmed discarding changes.
+        this._switchChannel(this._pendingChannelId);
+      }
     }
+    // Reset intent flags regardless of choice.
     this._pendingChannelId = '';
+    this._isClosing = false;
   }
 
   private _switchChannel(channelId: string) {
