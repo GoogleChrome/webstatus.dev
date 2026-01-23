@@ -58,7 +58,7 @@ func getSampleFeatures() []WebFeature {
 	}
 }
 
-func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
+func (c *Client) upsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
 	return newEntityWriterWithIDRetrievalAndHooks[
 		webFeatureSpannerMapper, string, WebFeature, SpannerWebFeature, string](c).
 		upsertAndGetID(ctx, feature)
@@ -100,13 +100,8 @@ func (c *Client) DeleteWebFeature(ctx context.Context, internalID string) error 
 
 		return txn.BufferWrite([]*spanner.Mutation{mutation})
 	})
-	if err != nil {
-		// TODO wrap the error and return it
 
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func TestUpsertWebFeature(t *testing.T) {
@@ -114,7 +109,7 @@ func TestUpsertWebFeature(t *testing.T) {
 	ctx := context.Background()
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		_, err := spannerClient.UpsertWebFeature(ctx, feature)
+		_, err := spannerClient.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
@@ -127,7 +122,7 @@ func TestUpsertWebFeature(t *testing.T) {
 		t.Errorf("unequal features. expected %+v actual %+v", sampleFeatures, features)
 	}
 
-	_, err = spannerClient.UpsertWebFeature(ctx, WebFeature{
+	_, err = spannerClient.upsertWebFeature(ctx, WebFeature{
 		Name:            "Feature 1!!",
 		FeatureKey:      "feature1",
 		Description:     "Feature 1 description!",
