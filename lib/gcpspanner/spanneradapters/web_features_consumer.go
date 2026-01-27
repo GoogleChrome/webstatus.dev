@@ -38,6 +38,7 @@ type WebFeatureSpannerClient interface {
 	PrecalculateBrowserFeatureSupportEvents(ctx context.Context, startAt, endAt time.Time) error
 	SyncMovedWebFeatures(ctx context.Context, features []gcpspanner.MovedWebFeature) error
 	SyncSplitWebFeatures(ctx context.Context, features []gcpspanner.SplitWebFeature) error
+	SyncSystemManagedSavedQuery(ctx context.Context) error
 }
 
 // NewWebFeaturesConsumer constructs an adapter for the web features consumer service.
@@ -139,7 +140,13 @@ func (c *WebFeaturesConsumer) InsertWebFeatures(
 		return nil, err
 	}
 
-	// 5. Fetch all feature IDs to construct the return map.
+	// 5. Sync system managed saved searches.
+	err = c.client.SyncSystemManagedSavedQuery(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// 6. Fetch all feature IDs to construct the return map.
 	idAndKeyPairs, err := c.client.FetchAllWebFeatureIDsAndKeys(ctx)
 	if err != nil {
 		slog.ErrorContext(ctx, "failed to fetch feature IDs and keys after sync", "error", err)
