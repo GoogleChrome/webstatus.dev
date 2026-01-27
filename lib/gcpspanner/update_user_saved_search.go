@@ -85,7 +85,7 @@ func (c *Client) UpdateUserSavedSearch(ctx context.Context, req UpdateSavedSearc
 		}
 
 		// 2. Read and update the existing saved search
-		err = newEntityWriter[updateUserSavedSearchMapper](c).updateWithTransaction(ctx, txn, req)
+		_, err = newEntityWriter[updateUserSavedSearchMapper](c).updateWithTransaction(ctx, txn, req)
 		if err != nil {
 			slog.ErrorContext(ctx, "failed to update the saved search", "error", err)
 

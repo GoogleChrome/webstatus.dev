@@ -344,7 +344,9 @@ func (c *Client) UpdateNotificationChannel(
 			return err
 		}
 
-		return newEntityWriter[updateNotificationChannelMapper](c).updateWithTransaction(ctx, txn, req)
+		_, err = newEntityWriter[updateNotificationChannelMapper](c).updateWithTransaction(ctx, txn, req)
+
+		return err
 	})
 
 	return err

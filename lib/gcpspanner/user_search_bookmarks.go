@@ -127,7 +127,9 @@ func (c *Client) AddUserSearchBookmark(ctx context.Context, req UserSavedSearchB
 		}
 
 		// 4. Insert the bookmark
-		return newEntityWriter[userSavedSearchBookmarkMapper](c).upsertWithTransaction(ctx, txn, req)
+		_, err = newEntityWriter[userSavedSearchBookmarkMapper](c).upsertWithTransaction(ctx, txn, req)
+
+		return err
 	})
 
 	return err
