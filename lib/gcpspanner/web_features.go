@@ -759,3 +759,18 @@ func fetchSingleColumnValuesWithTransaction[T any](
 
 	return values, nil
 }
+
+// SpannerWebFeatureSyncInfo contains the basic feature information needed for sync jobs.
+type SpannerWebFeatureSyncInfo struct {
+	ID         string `spanner:"ID"`
+	FeatureKey string `spanner:"FeatureKey"`
+	Name       string `spanner:"Name"`
+}
+
+func (c *Client) listAllWebFeaturesForSync(ctx context.Context) ([]SpannerWebFeatureSyncInfo, error) {
+	txn := c.Single()
+	defer txn.Close()
+
+	return fetchColumnValuesWithTransaction[SpannerWebFeatureSyncInfo](
+		ctx, txn, webFeaturesTable, []string{"ID", "FeatureKey", "Name"})
+}

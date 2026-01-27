@@ -16,6 +16,8 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
+	"log/slog"
 	"time"
 
 	"cloud.google.com/go/spanner"
@@ -82,6 +84,28 @@ func (m systemManagedSavedSearchMapper) Merge(
 
 func (m systemManagedSavedSearchMapper) DeleteKey(featureID string) spanner.Key {
 	return spanner.Key{featureID}
+}
+
+func (m systemManagedSavedSearchMapper) GetKeyFromInternal(in SystemManagedSavedSearch) string {
+	return in.FeatureID
+}
+
+func (m systemManagedSavedSearchMapper) GetChildDeleteKeyMutations(
+	_ context.Context,
+	_ *Client,
+	_ []SystemManagedSavedSearch,
+) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m systemManagedSavedSearchMapper) PreDeleteHook(
+	_ context.Context, _ *Client, _ []SystemManagedSavedSearch) ([]ExtraMutationsGroup, error) {
+	return nil, nil
+}
+
+func (m systemManagedSavedSearchMapper) DeleteMutation(
+	in SystemManagedSavedSearch) *spanner.Mutation {
+	return spanner.Delete(m.Table(), spanner.Key{in.FeatureID})
 }
 
 // ListAllSystemManagedSavedSearches returns all system managed saved searches.
@@ -171,4 +195,134 @@ func (c *Client) ListSystemManagedSavedSearchesByFeatureIDs(
 	}
 
 	return allResults, nil
+}
+
+// SyncSystemManagedSavedQuery ensures that every WebFeature has a corresponding system-managed saved search.
+// It also updates existing searches if the feature key has changed and removes searches for deleted features.
+func (c *Client) SyncSystemManagedSavedQuery(ctx context.Context) error {
+	slog.InfoContext(ctx, "Starting system-managed saved query synchronization")
+
+	features, err := c.listAllWebFeaturesForSync(ctx)
+	if err != nil {
+		return err
+	}
+
+	existingMappings, err := c.ListAllSystemManagedSavedSearches(ctx)
+	if err != nil {
+		return err
+	}
+	mappingMap := make(map[string]SystemManagedSavedSearch)
+	for _, m := range existingMappings {
+		mappingMap[m.FeatureID] = m
+	}
+
+	// 3. Identify missing or outdated searches
+	// Pre-allocate mutations. At most, we might have 1 mutation per feature (create/update)
+	// plus the orphan cleanup.
+	mutations := make([]*spanner.Mutation, 0, len(features))
+	for _, f := range features {
+		mapping, found := mappingMap[f.ID]
+		ms, err := c.reconcileSystemManagedSavedSearch(ctx, f, mapping, found)
+		if err != nil {
+			return err
+		}
+		mutations = append(mutations, ms...)
+	}
+
+	// 4. Identify and delete orphaned system-managed saved searches.
+	// These are searches with SYSTEM_MANAGED scope that are no longer linked to a feature.
+	// This covers both features deleted by SyncWebFeatures (handled by the loop above)
+	// and features deleted directly from the WebFeatures table (handled by DB cascade on mapping,
+	// but leaving the SavedSearch itself).
+	orphanedSearchIDs, err := c.findOrphanedSystemManagedSavedSearchIDs(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, id := range orphanedSearchIDs {
+		mutations = append(mutations, spanner.Delete(savedSearchesTable, spanner.Key{id}))
+	}
+
+	_, err = c.Apply(ctx, mutations)
+
+	return err
+}
+
+func (c *Client) reconcileSystemManagedSavedSearch(
+	ctx context.Context,
+	f SpannerWebFeatureSyncInfo,
+	mapping SystemManagedSavedSearch,
+	found bool,
+) ([]*spanner.Mutation, error) {
+	if !found {
+		// Missing search - create it.
+		var mapper webFeatureSpannerMapper
+
+		return mapper.createSystemManagedSavedSearchMutations(f.ID, WebFeature{
+			FeatureKey:      f.FeatureKey,
+			Name:            f.Name,
+			Description:     "",
+			DescriptionHTML: "",
+		})
+	}
+
+	// Existing search. Check if it needs updating (e.g. name or query change due to feature key change).
+	savedSearch, err := c.GetSavedSearch(ctx, mapping.SavedSearchID)
+	if err != nil {
+		if errors.Is(err, ErrQueryReturnedNoResults) {
+			// Orphaned mapping. Re-create the search.
+			var mapper webFeatureSpannerMapper
+
+			return mapper.createSystemManagedSavedSearchMutations(f.ID, WebFeature{
+				FeatureKey:      f.FeatureKey,
+				Name:            f.Name,
+				Description:     "",
+				DescriptionHTML: "",
+			})
+		}
+
+		return nil, err
+	}
+
+	expectedName := systemSavedSearchName(f.FeatureKey)
+	expectedQuery := systemSavedSearchQuery(f.FeatureKey)
+	if savedSearch.Name != expectedName || savedSearch.Query != expectedQuery {
+		savedSearch.Name = expectedName
+		savedSearch.Query = expectedQuery
+		savedSearch.UpdatedAt = spanner.CommitTimestamp
+		m, err := spanner.UpdateStruct(savedSearchesTable, savedSearch)
+		if err != nil {
+			return nil, err
+		}
+
+		return []*spanner.Mutation{m}, nil
+	}
+
+	return nil, nil
+}
+
+func (c *Client) findOrphanedSystemManagedSavedSearchIDs(ctx context.Context) ([]string, error) {
+	stmt := spanner.NewStatement(`
+		SELECT s.ID
+		FROM SavedSearches s
+		LEFT JOIN SystemManagedSavedSearches m ON s.ID = m.SavedSearchID
+		WHERE s.Scope = @scope AND m.SavedSearchID IS NULL
+	`)
+	stmt.Params["scope"] = string(SystemManagedScope)
+
+	iter := c.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	var ids []string
+	err := iter.Do(func(r *spanner.Row) error {
+		var id string
+		if err := r.Column(0, &id); err != nil {
+			return err
+		}
+		ids = append(ids, id)
+
+		return nil
+	})
+
+	return ids, err
 }
