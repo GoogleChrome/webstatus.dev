@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
 
 const (
@@ -80,12 +81,32 @@ func (m chromiumHistogramEnumsMapper) GetID(histogramName string) spanner.Statem
 	return stmt
 }
 
-func (c *Client) UpsertChromiumHistogramEnum(ctx context.Context, in ChromiumHistogramEnum) (*string, error) {
-	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumsMapper, string](c).upsertAndGetID(ctx, in)
+func (m chromiumHistogramEnumsMapper) GetIDFromInternal(s spannerChromiumHistogramEnum) string {
+	return s.ID
+}
+
+func (m chromiumHistogramEnumsMapper) NewEntityWithID(
+	req ChromiumHistogramEnum) (spannerChromiumHistogramEnum, string, error) {
+	id := uuid.NewString()
+
+	return spannerChromiumHistogramEnum{
+		ID:                    id,
+		ChromiumHistogramEnum: req,
+	}, id, nil
+}
+
+func (c *Client) UpsertChromiumHistogramEnum(
+	ctx context.Context,
+	histogram ChromiumHistogramEnum,
+) (*string, error) {
+	return newEntityWriterWithIDRetrieval[
+		chromiumHistogramEnumsMapper, string, ChromiumHistogramEnum, spannerChromiumHistogramEnum, string](c).
+		upsertAndGetID(ctx, histogram)
 }
 
 func (c *Client) GetIDFromChromiumHistogramKey(
 	ctx context.Context, histogramName string) (*string, error) {
-	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumsMapper, string](c).
+	return newEntityWriterWithIDRetrieval[
+		chromiumHistogramEnumsMapper, string, ChromiumHistogramEnum, spannerChromiumHistogramEnum, string](c).
 		getIDByKey(ctx, histogramName)
 }

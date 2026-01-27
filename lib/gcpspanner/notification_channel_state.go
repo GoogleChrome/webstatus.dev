@@ -86,7 +86,7 @@ func (c *Client) RecordNotificationChannelSuccess(
 	ctx context.Context, channelID string, timestamp time.Time, eventID string) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		// Update NotificationChannelStates
-		err := newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx, txn,
+		_, err := newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx, txn,
 			NotificationChannelState{
 				ChannelID:           channelID,
 				IsDisabledBySystem:  false,
@@ -147,7 +147,7 @@ func (c *Client) RecordNotificationChannelFailure(
 			c.notificationCfg.maxConsecutiveFailuresPerChannel)
 
 		// Update NotificationChannelStates
-		err = newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx,
+		_, err = newEntityWriter[notificationChannelStateMapper](c).upsertWithTransaction(ctx,
 			txn, NotificationChannelState{
 				ChannelID:           channelID,
 				IsDisabledBySystem:  state.IsDisabledBySystem,

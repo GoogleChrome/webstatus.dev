@@ -71,21 +71,22 @@ func (c *Client) GetFeature(
 	}
 
 	actualResult := FeatureResult{
-		FeatureKey:             result.FeatureKey,
-		Name:                   result.Name,
-		Status:                 result.Status,
-		StableMetrics:          stableMetrics,
-		ExperimentalMetrics:    experimentalMetrics,
-		ImplementationStatuses: result.ImplementationStatuses,
-		LowDate:                result.LowDate,
-		HighDate:               result.HighDate,
-		SpecLinks:              result.SpecLinks,
-		ChromiumUsage:          result.ChromiumUsage,
-		DeveloperSignalUpvotes: result.DeveloperSignalUpvotes,
-		DeveloperSignalLink:    result.DeveloperSignalLink,
-		AccordingTo:            result.AccordingTo,
-		Alternatives:           result.Alternatives,
-		VendorPositions:        result.VendorPositions,
+		FeatureKey:                 result.FeatureKey,
+		Name:                       result.Name,
+		SystemManagedSavedSearchID: result.SystemManagedSavedSearchID,
+		Status:                     result.Status,
+		StableMetrics:              stableMetrics,
+		ExperimentalMetrics:        experimentalMetrics,
+		ImplementationStatuses:     result.ImplementationStatuses,
+		LowDate:                    result.LowDate,
+		HighDate:                   result.HighDate,
+		SpecLinks:                  result.SpecLinks,
+		ChromiumUsage:              result.ChromiumUsage,
+		DeveloperSignalUpvotes:     result.DeveloperSignalUpvotes,
+		DeveloperSignalLink:        result.DeveloperSignalLink,
+		AccordingTo:                result.AccordingTo,
+		Alternatives:               result.Alternatives,
+		VendorPositions:            result.VendorPositions,
 	}
 
 	return &actualResult, nil

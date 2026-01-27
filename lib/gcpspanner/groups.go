@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
 
 const groupsTable = "WebDXGroups"
@@ -75,6 +76,19 @@ func (m groupSpannerMapper) GetID(key string) spanner.Statement {
 	return stmt
 }
 
+func (m groupSpannerMapper) GetIDFromInternal(s spannerGroup) string {
+	return s.ID
+}
+
+func (m groupSpannerMapper) NewEntityWithID(req Group) (spannerGroup, string, error) {
+	id := uuid.NewString()
+
+	return spannerGroup{
+		ID:    id,
+		Group: req,
+	}, id, nil
+}
+
 // Group contains common metadata for a group from the WebDX web-feature
 // repository.
 // Columns come from the ../../infra/storage/spanner/migrations/*.sql files.
@@ -92,12 +106,15 @@ type spannerGroup struct {
 	Group
 }
 
+// UpsertGroup inserts or updates a Group.
 func (c *Client) UpsertGroup(ctx context.Context, group Group) (*string, error) {
-	return newEntityWriterWithIDRetrieval[groupSpannerMapper, string](c).upsertAndGetID(ctx, group)
+	return newEntityWriterWithIDRetrieval[groupSpannerMapper, string, Group, spannerGroup, string](c).
+		upsertAndGetID(ctx, group)
 }
 
 func (c *Client) GetGroupIDFromGroupKey(ctx context.Context, groupKey string) (*string, error) {
-	return newEntityWriterWithIDRetrieval[groupSpannerMapper, string](c).getIDByKey(ctx, groupKey)
+	return newEntityWriterWithIDRetrieval[groupSpannerMapper, string, Group, spannerGroup, string](c).
+		getIDByKey(ctx, groupKey)
 }
 
 type spannerGroupIDKeyAndKeyLowercase struct {

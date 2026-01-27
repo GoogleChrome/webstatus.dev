@@ -73,13 +73,14 @@ func TestGetFeature(t *testing.T) {
 							Version: valuePtr("100"),
 						},
 					},
-					Discouraged:     nil,
-					FeatureId:       "feature1",
-					Name:            "feature 1",
-					Spec:            nil,
-					Usage:           nil,
-					Wpt:             nil,
-					VendorPositions: nil,
+					Discouraged:                nil,
+					FeatureId:                  "feature1",
+					Name:                       "feature 1",
+					Spec:                       nil,
+					Usage:                      nil,
+					Wpt:                        nil,
+					VendorPositions:            nil,
+					SystemManagedSavedSearchId: valuePtr("saved-search-1"),
 				})),
 				err: nil,
 			},
@@ -98,7 +99,8 @@ func TestGetFeature(t *testing.T) {
 					Value: []byte(
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":{"chrome":{"date":"1999-01-01",` +
-							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1"}`,
+							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1",` +
+							`"system_managed_saved_search_id":"saved-search-1"}`,
 					),
 					CacheCfg: getDefaultCacheConfig(),
 				},
@@ -118,7 +120,8 @@ func TestGetFeature(t *testing.T) {
 				   }
 				},
 				"feature_id":"feature1",
-				"name":"feature 1"
+				"name":"feature 1",
+				"system_managed_saved_search_id":"saved-search-1"
 			 }`),
 		},
 		// nolint:dupl // WONTFIX - being explicit for short list of tests.
@@ -133,7 +136,8 @@ func TestGetFeature(t *testing.T) {
 					Value: []byte(
 						`{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":{"chrome":{"date":"1999-01-01",` +
-							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1"}`,
+							`"status":"available","version":"100"}},"feature_id":"feature1","name":"feature 1",` +
+							`"system_managed_saved_search_id":"saved-search-1"}`,
 					),
 					Err: nil,
 				},
@@ -154,7 +158,8 @@ func TestGetFeature(t *testing.T) {
 						   }
 						},
 						"feature_id":"feature1",
-						"name":"feature 1"
+						"name":"feature 1",
+						"system_managed_saved_search_id":"saved-search-1"
 					 }`),
 		},
 		// nolint:dupl // WONTFIX - being explicit for short list of tests.
@@ -193,12 +198,13 @@ func TestGetFeature(t *testing.T) {
 							Version: valuePtr("100"),
 						},
 					},
-					FeatureId:       "feature1",
-					Name:            "feature 1",
-					Spec:            nil,
-					Usage:           nil,
-					Wpt:             nil,
-					VendorPositions: nil,
+					FeatureId:                  "feature1",
+					Name:                       "feature 1",
+					Spec:                       nil,
+					Usage:                      nil,
+					Wpt:                        nil,
+					VendorPositions:            nil,
+					SystemManagedSavedSearchId: valuePtr("saved-search-1"),
 				})),
 				err: nil,
 			},
@@ -222,7 +228,7 @@ func TestGetFeature(t *testing.T) {
 							`"according_to":[{"link":"https://example.com/discouraged"}],` +
 							`"alternatives":[{"id":"alternative"}]` +
 							`},` +
-							`"feature_id":"feature1","name":"feature 1"}`,
+							`"feature_id":"feature1","name":"feature 1","system_managed_saved_search_id":"saved-search-1"}`,
 					),
 					CacheCfg: getDefaultCacheConfig(),
 				},
@@ -246,9 +252,10 @@ func TestGetFeature(t *testing.T) {
 	"discouraged":{
 		"according_to":[{"link":"https://example.com/discouraged"}],"alternatives":[{"id":"alternative"}]
 	},
-	"feature_id":"feature1",
-	"name":"feature 1"
-}`,
+					"feature_id":"feature1",
+					"name":"feature 1",
+					"system_managed_saved_search_id":"saved-search-1"
+				}`,
 			),
 		},
 		// nolint:dupl // WONTFIX - being explicit for short list of tests.
@@ -268,8 +275,9 @@ func TestGetFeature(t *testing.T) {
 							`"according_to":[{"link":"https://example.com/discouraged"}],` +
 							`"alternatives":[{"id":"alternative"}]` +
 							`},` +
-							`"feature_id":"feature1","name":"feature 1"}`,
+							`"feature_id":"feature1","name":"feature 1","system_managed_saved_search_id":"saved-search-1"}`,
 					),
+
 					Err: nil,
 				},
 			},
@@ -294,7 +302,8 @@ func TestGetFeature(t *testing.T) {
 		"according_to":[{"link":"https://example.com/discouraged"}],"alternatives":[{"id":"alternative"}]
 	},
 	"feature_id":"feature1",
-	"name":"feature 1"
+	"name":"feature 1",
+	"system_managed_saved_search_id":"saved-search-1"
 }`,
 			),
 		},

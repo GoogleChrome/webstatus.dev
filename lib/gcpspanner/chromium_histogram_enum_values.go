@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
 
 const (
@@ -103,6 +104,21 @@ func (m chromiumHistogramEnumValuesMapper) PreDeleteHook(
 	return nil, nil
 }
 
+func (m chromiumHistogramEnumValuesMapper) GetIDFromInternal(s spannerChromiumHistogramEnumValue) string {
+	return s.ID
+}
+
+func (m chromiumHistogramEnumValuesMapper) NewEntityWithID(
+	req ChromiumHistogramEnumValue) (spannerChromiumHistogramEnumValue, string, error) {
+	id := uuid.NewString()
+
+	return spannerChromiumHistogramEnumValue{
+		ID:                         id,
+		ChromiumHistogramEnumValue: req,
+		LabelLowercase:             "",
+	}, id, nil
+}
+
 func (m chromiumHistogramEnumValuesMapper) GetID(in spannerChromiumHistogramEnumValueKey) spanner.Statement {
 	stmt := spanner.NewStatement(fmt.Sprintf(`
 	SELECT
@@ -143,7 +159,12 @@ func (c *Client) SyncChromiumHistogramEnumValues(ctx context.Context, in []Chrom
 
 func (c *Client) GetIDFromChromiumHistogramEnumValueKey(
 	ctx context.Context, chromiumHistogramEnumID string, bucketID int64) (*string, error) {
-	return newEntityWriterWithIDRetrieval[chromiumHistogramEnumValuesMapper, string](c).
+	return newEntityWriterWithIDRetrieval[
+		chromiumHistogramEnumValuesMapper,
+		string,
+		ChromiumHistogramEnumValue,
+		spannerChromiumHistogramEnumValue,
+		spannerChromiumHistogramEnumValueKey](c).
 		getIDByKey(ctx, spannerChromiumHistogramEnumValueKey{
 			ChromiumHistogramEnumID: chromiumHistogramEnumID,
 			BucketID:                bucketID,

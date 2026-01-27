@@ -22,9 +22,19 @@ import (
 	"log/slog"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
 
 const webFeaturesTable = "WebFeatures"
+const systemAuthorID = "system"
+
+func systemSavedSearchName(featureKey string) string {
+	return fmt.Sprintf("Feature %s", featureKey)
+}
+
+func systemSavedSearchQuery(featureKey string) string {
+	return fmt.Sprintf("id:\"%s\"", featureKey)
+}
 
 // SpannerWebFeature is a wrapper for the feature that is actually
 // stored in spanner. This is useful because the spanner id is not useful to
@@ -50,6 +60,63 @@ type webFeatureSpannerMapper struct {
 	RedirectTargets map[string]string
 }
 
+func (m webFeatureSpannerMapper) createSystemManagedSavedSearchMutations(
+	id string,
+	entity WebFeature,
+) ([]*spanner.Mutation, error) {
+	description := fmt.Sprintf("A system-managed saved search for the feature %s", entity.Name)
+	savedSearchID := uuid.NewString()
+	savedSearch := SavedSearch{
+		ID:          savedSearchID,
+		Name:        systemSavedSearchName(entity.FeatureKey),
+		Query:       systemSavedSearchQuery(entity.FeatureKey),
+		Description: &description,
+		AuthorID:    systemAuthorID,
+		Scope:       SystemManagedScope,
+		CreatedAt:   spanner.CommitTimestamp,
+		UpdatedAt:   spanner.CommitTimestamp,
+	}
+	savedSearchMutation, err := spanner.InsertStruct(savedSearchesTable, &savedSearch)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create the system-managed saved search.
+	systemManagedSearch := SystemManagedSavedSearch{
+		FeatureID:     id,
+		SavedSearchID: savedSearchID,
+		CreatedAt:     spanner.CommitTimestamp,
+		UpdatedAt:     spanner.CommitTimestamp,
+	}
+	systemManagedSearchMutation, err := spanner.InsertStruct(systemManagedSavedSearchesTable, &systemManagedSearch)
+	if err != nil {
+		return nil, err
+	}
+
+	return []*spanner.Mutation{savedSearchMutation, systemManagedSearchMutation}, nil
+}
+
+func (m webFeatureSpannerMapper) PostWriteHook(
+	ctx context.Context,
+	txn *spanner.ReadWriteTransaction,
+	client *Client,
+	id string,
+	entity WebFeature,
+) ([]*spanner.Mutation, error) {
+	// A new feature was added, create a system-managed saved search for it.
+	_, err := client.getSystemManagedSavedSearchByFeatureIDAndTransaction(ctx, txn, id)
+	if err == nil {
+		// The system-managed saved search already exists.
+		return nil, nil
+	}
+
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		return nil, err
+	}
+
+	return m.createSystemManagedSavedSearchMutations(id, entity)
+}
+
 // SelectAll returns a statement to select all WebFeatures.
 func (m webFeatureSpannerMapper) SelectAll() spanner.Statement {
 	return spanner.NewStatement(fmt.Sprintf(`
@@ -71,6 +138,13 @@ func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
 	stmt.Params = parameters
 
 	return stmt
+}
+
+func (m webFeatureSpannerMapper) NewEntity(id string, req WebFeature) (SpannerWebFeature, error) {
+	return SpannerWebFeature{
+		ID:         id,
+		WebFeature: req,
+	}, nil
 }
 
 // Merge method remains for backward compatibility.
@@ -263,6 +337,56 @@ func (m webFeatureSpannerMapper) moveLatestFeatureDeveloperSignals(
 	return mutations, nil
 }
 
+func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
+	ctx context.Context,
+	c *Client,
+	sourceID, targetKey string,
+	savedSearchMutations *[]*spanner.Mutation,
+	systemManagedSearchMutations *[]*spanner.Mutation,
+) error {
+	systemManagedSearch, err := c.GetSystemManagedSavedSearchByFeatureID(ctx, sourceID)
+	if err != nil {
+		if errors.Is(err, ErrQueryReturnedNoResults) {
+			slog.WarnContext(ctx, "system managed saved search not found during redirect, skipping", "sourceID", sourceID)
+
+			return nil // Not an error, just nothing to do.
+		}
+
+		return fmt.Errorf("unable to get system managed saved search: %w", err)
+	}
+
+	savedSearch, err := c.GetSavedSearch(ctx, systemManagedSearch.SavedSearchID)
+	if err != nil {
+		return fmt.Errorf("unable to get saved search: %w", err)
+	}
+
+	savedSearch.Name = systemSavedSearchName(targetKey)
+	savedSearch.Query = systemSavedSearchQuery(targetKey)
+	savedSearch.UpdatedAt = spanner.CommitTimestamp
+
+	updateMutation, err := spanner.UpdateStruct(savedSearchesTable, savedSearch)
+	if err != nil {
+		return fmt.Errorf("unable to create update mutation for saved search: %w", err)
+	}
+	*savedSearchMutations = append(*savedSearchMutations, updateMutation)
+
+	// Now update the system-managed saved search association
+	deleteSubMutation := spanner.Delete(systemManagedSavedSearchesTable, spanner.Key{sourceID})
+	newSystemManagedSearch := SystemManagedSavedSearch{
+		FeatureID:     targetKey, // The target ID (feature key) is the new FeatureID
+		SavedSearchID: systemManagedSearch.SavedSearchID,
+		CreatedAt:     spanner.CommitTimestamp,
+		UpdatedAt:     spanner.CommitTimestamp,
+	}
+	insertSubMutation, err := spanner.InsertStruct(systemManagedSavedSearchesTable, &newSystemManagedSearch)
+	if err != nil {
+		return fmt.Errorf("unable to create insert mutation for system managed search: %w", err)
+	}
+	*systemManagedSearchMutations = append(*systemManagedSearchMutations, deleteSubMutation, insertSubMutation)
+
+	return nil
+}
+
 func (m webFeatureSpannerMapper) PreDeleteHook(
 	ctx context.Context,
 	c *Client,
@@ -285,6 +409,8 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 	var webFeatureChromiumHistogramEnumValueMutations []*spanner.Mutation
 	var latestDailyChromiumHistogramMetricMutations []*spanner.Mutation
 	var latestFeatureDeveloperSignalMutations []*spanner.Mutation
+	var savedSearchMutations []*spanner.Mutation
+	var systemManagedSearchMutations []*spanner.Mutation
 
 	// The following sections are where the WebFeatureID is the primary key (or part of the primary key).
 	// This requires us to copy the rows (with updated IDs) because Spanner does not allow the modifications of keys.
@@ -338,6 +464,14 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 			return nil, err
 		}
 		latestFeatureDeveloperSignalMutations = append(latestFeatureDeveloperSignalMutations, mutations...)
+
+		// Now move the SystemManagedSavedSearch
+		if err := m.moveSystemManagedSavedSearch(
+			ctx, c, sourceID, targetKey, &savedSearchMutations, &systemManagedSearchMutations); err != nil {
+			slog.ErrorContext(ctx, "failed to move system managed saved search", "error", err, "sourceID", sourceID)
+
+			return nil, err
+		}
 	}
 
 	var groups []ExtraMutationsGroup
@@ -376,6 +510,20 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 		})
 	}
 
+	if len(savedSearchMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: savedSearchesTable,
+			mutations: savedSearchMutations,
+		})
+	}
+
+	if len(systemManagedSearchMutations) > 0 {
+		groups = append(groups, ExtraMutationsGroup{
+			tableName: systemManagedSavedSearchesTable,
+			mutations: systemManagedSearchMutations,
+		})
+	}
+
 	return groups, nil
 }
 
@@ -384,7 +532,9 @@ func (m webFeatureSpannerMapper) GetChildDeleteKeyMutations(
 	if len(parentsToDelete) == 0 {
 		return nil, nil
 	}
-	var metricMutations, browserSupportEventMutations []*spanner.Mutation
+	metricMutations := make([]*spanner.Mutation, 0)
+	browserSupportEventMutations := make([]*spanner.Mutation, 0)
+	savedSearchMutations := make([]*spanner.Mutation, 0)
 
 	// WPTRunFeatureMetrics can contain a lot of entries for a given feature
 	for _, parent := range parentsToDelete {
@@ -416,6 +566,27 @@ func (m webFeatureSpannerMapper) GetChildDeleteKeyMutations(
 		}
 	}
 
+	// SystemManagedSavedSearches and SavedSearches
+	parentIDs := make([]string, len(parentsToDelete))
+	for i, parent := range parentsToDelete {
+		parentIDs[i] = parent.ID
+	}
+
+	systemManagedSearches, err := client.ListSystemManagedSavedSearchesByFeatureIDs(ctx, parentIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, sms := range systemManagedSearches {
+		// Delete the system-managed saved search
+		savedSearchMutations = append(savedSearchMutations,
+			spanner.Delete(systemManagedSavedSearchesTable, spanner.Key{sms.FeatureID}))
+
+		// Delete the saved search
+		savedSearchMutations = append(savedSearchMutations,
+			spanner.Delete(savedSearchesTable, spanner.Key{sms.SavedSearchID}))
+	}
+
 	return []ExtraMutationsGroup{
 		{
 			tableName: WPTRunFeatureMetricTable,
@@ -424,6 +595,10 @@ func (m webFeatureSpannerMapper) GetChildDeleteKeyMutations(
 		{
 			tableName: browserFeatureSupportEventsTable,
 			mutations: browserSupportEventMutations,
+		},
+		{
+			tableName: savedSearchesTable,
+			mutations: savedSearchMutations,
 		},
 	}, nil
 }
@@ -464,6 +639,19 @@ func (m webFeatureSpannerMapper) GetID(key string) spanner.Statement {
 	return stmt
 }
 
+func (m webFeatureSpannerMapper) GetIDFromInternal(s SpannerWebFeature) string {
+	return s.ID
+}
+
+func (m webFeatureSpannerMapper) NewEntityWithID(req WebFeature) (SpannerWebFeature, string, error) {
+	id := uuid.NewString()
+
+	return SpannerWebFeature{
+		ID:         id,
+		WebFeature: req,
+	}, id, nil
+}
+
 type SyncWebFeaturesOption func(*webFeatureSpannerMapper)
 
 func WithRedirectTargets(redirects map[string]string) SyncWebFeaturesOption {
@@ -489,12 +677,10 @@ func (c *Client) SyncWebFeatures(
 	return synchronizer.Sync(ctx, features)
 }
 
-func (c *Client) UpsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
-	return newEntityWriterWithIDRetrieval[webFeatureSpannerMapper, string](c).upsertAndGetID(ctx, feature)
-}
-
 func (c *Client) GetIDFromFeatureKey(ctx context.Context, filter *FeatureIDFilter) (*string, error) {
-	return newEntityWriterWithIDRetrieval[webFeatureSpannerMapper, string](c).getIDByKey(ctx, filter.featureKey)
+	return newEntityWriterWithIDRetrievalAndHooks[
+		webFeatureSpannerMapper, string, WebFeature, SpannerWebFeature, string](c).
+		getIDByKey(ctx, filter.featureKey)
 }
 
 func (c *Client) GetWebFeatureByID(ctx context.Context, id string) (*SpannerWebFeature, error) {
