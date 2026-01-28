@@ -131,6 +131,11 @@ export const INTEROP_FEATURES: string[] = [
 
 export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   {
+    name: 'Baseline 2026',
+    query: 'baseline_date:2026-01-01..2026-12-31',
+    description: 'All Baseline 2026 features',
+  },
+  {
     name: 'Baseline 2025',
     query: 'baseline_date:2025-01-01..2025-12-31',
     description: 'All Baseline 2025 features',
