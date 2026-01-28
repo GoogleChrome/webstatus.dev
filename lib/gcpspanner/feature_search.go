@@ -32,22 +32,23 @@ import (
 // stored in spanner. This is useful because the spanner id is not useful to
 // return to the end user.
 type SpannerFeatureResult struct {
-	ID                     string                        `spanner:"ID"`
-	FeatureKey             string                        `spanner:"FeatureKey"`
-	Name                   string                        `spanner:"Name"`
-	Status                 *string                       `spanner:"Status"`
-	StableMetrics          []*SpannerFeatureResultMetric `spanner:"StableMetrics"`
-	ExperimentalMetrics    []*SpannerFeatureResultMetric `spanner:"ExperimentalMetrics"`
-	ImplementationStatuses []*ImplementationStatus       `spanner:"ImplementationStatuses"`
-	LowDate                *time.Time                    `spanner:"LowDate"`
-	HighDate               *time.Time                    `spanner:"HighDate"`
-	SpecLinks              []string                      `spanner:"SpecLinks"`
-	AccordingTo            []string                      `spanner:"AccordingTo"`
-	Alternatives           []string                      `spanner:"Alternatives"`
-	ChromiumUsage          *big.Rat                      `spanner:"ChromiumUsage"`
-	DeveloperSignalUpvotes *int64                        `spanner:"DeveloperSignalUpvotes"`
-	DeveloperSignalLink    *string                       `spanner:"DeveloperSignalLink"`
-	VendorPositions        spanner.NullJSON              `spanner:"VendorPositions"`
+	ID                         string                        `spanner:"ID"`
+	FeatureKey                 string                        `spanner:"FeatureKey"`
+	SystemManagedSavedSearchID *string                       `spanner:"SystemManagedSavedSearchID"`
+	Name                       string                        `spanner:"Name"`
+	Status                     *string                       `spanner:"Status"`
+	StableMetrics              []*SpannerFeatureResultMetric `spanner:"StableMetrics"`
+	ExperimentalMetrics        []*SpannerFeatureResultMetric `spanner:"ExperimentalMetrics"`
+	ImplementationStatuses     []*ImplementationStatus       `spanner:"ImplementationStatuses"`
+	LowDate                    *time.Time                    `spanner:"LowDate"`
+	HighDate                   *time.Time                    `spanner:"HighDate"`
+	SpecLinks                  []string                      `spanner:"SpecLinks"`
+	AccordingTo                []string                      `spanner:"AccordingTo"`
+	Alternatives               []string                      `spanner:"Alternatives"`
+	ChromiumUsage              *big.Rat                      `spanner:"ChromiumUsage"`
+	DeveloperSignalUpvotes     *int64                        `spanner:"DeveloperSignalUpvotes"`
+	DeveloperSignalLink        *string                       `spanner:"DeveloperSignalLink"`
+	VendorPositions            spanner.NullJSON              `spanner:"VendorPositions"`
 }
 
 // BrowserImplementationStatus is an enumeration of the possible implementation states for a feature in a browser.
@@ -82,21 +83,22 @@ type SpannerFeatureResultMetric struct {
 
 // FeatureResult contains information regarding a particular feature.
 type FeatureResult struct {
-	FeatureKey             string                  `spanner:"FeatureKey"`
-	Name                   string                  `spanner:"Name"`
-	Status                 *string                 `spanner:"Status"`
-	StableMetrics          []*FeatureResultMetric  `spanner:"StableMetrics"`
-	ExperimentalMetrics    []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
-	ImplementationStatuses []*ImplementationStatus `spanner:"ImplementationStatuses"`
-	LowDate                *time.Time              `spanner:"LowDate"`
-	HighDate               *time.Time              `spanner:"HighDate"`
-	SpecLinks              []string                `spanner:"SpecLinks"`
-	AccordingTo            []string                `spanner:"AccordingTo"`
-	Alternatives           []string                `spanner:"Alternatives"`
-	ChromiumUsage          *big.Rat                `spanner:"ChromiumUsage"`
-	DeveloperSignalUpvotes *int64                  `spanner:"DeveloperSignalUpvotes"`
-	DeveloperSignalLink    *string                 `spanner:"DeveloperSignalLink"`
-	VendorPositions        spanner.NullJSON        `spanner:"VendorPositions"`
+	FeatureKey                 string                  `spanner:"FeatureKey"`
+	Name                       string                  `spanner:"Name"`
+	SystemManagedSavedSearchID *string                 `spanner:"SystemManagedSavedSearchID"`
+	Status                     *string                 `spanner:"Status"`
+	StableMetrics              []*FeatureResultMetric  `spanner:"StableMetrics"`
+	ExperimentalMetrics        []*FeatureResultMetric  `spanner:"ExperimentalMetrics"`
+	ImplementationStatuses     []*ImplementationStatus `spanner:"ImplementationStatuses"`
+	LowDate                    *time.Time              `spanner:"LowDate"`
+	HighDate                   *time.Time              `spanner:"HighDate"`
+	SpecLinks                  []string                `spanner:"SpecLinks"`
+	AccordingTo                []string                `spanner:"AccordingTo"`
+	Alternatives               []string                `spanner:"Alternatives"`
+	ChromiumUsage              *big.Rat                `spanner:"ChromiumUsage"`
+	DeveloperSignalUpvotes     *int64                  `spanner:"DeveloperSignalUpvotes"`
+	DeveloperSignalLink        *string                 `spanner:"DeveloperSignalLink"`
+	VendorPositions            spanner.NullJSON        `spanner:"VendorPositions"`
 }
 
 // FeatureResultPage contains the details for the feature search request.
@@ -247,21 +249,22 @@ func (c *Client) getFeatureResult(
 		}
 
 		actualResult := FeatureResult{
-			FeatureKey:             result.FeatureKey,
-			Name:                   result.Name,
-			Status:                 result.Status,
-			StableMetrics:          stableMetrics,
-			ExperimentalMetrics:    experimentalMetrics,
-			ImplementationStatuses: result.ImplementationStatuses,
-			LowDate:                result.LowDate,
-			HighDate:               result.HighDate,
-			SpecLinks:              result.SpecLinks,
-			AccordingTo:            result.AccordingTo,
-			Alternatives:           result.Alternatives,
-			ChromiumUsage:          result.ChromiumUsage,
-			DeveloperSignalUpvotes: result.DeveloperSignalUpvotes,
-			DeveloperSignalLink:    result.DeveloperSignalLink,
-			VendorPositions:        result.VendorPositions,
+			FeatureKey:                 result.FeatureKey,
+			Name:                       result.Name,
+			SystemManagedSavedSearchID: result.SystemManagedSavedSearchID,
+			Status:                     result.Status,
+			StableMetrics:              stableMetrics,
+			ExperimentalMetrics:        experimentalMetrics,
+			ImplementationStatuses:     result.ImplementationStatuses,
+			LowDate:                    result.LowDate,
+			HighDate:                   result.HighDate,
+			SpecLinks:                  result.SpecLinks,
+			AccordingTo:                result.AccordingTo,
+			Alternatives:               result.Alternatives,
+			ChromiumUsage:              result.ChromiumUsage,
+			DeveloperSignalUpvotes:     result.DeveloperSignalUpvotes,
+			DeveloperSignalLink:        result.DeveloperSignalLink,
+			VendorPositions:            result.VendorPositions,
 		}
 		results = append(results, actualResult)
 	}

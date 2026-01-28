@@ -1954,6 +1954,11 @@ components:
       properties:
         feature_id:
           type: string
+        system_managed_saved_search_id:
+          type: string
+          nullable: true
+          readOnly: true
+          description: The ID of the system-managed saved search for this feature.
         name:
           type: string
           description: >

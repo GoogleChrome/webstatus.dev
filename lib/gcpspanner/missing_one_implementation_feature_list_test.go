@@ -33,7 +33,7 @@ func loadDataForListMissingOneImplFeatureList(ctx context.Context, t *testing.T,
 		{FeatureKey: "FeatureW", Name: "Amazing API", Description: "text", DescriptionHTML: "<html>"},
 	}
 	for _, feature := range webFeatures {
-		_, err := client.UpsertWebFeature(ctx, feature)
+		_, err := client.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}

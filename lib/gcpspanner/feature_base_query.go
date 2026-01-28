@@ -334,6 +334,7 @@ LEFT OUTER JOIN FeatureSpecs fs ON wf.ID = fs.WebFeatureID
 LEFT OUTER JOIN FeatureDiscouragedDetails fdd ON wf.ID = fdd.WebFeatureID
 LEFT OUTER JOIN LatestFeatureDeveloperSignals lfds ON wf.ID = lfds.WebFeatureID
 LEFT OUTER JOIN WebFeaturesMappingData wfmd ON wf.ID = wfmd.WebFeatureID
+LEFT OUTER JOIN SystemManagedSavedSearches smfs ON wf.ID = smfs.FeatureID
 LEFT OUTER JOIN (
 	SELECT
 		bfa.WebFeatureID,
@@ -444,6 +445,7 @@ SELECT
 	wf.ID,
 	wf.FeatureKey,
 	wf.Name,
+	smfs.SavedSearchID AS SystemManagedSavedSearchID,
 	fbs.Status,
 	fbs.LowDate,
 	fbs.HighDate,
@@ -512,6 +514,7 @@ SELECT
 	wf.ID,
 	wf.FeatureKey,
 	wf.Name,
+	smfs.SavedSearchID AS SystemManagedSavedSearchID,
 	fbs.Status,
 	fbs.LowDate,
 	fbs.HighDate,

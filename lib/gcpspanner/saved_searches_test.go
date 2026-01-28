@@ -20,7 +20,56 @@ import (
 	"testing"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
+
+func TestSavedSearchScope(t *testing.T) {
+	if UserPublicScope != "USER_PUBLIC" {
+		t.Errorf("UserPublicScope should be USER_PUBLIC, but got %s", UserPublicScope)
+	}
+	if SystemManagedScope != "SYSTEM_MANAGED" {
+		t.Errorf("SystemManagedScope should be SYSTEM_MANAGED, but got %s", SystemManagedScope)
+	}
+}
+
+func TestGetSavedSearch(t *testing.T) {
+	restartDatabaseContainer(t)
+	ctx := context.Background()
+
+	id := uuid.New().String()
+	desc := systemSearchDesc
+	expectedSavedSearch := &SavedSearch{
+		ID:          id,
+		Name:        "my system search",
+		Query:       "feature:is(\"foo\")",
+		Scope:       SystemManagedScope,
+		AuthorID:    "system",
+		Description: &desc,
+		CreatedAt:   spanner.CommitTimestamp,
+		UpdatedAt:   spanner.CommitTimestamp,
+	}
+
+	_, err := spannerClient.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+		m, err := spanner.InsertStruct(savedSearchesTable, expectedSavedSearch)
+		if err != nil {
+			return err
+		}
+
+		return txn.BufferWrite([]*spanner.Mutation{m})
+	})
+
+	if err != nil {
+		t.Fatalf("unexpected error during insert: %s", err)
+	}
+
+	actual, err := spannerClient.GetSavedSearch(ctx, id)
+	if err != nil {
+		t.Errorf("expected nil error. received %s", err)
+	}
+	if !savedSearchEquality(*expectedSavedSearch, *actual) {
+		t.Errorf("different saved searches\nexpected: %+v\nreceived: %v", expectedSavedSearch, actual)
+	}
+}
 
 func TestGetUserSavedSearch(t *testing.T) {
 	restartDatabaseContainer(t)

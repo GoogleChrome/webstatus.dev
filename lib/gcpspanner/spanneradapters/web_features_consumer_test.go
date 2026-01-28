@@ -269,6 +269,8 @@ type mockWebFeatureSpannerClient struct {
 	syncMovedWebFeaturesCount                      int
 	mockSyncSplitWebFeaturesCfg                    *mockSyncSplitWebFeaturesConfig
 	syncSplitWebFeaturesCount                      int
+	syncSystemManagedSavedQueryCount               int
+	mockSyncSystemManagedSavedQueryErr             error
 }
 
 // SyncMovedWebFeatures implements WebFeatureSpannerClient.
@@ -291,6 +293,13 @@ func (c *mockWebFeatureSpannerClient) SyncSplitWebFeatures(
 	}
 
 	return c.mockSyncSplitWebFeaturesCfg.err
+}
+
+// SyncSystemManagedSavedQuery implements WebFeatureSpannerClient.
+func (c *mockWebFeatureSpannerClient) SyncSystemManagedSavedQuery(_ context.Context) error {
+	c.syncSystemManagedSavedQueryCount++
+
+	return c.mockSyncSystemManagedSavedQueryErr
 }
 
 func (c *mockWebFeatureSpannerClient) SyncWebFeatures(
@@ -440,6 +449,8 @@ func newMockmockWebFeatureSpannerClient(
 		syncMovedWebFeaturesCount:                      0,
 		mockSyncSplitWebFeaturesCfg:                    mockSyncSplitWebFeaturesCfg,
 		syncSplitWebFeaturesCount:                      0,
+		syncSystemManagedSavedQueryCount:               0,
+		mockSyncSystemManagedSavedQueryErr:             nil,
 	}
 }
 

@@ -22,11 +22,12 @@ import (
 	"cloud.google.com/go/spanner"
 )
 
-// savedSearchMapper implements the necessary interfaces for the generic helpers.
-type savedSearchMapper struct{}
-
-func (m savedSearchMapper) Table() string {
-	return savedSearchesTable
+// CreateUserSavedSearchRequest is the request to create a new user saved search.
+type CreateUserSavedSearchRequest struct {
+	Name        string
+	Query       string
+	OwnerUserID string
+	Description *string
 }
 
 func (m savedSearchMapper) NewEntity(id string, req CreateUserSavedSearchRequest) (SavedSearch, error) {
@@ -42,17 +43,10 @@ func (m savedSearchMapper) NewEntity(id string, req CreateUserSavedSearchRequest
 	}, nil
 }
 
-// CreateUserSavedSearchRequest is the request to create a new user saved search.
-type CreateUserSavedSearchRequest struct {
-	Name        string
-	Query       string
-	OwnerUserID string
-	Description *string
-}
-
 var (
 	// ErrOwnerSavedSearchLimitExceeded indicates that the user already has
 	// reached the limit of saved searches that a given user can own.
+	// Use for tests and utils. Typically, you should use CreateNewUserSavedSearch instead.
 	ErrOwnerSavedSearchLimitExceeded = errors.New("saved search limit reached")
 )
 

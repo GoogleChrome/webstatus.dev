@@ -1024,7 +1024,8 @@ func (s *Backend) convertFeatureResult(featureResult *gcpspanner.FeatureResult) 
 			featureResult.Alternatives,
 			featureResult.AccordingTo,
 		),
-		VendorPositions: nil,
+		VendorPositions:            nil,
+		SystemManagedSavedSearchId: featureResult.SystemManagedSavedSearchID,
 	}
 
 	if len(featureResult.ExperimentalMetrics) > 0 {
