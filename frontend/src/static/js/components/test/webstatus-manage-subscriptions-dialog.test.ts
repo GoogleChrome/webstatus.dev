@@ -571,4 +571,29 @@ describe('webstatus-manage-subscriptions-dialog', () => {
       expect(element.isDirty).to.be.false;
     });
   });
+
+  it('enables create button only when a trigger is selected', async () => {
+    element.open = true;
+    await element['_loadingTask'].run();
+    await element.updateComplete;
+
+    // Switch to a channel with no existing subscription.
+    element['_switchChannel']('other-channel-id');
+    await element.updateComplete;
+
+    const createButton = element.shadowRoot?.querySelector<SlButton>(
+      'sl-button[variant="primary"]',
+    );
+    expect(createButton).to.exist;
+    expect(createButton!.disabled).to.be.true; // Initially disabled
+
+    // Select a trigger.
+    const triggerCheckbox = element.shadowRoot?.querySelector<HTMLInputElement>(
+      'sl-checkbox[value="feature_baseline_to_newly"]',
+    );
+    triggerCheckbox!.click();
+    await element.updateComplete;
+
+    expect(createButton!.disabled).to.be.false; // Should now be enabled
+  });
 });

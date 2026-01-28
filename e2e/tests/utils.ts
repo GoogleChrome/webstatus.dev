@@ -90,11 +90,41 @@ export const testUsers = {
   'webkit user': 'webkit.user@example.com',
 };
 
+/**
+ * Sets the Wiremock scenario state for user emails based on the provided username.
+ * This ensures that Wiremock serves the correct email stubs for the logged-in user.
+ */
+export async function setUserWiremockScenarioState(
+  page: Page,
+  username: keyof typeof testUsers,
+) {
+  let makeTarget = 'set-wiremock-user1'; // Default for test user 1
+  if (username === 'test user 2') {
+    makeTarget = 'set-wiremock-user2';
+  }
+
+  const __filename = fileURLToPath(import.meta.url);
+  const __dirname = path.dirname(__filename);
+  const projectRootDir = path.resolve(__dirname, '../..');
+
+  try {
+    const cmd = `make ${makeTarget}`;
+    console.log(`Executing command: ${cmd} in ${projectRootDir}`);
+    execSync(cmd, {cwd: projectRootDir, stdio: 'inherit'});
+  } catch (error) {
+    console.error(`Error executing make target ${makeTarget}:`, error);
+    throw new Error('Failed to set Wiremock scenario state, halting tests.');
+  }
+}
+
 export async function loginAsUser(
   page: Page,
   username: keyof typeof testUsers,
   options: {waitFor: 'idle' | 'syncing' | 'error'} = {waitFor: 'idle'},
 ) {
+  // Set Wiremock scenario state based on the user.
+  await setUserWiremockScenarioState(page, username);
+
   // Clicking the log in button will create a popup that we need to capture.
   const popupPromise = page.waitForEvent('popup');
   await page.goto('http://localhost:5555/');

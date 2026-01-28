@@ -430,4 +430,131 @@ test.describe('Saved Searches on Overview Page', () => {
     await expect(editorDialogLocator(page)).not.toBeVisible(); // Should close now
     await page.waitForURL(url => url.searchParams.has('search_id'));
   });
+
+  test.describe('Subscriptions', () => {
+    test('User 1 can edit an existing subscription', async ({page}) => {
+      await loginAsUser(page, USER1.username);
+      await gotoOverviewPageUrl(
+        page,
+        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      );
+      await page.getByRole('button', {name: 'Subscribe'}).click();
+      const dialog = page.locator('webstatus-manage-subscriptions-dialog');
+      await expect(
+        dialog.getByRole('heading', {name: 'Manage notifications'}),
+      ).toBeVisible();
+
+      // Select the already subscribed channel.
+      await dialog.getByText('test.user.1@example.com').click();
+
+      // The button should say "Save preferences".
+      const saveButton = dialog.getByRole('button', {name: 'Save preferences'});
+      await expect(saveButton).toBeVisible();
+
+      // Change the frequency.
+      await dialog.locator('sl-radio', {hasText: 'Monthly'}).click();
+      await saveButton.click();
+
+      // Assert that the success toast appears.
+      await expect(
+        page.locator('sl-alert', {hasText: 'Subscription saved!'}),
+      ).toBeVisible();
+    });
+
+    test('User 1 can add a subscription to a new channel', async ({page}) => {
+      await loginAsUser(page, USER1.username);
+      await gotoOverviewPageUrl(
+        page,
+        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      );
+      await page.getByRole('button', {name: 'Subscribe'}).click();
+      const dialog = page.locator('webstatus-manage-subscriptions-dialog');
+      await expect(
+        dialog.getByRole('heading', {name: 'Manage notifications'}),
+      ).toBeVisible();
+
+      // Select the un-subscribed channel.
+      await dialog.getByText('third@mock-github.local').click();
+
+      // Select a trigger to enable the create button.
+      await dialog
+        .locator('sl-checkbox')
+        .filter({hasText: '...becomes widely available'})
+        .locator('label')
+        .click();
+
+      // The button should say "Create Subscription".
+      const createButton = dialog.getByRole('button', {
+        name: 'Create Subscription',
+      });
+      await expect(createButton).toBeVisible();
+      await createButton.click();
+
+      // Assert that the success toast appears.
+      await expect(
+        page.locator('sl-alert', {hasText: 'Subscription saved!'}),
+      ).toBeVisible();
+    });
+
+    test('User 1 can delete a subscription', async ({page}) => {
+      await loginAsUser(page, USER1.username);
+      await gotoOverviewPageUrl(
+        page,
+        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      );
+      await page.getByRole('button', {name: 'Subscribe'}).click();
+      const dialog = page.locator('webstatus-manage-subscriptions-dialog');
+      await expect(
+        dialog.getByRole('heading', {name: 'Manage notifications'}),
+      ).toBeVisible();
+
+      // Select the already subscribed channel.
+      await dialog.getByText('test.user.1@example.com').click();
+
+      // Click the delete button.
+      await dialog.getByRole('button', {name: 'Delete Subscription'}).click();
+
+      // Assert that the success toast appears.
+      await expect(
+        page.locator('sl-alert', {hasText: 'Subscription deleted!'}),
+      ).toBeVisible();
+    });
+
+    test('User 2 can subscribe to a saved search owned by User 1', async ({
+      page,
+    }) => {
+      await loginAsUser(page, USER2.username);
+      await gotoOverviewPageUrl(
+        page,
+        `http://localhost:5555?search_id=${USER1_SEARCH1.id}`,
+      );
+      await page.getByRole('button', {name: 'Subscribe'}).click();
+      const dialog = page.locator('webstatus-manage-subscriptions-dialog');
+      await expect(
+        dialog.getByRole('heading', {name: 'Manage notifications'}),
+      ).toBeVisible();
+
+      // Select User 2's email channel.
+      await dialog.getByText('test.user.2@example.com').click();
+
+      // Select a trigger to enable the create button.
+      await dialog
+        .locator('sl-checkbox')
+        .filter({hasText: '...becomes widely available'})
+        .locator('label')
+        .click();
+
+      // The button should say "Create Subscription".
+      const createButton = dialog.getByRole('button', {
+        name: 'Create Subscription',
+      });
+      await expect(createButton).toBeVisible();
+      await createButton.click();
+
+      // Assert that the success toast appears.
+      await expect(
+        page.locator('sl-alert', {hasText: 'Subscription saved!'}),
+      ).toBeVisible();
+    });
+  });
 });

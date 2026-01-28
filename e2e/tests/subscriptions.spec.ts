@@ -35,34 +35,30 @@ test.describe('Subscriptions Page', () => {
     // Navigate to the subscriptions page.
     await page.goto(subscriptionPageURL);
 
-    // Wait for the list of subscriptions to be visible.
-    await page.waitForSelector('ul');
-
     // Find the list item for the subscription we created in the fake data.
-    const subscriptionListItem = page.locator('li', {
+    const subscriptionItem = page.locator('.subscription-item', {
       hasText: 'my first project query',
     });
 
     // Assert that the subscription details are visible.
-    await expect(subscriptionListItem).toBeVisible();
-    await expect(subscriptionListItem).toContainText('Channel:');
-    await expect(subscriptionListItem).toContainText('Frequency: weekly');
+    await expect(subscriptionItem).toBeVisible();
+    await expect(subscriptionItem).toContainText('test.user.1@example.com');
+    await expect(subscriptionItem).toContainText('Weekly');
     await expect(
-      subscriptionListItem.getByRole('button', {name: 'Edit'}),
+      subscriptionItem.getByRole('button', {name: 'Edit'}),
     ).toBeVisible();
     await expect(
-      subscriptionListItem.getByRole('button', {name: 'Delete'}),
+      subscriptionItem.getByRole('button', {name: 'Delete'}),
     ).toBeVisible();
   });
 
   test('should allow creating a new subscription from the saved searches page', async ({
     page,
   }) => {
-    // Navigate to the main page.
-    await page.goto('/');
-
-    // The user has two saved searches. Click on the second one.
-    await page.getByRole('button', {name: 'I like queries'}).click();
+    // Navigate to a saved search page.
+    await page.goto(
+      `${BASE_URL}/?search_id=a09386fe-65f1-4640-b28d-3cf2f2de69c9`,
+    );
 
     // The subscribe button should now be visible.
     const subscribeButton = page.getByRole('button', {name: 'Subscribe'});
@@ -71,19 +67,23 @@ test.describe('Subscriptions Page', () => {
 
     // The dialog should now be open.
     const dialog = page.locator('webstatus-manage-subscriptions-dialog');
-    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole('heading', {name: 'Manage notifications'}),
+    ).toBeVisible();
 
     // Select the notification channel (the user's email).
     await dialog.getByText('test.user.1@example.com').click();
 
     // Select a trigger.
-    await dialog.getByText('...becomes newly available').click();
+    await dialog
+      .locator('sl-checkbox', {hasText: '...becomes newly available'})
+      .click();
 
     // Select a frequency.
-    await dialog.getByText('Monthly updates').click();
+    await dialog.locator('sl-radio', {hasText: 'Monthly'}).click();
 
     // Save the subscription.
-    await dialog.getByRole('button', {name: 'Save'}).click();
+    await dialog.getByRole('button', {name: 'Create Subscription'}).click();
 
     // Assert that the success toast appears.
     await expect(
@@ -92,11 +92,11 @@ test.describe('Subscriptions Page', () => {
 
     // Navigate to the subscriptions page to verify the new subscription.
     await page.goto(subscriptionPageURL);
-    const newSubscription = page.locator('li', {
+    const newSubscription = page.locator('.subscription-item', {
       hasText: 'I like queries',
     });
     await expect(newSubscription).toBeVisible();
-    await expect(newSubscription).toContainText('Frequency: monthly');
+    await expect(newSubscription).toContainText('Monthly');
   });
 
   test('should allow editing an existing subscription', async ({page}) => {
@@ -104,20 +104,22 @@ test.describe('Subscriptions Page', () => {
     await page.goto(subscriptionPageURL);
 
     // Find the subscription for "my first project query" and click its Edit button.
-    const subscriptionListItem = page.locator('li', {
+    const subscriptionItem = page.locator('.subscription-item', {
       hasText: 'my first project query',
     });
-    await subscriptionListItem.getByRole('button', {name: 'Edit'}).click();
+    await subscriptionItem.getByRole('button', {name: 'Edit'}).click();
 
     // The dialog should now be open.
     const dialog = page.locator('webstatus-manage-subscriptions-dialog');
-    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole('heading', {name: 'Manage notifications'}),
+    ).toBeVisible();
 
     // Change the frequency.
-    await dialog.getByText('Monthly updates').click();
+    await dialog.locator('sl-radio', {hasText: 'Monthly'}).click();
 
     // Save the changes.
-    await dialog.getByRole('button', {name: 'Save'}).click();
+    await dialog.getByRole('button', {name: 'Save preferences'}).click();
 
     // Assert that the success toast appears.
     await expect(
@@ -125,7 +127,7 @@ test.describe('Subscriptions Page', () => {
     ).toBeVisible();
 
     // Assert that the frequency on the page has been updated.
-    await expect(subscriptionListItem).toContainText('Frequency: monthly');
+    await expect(subscriptionItem).toContainText('Monthly');
   });
 
   test('should allow deleting an existing subscription', async ({page}) => {
@@ -133,17 +135,23 @@ test.describe('Subscriptions Page', () => {
     await page.goto(subscriptionPageURL);
 
     // Find the subscription for "my first project query" and click its Delete button.
-    const subscriptionListItem = page.locator('li', {
+    const subscriptionItem = page.locator('.subscription-item', {
       hasText: 'my first project query',
     });
-    await subscriptionListItem.getByRole('button', {name: 'Delete'}).click();
+    await subscriptionItem.getByRole('button', {name: 'Delete'}).click();
 
     // The dialog should now be open in delete confirmation mode.
     const dialog = page.locator('webstatus-manage-subscriptions-dialog');
-    await expect(dialog).toBeVisible();
+    await expect(
+      dialog.getByRole('heading', {name: 'Manage notifications'}),
+    ).toBeVisible();
 
     // Confirm the deletion.
-    await dialog.getByRole('button', {name: 'Confirm Unsubscribe'}).click();
+    const deleteButton = dialog.getByRole('button', {
+      name: 'Confirm Unsubscribe',
+    });
+    await expect(deleteButton).toBeVisible();
+    await deleteButton.click();
 
     // Assert that the success toast appears.
     await expect(
@@ -151,6 +159,6 @@ test.describe('Subscriptions Page', () => {
     ).toBeVisible();
 
     // Assert that the subscription is no longer in the list.
-    await expect(subscriptionListItem).not.toBeVisible();
+    await expect(subscriptionItem).not.toBeVisible();
   });
 });

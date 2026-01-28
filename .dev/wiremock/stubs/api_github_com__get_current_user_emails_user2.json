@@ -1,0 +1,26 @@
+{
+  "metadata": {
+    "notes": "Mocks the GET /user/emails endpoint for test user 2.",
+    "docsLink": "https://docs.github.com/en/rest/users/emails#list-email-addresses-for-the-authenticated-user"
+  },
+  "scenarioName": "user_emails",
+  "requiredScenarioState": "user2_logged_in",
+  "request": {
+    "method": "GET",
+    "urlPath": "/user/emails"
+  },
+  "response": {
+    "status": 200,
+    "headers": {
+      "Content-Type": "application/json"
+    },
+    "jsonBody": [
+      {
+        "email": "test.user.2@example.com",
+        "verified": true,
+        "primary": true,
+        "visibility": "public"
+      }
+    ]
+  }
+}

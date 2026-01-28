@@ -3,6 +3,8 @@
     "notes": "Mocks the GET /user/emails endpoint to fetch the authenticated user's emails.",
     "docsLink": "https://docs.github.com/en/rest/users/emails#list-email-addresses-for-the-authenticated-user"
   },
+  "scenarioName": "user_emails",
+  "requiredScenarioState": "Started",
   "request": {
     "method": "GET",
     "urlPath": "/user/emails"

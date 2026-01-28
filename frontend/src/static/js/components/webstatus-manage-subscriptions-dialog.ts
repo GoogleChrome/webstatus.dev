@@ -643,13 +643,14 @@ export class ManageSubscriptionsDialog extends LitElement {
   }
 
   private async _handleDelete() {
-    if (!this.subscriptionId || !this.userContext) {
+    const subscriptionIdToDelete = this.subscriptionId || this._subscription?.id;
+    if (!subscriptionIdToDelete || !this.userContext) {
       return;
     }
     this._actionState = {phase: 'deleting'};
     try {
       const token = await this.userContext.user.getIdToken();
-      await this.apiClient.deleteSubscription(this.subscriptionId, token);
+      await this.apiClient.deleteSubscription(subscriptionIdToDelete, token);
       this.dispatchEvent(new SubscriptionDeleteSuccessEvent());
       this._actionState = {
         phase: 'success',
