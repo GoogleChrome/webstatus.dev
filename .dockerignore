@@ -57,13 +57,6 @@ go.work.sum
 # ANTLR4
 .antlr
 
-.devcontainer/cache/go/go-build/*
-.devcontainer/cache/go/pkg/*
-.devcontainer/cache/node/.npm/*
-!.devcontainer/cache/go/go-build/.gitkeep
-!.devcontainer/cache/go/pkg/.gitkeep
-!.devcontainer/cache/node/.npm/.gitkeep
-
 # TypeScript
 tsconfig.tsbuildinfo
 

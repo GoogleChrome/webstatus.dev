@@ -18,11 +18,6 @@ on: # trigger builds for 1) PRs, 2) merges into main from merge_queue, and 3) ma
   merge_group:
   workflow_dispatch:
 
-env:
-  GO_VERSION: '1.25'
-  NODE_VERSION: '24'
-  GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -43,14 +38,6 @@ jobs:
           sudo df -h
       - name: Checkout (GitHub)
         uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
@@ -80,14 +67,6 @@ jobs:
           sudo df -h
       - name: Checkout (GitHub)
         uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV

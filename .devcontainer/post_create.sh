@@ -22,10 +22,6 @@ chmod -R a+r ./*
 # Clean up minikube just in case to ensure a fresh cluster.
 make minikube-delete
 
-# The mounted ~/.cache/go-build directory in .devcontainer.json is owned
-# correctly but the parent ~/.cache directory is owned by root. This fixes that.
-sudo chown "$(whoami)":"$(whoami)" ~/.cache/
-
 # Install go tools
 make go-install-tools
 

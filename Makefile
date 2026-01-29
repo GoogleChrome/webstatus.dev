@@ -337,7 +337,6 @@ ADDLICENSE_ARGS := -c "${COPYRIGHT_NAME}" \
 	-ignore 'node_modules/**' \
 	-ignore 'infra/storage/spanner/schema.sql' \
 	-ignore 'antlr/.antlr/**' \
-	-ignore '.devcontainer/cache/**' \
 	-ignore 'workers/email/pkg/digest/testdata/digest.golden.html'
 
 license-check: go-install-tools

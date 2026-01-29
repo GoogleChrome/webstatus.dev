@@ -22,11 +22,6 @@ permissions:
   contents: read
   packages: write
 
-env:
-  GO_VERSION: '1.25'
-  NODE_VERSION: '24'
-  GO_CACHE_DEPENDENCY_PATH: '**/*.sum'
-
 jobs:
   build-base-image:
     runs-on: ubuntu-latest
@@ -49,10 +44,9 @@ jobs:
           cacheFrom: ghcr.io/${{ env.REPO_OWNER }}/webstatus-dev-devcontainer
           push: always
 
-  # Run the precommit action to build language/tool specific caches
-  # The precommit action currently is configured to cache:
-  # - Go packages
-  # - Node packages
+  # Currently, this action does not cache anything.
+  # However, we should run it as a sanity check to make sure the devcontainer
+  # is not broken.
   warm-up-precommit-action:
     runs-on: ubuntu-latest
     needs: build-base-image
@@ -73,14 +67,6 @@ jobs:
           sudo df -h
       - name: Checkout
         uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV
@@ -114,14 +100,6 @@ jobs:
           sudo df -h
       - name: Checkout
         uses: actions/checkout@v6
-      - uses: actions/setup-go@v6
-        with:
-          go-version: ${{ env.GO_VERSION }}
-          cache-dependency-path: ${{ env.GO_CACHE_DEPENDENCY_PATH }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
       - name: Get Repo Owner
         id: get_repo_owner
         run: echo "REPO_OWNER=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" > $GITHUB_ENV

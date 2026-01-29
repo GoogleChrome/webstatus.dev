@@ -43,7 +43,6 @@
     "**/.hg": true,
     "**/CVS": true,
     "**/.DS_Store": true,
-    "**/Thumbs.db": true,
-    "**/.devcontainer/cache": true
+    "**/Thumbs.db": true
   }
 }
