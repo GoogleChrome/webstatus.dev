@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-import {fixture, html, assert} from '@open-wc/testing';
+import {fixture, html, assert, expect} from '@open-wc/testing';
 import sinon from 'sinon';
 import {SubscribeButton} from '../webstatus-subscribe-button.js';
 import {UserContext} from '../../contexts/firebase-user-context.js';
 import {
+  ManageSubscriptionsDialog,
   SubscriptionDeleteErrorEvent,
   SubscriptionSaveErrorEvent,
 } from '../webstatus-manage-subscriptions-dialog.js';
-import {SlDialog} from '@shoelace-style/shoelace';
+
+import '../webstatus-subscribe-button.js';
 
 describe('webstatus-subscribe-button', () => {
   const mockUserContext: UserContext = {
@@ -39,7 +41,7 @@ describe('webstatus-subscribe-button', () => {
         .savedSearchId=${'test-id'}
       ></webstatus-subscribe-button>
     `);
-    assert.isNotNull(el.shadowRoot?.querySelector('sl-button'));
+    expect(el.shadowRoot?.querySelector('sl-button')).to.exist;
   });
 
   it('does not render button when user is not logged in', async () => {
@@ -49,7 +51,7 @@ describe('webstatus-subscribe-button', () => {
         .savedSearchId=${'test-id'}
       ></webstatus-subscribe-button>
     `);
-    assert.isNull(el.shadowRoot?.querySelector('sl-button'));
+    expect(el.shadowRoot?.querySelector('sl-button')).to.not.exist;
   });
 
   it('does not render button when savedSearchId is not provided', async () => {
@@ -59,7 +61,7 @@ describe('webstatus-subscribe-button', () => {
         .savedSearchId=${''}
       ></webstatus-subscribe-button>
     `);
-    assert.isNull(el.shadowRoot?.querySelector('sl-button'));
+    expect(el.shadowRoot?.querySelector('sl-button')).to.not.exist;
   });
 
   it('opens dialog on button click', async () => {
@@ -70,13 +72,14 @@ describe('webstatus-subscribe-button', () => {
       ></webstatus-subscribe-button>
     `);
     const button = el.shadowRoot?.querySelector('sl-button');
-    const dialog = el.shadowRoot?.querySelector<SlDialog>(
+    const dialog = el.shadowRoot?.querySelector<ManageSubscriptionsDialog>(
       'webstatus-manage-subscriptions-dialog',
     );
-    assert.isFalse(dialog?.open);
+    expect(dialog).to.exist;
+    expect(dialog?.open).to.be.false;
     button?.click();
     await el.updateComplete;
-    assert.isTrue(dialog?.open);
+    expect(dialog?.open).to.be.true;
   });
 
   it('calls toaster on successful save', async () => {
@@ -91,6 +94,7 @@ describe('webstatus-subscribe-button', () => {
     const dialog = el.shadowRoot?.querySelector(
       'webstatus-manage-subscriptions-dialog',
     );
+    expect(dialog).to.exist;
     dialog?.dispatchEvent(new CustomEvent('subscription-save-success'));
     assert.isTrue(toasterSpy.calledWith('Subscription saved!', 'success'));
   });

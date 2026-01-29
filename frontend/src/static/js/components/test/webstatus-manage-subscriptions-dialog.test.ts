@@ -21,7 +21,12 @@ import {UserContext} from '../../contexts/firebase-user-context.js';
 import '../webstatus-manage-subscriptions-dialog.js';
 import {ManageSubscriptionsDialog} from '../webstatus-manage-subscriptions-dialog.js';
 import type {components as backend} from 'webstatus.dev-backend';
-import {SlAlert, SlButton, SlDialog} from '@shoelace-style/shoelace';
+import {
+  SlAlert,
+  SlButton,
+  SlDialog,
+  SlCheckbox,
+} from '@shoelace-style/shoelace';
 
 describe('webstatus-manage-subscriptions-dialog', () => {
   let sandbox: sinon.SinonSandbox;
@@ -385,9 +390,13 @@ describe('webstatus-manage-subscriptions-dialog', () => {
         resolve(),
       );
     });
+
+    deleteElement.open = true;
+    await deleteElement.updateComplete;
+
     // 2. Get the dialog element and create a promise that resolves when it's fully shown
     const mainDialog =
-      deleteElement.shadowRoot!.querySelector<SlDialog>('.dialog-overview');
+      deleteElement.shadowRoot!.querySelector<SlDialog>('.dialog-main');
     const afterShowPromise = new Promise(resolve => {
       mainDialog!.addEventListener('sl-after-show', resolve, {once: true});
     });
@@ -588,12 +597,43 @@ describe('webstatus-manage-subscriptions-dialog', () => {
     expect(createButton!.disabled).to.be.true; // Initially disabled
 
     // Select a trigger.
-    const triggerCheckbox = element.shadowRoot?.querySelector<HTMLInputElement>(
-      'sl-checkbox[value="feature_baseline_to_newly"]',
+    const triggerCheckbox =
+      element.shadowRoot?.querySelector<SlCheckbox>('sl-checkbox');
+    expect(triggerCheckbox).to.exist;
+    triggerCheckbox!.checked = true;
+    triggerCheckbox!.dispatchEvent(
+      new CustomEvent('sl-change', {bubbles: true, composed: true}),
     );
-    triggerCheckbox!.click();
     await element.updateComplete;
 
     expect(createButton!.disabled).to.be.false; // Should now be enabled
+  });
+
+  it('disables update button when all triggers are deselected on existing subscription', async () => {
+    element.open = true;
+    await element['_loadingTask'].run();
+    await element.updateComplete;
+
+    // 1. Ensure we are on an existing subscription
+    element['_switchChannel'](mockInitialSubscription.channel_id);
+    await element.updateComplete;
+
+    // 2. Find the checkbox that IS currently checked (from mock data)
+    const checkedBox = element.shadowRoot?.querySelector<SlCheckbox>(
+      'sl-checkbox[checked]',
+    );
+
+    // 3. Uncheck it
+    checkedBox?.click();
+    await element.updateComplete;
+
+    // 4. Verify selected triggers are empty
+    expect(element['_selectedTriggers'].length).to.equal(0);
+
+    // 5. Verify button is disabled
+    const saveButton = element.shadowRoot?.querySelector<SlButton>(
+      'sl-button[variant="primary"]',
+    );
+    expect(saveButton!.disabled).to.be.true;
   });
 });

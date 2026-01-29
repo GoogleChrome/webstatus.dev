@@ -500,14 +500,16 @@ export class ManageSubscriptionsDialog extends LitElement {
                           const checkbox = e.target;
                           if (checkbox instanceof SlCheckbox) {
                             if (checkbox.checked) {
-                              this._selectedTriggers.push(trigger.value);
+                              this._selectedTriggers = [
+                                ...this._selectedTriggers,
+                                trigger.value,
+                              ];
                             } else {
                               this._selectedTriggers =
                                 this._selectedTriggers.filter(
                                   t => t !== trigger.value,
                                 );
                             }
-                            this.requestUpdate(); // Manually trigger update for isDirty check
                           }
                         }}
                         >...${trigger.label}</sl-checkbox
@@ -564,6 +566,7 @@ export class ManageSubscriptionsDialog extends LitElement {
           <sl-button
             variant="primary"
             ?disabled=${!this._activeChannelId ||
+            this._selectedTriggers.length === 0 ||
             (!this.isDirty && !isNewSubscription)}
             .loading=${this._actionState.phase === 'saving'}
             @click=${this._handleSave}
@@ -643,7 +646,8 @@ export class ManageSubscriptionsDialog extends LitElement {
   }
 
   private async _handleDelete() {
-    const subscriptionIdToDelete = this.subscriptionId || this._subscription?.id;
+    const subscriptionIdToDelete =
+      this.subscriptionId || this._subscription?.id;
     if (!subscriptionIdToDelete || !this.userContext) {
       return;
     }
@@ -715,7 +719,7 @@ export class ManageSubscriptionsDialog extends LitElement {
     if (confirmed) {
       if (this._isClosing) {
         // User wanted to close the dialog and confirmed discarding changes.
-        this._mainDialog.hide();
+        void this._mainDialog.hide();
         this.dispatchEvent(new SubscriptionDialogCloseEvent());
       } else if (this._pendingChannelId) {
         // User wanted to switch channels and confirmed discarding changes.

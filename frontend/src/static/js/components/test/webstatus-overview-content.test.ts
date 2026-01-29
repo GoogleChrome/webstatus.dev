@@ -22,8 +22,8 @@ import {APIClient} from '../../api/client.js';
 
 import {stub} from 'sinon'; // Make sure you have sinon installed
 import {
-  AppBookmarkInfo,
   savedSearchHelpers,
+  SavedSearchScope,
 } from '../../contexts/app-bookmark-info-context.js';
 import sinon from 'sinon';
 import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
@@ -33,7 +33,6 @@ import {
   UserSavedSearch,
 } from '../../utils/constants.js';
 import {UserContext} from '../../contexts/firebase-user-context.js';
-import {TaskStatus} from '@lit/task';
 import {SubscribeButton} from '../webstatus-subscribe-button.js';
 
 describe('webstatus-overview-content', () => {
@@ -312,50 +311,39 @@ describe('webstatus-overview-content', () => {
 
   describe('Subscribe button', () => {
     it('should render the subscribe button when a user saved search is active', async () => {
-      const appBookmarkInfo: AppBookmarkInfo = {
-        userSavedSearchesTask: {
-          status: TaskStatus.COMPLETE,
-          data: [mockSavedSearchOwner],
-          error: undefined,
-        },
-        userSavedSearchTask: {
-          status: TaskStatus.COMPLETE,
-          error: undefined,
-
-          data: mockSavedSearchOwner,
-        },
-      };
-      element.appBookmarkInfo = appBookmarkInfo;
+      const getCurrentSavedSearchStub = sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns({
+          scope: SavedSearchScope.UserSavedSearch,
+          value: mockSavedSearchOwner,
+        });
+      element.requestUpdate();
       await element.updateComplete;
 
       const subscribeButton =
         element.shadowRoot?.querySelector<SubscribeButton>(
           'webstatus-subscribe-button',
         );
+
+      expect(getCurrentSavedSearchStub).to.have.been.called;
       expect(subscribeButton).to.exist;
       expect(subscribeButton?.savedSearchId).to.equal(mockSavedSearchOwner.id);
+      getCurrentSavedSearchStub.restore();
     });
 
     it('should not render the subscribe button when no user saved search is active', async () => {
-      const appBookmarkInfo = {
-        userSavedSearchesTask: {
-          status: TaskStatus.COMPLETE,
-          data: [],
-          error: undefined,
-        },
-        userSavedSearchTask: {
-          status: TaskStatus.COMPLETE,
-          error: undefined,
-          data: undefined,
-        },
-      };
-      element.appBookmarkInfo = appBookmarkInfo;
+      const getCurrentSavedSearchStub = sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns(undefined);
+      element.requestUpdate();
       await element.updateComplete;
 
       const subscribeButton = element.shadowRoot?.querySelector(
         'webstatus-subscribe-button',
       );
+      expect(getCurrentSavedSearchStub).to.have.been.called;
       expect(subscribeButton).to.not.exist;
+      getCurrentSavedSearchStub.restore();
     });
   });
 });

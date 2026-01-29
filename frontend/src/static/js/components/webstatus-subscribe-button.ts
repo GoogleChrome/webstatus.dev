@@ -28,6 +28,8 @@ import {
   SubscriptionSaveErrorEvent,
 } from './webstatus-manage-subscriptions-dialog.js';
 
+import './webstatus-manage-subscriptions-dialog.js';
+
 @customElement('webstatus-subscribe-button')
 export class SubscribeButton extends LitElement {
   @consume({context: firebaseUserContext, subscribe: true})
@@ -49,7 +51,10 @@ export class SubscribeButton extends LitElement {
     }
 
     return html`
-      <sl-button variant="primary" @click=${() => (this._isSubscriptionDialogOpen = true)}>
+      <sl-button
+        variant="primary"
+        @click=${() => (this._isSubscriptionDialogOpen = true)}
+      >
         <sl-icon slot="prefix" name="bell"></sl-icon>
         Subscribe
       </sl-button>

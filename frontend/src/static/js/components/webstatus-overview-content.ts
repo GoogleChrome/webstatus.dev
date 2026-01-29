@@ -31,7 +31,6 @@ import './webstatus-overview-data-loader.js';
 import './webstatus-overview-filters.js';
 import './webstatus-overview-pagination.js';
 import './webstatus-subscribe-button.js';
-import './webstatus-manage-subscriptions-dialog.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';

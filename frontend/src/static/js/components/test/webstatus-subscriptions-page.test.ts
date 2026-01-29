@@ -136,11 +136,14 @@ describe('webstatus-subscriptions-page', () => {
 
   it('renders the correct channel icon', async () => {
     await element['_loadingTask'].taskComplete;
+    await element.requestUpdate();
     await element.updateComplete;
 
-    const icon = element.shadowRoot?.querySelector('sl-icon');
+    const item = element.shadowRoot?.querySelector('.subscription-item');
+    const icon = item?.querySelector('sl-icon');
+
     expect(icon).to.exist;
-    expect(icon?.name).to.equal('envelope');
+    expect(icon?.getAttribute('name')).to.equal('envelope');
   });
 
   it('opens dialog on unsubscribe link', async () => {
@@ -176,5 +179,84 @@ describe('webstatus-subscriptions-page', () => {
     dialog?.dispatchEvent(new CustomEvent('subscription-delete-success'));
 
     expect(runSpy).to.have.been.calledOnce;
+  });
+  it('renders empty state message when no subscriptions exist', async () => {
+    // Override the stub to return empty array
+    (apiClient.listSubscriptions as sinon.SinonStub).resolves([]);
+
+    // Re-initialize element or force task rerun (easier to create new fixture)
+    element = await fixture<SubscriptionsPage>(html`
+      <webstatus-subscriptions-page
+        .apiClient=${apiClient}
+        .userContext=${user}
+        .getLocation=${mockLocationHelper.getLocation}
+      ></webstatus-subscriptions-page>
+    `);
+
+    await element['_loadingTask'].taskComplete;
+    await element.updateComplete;
+
+    const message = element.shadowRoot?.querySelector('p');
+    expect(message?.textContent).to.include('No subscriptions found');
+    expect(element.shadowRoot?.querySelector('.subscription-list')).to.not
+      .exist;
+  });
+  it('renders error message when API fails', async () => {
+    const errorMsg = 'Network error';
+    (apiClient.listSubscriptions as sinon.SinonStub).rejects(
+      new Error(errorMsg),
+    );
+
+    element = await fixture<SubscriptionsPage>(html`
+      <webstatus-subscriptions-page
+        .apiClient=${apiClient}
+        .userContext=${user}
+        .getLocation=${mockLocationHelper.getLocation}
+      ></webstatus-subscriptions-page>
+    `);
+
+    try {
+      await element['_loadingTask'].taskComplete;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_e: unknown) {
+      // Ignored. Even with the '_' prefix, TypeScript still complains if we don't use the variable at all.
+      // Despite our eslint rule to the contrary.
+    }
+
+    await element.updateComplete;
+
+    const text = element.shadowRoot?.textContent;
+    expect(text).to.include(`Error: Error: ${errorMsg}`);
+  });
+  it('opens edit dialog when edit button is clicked', async () => {
+    await element['_loadingTask'].taskComplete;
+    await element.updateComplete;
+
+    const editButton = element.shadowRoot?.querySelector<HTMLElement>(
+      '.subscription-actions sl-button:first-child',
+    );
+    editButton?.click();
+    await element.updateComplete;
+
+    expect(element['_isSubscriptionDialogOpen']).to.be.true;
+    expect(element['_activeSubscriptionId']).to.equal('sub1');
+    expect(element['_activeSavedSearchId']).to.equal('search1');
+  });
+
+  it('opens delete dialog when delete button is clicked', async () => {
+    await element['_loadingTask'].taskComplete;
+    await element.updateComplete;
+
+    const deleteButton = element.shadowRoot?.querySelector<HTMLElement>(
+      '.subscription-actions sl-button[variant="danger"]',
+    );
+    deleteButton?.click();
+    await element.updateComplete;
+
+    expect(element['_isSubscriptionDialogOpen']).to.be.true;
+    expect(element['_activeSubscriptionId']).to.equal('sub1');
+
+    // Confirm that we are in delete mode by checking that activeSavedSearchId is undefined.
+    expect(element['_activeSavedSearchId']).to.be.undefined;
   });
 });
