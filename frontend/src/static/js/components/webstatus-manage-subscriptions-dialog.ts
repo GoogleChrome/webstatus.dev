@@ -32,6 +32,15 @@ const FREQUENCY_CONFIG: ReadonlyArray<
   components['schemas']['SubscriptionFrequency']
 > = ['immediate', 'weekly', 'monthly'];
 
+// Translate the frequency values from the API to user-friendly display names.
+const FREQUENCY_DISPLAY_NAMES: {
+  [key in components['schemas']['SubscriptionFrequency']]: string;
+} = {
+  immediate: 'Each Change',
+  weekly: 'Weekly',
+  monthly: 'Monthly',
+};
+
 export class SubscriptionSaveSuccessEvent extends CustomEvent<void> {
   constructor() {
     super('subscription-save-success', {bubbles: true, composed: true});
@@ -536,7 +545,7 @@ export class ManageSubscriptionsDialog extends LitElement {
                     ${FREQUENCY_CONFIG.map(
                       f =>
                         html`<sl-radio value=${f}
-                          >${f.charAt(0).toUpperCase() + f.slice(1)}</sl-radio
+                          >${FREQUENCY_DISPLAY_NAMES[f]}</sl-radio
                         >`,
                     )}
                   </sl-radio-group>
