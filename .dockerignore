@@ -71,3 +71,6 @@ tsconfig.tsbuildinfo
 infra/*.log
 
 **__debug_**
+
+# For docker storage in Github Actions
+docker-storage
