@@ -68,6 +68,8 @@ jobs:
           root-reserve-mb: 2048
           overprovision-lvm: 'true'
         continue-on-error: true
+      - name: Checkout
+        uses: actions/checkout@v6
       - name: Move Docker to optimized space
         run: |
           sudo service docker stop
@@ -80,8 +82,6 @@ jobs:
           sudo df -h
           echo "Docker Root Dir:"
           sudo docker info | grep "Docker Root Dir"
-      - name: Checkout
-        uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -118,6 +118,8 @@ jobs:
           root-reserve-mb: 2048
           overprovision-lvm: 'true'
         continue-on-error: true
+      - name: Checkout
+        uses: actions/checkout@v6
       - name: Move Docker to optimized space
         run: |
           sudo service docker stop
@@ -130,8 +132,6 @@ jobs:
           sudo df -h
           echo "Docker Root Dir:"
           sudo docker info | grep "Docker Root Dir"
-      - name: Checkout
-        uses: actions/checkout@v6
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
