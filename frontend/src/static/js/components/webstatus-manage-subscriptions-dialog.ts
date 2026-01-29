@@ -27,19 +27,11 @@ import {
   firebaseUserContext,
 } from '../contexts/firebase-user-context.js';
 import {SlCheckbox, SlDialog, SlRadioGroup} from '@shoelace-style/shoelace';
+import {FREQUENCY_DISPLAY_NAMES} from '../utils/format.js';
 
 const FREQUENCY_CONFIG: ReadonlyArray<
   components['schemas']['SubscriptionFrequency']
 > = ['immediate', 'weekly', 'monthly'];
-
-// Translate the frequency values from the API to user-friendly display names.
-const FREQUENCY_DISPLAY_NAMES: {
-  [key in components['schemas']['SubscriptionFrequency']]: string;
-} = {
-  immediate: 'Each change',
-  weekly: 'Weekly digest',
-  monthly: 'Monthly digest',
-};
 
 export class SubscriptionSaveSuccessEvent extends CustomEvent<void> {
   constructor() {
