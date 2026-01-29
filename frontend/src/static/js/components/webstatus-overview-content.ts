@@ -30,6 +30,7 @@ import {type components} from 'webstatus.dev-backend';
 import './webstatus-overview-data-loader.js';
 import './webstatus-overview-filters.js';
 import './webstatus-overview-pagination.js';
+import './webstatus-subscribe-button.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {TaskTracker} from '../utils/task-tracker.js';
 import {ApiError} from '../api/errors.js';
@@ -218,10 +219,14 @@ export class WebstatusOverviewContent extends LitElement {
         ? savedSearch
         : undefined;
 
-    return html`
-      <div class="main">
+    return html` <div class="main">
         <div class="hbox halign-items-space-between header-line">
           <h1 class="halign-stretch" id="overview-title">${pageTitle}</h1>
+          ${userSavedSearch
+            ? html`<webstatus-subscribe-button
+                .savedSearchId=${userSavedSearch.value.id}
+              ></webstatus-subscribe-button>`
+            : nothing}
         </div>
         ${pageDescription
           ? html`<div class="hbox wrap" id="overview-description">
@@ -256,7 +261,6 @@ export class WebstatusOverviewContent extends LitElement {
         .userContext=${this.userContext!}
         .savedSearch=${userSavedSearch?.value}
         .location=${this.location}
-      ></webstatus-saved-search-editor>
-    `;
+      ></webstatus-saved-search-editor>`;
   }
 }

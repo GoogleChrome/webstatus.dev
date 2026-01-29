@@ -519,6 +519,26 @@ spanner_er_diagram: spanner_port_forward
 	make spanner_port_forward_terminate
 
 ################################
+# Wiremock Management
+################################
+_set-wiremock-scenario:
+	curl -v -X PUT http://localhost:8087/__admin/scenarios/$(SCENARIO_NAME)/state \
+	-H "Content-Type: application/json" \
+	-d '{"state": "$(SCENARIO_STATE)"}'
+
+set-wiremock-user1:
+	$(MAKE) _set-wiremock-scenario SCENARIO_NAME=user_profile SCENARIO_STATE=Started
+	$(MAKE) _set-wiremock-scenario SCENARIO_NAME=user_emails SCENARIO_STATE=Started
+
+set-wiremock-user2:
+	$(MAKE) _set-wiremock-scenario SCENARIO_NAME=user_profile SCENARIO_STATE=user2_logged_in
+	$(MAKE) _set-wiremock-scenario SCENARIO_NAME=user_emails SCENARIO_STATE=user2_logged_in
+
+# user1 is the default state
+reset-wiremock:
+	$(MAKE) set-wiremock-user1
+
+################################
 # GitHub
 ################################
 check-gh-login:

@@ -277,6 +277,31 @@ func resetTestData(ctx context.Context, spannerClient *gcpspanner.Client, authCl
 	}
 	slog.InfoContext(ctx, "Deleted saved searches for test users", "count", len(userIDs))
 
+	// Reset subscriptions for each test user.
+	slog.InfoContext(ctx, "Resetting test user subscriptions...")
+	for _, userID := range userIDs {
+		// We don't need to handle pagination here, assuming a test user won't have more than 1000 subscriptions.
+		req := gcpspanner.ListSavedSearchSubscriptionsRequest{
+			UserID:    userID,
+			PageToken: nil,
+			PageSize:  1000, // A large enough number to get all subscriptions for a test user.
+		}
+		subscriptions, _, err := spannerClient.ListSavedSearchSubscriptions(ctx, req)
+		if err != nil {
+			return fmt.Errorf("failed to list subscriptions for user %s: %w", userID, err)
+		}
+
+		for _, sub := range subscriptions {
+			err := spannerClient.DeleteSavedSearchSubscription(ctx, sub.ID, userID)
+			if err != nil {
+				// Log the error but continue trying to delete others.
+				slog.WarnContext(ctx, "failed to delete subscription, continuing",
+					"subscriptionID", sub.ID, "userID", userID, "error", err)
+			}
+		}
+	}
+	slog.InfoContext(ctx, "Test user subscriptions reset.")
+
 	slog.InfoContext(ctx, "Test user data reset complete.")
 
 	return nil
@@ -766,8 +791,101 @@ func generateUserData(ctx context.Context, spannerClient *gcpspanner.Client,
 	slog.InfoContext(ctx, "saved search bookmarks generated",
 		"amount of bookmarks created", bookmarkCount)
 
+	subscriptionsCount, err := generateSubscriptions(ctx, spannerClient, authClient)
+	if err != nil {
+		return fmt.Errorf("subscriptions generation failed %w", err)
+	}
+	slog.InfoContext(ctx, "subscriptions generated",
+		"amount of subscriptions created", subscriptionsCount)
+
 	return nil
 }
+
+func generateSubscriptions(ctx context.Context,
+	spannerClient *gcpspanner.Client,
+	authClient *auth.Client) (int, error) {
+	subscriptionsToInsert := []struct {
+		Email         string
+		SavedSearchID string
+		Frequency     gcpspanner.SavedSearchSnapshotType
+		Triggers      []gcpspanner.SubscriptionTrigger
+		UUID          string
+	}{
+		{
+			Email:         "test.user.1@example.com",
+			SavedSearchID: "74bdb85f-59d3-43b0-8061-20d5818e8c97", // "my first project query"
+			Frequency:     gcpspanner.SavedSearchSnapshotTypeWeekly,
+			Triggers: []gcpspanner.SubscriptionTrigger{
+				gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
+			},
+			UUID: "c1aa6418-1229-43a1-9a98-3f3604efe2ae",
+		},
+	}
+
+	subscriptionsCreated := 0
+	for _, sub := range subscriptionsToInsert {
+		userID, err := findUserIDByEmail(ctx, sub.Email, authClient)
+		if err != nil {
+			slog.WarnContext(ctx, "failed to find user for subscription, skipping", "email", sub.Email, "error", err)
+
+			continue
+		}
+
+		// The notification channel is created on login. If it doesn't exist, we can't create a subscription.
+		// This is not an error, as some test setups may not involve logging in users.
+		channels, _, err := spannerClient.ListNotificationChannels(ctx, gcpspanner.ListNotificationChannelsRequest{
+			UserID:    userID,
+			PageSize:  100,
+			PageToken: nil,
+		})
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to list notification channels, skipping subscription creation",
+				"user", sub.Email, "error", err)
+
+			return 0, err
+		}
+		if len(channels) == 0 {
+			slog.WarnContext(ctx, "no notification channels found for user, skipping subscription creation",
+				"user", sub.Email)
+
+			continue
+		}
+		var channel gcpspanner.NotificationChannel
+		var found bool
+		for _, ch := range channels {
+			if ch.EmailConfig != nil && ch.EmailConfig.Address == sub.Email {
+				channel = ch
+				found = true
+
+				break
+			}
+		}
+		if !found {
+			slog.WarnContext(ctx, "no notification channel found for user with matching email address, "+
+				"skipping subscription creation",
+				"user", sub.Email)
+
+			continue
+		}
+
+		_, err = spannerClient.CreateSubscriptionWithUUID(ctx, gcpspanner.CreateSavedSearchSubscriptionRequest{
+			UserID:        userID,
+			SavedSearchID: sub.SavedSearchID,
+			ChannelID:     channel.ID,
+			Frequency:     sub.Frequency,
+			Triggers:      sub.Triggers,
+		}, sub.UUID)
+		if err != nil {
+			slog.ErrorContext(ctx, "failed to create subscription with UUID", "uuid", sub.UUID, "error", err)
+
+			return 0, err
+		}
+		subscriptionsCreated++
+	}
+
+	return subscriptionsCreated, nil
+}
+
 func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datastoreClient *gds.Client) error {
 	releasesCount, err := generateReleases(ctx, spannerClient)
 	if err != nil {
