@@ -53,7 +53,7 @@ func (w *webFeatureForeignKeyTestHelpers) insertEntities(ctx context.Context, t 
 }
 
 func (w *webFeatureForeignKeyTestHelpers) insertFeature(ctx context.Context, t *testing.T) {
-	id, err := spannerClient.UpsertWebFeature(ctx, w.testWebFeature())
+	id, err := spannerClient.upsertWebFeature(ctx, w.testWebFeature())
 	if err != nil {
 		t.Errorf("unexpected error during insert. %s", err.Error())
 	}

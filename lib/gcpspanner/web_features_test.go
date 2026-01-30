@@ -58,6 +58,12 @@ func getSampleFeatures() []WebFeature {
 	}
 }
 
+func (c *Client) upsertWebFeature(ctx context.Context, feature WebFeature) (*string, error) {
+	return newEntityWriterWithIDRetrievalAndHooks[
+		webFeatureSpannerMapper, string, WebFeature, SpannerWebFeature, string](c).
+		upsertAndGetID(ctx, feature)
+}
+
 // Helper method to get all the features in a stable order.
 func (c *Client) ReadAllWebFeatures(ctx context.Context, t *testing.T) ([]WebFeature, error) {
 	stmt := spanner.NewStatement(`SELECT
@@ -94,13 +100,8 @@ func (c *Client) DeleteWebFeature(ctx context.Context, internalID string) error 
 
 		return txn.BufferWrite([]*spanner.Mutation{mutation})
 	})
-	if err != nil {
-		// TODO wrap the error and return it
 
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func TestUpsertWebFeature(t *testing.T) {
@@ -108,7 +109,7 @@ func TestUpsertWebFeature(t *testing.T) {
 	ctx := context.Background()
 	sampleFeatures := getSampleFeatures()
 	for _, feature := range sampleFeatures {
-		_, err := spannerClient.UpsertWebFeature(ctx, feature)
+		_, err := spannerClient.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert. %s", err.Error())
 		}
@@ -121,7 +122,7 @@ func TestUpsertWebFeature(t *testing.T) {
 		t.Errorf("unequal features. expected %+v actual %+v", sampleFeatures, features)
 	}
 
-	_, err = spannerClient.UpsertWebFeature(ctx, WebFeature{
+	_, err = spannerClient.upsertWebFeature(ctx, WebFeature{
 		Name:            "Feature 1!!",
 		FeatureKey:      "feature1",
 		Description:     "Feature 1 description!",
@@ -180,6 +181,39 @@ func TestUpsertWebFeature(t *testing.T) {
 	if !slices.Equal(keys, expectedKeys) {
 		t.Errorf("unequal keys. expected %+v actual %+v", expectedKeys, keys)
 	}
+
+	// Verify that a system-managed saved search was created for each feature.
+	for _, feature := range sampleFeatures {
+		featureID, err := spannerClient.GetIDFromFeatureKey(ctx, &FeatureIDFilter{featureKey: feature.FeatureKey})
+		if err != nil {
+			t.Fatalf("unexpected error getting feature id: %s", err.Error())
+		}
+
+		var systemManagedSearch *SystemManagedSavedSearch
+		_, err = spannerClient.ReadWriteTransaction(ctx, func(
+			ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+			systemManagedSearch, err = spannerClient.getSystemManagedSavedSearchByFeatureIDAndTransaction(ctx, txn, *featureID)
+
+			return err
+		})
+		if err != nil {
+			t.Fatalf("unexpected error getting system-managed saved search: %s", err.Error())
+		}
+
+		if systemManagedSearch == nil {
+			t.Fatalf("system-managed saved search not found for feature %s", feature.FeatureKey)
+		}
+
+		savedSearch, err := spannerClient.GetSavedSearch(ctx, systemManagedSearch.SavedSearchID)
+		if err != nil {
+			t.Fatalf("unexpected error getting saved search: %s", err.Error())
+		}
+
+		expectedQuery := systemSavedSearchQuery(feature.FeatureKey)
+		if savedSearch.Query != expectedQuery {
+			t.Errorf("unexpected query for saved search. expected %s, got %s", expectedQuery, savedSearch.Query)
+		}
+	}
 }
 
 func TestSyncWebFeatures(t *testing.T) {
@@ -200,7 +234,7 @@ func TestSyncWebFeatures(t *testing.T) {
 			expectedState: getSampleFeatures(),
 		},
 		{
-			name:         "Deletes features not in desired state",
+			name:         "Deletes features not in desired state and their system-managed saved searches",
 			initialState: getSampleFeatures(),
 			desiredState: []WebFeature{
 				getSampleFeatures()[0], // feature1
@@ -292,7 +326,42 @@ func TestSyncWebFeatures(t *testing.T) {
 			if diff := cmp.Diff(tc.expectedState, featuresInDB); diff != "" {
 				t.Errorf("features mismatch (-want +got):\n%s", diff)
 			}
+
+			// 4. Verify that the saved search and system-managed saved search were deleted.
+			if slices.Contains(
+				[]string{"Deletes features not in desired state and their system-managed saved searches"},
+				tc.name) {
+				assertSystemManagedSavedSearchDeleted(ctx, t, "feature2")
+			}
 		})
+	}
+}
+
+func assertSystemManagedSavedSearchDeleted(ctx context.Context, t *testing.T, featureKey string) {
+	// Re-fetch the ID in case it was deleted and re-added in a different test run.
+	id, err := spannerClient.GetIDFromFeatureKey(ctx, &FeatureIDFilter{featureKey: featureKey})
+	if err != nil && !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Fatalf("unexpected error getting feature id for deletion check: %s", err.Error())
+	}
+	// If the feature itself is gone, we are good.
+	if errors.Is(err, ErrQueryReturnedNoResults) {
+		return
+	}
+
+	var systemManagedSearch *SystemManagedSavedSearch
+	_, err = spannerClient.ReadWriteTransaction(ctx,
+		func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
+			systemManagedSearch, err =
+				spannerClient.getSystemManagedSavedSearchByFeatureIDAndTransaction(ctx, txn, *id)
+
+			return err
+		})
+
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Fatalf("expected ErrQueryReturnedNoResults for deleted search, got %v", err)
+	}
+	if systemManagedSearch != nil {
+		t.Fatal("system-managed saved search was not deleted")
 	}
 }
 

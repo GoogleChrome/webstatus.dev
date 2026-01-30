@@ -486,6 +486,16 @@ type deleteByStructMapper[SpannerStruct any] interface {
 	DeleteMutation(SpannerStruct) *spanner.Mutation
 }
 
+// idFromInternalMapper handles getting the ID from an internal Spanner struct.
+type idFromInternalMapper[SpannerStruct any, ID any] interface {
+	GetIDFromInternal(SpannerStruct) ID
+}
+
+// newEntityWithIDMapper handles the creation of a new entity, including its ID.
+type newEntityWithIDMapper[ExternalStruct any, SpannerStruct any, ID any] interface {
+	NewEntityWithID(req ExternalStruct) (SpannerStruct, ID, error)
+}
+
 // --- Composed Interfaces for Specific Components ---
 
 // readableEntityMapper is composed for the entityReader.
@@ -503,9 +513,29 @@ type writeableEntityMapper[ExternalStruct any, SpannerStruct any, Key comparable
 
 // writeableEntityMapperWithIDRetrieval is composed for the entityWriter that
 // also needs to fetch a Spanner-generated ID.
-type writeableEntityMapperWithIDRetrieval[ExternalStruct any, SpannerStruct any, Key comparable] interface {
+type writeableEntityMapperWithIDRetrieval[ExternalStruct any, SpannerStruct any, Key comparable, ID any] interface {
 	writeableEntityMapper[ExternalStruct, SpannerStruct, Key]
 	idRetrievalMapper[Key]
+	idFromInternalMapper[SpannerStruct, ID]
+	newEntityWithIDMapper[ExternalStruct, SpannerStruct, ID]
+}
+
+// writeableEntityMapperWithHooks is composed for the entityWriter that
+// also needs to fetch a Spanner-generated ID and run post-write hooks.
+type writeableEntityMapperWithHooks[ExternalStruct any, SpannerStruct any, Key comparable, ID any] interface {
+	writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key, ID]
+	postWriteHookMapper[ExternalStruct, Key, ID]
+}
+
+// postWriteHookMapper is a hook that runs after an entity is written.
+type postWriteHookMapper[ExternalStruct any, Key comparable, ID any] interface {
+	PostWriteHook(
+		ctx context.Context,
+		txn *spanner.ReadWriteTransaction,
+		client *Client,
+		id ID,
+		entity ExternalStruct,
+	) ([]*spanner.Mutation, error)
 }
 
 // removableEntityMapper is composed for the entityRemover.
@@ -650,7 +680,7 @@ type preDeleteHookMapper[SpannerStruct any] interface {
 // UUIDs as their primary key, but allows users to work with a different unique
 // value (e.g. Key) to find and retrieve the entity's ID.
 type entityWriterWithIDRetrieval[
-	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key],
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key, ID],
 	ExternalStruct any,
 	SpannerStruct any,
 	Key comparable,
@@ -658,25 +688,130 @@ type entityWriterWithIDRetrieval[
 	*entityWriter[M, ExternalStruct, SpannerStruct, Key]
 }
 
-// upsertAndGetID performs an upsert operation on the entity and retrieves its ID.
-// It first attempts to upsert the entity using the `upsert` method from the
-// embedded `entityWriter`. If successful, it then uses the `getIDByKey` method to
-// fetch the entity's ID based on its external key.
+type entityWriterWithIDRetrievalAndHooks[
+	M writeableEntityMapperWithHooks[ExternalStruct, SpannerStruct, Key, ID],
+	ExternalStruct any,
+	SpannerStruct any,
+	Key comparable,
+	ID any] struct {
+	*entityWriter[M, ExternalStruct, SpannerStruct, Key]
+}
+
+func newEntityWriterWithIDRetrievalAndHooks[
+	M writeableEntityMapperWithHooks[ExternalStruct, SpannerStruct, Key, ID],
+	ID any,
+	ExternalStruct any,
+	SpannerStruct any,
+	Key comparable](c *Client) *entityWriterWithIDRetrievalAndHooks[M, ExternalStruct, SpannerStruct, Key, ID] {
+	return &entityWriterWithIDRetrievalAndHooks[M, ExternalStruct, SpannerStruct, Key, ID]{
+		entityWriter: &entityWriter[M, ExternalStruct, SpannerStruct, Key]{c},
+	}
+}
+
+// upsertAndGetID performs an upsert operation and obtains the ID atomically.
 func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID]) upsertAndGetID(
 	ctx context.Context,
 	input ExternalStruct) (*ID, error) {
-	err := c.upsert(ctx, input)
+	var capturedID *ID
+	var mapper M
+
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		key := mapper.GetKeyFromExternal(input)
+		stmt := mapper.SelectOne(key)
+
+		it := txn.Query(ctx, stmt)
+		row, err := it.Next()
+		it.Stop()
+
+		var m *spanner.Mutation
+		var id ID
+		var err2 error
+
+		if errors.Is(err, iterator.Done) {
+			m, id, err2 = prepareInsertMutation[M, ExternalStruct, SpannerStruct, Key, ID](input)
+		} else if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		} else {
+			m, id, err2 = prepareUpdateMutation[M, ExternalStruct, SpannerStruct, Key, ID](row, input)
+		}
+
+		if err2 != nil {
+			return err2
+		}
+
+		capturedID = &id
+
+		if err := txn.BufferWrite([]*spanner.Mutation{m}); err != nil {
+			return errors.Join(ErrInternalMutationFailure, err)
+		}
+
+		return nil
+	})
+
 	if err != nil {
 		return nil, err
 	}
 
+	return capturedID, nil
+}
+
+// upsertAndGetID performs an upsert operation, obtains the ID, and executes the PostWriteHook atomically.
+func (c *entityWriterWithIDRetrievalAndHooks[M, ExternalStruct, SpannerStruct, Key, ID]) upsertAndGetID(
+	ctx context.Context,
+	input ExternalStruct) (*ID, error) {
+
+	var capturedID *ID
 	var mapper M
-	id, err := c.getIDByKey(ctx, mapper.GetKeyFromExternal(input))
+
+	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
+		key := mapper.GetKeyFromExternal(input)
+		stmt := mapper.SelectOne(key)
+
+		it := txn.Query(ctx, stmt)
+		row, err := it.Next()
+		it.Stop()
+
+		var m *spanner.Mutation
+		var id ID
+		var err2 error
+
+		if errors.Is(err, iterator.Done) {
+			m, id, err2 = prepareInsertMutation[M, ExternalStruct, SpannerStruct, Key, ID](input)
+		} else if err != nil {
+			return errors.Join(ErrInternalQueryFailure, err)
+		} else {
+			m, id, err2 = prepareUpdateMutation[M, ExternalStruct, SpannerStruct, Key, ID](row, input)
+		}
+
+		if err2 != nil {
+			return err2
+		}
+
+		capturedID = &id
+
+		if err := txn.BufferWrite([]*spanner.Mutation{m}); err != nil {
+			return errors.Join(ErrInternalMutationFailure, err)
+		}
+
+		hookMutations, err := mapper.PostWriteHook(ctx, txn, c.Client, *capturedID, input)
+		if err != nil {
+			return err
+		}
+
+		if len(hookMutations) > 0 {
+			if err := txn.BufferWrite(hookMutations); err != nil {
+				return errors.Join(ErrInternalMutationFailure, err)
+			}
+		}
+
+		return nil
+	})
+
 	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, err
 	}
 
-	return id, nil
+	return capturedID, nil
 }
 
 // transaction implements the transaction interface that either
@@ -725,18 +860,66 @@ func (c *entityReader[M, ExternalStruct, SpannerStruct, Key]) readRowByKeyWithTr
 	return existing, nil
 }
 
-// getIDByKey retrieves the ID of an entity based on its external key.
-// It uses the `GetID` method from the `WriteableEntityMapperWithIDRetrieval`
-// interface to generate a Spanner query to fetch the ID.
 func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID]) getIDByKey(
 	ctx context.Context,
 	key Key,
 ) (*ID, error) {
+	txn := c.Single()
+	defer txn.Close()
+
+	return c.getIDByKeyWithTransaction(ctx, key, txn)
+}
+
+// getIDByKeyWithTransaction retrieves the ID of an entity based on its external key.
+// It uses the `GetID` method from the `WriteableEntityMapperWithIDRetrieval`
+// interface to generate a Spanner query to fetch the ID.
+func (c *entityWriterWithIDRetrieval[M, ExternalStruct, SpannerStruct, Key, ID]) getIDByKeyWithTransaction(
+	ctx context.Context,
+	key Key,
+	txn transaction,
+) (*ID, error) {
 	var mapper M
 	stmt := mapper.GetID(key)
 	// Attempt to query for the row.
+	it := txn.Query(ctx, stmt)
+	defer it.Stop()
+	row, err := it.Next()
+	if err != nil {
+		// No row found
+		if errors.Is(err, iterator.Done) {
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
+		}
+
+		// Catch-all for other errors.
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+	var id ID
+	err = row.Column(0, &id)
+	if err != nil {
+		return nil, errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	return &id, nil
+}
+
+func (c *entityWriterWithIDRetrievalAndHooks[M, ExternalStruct, SpannerStruct, Key, ID]) getIDByKey(
+	ctx context.Context,
+	key Key,
+) (*ID, error) {
 	txn := c.Single()
 	defer txn.Close()
+
+	return c.getIDByKeyWithTransaction(ctx, key, txn)
+}
+
+func (c *entityWriterWithIDRetrievalAndHooks[M, ExternalStruct, SpannerStruct, Key, ID]) getIDByKeyWithTransaction(
+	ctx context.Context,
+	key Key,
+	txn transaction,
+) (*ID, error) {
+	var mapper M
+	stmt := mapper.GetID(key)
+	// Attempt to query for the row.
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 	row, err := it.Next()
@@ -812,34 +995,54 @@ type entityWriter[
 
 // createInsertMutation simply creates a spanner mutation from the struct to the table.
 func (c *entityWriter[M, ExternalStruct, S, Key]) createInsertMutation(
-	mapper M, input ExternalStruct) (*spanner.Mutation, error) {
-	m, err := spanner.InsertStruct(mapper.Table(), input)
+	mapper M, input ExternalStruct) (*spanner.Mutation, *string, error) {
+	var id *string
+	var entity any = input
+	if m, ok := any(mapper).(creatableEntityMapper[ExternalStruct, S]); ok {
+		generatedID := uuid.NewString()
+		spannerStruct, err := m.NewEntity(generatedID, input)
+		if err != nil {
+			return nil, nil, err
+		}
+		entity = spannerStruct
+		id = &generatedID
+	}
+	m, err := spanner.InsertStruct(mapper.Table(), entity)
 	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	return m, nil
+	return m, id, nil
 }
 
 // createUpdateMutation reads an existing entity from a Spanner row, merges it with the input
 // entity using the mapper's Merge method, and creates a Spanner mutation for
 // updating the row.
 func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) createUpdateMutation(
-	row *spanner.Row, mapper M, input ExternalStruct) (*spanner.Mutation, error) {
+	row *spanner.Row, mapper M, input ExternalStruct) (*spanner.Mutation, *string, error) {
 	existing := new(SpannerStruct)
 	// Read the existing entity and merge the values.
 	err := row.ToStruct(existing)
 	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 	// Override values
 	merged := mapper.Merge(input, *existing)
 	m, err := spanner.InsertOrUpdateStruct(mapper.Table(), merged)
 	if err != nil {
-		return nil, errors.Join(ErrInternalQueryFailure, err)
+		return nil, nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	return m, nil
+	var id *string
+	// If the SpannerStruct has an ID field, we can try to extract it.
+	// However, it's safer to just read it from the row if we have it.
+	var retrievedID string
+	err = row.Column(0, &retrievedID)
+	if err == nil {
+		id = &retrievedID
+	}
+
+	return m, id, nil
 }
 
 // upsert performs an upsert (insert or update) operation on an entity.
@@ -849,7 +1052,9 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) upsert(
 	ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		return c.upsertWithTransaction(ctx, txn, input)
+		_, err := c.upsertWithTransaction(ctx, txn, input)
+
+		return err
 	})
 	if err != nil {
 		return errors.Join(ErrInternalQueryFailure, err)
@@ -862,39 +1067,42 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) upsert(
 func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) upsertWithTransaction(
 	ctx context.Context,
 	txn *spanner.ReadWriteTransaction,
-	input ExternalStruct) error {
+	input ExternalStruct) (*string, error) {
 	var mapper M
 	stmt := mapper.SelectOne(mapper.GetKeyFromExternal(input))
 	// Attempt to query for the row.
 	it := txn.Query(ctx, stmt)
 	defer it.Stop()
 	var m *spanner.Mutation
+	var id *string
 
 	row, err := it.Next()
 	if err != nil {
 		// Check if an unexpected error occurred.
 		if !errors.Is(err, iterator.Done) {
-			return errors.Join(ErrInternalQueryFailure, err)
+			return nil, errors.Join(ErrInternalQueryFailure, err)
 		}
 
 		// No rows returned. Act as if this is an insertion.
-		m, err = c.createInsertMutation(mapper, input)
+		var err error
+		m, id, err = c.createInsertMutation(mapper, input)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
-		m, err = c.createUpdateMutation(row, mapper, input)
+		var err error
+		m, id, err = c.createUpdateMutation(row, mapper, input)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 	// Buffer the mutation to be committed.
 	err = txn.BufferWrite([]*spanner.Mutation{m})
 	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	return nil
+	return id, nil
 }
 
 // update performs an update operation on an entity.
@@ -905,7 +1113,9 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) update(
 	ctx context.Context,
 	input ExternalStruct) error {
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		return c.updateWithTransaction(ctx, txn, input)
+		_, err := c.updateWithTransaction(ctx, txn, input)
+
+		return err
 	})
 	if err != nil {
 		return errors.Join(ErrInternalQueryFailure, err)
@@ -919,7 +1129,7 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) update(
 func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) updateWithTransaction(
 	ctx context.Context,
 	txn *spanner.ReadWriteTransaction,
-	input ExternalStruct) error {
+	input ExternalStruct) (*string, error) {
 	var mapper M
 	stmt := mapper.SelectOne(mapper.GetKeyFromExternal(input))
 	// Attempt to query for the row.
@@ -931,25 +1141,25 @@ func (c *entityWriter[M, ExternalStruct, SpannerStruct, Key]) updateWithTransact
 	if err != nil {
 		// No row found
 		if errors.Is(err, iterator.Done) {
-			return errors.Join(ErrQueryReturnedNoResults, err)
+			return nil, errors.Join(ErrQueryReturnedNoResults, err)
 		}
 
 		// Catch-all for other errors.
-		return errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	m, err = c.createUpdateMutation(row, mapper, input)
+	m, id, err := c.createUpdateMutation(row, mapper, input)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	// Buffer the mutation to be committed.
 	err = txn.BufferWrite([]*spanner.Mutation{m})
 	if err != nil {
-		return errors.Join(ErrInternalQueryFailure, err)
+		return nil, errors.Join(ErrInternalQueryFailure, err)
 	}
 
-	return nil
+	return id, nil
 }
 
 // entityRemover is a basic client for removing any row from the database.
@@ -1376,6 +1586,55 @@ func (s *entitySynchronizer[M, ExternalStruct, SpannerStruct, Key]) applyNonAtom
 	return nil
 }
 
+// prepareInsertMutation is a helper that delegates ID generation and entity creation to the mapper.
+// nolint:ireturn // ID is a type parameter, not a generic interface.
+func prepareInsertMutation[
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key, ID],
+	ExternalStruct any,
+	SpannerStruct any,
+	Key comparable,
+	ID any](input ExternalStruct) (*spanner.Mutation, ID, error) {
+	var mapper M
+	spannerEntity, newID, err := mapper.NewEntityWithID(input)
+	if err != nil {
+		return nil, *new(ID), err
+	}
+
+	m, err := spanner.InsertStruct(mapper.Table(), spannerEntity)
+	if err != nil {
+		return nil, *new(ID), errors.Join(ErrInternalMutationFailure, err)
+	}
+
+	return m, newID, nil
+}
+
+// prepareUpdateMutation is a helper that extracts the ID and merges the entity using the mapper.
+// nolint:ireturn // ID is a type parameter, not a generic interface.
+func prepareUpdateMutation[
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key, ID],
+	ExternalStruct any,
+	SpannerStruct any,
+	Key comparable,
+	ID any](row *spanner.Row, input ExternalStruct) (*spanner.Mutation, ID, error) {
+	var mapper M
+	existing := new(SpannerStruct)
+	if err := row.ToStruct(existing); err != nil {
+		return nil, *new(ID), errors.Join(ErrInternalQueryFailure, err)
+	}
+
+	// Get the ID from the existing struct using our type-safe interface.
+	id := mapper.GetIDFromInternal(*existing)
+
+	// Merge and create the update mutation.
+	merged := mapper.Merge(input, *existing)
+	m, err := spanner.UpdateStruct(mapper.Table(), merged)
+	if err != nil {
+		return nil, *new(ID), errors.Join(ErrInternalMutationFailure, err)
+	}
+
+	return m, id, nil
+}
+
 func newAllEntityReader[
 	M readAllMapper,
 	SpannerStruct any,
@@ -1384,7 +1643,7 @@ func newAllEntityReader[
 }
 
 func newEntityWriterWithIDRetrieval[
-	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key],
+	M writeableEntityMapperWithIDRetrieval[ExternalStruct, SpannerStruct, Key, ID],
 	ID any,
 	ExternalStruct any,
 	SpannerStruct any,

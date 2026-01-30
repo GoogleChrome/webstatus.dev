@@ -39,7 +39,7 @@ func setupTablesForUpsertFeatureGroupLookups(
 		{FeatureKey: "FeatureZ", Name: "Ultra API", Description: "text", DescriptionHTML: "<html>"},
 	}
 	for _, feature := range features {
-		id, err := spannerClient.UpsertWebFeature(ctx, feature)
+		id, err := spannerClient.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Fatalf("Failed to insert WebFeature: %v", err)
 		}

@@ -20,6 +20,7 @@ import (
 	"fmt"
 
 	"cloud.google.com/go/spanner"
+	"github.com/google/uuid"
 )
 
 const snapshotsTable = "WebDXSnapshots"
@@ -92,10 +93,26 @@ func (m snapshotSpannerMapper) GetID(key string) spanner.Statement {
 	return stmt
 }
 
+func (m snapshotSpannerMapper) GetIDFromInternal(s spannerSnapshot) string {
+	return s.ID
+}
+
+func (m snapshotSpannerMapper) NewEntityWithID(req Snapshot) (spannerSnapshot, string, error) {
+	id := uuid.NewString()
+
+	return spannerSnapshot{
+		ID:       id,
+		Snapshot: req,
+	}, id, nil
+}
+
+// UpsertSnapshot inserts or updates a Snapshot.
 func (c *Client) UpsertSnapshot(ctx context.Context, snapshot Snapshot) (*string, error) {
-	return newEntityWriterWithIDRetrieval[snapshotSpannerMapper, string](c).upsertAndGetID(ctx, snapshot)
+	return newEntityWriterWithIDRetrieval[snapshotSpannerMapper, string, Snapshot, spannerSnapshot, string](c).
+		upsertAndGetID(ctx, snapshot)
 }
 
 func (c *Client) GetSnapshotIDFromSnapshotKey(ctx context.Context, snapshotKey string) (*string, error) {
-	return newEntityWriterWithIDRetrieval[snapshotSpannerMapper, string](c).getIDByKey(ctx, snapshotKey)
+	return newEntityWriterWithIDRetrieval[snapshotSpannerMapper, string, Snapshot, spannerSnapshot, string](c).
+		getIDByKey(ctx, snapshotKey)
 }

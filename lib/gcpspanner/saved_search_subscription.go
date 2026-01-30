@@ -272,7 +272,9 @@ func (c *Client) UpdateSavedSearchSubscription(
 			return err
 		}
 
-		return newEntityWriter[savedSearchSubscriptionMapper](c).updateWithTransaction(ctx, txn, req)
+		_, err = newEntityWriter[savedSearchSubscriptionMapper](c).updateWithTransaction(ctx, txn, req)
+
+		return err
 	})
 
 	return err

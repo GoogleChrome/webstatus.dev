@@ -78,7 +78,7 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		},
 	}
 	for _, feature := range sampleFeatures {
-		id, err := client.UpsertWebFeature(ctx, feature)
+		id, err := client.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
@@ -921,6 +921,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				},
 				Valid: true,
 			},
+			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
@@ -985,6 +986,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				},
 				Valid: true,
 			},
+			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
@@ -1025,7 +1027,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			Alternatives: []string{
 				"feature1",
 			},
-			VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
+			VendorPositions:            spanner.NullJSON{Value: nil, Valid: false},
+			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -1044,8 +1047,9 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			AccordingTo: []string{
 				"https://example.com",
 			},
-			Alternatives:    nil,
-			VendorPositions: spanner.NullJSON{Value: nil, Valid: false},
+			Alternatives:               nil,
+			VendorPositions:            spanner.NullJSON{Value: nil, Valid: false},
+			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
 		}
 	}
 
@@ -2745,7 +2749,8 @@ func AreFeatureResultsEqual(a, b FeatureResult) bool {
 		AreDeveloperSignalLinksEqual(a.DeveloperSignalLink, b.DeveloperSignalLink) &&
 		AreDiscouragedAccordingToEqual(a.AccordingTo, b.AccordingTo) &&
 		AreDiscouragedAlternativesEqual(a.Alternatives, b.Alternatives) &&
-		AreVendorPositionsEqual(a.VendorPositions, b.VendorPositions)
+		AreVendorPositionsEqual(a.VendorPositions, b.VendorPositions) &&
+		AreSystemManagedSavedSearchIDsExistent(a.SystemManagedSavedSearchID, b.SystemManagedSavedSearchID)
 }
 
 func AreVendorPositionsEqual(a, b spanner.NullJSON) bool {
@@ -2759,6 +2764,10 @@ func AreDeveloperSignalLinksEqual(a, b *string) bool { return reflect.DeepEqual(
 func AreDiscouragedAccordingToEqual(a, b []string) bool { return slices.Equal(a, b) }
 
 func AreDiscouragedAlternativesEqual(a, b []string) bool { return slices.Equal(a, b) }
+
+func AreSystemManagedSavedSearchIDsExistent(a, b *string) bool {
+	return (a == nil && b == nil) || (a != nil && b != nil)
+}
 
 func AreSpecLinksEqual(a, b []string) bool {
 	return slices.Equal(a, b)
@@ -2813,6 +2822,7 @@ func PrettyPrintFeatureResult(result FeatureResult) string {
 	var builder strings.Builder
 	fmt.Fprintf(&builder, "\tFeatureID: %s\n", result.FeatureKey)
 	fmt.Fprintf(&builder, "\tName: %s\n", result.Name)
+	fmt.Fprintf(&builder, "\tSystemManagedSavedSearchID: %s\n", PrintNullableField(result.SystemManagedSavedSearchID))
 
 	fmt.Fprintf(&builder, "\tStatus: %s\n", PrintNullableField(result.Status))
 	fmt.Fprintf(&builder, "\tLowDate: %s\n", PrintNullableField(result.LowDate))

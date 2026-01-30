@@ -150,7 +150,7 @@ func loadDataForListBaselineStatusCounts(ctx context.Context, t *testing.T) {
 		{FeatureKey: "FeatureE", Name: "Feature E", Description: "text", DescriptionHTML: "<html>"},
 	}
 	for _, wf := range webFeatures {
-		_, err := spannerClient.UpsertWebFeature(ctx, wf)
+		_, err := spannerClient.upsertWebFeature(ctx, wf)
 		if err != nil {
 			t.Fatalf("UpsertWebFeature failed: %v", err)
 		}

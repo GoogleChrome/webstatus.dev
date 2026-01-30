@@ -269,6 +269,8 @@ type mockWebFeatureSpannerClient struct {
 	syncMovedWebFeaturesCount                      int
 	mockSyncSplitWebFeaturesCfg                    *mockSyncSplitWebFeaturesConfig
 	syncSplitWebFeaturesCount                      int
+	syncSystemManagedSavedQueryCount               int
+	mockSyncSystemManagedSavedQueryErr             error
 }
 
 // SyncMovedWebFeatures implements WebFeatureSpannerClient.
@@ -291,6 +293,13 @@ func (c *mockWebFeatureSpannerClient) SyncSplitWebFeatures(
 	}
 
 	return c.mockSyncSplitWebFeaturesCfg.err
+}
+
+// SyncSystemManagedSavedQuery implements WebFeatureSpannerClient.
+func (c *mockWebFeatureSpannerClient) SyncSystemManagedSavedQuery(_ context.Context) error {
+	c.syncSystemManagedSavedQueryCount++
+
+	return c.mockSyncSystemManagedSavedQueryErr
 }
 
 func (c *mockWebFeatureSpannerClient) SyncWebFeatures(
@@ -440,6 +449,8 @@ func newMockmockWebFeatureSpannerClient(
 		syncMovedWebFeaturesCount:                      0,
 		mockSyncSplitWebFeaturesCfg:                    mockSyncSplitWebFeaturesCfg,
 		syncSplitWebFeaturesCount:                      0,
+		syncSystemManagedSavedQueryCount:               0,
+		mockSyncSystemManagedSavedQueryErr:             nil,
 	}
 }
 
@@ -500,6 +511,7 @@ func TestInsertWebFeatures(t *testing.T) {
 		mockUpsertFeatureSpecCfg                       mockUpsertFeatureSpecConfig
 		mockPrecalculateBrowserFeatureSupportEventsCfg mockPrecalculateBrowserFeatureSupportEventsConfig
 		mockUpsertFeatureDiscouragedDetailsCfg         mockUpsertFeatureDiscouragedDetailsConfig
+		expectedSyncSystemManagedSavedQueryCount       int
 		input                                          *webdxfeaturetypes.ProcessedWebFeaturesData
 		expectedError                                  error // Expected error from InsertWebFeatures
 	}{
@@ -613,6 +625,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 1,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -742,6 +755,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 0,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -827,6 +841,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 0,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -940,6 +955,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				outputs:        map[string]error{},
 				expectedCount:  0,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 0,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -1043,6 +1059,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 0,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -1201,6 +1218,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 0,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -1388,6 +1406,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 2,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 1,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -1528,6 +1547,7 @@ func TestInsertWebFeatures(t *testing.T) {
 				},
 				expectedCount: 1,
 			},
+			expectedSyncSystemManagedSavedQueryCount: 0,
 			input: &webdxfeaturetypes.ProcessedWebFeaturesData{
 				Snapshots: nil,
 				Browsers:  fakeBrowsersData,
@@ -1657,6 +1677,12 @@ func TestInsertWebFeatures(t *testing.T) {
 				t.Errorf("expected %d calls to UpsertFeatureDiscouragedDetails, got %d",
 					mockClient.mockUpsertFeatureDiscouragedDetailsCfg.expectedCount,
 					mockClient.upsertFeatureDiscouragedDetailsCount)
+			}
+
+			if mockClient.syncSystemManagedSavedQueryCount != tc.expectedSyncSystemManagedSavedQueryCount {
+				t.Errorf("expected %d calls to SyncSystemManagedSavedQuery, got %d",
+					tc.expectedSyncSystemManagedSavedQueryCount,
+					mockClient.syncSystemManagedSavedQueryCount)
 			}
 		})
 	}

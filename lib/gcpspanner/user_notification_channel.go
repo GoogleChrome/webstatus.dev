@@ -129,7 +129,7 @@ func generateChannelMutations(
 			if existingState.IsDisabledBySystem {
 				existingState.IsDisabledBySystem = false
 				existingState.UpdatedAt = spanner.CommitTimestamp
-				err := stateWriter.updateWithTransaction(ctx, txn, existingState)
+				_, err := stateWriter.updateWithTransaction(ctx, txn, existingState)
 				if err != nil {
 					return nil, err
 				}
@@ -157,7 +157,7 @@ func generateChannelMutations(
 			CreatedAt:           spanner.CommitTimestamp,
 			UpdatedAt:           spanner.CommitTimestamp,
 		}
-		err = stateWriter.upsertWithTransaction(ctx, txn, newChannelState)
+		_, err = stateWriter.upsertWithTransaction(ctx, txn, newChannelState)
 		if err != nil {
 			return nil, err
 		}
@@ -182,7 +182,7 @@ func generateDisableChannelMutations(
 			if !existingState.IsDisabledBySystem {
 				existingState.IsDisabledBySystem = true
 				existingState.UpdatedAt = spanner.CommitTimestamp
-				err := stateWriter.updateWithTransaction(ctx, txn, existingState)
+				_, err := stateWriter.updateWithTransaction(ctx, txn, existingState)
 				if err != nil {
 					return err
 				}

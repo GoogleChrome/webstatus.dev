@@ -84,9 +84,10 @@ func TestListFeatures(t *testing.T) {
 									Version: valuePtr("101"),
 								},
 							},
-							DeveloperSignals: nil,
-							Discouraged:      nil,
-							VendorPositions:  nil,
+							DeveloperSignals:           nil,
+							Discouraged:                nil,
+							VendorPositions:            nil,
+							SystemManagedSavedSearchId: valuePtr("saved-search-1"),
 						},
 					},
 				},
@@ -105,10 +106,10 @@ func TestListFeatures(t *testing.T) {
 					Value: []byte(
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":{"browser1":{"status":"available","version":"101"}},` +
-							`"feature_id":"feature1","name":"feature 1"}],"metadata":{"total":100}}`,
+							`"feature_id":"feature1","name":"feature 1",` +
+							`"system_managed_saved_search_id":"saved-search-1"}],"metadata":{"total":100}}`,
 					),
-					CacheCfg: getDefaultCacheConfig(),
-				},
+					CacheCfg: getDefaultCacheConfig()},
 			},
 			expectedCallCount: 1,
 			expectedResponse: testJSONResponse(200, `
@@ -126,10 +127,10 @@ func TestListFeatures(t *testing.T) {
 				"version":"101"
 				}
 			},
-			"feature_id":"feature1",
-			"name":"feature 1"
-		}
-	],
+		"feature_id":"feature1",
+		"name":"feature 1",
+		"system_managed_saved_search_id":"saved-search-1"
+	}],
 	"metadata":{
 		"total":100
 	}
@@ -146,7 +147,8 @@ func TestListFeatures(t *testing.T) {
 					Value: []byte(
 						`{"data":[{"baseline":{"high_date":"2001-01-01","low_date":"2000-01-01","status":"widely"},` +
 							`"browser_implementations":{"browser1":{"status":"available","version":"101"}},` +
-							`"feature_id":"feature1","name":"feature 1"}],"metadata":{"total":100}}`,
+							`"feature_id":"feature1","name":"feature 1","system_managed_saved_search_id":"saved-search-1"}],` +
+							`"metadata":{"total":100}}`,
 					),
 					Err: nil,
 				},
@@ -169,7 +171,8 @@ func TestListFeatures(t *testing.T) {
 				}
 			},
 			"feature_id":"feature1",
-			"name":"feature 1"
+			"name":"feature 1",
+			"system_managed_saved_search_id":"saved-search-1"
 		}
 	],
 	"metadata":{
@@ -266,7 +269,8 @@ func TestListFeatures(t *testing.T) {
 									{Id: "alternative"},
 								},
 							},
-							VendorPositions: nil,
+							VendorPositions:            nil,
+							SystemManagedSavedSearchId: valuePtr("saved-search-1"),
 						},
 					},
 				},
@@ -293,7 +297,7 @@ func TestListFeatures(t *testing.T) {
 							`"according_to":[{"link":"https://example.com/discouraged"}],` +
 							`"alternatives":[{"id":"alternative"}]` +
 							`},` +
-							`"feature_id":"feature1","name":"feature 1"}],` +
+							`"feature_id":"feature1","name":"feature 1","system_managed_saved_search_id":"saved-search-1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
 					CacheCfg: getDefaultCacheConfig(),
@@ -324,13 +328,13 @@ func TestListFeatures(t *testing.T) {
 				"according_to":[{"link":"https://example.com/discouraged"}],"alternatives":[{"id":"alternative"}]
 			},
 			"feature_id":"feature1",
-			"name":"feature 1"
+			"name":"feature 1",
+			"system_managed_saved_search_id":"saved-search-1"
+		}],
+		"metadata":{
+			"next_page_token":"next-page-token",
+			"total":100
 		}
-	],
-	"metadata":{
-		"next_page_token":"next-page-token",
-		"total":100
-	}
 }`,
 			),
 			request: httptest.NewRequest(
@@ -357,7 +361,7 @@ func TestListFeatures(t *testing.T) {
 							`"according_to":[{"link":"https://example.com/discouraged"}],` +
 							`"alternatives":[{"id":"alternative"}]` +
 							`},` +
-							`"feature_id":"feature1","name":"feature 1"}],` +
+							`"feature_id":"feature1","name":"feature 1","system_managed_saved_search_id":"saved-search-1"}],` +
 							`"metadata":{"next_page_token":"next-page-token","total":100}}`,
 					),
 					Err: nil,
@@ -389,7 +393,8 @@ func TestListFeatures(t *testing.T) {
 				"according_to":[{"link":"https://example.com/discouraged"}],"alternatives":[{"id":"alternative"}]
 			},
 			"feature_id":"feature1",
-			"name":"feature 1"
+			"name":"feature 1",
+			"system_managed_saved_search_id":"saved-search-1"
 		}
 	],
 	"metadata":{

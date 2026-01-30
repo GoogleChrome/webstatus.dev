@@ -188,7 +188,7 @@ func TestListChromeDailyUsageStatsForFeatureID(t *testing.T) {
 	sampleFeatures := getSampleFeatures()
 	webFeatureKeyToInternalFeatureID := map[string]string{}
 	for _, feature := range sampleFeatures {
-		id, err := spannerClient.UpsertWebFeature(ctx, feature)
+		id, err := spannerClient.upsertWebFeature(ctx, feature)
 		if err != nil {
 			t.Errorf("unexpected error during insert of features. %s", err.Error())
 		}
