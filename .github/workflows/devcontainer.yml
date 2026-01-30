@@ -67,15 +67,20 @@ jobs:
           # Lower reserve to 2GB just for OS overhead; Docker moves to the big partition below
           root-reserve-mb: 2048
           overprovision-lvm: 'true'
+          build-mount-path: '/home/runner/work/webstatus.dev'
         continue-on-error: true
-      - name: Checkout
+      #  Create the folder structure on the new disk
+      #  We need to recreate the repo folder because the mount starts empty.
+      - name: Create Workspace
+        run: mkdir -p ${{ github.workspace }}
+      - name: Checkout (GitHub)
         uses: actions/checkout@v6
-      - name: Move Docker to optimized space
+      - name: Move Docker
         run: |
           sudo service docker stop
-          mkdir -p ${{ github.workspace }}/docker-storage
+          mkdir -p ../docker-storage
           sudo rm -rf /var/lib/docker
-          sudo ln -s ${{ github.workspace }}/docker-storage /var/lib/docker
+          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
           sudo service docker start
       - name: check storage
         run: |
@@ -117,15 +122,20 @@ jobs:
           # Lower reserve to 2GB just for OS overhead; Docker moves to the big partition below
           root-reserve-mb: 2048
           overprovision-lvm: 'true'
+          build-mount-path: '/home/runner/work/webstatus.dev'
         continue-on-error: true
-      - name: Checkout
+      #  Create the folder structure on the new disk
+      #  We need to recreate the repo folder because the mount starts empty.
+      - name: Create Workspace
+        run: mkdir -p ${{ github.workspace }}
+      - name: Checkout (GitHub)
         uses: actions/checkout@v6
-      - name: Move Docker to optimized space
+      - name: Move Docker
         run: |
           sudo service docker stop
-          mkdir -p ${{ github.workspace }}/docker-storage
+          mkdir -p ../docker-storage
           sudo rm -rf /var/lib/docker
-          sudo ln -s ${{ github.workspace }}/docker-storage /var/lib/docker
+          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
           sudo service docker start
       - name: check storage
         run: |
