@@ -36,9 +36,9 @@ const FREQUENCY_CONFIG: ReadonlyArray<
 const FREQUENCY_DISPLAY_NAMES: {
   [key in components['schemas']['SubscriptionFrequency']]: string;
 } = {
-  immediate: 'Each Change',
-  weekly: 'Weekly',
-  monthly: 'Monthly',
+  immediate: 'Each change',
+  weekly: 'Weekly digest',
+  monthly: 'Monthly digest',
 };
 
 export class SubscriptionSaveSuccessEvent extends CustomEvent<void> {
