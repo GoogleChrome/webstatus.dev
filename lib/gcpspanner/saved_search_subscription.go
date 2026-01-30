@@ -220,13 +220,30 @@ func (c *Client) CreateSavedSearchSubscription(
 	ctx context.Context,
 	req CreateSavedSearchSubscriptionRequest,
 ) (*string, error) {
+	return c.createSavedSearchSubscription(ctx, req)
+}
+
+// CreateSubscriptionWithUUID creates a new saved search subscription with a specified UUID.
+func (c *Client) CreateSubscriptionWithUUID(
+	ctx context.Context,
+	req CreateSavedSearchSubscriptionRequest,
+	uuid string,
+) (*string, error) {
+	return c.createSavedSearchSubscription(ctx, req, WithID(uuid))
+}
+
+func (c *Client) createSavedSearchSubscription(
+	ctx context.Context,
+	req CreateSavedSearchSubscriptionRequest,
+	opts ...CreateOption,
+) (*string, error) {
 	var id *string
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		err := c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn)
 		if err != nil {
 			return err
 		}
-		newID, err := newEntityCreator[savedSearchSubscriptionMapper](c).createWithTransaction(ctx, txn, req)
+		newID, err := newEntityCreator[savedSearchSubscriptionMapper](c).createWithTransaction(ctx, txn, req, opts...)
 		if err != nil {
 			return err
 		}

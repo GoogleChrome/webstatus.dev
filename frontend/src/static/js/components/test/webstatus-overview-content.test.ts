@@ -21,7 +21,10 @@ import {elementUpdated, expect, fixture, html} from '@open-wc/testing';
 import {APIClient} from '../../api/client.js';
 
 import {stub} from 'sinon'; // Make sure you have sinon installed
-import {savedSearchHelpers} from '../../contexts/app-bookmark-info-context.js';
+import {
+  savedSearchHelpers,
+  SavedSearchScope,
+} from '../../contexts/app-bookmark-info-context.js';
 import sinon from 'sinon';
 import {WebstatusSavedSearchEditor} from '../webstatus-saved-search-editor.js';
 import {
@@ -30,6 +33,7 @@ import {
   UserSavedSearch,
 } from '../../utils/constants.js';
 import {UserContext} from '../../contexts/firebase-user-context.js';
+import {SubscribeButton} from '../webstatus-subscribe-button.js';
 
 describe('webstatus-overview-content', () => {
   let element: WebstatusOverviewContent;
@@ -302,6 +306,44 @@ describe('webstatus-overview-content', () => {
       // Let's assert it's not called for clarity, though the original code
       // might call it regardless. The important part is the dialog doesn't open.
       expect(updatePageUrlStub).to.not.have.been.called;
+    });
+  });
+
+  describe('Subscribe button', () => {
+    it('should render the subscribe button when a user saved search is active', async () => {
+      const getCurrentSavedSearchStub = sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns({
+          scope: SavedSearchScope.UserSavedSearch,
+          value: mockSavedSearchOwner,
+        });
+      element.requestUpdate();
+      await element.updateComplete;
+
+      const subscribeButton =
+        element.shadowRoot?.querySelector<SubscribeButton>(
+          'webstatus-subscribe-button',
+        );
+
+      expect(getCurrentSavedSearchStub).to.have.been.called;
+      expect(subscribeButton).to.exist;
+      expect(subscribeButton?.savedSearchId).to.equal(mockSavedSearchOwner.id);
+      getCurrentSavedSearchStub.restore();
+    });
+
+    it('should not render the subscribe button when no user saved search is active', async () => {
+      const getCurrentSavedSearchStub = sinon
+        .stub(savedSearchHelpers, 'getCurrentSavedSearch')
+        .returns(undefined);
+      element.requestUpdate();
+      await element.updateComplete;
+
+      const subscribeButton = element.shadowRoot?.querySelector(
+        'webstatus-subscribe-button',
+      );
+      expect(getCurrentSavedSearchStub).to.have.been.called;
+      expect(subscribeButton).to.not.exist;
+      getCurrentSavedSearchStub.restore();
     });
   });
 });
