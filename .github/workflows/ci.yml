@@ -33,16 +33,30 @@ jobs:
           remove-dotnet: 'true'
           remove-android: 'true'
           remove-haskell: 'true'
-          # need space in /var for Docker images
-          root-reserve-mb: 20000
+          remove-codeql: 'true'
+          # Lower reserve to 2GB just for OS overhead; Docker moves to the big partition below
+          root-reserve-mb: 2048
+          overprovision-lvm: 'true'
+          build-mount-path: '/home/runner/work/webstatus.dev'
         continue-on-error: true
-      - name: Restart docker
-        run: sudo service docker restart
+      #  Create the folder structure on the new disk
+      #  We need to recreate the repo folder because the mount starts empty.
+      - name: Create Workspace
+        run: mkdir -p ${{ github.workspace }}
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v6
+      - name: Move Docker
+        run: |
+          sudo service docker stop
+          mkdir -p ../docker-storage
+          sudo rm -rf /var/lib/docker
+          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
+          sudo service docker start
       - name: check storage
         run: |
           sudo df -h
-      - name: Checkout (GitHub)
-        uses: actions/checkout@v6
+          echo "Docker Root Dir:"
+          sudo docker info | grep "Docker Root Dir"
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -70,16 +84,29 @@ jobs:
           remove-android: 'true'
           remove-haskell: 'true'
           remove-codeql: 'true'
-          # need space in /var for Docker images
-          root-reserve-mb: 30000
+          # Lower reserve to 2GB just for OS overhead; Docker moves to the big partition below
+          root-reserve-mb: 2048
+          overprovision-lvm: 'true'
+          build-mount-path: '/home/runner/work/webstatus.dev'
         continue-on-error: true
-      - name: Restart docker
-        run: sudo service docker restart
+      #  Create the folder structure on the new disk
+      #  We need to recreate the repo folder because the mount starts empty.
+      - name: Create Workspace
+        run: mkdir -p ${{ github.workspace }}
+      - name: Checkout (GitHub)
+        uses: actions/checkout@v6
+      - name: Move Docker
+        run: |
+          sudo service docker stop
+          mkdir -p ../docker-storage
+          sudo rm -rf /var/lib/docker
+          sudo ln -s $(realpath ../docker-storage) /var/lib/docker
+          sudo service docker start
       - name: check storage
         run: |
           sudo df -h
-      - name: Checkout (GitHub)
-        uses: actions/checkout@v6
+          echo "Docker Root Dir:"
+          sudo docker info | grep "Docker Root Dir"
       - uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GO_VERSION }}
