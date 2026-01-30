@@ -54,40 +54,53 @@ backend_cache_settings = {
 # Needed for UbP.
 backend_cors_allowed_origin = "https://website-webstatus-dev.corp.goog"
 
+# 1. BCD - The Start
+# US runs at minute 00, EU runs at minute 30
 bcd_region_schedules = {
-  "us-central1"  = "0 19 * * *" # Daily at 7:00 PM
-  "europe-west1" = "0 7 * * *"  # Daily at 7:00 AM
+  "us-central1"  = "0 0,6,12,18 * * *"
+  "europe-west1" = "30 0,6,12,18 * * *"
 }
 
+# 2. Web Features - 1 Hour Later
+# Needs the BCD data first for Browser Releases
+# (Hours shifted to 1, 7, 13, 19)
 web_features_region_schedules = {
-  "us-central1"  = "0 20 * * *" # Daily at 8:00 PM
-  "europe-west1" = "0 8 * * *"  # Daily at 8:00 AM
+  "us-central1"  = "0 1,7,13,19 * * *"
+  "europe-west1" = "30 1,7,13,19 * * *"
 }
 
+# 3. Signals / Chromium  / Web Features Mapping - 2 Hours Later
+# These need the Web Features data first
+# (Hours shifted to 2, 8, 14, 20)
 developer_signals_region_schedules = {
-  "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
-  "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
+  "us-central1"  = "0 2,8,14,20 * * *"
+  "europe-west1" = "30 2,8,14,20 * * *"
 }
 
 chromium_region_schedules = {
-  "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
-  "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
+  "us-central1"  = "0 2,8,14,20 * * *"
+  "europe-west1" = "30 2,8,14,20 * * *"
 }
 
+web_features_mapping_region_schedules = {
+  "us-central1"  = "0 3,9,15,21 * * *"
+  "europe-west1" = "30 3,9,15,21 * * *"
+}
+
+# 4. UMA - 3 Hours Later
+# UMA needs the Chromium data first
+# (Hours shifted to 3, 9, 15, 21)
 uma_region_schedules = {
-  "us-central1"  = "0 22 * * *" # Daily at 10:00 PM
-  "europe-west1" = "0 10 * * *" # Daily at 10:00 AM
+  "us-central1"  = "0 3,9,15,21 * * *"
+  "europe-west1" = "30 3,9,15,21 * * *"
 }
 
+# 5. WPT - Takes a while. It runs once daily.
 wpt_region_schedules = {
   "us-central1"  = "0 21 * * *" # Daily at 9:00 PM
   "europe-west1" = "0 9 * * *"  # Daily at 9:00 AM
 }
 
-web_features_mapping_region_schedules = {
-  "us-central1"  = "0 23 * * *" # Daily at 11:00 PM
-  "europe-west1" = "0 11 * * *" # Daily at 11:00 AM
-}
 
 firebase_api_key_location = "staging-firebase-app-api-key"
 
