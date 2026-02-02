@@ -59,6 +59,7 @@ import {
 enum NavigationItemKey {
   FEATURES = 'features-item',
   STATISTICS = 'statistics-item',
+  SUBSCRIPTIONS = 'subscriptions-item',
   NOTIFICATION_CHANNELS = 'notification-channels-item',
 }
 
@@ -79,6 +80,10 @@ const navigationMap: NavigationMap = {
   [NavigationItemKey.STATISTICS]: {
     id: NavigationItemKey.STATISTICS,
     path: '/stats',
+  },
+  [NavigationItemKey.SUBSCRIPTIONS]: {
+    id: NavigationItemKey.SUBSCRIPTIONS,
+    path: '/settings/subscriptions',
   },
   [NavigationItemKey.NOTIFICATION_CHANNELS]: {
     id: NavigationItemKey.NOTIFICATION_CHANNELS,
@@ -111,6 +116,16 @@ export class WebstatusSidebarMenu extends LitElement {
           text-decoration: none;
         }
         .saved-search-link {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .notifications-channels-link {
+          color: inherit;
+          text-decoration: none;
+        }
+
+        .subscriptions-link {
           color: inherit;
           text-decoration: none;
         }
@@ -394,10 +409,19 @@ export class WebstatusSidebarMenu extends LitElement {
 
     return html`
       <sl-divider></sl-divider>
+      <sl-tree-item id="subscriptions-item">
+        <sl-icon name="bell"></sl-icon>
+        <a
+          class="subscriptions-link"
+          href="${navigationMap[NavigationItemKey.SUBSCRIPTIONS].path}"
+        >
+          Subscriptions
+        </a>
+      </sl-tree-item>
       <sl-tree-item id="notifications-channels-item">
         <sl-icon name="mailbox-flag"></sl-icon>
         <a
-          class="features-link"
+          class="notifications-channels-link"
           href="${navigationMap[NavigationItemKey.NOTIFICATION_CHANNELS].path}"
         >
           Notification Channels

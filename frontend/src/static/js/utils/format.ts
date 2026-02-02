@@ -14,6 +14,8 @@
  * limitations under the License.
  */
 
+import {components} from 'webstatus.dev-backend';
+
 /**
  * Formats a number into a compact, human-readable string.
  * For example, 1234 becomes "1.2K".
@@ -62,3 +64,12 @@ export function formatDeveloperUpvotesMessages(
     shortMessage: `${rawNumber} developer upvotes`,
   };
 }
+
+// Translate the frequency values from the API to user-friendly display names.
+export const FREQUENCY_DISPLAY_NAMES: {
+  [key in components['schemas']['SubscriptionFrequency']]: string;
+} = {
+  immediate: 'Each change',
+  weekly: 'Weekly digest',
+  monthly: 'Monthly digest',
+};
