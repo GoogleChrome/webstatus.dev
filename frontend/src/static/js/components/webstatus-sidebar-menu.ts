@@ -412,8 +412,8 @@ export class WebstatusSidebarMenu extends LitElement {
       <sl-tree-item id="subscriptions-item">
         <sl-icon name="bell"></sl-icon>
         <a
-          class="features-link"
-          href="${navigationMap[NavigationItemKey.NOTIFICATION_CHANNELS].path}"
+          class="subscriptions-link"
+          href="${navigationMap[NavigationItemKey.SUBSCRIPTIONS].path}"
         >
           Subscriptions
         </a>
@@ -421,7 +421,7 @@ export class WebstatusSidebarMenu extends LitElement {
       <sl-tree-item id="notifications-channels-item">
         <sl-icon name="mailbox-flag"></sl-icon>
         <a
-          class="features-link"
+          class="notifications-channels-link"
           href="${navigationMap[NavigationItemKey.NOTIFICATION_CHANNELS].path}"
         >
           Notification Channels
