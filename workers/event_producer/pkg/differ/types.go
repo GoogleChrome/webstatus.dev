@@ -39,7 +39,7 @@ type FeatureFetcher interface {
 
 type StateCompareWorkflow[D any] interface {
 	CalculateDiff(oldSnapshot, newSnapshot map[string]comparables.Feature)
-	ReconcileHistory(ctx context.Context) error
+	ReconcileHistory(ctx context.Context, oldSnapshot, newSnapshot map[string]comparables.Feature) error
 	HasRemovedFeatures() bool
 	HasChanges() bool
 	HasDataChanges() bool

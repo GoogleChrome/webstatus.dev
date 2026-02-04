@@ -211,13 +211,17 @@ func TestRenderDigest_Golden(t *testing.T) {
 				Split:          nil,
 			},
 			{
-				// Case 8: Moved
+				// Case 8: Moved - No Match
 				Type:        workertypes.SummaryHighlightTypeMoved,
 				FeatureName: "New Cool Name",
 				FeatureID:   "new-cool-name",
 				Moved: &workertypes.Change[workertypes.FeatureRef]{
-					From: workertypes.FeatureRef{ID: "old-name", Name: "Old Name"},
-					To:   workertypes.FeatureRef{ID: "new-cool-name", Name: "New Cool Name"},
+					From: workertypes.FeatureRef{ID: "old-name", Name: "Old Name", QueryMatch: ""},
+					To: workertypes.FeatureRef{
+						ID:         "new-cool-name",
+						Name:       "New Cool Name",
+						QueryMatch: workertypes.QueryMatchNoMatch,
+					},
 				},
 				Docs:           nil,
 				NameChange:     nil,
@@ -226,15 +230,15 @@ func TestRenderDigest_Golden(t *testing.T) {
 				Split:          nil,
 			},
 			{
-				// Case 9: Split
+				// Case 9: Split - Partial Match
 				Type:        workertypes.SummaryHighlightTypeSplit,
 				FeatureName: "Feature To Split",
 				FeatureID:   "feature-to-split",
 				Split: &workertypes.SplitChange{
-					From: workertypes.FeatureRef{ID: "feature-to-split", Name: "Feature To Split"},
+					From: workertypes.FeatureRef{ID: "feature-to-split", Name: "Feature To Split", QueryMatch: ""},
 					To: []workertypes.FeatureRef{
-						{ID: "sub-feature-1", Name: "Sub Feature 1"},
-						{ID: "sub-feature-2", Name: "Sub Feature 2"},
+						{ID: "sub-feature-1", Name: "Sub Feature 1", QueryMatch: workertypes.QueryMatchMatch},
+						{ID: "sub-feature-2", Name: "Sub Feature 2", QueryMatch: workertypes.QueryMatchNoMatch},
 					},
 				},
 				Docs:           nil,
@@ -279,6 +283,47 @@ func TestRenderDigest_Golden(t *testing.T) {
 				BrowserChanges: nil,
 				Moved:          nil,
 				Split:          nil,
+			},
+			{
+				// Case 12: Removed with details (Baseline + Browser changes)
+				Type:        workertypes.SummaryHighlightTypeRemoved,
+				FeatureName: "Removed With Details",
+				FeatureID:   "removed-details",
+				Docs:        nil,
+				BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+					From: workertypes.BaselineValue{
+						Status:  workertypes.BaselineStatusNewly,
+						LowDate: &newlyDate, HighDate: nil,
+					},
+					To: workertypes.BaselineValue{
+						Status:   workertypes.BaselineStatusLimited,
+						LowDate:  nil,
+						HighDate: nil,
+					},
+				},
+				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
+					workertypes.BrowserChrome: {
+						From: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusAvailable,
+							Version: generic.ValuePtr("110"),
+							Date:    nil,
+						},
+						To: workertypes.BrowserValue{
+							Status:  workertypes.BrowserStatusUnavailable,
+							Version: nil,
+							Date:    nil,
+						},
+					},
+					workertypes.BrowserEdge:           nil,
+					workertypes.BrowserFirefox:        nil,
+					workertypes.BrowserSafari:         nil,
+					workertypes.BrowserChromeAndroid:  nil,
+					workertypes.BrowserFirefoxAndroid: nil,
+					workertypes.BrowserSafariIos:      nil,
+				},
+				NameChange: nil,
+				Moved:      nil,
+				Split:      nil,
 			},
 		},
 	}

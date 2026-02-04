@@ -19,6 +19,7 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
+	"slices"
 	"strings"
 	"time"
 
@@ -51,6 +52,7 @@ func NewHTMLRenderer(webStatusBaseURL string) (*HTMLRenderer, error) {
 		"formatBrowserStatus":  r.formatBrowserStatus,
 		"formatBaselineStatus": r.formatBaselineStatus,
 		"badgeBackgroundColor": badgeBackgroundColor,
+		"sortedBrowserChanges": r.sortedBrowserChanges,
 	}
 
 	// Parse both the components and the main template
@@ -144,6 +146,7 @@ type BrowserChangeRenderData struct {
 	Change      *workertypes.Change[workertypes.BrowserValue]
 	FeatureName string
 	FeatureID   string
+	Type        workertypes.SummaryHighlightType
 }
 
 type templateData struct {
@@ -204,7 +207,7 @@ func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error 
 		SummaryText: summary.Text,
 		Truncated:   summary.Truncated,
 		BaseURL:     g.baseURL,
-		UnsubscribeURL: fmt.Sprintf("%s/subscriptions/%s?action=unsubscribe",
+		UnsubscribeURL: fmt.Sprintf("%s/settings/subscriptions?unsubscribe=%s",
 			g.baseURL, g.job.SubscriptionID),
 		BaselineNewlyChanges:      nil,
 		BaselineWidelyChanges:     nil,
@@ -249,7 +252,15 @@ func (g *templateDataGenerator) routeHighlightToCategory(highlight workertypes.S
 	case workertypes.SummaryHighlightTypeAdded:
 		g.data.AddedFeatures = append(g.data.AddedFeatures, highlight)
 	case workertypes.SummaryHighlightTypeRemoved:
-		g.data.RemovedFeatures = append(g.data.RemovedFeatures, highlight)
+		// Promotion Strategy:
+		// If a removed feature has significant changes (Baseline or Browser),
+		// we treat it as a "Change" so it appears in the specific sections (e.g. Baseline Newly)
+		// rather than the generic "Removed" list.
+		if highlight.BaselineChange != nil || len(highlight.BrowserChanges) > 0 {
+			g.processChangedData(highlight)
+		} else {
+			g.data.RemovedFeatures = append(g.data.RemovedFeatures, highlight)
+		}
 	case workertypes.SummaryHighlightTypeDeleted:
 		g.data.DeletedFeatures = append(g.data.DeletedFeatures, highlight)
 	case workertypes.SummaryHighlightTypeChanged:
@@ -260,7 +271,22 @@ func (g *templateDataGenerator) routeHighlightToCategory(highlight workertypes.S
 func (g *templateDataGenerator) processChangedData(highlight workertypes.SummaryHighlight) {
 	// Consolidate browser changes into their own list
 	if len(highlight.BrowserChanges) > 0 {
-		for browserName, change := range highlight.BrowserChanges {
+		// Sort keys to ensure deterministic order in the AllBrowserChanges list
+		browsers := make([]workertypes.BrowserName, 0, len(highlight.BrowserChanges))
+		for b := range highlight.BrowserChanges {
+			browsers = append(browsers, b)
+		}
+		// Simple bubble sort for the keys
+		for i := 0; i < len(browsers)-1; i++ {
+			for j := 0; j < len(browsers)-i-1; j++ {
+				if browsers[j] > browsers[j+1] {
+					browsers[j], browsers[j+1] = browsers[j+1], browsers[j]
+				}
+			}
+		}
+
+		for _, browserName := range browsers {
+			change := highlight.BrowserChanges[browserName]
 			// If a feature regresses AND loses a browser impl, it will be in two sections.
 			if change == nil {
 				continue
@@ -270,6 +296,7 @@ func (g *templateDataGenerator) processChangedData(highlight workertypes.Summary
 				Change:      change,
 				FeatureName: highlight.FeatureName,
 				FeatureID:   highlight.FeatureID,
+				Type:        highlight.Type,
 			})
 		}
 	}
@@ -321,9 +348,9 @@ func (r *HTMLRenderer) generateSubject(frequency workertypes.JobFrequency, query
 	prefix := "Update:"
 	switch frequency {
 	case workertypes.FrequencyWeekly:
-		prefix = "Weekly Digest:"
+		prefix = "Weekly digest:"
 	case workertypes.FrequencyMonthly:
-		prefix = "Monthly Digest:"
+		prefix = "Monthly digest:"
 	case workertypes.FrequencyImmediate:
 		// Do nothing
 	case workertypes.FrequencyUnknown:
@@ -395,4 +422,40 @@ func (r *HTMLRenderer) browserDisplayName(browser any) string {
 func (r *HTMLRenderer) statusLogoURL(status string) string {
 	return fmt.Sprintf("%s/public/img/email/%s.png", r.webStatusBaseURL, strings.ToLower(status))
 
+}
+
+// sortedBrowserChanges returns a list of browser changes sorted by browser name.
+// This is used to ensure consistent rendering order in the template.
+func (r *HTMLRenderer) sortedBrowserChanges(
+	changes map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]) []BrowserChangeRenderData {
+	if len(changes) == 0 {
+		return nil
+	}
+
+	data := make([]BrowserChangeRenderData, 0, len(changes))
+	for name, change := range changes {
+		if change == nil {
+			continue
+		}
+		data = append(data, BrowserChangeRenderData{
+			BrowserName: name,
+			Change:      change,
+			FeatureName: "",
+			FeatureID:   "",
+			Type:        "",
+		})
+	}
+
+	// Sort by BrowserName
+	slices.SortFunc(data, func(a, b BrowserChangeRenderData) int {
+		if a.BrowserName < b.BrowserName {
+			return -1
+		} else if a.BrowserName > b.BrowserName {
+			return 1
+		}
+
+		return 0
+	})
+
+	return data
 }

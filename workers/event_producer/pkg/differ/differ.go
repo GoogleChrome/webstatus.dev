@@ -17,10 +17,7 @@ package differ
 import (
 	"context"
 	"fmt"
-	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 	"github.com/google/uuid"
@@ -81,7 +78,7 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 
 	// 5. Reconcile History
 	if d.workflow.HasRemovedFeatures() && !plan.IsColdStart {
-		err = d.workflow.ReconcileHistory(ctx)
+		err = d.workflow.ReconcileHistory(ctx, data.OldSnapshot, data.NewSnapshot)
 		if err != nil {
 			return nil, fmt.Errorf("%w: failed to reconcile history: %w", ErrTransient, err)
 		}
@@ -207,7 +204,7 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 	if err != nil {
 		return data, err
 	}
-	data.NewSnapshot = toSnapshot(newLive)
+	data.NewSnapshot = comparables.NewFeatureMapFromBackendFeatures(newLive)
 
 	if plan.IsColdStart {
 		return data, nil
@@ -216,7 +213,7 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 	if plan.QueryChanged {
 		oldLive, err := d.client.FetchFeatures(ctx, plan.PreviousQuery)
 		if err == nil {
-			data.TargetSnapshot = toSnapshot(oldLive)
+			data.TargetSnapshot = comparables.NewFeatureMapFromBackendFeatures(oldLive)
 		} else {
 			// Fallback: If old query fails, we return nil TargetSnapshot.
 			// Run() detects this and skips diffing, treating it as a silent reset.
@@ -230,95 +227,4 @@ func (d *FeatureDiffer[D]) executePlan(ctx context.Context, plan executionPlan) 
 	}
 
 	return data, nil
-}
-
-func toSnapshot(features []backend.Feature) map[string]comparables.Feature {
-	m := make(map[string]comparables.Feature)
-	for _, f := range features {
-		m[f.FeatureId] = toComparable(f)
-	}
-
-	return m
-}
-
-func toComparable(f backend.Feature) comparables.Feature {
-	status := backend.Limited
-	var lowDate, highDate *time.Time
-	if f.Baseline != nil {
-		if f.Baseline.Status != nil {
-			status = *f.Baseline.Status
-		}
-		if f.Baseline.LowDate != nil {
-			t := f.Baseline.LowDate.Time
-			lowDate = &t
-		}
-		if f.Baseline.HighDate != nil {
-			t := f.Baseline.HighDate.Time
-			highDate = &t
-		}
-	}
-
-	baseline := comparables.BaselineState{
-		Status:   generic.OptionallySet[backend.BaselineInfoStatus]{Value: status, IsSet: true},
-		LowDate:  generic.OptionallySet[*time.Time]{Value: lowDate, IsSet: true},
-		HighDate: generic.OptionallySet[*time.Time]{Value: highDate, IsSet: true},
-	}
-
-	cf := comparables.Feature{
-		ID:             f.FeatureId,
-		Name:           generic.OptionallySet[string]{Value: f.Name, IsSet: true},
-		BaselineStatus: generic.OptionallySet[comparables.BaselineState]{Value: baseline, IsSet: true},
-		// TODO: Handle Docs when https://github.com/GoogleChrome/webstatus.dev/issues/930 is supported.
-		Docs:         generic.UnsetOpt[comparables.Docs](),
-		BrowserImpls: generic.UnsetOpt[comparables.BrowserImplementations](),
-	}
-
-	if f.BrowserImplementations == nil {
-		return cf
-	}
-
-	raw := *f.BrowserImplementations
-	cf.BrowserImpls = generic.OptionallySet[comparables.BrowserImplementations]{
-		Value: comparables.BrowserImplementations{
-			Chrome:         toComparableBrowserState(raw[string(backend.Chrome)]),
-			ChromeAndroid:  toComparableBrowserState(raw[string(backend.ChromeAndroid)]),
-			Edge:           toComparableBrowserState(raw[string(backend.Edge)]),
-			Firefox:        toComparableBrowserState(raw[string(backend.Firefox)]),
-			FirefoxAndroid: toComparableBrowserState(raw[string(backend.FirefoxAndroid)]),
-			Safari:         toComparableBrowserState(raw[string(backend.Safari)]),
-			SafariIos:      toComparableBrowserState(raw[string(backend.SafariIos)]),
-		},
-		IsSet: true,
-	}
-
-	return cf
-}
-
-// toComparableBrowserState converts a single browser implementation from the backend API
-// into the canonical comparable format.
-func toComparableBrowserState(impl backend.BrowserImplementation) generic.OptionallySet[comparables.BrowserState] {
-	var status backend.BrowserImplementationStatus
-	if impl.Status != nil {
-		status = *impl.Status
-	}
-
-	var date *time.Time
-	if impl.Date != nil {
-		date = &impl.Date.Time
-	}
-
-	// An empty struct from the map lookup indicates the browser was not present.
-	// In this case, we return an unset OptionallySet.
-	if impl.Status == nil && impl.Date == nil && impl.Version == nil {
-		return generic.UnsetOpt[comparables.BrowserState]()
-	}
-
-	return generic.OptionallySet[comparables.BrowserState]{
-		Value: comparables.BrowserState{
-			Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: status, IsSet: true},
-			Version: generic.OptionallySet[*string]{Value: impl.Version, IsSet: impl.Version != nil},
-			Date:    generic.OptionallySet[*time.Time]{Value: date, IsSet: date != nil},
-		},
-		IsSet: true,
-	}
 }

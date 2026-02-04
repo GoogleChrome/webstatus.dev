@@ -87,8 +87,7 @@ const baselineChangeItemComponent = `{{- define "baseline_change_item" -}}
 </div>
 {{- end -}}`
 
-const browserItemComponent = `{{- define "browser_item" -}}
-<div style='{{- template "style_card_body" -}}'>
+const browserItemComponent = `{{- define "browser_change_row" -}}
     <div style='{{- template "style_browser_item_row" -}}'>
         <div style='{{- template "style_browser_item_logo_wrapper" -}}'>
             <img src="{{.LogoURL}}" height="20" alt="{{.Name}}" style='{{- template "style_img_responsive" -}}' />
@@ -97,12 +96,20 @@ const browserItemComponent = `{{- define "browser_item" -}}
             {{.Name}}: {{ template "browser_status_detail" .From }} &rarr; {{ template "browser_status_detail" .To -}}
         </div>
     </div>
+{{- end -}}
+
+{{- define "browser_item" -}}
+<div style='{{- template "style_card_body" -}}'>
+    {{- template "browser_change_row" . -}}
     {{- if .FeatureName -}}
         <div style='{{- template "style_browser_item_feature_link_wrapper" -}}'>
             <div style='{{- template "style_banner_text_wrapper" -}}'>
                 <a href="{{.FeatureURL}}" style='{{- template "style_text_feature_link" -}}'>{{.FeatureName}}</a>
             </div>
         </div>
+    {{- end -}}
+    {{- if eq .Type "Removed" -}}
+        <div style='{{- template "style_text_warning" -}}'>⚠️ This feature no longer matches your saved search. Please update your saved search if you wish to continue tracking it.</div>
     {{- end -}}
 </div>
 {{- end -}}`

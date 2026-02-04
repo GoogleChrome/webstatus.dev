@@ -162,12 +162,13 @@ func TestV1DiffSerializer_Serialize(t *testing.T) {
 	serializer := NewV1DiffSerializer()
 	diff := &featurelistdiffv1.FeatureDiff{
 		QueryChanged: false,
-		Added:        []featurelistdiffv1.FeatureAdded{{ID: "feat-a", Name: "Feature A", Reason: "", Docs: nil}},
-		Deleted:      nil,
-		Removed:      nil,
-		Modified:     nil,
-		Moves:        nil,
-		Splits:       nil,
+		Added: []featurelistdiffv1.FeatureAdded{{ID: "feat-a", Name: "Feature A", Reason: "", Docs: nil,
+			QueryMatch: featurelistdiffv1.QueryMatchMatch}},
+		Deleted:  nil,
+		Removed:  nil,
+		Modified: nil,
+		Moves:    nil,
+		Splits:   nil,
 	}
 	metadata := differ.DiffMetadata{
 		ID:              "diff-id1",

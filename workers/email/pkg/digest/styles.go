@@ -45,6 +45,8 @@ const composedTextStyles = `{{- define "style_text_badge_title" -}}{{- template 
 {{- define "style_text_doc_punctuation" -}}{{- template "color_text_medium" -}}; font-size: 14px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; line-height: 26.60px;{{- end -}}
 {{- define "style_text_date" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_monospace" -}}; {{- template "font_weight_normal" -}}; word-wrap: break-word;{{- end -}}
 {{- define "style_text_browser_item" -}}{{- template "color_text_dark" -}}; font-size: 14px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; word-wrap: break-word;{{- end -}}
+{{- define "style_text_warning" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_main" -}}; font-style: italic; margin-top: 4px;{{- end -}}
+{{- define "style_text_warning_inline" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_main" -}}; font-style: italic;{{- end -}}
 {{- define "style_text_footer" -}}{{- template "color_text_medium" -}}; font-size: 11px; {{- template "font_weight_normal" -}}; word-wrap: break-word;{{- end -}}
 {{- define "style_text_footer_link" -}}{{- template "color_text_medium" -}}; font-size: 11px; {{- template "font_weight_normal" -}}; text-decoration: underline; word-wrap: break-word;{{- end -}}`
 
