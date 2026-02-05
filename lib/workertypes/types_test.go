@@ -148,22 +148,70 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 			diff: v1.FeatureDiff{
 				QueryChanged: true,
 				Added: []v1.FeatureAdded{
-					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil},
+					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil, QueryMatch: v1.QueryMatchMatch},
 					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: &v1.Docs{
 						MdnDocs: []v1.MdnDoc{{URL: "https://mdn.io/B", Title: generic.ValuePtr("B"), Slug: generic.ValuePtr("slug-b")}},
-					}},
+					}, QueryMatch: v1.QueryMatchMatch},
 				},
 				Removed: []v1.FeatureRemoved{
-					{ID: "3", Name: "C", Reason: v1.ReasonUnmatched},
+					{ID: "3", Name: "C", Reason: v1.ReasonUnmatched, Diff: nil},
+					{ID: "31", Name: "K", Reason: v1.ReasonUnmatched, Diff: &v1.FeatureModified{
+						ID:         "31",
+						Name:       "K",
+						NameChange: nil,
+						Docs:       nil,
+						BaselineChange: &v1.Change[v1.BaselineState]{
+							From: v1.BaselineState{
+								Status:   generic.SetOpt(v1.Limited),
+								LowDate:  generic.UnsetOpt[*time.Time](),
+								HighDate: generic.UnsetOpt[*time.Time](),
+							},
+							To: v1.BaselineState{
+								Status:   generic.SetOpt(v1.Newly),
+								LowDate:  generic.SetOpt(&newlyDate),
+								HighDate: generic.UnsetOpt[*time.Time](),
+							},
+						},
+						BrowserChanges: map[v1.SupportedBrowsers]*v1.Change[v1.BrowserState]{
+							v1.Chrome: {From: v1.BrowserState{
+								Status:  generic.SetOpt(v1.Unavailable),
+								Date:    generic.UnsetOpt[*time.Time](),
+								Version: generic.UnsetOpt[*string](),
+							}, To: v1.BrowserState{
+								Status:  generic.SetOpt(v1.Available),
+								Date:    generic.SetOpt(&browserImplDate),
+								Version: generic.SetOpt(generic.ValuePtr("132")),
+							}},
+							v1.ChromeAndroid:  nil,
+							v1.Edge:           nil,
+							v1.Firefox:        nil,
+							v1.FirefoxAndroid: nil,
+							v1.Safari:         nil,
+							v1.SafariIos:      nil,
+						},
+						DocsChange: nil,
+					}},
 				},
 				Deleted: []v1.FeatureDeleted{
 					{ID: "4", Name: "D", Reason: v1.ReasonDeleted},
 				},
 				Moves: []v1.FeatureMoved{
-					{FromID: "4", ToID: "5", FromName: "D", ToName: "E"},
+					{FromID: "4", ToID: "5", FromName: "D", ToName: "E", QueryMatch: v1.QueryMatchMatch},
 				},
 				Splits: []v1.FeatureSplit{
-					{FromID: "6", FromName: "F", To: []v1.FeatureAdded{{ID: "7", Name: "G", Reason: v1.ReasonNewMatch, Docs: nil}}},
+					{
+						FromID:   "6",
+						FromName: "F",
+						To: []v1.FeatureAdded{
+							{
+								ID:         "7",
+								Name:       "G",
+								Reason:     v1.ReasonNewMatch,
+								Docs:       nil,
+								QueryMatch: v1.QueryMatchMatch,
+							},
+						},
+					},
 				},
 				Modified: []v1.FeatureModified{
 					{
@@ -225,12 +273,12 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 
 			expected: `{
     "schemaVersion": "v1",
-    "text": "Search criteria updated, 2 features added, 1 features removed, ` +
+    "text": "Search criteria updated, 2 features added, 2 features removed, ` +
 				`1 features deleted, 1 features moved/renamed, 1 features split, 3 features updated",
     "categories": {
         "query_changed": 1,
         "added": 2,
-        "removed": 1,
+        "removed": 2,
 		"deleted": 1,
         "moved": 1,
         "split": 1,
@@ -305,6 +353,32 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
             "feature_id": "3",
             "feature_name": "C"
         },
+        {
+            "type": "Removed",
+            "feature_id": "31",
+            "feature_name": "K",
+            "baseline_change": {
+                "from": {
+                    "status": "limited"
+                },
+                "to": {
+                    "status": "newly",
+                    "low_date": "2025-01-01T00:00:00Z"
+                }
+            },
+            "browser_changes": {
+                "chrome": {
+                    "from": {
+                        "status": "unavailable"
+                    },
+                    "to": {
+						"date": "2024-01-01T00:00:00Z",
+                        "status": "available",
+                        "version": "132"
+                    }
+                }
+            }
+        },
 		{
             "type": "Deleted",
             "feature_id": "4",
@@ -321,7 +395,8 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
                 },
                 "to": {
                     "id": "5",
-                    "name": "E"
+                    "name": "E",
+                    "query_match": "match"
                 }
             }
         },
@@ -337,7 +412,8 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
                 "to": [
                     {
                         "id": "7",
-                        "name": "G"
+                        "name": "G",
+                        "query_match": "match"
                     }
                 ]
             }

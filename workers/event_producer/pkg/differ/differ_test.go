@@ -17,17 +17,14 @@ package differ
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 	"github.com/google/go-cmp/cmp"
-	"github.com/oapi-codegen/runtime/types"
 )
 
 // Helper to construct a backend.Feature with minimal fields.
@@ -144,7 +141,7 @@ type mockWorkflow[D any] struct {
 func (m *mockWorkflow[D]) CalculateDiff(_, _ map[string]comparables.Feature) {
 	m.calculateDiffCalled = true
 }
-func (m *mockWorkflow[D]) ReconcileHistory(_ context.Context) error {
+func (m *mockWorkflow[D]) ReconcileHistory(_ context.Context, _, _ map[string]comparables.Feature) error {
 	m.reconcileHistoryCalled = true
 
 	return nil
@@ -200,8 +197,7 @@ func TestRun(t *testing.T) {
 	featureBUpdated := makeFeature("b", "Feature B", "widely")
 
 	// Pre-build snapshots for re-use
-	snapshotAB := toSnapshot([]backend.Feature{featureA, featureB})
-	// snapshotBUpdated := toSnapshot([]backend.Feature{featureBUpdated})
+	snapshotAB := comparables.NewFeatureMapFromBackendFeatures([]backend.Feature{featureA, featureB})
 
 	tests := []struct {
 		name               string
@@ -398,136 +394,5 @@ func TestRun(t *testing.T) {
 
 			tc.verifyMocks(t, adapter, serializer, workflow)
 		})
-	}
-}
-
-func TestToComparable(t *testing.T) {
-	avail := backend.Available
-	unavail := backend.Unavailable
-	status := backend.Widely
-	date := types.Date{Time: time.Now()}
-
-	tests := []struct {
-		name string
-		in   backend.Feature
-		want comparables.Feature
-	}{
-		{
-			name: "Fully Populated",
-			in: backend.Feature{
-				FeatureId:   "feat-1",
-				Name:        "Feature One",
-				Spec:        nil,
-				Discouraged: nil,
-				Usage:       nil,
-				Wpt:         nil,
-				Baseline: &backend.BaselineInfo{
-					Status:   &status,
-					LowDate:  nil,
-					HighDate: nil,
-				},
-				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"chrome":  {Status: &avail, Date: &date, Version: generic.ValuePtr("version")},
-					"firefox": {Status: &unavail, Date: nil, Version: nil},
-					"safari":  {Status: &avail, Date: nil, Version: nil},
-					"unknown": {Status: &avail, Date: nil, Version: nil}, // Should be ignored
-				},
-				VendorPositions:            nil,
-				DeveloperSignals:           nil,
-				SystemManagedSavedSearchId: nil,
-			},
-			want: createExpectedFeature("feat-1", "Feature One",
-				backend.Widely, map[backend.SupportedBrowsers]comparables.BrowserState{
-					backend.Chrome: {
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Available, IsSet: true},
-						Date:    generic.OptionallySet[*time.Time]{Value: &date.Time, IsSet: true},
-						Version: generic.OptionallySet[*string]{Value: generic.ValuePtr("version"), IsSet: true},
-					},
-					backend.ChromeAndroid: zero[comparables.BrowserState](),
-					backend.Firefox: {
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Unavailable, IsSet: true},
-						Date:    generic.UnsetOpt[*time.Time](),
-						Version: generic.UnsetOpt[*string](),
-					},
-					backend.FirefoxAndroid: zero[comparables.BrowserState](),
-					backend.Safari: {
-						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Available, IsSet: true},
-						Date:    generic.UnsetOpt[*time.Time](),
-						Version: generic.UnsetOpt[*string](),
-					},
-					backend.SafariIos: zero[comparables.BrowserState](),
-					backend.Edge:      zero[comparables.BrowserState](),
-				}),
-		},
-		{
-			name: "Minimal (Nil Maps)",
-			in: backend.Feature{
-				FeatureId:                  "feat-2",
-				Name:                       "Minimal Feature",
-				Baseline:                   nil,
-				Spec:                       nil,
-				BrowserImplementations:     nil,
-				Discouraged:                nil,
-				Usage:                      nil,
-				Wpt:                        nil,
-				VendorPositions:            nil,
-				DeveloperSignals:           nil,
-				SystemManagedSavedSearchId: nil,
-			},
-			want: createExpectedFeature("feat-2", "Minimal Feature", backend.Limited, nil),
-		},
-	}
-
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			got := toComparable(tc.in)
-			if diff := cmp.Diff(tc.want, got); diff != "" {
-				t.Errorf("toComparable mismatch (-want +got):\n%s", diff)
-			}
-		})
-	}
-}
-
-// createExpectedFeature constructs a comparables.Feature with all OptionallySet fields initialized.
-// This is required to pass the exhaustruct linter in tests.
-func createExpectedFeature(id, name string, baseline backend.BaselineInfoStatus,
-	browsers map[backend.SupportedBrowsers]comparables.BrowserState) comparables.Feature {
-	cf := comparables.Feature{
-		ID:   id,
-		Name: generic.OptionallySet[string]{Value: name, IsSet: true},
-		BaselineStatus: generic.OptionallySet[comparables.BaselineState]{Value: comparables.BaselineState{
-			Status:   generic.OptionallySet[backend.BaselineInfoStatus]{Value: baseline, IsSet: true},
-			LowDate:  generic.OptionallySet[*time.Time]{Value: nil, IsSet: true},
-			HighDate: generic.OptionallySet[*time.Time]{Value: nil, IsSet: true},
-		}, IsSet: true},
-		BrowserImpls: generic.UnsetOpt[comparables.BrowserImplementations](),
-		Docs:         generic.UnsetOpt[comparables.Docs](),
-	}
-
-	// Override specific browsers if provided
-	if browsers != nil {
-		cf.BrowserImpls.IsSet = true
-		setIfPresent(browsers, backend.Chrome, &cf.BrowserImpls.Value.Chrome)
-		setIfPresent(browsers, backend.ChromeAndroid, &cf.BrowserImpls.Value.ChromeAndroid)
-		setIfPresent(browsers, backend.Edge, &cf.BrowserImpls.Value.Edge)
-		setIfPresent(browsers, backend.Firefox, &cf.BrowserImpls.Value.Firefox)
-		setIfPresent(browsers, backend.FirefoxAndroid, &cf.BrowserImpls.Value.FirefoxAndroid)
-		setIfPresent(browsers, backend.Safari, &cf.BrowserImpls.Value.Safari)
-		setIfPresent(browsers, backend.SafariIos, &cf.BrowserImpls.Value.SafariIos)
-	}
-
-	return cf
-}
-
-// nolint:ireturn // WONTFIX: used for testing only.
-func zero[T any]() T {
-	return *new(T)
-}
-
-func setIfPresent[K comparable, V any](m map[K]V, key K, target *generic.OptionallySet[V]) {
-	var zero V
-	if val, ok := m[key]; ok && !reflect.DeepEqual(zero, val) {
-		target.IsSet = true
-		target.Value = val
 	}
 }

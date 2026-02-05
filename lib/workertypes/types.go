@@ -125,9 +125,17 @@ type Change[T any] struct {
 	To   T `json:"to"`
 }
 
+type QueryMatchStatus string
+
+const (
+	QueryMatchMatch   QueryMatchStatus = "match"
+	QueryMatchNoMatch QueryMatchStatus = "no_match"
+)
+
 type FeatureRef struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID         string           `json:"id"`
+	Name       string           `json:"name"`
+	QueryMatch QueryMatchStatus `json:"query_match,omitzero"`
 }
 
 type DocLink struct {
@@ -366,55 +374,69 @@ func (g FeatureDiffV1SummaryGenerator) processModified(highlights []SummaryHighl
 			Split:          nil,
 		}
 
-		if m.BaselineChange != nil {
-			h.BaselineChange = &Change[BaselineValue]{
-				From: toBaselineValue(m.BaselineChange.From),
-				To:   toBaselineValue(m.BaselineChange.To),
-			}
-		}
-		if m.NameChange != nil {
-			h.NameChange = &Change[string]{
-				From: m.NameChange.From,
-				To:   m.NameChange.To,
-			}
-		}
-
-		if len(m.BrowserChanges) > 0 {
-			h.BrowserChanges = make(map[BrowserName]*Change[BrowserValue])
-			for b, c := range m.BrowserChanges {
-				if c == nil {
-					continue
-				}
-				var key BrowserName
-				switch b {
-				case v1.Chrome:
-					key = BrowserChrome
-				case v1.ChromeAndroid:
-					key = BrowserChromeAndroid
-				case v1.Edge:
-					key = BrowserEdge
-				case v1.Firefox:
-					key = BrowserFirefox
-				case v1.FirefoxAndroid:
-					key = BrowserFirefoxAndroid
-				case v1.Safari:
-					key = BrowserSafari
-				case v1.SafariIos:
-					key = BrowserSafariIos
-				default:
-					continue
-				}
-				h.BrowserChanges[key] = &Change[BrowserValue]{
-					From: toBrowserValue(c.From),
-					To:   toBrowserValue(c.To),
-				}
-			}
-		}
+		processBaselineChange(&h, m.BaselineChange)
+		processNameChange(&h, m.NameChange)
+		processBrowserChanges(&h, m.BrowserChanges)
 
 		highlights = append(highlights, h)
 	}
 
 	return highlights, false
+}
+
+func processNameChange(h *SummaryHighlight, change *v1.Change[string]) {
+	if change == nil {
+		return
+	}
+	h.NameChange = &Change[string]{
+		From: change.From,
+		To:   change.To,
+	}
+}
+
+func processBaselineChange(h *SummaryHighlight, change *v1.Change[v1.BaselineState]) {
+	if change == nil {
+		return
+	}
+	h.BaselineChange = &Change[BaselineValue]{
+		From: toBaselineValue(change.From),
+		To:   toBaselineValue(change.To),
+	}
+}
+
+func processBrowserChanges(h *SummaryHighlight, changes map[v1.SupportedBrowsers]*v1.Change[v1.BrowserState]) {
+	if len(changes) == 0 {
+		return
+	}
+	h.BrowserChanges = make(map[BrowserName]*Change[BrowserValue])
+	for b, c := range changes {
+		if c == nil {
+			continue
+		}
+		var key BrowserName
+		switch b {
+		case v1.Chrome:
+			key = BrowserChrome
+		case v1.ChromeAndroid:
+			key = BrowserChromeAndroid
+		case v1.Edge:
+			key = BrowserEdge
+		case v1.Firefox:
+			key = BrowserFirefox
+		case v1.FirefoxAndroid:
+			key = BrowserFirefoxAndroid
+		case v1.Safari:
+			key = BrowserSafari
+		case v1.SafariIos:
+			key = BrowserSafariIos
+		default:
+			continue
+		}
+		h.BrowserChanges[key] = &Change[BrowserValue]{
+			From: toBrowserValue(c.From),
+			To:   toBrowserValue(c.To),
+		}
+	}
 }
 
 func (g FeatureDiffV1SummaryGenerator) processAdded(highlights []SummaryHighlight,
@@ -445,7 +467,7 @@ func (g FeatureDiffV1SummaryGenerator) processRemoved(highlights []SummaryHighli
 		if len(highlights) >= MaxHighlights {
 			return highlights, true
 		}
-		highlights = append(highlights, SummaryHighlight{
+		h := SummaryHighlight{
 			Type:           SummaryHighlightTypeRemoved,
 			FeatureID:      r.ID,
 			FeatureName:    r.Name,
@@ -455,7 +477,13 @@ func (g FeatureDiffV1SummaryGenerator) processRemoved(highlights []SummaryHighli
 			BaselineChange: nil,
 			NameChange:     nil,
 			BrowserChanges: nil,
-		})
+		}
+		if r.Diff != nil {
+			processBaselineChange(&h, r.Diff.BaselineChange)
+			processNameChange(&h, r.Diff.NameChange)
+			processBrowserChanges(&h, r.Diff.BrowserChanges)
+		}
+		highlights = append(highlights, h)
 	}
 
 	return highlights, false
@@ -494,8 +522,16 @@ func (g FeatureDiffV1SummaryGenerator) processMoves(highlights []SummaryHighligh
 			FeatureID:   m.ToID, // Use new ID after move
 			FeatureName: m.ToName,
 			Moved: &Change[FeatureRef]{
-				From: FeatureRef{ID: m.FromID, Name: m.FromName},
-				To:   FeatureRef{ID: m.ToID, Name: m.ToName},
+				From: FeatureRef{
+					ID:         m.FromID,
+					Name:       m.FromName,
+					QueryMatch: "",
+				},
+				To: FeatureRef{
+					ID:         m.ToID,
+					Name:       m.ToName,
+					QueryMatch: toQueryMatchStatus(m.QueryMatch),
+				},
 			},
 			BrowserChanges: nil,
 			BaselineChange: nil,
@@ -516,15 +552,23 @@ func (g FeatureDiffV1SummaryGenerator) processSplits(highlights []SummaryHighlig
 		}
 		var to []FeatureRef
 		for _, t := range split.To {
-			to = append(to, FeatureRef{ID: t.ID, Name: t.Name})
+			to = append(to, FeatureRef{
+				ID:         t.ID,
+				Name:       t.Name,
+				QueryMatch: toQueryMatchStatus(t.QueryMatch),
+			})
 		}
 		highlights = append(highlights, SummaryHighlight{
 			Type:        SummaryHighlightTypeSplit,
 			FeatureID:   split.FromID,
 			FeatureName: split.FromName,
 			Split: &SplitChange{
-				From: FeatureRef{ID: split.FromID, Name: split.FromName},
-				To:   to,
+				From: FeatureRef{
+					ID:         split.FromID,
+					Name:       split.FromName,
+					QueryMatch: "",
+				},
+				To: to,
 			},
 			Moved:          nil,
 			BrowserChanges: nil,
@@ -535,6 +579,17 @@ func (g FeatureDiffV1SummaryGenerator) processSplits(highlights []SummaryHighlig
 	}
 
 	return highlights, false
+}
+
+func toQueryMatchStatus(s v1.QueryMatchStatus) QueryMatchStatus {
+	switch s {
+	case v1.QueryMatchMatch:
+		return QueryMatchMatch
+	case v1.QueryMatchNoMatch:
+		return QueryMatchNoMatch
+	}
+
+	return ""
 }
 
 func toDocLinks(docs *v1.Docs) *Docs {

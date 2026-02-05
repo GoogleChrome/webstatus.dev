@@ -34,10 +34,11 @@ func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparable
 				docs = &v1Docs
 			}
 			w.diff.Added = append(w.diff.Added, FeatureAdded{
-				ID:     id,
-				Name:   newF.Name.Value,
-				Reason: ReasonNewMatch,
-				Docs:   docs,
+				ID:         id,
+				Name:       newF.Name.Value,
+				Reason:     ReasonNewMatch,
+				Docs:       docs,
+				QueryMatch: QueryMatchMatch,
 			})
 
 			continue
@@ -52,6 +53,8 @@ func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparable
 		if _, exists := newMap[id]; !exists {
 			w.diff.Removed = append(w.diff.Removed, FeatureRemoved{
 				ID: id, Name: oldF.Name.Value, Reason: ReasonUnmatched,
+				// Diff is not populated during comparison, only used in reconciliation for move/split detection
+				Diff: nil,
 			})
 		}
 	}

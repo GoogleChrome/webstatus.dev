@@ -37,6 +37,9 @@ const defaultEmailTemplate = `<!DOCTYPE html>
                 {{- end -}}
                 <div style='{{- template "style_card_body" -}}'>
                     {{- template "feature_title_row" dict "Name" .FeatureName "URL" (printf "%s/features/%s" $.BaseURL .FeatureID) "Docs" .Docs "Date" $date -}}
+                    {{- if eq .Type "Removed" -}}
+                        <div style='{{- template "style_text_warning" -}}'>⚠️ This feature no longer matches your saved search. Please update your saved search if you wish to continue tracking it.</div>
+                    {{- end -}}
                 </div>
             {{- end -}}
         </div>
@@ -52,6 +55,9 @@ const defaultEmailTemplate = `<!DOCTYPE html>
                 {{- end -}}
                 <div style='{{- template "style_card_body" -}}'>
                     {{- template "feature_title_row" dict "Name" .FeatureName "URL" (printf "%s/features/%s" $.BaseURL .FeatureID) "Docs" .Docs "Date" $date -}}
+                    {{- if eq .Type "Removed" -}}
+                        <div style='{{- template "style_text_warning" -}}'>⚠️ This feature no longer matches your saved search. Please update your saved search if you wish to continue tracking it.</div>
+                    {{- end -}}
                 </div>
             {{- end -}}
         </div>
@@ -73,6 +79,9 @@ const defaultEmailTemplate = `<!DOCTYPE html>
                             </span>
                         </div>
                     </div>
+                    {{- if eq .Type "Removed" -}}
+                        <div style='{{- template "style_text_warning" -}}'>⚠️ This feature no longer matches your saved search. Please update your saved search if you wish to continue tracking it.</div>
+                    {{- end -}}
                 </div>
             {{- end -}}
         </div>
@@ -82,7 +91,7 @@ const defaultEmailTemplate = `<!DOCTYPE html>
         <div style='{{- template "style_section_wrapper" -}}'>
             {{- template "banner_browser_implementation" -}}
             {{- range .AllBrowserChanges -}}
-                {{- template "browser_item" dict "Name" (browserDisplayName .BrowserName) "LogoURL" (browserLogoURL .BrowserName) "From" .Change.From "To" .Change.To "FeatureName" .FeatureName "FeatureURL" (printf "%s/features/%s" $.BaseURL .FeatureID) -}}
+                {{- template "browser_item" dict "Name" (browserDisplayName .BrowserName) "LogoURL" (browserLogoURL .BrowserName) "From" .Change.From "To" .Change.To "FeatureName" .FeatureName "FeatureURL" (printf "%s/features/%s" $.BaseURL .FeatureID) "Type" .Type -}}
             {{- end -}}
         </div>
         {{- end -}}
@@ -104,6 +113,16 @@ const defaultEmailTemplate = `<!DOCTYPE html>
             {{- range .RemovedFeatures -}}
                 <div style='{{- template "style_card_body" -}}'>
                     {{- template "feature_title_row" dict "Name" .FeatureName "URL" (printf "%s/features/%s" $.BaseURL .FeatureID) "Docs" .Docs -}}
+
+                    {{- if .BaselineChange -}}
+                        {{- template "change_detail" dict "Label" "Baseline Status" "From" (formatBaselineStatus .BaselineChange.From.Status) "To" (formatBaselineStatus .BaselineChange.To.Status) -}}
+                    {{- end -}}
+
+                    {{- if .BrowserChanges -}}
+                        {{- range (sortedBrowserChanges .BrowserChanges) -}}
+                             {{- template "browser_change_row" dict "Name" (browserDisplayName .BrowserName) "LogoURL" (browserLogoURL .BrowserName) "From" .Change.From "To" .Change.To -}}
+                        {{- end -}}
+                    {{- end -}}
                 </div>
             {{- end -}}
         </div>
@@ -127,6 +146,9 @@ const defaultEmailTemplate = `<!DOCTYPE html>
                 <div style='{{- template "style_card_body" -}}'>
                     {{- template "feature_title_row" dict "Name" .FeatureName "URL" (printf "%s/features/%s" $.BaseURL .FeatureID) "Docs" .Docs -}}
                     {{- template "change_detail" dict "Label" "Moved from" "From" .Moved.From.Name "To" .Moved.To.Name -}}
+                    {{- if eq .Moved.To.QueryMatch "no_match" -}}
+                        <div style='{{- template "style_text_warning" -}}'>⚠️ This feature no longer matches your saved search. Please update your saved search if you wish to continue tracking it.</div>
+                    {{- end -}}
                 </div>
             {{- end -}}
         </div>
@@ -140,11 +162,17 @@ const defaultEmailTemplate = `<!DOCTYPE html>
                     {{- template "feature_title_row" dict "Name" .FeatureName "URL" (printf "%s/features/%s" $.BaseURL .FeatureID) "Docs" .Docs -}}
                     <div style='{{- template "style_change_detail_div" -}}'>
                         <div style='{{- template "style_split_into" -}}'>
-                            <span style='{{- template "style_text_body" -}}'>Split into</span>
+                            <span style='{{- template "style_text_body" -}}'>Split into:</span>
+                            <ul style="margin: 4px 0; padding-left: 20px;">
                             {{ range $i, $feature := .Split.To -}}
-                                {{- if $i }}, {{ end -}}
-                                <a href="{{printf "%s/features/%s" $.BaseURL $feature.ID}}" style='{{- template "style_text_doc_link" -}}'>{{$feature.Name}}</a>
+                                <li style="margin-bottom: 4px;">
+                                    <a href="{{printf "%s/features/%s" $.BaseURL $feature.ID}}" style='{{- template "style_text_doc_link" -}}'>{{$feature.Name}}</a>
+                                    {{- if eq $feature.QueryMatch "no_match" -}}
+                                        <span style='{{- template "style_text_warning_inline" -}}'> ⚠️ (No longer matches)</span>
+                                    {{- end -}}
+                                </li>
                             {{- end -}}
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -156,7 +184,7 @@ const defaultEmailTemplate = `<!DOCTYPE html>
             {{- template "button" dict "URL" (printf "%s/saved-searches" $.BaseURL) "Text" "View All Changes" -}}
         {{- end -}}
 
-        {{- template "footer" dict "UnsubscribeURL" $.UnsubscribeURL "ManageURL" (printf "%s/saved-searches" $.BaseURL) -}}
+        {{- template "footer" dict "UnsubscribeURL" $.UnsubscribeURL "ManageURL" (printf "%s/settings/subscriptions" $.BaseURL) -}}
     </div>
 </body>
 </html>`
