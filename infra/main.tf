@@ -200,6 +200,8 @@ module "workers" {
   }
   frontend_base_url = var.frontend_base_url
 
+  chime_details = var.chime_details
+
   email_service_account_email = var.email_service_account_email
   deletion_protection         = var.deletion_protection
 }

@@ -115,3 +115,9 @@ backend_min_instance_count  = 0
 frontend_min_instance_count = 0
 notification_channel_ids    = ["projects/web-compass-staging/notificationChannels/7136127183667686021"]
 email_service_account_email = "emailer-job-staging@webstatus-dev-internal-staging.iam.gserviceaccount.com"
+
+chime_details = {
+  env          = "autopush"
+  bcc          = "webstatus-dev-mail-log-staging@google.com"
+  from_address = "noreply-webstatus-dev@google.com"
+}

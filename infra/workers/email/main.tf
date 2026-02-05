@@ -51,6 +51,18 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
         name  = "FRONTEND_BASE_URL"
         value = var.frontend_base_url
       }
+      env {
+        name  = "CHIME_ENV"
+        value = var.chime_env
+      }
+      env {
+        name  = "CHIME_BCC"
+        value = var.chime_bcc
+      }
+      env {
+        name  = "FROM_ADDRESS"
+        value = var.from_address
+      }
     }
   }
 }

@@ -81,3 +81,11 @@ variable "frontend_base_url" {
 variable "deletion_protection" {
   type = bool
 }
+
+variable "chime_details" {
+  type = object({
+    env          = string
+    bcc          = string
+    from_address = string
+  })
+}
