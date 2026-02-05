@@ -148,6 +148,38 @@ func TestCompareFeature_NameChange(t *testing.T) {
 	}
 }
 
+func TestCompareFeature_Name_Added(t *testing.T) {
+	oldF := newBaseFeature("1", "", "limited")
+	oldF.Name = generic.UnsetOpt[string]()
+
+	newF := newBaseFeature("1", "New Name", "limited")
+
+	mod, changed := compareFeature(oldF, newF)
+
+	if !changed {
+		t.Fatal("Name Added should trigger a change")
+	}
+	if mod.NameChange.From != "" || mod.NameChange.To != "New Name" {
+		t.Errorf("NameChange Added mismatch: got %+v", mod.NameChange)
+	}
+}
+
+func TestCompareFeature_Name_Removed(t *testing.T) {
+	oldF := newBaseFeature("1", "Old Name", "limited")
+
+	newF := newBaseFeature("1", "", "limited")
+	newF.Name = generic.UnsetOpt[string]()
+
+	mod, changed := compareFeature(oldF, newF)
+
+	if !changed {
+		t.Fatal("Name Removed should trigger a change")
+	}
+	if mod.NameChange.From != "Old Name" || mod.NameChange.To != "" {
+		t.Errorf("NameChange Removed mismatch: got %+v", mod.NameChange)
+	}
+}
+
 func TestCompareFeature_BaselineChange(t *testing.T) {
 	oldF := newBaseFeature("1", "A", "limited")
 	newF := newBaseFeature("1", "A", "widely")
@@ -255,14 +287,32 @@ func TestCompareFeature_QuietRollout_NewBrowser(t *testing.T) {
 	// Old feature is missing any data for Chrome
 	oldF := newBaseFeature("1", "A", "limited")
 
-	// New feature now has data for Chrome
+	// New feature now has data for Chrome, but it's Unavailable (and no details)
 	newF := newBaseFeature("1", "A", "limited")
-	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, nil, nil)
+	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Unavailable, nil, nil)
 
 	_, changed := compareFeature(oldF, newF)
 
 	if changed {
-		t.Error("quiet rollout of a new browser should not trigger a change")
+		t.Error("quiet rollout of a new browser (Unavailable) should not trigger a change")
+	}
+}
+
+func TestCompareFeature_NewBrowser_Available(t *testing.T) {
+	// Old feature is missing any data for Chrome
+	oldF := newBaseFeature("1", "A", "limited")
+
+	// New feature now has data for Chrome, and it is Available
+	newF := newBaseFeature("1", "A", "limited")
+	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, nil, nil)
+
+	mod, changed := compareFeature(oldF, newF)
+
+	if !changed {
+		t.Fatal("Unset -> Available should trigger a change")
+	}
+	if len(mod.BrowserChanges) == 0 {
+		t.Error("BrowserChanges should be populated")
 	}
 }
 
@@ -271,14 +321,63 @@ func TestCompareFeature_QuietRollout_NewTopLevelField(t *testing.T) {
 	oldF := newBaseFeature("1", "A", "limited")
 	oldF.BrowserImpls = generic.UnsetOpt[comparables.BrowserImplementations]()
 
-	// New feature now has the struct and data for a browser
+	// New feature now has the struct and data for a browser (Unavailable)
 	newF := newBaseFeature("1", "A", "limited")
-	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, nil, nil)
+	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Unavailable, nil, nil)
 
 	_, changed := compareFeature(oldF, newF)
 
 	if changed {
 		t.Error("quiet rollout of a new top-level field should not trigger a change")
+	}
+}
+
+func TestCompareFeature_BrowserImpls_Added_Available(t *testing.T) {
+	// Old feature is missing the entire BrowserImpls struct (Unset)
+	oldF := newBaseFeature("1", "A", "limited")
+	oldF.BrowserImpls = generic.UnsetOpt[comparables.BrowserImplementations]()
+
+	// New feature has the struct AND data for Chrome (Available)
+	newF := newBaseFeature("1", "A", "limited")
+	newF.BrowserImpls = generic.OptionallySet[comparables.BrowserImplementations]{
+		IsSet: true,
+		Value: comparables.BrowserImplementations{
+			Chrome:         newBrowserState(backend.Available, nil, nil),
+			ChromeAndroid:  unsetBrowserState(),
+			Edge:           unsetBrowserState(),
+			Firefox:        unsetBrowserState(),
+			FirefoxAndroid: unsetBrowserState(),
+			Safari:         unsetBrowserState(),
+			SafariIos:      unsetBrowserState(),
+		},
+	}
+
+	mod, changed := compareFeature(oldF, newF)
+
+	if !changed {
+		t.Fatal("Unset Parent -> Available Child should trigger a change")
+	}
+	if len(mod.BrowserChanges) == 0 {
+		t.Error("BrowserChanges should be populated")
+	}
+}
+
+func TestCompareFeature_BaselineStatus_Added(t *testing.T) {
+	oldF := newBaseFeature("1", "A", "limited")
+	oldF.BaselineStatus = generic.UnsetOpt[comparables.BaselineState]()
+
+	newF := newBaseFeature("1", "A", "widely")
+
+	mod, changed := compareFeature(oldF, newF)
+
+	if !changed {
+		t.Fatal("Baseline Unset -> Set should trigger a change")
+	}
+	if mod.BaselineChange == nil {
+		t.Fatal("BaselineChange should be populated")
+	}
+	if mod.BaselineChange.To.Status.Value != Widely {
+		t.Errorf("Baseline status mismatch: got %v, want %v", mod.BaselineChange.To.Status.Value, Widely)
 	}
 }
 

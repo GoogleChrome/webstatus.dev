@@ -24,6 +24,28 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes/comparables"
 )
 
+// CalculateDiff computes the difference between two sets of features (old and new snapshots).
+//
+// Comparison Logic & Schema Evolution:
+// The comparator relies heavily on generic.OptionallySet[T] to handle schema evolution.
+//  1. Cold Start / New Fields: If a field (like BaselineStatus) was "Unset" in the old snapshot
+//     (e.g. because it didn't exist in the schema then) and is "Set" in the new snapshot,
+//     this is treated as a Change. This ensures users are notified when new data becomes available.
+//  2. Quiet Rollouts (Browsers): A specific exception exists for BrowserImplementations.
+//     If a browser moves from "Unset" to "Set(Unavailable)" with no extra details, we IGNORE it.
+//     This prevents spamming users when we add a new browser column to the DB that is mostly empty.
+//
+// Guide for Adding New Fields:
+// When adding a new field to comparables.Feature:
+// 1. Wrap it in generic.OptionallySet[T].
+// 2. In your compareXYZ function, explicitly handle the 4 transition cases:
+//   - !old.IsSet && !new.IsSet: Return nil (No change).
+//   - !old.IsSet && new.IsSet: Return Change (Added). This handles the "Cold Start".
+//   - old.IsSet && !new.IsSet: Return Change (Removed).
+//   - Both Set: Compare actual values.
+//     3. Consider "Quiet Rollout": If your new field will be backfilled with "default/empty" values
+//     (like "Unavailable" or "Unknown") that users shouldn't be bothered about, add a check
+//     in the "Added" case to return no change for those specific values.
 func (w *FeatureDiffWorkflow) CalculateDiff(oldMap, newMap map[string]comparables.Feature) {
 	for id, newF := range newMap {
 		oldF, exists := oldMap[id]
@@ -78,8 +100,17 @@ func compareFeature(oldF, newF comparables.Feature) (FeatureModified, bool) {
 	hasMods := false
 
 	// 1. Name Change
-	if oldF.Name.IsSet && oldF.Name.Value != newF.Name.Value {
-		mod.NameChange = &Change[string]{From: oldF.Name.Value, To: newF.Name.Value}
+	oldName := ""
+	if oldF.Name.IsSet {
+		oldName = oldF.Name.Value
+	}
+	newName := ""
+	if newF.Name.IsSet {
+		newName = newF.Name.Value
+	}
+
+	if oldName != newName {
+		mod.NameChange = &Change[string]{From: oldName, To: newName}
 		hasMods = true
 	}
 
@@ -110,15 +141,38 @@ func compareFeature(oldF, newF comparables.Feature) (FeatureModified, bool) {
 func compareBaseline(
 	oldStatus, newStatus generic.OptionallySet[comparables.BaselineState],
 ) (*Change[BaselineState], bool) {
-	if oldStatus.IsSet {
-		oldBase := oldStatus.Value
-		newBase := newStatus.Value
-		if oldBase.Status.IsSet && oldBase.Status.Value != newBase.Status.Value {
-			return &Change[BaselineState]{
-				From: toV1BaselineState(oldBase),
-				To:   toV1BaselineState(newBase),
-			}, true
-		}
+	if !oldStatus.IsSet && !newStatus.IsSet {
+		return nil, false
+	}
+
+	// Case 2: Added (Old Unset, New Set)
+	if !oldStatus.IsSet && newStatus.IsSet {
+		zero := new(BaselineState)
+
+		return &Change[BaselineState]{
+			From: *zero, // Zero value represents "None"
+			To:   toV1BaselineState(newStatus.Value),
+		}, true
+	}
+
+	// Case 3: Removed (Old Set, New Unset)
+	if oldStatus.IsSet && !newStatus.IsSet {
+		zero := new(BaselineState)
+
+		return &Change[BaselineState]{
+			From: toV1BaselineState(oldStatus.Value),
+			To:   *zero, // Zero value represents "None"
+		}, true
+	}
+
+	// Case 4: Both Set -> Compare Values
+	oldBase := oldStatus.Value
+	newBase := newStatus.Value
+	if oldBase.Status.IsSet && oldBase.Status.Value != newBase.Status.Value {
+		return &Change[BaselineState]{
+			From: toV1BaselineState(oldBase),
+			To:   toV1BaselineState(newBase),
+		}, true
 	}
 
 	return nil, false
@@ -165,12 +219,15 @@ func compareBrowserImpls(
 	changes := make(map[SupportedBrowsers]*Change[BrowserState])
 	hasChanged := false
 
-	if !oldImpls.IsSet {
-		return changes, false
+	var oldB comparables.BrowserImplementations
+	if oldImpls.IsSet {
+		oldB = oldImpls.Value
 	}
 
-	oldB := oldImpls.Value
-	newB := newImpls.Value
+	var newB comparables.BrowserImplementations
+	if newImpls.IsSet {
+		newB = newImpls.Value
+	}
 
 	browserMap := map[SupportedBrowsers]struct {
 		Old generic.OptionallySet[comparables.BrowserState]
@@ -197,13 +254,14 @@ func compareBrowserImpls(
 
 // compareDocs checks for changes in the documentation links.
 func compareDocs(oldDocs, newDocs generic.OptionallySet[comparables.Docs]) (*Change[Docs], bool) {
-	if !oldDocs.IsSet || !oldDocs.Value.MdnDocs.IsSet {
+	oldMdnDocs := resolveMdnDocs(oldDocs)
+	newMdnDocs := resolveMdnDocs(newDocs)
 
+	if len(oldMdnDocs) == 0 && len(newMdnDocs) == 0 {
 		return nil, false
 	}
 
-	oldMdnDocs := oldDocs.Value.MdnDocs.Value
-	newMdnDocs := newDocs.Value.MdnDocs.Value
+	// Sort both lists for deterministic comparison
 	sortMDNDocs := func(a, b comparables.MdnDoc) int {
 		return cmp.Compare(a.URL.Value, b.URL.Value)
 	}
@@ -213,14 +271,28 @@ func compareDocs(oldDocs, newDocs generic.OptionallySet[comparables.Docs]) (*Cha
 	mdnDocsEqual := func(a, b comparables.MdnDoc) bool {
 		return a.URL.Value == b.URL.Value
 	}
+
 	if !slices.EqualFunc(oldMdnDocs, newMdnDocs, mdnDocsEqual) {
+		// Construct the Change object using the original wrappers (or create valid wrappers)
 		return &Change[Docs]{
-			From: toV1Docs(oldDocs.Value),
-			To:   toV1Docs(newDocs.Value),
+			From: toV1DocsFromList(oldMdnDocs),
+			To:   toV1DocsFromList(newMdnDocs),
 		}, true
 	}
 
 	return nil, false
+}
+
+// resolveMdnDocs extracts the MDN doc list safely from the nested Option structure.
+func resolveMdnDocs(docs generic.OptionallySet[comparables.Docs]) []comparables.MdnDoc {
+	if !docs.IsSet {
+		return nil
+	}
+	if !docs.Value.MdnDocs.IsSet {
+		return nil
+	}
+
+	return docs.Value.MdnDocs.Value
 }
 
 func toV1Docs(d comparables.Docs) Docs {
@@ -233,6 +305,20 @@ func toV1Docs(d comparables.Docs) Docs {
 				Slug:  doc.Slug.Value,
 			})
 		}
+	}
+
+	return Docs{MdnDocs: mdnDocs}
+}
+
+// toV1DocsFromList creates a V1 Docs struct directly from a slice of comparables.MdnDoc.
+func toV1DocsFromList(list []comparables.MdnDoc) Docs {
+	mdnDocs := make([]MdnDoc, 0, len(list))
+	for _, doc := range list {
+		mdnDocs = append(mdnDocs, MdnDoc{
+			URL:   doc.URL.Value,
+			Title: doc.Title.Value,
+			Slug:  doc.Slug.Value,
+		})
 	}
 
 	return Docs{MdnDocs: mdnDocs}
@@ -284,9 +370,44 @@ func toV1BrowserChange(change *Change[comparables.BrowserState]) *Change[Browser
 func compareBrowserState(
 	oldB, newB generic.OptionallySet[comparables.BrowserState],
 ) (*Change[comparables.BrowserState], bool) {
-	if !oldB.IsSet {
+	// Case 1: Both Unset -> No Change
+	if !oldB.IsSet && !newB.IsSet {
 		return nil, false
 	}
+
+	// Case 2: Added (Old Unset, New Set)
+	if !oldB.IsSet && newB.IsSet {
+		// Quiet Rollout Support:
+		// If a new browser is added to the system (Unset -> Set), we only report it
+		// if it provides meaningful info (Available, or has Version/Date).
+		// If it's just "Unavailable" with no other info, we treat it as no change
+		// to avoid spamming the user with "New Browser Added: Unavailable" notifications.
+		val := newB.Value
+		isUnavailable := val.Status.IsSet && val.Status.Value == backend.Unavailable
+		hasDetails := val.Version.IsSet || val.Date.IsSet
+
+		if isUnavailable && !hasDetails {
+			return nil, false
+		}
+		zero := new(comparables.BrowserState)
+
+		return &Change[comparables.BrowserState]{
+			From: *zero, // Zero value represents "None"
+			To:   newB.Value,
+		}, true
+	}
+
+	// Case 3: Removed (Old Set, New Unset)
+	if oldB.IsSet && !newB.IsSet {
+		zero := new(comparables.BrowserState)
+
+		return &Change[comparables.BrowserState]{
+			From: oldB.Value,
+			To:   *zero, // Zero value represents "None"
+		}, true
+	}
+
+	// Case 4: Both Set -> Compare Values
 	// Check Status
 	isChanged := oldB.Value.Status.IsSet && oldB.Value.Status.Value != newB.Value.Status.Value
 	// Check Version
