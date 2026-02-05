@@ -139,6 +139,8 @@ type searchConfig struct {
 	maxOwnedSearchesPerUser uint32
 	// Max number of bookmarks per user (excluding the saved searches they own)
 	maxBookmarksPerUser uint32
+	// Max number of subscriptions per user
+	maxSubscriptionsPerUser uint32
 }
 
 // notificationConfig holds the application configuation for notifications.
@@ -149,6 +151,7 @@ type notificationConfig struct {
 
 const defaultMaxOwnedSearchesPerUser = 25
 const defaultMaxBookmarksPerUser = 25
+const defaultMaxSubscriptionsPerUser = 25
 const defaultBatchSize = 5000
 const defaultBatchWriters = 8
 const defaultMaxConsecutiveFailuresPerChannel = 5
@@ -226,6 +229,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		searchConfig{
 			maxOwnedSearchesPerUser: defaultMaxOwnedSearchesPerUser,
 			maxBookmarksPerUser:     defaultMaxBookmarksPerUser,
+			maxSubscriptionsPerUser: defaultMaxSubscriptionsPerUser,
 		},
 		notificationConfig{
 			maxConsecutiveFailuresPerChannel: defaultMaxConsecutiveFailuresPerChannel,

@@ -35,6 +35,10 @@ var (
 	// number of allowed bookmarks.
 	ErrUserMaxBookmarks = errors.New("user has reached the maximum number of allowed bookmarks")
 
+	// ErrUserMaxSubscriptions indicates the user has reached the maximum
+	// number of allowed subscriptions.
+	ErrUserMaxSubscriptions = errors.New("user has reached the maximum number of allowed subscriptions")
+
 	// ErrUserNotAuthorizedForAction indicates the user is not authorized to execute the requested action.
 	ErrUserNotAuthorizedForAction = errors.New("user not authorized to execute action")
 

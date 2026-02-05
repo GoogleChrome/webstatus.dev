@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"slices"
 	"testing"
 	"time"
@@ -524,4 +525,62 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// if !foundWebhook {
 	// 	t.Error("did not find the expected WEBHOOK subscriber")
 	// }
+}
+
+func TestCreateSavedSearchSubscriptionLimitExceeded(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	userID := uuid.NewString()
+
+	// Pre-populate dependencies
+	channelReq := CreateNotificationChannelRequest{
+		UserID:      userID,
+		Name:        "Test",
+		Type:        NotificationChannelTypeEmail,
+		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+	}
+	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
+	if err != nil {
+		t.Fatalf("failed to create notification channel: %v", err)
+	}
+	channelID := *channelIDPtr
+
+	savedSearchIDPtr, err := spannerClient.CreateNewUserSavedSearch(ctx, CreateUserSavedSearchRequest{
+		Name:        "Test Search",
+		Query:       "is:widely",
+		OwnerUserID: userID,
+		Description: nil,
+	})
+	if err != nil {
+		t.Fatalf("failed to create saved search: %v", err)
+	}
+	savedSearchID := *savedSearchIDPtr
+
+	// Create subscriptions up to the limit
+	limit := defaultMaxSubscriptionsPerUser
+	for i := 0; i < limit; i++ {
+		_, err := spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+			UserID:        userID,
+			ChannelID:     channelID,
+			SavedSearchID: savedSearchID,
+			Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+			Frequency:     SavedSearchSnapshotTypeImmediate,
+		})
+		if err != nil {
+			t.Fatalf("failed to create subscription %d: %v", i, err)
+		}
+	}
+
+	// Try to create one more
+	_, err = spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     channelID,
+		SavedSearchID: savedSearchID,
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerFeatureBaselineRegressionToLimited},
+		Frequency:     SavedSearchSnapshotTypeImmediate,
+	})
+	if !errors.Is(err, ErrSubscriptionLimitExceeded) {
+		t.Errorf("expected ErrSubscriptionLimitExceeded, got %v", err)
+	}
 }

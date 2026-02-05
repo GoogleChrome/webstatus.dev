@@ -174,6 +174,13 @@ func (s *Server) CreateSubscription(
 					Message: "user not authorized to create this subscription using the specified channel",
 				},
 			), nil
+		} else if errors.Is(err, backendtypes.ErrUserMaxSubscriptions) {
+			return backend.CreateSubscription403JSONResponse(
+				backend.BasicErrorModel{
+					Code:    http.StatusForbidden,
+					Message: "user has reached the maximum number of allowed subscriptions",
+				},
+			), nil
 		}
 		slog.ErrorContext(ctx, "failed to create subscription", "error", err)
 

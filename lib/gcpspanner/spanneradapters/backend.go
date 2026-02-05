@@ -1474,6 +1474,8 @@ func (s *Backend) CreateSavedSearchSubscription(ctx context.Context,
 	if err != nil {
 		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
 			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrSubscriptionLimitExceeded) {
+			return nil, errors.Join(err, backendtypes.ErrUserMaxSubscriptions)
 		}
 
 		return nil, err

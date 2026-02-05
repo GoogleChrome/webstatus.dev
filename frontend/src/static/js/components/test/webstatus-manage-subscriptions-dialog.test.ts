@@ -17,6 +17,7 @@
 import {expect, fixture, html, waitUntil} from '@open-wc/testing';
 import sinon from 'sinon';
 import {APIClient} from '../../api/client.js';
+import {ForbiddenError} from '../../api/errors.js';
 import {UserContext} from '../../contexts/firebase-user-context.js';
 import '../webstatus-manage-subscriptions-dialog.js';
 import {ManageSubscriptionsDialog} from '../webstatus-manage-subscriptions-dialog.js';
@@ -372,6 +373,34 @@ describe('webstatus-manage-subscriptions-dialog', () => {
     expect(element['_actionState'].phase).to.equal('error');
     if (element['_actionState'].phase === 'error') {
       expect(element['_actionState'].message).to.contain('Save failed');
+    }
+  });
+
+  it('sets actionState correctly on subscription limit exceeded error', async () => {
+    const limitError = new ForbiddenError(
+      'user has reached the maximum number of allowed subscriptions',
+    );
+    (apiClient.createSubscription as sinon.SinonStub).returns(
+      Promise.reject(limitError),
+    );
+
+    const eventSpy = sandbox.spy();
+    element.addEventListener('subscription-save-error', eventSpy);
+
+    element.savedSearchId = 'test-search-id';
+    element['_activeChannelId'] = mockNotificationChannels[0].id;
+    element['_selectedFrequency'] = 'monthly'; // Make it dirty
+    element['_initialSelectedFrequency'] = 'immediate';
+
+    await element['_handleSave']();
+    await element.updateComplete;
+
+    expect(eventSpy).to.have.been.calledOnce;
+    expect(element['_actionState'].phase).to.equal('error');
+    if (element['_actionState'].phase === 'error') {
+      expect(element['_actionState'].message).to.equal(
+        'user has reached the maximum number of allowed subscriptions',
+      );
     }
   });
 
