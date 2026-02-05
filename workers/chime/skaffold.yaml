@@ -25,3 +25,25 @@ profiles:
       cloudrun:
         region: europe-west1
         projectid: webstatus-dev-internal-staging
+  - name: europe-west1-prod
+    build:
+      artifacts:
+        - image: europe-west1-docker.pkg.dev/webstatus-dev-internal-prod/prod-docker-repository/chime_test_image
+          context: ../..
+          runtimeType: go
+          docker:
+            dockerfile: images/go_service.Dockerfile
+            buildArgs:
+              service_dir: workers/chime
+              MAIN_BINARY: job
+      local:
+        useBuildkit: true
+        push: true
+      platforms: ['linux/amd64']
+    manifests:
+      rawYaml:
+        - resources/cloud-run-job-prod.yaml
+    deploy:
+      cloudrun:
+        region: europe-west1
+        projectid: webstatus-dev-internal-prod
