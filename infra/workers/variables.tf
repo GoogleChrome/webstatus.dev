@@ -84,8 +84,8 @@ variable "deletion_protection" {
 
 variable "chime_details" {
   type = object({
-    env          = string
-    bcc          = string
-    from_address = string
+    env                     = string
+    bcc_secret_ref          = string
+    from_address_secret_ref = string
   })
 }

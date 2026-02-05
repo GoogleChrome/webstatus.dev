@@ -56,13 +56,33 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
         value = var.chime_env
       }
       env {
-        name  = "CHIME_BCC"
-        value = var.chime_bcc
+        name = "CHIME_BCC"
+        value_source {
+          secret_key_ref {
+            secret  = data.google_secret_manager_secret.bcc_secret.secret_id
+            version = "latest"
+          }
+        }
       }
       env {
-        name  = "FROM_ADDRESS"
-        value = var.from_address
+        name = "FROM_ADDRESS"
+        value_source {
+          secret_key_ref {
+            secret  = data.google_secret_manager_secret.from_address_secret.secret_id
+            version = "latest"
+          }
+        }
       }
     }
   }
+}
+
+data "google_secret_manager_secret" "from_address_secret" {
+  provider  = google.internal_project
+  secret_id = var.from_address_secret_ref
+}
+
+data "google_secret_manager_secret" "bcc_secret" {
+  provider  = google.internal_project
+  secret_id = var.chime_bcc_secret_ref
 }

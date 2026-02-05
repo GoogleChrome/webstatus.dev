@@ -113,7 +113,7 @@ notification_channel_ids    = ["projects/web-compass-prod/notificationChannels/4
 email_service_account_email = "emailer-job-prod@webstatus-dev-internal-prod.iam.gserviceaccount.com"
 
 chime_details = {
-  env          = "prod"
-  bcc          = "webstatus-dev-mail-log-prod@google.com"
-  from_address = "noreply-webstatus-dev@google.com"
+  env                     = "prod"
+  bcc_secret_ref          = "chime-bcc-addresses"
+  from_address_secret_ref = "chime-from-address"
 }

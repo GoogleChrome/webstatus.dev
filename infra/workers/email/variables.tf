@@ -24,5 +24,5 @@ variable "regions" { type = set(string) }
 variable "deletion_protection" { type = bool }
 variable "frontend_base_url" { type = string }
 variable "chime_env" { type = string }
-variable "chime_bcc" { type = string }
-variable "from_address" { type = string }
+variable "chime_bcc_secret_ref" { type = string }
+variable "from_address_secret_ref" { type = string }

@@ -117,7 +117,7 @@ notification_channel_ids    = ["projects/web-compass-staging/notificationChannel
 email_service_account_email = "emailer-job-staging@webstatus-dev-internal-staging.iam.gserviceaccount.com"
 
 chime_details = {
-  env          = "autopush"
-  bcc          = "webstatus-dev-mail-log-staging@google.com"
-  from_address = "noreply-webstatus-dev@google.com"
+  env                     = "autopush"
+  bcc_secret_ref          = "chime-bcc-addresses"
+  from_address_secret_ref = "chime-from-address"
 }
