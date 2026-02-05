@@ -23,3 +23,6 @@ variable "service_account_email" { type = string }
 variable "regions" { type = set(string) }
 variable "deletion_protection" { type = bool }
 variable "frontend_base_url" { type = string }
+variable "chime_env" { type = string }
+variable "chime_bcc_secret_ref" { type = string }
+variable "from_address_secret_ref" { type = string }

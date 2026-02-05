@@ -19,7 +19,9 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"strings"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/email/chime"
 	"github.com/GoogleChrome/webstatus.dev/lib/email/chime/chimeadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
@@ -86,8 +88,29 @@ func main() {
 		os.Exit(1)
 	}
 
+	var emailSender sender.EmailSender
+
+	slog.InfoContext(ctx, "using chime email sender")
+	chimeEnvStr := os.Getenv("CHIME_ENV")
+	chimeEnv := chime.EnvProd
+	if chimeEnvStr == "autopush" {
+		chimeEnv = chime.EnvAutopush
+	}
+	chimeBCC := os.Getenv("CHIME_BCC")
+	bccList := []string{}
+	if chimeBCC != "" {
+		bccList = strings.Split(chimeBCC, ",")
+	}
+	fromAddress := os.Getenv("FROM_ADDRESS")
+	chimeSender, err := chime.NewChimeSender(ctx, chimeEnv, bccList, fromAddress, nil)
+	if err != nil {
+		slog.ErrorContext(ctx, "failed to create chime sender", "error", err)
+		os.Exit(1)
+	}
+	emailSender = chimeadapters.NewEmailWorkerChimeAdapter(chimeSender)
+
 	listener := gcppubsubadapters.NewEmailWorkerSubscriberAdapter(sender.NewSender(
-		chimeadapters.NewEmailWorkerChimeAdapter(nil),
+		emailSender,
 		spanneradapters.NewEmailWorkerChannelStateManager(spannerClient),
 		renderer,
 	), queueClient, emailSubID)

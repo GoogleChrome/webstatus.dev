@@ -117,4 +117,8 @@ module "email" {
 
   frontend_base_url   = var.frontend_base_url
   deletion_protection = var.deletion_protection
+
+  chime_env               = var.chime_details.env
+  chime_bcc_secret_ref    = var.chime_details.bcc_secret_ref
+  from_address_secret_ref = var.chime_details.from_address_secret_ref
 }

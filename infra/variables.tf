@@ -214,3 +214,13 @@ variable "frontend_base_url" {
   type        = string
   description = "Frontend base URL. Useful for email notifications for assets."
 }
+
+variable "chime_details" {
+  description = "Details for the chime API in the email worker"
+  type = object({
+    # Limit env to "autopush" or "prod" to ensure it's used correctly in the code and avoid misconfiguration.
+    env                     = string
+    bcc_secret_ref          = string
+    from_address_secret_ref = string
+  })
+}

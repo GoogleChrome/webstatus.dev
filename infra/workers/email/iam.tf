@@ -54,3 +54,20 @@ resource "google_project_iam_member" "gcp_trace_permission" {
   project  = var.project_id
   member   = "serviceAccount:${data.google_service_account.worker_sa.email}"
 }
+
+
+resource "google_secret_manager_secret_iam_member" "worker_access_from_address" {
+  provider   = google.internal_project
+  secret_id  = data.google_secret_manager_secret.from_address_secret.id
+  role       = "roles/secretmanager.secretAccessor"
+  member     = "serviceAccount:${data.google_service_account.worker_sa.email}"
+  depends_on = [data.google_secret_manager_secret.from_address_secret]
+}
+
+resource "google_secret_manager_secret_iam_member" "worker_access_bcc" {
+  provider   = google.internal_project
+  secret_id  = data.google_secret_manager_secret.bcc_secret.id
+  role       = "roles/secretmanager.secretAccessor"
+  member     = "serviceAccount:${data.google_service_account.worker_sa.email}"
+  depends_on = [data.google_secret_manager_secret.bcc_secret]
+}
