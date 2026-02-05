@@ -147,6 +147,36 @@ func TestCreateSubscription(t *testing.T) {
 			}`),
 		},
 		{
+			name: "forbidden - user max subscriptions reached",
+			cfg: &MockCreateSavedSearchSubscriptionConfig{
+				expectedUserID: "test-user",
+				expectedSubscription: backend.Subscription{
+					ChannelId:     "channel-id",
+					SavedSearchId: "search-id",
+					Triggers: []backend.SubscriptionTriggerWritable{
+						backend.SubscriptionTriggerFeatureBrowserImplementationAnyComplete},
+					Frequency: "immediate",
+				},
+				output: nil,
+				err:    backendtypes.ErrUserMaxSubscriptions,
+			},
+			expectedCallCount:    1,
+			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
+			request: httptest.NewRequest(
+				http.MethodPost,
+				"/v1/users/me/subscriptions",
+				strings.NewReader(`{
+					"channel_id": "channel-id",
+					"saved_search_id": "search-id",
+					"triggers": ["feature_browser_implementation_any_complete"],
+					"frequency": "immediate"
+				}`)),
+			expectedResponse: testJSONResponse(http.StatusForbidden, `{
+				"code":403,
+				"message":"user has reached the maximum number of allowed subscriptions"
+			}`),
+		},
+		{
 			name: "internal server error",
 			cfg: &MockCreateSavedSearchSubscriptionConfig{
 				expectedUserID: "test-user",

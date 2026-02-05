@@ -619,6 +619,33 @@ func (c mockBackendSpannerClient) UpdateSavedSearchSubscription(
 	return c.mockUpdateSavedSearchSubscriptionCfg.returnedError
 }
 
+func TestCreateSavedSearchSubscriptionMapsLimitError(t *testing.T) {
+	mock := new(mockBackendSpannerClient)
+	mock.t = t
+	mock.mockCreateSavedSearchSubscriptionCfg = &mockCreateSavedSearchSubscriptionConfig{
+		expectedRequest: gcpspanner.CreateSavedSearchSubscriptionRequest{
+			UserID:        "user",
+			ChannelID:     "channel",
+			SavedSearchID: "search",
+			Triggers:      []gcpspanner.SubscriptionTrigger{},
+			Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+		},
+		result:        nil,
+		returnedError: gcpspanner.ErrSubscriptionLimitExceeded,
+	}
+
+	bk := NewBackend(mock)
+	_, err := bk.CreateSavedSearchSubscription(context.Background(), "user", backend.Subscription{
+		ChannelId:     "channel",
+		SavedSearchId: "search",
+		Triggers:      []backend.SubscriptionTriggerWritable{},
+		Frequency:     backend.SubscriptionFrequencyImmediate,
+	})
+	if !errors.Is(err, backendtypes.ErrUserMaxSubscriptions) {
+		t.Errorf("expected ErrUserMaxSubscriptions, got %v", err)
+	}
+}
+
 func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 	testCases := []struct {
 		name              string

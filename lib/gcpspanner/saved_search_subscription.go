@@ -49,6 +49,12 @@ const (
 	SubscriptionTriggerUnknown                            SubscriptionTrigger = "unknown"
 )
 
+var (
+	// ErrSubscriptionLimitExceeded indicates that the user already has
+	// reached the limit of subscriptions that a given user can own.
+	ErrSubscriptionLimitExceeded = errors.New("subscription limit reached")
+)
+
 // CreateSavedSearchSubscriptionRequest is the request to create a subscription.
 type CreateSavedSearchSubscriptionRequest struct {
 	UserID        string
@@ -239,7 +245,30 @@ func (c *Client) createSavedSearchSubscription(
 ) (*string, error) {
 	var id *string
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		err := c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn)
+		// 1. Check limit
+		var count int64
+		stmt := spanner.Statement{
+			SQL: `SELECT COUNT(*)
+              FROM SavedSearchSubscriptions sc
+              JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
+              WHERE nc.UserID = @userID`,
+			Params: map[string]interface{}{
+				"userID": req.UserID,
+			},
+		}
+		row, err := txn.Query(ctx, stmt).Next()
+		if err != nil {
+			return err
+		}
+		if err := row.Columns(&count); err != nil {
+			return err
+		}
+
+		if count >= int64(c.searchCfg.maxSubscriptionsPerUser) {
+			return ErrSubscriptionLimitExceeded
+		}
+
+		err = c.checkNotificationChannelOwnership(ctx, req.ChannelID, req.UserID, txn)
 		if err != nil {
 			return err
 		}

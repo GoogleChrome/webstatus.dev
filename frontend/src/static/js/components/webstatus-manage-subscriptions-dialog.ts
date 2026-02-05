@@ -28,6 +28,7 @@ import {
 } from '../contexts/firebase-user-context.js';
 import {SlCheckbox, SlDialog, SlRadioGroup} from '@shoelace-style/shoelace';
 import {FREQUENCY_DISPLAY_NAMES} from '../utils/format.js';
+import {ApiError} from '../api/errors.js';
 
 const FREQUENCY_CONFIG: ReadonlyArray<
   components['schemas']['SubscriptionFrequency']
@@ -637,11 +638,19 @@ export class ManageSubscriptionsDialog extends LitElement {
         message: 'Subscription saved.',
       };
     } catch (e) {
-      const error = e instanceof Error ? e : new Error('Unknown error saving');
+      let message: string;
+      let error: Error;
+      if (e instanceof ApiError) {
+        message = e.message;
+        error = e;
+      } else {
+        error = e instanceof Error ? e : new Error('Unknown error saving');
+        message = `Error saving subscription: ${error.message}`;
+      }
       this.dispatchEvent(new SubscriptionSaveErrorEvent(error));
       this._actionState = {
         phase: 'error',
-        message: `Error saving subscription: ${error.message}`,
+        message: message,
       };
     }
   }
