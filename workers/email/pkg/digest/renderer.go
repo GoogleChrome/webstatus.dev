@@ -57,7 +57,7 @@ func NewHTMLRenderer(webStatusBaseURL string) (*HTMLRenderer, error) {
 
 	// Parse both the components and the main template
 	tmpl, err := template.New("email").Funcs(funcMap).Parse(
-		EmailStyles + componentStyles + EmailComponents + defaultEmailTemplate)
+		EmailStyles + EmailComponents + defaultEmailTemplate)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse email templates: %w", err)
 	}
@@ -151,6 +151,7 @@ type BrowserChangeRenderData struct {
 
 type templateData struct {
 	Subject                   string
+	FullSubject               string
 	Query                     string
 	SummaryText               string
 	BaselineNewlyChanges      []workertypes.SummaryHighlight
@@ -169,14 +170,16 @@ type templateData struct {
 
 // RenderDigest processes the delivery job and returns the subject and HTML body.
 func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (string, string, error) {
-	// 1. Generate Subject
-	subject := r.generateSubject(job.Metadata.Frequency, job.Metadata.Query)
+	// 1. Generate Subjects
+	subject := r.generateSubject(job.Metadata.Frequency, job.Metadata.Query, true)
+	fullSubject := r.generateSubject(job.Metadata.Frequency, job.Metadata.Query, false)
 
 	// 2. Prepare Template Data using the visitor
 	generator := new(templateDataGenerator)
 	generator.job = job
 	generator.baseURL = r.webStatusBaseURL
 	generator.subject = subject
+	generator.fullSubject = fullSubject
 
 	if err := workertypes.ParseEventSummary(job.SummaryRaw, generator); err != nil {
 		return "", "", fmt.Errorf("failed to parse event summary: %w", err)
@@ -193,16 +196,18 @@ func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (s
 
 // templateDataGenerator implements workertypes.SummaryVisitor to prepare the data for the template.
 type templateDataGenerator struct {
-	job     workertypes.IncomingEmailDeliveryJob
-	subject string
-	baseURL string
-	data    templateData
+	job         workertypes.IncomingEmailDeliveryJob
+	subject     string
+	fullSubject string
+	baseURL     string
+	data        templateData
 }
 
 // VisitV1 is called when a V1 summary is parsed.
 func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error {
 	g.data = templateData{
 		Subject:     g.subject,
+		FullSubject: g.fullSubject,
 		Query:       g.job.Metadata.Query,
 		SummaryText: summary.Text,
 		Truncated:   summary.Truncated,
@@ -276,14 +281,8 @@ func (g *templateDataGenerator) processChangedData(highlight workertypes.Summary
 		for b := range highlight.BrowserChanges {
 			browsers = append(browsers, b)
 		}
-		// Simple bubble sort for the keys
-		for i := 0; i < len(browsers)-1; i++ {
-			for j := 0; j < len(browsers)-i-1; j++ {
-				if browsers[j] > browsers[j+1] {
-					browsers[j], browsers[j+1] = browsers[j+1], browsers[j]
-				}
-			}
-		}
+
+		slices.Sort(browsers)
 
 		for _, browserName := range browsers {
 			change := highlight.BrowserChanges[browserName]
@@ -344,7 +343,8 @@ func filterHighlights(
 	return filtered
 }
 
-func (r *HTMLRenderer) generateSubject(frequency workertypes.JobFrequency, query string) string {
+func (r *HTMLRenderer) generateSubject(
+	frequency workertypes.JobFrequency, query string, truncate bool) string {
 	prefix := "Update:"
 	switch frequency {
 	case workertypes.FrequencyWeekly:
@@ -358,7 +358,7 @@ func (r *HTMLRenderer) generateSubject(frequency workertypes.JobFrequency, query
 	}
 
 	displayQuery := query
-	if len(displayQuery) > 50 {
+	if truncate && len(displayQuery) > 50 {
 		displayQuery = displayQuery[:47] + "..."
 	}
 
