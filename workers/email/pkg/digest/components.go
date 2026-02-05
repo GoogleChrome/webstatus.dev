@@ -15,26 +15,6 @@
 // nolint:lll  // WONTFIX - for readability
 package digest
 
-const componentStyles = `{{- define "style_badge_wrapper" -}}align-self: stretch; padding-top: 12px; padding-bottom: 11px; padding-left: 15px; padding-right: 16px; overflow: hidden; border-top-left-radius: 4px; border-top-right-radius: 4px; justify-content: flex-start; align-items: center; display: flex;{{- end -}}
-{{- define "style_badge_inner_wrapper" -}}flex: 1 1 0; flex-direction: column; justify-content: center; align-items: flex-start; display: inline-flex;{{- end -}}
-{{- define "style_change_detail_wrapper" -}}align-self: stretch; justify-content: flex-start; align-items: center; gap: 10px; display: inline-flex; width: 100%;{{- end -}}
-{{- define "style_change_detail_inner" -}}flex: 1 1 0;{{- end -}}
-{{- define "style_banner_wrapper" -}}align-self: stretch; height: 50px; padding-top: 12px; padding-bottom: 11px; padding-left: 15px; padding-right: 16px; overflow: hidden; border-top-left-radius: 4px; border-top-right-radius: 4px; justify-content: flex-start; align-items: center; gap: 8px; display: flex;{{- end -}}
-{{- define "style_banner_icon_wrapper_28" -}}height: 28px; position: relative; overflow: hidden; display: flex; align-items: center;{{- end -}}
-{{- define "style_banner_icon_wrapper_20" -}}height: 20px; position: relative; margin-right: 4px;{{- end -}}
-{{- define "style_img_responsive" -}}display: block; width: auto;{{- end -}}
-{{- define "style_banner_text_wrapper" -}}flex: 1 1 0;{{- end -}}
-{{- define "style_banner_browser_logos_wrapper" -}}justify-content: flex-start; align-items: center; display: flex; margin-right: 8px;{{- end -}}
-{{- define "style_browser_item_row" -}}align-self: stretch; justify-content: flex-start; align-items: center; gap: 10px; display: flex;{{- end -}}
-{{- define "style_browser_item_logo_wrapper" -}}justify-content: flex-start; align-items: center; display: flex;{{- end -}}
-{{- define "style_browser_item_feature_link_wrapper" -}}align-self: stretch; justify-content: flex-start; align-items: center; gap: 10px; display: inline-flex; margin-top: 8px;{{- end -}}
-{{- define "style_button_wrapper" -}}margin: 20px 0; text-align: center;{{- end -}}
-{{- define "style_footer_wrapper" -}}align-self: stretch; padding-top: 16px; flex-direction: column; justify-content: flex-start; align-items: flex-start; gap: 12px; display: flex; {{- template "font_family_main" -}};{{- end -}}
-{{- define "style_footer_hr" -}}align-self: stretch; height: 1px; background: #E4E4E7;{{- end -}}
-{{- define "style_footer_text_wrapper" -}}align-self: stretch;{{- end -}}
-{{- define "style_feature_title_row_wrapper" -}}align-self: stretch; justify-content: flex-start; align-items: center; gap: 10px; display: flex;{{- end -}}
-{{- define "style_feature_title_row_inner" -}}flex: 1 1 0;{{- end -}}`
-
 const badgeComponent = `{{- define "badge" -}}
 <div style='{{- template "style_badge_wrapper" -}}; background: {{- badgeBackgroundColor .Title -}};'>
     <div style='{{- template "style_badge_inner_wrapper" -}}'>
@@ -47,10 +27,10 @@ const badgeComponent = `{{- define "badge" -}}
 {{- end -}}`
 
 const introTextComponent = `{{- define "intro_text" -}}
-<div style='{{- template "style_section_wrapper" -}}'>
-    <h2 style='{{- template "style_subject_header" -}}'>{{.Subject}}</h2>
+<div style='{{- template "style_intro_wrapper" -}}'>
+    <h2 style='{{- template "style_subject_header" -}}'>{{.FullSubject}}</h2>
     <div style='{{- template "style_query_text" -}}'>
-        Here is your update for the saved search <strong style='font-weight: bold;'>'{{.Query}}'</strong>. 
+        Here is your update for the saved search <strong style='font-weight: bold;'>'{{.Query}}'</strong>.
         {{.SummaryText}}.
     </div>
 </div>
@@ -68,13 +48,17 @@ const changeDetailComponent = `{{- define "change_detail" -}}
 const baselineChangeItemComponent = `{{- define "baseline_change_item" -}}
 <div style='{{- template "style_section_wrapper" -}}'>
     <div style='{{- template "style_banner_wrapper" -}}; {{- template "color_bg_success" -}}'>
-        <div style='{{- template "style_banner_icon_wrapper_28" -}}'>
-            <img src="{{.ToURL}}" height="28" alt="{{.To}}" style='{{- template "style_img_responsive" -}}' />
-        </div>
-        <div style='{{- template "style_banner_text_wrapper" -}}'>
-            <span style='{{- template "style_text_banner_bold" -}}'>Baseline</span>
-            <span style='{{- template "style_text_banner_normal" -}}'> {{.To}} </span>
-        </div>
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+            <tr>
+                <td width="36" align="left" valign="middle">
+                    <img src="{{.ToURL}}" height="28" alt="{{.To}}" style='{{- template "style_img_responsive" -}}' />
+                </td>
+                <td align="left" valign="middle">
+                    <span style='{{- template "style_text_banner_bold" -}}'>Baseline</span>
+                    <span style='{{- template "style_text_banner_normal" -}}'> {{.To}} </span>
+                </td>
+            </tr>
+        </table>
     </div>
     <div style='{{- template "style_card_body" -}}'>
         <div style='{{- template "style_browser_item_row" -}}'>
@@ -89,12 +73,18 @@ const baselineChangeItemComponent = `{{- define "baseline_change_item" -}}
 
 const browserItemComponent = `{{- define "browser_change_row" -}}
     <div style='{{- template "style_browser_item_row" -}}'>
-        <div style='{{- template "style_browser_item_logo_wrapper" -}}'>
-            <img src="{{.LogoURL}}" height="20" alt="{{.Name}}" style='{{- template "style_img_responsive" -}}' />
-        </div>
-        <div style='{{- template "style_text_browser_item" -}}'>
-            {{.Name}}: {{ template "browser_status_detail" .From }} &rarr; {{ template "browser_status_detail" .To -}}
-        </div>
+        <table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+            <tr>
+                <td align="left" valign="middle" style="padding-right: 10px;">
+                    <img src="{{.LogoURL}}" height="20" alt="{{.Name}}" style='{{- template "style_img_responsive" -}}' />
+                </td>
+                <td align="left" valign="middle">
+                    <div style='{{- template "style_text_browser_item" -}}'>
+                        {{.Name}}: {{ template "browser_status_detail" .From }} &rarr; {{ template "browser_status_detail" .To -}}
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 {{- end -}}
 
@@ -136,55 +126,70 @@ const footerComponent = `{{- define "footer" -}}
 
 const bannerComponents = `{{- define "banner_baseline_widely" -}}
 <div style='{{- template "style_banner_wrapper" -}}{{- template "color_bg_success" -}}'>
-    <div style='{{- template "style_banner_icon_wrapper_28" -}}'>
-        <img src="{{.LogoURL}}" height="28" alt="Widely Available" style='{{- template "style_img_responsive" -}}' />
-    </div>
-    <div style='{{- template "style_banner_text_wrapper" -}}'>
-        <span style='{{- template "style_text_banner_bold" -}}'>Baseline</span>
-        <span style='{{- template "style_text_banner_normal" -}}'> Widely available </span>
-    </div>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+        <tr>
+            <td width="36" align="left" valign="middle">
+                <img src="{{.LogoURL}}" height="28" alt="Widely Available" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td align="left" valign="middle">
+                <span style='{{- template "style_text_banner_bold" -}}'>Baseline</span>
+                <span style='{{- template "style_text_banner_normal" -}}'> Widely available </span>
+            </td>
+        </tr>
+    </table>
 </div>
 {{- end -}}
 {{- define "banner_baseline_newly" -}}
 <div style='{{- template "style_banner_wrapper" -}}{{- template "color_bg_info" -}}'>
-    <div style='{{- template "style_banner_icon_wrapper_28" -}}'>
-        <img src="{{.LogoURL}}" height="28" alt="Newly Available" style='{{- template "style_img_responsive" -}}' />
-    </div>
-    <div style='{{- template "style_banner_text_wrapper" -}}'>
-        <span style='{{- template "style_text_banner_bold" -}}'>Baseline</span>
-        <span style='{{- template "style_text_banner_normal" -}}'> Newly available </span>
-    </div>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+        <tr>
+            <td width="36" align="left" valign="middle">
+                <img src="{{.LogoURL}}" height="28" alt="Newly Available" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td align="left" valign="middle">
+                <span style='{{- template "style_text_banner_bold" -}}'>Baseline</span>
+                <span style='{{- template "style_text_banner_normal" -}}'> Newly available </span>
+            </td>
+        </tr>
+    </table>
 </div>
 {{- end -}}
 {{- define "banner_baseline_regression" -}}
 <div style='{{- template "style_banner_wrapper" -}}{{- template "color_bg_neutral" -}}'>
-    <div style='{{- template "style_banner_icon_wrapper_28" -}}'>
-        <img src="{{.LogoURL}}" height="28" alt="Regressed" style='{{- template "style_img_responsive" -}}' />
-    </div>
-    <div style='{{- template "style_banner_text_wrapper" -}}'>
-        <span style='{{- template "style_text_banner_bold" -}}'>Regressed</span>
-        <span style='{{- template "style_text_banner_normal" -}}'> to limited availability</span>
-    </div>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+        <tr>
+            <td width="36" align="left" valign="middle">
+                <img src="{{.LogoURL}}" height="28" alt="Regressed" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td align="left" valign="middle">
+                <span style='{{- template "style_text_banner_bold" -}}'>Regressed</span>
+                <span style='{{- template "style_text_banner_normal" -}}'> to limited availability</span>
+            </td>
+        </tr>
+    </table>
 </div>
 {{- end -}}
 {{- define "banner_browser_implementation" -}}
 <div style='{{- template "style_banner_wrapper" -}}{{- template "color_bg_neutral" -}}'>
-    <div style='{{- template "style_banner_browser_logos_wrapper" -}}'>
-        {{- /* Always display the 4 main browser logos as requested */ -}}
-        <div style='{{- template "style_banner_icon_wrapper_20" -}}'>
-            <img src="{{browserLogoURL "chrome"}}" height="20" style='{{- template "style_img_responsive" -}}' />
-        </div>
-        <div style='{{- template "style_banner_icon_wrapper_20" -}}'>
-            <img src="{{browserLogoURL "edge"}}" height="20" style='{{- template "style_img_responsive" -}}' />
-        </div>
-        <div style='{{- template "style_banner_icon_wrapper_20" -}}'>
-            <img src="{{browserLogoURL "firefox"}}" height="20" style='{{- template "style_img_responsive" -}}' />
-        </div>
-        <div style='{{- template "style_banner_icon_wrapper_20" -}}'>
-            <img src="{{browserLogoURL "safari"}}" height="20" style='{{- template "style_img_responsive" -}}' />
-        </div>
-    </div>
-    <div style='{{- template "style_banner_text_wrapper" -}}; {{- template "style_text_banner_normal" -}}'>Browser support changed</div>
+    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+        <tr>
+            <td width="28" align="left" valign="middle">
+                 <img src="{{browserLogoURL "chrome"}}" height="20" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td width="28" align="left" valign="middle">
+                 <img src="{{browserLogoURL "edge"}}" height="20" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td width="28" align="left" valign="middle">
+                 <img src="{{browserLogoURL "firefox"}}" height="20" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td width="28" align="left" valign="middle">
+                 <img src="{{browserLogoURL "safari"}}" height="20" style='{{- template "style_img_responsive" -}}' />
+            </td>
+            <td align="left" valign="middle" style="padding-left: 8px;">
+                 <span style='{{- template "style_text_banner_normal" -}}'>Browser support changed</span>
+            </td>
+        </tr>
+    </table>
 </div>
 {{- end -}}
 {{- define "banner_generic" -}}
@@ -195,24 +200,28 @@ const bannerComponents = `{{- define "banner_baseline_widely" -}}
 </div>
 {{- end -}}`
 const featureTitleRowComponent = `{{- define "feature_title_row" -}}
-<div style='{{- template "style_feature_title_row_wrapper" -}}'>
-    <div style='{{- template "style_feature_title_row_inner" -}}'>
-        <a href="{{.URL}}" style='{{- template "style_text_feature_link" -}}'>{{.Name}}</a>
-        {{- with .Docs -}}
-            {{- if .MDNDocs -}}
-            <span style='{{- template "style_text_doc_punctuation" -}}'> (</span>
-            {{- range $i, $doc := .MDNDocs }}
-                {{- if $i }}, {{ end -}}
-                <a href="{{$doc.URL}}" style='{{- template "style_text_doc_link" -}}'>MDN</a>
+<table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+    <tr>
+        <td align="left" valign="top">
+            <a href="{{.URL}}" style='{{- template "style_text_feature_link" -}}'>{{.Name}}</a>
+            {{- with .Docs -}}
+                {{- if .MDNDocs -}}
+                <span style='{{- template "style_text_doc_punctuation" -}}'> (</span>
+                {{- range $i, $doc := .MDNDocs }}
+                    {{- if $i }}, {{ end -}}
+                    <a href="{{$doc.URL}}" style='{{- template "style_text_doc_link" -}}'>MDN</a>
+                {{- end -}}
+                <span style='{{- template "style_text_doc_punctuation" -}}'>)</span>
+                {{- end -}}
             {{- end -}}
-            <span style='{{- template "style_text_doc_punctuation" -}}'>)</span>
-            {{- end -}}
+        </td>
+        {{- if .Date -}}
+        <td align="right" valign="top" style="white-space: nowrap; padding-left: 10px;">
+            <div style='{{- template "style_text_date" -}}'>{{.Date}}</div>
+        </td>
         {{- end -}}
-    </div>
-    {{- if .Date -}}
-    <div style='{{- template "style_text_date" -}}'>{{.Date}}</div>
-    {{- end -}}
-</div>
+    </tr>
+</table>
 {{- end -}}`
 
 const browserStatusDetailComponent = `{{- define "browser_status_detail" -}}
