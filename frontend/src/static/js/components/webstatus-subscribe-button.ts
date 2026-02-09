@@ -60,7 +60,7 @@ export class SubscribeButton extends LitElement {
       </sl-button>
 
       <webstatus-manage-subscriptions-dialog
-        ?open=${this._isSubscriptionDialogOpen}
+        .open=${this._isSubscriptionDialogOpen}
         .savedSearchId=${this.savedSearchId}
         @subscription-dialog-close=${() =>
           (this._isSubscriptionDialogOpen = false)}

@@ -384,8 +384,9 @@ export class ManageSubscriptionsDialog extends LitElement {
         label="Manage notifications"
         class="dialog-main"
         style="--width: min(90vw, 991px);"
-        ?open=${this.open}
+        .open=${this.open}
         @sl-request-close=${this._handleRequestClose}
+        @sl-hide=${() => this.dispatchEvent(new SubscriptionDialogCloseEvent())}
       >
         ${this._loadingTask.render({
           pending: () => html`<sl-spinner></sl-spinner>`,
@@ -397,7 +398,7 @@ export class ManageSubscriptionsDialog extends LitElement {
       <sl-dialog
         label="Unsaved Changes"
         class="dialog-confirm"
-        ?open=${this._isConfirmDialogOpen}
+        .open=${this._isConfirmDialogOpen}
         @sl-hide=${this._onConfirmDialogHide}
       >
         <p>You have unsaved changes. Do you want to discard them?</p>

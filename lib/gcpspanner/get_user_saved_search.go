@@ -16,6 +16,7 @@ package gcpspanner
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"cloud.google.com/go/spanner"
@@ -103,29 +104,69 @@ func (m authenticatedUserSavedSearchMapper) SelectOne(
 	return stmt
 }
 
+// readSavedSearchMapper provides a way to read any SavedSearch by its ID, regardless of scope.
+type readSavedSearchMapper struct{}
+
+func (m readSavedSearchMapper) SelectOne(id string) spanner.Statement {
+	stmt := spanner.NewStatement(fmt.Sprintf(`
+	SELECT
+		ID, Name, Description, Query, Scope, AuthorID, CreatedAt, UpdatedAt
+	FROM %s
+	WHERE ID = @id
+	LIMIT 1`,
+		savedSearchesTable))
+	stmt.Params["id"] = id
+
+	return stmt
+}
+
+// GetUserSavedSearch returns a single user saved search by its id.
+// If the user is authenticated, it will also return their role and bookmark status.
 func (c *Client) GetUserSavedSearch(
 	ctx context.Context,
 	savedSearchID string,
 	authenticatedUserID *string) (*UserSavedSearch, error) {
-	if authenticatedUserID == nil {
-		// For an unauthenticated user, we only read the SavedSearches row then fill in the rest of
-		// UserSavedSearch struct with nil values.
-		row, err := newEntityReader[unauthenticatedUserSavedSearchMapper, SavedSearch, string](c).
-			readRowByKey(ctx, savedSearchID)
-		if err != nil {
-			return nil, err
-		}
 
-		return &UserSavedSearch{
-			SavedSearch:  *row,
-			IsBookmarked: nil,
-			Role:         nil,
-		}, nil
+	// Use a single read-only transaction for all operations.
+	txn := c.ReadOnlyTransaction()
+	defer txn.Close()
+
+	// 1. Fetch the base SavedSearch using the new generic mapper.
+	savedSearch, err := newEntityReader[readSavedSearchMapper, SavedSearch, string](c).
+		readRowByKeyWithTransaction(ctx, savedSearchID, txn)
+	if err != nil {
+		return nil, err
 	}
 
-	return newEntityReader[authenticatedUserSavedSearchMapper, UserSavedSearch, authenticatedUserSavedSearchMapperKey](c).
-		readRowByKey(ctx, authenticatedUserSavedSearchMapperKey{
-			UserID: *authenticatedUserID,
-			ID:     savedSearchID,
-		})
+	// 2. If the user is unauthenticated, they can only see public or system searches.
+	if authenticatedUserID == nil {
+		if savedSearch.Scope != UserPublicScope && savedSearch.Scope != SystemManagedScope {
+			return nil, ErrQueryReturnedNoResults
+		}
+
+		return &UserSavedSearch{SavedSearch: *savedSearch, Role: nil, IsBookmarked: nil}, nil
+	}
+
+	// 3. For an authenticated user, fetch their specific role and bookmark status
+	// using the original restricted mapper within the SAME transaction.
+	userSpecifics, err := newEntityReader[
+		authenticatedUserSavedSearchMapper,
+		UserSavedSearch,
+		authenticatedUserSavedSearchMapperKey,
+	](c).readRowByKeyWithTransaction(ctx, authenticatedUserSavedSearchMapperKey{
+		UserID: *authenticatedUserID,
+		ID:     savedSearchID,
+	}, txn)
+
+	// If there are no user-specific details (e.g., for a SYSTEM_MANAGED search),
+	// that's okay. We just return the base search info.
+	if err != nil {
+		if errors.Is(err, ErrQueryReturnedNoResults) {
+			return &UserSavedSearch{SavedSearch: *savedSearch, Role: nil, IsBookmarked: nil}, nil
+		}
+
+		return nil, err
+	}
+
+	return userSpecifics, nil
 }
