@@ -64,7 +64,7 @@
     "@shoelace-style/shoelace": "^2.20.1",
     "@types/google.visualization": "^0.0.74",
     "@vaadin/router": "^2.0.0",
-    "firebase": "^12.8.0",
+    "firebase": "^12.9.0",
     "lit": "^3.3.2",
     "openapi-fetch": "^0.16.0"
   }
