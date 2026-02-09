@@ -194,9 +194,9 @@ module "workers" {
   }
 
   worker_instance_count = {
-    event_producer_count = 1
-    push_delivery_count  = 1
-    email_count          = 1
+    event_producer_count = var.worker_manual_instance_counts.event_producer
+    push_delivery_count  = var.worker_manual_instance_counts.push_delivery
+    email_count          = var.worker_manual_instance_counts.email
   }
   frontend_base_url = var.frontend_base_url
 

@@ -224,3 +224,17 @@ variable "chime_details" {
     from_address_secret_ref = string
   })
 }
+
+# The cloud run worker pool service does not support "AUTOMATIC" scaling, despite the documentation mentioning it as an option.
+# Terraform docs: https://registry.terraform.io/providers/hashicorp/google/latest/docs/resources/cloud_run_v2_worker_pool#scaling_mode-1
+# In the future, we can leverage CREMA to autoscale workers instead of using manual instance counts.
+# For now, we will use manual instance counts for simplicity.
+# More info about CREMA: https://docs.cloud.google.com/run/docs/tutorials/autoscale-workerpools-pubsub
+variable "worker_manual_instance_counts" {
+  description = "Manual instance counts for background workers."
+  type = object({
+    event_producer = number
+    push_delivery  = number
+    email          = number
+  })
+}

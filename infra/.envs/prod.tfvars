@@ -117,3 +117,9 @@ chime_details = {
   bcc_secret_ref          = "chime-bcc-addresses"
   from_address_secret_ref = "chime-from-address"
 }
+
+worker_manual_instance_counts = {
+  event_producer = 4
+  push_delivery  = 2
+  email          = 2
+}
