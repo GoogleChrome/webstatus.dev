@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM fsouza/fake-gcs-server:1.53.0
+FROM fsouza/fake-gcs-server:1.53.1
 
 # Create a test bucket and land a sample file in there.
 RUN mkdir -p /data/state-bucket && touch /data/state-bucket/sample.txt
