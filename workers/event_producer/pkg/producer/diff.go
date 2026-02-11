@@ -181,9 +181,12 @@ func NewDiffer(client FeatureFetcher) *differ.FeatureDiffer[featurelistdiffv1.Fe
 	stateAdapter := newGenericStateAdapter(v1MigrationFunc, convertV1SnapshotToComparable, v1StateSerializerFunc)
 
 	diffSerializer := NewV1DiffSerializer()
-	workflow := featurelistdiffv1.NewFeatureDiffWorkflow(client, &workertypes.FeatureDiffV1SummaryGenerator{})
 
-	return differ.NewFeatureDiffer[featurelistdiffv1.FeatureDiff](client, workflow, stateAdapter, diffSerializer)
+	workflowFactory := func() differ.StateCompareWorkflow[featurelistdiffv1.FeatureDiff] {
+		return featurelistdiffv1.NewFeatureDiffWorkflow(client, &workertypes.FeatureDiffV1SummaryGenerator{})
+	}
+
+	return differ.NewFeatureDiffer[featurelistdiffv1.FeatureDiff](client, workflowFactory, stateAdapter, diffSerializer)
 }
 
 // convertV1FeatureToComparable maps a V1 feature struct to the canonical comparables.Feature.
