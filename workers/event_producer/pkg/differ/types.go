@@ -49,12 +49,12 @@ type StateCompareWorkflow[D any] interface {
 }
 
 type FeatureDiffer[D any] struct {
-	client         FeatureFetcher
-	stateAdapter   StateAdapter
-	diffSerializer DiffSerializer[D]
-	workflow       StateCompareWorkflow[D]
-	idGenerator    idGenerator
-	timeNow        func() time.Time
+	client          FeatureFetcher
+	stateAdapter    StateAdapter
+	diffSerializer  DiffSerializer[D]
+	workflowFactory func() StateCompareWorkflow[D]
+	idGenerator     idGenerator
+	timeNow         func() time.Time
 }
 
 // StateAdapter defines the contract for loading and serializing the versioned state snapshot.
@@ -88,15 +88,19 @@ type DiffMetadata struct {
 	PreviousStateID string
 }
 
-func NewFeatureDiffer[D any](client FeatureFetcher, workflow StateCompareWorkflow[D], stateAdapter StateAdapter,
-	diffSerializer DiffSerializer[D]) *FeatureDiffer[D] {
+func NewFeatureDiffer[D any](
+	client FeatureFetcher,
+	workflowFactory func() StateCompareWorkflow[D],
+	stateAdapter StateAdapter,
+	diffSerializer DiffSerializer[D],
+) *FeatureDiffer[D] {
 	return &FeatureDiffer[D]{
-		client:         client,
-		workflow:       workflow,
-		stateAdapter:   stateAdapter,
-		diffSerializer: diffSerializer,
-		idGenerator:    &defaultIDGenerator{},
-		timeNow:        time.Now,
+		client:          client,
+		workflowFactory: workflowFactory,
+		stateAdapter:    stateAdapter,
+		diffSerializer:  diffSerializer,
+		idGenerator:     &defaultIDGenerator{},
+		timeNow:         time.Now,
 	}
 }
 

@@ -372,12 +372,12 @@ func TestRun(t *testing.T) {
 
 			// Create the differ with mocked dependencies
 			d := &FeatureDiffer[testDiff]{
-				client:         fetcher,
-				workflow:       workflow,
-				stateAdapter:   adapter,
-				diffSerializer: serializer,
-				idGenerator:    &mockIDGenerator{stateID: "state-id", diffID: "diff-id"},
-				timeNow:        func() time.Time { return fixedTime },
+				client:          fetcher,
+				workflowFactory: func() StateCompareWorkflow[testDiff] { return workflow },
+				stateAdapter:    adapter,
+				diffSerializer:  serializer,
+				idGenerator:     &mockIDGenerator{stateID: "state-id", diffID: "diff-id"},
+				timeNow:         func() time.Time { return fixedTime },
 			}
 
 			// Run the method under test

@@ -45,6 +45,7 @@ func (g *defaultIDGenerator) newUUID() string {
 // Run executes the core diffing pipeline.
 func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query string, eventID string,
 	previousStateBytes []byte) (*DiffResult, error) {
+	workflow := d.workflowFactory()
 	// 1. Load Context
 	snapshot, id, signature, isEmpty, err := d.stateAdapter.Load(previousStateBytes)
 	if err != nil {
@@ -73,19 +74,19 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	// toSnapshot() guarantees a non-nil map (empty map) for valid empty results,
 	// so nil strictly means "Data Not Available".
 	if !plan.IsColdStart && data.TargetSnapshot != nil {
-		d.workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot)
+		workflow.CalculateDiff(data.OldSnapshot, data.TargetSnapshot)
 	}
 
 	// 5. Reconcile History
-	if d.workflow.HasRemovedFeatures() && !plan.IsColdStart {
-		err = d.workflow.ReconcileHistory(ctx, data.OldSnapshot, data.NewSnapshot)
+	if workflow.HasRemovedFeatures() && !plan.IsColdStart {
+		err = workflow.ReconcileHistory(ctx, data.OldSnapshot, data.NewSnapshot)
 		if err != nil {
 			return nil, fmt.Errorf("%w: failed to reconcile history: %w", ErrTransient, err)
 		}
 	}
 
 	if plan.QueryChanged {
-		d.workflow.SetQueryChanged(true)
+		workflow.SetQueryChanged(true)
 	}
 
 	// 6. Output Decision
@@ -96,12 +97,12 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 	// - plan.QueryChanged: The query signature changed. We must persist the new StateBytes
 	//   linked to the new query so future runs compare against the correct context,
 	//   even if the feature list data happens to be identical.
-	shouldWrite := d.workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged
+	shouldWrite := workflow.HasChanges() || plan.IsColdStart || plan.QueryChanged
 	if !shouldWrite {
 		return nil, ErrNoChangesDetected
 	}
 
-	finalDiff := d.workflow.GetDiff()
+	finalDiff := workflow.GetDiff()
 	newStateID := d.idGenerator.NewStateID()
 	diffID := d.idGenerator.NewDiffID()
 
@@ -118,7 +119,7 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 		return nil, fmt.Errorf("%w: failed to serialize new state: %w", ErrFatal, err)
 	}
 
-	summaryBytes, err := d.workflow.GenerateJSONSummary()
+	summaryBytes, err := workflow.GenerateJSONSummary()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate summary: %w", err)
 	}
@@ -127,18 +128,18 @@ func (d *FeatureDiffer[D]) Run(ctx context.Context, searchID string, query strin
 		State:       BlobArtifact{ID: newStateID, Bytes: newStateBytes},
 		Diff:        BlobArtifact{ID: eventID, Bytes: diffBytes},
 		Summary:     summaryBytes,
-		Reasons:     d.determineReasons(plan),
+		Reasons:     d.determineReasons(plan, workflow),
 		GeneratedAt: t,
 	}, nil
 }
 
-func (d *FeatureDiffer[D]) determineReasons(plan executionPlan) []workertypes.Reason {
+func (d *FeatureDiffer[D]) determineReasons(plan executionPlan, workflow StateCompareWorkflow[D]) []workertypes.Reason {
 	var reasons []workertypes.Reason
 	if plan.QueryChanged {
 		reasons = append(reasons, workertypes.ReasonQueryChanged)
 	}
 
-	if d.workflow.HasDataChanges() {
+	if workflow.HasDataChanges() {
 		reasons = append(reasons, workertypes.ReasonDataUpdated)
 	}
 
