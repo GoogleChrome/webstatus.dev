@@ -61,16 +61,14 @@ func getAllUserNotificationChannels(
 		}
 
 		spannerChannel := spannerNotificationChannel{
-			NotificationChannel: NotificationChannel{
-				ID:          rowData.ID,
-				UserID:      rowData.UserID,
-				Name:        rowData.Name,
-				Type:        rowData.Type,
-				EmailConfig: nil,
-				CreatedAt:   rowData.CreatedAt,
-				UpdatedAt:   rowData.UpdatedAt,
-			},
-			Config: rowData.Config}
+			ID:        rowData.ID,
+			UserID:    rowData.UserID,
+			Name:      rowData.Name,
+			Type:      string(rowData.Type),
+			Config:    rowData.Config,
+			CreatedAt: rowData.CreatedAt,
+			UpdatedAt: rowData.UpdatedAt,
+		}
 		state := NotificationChannelState{
 			ChannelID:           rowData.ID,
 			IsDisabledBySystem:  rowData.IsDisabledBySystem.Bool,
@@ -159,20 +157,22 @@ func TestSyncUserProfileInfo(t *testing.T) {
 	// Set up initial state for this test case
 	// email1: enabled
 	// email2: disabled
-	channelID1 := uuid.New().String()
-	channelID2 := uuid.New().String()
+	channelID1 := uuid.NewString()
+	channelID2 := uuid.NewString()
 	now := time.Now().UTC()
 
 	initialChannels := []NotificationChannel{
 		{
 			ID: channelID1, UserID: userID, Name: email1, Type: "email",
-			EmailConfig: &EmailConfig{Address: email1, IsVerified: true, VerificationToken: nil},
-			CreatedAt:   now, UpdatedAt: now,
+			EmailConfig:   &EmailConfig{Address: email1, IsVerified: true, VerificationToken: nil},
+			WebhookConfig: nil,
+			CreatedAt:     now, UpdatedAt: now,
 		},
 		{
 			ID: channelID2, UserID: userID, Name: email2, Type: "email",
-			EmailConfig: &EmailConfig{Address: email2, IsVerified: true, VerificationToken: nil},
-			CreatedAt:   now, UpdatedAt: now,
+			EmailConfig:   &EmailConfig{Address: email2, IsVerified: true, VerificationToken: nil},
+			WebhookConfig: nil,
+			CreatedAt:     now, UpdatedAt: now,
 		},
 	}
 	initialChannelStates := []NotificationChannelState{
