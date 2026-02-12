@@ -15,7 +15,7 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {setupFakeNow} from './utils';
+import {setupFakeNow, resetUserData, loginAsUser} from './utils';
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
@@ -216,4 +216,41 @@ test('shows gone page for a split feature', async ({page}) => {
   // Take a screenshot for visual verification.
   const pageContainer = page.locator('.container'); // Assuming a generic container for the error page.
   await expect(pageContainer).toHaveScreenshot();
+});
+
+test.describe('Subscriptions', () => {
+  test.beforeAll(async () => {
+    await resetUserData();
+  });
+  test.afterAll(async () => {
+    await resetUserData();
+  });
+  test('Logged-in user can subscribe to updates', async ({page}) => {
+    await loginAsUser(page, 'test user 1');
+
+    await page.goto(`http://localhost:5555/features/${featureID}`);
+    await page.getByRole('button', {name: 'Subscribe'}).click();
+    const dialog = page.locator('webstatus-manage-subscriptions-dialog');
+    await expect(
+      dialog.getByRole('heading', {name: 'Manage notifications'}),
+    ).toBeVisible();
+
+    await dialog.getByText('test.user.1@example.com').click();
+
+    await dialog
+      .locator('sl-checkbox')
+      .filter({hasText: '...becomes widely available'})
+      .locator('label')
+      .click();
+
+    const createButton = dialog.getByRole('button', {
+      name: 'Create Subscription',
+    });
+    await expect(createButton).toBeVisible();
+    await createButton.click();
+
+    await expect(
+      page.locator('sl-alert', {hasText: 'Subscription saved!'}),
+    ).toBeVisible();
+  });
 });

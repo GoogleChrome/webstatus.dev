@@ -1008,6 +1008,12 @@ func generateData(ctx context.Context, spannerClient *gcpspanner.Client, datasto
 	}
 	slog.InfoContext(ctx, "feature evolution generation complete")
 
+	err = spannerClient.SyncSystemManagedSavedQuery(ctx)
+	if err != nil {
+		return fmt.Errorf("system managed saved query sync failed %w", err)
+	}
+	slog.InfoContext(ctx, "system managed saved query sync complete")
+
 	return nil
 }
 

@@ -95,4 +95,30 @@ func TestDeleteUserSavedSearch(t *testing.T) {
 			t.Errorf("expected ErrQueryReturnedNoResults. received %s", err)
 		}
 	})
+
+	t.Run("SYSTEM_MANAGED search cannot be deleted", func(t *testing.T) {
+		// 1. Create a system managed search directly in the DB.
+		systemSearchID := "system-search"
+		_, err := spannerClient.Apply(ctx, []*spanner.Mutation{
+			spanner.Insert("SavedSearches",
+				[]string{"ID", "Name", "Query", "Scope", "AuthorID", "CreatedAt", "UpdatedAt"},
+				[]interface{}{
+					systemSearchID, "System Search", "id:foo", "SYSTEM_MANAGED",
+					"system", spanner.CommitTimestamp, spanner.CommitTimestamp}),
+		})
+		if err != nil {
+			t.Fatalf("failed to create system search: %v", err)
+		}
+
+		// 2. Attempt to delete it via the user API.
+		err = spannerClient.DeleteUserSavedSearch(ctx, DeleteUserSavedSearchRequest{
+			RequestingUserID: "userID1",
+			SavedSearchID:    systemSearchID,
+		})
+
+		// 3. Verify it fails with 'not found' because the mapper filters it out.
+		if !errors.Is(err, ErrQueryReturnedNoResults) {
+			t.Errorf("expected ErrQueryReturnedNoResults, got %v", err)
+		}
+	})
 }

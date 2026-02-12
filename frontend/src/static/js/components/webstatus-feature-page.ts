@@ -48,6 +48,7 @@ import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
 import './webstatus-feature-wpt-progress-chart-panel.js';
 import './webstatus-feature-usage-chart-panel.js';
+import './webstatus-subscribe-button.js';
 import {DataFetchedEvent} from './webstatus-line-chart-panel.js';
 import {
   FeatureGoneSplitError,
@@ -764,6 +765,11 @@ export class FeaturePage extends BaseChartsPage {
             )}
             ${this.renderOffsiteLink('MDN', null)}
             ${this.renderOffsiteLink('CanIUse', canIUseLink)}
+            <webstatus-subscribe-button
+              .savedSearchId=${this.feature?.system_managed_saved_search_id ??
+              ''}
+            >
+            </webstatus-subscribe-button>
           </div>
         </div>
 
