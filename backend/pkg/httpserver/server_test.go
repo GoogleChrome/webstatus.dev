@@ -245,6 +245,21 @@ type MockDeleteNotificationChannelConfig struct {
 	err               error
 }
 
+type MockCreateNotificationChannelConfig struct {
+	expectedUserID  string
+	expectedRequest backend.CreateNotificationChannelRequest
+	output          *backend.NotificationChannelResponse
+	err             error
+}
+
+type MockUpdateNotificationChannelConfig struct {
+	expectedUserID    string
+	expectedChannelID string
+	expectedRequest   backend.UpdateNotificationChannelRequest
+	output            *backend.NotificationChannelResponse
+	err               error
+}
+
 type MockCreateSavedSearchSubscriptionConfig struct {
 	expectedUserID       string
 	expectedSubscription backend.Subscription
@@ -309,6 +324,8 @@ type MockWPTMetricsStorer struct {
 	syncUserProfileInfoCfg                            *MockSyncUserProfileInfoConfig
 	getNotificationChannelCfg                         *MockGetNotificationChannelConfig
 	listNotificationChannelsCfg                       *MockListNotificationChannelsConfig
+	createNotificationChannelCfg                      *MockCreateNotificationChannelConfig
+	updateNotificationChannelCfg                      *MockUpdateNotificationChannelConfig
 	deleteNotificationChannelCfg                      *MockDeleteNotificationChannelConfig
 	createSavedSearchSubscriptionCfg                  *MockCreateSavedSearchSubscriptionConfig
 	deleteSavedSearchSubscriptionCfg                  *MockDeleteSavedSearchSubscriptionConfig
@@ -335,6 +352,8 @@ type MockWPTMetricsStorer struct {
 	callCountSyncUserProfileInfo                      int
 	callCountGetNotificationChannel                   int
 	callCountListNotificationChannels                 int
+	callCountCreateNotificationChannel                int
+	callCountUpdateNotificationChannel                int
 	callCountDeleteNotificationChannel                int
 	callCountCreateSavedSearchSubscription            int
 	callCountDeleteSavedSearchSubscription            int
@@ -855,6 +874,50 @@ func (m *MockWPTMetricsStorer) DeleteNotificationChannel(
 	return m.deleteNotificationChannelCfg.err
 }
 
+func (m *MockWPTMetricsStorer) CreateNotificationChannel(
+	_ context.Context,
+	userID string,
+	req backend.CreateNotificationChannelRequest,
+) (*backend.NotificationChannelResponse, error) {
+	m.callCountCreateNotificationChannel++
+
+	if userID != m.createNotificationChannelCfg.expectedUserID {
+		m.t.Errorf("Incorrect arguments - Expected UserID: %s, Got: %s",
+			m.createNotificationChannelCfg.expectedUserID, userID)
+	}
+
+	if !reflect.DeepEqual(req, m.createNotificationChannelCfg.expectedRequest) {
+		m.t.Errorf("Incorrect arguments - Expected Request: %+v, Got: %+v",
+			m.createNotificationChannelCfg.expectedRequest, req)
+	}
+
+	return m.createNotificationChannelCfg.output, m.createNotificationChannelCfg.err
+}
+
+func (m *MockWPTMetricsStorer) UpdateNotificationChannel(
+	_ context.Context,
+	userID, channelID string,
+	req backend.UpdateNotificationChannelRequest,
+) (*backend.NotificationChannelResponse, error) {
+	m.callCountUpdateNotificationChannel++
+
+	if userID != m.updateNotificationChannelCfg.expectedUserID ||
+		channelID != m.updateNotificationChannelCfg.expectedChannelID {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
+			m.updateNotificationChannelCfg.expectedUserID,
+			m.updateNotificationChannelCfg.expectedChannelID,
+			userID,
+			channelID)
+	}
+
+	if !reflect.DeepEqual(req, m.updateNotificationChannelCfg.expectedRequest) {
+		m.t.Errorf("Incorrect arguments - Expected Request: %+v, Got: %+v",
+			m.updateNotificationChannelCfg.expectedRequest, req)
+	}
+
+	return m.updateNotificationChannelCfg.output, m.updateNotificationChannelCfg.err
+}
+
 type MockPublishSearchConfigurationChangedConfig struct {
 	expectedResp       *backend.SavedSearchResponse
 	expectedUserID     string
@@ -1218,6 +1281,28 @@ func (m *mockServerInterface) DeleteNotificationChannel(
 	ctx context.Context,
 	_ backend.DeleteNotificationChannelRequestObject,
 ) (backend.DeleteNotificationChannelResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// CreateNotificationChannel implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) CreateNotificationChannel(
+	ctx context.Context,
+	_ backend.CreateNotificationChannelRequestObject,
+) (backend.CreateNotificationChannelResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// UpdateNotificationChannel implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) UpdateNotificationChannel(
+	ctx context.Context,
+	_ backend.UpdateNotificationChannelRequestObject,
+) (backend.UpdateNotificationChannelResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")

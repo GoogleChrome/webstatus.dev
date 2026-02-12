@@ -82,7 +82,11 @@ export class WebstatusNotificationEmailChannels extends LitElement {
             channel => html`
               <div class="channel-item">
                 <div class="channel-info">
-                  <span class="name">${channel.value}</span>
+                  <span class="name"
+                    >${channel.config.type === 'email'
+                      ? channel.config.address
+                      : ''}</span
+                  >
                 </div>
                 ${channel.status === 'enabled'
                   ? html`<sl-badge variant="success" pill>Enabled</sl-badge>`

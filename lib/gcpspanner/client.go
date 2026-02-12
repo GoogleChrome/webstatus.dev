@@ -75,6 +75,11 @@ var (
 	ErrSyncFailedToGetPreDeleteHooks = errors.New("sync failed to get pre delete hooks")
 )
 
+// NotificationChannels specific errors.
+var (
+	ErrOwnerNotificationChannelLimitExceeded = errors.New("owner notification channel limit exceeded")
+)
+
 // Client is the client for interacting with GCP Spanner.
 type Client struct {
 	*spanner.Client
@@ -145,8 +150,10 @@ type searchConfig struct {
 
 // notificationConfig holds the application configuation for notifications.
 type notificationConfig struct {
-	// Max number of consecutive failures per channel
+	// Max number of consecutive failures per channel.
 	maxConsecutiveFailuresPerChannel uint32
+	// Max number of notification channels per user.
+	maxChannelsPerUser uint32
 }
 
 const defaultMaxOwnedSearchesPerUser = 25
@@ -155,6 +162,7 @@ const defaultMaxSubscriptionsPerUser = 25
 const defaultBatchSize = 5000
 const defaultBatchWriters = 8
 const defaultMaxConsecutiveFailuresPerChannel = 5
+const defaultMaxChannelsPerUser = 25
 
 func combineAndDeduplicate(excluded []string, discouraged []string) []string {
 	if excluded == nil && discouraged == nil {
@@ -233,6 +241,7 @@ func NewSpannerClient(projectID string, instanceID string, name string) (*Client
 		},
 		notificationConfig{
 			maxConsecutiveFailuresPerChannel: defaultMaxConsecutiveFailuresPerChannel,
+			maxChannelsPerUser:               defaultMaxChannelsPerUser,
 		},
 		bw,
 		defaultBatchSize,
@@ -585,28 +594,6 @@ func newEntityCreator[
 	SpannerStruct any,
 ](c *Client) *entityCreator[M, CreateRequest, SpannerStruct] {
 	return &entityCreator[M, CreateRequest, SpannerStruct]{c}
-}
-
-func (c *entityCreator[M, CreateRequest, SpannerStruct]) create(
-	ctx context.Context,
-	req CreateRequest,
-	opts ...CreateOption) (*string, error) {
-	var id *string
-	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
-		newID, err := c.createWithTransaction(ctx, txn, req, opts...)
-		if err != nil {
-			return err
-		}
-		id = newID
-
-		return nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return id, nil
 }
 
 func (c *entityCreator[M, CreateRequest, SpannerStruct]) createWithTransaction(

@@ -40,6 +40,7 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 			IsVerified:        true,
 			VerificationToken: nil,
 		},
+		WebhookConfig: nil,
 	}
 
 	// Pre-populate a channel for update/delete tests
@@ -65,6 +66,7 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 				IsVerified:        false,
 				VerificationToken: nil,
 			},
+			WebhookConfig: nil,
 		}
 		channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
 		if err != nil {
@@ -78,26 +80,75 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 		}
 
 		expected := &NotificationChannel{
-			ID:          channelID,
-			UserID:      createReq.UserID,
-			Name:        createReq.Name,
-			Type:        createReq.Type,
-			EmailConfig: createReq.EmailConfig,
-			CreatedAt:   spanner.CommitTimestamp,
-			UpdatedAt:   spanner.CommitTimestamp,
+			ID:            channelID,
+			UserID:        createReq.UserID,
+			Name:          createReq.Name,
+			Type:          createReq.Type,
+			EmailConfig:   createReq.EmailConfig,
+			WebhookConfig: nil,
+			CreatedAt:     spanner.CommitTimestamp,
+			UpdatedAt:     spanner.CommitTimestamp,
 		}
 
 		if diff := cmp.Diff(expected, retrieved,
 			cmpopts.IgnoreFields(NotificationChannel{
-				ID:          "",
-				UserID:      "",
-				Name:        "",
-				Type:        "",
-				EmailConfig: nil,
-				CreatedAt:   spanner.CommitTimestamp,
-				UpdatedAt:   spanner.CommitTimestamp,
+				ID:            "",
+				UserID:        "",
+				Name:          "",
+				Type:          "",
+				EmailConfig:   nil,
+				WebhookConfig: nil,
+				CreatedAt:     spanner.CommitTimestamp,
+				UpdatedAt:     spanner.CommitTimestamp,
 			}, "CreatedAt", "UpdatedAt")); diff != "" {
 			t.Errorf("GetNotificationChannel mismatch (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("Create and Get Webhook", func(t *testing.T) {
+		createReq := CreateNotificationChannelRequest{
+			UserID:      userID,
+			Name:        "A webhook channel",
+			Type:        NotificationChannelTypeWebhook,
+			EmailConfig: nil,
+			WebhookConfig: &WebhookConfig{
+				URL: "https://hooks.slack.com/services/123",
+			},
+		}
+		channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
+		if err != nil {
+			t.Fatalf("CreateNotificationChannel (Webhook) failed: %v", err)
+		}
+		channelID := *channelIDPtr
+
+		retrieved, err := spannerClient.GetNotificationChannel(ctx, channelID, userID)
+		if err != nil {
+			t.Fatalf("GetNotificationChannel (Webhook) failed: %v", err)
+		}
+
+		expected := &NotificationChannel{
+			ID:            channelID,
+			UserID:        createReq.UserID,
+			Name:          createReq.Name,
+			Type:          createReq.Type,
+			EmailConfig:   nil,
+			WebhookConfig: createReq.WebhookConfig,
+			CreatedAt:     spanner.CommitTimestamp,
+			UpdatedAt:     spanner.CommitTimestamp,
+		}
+
+		if diff := cmp.Diff(expected, retrieved,
+			cmpopts.IgnoreFields(NotificationChannel{
+				ID:            "",
+				UserID:        "",
+				Name:          "",
+				Type:          "",
+				EmailConfig:   nil,
+				WebhookConfig: nil,
+				CreatedAt:     spanner.CommitTimestamp,
+				UpdatedAt:     spanner.CommitTimestamp,
+			}, "CreatedAt", "UpdatedAt")); diff != "" {
+			t.Errorf("GetNotificationChannel (Webhook) mismatch (-want +got):\n%s", diff)
 		}
 	})
 
@@ -113,9 +164,17 @@ func TestNotificationChannelRefactoredOperations(t *testing.T) {
 			ID:     channelToUpdateID,
 			UserID: userID,
 			Name:   OptionallySet[string]{Value: "Updated Name", IsSet: true},
+			Type: OptionallySet[NotificationChannelType]{
+				Value: "",
+				IsSet: false,
+			},
 			EmailConfig: OptionallySet[*EmailConfig]{
 				Value: &EmailConfig{Address: "updated@example.com", IsVerified: true, VerificationToken: nil},
 				IsSet: true,
+			},
+			WebhookConfig: OptionallySet[*WebhookConfig]{
+				Value: nil,
+				IsSet: false,
 			},
 		}
 		err := spannerClient.UpdateNotificationChannel(ctx, updateReq)
@@ -163,6 +222,7 @@ func TestListNotificationChannels(t *testing.T) {
 			IsVerified:        true,
 			VerificationToken: nil,
 		},
+		WebhookConfig: nil,
 	}
 
 	// Create a few channels to list

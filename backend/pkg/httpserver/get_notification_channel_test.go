@@ -15,6 +15,7 @@
 package httpserver
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -45,10 +46,19 @@ func TestGetNotificationChannel(t *testing.T) {
 				expectedChannelID: "channel1",
 				output: &backend.NotificationChannelResponse{
 
-					Id:        "channel1",
-					Name:      "My Email",
-					Type:      backend.NotificationChannelResponseTypeEmail,
-					Value:     "test@example.com",
+					Id:   "channel1",
+					Name: "My Email",
+					Type: backend.NotificationChannelResponseTypeEmail,
+					Config: (func() backend.NotificationChannelResponse_Config {
+						var c backend.NotificationChannelResponse_Config
+						b, _ := json.Marshal(backend.EmailConfig{
+							Type:    "email",
+							Address: "test@example.com",
+						})
+						_ = c.UnmarshalJSON(b)
+
+						return c
+					})(),
 					Status:    backend.NotificationChannelStatusEnabled,
 					CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					UpdatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
@@ -63,7 +73,10 @@ func TestGetNotificationChannel(t *testing.T) {
 	"id": "channel1",
 	"name": "My Email",
 	"type": "email",
-	"value": "test@example.com",
+	"config": {
+		"type": "email",
+		"address": "test@example.com"
+	},
 	"status": "enabled",
 	"created_at":"2000-01-01T00:00:00Z",
 	"updated_at":"2000-01-01T00:00:00Z"
