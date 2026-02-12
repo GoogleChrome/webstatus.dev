@@ -16,6 +16,7 @@ package spanneradapters
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math/big"
@@ -90,6 +91,17 @@ type mockDeleteNotificationChannelConfig struct {
 	expectedChannelID string
 	expectedUserID    string
 	returnedError     error
+}
+
+type mockCreateNotificationChannelConfig struct {
+	expectedRequest gcpspanner.CreateNotificationChannelRequest
+	result          *string
+	returnedError   error
+}
+
+type mockUpdateNotificationChannelConfig struct {
+	expectedRequest gcpspanner.UpdateNotificationChannelRequest
+	returnedError   error
 }
 
 type mockListNotificationChannelsConfig struct {
@@ -206,6 +218,8 @@ type mockBackendSpannerClient struct {
 	mockGetNotificationChannelCfg        *mockGetNotificationChannelConfig
 	mockDeleteNotificationChannelCfg     *mockDeleteNotificationChannelConfig
 	mockListNotificationChannelsCfg      *mockListNotificationChannelsConfig
+	mockCreateNotificationChannelCfg     *mockCreateNotificationChannelConfig
+	mockUpdateNotificationChannelCfg     *mockUpdateNotificationChannelConfig
 	mockCreateNewUserSavedSearchCfg      *mockCreateNewUserSavedSearchConfig
 	mockGetUserSavedSearchCfg            *mockGetUserSavedSearchConfig
 	mockDeleteUserSavedSearchCfg         *mockDeleteUserSavedSearchConfig
@@ -436,6 +450,24 @@ func (c mockBackendSpannerClient) DeleteNotificationChannel(_ context.Context, c
 	}
 
 	return c.mockDeleteNotificationChannelCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) CreateNotificationChannel(
+	_ context.Context, req gcpspanner.CreateNotificationChannelRequest) (*string, error) {
+	if !reflect.DeepEqual(req, c.mockCreateNotificationChannelCfg.expectedRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockCreateNotificationChannelCfg.result, c.mockCreateNotificationChannelCfg.returnedError
+}
+
+func (c mockBackendSpannerClient) UpdateNotificationChannel(
+	_ context.Context, req gcpspanner.UpdateNotificationChannelRequest) error {
+	if !reflect.DeepEqual(req, c.mockUpdateNotificationChannelCfg.expectedRequest) {
+		c.t.Error("unexpected input to mock")
+	}
+
+	return c.mockUpdateNotificationChannelCfg.returnedError
 }
 
 func (c mockBackendSpannerClient) ListNotificationChannels(
@@ -2142,25 +2174,30 @@ func TestGetNotificationChannel(t *testing.T) {
 				expectedChannelID: channelID,
 				expectedUserID:    userID,
 				result: &gcpspanner.NotificationChannel{
-					ID:          channelID,
-					UserID:      userID,
-					Name:        "My Email",
-					Type:        "email",
-					EmailConfig: &gcpspanner.EmailConfig{Address: "test@example.com", IsVerified: false, VerificationToken: nil},
-					CreatedAt:   now,
-					UpdatedAt:   now,
+					ID:            channelID,
+					UserID:        userID,
+					Name:          "My Email",
+					Type:          "email",
+					EmailConfig:   &gcpspanner.EmailConfig{Address: "test@example.com", IsVerified: false, VerificationToken: nil},
+					WebhookConfig: nil,
+					CreatedAt:     now,
+					UpdatedAt:     now,
 				},
 				returnedError: nil,
 			},
 			expected: &backend.NotificationChannelResponse{
-				Id:        channelID,
-				Name:      "My Email",
-				Type:      backend.NotificationChannelResponseTypeEmail,
-				Value:     "test@example.com",
+				Id:   channelID,
+				Name: "My Email",
+				Type: backend.NotificationChannelResponseTypeEmail,
+				Config: newTestNotificationChannelConfig(t, backend.EmailConfig{
+					Type:    backend.EmailConfigTypeEmail,
+					Address: "test@example.com",
+				}),
 				Status:    backend.NotificationChannelStatusEnabled,
 				CreatedAt: now,
 				UpdatedAt: now,
 			},
+
 			expectedError: nil,
 		},
 		{
@@ -2210,7 +2247,267 @@ func TestGetNotificationChannel(t *testing.T) {
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
 			}
-			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+			if diff := cmp.Diff(tc.expected, resp, getNotificationChannelCmpOption()); diff != "" {
+				t.Errorf("response mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestCreateNotificationChannel(t *testing.T) {
+	const (
+		userID    = "user123"
+		channelID = "channel456"
+	)
+	now := time.Now()
+
+	testCases := []struct {
+		name              string
+		req               backend.CreateNotificationChannelRequest
+		cfg               *mockCreateNotificationChannelConfig
+		expected          *backend.NotificationChannelResponse
+		expectedGetResult *gcpspanner.NotificationChannel
+		expectedError     error
+	}{
+		{
+			name: "success webhook",
+			req: backend.CreateNotificationChannelRequest{
+				Name: "My Webhook",
+				Config: newTestCreateNotificationChannelConfig(t, backend.WebhookConfig{
+					Type: backend.WebhookConfigTypeWebhook,
+					Url:  "https://hooks.slack.com/services/123",
+				}),
+			},
+
+			cfg: &mockCreateNotificationChannelConfig{
+				expectedRequest: gcpspanner.CreateNotificationChannelRequest{
+					UserID:      userID,
+					Name:        "My Webhook",
+					Type:        gcpspanner.NotificationChannelTypeWebhook,
+					EmailConfig: nil,
+					WebhookConfig: &gcpspanner.WebhookConfig{
+						URL: "https://hooks.slack.com/services/123",
+					},
+				},
+
+				result:        valuePtr(channelID),
+				returnedError: nil,
+			},
+			expectedGetResult: &gcpspanner.NotificationChannel{
+				ID:            channelID,
+				UserID:        userID,
+				Name:          "My Webhook",
+				Type:          gcpspanner.NotificationChannelTypeWebhook,
+				EmailConfig:   nil,
+				WebhookConfig: &gcpspanner.WebhookConfig{URL: "https://hooks.slack.com/services/123"},
+				CreatedAt:     now,
+				UpdatedAt:     now,
+			},
+			expected: &backend.NotificationChannelResponse{
+				Id:   channelID,
+				Name: "My Webhook",
+				Type: backend.NotificationChannelResponseTypeWebhook,
+				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
+					Type: backend.WebhookConfigTypeWebhook,
+					Url:  "https://hooks.slack.com/services/123",
+				}),
+				Status:    backend.NotificationChannelStatusEnabled,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+
+			expectedError: nil,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// nolint: exhaustruct
+			mock := &mockBackendSpannerClient{
+				t:                                t,
+				mockCreateNotificationChannelCfg: tc.cfg,
+				// Mock the Get call that happens after Create
+				mockGetNotificationChannelCfg: &mockGetNotificationChannelConfig{
+					expectedUserID:    userID,
+					expectedChannelID: channelID,
+					result:            tc.expectedGetResult,
+					returnedError:     nil,
+				},
+			}
+			b := NewBackend(mock)
+			resp, err := b.CreateNotificationChannel(context.Background(), userID, tc.req)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
+			}
+			if diff := cmp.Diff(tc.expected, resp, getNotificationChannelCmpOption()); diff != "" {
+				t.Errorf("response mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
+func TestUpdateNotificationChannel(t *testing.T) {
+	const (
+		userID    = "user123"
+		channelID = "channel456"
+	)
+	now := time.Now()
+
+	testCases := []struct {
+		name              string
+		req               backend.UpdateNotificationChannelRequest
+		cfg               *mockUpdateNotificationChannelConfig
+		expected          *backend.NotificationChannelResponse
+		expectedGetResult *gcpspanner.NotificationChannel
+		expectedError     error
+	}{
+		{
+			name: "success update name",
+			req: backend.UpdateNotificationChannelRequest{
+				UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
+					backend.UpdateNotificationChannelRequestMaskName,
+				},
+				Name:   valuePtr("New Name"),
+				Config: nil,
+			},
+			cfg: &mockUpdateNotificationChannelConfig{
+				expectedRequest: gcpspanner.UpdateNotificationChannelRequest{
+					ID:     channelID,
+					UserID: userID,
+					Name:   gcpspanner.OptionallySet[string]{Value: "New Name", IsSet: true},
+					Type: gcpspanner.OptionallySet[gcpspanner.NotificationChannelType]{
+						Value: "",
+						IsSet: false,
+					},
+					EmailConfig:   gcpspanner.OptionallySet[*gcpspanner.EmailConfig]{Value: nil, IsSet: false},
+					WebhookConfig: gcpspanner.OptionallySet[*gcpspanner.WebhookConfig]{Value: nil, IsSet: false},
+				},
+				returnedError: nil,
+			},
+			expectedGetResult: &gcpspanner.NotificationChannel{
+				ID:            channelID,
+				UserID:        userID,
+				Name:          "New Name",
+				Type:          gcpspanner.NotificationChannelTypeWebhook,
+				EmailConfig:   nil,
+				WebhookConfig: &gcpspanner.WebhookConfig{URL: "https://hooks.slack.com/services/123"},
+				CreatedAt:     now,
+				UpdatedAt:     now,
+			},
+			expected: &backend.NotificationChannelResponse{
+				Id:   channelID,
+				Name: "New Name",
+				Type: backend.NotificationChannelResponseTypeWebhook,
+				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
+					Type: backend.WebhookConfigTypeWebhook,
+					Url:  "https://hooks.slack.com/services/123",
+				}),
+				Status:    backend.NotificationChannelStatusEnabled,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+
+			expectedError: nil,
+		},
+		{
+			name: "error update email channel",
+			req: backend.UpdateNotificationChannelRequest{
+				UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
+					backend.UpdateNotificationChannelRequestMaskName,
+				},
+				Name:   valuePtr("New Name"),
+				Config: nil,
+			},
+			cfg: nil, // Should not be called
+			expectedGetResult: &gcpspanner.NotificationChannel{
+				ID:            channelID,
+				UserID:        userID,
+				Name:          "Old Name",
+				Type:          gcpspanner.NotificationChannelTypeEmail,
+				EmailConfig:   &gcpspanner.EmailConfig{Address: "test@example.com", IsVerified: false, VerificationToken: nil},
+				WebhookConfig: nil,
+				CreatedAt:     now,
+				UpdatedAt:     now,
+			},
+			expected:      nil,
+			expectedError: backendtypes.ErrUserNotAuthorizedForAction,
+		},
+		{
+			name: "success update config to webhook",
+			req: backend.UpdateNotificationChannelRequest{
+				UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
+					backend.UpdateNotificationChannelRequestMaskConfig,
+				},
+				Name: nil,
+				Config: newTestUpdateNotificationChannelRequestConfig(t, backend.WebhookConfig{
+					Type: backend.WebhookConfigTypeWebhook,
+					Url:  "https://hooks.slack.com/services/456",
+				}),
+			},
+			cfg: &mockUpdateNotificationChannelConfig{
+				expectedRequest: gcpspanner.UpdateNotificationChannelRequest{
+					ID:     channelID,
+					UserID: userID,
+					Name:   gcpspanner.OptionallySet[string]{Value: "", IsSet: false},
+					Type: gcpspanner.OptionallySet[gcpspanner.NotificationChannelType]{
+						Value: gcpspanner.NotificationChannelTypeWebhook,
+						IsSet: true,
+					},
+					EmailConfig: gcpspanner.OptionallySet[*gcpspanner.EmailConfig]{Value: nil, IsSet: false},
+					WebhookConfig: gcpspanner.OptionallySet[*gcpspanner.WebhookConfig]{
+						Value: &gcpspanner.WebhookConfig{URL: "https://hooks.slack.com/services/456"},
+						IsSet: true,
+					},
+				},
+				returnedError: nil,
+			},
+			expectedGetResult: &gcpspanner.NotificationChannel{
+				ID:            channelID,
+				UserID:        userID,
+				Name:          "My Email",
+				Type:          gcpspanner.NotificationChannelTypeWebhook,
+				EmailConfig:   nil,
+				WebhookConfig: &gcpspanner.WebhookConfig{URL: "https://hooks.slack.com/services/456"},
+				CreatedAt:     now,
+				UpdatedAt:     now,
+			},
+			expected: &backend.NotificationChannelResponse{
+				Id:   channelID,
+				Name: "My Email", // Name didn't change
+				Type: backend.NotificationChannelResponseTypeWebhook,
+				Config: newTestNotificationChannelConfig(t, backend.WebhookConfig{
+					Type: backend.WebhookConfigTypeWebhook,
+					Url:  "https://hooks.slack.com/services/456",
+				}),
+				Status:    backend.NotificationChannelStatusEnabled,
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+
+			expectedError: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// nolint: exhaustruct
+			mock := &mockBackendSpannerClient{
+				t:                                t,
+				mockUpdateNotificationChannelCfg: tc.cfg,
+				// Mock the Get call that happens after Update
+				mockGetNotificationChannelCfg: &mockGetNotificationChannelConfig{
+					expectedUserID:    userID,
+					expectedChannelID: channelID,
+					result:            tc.expectedGetResult,
+					returnedError:     nil,
+				},
+			}
+
+			b := NewBackend(mock)
+			resp, err := b.UpdateNotificationChannel(context.Background(), userID, channelID, tc.req)
+			if !errors.Is(err, tc.expectedError) {
+				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
+			}
+			if diff := cmp.Diff(tc.expected, resp, getNotificationChannelCmpOption()); diff != "" {
 				t.Errorf("response mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -2312,30 +2609,42 @@ func TestListNotificationChannels(t *testing.T) {
 						Name:   "channel1",
 						UserID: userID,
 						Type:   "email",
-						EmailConfig: &gcpspanner.EmailConfig{Address: "b@test.com",
-							IsVerified: false, VerificationToken: nil},
-						CreatedAt: now,
-						UpdatedAt: now,
+						EmailConfig: &gcpspanner.EmailConfig{
+							Address:           "b@test.com",
+							IsVerified:        false,
+							VerificationToken: nil,
+						},
+						WebhookConfig: nil,
+						CreatedAt:     now,
+						UpdatedAt:     now,
 					},
 					{
 						ID:     "id2",
 						Name:   "channel2",
 						UserID: userID,
 						Type:   "email",
-						EmailConfig: &gcpspanner.EmailConfig{Address: "a@test.com",
-							IsVerified: false, VerificationToken: nil},
-						CreatedAt: now,
-						UpdatedAt: now,
+						EmailConfig: &gcpspanner.EmailConfig{
+							Address:           "a@test.com",
+							IsVerified:        false,
+							VerificationToken: nil,
+						},
+						WebhookConfig: nil,
+						CreatedAt:     now,
+						UpdatedAt:     now,
 					},
 					{
 						ID:     "id3",
 						Name:   "channel3",
 						UserID: userID,
 						Type:   "email",
-						EmailConfig: &gcpspanner.EmailConfig{Address: "c@test.com",
-							IsVerified: false, VerificationToken: nil},
-						CreatedAt: now.Add(-1 * time.Hour),
-						UpdatedAt: now.Add(-1 * time.Hour),
+						EmailConfig: &gcpspanner.EmailConfig{
+							Address:           "c@test.com",
+							IsVerified:        false,
+							VerificationToken: nil,
+						},
+						WebhookConfig: nil,
+						CreatedAt:     now.Add(-1 * time.Hour),
+						UpdatedAt:     now.Add(-1 * time.Hour),
 					},
 				},
 				nextPageToken: nil,
@@ -2344,28 +2653,37 @@ func TestListNotificationChannels(t *testing.T) {
 			expected: &backend.NotificationChannelPage{
 				Data: &[]backend.NotificationChannelResponse{
 					{
-						Id:        "id2",
-						Name:      "channel2",
-						Type:      backend.NotificationChannelResponseTypeEmail,
-						Value:     "a@test.com",
+						Id:   "id2",
+						Name: "channel2",
+						Type: backend.NotificationChannelResponseTypeEmail,
+						Config: newTestNotificationChannelConfig(t, backend.EmailConfig{
+							Type:    backend.EmailConfigTypeEmail,
+							Address: "a@test.com",
+						}),
 						Status:    backend.NotificationChannelStatusEnabled,
 						CreatedAt: now,
 						UpdatedAt: now,
 					},
 					{
-						Id:        "id1",
-						Name:      "channel1",
-						Type:      backend.NotificationChannelResponseTypeEmail,
-						Value:     "b@test.com",
+						Id:   "id1",
+						Name: "channel1",
+						Type: backend.NotificationChannelResponseTypeEmail,
+						Config: newTestNotificationChannelConfig(t, backend.EmailConfig{
+							Type:    backend.EmailConfigTypeEmail,
+							Address: "b@test.com",
+						}),
 						Status:    backend.NotificationChannelStatusEnabled,
 						CreatedAt: now,
 						UpdatedAt: now,
 					},
 					{
-						Id:        "id3",
-						Name:      "channel3",
-						Type:      backend.NotificationChannelResponseTypeEmail,
-						Value:     "c@test.com",
+						Id:   "id3",
+						Name: "channel3",
+						Type: backend.NotificationChannelResponseTypeEmail,
+						Config: newTestNotificationChannelConfig(t, backend.EmailConfig{
+							Type:    backend.EmailConfigTypeEmail,
+							Address: "c@test.com",
+						}),
 						Status:    backend.NotificationChannelStatusEnabled,
 						CreatedAt: now.Add(-1 * time.Hour),
 						UpdatedAt: now.Add(-1 * time.Hour),
@@ -2424,7 +2742,7 @@ func TestListNotificationChannels(t *testing.T) {
 			if !errors.Is(err, tc.expectedError) {
 				t.Errorf("unexpected error. got %v, want %v", err, tc.expectedError)
 			}
-			if diff := cmp.Diff(tc.expected, resp); diff != "" {
+			if diff := cmp.Diff(tc.expected, resp, getNotificationChannelCmpOption()); diff != "" {
 				t.Errorf("response mismatch (-want +got):\n%s", diff)
 			}
 		})
@@ -4391,7 +4709,12 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 	}
 }
 
-// nolint:ireturn // WONTFIX. We can't control what cmp.Transformer returns
+// nolint:ireturn // Required to return the cmp.Option interface for use with go-cmp.
+func getNotificationChannelCmpOption() cmp.Option {
+	return cmp.AllowUnexported(backend.NotificationChannelResponse_Config{})
+}
+
+// nolint:ireturn // Required to return the cmp.Option interface for use with go-cmp.
 func getTriggerCmpOption() cmp.Option {
 	return cmp.Transformer("triggerValue", func(in backend.SubscriptionTriggerResponseValue) string {
 		// AsSubscriptionTriggerWritable returns the value and a boolean indicating if it was that type.
@@ -4407,4 +4730,56 @@ func getTriggerCmpOption() cmp.Option {
 		panic(fmt.Sprintf("received the following errors trying to conver trigger value. err1: %s err2: %s",
 			err1, err2))
 	})
+}
+
+func newTestNotificationChannelConfig(t *testing.T, config any) backend.NotificationChannelResponse_Config {
+	t.Helper()
+
+	var c backend.NotificationChannelResponse_Config
+
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("failed to marshal test config: %v", err)
+	}
+
+	if err := c.UnmarshalJSON(bytes); err != nil {
+		t.Fatalf("failed to unmarshal test config into wrapper: %v", err)
+	}
+
+	return c
+}
+
+func newTestCreateNotificationChannelConfig(t *testing.T, config any) backend.CreateNotificationChannelRequest_Config {
+	t.Helper()
+
+	var c backend.CreateNotificationChannelRequest_Config
+
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("failed to marshal test config: %v", err)
+	}
+
+	if err := c.UnmarshalJSON(bytes); err != nil {
+		t.Fatalf("failed to unmarshal test config into wrapper: %v", err)
+	}
+
+	return c
+}
+
+func newTestUpdateNotificationChannelRequestConfig(
+	t *testing.T, config any) *backend.UpdateNotificationChannelRequest_Config {
+	t.Helper()
+
+	var c backend.UpdateNotificationChannelRequest_Config
+
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("failed to marshal test config: %v", err)
+	}
+
+	if err := c.UnmarshalJSON(bytes); err != nil {
+		t.Fatalf("failed to unmarshal test config into wrapper: %v", err)
+	}
+
+	return &c
 }

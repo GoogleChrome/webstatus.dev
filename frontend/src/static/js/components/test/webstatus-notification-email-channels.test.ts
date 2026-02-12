@@ -29,7 +29,7 @@ describe('webstatus-notification-email-channels', () => {
       {
         id: '1',
         type: 'email',
-        value: 'test1@example.com',
+        config: {type: 'email', address: 'test1@example.com'},
         name: 'Email 1',
         status: 'enabled',
         created_at: '2023-01-01T00:00:00Z',
@@ -38,7 +38,7 @@ describe('webstatus-notification-email-channels', () => {
       {
         id: '2',
         type: 'email',
-        value: 'test2@example.com',
+        config: {type: 'email', address: 'test2@example.com'},
         name: 'Email 2',
         status: 'disabled',
         created_at: '2023-01-01T00:00:00Z',

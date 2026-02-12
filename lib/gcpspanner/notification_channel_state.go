@@ -39,6 +39,11 @@ type notificationChannelStateMapper struct{}
 
 func (m notificationChannelStateMapper) Table() string { return notificationChannelStateTable }
 
+func (m notificationChannelStateMapper) NewEntity(
+	_ string, req NotificationChannelState) (NotificationChannelState, error) {
+	return req, nil
+}
+
 func (m notificationChannelStateMapper) GetKeyFromExternal(in NotificationChannelState) string {
 	return in.ChannelID
 }

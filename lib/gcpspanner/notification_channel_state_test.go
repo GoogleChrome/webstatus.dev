@@ -32,10 +32,11 @@ func TestNotificationChannelStateOperations(t *testing.T) {
 	// We need a channel to associate the state with.
 	userID := uuid.NewString()
 	createReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test Channel",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test Channel",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
 	if err != nil {

@@ -34,6 +34,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
+	"github.com/google/go-cmp/cmp"
 )
 
 func valuePtr[T any](in T) *T { return &in }
@@ -245,6 +246,21 @@ type MockDeleteNotificationChannelConfig struct {
 	err               error
 }
 
+type MockCreateNotificationChannelConfig struct {
+	expectedUserID  string
+	expectedRequest backend.CreateNotificationChannelRequest
+	output          *backend.NotificationChannelResponse
+	err             error
+}
+
+type MockUpdateNotificationChannelConfig struct {
+	expectedUserID    string
+	expectedChannelID string
+	expectedRequest   backend.UpdateNotificationChannelRequest
+	output            *backend.NotificationChannelResponse
+	err               error
+}
+
 type MockCreateSavedSearchSubscriptionConfig struct {
 	expectedUserID       string
 	expectedSubscription backend.Subscription
@@ -309,6 +325,8 @@ type MockWPTMetricsStorer struct {
 	syncUserProfileInfoCfg                            *MockSyncUserProfileInfoConfig
 	getNotificationChannelCfg                         *MockGetNotificationChannelConfig
 	listNotificationChannelsCfg                       *MockListNotificationChannelsConfig
+	createNotificationChannelCfg                      *MockCreateNotificationChannelConfig
+	updateNotificationChannelCfg                      *MockUpdateNotificationChannelConfig
 	deleteNotificationChannelCfg                      *MockDeleteNotificationChannelConfig
 	createSavedSearchSubscriptionCfg                  *MockCreateSavedSearchSubscriptionConfig
 	deleteSavedSearchSubscriptionCfg                  *MockDeleteSavedSearchSubscriptionConfig
@@ -335,6 +353,8 @@ type MockWPTMetricsStorer struct {
 	callCountSyncUserProfileInfo                      int
 	callCountGetNotificationChannel                   int
 	callCountListNotificationChannels                 int
+	callCountCreateNotificationChannel                int
+	callCountUpdateNotificationChannel                int
 	callCountDeleteNotificationChannel                int
 	callCountCreateSavedSearchSubscription            int
 	callCountDeleteSavedSearchSubscription            int
@@ -802,6 +822,10 @@ func (m *MockWPTMetricsStorer) GetNotificationChannel(
 ) (*backend.NotificationChannelResponse, error) {
 	m.callCountGetNotificationChannel++
 
+	if m.getNotificationChannelCfg == nil {
+		return nil, errors.New("mock getNotificationChannelCfg not configured")
+	}
+
 	if userID != m.getNotificationChannelCfg.expectedUserID ||
 		channelID != m.getNotificationChannelCfg.expectedChannelID {
 		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
@@ -853,6 +877,56 @@ func (m *MockWPTMetricsStorer) DeleteNotificationChannel(
 	}
 
 	return m.deleteNotificationChannelCfg.err
+}
+
+func (m *MockWPTMetricsStorer) CreateNotificationChannel(
+	_ context.Context,
+	userID string,
+	req backend.CreateNotificationChannelRequest,
+) (*backend.NotificationChannelResponse, error) {
+	m.callCountCreateNotificationChannel++
+
+	if userID != m.createNotificationChannelCfg.expectedUserID {
+		m.t.Errorf("Incorrect arguments - Expected UserID: %s, Got: %s",
+			m.createNotificationChannelCfg.expectedUserID, userID)
+	}
+
+	if diff := cmp.Diff(m.createNotificationChannelCfg.expectedRequest,
+		req, getCreateNotificationChannelRequestCmpOption()); diff != "" {
+		m.t.Errorf("Incorrect arguments - Request mismatch (-want +got):\n%s", diff)
+	}
+
+	return m.createNotificationChannelCfg.output, m.createNotificationChannelCfg.err
+}
+
+func (m *MockWPTMetricsStorer) UpdateNotificationChannel(
+	ctx context.Context,
+	userID, channelID string,
+	req backend.UpdateNotificationChannelRequest,
+) (*backend.NotificationChannelResponse, error) {
+	m.callCountUpdateNotificationChannel++
+
+	// Simulate adapter-level fetch for defensive check
+	_, err := m.GetNotificationChannel(ctx, userID, channelID)
+	if err != nil {
+		return nil, err
+	}
+
+	if userID != m.updateNotificationChannelCfg.expectedUserID ||
+		channelID != m.updateNotificationChannelCfg.expectedChannelID {
+		m.t.Errorf("Incorrect arguments - Expected: ( %s %s ), Got: ( %s %s )",
+			m.updateNotificationChannelCfg.expectedUserID,
+			m.updateNotificationChannelCfg.expectedChannelID,
+			userID,
+			channelID)
+	}
+
+	if diff := cmp.Diff(m.updateNotificationChannelCfg.expectedRequest,
+		req, getUpdateNotificationChannelRequestCmpOption()); diff != "" {
+		m.t.Errorf("Incorrect arguments - Request mismatch (-want +got):\n%s", diff)
+	}
+
+	return m.updateNotificationChannelCfg.output, m.updateNotificationChannelCfg.err
 }
 
 type MockPublishSearchConfigurationChangedConfig struct {
@@ -1014,6 +1088,67 @@ func assertMocksExpectations(t *testing.T, expectedCallCount, actualCallCount in
 	if mockCacher != nil {
 		mockCacher.AssertExpectations()
 	}
+}
+
+//nolint:ireturn
+func getCreateNotificationChannelRequestCmpOption() cmp.Option {
+	return cmp.Transformer("NotificationChannelConfig",
+		func(in backend.CreateNotificationChannelRequest_Config) map[string]interface{} {
+			var out map[string]interface{}
+			b, _ := in.MarshalJSON()
+			_ = json.Unmarshal(b, &out)
+
+			return out
+		})
+}
+
+//nolint:ireturn
+func getUpdateNotificationChannelRequestCmpOption() cmp.Option {
+	return cmp.Transformer("NotificationChannelUpdateConfig",
+		func(in *backend.UpdateNotificationChannelRequest_Config) map[string]interface{} {
+			if in == nil {
+				return nil
+			}
+			var out map[string]interface{}
+			b, _ := in.MarshalJSON()
+			_ = json.Unmarshal(b, &out)
+
+			return out
+		})
+}
+
+func newTestNotificationChannelConfig(t *testing.T, config any) backend.NotificationChannelResponse_Config {
+	t.Helper()
+
+	var c backend.NotificationChannelResponse_Config
+
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("failed to marshal test config: %v", err)
+	}
+
+	if err := c.UnmarshalJSON(bytes); err != nil {
+		t.Fatalf("failed to unmarshal test config into wrapper: %v", err)
+	}
+
+	return c
+}
+
+func newTestCreateNotificationChannelConfig(t *testing.T, config any) backend.CreateNotificationChannelRequest_Config {
+	t.Helper()
+
+	var c backend.CreateNotificationChannelRequest_Config
+
+	bytes, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("failed to marshal test config: %v", err)
+	}
+
+	if err := c.UnmarshalJSON(bytes); err != nil {
+		t.Fatalf("failed to unmarshal test config into wrapper: %v", err)
+	}
+
+	return c
 }
 
 type testServerConfig struct {
@@ -1218,6 +1353,28 @@ func (m *mockServerInterface) DeleteNotificationChannel(
 	ctx context.Context,
 	_ backend.DeleteNotificationChannelRequestObject,
 ) (backend.DeleteNotificationChannelResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// CreateNotificationChannel implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) CreateNotificationChannel(
+	ctx context.Context,
+	_ backend.CreateNotificationChannelRequestObject,
+) (backend.CreateNotificationChannelResponseObject, error) {
+	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
+	m.callCount++
+	panic("unimplemented")
+}
+
+// UpdateNotificationChannel implements backend.StrictServerInterface.
+// nolint: ireturn // WONTFIX - generated method signature
+func (m *mockServerInterface) UpdateNotificationChannel(
+	ctx context.Context,
+	_ backend.UpdateNotificationChannelRequestObject,
+) (backend.UpdateNotificationChannelResponseObject, error) {
 	assertUserInCtx(ctx, m.t, m.expectedUserInCtx)
 	m.callCount++
 	panic("unimplemented")

@@ -31,10 +31,11 @@ func TestCreateNotificationChannelDeliveryAttempt(t *testing.T) {
 	// We need a channel to associate the attempt with.
 	userID := uuid.NewString()
 	createReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test Channel",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test Channel",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
 	if err != nil {
@@ -90,10 +91,11 @@ func TestCreateNotificationChannelDeliveryAttemptPruning(t *testing.T) {
 	// We need a channel to associate the attempt with.
 	userID := uuid.NewString()
 	createReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test Channel",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test Channel",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
 	if err != nil {
@@ -162,10 +164,11 @@ func TestCreateNotificationChannelDeliveryAttemptConcurrency(t *testing.T) {
 	// We need a channel to associate the attempt with.
 	userID := uuid.NewString()
 	createReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test Channel",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test Channel",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	concurrentChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
 	if err != nil {
@@ -219,10 +222,11 @@ func TestListNotificationChannelDeliveryAttemptsPagination(t *testing.T) {
 	// We need a channel to associate the attempt with.
 	userID := uuid.NewString()
 	createReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test Channel",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test Channel",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, createReq)
 	if err != nil {

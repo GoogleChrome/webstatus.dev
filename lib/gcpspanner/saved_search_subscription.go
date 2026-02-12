@@ -408,6 +408,8 @@ type SubscriberDestination struct {
 	Triggers       []SubscriptionTrigger
 	// If type is EMAIL, EmailConfig is set.
 	EmailConfig *EmailConfig
+	// If type is WEBHOOK, WebhookConfig is set.
+	WebhookConfig *WebhookConfig
 }
 
 type readAllActivePushSubscriptionsMapper struct {
@@ -478,12 +480,14 @@ func (c *Client) FindAllActivePushSubscriptions(
 			Type:           v.Type,
 			Triggers:       v.Triggers,
 			EmailConfig:    nil,
+			WebhookConfig:  nil,
 		}
 		subscriptionConfigs, err := loadSubscriptionConfigs(v.Type, v.Config)
 		if err != nil {
 			return nil, err
 		}
 		dest.EmailConfig = subscriptionConfigs.EmailConfig
+		dest.WebhookConfig = subscriptionConfigs.WebhookConfig
 		results = append(results, dest)
 	}
 
