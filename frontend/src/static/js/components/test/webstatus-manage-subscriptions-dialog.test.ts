@@ -29,7 +29,7 @@ import {
   SlCheckbox,
 } from '@shoelace-style/shoelace';
 
-describe('webstatus-manage-subscriptions-dialog', () => {
+describe('webstatus-manage-subscriptions-dialog', async () => {
   let sandbox: sinon.SinonSandbox;
   let apiClient: APIClient;
   let userContext: UserContext;
@@ -405,7 +405,7 @@ describe('webstatus-manage-subscriptions-dialog', () => {
   });
 
   it('sets actionState correctly on successful delete', async () => {
-    // Create a new element configured exactly for this test's needs.
+    // 1. Setup the fixture
     const deleteElement = await fixture<ManageSubscriptionsDialog>(html`
       <webstatus-manage-subscriptions-dialog
         .apiClient=${apiClient as APIClient}
@@ -413,42 +413,45 @@ describe('webstatus-manage-subscriptions-dialog', () => {
         .subscriptionId=${'test-sub-id'}
       ></webstatus-manage-subscriptions-dialog>
     `);
-    // Create a promise that will resolve when the success event is heard
+
+    // 2. Setup the success listener
     const eventPromise = new Promise<void>(resolve => {
       deleteElement.addEventListener('subscription-delete-success', () =>
         resolve(),
       );
     });
 
+    // 3. Trigger the open state
     deleteElement.open = true;
+
+    // 4. Wait for loading and rendering
+
+    // A. Wait for the 'open' property change to trigger the initial update.
+    // This causes the component to start the @lit/task.
     await deleteElement.updateComplete;
 
-    // 2. Get the dialog element and create a promise that resolves when it's fully shown
-    const mainDialog =
-      deleteElement.shadowRoot!.querySelector<SlDialog>('.dialog-main');
-    const afterShowPromise = new Promise(resolve => {
-      mainDialog!.addEventListener('sl-after-show', resolve, {once: true});
-    });
-
-    deleteElement.open = true;
-    await afterShowPromise;
+    // B. Wait for the internal Task (API fetch) to finish completely.
     await deleteElement['_loadingTask'].taskComplete;
+
+    // C. Wait for the component to re-render using the data from the completed Task.
     await deleteElement.updateComplete;
 
+    // 5. Query and Click
     const deleteButton = deleteElement.shadowRoot?.querySelector<SlButton>(
       '#confirm-unsubscribe',
     );
-    expect(deleteButton).to.exist; // Ensure button exists.
 
-    // Simulate clicking the delete button.
     deleteButton!.click();
+
+    // 6. Wait for the click handler to finish its work
     await deleteElement.updateComplete;
 
+    // 7. Assertions
     expect(apiClient.deleteSubscription).to.have.been.calledWith(
       'test-sub-id',
       'test-token',
     );
-    // Wait for event promise to resolve
+
     await eventPromise;
 
     expect(deleteElement['_actionState'].phase).to.equal('success');
@@ -511,7 +514,7 @@ describe('webstatus-manage-subscriptions-dialog', () => {
     expect(element['_actionState']).to.deep.equal({phase: 'idle'});
   });
 
-  describe('_handleChannelChange with custom dialog', () => {
+  describe('_handleChannelChange with custom dialog', async () => {
     let confirmDialog: SlDialog;
 
     beforeEach(async () => {

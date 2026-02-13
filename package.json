@@ -13,7 +13,7 @@
     "lib/gen/openapi/ts-webstatus.dev-backend-types"
   ],
   "devDependencies": {
-    "@playwright/test": "^1.57.0",
+    "@playwright/test": "^1.58.1",
     "@types/node": "^22.9.0",
     "concurrently": "^9.2.1",
     "eslint-plugin-n": "^17.23.2",
@@ -29,7 +29,6 @@
     "@humanwhocodes/object-schema": "@eslint/object-schema",
     "rimraf": "^6.0.0",
     "glob": "^11.0.0",
-    "eslint": "^9.17.0",
     "whatwg-url": "^14.1.0",
     "uri-js": "npm:uri-js-replace",
     "tmp": "0.2.4"
