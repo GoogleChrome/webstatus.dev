@@ -48,7 +48,7 @@
     "eslint-plugin-lit": "^2.1.1",
     "eslint-plugin-promise": "^7.2.1",
     "lit-analyzer": "^2.0.2",
-    "openapi-typescript-helpers": "^0.0.15",
+    "openapi-typescript-helpers": "^0.1.0",
     "playwright": "^1.56.1",
     "prettier": "3.8.1",
     "rollup": "^4.57.1",
