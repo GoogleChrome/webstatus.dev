@@ -354,7 +354,7 @@ export class ManageSubscriptionsDialog extends LitElement {
           promises.push(
             apiClient.listSubscriptions(token).then(r => {
               this._subscriptionsForSavedSearch =
-                r.filter(s => s.saved_search_id === savedSearchId) || [];
+                r.filter(s => s.subscribable.id === savedSearchId) || [];
             }),
           );
         }

@@ -144,11 +144,11 @@ type BackendSpannerClient interface {
 	CreateSavedSearchSubscription(
 		ctx context.Context, req gcpspanner.CreateSavedSearchSubscriptionRequest) (*string, error)
 	GetSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) (
-		*gcpspanner.SavedSearchSubscription, error)
+		*gcpspanner.SavedSearchSubscriptionView, error)
 	UpdateSavedSearchSubscription(ctx context.Context, req gcpspanner.UpdateSavedSearchSubscriptionRequest) error
 	DeleteSavedSearchSubscription(ctx context.Context, subscriptionID string, userID string) error
 	ListSavedSearchSubscriptions(ctx context.Context, req gcpspanner.ListSavedSearchSubscriptionsRequest) (
-		[]gcpspanner.SavedSearchSubscription, *string, error)
+		[]gcpspanner.SavedSearchSubscriptionView, *string, error)
 	GetNotificationChannel(
 		ctx context.Context, channelID string, userID string) (*gcpspanner.NotificationChannel, error)
 	ListNotificationChannels(ctx context.Context, req gcpspanner.ListNotificationChannelsRequest) (
@@ -1593,18 +1593,21 @@ func (s *Backend) DeleteSavedSearchSubscription(ctx context.Context, userID, sub
 	return nil
 }
 
-func toBackendSubscription(sub *gcpspanner.SavedSearchSubscription) *backend.SubscriptionResponse {
+func toBackendSubscription(sub *gcpspanner.SavedSearchSubscriptionView) *backend.SubscriptionResponse {
 	if sub == nil {
 		return nil
 	}
 
 	return &backend.SubscriptionResponse{
-		Id:            sub.ID,
-		ChannelId:     sub.ChannelID,
-		SavedSearchId: sub.SavedSearchID,
-		Triggers:      spannerTriggersToBackendTriggers(sub.Triggers),
-		Frequency:     toBackendSubscriptionFrequency(sub.Frequency),
-		CreatedAt:     sub.CreatedAt,
-		UpdatedAt:     sub.UpdatedAt,
+		Id: sub.ID,
+		Subscribable: backend.SavedSearchInfo{
+			Id:   sub.SavedSearchID,
+			Name: sub.SavedSearchName,
+		},
+		ChannelId: sub.ChannelID,
+		Triggers:  spannerTriggersToBackendTriggers(sub.Triggers),
+		Frequency: toBackendSubscriptionFrequency(sub.Frequency),
+		CreatedAt: sub.CreatedAt,
+		UpdatedAt: sub.UpdatedAt,
 	}
 }

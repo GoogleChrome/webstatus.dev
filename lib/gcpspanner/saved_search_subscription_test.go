@@ -73,25 +73,32 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetSavedSearchSubscription failed: %v", err)
 	}
-	expected := &SavedSearchSubscription{
-		ID:            subID,
-		ChannelID:     createReq.ChannelID,
-		SavedSearchID: createReq.SavedSearchID,
-		Triggers:      createReq.Triggers,
-		Frequency:     createReq.Frequency,
-		CreatedAt:     time.Time{},
-		UpdatedAt:     time.Time{},
-	}
-	if diff := cmp.Diff(expected, retrieved,
-		cmpopts.IgnoreFields(SavedSearchSubscription{
-			ID:            "",
-			ChannelID:     "",
-			SavedSearchID: "",
-			Triggers:      nil,
-			Frequency:     "",
+	expected := &SavedSearchSubscriptionView{
+		SavedSearchSubscription: SavedSearchSubscription{
+			ID:            subID,
+			ChannelID:     createReq.ChannelID,
+			SavedSearchID: createReq.SavedSearchID,
+			Triggers:      createReq.Triggers,
+			Frequency:     createReq.Frequency,
 			CreatedAt:     time.Time{},
 			UpdatedAt:     time.Time{},
-		}, "CreatedAt", "UpdatedAt")); diff != "" {
+		},
+		SavedSearchName: "Test Search",
+	}
+	if diff := cmp.Diff(expected, retrieved,
+		cmpopts.IgnoreFields(SavedSearchSubscriptionView{
+			SavedSearchSubscription: SavedSearchSubscription{
+				ID:            "",
+				ChannelID:     "",
+				SavedSearchID: "",
+				Triggers:      nil,
+				Frequency:     "",
+				CreatedAt:     time.Time{},
+				UpdatedAt:     time.Time{},
+			},
+			SavedSearchName: "",
+		},
+			"SavedSearchSubscription.CreatedAt", "SavedSearchSubscription.UpdatedAt")); diff != "" {
 		t.Errorf("GetSavedSearchSubscription mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -208,6 +215,9 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 	}
 	if retrieved.Frequency != SavedSearchSnapshotTypeWeekly {
 		t.Errorf("expected updated frequency, got %s", retrieved.Frequency)
+	}
+	if retrieved.SavedSearchName != "Test Search" {
+		t.Errorf("expected SavedSearchName to be 'Test Search', got '%s'", retrieved.SavedSearchName)
 	}
 	expectedTriggers := []SubscriptionTrigger{SubscriptionTriggerBrowserImplementationAnyComplete}
 	if diff := cmp.Diff(expectedTriggers, retrieved.Triggers); diff != "" {
@@ -328,6 +338,11 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 	}
 	if len(results1) != 2 {
 		t.Errorf("expected 2 results on page 1, got %d", len(results1))
+	}
+	for _, sub := range results1 {
+		if sub.SavedSearchName != "Test Search" {
+			t.Errorf("expected SavedSearchName to be 'Test Search', got '%s'", sub.SavedSearchName)
+		}
 	}
 	if nextPageToken1 == nil {
 		t.Fatal("expected a next page token on page 1, got nil")

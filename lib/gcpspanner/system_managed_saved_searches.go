@@ -284,7 +284,7 @@ func (c *Client) reconcileSystemManagedSavedSearch(
 		return nil, err
 	}
 
-	expectedName := systemSavedSearchName(f.FeatureKey)
+	expectedName := systemSavedSearchName(f.Name)
 	expectedQuery := systemSavedSearchQuery(f.FeatureKey)
 	if savedSearch.Name != expectedName || savedSearch.Query != expectedQuery {
 		savedSearch.Name = expectedName
