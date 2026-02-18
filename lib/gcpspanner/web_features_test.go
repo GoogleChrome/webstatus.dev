@@ -758,3 +758,162 @@ func TestSyncWebFeatures_RedirectForMissingSource(t *testing.T) {
 		t.Errorf("features mismatch (-want +got):\n%s", diff)
 	}
 }
+
+func TestSyncWebFeatures_MultipleRedirectsToSameTarget(t *testing.T) {
+	ctx := context.Background()
+	restartDatabaseContainer(t)
+
+	// 1. Setup initial state with three features
+	initialState := []WebFeature{
+		{FeatureKey: "feature-a", Name: "Feature A", Description: "", DescriptionHTML: ""},
+		{FeatureKey: "feature-b", Name: "Feature B", Description: "", DescriptionHTML: ""},
+		{FeatureKey: "feature-c", Name: "Feature C", Description: "", DescriptionHTML: ""},
+	}
+	if err := spannerClient.SyncWebFeatures(ctx, initialState); err != nil {
+		t.Fatalf("Failed to set up initial state: %v", err)
+	}
+
+	// Ensure system managed saved searches exist
+	if err := spannerClient.SyncSystemManagedSavedQuery(ctx); err != nil {
+		t.Fatalf("Failed to sync system managed saved queries: %v", err)
+	}
+
+	// Get IDs for the features
+	pairs, err := spannerClient.FetchAllWebFeatureIDsAndKeys(ctx)
+	if err != nil {
+		t.Fatalf("Failed to fetch feature IDs and keys: %v", err)
+	}
+	featureKeyToID := make(map[string]string)
+	for _, pair := range pairs {
+		featureKeyToID[pair.FeatureKey] = pair.ID
+	}
+
+	// Verify initial saved searches exist
+	smsA, err := spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-a"])
+	if err != nil {
+		t.Fatalf("Failed to get system managed saved search for feature-a: %v", err)
+	}
+	smsB, err := spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-b"])
+	if err != nil {
+		t.Fatalf("Failed to get system managed saved search for feature-b: %v", err)
+	}
+	smsC, err := spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-c"])
+	if err != nil {
+		t.Fatalf("Failed to get system managed saved search for feature-c: %v", err)
+	}
+
+	// --- Subscription Setup ---
+	userID := "test-user"
+	channelID, err := spannerClient.CreateNotificationChannel(ctx, CreateNotificationChannelRequest{
+		UserID: userID,
+		Name:   "Test Channel",
+		Type:   NotificationChannelTypeEmail,
+		EmailConfig: &EmailConfig{
+			Address:           "test@example.com",
+			IsVerified:        true,
+			VerificationToken: nil,
+		},
+	})
+	if err != nil {
+		t.Fatalf("Failed to create notification channel: %v", err)
+	}
+
+	subA, err := spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     *channelID,
+		SavedSearchID: smsA.SavedSearchID,
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerBrowserImplementationAnyComplete},
+		Frequency:     SavedSearchSnapshotTypeWeekly,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create subscription for feature-a: %v", err)
+	}
+
+	// Create a subscription for feature-c (target) to test deduplication.
+	// Since the user is already subscribed to the target, the subscription for feature-a should be dropped
+	// during migration.
+	subC, err := spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
+		UserID:        userID,
+		ChannelID:     *channelID,
+		SavedSearchID: smsC.SavedSearchID,
+		Triggers:      []SubscriptionTrigger{SubscriptionTriggerBrowserImplementationAnyComplete},
+		Frequency:     SavedSearchSnapshotTypeWeekly,
+	})
+	if err != nil {
+		t.Fatalf("Failed to create subscription for feature-c: %v", err)
+	}
+	// --------------------------
+
+	// 2. Run the sync with two features redirecting to the same target
+	// feature-a -> feature-c
+	// feature-b -> feature-c
+	desiredState := []WebFeature{
+		{FeatureKey: "feature-c", Name: "Feature C", Description: "", DescriptionHTML: ""},
+	}
+	opts := []SyncWebFeaturesOption{
+		WithRedirectTargets(map[string]string{
+			"feature-a": "feature-c",
+			"feature-b": "feature-c",
+		}),
+	}
+
+	if err := spannerClient.SyncWebFeatures(ctx, desiredState, opts...); err != nil {
+		t.Fatalf("SyncWebFeatures failed: %v", err)
+	}
+
+	// 3. Verify final state
+	// feature-c should still have a saved search (it should be preserved as per logic 'Target already has one')
+	smsCFinal, err := spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-c"])
+	if err != nil {
+		t.Fatalf("Failed to get system managed saved search for feature-c after sync: %v", err)
+	}
+
+	// It should be the original one because the target already existed.
+	if smsCFinal.SavedSearchID != smsC.SavedSearchID {
+		t.Errorf("Expected feature-c saved search ID to be preserved. Got %s, want %s",
+			smsCFinal.SavedSearchID, smsC.SavedSearchID)
+	}
+
+	// --- Verify Subscription Deduplication ---
+	// Subscription A should be deleted (cascaded from SavedSearch A deletion).
+	// It was dropped during migration because user already has C.
+	_, err = spannerClient.GetSavedSearchSubscription(ctx, *subA, userID)
+	if !errors.Is(err, ErrMissingRequiredRole) {
+		// We expect a permission error here because the subscription was deleted, but if we get a different error,
+		// that's unexpected.
+		t.Errorf("Expected Subscription A to be deleted immediately, got error: %v", err)
+	}
+
+	// Subscription C should still exist.
+	_, err = spannerClient.GetSavedSearchSubscription(ctx, *subC, userID)
+	if err != nil {
+		t.Errorf("Expected subscription C to persist, got error: %v", err)
+	}
+	// -------------------------------------
+
+	// feature-a and feature-b saved searches should be deleted (cascaded from SystemManagedSavedSearches)
+	_, err = spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-a"])
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Errorf("Expected feature-a system managed saved search to be deleted, got error: %v", err)
+	}
+	_, err = spannerClient.GetSystemManagedSavedSearchByFeatureID(ctx, featureKeyToID["feature-b"])
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Errorf("Expected feature-b system managed saved search to be deleted, got error: %v", err)
+	}
+
+	// SavedSearch A and B should be deleted (cascaded from GetChildDeleteKeyMutations)
+	_, err = spannerClient.GetSavedSearch(ctx, smsA.SavedSearchID)
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Errorf("Expected SavedSearch for A to be deleted immediately, got error: %v", err)
+	}
+	_, err = spannerClient.GetSavedSearch(ctx, smsB.SavedSearchID)
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Errorf("Expected SavedSearch for B to be deleted immediately, got error: %v", err)
+	}
+
+	// Verify orphans are gone
+	_, err = spannerClient.GetSavedSearch(ctx, smsA.SavedSearchID)
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		t.Errorf("Expected SavedSearch for A to be cleaned up, got error: %v", err)
+	}
+}
