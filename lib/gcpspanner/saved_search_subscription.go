@@ -363,6 +363,34 @@ func (c *Client) ListSavedSearchSubscriptions(
 	return newEntityLister[savedSearchSubscriptionMapper](c).list(ctx, req)
 }
 
+func (c *Client) ListSubscriptionsBySavedSearchID(
+	ctx context.Context,
+	savedSearchID string,
+) ([]SavedSearchSubscription, error) {
+	stmt := spanner.NewStatement(`
+		SELECT ID, ChannelID, SavedSearchID, Triggers, Frequency, CreatedAt, UpdatedAt
+		FROM SavedSearchSubscriptions
+		WHERE SavedSearchID = @savedSearchID
+	`)
+	stmt.Params["savedSearchID"] = savedSearchID
+
+	iter := c.Single().Query(ctx, stmt)
+	defer iter.Stop()
+
+	var results []SavedSearchSubscription
+	err := iter.Do(func(row *spanner.Row) error {
+		var sub SavedSearchSubscription
+		if err := row.ToStruct(&sub); err != nil {
+			return err
+		}
+		results = append(results, sub)
+
+		return nil
+	})
+
+	return results, err
+}
+
 type spannerSubscriberDestination struct {
 	SubscriptionID string                  `spanner:"ID"`
 	UserID         string                  `spanner:"UserID"`

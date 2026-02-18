@@ -340,7 +340,7 @@ func (m webFeatureSpannerMapper) moveLatestFeatureDeveloperSignals(
 func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 	ctx context.Context,
 	c *Client,
-	sourceID, targetKey string,
+	sourceID, targetID, targetKey string,
 	savedSearchMutations *[]*spanner.Mutation,
 	systemManagedSearchMutations *[]*spanner.Mutation,
 ) error {
@@ -354,6 +354,57 @@ func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 
 		return fmt.Errorf("unable to get system managed saved search: %w", err)
 	}
+
+	// Check if the target feature already has a system managed saved search.
+	// If it does, we don't want to overwrite it with the redirected one.
+	targetSystemManagedSearch, err := c.GetSystemManagedSavedSearchByFeatureID(ctx, targetID)
+	if err == nil {
+		// Target exists. Migrate subscriptions from the old saved search to the new one.
+		subscriptions, err := c.ListSubscriptionsBySavedSearchID(ctx, systemManagedSearch.SavedSearchID)
+		if err != nil {
+			return fmt.Errorf("failed to list subscriptions for migration: %w", err)
+		}
+
+		// Fetch existing subscriptions for the target saved search to check for duplicates.
+		targetSubscriptions, err := c.ListSubscriptionsBySavedSearchID(ctx, targetSystemManagedSearch.SavedSearchID)
+		if err != nil {
+			return fmt.Errorf("failed to list target subscriptions for deduplication: %w", err)
+		}
+		targetChannelIDs := make(map[string]bool)
+		for _, s := range targetSubscriptions {
+			targetChannelIDs[s.ChannelID] = true
+		}
+
+		for _, sub := range subscriptions {
+			if targetChannelIDs[sub.ChannelID] {
+				// User is already subscribed to the target feature. Skip migration (effectively deleting the old subscription).
+				continue
+			}
+
+			sub.SavedSearchID = targetSystemManagedSearch.SavedSearchID
+			sub.UpdatedAt = spanner.CommitTimestamp
+			// We update the subscription to point to the new saved search ID.
+			m, err := spanner.UpdateStruct(savedSearchSubscriptionTable, sub)
+			if err != nil {
+				return fmt.Errorf("failed to create update mutation for subscription migration: %w", err)
+			}
+			*savedSearchMutations = append(*savedSearchMutations, m)
+		}
+
+		// We do NOT delete the source system managed saved search association here.
+		// By leaving it, GetChildDeleteKeyMutations will find it later and delete it
+		// ALONG WITH the old SavedSearch (which is what we want, as we are done with it).
+		return nil
+	}
+	if !errors.Is(err, ErrQueryReturnedNoResults) {
+		return fmt.Errorf("unable to check for existing target system managed saved search: %w", err)
+	}
+
+	// We are repurposing the source saved search for the target.
+	// We MUST delete the old association here to prevent GetChildDeleteKeyMutations from
+	// finding it and deleting the SavedSearch row we are about to update.
+	deleteSubMutation := spanner.Delete(systemManagedSavedSearchesTable, spanner.Key{sourceID})
+	*systemManagedSearchMutations = append(*systemManagedSearchMutations, deleteSubMutation)
 
 	savedSearch, err := c.GetSavedSearch(ctx, systemManagedSearch.SavedSearchID)
 	if err != nil {
@@ -370,19 +421,18 @@ func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 	}
 	*savedSearchMutations = append(*savedSearchMutations, updateMutation)
 
-	// Now update the system-managed saved search association
-	deleteSubMutation := spanner.Delete(systemManagedSavedSearchesTable, spanner.Key{sourceID})
 	newSystemManagedSearch := SystemManagedSavedSearch{
-		FeatureID:     targetKey, // The target ID (feature key) is the new FeatureID
+		FeatureID:     targetID,
 		SavedSearchID: systemManagedSearch.SavedSearchID,
 		CreatedAt:     spanner.CommitTimestamp,
 		UpdatedAt:     spanner.CommitTimestamp,
 	}
-	insertSubMutation, err := spanner.InsertStruct(systemManagedSavedSearchesTable, &newSystemManagedSearch)
+	// Use InsertOrUpdate to handle potential race conditions or multiple redirects to the same target in the same batch.
+	insertSubMutation, err := spanner.InsertOrUpdateStruct(systemManagedSavedSearchesTable, &newSystemManagedSearch)
 	if err != nil {
 		return fmt.Errorf("unable to create insert mutation for system managed search: %w", err)
 	}
-	*systemManagedSearchMutations = append(*systemManagedSearchMutations, deleteSubMutation, insertSubMutation)
+	*systemManagedSearchMutations = append(*systemManagedSearchMutations, insertSubMutation)
 
 	return nil
 }
@@ -467,7 +517,7 @@ func (m webFeatureSpannerMapper) PreDeleteHook(
 
 		// Now move the SystemManagedSavedSearch
 		if err := m.moveSystemManagedSavedSearch(
-			ctx, c, sourceID, targetKey, &savedSearchMutations, &systemManagedSearchMutations); err != nil {
+			ctx, c, sourceID, targetID, targetKey, &savedSearchMutations, &systemManagedSearchMutations); err != nil {
 			slog.ErrorContext(ctx, "failed to move system managed saved search", "error", err, "sourceID", sourceID)
 
 			return nil, err
