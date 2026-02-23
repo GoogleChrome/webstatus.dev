@@ -28,8 +28,8 @@ import (
 const webFeaturesTable = "WebFeatures"
 const systemAuthorID = "system"
 
-func systemSavedSearchName(featureKey string) string {
-	return fmt.Sprintf("Feature %s", featureKey)
+func systemSavedSearchName(featureName string) string {
+	return fmt.Sprintf("Feature: %s", featureName)
 }
 
 func systemSavedSearchQuery(featureKey string) string {
@@ -68,7 +68,7 @@ func (m webFeatureSpannerMapper) createSystemManagedSavedSearchMutations(
 	savedSearchID := uuid.NewString()
 	savedSearch := SavedSearch{
 		ID:          savedSearchID,
-		Name:        systemSavedSearchName(entity.FeatureKey),
+		Name:        systemSavedSearchName(entity.Name),
 		Query:       systemSavedSearchQuery(entity.FeatureKey),
 		Description: &description,
 		AuthorID:    systemAuthorID,
@@ -411,7 +411,12 @@ func (m webFeatureSpannerMapper) moveSystemManagedSavedSearch(
 		return fmt.Errorf("unable to get saved search: %w", err)
 	}
 
-	savedSearch.Name = systemSavedSearchName(targetKey)
+	targetFeature, err := c.GetWebFeatureByID(ctx, targetID)
+	if err != nil {
+		return fmt.Errorf("unable to get target feature for redirect: %w", err)
+	}
+
+	savedSearch.Name = systemSavedSearchName(targetFeature.Name)
 	savedSearch.Query = systemSavedSearchQuery(targetKey)
 	savedSearch.UpdatedAt = spanner.CommitTimestamp
 

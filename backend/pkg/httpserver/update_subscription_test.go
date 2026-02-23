@@ -56,9 +56,9 @@ func TestUpdateSubscription(t *testing.T) {
 					Frequency: nil,
 				},
 				output: &backend.SubscriptionResponse{
-					Id:            "sub-id",
-					ChannelId:     "channel-id",
-					SavedSearchId: "search-id",
+					Id:           "sub-id",
+					ChannelId:    "channel-id",
+					Subscribable: backend.SavedSearchInfo{Id: "search-id", Name: "Feature name"},
 					Triggers: []backend.SubscriptionTriggerResponseItem{
 						{
 							Value: backendtypes.AttemptToStoreSubscriptionTrigger(
@@ -86,7 +86,7 @@ func TestUpdateSubscription(t *testing.T) {
 				`{
 					"id":"sub-id",
 					"channel_id":"channel-id",
-					"saved_search_id":"search-id",
+					"subscribable":{"id":"search-id","name":"Feature name"},
 					"triggers": [{"value":"feature_browser_implementation_any_complete"}],
 					"frequency":"daily",
 					"created_at":"`+now.Format(time.RFC3339Nano)+`",

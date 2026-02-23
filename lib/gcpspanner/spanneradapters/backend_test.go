@@ -169,7 +169,7 @@ type mockCreateSavedSearchSubscriptionConfig struct {
 type mockGetSavedSearchSubscriptionConfig struct {
 	expectedSubscriptionID string
 	expectedUserID         string
-	result                 *gcpspanner.SavedSearchSubscription
+	result                 *gcpspanner.SavedSearchSubscriptionView
 	returnedError          error
 }
 
@@ -186,7 +186,7 @@ type mockDeleteSavedSearchSubscriptionConfig struct {
 
 type mockListSavedSearchSubscriptionsConfig struct {
 	expectedRequest gcpspanner.ListSavedSearchSubscriptionsRequest
-	result          []gcpspanner.SavedSearchSubscription
+	result          []gcpspanner.SavedSearchSubscriptionView
 	nextPageToken   *string
 	returnedError   error
 }
@@ -587,7 +587,7 @@ func (c mockBackendSpannerClient) DeleteSavedSearchSubscription(
 func (c mockBackendSpannerClient) GetSavedSearchSubscription(
 	_ context.Context,
 	subscriptionID string,
-	userID string) (*gcpspanner.SavedSearchSubscription, error) {
+	userID string) (*gcpspanner.SavedSearchSubscriptionView, error) {
 	if subscriptionID != c.mockGetSavedSearchSubscriptionCfg.expectedSubscriptionID ||
 		userID != c.mockGetSavedSearchSubscriptionCfg.expectedUserID {
 		c.t.Error("unexpected input to mock")
@@ -599,7 +599,7 @@ func (c mockBackendSpannerClient) GetSavedSearchSubscription(
 // ListSavedSearchSubscriptions implements BackendSpannerClient.
 func (c mockBackendSpannerClient) ListSavedSearchSubscriptions(
 	_ context.Context,
-	req gcpspanner.ListSavedSearchSubscriptionsRequest) ([]gcpspanner.SavedSearchSubscription, *string, error) {
+	req gcpspanner.ListSavedSearchSubscriptionsRequest) ([]gcpspanner.SavedSearchSubscriptionView, *string, error) {
 	if !reflect.DeepEqual(req, c.mockListSavedSearchSubscriptionsCfg.expectedRequest) {
 		c.t.Error("unexpected input to mock")
 	}
@@ -3727,21 +3727,24 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 			getCfg: &mockGetSavedSearchSubscriptionConfig{
 				expectedSubscriptionID: subID,
 				expectedUserID:         userID,
-				result: &gcpspanner.SavedSearchSubscription{
-					ID:            subID,
-					ChannelID:     channelID,
-					SavedSearchID: savedSearchID,
-					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-					CreatedAt:     now,
-					UpdatedAt:     now,
+				result: &gcpspanner.SavedSearchSubscriptionView{
+					SavedSearchSubscription: gcpspanner.SavedSearchSubscription{
+						ID:            subID,
+						ChannelID:     channelID,
+						SavedSearchID: savedSearchID,
+						Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+						CreatedAt:     now,
+						UpdatedAt:     now,
+					},
+					SavedSearchName: "Feature name",
 				},
 				returnedError: nil,
 			},
 			expected: &backend.SubscriptionResponse{
-				Id:            subID,
-				ChannelId:     channelID,
-				SavedSearchId: savedSearchID,
+				Id:           subID,
+				ChannelId:    channelID,
+				Subscribable: backend.SavedSearchInfo{Id: savedSearchID, Name: "Feature name"},
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
@@ -3849,15 +3852,18 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 					PageSize:  10,
 					PageToken: nil,
 				},
-				result: []gcpspanner.SavedSearchSubscription{
+				result: []gcpspanner.SavedSearchSubscriptionView{
 					{
-						ID:            "sub1",
-						ChannelID:     "chan1",
-						SavedSearchID: "search1",
-						Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-						CreatedAt:     now,
-						UpdatedAt:     now,
+						SavedSearchSubscription: gcpspanner.SavedSearchSubscription{
+							ID:            "sub1",
+							ChannelID:     "chan1",
+							SavedSearchID: "search1",
+							Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+							Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+							CreatedAt:     now,
+							UpdatedAt:     now,
+						},
+						SavedSearchName: "Feature name",
 					},
 				},
 				nextPageToken: nonNilNextPageToken,
@@ -3866,9 +3872,9 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 			expected: &backend.SubscriptionPage{
 				Data: &[]backend.SubscriptionResponse{
 					{
-						Id:            "sub1",
-						ChannelId:     "chan1",
-						SavedSearchId: "search1",
+						Id:           "sub1",
+						ChannelId:    "chan1",
+						Subscribable: backend.SavedSearchInfo{Id: "search1", Name: "Feature name"},
 						Triggers: []backend.SubscriptionTriggerResponseItem{
 							{
 								Value: backendtypes.AttemptToStoreSubscriptionTrigger(
@@ -3943,21 +3949,24 @@ func TestGetSavedSearchSubscription(t *testing.T) {
 			cfg: &mockGetSavedSearchSubscriptionConfig{
 				expectedSubscriptionID: subID,
 				expectedUserID:         userID,
-				result: &gcpspanner.SavedSearchSubscription{
-					ID:            subID,
-					ChannelID:     "chan1",
-					SavedSearchID: "search1",
-					Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-					CreatedAt:     now,
-					UpdatedAt:     now,
+				result: &gcpspanner.SavedSearchSubscriptionView{
+					SavedSearchSubscription: gcpspanner.SavedSearchSubscription{
+						ID:            subID,
+						ChannelID:     "chan1",
+						SavedSearchID: "search1",
+						Triggers:      []gcpspanner.SubscriptionTrigger{gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+						CreatedAt:     now,
+						UpdatedAt:     now,
+					},
+					SavedSearchName: "Feature name",
 				},
 				returnedError: nil,
 			},
 			expected: &backend.SubscriptionResponse{
-				Id:            subID,
-				ChannelId:     "chan1",
-				SavedSearchId: "search1",
+				Id:           subID,
+				ChannelId:    "chan1",
+				Subscribable: backend.SavedSearchInfo{Id: "search1", Name: "Feature name"},
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(
@@ -4060,15 +4069,18 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 			getCfg: &mockGetSavedSearchSubscriptionConfig{
 				expectedSubscriptionID: subID,
 				expectedUserID:         userID,
-				result: &gcpspanner.SavedSearchSubscription{
-					ID: subID,
-					Triggers: []gcpspanner.SubscriptionTrigger{
-						gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly},
-					ChannelID:     "channel",
-					SavedSearchID: "savedsearch",
-					Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
-					CreatedAt:     now,
-					UpdatedAt:     now,
+				result: &gcpspanner.SavedSearchSubscriptionView{
+					SavedSearchSubscription: gcpspanner.SavedSearchSubscription{
+						ID: subID,
+						Triggers: []gcpspanner.SubscriptionTrigger{
+							gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly},
+						ChannelID:     "channel",
+						SavedSearchID: "savedsearch",
+						Frequency:     gcpspanner.SavedSearchSnapshotTypeImmediate,
+						CreatedAt:     now,
+						UpdatedAt:     now,
+					},
+					SavedSearchName: "Feature name",
 				},
 				returnedError: nil,
 			},
@@ -4081,11 +4093,14 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 						RawValue: nil,
 					},
 				},
-				ChannelId:     "channel",
-				SavedSearchId: "savedsearch",
-				Frequency:     backend.SubscriptionFrequencyImmediate,
-				CreatedAt:     now,
-				UpdatedAt:     now,
+				ChannelId: "channel",
+				Subscribable: backend.SavedSearchInfo{
+					Id:   "savedsearch",
+					Name: "Feature name",
+				},
+				Frequency: backend.SubscriptionFrequencyImmediate,
+				CreatedAt: now,
+				UpdatedAt: now,
 			},
 			expectedError: nil,
 		},
@@ -4111,22 +4126,28 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 			getCfg: &mockGetSavedSearchSubscriptionConfig{
 				expectedSubscriptionID: subID,
 				expectedUserID:         userID,
-				result: &gcpspanner.SavedSearchSubscription{
-					ID:            subID,
-					ChannelID:     "channel",
-					SavedSearchID: "savedsearchid",
-					Triggers: []gcpspanner.SubscriptionTrigger{
-						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
-					Frequency: updatedSpannerFrequency,
-					CreatedAt: now,
-					UpdatedAt: now,
+				result: &gcpspanner.SavedSearchSubscriptionView{
+					SavedSearchSubscription: gcpspanner.SavedSearchSubscription{
+						ID:            subID,
+						ChannelID:     "channel",
+						SavedSearchID: "savedsearchid",
+						Triggers: []gcpspanner.SubscriptionTrigger{
+							gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
+						Frequency: updatedSpannerFrequency,
+						CreatedAt: now,
+						UpdatedAt: now,
+					},
+					SavedSearchName: "Feature name",
 				},
 				returnedError: nil,
 			},
 			expected: &backend.SubscriptionResponse{
-				Id:            subID,
-				ChannelId:     "channel",
-				SavedSearchId: "savedsearchid",
+				Id:        subID,
+				ChannelId: "channel",
+				Subscribable: backend.SavedSearchInfo{
+					Id:   "savedsearchid",
+					Name: "Feature name",
+				},
 				Triggers: []backend.SubscriptionTriggerResponseItem{
 					{
 						Value: backendtypes.AttemptToStoreSubscriptionTrigger(

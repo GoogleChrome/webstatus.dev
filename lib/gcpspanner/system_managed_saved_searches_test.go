@@ -236,8 +236,8 @@ func TestSyncSystemManagedSavedQuery(t *testing.T) {
 	savedSearch2ID := m2.SavedSearchID
 
 	s1, _ := spannerClient.GetSavedSearch(ctx, m1.SavedSearchID)
-	if s1.Name != systemSavedSearchName("f1") {
-		t.Errorf("expected name %s, got %s", systemSavedSearchName("f1"), s1.Name)
+	if s1.Name != systemSavedSearchName("Feature 1") {
+		t.Errorf("expected name %s, got %s", systemSavedSearchName("Feature 1"), s1.Name)
 	}
 
 	// 3. Update a feature key. Sync should update the saved search.
@@ -264,8 +264,8 @@ func TestSyncSystemManagedSavedQuery(t *testing.T) {
 	}
 
 	s1updated, _ := spannerClient.GetSavedSearch(ctx, m1.SavedSearchID)
-	if s1updated.Name != systemSavedSearchName("f1-new") {
-		t.Errorf("expected updated name %s, got %s", systemSavedSearchName("f1-new"), s1updated.Name)
+	if s1updated.Name != systemSavedSearchName("Feature 1 New") {
+		t.Errorf("expected updated name %s, got %s", systemSavedSearchName("Feature 1 New"), s1updated.Name)
 	}
 	if s1updated.Query != systemSavedSearchQuery("f1-new") {
 		t.Errorf("expected updated query %s, got %s", systemSavedSearchQuery("f1-new"), s1updated.Query)

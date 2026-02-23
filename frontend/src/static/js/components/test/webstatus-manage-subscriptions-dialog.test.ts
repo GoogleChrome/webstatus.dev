@@ -69,7 +69,7 @@ describe('webstatus-manage-subscriptions-dialog', () => {
 
   const mockInitialSubscription: backend['schemas']['SubscriptionResponse'] = {
     id: 'initial-sub-id',
-    saved_search_id: 'test-search-id',
+    subscribable: {id: 'test-search-id', name: 'Test Search'},
     channel_id: 'test-channel-id',
     frequency: 'weekly',
     triggers: [{value: 'feature_baseline_to_newly'}],
@@ -79,7 +79,7 @@ describe('webstatus-manage-subscriptions-dialog', () => {
 
   const mockOtherSubscription: backend['schemas']['SubscriptionResponse'] = {
     id: 'other-sub-id',
-    saved_search_id: 'test-search-id',
+    subscribable: {id: 'test-search-id', name: 'Test Search'},
     channel_id: 'other-channel-id',
     frequency: 'monthly',
     triggers: [{value: 'feature_baseline_to_widely'}],

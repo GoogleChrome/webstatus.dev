@@ -151,12 +151,6 @@ export class SubscriptionsPage extends LitElement {
   private _subscriptions: components['schemas']['SubscriptionResponse'][] = [];
 
   @state()
-  private _savedSearches: Map<
-    string,
-    components['schemas']['SavedSearchResponse']
-  > = new Map();
-
-  @state()
   private _notificationChannels: Map<
     string,
     components['schemas']['NotificationChannelResponse']
@@ -172,15 +166,12 @@ export class SubscriptionsPage extends LitElement {
         }
         const token = await userContext.user.getIdToken();
 
-        const [subscriptions, savedSearches, notificationChannels] =
-          await Promise.all([
-            apiClient.listSubscriptions(token),
-            apiClient.getAllUserSavedSearches(token),
-            apiClient.listNotificationChannels(token),
-          ]);
+        const [subscriptions, notificationChannels] = await Promise.all([
+          apiClient.listSubscriptions(token),
+          apiClient.listNotificationChannels(token),
+        ]);
 
         this._subscriptions = subscriptions;
-        this._savedSearches = new Map(savedSearches.map(ss => [ss.id, ss]));
         this._notificationChannels = new Map(
           notificationChannels.map(nc => [nc.id, nc]),
         );
@@ -243,13 +234,12 @@ export class SubscriptionsPage extends LitElement {
     return html`
       <div class="subscription-list">
         ${this._subscriptions.map(sub => {
-          const savedSearch = this._savedSearches.get(sub.saved_search_id);
           const channel = this._notificationChannels.get(sub.channel_id);
+
           return html`
             <div class="subscription-item">
               <div class="subscription-details">
-                <strong>${savedSearch?.name ?? sub.saved_search_id}</strong
-                ><br />
+                <strong>${sub.subscribable.name}</strong><br />
                 <small class="hbox channel-info">
                   <sl-icon
                     name=${this._getChannelIcon(channel?.type)}
@@ -286,7 +276,7 @@ export class SubscriptionsPage extends LitElement {
       void this.toaster('Could not find subscription to edit.', 'danger');
       return;
     }
-    this._activeSavedSearchId = sub.saved_search_id;
+    this._activeSavedSearchId = sub.subscribable.id;
     this._activeSubscriptionId = subscriptionId;
     this._isSubscriptionDialogOpen = true;
   }

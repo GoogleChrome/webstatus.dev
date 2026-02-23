@@ -38,6 +38,12 @@ type SavedSearchSubscription struct {
 	UpdatedAt     time.Time               `spanner:"UpdatedAt"`
 }
 
+// SavedSearchSubscriptionView represents the joined result for display.
+type SavedSearchSubscriptionView struct {
+	SavedSearchSubscription
+	SavedSearchName string `spanner:"SavedSearchName"`
+}
+
 type SubscriptionTrigger string
 
 const (
@@ -96,6 +102,7 @@ func (m baseSavedSearchSubscriptionMapper) Table() string {
 }
 
 // savedSearchSubscriptionMapper implements the necessary interfaces for the generic helpers.
+// This mapper is intended for write operations on the base table.
 type savedSearchSubscriptionMapper struct {
 	baseSavedSearchSubscriptionMapper
 }
@@ -165,8 +172,59 @@ type savedSearchSubscriptionCursor struct {
 	LastUpdatedAt time.Time `json:"last_updated_at"`
 }
 
-// EncodePageToken returns the ID of the subscription as a page token.
-func (m savedSearchSubscriptionMapper) EncodePageToken(item SavedSearchSubscription) string {
+// savedSearchSubscriptionViewMapper implements the necessary interfaces for the generic helpers
+// to read the joined view of subscriptions.
+type savedSearchSubscriptionViewMapper struct {
+	baseSavedSearchSubscriptionMapper
+}
+
+func (m savedSearchSubscriptionViewMapper) SelectOne(key string) spanner.Statement {
+	stmt := spanner.NewStatement(`
+	SELECT
+		sc.ID, sc.ChannelID, sc.SavedSearchID, ss.Name AS SavedSearchName,
+		sc.Triggers, sc.Frequency, sc.CreatedAt, sc.UpdatedAt
+	FROM SavedSearchSubscriptions sc
+	JOIN SavedSearches ss ON sc.SavedSearchID = ss.ID
+	WHERE sc.ID = @id
+	LIMIT 1`)
+	parameters := map[string]interface{}{
+		"id": key,
+	}
+	stmt.Params = parameters
+
+	return stmt
+}
+
+func (m savedSearchSubscriptionViewMapper) SelectList(req ListSavedSearchSubscriptionsRequest) spanner.Statement {
+	var pageFilter string
+	params := map[string]interface{}{
+		"userID":   req.UserID,
+		"pageSize": req.PageSize,
+	}
+	if req.PageToken != nil {
+		cursor, err := decodeCursor[savedSearchSubscriptionCursor](*req.PageToken)
+		if err == nil {
+			params["lastID"] = cursor.LastID
+			params["lastUpdatedAt"] = cursor.LastUpdatedAt
+			pageFilter = " AND (sc.UpdatedAt < @lastUpdatedAt OR (sc.UpdatedAt = @lastUpdatedAt AND sc.ID > @lastID))"
+		}
+	}
+	query := fmt.Sprintf(`SELECT
+		sc.ID, sc.ChannelID, sc.SavedSearchID, ss.Name AS SavedSearchName,
+		sc.Triggers, sc.Frequency, sc.CreatedAt, sc.UpdatedAt
+	FROM SavedSearchSubscriptions sc
+	JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
+	JOIN SavedSearches ss ON sc.SavedSearchID = ss.ID
+	WHERE nc.UserID = @userID %s
+	ORDER BY sc.UpdatedAt DESC, sc.ID ASC LIMIT @pageSize`, pageFilter)
+
+	stmt := spanner.NewStatement(query)
+	stmt.Params = params
+
+	return stmt
+}
+
+func (m savedSearchSubscriptionViewMapper) EncodePageToken(item SavedSearchSubscriptionView) string {
 	return encodeCursor(savedSearchSubscriptionCursor{
 		LastID:        item.ID,
 		LastUpdatedAt: item.UpdatedAt,
@@ -187,8 +245,8 @@ func (m savedSearchSubscriptionMapper) NewEntity(
 	}, nil
 }
 
-func (c *Client) checkNotificationChannelOwnershipBySubscriptionID(
-	ctx context.Context, subscriptionID string, userID string, txn *spanner.ReadWriteTransaction,
+func (c *Client) checkNotificationChannelOwnershipBySubscriptionIDReadOnly(
+	ctx context.Context, subscriptionID string, userID string, txn transaction,
 ) error {
 	stmt := spanner.Statement{
 		// Join the SavedSearchSubscriptions and NotificationChannels tables to verify ownership.
@@ -219,6 +277,12 @@ func (c *Client) checkNotificationChannelOwnershipBySubscriptionID(
 	}
 
 	return nil
+}
+
+func (c *Client) checkNotificationChannelOwnershipBySubscriptionID(
+	ctx context.Context, subscriptionID string, userID string, txn *spanner.ReadWriteTransaction,
+) error {
+	return c.checkNotificationChannelOwnershipBySubscriptionIDReadOnly(ctx, subscriptionID, userID, txn)
 }
 
 // CreateSavedSearchSubscription creates a new saved search subscription.
@@ -289,15 +353,15 @@ func (c *Client) createSavedSearchSubscription(
 
 // GetSavedSearchSubscription retrieves a subscription if it belongs to the specified user.
 func (c *Client) GetSavedSearchSubscription(
-	ctx context.Context, subscriptionID string, userID string) (*SavedSearchSubscription, error) {
-	var ret *SavedSearchSubscription
+	ctx context.Context, subscriptionID string, userID string) (*SavedSearchSubscriptionView, error) {
+	var ret *SavedSearchSubscriptionView
 	_, err := c.ReadWriteTransaction(ctx, func(ctx context.Context, txn *spanner.ReadWriteTransaction) error {
 		err := c.checkNotificationChannelOwnershipBySubscriptionID(ctx, subscriptionID, userID, txn)
 		if err != nil {
 			return err
 		}
-		sub, err := newEntityReader[savedSearchSubscriptionMapper,
-			SavedSearchSubscription, string](c).readRowByKeyWithTransaction(ctx, subscriptionID, txn)
+		sub, err := newEntityReader[savedSearchSubscriptionViewMapper,
+			SavedSearchSubscriptionView, string](c).readRowByKeyWithTransaction(ctx, subscriptionID, txn)
 		if err != nil {
 			return err
 		}
@@ -359,8 +423,8 @@ func (c *Client) DeleteSavedSearchSubscription(
 
 // ListSavedSearchSubscriptions retrieves a list of subscriptions for a user with pagination.
 func (c *Client) ListSavedSearchSubscriptions(
-	ctx context.Context, req ListSavedSearchSubscriptionsRequest) ([]SavedSearchSubscription, *string, error) {
-	return newEntityLister[savedSearchSubscriptionMapper](c).list(ctx, req)
+	ctx context.Context, req ListSavedSearchSubscriptionsRequest) ([]SavedSearchSubscriptionView, *string, error) {
+	return newEntityLister[savedSearchSubscriptionViewMapper](c).list(ctx, req)
 }
 
 func (c *Client) ListSubscriptionsBySavedSearchID(

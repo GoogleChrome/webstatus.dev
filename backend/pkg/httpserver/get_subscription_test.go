@@ -46,9 +46,9 @@ func TestGetSubscription(t *testing.T) {
 				expectedUserID:         "test-user",
 				expectedSubscriptionID: "sub-id",
 				output: &backend.SubscriptionResponse{
-					Id:            "sub-id",
-					ChannelId:     "channel-id",
-					SavedSearchId: "search-id",
+					Id:           "sub-id",
+					ChannelId:    "channel-id",
+					Subscribable: backend.SavedSearchInfo{Id: "search-id", Name: "Feature name"},
 					Triggers: []backend.SubscriptionTriggerResponseItem{
 						{
 							Value:    backendtypes.AttemptToStoreSubscriptionTrigger("trigger"),
@@ -71,7 +71,7 @@ func TestGetSubscription(t *testing.T) {
 			expectedResponse: testJSONResponse(http.StatusOK,
 				`{
 					"id":"sub-id","channel_id":"channel-id",
-					"saved_search_id":"search-id",
+					"subscribable":{"id":"search-id","name":"Feature name"},
 					"triggers":[{"value":"trigger"}],
 					"frequency":"daily",
 					"created_at":"`+now.Format(time.RFC3339Nano)+`",

@@ -42,7 +42,7 @@ describe('webstatus-subscriptions-page', () => {
   const mockSubscriptions: components['schemas']['SubscriptionResponse'][] = [
     {
       id: 'sub1',
-      saved_search_id: 'search1',
+      subscribable: {id: 'search1', name: 'Search 1'},
       channel_id: 'channel1',
       frequency: 'weekly',
       triggers: [],
@@ -51,17 +51,6 @@ describe('webstatus-subscriptions-page', () => {
     },
   ];
 
-  const mockSavedSearches: components['schemas']['SavedSearchResponse'][] = [
-    {
-      id: 'search1',
-      name: 'Test Search 1',
-      query: 'is:test',
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-      permissions: {role: 'saved_search_owner'},
-      bookmark_status: {status: 'bookmark_none'},
-    },
-  ];
   const mockNotificationChannels: components['schemas']['NotificationChannelResponse'][] =
     [
       {
@@ -79,7 +68,6 @@ describe('webstatus-subscriptions-page', () => {
     sandbox = sinon.createSandbox();
     apiClient = {
       listSubscriptions: sandbox.stub().resolves(mockSubscriptions),
-      getAllUserSavedSearches: sandbox.stub().resolves(mockSavedSearches),
       listNotificationChannels: sandbox
         .stub()
         .resolves(mockNotificationChannels),
@@ -125,11 +113,8 @@ describe('webstatus-subscriptions-page', () => {
     await element.updateComplete;
 
     expect(apiClient.listSubscriptions).to.have.been.calledWith('test-token');
-    expect(apiClient.getAllUserSavedSearches).to.have.been.calledWith(
-      'test-token',
-    );
     const renderedText = element.shadowRoot?.textContent;
-    expect(renderedText).to.include('Test Search 1');
+    expect(renderedText).to.include('Search 1');
     expect(renderedText).to.include('test@example.com');
     expect(renderedText).to.include('Weekly'); // Check for title-cased
   });

@@ -48,9 +48,9 @@ func TestListSubscriptions(t *testing.T) {
 				output: &backend.SubscriptionPage{
 					Data: &[]backend.SubscriptionResponse{
 						{
-							Id:            "sub-id",
-							ChannelId:     "channel-id",
-							SavedSearchId: "search-id",
+							Id:           "sub-id",
+							ChannelId:    "channel-id",
+							Subscribable: backend.SavedSearchInfo{Id: "search-id", Name: "Feature name"},
 							Triggers: []backend.SubscriptionTriggerResponseItem{
 								{
 									Value:    backendtypes.AttemptToStoreSubscriptionTrigger("trigger"),
@@ -80,7 +80,7 @@ func TestListSubscriptions(t *testing.T) {
 						{
 							"id":"sub-id",
 							"channel_id":"channel-id",
-							"saved_search_id":"search-id",
+							"subscribable":{"id":"search-id","name":"Feature name"},
 							"triggers":[{"value":"trigger"}],
 							"frequency":"daily",
 							"created_at":"`+now.Format(time.RFC3339Nano)+`",
@@ -122,9 +122,9 @@ func TestListSubscriptions(t *testing.T) {
 				output: &backend.SubscriptionPage{
 					Data: &[]backend.SubscriptionResponse{
 						{
-							Id:            "sub-id-2",
-							ChannelId:     "channel-id-2",
-							SavedSearchId: "search-id-2",
+							Id:           "sub-id-2",
+							ChannelId:    "channel-id-2",
+							Subscribable: backend.SavedSearchInfo{Id: "search-id-2", Name: "Feature name 2"},
 							Triggers: []backend.SubscriptionTriggerResponseItem{
 								{
 									Value:    backendtypes.AttemptToStoreSubscriptionTrigger("trigger-2"),
@@ -153,7 +153,7 @@ func TestListSubscriptions(t *testing.T) {
 						{
 							"id":"sub-id-2",
 							"channel_id":"channel-id-2",
-							"saved_search_id":"search-id-2",
+							"subscribable":{"id":"search-id-2","name":"Feature name 2"},
 							"triggers":[{"value":"trigger-2"}],
 							"frequency":"weekly",
 							"created_at":"`+now.Format(time.RFC3339Nano)+`",

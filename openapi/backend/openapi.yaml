@@ -1854,42 +1854,46 @@ components:
             is 'unknown', allowing clients to identify and manage deprecated triggers.
       required:
         - value
-    SubscriptionBase:
+    Subscription:
       type: object
-      description: Base properties common to both subscription requests and responses.
       properties:
         saved_search_id:
           type: string
         channel_id:
           type: string
+        frequency:
+          $ref: '#/components/schemas/SubscriptionFrequency'
+        triggers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SubscriptionTriggerWritable'
       required:
         - saved_search_id
         - channel_id
-    Subscription:
-      allOf:
-        - $ref: '#/components/schemas/SubscriptionBase'
-        - type: object
-          properties:
-            frequency:
-              $ref: '#/components/schemas/SubscriptionFrequency'
-            triggers:
-              type: array
-              items:
-                $ref: '#/components/schemas/SubscriptionTriggerWritable'
-          required:
-            - frequency
-            - triggers
-      required:
-        - saved_search_id
-        - channel_id
-        - triggers
         - frequency
+        - triggers
+    SavedSearchInfo:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+      required:
+        - id
+        - name
+
     SubscriptionResponse:
       allOf:
         - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
-        - $ref: '#/components/schemas/SubscriptionBase'
         - type: object
           properties:
+            # We're calling this 'subscribable' to be generic for the future,
+            # even though it will only contain SavedSearchInfo for now.
+            subscribable:
+              $ref: '#/components/schemas/SavedSearchInfo'
+            channel_id:
+              type: string
             frequency:
               $ref: '#/components/schemas/SubscriptionFrequency'
             triggers:
@@ -1899,6 +1903,8 @@ components:
           required:
             - triggers
             - frequency
+            - subscribable
+            - channel_id
     SubscriptionPage:
       type: object
       properties:
