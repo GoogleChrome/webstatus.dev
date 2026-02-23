@@ -67,16 +67,13 @@ func getExistingEmailChannels(
 		}
 
 		spannerChannel := spannerNotificationChannel{
-			NotificationChannel: NotificationChannel{
-				ID:          rowData.ID,
-				UserID:      rowData.UserID,
-				Name:        rowData.Name,
-				Type:        rowData.Type,
-				EmailConfig: nil,
-				CreatedAt:   rowData.CreatedAt,
-				UpdatedAt:   rowData.UpdatedAt,
-			},
-			Config: rowData.Config,
+			ID:        rowData.ID,
+			UserID:    rowData.UserID,
+			Name:      rowData.Name,
+			Type:      string(rowData.Type),
+			Config:    rowData.Config,
+			CreatedAt: rowData.CreatedAt,
+			UpdatedAt: rowData.UpdatedAt,
 		}
 
 		state := NotificationChannelState{
@@ -140,12 +137,15 @@ func generateChannelMutations(
 
 		// New email: create NotificationChannel and NotificationChannelState
 		req := CreateNotificationChannelRequest{
-			UserID:      userProfile.UserID,
-			Name:        email,
-			Type:        "email",
-			EmailConfig: &EmailConfig{Address: email, IsVerified: true, VerificationToken: nil},
+			UserID:        userProfile.UserID,
+			Name:          email,
+			Type:          NotificationChannelTypeEmail,
+			EmailConfig:   &EmailConfig{Address: email, IsVerified: true, VerificationToken: nil},
+			WebhookConfig: nil,
 		}
+
 		channelID, err := channelCreator.createWithTransaction(ctx, txn, req)
+
 		if err != nil {
 			return nil, err
 		}

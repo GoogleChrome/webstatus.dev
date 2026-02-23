@@ -689,6 +689,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+    post:
+      summary: Create a new notification channel
+      operationId: createNotificationChannel
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateNotificationChannelRequest'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannelResponse'
+        '400':
+          description: Bad Request (e.g., invalid URL, type/config mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden (e.g., reached maximum number of channels)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '429':
+          description: Rate Limit (e.g., too many channels)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
   /v1/users/me/notification-channels/{channel_id}:
     parameters:
       - name: channel_id
@@ -715,6 +763,54 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BasicErrorModel'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '404':
+          description: Not Found (channel does not exist or user does not own it)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+        '500':
+          description: Internal Service Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BasicErrorModel'
+    patch:
+      summary: Update notification channel
+      operationId: updateNotificationChannel
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateNotificationChannelRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotificationChannelResponse'
+        '400':
+          description: Bad Input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedErrorModel'
         '401':
           description: Unauthorized
           content:
@@ -1743,6 +1839,51 @@ components:
       properties:
         role:
           $ref: '#/components/schemas/UserSavedSearchRole'
+    WebhookConfig:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - webhook
+        url:
+          type: string
+          format: uri
+          description: The webhook URL. Currently, only Slack URLs are supported.
+      required:
+        - type
+        - url
+    EmailConfig:
+      type: object
+      properties:
+        type:
+          type: string
+          enum:
+            - email
+        address:
+          type: string
+          format: email
+          description: The email address.
+      required:
+        - type
+        - address
+    CreateNotificationChannelRequest:
+      type: object
+      required:
+        - name
+        - config
+      properties:
+        name:
+          type: string
+          description: A user-defined name for the channel.
+        config:
+          description: Configuration specific to the channel type.
+          oneOf:
+            - $ref: '#/components/schemas/WebhookConfig'
+          discriminator:
+            propertyName: type
+            mapping:
+              webhook: '#/components/schemas/WebhookConfig'
     NotificationChannel:
       type: object
       properties:
@@ -1750,16 +1891,24 @@ components:
           type: string
           enum:
             - email
+            - webhook
         name:
           type: string
           description: The name of the channel.
-        value:
-          type: string
-          description: The address for the channel, e.g., an email address.
+        config:
+          description: Configuration specific to the channel type.
+          oneOf:
+            - $ref: '#/components/schemas/EmailConfig'
+            - $ref: '#/components/schemas/WebhookConfig'
+          discriminator:
+            propertyName: type
+            mapping:
+              email: '#/components/schemas/EmailConfig'
+              webhook: '#/components/schemas/WebhookConfig'
       required:
         - type
-        - value
         - name
+        - config
     NotificationChannelResponse:
       allOf:
         - $ref: '#/components/schemas/GenericUpdatableUniqueModel'
@@ -1790,16 +1939,26 @@ components:
       properties:
         name:
           type: string
+        config:
+          description: Configuration specific to the channel type.
+          oneOf:
+            - $ref: '#/components/schemas/WebhookConfig'
+          discriminator:
+            propertyName: type
+            mapping:
+              webhook: '#/components/schemas/WebhookConfig'
         update_mask:
           type: array
           description: >
-            A list of fields to update. Required. Allowed values are: `name`, `value`.
+            A list of fields to update. Required. Allowed values are: `name`, `config`.
           items:
             type: string
             enum:
               - name
+              - config
             x-enumNames:
               - UpdateNotificationChannelRequestMaskName
+              - UpdateNotificationChannelRequestMaskConfig
           minItems: 1
           uniqueItems: true
       required:

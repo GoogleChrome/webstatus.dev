@@ -813,6 +813,7 @@ func TestSyncWebFeatures_MultipleRedirectsToSameTarget(t *testing.T) {
 			IsVerified:        true,
 			VerificationToken: nil,
 		},
+		WebhookConfig: nil,
 	})
 	if err != nil {
 		t.Fatalf("Failed to create notification channel: %v", err)

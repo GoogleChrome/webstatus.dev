@@ -34,10 +34,11 @@ func TestCreateAndGetSavedSearchSubscription(t *testing.T) {
 
 	// Pre-populate dependencies
 	channelReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
 	if err != nil {
@@ -111,10 +112,11 @@ func TestGetSavedSearchSubscriptionFailsForWrongUser(t *testing.T) {
 
 	// Pre-populate dependencies
 	channelReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
 	if err != nil {
@@ -161,10 +163,11 @@ func TestUpdateSavedSearchSubscription(t *testing.T) {
 
 	// Pre-populate dependencies
 	channelReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
 	if err != nil {
@@ -233,10 +236,11 @@ func TestDeleteSavedSearchSubscription(t *testing.T) {
 
 	// Pre-populate dependencies
 	channelReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
 	if err != nil {
@@ -288,10 +292,11 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 
 	// Pre-populate dependencies
 	channelReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
 	if err != nil {
@@ -380,7 +385,8 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// Channel 1: Valid, active EMAIL channel
 	emailChannelReq := CreateNotificationChannelRequest{
 		UserID: userID, Name: "Email", Type: NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "active@example.com", IsVerified: true, VerificationToken: nil},
+		EmailConfig:   &EmailConfig{Address: "active@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	emailChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, emailChannelReq)
 	if err != nil {
@@ -401,7 +407,10 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// webhookChannelID := *webhookChannelIDPtr
 
 	// Channel 3: RSS channel (should be ignored)
-	rssChannelReq := CreateNotificationChannelRequest{UserID: userID, Name: "RSS", Type: "RSS", EmailConfig: nil}
+	rssChannelReq := CreateNotificationChannelRequest{
+		UserID: userID, Name: "RSS", Type: "RSS",
+		EmailConfig: nil, WebhookConfig: nil,
+	}
 	rssChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, rssChannelReq)
 	if err != nil {
 		t.Fatalf("failed to create rss channel: %v", err)
@@ -411,7 +420,8 @@ func TestFindAllActivePushSubscriptions(t *testing.T) {
 	// Channel 4: Disabled EMAIL channel (should be ignored)
 	disabledEmailReq := CreateNotificationChannelRequest{
 		UserID: userID, Name: "Disabled", Type: NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "disabled@example.com", IsVerified: true, VerificationToken: nil},
+		EmailConfig:   &EmailConfig{Address: "disabled@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	disabledChannelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, disabledEmailReq)
 	if err != nil {
@@ -550,10 +560,11 @@ func TestCreateSavedSearchSubscriptionLimitExceeded(t *testing.T) {
 
 	// Pre-populate dependencies
 	channelReq := CreateNotificationChannelRequest{
-		UserID:      userID,
-		Name:        "Test",
-		Type:        NotificationChannelTypeEmail,
-		EmailConfig: &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		UserID:        userID,
+		Name:          "Test",
+		Type:          NotificationChannelTypeEmail,
+		EmailConfig:   &EmailConfig{Address: "test@example.com", IsVerified: true, VerificationToken: nil},
+		WebhookConfig: nil,
 	}
 	channelIDPtr, err := spannerClient.CreateNotificationChannel(ctx, channelReq)
 	if err != nil {

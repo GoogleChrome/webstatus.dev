@@ -153,6 +153,11 @@ type BackendSpannerClient interface {
 		ctx context.Context, channelID string, userID string) (*gcpspanner.NotificationChannel, error)
 	ListNotificationChannels(ctx context.Context, req gcpspanner.ListNotificationChannelsRequest) (
 		[]gcpspanner.NotificationChannel, *string, error)
+	CreateNotificationChannel(
+		ctx context.Context,
+		req gcpspanner.CreateNotificationChannelRequest,
+	) (*string, error)
+	UpdateNotificationChannel(ctx context.Context, req gcpspanner.UpdateNotificationChannelRequest) error
 	DeleteNotificationChannel(ctx context.Context, channelID string, userID string) error
 }
 
@@ -541,6 +546,119 @@ func (s *Backend) ListNotificationChannels(ctx context.Context,
 	}, nil
 }
 
+func (s *Backend) toSpannerWebhookConfig(cfg *backend.WebhookConfig) *gcpspanner.WebhookConfig {
+	if cfg == nil {
+		return nil
+	}
+
+	return &gcpspanner.WebhookConfig{
+		URL: cfg.Url,
+	}
+}
+
+func (s *Backend) CreateNotificationChannel(ctx context.Context,
+	userID string, req backend.CreateNotificationChannelRequest) (*backend.NotificationChannelResponse, error) {
+	var channelType gcpspanner.NotificationChannelType
+	var spannerWebhookConfig *gcpspanner.WebhookConfig
+
+	if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
+		channelType = gcpspanner.NotificationChannelTypeWebhook
+		spannerWebhookConfig = s.toSpannerWebhookConfig(&cfg)
+	} else {
+		return nil, errors.New("invalid notification channel request: missing or invalid config")
+	}
+
+	dbReq := gcpspanner.CreateNotificationChannelRequest{
+		UserID:        userID,
+		Name:          req.Name,
+		Type:          channelType,
+		EmailConfig:   nil,
+		WebhookConfig: spannerWebhookConfig,
+	}
+
+	id, err := s.client.CreateNotificationChannel(ctx, dbReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrOwnerNotificationChannelLimitExceeded) {
+			return nil, errors.Join(err, backendtypes.ErrUserMaxNotificationChannels)
+		}
+
+		return nil, err
+	}
+
+	return s.GetNotificationChannel(ctx, userID, *id)
+}
+
+func (s *Backend) UpdateNotificationChannel(ctx context.Context,
+	userID, channelID string, req backend.UpdateNotificationChannelRequest) (*backend.NotificationChannelResponse, error) {
+	// Defensive check: Fetch existing channel to ensure we aren't updating an email channel.
+	existing, err := s.client.GetNotificationChannel(ctx, channelID, userID)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	if existing.Type == gcpspanner.NotificationChannelTypeEmail {
+		return nil, backendtypes.ErrUserNotAuthorizedForAction
+	}
+
+	updateReq := gcpspanner.UpdateNotificationChannelRequest{
+		ID:     channelID,
+		UserID: userID,
+		Name: gcpspanner.OptionallySet[string]{
+			Value: "",
+			IsSet: false,
+		},
+		Type: gcpspanner.OptionallySet[gcpspanner.NotificationChannelType]{
+			Value: "",
+			IsSet: false,
+		},
+		EmailConfig: gcpspanner.OptionallySet[*gcpspanner.EmailConfig]{
+			Value: nil,
+			IsSet: false,
+		},
+		WebhookConfig: gcpspanner.OptionallySet[*gcpspanner.WebhookConfig]{
+			Value: nil,
+			IsSet: false,
+		},
+	}
+
+	for _, field := range req.UpdateMask {
+		switch field {
+		case backend.UpdateNotificationChannelRequestMaskName:
+			updateReq.Name.IsSet = true
+			updateReq.Name.Value = *req.Name
+		case backend.UpdateNotificationChannelRequestMaskConfig:
+			// We need to know the type to know which config to set.
+			if cfg, err := req.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
+				updateReq.Type.IsSet = true
+				updateReq.Type.Value = gcpspanner.NotificationChannelTypeWebhook
+				updateReq.WebhookConfig.IsSet = true
+				updateReq.WebhookConfig.Value = &gcpspanner.WebhookConfig{
+					URL: cfg.Url,
+				}
+			} else {
+				return nil, errors.New("invalid notification channel update: unsupported config type")
+			}
+		}
+	}
+
+	err = s.client.UpdateNotificationChannel(ctx, updateReq)
+	if err != nil {
+		if errors.Is(err, gcpspanner.ErrMissingRequiredRole) {
+			return nil, errors.Join(err, backendtypes.ErrUserNotAuthorizedForAction)
+		} else if errors.Is(err, gcpspanner.ErrQueryReturnedNoResults) {
+			return nil, errors.Join(err, backendtypes.ErrEntityDoesNotExist)
+		}
+
+		return nil, err
+	}
+
+	return s.GetNotificationChannel(ctx, userID, channelID)
+}
+
 // getChannelSortKey returns a string to be used for secondary sorting of notification channels.
 func getChannelSortKey(channel gcpspanner.NotificationChannel) string {
 	switch channel.Type {
@@ -548,7 +666,10 @@ func getChannelSortKey(channel gcpspanner.NotificationChannel) string {
 		if channel.EmailConfig != nil {
 			return channel.EmailConfig.Address
 		}
-		// Add cases for other channel types here in the future.
+	case gcpspanner.NotificationChannelTypeWebhook:
+		if channel.WebhookConfig != nil {
+			return channel.WebhookConfig.URL
+		}
 	}
 
 	return "" // Default sort key if type is unknown or has no specific key.
@@ -561,19 +682,35 @@ func toBackendNotificationChannel(channel *gcpspanner.NotificationChannel) *back
 
 		return nil
 	}
-	// Convert spanner channel to backend channel
-	// This can be expanded to handle different channel types.
-	var value string
-	if channel.EmailConfig != nil {
-		value = channel.EmailConfig.Address
+
+	// Convert spanner channel to backend channel.
+	var config backend.NotificationChannelResponse_Config
+	switch channel.Type {
+	case gcpspanner.NotificationChannelTypeEmail:
+		if channel.EmailConfig != nil {
+			bytes, _ := json.Marshal(backend.EmailConfig{
+				Type:    backend.EmailConfigTypeEmail,
+				Address: openapi_types.Email(channel.EmailConfig.Address),
+			})
+			// UnmarshalJSON() is confusingly named - it just makes a copy of 'bytes' to store in config.
+			_ = config.UnmarshalJSON(bytes)
+		}
+	case gcpspanner.NotificationChannelTypeWebhook:
+		if channel.WebhookConfig != nil {
+			bytes, _ := json.Marshal(backend.WebhookConfig{
+				Type: backend.WebhookConfigTypeWebhook,
+				Url:  channel.WebhookConfig.URL,
+			})
+			// UnmarshalJSON() is confusingly named - it just makes a copy of 'bytes' to store in config.
+			_ = config.UnmarshalJSON(bytes)
+		}
 	}
 
 	return &backend.NotificationChannelResponse{
-		Id:    channel.ID,
-		Name:  channel.Name,
-		Type:  backend.NotificationChannelResponseType(channel.Type),
-		Value: value,
-		// For now, assume all channels are enabled.
+		Id:     channel.ID,
+		Name:   channel.Name,
+		Type:   backend.NotificationChannelResponseType(channel.Type),
+		Config: config,
 		// We currently do not disable channels.
 		// TODO: https://github.com/GoogleChrome/webstatus.dev/issues/2021
 		Status:    backend.NotificationChannelStatusEnabled,

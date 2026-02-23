@@ -57,7 +57,7 @@ describe('webstatus-subscriptions-page', () => {
         id: 'channel1',
         name: 'test@example.com',
         type: 'email',
-        value: 'test@example.com',
+        config: {type: 'email', address: 'test@example.com'},
         created_at: new Date().toISOString(),
         status: 'enabled',
         updated_at: new Date().toISOString(),

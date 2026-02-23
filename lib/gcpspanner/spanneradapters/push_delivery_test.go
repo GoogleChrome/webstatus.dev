@@ -78,6 +78,7 @@ func TestFindSubscribers(t *testing.T) {
 						IsVerified:        true,
 						VerificationToken: nil,
 					},
+					WebhookConfig: nil,
 					Triggers: []gcpspanner.SubscriptionTrigger{
 						gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToNewly,
 						gcpspanner.SubscriptionTriggerFeatureBaselinePromoteToWidely,
@@ -119,6 +120,7 @@ func TestFindSubscribers(t *testing.T) {
 						IsVerified:        true,
 						VerificationToken: nil,
 					},
+					WebhookConfig: nil,
 					Triggers: []gcpspanner.SubscriptionTrigger{
 						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete,
 					},
@@ -128,6 +130,7 @@ func TestFindSubscribers(t *testing.T) {
 					Type:           "WEBHOOK",
 					ChannelID:      "chan-2",
 					EmailConfig:    nil, // Webhooks don't have EmailConfig
+					WebhookConfig:  nil,
 					Triggers:       nil,
 					UserID:         "user-3",
 				},
@@ -172,6 +175,7 @@ func TestFindSubscribers(t *testing.T) {
 					ChannelID:      "chan-1",
 					Triggers:       nil,
 					EmailConfig:    nil, // Missing config should be skipped
+					WebhookConfig:  nil,
 				},
 			},
 			clientErr: nil,
@@ -197,6 +201,7 @@ func TestFindSubscribers(t *testing.T) {
 						IsVerified:        true,
 						VerificationToken: nil,
 					},
+					WebhookConfig: nil,
 					Triggers: []gcpspanner.SubscriptionTrigger{
 						"some_unknown_trigger",
 					},
