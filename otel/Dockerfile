@@ -12,6 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM otel/opentelemetry-collector-contrib:0.145.0
+FROM otel/opentelemetry-collector-contrib:0.146.1
 
 COPY otel-collector-config.yaml /etc/otelcol-contrib/config.yaml
