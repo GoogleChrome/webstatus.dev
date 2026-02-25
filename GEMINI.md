@@ -1,6 +1,6 @@
 # Gemini Code Assist Configuration for webstatus.dev
 
-<!-- Last analyzed commit: 4b12e1c9bb5a928c63ac0544d9d5bfafcb6a6db2 -->
+<!-- Last analyzed commit: c3beadb0b4f8b7b6e38c089aa770a2123b4ee017 -->
 
 This document provides context to Gemini Code Assist to help it generate more accurate and project-specific code suggestions.
 
@@ -163,14 +163,14 @@ The goal is to retrieve a specific feature's data and serve it via the REST API.
 
 ### 3.4. User Authentication and Notifications
 
-This section describes the components related to user accounts, authentication, and notification features.
+This section describes the components related to user accounts, authentication, and the end-to-end notification ecosystem.
 
-- **Authentication**: User authentication is handled via Firebase Authentication on the frontend, which integrates with GitHub as an OAuth provider. When a user signs in, the frontend receives a Firebase token and a GitHub token. The GitHub token is sent to the backend during a login sync process.
+- **Authentication**: User authentication is handled via Firebase Authentication on the frontend, which integrates with GitHub as an OAuth provider. On login, the backend's `/v1/users/me/ping` endpoint synchronizes the user's verified GitHub emails with their notification channels.
 - **User Profile Sync**: On login, the backend synchronizes the user's verified GitHub emails with their notification channels in the database. This is an example of a transactional update using the mapper pattern. The flow is as follows:
   1.  A user signs in on the frontend. The frontend sends the user's GitHub token to the backend's `/v1/users/me/ping` endpoint.
   2.  The `httpserver.PingUser` handler receives the request. It uses a `UserGitHubClient` to fetch the user's profile and verified emails from the GitHub API.
   3.  The handler then calls `spanneradapters.Backend.SyncUserProfileInfo` with the user's profile information.
-  4.  The `Backend` adapter translates the `backendtypes.UserProfile` to a `gcpspanner.UserProfile` and calls `gcpspanner.Client.SyncUserProfileInfo`.
+  4.  The `Backend` adapter translates the `backendtypes.UserProfile` to a `gcpspanner.UserProfile` and calls `gcpspanner.Client.SyncUserProfileInfo` (which uses transactional helpers to create/update notification channels and states).
   5.  `SyncUserProfileInfo` starts a `ReadWriteTransaction`.
   6.  Inside the transaction, it fetches the user's existing `NotificationChannels` and `NotificationChannelStates`.
   7.  It then compares the existing channels with the verified emails from GitHub.
@@ -178,8 +178,49 @@ This section describes the components related to user accounts, authentication, 
       - Emails that were previously disabled are re-enabled using `updateWithTransaction`.
       - Channels for emails that are no longer verified are disabled, also using `updateWithTransaction`.
   8.  The entire set of operations is committed atomically. If any step fails, the entire transaction is rolled back.
-- **Notification Channels**: The `NotificationChannels` table stores the destinations for notifications (e.g., email addresses). Each channel has a corresponding entry in the `NotificationChannelStates` table, which tracks whether the channel is enabled or disabled.
+- **Notification Channels**: The `NotificationChannels` table stores the destinations for notifications. Currently, two types are supported: `email` and `webhook` (specifically Slack webhooks).
+  - **Email Channels:** Are provisioned automatically through the GitHub profile sync. Manual creation or updates of email channels are rejected by the API because they rely on GitHub's verification process.
+  - **Webhook Channels:** Users can manually create and update webhook channels.
+  - **Limits:** There is a strict maximum of 25 notification channels per user.
+  - Each channel has a corresponding entry in the `NotificationChannelStates` table, which tracks whether the channel is enabled or disabled.
 - **Saved Search Subscriptions**: Authenticated users can save feature search queries and subscribe to receive notifications when the results of that query change. This is managed through the `UserSavedSearches` and `UserSavedSearchBookmarks` tables.
+  - **API**: A full CRUD API (`/v1/users/me/subscriptions`) and adapter layer exist to manage the creation, reading, updating, and deletion of subscriptions.
+  - **Individual Feature Subscriptions**: Users can subscribe to updates for specific individual features. This is implemented by creating a subscription to a **System Managed Saved Search** associated with that feature.
+  - **Limits**: There is a strict maximum of **25 subscriptions** per user.
+  - **Forward-Compatible Models**: Subscription triggers are forward-compatible. If a trigger stored in the database is no longer a valid API enum, its `value` must be set to `unknown` and the original string preserved in a `raw_value` field to prevent the API from failing on old data.
+  - **Pagination**: Pagination logic for `SavedSearchSubscriptions` and `NotificationChannelDeliveryAttempts` correctly sorts by `UpdatedAt` or `AttemptTimestamp` (descending) with `ID` as a tie-breaker (ascending) to ensure consistent results.
+- **System Managed Saved Searches**: These are automatically created and updated by the system (e.g., when a feature is added or its search criteria changes). They are stored in the `SystemManagedSavedSearches` table and are used to support "Subscribe to this feature" functionality.
+  - **Redirects & Moves**: When features are moved, split, or redirected, the system migrates and deduplicates associated subscriptions to ensure users continue to receive relevant notifications.
+- **Notification Pipeline Architecture**:
+  1.  **Ingestion/Workflow**: Detects changes in feature data.
+  2.  **Event Producer**: Receives ingestion events, calculates diffs between snapshots, and publishes `FeatureDiffEvent` messages. Uses DLQs for robust error handling.
+  3.  **Push Delivery Worker**: Consumes diff events. Its `Dispatcher` filters them against user subscriptions and triggers (using a visitor pattern), then queues specific delivery jobs (e.g., `EmailDeliveryJob`).
+  4.  **Email Worker**: Consumes delivery jobs, renders HTML templates (including match warnings for moved/split features), and sends emails via Chime.
+
+### 3.5. Feature Diffing and Data Evolution
+
+- **Removed vs. Deleted**: The system distinguishes between features that are truly **deleted** from the database and those that are merely **removed** from a specific search result (due to moves, splits, or property changes). `FeatureDiff` contains separate slices for each.
+- **Match Warnings**: When a feature no longer matches a user's saved search (but still exists), the notification system flags it with a "Match Warning" (⚠️) to inform the user why it was removed from their scoped digest.
+- **Blob Schema Evolution**: State for saved search notifications is stored in GCS blobs (`lib/blobtypes`).
+  - **Comparator Best Practices**: When adding new fields to storage structs, the `comparator.go` logic must explicitly handle all four states of `OptionallySet` fields (Unset/Unset, Unset/Set, Set/Unset, Set/Set). This prevents "Cold Start" problems where new data fails to trigger initial notifications.
+  - **Quiet Rollout**: Minimal additions (like a browser status changing from Unset to "Unavailable" without version details) can be flagged for "Quiet Rollout" to avoid spamming users during backfills.
+  - **Guide for Adding New Fields**: Always update `comparator.go` when adding fields to `blobtypes` to ensure robust comparison.
+- **System Managed Saved Searches**: These are automatically created and updated by the system (e.g., when a feature is added or its search criteria changes). They are stored in the `SystemManagedSavedSearches` table and are used to support "Subscribe to this feature" functionality.
+  - **Redirects & Moves**: When features are moved, split, or redirected, the system migrates and deduplicates associated subscriptions to ensure users continue to receive relevant notifications.
+- **Notification Pipeline Architecture**:
+  1.  **Ingestion/Workflow**: Detects changes in feature data.
+  2.  **Event Producer**: Receives ingestion events, calculates diffs between snapshots, and publishes `FeatureDiffEvent` messages. Uses DLQs for robust error handling.
+  3.  **Push Delivery Worker**: Consumes diff events. Its `Dispatcher` filters them against user subscriptions and triggers (using a visitor pattern), then queues specific delivery jobs (e.g., `EmailDeliveryJob`).
+  4.  **Email Worker**: Consumes delivery jobs, renders HTML templates (including match warnings for moved/split features), and sends emails via Chime.
+
+### 3.5. Feature Diffing and Data Evolution
+
+- **Removed vs. Deleted**: The system distinguishes between features that are truly **deleted** from the database and those that are merely **removed** from a specific search result (due to moves, splits, or property changes). `FeatureDiff` contains separate slices for each.
+- **Match Warnings**: When a feature no longer matches a user's saved search (but still exists), the notification system flags it with a "Match Warning" (⚠️) to inform the user why it was removed from their scoped digest.
+- **Blob Schema Evolution**: State for saved search notifications is stored in GCS blobs (`lib/blobtypes`).
+  - **Comparator Best Practices**: When adding new fields to storage structs, the `comparator.go` logic must explicitly handle all four states of `OptionallySet` fields (Unset/Unset, Unset/Set, Set/Unset, Set/Set). This prevents "Cold Start" problems where new data fails to trigger initial notifications.
+  - **Quiet Rollout**: Minimal additions (like a browser status changing from Unset to "Unavailable" without version details) can be flagged for "Quiet Rollout" to avoid spamming users during backfills.
+  - **Guide for Adding New Fields**: Always update `comparator.go` when adding fields to `blobtypes` to ensure robust comparison.
 
 ## 4. Specifications & Generated Code
 
@@ -516,6 +557,6 @@ When you give me this prompt, I will:
 
 1.  Read the `GEMINI.md` file to find the last analyzed commit SHA.
 2.  Use `git log` to find all the commits that have been made since that SHA.
-3.  Analyze the new commits, applying the "Verify, Don't Assume" principle by consulting relevant sources of truth (e.g., `openapi.yaml` for API changes, migration files for schema changes).
-4.  Update this document with the new information.
-5.  Update the last analyzed commit SHA near the top of this file.
+3.  Analyze the new commits, applying the "Verify, Don't Assume" principle by consulting relevant sources of truth (e.g., `openapi.yaml` for API changes, migration files for schema changes). Use the `get_pull_request` and `get_pull_request_comments` tools to get the pull request information for **every relevant PR** found in the commits. Read the comments to understand the context and architectural decisions, because it is likely Gemini was used for those changes and its lack of knowledge caused those errors when generating the change. Do not assume you only need to check one or two PRs; check them all.
+4.  Update this document with the new information first.
+5.  Update the last analyzed commit SHA near the top of this file only after all other updates are complete.
