@@ -73,7 +73,8 @@
         "figma.figma-vscode-extension",
         "mike-lischke.vscode-antlr4",
         "ms-vsliveshare.vsliveshare",
-        "Google.gemini-cli-vscode-ide-companion"
+        "Google.gemini-cli-vscode-ide-companion",
+        "MermaidChart.vscode-mermaid-chart"
       ]
     }
   },

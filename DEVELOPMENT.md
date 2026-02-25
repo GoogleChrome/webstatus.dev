@@ -28,6 +28,9 @@ everything pre-installed.
 - jsonschema/: JSON schemas for data validation.
 - antlr: Description of search grammar
 - lib/gen: Output of generated code
+- docs/ARCHITECTURE.md: Architecture diagrams
+
+For a visual overview of how these components interact in the cloud and during local development, see the [Architecture Diagrams](./docs/ARCHITECTURE.md).
 
 ## Running locally
 
