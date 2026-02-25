@@ -54,6 +54,9 @@ else
   echo "You may need to configure an API key manually to use certain Gemini features."
 fi
 
+# Link Gemini Skills
+echo "Linking Gemini Skills..."
+make link-skills
 
 echo "Note: After starting the Gemini CLI for the first time, it may present you with some errors."
 echo "In that case, it will tell you to open a new terminal and start the Gemini CLI again."
