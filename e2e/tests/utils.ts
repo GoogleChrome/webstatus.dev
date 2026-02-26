@@ -23,6 +23,13 @@ const DEFAULT_FAKE_NOW = 'Dec 1 2020 12:34:56';
 
 export const BASE_URL = 'http://localhost:5555';
 
+export async function forceTheme(page: Page, theme: 'light' | 'dark') {
+  await page.addInitScript(theme => {
+    localStorage.setItem('webstatus-theme', theme);
+  }, theme);
+  await page.emulateMedia({colorScheme: theme});
+}
+
 export async function setupFakeNow(
   page: Page,
   fakeNowDateString = DEFAULT_FAKE_NOW,

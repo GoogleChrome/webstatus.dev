@@ -42,7 +42,7 @@ export class WebstatusPage extends LitElement {
 
         #sidebar-drawer {
           max-width: ${DRAWER_WIDTH_PX}px;
-          border-right: 1px solid #e1e3e8;
+          border-right: var(--default-border);
           flex-shrink: 0;
         }
         #sidebar-drawer:not([open]),
