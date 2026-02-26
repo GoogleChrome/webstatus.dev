@@ -23,6 +23,8 @@ described in a [OpenAPI](./openapi/backend/openapi.yaml) document.
 The tool provides a [frontend](./frontend/) dashboard written in Typescript to
 display the data.
 
+To understand how these components interact in the cloud and during local development, please refer to the [Architecture Diagrams](./docs/ARCHITECTURE.md).
+
 ## Search Syntax
 
 webstatus.dev provides a powerful search feature to help you find the
