@@ -15,10 +15,11 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {setupFakeNow, resetUserData, loginAsUser} from './utils';
+import {setupFakeNow, resetUserData, loginAsUser, forceTheme} from './utils';
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
+  await forceTheme(page, 'light');
 });
 
 const featureID = 'anchor-positioning';
@@ -37,6 +38,20 @@ test('matches the screenshot', async ({page}) => {
 
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
+});
+
+test('matches the screenshot in dark mode', async ({page}) => {
+  await forceTheme(page, 'dark');
+  await page.goto(`http://localhost:5555/features/${featureID}`);
+
+  // Wait for the chart container to exist
+  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+
+  // Wait specifically for the "Baseline since" text
+  await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
+
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot('feature-page-dark.png');
 });
 
 test('matches the screenshot for a discouraged feature', async ({page}) => {

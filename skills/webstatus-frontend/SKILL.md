@@ -24,6 +24,10 @@ This skill provides architectural guidance and conventions for the `frontend/` d
 - **DON'T** render the full page layout (header, sidebar, etc.) inside a page component. Page components should focus on route-specific content; `webstatus-app` provides the shell.
 - **DON'T** add generic class names to `shared-css.ts`. **DO** leverage Shadow DOM encapsulation and use composition with slots for reusable layout patterns.
 - **DO** write unit tests for all component logic.
+- **DO** place application-wide service providers within `WebstatusServicesContainer` to ensure a stable context hierarchy.
+- **DO** use specialized child components (the "Context Bridge" pattern) to consume global context if high-level components (like `WebstatusHeader`) don't reliably subscribe to context changes due to slotting or complex rendering lifecycles.
+- **DO** use Shoelace semantic CSS variables (e.g., `--sl-color-neutral-0`) for themeable properties to ensure cross-browser inheritance (Firefox/WebKit) without relying on unsupported selectors like `:host-context`.
+- **DON'T** directly use Shoelace variables (starting with `--sl-`) in component stylesheets. **DO** use custom variables defined in `_theme-css.ts` (e.g., `--color-background`, `--table-padding`) that act as a project-specific abstraction layer.
 
 ## Testing & Linting
 
@@ -31,6 +35,13 @@ This skill provides architectural guidance and conventions for the `frontend/` d
 - **Linting**: Run `make node-lint` to run ESLint and Prettier for the frontend code, or `make lint-fix` to attempt auto-fixing. `make style-lint` is also available for CSS.
 - **ES Module Testing**: When testing components that use ES module exports directly (e.g. Firebase Auth), use a helper property (e.g. `credentialGetter`) that can be overridden with a Sinon stub.
 - **Typing**: Use generic arguments for `querySelector` in tests (e.g. `querySelector<HTMLSlotElement>(...)`) for type safety.
+
+## Theming & Inheritance
+
+- **Global Classes**: The `WebstatusThemeService` toggles the `.sl-theme-dark` class on the `document.documentElement`.
+- **Inheritance**: Shoelace variables (e.g., `--sl-color-neutral-0`) automatically switch values based on the root class. Our custom theme variables in `_theme-css.ts` should derive from these semantic Shoelace variables to inherit fixed values across Shadow DOM boundaries consistently.
+- **Abstraction Layer**: Components should exclusively use custom variables from `_theme-css.ts`. Mapping these to Shoelace variables should only happen in the central theme file. This ensures that a library or color palette change can be managed in one place.
+- **Avoid Unsupported Selectors**: Do not use `:host-context` for theme overrides as it lacks support in Firefox and WebKit. Use root-inherited variables instead.
 
 ## Debugging Frontend Tests
 

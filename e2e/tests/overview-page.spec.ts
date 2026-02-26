@@ -14,20 +14,34 @@
  * limitations under the License.
  */
 
-import {test, expect, Request, Response} from '@playwright/test';
+import {test, expect, Request, Response, Page} from '@playwright/test';
 import {
   gotoOverviewPageUrl,
   getOverviewPageFeatureCount,
   loginAsUser,
   waitForOverviewPageLoad,
+  forceTheme,
+  setupFakeNow,
 } from './utils';
 
 const DEFAULT_PAGE_SIZE = 25;
+
+test.beforeEach(async ({page}) => {
+  await setupFakeNow(page);
+  await forceTheme(page, 'light');
+});
 
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot();
+});
+
+test('matches the screenshot in dark mode', async ({page}) => {
+  await forceTheme(page, 'dark');
+  await gotoOverviewPageUrl(page, 'http://localhost:5555/');
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot('overview-page-dark.png');
 });
 
 test('matches the screenshot for mobile columns', async ({page}) => {

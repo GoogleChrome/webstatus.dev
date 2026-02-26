@@ -15,7 +15,11 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {loginAsUser} from './utils';
+import {loginAsUser, forceTheme} from './utils';
+
+test.beforeEach(async ({page}) => {
+  await forceTheme(page, 'light');
+});
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
@@ -32,4 +36,13 @@ test('matches the screenshot for an authenticated user', async ({page}) => {
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
   await expect(sidebar).toHaveScreenshot('sidebar-authenticated.png');
+});
+
+test('matches the screenshot in dark mode', async ({page}) => {
+  await forceTheme(page, 'dark');
+  await page.goto('http://localhost:5555/');
+
+  // The sidebar menu should be shown by default.
+  const sidebar = page.locator('webstatus-sidebar');
+  await expect(sidebar).toHaveScreenshot('sidebar-dark.png');
 });

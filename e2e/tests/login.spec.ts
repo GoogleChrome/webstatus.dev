@@ -15,7 +15,17 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {dismissToast, freezeAnimations, loginAsUser, testUsers} from './utils';
+import {
+  dismissToast,
+  freezeAnimations,
+  loginAsUser,
+  testUsers,
+  forceTheme,
+} from './utils';
+
+test.beforeEach(async ({page}) => {
+  await forceTheme(page, 'light');
+});
 
 test.describe('Login Component States', () => {
   test('displays spinner and is disabled during profile sync', async ({
@@ -107,6 +117,19 @@ test('matches the screenshot for unauthenticated user', async ({page}) => {
 
   const header = page.locator('webstatus-header');
   await expect(header).toHaveScreenshot('unauthenticated-header.png');
+});
+
+test('matches the screenshot for unauthenticated user in dark mode', async ({
+  page,
+}) => {
+  await forceTheme(page, 'dark');
+  await page.goto('http://localhost:5555/');
+
+  const login = page.locator('webstatus-login');
+  await expect(login).toContainText('Log in');
+
+  const header = page.locator('webstatus-header');
+  await expect(header).toHaveScreenshot('unauthenticated-header-dark.png');
 });
 
 test('can sign in and sign out user', async ({page}) => {

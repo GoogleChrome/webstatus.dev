@@ -15,7 +15,11 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {BASE_URL, expect404PageButtons, goTo404Page} from './utils';
+import {BASE_URL, expect404PageButtons, goTo404Page, forceTheme} from './utils';
+
+test.beforeEach(async ({page}) => {
+  await forceTheme(page, 'light');
+});
 
 test('Bad URL redirection to 404 page', async ({page}) => {
   const badUrls = [
@@ -117,4 +121,13 @@ test('matches the screenshot 404 not found page', async ({page}) => {
   await page.goto(`${BASE_URL}/bad_url`);
   const pageContainer = page.locator('.page-container');
   await expect(pageContainer).toHaveScreenshot('not-found-error-page.png');
+});
+
+test('matches the screenshot 404 not found page in dark mode', async ({
+  page,
+}) => {
+  await forceTheme(page, 'dark');
+  await page.goto(`${BASE_URL}/bad_url`);
+  const pageContainer = page.locator('.page-container');
+  await expect(pageContainer).toHaveScreenshot('not-found-error-page-dark.png');
 });
