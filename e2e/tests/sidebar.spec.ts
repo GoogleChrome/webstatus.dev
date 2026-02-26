@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
-import {loginAsUser, forceTheme} from './utils';
+import {test} from '@playwright/test';
+import {loginAsUser, expectDualThemeScreenshot} from './utils';
 
-test.beforeEach(async ({page}) => {
-  await forceTheme(page, 'light');
-});
+test.beforeEach(async () => {});
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
 
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
-  await expect(sidebar).toHaveScreenshot('sidebar.png');
+  await expectDualThemeScreenshot(page, sidebar, 'sidebar');
 });
 
 test('matches the screenshot for an authenticated user', async ({page}) => {
@@ -35,14 +33,5 @@ test('matches the screenshot for an authenticated user', async ({page}) => {
 
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
-  await expect(sidebar).toHaveScreenshot('sidebar-authenticated.png');
-});
-
-test('matches the screenshot in dark mode', async ({page}) => {
-  await forceTheme(page, 'dark');
-  await page.goto('http://localhost:5555/');
-
-  // The sidebar menu should be shown by default.
-  const sidebar = page.locator('webstatus-sidebar');
-  await expect(sidebar).toHaveScreenshot('sidebar-dark.png');
+  await expectDualThemeScreenshot(page, sidebar, 'sidebar-authenticated');
 });

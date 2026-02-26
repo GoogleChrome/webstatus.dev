@@ -15,11 +15,14 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {BASE_URL, expect404PageButtons, goTo404Page, forceTheme} from './utils';
+import {
+  BASE_URL,
+  expect404PageButtons,
+  goTo404Page,
+  expectDualThemeScreenshot,
+} from './utils';
 
-test.beforeEach(async ({page}) => {
-  await forceTheme(page, 'light');
-});
+test.beforeEach(async () => {});
 
 test('Bad URL redirection to 404 page', async ({page}) => {
   const badUrls = [
@@ -68,8 +71,10 @@ test('shows similar features and all buttons when results exist', async ({
   const pageContainer = page.locator('.page-container');
 
   // Snapshot
-  await expect(pageContainer).toHaveScreenshot(
-    'not-found-error-page-similar-results.png',
+  await expectDualThemeScreenshot(
+    page,
+    pageContainer,
+    'not-found-error-page-similar-results',
   );
 
   // Clicking the search button should redirect to homepage with search
@@ -120,14 +125,5 @@ test('should allow navigation from 404 page', async ({page}) => {
 test('matches the screenshot 404 not found page', async ({page}) => {
   await page.goto(`${BASE_URL}/bad_url`);
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot('not-found-error-page.png');
-});
-
-test('matches the screenshot 404 not found page in dark mode', async ({
-  page,
-}) => {
-  await forceTheme(page, 'dark');
-  await page.goto(`${BASE_URL}/bad_url`);
-  const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot('not-found-error-page-dark.png');
+  await expectDualThemeScreenshot(page, pageContainer, 'not-found-error-page');
 });

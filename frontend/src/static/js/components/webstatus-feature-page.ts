@@ -103,7 +103,7 @@ export class FeaturePage extends BaseChartsPage {
       SHARED_STYLES,
       css`
         .crumbs {
-          color: #aaa;
+          color: var(--unimportant-text-color);
         }
         .crumbs a {
           text-decoration: none;

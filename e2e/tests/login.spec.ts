@@ -20,12 +20,10 @@ import {
   freezeAnimations,
   loginAsUser,
   testUsers,
-  forceTheme,
+  expectDualThemeScreenshot,
 } from './utils';
 
-test.beforeEach(async ({page}) => {
-  await forceTheme(page, 'light');
-});
+test.beforeEach(async () => {});
 
 test.describe('Login Component States', () => {
   test('displays spinner and is disabled during profile sync', async ({
@@ -50,8 +48,10 @@ test.describe('Login Component States', () => {
 
     // Take a screenshot for visual regression.
     await page.mouse.move(0, 0); // Move mouse to avoid hover effects.
-    await expect(page.locator('webstatus-header')).toHaveScreenshot(
-      'login-syncing-state.png',
+    await expectDualThemeScreenshot(
+      page,
+      page.locator('webstatus-header'),
+      'login-syncing-state',
     );
 
     // Now, wait for the sync to complete and verify the final state.
@@ -85,8 +85,10 @@ test.describe('Login Component States', () => {
 
     // Take a screenshot for visual regression.
     await page.mouse.move(0, 0);
-    await expect(page.locator('webstatus-header')).toHaveScreenshot(
-      'login-error-state.png',
+    await expectDualThemeScreenshot(
+      page,
+      page.locator('webstatus-header'),
+      'login-error-state',
     );
   });
 
@@ -103,8 +105,10 @@ test.describe('Login Component States', () => {
 
     // Take a screenshot for visual regression.
     await page.mouse.move(0, 0);
-    await expect(page.locator('webstatus-header')).toHaveScreenshot(
-      'login-idle-state.png',
+    await expectDualThemeScreenshot(
+      page,
+      page.locator('webstatus-header'),
+      'login-idle-state',
     );
   });
 });
@@ -116,20 +120,7 @@ test('matches the screenshot for unauthenticated user', async ({page}) => {
   await expect(login).toContainText('Log in');
 
   const header = page.locator('webstatus-header');
-  await expect(header).toHaveScreenshot('unauthenticated-header.png');
-});
-
-test('matches the screenshot for unauthenticated user in dark mode', async ({
-  page,
-}) => {
-  await forceTheme(page, 'dark');
-  await page.goto('http://localhost:5555/');
-
-  const login = page.locator('webstatus-login');
-  await expect(login).toContainText('Log in');
-
-  const header = page.locator('webstatus-header');
-  await expect(header).toHaveScreenshot('unauthenticated-header-dark.png');
+  await expectDualThemeScreenshot(page, header, 'unauthenticated-header');
 });
 
 test('can sign in and sign out user', async ({page}) => {
@@ -153,7 +144,7 @@ test('can sign in and sign out user', async ({page}) => {
   expect(pingRequest).toBeTruthy();
 
   const header = page.locator('webstatus-header');
-  await expect(header).toHaveScreenshot('authenticated-header.png');
+  await expectDualThemeScreenshot(page, header, 'authenticated-header');
 
   // Show the menu
   await login.click();
@@ -162,5 +153,5 @@ test('can sign in and sign out user', async ({page}) => {
 
   await signOutBtn.click();
 
-  await expect(login).toHaveScreenshot('unauthenticated-button.png');
+  await expectDualThemeScreenshot(page, login, 'unauthenticated-button');
 });
