@@ -43,6 +43,7 @@ export const THEME = css`
     --header-background: var(--color-background);
     --heading-color: var(--color-strongest);
     --heading-background: transparent;
+    --status-code-color: var(--color-primary);
 
     --default-color: var(--color-strongest);
     --unimportant-text-color: var(--sl-color-neutral-700);
@@ -116,10 +117,10 @@ export const THEME = css`
     --color-yellow-fg: var(--sl-color-yellow-400);
 
     --header-background: transparent;
-    --heading-color: white;
-    --default-color: white;
+    --heading-color: var(--sl-color-neutral-1000);
+    --default-color: var(--sl-color-neutral-1000);
 
-    --link-color: var(--sl-color-primary-800);
-    --link-hover-color: var(--sl-color-primary-700);
+    --link-color: var(--sl-color-primary-400);
+    --link-hover-color: var(--sl-color-primary-300);
   }
 `;

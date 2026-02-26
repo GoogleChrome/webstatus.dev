@@ -15,7 +15,7 @@
  */
 
 import {test, expect, Page} from '@playwright/test';
-import {setupFakeNow, forceTheme} from './utils';
+import {setupFakeNow, expectDualThemeScreenshot} from './utils';
 
 async function waitForAllChartsToLoad(page: Page) {
   // Wait for all charts to finish loading.
@@ -25,7 +25,6 @@ async function waitForAllChartsToLoad(page: Page) {
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
-  await forceTheme(page, 'light');
 });
 
 test('matches the screenshot', async ({page}) => {
@@ -40,21 +39,5 @@ test('matches the screenshot', async ({page}) => {
   await waitForAllChartsToLoad(page);
 
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
-});
-
-test('matches the screenshot in dark mode', async ({page}) => {
-  await forceTheme(page, 'dark');
-  await page.goto('http://localhost:5555/stats');
-
-  // Wait for the global feature support chart container to exist.
-  await page.waitForSelector('#global-feature-support-chart-container');
-
-  // Wait for the missing one implementatoin chart container to exist.
-  await page.waitForSelector('#missing-one-implementation-chart-container');
-
-  await waitForAllChartsToLoad(page);
-
-  const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot('stats-page-dark.png');
+  await expectDualThemeScreenshot(page, pageContainer, 'stats-page');
 });

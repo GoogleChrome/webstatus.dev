@@ -47,7 +47,7 @@ export class WebstatusHeader extends LitElement {
         .website-logo {
           width: 31px;
           height: 31px;
-          background-color: #ccc;
+          background-color: var(--color-highlight-2);
           margin-left: 1em;
           margin-top: auto;
           margin-bottom: auto;

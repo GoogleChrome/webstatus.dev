@@ -15,11 +15,9 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {loginAsUser, BASE_URL, forceTheme} from './utils';
+import {loginAsUser, BASE_URL, expectDualThemeScreenshot} from './utils';
 
-test.beforeEach(async ({page}) => {
-  await forceTheme(page, 'light');
-});
+test.beforeEach(async () => {});
 
 test.describe('Notification Channels Page', () => {
   test('redirects unauthenticated user to home and shows toast', async ({
@@ -67,33 +65,10 @@ test.describe('Notification Channels Page', () => {
 
     // Take a screenshot for visual regression
     const pageContainer = page.locator('.page-container');
-    await expect(pageContainer).toHaveScreenshot(
-      'notification-channels-authenticated.png',
-    );
-  });
-
-  test('authenticated user sees their email channel in dark mode', async ({
-    page,
-  }) => {
-    // Force dark mode
-    await forceTheme(page, 'dark');
-
-    // Log in as a test user
-    await loginAsUser(page, 'test user 1');
-
-    // Navigate to the notification channels page
-    await page.goto(`${BASE_URL}/settings/notification-channels`);
-
-    // Move the mouse to a neutral position to avoid hover effects on the screenshot
-    await page.mouse.move(0, 0);
-
-    // Expect the URL to be correct
-    await expect(page).toHaveURL(`${BASE_URL}/settings/notification-channels`);
-
-    // Take a screenshot for visual regression
-    const pageContainer = page.locator('.page-container');
-    await expect(pageContainer).toHaveScreenshot(
-      'notification-channels-authenticated-dark.png',
+    await expectDualThemeScreenshot(
+      page,
+      pageContainer,
+      'notification-channels-authenticated',
     );
   });
 });

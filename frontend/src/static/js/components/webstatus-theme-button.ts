@@ -30,7 +30,7 @@ export class WebstatusThemeButton extends LitElement {
 
   @consume({context: themeContext, subscribe: true})
   @state()
-  theme: Theme | undefined = 'light';
+  theme: Theme | undefined;
 
   _fireEvent(eventName: string, detail: CustomEventInit | undefined): void {
     const event = new CustomEvent(eventName, {

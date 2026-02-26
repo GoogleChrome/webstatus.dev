@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {Page, expect} from '@playwright/test';
+import {Page, expect, type Locator} from '@playwright/test';
 import {execSync} from 'child_process';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -28,6 +28,28 @@ export async function forceTheme(page: Page, theme: 'light' | 'dark') {
     localStorage.setItem('webstatus-theme', theme);
   }, theme);
   await page.emulateMedia({colorScheme: theme});
+}
+
+/**
+ * Captures screenshots for both light and dark themes.
+ * Resets the theme to light after capturing.
+ */
+export async function expectDualThemeScreenshot(
+  page: Page,
+  locator: Locator | Page,
+  name: string,
+  options?: Parameters<Locator['screenshot']>[0],
+) {
+  // 1. Ensure light theme and capture
+  await forceTheme(page, 'light');
+  await expect(locator).toHaveScreenshot(`${name}.png`, options);
+
+  // 2. Change to dark theme and capture
+  await forceTheme(page, 'dark');
+  await expect(locator).toHaveScreenshot(`${name}-dark.png`, options);
+
+  // 3. Reset to light for subsequent tests
+  await forceTheme(page, 'light');
 }
 
 export async function setupFakeNow(
