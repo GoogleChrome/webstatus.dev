@@ -1,1 +1,2840 @@
-{"name":"projects/local/instances/local/databases/local","desc":"","tables":[{"name":"WPTRunFeatureMetrics","type":"BASIC TABLE","comment":"","columns":[{"name":"ID","type":"STRING(36)","nullable":false,"default":null,"comment":""},{"name":"WebFeatureID","type":"STRING(36)","nullable":false,"default":null,"comment":""},{"name":"TotalTests","type":"INT64","nullable":true,"default":null,"comment":""},{"name":"TestPass","type":"INT64","nullable":true,"default":null,"comment":""},{"name":"TestPassRate","type":"NUMERIC","nullable":true,"default":null,"comment":""},{"name":"TotalSubtests","type":"INT64","nullable":true,"default":null,"comment":""},{"name":"SubtestPass","type":"INT64","nullable":true,"default":null,"comment":""},{"name":"SubtestPassRate","type":"NUMERIC","nullable":true,"default":null,"comment":""},{"name":"Channel","type":"STRING(32)","nullable":false,"default":null,"comment":""},{"name":"BrowserName","type":"STRING(64)","nullable":false,"default":null,"comment":""},{"name":"TimeStart","type":"TIMESTAMP","nullable":false,"default":null,"comment":""}],"indexes":[{"name":"MetricsFeatureChannelBrowserTimeSubtestPassRate","def":"CREATE INDEX MetricsFeatureChannelBrowserTimeSubtestPassRate ON WPTRunFeatureMetrics (WebFeatureID, Channel, BrowserName, TimeStart, SubtestPassRate)","table":"WPTRunFeatureMetrics","columns":["WebFeatureID","Channel","BrowserName","TimeStart","SubtestPassRate"],"comment":""},{"name":"IDX_WPTRunFeatureMetrics_WebFeatureID_0F24FDA753A6AB71","def":"CREATE INDEX IDX_WPTRunFeatureMetrics_WebFeatureID_0F24FDA753A6AB71 ON WPTRunFeatureMetrics (WebFeatureID)","table":"WPTRunFeatureMetrics","columns":["WebFeatureID"],"comment":""},{"name":"MetricsFeatureChannelBrowserTimeTestPassRate","def":"CREATE INDEX MetricsFeatureChannelBrowserTimeTestPassRate ON WPTRunFeatureMetrics (WebFeatureID, Channel, BrowserName, TimeStart, TestPassRate)","table":"WPTRunFeatureMetrics","columns":["WebFeatureID","Channel","BrowserName","TimeStart","TestPassRate"],"comment":""},{"name":"MetricsByRunIDAndFeature","def":"CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, WebFeatureID)","table":"WPTRunFeatureMetrics","columns":["ID","WebFeatureID"],"comment":""},{"name":"MetricsFeatureChannelBrowserTime","def":"CREATE INDEX MetricsFeatureChannelBrowserTime ON WPTRunFeatureMetrics (WebFeatureID, Channel, BrowserName, TimeStart)","table":"WPTRunFeatureMetrics","columns":["WebFeatureID","Channel","BrowserName","TimeStart"],"comment":""}],"constraints":[{"name":"PRIMARY_KEY","type":"PRIMARY_KEY","def":"PRIMARY KEY(ID, WebFeatureID)","table":"WPTRunFeatureMetrics","referenced_table":null,"columns":["ID","WebFeatureID"],"referenced_columns":[],"comment":""},{"name":"INTERLEAVE","type":"INTERLEAVE","def":"INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE","table":"WPTRunFeatureMetrics","referenced_table":"WPTRuns","columns":["ID","WebFeatureID"],"referenced_columns":["ID"],"comment":""}],"triggers":[],"def":""},{"name":"BrowserReleases","type":"BASIC TABLE","comment":"","columns":[{"name":"BrowserName","type":"STRING(64)","nullable":false,"default":null,"comment":""},{"name":"BrowserVersion","type":"STRING(8)","nullable":false,"default":null,"comment":""},{"name":"ReleaseDate","type":"TIMESTAMP","nullable":false,"default":null,"comment":""}],"indexes":[],"constraints":[{"name":"PRIMARY_KEY","type":"PRIMARY_KEY","def":"PRIMARY KEY(BrowserName, BrowserVersion)","table":"BrowserReleases","referenced_table":null,"columns":["BrowserName","BrowserVersion"],"referenced_columns":[],"comment":""}],"triggers":[],"def":""},{"name":"WebFeatures","type":"BASIC TABLE","comment":"","columns":[{"name":"ID","type":"STRING(36)","nullable":false,"default":null,"comment":""},{"name":"FeatureKey","type":"STRING(64)","nullable":false,"default":null,"comment":""},{"name":"Name","type":"STRING(64)","nullable":false,"default":null,"comment":""},{"name":"FeatureID_Lowercase","type":"STRING(64)","nullable":true,"default":null,"comment":""},{"name":"Name_Lowercase","type":"STRING(64)","nullable":true,"default":null,"comment":""}],"indexes":[{"name":"WebFeaturesByFeatureID","def":"CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureKey)","table":"WebFeatures","columns":["FeatureKey"],"comment":""},{"name":"IDX_NAME_LOWER","def":"CREATE INDEX IDX_NAME_LOWER ON WebFeatures (Name_Lowercase)","table":"WebFeatures","columns":["Name_Lowercase"],"comment":""},{"name":"IDX_FEATUREID_LOWER","def":"CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures (FeatureID_Lowercase)","table":"WebFeatures","columns":["FeatureID_Lowercase"],"comment":""}],"constraints":[{"name":"PRIMARY_KEY","type":"PRIMARY_KEY","def":"PRIMARY KEY(ID)","table":"WebFeatures","referenced_table":null,"columns":["ID"],"referenced_columns":[],"comment":""}],"triggers":[],"def":""},{"name":"BrowserFeatureAvailabilities","type":"BASIC TABLE","comment":"","columns":[{"name":"BrowserName","type":"STRING(64)","nullable":false,"default":null,"comment":""},{"name":"BrowserVersion","type":"STRING(8)","nullable":false,"default":null,"comment":""},{"name":"WebFeatureID","type":"STRING(36)","nullable":false,"default":null,"comment":""}],"indexes":[{"name":"IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3","def":"CREATE INDEX IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3 ON BrowserFeatureAvailabilities (BrowserName, BrowserVersion)","table":"BrowserFeatureAvailabilities","columns":["BrowserName","BrowserVersion"],"comment":""},{"name":"UniqueFeatureBrowser","def":"CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (WebFeatureID, BrowserName)","table":"BrowserFeatureAvailabilities","columns":["WebFeatureID","BrowserName"],"comment":""}],"constraints":[{"name":"PRIMARY_KEY","type":"PRIMARY_KEY","def":"PRIMARY KEY(WebFeatureID, BrowserName)","table":"BrowserFeatureAvailabilities","referenced_table":null,"columns":["WebFeatureID","BrowserName"],"referenced_columns":[],"comment":""}],"triggers":[],"def":""},{"name":"WPTRuns","type":"BASIC TABLE","comment":"","columns":[{"name":"ID","type":"STRING(36)","nullable":false,"default":null,"comment":""},{"name":"ExternalRunID","type":"INT64","nullable":false,"default":null,"comment":""},{"name":"TimeStart","type":"TIMESTAMP","nullable":false,"default":null,"comment":""},{"name":"TimeEnd","type":"TIMESTAMP","nullable":false,"default":null,"comment":""},{"name":"BrowserName","type":"STRING(64)","nullable":false,"default":null,"comment":""},{"name":"BrowserVersion","type":"STRING(32)","nullable":false,"default":null,"comment":""},{"name":"Channel","type":"STRING(32)","nullable":false,"default":null,"comment":""},{"name":"OSName","type":"STRING(64)","nullable":true,"default":null,"comment":""},{"name":"OSVersion","type":"STRING(32)","nullable":true,"default":null,"comment":""},{"name":"FullRevisionHash","type":"STRING(40)","nullable":true,"default":null,"comment":""}],"indexes":[{"name":"RunsForFeatureSearchWithChannel","def":"CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns (ExternalRunID, Channel, TimeStart, BrowserName)","table":"WPTRuns","columns":["ExternalRunID","Channel","TimeStart","BrowserName"],"comment":""},{"name":"RunsByExternalRunID","def":"CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID)","table":"WPTRuns","columns":["ExternalRunID"],"comment":""},{"name":"LatestRunsByBrowserChannel","def":"CREATE INDEX LatestRunsByBrowserChannel ON WPTRuns (BrowserName, Channel, TimeStart)","table":"WPTRuns","columns":["BrowserName","Channel","TimeStart"],"comment":""}],"constraints":[{"name":"PRIMARY_KEY","type":"PRIMARY_KEY","def":"PRIMARY KEY(ID)","table":"WPTRuns","referenced_table":null,"columns":["ID"],"referenced_columns":[],"comment":""}],"triggers":[],"def":""},{"name":"FeatureBaselineStatus","type":"BASIC TABLE","comment":"","columns":[{"name":"WebFeatureID","type":"STRING(36)","nullable":false,"default":null,"comment":""},{"name":"Status","type":"STRING(16)","nullable":true,"default":null,"comment":""},{"name":"LowDate","type":"TIMESTAMP","nullable":true,"default":null,"comment":""},{"name":"HighDate","type":"TIMESTAMP","nullable":true,"default":null,"comment":""}],"indexes":[{"name":"IDX_FBS_FEATUREID","def":"CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus (WebFeatureID)","table":"FeatureBaselineStatus","columns":["WebFeatureID"],"comment":""}],"constraints":[{"name":"PRIMARY_KEY","type":"PRIMARY_KEY","def":"PRIMARY KEY(WebFeatureID)","table":"FeatureBaselineStatus","referenced_table":null,"columns":["WebFeatureID"],"referenced_columns":[],"comment":""}],"triggers":[],"def":""}],"relations":[{"table":"WPTRunFeatureMetrics","columns":["ID","WebFeatureID"],"cardinality":"Zero or one","parent_table":"WPTRuns","parent_columns":["ID"],"parent_cardinality":"Exactly one","def":"INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE","virtual":false},{"table":"WPTRunFeatureMetrics","columns":["WebFeatureID"],"cardinality":"Zero or more","parent_table":"WebFeatures","parent_columns":["ID"],"parent_cardinality":"Exactly one","def":"Additional Relation","virtual":true},{"table":"BrowserFeatureAvailabilities","columns":["WebFeatureID"],"cardinality":"Zero or more","parent_table":"WebFeatures","parent_columns":["ID"],"parent_cardinality":"Exactly one","def":"Additional Relation","virtual":true},{"table":"BrowserFeatureAvailabilities","columns":["BrowserName","BrowserVersion"],"cardinality":"Zero or more","parent_table":"BrowserReleases","parent_columns":["BrowserName","BrowserVersion"],"parent_cardinality":"Exactly one","def":"Additional Relation","virtual":true},{"table":"FeatureBaselineStatus","columns":["WebFeatureID"],"cardinality":"Zero or one","parent_table":"WebFeatures","parent_columns":["ID"],"parent_cardinality":"Exactly one","def":"Additional Relation","virtual":true}],"functions":null,"driver":{"name":"spanner","database_version":"","meta":{}}}
+{
+  "name": "projects/local/instances/local/databases/local",
+  "tables": [
+    {
+      "name": "WPTRunFeatureMetrics",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "TotalTests",
+          "type": "INT64",
+          "nullable": true
+        },
+        {
+          "name": "TestPass",
+          "type": "INT64",
+          "nullable": true
+        },
+        {
+          "name": "TestPassRate",
+          "type": "NUMERIC",
+          "nullable": true
+        },
+        {
+          "name": "TotalSubtests",
+          "type": "INT64",
+          "nullable": true
+        },
+        {
+          "name": "SubtestPass",
+          "type": "INT64",
+          "nullable": true
+        },
+        {
+          "name": "SubtestPassRate",
+          "type": "NUMERIC",
+          "nullable": true
+        },
+        {
+          "name": "Channel",
+          "type": "STRING(32)",
+          "nullable": false
+        },
+        {
+          "name": "BrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "TimeStart",
+          "type": "TIMESTAMP",
+          "nullable": false
+        },
+        {
+          "name": "FeatureRunDetails",
+          "type": "JSON",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "MetricsFeatureChannelBrowserTimeSubtestPassRate",
+          "def": "CREATE INDEX MetricsFeatureChannelBrowserTimeSubtestPassRate ON WPTRunFeatureMetrics (WebFeatureID, Channel, BrowserName, TimeStart, SubtestPassRate)",
+          "table": "WPTRunFeatureMetrics",
+          "columns": [
+            "WebFeatureID",
+            "Channel",
+            "BrowserName",
+            "TimeStart",
+            "SubtestPassRate"
+          ]
+        },
+        {
+          "name": "IDX_WPTRunFeatureMetrics_WebFeatureID_0F24FDA753A6AB71",
+          "def": "CREATE INDEX IDX_WPTRunFeatureMetrics_WebFeatureID_0F24FDA753A6AB71 ON WPTRunFeatureMetrics (WebFeatureID)",
+          "table": "WPTRunFeatureMetrics",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "MetricsFeatureChannelBrowserTimeTestPassRate",
+          "def": "CREATE INDEX MetricsFeatureChannelBrowserTimeTestPassRate ON WPTRunFeatureMetrics (WebFeatureID, Channel, BrowserName, TimeStart, TestPassRate)",
+          "table": "WPTRunFeatureMetrics",
+          "columns": [
+            "WebFeatureID",
+            "Channel",
+            "BrowserName",
+            "TimeStart",
+            "TestPassRate"
+          ]
+        },
+        {
+          "name": "MetricsByRunIDAndFeature",
+          "def": "CREATE UNIQUE NULL_FILTERED INDEX MetricsByRunIDAndFeature ON WPTRunFeatureMetrics (ID, WebFeatureID)",
+          "table": "WPTRunFeatureMetrics",
+          "columns": [
+            "ID",
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "MetricsFeatureChannelBrowserTime",
+          "def": "CREATE INDEX MetricsFeatureChannelBrowserTime ON WPTRunFeatureMetrics (WebFeatureID, Channel, BrowserName, TimeStart)",
+          "table": "WPTRunFeatureMetrics",
+          "columns": [
+            "WebFeatureID",
+            "Channel",
+            "BrowserName",
+            "TimeStart"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID, WebFeatureID)",
+          "table": "WPTRunFeatureMetrics",
+          "columns": [
+            "ID",
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_WPTRunFeatureMetricsWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "WPTRunFeatureMetrics",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_WPTRunFeatureMetrics_WPTRuns_AD1C5BE2E040F8A0_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ID) REFERENCES WPTRuns (ID)",
+          "table": "WPTRunFeatureMetrics",
+          "referenced_table": "WPTRuns",
+          "columns": [
+            "ID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "INTERLEAVE",
+          "type": "INTERLEAVE",
+          "def": "INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE",
+          "table": "WPTRunFeatureMetrics",
+          "referenced_table": "WPTRuns",
+          "columns": [
+            "ID",
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ExcludedFeatureKeys",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "FeatureKey",
+          "type": "STRING(64)",
+          "nullable": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(FeatureKey)",
+          "table": "ExcludedFeatureKeys",
+          "columns": [
+            "FeatureKey"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebDXSnapshots",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SnapshotKey",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "Name",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "SnapshotKey_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        },
+        {
+          "name": "Name_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "WebDXSnapshots",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebFeatureChromiumHistogramEnumValues",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "ChromiumHistogramEnumValueID",
+          "type": "STRING(36)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_WebFeatureChromiumHistogramEnumValues_ChromiumHistogramEnumValueID_N_E49E3E19488FE949",
+          "def": "CREATE NULL_FILTERED INDEX IDX_WebFeatureChromiumHistogramEnumValues_ChromiumHistogramEnumValueID_N_E49E3E19488FE949 ON WebFeatureChromiumHistogramEnumValues (ChromiumHistogramEnumValueID)",
+          "table": "WebFeatureChromiumHistogramEnumValues",
+          "columns": [
+            "ChromiumHistogramEnumValueID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "WebFeatureChromiumHistogramEnumValues",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_WebFeatureChromiumHistogramEnumValues_ChromiumHistogramEnumValues_233AC6F74A8B736B_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues (ID) ON DELETE CASCADE",
+          "table": "WebFeatureChromiumHistogramEnumValues",
+          "referenced_table": "ChromiumHistogramEnumValues",
+          "columns": [
+            "ChromiumHistogramEnumValueID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_WebFeatureChromiumHistogramEnumValues_WebFeatures_EA1200DF6F20EBEC_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "WebFeatureChromiumHistogramEnumValues",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SavedSearchUserRoles",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "SavedSearchID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "UserID",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "UserRole",
+          "type": "STRING(MAX)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_SavedSearchUserRoles_SavedSearchID_181FBCF745675390",
+          "def": "CREATE INDEX IDX_SavedSearchUserRoles_SavedSearchID_181FBCF745675390 ON SavedSearchUserRoles (SavedSearchID)",
+          "table": "SavedSearchUserRoles",
+          "columns": [
+            "SavedSearchID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(UserID, SavedSearchID)",
+          "table": "SavedSearchUserRoles",
+          "columns": [
+            "UserID",
+            "SavedSearchID"
+          ]
+        },
+        {
+          "name": "FK_SavedSearchUserRoles_SavedSearches_295EC75D4972EDF7_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE",
+          "table": "SavedSearchUserRoles",
+          "referenced_table": "SavedSearches",
+          "columns": [
+            "SavedSearchID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FeatureDiscouragedDetails",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "AccordingTo",
+          "type": "ARRAY\u003cSTRING(MAX)\u003e",
+          "nullable": true
+        },
+        {
+          "name": "Alternatives",
+          "type": "ARRAY\u003cSTRING(MAX)\u003e",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "FeatureDiscouragedDetails",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_DiscouragedDetailsWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "FeatureDiscouragedDetails",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LatestFeatureDeveloperSignals",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Upvotes",
+          "type": "INT64",
+          "nullable": false
+        },
+        {
+          "name": "Link",
+          "type": "STRING(MAX)",
+          "nullable": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "LatestFeatureDeveloperSignals",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_LatestFeatureDeveloperSignals_WebFeatures_3C67D28AA745F0C4_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "LatestFeatureDeveloperSignals",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NotificationChannelDeliveryAttempts",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "ChannelID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "AttemptTimestamp",
+          "type": "TIMESTAMP",
+          "nullable": false
+        },
+        {
+          "name": "Status",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Details",
+          "type": "JSON",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_NotificationChannelDeliveryAttempts_ChannelID_63C7D928059106C8",
+          "def": "CREATE INDEX IDX_NotificationChannelDeliveryAttempts_ChannelID_63C7D928059106C8 ON NotificationChannelDeliveryAttempts (ChannelID)",
+          "table": "NotificationChannelDeliveryAttempts",
+          "columns": [
+            "ChannelID"
+          ]
+        },
+        {
+          "name": "IX_NotificationChannelDeliveryAttempt_AttemptTimestamp",
+          "def": "CREATE INDEX IX_NotificationChannelDeliveryAttempt_AttemptTimestamp ON NotificationChannelDeliveryAttempts (ChannelID, AttemptTimestamp)",
+          "table": "NotificationChannelDeliveryAttempts",
+          "columns": [
+            "ChannelID",
+            "AttemptTimestamp"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID, ChannelID)",
+          "table": "NotificationChannelDeliveryAttempts",
+          "columns": [
+            "ID",
+            "ChannelID"
+          ]
+        },
+        {
+          "name": "FK_NotificationChannelDeliveryAttempt_NotificationChannel",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChannelID) REFERENCES NotificationChannels (ID) ON DELETE CASCADE",
+          "table": "NotificationChannelDeliveryAttempts",
+          "referenced_table": "NotificationChannels",
+          "columns": [
+            "ChannelID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SystemManagedSavedSearches",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "FeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SavedSearchID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_SystemManagedSavedSearches_SavedSearchID_EE7E01CDEC0F3BBA",
+          "def": "CREATE INDEX IDX_SystemManagedSavedSearches_SavedSearchID_EE7E01CDEC0F3BBA ON SystemManagedSavedSearches (SavedSearchID)",
+          "table": "SystemManagedSavedSearches",
+          "columns": [
+            "SavedSearchID"
+          ]
+        },
+        {
+          "name": "IX_SystemManagedSavedSearches_SavedSearchId",
+          "def": "CREATE UNIQUE INDEX IX_SystemManagedSavedSearches_SavedSearchId ON SystemManagedSavedSearches (SavedSearchID)",
+          "table": "SystemManagedSavedSearches",
+          "columns": [
+            "SavedSearchID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(FeatureID)",
+          "table": "SystemManagedSavedSearches",
+          "columns": [
+            "FeatureID"
+          ]
+        },
+        {
+          "name": "FK_SystemManagedSavedSearches_WebFeatures",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (FeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "SystemManagedSavedSearches",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "FeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_SystemManagedSavedSearches_SavedSearches",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE",
+          "table": "SystemManagedSavedSearches",
+          "referenced_table": "SavedSearches",
+          "columns": [
+            "SavedSearchID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WPTRuns",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "ExternalRunID",
+          "type": "INT64",
+          "nullable": false
+        },
+        {
+          "name": "TimeStart",
+          "type": "TIMESTAMP",
+          "nullable": false
+        },
+        {
+          "name": "TimeEnd",
+          "type": "TIMESTAMP",
+          "nullable": false
+        },
+        {
+          "name": "BrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "BrowserVersion",
+          "type": "STRING(32)",
+          "nullable": false
+        },
+        {
+          "name": "Channel",
+          "type": "STRING(32)",
+          "nullable": false
+        },
+        {
+          "name": "OSName",
+          "type": "STRING(64)",
+          "nullable": true
+        },
+        {
+          "name": "OSVersion",
+          "type": "STRING(32)",
+          "nullable": true
+        },
+        {
+          "name": "FullRevisionHash",
+          "type": "STRING(40)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "RunsForFeatureSearchWithChannel",
+          "def": "CREATE INDEX RunsForFeatureSearchWithChannel ON WPTRuns (ExternalRunID, Channel, TimeStart, BrowserName)",
+          "table": "WPTRuns",
+          "columns": [
+            "ExternalRunID",
+            "Channel",
+            "TimeStart",
+            "BrowserName"
+          ]
+        },
+        {
+          "name": "RunsByExternalRunID",
+          "def": "CREATE UNIQUE NULL_FILTERED INDEX RunsByExternalRunID ON WPTRuns (ExternalRunID)",
+          "table": "WPTRuns",
+          "columns": [
+            "ExternalRunID"
+          ]
+        },
+        {
+          "name": "LatestRunsByBrowserChannel",
+          "def": "CREATE INDEX LatestRunsByBrowserChannel ON WPTRuns (BrowserName, Channel, TimeStart)",
+          "table": "WPTRuns",
+          "columns": [
+            "BrowserName",
+            "Channel",
+            "TimeStart"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "WPTRuns",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FeatureBaselineStatus",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Status",
+          "type": "STRING(16)",
+          "nullable": true
+        },
+        {
+          "name": "LowDate",
+          "type": "TIMESTAMP",
+          "nullable": true
+        },
+        {
+          "name": "HighDate",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_FBS_FEATUREID",
+          "def": "CREATE INDEX IDX_FBS_FEATUREID ON FeatureBaselineStatus (WebFeatureID)",
+          "table": "FeatureBaselineStatus",
+          "columns": [
+            "WebFeatureID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "FeatureBaselineStatus",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_FeatureBaselineStatusWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "FeatureBaselineStatus",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebDXGroups",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "GroupKey",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "Name",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "GroupKey_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        },
+        {
+          "name": "Name_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "WebDXGroups",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ChromiumHistogramEnumValues",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "ChromiumHistogramEnumID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "BucketID",
+          "type": "INT64",
+          "nullable": false
+        },
+        {
+          "name": "Label",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Label_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_ChromiumHistogramEnumValues_ChromiumHistogramEnumID_C56AE8069476947B",
+          "def": "CREATE INDEX IDX_ChromiumHistogramEnumValues_ChromiumHistogramEnumID_C56AE8069476947B ON ChromiumHistogramEnumValues (ChromiumHistogramEnumID)",
+          "table": "ChromiumHistogramEnumValues",
+          "columns": [
+            "ChromiumHistogramEnumID"
+          ]
+        },
+        {
+          "name": "UniqueEnumValuesByEnumAndBucket",
+          "def": "CREATE UNIQUE NULL_FILTERED INDEX UniqueEnumValuesByEnumAndBucket ON ChromiumHistogramEnumValues (ChromiumHistogramEnumID, BucketID)",
+          "table": "ChromiumHistogramEnumValues",
+          "columns": [
+            "ChromiumHistogramEnumID",
+            "BucketID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "ChromiumHistogramEnumValues",
+          "columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_ChromiumHistogramEnumValues_ChromiumHistogramEnums_5AE251ED24CC3A5C_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums (ID) ON DELETE CASCADE",
+          "table": "ChromiumHistogramEnumValues",
+          "referenced_table": "ChromiumHistogramEnums",
+          "columns": [
+            "ChromiumHistogramEnumID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SavedSearches",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Name",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Query",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Scope",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "AuthorID",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "CreatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": true
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": true
+        },
+        {
+          "name": "Description",
+          "type": "STRING(MAX)",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "SavedSearches",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LatestDailyChromiumHistogramMetrics",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "ChromiumHistogramEnumValueID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Day",
+          "type": "DATE",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_LatestDailyChromiumHistogramMetrics_ChromiumHistogramEnumValueID_8E8E4F9702E8AADD",
+          "def": "CREATE INDEX IDX_LatestDailyChromiumHistogramMetrics_ChromiumHistogramEnumValueID_8E8E4F9702E8AADD ON LatestDailyChromiumHistogramMetrics (ChromiumHistogramEnumValueID)",
+          "table": "LatestDailyChromiumHistogramMetrics",
+          "columns": [
+            "ChromiumHistogramEnumValueID"
+          ]
+        },
+        {
+          "name": "IDX_LatestDailyChromiumHistogramMetrics_ChromiumHistogramEnumValueID_Day_87694E42C69AF881",
+          "def": "CREATE INDEX IDX_LatestDailyChromiumHistogramMetrics_ChromiumHistogramEnumValueID_Day_87694E42C69AF881 ON LatestDailyChromiumHistogramMetrics (ChromiumHistogramEnumValueID, Day)",
+          "table": "LatestDailyChromiumHistogramMetrics",
+          "columns": [
+            "ChromiumHistogramEnumValueID",
+            "Day"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID, ChromiumHistogramEnumValueID)",
+          "table": "LatestDailyChromiumHistogramMetrics",
+          "columns": [
+            "WebFeatureID",
+            "ChromiumHistogramEnumValueID"
+          ]
+        },
+        {
+          "name": "FK_LatestDailyChromiumHistogramMetrics_ChromiumHistogramEnumValues_4239195E774CD387_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues (ID) ON DELETE CASCADE",
+          "table": "LatestDailyChromiumHistogramMetrics",
+          "referenced_table": "ChromiumHistogramEnumValues",
+          "columns": [
+            "ChromiumHistogramEnumValueID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_LatestDailyChromiumHistogramMetricsWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "LatestDailyChromiumHistogramMetrics",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_LatestDailyChromiumHistogramMetrics_DailyChromiumHistogramMetrics_5906648AE91E8014_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChromiumHistogramEnumValueID, ChromiumHistogramEnumValueID, Day, Day) REFERENCES DailyChromiumHistogramMetrics (Day, ChromiumHistogramEnumValueID, ChromiumHistogramEnumValueID, Day) ON DELETE CASCADE",
+          "table": "LatestDailyChromiumHistogramMetrics",
+          "referenced_table": "DailyChromiumHistogramMetrics",
+          "columns": [
+            "ChromiumHistogramEnumValueID",
+            "ChromiumHistogramEnumValueID",
+            "Day",
+            "Day"
+          ],
+          "referenced_columns": [
+            "Day",
+            "ChromiumHistogramEnumValueID",
+            "ChromiumHistogramEnumValueID",
+            "Day"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SplitWebFeatures",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "OriginalFeatureKey",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "TargetWebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "OriginalFeatureKey_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_SplitWebFeatures_TargetWebFeatureID_0124AD2A8766778C",
+          "def": "CREATE INDEX IDX_SplitWebFeatures_TargetWebFeatureID_0124AD2A8766778C ON SplitWebFeatures (TargetWebFeatureID)",
+          "table": "SplitWebFeatures",
+          "columns": [
+            "TargetWebFeatureID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "SplitWebFeatures",
+          "columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_SplitWebFeatures_TargetWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (TargetWebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "SplitWebFeatures",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "TargetWebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NotificationChannelStates",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ChannelID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "IsDisabledBySystem",
+          "type": "BOOL",
+          "nullable": true
+        },
+        {
+          "name": "ConsecutiveFailures",
+          "type": "INT64",
+          "nullable": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ChannelID)",
+          "table": "NotificationChannelStates",
+          "columns": [
+            "ChannelID"
+          ]
+        },
+        {
+          "name": "FK_NotificationChannelState_NotificationChannel",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChannelID) REFERENCES NotificationChannels (ID) ON DELETE CASCADE",
+          "table": "NotificationChannelStates",
+          "referenced_table": "NotificationChannels",
+          "columns": [
+            "ChannelID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SavedSearchNotificationEvents",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "EventId",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SavedSearchId",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SnapshotType",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Timestamp",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        },
+        {
+          "name": "EventType",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "BlobPath",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Summary",
+          "type": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "DiffBlobPath",
+          "type": "STRING(MAX)",
+          "nullable": true
+        },
+        {
+          "name": "Reasons",
+          "type": "ARRAY\u003cSTRING(MAX)\u003e",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "SavedSearchNotificationEvents_BySearchAndType",
+          "def": "CREATE INDEX SavedSearchNotificationEvents_BySearchAndType ON SavedSearchNotificationEvents (SavedSearchId, EventType, Timestamp)",
+          "table": "SavedSearchNotificationEvents",
+          "columns": [
+            "SavedSearchId",
+            "EventType",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "SavedSearchNotificationEvents_BySearchAndSnapshotType",
+          "def": "CREATE INDEX SavedSearchNotificationEvents_BySearchAndSnapshotType ON SavedSearchNotificationEvents (SavedSearchId, SnapshotType, Timestamp)",
+          "table": "SavedSearchNotificationEvents",
+          "columns": [
+            "SavedSearchId",
+            "SnapshotType",
+            "Timestamp"
+          ]
+        },
+        {
+          "name": "IDX_SavedSearchNotificationEvents_SavedSearchId_SnapshotType_DA904570C69F9709",
+          "def": "CREATE INDEX IDX_SavedSearchNotificationEvents_SavedSearchId_SnapshotType_DA904570C69F9709 ON SavedSearchNotificationEvents (SavedSearchId, SnapshotType)",
+          "table": "SavedSearchNotificationEvents",
+          "columns": [
+            "SavedSearchId",
+            "SnapshotType"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(EventId)",
+          "table": "SavedSearchNotificationEvents",
+          "columns": [
+            "EventId"
+          ]
+        },
+        {
+          "name": "FK_Events_State",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (SavedSearchId, SavedSearchId, SnapshotType, SnapshotType) REFERENCES SavedSearchState (SavedSearchId, SnapshotType, SavedSearchId, SnapshotType) ON DELETE CASCADE",
+          "table": "SavedSearchNotificationEvents",
+          "referenced_table": "SavedSearchState",
+          "columns": [
+            "SavedSearchId",
+            "SavedSearchId",
+            "SnapshotType",
+            "SnapshotType"
+          ],
+          "referenced_columns": [
+            "SavedSearchId",
+            "SnapshotType",
+            "SavedSearchId",
+            "SnapshotType"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebFeatures",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "FeatureKey",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "Name",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "FeatureKey_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        },
+        {
+          "name": "Name_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        },
+        {
+          "name": "Description",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "DescriptionHtml",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Description_Lowercase",
+          "type": "STRING(MAX)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "WebFeaturesByFeatureID",
+          "def": "CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureKey)",
+          "table": "WebFeatures",
+          "columns": [
+            "FeatureKey"
+          ]
+        },
+        {
+          "name": "IDX_NAME_LOWER",
+          "def": "CREATE INDEX IDX_NAME_LOWER ON WebFeatures (Name_Lowercase)",
+          "table": "WebFeatures",
+          "columns": [
+            "Name_Lowercase"
+          ]
+        },
+        {
+          "name": "IDX_FEATUREID_LOWER",
+          "def": "CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures (FeatureKey_Lowercase)",
+          "table": "WebFeatures",
+          "columns": [
+            "FeatureKey_Lowercase"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "WebFeatures",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BrowserFeatureAvailabilities",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "BrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "BrowserVersion",
+          "type": "STRING(8)",
+          "nullable": false
+        },
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3",
+          "def": "CREATE INDEX IDX_BrowserFeatureAvailabilities_BrowserName_BrowserVersion_B348C85B1730D0A3 ON BrowserFeatureAvailabilities (BrowserName, BrowserVersion)",
+          "table": "BrowserFeatureAvailabilities",
+          "columns": [
+            "BrowserName",
+            "BrowserVersion"
+          ]
+        },
+        {
+          "name": "UniqueFeatureBrowser",
+          "def": "CREATE UNIQUE INDEX UniqueFeatureBrowser ON BrowserFeatureAvailabilities (WebFeatureID, BrowserName)",
+          "table": "BrowserFeatureAvailabilities",
+          "columns": [
+            "WebFeatureID",
+            "BrowserName"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID, BrowserName)",
+          "table": "BrowserFeatureAvailabilities",
+          "columns": [
+            "WebFeatureID",
+            "BrowserName"
+          ]
+        },
+        {
+          "name": "FK_BrowserFeatureAvailabilities_BrowserReleases_DDAB0CB4B9DFA076_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (BrowserName, BrowserName, BrowserVersion, BrowserVersion) REFERENCES BrowserReleases (BrowserName, BrowserVersion, BrowserName, BrowserVersion)",
+          "table": "BrowserFeatureAvailabilities",
+          "referenced_table": "BrowserReleases",
+          "columns": [
+            "BrowserName",
+            "BrowserName",
+            "BrowserVersion",
+            "BrowserVersion"
+          ],
+          "referenced_columns": [
+            "BrowserName",
+            "BrowserVersion",
+            "BrowserName",
+            "BrowserVersion"
+          ]
+        },
+        {
+          "name": "FK_BrowserFeatureAvailabilitiesWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "BrowserFeatureAvailabilities",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "LatestWPTRunFeatureMetrics",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "RunMetricID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "BrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "Channel",
+          "type": "STRING(32)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_LatestWPTRunFeatureMetrics_RunMetricID_WebFeatureID_21BAEC9D6B82A79E",
+          "def": "CREATE INDEX IDX_LatestWPTRunFeatureMetrics_RunMetricID_WebFeatureID_21BAEC9D6B82A79E ON LatestWPTRunFeatureMetrics (RunMetricID, WebFeatureID)",
+          "table": "LatestWPTRunFeatureMetrics",
+          "columns": [
+            "RunMetricID",
+            "WebFeatureID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID, BrowserName, Channel)",
+          "table": "LatestWPTRunFeatureMetrics",
+          "columns": [
+            "WebFeatureID",
+            "BrowserName",
+            "Channel"
+          ]
+        },
+        {
+          "name": "FK_LatestWPTRunFeatureMetrics_WPTRunFeatureMetrics_0219C6E73A23A6BE_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (RunMetricID, RunMetricID, WebFeatureID, WebFeatureID) REFERENCES WPTRunFeatureMetrics (WebFeatureID, ID, ID, WebFeatureID) ON DELETE CASCADE",
+          "table": "LatestWPTRunFeatureMetrics",
+          "referenced_table": "WPTRunFeatureMetrics",
+          "columns": [
+            "RunMetricID",
+            "RunMetricID",
+            "WebFeatureID",
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "WebFeatureID",
+            "ID",
+            "ID",
+            "WebFeatureID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ChromiumHistogramEnums",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "HistogramName",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "HistogramName_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "ChromiumHistogramEnumsByHistogramName",
+          "def": "CREATE UNIQUE NULL_FILTERED INDEX ChromiumHistogramEnumsByHistogramName ON ChromiumHistogramEnums (HistogramName)",
+          "table": "ChromiumHistogramEnums",
+          "columns": [
+            "HistogramName"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "ChromiumHistogramEnums",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DailyChromiumHistogramEnumCapstones",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ChromiumHistogramEnumID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Day",
+          "type": "DATE",
+          "nullable": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ChromiumHistogramEnumID, Day)",
+          "table": "DailyChromiumHistogramEnumCapstones",
+          "columns": [
+            "ChromiumHistogramEnumID",
+            "Day"
+          ]
+        },
+        {
+          "name": "FK_DailyChromiumHistogramEnumCapstones_ChromiumHistogramEnums_6F119D3395F3ED4D_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums (ID) ON DELETE CASCADE",
+          "table": "DailyChromiumHistogramEnumCapstones",
+          "referenced_table": "ChromiumHistogramEnums",
+          "columns": [
+            "ChromiumHistogramEnumID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BrowserFeatureSupportEvents",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "TargetBrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "EventBrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "EventReleaseDate",
+          "type": "TIMESTAMP",
+          "nullable": false
+        },
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SupportStatus",
+          "type": "STRING(32)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "BrowserFeatureSupportEvents_OtherBrowserSupported",
+          "def": "CREATE INDEX BrowserFeatureSupportEvents_OtherBrowserSupported ON BrowserFeatureSupportEvents (TargetBrowserName, SupportStatus, WebFeatureID, EventReleaseDate)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "TargetBrowserName",
+            "SupportStatus",
+            "WebFeatureID",
+            "EventReleaseDate"
+          ]
+        },
+        {
+          "name": "BrowserFeatureSupportEvents_AllFeatureStatusesOnBrowserRelease",
+          "def": "CREATE INDEX BrowserFeatureSupportEvents_AllFeatureStatusesOnBrowserRelease ON BrowserFeatureSupportEvents (EventReleaseDate, TargetBrowserName, SupportStatus)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "EventReleaseDate",
+            "TargetBrowserName",
+            "SupportStatus"
+          ]
+        },
+        {
+          "name": "IDX_BrowserFeatureSupportEvents_EventBrowserName_EventReleaseDate_06EA997AC00DC328",
+          "def": "CREATE INDEX IDX_BrowserFeatureSupportEvents_EventBrowserName_EventReleaseDate_06EA997AC00DC328 ON BrowserFeatureSupportEvents (EventBrowserName, EventReleaseDate)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "EventBrowserName",
+            "EventReleaseDate"
+          ]
+        },
+        {
+          "name": "BrowserFeatureSupportEvents_FeatureStatusOnBrowserRelease",
+          "def": "CREATE INDEX BrowserFeatureSupportEvents_FeatureStatusOnBrowserRelease ON BrowserFeatureSupportEvents (WebFeatureID, EventReleaseDate, TargetBrowserName, SupportStatus)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "WebFeatureID",
+            "EventReleaseDate",
+            "TargetBrowserName",
+            "SupportStatus"
+          ]
+        },
+        {
+          "name": "IDX_BrowserFeatureSupportEvents_WebFeatureID_E8EB84EB1A5E21CC",
+          "def": "CREATE INDEX IDX_BrowserFeatureSupportEvents_WebFeatureID_E8EB84EB1A5E21CC ON BrowserFeatureSupportEvents (WebFeatureID)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "BrowserFeatureSupportEvents_FeatureStatusPerBrowserRelease",
+          "def": "CREATE INDEX BrowserFeatureSupportEvents_FeatureStatusPerBrowserRelease ON BrowserFeatureSupportEvents (TargetBrowserName, WebFeatureID, SupportStatus, EventReleaseDate)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "TargetBrowserName",
+            "WebFeatureID",
+            "SupportStatus",
+            "EventReleaseDate"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(TargetBrowserName, EventBrowserName, EventReleaseDate, WebFeatureID)",
+          "table": "BrowserFeatureSupportEvents",
+          "columns": [
+            "TargetBrowserName",
+            "EventBrowserName",
+            "EventReleaseDate",
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_WebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "BrowserFeatureSupportEvents",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_EventBrowserRelease",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (EventBrowserName, EventBrowserName, EventReleaseDate, EventReleaseDate) REFERENCES BrowserReleases (BrowserName, ReleaseDate, ReleaseDate, BrowserName) ON DELETE CASCADE",
+          "table": "BrowserFeatureSupportEvents",
+          "referenced_table": "BrowserReleases",
+          "columns": [
+            "EventBrowserName",
+            "EventBrowserName",
+            "EventReleaseDate",
+            "EventReleaseDate"
+          ],
+          "referenced_columns": [
+            "BrowserName",
+            "ReleaseDate",
+            "ReleaseDate",
+            "BrowserName"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "MovedWebFeatures",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "OriginalFeatureKey",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "TargetWebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "OriginalFeatureKey_Lowercase",
+          "type": "STRING(64)",
+          "nullable": true
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_MovedWebFeatures_TargetWebFeatureID_492BF72B19B08453",
+          "def": "CREATE INDEX IDX_MovedWebFeatures_TargetWebFeatureID_492BF72B19B08453 ON MovedWebFeatures (TargetWebFeatureID)",
+          "table": "MovedWebFeatures",
+          "columns": [
+            "TargetWebFeatureID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "MovedWebFeatures",
+          "columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_MovedWebFeaturesTargetWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (TargetWebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "MovedWebFeatures",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "TargetWebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "NotificationChannels",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "UserID",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Name",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Type",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "Config",
+          "type": "JSON",
+          "nullable": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "NotificationChannels",
+          "columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SavedSearchState",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "SavedSearchId",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SnapshotType",
+          "type": "STRING(MAX)",
+          "nullable": false
+        },
+        {
+          "name": "LastKnownStateBlobPath",
+          "type": "STRING(MAX)",
+          "nullable": true
+        },
+        {
+          "name": "WorkerLockId",
+          "type": "STRING(MAX)",
+          "nullable": true
+        },
+        {
+          "name": "WorkerLockExpiresAt",
+          "type": "TIMESTAMP",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(SavedSearchId, SnapshotType)",
+          "table": "SavedSearchState",
+          "columns": [
+            "SavedSearchId",
+            "SnapshotType"
+          ]
+        },
+        {
+          "name": "FK_SavedSearchState_SavedSearch",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (SavedSearchId) REFERENCES SavedSearches (ID) ON DELETE CASCADE",
+          "table": "SavedSearchState",
+          "referenced_table": "SavedSearches",
+          "columns": [
+            "SavedSearchId"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "BrowserReleases",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "BrowserName",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "BrowserVersion",
+          "type": "STRING(8)",
+          "nullable": false
+        },
+        {
+          "name": "ReleaseDate",
+          "type": "TIMESTAMP",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "BrowserReleases_BrowserNamesByRelease",
+          "def": "CREATE INDEX BrowserReleases_BrowserNamesByRelease ON BrowserReleases (BrowserName, ReleaseDate)",
+          "table": "BrowserReleases",
+          "columns": [
+            "BrowserName",
+            "ReleaseDate"
+          ]
+        },
+        {
+          "name": "IDX_BrowserReleases_BrowserName_ReleaseDate_U_C6849B43F0142DEF",
+          "def": "CREATE UNIQUE INDEX IDX_BrowserReleases_BrowserName_ReleaseDate_U_C6849B43F0142DEF ON BrowserReleases (BrowserName, ReleaseDate)",
+          "table": "BrowserReleases",
+          "columns": [
+            "BrowserName",
+            "ReleaseDate"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(BrowserName, BrowserVersion)",
+          "table": "BrowserReleases",
+          "columns": [
+            "BrowserName",
+            "BrowserVersion"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FeatureSpecs",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Links",
+          "type": "ARRAY\u003cSTRING(MAX)\u003e",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "FeatureSpecs",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_FeatureSpecsWebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "FeatureSpecs",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebFeatureSnapshots",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SnapshotIDs",
+          "type": "ARRAY\u003cSTRING(36)\u003e",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "WebFeatureSnapshots",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_WebFeatureSnapshots_WebFeatures_59F6AD703D15C0A2_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "WebFeatureSnapshots",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "DailyChromiumHistogramMetrics",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ChromiumHistogramEnumValueID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Day",
+          "type": "DATE",
+          "nullable": false
+        },
+        {
+          "name": "Rate",
+          "type": "NUMERIC",
+          "nullable": false
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ChromiumHistogramEnumValueID, Day)",
+          "table": "DailyChromiumHistogramMetrics",
+          "columns": [
+            "ChromiumHistogramEnumValueID",
+            "Day"
+          ]
+        },
+        {
+          "name": "FK_DailyChromiumHistogramMetrics_ChromiumHistogramEnumValues_2FDF4CE9DCB3B1EA_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues (ID) ON DELETE CASCADE",
+          "table": "DailyChromiumHistogramMetrics",
+          "referenced_table": "ChromiumHistogramEnumValues",
+          "columns": [
+            "ChromiumHistogramEnumValueID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "UserSavedSearchBookmarks",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "SavedSearchID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "UserID",
+          "type": "STRING(MAX)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_UserSavedSearchBookmarks_SavedSearchID_6E2FD5FBD97C2E35",
+          "def": "CREATE INDEX IDX_UserSavedSearchBookmarks_SavedSearchID_6E2FD5FBD97C2E35 ON UserSavedSearchBookmarks (SavedSearchID)",
+          "table": "UserSavedSearchBookmarks",
+          "columns": [
+            "SavedSearchID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(UserID, SavedSearchID)",
+          "table": "UserSavedSearchBookmarks",
+          "columns": [
+            "UserID",
+            "SavedSearchID"
+          ]
+        },
+        {
+          "name": "FK_UserSavedSearchBookmarks_SavedSearches_C6271A8CC0064D96_1",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE",
+          "table": "UserSavedSearchBookmarks",
+          "referenced_table": "SavedSearches",
+          "columns": [
+            "SavedSearchID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FeatureGroupKeysLookup",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "GroupKey_Lowercase",
+          "type": "STRING(64)",
+          "nullable": false
+        },
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "GroupID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Depth",
+          "type": "INT64",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_FeatureGroupKeysLookup_GroupID_0D78392F3EC61CA8",
+          "def": "CREATE INDEX IDX_FeatureGroupKeysLookup_GroupID_0D78392F3EC61CA8 ON FeatureGroupKeysLookup (GroupID)",
+          "table": "FeatureGroupKeysLookup",
+          "columns": [
+            "GroupID"
+          ]
+        },
+        {
+          "name": "IDX_FeatureGroupKeysLookup_WebFeatureID_859124609C6B5A67",
+          "def": "CREATE INDEX IDX_FeatureGroupKeysLookup_WebFeatureID_859124609C6B5A67 ON FeatureGroupKeysLookup (WebFeatureID)",
+          "table": "FeatureGroupKeysLookup",
+          "columns": [
+            "WebFeatureID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(GroupKey_Lowercase, WebFeatureID)",
+          "table": "FeatureGroupKeysLookup",
+          "columns": [
+            "GroupKey_Lowercase",
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_FeatureGroupKeysLookup_GroupID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (GroupID) REFERENCES WebDXGroups (ID) ON DELETE CASCADE",
+          "table": "FeatureGroupKeysLookup",
+          "referenced_table": "WebDXGroups",
+          "columns": [
+            "GroupID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_FeatureGroupKeysLookup_WebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "FeatureGroupKeysLookup",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "WebFeaturesMappingData",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "WebFeatureID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "VendorPositions",
+          "type": "JSON",
+          "nullable": true
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(WebFeatureID)",
+          "table": "WebFeaturesMappingData",
+          "columns": [
+            "WebFeatureID"
+          ]
+        },
+        {
+          "name": "FK_WebFeaturesMappingData_WebFeatureID",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE",
+          "table": "WebFeaturesMappingData",
+          "referenced_table": "WebFeatures",
+          "columns": [
+            "WebFeatureID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    },
+    {
+      "name": "SavedSearchSubscriptions",
+      "type": "BASIC TABLE",
+      "columns": [
+        {
+          "name": "ID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "ChannelID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "SavedSearchID",
+          "type": "STRING(36)",
+          "nullable": false
+        },
+        {
+          "name": "Triggers",
+          "type": "ARRAY\u003cSTRING(MAX)\u003e",
+          "nullable": true
+        },
+        {
+          "name": "Frequency",
+          "type": "STRING(MAX)",
+          "nullable": true
+        },
+        {
+          "name": "CreatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        },
+        {
+          "name": "UpdatedAt",
+          "type": "TIMESTAMP (allow_commit_timestamp=TRUE)",
+          "nullable": false
+        }
+      ],
+      "indexes": [
+        {
+          "name": "IDX_SavedSearchSubscriptions_ChannelID_ED11BB66145994C6",
+          "def": "CREATE INDEX IDX_SavedSearchSubscriptions_ChannelID_ED11BB66145994C6 ON SavedSearchSubscriptions (ChannelID)",
+          "table": "SavedSearchSubscriptions",
+          "columns": [
+            "ChannelID"
+          ]
+        },
+        {
+          "name": "IDX_SavedSearchSubscriptions_SavedSearchID_7E2D06D853F55B67",
+          "def": "CREATE INDEX IDX_SavedSearchSubscriptions_SavedSearchID_7E2D06D853F55B67 ON SavedSearchSubscriptions (SavedSearchID)",
+          "table": "SavedSearchSubscriptions",
+          "columns": [
+            "SavedSearchID"
+          ]
+        }
+      ],
+      "constraints": [
+        {
+          "name": "PRIMARY_KEY",
+          "type": "PRIMARY_KEY",
+          "def": "PRIMARY KEY(ID)",
+          "table": "SavedSearchSubscriptions",
+          "columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_SavedSearchSubscription_SavedSearches",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE",
+          "table": "SavedSearchSubscriptions",
+          "referenced_table": "SavedSearches",
+          "columns": [
+            "SavedSearchID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        },
+        {
+          "name": "FK_SavedSearchSubscription_NotificationChannel",
+          "type": "FOREIGN KEY",
+          "def": "FOREIGN KEY (ChannelID) REFERENCES NotificationChannels (ID) ON DELETE CASCADE",
+          "table": "SavedSearchSubscriptions",
+          "referenced_table": "NotificationChannels",
+          "columns": [
+            "ChannelID"
+          ],
+          "referenced_columns": [
+            "ID"
+          ]
+        }
+      ]
+    }
+  ],
+  "relations": [
+    {
+      "table": "BrowserFeatureAvailabilities",
+      "columns": [
+        "BrowserName",
+        "BrowserName",
+        "BrowserVersion",
+        "BrowserVersion"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "BrowserReleases",
+      "parent_columns": [
+        "BrowserName",
+        "BrowserVersion",
+        "BrowserName",
+        "BrowserVersion"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (BrowserName, BrowserName, BrowserVersion, BrowserVersion) REFERENCES BrowserReleases (BrowserName, BrowserVersion, BrowserName, BrowserVersion)"
+    },
+    {
+      "table": "BrowserFeatureSupportEvents",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "DailyChromiumHistogramEnumCapstones",
+      "columns": [
+        "ChromiumHistogramEnumID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "ChromiumHistogramEnums",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "FeatureBaselineStatus",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "FeatureGroupKeysLookup",
+      "columns": [
+        "GroupID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebDXGroups",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (GroupID) REFERENCES WebDXGroups (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "FeatureSpecs",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "LatestDailyChromiumHistogramMetrics",
+      "columns": [
+        "ChromiumHistogramEnumValueID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "ChromiumHistogramEnumValues",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "LatestFeatureDeveloperSignals",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "MovedWebFeatures",
+      "columns": [
+        "TargetWebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (TargetWebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "NotificationChannelStates",
+      "columns": [
+        "ChannelID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "NotificationChannels",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChannelID) REFERENCES NotificationChannels (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SavedSearchState",
+      "columns": [
+        "SavedSearchId"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "SavedSearches",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (SavedSearchId) REFERENCES SavedSearches (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SavedSearchSubscriptions",
+      "columns": [
+        "SavedSearchID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "SavedSearches",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SplitWebFeatures",
+      "columns": [
+        "TargetWebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (TargetWebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SystemManagedSavedSearches",
+      "columns": [
+        "FeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (FeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "WPTRunFeatureMetrics",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "WebFeatureChromiumHistogramEnumValues",
+      "columns": [
+        "ChromiumHistogramEnumValueID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "ChromiumHistogramEnumValues",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "zero_or_one",
+      "def": "FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "WebFeatureSnapshots",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "BrowserFeatureAvailabilities",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "BrowserFeatureSupportEvents",
+      "columns": [
+        "EventBrowserName",
+        "EventBrowserName",
+        "EventReleaseDate",
+        "EventReleaseDate"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "BrowserReleases",
+      "parent_columns": [
+        "BrowserName",
+        "ReleaseDate",
+        "ReleaseDate",
+        "BrowserName"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (EventBrowserName, EventBrowserName, EventReleaseDate, EventReleaseDate) REFERENCES BrowserReleases (BrowserName, ReleaseDate, ReleaseDate, BrowserName) ON DELETE CASCADE"
+    },
+    {
+      "table": "ChromiumHistogramEnumValues",
+      "columns": [
+        "ChromiumHistogramEnumID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "ChromiumHistogramEnums",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChromiumHistogramEnumID) REFERENCES ChromiumHistogramEnums (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "DailyChromiumHistogramMetrics",
+      "columns": [
+        "ChromiumHistogramEnumValueID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "ChromiumHistogramEnumValues",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChromiumHistogramEnumValueID) REFERENCES ChromiumHistogramEnumValues (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "FeatureDiscouragedDetails",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "FeatureGroupKeysLookup",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "LatestDailyChromiumHistogramMetrics",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "LatestDailyChromiumHistogramMetrics",
+      "columns": [
+        "ChromiumHistogramEnumValueID",
+        "ChromiumHistogramEnumValueID",
+        "Day",
+        "Day"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "DailyChromiumHistogramMetrics",
+      "parent_columns": [
+        "Day",
+        "ChromiumHistogramEnumValueID",
+        "ChromiumHistogramEnumValueID",
+        "Day"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChromiumHistogramEnumValueID, ChromiumHistogramEnumValueID, Day, Day) REFERENCES DailyChromiumHistogramMetrics (Day, ChromiumHistogramEnumValueID, ChromiumHistogramEnumValueID, Day) ON DELETE CASCADE"
+    },
+    {
+      "table": "LatestWPTRunFeatureMetrics",
+      "columns": [
+        "RunMetricID",
+        "RunMetricID",
+        "WebFeatureID",
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WPTRunFeatureMetrics",
+      "parent_columns": [
+        "WebFeatureID",
+        "ID",
+        "ID",
+        "WebFeatureID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (RunMetricID, RunMetricID, WebFeatureID, WebFeatureID) REFERENCES WPTRunFeatureMetrics (WebFeatureID, ID, ID, WebFeatureID) ON DELETE CASCADE"
+    },
+    {
+      "table": "NotificationChannelDeliveryAttempts",
+      "columns": [
+        "ChannelID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "NotificationChannels",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChannelID) REFERENCES NotificationChannels (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SavedSearchNotificationEvents",
+      "columns": [
+        "SavedSearchId",
+        "SavedSearchId",
+        "SnapshotType",
+        "SnapshotType"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "SavedSearchState",
+      "parent_columns": [
+        "SavedSearchId",
+        "SnapshotType",
+        "SavedSearchId",
+        "SnapshotType"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (SavedSearchId, SavedSearchId, SnapshotType, SnapshotType) REFERENCES SavedSearchState (SavedSearchId, SnapshotType, SavedSearchId, SnapshotType) ON DELETE CASCADE"
+    },
+    {
+      "table": "SavedSearchSubscriptions",
+      "columns": [
+        "ChannelID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "NotificationChannels",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ChannelID) REFERENCES NotificationChannels (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SavedSearchUserRoles",
+      "columns": [
+        "SavedSearchID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "SavedSearches",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "SystemManagedSavedSearches",
+      "columns": [
+        "SavedSearchID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "SavedSearches",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "UserSavedSearchBookmarks",
+      "columns": [
+        "SavedSearchID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "SavedSearches",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (SavedSearchID) REFERENCES SavedSearches (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "WPTRunFeatureMetrics",
+      "columns": [
+        "ID"
+      ],
+      "cardinality": "zero_or_more",
+      "parent_table": "WPTRuns",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (ID) REFERENCES WPTRuns (ID)"
+    },
+    {
+      "table": "WebFeatureChromiumHistogramEnumValues",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "WebFeaturesMappingData",
+      "columns": [
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WebFeatures",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE"
+    },
+    {
+      "table": "WPTRunFeatureMetrics",
+      "columns": [
+        "ID",
+        "WebFeatureID"
+      ],
+      "cardinality": "zero_or_one",
+      "parent_table": "WPTRuns",
+      "parent_columns": [
+        "ID"
+      ],
+      "parent_cardinality": "exactly_one",
+      "def": "INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE"
+    }
+  ],
+  "driver": {
+    "name": "spanner"
+  }
+}

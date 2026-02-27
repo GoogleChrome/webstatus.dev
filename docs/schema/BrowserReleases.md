@@ -6,15 +6,22 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| BrowserName | STRING(64) |  | false | [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) |  |  |
+| BrowserName | STRING(64) |  | false | [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) [BrowserFeatureSupportEvents](BrowserFeatureSupportEvents.md) |  |  |
 | BrowserVersion | STRING(8) |  | false | [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) |  |  |
-| ReleaseDate | TIMESTAMP |  | false |  |  |  |
+| ReleaseDate | TIMESTAMP |  | false | [BrowserFeatureSupportEvents](BrowserFeatureSupportEvents.md) |  |  |
 
 ## Constraints
 
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
 | PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(BrowserName, BrowserVersion) |
+
+## Indexes
+
+| Name | Definition |
+| ---- | ---------- |
+| BrowserReleases_BrowserNamesByRelease | CREATE INDEX BrowserReleases_BrowserNamesByRelease ON BrowserReleases (BrowserName, ReleaseDate) |
+| IDX_BrowserReleases_BrowserName_ReleaseDate_U_C6849B43F0142DEF | CREATE UNIQUE INDEX IDX_BrowserReleases_BrowserName_ReleaseDate_U_C6849B43F0142DEF ON BrowserReleases (BrowserName, ReleaseDate) |
 
 ## Relations
 

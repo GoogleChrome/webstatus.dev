@@ -15,6 +15,8 @@
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
 | PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(WebFeatureID, BrowserName) |
+| FK_BrowserFeatureAvailabilities_BrowserReleases_DDAB0CB4B9DFA076_1 | FOREIGN KEY | FOREIGN KEY (BrowserName, BrowserName, BrowserVersion, BrowserVersion) REFERENCES BrowserReleases (BrowserName, BrowserVersion, BrowserName, BrowserVersion) |
+| FK_BrowserFeatureAvailabilitiesWebFeatureID | FOREIGN KEY | FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE |
 
 ## Indexes
 

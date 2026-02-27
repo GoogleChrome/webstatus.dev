@@ -6,8 +6,8 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| ID | STRING(36) |  | false |  | [WPTRuns](WPTRuns.md) |  |
-| WebFeatureID | STRING(36) |  | false |  | [WPTRuns](WPTRuns.md) [WebFeatures](WebFeatures.md) |  |
+| ID | STRING(36) |  | false | [LatestWPTRunFeatureMetrics](LatestWPTRunFeatureMetrics.md) | [WPTRuns](WPTRuns.md) |  |
+| WebFeatureID | STRING(36) |  | false | [LatestWPTRunFeatureMetrics](LatestWPTRunFeatureMetrics.md) | [WebFeatures](WebFeatures.md) [WPTRuns](WPTRuns.md) |  |
 | TotalTests | INT64 |  | true |  |  |  |
 | TestPass | INT64 |  | true |  |  |  |
 | TestPassRate | NUMERIC |  | true |  |  |  |
@@ -17,12 +17,15 @@
 | Channel | STRING(32) |  | false |  |  |  |
 | BrowserName | STRING(64) |  | false |  |  |  |
 | TimeStart | TIMESTAMP |  | false |  |  |  |
+| FeatureRunDetails | JSON |  | true |  |  |  |
 
 ## Constraints
 
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
 | PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(ID, WebFeatureID) |
+| FK_WPTRunFeatureMetricsWebFeatureID | FOREIGN KEY | FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE |
+| FK_WPTRunFeatureMetrics_WPTRuns_AD1C5BE2E040F8A0_1 | FOREIGN KEY | FOREIGN KEY (ID) REFERENCES WPTRuns (ID) |
 | INTERLEAVE | INTERLEAVE | INTERLEAVE IN PARENT WPTRuns ON DELETE CASCADE |
 
 ## Indexes
