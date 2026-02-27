@@ -6,8 +6,8 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| ID | STRING(36) |  | false |  | [WPTRuns](WPTRuns.md) |  |
-| WebFeatureID | STRING(36) |  | false |  | [WPTRuns](WPTRuns.md) [WebFeatures](WebFeatures.md) |  |
+| ID | STRING(36) |  | false | [LatestWPTRunFeatureMetrics](LatestWPTRunFeatureMetrics.md) | [WPTRuns](WPTRuns.md) |  |
+| WebFeatureID | STRING(36) |  | false | [LatestWPTRunFeatureMetrics](LatestWPTRunFeatureMetrics.md) | [WPTRuns](WPTRuns.md) [WebFeatures](WebFeatures.md) |  |
 | TotalTests | INT64 |  | true |  |  |  |
 | TestPass | INT64 |  | true |  |  |  |
 | TestPassRate | NUMERIC |  | true |  |  |  |
@@ -17,6 +17,7 @@
 | Channel | STRING(32) |  | false |  |  |  |
 | BrowserName | STRING(64) |  | false |  |  |  |
 | TimeStart | TIMESTAMP |  | false |  |  |  |
+| FeatureRunDetails | JSON |  | true |  |  |  |
 
 ## Constraints
 
