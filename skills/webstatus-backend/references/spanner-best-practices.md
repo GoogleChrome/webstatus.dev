@@ -2,8 +2,8 @@
 
 ## Database Migrations
 
-- **Creation**: Run `make spanner_new_migration` to create a new migration file in `infra/storage/spanner/migrations/`.
-- **Data Migrations**: For complex data migrations (e.g. renaming a feature key), use the generic migrator in `lib/gcpspanner/spanneradapters/migration.go`.
+- **Creation**: Run `make spanner_new_migration` to create a new migration file in [`infra/storage/spanner/migrations/`](../../../infra/storage/spanner/migrations/).
+- **Data Migrations**: For complex data migrations (e.g. renaming a feature key), use the generic migrator in [`lib/gcpspanner/spanneradapters/migration.go`](../../../lib/gcpspanner/spanneradapters/migration.go).
 
 ## Scanning Rows
 
@@ -17,5 +17,5 @@
 
 ## Mappers vs Clients
 
-- **DO** look for existing mappers in `lib/gcpspanner/` (e.g. `webFeatureSpannerMapper`) before creating new ones.
+- **DO** look for existing mappers in [`lib/gcpspanner/`](../../../lib/gcpspanner/) (e.g. `webFeatureSpannerMapper`) before creating new ones.
 - **DO** translate business keys to internal IDs inside the `gcpspanner` client so that adapters/workflows remain unaware of internal DB IDs.

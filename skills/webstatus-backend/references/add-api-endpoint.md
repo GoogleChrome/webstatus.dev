@@ -6,7 +6,7 @@ This project follows a **mandatory "spec-first"** process. You must define the A
 
 ### 1. Define the Contract (`openapi/backend/openapi.yaml`)
 
-- Open `openapi/backend/openapi.yaml`.
+- Open [`openapi/backend/openapi.yaml`](../../../openapi/backend/openapi.yaml).
 - Define the new endpoint, parameters, and request/response schemas.
 - If using new data structures, define them in `components.schemas`.
 - Ensure you set a clear `operationId`.
@@ -14,7 +14,7 @@ This project follows a **mandatory "spec-first"** process. You must define the A
 ### 2. Generate Types
 
 - Run `make openapi`.
-- This reads the YAML and generates Go server stubs, request/response structs, and TypeScript client code in `lib/gen/backend/`.
+- This reads the YAML and generates Go server stubs, request/response structs, and TypeScript client code in [`lib/gen/backend/`](../../../lib/gen/backend/).
 - **CRITICAL:** Do not proceed until this command completes successfully.
 
 ### 3. Implement the HTTP Handler (`backend/pkg/httpserver/`)
@@ -22,13 +22,13 @@ This project follows a **mandatory "spec-first"** process. You must define the A
 - Add a new method to the `Server` struct. The method name must match the `operationId`.
 - This handler parses the request, calls the adapter layer, and writes the response.
 
-### 4. Implement the Adapter Method (`lib/gcpspanner/spanneradapters/`)
+### 4. Implement the Adapter Method ([`lib/gcpspanner/spanneradapters/`](../../../lib/gcpspanner/spanneradapters/))
 
 - Add a method to the `Backend` struct.
 - Translate generated API types (from `lib/gen/backend/`) to internal Spanner types.
 - Call the underlying Spanner client.
 
-### 5. Implement the Spanner Client Method (`lib/gcpspanner/`)
+### 5. Implement the Spanner Client Method ([`lib/gcpspanner/`](../../../lib/gcpspanner/))
 
 - Add a method to the `Client` struct.
 - Contains the actual database logic (queries, writes, transactions), ideally using the mapper pattern.
