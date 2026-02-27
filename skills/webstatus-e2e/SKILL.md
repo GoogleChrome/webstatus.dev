@@ -13,12 +13,17 @@ This skill provides guidance for working with the End-to-End (E2E) test suite in
 - **Framework**: **Playwright** with **TypeScript**.
 - **Configuration**: `playwright.config.ts` handles browser definitions, retries, and worker limits.
 
+## Architecture
+
+For a detailed technical guide on the local development environment (Skaffold/Minikube), data population strategies, and the CI/PR validation lifecycle, see [references/architecture.md](references/architecture.md).
+
 ## Guidelines (Do's and Don'ts)
 
 - **DO** add E2E tests for critical user journeys (e.g., login flows, complex search operations, saving a search).
 - **DON'T** write E2E tests for small component-level interactions; those belong in frontend unit tests (`frontend/src/**/*.test.ts`).
 - **DO** use resilient locators. Prefer using `data-testid` attributes (e.g., `page.getByTestId('submit-btn')`) over brittle CSS classes or XPath.
 - **DO** move the mouse to a neutral position (e.g., `page.mouse.move(0, 0)`) before taking visual snapshots to avoid flaky tests caused by unintended hover effects on UI elements.
+- **DO** use **Wiremock** (available at `localhost:8080` via port-forward) to mock GitHub API responses, such as user profiles and email lookups during login.
 
 ## Configuration & Stability
 
@@ -34,6 +39,7 @@ This skill provides guidance for working with the End-to-End (E2E) test suite in
 
 - Use the `Makefile` in the project root:
   - `make playwright-test`: Sets up a fresh local environment and runs the test suite.
+  - `SKIP_FRESH_ENV=1 make playwright-test`: Rapidly iterates on E2E tests by skipping the full Skaffold/Minikube setup (requires an already running environment).
   - `make playwright-ui`: Runs the tests in Playwright's interactive UI mode.
   - `make playwright-debug`: Runs the tests in debug mode.
   - `make playwright-update-snapshots`: Updates visual regression snapshots.

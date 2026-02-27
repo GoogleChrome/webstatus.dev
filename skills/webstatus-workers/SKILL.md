@@ -1,6 +1,6 @@
 ---
 name: webstatus-workers
-description: Use when working with the webstatus notification pipeline, event producer, push delivery, or push/pull type workers (e.g., Email, Webhooks, RSS), and Pub/Sub subscribers.
+description: Use when working with the webstatus notification pipeline, event producer, push delivery, or push workers (e.g., Email, Webhooks), and Pub/Sub subscribers.
 ---
 
 # webstatus-workers
@@ -11,12 +11,24 @@ This skill provides architectural and implementation details for the `workers/` 
 
 For a detailed breakdown of the notification pipeline architecture, including the event producer, push delivery dispatcher, and email sender, see [references/architecture.md](references/architecture.md).
 
-For guidance on adding future integrations (like Webhooks or RSS), see [references/how-to-add-a-worker.md](references/how-to-add-a-worker.md).
+For guidance on adding future integrations (like Webhooks), see [references/how-to-add-a-worker.md](references/how-to-add-a-worker.md).
+
+## Canonical Data Transport
+
+Workers must use the shared structs in [lib/workertypes/types.go](../../lib/workertypes/types.go) for all incoming and outgoing messages. This ensures that a change in the Spanner schema or API doesn't immediately break the worker pipeline (decoupling).
 
 ## Local Development
 
 - The workers run locally via Skaffold and connect to local emulators for Spanner (`spanner:9010`) and Pub/Sub (`pubsub:8060`).
 - The `FRONTEND_BASE_URL` locally is usually `http://localhost:5555`.
+
+## Infrastructure Abstraction (The Adapter Pattern)
+
+All workers must be decoupled from GCP-specific SDKs.
+
+- **Interfaces**: Define the "What" (e.g., `interface EmailSender`) in the worker's package.
+- **Implementations**: Put the "How" (e.g., `struct PubSubSender`) in `lib/gcppubsub/gcppubsubadapters`.
+- This ensures workers are testable without Pub/Sub or GCS emulators.
 
 ## General Guidelines
 

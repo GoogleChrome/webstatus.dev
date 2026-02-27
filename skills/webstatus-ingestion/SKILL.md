@@ -10,8 +10,20 @@ This skill provides guidance for developing and deploying the scheduled data ing
 ## Architecture
 
 - **Location**: Workflows are stand-alone Go applications located in `workflows/steps/services/`.
-- **Purpose**: They fetch, parse, and synchronize data from external sources (BCD, WPT, MDN, Chrome Enums) into the Spanner database.
+- **Varied Consumers**: Specialized workflows (BCD, WPT, UMA, Mapping, Dev Signals) are defined in [infra/ingestion/workflows.tf](../../infra/ingestion/workflows.tf).
 - **Pattern**: Most workflows follow a "Downloader -> Parser -> Processor" separation of concerns.
+- **Trigger**: When ingestion flows complete, they trigger the `event_producer` to begin the notification diffing process.
+
+## Architecture
+
+For a detailed map of data sources, Spanner target tables, and job orchestration patterns, see [references/architecture.md](references/architecture.md).
+
+## Infrastructure Abstraction (The Adapter Pattern)
+
+Ingestion jobs must be decoupled from the core DB logic and the "Backend" API.
+
+- **Consumer Adapters**: Each workflow uses a purpose-built `spanneradapter` (e.g., `BCDConsumerAdapter`).
+- **Why**: This prevents ingestion logic from breaking the Public API if the data schema changes. It also allows mocking the database during parser tests.
 
 ## Guides
 
@@ -23,8 +35,10 @@ This skill provides guidance for developing and deploying the scheduled data ing
 - **DO** use consumer-specific `spanneradapters` (e.g. `BCDConsumer`).
 - **DON'T** call the `Backend` spanner adapter from a workflow.
 - **DO** separate data fetching/parsing from the main workflow processor (use `pkg/data/downloader.go` and `parser.go`).
+- **DO** use `web_features_mapping_consumer` when syncing browser-specific implementation keys or "implementer" metadata.
+- **DO** use `uma_export` for any changes involving Chromium usage metrics or histograms.
 - **DO** use intermediate types in `lib/` (e.g. `lib/webdxfeaturetypes`) to decouple logic from external source schemas.
-- **DO** add new targets to the `make dev_workflows` command in the root `Makefile`.
+- **Tip**: While `make dev_workflows` exists to pull live data, it is generally preferred to use `make dev_fake_data` for UI and Backend development to ensure stability.
 - **DO** use `manifests/job.yaml` for workflows (scheduled jobs), unlike workers which use `pod.yaml`.
 
 ## Testing & Linting
