@@ -52,3 +52,103 @@ relations:
     parentTable: WebFeatures
     parentColumns:
       - ID
+  - table: WPTRunFeatureMetrics
+    columns:
+      - ID
+    parentTable: WPTRuns
+    parentColumns:
+      - ID
+  - table: LatestWPTRunFeatureMetrics
+    columns:
+      - RunMetricID
+      - WebFeatureID
+    parentTable: WPTRunFeatureMetrics
+    parentColumns:
+      - ID
+      - WebFeatureID
+  - table: ChromiumHistogramEnumValues
+    columns:
+      - ChromiumHistogramEnumID
+    parentTable: ChromiumHistogramEnums
+    parentColumns:
+      - ID
+  - table: WebFeatureChromiumHistogramEnumValues
+    columns:
+      - WebFeatureID
+    parentTable: WebFeatures
+    parentColumns:
+      - ID
+  - table: WebFeatureChromiumHistogramEnumValues
+    columns:
+      - ChromiumHistogramEnumValueID
+    parentTable: ChromiumHistogramEnumValues
+    parentColumns:
+      - ID
+  - table: DailyChromiumHistogramMetrics
+    columns:
+      - ChromiumHistogramEnumValueID
+    parentTable: ChromiumHistogramEnumValues
+    parentColumns:
+      - ID
+  - table: DailyChromiumHistogramEnumCapstones
+    columns:
+      - ChromiumHistogramEnumID
+    parentTable: ChromiumHistogramEnums
+    parentColumns:
+      - ID
+  - table: FeatureGroupKeysLookup
+    columns:
+      - WebFeatureID
+    parentTable: WebFeatures
+    parentColumns:
+      - ID
+  - table: FeatureGroupKeysLookup
+    columns:
+      - GroupID
+    parentTable: WebDXGroups
+    parentColumns:
+      - ID
+  - table: WebFeatureSnapshots
+    columns:
+      - WebFeatureID
+    parentTable: WebFeatures
+    parentColumns:
+      - ID
+  - table: SavedSearchUserRoles
+    columns:
+      - SavedSearchID
+    parentTable: SavedSearches
+    parentColumns:
+      - ID
+  - table: UserSavedSearchBookmarks
+    columns:
+      - SavedSearchID
+    parentTable: SavedSearches
+    parentColumns:
+      - ID
+  - table: NotificationChannelStates
+    columns:
+      - ChannelID
+    parentTable: NotificationChannels
+    parentColumns:
+      - ID
+  - table: SavedSearchState
+    columns:
+      - SavedSearchId
+    parentTable: SavedSearches
+    parentColumns:
+      - ID
+  - table: BrowserFeatureSupportEvents
+    columns:
+      - WebFeatureID
+    parentTable: WebFeatures
+    parentColumns:
+      - ID
+  - table: BrowserFeatureSupportEvents
+    columns:
+      - EventBrowserName
+      - EventReleaseDate
+    parentTable: BrowserReleases
+    parentColumns:
+      - BrowserName
+      - ReleaseDate

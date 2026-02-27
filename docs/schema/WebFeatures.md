@@ -6,11 +6,14 @@
 
 | Name | Type | Default | Nullable | Children | Parents | Comment |
 | ---- | ---- | ------- | -------- | -------- | ------- | ------- |
-| ID | STRING(36) |  | false | [WPTRunFeatureMetrics](WPTRunFeatureMetrics.md) [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) [FeatureBaselineStatus](FeatureBaselineStatus.md) |  |  |
+| ID | STRING(36) |  | false | [WPTRunFeatureMetrics](WPTRunFeatureMetrics.md) [BrowserFeatureAvailabilities](BrowserFeatureAvailabilities.md) [FeatureBaselineStatus](FeatureBaselineStatus.md) [WebFeatureChromiumHistogramEnumValues](WebFeatureChromiumHistogramEnumValues.md) [FeatureGroupKeysLookup](FeatureGroupKeysLookup.md) [WebFeatureSnapshots](WebFeatureSnapshots.md) [BrowserFeatureSupportEvents](BrowserFeatureSupportEvents.md) |  |  |
 | FeatureKey | STRING(64) |  | false |  |  |  |
 | Name | STRING(64) |  | false |  |  |  |
-| FeatureID_Lowercase | STRING(64) |  | true |  |  |  |
+| FeatureKey_Lowercase | STRING(64) |  | true |  |  |  |
 | Name_Lowercase | STRING(64) |  | true |  |  |  |
+| Description | STRING(MAX) |  | false |  |  |  |
+| DescriptionHtml | STRING(MAX) |  | false |  |  |  |
+| Description_Lowercase | STRING(MAX) |  | true |  |  |  |
 
 ## Constraints
 
@@ -24,7 +27,7 @@
 | ---- | ---------- |
 | WebFeaturesByFeatureID | CREATE UNIQUE NULL_FILTERED INDEX WebFeaturesByFeatureID ON WebFeatures (FeatureKey) |
 | IDX_NAME_LOWER | CREATE INDEX IDX_NAME_LOWER ON WebFeatures (Name_Lowercase) |
-| IDX_FEATUREID_LOWER | CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures (FeatureID_Lowercase) |
+| IDX_FEATUREID_LOWER | CREATE INDEX IDX_FEATUREID_LOWER ON WebFeatures (FeatureKey_Lowercase) |
 
 ## Relations
 
