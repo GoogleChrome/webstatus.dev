@@ -18,13 +18,13 @@ This guide outlines the process for adding a new scheduled data ingestion workfl
 
 Workflows are deployed as scheduled Cloud Run Jobs via Cloud Scheduler.
 
-1. **Add the Module**: In `infra/ingestion/workflows.tf`, add a new `module "workflow"` block for your new job. This defines the Cloud Run Job resource.
+1. **Add the Module**: In [`infra/ingestion/workflows.tf`](../../../infra/ingestion/workflows.tf), add a new `module "workflow"` block for your new job. This defines the Cloud Run Job resource.
 2. **Configure Scheduling**:
-   - In `infra/variables.tf`, add a new variable for your workflow's schedule (e.g., `my_new_workflow_region_schedules`).
-   - In `infra/.envs/staging.tfvars` and `infra/.envs/prod.tfvars`, add the new variable and set appropriate cron schedules.
-   - In `infra/main.tf`, pass your new schedule variable into the `module "ingestion"` block.
-   - In `infra/ingestion/main.tf`, add the new variable to the module's inputs.
-   - In `infra/ingestion/workflows.tf`, pass the `region_schedules` variable to your new workflow module.
+   - In [`infra/variables.tf`](../../../infra/variables.tf), add a new variable for your workflow's schedule (e.g., `my_new_workflow_region_schedules`).
+   - In [`infra/.envs/staging.tfvars`](../../../infra/.envs/staging.tfvars) and [`infra/.envs/prod.tfvars`](../../../infra/.envs/prod.tfvars), add the new variable and set appropriate cron schedules.
+   - In [`infra/main.tf`](../../../infra/main.tf), pass your new schedule variable into the `module "ingestion"` block.
+   - In [`infra/ingestion/main.tf`](../../../infra/ingestion/main.tf), add the new variable to the module's inputs.
+   - In [`infra/ingestion/workflows.tf`](../../../infra/ingestion/workflows.tf), pass the `region_schedules` variable to your new workflow module.
 
 ## 4. Pull Requests
 

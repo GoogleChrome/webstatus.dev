@@ -2,7 +2,7 @@
 
 The `webstatus.dev` notification system uses a Pub/Sub event-driven architecture that separates the detection of changes (Producer) from the delivery of notifications (Workers).
 
-When adding a new type of worker, you must first determine if it is a **Push** worker (e.g., Email, Webhooks) or a **Pull** worker (e.g., RSS, API endpoints).
+When adding a new type of worker, it will typically be a **Push** worker (e.g., Email, Webhooks).
 
 ## Push Workers (e.g., Webhooks, SMS, Slack)
 
@@ -49,16 +49,16 @@ Pull workers do not "send" data; they serve data on demand to clients who reques
 5. Add a `skaffold.yaml` referencing your Dockerfile.
 6. Add the necessary local emulator environment variables to your manifest.
 7. Update the root `Makefile` to include your new worker in the `go-workspace-setup` target.
-8. **Terraform Integration (`infra/` directory)**:
-   - **Pub/Sub**: If the new worker requires its own topic and subscription, define them in `infra/pubsub/main.tf` along with their Dead Letter Queues (DLQs). Export their IDs in `infra/pubsub/outputs.tf` and ensure any new DLQs or latency metrics are added to `infra/pubsub/alerts.tf`.
-   - **Worker Module**: Add a new module directory in `infra/workers/<new_worker>`.
+8. **Terraform Integration ([`infra/`](../../../infra/) directory)**:
+   - **Pub/Sub**: If the new worker requires its own topic and subscription, define them in [`infra/pubsub/main.tf`](../../../infra/pubsub/main.tf) along with their Dead Letter Queues (DLQs). Export their IDs in [`infra/pubsub/outputs.tf`](../../../infra/pubsub/outputs.tf) and ensure any new DLQs or latency metrics are added to [`infra/pubsub/alerts.tf`](../../../infra/pubsub/alerts.tf).
+   - **Worker Module**: Add a new module directory in [`infra/workers/<new_worker>`](../../../infra/workers/).
      - **`main.tf`**: Define the `google_cloud_run_v2_worker_pool` resource. Most workers will also create their own Service Account here (`google_service_account`), though some (like email) may accept a pre-existing one.
      - **`iam.tf`**: Explicitly grant permissions to the worker's service account. At a minimum, long-running workers need roles for logging, monitoring, and tracing. You will also need to grant access to the specific Spanner databases, GCS buckets, and Pub/Sub subscriptions/topics it uses.
      - **`variables.tf` / `providers.tf`**: Define necessary inputs and the internal project provider.
    - **Provider & Project Placement**: Most backend infrastructure (Workers, Pub/Sub, Spanner, GCS) resides in the **internal** project. You **MUST** ensure that all resources in your new module (Service Accounts, IAM members, Worker Pools) use the internal provider.
      - **`providers.tf`**: Include `google.internal_project` in the `configuration_aliases`.
      - **Resource Definitions**: Always include `provider = google.internal_project` in the resource blocks.
-   - **Pipeline Wiring**: Update `infra/workers/main.tf` to build the new worker's image using the `go_image` module and instantiate your new worker module, passing in the necessary Pub/Sub outputs and Spanner details. Ensure you pass the provider:
+   - **Pipeline Wiring**: Update [`infra/workers/main.tf`](../../../infra/workers/main.tf) to build the new worker's image using the `go_image` module and instantiate your new worker module, passing in the necessary Pub/Sub outputs and Spanner details. Ensure you pass the provider:
      ```hcl
      module "my_new_worker" {
        source = "./my_new_worker"
@@ -68,7 +68,7 @@ Pull workers do not "send" data; they serve data on demand to clients who reques
        # ... other variables
      }
      ```
-   - **Environment Variables**: If the new worker requires manual instance counts or specific configurations, add corresponding fields to `worker_manual_instance_counts` (or other maps) in `infra/.envs/staging.tfvars` and `infra/.envs/prod.tfvars`, and update the definitions in `infra/main.tf` and `infra/workers/variables.tf`.
+   - **Environment Variables**: If the new worker requires manual instance counts or specific configurations, add corresponding fields to `worker_manual_instance_counts` (or other maps) in [`infra/.envs/staging.tfvars`](../../../infra/.envs/staging.tfvars) and [`infra/.envs/prod.tfvars`](../../../infra/.envs/prod.tfvars), and update the definitions in [`infra/main.tf`](../../../infra/main.tf) and [`infra/workers/variables.tf`](../../../infra/workers/variables.tf).
 
 ## Verify, Don't Assume
 

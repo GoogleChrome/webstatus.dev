@@ -14,6 +14,10 @@ This skill provides architectural guidance and conventions for the `frontend/` d
 - **State Management**: Uses **Lit Context** for dependency injection and state management via a service container pattern (`<webstatus-services-container>`).
 - **API Interaction**: Communicates with the Go backend using TypeScript types generated from the OpenAPI specification (`make node-openapi`).
 
+## Architecture
+
+For a technical breakdown of the Lit component hierarchy, frontend identity flows, and theming patterns, see [references/architecture.md](references/architecture.md).
+
 ## Guidelines (Do's and Don'ts)
 
 - **DO** create new UI elements as custom elements extending Lit's `LitElement`.

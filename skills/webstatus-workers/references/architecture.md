@@ -1,37 +1,56 @@
-# Worker Pipeline Architecture
+# Worker Architecture & Implementation
 
-The `workers/` directory contains Go applications that form an event-driven notification pipeline using Google Cloud Pub/Sub and Spanner.
+This document provides a comprehensive technical guide for the `workers/` directory, covering both high-level roles and code-level choreography.
 
-The pipeline consists of three main stages, generally categorized into **Push** workers (that send notifications out based on subscriptions) and **Pull** workers (that generate feeds or data to be pulled by external clients).
+## 1. Pipeline Stages & Roles
 
-## 1. Event Producer (`workers/event_producer/`)
+The notification pipeline consists of three main stages, strictly categorized as **Push** workers that send notifications out based on subscriptions.
 
-Listens to ingestion events and batch update events.
+### A. Event Producer (`workers/event_producer/`)
 
-- **Role:** The "Brain". It loads the previous state (from GCS via `StateAdapter`), fetches the current live data via `FeatureFetcher`, and uses a `FeatureDiffer` (e.g. `StateCompareWorkflow`) to calculate the differences (Added, Removed, Deleted, Moved, Split, Baseline changed, Browser Implementation changed).
-- **Output:** If there are changes, it serializes a new State Blob, a Diff Blob, and publishes a new `PublishEventRequest` message to the notification topic.
+- **Role**: The "Brain". It calculates the differences (Added, Removed, Moved, Baseline changed, etc.) between the current Spanner state and the last GCS snapshot.
+- **Outcome**: Serializes a State/Diff Blob and publishes a `PublishEventRequest` to the notification topic.
+- **Key Files**: [`lib/gcpspanner/browser_feature_support_event.go`](../../../lib/gcpspanner/browser_feature_support_event.go) (Diff logic).
 
-## 2. Push Delivery (`workers/push_delivery/`)
+### B. Push Delivery (`workers/push_delivery/`)
 
-Consumes `PublishEventRequest` messages from the notification topic.
+- **Role**: The "Dispatcher" or "Fan-out" engine. It queries Spanner (`SubscriptionFinder`) to find all users subscribed to the search triggered by the event.
+- **Filtering**: Compares the event's changes against each user's `JobTrigger` list using a `SummaryVisitor`.
+- **Outcome**: Publishes channel-specific jobs (e.g., `EmailDeliveryJob`) to downstream workers.
+- **Key Files**: [`workers/push_delivery/pkg/dispatcher/`](../../../workers/push_delivery/pkg/dispatcher/) (Fan-out logic).
 
-- **Role:** The "Dispatcher" or "Fan-out" layer for **Push** workers. It queries Spanner (`SubscriptionFinder`) to find all users subscribed to the `SearchID` and `Frequency` of the event.
-- **Filtering:** It parses the Event Summary and compares the changes against each user's `JobTrigger` list using a `SummaryVisitor`. If the user's triggers match the changes, it creates a delivery job.
-- **Output:** Publishes a specific delivery job (e.g. `EmailDeliveryJob`, `WebhookDeliveryJob`) to a channel-specific topic.
+### C. Delivery Workers (e.g., `workers/email/`)
 
-## 3. Delivery Workers (e.g., `workers/email/`)
+- **Role**: The "Hands". They format the diff summary appropriately (e.g., into an HTML email) and perform the final delivery.
+- **Outcome**: Delivers the notification and updates the `ChannelStateManager` in Spanner with the result.
+- **Key Files**: [`lib/email/`](../../../lib/email/) (Templates & Mappers).
 
-Consumes channel-specific delivery job messages (e.g., `EmailDeliveryJob`).
+### D. On-Demand Workers (e.g., RSS, API Feeds)
 
-- **Role:** These are **Push** workers. They format the diff summary appropriately (e.g., into an HTML email or a JSON payload) and send it out.
-- **State Management:** Uses `ChannelStateManager` to record delivery success or failure in Spanner. Permanent errors are ACKed, transient errors are NACKed for retry.
+- **Role**: Pull-based delivery. These are **subscription-bound** (tied to a user's Saved Search) but bypass the dispatcher's push mechanism. These are not implemented yet.
+- **Outcome**: Data is pre-computed or served dynamically via the **API layer** when requested by the client.
+- **Flow**: Event Producer publishes `batch-update` -> API/Worker updates cache/feed -> Client pulls via subscription endpoint.
 
-## Pull Workers (e.g., RSS)
+## 2. Implementation Patterns
 
-- **Role:** These bypass the Push Delivery layer because they aren't tied to user subscriptions. They typically listen to the notification topic directly to pre-compute feeds or serve requests dynamically from the HTTP backend by fetching the stored Diff or State blobs.
+### Interface & Adapter Pattern
 
-## Schema Evolution & Blobs
+Workers are decoupled from GCP SDKs to facilitate unit testing.
 
-- State for saved search notifications is stored in GCS blobs (`lib/blobtypes`).
-- Canonical in-memory types (`lib/workertypes/comparables`) are decoupled from storage types (`lib/blobtypes/v1`).
-- We use `generic.OptionallySet[T]` to gracefully handle new fields added over time. Unset fields from older blobs are ignored, whereas Set fields are processed.
+- **Ports**: Defined in the worker's `pkg/` (e.g., `interface SubscriptionFinder`).
+- **Adapters**: Found in [`lib/gcpspanner/spanneradapters/`](../../../lib/gcpspanner/spanneradapters/). Live adapters satisfy the interfaces in production.
+
+### Shared Workertypes
+
+All workers MUST use the shared structs in [lib/workertypes/types.go](../../../lib/workertypes/types.go).
+
+- **`PublishEventRequest`**: The canonical message published by the Event Producer.
+- **`DeliveryJob`**: The generic job type dispatched to individual delivery workers.
+
+## 3. Schema Evolution & The SummaryVisitor
+
+Historical event data is versioned in the `Summary` JSON column in Spanner. To prevent breaking changes:
+
+1.  **Versioned Blobs**: Store snapshots as immutable versioned blobs (e.g., `v1`, `v2`).
+2.  **Visitor Interface**: Use the `SummaryVisitor` defined in [`lib/workertypes/events.go`](../../../lib/workertypes/events.go) to parse legacy JSON versions into the common `EventSummary` struct.
+3.  **Forward Compatibility**: Use `generic.OptionallySet[T]` to handle new optional fields without crashing older consumer instances.
