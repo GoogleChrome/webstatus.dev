@@ -25,6 +25,7 @@ import {customElement} from 'lit/decorators.js';
 
 import {SHARED_STYLES} from '../css/shared-css.js';
 import './webstatus-login.js';
+import './webstatus-theme-button.js';
 
 @customElement('webstatus-header')
 export class WebstatusHeader extends LitElement {
@@ -35,8 +36,9 @@ export class WebstatusHeader extends LitElement {
         header {
           flex-grow: 1; /* .hbox > .halign-stretch */
           align-items: center;
-          border-bottom: 1px solid #e1e3e8;
+          border-bottom: var(--default-border);
           height: 94px;
+          background-color: var(--header-background);
         }
         .title {
           display: flex;
@@ -45,7 +47,7 @@ export class WebstatusHeader extends LitElement {
         .website-logo {
           width: 31px;
           height: 31px;
-          background-color: #ccc;
+          background-color: var(--color-highlight-2);
           margin-left: 1em;
           margin-top: auto;
           margin-bottom: auto;
@@ -54,7 +56,7 @@ export class WebstatusHeader extends LitElement {
         .website-title {
           font-weight: 700;
           font-size: 24px;
-          color: #1f1f1f;
+          color: var(--default-color);
           margin-left: 5px;
           margin-top: auto;
           margin-bottom: auto;
@@ -67,6 +69,11 @@ export class WebstatusHeader extends LitElement {
 
         webstatus-login {
           padding: var(--content-padding);
+        }
+
+        .theme-toggle {
+          margin-right: var(--content-padding);
+          font-size: 1.5rem;
         }
       `,
     ];
@@ -103,6 +110,7 @@ export class WebstatusHeader extends LitElement {
         </div>
 
         <div class="spacer"></div>
+        <webstatus-theme-button></webstatus-theme-button>
         <webstatus-login></webstatus-login>
       </header>
     `;

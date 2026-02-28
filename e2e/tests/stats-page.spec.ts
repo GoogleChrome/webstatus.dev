@@ -15,7 +15,7 @@
  */
 
 import {test, expect, Page} from '@playwright/test';
-import {setupFakeNow} from './utils';
+import {setupFakeNow, expectDualThemeScreenshot} from './utils';
 
 async function waitForAllChartsToLoad(page: Page) {
   // Wait for all charts to finish loading.
@@ -39,5 +39,5 @@ test('matches the screenshot', async ({page}) => {
   await waitForAllChartsToLoad(page);
 
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'stats-page');
 });

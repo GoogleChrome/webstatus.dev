@@ -29,6 +29,7 @@ import {Task} from '@lit/task';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {consume} from '@lit/context';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {themeContext, type Theme} from '../contexts/theme-context.js';
 
 /**
  * Interface defining the structure of metric data for the line chart.
@@ -188,6 +189,10 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
   @consume({context: apiClientContext})
   apiClient!: APIClient;
 
+  @consume({context: themeContext, subscribe: true})
+  @state()
+  theme: Theme = 'light';
+
   /**
    * The Lit task for managing the asynchronous data loading process.
    * Subclasses must implement this method to define how data is fetched.
@@ -294,6 +299,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
         .chart-description {
           font-size: 14px;
           font-style: italic;
+          color: var(--unimportant-text-color);
         }
 
         .datapoint-details-panel {
@@ -477,16 +483,18 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
     );
     // Add one day to this.endDate.
     const endDate = new Date(this.endDate.getTime() + 1000 * 60 * 60 * 24);
+    const isDark = this.theme === 'dark';
     const options: google.visualization.LineChartOptions = {
       height: 300, // This is necessary to avoid shrinking to 0 or 18px.
       hAxis: {
         title: '',
-        titleTextStyle: {color: '#333'},
+        titleTextStyle: {color: isDark ? '#fff' : '#333'},
         viewWindow: {min: this.startDate, max: endDate},
       },
       vAxis: {
         minValue: 0,
         title: vAxisTitle,
+        titleTextStyle: {color: isDark ? '#fff' : '#333'},
         format: '#,###',
       },
       legend: {position: 'top'},
@@ -817,7 +825,10 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
 
   render(): TemplateResult {
     return html`
-      <sl-card id="${this.getPanelID()}">
+      <sl-card
+        id="${this.getPanelID()}"
+        class="${this.theme === 'dark' ? 'sl-theme-dark' : ''}"
+      >
         <div class="hbox">
           <div slot="header">${this.getPanelText()}</div>
           <div class="spacer"></div>

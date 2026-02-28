@@ -15,7 +15,12 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {setupFakeNow, resetUserData, loginAsUser} from './utils';
+import {
+  setupFakeNow,
+  resetUserData,
+  loginAsUser,
+  expectDualThemeScreenshot,
+} from './utils';
 
 test.beforeEach(async ({page}) => {
   await setupFakeNow(page);
@@ -36,7 +41,7 @@ test('matches the screenshot', async ({page}) => {
   await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
 
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'feature-page');
 });
 
 test('matches the screenshot for a discouraged feature', async ({page}) => {
@@ -49,7 +54,11 @@ test('matches the screenshot for a discouraged feature', async ({page}) => {
   await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
 
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(
+    page,
+    pageContainer,
+    'feature-page-discouraged',
+  );
 });
 
 test('chart width resizes with window', async ({page}) => {
@@ -98,7 +107,7 @@ test('mobile chart displays on click and matches screenshot', async ({
   await mobileTab.click();
   await page.waitForTimeout(2000);
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'feature-page-mobile');
 });
 
 test('date range changes are preserved in the URL', async ({page}) => {
@@ -191,7 +200,7 @@ test('redirects for a moved feature', async ({page}) => {
 
   // Take a screenshot for visual verification.
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'feature-page-redirect');
 });
 
 test('shows gone page for a split feature', async ({page}) => {
@@ -215,7 +224,7 @@ test('shows gone page for a split feature', async ({page}) => {
 
   // Take a screenshot for visual verification.
   const pageContainer = page.locator('.container'); // Assuming a generic container for the error page.
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'feature-gone-split');
 });
 
 test.describe('Subscriptions', () => {

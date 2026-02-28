@@ -23,6 +23,7 @@ import '../services/webstatus-firebase-auth-service.js';
 import '../services/webstatus-gcharts-loader-service.js';
 import '../services/webstatus-api-client-service.js';
 import '../services/webstatus-bookmarks-service.js';
+import '../services/webstatus-theme-service.js';
 
 /**
  * WebstatusServiceContainer: Centralized container for web status services.
@@ -57,7 +58,9 @@ export class WebstatusServicesContainer extends LitElement {
                 .settings="${this.settings.firebase.auth}"
               >
                 <webstatus-bookmarks-service>
-                  <slot></slot>
+                  <webstatus-theme-service>
+                    <slot></slot>
+                  </webstatus-theme-service>
                 </webstatus-bookmarks-service>
               </webstatus-firebase-auth-service>
             </webstatus-firebase-app-service>
