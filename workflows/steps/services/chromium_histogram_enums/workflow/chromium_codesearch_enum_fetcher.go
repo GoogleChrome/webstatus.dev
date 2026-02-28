@@ -21,7 +21,7 @@ import (
 )
 
 func NewChromiumCodesearchEnumFetcher(httpClient *http.Client) (*ChromiumCodesearchEnumFetcher, error) {
-	fetcher, err := httputils.NewHTTPFetcher(enumURL, httpClient)
+	fetcher, err := httputils.NewHTTPFetcher(EnumURL, httpClient)
 	if err != nil {
 		return nil, err
 	}
@@ -38,5 +38,5 @@ type ChromiumCodesearchEnumFetcher struct {
 	*httputils.HTTPFetcher
 }
 
-const enumURL = "https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/metadata/blink/" +
+const EnumURL = "https://chromium.googlesource.com/chromium/src/+/main/tools/metrics/histograms/metadata/blink/" +
 	"enums.xml?format=TEXT"
