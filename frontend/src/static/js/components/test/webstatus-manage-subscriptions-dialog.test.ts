@@ -405,7 +405,6 @@ describe('webstatus-manage-subscriptions-dialog', () => {
   });
 
   it('sets actionState correctly on successful delete', async () => {
-    // Create a new element configured exactly for this test's needs.
     const deleteElement = await fixture<ManageSubscriptionsDialog>(html`
       <webstatus-manage-subscriptions-dialog
         .apiClient=${apiClient as APIClient}
@@ -413,43 +412,38 @@ describe('webstatus-manage-subscriptions-dialog', () => {
         .subscriptionId=${'test-sub-id'}
       ></webstatus-manage-subscriptions-dialog>
     `);
-    // Create a promise that will resolve when the success event is heard
-    const eventPromise = new Promise<void>(resolve => {
-      deleteElement.addEventListener('subscription-delete-success', () =>
-        resolve(),
-      );
-    });
 
+    const eventSpy = sandbox.spy();
+    deleteElement.addEventListener('subscription-delete-success', eventSpy);
+
+    // 1. Open the dialog
     deleteElement.open = true;
+
+    // 2. Wait for the loading task
     await deleteElement.updateComplete;
-
-    // 2. Get the dialog element and create a promise that resolves when it's fully shown
-    const mainDialog =
-      deleteElement.shadowRoot!.querySelector<SlDialog>('.dialog-main');
-    const afterShowPromise = new Promise(resolve => {
-      mainDialog!.addEventListener('sl-after-show', resolve, {once: true});
-    });
-
-    deleteElement.open = true;
-    await afterShowPromise;
     await deleteElement['_loadingTask'].taskComplete;
     await deleteElement.updateComplete;
 
-    const deleteButton = deleteElement.shadowRoot?.querySelector<SlButton>(
+    // 3. Use waitUntil to ensure the button is actually in the DOM
+    await waitUntil(
+      () => !!deleteElement.shadowRoot?.querySelector('#confirm-unsubscribe'),
+      'Delete button never appeared',
+    );
+
+    const deleteButton = deleteElement.shadowRoot!.querySelector<SlButton>(
       '#confirm-unsubscribe',
     );
-    expect(deleteButton).to.exist; // Ensure button exists.
 
-    // Simulate clicking the delete button.
+    // 4. Simulate the click
     deleteButton!.click();
-    await deleteElement.updateComplete;
+
+    // 5. Wait for the success event spy rather than a manual promise
+    await waitUntil(() => eventSpy.calledOnce, 'Delete event never fired');
 
     expect(apiClient.deleteSubscription).to.have.been.calledWith(
       'test-sub-id',
       'test-token',
     );
-    // Wait for event promise to resolve
-    await eventPromise;
 
     expect(deleteElement['_actionState'].phase).to.equal('success');
     if (deleteElement['_actionState'].phase === 'success') {
