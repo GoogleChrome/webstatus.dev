@@ -141,7 +141,7 @@ export class WebstatusOverviewTable extends LitElement {
         }
 
         .sortable-icon {
-          color: gray;
+          color: var(--unimportant-text-color);
           opacity: 70%;
         }
         img.platform {

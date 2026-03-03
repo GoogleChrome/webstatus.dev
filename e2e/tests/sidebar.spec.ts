@@ -14,15 +14,17 @@
  * limitations under the License.
  */
 
-import {test, expect} from '@playwright/test';
-import {loginAsUser} from './utils';
+import {test} from '@playwright/test';
+import {loginAsUser, expectDualThemeScreenshot} from './utils';
+
+test.beforeEach(async () => {});
 
 test('matches the screenshot', async ({page}) => {
   await page.goto('http://localhost:5555/');
 
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
-  await expect(sidebar).toHaveScreenshot('sidebar.png');
+  await expectDualThemeScreenshot(page, sidebar, 'sidebar');
 });
 
 test('matches the screenshot for an authenticated user', async ({page}) => {
@@ -31,5 +33,5 @@ test('matches the screenshot for an authenticated user', async ({page}) => {
 
   // The sidebar menu should be shown by default.
   const sidebar = page.locator('webstatus-sidebar');
-  await expect(sidebar).toHaveScreenshot('sidebar-authenticated.png');
+  await expectDualThemeScreenshot(page, sidebar, 'sidebar-authenticated');
 });

@@ -19,39 +19,43 @@ import {customElement, property} from 'lit/decorators.js';
 import {repeat} from 'lit/directives/repeat.js';
 import {components} from 'webstatus.dev-backend';
 import './webstatus-notification-panel.js';
+import {SHARED_STYLES} from '../css/shared-css.js';
 
 type NotificationChannelResponse =
   components['schemas']['NotificationChannelResponse'];
 
 @customElement('webstatus-notification-email-channels')
 export class WebstatusNotificationEmailChannels extends LitElement {
-  static styles = css`
-    .channel-item {
-      background-color: #f9f9f9;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 16px;
-      border-bottom: 1px solid #e4e4e7;
-    }
+  static styles = [
+    SHARED_STYLES,
+    css`
+      .channel-item {
+        color: var(--default-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--border-color);
+      }
 
-    .channel-item:last-child {
-      border-bottom: none;
-    }
+      .channel-item:last-child {
+        border-bottom: none;
+      }
 
-    .channel-info {
-      display: flex;
-      flex-direction: column;
-    }
+      .channel-info {
+        display: flex;
+        flex-direction: column;
+      }
 
-    .channel-info .name {
-      font-size: 14px;
-    }
+      .channel-info .name {
+        font-size: 14px;
+      }
 
-    .info-icon-button {
-      font-size: 1.2rem;
-    }
-  `;
+      .info-icon-button {
+        font-size: 1.2rem;
+      }
+    `,
+  ];
 
   @property({type: Array})
   channels: NotificationChannelResponse[] = [];

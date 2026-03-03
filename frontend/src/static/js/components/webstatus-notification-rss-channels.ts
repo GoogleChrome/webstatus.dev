@@ -23,7 +23,7 @@ export class WebstatusNotificationRssChannels extends LitElement {
   static styles = css`
     .card-body {
       padding: 20px;
-      color: #71717a;
+      color: var(--unimportant-text-color);
     }
   `;
 

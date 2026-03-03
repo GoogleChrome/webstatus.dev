@@ -86,7 +86,7 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
           display: flex;
         }
         #error-status-code {
-          color: #2563eb;
+          color: var(--status-code-color);
           font-size: 15px;
           font-weight: 700;
           line-height: 22.5px;
@@ -99,7 +99,7 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
           gap: var(--content-padding);
         }
         #error-headline {
-          color: #1d2430;
+          color: var(--heading-color);
           font-size: 32px;
           font-weight: 700;
           word-wrap: break-word;
@@ -112,7 +112,7 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
         }
 
         .error-message {
-          color: #6c7381;
+          color: var(--unimportant-text-color);
         }
         .new-features-container {
           text-align: left;
@@ -120,7 +120,7 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
           max-width: 400px;
         }
         .new-results-header {
-          color: #1a1a1a;
+          color: var(--default-color);
           font-weight: 500;
           margin-bottom: 6px;
         }
@@ -134,12 +134,12 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
         }
         .feature-list li a {
           text-decoration: none;
-          color: #007bff;
+          color: var(--link-color);
           font-weight: 500;
         }
         .feature-list li a:hover {
           text-decoration: underline;
-          color: #0056b3;
+          color: var(--link-hover-color);
         }
       `,
     ];

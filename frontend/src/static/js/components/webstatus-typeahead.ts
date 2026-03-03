@@ -434,7 +434,7 @@ export class WebstatusTypeaheadItem extends LitElement {
           font-weight: var(--sl-font-weight-normal);
           line-height: var(--sl-line-height-normal);
           letter-spacing: var(--sl-letter-spacing-normal);
-          color: var(--sl-color-neutral-700);
+          color: var(--default-color);
           padding: var(--sl-spacing-2x-small) var(--sl-spacing-2x-small);
           transition: var(--sl-transition-fast) fill;
           user-select: none;
@@ -445,7 +445,8 @@ export class WebstatusTypeaheadItem extends LitElement {
 
         .active {
           outline: none;
-          background-color: var(--sl-color-primary-200);
+          background-color: var(--color-primary);
+          color: white;
           opacity: 1;
         }
         #value {
@@ -454,7 +455,8 @@ export class WebstatusTypeaheadItem extends LitElement {
         }
         code {
           font-size: 85%;
-          background: #eee;
+          background: var(--color-highlight-2);
+          color: var(--default-color);
           padding: var(--content-padding-quarter);
         }
       `,

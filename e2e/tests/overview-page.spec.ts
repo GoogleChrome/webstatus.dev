@@ -14,20 +14,26 @@
  * limitations under the License.
  */
 
-import {test, expect, Request, Response} from '@playwright/test';
+import {test, expect, Request, Response, Page} from '@playwright/test';
 import {
   gotoOverviewPageUrl,
   getOverviewPageFeatureCount,
   loginAsUser,
   waitForOverviewPageLoad,
+  expectDualThemeScreenshot,
+  setupFakeNow,
 } from './utils';
 
 const DEFAULT_PAGE_SIZE = 25;
 
+test.beforeEach(async ({page}) => {
+  await setupFakeNow(page);
+});
+
 test('matches the screenshot', async ({page}) => {
   await gotoOverviewPageUrl(page, 'http://localhost:5555/');
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'overview-page');
 });
 
 test('matches the screenshot for mobile columns', async ({page}) => {
@@ -38,7 +44,7 @@ test('matches the screenshot for mobile columns', async ({page}) => {
       'experimental_chrome_android,experimental_firefox_android,experimental_safari_ios',
   );
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'overview-page-mobile');
 });
 
 test('screenshot for availability sort', async ({page}) => {
@@ -47,7 +53,7 @@ test('screenshot for availability sort', async ({page}) => {
     'http://localhost:5555/?sort=availability_chrome_asc',
   );
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(page, pageContainer, 'overview-page-sort');
 });
 
 test('screenshot for developer upvotes column', async ({page}) => {
@@ -57,7 +63,11 @@ test('screenshot for developer upvotes column', async ({page}) => {
       'availability_safari,chrome_usage,developer_signal_upvotes',
   );
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot();
+  await expectDualThemeScreenshot(
+    page,
+    pageContainer,
+    'overview-page-developer-upvotes',
+  );
 });
 
 test('shows an error that their query is invalid', async ({page}) => {
@@ -68,7 +78,7 @@ test('shows an error that their query is invalid', async ({page}) => {
   expect(message).toContainText('Invalid query...');
 
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot('invalid-query.png');
+  await expectDualThemeScreenshot(page, pageContainer, 'invalid-query');
 });
 
 test('shows an unknown error when there is an internal error', async ({
@@ -91,7 +101,7 @@ test('shows an unknown error when there is an internal error', async ({
   expect(message).toContainText('Something went wrong...');
 
   const pageContainer = page.locator('.page-container');
-  await expect(pageContainer).toHaveScreenshot('internal-error.png');
+  await expectDualThemeScreenshot(page, pageContainer, 'internal-error');
 });
 
 test('hides the Feature column', async ({page}) => {

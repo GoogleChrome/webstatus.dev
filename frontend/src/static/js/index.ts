@@ -37,6 +37,7 @@ import '@shoelace-style/shoelace/dist/components/tooltip/tooltip.js';
 import '@shoelace-style/shoelace/dist/components/tree/tree.js';
 import '@shoelace-style/shoelace/dist/components/tree-item/tree-item.js';
 import '@shoelace-style/shoelace/dist/themes/light.css';
+import '@shoelace-style/shoelace/dist/themes/dark.css';
 import {setBasePath} from '@shoelace-style/shoelace/dist/utilities/base-path.js';
 import {registerIconLibrary} from '@shoelace-style/shoelace/dist/utilities/icon-library.js';
 

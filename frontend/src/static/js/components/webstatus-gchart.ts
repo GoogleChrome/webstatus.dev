@@ -19,16 +19,17 @@
 
 import {consume} from '@lit/context';
 import {
+  CSSResultGroup,
   LitElement,
+  PropertyValues,
   type TemplateResult,
-  type CSSResultGroup,
   css,
   html,
-  PropertyValues,
   nothing,
 } from 'lit';
 import {customElement, property, state} from 'lit/decorators.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
+import {themeContext, type Theme} from '../contexts/theme-context.js';
 import {TaskStatus} from '@lit/task';
 import {classMap} from 'lit/directives/class-map.js';
 
@@ -66,6 +67,10 @@ export class WebstatusGChart extends LitElement {
   @consume({context: gchartsContext, subscribe: true})
   @property({attribute: false})
   gchartsLibraryLoaded?: boolean;
+
+  @consume({context: themeContext, subscribe: true})
+  @property({attribute: false})
+  theme: Theme = 'light';
 
   private _pendingDataObj: WebStatusDataObj | undefined;
 
@@ -189,6 +194,48 @@ export class WebstatusGChart extends LitElement {
   augmentOptions(
     options: google.visualization.ComboChartOptions,
   ): google.visualization.ComboChartOptions {
+    const isDark = this.theme === 'dark';
+    const textColor = isDark ? '#e2e8f0' : '#0f172a';
+    const gridlineColor =
+      this.theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : '#ccc';
+
+    const chartArea = options.chartArea || {};
+    const hAxis = options.hAxis || {};
+    const vAxis = options.vAxis || {};
+    const legend = typeof options.legend === 'object' ? options.legend : {};
+
+    options = {
+      ...options,
+      titleTextStyle: {
+        ...(options.titleTextStyle || {}),
+        color: textColor,
+      },
+      backgroundColor: 'transparent',
+      chartArea: {
+        ...chartArea,
+        backgroundColor: 'transparent',
+      },
+      hAxis: {
+        ...hAxis,
+        titleTextStyle: {...hAxis.titleTextStyle, color: textColor},
+        textStyle: {...hAxis.textStyle, color: textColor},
+        gridlines: {...hAxis.gridlines, color: gridlineColor},
+      },
+      vAxis: {
+        ...vAxis,
+        titleTextStyle: {...vAxis.titleTextStyle, color: textColor},
+        textStyle: {...vAxis.textStyle, color: textColor},
+        gridlines: {...vAxis.gridlines, color: gridlineColor},
+      },
+      legend:
+        typeof options.legend === 'object'
+          ? {
+              ...legend,
+              textStyle: {...legend.textStyle, color: textColor},
+            }
+          : options.legend,
+    };
+
     if (!this.hasMax) {
       options = {
         ...options,
@@ -222,7 +269,7 @@ export class WebstatusGChart extends LitElement {
     const seriesOptions = options.series || {};
     seriesOptions[totalSeriesIndex] = {
       type: 'area',
-      areaOpacity: 0.08,
+      areaOpacity: isDark ? 0.15 : 0.08, // Slightly more opaque in dark mode
       opacity: 0.25,
       lineWidth: 0.2,
       pointSize: pointSize,

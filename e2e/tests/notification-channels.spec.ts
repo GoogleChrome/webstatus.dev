@@ -15,7 +15,9 @@
  */
 
 import {test, expect} from '@playwright/test';
-import {loginAsUser, BASE_URL} from './utils';
+import {loginAsUser, BASE_URL, expectDualThemeScreenshot} from './utils';
+
+test.beforeEach(async () => {});
 
 test.describe('Notification Channels Page', () => {
   test('redirects unauthenticated user to home and shows toast', async ({
@@ -63,8 +65,10 @@ test.describe('Notification Channels Page', () => {
 
     // Take a screenshot for visual regression
     const pageContainer = page.locator('.page-container');
-    await expect(pageContainer).toHaveScreenshot(
-      'notification-channels-authenticated.png',
+    await expectDualThemeScreenshot(
+      page,
+      pageContainer,
+      'notification-channels-authenticated',
     );
   });
 });

@@ -77,6 +77,7 @@ export const SHARED_STYLES = [
       font-weight: 300;
     }
 
+    h1,
     h2,
     h3,
     h4 {
@@ -107,7 +108,7 @@ export const SHARED_STYLES = [
     }
 
     sl-details::part(base) {
-      background: var(--card-background);
+      background: var(--header-background);
       border: none;
     }
 
