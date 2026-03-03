@@ -1,0 +1,163 @@
+// Copyright 2026 Google LLC
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// NOTE: This file is (mostly_ duplicated from lib/event/emailjob/v1/types.go.
+// TODO: Consolidate shared JobFrequency and JobTrigger logic into a common file.
+
+package v1
+
+import (
+	"time"
+
+	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
+)
+
+// WebhookJobEvent represents a webhook job event.
+type WebhookJobEvent struct {
+	// SubscriptionID is the ID of the subscription that triggered this job.
+	SubscriptionID string `json:"subscription_id"`
+	// WebhookURL is the URL of the webhook destination.
+	WebhookURL string `json:"webhook_url"`
+	// SummaryRaw is the raw JSON bytes of the event summary.
+	SummaryRaw []byte `json:"summary_raw"`
+	// Metadata contains additional metadata about the event.
+	Metadata WebhookJobEventMetadata `json:"metadata"`
+	// ChannelID is the ID of the channel associated with this job.
+	ChannelID string `json:"channel_id"`
+	// Triggers is a list of triggers associated with this job.
+	Triggers []JobTrigger `json:"triggers"`
+}
+
+type WebhookJobEventMetadata struct {
+	// EventID is the ID of the original event that triggered this job.
+	EventID string `json:"event_id"`
+	// SearchID is the ID of the search that generated the event.
+	SearchID string `json:"search_id"`
+	// Query is the query string used for the search.
+	Query string `json:"query"`
+	// Frequency is the frequency of the job (e.g., "daily", "weekly").
+	Frequency JobFrequency `json:"frequency"`
+	// GeneratedAt is the timestamp when the original event was generated.
+	GeneratedAt time.Time `json:"generated_at"`
+}
+
+func (WebhookJobEvent) Kind() string       { return "WebhookJobEvent" }
+func (WebhookJobEvent) APIVersion() string { return "v1" }
+
+type JobFrequency string
+
+const (
+	FrequencyUnknown   JobFrequency = "UNKNOWN"
+	FrequencyImmediate JobFrequency = "IMMEDIATE"
+	FrequencyWeekly    JobFrequency = "WEEKLY"
+	FrequencyMonthly   JobFrequency = "MONTHLY"
+)
+
+func (f JobFrequency) ToWorkerTypeJobFrequency() workertypes.JobFrequency {
+	switch f {
+	case FrequencyImmediate:
+		return workertypes.FrequencyImmediate
+	case FrequencyWeekly:
+		return workertypes.FrequencyWeekly
+	case FrequencyMonthly:
+		return workertypes.FrequencyMonthly
+	case FrequencyUnknown:
+		return workertypes.FrequencyUnknown
+	}
+
+	return workertypes.FrequencyUnknown
+}
+
+func ToJobFrequency(freq workertypes.JobFrequency) JobFrequency {
+	switch freq {
+	case workertypes.FrequencyImmediate:
+		return FrequencyImmediate
+	case workertypes.FrequencyWeekly:
+		return FrequencyWeekly
+	case workertypes.FrequencyMonthly:
+		return FrequencyMonthly
+	case workertypes.FrequencyUnknown:
+		return FrequencyUnknown
+	}
+
+	return FrequencyUnknown
+}
+
+type JobTrigger string
+
+const (
+	FeaturePromotedToNewly           JobTrigger = "FEATURE_PROMOTED_TO_NEWLY"
+	FeaturePromotedToWidely          JobTrigger = "FEATURE_PROMOTED_TO_WIDELY"
+	FeatureRegressedToLimited        JobTrigger = "FEATURE_REGRESSED_TO_LIMITED"
+	BrowserImplementationAnyComplete JobTrigger = "BROWSER_IMPLEMENTATION_ANY_COMPLETE"
+	UnknownJobTrigger                JobTrigger = "UNKNOWN"
+)
+
+func (e WebhookJobEvent) ToWorkerTypeJobTriggers() []workertypes.JobTrigger {
+	if e.Triggers == nil {
+		return nil
+	}
+
+	triggers := make([]workertypes.JobTrigger, 0, len(e.Triggers))
+	for _, t := range e.Triggers {
+		triggers = append(triggers, t.ToWorkerTypeJobTrigger())
+	}
+
+	return triggers
+}
+
+func (t JobTrigger) ToWorkerTypeJobTrigger() workertypes.JobTrigger {
+	switch t {
+	case FeaturePromotedToNewly:
+		return workertypes.FeaturePromotedToNewly
+	case FeaturePromotedToWidely:
+		return workertypes.FeaturePromotedToWidely
+	case FeatureRegressedToLimited:
+		return workertypes.FeatureRegressedToLimited
+	case BrowserImplementationAnyComplete:
+		return workertypes.BrowserImplementationAnyComplete
+	case UnknownJobTrigger:
+		break
+	}
+
+	return ""
+}
+
+func ToJobTrigger(trigger workertypes.JobTrigger) JobTrigger {
+	switch trigger {
+	case workertypes.FeaturePromotedToNewly:
+		return FeaturePromotedToNewly
+	case workertypes.FeaturePromotedToWidely:
+		return FeaturePromotedToWidely
+	case workertypes.FeatureRegressedToLimited:
+		return FeatureRegressedToLimited
+	case workertypes.BrowserImplementationAnyComplete:
+		return BrowserImplementationAnyComplete
+	}
+
+	return UnknownJobTrigger
+}
+
+func ToJobTriggers(triggers []workertypes.JobTrigger) []JobTrigger {
+	if triggers == nil {
+		return nil
+	}
+
+	jobTriggers := make([]JobTrigger, 0, len(triggers))
+	for _, t := range triggers {
+		jobTriggers = append(jobTriggers, ToJobTrigger(t))
+	}
+
+	return jobTriggers
+}
