@@ -48,7 +48,8 @@ func (f *PushDeliverySubscriberFinder) FindSubscribers(ctx context.Context, sear
 	}
 
 	set := &workertypes.SubscriberSet{
-		Emails: make([]workertypes.EmailSubscriber, 0),
+		Webhooks: nil,
+		Emails:   make([]workertypes.EmailSubscriber, 0),
 	}
 
 	for _, dest := range dests {

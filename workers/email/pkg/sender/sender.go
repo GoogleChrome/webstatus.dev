@@ -31,7 +31,7 @@ type EmailSender interface {
 type ChannelStateManager interface {
 	RecordSuccess(ctx context.Context, channelID string, timestamp time.Time, eventID string) error
 	RecordFailure(ctx context.Context, channelID string, err error,
-		timestamp time.Time, permanentUserFailure bool, emailEventID string) error
+		timestamp time.Time, isPermanent bool, eventID string) error
 }
 
 type TemplateRenderer interface {

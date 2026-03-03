@@ -86,6 +86,7 @@ func TestFindSubscribers(t *testing.T) {
 				},
 			},
 			expectedSet: &workertypes.SubscriberSet{
+				Webhooks: nil,
 				Emails: []workertypes.EmailSubscriber{
 					{
 						SubscriptionID: "sub-1",
@@ -136,6 +137,7 @@ func TestFindSubscribers(t *testing.T) {
 				},
 			},
 			expectedSet: &workertypes.SubscriberSet{
+				Webhooks: nil,
 				Emails: []workertypes.EmailSubscriber{
 					{
 						SubscriptionID: "sub-1",
@@ -180,7 +182,8 @@ func TestFindSubscribers(t *testing.T) {
 			},
 			clientErr: nil,
 			expectedSet: &workertypes.SubscriberSet{
-				Emails: []workertypes.EmailSubscriber{},
+				Webhooks: nil,
+				Emails:   []workertypes.EmailSubscriber{},
 			},
 			expectedError: nil,
 		},
@@ -209,6 +212,7 @@ func TestFindSubscribers(t *testing.T) {
 			},
 			clientErr: nil,
 			expectedSet: &workertypes.SubscriberSet{
+				Webhooks: nil,
 				Emails: []workertypes.EmailSubscriber{
 					{
 						UserID:         "user-1",
