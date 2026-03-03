@@ -96,36 +96,119 @@ func (m *mockPushDeliverySubscriber) Subscribe(ctx context.Context, subID string
 
 // --- Tests ---
 
-func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
-	mockPub := new(mockPushDeliveryPublisher)
-	publisher := NewPushDeliveryPublisher(mockPub, "email-topic")
+func TestPushDeliveryPublisher_PublishJobs(t *testing.T) {
+	now := time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC)
+	summaryRaw := []byte(`{"text": "Test Body"}`)
+	encodedSummary := base64.StdEncoding.EncodeToString(summaryRaw)
 
-	job := workertypes.EmailDeliveryJob{
-		SubscriptionID: "sub-1",
-		RecipientEmail: "test@example.com",
-		SummaryRaw:     []byte(`{"text": "Test Body"}`),
-		Metadata: workertypes.DeliveryMetadata{
-			EventID:     "event-1",
-			SearchID:    "search-1",
-			SearchName:  "",
-			Query:       "query-string",
-			Frequency:   workertypes.FrequencyMonthly,
-			GeneratedAt: time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC),
+	metadata := workertypes.DeliveryMetadata{
+		EventID:     "event-1",
+		SearchID:    "search-1",
+		SearchName:  "",
+		Query:       "query-string",
+		Frequency:   workertypes.FrequencyMonthly,
+		GeneratedAt: now,
+	}
+
+	triggers := []workertypes.JobTrigger{
+		workertypes.FeaturePromotedToNewly,
+		workertypes.FeaturePromotedToWidely,
+	}
+
+	testCases := []struct {
+		name          string
+		publishFunc   func(p *PushDeliveryPublisher) error
+		expectedTopic string
+		expectedKind  string
+		expectedData  map[string]any
+	}{
+		{
+			name: "Email Job",
+			publishFunc: func(p *PushDeliveryPublisher) error {
+				return p.PublishEmailJob(context.Background(), workertypes.EmailDeliveryJob{
+					SubscriptionID: "sub-1",
+					RecipientEmail: "test@example.com",
+					SummaryRaw:     summaryRaw,
+					Metadata:       metadata,
+					ChannelID:      "chan-1",
+					Triggers:       triggers,
+				})
+			},
+			expectedTopic: "email-topic",
+			expectedKind:  "EmailJobEvent",
+			expectedData: map[string]interface{}{
+				"subscription_id": "sub-1",
+				"recipient_email": "test@example.com",
+				"summary_raw":     encodedSummary,
+				"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
+				"metadata": map[string]interface{}{
+					"event_id":     "event-1",
+					"search_id":    "search-1",
+					"search_name":  "",
+					"query":        "query-string",
+					"frequency":    "MONTHLY",
+					"generated_at": "2025-01-01T12:00:00Z",
+				},
+				"channel_id": "chan-1",
+			},
 		},
-		ChannelID: "chan-1",
-		Triggers: []workertypes.JobTrigger{
-			workertypes.FeaturePromotedToNewly,
-			workertypes.FeaturePromotedToWidely,
+		{
+			name: "Webhook Job",
+			publishFunc: func(p *PushDeliveryPublisher) error {
+				return p.PublishWebhookJob(context.Background(), workertypes.WebhookDeliveryJob{
+					SubscriptionID: "sub-1",
+					WebhookURL:     "https://hooks.slack.com/services/123",
+					WebhookType:    workertypes.WebhookTypeSlack,
+					SummaryRaw:     summaryRaw,
+					Metadata:       metadata,
+					ChannelID:      "chan-1",
+					Triggers:       triggers,
+				})
+			},
+			expectedTopic: "webhook-topic",
+			expectedKind:  "WebhookJobEvent",
+			expectedData: map[string]interface{}{
+				"subscription_id": "sub-1",
+				"webhook_type":    "slack",
+				"webhook_url":     "https://hooks.slack.com/services/123",
+				"summary_raw":     encodedSummary,
+				"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
+				"metadata": map[string]interface{}{
+					"event_id":     "event-1",
+					"search_id":    "search-1",
+					"query":        "query-string",
+					"frequency":    "MONTHLY",
+					"generated_at": "2025-01-01T12:00:00Z",
+				},
+				"channel_id": "chan-1",
+			},
 		},
 	}
 
-	err := publisher.PublishEmailJob(context.Background(), job)
-	if err != nil {
-		t.Fatalf("PublishEmailJob failed: %v", err)
-	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockPub := &mockPushDeliveryPublisher{
+				publishedData:  nil,
+				publishedTopic: "",
+				err:            nil,
+				mu:             sync.Mutex{},
+			}
+			publisher := NewPushDeliveryPublisher(mockPub, "email-topic", "webhook-topic")
 
-	if mockPub.publishedTopic != "email-topic" {
-		t.Errorf("Topic mismatch: got %s, want email-topic", mockPub.publishedTopic)
+			if err := tc.publishFunc(publisher); err != nil {
+				t.Fatalf("Publish function failed: %v", err)
+			}
+
+			verifyPublishedJob(t, mockPub, tc.expectedTopic, tc.expectedKind, tc.expectedData)
+		})
+	}
+}
+
+func verifyPublishedJob(t *testing.T, mockPub *mockPushDeliveryPublisher,
+	expectedTopic, expectedKind string, expectedData map[string]any) {
+	t.Helper()
+	if mockPub.publishedTopic != expectedTopic {
+		t.Errorf("Topic mismatch: got %s, want %s", mockPub.publishedTopic, expectedTopic)
 	}
 
 	var actualEnvelope map[string]any
@@ -135,26 +218,12 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 
 	expectedEnvelope := map[string]any{
 		"apiVersion": "v1",
-		"kind":       "EmailJobEvent",
-		"data": map[string]any{
-			"subscription_id": "sub-1",
-			"recipient_email": "test@example.com",
-			"summary_raw":     base64.StdEncoding.EncodeToString([]byte(`{"text": "Test Body"}`)),
-			"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
-			"metadata": map[string]any{
-				"event_id":     "event-1",
-				"search_id":    "search-1",
-				"search_name":  "",
-				"query":        "query-string",
-				"frequency":    "MONTHLY",
-				"generated_at": "2025-01-01T12:00:00Z",
-			},
-			"channel_id": "chan-1",
-		},
+		"kind":       expectedKind,
+		"data":       expectedData,
 	}
 
 	if diff := cmp.Diff(expectedEnvelope, actualEnvelope); diff != "" {
-		t.Errorf("Email job mismatch (-want +got):\n%s", diff)
+		t.Errorf("%s job mismatch (-want +got):\n%s", expectedKind, diff)
 	}
 }
 
