@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package httpserver
+package httputils
 
 import (
 	"errors"
@@ -34,17 +34,17 @@ func TestValidateSlackWebhookURL(t *testing.T) {
 		{
 			name:          "Invalid Scheme (http)",
 			url:           "http://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
-			expectedError: errInvalidSlackWebhookURL,
+			expectedError: ErrInvalidSlackWebhookURL,
 		},
 		{
 			name:          "Invalid Host",
 			url:           "https://slack.hooks.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",
-			expectedError: errInvalidSlackWebhookURL,
+			expectedError: ErrInvalidSlackWebhookURL,
 		},
 		{
 			name:          "Invalid Path (missing /services/)",
 			url:           "https://hooks.slack.com/foo/bar",
-			expectedError: errInvalidSlackWebhookURL,
+			expectedError: ErrInvalidSlackWebhookURL,
 		},
 		{
 			name:          "Invalid URL format",
@@ -55,7 +55,7 @@ func TestValidateSlackWebhookURL(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := validateSlackWebhookURL(tc.url)
+			err := ValidateSlackWebhookURL(tc.url)
 
 			if tc.name == "Invalid URL format" {
 				if err == nil {

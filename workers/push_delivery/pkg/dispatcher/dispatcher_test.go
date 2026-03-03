@@ -48,8 +48,10 @@ func (m *mockSubscriptionFinder) FindSubscribers(_ context.Context, searchID str
 }
 
 type mockDeliveryPublisher struct {
-	emailJobs   []workertypes.EmailDeliveryJob
-	emailJobErr func(job workertypes.EmailDeliveryJob) error
+	emailJobs     []workertypes.EmailDeliveryJob
+	emailJobErr   func(job workertypes.EmailDeliveryJob) error
+	webhookJobs   []workertypes.WebhookDeliveryJob
+	webhookJobErr func(job workertypes.WebhookDeliveryJob) error
 }
 
 func (m *mockDeliveryPublisher) PublishEmailJob(_ context.Context, job workertypes.EmailDeliveryJob) error {
@@ -59,6 +61,17 @@ func (m *mockDeliveryPublisher) PublishEmailJob(_ context.Context, job workertyp
 		}
 	}
 	m.emailJobs = append(m.emailJobs, job)
+
+	return nil
+}
+
+func (m *mockDeliveryPublisher) PublishWebhookJob(_ context.Context, job workertypes.WebhookDeliveryJob) error {
+	if m.webhookJobErr != nil {
+		if err := m.webhookJobErr(job); err != nil {
+			return err
+		}
+	}
+	m.webhookJobs = append(m.webhookJobs, job)
 
 	return nil
 }
@@ -132,7 +145,6 @@ func TestProcessEvent_Success(t *testing.T) {
 
 	// Two subscribers: one matching trigger, one not.
 	subSet := &workertypes.SubscriberSet{
-		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{
 				SubscriptionID: "sub-1",
@@ -150,6 +162,7 @@ func TestProcessEvent_Success(t *testing.T) {
 				ChannelID:    "chan-2",
 			},
 		},
+		Webhooks: []workertypes.WebhookSubscriber{},
 	}
 
 	finder := &mockSubscriptionFinder{
@@ -157,10 +170,7 @@ func TestProcessEvent_Success(t *testing.T) {
 		findReturnErr:  nil,
 		findCalledWith: nil,
 	}
-	publisher := &mockDeliveryPublisher{
-		emailJobs:   nil,
-		emailJobErr: nil,
-	}
+	publisher := new(mockDeliveryPublisher)
 
 	// Create a summary that HAS changes so notification logic proceeds.
 	summary := createTestSummary(true)
@@ -224,6 +234,117 @@ func TestProcessEvent_Success(t *testing.T) {
 	}
 }
 
+func TestProcessEvent_Webhook_Success(t *testing.T) {
+	ctx := context.Background()
+	eventID := "evt-123"
+	searchID := "search-abc"
+	frequency := workertypes.FrequencyImmediate
+	generatedAt := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	summaryBytes := []byte("{}")
+
+	metadata := workertypes.DispatchEventMetadata{
+		EventID:     eventID,
+		SearchID:    searchID,
+		SearchName:  "",
+		Query:       "q=test",
+		Frequency:   frequency,
+		GeneratedAt: generatedAt,
+	}
+
+	// Two subscribers: one matching trigger, one not.
+	subSet := &workertypes.SubscriberSet{
+		Emails: []workertypes.EmailSubscriber{},
+		Webhooks: []workertypes.WebhookSubscriber{
+			{
+				SubscriptionID: "sub-1",
+				UserID:         "user-1",
+				Triggers:       []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly}, // Matches
+				WebhookURL:     "https://hooks.slack.com/services/123",
+				WebhookType:    workertypes.WebhookTypeSlack,
+				ChannelID:      "chan-1",
+			},
+			{
+				SubscriptionID: "sub-2",
+				UserID:         "user-2",
+				// Does not match (summary is Newly)
+				Triggers:    []workertypes.JobTrigger{workertypes.FeaturePromotedToWidely},
+				WebhookURL:  "https://hooks.slack.com/services/456",
+				WebhookType: workertypes.WebhookTypeSlack,
+				ChannelID:   "chan-2",
+			},
+		},
+	}
+
+	finder := &mockSubscriptionFinder{
+		findReturnSet:  subSet,
+		findReturnErr:  nil,
+		findCalledWith: nil,
+	}
+	publisher := new(mockDeliveryPublisher)
+
+	// Create a summary that HAS changes so notification logic proceeds.
+	summary := createTestSummary(true)
+	summary.Categories.UpdatedBaseline = 1
+	summary.Categories.Updated = 1
+	summary.Highlights = []workertypes.SummaryHighlight{
+		{
+			Type:        workertypes.SummaryHighlightTypeChanged,
+			FeatureID:   "test-feature-id",
+			FeatureName: "Test Feature",
+			Docs:        nil,
+			NameChange:  nil,
+			BaselineChange: &workertypes.Change[workertypes.BaselineValue]{
+				From: newBaselineValue(workertypes.BaselineStatusLimited),
+				To:   newBaselineValue(workertypes.BaselineStatusNewly),
+			},
+			BrowserChanges: nil,
+			Moved:          nil,
+			Split:          nil,
+		},
+	}
+	parser := mockParserFactory(summary, nil)
+
+	d := NewDispatcher(finder, publisher)
+	d.parser = parser
+
+	if err := d.ProcessEvent(ctx, metadata, summaryBytes); err != nil {
+		t.Fatalf("ProcessEvent unexpected error: %v", err)
+	}
+
+	// Assertions
+	expectedFinderReq := findSubscribersReq{
+		SearchID:  searchID,
+		Frequency: string(frequency),
+	}
+	assertFindSubscribersCalledWith(t, finder, &expectedFinderReq)
+
+	if len(publisher.webhookJobs) != 1 {
+		t.Fatalf("Expected 1 webhook job, got %d", len(publisher.webhookJobs))
+	}
+
+	job := publisher.webhookJobs[0]
+	expectedJob := workertypes.WebhookDeliveryJob{
+		SubscriptionID: "sub-1",
+		WebhookURL:     "https://hooks.slack.com/services/123",
+		WebhookType:    workertypes.WebhookTypeSlack,
+		SummaryRaw:     summaryBytes,
+		Triggers:       []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
+		Metadata: workertypes.DeliveryMetadata{
+			EventID:     eventID,
+			SearchID:    searchID,
+			SearchName:  "",
+			Query:       "q=test",
+			Frequency:   frequency,
+			GeneratedAt: generatedAt,
+		},
+		ChannelID: "chan-1",
+	}
+
+	if diff := cmp.Diff(expectedJob, job); diff != "" {
+		t.Errorf("Job mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func assertFindSubscribersCalledWith(t *testing.T, finder *mockSubscriptionFinder, expected *findSubscribersReq) {
 	t.Helper()
 	if diff := cmp.Diff(expected, finder.findCalledWith); diff != "" {
@@ -243,7 +364,6 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 	}
 
 	subSet := &workertypes.SubscriberSet{
-		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{
 				SubscriptionID: "sub-1",
@@ -253,6 +373,7 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 				ChannelID:      "chan-1",
 			},
 		},
+		Webhooks: []workertypes.WebhookSubscriber{},
 	}
 
 	finder := &mockSubscriptionFinder{
@@ -260,10 +381,7 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 		findReturnErr:  nil,
 		findCalledWith: nil,
 	}
-	publisher := &mockDeliveryPublisher{
-		emailJobs:   nil,
-		emailJobErr: nil,
-	}
+	publisher := new(mockDeliveryPublisher)
 
 	// Summary with NO changes
 	summary := createTestSummary(false)
@@ -333,13 +451,13 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	ctx := context.Background()
 	// Two subscribers
 	subSet := &workertypes.SubscriberSet{
-		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
 				UserID: "u1", EmailAddress: "e1", ChannelID: "chan-1"},
 			{SubscriptionID: "sub-2", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
 				UserID: "u2", EmailAddress: "e2", ChannelID: "chan-2"},
 		},
+		Webhooks: []workertypes.WebhookSubscriber{},
 	}
 
 	finder := &mockSubscriptionFinder{
@@ -350,7 +468,8 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 
 	// Publisher returns error for first job, success for second
 	publisher := &mockDeliveryPublisher{
-		emailJobs: nil,
+		emailJobs:   nil,
+		webhookJobs: nil,
 		emailJobErr: func(job workertypes.EmailDeliveryJob) error {
 			if job.SubscriptionID == "sub-1" {
 				return errors.New("queue full")
@@ -358,6 +477,7 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 
 			return nil
 		},
+		webhookJobErr: nil,
 	}
 
 	summaryWithNewly := withBaselineHighlight(createTestSummary(false),
@@ -394,11 +514,11 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 func TestProcessEvent_JobCount(t *testing.T) {
 	// Verify that if no jobs are generated (e.g. no matching triggers), ProcessEvent returns early/cleanly.
 	subSet := &workertypes.SubscriberSet{
-		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{}, EmailAddress: "e1", UserID: "u1",
 				ChannelID: "chan-1"}, // No match
 		},
+		Webhooks: []workertypes.WebhookSubscriber{},
 	}
 	finder := &mockSubscriptionFinder{
 		findReturnSet:  subSet,

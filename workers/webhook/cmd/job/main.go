@@ -1,4 +1,4 @@
-// Copyright 2025 Google LLC
+// Copyright 2026 Google LLC
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,19 +17,21 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcppubsub/gcppubsubadapters"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/spanneradapters"
-	"github.com/GoogleChrome/webstatus.dev/workers/push_delivery/pkg/dispatcher"
+	"github.com/GoogleChrome/webstatus.dev/workers/webhook/pkg/webhook"
 )
 
 func main() {
 	ctx := context.Background()
 
-	slog.InfoContext(ctx, "starting push delivery worker")
+	slog.InfoContext(ctx, "starting webhook worker")
 
 	projectID := os.Getenv("PROJECT_ID")
 	if projectID == "" {
@@ -51,24 +53,16 @@ func main() {
 		spannerClient.SetMisingOneImplementationQuery(gcpspanner.LocalMissingOneImplementationQuery{})
 	}
 
-	// For subscribing to notification events
-	notificationSubID := os.Getenv("NOTIFICATION_SUBSCRIPTION_ID")
-	if notificationSubID == "" {
-		slog.ErrorContext(ctx, "NOTIFICATION_SUBSCRIPTION_ID is not set. exiting...")
+	frontendBaseURL := os.Getenv("FRONTEND_BASE_URL")
+	if frontendBaseURL == "" {
+		slog.ErrorContext(ctx, "FRONTEND_BASE_URL is not set. exiting...")
 		os.Exit(1)
 	}
 
-	// For publishing to push destinations
-	// Push destination 1: Email
-	emailTopicID := os.Getenv("EMAIL_TOPIC_ID")
-	if emailTopicID == "" {
-		slog.ErrorContext(ctx, "EMAIL_TOPIC_ID is not set. exiting...")
-		os.Exit(1)
-	}
-	// Push destination 2: Webhook
-	webhookTopicID := os.Getenv("WEBHOOK_TOPIC_ID")
-	if webhookTopicID == "" {
-		slog.ErrorContext(ctx, "WEBHOOK_TOPIC_ID is not set. exiting...")
+	// For subscribing to webhook events.
+	webhookSubID := os.Getenv("WEBHOOK_SUBSCRIPTION_ID")
+	if webhookSubID == "" {
+		slog.ErrorContext(ctx, "WEBHOOK_SUBSCRIPTION_ID is not set. exiting...")
 		os.Exit(1)
 	}
 
@@ -78,16 +72,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	listener := gcppubsubadapters.NewPushDeliverySubscriberAdapter(
-		dispatcher.NewDispatcher(
-			spanneradapters.NewPushDeliverySubscriberFinder(spannerClient),
-			gcppubsubadapters.NewPushDeliveryPublisher(queueClient, emailTopicID, webhookTopicID),
-		),
+	httpClient := &http.Client{
+		Transport:     nil,
+		CheckRedirect: nil,
+		Jar:           nil,
+		Timeout:       30 * time.Second,
+	}
+	webhookSender := webhook.NewSender(
+		httpClient,
+		spanneradapters.NewNotificationChannelStateManager(spannerClient),
+		frontendBaseURL,
+	)
+
+	listener := gcppubsubadapters.NewWebhookWorkerSubscriberAdapter(
+		webhookSender,
 		queueClient,
-		notificationSubID,
+		webhookSubID,
 	)
 	if err := listener.Subscribe(ctx); err != nil {
-		slog.ErrorContext(ctx, "Push delivery subscriber failed", "error", err)
+		slog.ErrorContext(ctx, "webhook worker subscriber failed", "error", err)
 		os.Exit(1)
 	}
 }

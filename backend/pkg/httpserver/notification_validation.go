@@ -15,10 +15,7 @@
 package httpserver
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
-	"strings"
 )
 
 const (
@@ -27,26 +24,6 @@ const (
 )
 
 var (
-	errInvalidSlackWebhookURL = errors.New(
-		"invalid Slack webhook URL. Must be a valid https://hooks.slack.com/services/ URL")
 	errNotificationChannelInvalidNameLength = fmt.Errorf("name must be between %d and %d characters long",
 		notificationChannelNameMinLength, notificationChannelNameMaxLength)
 )
-
-// Validates the URL matches the expected Slack webhook URL format as defined by
-// https://docs.slack.dev/messaging/sending-messages-using-incoming-webhooks/
-// Ex. "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX"
-func validateSlackWebhookURL(webhookURL string) error {
-	u, err := url.Parse(webhookURL)
-	if err != nil {
-		return err
-	}
-
-	if u.Scheme != "https" ||
-		u.Host != "hooks.slack.com" ||
-		!strings.HasPrefix(u.Path, "/services/") {
-		return errInvalidSlackWebhookURL
-	}
-
-	return nil
-}
