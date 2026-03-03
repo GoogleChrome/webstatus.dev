@@ -111,7 +111,7 @@ func main() {
 
 	listener := gcppubsubadapters.NewEmailWorkerSubscriberAdapter(sender.NewSender(
 		emailSender,
-		spanneradapters.NewEmailWorkerChannelStateManager(spannerClient),
+		spanneradapters.NewNotificationChannelStateManager(spannerClient),
 		renderer,
 	), queueClient, emailSubID)
 	if err := listener.Subscribe(ctx); err != nil {
