@@ -236,5 +236,6 @@ variable "worker_manual_instance_counts" {
     event_producer = number
     push_delivery  = number
     email          = number
+    webhook        = number
   })
 }
