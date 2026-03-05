@@ -48,7 +48,8 @@ func (f *PushDeliverySubscriberFinder) FindSubscribers(ctx context.Context, sear
 	}
 
 	set := &workertypes.SubscriberSet{
-		Emails: make([]workertypes.EmailSubscriber, 0),
+		Emails:   make([]workertypes.EmailSubscriber, 0),
+		Webhooks: make([]workertypes.WebhookSubscriber, 0),
 	}
 
 	for _, dest := range dests {
@@ -59,6 +60,16 @@ func (f *PushDeliverySubscriberFinder) FindSubscribers(ctx context.Context, sear
 				UserID:         dest.UserID,
 				Triggers:       convertSpannerTriggersToJobTriggers(dest.Triggers),
 				EmailAddress:   dest.EmailConfig.Address,
+				ChannelID:      dest.ChannelID,
+			})
+		}
+		// If WebhookConfig is set, it's a webhook subscriber.
+		if dest.WebhookConfig != nil {
+			set.Webhooks = append(set.Webhooks, workertypes.WebhookSubscriber{
+				SubscriptionID: dest.SubscriptionID,
+				UserID:         dest.UserID,
+				Triggers:       convertSpannerTriggersToJobTriggers(dest.Triggers),
+				WebhookURL:     dest.WebhookConfig.URL,
 				ChannelID:      dest.ChannelID,
 			})
 		}

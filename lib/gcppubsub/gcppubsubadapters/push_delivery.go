@@ -20,36 +20,39 @@ import (
 	"log/slog"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/event"
-	v1 "github.com/GoogleChrome/webstatus.dev/lib/event/emailjob/v1"
+	emailjobv1 "github.com/GoogleChrome/webstatus.dev/lib/event/emailjob/v1"
 	featurediffv1 "github.com/GoogleChrome/webstatus.dev/lib/event/featurediff/v1"
+	webhookjobv1 "github.com/GoogleChrome/webstatus.dev/lib/event/webhookjob/v1"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
 type PushDeliveryPublisher struct {
-	client     EventPublisher
-	emailTopic string
+	client       EventPublisher
+	emailTopic   string
+	webhookTopic string
 }
 
-func NewPushDeliveryPublisher(client EventPublisher, emailTopic string) *PushDeliveryPublisher {
+func NewPushDeliveryPublisher(client EventPublisher, emailTopic, webhookTopic string) *PushDeliveryPublisher {
 	return &PushDeliveryPublisher{
-		client:     client,
-		emailTopic: emailTopic,
+		client:       client,
+		emailTopic:   emailTopic,
+		webhookTopic: webhookTopic,
 	}
 }
 
 func (p *PushDeliveryPublisher) PublishEmailJob(ctx context.Context, job workertypes.EmailDeliveryJob) error {
-	b, err := event.New(v1.EmailJobEvent{
+	b, err := event.New(emailjobv1.EmailJobEvent{
 		SubscriptionID: job.SubscriptionID,
 		RecipientEmail: job.RecipientEmail,
 		SummaryRaw:     job.SummaryRaw,
-		Metadata: v1.EmailJobEventMetadata{
+		Metadata: emailjobv1.EmailJobEventMetadata{
 			EventID:     job.Metadata.EventID,
 			SearchID:    job.Metadata.SearchID,
 			Query:       job.Metadata.Query,
-			Frequency:   v1.ToJobFrequency(job.Metadata.Frequency),
+			Frequency:   emailjobv1.ToJobFrequency(job.Metadata.Frequency),
 			GeneratedAt: job.Metadata.GeneratedAt,
 		},
-		Triggers:  v1.ToJobTriggers(job.Triggers),
+		Triggers:  emailjobv1.ToJobTriggers(job.Triggers),
 		ChannelID: job.ChannelID,
 	})
 	if err != nil {
@@ -61,6 +64,34 @@ func (p *PushDeliveryPublisher) PublishEmailJob(ctx context.Context, job workert
 		return fmt.Errorf("failed to publish email job: %w", err)
 	}
 	slog.InfoContext(ctx, "published email job", "id", id, "eventID", job.Metadata.EventID)
+
+	return nil
+}
+
+func (p *PushDeliveryPublisher) PublishWebhookJob(ctx context.Context, job workertypes.WebhookDeliveryJob) error {
+	b, err := event.New(webhookjobv1.WebhookJobEvent{
+		SubscriptionID: job.SubscriptionID,
+		WebhookURL:     job.WebhookURL,
+		SummaryRaw:     job.SummaryRaw,
+		Metadata: webhookjobv1.WebhookJobEventMetadata{
+			EventID:     job.Metadata.EventID,
+			SearchID:    job.Metadata.SearchID,
+			Query:       job.Metadata.Query,
+			Frequency:   webhookjobv1.ToJobFrequency(job.Metadata.Frequency),
+			GeneratedAt: job.Metadata.GeneratedAt,
+		},
+		Triggers:  webhookjobv1.ToJobTriggers(job.Triggers),
+		ChannelID: job.ChannelID,
+	})
+	if err != nil {
+		return err
+	}
+
+	id, err := p.client.Publish(ctx, p.webhookTopic, b)
+	if err != nil {
+		return fmt.Errorf("failed to publish webhook job: %w", err)
+	}
+	slog.InfoContext(ctx, "published webhook job", "id", id, "eventID", job.Metadata.EventID)
 
 	return nil
 }
