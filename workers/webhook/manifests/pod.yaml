@@ -1,4 +1,4 @@
-# Copyright 2025 Google LLC
+# Copyright 2026 Google LLC
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,13 +15,13 @@
 apiVersion: v1
 kind: Pod
 metadata:
-  name: push-delivery
+  name: webhook
   labels:
-    app.kubernetes.io/name: push-delivery
+    app.kubernetes.io/name: webhook
 spec:
   containers:
-    - name: push-delivery
-      image: push_delivery
+    - name: webhook
+      image: webhook
       imagePullPolicy: Never # Need this for pushing directly into minikube
       env:
         - name: PROJECT_ID
@@ -34,12 +34,10 @@ spec:
           value: 'spanner:9010'
         - name: PUBSUB_EMULATOR_HOST
           value: 'pubsub:8060'
-        - name: NOTIFICATION_SUBSCRIPTION_ID
-          value: 'notification-events-sub-id'
-        - name: EMAIL_TOPIC_ID
-          value: 'chime-delivery-topic-id'
-        - name: WEBHOOK_TOPIC_ID
-          value: 'webhook-delivery-topic-id'
+        - name: WEBHOOK_SUBSCRIPTION_ID
+          value: 'webhook-delivery-sub-id'
+        - name: FRONTEND_BASE_URL
+          value: 'http://localhost:8080'
       resources:
         limits:
           cpu: 250m

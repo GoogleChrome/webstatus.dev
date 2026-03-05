@@ -127,3 +127,20 @@ resource "google_pubsub_subscription" "chime_delivery_sub" {
     max_delivery_attempts = 5
   }
 }
+
+# Main Topic: Webhook Delivery
+resource "google_pubsub_topic" "webhook_delivery" {
+  name    = "webhook-delivery-${var.env_id}"
+  project = var.project_id
+}
+
+resource "google_pubsub_subscription" "webhook_delivery_sub" {
+  name    = "webhook-delivery-sub-${var.env_id}"
+  topic   = google_pubsub_topic.webhook_delivery.name
+  project = var.project_id
+
+  dead_letter_policy {
+    dead_letter_topic     = google_pubsub_topic.delivery_dlq.id
+    max_delivery_attempts = 5
+  }
+}

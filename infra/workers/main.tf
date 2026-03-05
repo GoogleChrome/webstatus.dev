@@ -76,6 +76,7 @@ module "push_delivery" {
 
   notification_subscription_id = var.pubsub_details.notification_subscription_id
   email_topic_id               = var.pubsub_details.email_topic_id
+  webhook_topic_id             = var.pubsub_details.webhook_topic_id
 
   manual_instance_count = var.worker_instance_count.push_delivery_count
   regions               = var.regions
@@ -121,4 +122,39 @@ module "email" {
   chime_env               = var.chime_details.env
   chime_bcc_secret_ref    = var.chime_details.bcc_secret_ref
   from_address_secret_ref = var.chime_details.from_address_secret_ref
+}
+
+# --- 4. Webhook Worker ---
+
+# Build Image
+module "webhook_image" {
+  source                = "../modules/go_image"
+  image_name            = "webhook"
+  go_module_path        = "workers/webhook"
+  binary_type           = "job"
+  docker_repository_url = var.docker_repository_details.url
+}
+
+# Deploy Service (Multi-Region)
+module "webhook" {
+  source = "./webhook"
+  providers = {
+    google.internal_project = google.internal_project
+  }
+
+  project_id = var.internal_project_id
+  env_id     = var.env_id
+  image_url  = module.webhook_image.remote_image
+
+  spanner_instance_id = var.spanner_details.instance
+  spanner_database_id = var.spanner_details.database
+
+  webhook_subscription_id = var.pubsub_details.webhook_subscription_id
+
+  manual_instance_count = var.worker_instance_count.webhook_count
+  regions               = var.regions
+
+  frontend_base_url = var.frontend_base_url
+
+  deletion_protection = var.deletion_protection
 }

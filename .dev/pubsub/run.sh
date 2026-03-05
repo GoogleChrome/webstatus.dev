@@ -103,6 +103,9 @@ create_subscription "notification-events-topic-id" "notification-events-sub-id" 
 create_topic "chime-delivery-topic-id"
 create_subscription "chime-delivery-topic-id" "chime-delivery-sub-id" "delivery-dead-letter-topic-id"
 
+create_topic "webhook-delivery-topic-id"
+create_subscription "webhook-delivery-topic-id" "webhook-delivery-sub-id" "delivery-dead-letter-topic-id"
+
 echo "Pub/Sub setup for webstatus.dev finished"
 
 wait
