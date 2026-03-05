@@ -43,3 +43,11 @@ output "email_delivery_topic_id" {
 output "email_delivery_subscription_id" {
   value = google_pubsub_subscription.chime_delivery_sub.id
 }
+
+output "webhook_delivery_topic_id" {
+  value = google_pubsub_topic.webhook_delivery.id
+}
+
+output "webhook_delivery_subscription_id" {
+  value = google_pubsub_subscription.webhook_delivery_sub.id
+}

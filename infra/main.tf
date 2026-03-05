@@ -191,12 +191,15 @@ module "workers" {
     notification_subscription_id = module.pubsub.notification_subscription_id
     email_topic_id               = module.pubsub.email_delivery_topic_id
     email_subscription_id        = module.pubsub.email_delivery_subscription_id
+    webhook_topic_id             = module.pubsub.webhook_delivery_topic_id
+    webhook_subscription_id      = module.pubsub.webhook_delivery_subscription_id
   }
 
   worker_instance_count = {
     event_producer_count = var.worker_manual_instance_counts.event_producer
     push_delivery_count  = var.worker_manual_instance_counts.push_delivery
     email_count          = var.worker_manual_instance_counts.email
+    webhook_count        = var.worker_manual_instance_counts.webhook
   }
   frontend_base_url = var.frontend_base_url
 
