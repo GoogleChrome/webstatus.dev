@@ -133,6 +133,8 @@ describe('webstatus-subscriptions-page', () => {
 
   it('opens dialog on unsubscribe link', async () => {
     mockLocationHelper.setSearch('?unsubscribe=test-sub-id');
+    // Reset the static router variable to simulate fresh page initialization
+    element['_hasProcessedUrlParams'] = false;
     // willUpdate is called before update, so we need to trigger an update.
     element.requestUpdate();
     await element.updateComplete;

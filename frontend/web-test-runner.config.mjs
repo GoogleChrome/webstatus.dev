@@ -36,13 +36,30 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   // in a monorepo you need to set the root dir to resolve modules
   rootDir: '.',
 
+  middlewares: [
+    async function mockImages(context, next) {
+      if (context.url.startsWith('/public/img/')) {
+        context.status = 200;
+        if (context.url.endsWith('.svg')) {
+          context.type = 'image/svg+xml';
+          context.body = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
+        } else {
+          context.type = 'image/png';
+          context.body = '';
+        }
+        return;
+      }
+      return next();
+    },
+  ],
+
   files: [
     // Have to compile tests
     // Taken from https://github.com/open-wc/create/blob/master/src/generators/testing-wtr-ts/templates/static/web-test-runner.config.mjs
     'build/**/test/*.test.js',
   ],
   testRunnerHtml: testFramework => `
-  <html>
+  <html lang="en">
     <body>
       <script type="module" src="${testFramework}"></script>
       <script type="module">
@@ -64,7 +81,7 @@ export default /** @type {import("@web/test-runner").TestRunnerConfig} */ ({
   },
 
   // How long a test file can take to finish.
-  testsFinishTimeout: 1000 * 60 * 1, // (1 min)
+  testsFinishTimeout: 1000 * 10 * 1, // (10 secs)
   // mocha config https://mochajs.org/api/mocha
   testFramework: {config: {timeout: 30000}},
 

@@ -30,7 +30,7 @@ import {
 import {customElement, property, state} from 'lit/decorators.js';
 import {gchartsContext} from '../contexts/gcharts-context.js';
 import {themeContext, type Theme} from '../contexts/theme-context.js';
-import {TaskStatus} from '@lit/task';
+
 import {classMap} from 'lit/directives/class-map.js';
 
 export interface ChartClickEventDetail {
@@ -111,7 +111,7 @@ export class WebstatusGChart extends LitElement {
   chartWrapper: google.visualization.ChartWrapper | undefined;
 
   @state()
-  dataLoadingStatus: TaskStatus = TaskStatus.INITIAL;
+  isRendering = true;
 
   private _chartClickListenerAdded = false;
 
@@ -127,6 +127,23 @@ export class WebstatusGChart extends LitElement {
         /* Disable chart interaction while loading */
         .chart_container.loading .google-visualization-charteditor-svg {
           pointer-events: none;
+        }
+
+        .chart_container {
+          position: relative;
+        }
+
+        .loading-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--sl-panel-background-color);
+          z-index: 10;
         }
 
         /* override the fixed width of the chart */
@@ -314,13 +331,15 @@ export class WebstatusGChart extends LitElement {
   render(): TemplateResult {
     const chartContainerClasses = classMap({
       chart_container: true,
-      loading: this.dataLoadingStatus !== TaskStatus.COMPLETE,
+      loading: this.isRendering,
     });
 
     return html`
       <div class="${chartContainerClasses}">
-        ${this.dataLoadingStatus === TaskStatus.ERROR
-          ? html`<div class="error-message">Error loading chart data.</div>`
+        ${this.isRendering
+          ? html`<div class="loading-overlay">
+              <sl-spinner style="font-size: 3rem;"></sl-spinner>
+            </div>`
           : nothing}
         <div id="${this.containerId!}"></div>
       </div>
@@ -360,6 +379,15 @@ export class WebstatusGChart extends LitElement {
           'select',
           () => {
             this._handleChartClick();
+          },
+        );
+        google.visualization.events.addListener(
+          this.chartWrapper,
+          'ready',
+          () => {
+            if (this.isRendering) {
+              this.isRendering = false;
+            }
           },
         );
         this._chartClickListenerAdded = true; // Set the flag after adding the listener
