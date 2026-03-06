@@ -114,7 +114,7 @@ export abstract class WebstatusLineChartTabbedPanel<
         class="complete-chart-panel chart-panel"
       >
         <webstatus-gchart
-          id="${this.getPanelID()}-chart"
+          id="${this.getPanelID()}-chart-${view}"
           @point-selected=${this.handlePointSelected}
           @point-deselected=${this.handlePointDeselected}
           .hasMax=${this.hasMax}

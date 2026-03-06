@@ -150,6 +150,8 @@ export class SubscriptionsPage extends LitElement {
   @state()
   private _subscriptions: components['schemas']['SubscriptionResponse'][] = [];
 
+  private _hasProcessedUrlParams = false;
+
   @state()
   private _notificationChannels: Map<
     string,
@@ -180,11 +182,14 @@ export class SubscriptionsPage extends LitElement {
   }
 
   willUpdate() {
-    const urlParams = new URLSearchParams(this.getLocation().search);
-    const unsubscribeToken = urlParams.get('unsubscribe');
-    if (unsubscribeToken) {
-      this._activeSubscriptionId = unsubscribeToken;
-      this._isSubscriptionDialogOpen = true;
+    if (!this._hasProcessedUrlParams) {
+      const urlParams = new URLSearchParams(this.getLocation().search);
+      const unsubscribeToken = urlParams.get('unsubscribe');
+      if (unsubscribeToken) {
+        this._activeSubscriptionId = unsubscribeToken;
+        this._isSubscriptionDialogOpen = true;
+      }
+      this._hasProcessedUrlParams = true;
     }
   }
 

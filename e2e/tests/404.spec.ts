@@ -22,8 +22,6 @@ import {
   expectDualThemeScreenshot,
 } from './utils';
 
-test.beforeEach(async () => {});
-
 test('Bad URL redirection to 404 page', async ({page}) => {
   const badUrls = [
     // Test for bad public asset

@@ -452,7 +452,11 @@ test.describe('Saved Searches on Overview Page', () => {
       await expect(saveButton).toBeVisible();
 
       // Change the frequency.
-      await dialog.locator('sl-radio', {hasText: 'Monthly digest'}).click();
+      const radio = dialog.locator('sl-radio', {hasText: 'Monthly digest'});
+      await radio.click();
+
+      // Save the changes.
+      await expect(saveButton).toBeEnabled();
       await saveButton.click();
 
       // Assert that the success toast appears.

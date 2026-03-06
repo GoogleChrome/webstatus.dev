@@ -20,6 +20,7 @@ import {
   resetUserData,
   loginAsUser,
   expectDualThemeScreenshot,
+  waitForTabbedChartCompletion,
 } from './utils';
 
 test.beforeEach(async ({page}) => {
@@ -34,11 +35,18 @@ const discouragedFeatureId = 'discouraged';
 test('matches the screenshot', async ({page}) => {
   await page.goto(`http://localhost:5555/features/${featureID}`);
 
-  // Wait for the chart container to exist
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  // Wait for the chart to fully render
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
-  // Wait specifically for the "Baseline since" text
-  await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(page, pageContainer, 'feature-page');
@@ -47,11 +55,14 @@ test('matches the screenshot', async ({page}) => {
 test('matches the screenshot for a discouraged feature', async ({page}) => {
   await page.goto(`http://localhost:5555/features/${discouragedFeatureId}`);
 
-  // Wait for the chart container to exist
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
-
   // Wait specifically for the "Baseline since" text
   await page.waitForSelector('sl-card.wptScore .avail >> text=Baseline since');
+
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(
@@ -63,7 +74,11 @@ test('matches the screenshot for a discouraged feature', async ({page}) => {
 
 test('chart width resizes with window', async ({page}) => {
   await page.goto(`http://localhost:5555/features/${featureID}`);
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
   await page.waitForTimeout(1000);
   const narrowWidth = 1000;
   const wideWidth = 1200;
@@ -99,20 +114,34 @@ test('mobile chart displays on click and matches screenshot', async ({
   page,
 }) => {
   await page.goto(`http://localhost:5555/features/${featureID}`);
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
   const mobileTab = page.locator(
     'sl-tab#feature-wpt-implementation-progress-tab-mobile',
   );
 
   await mobileTab.click();
   await page.waitForTimeout(2000);
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    1,
+  );
+
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(page, pageContainer, 'feature-page-mobile');
 });
 
 test('date range changes are preserved in the URL', async ({page}) => {
   await page.goto(`http://localhost:5555/features/${featureID}`);
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
   // Get the current default startDate and endDate from the selectors
   // TODO Figure out how to use getByLabel with shoelace and replace page.locator with that.
@@ -136,18 +165,20 @@ test('date range changes are preserved in the URL', async ({page}) => {
   await submitBtn.click();
 
   // Check that the URL includes the startDate and endDate
-  const url = page.url();
-  expect(url).toContain('startDate=2020-04-01');
-  expect(url).toContain('endDate=2020-12-01');
+  await expect(page).toHaveURL(/.*?startDate=2020-04-01/);
+  await expect(page).toHaveURL(/.*?endDate=2020-12-01/);
 
   // Refresh the page with that URL.
-  await page.goto(url);
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  await page.goto(page.url());
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
   // Check that the startDate and endDate are still there.
-  const url2 = page.url();
-  expect(url2).toContain('startDate=2020-04-01');
-  expect(url2).toContain('endDate=2020-12-01');
+  await expect(page).toHaveURL(/.*?startDate=2020-04-01/);
+  await expect(page).toHaveURL(/.*?endDate=2020-12-01/);
 
   // Check that the startDate selector has the right value.
   const startDateSelector2 = page.locator('sl-input#start-date');
@@ -162,13 +193,16 @@ test('date range changes are preserved in the URL', async ({page}) => {
   await featureCrumb.click();
 
   // Check that the URL no longer contains the startDate or endDate.
-  const url3 = page.url();
-  expect(url3).not.toContain('startDate=2020-04-01');
-  expect(url3).not.toContain('endDate=2020-12-01');
+  await expect(page).not.toHaveURL(/.*?startDate=2020-04-01/);
+  await expect(page).not.toHaveURL(/.*?endDate=2020-12-01/);
 
   // Go to that URL.
-  await page.goto(url3);
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  await page.goto(page.url());
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
   // Check that the startDate and endDate selectors are reset to the initial default.
   const startDateSelector3 = page.locator('sl-input#start-date');
@@ -180,7 +214,12 @@ test('date range changes are preserved in the URL', async ({page}) => {
 });
 
 test('redirects for a moved feature', async ({page}) => {
+  // Wait for the app to fetch the old feature data which triggers the redirect.
+  const responsePromise = page.waitForResponse(response =>
+    response.url().includes('/v1/features/old-feature'),
+  );
   await page.goto('http://localhost:5555/features/old-feature');
+  await responsePromise;
 
   // Expect the URL to be updated to the new feature's URL.
   await expect(page).toHaveURL(
@@ -196,7 +235,11 @@ test('redirects for a moved feature', async ({page}) => {
   ).toBeVisible();
 
   // Wait for charts to load to avoid flakiness in the screenshot.
-  await page.waitForSelector('#feature-wpt-implementation-progress-0-complete');
+  await waitForTabbedChartCompletion(
+    page,
+    'feature-wpt-implementation-progress',
+    0,
+  );
 
   // Take a screenshot for visual verification.
   const pageContainer = page.locator('.page-container');

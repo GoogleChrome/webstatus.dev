@@ -52,6 +52,25 @@ export async function expectDualThemeScreenshot(
   await forceTheme(page, 'light');
 }
 
+export async function waitForChartCompletion(page: Page, containerId: string) {
+  const chartContainer = page.locator(`#${containerId}`);
+  // First wait for the chart component to be attached to the DOM
+  await expect(chartContainer).toBeAttached({timeout: 10000});
+  // Then wait for the internal \`webstatus-gchart\` to drop its \`.loading\` spinner
+  const loadingOverlay = chartContainer.locator('webstatus-gchart .loading');
+  await expect(loadingOverlay).toHaveCount(0, {timeout: 10000});
+}
+
+export async function waitForTabbedChartCompletion(
+  page: Page,
+  panelBaseId: string,
+  tabIndex: number,
+) {
+  // webstatus-line-chart-tabbed-panel generates IDs like 'feature-wpt-implementation-progress-0-complete'
+  const containerId = `${panelBaseId}-${tabIndex}-complete`;
+  await waitForChartCompletion(page, containerId);
+}
+
 export async function setupFakeNow(
   page: Page,
   fakeNowDateString = DEFAULT_FAKE_NOW,
@@ -175,7 +194,8 @@ export async function loginAsUser(
   await page.getByText('Log in').click();
   const popup = await popupPromise;
 
-  await popup.getByText(username).waitFor({timeout: 2000});
+  await popup.waitForLoadState();
+  await popup.getByText(username).waitFor({timeout: 5000});
   await popup.getByText(username).hover(); // Needed for Firefox for some reason.
   await popup.getByText(username).click();
   await popup.waitForEvent('close');

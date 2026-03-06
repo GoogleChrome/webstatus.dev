@@ -135,7 +135,7 @@ describe('WebstatusLineChartPanel', () => {
     );
     expect(chartContainer).to.exist;
 
-    const chart = el.shadowRoot!.querySelector('#test-panel-chart');
+    const chart = el.shadowRoot!.querySelector('#test-panel-chart-0');
     expect(chart).to.exist;
   });
 

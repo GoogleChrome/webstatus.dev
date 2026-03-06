@@ -20,14 +20,12 @@ import {loginAsUser, BASE_URL, resetUserData} from './utils';
 const subscriptionPageURL = `${BASE_URL}/settings/subscriptions`;
 
 test.describe('Subscriptions Page', () => {
-  test.beforeAll(async () => {
-    await resetUserData();
-  });
   test.afterAll(async () => {
     await resetUserData();
   });
   test.beforeEach(async ({page}) => {
-    // Log in as a test user. This will setup
+    await resetUserData();
+    // Log in as a test user. This will setup the github emails.
     await loginAsUser(page, 'test user 1');
   });
 
@@ -117,11 +115,19 @@ test.describe('Subscriptions Page', () => {
       dialog.getByRole('heading', {name: 'Manage notifications'}),
     ).toBeVisible();
 
-    // Change the frequency.
-    await dialog.locator('sl-radio', {hasText: 'Monthly'}).click();
+    // Change the frequency. Wait for the form state to update before saving.
+    const radio = dialog.locator('sl-radio', {hasText: 'Monthly'});
+    await expect(radio).toBeVisible();
+    await expect(radio).not.toBeChecked();
+    await radio.click();
+    // Wait for the radio to be checked before proceeding. This ensures that the form state has updated
+    // with the new frequency selection.
+    await expect(radio).toBeChecked();
 
     // Save the changes.
-    await dialog.getByRole('button', {name: 'Save preferences'}).click();
+    const saveButton = dialog.getByRole('button', {name: 'Save preferences'});
+    await expect(saveButton).toBeEnabled();
+    await saveButton.click();
 
     // Assert that the success toast appears.
     await expect(
@@ -184,8 +190,14 @@ test.describe('Subscriptions Page', () => {
     });
     await expect(confirmButton).toBeVisible();
 
-    // Click confirm.
+    // Click confirm and wait for the API to process the delete.
+    const responsePromise = page.waitForResponse(
+      response =>
+        response.url().includes('/subscriptions/') &&
+        response.request().method() === 'DELETE',
+    );
     await confirmButton.click();
+    await responsePromise;
 
     // Assert that the success toast appears.
     await expect(

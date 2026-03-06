@@ -23,8 +23,6 @@ import {
   expectDualThemeScreenshot,
 } from './utils';
 
-test.beforeEach(async () => {});
-
 test.describe('Login Component States', () => {
   test('displays spinner and is disabled during profile sync', async ({
     page,
@@ -52,6 +50,11 @@ test.describe('Login Component States', () => {
       page,
       page.locator('webstatus-header'),
       'login-syncing-state',
+      {
+        // Mask the page container to avoid flakiness from other dynamic content on the page.
+        // This is needed for webkit which captures extra content outside of the screenshot area.
+        mask: [page.locator('webstatus-page')],
+      },
     );
 
     // Now, wait for the sync to complete and verify the final state.
@@ -153,5 +156,6 @@ test('can sign in and sign out user', async ({page}) => {
 
   await signOutBtn.click();
 
+  await expect(login).toContainText('Log in');
   await expectDualThemeScreenshot(page, login, 'unauthenticated-button');
 });
