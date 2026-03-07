@@ -133,37 +133,37 @@ export const DEFAULT_GLOBAL_SAVED_SEARCHES: GlobalSavedSearch[] = [
   {
     name: 'Baseline 2026',
     query: 'baseline_date:2026-01-01..2026-12-31',
-    description: 'All Baseline 2026 features',
+    description: 'All features that reached Baseline during 2026',
   },
   {
     name: 'Baseline 2025',
     query: 'baseline_date:2025-01-01..2025-12-31',
-    description: 'All Baseline 2025 features',
+    description: 'All features that reached Baseline during 2025',
   },
   {
     name: 'Baseline 2024',
     query: 'baseline_date:2024-01-01..2024-12-31',
-    description: 'All Baseline 2024 features',
+    description: 'All features that reached Baseline during 2024',
   },
   {
     name: 'Baseline 2023',
     query: 'baseline_date:2023-01-01..2023-12-31',
-    description: 'All Baseline 2023 features',
+    description: 'All features that reached Baseline during 2023',
   },
   {
     name: 'Baseline 2022',
     query: 'baseline_date:2022-01-01..2022-12-31',
-    description: 'All Baseline 2022 features',
+    description: 'All features that reached Baseline during 2022',
   },
   {
     name: 'Baseline 2021',
     query: 'baseline_date:2021-01-01..2021-12-31',
-    description: 'All Baseline 2021 features',
+    description: 'All features that reached Baseline during 2021',
   },
   {
     name: 'Baseline 2020',
     query: 'baseline_date:2020-01-01..2020-12-31',
-    description: 'All Baseline 2020 features',
+    description: 'All features that reached Baseline during 2020',
   },
   {
     name: 'Top CSS Interop issues',
