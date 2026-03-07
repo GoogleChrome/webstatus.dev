@@ -23,8 +23,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
-	"golang.org/x/text/cases"
-	"golang.org/x/text/language"
 )
 
 // ChromiumHistogramEnumConsumer handles the conversion of histogram between the workflow/API input
@@ -211,31 +209,48 @@ var (
 	ErrFailedToGetFeatureKeys = errors.New("failed to get feature keys")
 )
 
-// nolint:lll // WONTFIX: useful comment message
-// createEnumToFeatureKeyMap uses the list of WebDX feature keys to
-// generate a map from the enum label (e.g., "ViewTransitions")
-// back to its original WebDX feature key (e.g., "view-transitions").
-// It uses the same transformation logic described in the Chromium mojom file.
-// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom;l=35-47;drc=822a70f9ac61a75babe9d24ddfc32ab475acc7e1
 func createEnumToFeatureKeyMap(featureKeys []string) map[string]string {
-	titleCaser := cases.Title(language.English)
 	m := make(map[string]string, len(featureKeys))
-	specialCases := map[string]string{
-		"float16array":          "Float16Array",
-		"uint8array-base64-hex": "Uint8ArrayBase64Hex",
-	}
+
 	for _, featureKey := range featureKeys {
-		if specialCaseLabel, found := specialCases[featureKey]; found {
-			m[specialCaseLabel] = featureKey
-
-			continue
-		}
-
-		enumLabel := titleCaser.String(featureKey)
-		enumLabel = strings.ReplaceAll(enumLabel, "-", "")
-		// Before storing it, check if it exists
-		m[enumLabel] = featureKey
+		m[convertFeatureKeyToEnum(featureKey)] = featureKey
 	}
 
 	return m
+}
+
+// nolint:lll // WONTFIX: useful comment message
+// createEnumToFeatureKeyMap uses the list of WebDX feature keys to
+// generate a map from the enum label (e.g., "canvas-2d" -> "Canvas_2d")
+// back to its original WebDX feature key (e.g., "canvas-2d").
+//
+// Logic:
+// 1. Split by dashes.
+// 2. Capitalize the first character of each part.
+// 3. Join: if the next part starts with a digit, use "_", otherwise remove the dash.
+// https://chromium-review.git.corp.google.com/c/chromium/src/+/7595793/3/third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom
+func convertFeatureKeyToEnum(featureKey string) string {
+	parts := strings.Split(featureKey, "-")
+	var builder strings.Builder
+
+	for i, part := range parts {
+		if len(part) == 0 {
+			continue
+		}
+
+		// Capitalize the first character of the part
+		capitalizedPart := strings.ToUpper(part[:1]) + part[1:]
+
+		if i > 0 {
+			// Check the FIRST character of the CURRENT part to decide joiner
+			if part[0] >= '0' && part[0] <= '9' {
+				builder.WriteString("_")
+			}
+			// Otherwise, no joiner (remove dash)
+		}
+
+		builder.WriteString(capitalizedPart)
+	}
+
+	return builder.String()
 }

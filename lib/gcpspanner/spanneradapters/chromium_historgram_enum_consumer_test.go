@@ -17,12 +17,16 @@ package spanneradapters
 import (
 	"context"
 	"errors"
+	"net/http"
 	"reflect"
 	"testing"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
+	"github.com/GoogleChrome/webstatus.dev/lib/gh"
 	"github.com/GoogleChrome/webstatus.dev/lib/metricdatatypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/chromium_histogram_enums/workflow"
+	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer/pkg/data"
 )
 
 type mockChromiumHistogramEnumsClient struct {
@@ -334,29 +338,25 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 
 func TestCreateEnumToFeatureKeyMap(t *testing.T) {
 	featureKeys := []string{
+		"canvas-2d",
 		"canvas-2d-color-management",
 		"http3",
 		"intersection-observer-v2",
 		"view-transitions",
-		// Special cases
+		"text-wrap-style",
 		"float16array",
 		"uint8array-base64-hex",
 	}
 	// nolint: lll // WONTFIX: useful comment with SHA
 	want := map[string]string{
-		"Canvas2DColorManagement": "canvas-2d-color-management",
-		"Http3":                   "http3",
-		"IntersectionObserverV2":  "intersection-observer-v2",
-		"ViewTransitions":         "view-transitions",
-		/*
-			Special cases
-		*/
-		// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom;l=360;drc=822a70f9ac61a75babe9d24ddfc32ab475acc7e1
-		// https://github.com/web-platform-dx/web-features/blob/main/features/float16array.yml
-		"Float16Array": "float16array",
-		// https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/mojom/use_counter/metrics/webdx_feature.mojom;l=396;drc=822a70f9ac61a75babe9d24ddfc32ab475acc7e1
-		// https://github.com/web-platform-dx/web-features/blob/main/features/uint8array-base64-hex.yml
-		"Uint8ArrayBase64Hex": "uint8array-base64-hex",
+		"Canvas_2d":                "canvas-2d",
+		"Canvas_2dColorManagement": "canvas-2d-color-management",
+		"Http3":                    "http3",
+		"IntersectionObserverV2":   "intersection-observer-v2",
+		"TextWrapStyle":            "text-wrap-style",
+		"ViewTransitions":          "view-transitions",
+		"Float16array":             "float16array",
+		"Uint8arrayBase64Hex":      "uint8array-base64-hex",
 	}
 	got := createEnumToFeatureKeyMap(featureKeys)
 	if !reflect.DeepEqual(got, want) {
@@ -587,4 +587,152 @@ func TestChromiumHistogramEnumConsumer_GetAllMovedWebFeatures(t *testing.T) {
 			}
 		})
 	}
+}
+
+//nolint:gocognit // Not a regularly executed test. Only for trying updates to the mojom and/or upstream data
+func TestChromiumEnumsParity(t *testing.T) {
+	t.Skip("Used for debugging purposes.")
+
+	// 1. Fetch and Parse data.json from web-features
+	httpClient := http.DefaultClient
+	client := gh.NewClient("")
+	file, err := client.DownloadFileFromRelease(t.Context(), "web-platform-dx", "web-features", httpClient, "data.json")
+	if err != nil {
+		t.Fatalf("failed to fetch web-features data: %v", err)
+	}
+
+	parser := data.V3Parser{}
+	processedData, err := parser.Parse(file.Contents)
+	if err != nil {
+		t.Fatalf("failed to parse web-features data: %v", err)
+	}
+
+	// Extract all valid Feature IDs (excluding Moved/Split if necessary)
+	featureKeys := make([]string, 0, len(processedData.Features.Data))
+	for id := range processedData.Features.Data {
+		featureKeys = append(featureKeys, id)
+	}
+
+	splitFeatureKeys := make([]string, 0, len(processedData.Features.Split))
+	for id := range processedData.Features.Split {
+		splitFeatureKeys = append(splitFeatureKeys, id)
+	}
+
+	movedFeatureKeys := make([]string, 0, len(processedData.Features.Moved))
+	for id := range processedData.Features.Moved {
+		movedFeatureKeys = append(movedFeatureKeys, id)
+	}
+
+	// 2. Generate our internal mapping using the updated logic
+	generatedMap := createEnumToFeatureKeyMap(featureKeys)
+	generatedSplitMap := createEnumToFeatureKeyMap(splitFeatureKeys)
+	generatedMovedMap := createEnumToFeatureKeyMap(movedFeatureKeys)
+	// Create a fast lookup for reverse check: FeatureID -> Label
+	reverseGeneratedMap := make(map[string]string)
+	for label, id := range generatedMap {
+		reverseGeneratedMap[id] = label
+	}
+
+	// 3. Fetch and Parse Chromium enums.xml
+	req, err := http.NewRequestWithContext(t.Context(), http.MethodGet, workflow.EnumURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	xmlRespBase64Encode, err := httpClient.Do(req)
+	if err != nil {
+		t.Fatalf("failed to fetch chromium enums: %v", err)
+	}
+	defer xmlRespBase64Encode.Body.Close()
+
+	enumParser := workflow.ChromiumCodesearchEnumParser{}
+	enums, err := enumParser.Parse(t.Context(), xmlRespBase64Encode.Body,
+		[]metricdatatypes.HistogramName{metricdatatypes.WebDXFeatureEnum})
+	if err != nil {
+		t.Errorf("unable to parse enums %s", err)
+	}
+	webDXEnum := enums[metricdatatypes.WebDXFeatureEnum]
+	if len(webDXEnum) == 0 {
+		t.Error("found 0 entries for the web dx enum")
+	}
+	// Create a lookup for Chromium labels to check reverse presence
+	chromiumLabels := make(map[string]bool)
+	for _, e := range webDXEnum {
+		chromiumLabels[e.Label] = true
+	}
+
+	// --- BI-DIRECTIONAL CHECKS ---
+
+	// A. FORWARD CHECK: Chromium -> WebDX (Coverage)
+	// Ensures every active metric sent by Chromium is recognized by our data.
+	t.Run("Forward_ChromiumToWebDX", func(t *testing.T) {
+		for _, enumVal := range webDXEnum {
+			label := enumVal.Label
+			// TODO: Remove this switch-case once http://crrev.com/c/7595793 is merged
+			switch label {
+			case "Canvas2D":
+				label = "Canvas_2d"
+			case "Canvas2DAlpha":
+				label = "Canvas_2dAlpha"
+			case "Canvas2DColorManagement":
+				label = "Canvas_2dColorManagement"
+			case "Canvas2DDesynchronized":
+				label = "Canvas_2dDesynchronized"
+			case "Canvas2DWillreadfrequently":
+				label = "Canvas_2dWillreadfrequently"
+			case "Float16Array":
+				label = "Float16array"
+			case "Uint8ArrayBase64Hex":
+				label = "Uint8arrayBase64Hex"
+			}
+
+			if _, exists := generatedMap[label]; !exists {
+				// Check if moved or split
+				if id, found := generatedSplitMap[label]; found {
+					t.Logf("Info: ID %q is marked as split in web-features data.json. Consider marking it as obsolete",
+						id)
+
+					continue
+				}
+				if id, found := generatedMovedMap[label]; found {
+					t.Logf("Info: ID %q is marked as moved in web-features data.json. "+
+						"Consider renaming or marking as obsolete", id)
+
+					continue
+				}
+				t.Errorf("Coverage Gap: Chromium has label %q, but no matching ID found in web-features data.json",
+					label)
+			}
+		}
+	})
+
+	// B. REVERSE CHECK: WebDX -> Chromium (Logic)
+	// Ensures our transformation logic matches the labels actually in Chromium.
+	t.Run("Reverse_WebDXToChromium", func(t *testing.T) {
+		for id := range processedData.Features.Data {
+			predictedLabel, ok := reverseGeneratedMap[id]
+			if !ok {
+				t.Errorf("Logic Error: Could not generate a label for ID %q", id)
+
+				continue
+			}
+
+			// If the predicted label isn't in Chromium, check if it exists as an OBSOLETE or DRAFT version
+			if !chromiumLabels[predictedLabel] {
+				if chromiumLabels["OBSOLETE_"+predictedLabel] {
+					t.Logf("Info: ID %q is marked OBSOLETE in Chromium as %q", id, "OBSOLETE_"+predictedLabel)
+
+					continue
+				}
+				if chromiumLabels["DRAFT_"+predictedLabel] {
+					t.Logf("Info: ID %q is marked DRAFT in Chromium as %q", id, "DRAFT_"+predictedLabel)
+
+					continue
+				}
+				// This might happen if a feature is in web-features but hasn't landed in Chromium enums.xml yet.
+				t.Logf("Sync Warning: Predicted label %q for ID %q not found in Chromium. (May not have landed yet)",
+					predictedLabel, id)
+			}
+		}
+	})
+
 }
