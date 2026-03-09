@@ -16,6 +16,7 @@
 | Name | Type | Definition |
 | ---- | ---- | ---------- |
 | PRIMARY_KEY | PRIMARY_KEY | PRIMARY KEY(WebFeatureID) |
+| FK_FeatureBaselineStatusWebFeatureID | FOREIGN KEY | FOREIGN KEY (WebFeatureID) REFERENCES WebFeatures (ID) ON DELETE CASCADE |
 
 ## Indexes
 

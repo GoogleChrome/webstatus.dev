@@ -514,8 +514,8 @@ spanner_port_forward_terminate:
 # For now install tbls when we absolutely need it.
 # It is a heavy install.
 spanner_er_diagram: spanner_port_forward
-	go install github.com/k1LoW/tbls@v1.76.0
-	SPANNER_EMULATOR_HOST=localhost:9010 tbls doc --rm-dist
+	go install github.com/k1LoW/tbls@v1.92.3
+	SPANNER_EMULATOR_HOST=localhost:9010 GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS=FALSE GOOGLE_CLOUD_SPANNER_MULTIPLEXED_SESSIONS_FOR_RW=FALSE tbls doc --rm-dist
 	make spanner_port_forward_terminate
 
 ################################
