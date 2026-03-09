@@ -16,7 +16,6 @@
 package digest
 
 const styleSnippets = `{{- define "font_family_main" -}}font-family: SF Pro, system-ui, sans-serif;{{- end -}}
-{{- define "font_family_monospace" -}}font-family: Menlo, monospace;{{- end -}}
 {{- define "font_weight_bold" -}}font-weight: 700;{{- end -}}
 {{- define "font_weight_normal" -}}font-weight: 400;{{- end -}}
 {{- define "color_text_dark" -}}color: #18181B;{{- end -}}
@@ -44,7 +43,7 @@ const composedTextStyles = `{{- define "style_text_badge_title" -}}{{- template 
 {{- define "style_text_feature_link" -}}{{- template "color_text_dark" -}}; font-size: 16px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; text-decoration: underline; line-height: 30.40px; word-wrap: break-word;{{- end -}}
 {{- define "style_text_doc_link" -}}{{- template "color_text_medium" -}}; font-size: 14px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; text-decoration: underline; line-height: 26.60px;{{- end -}}
 {{- define "style_text_doc_punctuation" -}}{{- template "color_text_medium" -}}; font-size: 14px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; line-height: 26.60px;{{- end -}}
-{{- define "style_text_date" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_monospace" -}}; {{- template "font_weight_normal" -}}; word-wrap: break-word; display: inline-block; margin-left: 10px;{{- end -}}
+{{- define "style_text_date" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; word-wrap: break-word; display: inline-block; margin-left: 10px;{{- end -}}
 {{- define "style_text_browser_item" -}}{{- template "color_text_dark" -}}; font-size: 14px; {{- template "font_family_main" -}}; {{- template "font_weight_normal" -}}; word-wrap: break-word; display: inline-block; vertical-align: middle;{{- end -}}
 {{- define "style_text_warning" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_main" -}}; font-style: italic; margin-top: 4px; display: block;{{- end -}}
 {{- define "style_text_warning_inline" -}}{{- template "color_text_medium" -}}; font-size: 12px; {{- template "font_family_main" -}}; font-style: italic;{{- end -}}

@@ -140,9 +140,50 @@ func badgeBackgroundColor(title string) string {
 	}
 }
 
+// RenderBrowserName extends workertypes.BrowserName to include grouped combo names.
+type RenderBrowserName string
+
+const (
+	// Base Browsers.
+	RenderBrowserChrome         RenderBrowserName = "chrome"
+	RenderBrowserChromeAndroid  RenderBrowserName = "chrome_android"
+	RenderBrowserEdge           RenderBrowserName = "edge"
+	RenderBrowserFirefox        RenderBrowserName = "firefox"
+	RenderBrowserFirefoxAndroid RenderBrowserName = "firefox_android"
+	RenderBrowserSafari         RenderBrowserName = "safari"
+	RenderBrowserSafariIos      RenderBrowserName = "safari_ios"
+
+	// Combined Groupings.
+	RenderBrowserChromeAndAndroid  RenderBrowserName = "chrome_and_android"
+	RenderBrowserFirefoxAndAndroid RenderBrowserName = "firefox_and_android"
+	RenderBrowserSafariAndIos      RenderBrowserName = "safari_and_ios"
+)
+
+func toRenderBrowserName(b workertypes.BrowserName) RenderBrowserName {
+	switch b {
+	case workertypes.BrowserChrome:
+		return RenderBrowserChrome
+	case workertypes.BrowserChromeAndroid:
+		return RenderBrowserChromeAndroid
+	case workertypes.BrowserEdge:
+		return RenderBrowserEdge
+	case workertypes.BrowserFirefox:
+		return RenderBrowserFirefox
+	case workertypes.BrowserFirefoxAndroid:
+		return RenderBrowserFirefoxAndroid
+	case workertypes.BrowserSafari:
+		return RenderBrowserSafari
+	case workertypes.BrowserSafariIos:
+		return RenderBrowserSafariIos
+	}
+
+	// Should not reach here since the input is controlled, but return a default just in case.
+	return RenderBrowserName(b)
+}
+
 // templateData is the struct passed to the HTML template.
 type BrowserChangeRenderData struct {
-	BrowserName workertypes.BrowserName
+	BrowserName RenderBrowserName
 	Change      *workertypes.Change[workertypes.BrowserValue]
 	FeatureName string
 	FeatureID   string
@@ -276,28 +317,8 @@ func (g *templateDataGenerator) routeHighlightToCategory(highlight workertypes.S
 func (g *templateDataGenerator) processChangedData(highlight workertypes.SummaryHighlight) {
 	// Consolidate browser changes into their own list
 	if len(highlight.BrowserChanges) > 0 {
-		// Sort keys to ensure deterministic order in the AllBrowserChanges list
-		browsers := make([]workertypes.BrowserName, 0, len(highlight.BrowserChanges))
-		for b := range highlight.BrowserChanges {
-			browsers = append(browsers, b)
-		}
-
-		slices.Sort(browsers)
-
-		for _, browserName := range browsers {
-			change := highlight.BrowserChanges[browserName]
-			// If a feature regresses AND loses a browser impl, it will be in two sections.
-			if change == nil {
-				continue
-			}
-			g.data.AllBrowserChanges = append(g.data.AllBrowserChanges, BrowserChangeRenderData{
-				BrowserName: browserName,
-				Change:      change,
-				FeatureName: highlight.FeatureName,
-				FeatureID:   highlight.FeatureID,
-				Type:        highlight.Type,
-			})
-		}
+		grouped := groupBrowserChanges(highlight.BrowserChanges, highlight.FeatureName, highlight.FeatureID, highlight.Type)
+		g.data.AllBrowserChanges = append(g.data.AllBrowserChanges, grouped...)
 	}
 
 	if highlight.BaselineChange != nil {
@@ -360,28 +381,21 @@ func (r *HTMLRenderer) generateSubject(
 
 // browserToString helps handle the any passed from templates which could be
 // string or workertypes.BrowserName.
-func (r *HTMLRenderer) browserToString(browser any) string {
-	switch v := browser.(type) {
-	case string:
-		return v
-	case workertypes.BrowserName:
-		return string(v)
-	default:
-		return fmt.Sprintf("%v", v)
-	}
+func (r *HTMLRenderer) browserToString(browser RenderBrowserName) string {
+	return string(browser)
 }
 
 // browserLogoURL returns the URL for the browser logo.
 // Maps mobile browsers to their desktop equivalents since we share logos.
-func (r *HTMLRenderer) browserLogoURL(browser any) string {
+func (r *HTMLRenderer) browserLogoURL(browser RenderBrowserName) string {
 	b := strings.ToLower(r.browserToString(browser))
 
 	switch b {
-	case "chrome_android":
+	case "chrome_android", "chrome_and_android":
 		b = "chrome"
-	case "firefox_android":
+	case "firefox_android", "firefox_and_android":
 		b = "firefox"
-	case "safari_ios":
+	case "safari_ios", "safari_and_ios":
 		b = "safari"
 	}
 
@@ -389,7 +403,7 @@ func (r *HTMLRenderer) browserLogoURL(browser any) string {
 }
 
 // browserDisplayName returns a human-readable name for the browser.
-func (r *HTMLRenderer) browserDisplayName(browser any) string {
+func (r *HTMLRenderer) browserDisplayName(browser RenderBrowserName) string {
 	b := strings.ToLower(r.browserToString(browser))
 
 	switch b {
@@ -397,16 +411,22 @@ func (r *HTMLRenderer) browserDisplayName(browser any) string {
 		return "Chrome"
 	case "chrome_android":
 		return "Chrome Android"
+	case "chrome_and_android":
+		return "Chrome Desktop & Android"
 	case "edge":
 		return "Edge"
 	case "firefox":
 		return "Firefox"
 	case "firefox_android":
 		return "Firefox Android"
+	case "firefox_and_android":
+		return "Firefox Desktop & Android"
 	case "safari":
 		return "Safari"
 	case "safari_ios":
 		return "Safari iOS"
+	case "safari_and_ios":
+		return "Safari Desktop & iOS"
 	}
 	// Fallback for unknown
 	return r.browserToString(browser)
@@ -421,25 +441,82 @@ func (r *HTMLRenderer) statusLogoURL(status string) string {
 // This is used to ensure consistent rendering order in the template.
 func (r *HTMLRenderer) sortedBrowserChanges(
 	changes map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]) []BrowserChangeRenderData {
+
+	return groupBrowserChanges(changes, "", "", "")
+}
+
+func groupBrowserChanges(
+	changes map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue],
+	featureName, featureID string,
+	highlightType workertypes.SummaryHighlightType) []BrowserChangeRenderData {
+
 	if len(changes) == 0 {
 		return nil
 	}
 
-	data := make([]BrowserChangeRenderData, 0, len(changes))
-	for name, change := range changes {
-		if change == nil {
-			continue
+	pending := make(map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue])
+	for k, v := range changes {
+		if v != nil {
+			pending[k] = v
 		}
+	}
+
+	var data []BrowserChangeRenderData
+
+	groupPair := func(desktop, mobile workertypes.BrowserName, combined RenderBrowserName) {
+		dChange, hasDesktop := pending[desktop]
+		mChange, hasMobile := pending[mobile]
+
+		if !hasDesktop || !hasMobile {
+			return
+		}
+
+		// Compare both From and To configurations to ensure they are fully identical
+		if dChange.From.Status != mChange.From.Status || dChange.To.Status != mChange.To.Status {
+			return
+		}
+
+		if dChange.To.Version != nil && mChange.To.Version != nil {
+			if *dChange.To.Version != *mChange.To.Version {
+				return
+			}
+		} else if dChange.To.Version != mChange.To.Version {
+			return
+		}
+
+		if dChange.To.Date != nil && mChange.To.Date != nil {
+			if !dChange.To.Date.Equal(*mChange.To.Date) {
+				return
+			}
+		} else if dChange.To.Date != mChange.To.Date {
+			return
+		}
+
 		data = append(data, BrowserChangeRenderData{
-			BrowserName: name,
+			BrowserName: combined,
+			Change:      dChange,
+			FeatureName: featureName,
+			FeatureID:   featureID,
+			Type:        highlightType,
+		})
+		delete(pending, desktop)
+		delete(pending, mobile)
+	}
+
+	groupPair(workertypes.BrowserChrome, workertypes.BrowserChromeAndroid, RenderBrowserChromeAndAndroid)
+	groupPair(workertypes.BrowserFirefox, workertypes.BrowserFirefoxAndroid, RenderBrowserFirefoxAndAndroid)
+	groupPair(workertypes.BrowserSafari, workertypes.BrowserSafariIos, RenderBrowserSafariAndIos)
+
+	for name, change := range pending {
+		data = append(data, BrowserChangeRenderData{
+			BrowserName: toRenderBrowserName(name),
 			Change:      change,
-			FeatureName: "",
-			FeatureID:   "",
-			Type:        "",
+			FeatureName: featureName,
+			FeatureID:   featureID,
+			Type:        highlightType,
 		})
 	}
 
-	// Sort by BrowserName
 	slices.SortFunc(data, func(a, b BrowserChangeRenderData) int {
 		if a.BrowserName < b.BrowserName {
 			return -1

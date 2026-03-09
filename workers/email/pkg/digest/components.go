@@ -73,16 +73,34 @@ const baselineChangeItemComponent = `{{- define "baseline_change_item" -}}
 
 const browserItemComponent = `{{- define "browser_change_row" -}}
     <div style='{{- template "style_browser_item_row" -}}'>
-        <table border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
+        <table width="100%" border="0" cellspacing="0" cellpadding="0" style="border-collapse: collapse; mso-table-lspace: 0pt; mso-table-rspace: 0pt;">
             <tr>
-                <td align="left" valign="middle" style="padding-right: 10px;">
+                <td align="left" valign="middle" style="padding-right: 10px; width: 20px;">
                     <img src="{{.LogoURL}}" height="20" alt="{{.Name}}" style='{{- template "style_img_responsive" -}}' />
                 </td>
                 <td align="left" valign="middle">
                     <div style='{{- template "style_text_browser_item" -}}'>
-                        {{.Name}}: {{ template "browser_status_detail" .From }} &rarr; {{ template "browser_status_detail" .To -}}
+                        {{.Name}}:{{ " " }}
+                        {{- $fromStatus := formatBrowserStatus .From.Status -}}
+                        {{- $toStatus := formatBrowserStatus .To.Status -}}
+                        {{- if and (or (eq $fromStatus "Unknown") (eq $fromStatus "Unavailable")) (eq $toStatus "Available") -}}
+                            <span style='{{- template "color_text_medium" -}}'>
+                                {{- if .To.Version -}}
+                                    Became available in {{.To.Version}}
+                                {{- else -}}
+                                    Became available
+                                {{- end -}}
+                            </span>
+                        {{- else -}}
+                            {{ template "browser_status_detail" .From }} &rarr; {{ template "browser_status_detail" .To -}}
+                        {{- end -}}
                     </div>
                 </td>
+                {{- if .To.Date -}}
+                <td align="right" valign="middle" style="white-space: nowrap; padding-left: 10px;">
+                    <div style='{{- template "style_text_date" -}}'>{{ formatDate .To.Date }}</div>
+                </td>
+                {{- end -}}
             </tr>
         </table>
     </div>
@@ -228,9 +246,6 @@ const browserStatusDetailComponent = `{{- define "browser_status_detail" -}}
     {{- formatBrowserStatus .Status -}}
     {{- if .Version -}}
         <span style='{{- template "color_text_medium" -}}'> in {{.Version}}</span>
-    {{- end -}}
-    {{- if .Date -}}
-        <span style='{{- template "color_text_medium" -}}'> (on {{ formatDate .Date -}})</span>
     {{- end -}}
 {{- end -}}`
 
