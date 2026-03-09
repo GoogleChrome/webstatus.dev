@@ -65,7 +65,8 @@ func TestListNotificationChannels(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/notification-channels", nil),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/users/me/notification-channels", nil),
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -95,7 +96,8 @@ func TestListNotificationChannels(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/notification-channels", nil),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/users/me/notification-channels", nil),
 			expectedResponse: testJSONResponse(500, `
 			{
 				"code":500,
@@ -113,7 +115,7 @@ func TestListNotificationChannels(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet, "/v1/users/me/notification-channels?page_token="+*badPageToken, nil),
 			expectedResponse: testJSONResponse(400, `{"code":400,"message":"Invalid page token"}`),
 		},
@@ -122,7 +124,8 @@ func TestListNotificationChannels(t *testing.T) {
 			cfg:                  nil,
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(nil)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/notification-channels", nil),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/users/me/notification-channels", nil),
 			expectedResponse: testJSONResponse(500, `
 			{
 				"code": 500,

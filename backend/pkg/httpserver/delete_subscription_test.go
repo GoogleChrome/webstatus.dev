@@ -46,7 +46,7 @@ func TestDeleteSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/users/me/subscriptions/sub-id",
 				nil,
@@ -62,7 +62,7 @@ func TestDeleteSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/users/me/subscriptions/sub-id",
 				nil,
@@ -78,7 +78,7 @@ func TestDeleteSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/users/me/subscriptions/sub-id",
 				nil,
@@ -95,7 +95,7 @@ func TestDeleteSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/users/me/subscriptions/sub-id",
 				nil,

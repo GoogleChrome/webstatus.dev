@@ -161,7 +161,7 @@ func (c *Client) getInitialBaselineStatusCount(
 		return parsedToken.LastStatusCount, nil
 	}
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"startAt": startAt,
 	}
 
@@ -208,7 +208,7 @@ func createListBaselineStatusCountsStatement(
 	pageToken *baselineStatusCountCursor,
 	excludedFeatureIDs []string,
 ) spanner.Statement {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"startAt":  startAt,
 		"endAt":    endAt,
 		"pageSize": pageSize,

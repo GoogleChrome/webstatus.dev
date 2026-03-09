@@ -54,7 +54,7 @@ func TestPaginator(t *testing.T) {
 			name: "Single page success",
 			listFunc: func(_ context.Context, _ *github.ListOptions) ([]LibTestItem, *github.Response, error) {
 				return []LibTestItem{{
-					Name: valuePtr("item1"),
+					Name: new("item1"),
 				}}, createTestGithubResponse(0), nil
 			},
 			expectedItems: []TestItem{{"item1"}},
@@ -66,12 +66,12 @@ func TestPaginator(t *testing.T) {
 			listFunc: func(_ context.Context, opts *github.ListOptions) ([]LibTestItem, *github.Response, error) {
 				if opts.Page == 1 {
 					return []LibTestItem{{
-						Name: valuePtr("itemA"),
+						Name: new("itemA"),
 					}}, createTestGithubResponse(2), nil
 				}
 
 				return []LibTestItem{{
-					Name: valuePtr("itemB"),
+					Name: new("itemB"),
 				}}, createTestGithubResponse(0), nil
 			},
 			expectedItems: []TestItem{{"itemA"}, {"itemB"}},
@@ -92,7 +92,7 @@ func TestPaginator(t *testing.T) {
 			listFunc: func(_ context.Context, opts *github.ListOptions) ([]LibTestItem, *github.Response, error) {
 				if opts.Page == 1 {
 					return []LibTestItem{{
-						Name: valuePtr("itemA"),
+						Name: new("itemA"),
 					}}, createTestGithubResponse(2), nil
 				}
 
@@ -106,9 +106,9 @@ func TestPaginator(t *testing.T) {
 			name: "Conversion skips item",
 			listFunc: func(_ context.Context, _ *github.ListOptions) ([]LibTestItem, *github.Response, error) {
 				return []LibTestItem{
-					{Name: valuePtr("valid")},
+					{Name: new("valid")},
 					{Name: nil},
-					{Name: valuePtr("another_valid")},
+					{Name: new("another_valid")},
 				}, createTestGithubResponse(0), nil
 			},
 			expectedItems: []TestItem{{"valid"}, {"another_valid"}},

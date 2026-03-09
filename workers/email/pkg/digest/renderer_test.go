@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -105,7 +104,7 @@ func TestRenderDigest_Golden(t *testing.T) {
 				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
 					workertypes.BrowserChrome: {
 						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
-							Version: generic.ValuePtr("120"), Date: nil},
+							Version: new("120"), Date: nil},
 						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil,
 							Date: nil},
 					},
@@ -131,7 +130,7 @@ func TestRenderDigest_Golden(t *testing.T) {
 						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable, Version: nil,
 							Date: nil},
 						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
-							Version: generic.ValuePtr("17.2"),
+							Version: new("17.2"),
 							// Purposefully set to nil to test that it doesn't crash.
 							Date: nil},
 					},
@@ -257,7 +256,7 @@ func TestRenderDigest_Golden(t *testing.T) {
 						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnavailable,
 							Version: nil, Date: nil},
 						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
-							Version: generic.ValuePtr("123"), Date: &newlyDate},
+							Version: new("123"), Date: &newlyDate},
 					},
 					workertypes.BrowserChrome:         nil,
 					workertypes.BrowserChromeAndroid:  nil,
@@ -305,7 +304,7 @@ func TestRenderDigest_Golden(t *testing.T) {
 					workertypes.BrowserChrome: {
 						From: workertypes.BrowserValue{
 							Status:  workertypes.BrowserStatusAvailable,
-							Version: generic.ValuePtr("110"),
+							Version: new("110"),
 							Date:    nil,
 						},
 						To: workertypes.BrowserValue{

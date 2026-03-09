@@ -169,10 +169,7 @@ func (c *Client) ListSystemManagedSavedSearchesByFeatureIDs(
 	var allResults []SystemManagedSavedSearch
 
 	for i := 0; i < len(featureIDs); i += chunkSize {
-		end := i + chunkSize
-		if end > len(featureIDs) {
-			end = len(featureIDs)
-		}
+		end := min(i+chunkSize, len(featureIDs))
 		chunk := featureIDs[i:end]
 
 		stmt := systemManagedSavedSearchMapper{}.SelectAllByKeys(chunk)

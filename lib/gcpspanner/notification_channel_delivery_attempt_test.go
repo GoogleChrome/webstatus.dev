@@ -46,7 +46,7 @@ func TestCreateNotificationChannelDeliveryAttempt(t *testing.T) {
 	req := CreateNotificationChannelDeliveryAttemptRequest{
 		ChannelID: channelID,
 		Status:    "SUCCESS",
-		Details: spanner.NullJSON{Value: map[string]interface{}{
+		Details: spanner.NullJSON{Value: map[string]any{
 			"event_id": "evt-123", "message": "delivered"}, Valid: true},
 		AttemptTimestamp: time.Now(),
 	}
@@ -106,7 +106,7 @@ func TestCreateNotificationChannelDeliveryAttemptPruning(t *testing.T) {
 	// Create more attempts than the max to trigger pruning.
 	var idsToDelete []string
 	var idToKeep string
-	for i := 0; i < maxDeliveryAttemptsToKeep+2; i++ {
+	for i := range maxDeliveryAttemptsToKeep + 2 {
 		// The sleep is a simple way to ensure distinct AttemptTimestamps for ordering.
 		time.Sleep(1 * time.Millisecond)
 		req := CreateNotificationChannelDeliveryAttemptRequest{
@@ -180,11 +180,9 @@ func TestCreateNotificationChannelDeliveryAttemptConcurrency(t *testing.T) {
 	concurrentAttempts := 5
 	attemptsPerRoutine := 3 // Total attempts = 15, which is > maxDeliveryAttemptsToKeep
 
-	for i := 0; i < concurrentAttempts; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			for j := 0; j < attemptsPerRoutine; j++ {
+	for range concurrentAttempts {
+		wg.Go(func() {
+			for range attemptsPerRoutine {
 				req := CreateNotificationChannelDeliveryAttemptRequest{
 					ChannelID:        concurrentChannelID,
 					Status:           "SUCCESS",
@@ -197,7 +195,7 @@ func TestCreateNotificationChannelDeliveryAttemptConcurrency(t *testing.T) {
 					t.Errorf("CreateNotificationChannelDeliveryAttempt in goroutine failed: %v", err)
 				}
 			}
-		}()
+		})
 	}
 	wg.Wait()
 
@@ -236,7 +234,7 @@ func TestListNotificationChannelDeliveryAttemptsPagination(t *testing.T) {
 
 	// Create more attempts than the page size to test pagination.
 	totalAttempts := 5
-	for i := 0; i < totalAttempts; i++ {
+	for range totalAttempts {
 		// The sleep is a simple way to ensure distinct AttemptTimestamps for ordering.
 		time.Sleep(1 * time.Millisecond)
 		req := CreateNotificationChannelDeliveryAttemptRequest{
@@ -310,7 +308,7 @@ func TestToPublic(t *testing.T) {
 		ChannelID:        "test-channel-id",
 		AttemptTimestamp: time.Now(),
 		Status:           DeliveryAttemptStatusSuccess,
-		Details: spanner.NullJSON{Value: map[string]interface{}{"message": "test-info",
+		Details: spanner.NullJSON{Value: map[string]any{"message": "test-info",
 			"event_id": "test-event-id"}, Valid: true},
 		AttemptDetails: nil,
 	}

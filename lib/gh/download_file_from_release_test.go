@@ -113,8 +113,6 @@ func (rt *mockRoundTripper) RoundTrip(req *http.Request) (*http.Response, error)
 	return rt.cfg.resp, rt.cfg.err
 }
 
-func valuePtr[T any](in T) *T { return &in }
-
 func TestMockDownloadFileFromRelease(t *testing.T) {
 	testCases := []struct {
 		name          string
@@ -132,11 +130,11 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				release: &github.RepositoryRelease{
 					Assets: []*github.ReleaseAsset{
 						{
-							Name:               valuePtr("file.txt"),
-							BrowserDownloadURL: valuePtr("http://example.com/file.txt"),
+							Name:               new("file.txt"),
+							BrowserDownloadURL: new("http://example.com/file.txt"),
 						},
 					},
-					TagName: valuePtr("v1.0.0"),
+					TagName: new("v1.0.0"),
 				},
 				err: nil,
 			},
@@ -153,7 +151,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 			expectedFile: &ReleaseFile{
 				Contents: io.NopCloser(nil),
 				Info: ReleaseInfo{
-					Tag: valuePtr("v1.0.0"),
+					Tag: new("v1.0.0"),
 				},
 			},
 		},
@@ -166,11 +164,11 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				release: &github.RepositoryRelease{
 					Assets: []*github.ReleaseAsset{
 						{
-							Name:               valuePtr("file.txt"),
-							BrowserDownloadURL: valuePtr("http://example.com/file.txt"),
+							Name:               new("file.txt"),
+							BrowserDownloadURL: new("http://example.com/file.txt"),
 						},
 					},
-					TagName: valuePtr("2.0.0"),
+					TagName: new("2.0.0"),
 				},
 				err: nil,
 			},
@@ -187,7 +185,7 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 			expectedFile: &ReleaseFile{
 				Contents: io.NopCloser(nil),
 				Info: ReleaseInfo{
-					Tag: valuePtr("v2.0.0"),
+					Tag: new("v2.0.0"),
 				},
 			},
 		},
@@ -238,8 +236,8 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				release: &github.RepositoryRelease{
 					Assets: []*github.ReleaseAsset{
 						{
-							Name:               valuePtr("file.txt"),
-							BrowserDownloadURL: valuePtr("http://example.com/file.txt"),
+							Name:               new("file.txt"),
+							BrowserDownloadURL: new("http://example.com/file.txt"),
 						},
 					},
 				},
@@ -263,8 +261,8 @@ func TestMockDownloadFileFromRelease(t *testing.T) {
 				release: &github.RepositoryRelease{
 					Assets: []*github.ReleaseAsset{
 						{
-							Name:               valuePtr("file.txt"),
-							BrowserDownloadURL: valuePtr("http://example.com/file.txt"),
+							Name:               new("file.txt"),
+							BrowserDownloadURL: new("http://example.com/file.txt"),
 						},
 					},
 				},

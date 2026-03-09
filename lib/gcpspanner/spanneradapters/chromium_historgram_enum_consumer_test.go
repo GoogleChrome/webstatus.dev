@@ -93,7 +93,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
-					return valuePtr("enumID"), nil
+					return new("enumID"), nil
 				},
 				syncChromiumHistogramEnumValues: func(_ context.Context,
 					_ []gcpspanner.ChromiumHistogramEnumValue) error {
@@ -101,11 +101,11 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				getIDFromChromiumHistogramEnumValueKey: func(
 					_ context.Context, _ string, _ int64) (*string, error) {
-					return valuePtr("enumValueID"), nil
+					return new("enumValueID"), nil
 				},
 				getIDFromFeatureKey: func(_ context.Context,
 					_ *gcpspanner.FeatureIDFilter) (*string, error) {
-					return valuePtr("featureID"), nil
+					return new("featureID"), nil
 				},
 				syncWebFeatureChromiumHistogramEnumValues: func(_ context.Context,
 					in []gcpspanner.WebFeatureChromiumHistogramEnumValue) error {
@@ -188,7 +188,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
-					return valuePtr("enumID"), nil
+					return new("enumID"), nil
 				},
 				syncChromiumHistogramEnumValues: func(_ context.Context,
 					_ []gcpspanner.ChromiumHistogramEnumValue) error {
@@ -216,7 +216,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
-					return valuePtr("enumID"), nil
+					return new("enumID"), nil
 				},
 				syncChromiumHistogramEnumValues: func(_ context.Context,
 					_ []gcpspanner.ChromiumHistogramEnumValue) error {
@@ -247,7 +247,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
-					return valuePtr("enumID"), nil
+					return new("enumID"), nil
 				},
 				syncChromiumHistogramEnumValues: func(_ context.Context,
 					_ []gcpspanner.ChromiumHistogramEnumValue) error {
@@ -255,7 +255,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				getIDFromChromiumHistogramEnumValueKey: func(
 					_ context.Context, _ string, _ int64) (*string, error) {
-					return valuePtr("enumValueID"), nil
+					return new("enumValueID"), nil
 				},
 				getIDFromFeatureKey: func(_ context.Context,
 					_ *gcpspanner.FeatureIDFilter) (*string, error) {
@@ -289,7 +289,7 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				upsertChromiumHistogramEnum: func(_ context.Context,
 					_ gcpspanner.ChromiumHistogramEnum) (*string, error) {
-					return valuePtr("enumID"), nil
+					return new("enumID"), nil
 				},
 				syncChromiumHistogramEnumValues: func(_ context.Context,
 					_ []gcpspanner.ChromiumHistogramEnumValue) error {
@@ -297,11 +297,11 @@ func TestChromiumHistogramEnumConsumer_SaveHistogramEnums(t *testing.T) {
 				},
 				getIDFromChromiumHistogramEnumValueKey: func(
 					_ context.Context, _ string, _ int64) (*string, error) {
-					return valuePtr("enumValueID"), nil
+					return new("enumValueID"), nil
 				},
 				getIDFromFeatureKey: func(_ context.Context,
 					_ *gcpspanner.FeatureIDFilter) (*string, error) {
-					return valuePtr("featureID"), nil
+					return new("featureID"), nil
 				},
 				syncWebFeatureChromiumHistogramEnumValues: func(_ context.Context,
 					_ []gcpspanner.WebFeatureChromiumHistogramEnumValue) error {
@@ -377,7 +377,7 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			name: "successful migration",
 			histogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("old-feature"),
+					1: new("old-feature"),
 				},
 			},
 			histogramsToAllFeatureKeySet: map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue{
@@ -390,7 +390,7 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("new-feature"),
+					1: new("new-feature"),
 				},
 			},
 			expectedErr: nil,
@@ -399,8 +399,8 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			name: "conflict with existing feature",
 			histogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("old-feature"),
-					2: valuePtr("new-feature"),
+					1: new("old-feature"),
+					2: new("new-feature"),
 				},
 			},
 			histogramsToAllFeatureKeySet: map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue{
@@ -419,7 +419,7 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			name: "no migration needed",
 			histogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("feature-a"),
+					1: new("feature-a"),
 				},
 			},
 			histogramsToAllFeatureKeySet: map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue{
@@ -430,7 +430,7 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			movedFeatures: map[string]webdxfeaturetypes.FeatureMovedData{},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("feature-a"),
+					1: new("feature-a"),
 				},
 			},
 			expectedErr: nil,
@@ -439,11 +439,11 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			name: "multiple migrations",
 			histogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("old-a"),
-					2: valuePtr("feature-c"),
+					1: new("old-a"),
+					2: new("feature-c"),
 				},
 				"hist2": {
-					3: valuePtr("old-b"),
+					3: new("old-b"),
 				},
 			},
 			histogramsToAllFeatureKeySet: map[metricdatatypes.HistogramName]map[string]metricdatatypes.HistogramEnumValue{
@@ -461,11 +461,11 @@ func TestMigrateMovedFeaturesForChromiumHistograms(t *testing.T) {
 			},
 			expectedHistogramsToEnumMap: map[metricdatatypes.HistogramName]map[int64]*string{
 				metricdatatypes.WebDXFeatureEnum: {
-					1: valuePtr("new-a"),
-					2: valuePtr("feature-c"),
+					1: new("new-a"),
+					2: new("feature-c"),
 				},
 				"hist2": {
-					3: valuePtr("new-b"),
+					3: new("new-b"),
 				},
 			},
 			expectedErr: nil,

@@ -35,8 +35,8 @@ wf.FeatureKey = @featureKey
 `
 }
 
-func (f FeatureIDFilter) Params() map[string]interface{} {
-	return map[string]interface{}{
+func (f FeatureIDFilter) Params() map[string]any {
+	return map[string]any{
 		"featureKey": f.featureKey,
 	}
 }
@@ -50,7 +50,7 @@ type GetFeatureQueryBuilder struct {
 
 func (q GetFeatureQueryBuilder) Build(
 	filter Filterable) spanner.Statement {
-	filterParams := make(map[string]interface{})
+	filterParams := make(map[string]any)
 
 	queryArgs := FeatureSearchQueryArgs{
 		MetricView:                  q.wptMetricView,

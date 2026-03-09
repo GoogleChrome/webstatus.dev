@@ -262,7 +262,7 @@ type FeatureSearchBaseQuery interface {
 	//  5. The latest metrics from WPT.
 	//     It provides these metrics for both "stable" and "experimental" channels.
 	//     The metrics retrieved are for each unique BrowserName/Channel/WebFeatureID.
-	Query(args FeatureSearchQueryArgs) (string, map[string]interface{})
+	Query(args FeatureSearchQueryArgs) (string, map[string]any)
 
 	// CountQuery generates the base query to return only the count of items.
 	CountQuery(args FeatureSearchCountArgs) string
@@ -273,10 +273,10 @@ type FeatureSearchBaseQuery interface {
 type GCPFeatureSearchBaseQuery struct{}
 
 func (f GCPFeatureSearchBaseQuery) buildChannelMetricsFilter(
-	channel string, latestRunResults []LatestRunResult) (string, map[string]interface{}) {
+	channel string, latestRunResults []LatestRunResult) (string, map[string]any) {
 	count := 0
-	filters := []string{}
-	params := make(map[string]interface{}, len(latestRunResults))
+	filters := make([]string, 0, len(latestRunResults))
+	params := make(map[string]any, len(latestRunResults))
 	for _, result := range latestRunResults {
 		paramBrowserName := fmt.Sprintf("%sbrowser%d", channel, count)
 		paramTimeName := fmt.Sprintf("%stime%d", channel, count)
@@ -291,7 +291,7 @@ func (f GCPFeatureSearchBaseQuery) buildChannelMetricsFilter(
 		filters = append(filters, filter)
 	}
 	var filterStr string
-	var retParams map[string]interface{}
+	var retParams map[string]any
 	if len(filters) > 0 {
 		filterStr = strings.Join(filters, " OR ")
 		filterStr = " AND (" + filterStr + ")"
@@ -646,8 +646,8 @@ COALESCE(
 
 // Query uses the latest browsername/channel/timestart mapping to build a query.
 func (f GCPFeatureSearchBaseQuery) Query(args FeatureSearchQueryArgs) (
-	string, map[string]interface{}) {
-	params := make(map[string]interface{})
+	string, map[string]any) {
+	params := make(map[string]any)
 	stableParamName := "stableChannelParam"
 	params[stableParamName] = "stable"
 	experimentalParamName := "experimentalChannelParam"
@@ -761,11 +761,11 @@ func (f LocalFeatureBaseQuery) CountQuery(args FeatureSearchCountArgs) string {
 // Query is a version of the base query that works on the local emulator.
 // It leverages a common table expression CTE to help query the metrics.
 func (f LocalFeatureBaseQuery) Query(args FeatureSearchQueryArgs) (
-	string, map[string]interface{}) {
+	string, map[string]any) {
 	stableParamName := "stableChannelParam"
 	experimentalParamName := "experimentalChannelParam"
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		stableParamName:       "stable",
 		experimentalParamName: "experimental",
 	}

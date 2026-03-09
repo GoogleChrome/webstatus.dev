@@ -49,7 +49,7 @@ func TestListChromeDailyUsageStats(t *testing.T) {
 				data: []backend.ChromeUsageStat{
 					{
 						Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						Usage:     valuePtr[float64](0.0),
+						Usage:     new(0.0),
 					},
 				},
 			},
@@ -84,7 +84,7 @@ func TestListChromeDailyUsageStats(t *testing.T) {
 
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/usage/chrome/daily_stats?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -114,7 +114,7 @@ func TestListChromeDailyUsageStats(t *testing.T) {
 
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/usage/chrome/daily_stats?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -140,7 +140,7 @@ func TestListChromeDailyUsageStats(t *testing.T) {
 				},
 			},
 			expectedCacheCalls: nil,
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/usage/chrome/daily_stats?"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
 		},

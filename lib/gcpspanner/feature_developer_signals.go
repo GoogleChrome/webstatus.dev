@@ -134,7 +134,7 @@ func (m latestFeatureDeveloperSignalByFeatureIDMapper) SelectAllByKeys(webFeatur
 		WebFeatureID, Upvotes, Link
 	FROM LatestFeatureDeveloperSignals
 	WHERE WebFeatureID = @webFeatureID`)
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"webFeatureID": webFeatureID,
 	}
 

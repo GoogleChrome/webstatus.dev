@@ -45,14 +45,14 @@ func TestGetSavedSearch(t *testing.T) {
 					UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					Name:           "test search",
 					Query:          "test query",
-					Description:    valuePtr("test description"),
+					Description:    new("test description"),
 					BookmarkStatus: nil,
 					Permissions:    nil,
 				},
 				err: nil,
 			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(nil)),
-			request: httptest.NewRequest(http.MethodGet, "/v1/saved-searches/saved-search-id",
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/saved-searches/saved-search-id",
 				nil),
 			expectedResponse: testJSONResponse(200, `
 			{

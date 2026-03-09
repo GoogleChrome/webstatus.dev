@@ -42,12 +42,6 @@ test('matches the screenshot', async ({page}) => {
     0,
   );
 
-  await waitForTabbedChartCompletion(
-    page,
-    'feature-wpt-implementation-progress',
-    0,
-  );
-
   const pageContainer = page.locator('.page-container');
   await expectDualThemeScreenshot(page, pageContainer, 'feature-page');
 });

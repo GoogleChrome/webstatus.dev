@@ -138,7 +138,7 @@ func testMissingOneImplFeatureListSuite(
 ) {
 	t.Run("Query bazBrowser without exclusions", func(t *testing.T) {
 		targetBrowser := "bazBrowser"
-		targetMobileBrowser := valuePtr("quxBrowser")
+		targetMobileBrowser := new("quxBrowser")
 		otherBrowsers := []string{"fooBrowser", "barBrowser"}
 		targetDate := time.Date(2024, 4, 15, 0, 0, 0, 0, time.UTC)
 		pageSize := 25

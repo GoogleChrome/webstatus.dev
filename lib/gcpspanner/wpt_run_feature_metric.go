@@ -112,11 +112,11 @@ type SpannerWPTRunFeatureMetric struct {
 
 // WPTRunFeatureMetric represents the metrics for a particular feature in a run.
 type WPTRunFeatureMetric struct {
-	TotalTests        *int64                 `spanner:"TotalTests"`
-	TestPass          *int64                 `spanner:"TestPass"`
-	TotalSubtests     *int64                 `spanner:"TotalSubtests"`
-	SubtestPass       *int64                 `spanner:"SubtestPass"`
-	FeatureRunDetails map[string]interface{} `spanner:"-"` // Not directly stored in Spanner
+	TotalTests        *int64         `spanner:"TotalTests"`
+	TestPass          *int64         `spanner:"TestPass"`
+	TotalSubtests     *int64         `spanner:"TotalSubtests"`
+	SubtestPass       *int64         `spanner:"SubtestPass"`
+	FeatureRunDetails map[string]any `spanner:"-"` // Not directly stored in Spanner
 }
 
 // SpannerLatestWPTRunFeatureMetric represents a pointer to an entry in WPTRunFeatureMetrics.
@@ -200,7 +200,7 @@ func getLatestWPTRunFeatureMetricTimeStart(
         AND l.BrowserName = @browserName
         AND l.Channel = @channel`)
 
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"featureID":   metric.WebFeatureID,
 		"browserName": metric.BrowserName,
 		"channel":     metric.Channel,
@@ -266,7 +266,7 @@ func updateWPTRunFeatureMetric(
 				FROM WPTRunFeatureMetrics
 				WHERE ID = @id AND WebFeatureID = @webFeatureID
 				LIMIT 1`)
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"id":           metric.ID,
 		"webFeatureID": metric.WebFeatureID,
 	}
@@ -431,7 +431,7 @@ func (c *Client) ListMetricsForFeatureIDBrowserAndChannel(
 	pageSize int,
 	pageToken *string,
 ) ([]WPTRunFeatureMetricWithTime, *string, error) {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"featureKey":  featureKey,
 		"browserName": browser,
 		"channel":     channel,
@@ -519,7 +519,7 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 	pageSize int,
 	pageToken *string,
 ) ([]WPTRunAggregationMetricWithTime, *string, error) {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"browserName": browser,
 		"channel":     channel,
 		"startAt":     startAt,
@@ -590,7 +590,7 @@ func (c *Client) ListMetricsOverTimeWithAggregatedTotals(
 
 // noPageTokenFeatureSubset adjusts the template data and parameters when a page token is
 // not provided and the aggregation applies to a particular list of features.
-func noPageTokenFeatureSubset(params map[string]interface{}, featureKeys []string,
+func noPageTokenFeatureSubset(params map[string]any, featureKeys []string,
 	tmplData *FeatureMetricsTemplateData) {
 	params["featureKeys"] = featureKeys
 	tmplData.FeatureKeyFilter = multipleFeaturesMetricSubsetRawTemplate
@@ -598,7 +598,7 @@ func noPageTokenFeatureSubset(params map[string]interface{}, featureKeys []strin
 
 // withPageTokenAllFeatures adjusts the template data and parameters when a page token is
 // provided and the aggregation applies to all features.
-func withPageTokenAllFeatures(params map[string]interface{}, cursor WPTRunCursor,
+func withPageTokenAllFeatures(params map[string]any, cursor WPTRunCursor,
 	tmplData *FeatureMetricsTemplateData) {
 	tmplData.PageFilter = commonFeatureMetricPaginationRawTemplate
 	params["lastTimestamp"] = cursor.LastTimeStart
@@ -608,7 +608,7 @@ func withPageTokenAllFeatures(params map[string]interface{}, cursor WPTRunCursor
 // withPageTokenFeatureSubset adjusts the template data and parameters when a page token is
 // provided and the aggregation applies to a particular list of features.
 func withPageTokenFeatureSubset(
-	params map[string]interface{},
+	params map[string]any,
 	featureKeys []string,
 	cursor WPTRunCursor,
 	tmplData *FeatureMetricsTemplateData) {
@@ -652,7 +652,7 @@ func (m wptRunFeatureMetricMapper) SelectAllByKeys(webFeatureID string) spanner.
 		FROM WPTRunFeatureMetrics
 		WHERE WebFeatureID = @webFeatureID
 		ORDER BY TimeStart DESC`)
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"webFeatureID": webFeatureID,
 	}
 
@@ -677,7 +677,7 @@ func (m latestWptRunsFeatureMetricMapper) SelectAllByKeys(webFeatureID string) s
 			*
 		FROM LatestWPTRunFeatureMetrics
 		WHERE WebFeatureID = @webFeatureID`)
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"webFeatureID": webFeatureID,
 	}
 

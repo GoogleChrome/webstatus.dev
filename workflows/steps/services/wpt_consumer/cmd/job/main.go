@@ -18,6 +18,7 @@ import (
 	"cmp"
 	"context"
 	"log/slog"
+	"maps"
 	"os"
 	"strconv"
 	"time"
@@ -30,7 +31,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/workerpool"
 	"github.com/GoogleChrome/webstatus.dev/lib/wptfyi"
 	"github.com/GoogleChrome/webstatus.dev/workflows/steps/services/wpt_consumer/pkg/workflow"
-	"github.com/google/go-github/v77/github"
+	"github.com/google/go-github/v82/github"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
 
@@ -92,10 +93,8 @@ func main() {
 	webFeaturesDataCopier := func(in shared.WebFeaturesData) shared.WebFeaturesData {
 		dataCopy := make(shared.WebFeaturesData, len(in))
 		for testName, featuresMap := range in {
-			newFeaturesMap := make(map[string]interface{}, len(featuresMap))
-			for featureKey, featureData := range featuresMap {
-				newFeaturesMap[featureKey] = featureData
-			}
+			newFeaturesMap := make(map[string]any, len(featuresMap))
+			maps.Copy(newFeaturesMap, featuresMap)
 			dataCopy[testName] = newFeaturesMap
 		}
 
@@ -116,8 +115,6 @@ func main() {
 		),
 	)
 
-	// Job Generation
-	jobs := []workflow.JobArguments{}
 	startAt := time.Now().UTC().Add(-duration)
 	browsers := []string{
 		string(wptconsumertypes.Chrome),
@@ -128,6 +125,9 @@ func main() {
 		string(wptconsumertypes.FirefoxAndroid),
 	}
 	channels := []string{shared.StableLabel, shared.ExperimentalLabel}
+
+	// Job Generation
+	jobs := make([]workflow.JobArguments, 0, len(browsers)*len(channels))
 	for _, browser := range browsers {
 		for _, channel := range channels {
 			jobs = append(jobs, workflow.NewJobArguments(

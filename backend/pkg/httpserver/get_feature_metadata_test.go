@@ -37,7 +37,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 			name: "success",
 			mockGetIDConfig: &MockGetIDFromFeatureKeyConfig{
 				expectedFeatureKey: "key1",
-				result:             valuePtr("id1"),
+				result:             new("id1"),
 				err:                nil,
 			},
 			mockGetMetadataConfig: MockGetFeatureMetadataConfig{
@@ -46,15 +46,15 @@ func TestGetFeatureMetadata(t *testing.T) {
 					CanIUse: &backend.CanIUseInfo{
 						Items: &[]backend.CanIUseItem{
 							{
-								Id: valuePtr("caniuse1"),
+								Id: new("caniuse1"),
 							},
 						},
 					},
-					Description: valuePtr("desc"),
+					Description: new("desc"),
 				},
 				err: nil,
 			},
-			request: httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/key1/feature-metadata", nil),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key:   `getFeatureMetadata-{"feature_id":"key1"}`,
@@ -83,7 +83,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 				result:            nil,
 				err:               nil,
 			},
-			request: httptest.NewRequest(http.MethodGet, "/v1/features/key1/feature-metadata", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features/key1/feature-metadata", nil),
 			expectedGetCalls: []*ExpectedGetCall{
 				{
 					Key: `getFeatureMetadata-{"feature_id":"key1"}`,

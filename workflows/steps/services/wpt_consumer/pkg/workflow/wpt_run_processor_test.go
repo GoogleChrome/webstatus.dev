@@ -17,6 +17,7 @@ package workflow
 import (
 	"context"
 	"errors"
+	"maps"
 	"reflect"
 	"testing"
 	"time"
@@ -25,8 +26,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/webdxfeaturetypes"
 	"github.com/web-platform-tests/wpt.fyi/shared"
 )
-
-func valuePtr[T any](in T) *T { return &in }
 
 type MockResultsDownloader struct {
 	shouldFail     bool
@@ -189,10 +188,10 @@ func TestProcessRun(t *testing.T) {
 				runID: 123,
 				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {
-						TotalTests:        valuePtr[int64](10),
-						TestPass:          valuePtr[int64](10),
-						TotalSubtests:     valuePtr[int64](100),
-						SubtestPass:       valuePtr[int64](100),
+						TotalTests:        new(int64(10)),
+						TestPass:          new(int64(10)),
+						TotalSubtests:     new(int64(100)),
+						SubtestPass:       new(int64(100)),
 						FeatureRunDetails: nil,
 					},
 				},
@@ -202,10 +201,10 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:        valuePtr[int64](10),
-							TestPass:          valuePtr[int64](10),
-							TotalSubtests:     valuePtr[int64](100),
-							SubtestPass:       valuePtr[int64](100),
+							TotalTests:        new(int64(10)),
+							TestPass:          new(int64(10)),
+							TotalSubtests:     new(int64(100)),
+							SubtestPass:       new(int64(100)),
 							FeatureRunDetails: nil,
 						},
 					},
@@ -318,10 +317,10 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:        valuePtr[int64](10),
-							TestPass:          valuePtr[int64](10),
-							TotalSubtests:     valuePtr[int64](100),
-							SubtestPass:       valuePtr[int64](100),
+							TotalTests:        new(int64(10)),
+							TestPass:          new(int64(10)),
+							TotalSubtests:     new(int64(100)),
+							SubtestPass:       new(int64(100)),
 							FeatureRunDetails: nil,
 						},
 					},
@@ -379,10 +378,10 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:        valuePtr[int64](10),
-							TestPass:          valuePtr[int64](10),
-							TotalSubtests:     valuePtr[int64](100),
-							SubtestPass:       valuePtr[int64](100),
+							TotalTests:        new(int64(10)),
+							TestPass:          new(int64(10)),
+							TotalSubtests:     new(int64(100)),
+							SubtestPass:       new(int64(100)),
 							FeatureRunDetails: nil,
 						},
 					},
@@ -443,10 +442,10 @@ func TestProcessRun(t *testing.T) {
 				runID: 123,
 				metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 					"feature1": {
-						TotalTests:        valuePtr[int64](10),
-						TestPass:          valuePtr[int64](10),
-						TotalSubtests:     valuePtr[int64](100),
-						SubtestPass:       valuePtr[int64](100),
+						TotalTests:        new(int64(10)),
+						TestPass:          new(int64(10)),
+						TotalSubtests:     new(int64(100)),
+						SubtestPass:       new(int64(100)),
 						FeatureRunDetails: nil,
 					},
 				},
@@ -456,10 +455,10 @@ func TestProcessRun(t *testing.T) {
 				resultsSummary: MockResultsFile{
 					metricsPerFeature: map[string]wptconsumertypes.WPTFeatureMetric{
 						"feature1": {
-							TotalTests:        valuePtr[int64](10),
-							TestPass:          valuePtr[int64](10),
-							TotalSubtests:     valuePtr[int64](100),
-							SubtestPass:       valuePtr[int64](100),
+							TotalTests:        new(int64(10)),
+							TestPass:          new(int64(10)),
+							TotalSubtests:     new(int64(100)),
+							SubtestPass:       new(int64(100)),
 							FeatureRunDetails: nil,
 						},
 					},
@@ -577,10 +576,8 @@ func TestMigrateWebFeaturesToMovedFeatures(t *testing.T) {
 			// Make a deep copy of the input data to avoid modifying the test case data.
 			dataCopy := make(shared.WebFeaturesData)
 			for k, v := range *tc.data {
-				innerCopy := make(map[string]interface{})
-				for ik, iv := range v {
-					innerCopy[ik] = iv
-				}
+				innerCopy := make(map[string]any)
+				maps.Copy(innerCopy, v)
 				dataCopy[k] = innerCopy
 			}
 

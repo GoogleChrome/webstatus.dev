@@ -79,8 +79,8 @@ func (w webFeatureForeignKeyTestHelpers) insertWPTTest(ctx context.Context, t *t
 
 	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, testRunID, map[string]WPTRunFeatureMetric{
 		w.testWebFeature().FeatureKey: {
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			TotalTests: new(int64(20)),
+			TestPass:   new(int64(10)),
 			// TODO: Put value when asserting subtest metrics and feature run details
 			TotalSubtests:     nil,
 			SubtestPass:       nil,
@@ -95,7 +95,7 @@ func (w webFeatureForeignKeyTestHelpers) insertWPTTest(ctx context.Context, t *t
 
 func (w *webFeatureForeignKeyTestHelpers) insertBaselineStatus(ctx context.Context, t *testing.T) {
 	err := spannerClient.UpsertFeatureBaselineStatus(ctx, w.testWebFeature().FeatureKey, FeatureBaselineStatus{
-		Status:   valuePtr(BaselineStatusHigh),
+		Status:   new(BaselineStatusHigh),
 		HighDate: nil,
 		LowDate:  nil,
 	})

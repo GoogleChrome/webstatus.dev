@@ -39,7 +39,7 @@ func (m chromiumHistogramEnumValuesMapper) SelectOne(key spannerChromiumHistogra
 	FROM %s
 	WHERE ChromiumHistogramEnumID = @chromiumHistogramEnumID AND BucketID = @bucketID
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"chromiumHistogramEnumID": key.ChromiumHistogramEnumID,
 		"bucketID":                key.BucketID,
 	}
@@ -126,7 +126,7 @@ func (m chromiumHistogramEnumValuesMapper) GetID(in spannerChromiumHistogramEnum
 	FROM %s
 	WHERE ChromiumHistogramEnumID = @chromiumHistogramEnumID AND BucketID = @bucketID
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"chromiumHistogramEnumID": in.ChromiumHistogramEnumID,
 		"bucketID":                in.BucketID,
 	}

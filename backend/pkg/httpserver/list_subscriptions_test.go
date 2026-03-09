@@ -69,7 +69,7 @@ func TestListSubscriptions(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				"/v1/users/me/subscriptions",
 				nil,
@@ -100,7 +100,7 @@ func TestListSubscriptions(t *testing.T) {
 				err:               errTest,
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				"/v1/users/me/subscriptions",
 				nil,
@@ -117,7 +117,7 @@ func TestListSubscriptions(t *testing.T) {
 			cfg: &MockListSavedSearchSubscriptionsConfig{
 				expectedUserID:    "test-user",
 				expectedPageSize:  50,
-				expectedPageToken: valuePtr("page-token"),
+				expectedPageToken: new("page-token"),
 				err:               nil,
 				output: &backend.SubscriptionPage{
 					Data: &[]backend.SubscriptionResponse{
@@ -137,12 +137,12 @@ func TestListSubscriptions(t *testing.T) {
 						},
 					},
 					Metadata: &backend.PageMetadata{
-						NextPageToken: valuePtr("next-page-token"),
+						NextPageToken: new("next-page-token"),
 					},
 				},
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				"/v1/users/me/subscriptions?page_size=50&page_token=page-token",
 				nil,

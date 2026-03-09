@@ -76,7 +76,7 @@ func TestCreateSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPost,
 				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
@@ -101,7 +101,7 @@ func TestCreateSubscription(t *testing.T) {
 			cfg:                  nil,
 			expectedCallCount:    0,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPost,
 				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
@@ -135,7 +135,7 @@ func TestCreateSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPost,
 				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
@@ -165,7 +165,7 @@ func TestCreateSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPost,
 				"/v1/users/me/subscriptions",
 				strings.NewReader(`{
@@ -195,7 +195,7 @@ func TestCreateSubscription(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPost,
 				"/v1/users/me/subscriptions",
 				strings.NewReader(`{

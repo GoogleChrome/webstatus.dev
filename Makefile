@@ -419,7 +419,22 @@ go-tidy: go-workspace-setup
 		echo -e "\n" || exit 1; \
 		popd ; \
 	done
-go-build: go-workspace-setup go-tidy
+
+go-fix: go-workspace-setup
+	@declare -a GO_MODULES=(); \
+	readarray -t GO_MODULES <  <(go list -f {{.Dir}} -m); \
+	for GO_MODULE in $${GO_MODULES[@]}; \
+	do \
+		if [[ "$$GO_MODULE" != *"tools"* ]]; then \
+			echo "********* go fix module: $${GO_MODULE} *********" ; \
+			pushd $${GO_MODULE} && \
+			go fix $${GO_MODULE}/... && \
+			echo -e "\n" || exit 1; \
+			popd ; \
+		fi \
+	done
+
+go-build: go-workspace-setup go-tidy go-fix
 	go list -f '{{.Dir}}/...' -m | xargs go build
 go-workspace-setup: go-workspace-clean
 	go work init && \

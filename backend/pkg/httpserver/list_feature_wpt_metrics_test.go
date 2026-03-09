@@ -52,8 +52,8 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				data: []backend.WPTRunMetric{
 					{
 						RunTimestamp:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						TestPassCount:   valuePtr[int64](2),
-						TotalTestsCount: valuePtr[int64](2),
+						TestPassCount:   new(int64(2)),
+						TotalTestsCount: new(int64(2)),
 					},
 				},
 			},
@@ -90,7 +90,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 	],
 	"metadata":{}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
@@ -122,7 +122,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 	],
 	"metadata":{}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
@@ -142,8 +142,8 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 				data: []backend.WPTRunMetric{
 					{
 						RunTimestamp:    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
-						TestPassCount:   valuePtr[int64](2),
-						TotalTestsCount: valuePtr[int64](2),
+						TestPassCount:   new(int64(2)),
+						TotalTestsCount: new(int64(2)),
 					},
 				},
 				pageToken: nextPageToken,
@@ -183,7 +183,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 		"next_page_token":"next-page-token"
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&"+
 					"page_size=50&page_token="+*inputPageToken, nil),
@@ -218,7 +218,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 		"next_page_token":"next-page-token"
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&"+
 					"page_size=50&page_token="+*inputPageToken, nil),
@@ -250,7 +250,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedCacheCalls: nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(500, `{"code":500,"message":"unable to get feature metrics"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
@@ -281,7 +281,7 @@ func TestListFeatureWPTMetrics(t *testing.T) {
 			expectedCacheCalls: nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/features/feature1/stats/wpt/browsers/chrome/channels/experimental/test_counts"+
 					"?startAt=2000-01-01&endAt=2000-01-10&page_token="+*badPageToken, nil),
 		},

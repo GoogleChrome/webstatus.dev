@@ -28,7 +28,7 @@ import (
 func createTestID1User() *auth.User {
 	return &auth.User{
 		ID:           "testID1",
-		GitHubUserID: valuePtr("123456"),
+		GitHubUserID: new("123456"),
 	}
 }
 
@@ -137,7 +137,7 @@ func testAuthScope(t *testing.T, path string, method string, shouldBePresent boo
 // Bearer authentication scopes to the request context when the route has
 // security schemes configured.
 func TestAuthScopePresentWhenSecurityConfigured(t *testing.T) {
-	testUser := &auth.User{ID: "test", GitHubUserID: valuePtr("id2")}
+	testUser := &auth.User{ID: "test", GitHubUserID: new("id2")}
 	testAuthScope(t, "/v1/users/me/saved-searches", http.MethodGet, true, testUser)
 }
 

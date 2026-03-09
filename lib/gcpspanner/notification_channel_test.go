@@ -226,7 +226,7 @@ func TestListNotificationChannels(t *testing.T) {
 	}
 
 	// Create a few channels to list
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err := spannerClient.CreateNotificationChannel(ctx, baseCreateReq)
 		if err != nil {
 			t.Fatalf("failed to create notification channel for list test: %v", err)

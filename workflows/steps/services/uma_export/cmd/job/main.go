@@ -64,7 +64,7 @@ func main() {
 		slog.ErrorContext(ctx, "failed generate arguments for jobs. exiting", "error", err)
 		os.Exit(1)
 	}
-	jobs := []workflow.JobArguments{}
+	jobs := make([]workflow.JobArguments, 0, len(dates))
 	for _, date := range dates {
 		jobs = append(jobs, workflow.NewJobArguments(
 			metricdatatypes.WebDXFeaturesQuery,

@@ -33,7 +33,7 @@ func TestRemoveSavedSearch(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   nil,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/saved-searches/saved-search-id",
 				nil,
@@ -47,7 +47,7 @@ func TestRemoveSavedSearch(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   backendtypes.ErrEntityDoesNotExist,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/saved-searches/saved-search-id",
 				nil,
@@ -66,7 +66,7 @@ func TestRemoveSavedSearch(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   backendtypes.ErrUserNotAuthorizedForAction,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/saved-searches/saved-search-id",
 				nil,
@@ -85,7 +85,7 @@ func TestRemoveSavedSearch(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   errTest,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodDelete,
 				"/v1/saved-searches/saved-search-id",
 				nil,

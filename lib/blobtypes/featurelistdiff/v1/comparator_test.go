@@ -226,10 +226,10 @@ func TestCompareFeature_BrowserStatusChange(t *testing.T) {
 
 func TestCompareFeature_BrowserVersionChange(t *testing.T) {
 	oldF := newBaseFeature("1", "A", "limited")
-	oldF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, generic.ValuePtr("120"), nil)
+	oldF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, new("120"), nil)
 
 	newF := newBaseFeature("1", "A", "limited")
-	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, generic.ValuePtr("121"), nil)
+	newF.BrowserImpls.Value.Chrome = newBrowserState(backend.Available, new("121"), nil)
 
 	mod, changed := compareFeature(oldF, newF)
 
@@ -407,8 +407,8 @@ func newDocs(url string) generic.OptionallySet[comparables.Docs] {
 				Value: []comparables.MdnDoc{
 					{
 						URL:   generic.OptionallySet[string]{Value: url, IsSet: true},
-						Title: generic.OptionallySet[*string]{Value: generic.ValuePtr("Example"), IsSet: true},
-						Slug:  generic.OptionallySet[*string]{Value: generic.ValuePtr("example"), IsSet: true},
+						Title: generic.OptionallySet[*string]{Value: new("Example"), IsSet: true},
+						Slug:  generic.OptionallySet[*string]{Value: new("example"), IsSet: true},
 					},
 				},
 			},

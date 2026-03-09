@@ -35,10 +35,10 @@ func TestConvertStringToDate(t *testing.T) {
 	}{
 		{
 			name:     "valid date",
-			input:    valuePtr("2024-03-22"),
-			expected: valuePtr(time.Date(2024, time.March, 22, 0, 0, 0, 0, time.UTC)),
+			input:    new("2024-03-22"),
+			expected: new(time.Date(2024, time.March, 22, 0, 0, 0, 0, time.UTC)),
 		},
-		{name: "invalid date", input: valuePtr("invalid"), expected: nil},
+		{name: "invalid date", input: new("invalid"), expected: nil},
 		{name: "nil input", input: nil, expected: nil},
 	}
 
@@ -112,11 +112,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					SafariIos:      nil,
 				},
 				Baseline: &webdxfeaturetypes.BaselineUnion{
-					Enum: valuePtr(webdxfeaturetypes.High),
+					Enum: new(webdxfeaturetypes.High),
 					Bool: nil,
 				},
 			},
-			expected: valuePtr(gcpspanner.BaselineStatusHigh),
+			expected: new(gcpspanner.BaselineStatusHigh),
 		},
 		{
 			name: "enum: Low",
@@ -134,11 +134,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					SafariIos:      nil,
 				},
 				Baseline: &webdxfeaturetypes.BaselineUnion{
-					Enum: valuePtr(webdxfeaturetypes.Low),
+					Enum: new(webdxfeaturetypes.Low),
 					Bool: nil,
 				},
 			},
-			expected: valuePtr(gcpspanner.BaselineStatusLow),
+			expected: new(gcpspanner.BaselineStatusLow),
 		},
 		{
 			name: "bool: False",
@@ -156,11 +156,11 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					SafariIos:      nil,
 				},
 				Baseline: &webdxfeaturetypes.BaselineUnion{
-					Bool: valuePtr(false),
+					Bool: new(false),
 					Enum: nil,
 				},
 			},
-			expected: valuePtr(gcpspanner.BaselineStatusNone),
+			expected: new(gcpspanner.BaselineStatusNone),
 		},
 		{
 			name: "bool: True (should never happen)",
@@ -178,7 +178,7 @@ func TestGetBaselineStatusEnum(t *testing.T) {
 					SafariIos:      nil,
 				},
 				Baseline: &webdxfeaturetypes.BaselineUnion{
-					Bool: valuePtr(true),
+					Bool: new(true),
 					Enum: nil,
 				},
 			},
@@ -547,12 +547,12 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
 					"feature2": {
-						Status:   valuePtr(gcpspanner.BaselineStatusLow),
+						Status:   new(gcpspanner.BaselineStatusLow),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -646,16 +646,16 @@ func TestInsertWebFeatures(t *testing.T) {
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
 								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("100"),
-									ChromeAndroid:  valuePtr("104"),
-									Edge:           valuePtr("101"),
-									Firefox:        valuePtr("102"),
+									Chrome:         new("100"),
+									ChromeAndroid:  new("104"),
+									Edge:           new("101"),
+									Firefox:        new("102"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("103"),
+									Safari:         new("103"),
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -680,13 +680,13 @@ func TestInsertWebFeatures(t *testing.T) {
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
-									Firefox:        valuePtr("202"),
+									Firefox:        new("202"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("203"),
-									SafariIos:      valuePtr("106"),
+									Safari:         new("203"),
+									SafariIos:      new("106"),
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.Low),
+									Enum: new(webdxfeaturetypes.Low),
 									Bool: nil,
 								},
 							},
@@ -782,7 +782,7 @@ func TestInsertWebFeatures(t *testing.T) {
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -821,7 +821,7 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -868,7 +868,7 @@ func TestInsertWebFeatures(t *testing.T) {
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -916,7 +916,7 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -973,16 +973,16 @@ func TestInsertWebFeatures(t *testing.T) {
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
 								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("100"),
+									Chrome:         new("100"),
 									ChromeAndroid:  nil,
-									Edge:           valuePtr("101"),
-									Firefox:        valuePtr("102"),
+									Edge:           new("101"),
+									Firefox:        new("102"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("103"),
+									Safari:         new("103"),
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1030,7 +1030,7 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -1077,16 +1077,16 @@ func TestInsertWebFeatures(t *testing.T) {
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
 								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("100"),
-									ChromeAndroid:  valuePtr("104"),
-									Edge:           valuePtr("101"),
-									Firefox:        valuePtr("102"),
-									FirefoxAndroid: valuePtr("105"),
-									Safari:         valuePtr("103"),
-									SafariIos:      valuePtr("106"),
+									Chrome:         new("100"),
+									ChromeAndroid:  new("104"),
+									Edge:           new("101"),
+									Firefox:        new("102"),
+									FirefoxAndroid: new("105"),
+									Safari:         new("103"),
+									SafariIos:      new("106"),
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1140,12 +1140,12 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
 					"feature2": {
-						Status:   valuePtr(gcpspanner.BaselineStatusLow),
+						Status:   new(gcpspanner.BaselineStatusLow),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -1236,16 +1236,16 @@ func TestInsertWebFeatures(t *testing.T) {
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
 								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("100"),
-									ChromeAndroid:  valuePtr("104"),
-									Edge:           valuePtr("101"),
-									Firefox:        valuePtr("102"),
+									Chrome:         new("100"),
+									ChromeAndroid:  new("104"),
+									Edge:           new("101"),
+									Firefox:        new("102"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("103"),
+									Safari:         new("103"),
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1268,13 +1268,13 @@ func TestInsertWebFeatures(t *testing.T) {
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
-									Firefox:        valuePtr("202"),
+									Firefox:        new("202"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("203"),
-									SafariIos:      valuePtr("106"),
+									Safari:         new("203"),
+									SafariIos:      new("106"),
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.Low),
+									Enum: new(webdxfeaturetypes.Low),
 									Bool: nil,
 								},
 							},
@@ -1328,12 +1328,12 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
 					"feature2": {
-						Status:   valuePtr(gcpspanner.BaselineStatusLow),
+						Status:   new(gcpspanner.BaselineStatusLow),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -1427,16 +1427,16 @@ func TestInsertWebFeatures(t *testing.T) {
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
 								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("100"),
-									ChromeAndroid:  valuePtr("104"),
-									Edge:           valuePtr("101"),
-									Firefox:        valuePtr("102"),
+									Chrome:         new("100"),
+									ChromeAndroid:  new("104"),
+									Edge:           new("101"),
+									Firefox:        new("102"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("103"),
+									Safari:         new("103"),
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},
@@ -1459,13 +1459,13 @@ func TestInsertWebFeatures(t *testing.T) {
 									Chrome:         nil,
 									ChromeAndroid:  nil,
 									Edge:           nil,
-									Firefox:        valuePtr("202"),
+									Firefox:        new("202"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("203"),
-									SafariIos:      valuePtr("106"),
+									Safari:         new("203"),
+									SafariIos:      new("106"),
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.Low),
+									Enum: new(webdxfeaturetypes.Low),
 									Bool: nil,
 								},
 							},
@@ -1518,7 +1518,7 @@ func TestInsertWebFeatures(t *testing.T) {
 			mockUpsertFeatureBaselineStatusCfg: mockUpsertFeatureBaselineStatusConfig{
 				expectedInputs: map[string]gcpspanner.FeatureBaselineStatus{
 					"feature1": {
-						Status:   valuePtr(gcpspanner.BaselineStatusHigh),
+						Status:   new(gcpspanner.BaselineStatusHigh),
 						HighDate: nil,
 						LowDate:  nil,
 					},
@@ -1568,16 +1568,16 @@ func TestInsertWebFeatures(t *testing.T) {
 								BaselineLowDate:  nil,
 								ByCompatKey:      nil,
 								Support: webdxfeaturetypes.StatusSupport{
-									Chrome:         valuePtr("100"),
-									ChromeAndroid:  valuePtr("104"),
-									Edge:           valuePtr("101"),
-									Firefox:        valuePtr("102"),
+									Chrome:         new("100"),
+									ChromeAndroid:  new("104"),
+									Edge:           new("101"),
+									Firefox:        new("102"),
 									FirefoxAndroid: nil,
-									Safari:         valuePtr("103"),
+									Safari:         new("103"),
 									SafariIos:      nil,
 								},
 								Baseline: &webdxfeaturetypes.BaselineUnion{
-									Enum: valuePtr(webdxfeaturetypes.High),
+									Enum: new(webdxfeaturetypes.High),
 									Bool: nil,
 								},
 							},

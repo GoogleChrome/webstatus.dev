@@ -66,7 +66,7 @@ func (m snapshotSpannerMapper) SelectOne(key string) spanner.Statement {
 	FROM %s
 	WHERE SnapshotKey = @snapshotKey
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"snapshotKey": key,
 	}
 	stmt.Params = parameters
@@ -85,7 +85,7 @@ func (m snapshotSpannerMapper) GetID(key string) spanner.Statement {
 	FROM %s
 	WHERE SnapshotKey = @snapshotKey
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"snapshotKey": key,
 	}
 	stmt.Params = parameters

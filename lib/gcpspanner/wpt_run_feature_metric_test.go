@@ -26,10 +26,6 @@ import (
 	"google.golang.org/api/iterator"
 )
 
-func valuePtr[T any](in T) *T {
-	return &in
-}
-
 // GetMetricByRunIDAndFeatureID is a helper function that attempts to get a
 // metric for the given id from wpt.fyi and feature key.
 func (c *Client) GetMetricByRunIDAndFeatureID(
@@ -47,7 +43,7 @@ func (c *Client) GetMetricByRunIDAndFeatureID(
 		LEFT OUTER JOIN WebFeatures wf ON wf.ID = wpfm.WebFeatureID
 		WHERE r.ExternalRunID = @externalRunID AND wf.FeatureKey = @featureKey
 		LIMIT 1`)
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"externalRunID": runID,
 		"featureKey":    featureKey,
 	}
@@ -89,7 +85,7 @@ func (c *Client) GetLatestMetricByFeatureKeyBrowserChannel(
         JOIN WebFeatures wf ON wf.ID = l.WebFeatureID
         WHERE wf.FeatureKey = @featureKey AND l.BrowserName = @browserName AND l.Channel = @channel`)
 
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"featureKey":  featureKey,
 		"browserName": browserName,
 		"channel":     channel,
@@ -129,24 +125,24 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 0,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(10)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature2": {
-					TotalTests: valuePtr[int64](5),
-					TestPass:   valuePtr[int64](0),
+					TotalTests: new(int64(5)),
+					TestPass:   new(int64(0)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature3": {
-					TotalTests: valuePtr[int64](50),
-					TestPass:   valuePtr[int64](5),
+					TotalTests: new(int64(50)),
+					TestPass:   new(int64(5)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -159,8 +155,8 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 1,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](20),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(20)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -173,8 +169,8 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 2,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(10)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -187,8 +183,8 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 3,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(10)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -201,24 +197,24 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 6,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](20),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(20)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature2": {
-					TotalTests: valuePtr[int64](10),
-					TestPass:   valuePtr[int64](0),
+					TotalTests: new(int64(10)),
+					TestPass:   new(int64(0)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature3": {
-					TotalTests: valuePtr[int64](50),
-					TestPass:   valuePtr[int64](35),
+					TotalTests: new(int64(50)),
+					TestPass:   new(int64(35)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -231,16 +227,16 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 7,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](20),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(20)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature2": {
-					TotalTests: valuePtr[int64](10),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(10)),
+					TestPass:   new(int64(10)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -253,16 +249,16 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 8,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](20),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(20)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature2": {
-					TotalTests: valuePtr[int64](10),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(10)),
+					TestPass:   new(int64(10)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -275,16 +271,16 @@ func getSampleRunMetrics() []struct {
 			ExternalRunID: 9,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](20),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(20)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
 					FeatureRunDetails: nil,
 				},
 				"feature2": {
-					TotalTests: valuePtr[int64](10),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(10)),
+					TestPass:   new(int64(10)),
 					// TODO: Put value when asserting subtest metrics and feature run details
 					TotalSubtests:     nil,
 					SubtestPass:       nil,
@@ -357,8 +353,8 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		ExternalRunID: 0,
 		Metrics: map[string]WPTRunFeatureMetric{
 			"feature1": {
-				TotalTests: valuePtr[int64](300), // Change this value
-				TestPass:   valuePtr[int64](100), // Change this value
+				TotalTests: new(int64(300)), // Change this value
+				TestPass:   new(int64(100)), // Change this value
 				// TODO: Put value when asserting subtest metrics and feature run details
 				TotalSubtests:     nil,
 				SubtestPass:       nil,
@@ -396,8 +392,8 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		ExternalRunID: 9,
 		Metrics: map[string]WPTRunFeatureMetric{
 			"feature2": {
-				TotalTests: valuePtr[int64](300), // This value should be changed
-				TestPass:   valuePtr[int64](100), // This value should be changed
+				TotalTests: new(int64(300)), // This value should be changed
+				TestPass:   new(int64(100)), // This value should be changed
 				// TODO: Put value when asserting subtest metrics and feature run details
 				TotalSubtests:     nil,
 				SubtestPass:       nil,
@@ -445,8 +441,8 @@ func TestUpsertWPTRunFeatureMetric(t *testing.T) {
 		ExternalRunID: 9,
 		FeatureKey:    "feature1",
 		WPTRunFeatureMetric: WPTRunFeatureMetric{
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			TotalTests: new(int64(20)),
+			TestPass:   new(int64(20)),
 			// TODO: Put value when asserting subtest metrics and feature run details
 			TotalSubtests:     nil,
 			SubtestPass:       nil,
@@ -499,8 +495,8 @@ func testLatestWPTMetric(ctx context.Context, t *testing.T, spannerClient *Clien
 		ExternalRunID: 10,
 		Metrics: map[string]WPTRunFeatureMetric{
 			"feature1": {
-				TotalTests: valuePtr[int64](3300), // Change this value
-				TestPass:   valuePtr[int64](120),  // Change this value
+				TotalTests: new(int64(3300)), // Change this value
+				TestPass:   new(int64(120)),  // Change this value
 				// TODO: Put value when asserting subtest metrics and feature run details
 				TotalSubtests:     nil,
 				SubtestPass:       nil,
@@ -531,8 +527,8 @@ func testLatestWPTMetric(ctx context.Context, t *testing.T, spannerClient *Clien
 		ExternalRunID: 0,
 		Metrics: map[string]WPTRunFeatureMetric{
 			"feature1": {
-				TotalTests: valuePtr[int64](3500), // Change this value
-				TestPass:   valuePtr[int64](1000), // Change this value
+				TotalTests: new(int64(3500)), // Change this value
+				TestPass:   new(int64(1000)), // Change this value
 				// TODO: Put value when asserting subtest metrics and feature run details
 				TotalSubtests:     nil,
 				SubtestPass:       nil,
@@ -611,14 +607,14 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 		{
 			TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 			RunID:      6,
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](20),
+			TotalTests: new(int64(20)),
+			TestPass:   new(int64(20)),
 		},
 		{
 			TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			RunID:      0,
-			TotalTests: valuePtr[int64](20),
-			TestPass:   valuePtr[int64](10),
+			TotalTests: new(int64(20)),
+			TestPass:   new(int64(10)),
 		},
 	}
 	if !reflect.DeepEqual(expectedMetrics, metrics) {
@@ -722,16 +718,16 @@ func testGetAllAggregatedMetrics(ctx context.Context, client *Client, t *testing
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 				RunID:      6,
-				TotalTests: valuePtr[int64](80),
-				TestPass:   valuePtr[int64](55),
+				TotalTests: new(int64(80)),
+				TestPass:   new(int64(55)),
 			},
 		},
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				RunID:      0,
-				TotalTests: valuePtr[int64](75),
-				TestPass:   valuePtr[int64](15),
+				TotalTests: new(int64(75)),
+				TestPass:   new(int64(15)),
 			},
 		},
 	}
@@ -765,8 +761,8 @@ func testGetAllAggregatedMetricsPages(ctx context.Context, client *Client, t *te
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 				RunID:      6,
-				TotalTests: valuePtr[int64](80),
-				TestPass:   valuePtr[int64](55),
+				TotalTests: new(int64(80)),
+				TestPass:   new(int64(55)),
 			},
 		},
 	}
@@ -797,8 +793,8 @@ func testGetAllAggregatedMetricsPages(ctx context.Context, client *Client, t *te
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				RunID:      0,
-				TotalTests: valuePtr[int64](75),
-				TestPass:   valuePtr[int64](15),
+				TotalTests: new(int64(75)),
+				TestPass:   new(int64(15)),
 			},
 		},
 	}
@@ -853,16 +849,16 @@ func testGetSubsetAggregatedMetrics(ctx context.Context, client *Client, t *test
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 				RunID:      6,
-				TotalTests: valuePtr[int64](60),
-				TestPass:   valuePtr[int64](35),
+				TotalTests: new(int64(60)),
+				TestPass:   new(int64(35)),
 			},
 		},
 		{
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				RunID:      0,
-				TotalTests: valuePtr[int64](55),
-				TestPass:   valuePtr[int64](5),
+				TotalTests: new(int64(55)),
+				TestPass:   new(int64(5)),
 			},
 		},
 	}
@@ -895,8 +891,8 @@ func testGetSubsetAggregatedMetricsPages(ctx context.Context, client *Client, t 
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 				RunID:      6,
-				TotalTests: valuePtr[int64](60),
-				TestPass:   valuePtr[int64](35),
+				TotalTests: new(int64(60)),
+				TestPass:   new(int64(35)),
 			},
 		},
 	}
@@ -927,8 +923,8 @@ func testGetSubsetAggregatedMetricsPages(ctx context.Context, client *Client, t 
 			WPTRunFeatureMetricWithTime: WPTRunFeatureMetricWithTime{
 				TimeStart:  time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				RunID:      0,
-				TotalTests: valuePtr[int64](55),
-				TestPass:   valuePtr[int64](5),
+				TotalTests: new(int64(55)),
+				TestPass:   new(int64(5)),
 			},
 		},
 	}

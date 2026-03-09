@@ -61,14 +61,14 @@ func updateGolden(t *testing.T, path, location string) {
 	}
 
 	// 2. Unmarshal the original JSON
-	var originalData interface{}
+	var originalData any
 	err = json.Unmarshal(body, &originalData)
 	if err != nil {
 		t.Fatalf("Error unmarshaling original JSON: %s", err)
 	}
 
 	// 3. Extract the "browsers" key
-	dataMap, ok := originalData.(map[string]interface{})
+	dataMap, ok := originalData.(map[string]any)
 	if !ok {
 		t.Fatal("Original JSON is not in the expected format")
 	}
@@ -78,7 +78,7 @@ func updateGolden(t *testing.T, path, location string) {
 		t.Fatal("The 'browsers' key was not found")
 	}
 
-	outputData := map[string]interface{}{
+	outputData := map[string]any{
 		"browsers": browsersData,
 	}
 

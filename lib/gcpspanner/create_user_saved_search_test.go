@@ -31,7 +31,7 @@ func TestCreateNewUserSavedSearch(t *testing.T) {
 			Name:        "my little search",
 			Query:       "group:css",
 			OwnerUserID: "userID1",
-			Description: valuePtr("description1"),
+			Description: new("description1"),
 		})
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
@@ -44,7 +44,7 @@ func TestCreateNewUserSavedSearch(t *testing.T) {
 			Name:        "my little search part 2",
 			Query:       "group:avif",
 			OwnerUserID: "userID1",
-			Description: valuePtr("description2"),
+			Description: new("description2"),
 		})
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
@@ -57,7 +57,7 @@ func TestCreateNewUserSavedSearch(t *testing.T) {
 			Name:        "my little search part 3",
 			Query:       "name:subgrid",
 			OwnerUserID: "userID1",
-			Description: valuePtr("description3"),
+			Description: new("description3"),
 		})
 		if !errors.Is(err, ErrOwnerSavedSearchLimitExceeded) {
 			t.Errorf("unexpected error. received %v", err)

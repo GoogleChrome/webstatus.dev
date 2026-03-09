@@ -128,15 +128,13 @@ func TestCalculateAllFeatureGroupLookups(t *testing.T) {
 			entityChan := make(chan spannerFeatureGroupKeysLookup, 100) // Buffered channel
 			var actualLookups []spannerFeatureGroupKeysLookup
 			var wg sync.WaitGroup
-			wg.Add(1)
 
 			// This goroutine reads all results from the channel.
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for lookup := range entityChan {
 					actualLookups = append(actualLookups, lookup)
 				}
-			}()
+			})
 
 			// Run the function under test.
 			calculateAllFeatureGroupLookups(

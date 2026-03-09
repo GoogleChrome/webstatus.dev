@@ -138,7 +138,7 @@ func TestMigrationChain(t *testing.T) {
 	}
 
 	// 5. Verify Output
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(migratedBytes, &raw); err != nil {
 		t.Fatalf("Unmarshal result failed: %v", err)
 	}

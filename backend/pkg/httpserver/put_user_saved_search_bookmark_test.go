@@ -33,7 +33,7 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   nil,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPut,
 				"/v1/users/me/saved-searches/saved-search-id/bookmark_status",
 				nil,
@@ -47,7 +47,7 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   errTest,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPut,
 				"/v1/users/me/saved-searches/saved-search-id/bookmark_status",
 				nil,
@@ -66,7 +66,7 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   backendtypes.ErrEntityDoesNotExist,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPut,
 				"/v1/users/me/saved-searches/saved-search-id/bookmark_status",
 				nil,
@@ -85,7 +85,7 @@ func TestPutUserSavedSearchBookmark(t *testing.T) {
 				expectedUserID:        "testID1",
 				err:                   backendtypes.ErrUserMaxBookmarks,
 			},
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPut,
 				"/v1/users/me/saved-searches/saved-search-id/bookmark_status",
 				nil,

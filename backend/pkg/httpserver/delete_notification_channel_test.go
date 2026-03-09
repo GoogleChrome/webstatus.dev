@@ -45,8 +45,9 @@ func TestDeleteNotificationChannel(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodDelete, "/v1/users/me/notification-channels/channel1", nil),
-			expectedResponse:     createEmptyBodyResponse(http.StatusNoContent),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodDelete,
+				"/v1/users/me/notification-channels/channel1", nil),
+			expectedResponse: createEmptyBodyResponse(http.StatusNoContent),
 		},
 		{
 			name: "not found",
@@ -57,7 +58,8 @@ func TestDeleteNotificationChannel(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodDelete, "/v1/users/me/notification-channels/channel1", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodDelete,
+				"/v1/users/me/notification-channels/channel1", nil),
 			expectedResponse: testJSONResponse(404, `
 			{
 				"code":404,
@@ -73,7 +75,8 @@ func TestDeleteNotificationChannel(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodDelete, "/v1/users/me/notification-channels/channel1", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodDelete,
+				"/v1/users/me/notification-channels/channel1", nil),
 			expectedResponse: testJSONResponse(500, `
 			{
 				"code":500,

@@ -52,7 +52,7 @@ func extractGitHubUserIDFromToken(token *firebaseauth.Token) (*string, bool) {
 
 	// Have to convert to []interface{} first.
 	// Cannot directly convert to []string.
-	githubIDs, ok := rawGithubIdentities.([]interface{})
+	githubIDs, ok := rawGithubIdentities.([]any)
 	if !ok || len(githubIDs) == 0 {
 		return nil, false
 	}

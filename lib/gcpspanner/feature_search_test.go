@@ -206,23 +206,23 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 		{
 			featureKey: "feature1",
 			status: FeatureBaselineStatus{
-				Status:   valuePtr(BaselineStatusLow),
-				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
+				Status:   new(BaselineStatusLow),
+				LowDate:  new(time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
 				HighDate: nil,
 			},
 		},
 		{
 			featureKey: "feature2",
 			status: FeatureBaselineStatus{
-				Status:   valuePtr(BaselineStatusHigh),
-				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
-				HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+				Status:   new(BaselineStatusHigh),
+				LowDate:  new(time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
+				HighDate: new(time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 			},
 		},
 		{
 			featureKey: "feature3",
 			status: FeatureBaselineStatus{
-				Status:   valuePtr(BaselineStatusNone),
+				Status:   new(BaselineStatusNone),
 				LowDate:  nil,
 				HighDate: nil,
 			},
@@ -347,26 +347,26 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 0,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](20),
-					TestPass:      valuePtr[int64](10),
-					TotalSubtests: valuePtr[int64](220),
-					SubtestPass:   valuePtr[int64](110),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(20)),
+					TestPass:      new(int64(10)),
+					TotalSubtests: new(int64(220)),
+					SubtestPass:   new(int64(110)),
+					FeatureRunDetails: map[string]any{
 						"test": "stale-foo-stable",
 					},
 				},
 				"feature2": {
-					TotalTests:        valuePtr[int64](5),
-					TestPass:          valuePtr[int64](0),
-					TotalSubtests:     valuePtr[int64](55),
-					SubtestPass:       valuePtr[int64](11),
+					TotalTests:        new(int64(5)),
+					TestPass:          new(int64(0)),
+					TotalSubtests:     new(int64(55)),
+					SubtestPass:       new(int64(11)),
 					FeatureRunDetails: nil,
 				},
 				"feature3": {
-					TotalTests:        valuePtr[int64](50),
-					TestPass:          valuePtr[int64](5),
-					TotalSubtests:     valuePtr[int64](5000),
-					SubtestPass:       valuePtr[int64](150),
+					TotalTests:        new(int64(50)),
+					TestPass:          new(int64(5)),
+					TotalSubtests:     new(int64(5000)),
+					SubtestPass:       new(int64(150)),
 					FeatureRunDetails: nil,
 				},
 			},
@@ -376,10 +376,10 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 1,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:        valuePtr[int64](20),
-					TestPass:          valuePtr[int64](20),
-					TotalSubtests:     valuePtr[int64](200),
-					SubtestPass:       valuePtr[int64](200),
+					TotalTests:        new(int64(20)),
+					TestPass:          new(int64(20)),
+					TotalSubtests:     new(int64(200)),
+					SubtestPass:       new(int64(200)),
 					FeatureRunDetails: nil,
 				},
 			},
@@ -389,10 +389,10 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 2,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:        valuePtr[int64](20),
-					TestPass:          valuePtr[int64](10),
-					TotalSubtests:     valuePtr[int64](200),
-					SubtestPass:       valuePtr[int64](15),
+					TotalTests:        new(int64(20)),
+					TestPass:          new(int64(10)),
+					TotalSubtests:     new(int64(200)),
+					SubtestPass:       new(int64(15)),
 					FeatureRunDetails: nil,
 				},
 			},
@@ -402,10 +402,10 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 3,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:        valuePtr[int64](20),
-					TestPass:          valuePtr[int64](10),
-					TotalSubtests:     valuePtr[int64](700),
-					SubtestPass:       valuePtr[int64](250),
+					TotalTests:        new(int64(20)),
+					TestPass:          new(int64(10)),
+					TotalSubtests:     new(int64(700)),
+					SubtestPass:       new(int64(250)),
 					FeatureRunDetails: nil,
 				},
 			},
@@ -415,29 +415,29 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 6,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](20),
-					TestPass:      valuePtr[int64](20),
-					TotalSubtests: valuePtr[int64](1000),
-					SubtestPass:   valuePtr[int64](1000),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(20)),
+					TestPass:      new(int64(20)),
+					TotalSubtests: new(int64(1000)),
+					SubtestPass:   new(int64(1000)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest1-foo-stable",
 					},
 				},
 				"feature2": {
-					TotalTests:    valuePtr[int64](10),
-					TestPass:      valuePtr[int64](0),
-					TotalSubtests: valuePtr[int64](100),
-					SubtestPass:   valuePtr[int64](15),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(10)),
+					TestPass:      new(int64(0)),
+					TotalSubtests: new(int64(100)),
+					SubtestPass:   new(int64(15)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-foo-stable",
 					},
 				},
 				"feature3": {
-					TotalTests:    valuePtr[int64](50),
-					TestPass:      valuePtr[int64](35),
-					TotalSubtests: valuePtr[int64](9000),
-					SubtestPass:   valuePtr[int64](4000),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(50)),
+					TestPass:      new(int64(35)),
+					TotalSubtests: new(int64(9000)),
+					SubtestPass:   new(int64(4000)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest3-foo-stable",
 					},
 				},
@@ -448,20 +448,20 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 7,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](11),
-					TestPass:      valuePtr[int64](11),
-					TotalSubtests: valuePtr[int64](11),
-					SubtestPass:   valuePtr[int64](11),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(11)),
+					TestPass:      new(int64(11)),
+					TotalSubtests: new(int64(11)),
+					SubtestPass:   new(int64(11)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest1-foo-exp",
 					},
 				},
 				"feature2": {
-					TotalTests:    valuePtr[int64](12),
-					TestPass:      valuePtr[int64](12),
-					TotalSubtests: valuePtr[int64](12),
-					SubtestPass:   valuePtr[int64](12),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(12)),
+					TestPass:      new(int64(12)),
+					TotalSubtests: new(int64(12)),
+					SubtestPass:   new(int64(12)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-foo-exp",
 					},
 				},
@@ -472,20 +472,20 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 8,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:    valuePtr[int64](33),
-					TestPass:      valuePtr[int64](33),
-					TotalSubtests: valuePtr[int64](333),
-					SubtestPass:   valuePtr[int64](333),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(33)),
+					TestPass:      new(int64(33)),
+					TotalSubtests: new(int64(333)),
+					SubtestPass:   new(int64(333)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest1-bar-stable",
 					},
 				},
 				"feature2": {
-					TotalTests:    valuePtr[int64](10),
-					TestPass:      valuePtr[int64](10),
-					TotalSubtests: valuePtr[int64](100),
-					SubtestPass:   valuePtr[int64](100),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(10)),
+					TestPass:      new(int64(10)),
+					TotalSubtests: new(int64(100)),
+					SubtestPass:   new(int64(100)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-bar-stable",
 					},
 				},
@@ -496,18 +496,18 @@ func setupRequiredTablesForFeaturesSearch(ctx context.Context,
 			ExternalRunID: 9,
 			Metrics: map[string]WPTRunFeatureMetric{
 				"feature1": {
-					TotalTests:        valuePtr[int64](220),
-					TestPass:          valuePtr[int64](220),
-					TotalSubtests:     valuePtr[int64](2220),
-					SubtestPass:       valuePtr[int64](2220),
+					TotalTests:        new(int64(220)),
+					TestPass:          new(int64(220)),
+					TotalSubtests:     new(int64(2220)),
+					SubtestPass:       new(int64(2220)),
 					FeatureRunDetails: nil,
 				},
 				"feature2": {
-					TotalTests:    valuePtr[int64](120),
-					TestPass:      valuePtr[int64](120),
-					TotalSubtests: valuePtr[int64](1220),
-					SubtestPass:   valuePtr[int64](1220),
-					FeatureRunDetails: map[string]interface{}{
+					TotalTests:    new(int64(120)),
+					TestPass:      new(int64(120)),
+					TotalSubtests: new(int64(1220)),
+					SubtestPass:   new(int64(1220)),
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-bar-exp",
 					},
 				},
@@ -855,21 +855,21 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 		ret = FeatureResult{
 			FeatureKey: "feature1",
 			Name:       "Feature 1",
-			Status:     valuePtr(string(BaselineStatusLow)),
-			LowDate:    valuePtr[time.Time](time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
+			Status:     new(string(BaselineStatusLow)),
+			LowDate:    new(time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC)),
 			HighDate:   nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(33, 33),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest1-bar-stable",
 					},
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(20, 20),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest1-foo-stable",
 					},
 				},
@@ -883,7 +883,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(11, 11),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest1-foo-exp",
 					},
 				},
@@ -892,14 +892,14 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName:           "barBrowser",
 					ImplementationStatus:  Available,
-					ImplementationDate:    valuePtr(time.Date(2000, time.February, 2, 0, 0, 0, 0, time.UTC)),
-					ImplementationVersion: valuePtr("1.0.0"),
+					ImplementationDate:    new(time.Date(2000, time.February, 2, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: new("1.0.0"),
 				},
 				{
 					BrowserName:           "fooBrowser",
 					ImplementationStatus:  Available,
-					ImplementationDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-					ImplementationVersion: valuePtr("0.0.0"),
+					ImplementationDate:    new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: new("0.0.0"),
 				},
 			},
 			SpecLinks: []string{
@@ -907,13 +907,13 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"http://example2.com",
 			},
 			ChromiumUsage:          big.NewRat(8, 100),
-			DeveloperSignalUpvotes: valuePtr(int64(1)),
-			DeveloperSignalLink:    valuePtr("https://example.com"),
+			DeveloperSignalUpvotes: new(int64(1)),
+			DeveloperSignalLink:    new("https://example.com"),
 			AccordingTo:            nil,
 			Alternatives:           nil,
 			VendorPositions: spanner.NullJSON{
-				Value: []interface{}{
-					map[string]interface{}{
+				Value: []any{
+					map[string]any{
 						"position": "positive",
 						"url":      "https://example.com/feature1",
 						"vendor":   "chrome",
@@ -921,27 +921,27 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				},
 				Valid: true,
 			},
-			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
+			SystemManagedSavedSearchID: new("saved-search-1"),
 		}
 	case FeatureSearchTestFId2:
 		ret = FeatureResult{
 			FeatureKey: "feature2",
 			Name:       "Feature 2",
-			Status:     valuePtr(string(BaselineStatusHigh)),
-			LowDate:    valuePtr[time.Time](time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
-			HighDate:   valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			Status:     new(string(BaselineStatusHigh)),
+			LowDate:    new(time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC)),
+			HighDate:   new(time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(10, 10),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-bar-stable",
 					},
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(0, 10),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-foo-stable",
 					},
 				},
@@ -950,14 +950,14 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName: "barBrowser",
 					PassRate:    big.NewRat(120, 120),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-bar-exp",
 					},
 				},
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(12, 12),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest2-foo-exp",
 					},
 				},
@@ -966,19 +966,19 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName:           "barBrowser",
 					ImplementationStatus:  Available,
-					ImplementationDate:    valuePtr(time.Date(2000, time.March, 2, 0, 0, 0, 0, time.UTC)),
-					ImplementationVersion: valuePtr("2.0.0"),
+					ImplementationDate:    new(time.Date(2000, time.March, 2, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: new("2.0.0"),
 				},
 			},
 			SpecLinks:              nil,
 			ChromiumUsage:          big.NewRat(91, 100),
-			DeveloperSignalUpvotes: valuePtr(int64(9)),
-			DeveloperSignalLink:    valuePtr("https://example2.com"),
+			DeveloperSignalUpvotes: new(int64(9)),
+			DeveloperSignalLink:    new("https://example2.com"),
 			AccordingTo:            nil,
 			Alternatives:           nil,
 			VendorPositions: spanner.NullJSON{
-				Value: []interface{}{
-					map[string]interface{}{
+				Value: []any{
+					map[string]any{
 						"position": "negative",
 						"url":      "https://example.com/feature2",
 						"vendor":   "safari",
@@ -986,20 +986,20 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				},
 				Valid: true,
 			},
-			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
+			SystemManagedSavedSearchID: new("saved-search-1"),
 		}
 	case FeatureSearchTestFId3:
 		ret = FeatureResult{
 			FeatureKey: "feature3",
 			Name:       "Feature 3",
-			Status:     valuePtr(string(BaselineStatusNone)),
+			Status:     new(string(BaselineStatusNone)),
 			LowDate:    nil,
 			HighDate:   nil,
 			StableMetrics: []*FeatureResultMetric{
 				{
 					BrowserName: "fooBrowser",
 					PassRate:    big.NewRat(35, 50),
-					FeatureRunDetails: map[string]interface{}{
+					FeatureRunDetails: map[string]any{
 						"test": "latest3-foo-stable",
 					},
 				},
@@ -1009,8 +1009,8 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				{
 					BrowserName:           "fooBrowser",
 					ImplementationStatus:  Available,
-					ImplementationDate:    valuePtr(time.Date(2000, time.February, 1, 0, 0, 0, 0, time.UTC)),
-					ImplementationVersion: valuePtr("1.0.0"),
+					ImplementationDate:    new(time.Date(2000, time.February, 1, 0, 0, 0, 0, time.UTC)),
+					ImplementationVersion: new("1.0.0"),
 				},
 			},
 			SpecLinks: []string{
@@ -1028,7 +1028,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 				"feature1",
 			},
 			VendorPositions:            spanner.NullJSON{Value: nil, Valid: false},
-			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
+			SystemManagedSavedSearchID: new("saved-search-1"),
 		}
 	case FeatureSearchTestFId4:
 		ret = FeatureResult{
@@ -1049,7 +1049,7 @@ func getFeatureSearchTestFeature(testFeatureID FeatureSearchTestFeatureID) Featu
 			},
 			Alternatives:               nil,
 			VendorPositions:            spanner.NullJSON{Value: nil, Valid: false},
-			SystemManagedSavedSearchID: valuePtr("saved-search-1"),
+			SystemManagedSavedSearchID: new("saved-search-1"),
 		}
 	}
 
@@ -1094,7 +1094,7 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			pageToken: nil, // First page does not need a page token.
 			expectedPage: &FeatureResultPage{
 				Total:         4,
-				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+				NextPageToken: new(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
@@ -1105,10 +1105,10 @@ func testFeatureSearchPagination(ctx context.Context, t *testing.T, client *Clie
 			name:     "page two",
 			pageSize: 2,
 			// The token should be made from the token of the previous page's last item
-			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+			pageToken: new(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
 				Total:         4,
-				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
+				NextPageToken: new(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
@@ -2158,7 +2158,7 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			pageToken: nil,
 			expectedPage: &FeatureResultPage{
 				Total:         4,
-				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+				NextPageToken: new(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					// nil status
 					getFeatureSearchTestFeature(FeatureSearchTestFId4),
@@ -2171,10 +2171,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			name:     "BaselineStatus asc - page 2",
 			sortable: NewBaselineStatusSort(true),
 			// Same page token as the next page token from the previous page.
-			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+			pageToken: new(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
 				Total:         4,
-				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
+				NextPageToken: new(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					// high status low date 2000-01-04 high date 2000-01-31
 					getFeatureSearchTestFeature(FeatureSearchTestFId2),
@@ -2189,7 +2189,7 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			pageToken: nil,
 			expectedPage: &FeatureResultPage{
 				Total:         4,
-				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+				NextPageToken: new(encodeFeatureResultOffsetCursor(2)),
 				Features: []FeatureResult{
 					// low status low date 2000-01-05
 					getFeatureSearchTestFeature(FeatureSearchTestFId1),
@@ -2202,10 +2202,10 @@ func testFeatureSearchSortAndPagination(ctx context.Context, t *testing.T, clien
 			name:     "BaselineStatus desc - page 2",
 			sortable: NewBaselineStatusSort(false),
 			// Same page token as the next page token from the previous page.
-			pageToken: valuePtr(encodeFeatureResultOffsetCursor(2)),
+			pageToken: new(encodeFeatureResultOffsetCursor(2)),
 			expectedPage: &FeatureResultPage{
 				Total:         4,
-				NextPageToken: valuePtr(encodeFeatureResultOffsetCursor(4)),
+				NextPageToken: new(encodeFeatureResultOffsetCursor(4)),
 				Features: []FeatureResult{
 					// none status
 					getFeatureSearchTestFeature(FeatureSearchTestFId3),
@@ -2922,7 +2922,7 @@ func (c *Client) InsertExcludedFeatureKey(ctx context.Context, featureKey string
 	_, err := c.ReadWriteTransaction(ctx, func(_ context.Context, txn *spanner.ReadWriteTransaction) error {
 		m := spanner.InsertOrUpdateMap(
 			"ExcludedFeatureKeys",
-			map[string]interface{}{
+			map[string]any{
 				"FeatureKey": featureKey,
 			})
 

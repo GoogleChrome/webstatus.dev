@@ -191,7 +191,7 @@ func (v *FeaturesSearchVisitor) createSimpleNode(
 The below section implements the generated BaseFeatureSearchVisitor methods.
 */
 
-func (v *FeaturesSearchVisitor) VisitQuery(ctx *parser.QueryContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitQuery(ctx *parser.QueryContext) any {
 	// Create root node.
 	root := &SearchNode{Keyword: KeywordRoot, Term: nil, Children: nil}
 	childResult, ok := v.VisitChildren(ctx).(*SearchNode)
@@ -205,7 +205,7 @@ func (v *FeaturesSearchVisitor) VisitQuery(ctx *parser.QueryContext) interface{}
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_termContext) any {
 	browserNameNode := ctx.BROWSER_NAME()
 	if browserNameNode == nil {
 		v.addError(termMissingValueError{term: IdentifierAvailableOn})
@@ -226,7 +226,7 @@ func (v *FeaturesSearchVisitor) VisitAvailable_on_term(ctx *parser.Available_on_
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_status_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_status_termContext) any {
 	baselineStatusNode := ctx.BASELINE_STATUS()
 	if baselineStatusNode == nil {
 		v.addError(termMissingValueError{term: IdentifierBaselineStatus})
@@ -247,7 +247,7 @@ func (v *FeaturesSearchVisitor) VisitBaseline_status_term(ctx *parser.Baseline_s
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitAvailable_date_term(ctx *parser.Available_date_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitAvailable_date_term(ctx *parser.Available_date_termContext) any {
 	var browserName string
 	if browserCtx := ctx.BROWSER_NAME(); browserCtx != nil {
 		browserName = strings.ToLower(browserCtx.GetText())
@@ -263,7 +263,7 @@ func (v *FeaturesSearchVisitor) VisitAvailable_date_term(ctx *parser.Available_d
 }
 
 func (v *FeaturesSearchVisitor) VisitAvailableBrowserDateTerm(
-	ctx parser.IDate_range_queryContext, browserName string) interface{} {
+	ctx parser.IDate_range_queryContext, browserName string) any {
 	startDate := ctx.GetStartDate()
 	endDate := ctx.GetEndDate()
 
@@ -341,7 +341,7 @@ func (v *FeaturesSearchVisitor) VisitAvailableBrowserDateTerm(
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_date_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitBaseline_date_term(ctx *parser.Baseline_date_termContext) any {
 	if dateRangeCtx := ctx.Date_range_query(); dateRangeCtx != nil {
 		return v.VisitDateRangeQuery(dateRangeCtx, IdentifierBaselineDate)
 	}
@@ -392,7 +392,7 @@ func (v *FeaturesSearchVisitor) VisitDateRangeQuery(ctx parser.IDate_range_query
 	}
 }
 
-func (v *FeaturesSearchVisitor) VisitChildren(node antlr.RuleNode) interface{} {
+func (v *FeaturesSearchVisitor) VisitChildren(node antlr.RuleNode) any {
 	var resultNodes []*SearchNode
 	for _, child := range node.GetChildren() {
 		// Only process non-terminal nodes.
@@ -430,7 +430,7 @@ func (v *FeaturesSearchVisitor) Visit(tree antlr.ParseTree) any {
 	return tree.Accept(v)
 }
 
-func (v *FeaturesSearchVisitor) VisitParenthesizedCriteria(ctx *parser.ParenthesizedCriteriaContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitParenthesizedCriteria(ctx *parser.ParenthesizedCriteriaContext) any {
 	combinedCtx, ok := ctx.Combined_search_criteria().(*parser.Combined_search_criteriaContext)
 	if !ok {
 		return nil
@@ -452,7 +452,7 @@ func (v *FeaturesSearchVisitor) VisitParenthesizedCriteria(ctx *parser.Parenthes
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combined_search_criteriaContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combined_search_criteriaContext) any {
 	var root *SearchNode
 	var current *SearchNode
 
@@ -498,36 +498,36 @@ func (v *FeaturesSearchVisitor) VisitCombined_search_criteria(ctx *parser.Combin
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitId_term(ctx *parser.Id_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitId_term(ctx *parser.Id_termContext) any {
 	return v.createIDNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitSnapshot_term(ctx *parser.Snapshot_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitSnapshot_term(ctx *parser.Snapshot_termContext) any {
 	return v.createSnapshotNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitGroup_term(ctx *parser.Group_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitGroup_term(ctx *parser.Group_termContext) any {
 	return v.createGroupNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitName_term(ctx *parser.Name_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitName_term(ctx *parser.Name_termContext) any {
 	return v.createNameNode(ctx.ANY_VALUE())
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitDescription_term(ctx *parser.Description_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitDescription_term(ctx *parser.Description_termContext) any {
 	return v.createDescriptionNode(ctx.ANY_VALUE())
 }
 
-func (v *FeaturesSearchVisitor) VisitTerm(ctx *parser.TermContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitTerm(ctx *parser.TermContext) any {
 	return v.VisitChildren(ctx)
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_search_termContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_search_termContext) any {
 	node, ok := v.VisitChildren(ctx).(*SearchNode)
 	if !ok {
 		return nil
@@ -552,7 +552,7 @@ func (v *FeaturesSearchVisitor) VisitGeneric_search_term(ctx *parser.Generic_sea
 }
 
 // nolint: revive // Method signature is generated.
-func (v *FeaturesSearchVisitor) VisitSearch_criteria(ctx *parser.Search_criteriaContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitSearch_criteria(ctx *parser.Search_criteriaContext) any {
 	// Handle the default ANY_VALUE case.
 	// This is needed for the feature name that does not have the prefix.
 	// Even though createDescriptionNode will return nil if node is nil, it will add an error.
@@ -564,7 +564,7 @@ func (v *FeaturesSearchVisitor) VisitSearch_criteria(ctx *parser.Search_criteria
 	return v.VisitChildren(ctx)
 }
 
-func (v *FeaturesSearchVisitor) VisitOperator(ctx *parser.OperatorContext) interface{} {
+func (v *FeaturesSearchVisitor) VisitOperator(ctx *parser.OperatorContext) any {
 	return v.VisitChildren(ctx)
 }
 

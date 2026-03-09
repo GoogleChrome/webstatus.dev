@@ -39,7 +39,7 @@ func (m chromiumHistogramEnumsMapper) SelectOne(histogramName string) spanner.St
 	FROM %s
 	WHERE HistogramName = @histogramName
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"histogramName": histogramName,
 	}
 	stmt.Params = parameters
@@ -73,7 +73,7 @@ func (m chromiumHistogramEnumsMapper) GetID(histogramName string) spanner.Statem
 	FROM %s
 	WHERE HistogramName = @histogramName
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"histogramName": histogramName,
 	}
 	stmt.Params = parameters

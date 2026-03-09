@@ -26,7 +26,7 @@ func TestGCPBuildChannelMetricsFilter(t *testing.T) {
 		inputChannel   string
 		inputResults   []LatestRunResult
 		expectedFilter string
-		expectedParams map[string]interface{}
+		expectedParams map[string]any
 	}{
 		{
 			name:           "no results",
@@ -46,7 +46,7 @@ func TestGCPBuildChannelMetricsFilter(t *testing.T) {
 				},
 			},
 			expectedFilter: " AND ((metrics.BrowserName = @stablebrowser0 AND metrics.TimeStart = @stabletime0))",
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"stablebrowser0": "fooBrowser",
 				"stabletime0":    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			},
@@ -68,7 +68,7 @@ func TestGCPBuildChannelMetricsFilter(t *testing.T) {
 			},
 			// nolint: lll // WONTFIX. Expected string will be long.
 			expectedFilter: " AND ((metrics.BrowserName = @stablebrowser0 AND metrics.TimeStart = @stabletime0) OR (metrics.BrowserName = @stablebrowser1 AND metrics.TimeStart = @stabletime1))",
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"stablebrowser0": "fooBrowser",
 				"stabletime0":    time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				"stablebrowser1": "barBrowser",

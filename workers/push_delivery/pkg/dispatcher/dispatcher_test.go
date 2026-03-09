@@ -20,7 +20,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -320,7 +319,7 @@ func TestProcessEvent_FinderError(t *testing.T) {
 	if err == nil {
 		t.Error("Expected error from finder, got nil")
 	}
-	assertFindSubscribersCalledWith(t, finder, generic.ValuePtr(emptyFinderReq()))
+	assertFindSubscribersCalledWith(t, finder, new(emptyFinderReq()))
 }
 
 func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
@@ -380,7 +379,7 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	if publisher.emailJobs[0].ChannelID != "chan-2" {
 		t.Errorf("Expected chan-2 to succeed, got %s", publisher.emailJobs[0].ChannelID)
 	}
-	assertFindSubscribersCalledWith(t, finder, generic.ValuePtr(emptyFinderReq()))
+	assertFindSubscribersCalledWith(t, finder, new(emptyFinderReq()))
 }
 
 func TestProcessEvent_JobCount(t *testing.T) {
@@ -414,7 +413,7 @@ func TestProcessEvent_JobCount(t *testing.T) {
 	if len(publisher.emailJobs) != 0 {
 		t.Error("Expected 0 jobs")
 	}
-	assertFindSubscribersCalledWith(t, finder, generic.ValuePtr(emptyFinderReq()))
+	assertFindSubscribersCalledWith(t, finder, new(emptyFinderReq()))
 }
 
 // --- shouldNotifyV1 Test Helpers ---

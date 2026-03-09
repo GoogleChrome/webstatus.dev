@@ -38,8 +38,8 @@ func TestUserGitHubClient_ListEmails(t *testing.T) {
 			name: "Success - Single Page",
 			cfg: &mockListEmailsConfig{
 				emails: []*github.UserEmail{
-					{Email: valuePtr("test1@example.com"), Verified: valuePtr(true)},
-					{Email: valuePtr("test2@example.com"), Verified: valuePtr(false)},
+					{Email: new("test1@example.com"), Verified: new(true)},
+					{Email: new("test2@example.com"), Verified: new(false)},
 				},
 				err: nil,
 			},
@@ -62,7 +62,7 @@ func TestUserGitHubClient_ListEmails(t *testing.T) {
 			name: "Nil Email in list",
 			cfg: &mockListEmailsConfig{
 				emails: []*github.UserEmail{
-					{Email: valuePtr("test1@example.com"), Verified: valuePtr(true)},
+					{Email: new("test1@example.com"), Verified: new(true)},
 					nil,
 				},
 				err: nil,
@@ -76,7 +76,7 @@ func TestUserGitHubClient_ListEmails(t *testing.T) {
 			name: "Nil Email Address",
 			cfg: &mockListEmailsConfig{
 				emails: []*github.UserEmail{
-					{Email: nil, Verified: valuePtr(true)},
+					{Email: nil, Verified: new(true)},
 				},
 				err: nil,
 			},
@@ -87,7 +87,7 @@ func TestUserGitHubClient_ListEmails(t *testing.T) {
 			name: "Nil Verified Status",
 			cfg: &mockListEmailsConfig{
 				emails: []*github.UserEmail{
-					{Email: valuePtr("test@example.com"), Verified: nil},
+					{Email: new("test@example.com"), Verified: nil},
 				},
 				err: nil,
 			},

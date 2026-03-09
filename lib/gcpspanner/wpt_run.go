@@ -66,7 +66,7 @@ func (m wptRunSpannerMapper) SelectOne(externalRunID int64) spanner.Statement {
 	FROM %s
 	WHERE ExternalRunID = @externalRunID
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"externalRunID": externalRunID,
 	}
 	stmt.Params = parameters

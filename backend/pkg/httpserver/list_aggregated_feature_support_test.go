@@ -52,11 +52,11 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					},
 					Data: []backend.BrowserReleaseFeatureMetric{
 						{
-							Count:     valuePtr[int64](10),
+							Count:     new(int64(10)),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 						},
 						{
-							Count:     valuePtr[int64](9),
+							Count:     new(int64(9)),
 							Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -98,7 +98,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -133,14 +133,14 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
 			name: "Success Case - include optional params",
 			mockConfig: &MockListBrowserFeatureCountMetricConfig{
 				expectedTargetBrowser:       "chrome",
-				expectedTargetMobileBrowser: valuePtr("chrome_android"),
+				expectedTargetMobileBrowser: new("chrome_android"),
 				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 				expectedPageSize:            50,
@@ -152,11 +152,11 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 					},
 					Data: []backend.BrowserReleaseFeatureMetric{
 						{
-							Count:     valuePtr[int64](10),
+							Count:     new(int64(10)),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 						},
 						{
-							Count:     valuePtr[int64](9),
+							Count:     new(int64(9)),
 							Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -201,7 +201,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		"next_page_token":"next-page-token"
 	}
 }`),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt="+
 					"2000-01-01&endAt=2000-01-10&page_token="+*inputPageToken+"&page_size=50"+
@@ -241,7 +241,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 		"next_page_token":"next-page-token"
 	}
 }`),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt="+
 					"2000-01-01&endAt=2000-01-10&page_token="+*inputPageToken+"&page_size=50"+
@@ -272,7 +272,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			expectedCacheCalls: nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(500, `{"code":500,"message":"unable to get feature support metrics"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt=2000-01-01&endAt=2000-01-10", nil),
 		},
 		{
@@ -299,7 +299,7 @@ func TestListAggregatedFeatureSupport(t *testing.T) {
 			expectedCacheCalls: nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/feature_counts?startAt=2000-01-01"+
 					"&endAt=2000-01-10&page_token="+*badPageToken, nil),
 		},

@@ -312,7 +312,7 @@ func generateReleases(ctx context.Context, c *gcpspanner.Client) (int, error) {
 	for _, browser := range browsers {
 		baseDate := startTimeWindow
 		releases := make([]gcpspanner.BrowserRelease, 0, releasesPerBrowser)
-		for i := 0; i < releasesPerBrowser; i++ {
+		for i := range releasesPerBrowser {
 			if i > 1 {
 				baseDate = releases[i-1].ReleaseDate.AddDate(0, 2, r.Intn(90)) // Add 2 months to ~5 months
 			}
@@ -338,11 +338,11 @@ func generateFeatures(
 	ctx context.Context, client *gcpspanner.Client, helper *featuresHelper) (
 	[]gcpspanner.SpannerWebFeature, map[string]string, error) {
 	features := make([]gcpspanner.SpannerWebFeature, 0, numberOfFeatures)
-	featureIDMap := make(map[string]interface{})
+	featureIDMap := make(map[string]any)
 	webFeatureKeyToInternalFeatureID := map[string]string{}
 
 	realFeatureDetails := getSpecialFeatureDetails()
-	for idx := 0; idx < numberOfFeatures; idx++ {
+	for idx := range numberOfFeatures {
 		word := fmt.Sprintf("%s%d", gofakeit.LoremIpsumWord(), len(featureIDMap))
 		featureName := cases.Title(language.English).String(word)
 		featureID := strings.ToLower(featureName)
@@ -443,7 +443,7 @@ func generateMissingOneImplementations(
 	featureAvailability map[string]map[string]int,
 	features []gcpspanner.SpannerWebFeature,
 ) {
-	for i := 0; i < releasesPerBrowser; i++ {
+	for i := range releasesPerBrowser {
 		// Choose a random browser to be the "missing one" for this release
 		missingOneBrowserIndex := r.Intn(len(browsers))
 
@@ -537,11 +537,9 @@ func generateFeatureAvailability(
 	availabilities := make(map[string][]gcpspanner.BrowserFeatureAvailability)
 	for _, browser := range browsers {
 		for featureKey, releaseNumber := range featureAvailability[browser] {
-			var featureAvailabilities []gcpspanner.BrowserFeatureAvailability
-			var found bool
-			featureAvailabilities, found = availabilities[featureKey]
+			featureAvailabilities, found := availabilities[featureKey]
 			if !found {
-				featureAvailabilities = []gcpspanner.BrowserFeatureAvailability{}
+				featureAvailabilities = make([]gcpspanner.BrowserFeatureAvailability, 0, 1)
 			}
 			featureAvailabilities = append(featureAvailabilities, gcpspanner.BrowserFeatureAvailability{
 				BrowserName:    browser,
@@ -594,9 +592,9 @@ func generateGroups(ctx context.Context,
 	}
 
 	for _, feature := range features {
-		var groupKeys []string
-		if _, found := featureKeyToGroupsMapping[feature.FeatureKey]; !found {
-			groupKeys = []string{}
+		groupKeys, found := featureKeyToGroupsMapping[feature.FeatureKey]
+		if !found {
+			groupKeys = make([]string, 0, 1)
 		}
 		group := groups[r.Intn(len(groups))]
 		groupKeys = append(groupKeys, group.GroupKey)
@@ -669,8 +667,6 @@ func findUserIDByEmail(ctx context.Context, email string, authClient *auth.Clien
 	return record.UID, nil
 }
 
-func valuePtr[T any](in T) *T { return &in }
-
 func generateSavedSearches(ctx context.Context,
 	spannerClient *gcpspanner.Client,
 	authClient *auth.Client) (int, error) {
@@ -692,7 +688,7 @@ func generateSavedSearches(ctx context.Context,
 			Email: "test.user.1@example.com",
 			Name:  "I like queries",
 			Query: "baseline_status:limited OR available_on:chrome",
-			Description: valuePtr(
+			Description: new(
 				"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. " +
 					"Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. " +
 					"Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod " +
@@ -721,7 +717,7 @@ func generateSavedSearches(ctx context.Context,
 			Email:       "test.user.2@example.com",
 			Name:        "test user 2's query",
 			Query:       "baseline_status:limited",
-			Description: valuePtr("other users can create queries too"),
+			Description: new("other users can create queries too"),
 			UUID:        "bb85baf7-aa1e-42bf-ada0-cf9d2811dd42",
 		},
 	}

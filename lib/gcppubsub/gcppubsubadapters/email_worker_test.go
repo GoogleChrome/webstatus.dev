@@ -116,7 +116,7 @@ func TestEmailWorkerSubscriberAdapter_RoutesEmailJobEvent(t *testing.T) {
 		},
 	}
 
-	ceWrapper := map[string]interface{}{
+	ceWrapper := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "EmailJobEvent",
 		"data":       emailJobEvent,
@@ -164,7 +164,7 @@ func TestEmailWorkerSubscriberAdapter_ReturnsErrorOnUnknownEvent(t *testing.T) {
 	env := setupEmailTestAdapter(t)
 	defer env.stop()
 
-	ceWrapper := map[string]interface{}{
+	ceWrapper := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "UnknownEvent",
 		"data":       map[string]string{"foo": "bar"},

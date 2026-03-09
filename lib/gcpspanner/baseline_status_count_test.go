@@ -71,7 +71,7 @@ func TestListBaselineStatusCounts_Pagination(t *testing.T) {
 			{Date: time.Date(2024, 2, 15, 0, 0, 0, 0, time.UTC), StatusCount: 2},
 			{Date: time.Date(2024, 3, 20, 0, 0, 0, 0, time.UTC), StatusCount: 3},
 		},
-		NextPageToken: valuePtr(encodeBaselineStatusCountCursor(time.Date(2024, 3, 20, 0, 0, 0, 0, time.UTC), 3)),
+		NextPageToken: new(encodeBaselineStatusCountCursor(time.Date(2024, 3, 20, 0, 0, 0, 0, time.UTC), 3)),
 	}
 
 	if !reflect.DeepEqual(result1, expected1) {
@@ -166,7 +166,7 @@ func loadDataForListBaselineStatusCounts(ctx context.Context, t *testing.T) {
 		{"FeatureA", BaselineStatusLow, time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), nil},
 		{"FeatureB", BaselineStatusLow, time.Date(2024, 2, 15, 0, 0, 0, 0, time.UTC), nil},
 		{"FeatureC", BaselineStatusHigh, time.Date(2024, 3, 20, 0, 0, 0, 0, time.UTC),
-			valuePtr(time.Date(2024, 5, 20, 0, 0, 0, 0, time.UTC))},
+			new(time.Date(2024, 5, 20, 0, 0, 0, 0, time.UTC))},
 		{"FeatureD", BaselineStatusLow, time.Date(2024, 4, 25, 0, 0, 0, 0, time.UTC), nil},
 		{"FeatureE", BaselineStatusLow, time.Date(2024, 4, 25, 0, 0, 0, 0, time.UTC), nil},
 	}

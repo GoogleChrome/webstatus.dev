@@ -39,9 +39,9 @@ func TestUpdateSavedSearch(t *testing.T) {
 			"update_mask": ["name", "query", "description"]
 	}`
 	updateAllFieldsExpectedRequest := &backend.SavedSearchUpdateRequest{
-		Name:        valuePtr("test name"),
-		Query:       valuePtr(`name:"test"`),
-		Description: valuePtr("test description"),
+		Name:        new("test name"),
+		Query:       new(`name:"test"`),
+		Description: new("test description"),
 		UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 			backend.SavedSearchUpdateRequestMaskName,
 			backend.SavedSearchUpdateRequestMaskQuery,
@@ -49,8 +49,8 @@ func TestUpdateSavedSearch(t *testing.T) {
 		},
 	}
 	updateAllFieldsClearDescriptionExpectedRequest := &backend.SavedSearchUpdateRequest{
-		Name:        valuePtr("test name"),
-		Query:       valuePtr(`name:"test"`),
+		Name:        new("test name"),
+		Query:       new(`name:"test"`),
 		Description: nil,
 		UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 			backend.SavedSearchUpdateRequestMaskName,
@@ -71,7 +71,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			cfg:                  nil,
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(`{}`),
@@ -85,7 +85,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			cfg:                  nil,
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(`{"update_mask": []}`),
@@ -99,7 +99,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			cfg:                  nil,
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(`{"update_mask": ["query", "foo"]}`),
@@ -116,7 +116,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			cfg:                  nil,
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(`{
@@ -146,7 +146,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(updateAllFieldsRequestBody),
@@ -170,7 +170,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(updateAllFieldsRequestBody),
@@ -194,7 +194,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			publishCfg:           nil,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(updateAllFieldsRequestBody),
@@ -216,9 +216,9 @@ func TestUpdateSavedSearch(t *testing.T) {
 					Id:          "saved-search-id",
 					Name:        "test name",
 					Query:       `name:"test"`,
-					Description: valuePtr("test description"),
+					Description: new("test description"),
 					Permissions: &backend.UserSavedSearchPermissions{
-						Role: valuePtr(backend.SavedSearchOwner),
+						Role: new(backend.SavedSearchOwner),
 					},
 					BookmarkStatus: &backend.UserSavedSearchBookmark{
 						Status: backend.BookmarkActive,
@@ -233,9 +233,9 @@ func TestUpdateSavedSearch(t *testing.T) {
 					Id:          "saved-search-id",
 					Name:        "test name",
 					Query:       `name:"test"`,
-					Description: valuePtr("test description"),
+					Description: new("test description"),
 					Permissions: &backend.UserSavedSearchPermissions{
-						Role: valuePtr(backend.SavedSearchOwner),
+						Role: new(backend.SavedSearchOwner),
 					},
 					BookmarkStatus: &backend.UserSavedSearchBookmark{
 						Status: backend.BookmarkActive,
@@ -249,7 +249,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(updateAllFieldsRequestBody),
@@ -283,7 +283,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 					Query:       `name:"test"`,
 					Description: nil,
 					Permissions: &backend.UserSavedSearchPermissions{
-						Role: valuePtr(backend.SavedSearchOwner),
+						Role: new(backend.SavedSearchOwner),
 					},
 					BookmarkStatus: &backend.UserSavedSearchBookmark{
 						Status: backend.BookmarkActive,
@@ -300,7 +300,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 					Query:       `name:"test"`,
 					Description: nil,
 					Permissions: &backend.UserSavedSearchPermissions{
-						Role: valuePtr(backend.SavedSearchOwner),
+						Role: new(backend.SavedSearchOwner),
 					},
 					BookmarkStatus: &backend.UserSavedSearchBookmark{
 						Status: backend.BookmarkActive,
@@ -314,7 +314,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(
@@ -354,7 +354,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 					Query:       `name:"test"`,
 					Description: nil,
 					Permissions: &backend.UserSavedSearchPermissions{
-						Role: valuePtr(backend.SavedSearchOwner),
+						Role: new(backend.SavedSearchOwner),
 					},
 					BookmarkStatus: &backend.UserSavedSearchBookmark{
 						Status: backend.BookmarkActive,
@@ -371,7 +371,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 					Query:       `name:"test"`,
 					Description: nil,
 					Permissions: &backend.UserSavedSearchPermissions{
-						Role: valuePtr(backend.SavedSearchOwner),
+						Role: new(backend.SavedSearchOwner),
 					},
 					BookmarkStatus: &backend.UserSavedSearchBookmark{
 						Status: backend.BookmarkActive,
@@ -385,7 +385,7 @@ func TestUpdateSavedSearch(t *testing.T) {
 			},
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
 
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/saved-searches/saved-search-id",
 				strings.NewReader(

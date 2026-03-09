@@ -201,7 +201,7 @@ func (e *EventProducer) ReleaseLock(ctx context.Context, searchID string, freque
 }
 
 func (e *EventProducer) PublishEvent(ctx context.Context, req workertypes.PublishEventRequest) error {
-	var summaryObj interface{}
+	var summaryObj any
 	if req.Summary != nil {
 		if err := json.Unmarshal(req.Summary, &summaryObj); err != nil {
 			return fmt.Errorf("failed to unmarshal summary JSON: %w", err)

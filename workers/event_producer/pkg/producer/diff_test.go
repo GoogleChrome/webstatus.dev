@@ -185,7 +185,7 @@ func TestV1DiffSerializer_Serialize(t *testing.T) {
 		t.Fatalf("Serialize() failed: %v", err)
 	}
 
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(bytes, &raw); err != nil {
 		t.Fatalf("failed to unmarshal result: %v", err)
 	}

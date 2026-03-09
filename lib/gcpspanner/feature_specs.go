@@ -39,8 +39,8 @@ func (featureSpecSpannerMapper) Table() string {
 	return featureSpecsTable
 }
 
-func (featureSpecSpannerMapper) ToSpanner(entity *SpannerFeatureSpec) map[string]interface{} {
-	return map[string]interface{}{
+func (featureSpecSpannerMapper) ToSpanner(entity *SpannerFeatureSpec) map[string]any {
+	return map[string]any{
 		"WebFeatureID": entity.WebFeatureID,
 		"Links":        entity.Links,
 	}
@@ -53,7 +53,7 @@ func (featureSpecSpannerMapper) GetKeyFromExternal(entity *SpannerFeatureSpec) s
 func (featureSpecSpannerMapper) SelectOne(key string) spanner.Statement {
 	return spanner.Statement{
 		SQL: `SELECT WebFeatureID, Links FROM FeatureSpecs WHERE WebFeatureID = @webFeatureID`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"webFeatureID": key,
 		},
 	}

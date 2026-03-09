@@ -39,8 +39,6 @@ func (m *MockWebFeatureDatastoreClient) UpsertFeatureMetadata(_ context.Context,
 	return nil
 }
 
-func valuePtr[T any](in T) *T { return &in }
-
 func TestInsertWebFeaturesMetadata(t *testing.T) {
 	testCases := []struct {
 		name                string

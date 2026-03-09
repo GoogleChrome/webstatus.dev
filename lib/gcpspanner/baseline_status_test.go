@@ -45,9 +45,9 @@ func getSampleBaselineStatuses() []struct {
 		{
 			featureKey: "feature2",
 			status: FeatureBaselineStatus{
-				Status:   valuePtr(BaselineStatusHigh),
-				LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
-				HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+				Status:   new(BaselineStatusHigh),
+				LowDate:  new(time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
+				HighDate: new(time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 			},
 		},
 	}
@@ -117,9 +117,9 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 
 	// Update feature 1.
 	err := spannerClient.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
-		Status:   valuePtr(BaselineStatusHigh),
-		LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
-		HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
+		Status:   new(BaselineStatusHigh),
+		LowDate:  new(time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
+		HighDate: new(time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
 	})
 	if err != nil {
 		t.Errorf("unexpected error during update. %s", err.Error())
@@ -128,22 +128,22 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 	expectedPageAfterUpdate := []FeatureBaselineStatus{
 		// feature2
 		{
-			Status:   valuePtr(BaselineStatusHigh),
-			LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			Status:   new(BaselineStatusHigh),
+			LowDate:  new(time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
+			HighDate: new(time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 		},
 		// feature1
 		{
-			Status:   valuePtr(BaselineStatusHigh),
-			LowDate:  valuePtr[time.Time](time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate: valuePtr[time.Time](time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
+			Status:   new(BaselineStatusHigh),
+			LowDate:  new(time.Date(2000, time.February, 15, 0, 0, 0, 0, time.UTC)),
+			HighDate: new(time.Date(2000, time.February, 28, 0, 0, 0, 0, time.UTC)),
 		},
 	}
 	assertBaselineStatuses(ctx, t, expectedPageAfterUpdate)
 
 	// Reset a baseline feature back to false
 	err = spannerClient.UpsertFeatureBaselineStatus(ctx, "feature1", FeatureBaselineStatus{
-		Status:   valuePtr(BaselineStatusNone),
+		Status:   new(BaselineStatusNone),
 		LowDate:  nil,
 		HighDate: nil,
 	})
@@ -154,15 +154,15 @@ func TestUpsertFeatureBaselineStatus(t *testing.T) {
 	expectedPageAfterReset := []FeatureBaselineStatus{
 		// feature1
 		{
-			Status:   valuePtr(BaselineStatusNone),
+			Status:   new(BaselineStatusNone),
 			LowDate:  nil,
 			HighDate: nil,
 		},
 		// feature2
 		{
-			Status:   valuePtr(BaselineStatusHigh),
-			LowDate:  valuePtr[time.Time](time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
-			HighDate: valuePtr[time.Time](time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
+			Status:   new(BaselineStatusHigh),
+			LowDate:  new(time.Date(2000, time.January, 15, 0, 0, 0, 0, time.UTC)),
+			HighDate: new(time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)),
 		},
 	}
 

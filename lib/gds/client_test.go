@@ -133,30 +133,26 @@ func (m testSampleMerge) Merge(existing *TestSample, incoming *TestSample) *Test
 	}
 }
 
-func intPtr(in int) *int {
-	return &in
-}
-
 // nolint: gochecknoglobals
 var testSamples = []TestSample{
 	{
 		Name:      "a",
-		Value:     intPtr(0),
+		Value:     new(0),
 		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 	{
 		Name:      "b",
-		Value:     intPtr(1),
+		Value:     new(1),
 		CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 	{
 		Name:      "c",
-		Value:     intPtr(2),
+		Value:     new(2),
 		CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 	{
 		Name:      "d",
-		Value:     intPtr(3),
+		Value:     new(3),
 		CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
 	},
 }
@@ -211,13 +207,13 @@ func TestEntityClientOperations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(*entity, TestSample{
 		Name:      "a",
-		Value:     intPtr(0),
+		Value:     new(0),
 		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}) {
 		t.Errorf("values not equal. received %+v", *entity)
 	}
 	// Step 4. Upsert the entity
-	entity.Value = intPtr(200)
+	entity.Value = new(200)
 	// CreatedAt should not update due to the Mergeable policy
 	entity.CreatedAt = time.Date(3000, time.March, 1, 0, 0, 0, 0, time.UTC)
 	err = c.upsert(ctx, sampleKey, entity, testSampleMerge{}, nameFilter{name: "a"})
@@ -235,7 +231,7 @@ func TestEntityClientOperations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(*entity, TestSample{
 		Name:      "a",
-		Value:     intPtr(200),
+		Value:     new(200),
 		CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 	}) {
 		t.Errorf("values not equal. received %+v", *entity)
@@ -253,12 +249,12 @@ func TestEntityClientOperations(t *testing.T) {
 	expectedPageOne := []*TestSample{
 		{
 			Name:      "d",
-			Value:     intPtr(3),
+			Value:     new(3),
 			CreatedAt: time.Date(2002, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			Name:      "c",
-			Value:     intPtr(2),
+			Value:     new(2),
 			CreatedAt: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 	}
@@ -276,12 +272,12 @@ func TestEntityClientOperations(t *testing.T) {
 	expectedPageTwo := []*TestSample{
 		{
 			Name:      "a",
-			Value:     intPtr(200),
+			Value:     new(200),
 			CreatedAt: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 		{
 			Name:      "b",
-			Value:     intPtr(1),
+			Value:     new(1),
 			CreatedAt: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC),
 		},
 	}

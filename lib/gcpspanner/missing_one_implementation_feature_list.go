@@ -133,7 +133,7 @@ func buildMissingOneImplFeatureListTemplate(
 	pageSize int,
 	excludedFeatureIDs []string,
 ) spanner.Statement {
-	params := map[string]interface{}{}
+	params := map[string]any{}
 	params["numOtherBrowsers"] = len(otherBrowsers)
 	params["targetBrowserName"] = targetBrowser
 

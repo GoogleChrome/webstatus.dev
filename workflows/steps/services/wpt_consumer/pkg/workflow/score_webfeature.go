@@ -91,7 +91,7 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 	numberofSubtests int,
 	testStatus string,
 ) {
-	var webFeatures map[string]interface{}
+	var webFeatures map[string]any
 	var found bool
 	if webFeatures, found = (*testToWebFeatures)[test]; !found {
 		return
@@ -110,7 +110,7 @@ func (s ResultsSummaryFileV2) scoreSubtests(
 			// Reset the sub test metrics to nil.
 			score.SubtestPass = nil
 			score.TotalSubtests = nil
-			score.FeatureRunDetails = map[string]interface{}{
+			score.FeatureRunDetails = map[string]any{
 				"status": string(WPTStatusCrash),
 			}
 			webFeatureScoreMap[webFeature] = score
@@ -188,7 +188,7 @@ func (s ResultsSummaryFileV2) scoreTest(
 	numberofSubtests int,
 	testStatus string,
 ) {
-	var webFeatures map[string]interface{}
+	var webFeatures map[string]any
 	var found bool
 	if webFeatures, found = (*testToWebFeatures)[test]; !found {
 		// There are no web features associated with this test. Skip

@@ -91,7 +91,7 @@ func wrapPostRequestValidationMiddlewaresForOpenAPIHook(
 // authMiddlewareOpenAPIHook is a wrapper function for the auth middleware that ensures the authenticated user is
 // passed to the handler.
 func authMiddlewareOpenAPIHook(next nethttp.StrictHTTPHandlerFunc) nethttp.StrictHTTPHandlerFunc {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req interface{}) (interface{}, error) {
+	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, req any) (any, error) {
 		// Get the authenticated user from the request context
 		user, ok := httpmiddlewares.AuthenticatedUserFromContext(r.Context())
 		if ok {
@@ -112,7 +112,7 @@ func wrapPostRequestValidationMiddlewareForOpenAPIHook(middleware func(http.Hand
 
 		// This is the adapter function that gets called on each request.
 		return func(ctx context.Context, w http.ResponseWriter,
-			r *http.Request, req interface{}) (response interface{}, err error) {
+			r *http.Request, req any) (response any, err error) {
 			// Create the handler.
 			handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				response, err = openAPIHook(f)(ctx, w, r, req)

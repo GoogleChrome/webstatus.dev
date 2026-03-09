@@ -124,7 +124,7 @@ func (m notificationChannelMapper) SelectOne(id string) spanner.Statement {
 	FROM %s
 	WHERE ID = @id
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"id": id,
 	}
 	stmt.Params = parameters
@@ -169,7 +169,7 @@ func (m notificationChannelMapper) NewEntity(
 
 // toSpanner converts the public NotificationChannel to the internal spannerNotificationChannel for writing.
 func (c *NotificationChannel) toSpanner() *spannerNotificationChannel {
-	var configData interface{}
+	var configData any
 	switch c.Type {
 	case NotificationChannelTypeEmail:
 		configData = c.EmailConfig
@@ -268,7 +268,7 @@ func (c *Client) checkNotificationChannelOwnership(
 ) error {
 	stmt := spanner.Statement{
 		SQL: fmt.Sprintf(`SELECT ID FROM %s WHERE ID = @channelID AND UserID = @userID`, notificationChannelTable),
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"channelID": channelID,
 			"userID":    userID,
 		},
@@ -336,7 +336,7 @@ func (c *Client) countNotificationChannels(
 	ctx context.Context, userID string, txn *spanner.ReadWriteTransaction) (int64, error) {
 	stmt := spanner.Statement{
 		SQL: fmt.Sprintf("SELECT COUNT(*) FROM %s WHERE UserID = @userID", notificationChannelTable),
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"userID": userID,
 		},
 	}
@@ -408,7 +408,7 @@ func (m listNotificationChannelsMapper) EncodePageToken(item spannerNotification
 
 func (m listNotificationChannelsMapper) SelectList(req ListNotificationChannelsRequest) spanner.Statement {
 	var pageFilter string
-	params := map[string]interface{}{
+	params := map[string]any{
 		"userID":   req.UserID,
 		"pageSize": req.PageSize,
 	}

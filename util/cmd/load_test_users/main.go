@@ -76,8 +76,8 @@ func createUserClaim(user User, project string) jwt.MapClaims {
 		"email_verified": user.EmailVerified,
 		"auth_time":      issueTime.Unix(),
 		"user_id":        user.UserID,
-		"firebase": map[string]interface{}{
-			"identities": map[string]interface{}{
+		"firebase": map[string]any{
+			"identities": map[string]any{
 				"email": []string{
 					user.Email,
 				},
@@ -171,12 +171,12 @@ func createUsers(project string) {
 
 		u := "http://localhost:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=fake"
 
-		var jsonData = []byte(fmt.Sprintf(`{
+		var jsonData = fmt.Appendf(nil, `{
 			"postBody": "providerId=github.com&id_token=%s",
 			"requestUri": "http://localhost",
 			"returnIdpCredential": true,
 			"returnSecureToken": true
-		}`, signedString))
+		}`, signedString)
 
 		// Step 2. Send the request to create the account
 		req, err := http.NewRequestWithContext(context.TODO(), http.MethodPost, u, bytes.NewBuffer(jsonData))

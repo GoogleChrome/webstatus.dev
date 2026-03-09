@@ -81,7 +81,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				expectedChannelID: "channel123",
 				expectedRequest: backend.UpdateNotificationChannelRequest{
 					Config:     nil,
-					Name:       valuePtr("Updated Webhook"),
+					Name:       new("Updated Webhook"),
 					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{backend.UpdateNotificationChannelRequestMaskName},
 				},
 				output: &backend.NotificationChannelResponse{
@@ -131,7 +131,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 				expectedChannelID: "channel123",
 				expectedRequest: backend.UpdateNotificationChannelRequest{
 					Config:     nil,
-					Name:       valuePtr("New Name"),
+					Name:       new("New Name"),
 					UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{backend.UpdateNotificationChannelRequestMaskName},
 				},
 				output: nil,
@@ -168,7 +168,7 @@ func TestUpdateNotificationChannel_Restrictions(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			channelID := "channel123"
-			req := httptest.NewRequest(http.MethodPatch,
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPatch,
 				"/v1/users/me/notification-channels/"+channelID,
 				strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")

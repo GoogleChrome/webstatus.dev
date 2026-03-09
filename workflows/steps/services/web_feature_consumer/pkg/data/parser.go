@@ -292,8 +292,6 @@ func postProcessBaselineDates(value *string) *string {
 	return value
 }
 
-func valuePtr[T any](in T) *T { return &in }
-
 func postProcessBaselineV3(
 	value *web_platform_dx__web_features_v3.BaselineUnion) *webdxfeaturetypes.BaselineUnion {
 	if value == nil {
@@ -303,9 +301,9 @@ func postProcessBaselineV3(
 	if value.Enum != nil {
 		switch *value.Enum {
 		case web_platform_dx__web_features_v3.High:
-			enum = valuePtr(webdxfeaturetypes.High)
+			enum = new(webdxfeaturetypes.High)
 		case web_platform_dx__web_features_v3.Low:
-			enum = valuePtr(webdxfeaturetypes.Low)
+			enum = new(webdxfeaturetypes.Low)
 		}
 	}
 

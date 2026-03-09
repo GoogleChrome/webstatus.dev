@@ -73,7 +73,7 @@ func TestUpdateSubscription(t *testing.T) {
 				err: nil,
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
@@ -111,7 +111,7 @@ func TestUpdateSubscription(t *testing.T) {
 				err:    backendtypes.ErrEntityDoesNotExist,
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
@@ -129,7 +129,7 @@ func TestUpdateSubscription(t *testing.T) {
 		{
 			name: "bad request - invalid update mask",
 			cfg:  nil,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
@@ -164,7 +164,7 @@ func TestUpdateSubscription(t *testing.T) {
 				err:    backendtypes.ErrUserNotAuthorizedForAction,
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`
@@ -195,7 +195,7 @@ func TestUpdateSubscription(t *testing.T) {
 				err:    fmt.Errorf("database error"),
 			},
 			expectedCallCount: 1,
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodPatch,
 				"/v1/users/me/subscriptions/sub-id",
 				strings.NewReader(`

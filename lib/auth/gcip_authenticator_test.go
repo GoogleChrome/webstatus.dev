@@ -24,9 +24,9 @@ import (
 )
 
 func createTestFirebaseToken(uid string, githubID *string) *firebaseauth.Token {
-	identities := map[string]interface{}{}
+	identities := map[string]any{}
 	if githubID != nil {
-		identities["github.com"] = []interface{}{*githubID}
+		identities["github.com"] = []any{*githubID}
 	}
 	// nolint:exhaustruct
 	return &firebaseauth.Token{
@@ -50,9 +50,9 @@ func TestGCIPAuthenticator(t *testing.T) {
 			name:    "Successful authentication",
 			idToken: "valid_id_token",
 			mockVerifyFn: func(_ context.Context, _ string) (*firebaseauth.Token, error) {
-				return createTestFirebaseToken("123", valuePtr("id2")), nil
+				return createTestFirebaseToken("123", new("id2")), nil
 			},
-			expectedUser:  &User{ID: "123", GitHubUserID: valuePtr("id2")},
+			expectedUser:  &User{ID: "123", GitHubUserID: new("id2")},
 			expectedError: false,
 		},
 		{
@@ -112,8 +112,8 @@ func TestExtractGitHubUserIDFromToken(t *testing.T) {
 	}{
 		{
 			name:          "Success",
-			token:         createTestFirebaseToken("test", valuePtr("12345")),
-			expectedID:    valuePtr("12345"),
+			token:         createTestFirebaseToken("test", new("12345")),
+			expectedID:    new("12345"),
 			expectedFound: true,
 		},
 		{
@@ -128,7 +128,7 @@ func TestExtractGitHubUserIDFromToken(t *testing.T) {
 			name: "Missing github.com identity",
 			// nolint:exhaustruct
 			token: &firebaseauth.Token{Firebase: firebaseauth.FirebaseInfo{
-				Identities: map[string]interface{}{"google.com": []interface{}{"some-id"}},
+				Identities: map[string]any{"google.com": []any{"some-id"}},
 			}},
 			expectedID:    nil,
 			expectedFound: false,
@@ -137,7 +137,7 @@ func TestExtractGitHubUserIDFromToken(t *testing.T) {
 			name: "Non-slice identity",
 			// nolint:exhaustruct
 			token: &firebaseauth.Token{Firebase: firebaseauth.FirebaseInfo{
-				Identities: map[string]interface{}{"github.com": "not-a-slice"},
+				Identities: map[string]any{"github.com": "not-a-slice"},
 			}},
 			expectedID:    nil,
 			expectedFound: false,
@@ -146,7 +146,7 @@ func TestExtractGitHubUserIDFromToken(t *testing.T) {
 			name: "Empty identity slice",
 			// nolint:exhaustruct
 			token: &firebaseauth.Token{Firebase: firebaseauth.FirebaseInfo{
-				Identities: map[string]interface{}{"github.com": []interface{}{}},
+				Identities: map[string]any{"github.com": []any{}},
 			}},
 			expectedID:    nil,
 			expectedFound: false,
@@ -155,7 +155,7 @@ func TestExtractGitHubUserIDFromToken(t *testing.T) {
 			name: "Non-string identity",
 			// nolint:exhaustruct
 			token: &firebaseauth.Token{Firebase: firebaseauth.FirebaseInfo{
-				Identities: map[string]interface{}{"github.com": []interface{}{12345}},
+				Identities: map[string]any{"github.com": []any{12345}},
 			}},
 			expectedID:    nil,
 			expectedFound: false,

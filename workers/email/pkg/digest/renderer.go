@@ -327,14 +327,7 @@ func filterHighlights(
 
 	var filtered []workertypes.SummaryHighlight
 	for _, h := range highlights {
-		matched := false
-		for _, t := range triggers {
-			if h.MatchesTrigger(t) {
-				matched = true
-
-				break
-			}
-		}
+		matched := slices.ContainsFunc(triggers, h.MatchesTrigger)
 		if matched {
 			filtered = append(filtered, h)
 		}

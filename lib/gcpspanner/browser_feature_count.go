@@ -131,7 +131,7 @@ func (c *Client) getInitialBrowserFeatureCount(
 		return parsedToken.LastCumulativeCount, nil
 	}
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"targetBrowserName": targetBrowser,
 		"startAt":           startAt,
 	}
@@ -191,7 +191,7 @@ func createListBrowserFeatureCountMetricStatement(
 	excludedFeatureIDs []string,
 ) spanner.Statement {
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"targetBrowserName": targetBrowser,
 		"startAt":           startAt,
 		"endAt":             endAt,
