@@ -49,7 +49,7 @@ func (m groupSpannerMapper) SelectOne(key string) spanner.Statement {
 	FROM %s
 	WHERE GroupKey = @groupKey
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"groupKey": key,
 	}
 	stmt.Params = parameters
@@ -68,7 +68,7 @@ func (m groupSpannerMapper) GetID(key string) spanner.Statement {
 	FROM %s
 	WHERE GroupKey = @groupKey
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"groupKey": key,
 	}
 	stmt.Params = parameters

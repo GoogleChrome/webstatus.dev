@@ -386,10 +386,10 @@ func setupRedirectDataAndAssert(
 	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, sampleWPTRunOld.RunID,
 		map[string]WPTRunFeatureMetric{
 			"feature-a": {
-				TotalTests:        valuePtr(int64(123)),
-				TestPass:          valuePtr(int64(45)),
-				TotalSubtests:     valuePtr(int64(789)),
-				SubtestPass:       valuePtr(int64(234)),
+				TotalTests:        new(int64(123)),
+				TestPass:          new(int64(45)),
+				TotalSubtests:     new(int64(789)),
+				SubtestPass:       new(int64(234)),
 				FeatureRunDetails: nil,
 			},
 		})
@@ -399,10 +399,10 @@ func setupRedirectDataAndAssert(
 	err = spannerClient.UpsertWPTRunFeatureMetrics(ctx, sampleWPTRunNew.RunID,
 		map[string]WPTRunFeatureMetric{
 			"feature-a": {
-				TotalTests:        valuePtr(int64(124)),
-				TestPass:          valuePtr(int64(46)),
-				TotalSubtests:     valuePtr(int64(790)),
-				SubtestPass:       valuePtr(int64(235)),
+				TotalTests:        new(int64(124)),
+				TestPass:          new(int64(46)),
+				TotalSubtests:     new(int64(790)),
+				SubtestPass:       new(int64(235)),
 				FeatureRunDetails: nil,
 			},
 		})
@@ -517,10 +517,10 @@ func verifyRedirectDataMovedAndAssert(
 		t.Fatalf("unexpected error getting WPT metric. %s", err.Error())
 	}
 	expectedMetric := &WPTRunFeatureMetric{
-		TotalTests:        valuePtr(int64(123)),
-		TestPass:          valuePtr(int64(45)),
-		TotalSubtests:     valuePtr(int64(789)),
-		SubtestPass:       valuePtr(int64(234)),
+		TotalTests:        new(int64(123)),
+		TestPass:          new(int64(45)),
+		TotalSubtests:     new(int64(789)),
+		SubtestPass:       new(int64(234)),
 		FeatureRunDetails: nil,
 	}
 	if diff := cmp.Diff(expectedMetric, metric); diff != "" {
@@ -531,10 +531,10 @@ func verifyRedirectDataMovedAndAssert(
 		t.Fatalf("unexpected error getting WPT metric. %s", err.Error())
 	}
 	expectedMetric = &WPTRunFeatureMetric{
-		TotalTests:        valuePtr(int64(124)),
-		TestPass:          valuePtr(int64(46)),
-		TotalSubtests:     valuePtr(int64(790)),
-		SubtestPass:       valuePtr(int64(235)),
+		TotalTests:        new(int64(124)),
+		TestPass:          new(int64(46)),
+		TotalSubtests:     new(int64(790)),
+		SubtestPass:       new(int64(235)),
 		FeatureRunDetails: nil,
 	}
 	if diff := cmp.Diff(expectedMetric, metric); diff != "" {

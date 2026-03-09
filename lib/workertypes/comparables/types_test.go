@@ -51,7 +51,7 @@ func TestNewFeatureFromBackendFeature(t *testing.T) {
 					HighDate: nil,
 				},
 				BrowserImplementations: &map[string]backend.BrowserImplementation{
-					"chrome":  {Status: &avail, Date: &date, Version: generic.ValuePtr("version")},
+					"chrome":  {Status: &avail, Date: &date, Version: new("version")},
 					"firefox": {Status: &unavail, Date: nil, Version: nil},
 					"safari":  {Status: &avail, Date: nil, Version: nil},
 					"unknown": {Status: &avail, Date: nil, Version: nil}, // Should be ignored
@@ -65,7 +65,7 @@ func TestNewFeatureFromBackendFeature(t *testing.T) {
 					backend.Chrome: {
 						Status:  generic.OptionallySet[backend.BrowserImplementationStatus]{Value: backend.Available, IsSet: true},
 						Date:    generic.OptionallySet[*time.Time]{Value: &date.Time, IsSet: true},
-						Version: generic.OptionallySet[*string]{Value: generic.ValuePtr("version"), IsSet: true},
+						Version: generic.OptionallySet[*string]{Value: new("version"), IsSet: true},
 					},
 					backend.ChromeAndroid: zero[BrowserState](),
 					backend.Firefox: {

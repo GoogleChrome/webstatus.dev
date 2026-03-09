@@ -27,7 +27,7 @@ func TestUser_HasGitHubUserID(t *testing.T) {
 			name: "Matching ID",
 			user: User{
 				ID:           "user1",
-				GitHubUserID: valuePtr("12345"),
+				GitHubUserID: new("12345"),
 			},
 			inputID:        12345,
 			expectedResult: true,
@@ -36,7 +36,7 @@ func TestUser_HasGitHubUserID(t *testing.T) {
 			name: "Non-matching ID",
 			user: User{
 				ID:           "user1",
-				GitHubUserID: valuePtr("12345"),
+				GitHubUserID: new("12345"),
 			},
 			inputID:        54321,
 			expectedResult: false,
@@ -54,7 +54,7 @@ func TestUser_HasGitHubUserID(t *testing.T) {
 			name: "Zero ID",
 			user: User{
 				ID:           "user1",
-				GitHubUserID: valuePtr("0"),
+				GitHubUserID: new("0"),
 			},
 			inputID:        0,
 			expectedResult: true,
@@ -68,9 +68,4 @@ func TestUser_HasGitHubUserID(t *testing.T) {
 			}
 		})
 	}
-}
-
-// valuePtr is a helper function to get a pointer to a value.
-func valuePtr[T any](v T) *T {
-	return &v
 }

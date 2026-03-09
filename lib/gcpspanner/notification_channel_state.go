@@ -55,7 +55,7 @@ func (m notificationChannelStateMapper) SelectOne(key string) spanner.Statement 
 	FROM %s
 	WHERE ChannelID = @channelId
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"channelId": key,
 	}
 	stmt.Params = parameters

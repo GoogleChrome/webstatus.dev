@@ -157,7 +157,7 @@ func (m latestDailyChromiumHistogramMetricByWebFeatureIDMapper) SelectAllByKeys(
 		*
 	FROM LatestDailyChromiumHistogramMetrics
 	WHERE WebFeatureID = @webFeatureID`)
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"webFeatureID": webFeatureID,
 	}
 

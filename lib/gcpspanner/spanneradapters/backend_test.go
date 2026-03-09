@@ -36,8 +36,8 @@ import (
 
 // nolint: gochecknoglobals
 var (
-	nonNilInputPageToken = valuePtr[string]("input-token")
-	nonNilNextPageToken  = valuePtr[string]("test-token")
+	nonNilInputPageToken = new("input-token")
+	nonNilNextPageToken  = new("test-token")
 	errTest              = errors.New("something is wrong")
 	testStart            = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 	testEnd              = time.Date(2000, time.January, 31, 0, 0, 0, 0, time.UTC)
@@ -694,20 +694,20 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 				{
 					TimeStart:  time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 					RunID:      10,
-					TotalTests: valuePtr[int64](20),
-					TestPass:   valuePtr[int64](10),
+					TotalTests: new(int64(20)),
+					TestPass:   new(int64(10)),
 				},
 				{
 					TimeStart:  time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 					RunID:      9,
-					TotalTests: valuePtr[int64](19),
-					TestPass:   valuePtr[int64](9),
+					TotalTests: new(int64(19)),
+					TestPass:   new(int64(9)),
 				},
 				{
 					TimeStart:  time.Date(2000, time.January, 8, 0, 0, 0, 0, time.UTC),
 					RunID:      8,
-					TotalTests: valuePtr[int64](18),
-					TestPass:   valuePtr[int64](8),
+					TotalTests: new(int64(18)),
+					TestPass:   new(int64(8)),
 				},
 			},
 			pageToken: nonNilNextPageToken,
@@ -715,18 +715,18 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 			expectedOutput: []backend.WPTRunMetric{
 				{
 					RunTimestamp:    time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-					TotalTestsCount: valuePtr[int64](20),
-					TestPassCount:   valuePtr[int64](10),
+					TotalTestsCount: new(int64(20)),
+					TestPassCount:   new(int64(10)),
 				},
 				{
 					RunTimestamp:    time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
-					TotalTestsCount: valuePtr[int64](19),
-					TestPassCount:   valuePtr[int64](9),
+					TotalTestsCount: new(int64(19)),
+					TestPassCount:   new(int64(9)),
 				},
 				{
 					RunTimestamp:    time.Date(2000, time.January, 8, 0, 0, 0, 0, time.UTC),
-					TotalTestsCount: valuePtr[int64](18),
-					TestPassCount:   valuePtr[int64](8),
+					TotalTestsCount: new(int64(18)),
+					TestPassCount:   new(int64(8)),
 				},
 			},
 			expectedPageToken: nonNilNextPageToken,
@@ -744,7 +744,7 @@ func TestListMetricsForFeatureIDBrowserAndChannel(t *testing.T) {
 		{
 			name:              "invalid cursor",
 			featureData:       nil,
-			pageToken:         valuePtr(""),
+			pageToken:         new(""),
 			err:               gcpspanner.ErrInvalidCursorFormat,
 			expectedOutput:    nil,
 			expectedPageToken: nil,
@@ -810,11 +810,11 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 				},
 				Data: []backend.BrowserReleaseFeatureMetric{
 					{
-						Count:     valuePtr[int64](10),
+						Count:     new(int64(10)),
 						Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 					},
 					{
-						Count:     valuePtr[int64](9),
+						Count:     new(int64(9)),
 						Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 					},
 				},
@@ -885,24 +885,24 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 					WPTRunFeatureMetricWithTime: gcpspanner.WPTRunFeatureMetricWithTime{
 						TimeStart:  time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 						RunID:      10,
-						TotalTests: valuePtr[int64](20),
-						TestPass:   valuePtr[int64](10),
+						TotalTests: new(int64(20)),
+						TestPass:   new(int64(10)),
 					},
 				},
 				{
 					WPTRunFeatureMetricWithTime: gcpspanner.WPTRunFeatureMetricWithTime{
 						TimeStart:  time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 						RunID:      9,
-						TotalTests: valuePtr[int64](19),
-						TestPass:   valuePtr[int64](9),
+						TotalTests: new(int64(19)),
+						TestPass:   new(int64(9)),
 					},
 				},
 				{
 					WPTRunFeatureMetricWithTime: gcpspanner.WPTRunFeatureMetricWithTime{
 						TimeStart:  time.Date(2000, time.January, 8, 0, 0, 0, 0, time.UTC),
 						RunID:      8,
-						TotalTests: valuePtr[int64](18),
-						TestPass:   valuePtr[int64](8),
+						TotalTests: new(int64(18)),
+						TestPass:   new(int64(8)),
 					},
 				},
 			},
@@ -911,18 +911,18 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 			expectedOutput: []backend.WPTRunMetric{
 				{
 					RunTimestamp:    time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
-					TotalTestsCount: valuePtr[int64](20),
-					TestPassCount:   valuePtr[int64](10),
+					TotalTestsCount: new(int64(20)),
+					TestPassCount:   new(int64(10)),
 				},
 				{
 					RunTimestamp:    time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
-					TotalTestsCount: valuePtr[int64](19),
-					TestPassCount:   valuePtr[int64](9),
+					TotalTestsCount: new(int64(19)),
+					TestPassCount:   new(int64(9)),
 				},
 				{
 					RunTimestamp:    time.Date(2000, time.January, 8, 0, 0, 0, 0, time.UTC),
-					TotalTestsCount: valuePtr[int64](18),
-					TestPassCount:   valuePtr[int64](8),
+					TotalTestsCount: new(int64(18)),
+					TestPassCount:   new(int64(8)),
 				},
 			},
 			expectedPageToken: nonNilNextPageToken,
@@ -940,7 +940,7 @@ func TestListMetricsOverTimeWithAggregatedTotals(t *testing.T) {
 		{
 			name:              "invalid cursor",
 			aggregatedData:    nil,
-			pageToken:         valuePtr(""),
+			pageToken:         new(""),
 			err:               gcpspanner.ErrInvalidCursorFormat,
 			expectedOutput:    nil,
 			expectedPageToken: nil,
@@ -1014,11 +1014,11 @@ func TestListMissingOneImplCounts(t *testing.T) {
 				},
 				Data: []backend.BrowserReleaseFeatureMetric{
 					{
-						Count:     valuePtr[int64](90),
+						Count:     new(int64(90)),
 						Timestamp: time.Date(2010, time.March, 10, 0, 0, 0, 0, time.UTC),
 					},
 					{
-						Count:     valuePtr[int64](99),
+						Count:     new(int64(99)),
 						Timestamp: time.Date(2010, time.March, 9, 0, 0, 0, 0, time.UTC),
 					},
 				},
@@ -1102,10 +1102,10 @@ func TestListMissingOneImplementationFeatures(t *testing.T) {
 				},
 				Data: []backend.MissingOneImplFeature{
 					{
-						FeatureId: valuePtr("foo"),
+						FeatureId: new("foo"),
 					},
 					{
-						FeatureId: valuePtr("bar"),
+						FeatureId: new("bar"),
 					},
 				},
 			},
@@ -1189,11 +1189,11 @@ func TestListBaselineStatusCounts(t *testing.T) {
 				},
 				Data: []backend.BaselineStatusMetric{
 					{
-						Count:     valuePtr[int64](89),
+						Count:     new(int64(89)),
 						Timestamp: time.Date(2010, time.January, 10, 0, 0, 0, 0, time.UTC),
 					},
 					{
-						Count:     valuePtr[int64](99),
+						Count:     new(int64(99)),
 						Timestamp: time.Date(2010, time.January, 9, 0, 0, 0, 0, time.UTC),
 					},
 				},
@@ -1276,62 +1276,62 @@ func TestConvertBaselineStatusSpannerToBackend(t *testing.T) {
 	}{
 		{
 			name:          "High Status to Widely",
-			inputStatus:   valuePtr("high"),
+			inputStatus:   new("high"),
 			inputLowDate:  nil,
 			inputHighDate: nil,
 			expected: &backend.BaselineInfo{
-				Status:   valuePtr(backend.Widely),
+				Status:   new(backend.Widely),
 				LowDate:  nil,
 				HighDate: nil,
 			},
 		},
 		{
 			name:          "Low Status to Newly",
-			inputStatus:   valuePtr("low"),
+			inputStatus:   new("low"),
 			inputLowDate:  nil,
 			inputHighDate: nil,
 			expected: &backend.BaselineInfo{
-				Status:   valuePtr(backend.Newly),
+				Status:   new(backend.Newly),
 				LowDate:  nil,
 				HighDate: nil,
 			},
 		},
 		{
 			name:          "None Status to Limited",
-			inputStatus:   valuePtr("none"),
+			inputStatus:   new("none"),
 			inputLowDate:  nil,
 			inputHighDate: nil,
 			expected: &backend.BaselineInfo{
-				Status:   valuePtr(backend.Limited),
+				Status:   new(backend.Limited),
 				LowDate:  nil,
 				HighDate: nil,
 			},
 		},
 		{
 			name:          "Status with Low Date",
-			inputStatus:   valuePtr("none"),
-			inputLowDate:  valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			inputStatus:   new("none"),
+			inputLowDate:  new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
 			inputHighDate: nil,
 			expected: &backend.BaselineInfo{
-				Status:   valuePtr(backend.Limited),
+				Status:   new(backend.Limited),
 				LowDate:  &openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 				HighDate: nil,
 			},
 		},
 		{
 			name:          "Status with Low Date & High Date",
-			inputStatus:   valuePtr("none"),
-			inputLowDate:  valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-			inputHighDate: valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			inputStatus:   new("none"),
+			inputLowDate:  new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+			inputHighDate: new(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
 			expected: &backend.BaselineInfo{
-				Status:   valuePtr(backend.Limited),
+				Status:   new(backend.Limited),
 				LowDate:  &openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 				HighDate: &openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
 			},
 		},
 		{
 			name:          "Invalid Status to nil",
-			inputStatus:   valuePtr("invalid"),
+			inputStatus:   new("invalid"),
 			inputLowDate:  nil,
 			inputHighDate: nil,
 			expected:      nil,
@@ -1384,8 +1384,8 @@ func TestFeaturesSearch(t *testing.T) {
 						{
 							Name:       "feature 1",
 							FeatureKey: "feature1",
-							Status:     valuePtr("low"),
-							LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							Status:     new("low"),
+							LowDate:    new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
 							HighDate:   nil,
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
@@ -1405,15 +1405,15 @@ func TestFeaturesSearch(t *testing.T) {
 								{
 									BrowserName:          "browser3",
 									ImplementationStatus: gcpspanner.Available,
-									ImplementationDate: valuePtr(
+									ImplementationDate: new(
 										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
-									ImplementationVersion: valuePtr("103"),
+									ImplementationVersion: new("103"),
 								},
 							},
 							SpecLinks:              nil,
 							ChromiumUsage:          big.NewRat(91, 100),
-							DeveloperSignalUpvotes: valuePtr(int64(9)),
-							DeveloperSignalLink:    valuePtr("http://example.com"),
+							DeveloperSignalUpvotes: new(int64(9)),
+							DeveloperSignalLink:    new("http://example.com"),
 							AccordingTo: []string{
 								"accordingto1",
 								"accordingto2",
@@ -1429,9 +1429,9 @@ func TestFeaturesSearch(t *testing.T) {
 						{
 							Name:       "feature 2",
 							FeatureKey: "feature2",
-							Status:     valuePtr("high"),
-							LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
-							HighDate:   valuePtr(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							Status:     new("high"),
+							LowDate:    new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+							HighDate:   new(time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)),
 							StableMetrics: []*gcpspanner.FeatureResultMetric{
 								{
 									BrowserName:       "browser1",
@@ -1453,7 +1453,7 @@ func TestFeaturesSearch(t *testing.T) {
 								{
 									BrowserName: "browser2",
 									PassRate:    big.NewRat(2, 20),
-									FeatureRunDetails: map[string]interface{}{
+									FeatureRunDetails: map[string]any{
 										"test": "browser2-exp",
 									},
 								},
@@ -1462,16 +1462,16 @@ func TestFeaturesSearch(t *testing.T) {
 								{
 									BrowserName:          "browser1",
 									ImplementationStatus: gcpspanner.Available,
-									ImplementationDate: valuePtr(
+									ImplementationDate: new(
 										time.Date(1998, time.January, 1, 0, 0, 0, 0, time.UTC)),
-									ImplementationVersion: valuePtr("101"),
+									ImplementationVersion: new("101"),
 								},
 								{
 									BrowserName:          "browser2",
 									ImplementationStatus: gcpspanner.Available,
-									ImplementationDate: valuePtr(
+									ImplementationDate: new(
 										time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)),
-									ImplementationVersion: valuePtr("102"),
+									ImplementationVersion: new("102"),
 								},
 							},
 							SpecLinks: []string{
@@ -1515,8 +1515,8 @@ func TestFeaturesSearch(t *testing.T) {
 				Data: []backend.Feature{
 					{
 						Baseline: &backend.BaselineInfo{
-							Status: valuePtr(backend.Newly),
-							LowDate: valuePtr(
+							Status: new(backend.Newly),
+							LowDate: new(
 								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							),
 							HighDate: nil,
@@ -1526,34 +1526,34 @@ func TestFeaturesSearch(t *testing.T) {
 						Spec:      nil,
 						Usage: &backend.BrowserUsage{
 							Chrome: &backend.ChromeUsageInfo{
-								Daily: valuePtr[float64](0.91),
+								Daily: new(0.91),
 							},
 						},
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser3": {
-									Score:    valuePtr[float64](0.2),
+									Score:    new(0.2),
 									Metadata: nil,
 								},
 							},
 							Stable: &map[string]backend.WPTFeatureData{
 								"browser3": {
-									Score:    valuePtr[float64](0.5),
+									Score:    new(0.5),
 									Metadata: nil,
 								},
 							},
 						},
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser3": {
-								Status: valuePtr(backend.Available),
+								Status: new(backend.Available),
 								Date: &openapi_types.Date{
 									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-								Version: valuePtr("103"),
+								Version: new("103"),
 							},
 						},
 						DeveloperSignals: &backend.FeatureDeveloperSignals{
-							Upvotes: valuePtr[int64](9),
-							Link:    valuePtr("http://example.com"),
+							Upvotes: new(int64(9)),
+							Link:    new("http://example.com"),
 						},
 						Discouraged: &backend.FeatureDiscouragedInfo{
 							AccordingTo: &[]backend.FeatureDiscouragedAccordingTo{
@@ -1578,11 +1578,11 @@ func TestFeaturesSearch(t *testing.T) {
 					},
 					{
 						Baseline: &backend.BaselineInfo{
-							Status: valuePtr(backend.Widely),
-							LowDate: valuePtr(
+							Status: new(backend.Widely),
+							LowDate: new(
 								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							),
-							HighDate: valuePtr(
+							HighDate: new(
 								openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							),
 						},
@@ -1591,54 +1591,54 @@ func TestFeaturesSearch(t *testing.T) {
 						Spec: &backend.FeatureSpecInfo{
 							Links: &[]backend.SpecLink{
 								{
-									Link: valuePtr("link1"),
+									Link: new("link1"),
 								},
 								{
-									Link: valuePtr("link2"),
+									Link: new("link2"),
 								},
 							},
 						},
 						Usage: &backend.BrowserUsage{
 							Chrome: &backend.ChromeUsageInfo{
-								Daily: valuePtr[float64](0.1),
+								Daily: new(0.1),
 							},
 						},
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser1": {
-									Score:    valuePtr[float64](0.5),
+									Score:    new(0.5),
 									Metadata: nil,
 								},
 								"browser2": {
-									Score: valuePtr[float64](0.1),
-									Metadata: &map[string]interface{}{
+									Score: new(0.1),
+									Metadata: &map[string]any{
 										"test": "browser2-exp",
 									},
 								},
 							},
 							Stable: &map[string]backend.WPTFeatureData{
 								"browser1": {
-									Score:    valuePtr[float64](0.5),
+									Score:    new(0.5),
 									Metadata: nil,
 								},
 								"browser2": {
-									Score:    valuePtr[float64](0.25),
+									Score:    new(0.25),
 									Metadata: nil,
 								},
 							},
 						},
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser1": {
-								Status: valuePtr(backend.Available),
+								Status: new(backend.Available),
 								Date: &openapi_types.Date{
 									Time: time.Date(1998, time.January, 1, 0, 0, 0, 0, time.UTC)},
-								Version: valuePtr("101"),
+								Version: new("101"),
 							},
 							"browser2": {
-								Status: valuePtr(backend.Available),
+								Status: new(backend.Available),
 								Date: &openapi_types.Date{
 									Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-								Version: valuePtr("102"),
+								Version: new("102"),
 							},
 						},
 						DeveloperSignals: nil,
@@ -1823,14 +1823,14 @@ func TestGetFeature(t *testing.T) {
 				result: &gcpspanner.FeatureResult{
 					Name:       "feature 1",
 					FeatureKey: "feature1",
-					Status:     valuePtr("low"),
-					LowDate:    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+					Status:     new("low"),
+					LowDate:    new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
 					HighDate:   nil,
 					StableMetrics: []*gcpspanner.FeatureResultMetric{
 						{
 							BrowserName: "browser3",
 							PassRate:    big.NewRat(10, 20),
-							FeatureRunDetails: map[string]interface{}{
+							FeatureRunDetails: map[string]any{
 								"browser3": "test",
 							},
 						},
@@ -1853,8 +1853,8 @@ func TestGetFeature(t *testing.T) {
 						"link2",
 					},
 					ChromiumUsage:              nil,
-					DeveloperSignalUpvotes:     valuePtr(int64(4)),
-					DeveloperSignalLink:        valuePtr("http://example.com"),
+					DeveloperSignalUpvotes:     new(int64(4)),
+					DeveloperSignalLink:        new("http://example.com"),
 					Alternatives:               []string{"alternative1", "alternative2"},
 					AccordingTo:                []string{"according1", "according2"},
 					VendorPositions:            spanner.NullJSON{Value: nil, Valid: false},
@@ -1868,8 +1868,8 @@ func TestGetFeature(t *testing.T) {
 					t: t,
 					expected: backendtypes.NewRegularFeatureResult(&backend.Feature{
 						Baseline: &backend.BaselineInfo{
-							Status: valuePtr(backend.Newly),
-							LowDate: valuePtr(
+							Status: new(backend.Newly),
+							LowDate: new(
 								openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 							),
 							HighDate: nil,
@@ -1879,10 +1879,10 @@ func TestGetFeature(t *testing.T) {
 						Spec: &backend.FeatureSpecInfo{
 							Links: &[]backend.SpecLink{
 								{
-									Link: valuePtr("link1"),
+									Link: new("link1"),
 								},
 								{
-									Link: valuePtr("link2"),
+									Link: new("link2"),
 								},
 							},
 						},
@@ -1894,14 +1894,14 @@ func TestGetFeature(t *testing.T) {
 						Wpt: &backend.FeatureWPTSnapshots{
 							Experimental: &map[string]backend.WPTFeatureData{
 								"browser3": {
-									Score:    valuePtr[float64](0.2),
+									Score:    new(0.2),
 									Metadata: nil,
 								},
 							},
 							Stable: &map[string]backend.WPTFeatureData{
 								"browser3": {
-									Score: valuePtr[float64](0.5),
-									Metadata: &map[string]interface{}{
+									Score: new(0.5),
+									Metadata: &map[string]any{
 										"browser3": "test",
 									},
 								},
@@ -1909,14 +1909,14 @@ func TestGetFeature(t *testing.T) {
 						},
 						BrowserImplementations: &map[string]backend.BrowserImplementation{
 							"browser3": {
-								Status:  valuePtr(backend.Available),
+								Status:  new(backend.Available),
 								Date:    nil,
 								Version: nil,
 							},
 						},
 						DeveloperSignals: &backend.FeatureDeveloperSignals{
-							Upvotes: valuePtr[int64](4),
-							Link:    valuePtr("http://example.com"),
+							Upvotes: new(int64(4)),
+							Link:    new("http://example.com"),
 						},
 						Discouraged: &backend.FeatureDiscouragedInfo{
 							Alternatives: &[]backend.FeatureDiscouragedAlternative{
@@ -2290,7 +2290,7 @@ func TestCreateNotificationChannel(t *testing.T) {
 					},
 				},
 
-				result:        valuePtr(channelID),
+				result:        new(channelID),
 				returnedError: nil,
 			},
 			expectedGetResult: &gcpspanner.NotificationChannel{
@@ -2366,7 +2366,7 @@ func TestUpdateNotificationChannel(t *testing.T) {
 				UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
 					backend.UpdateNotificationChannelRequestMaskName,
 				},
-				Name:   valuePtr("New Name"),
+				Name:   new("New Name"),
 				Config: nil,
 			},
 			cfg: &mockUpdateNotificationChannelConfig{
@@ -2414,7 +2414,7 @@ func TestUpdateNotificationChannel(t *testing.T) {
 				UpdateMask: []backend.UpdateNotificationChannelRequestUpdateMask{
 					backend.UpdateNotificationChannelRequestMaskName,
 				},
-				Name:   valuePtr("New Name"),
+				Name:   new("New Name"),
 				Config: nil,
 			},
 			cfg: nil, // Should not be called
@@ -2765,7 +2765,7 @@ func TestCreateUserSavedSearch(t *testing.T) {
 			inputUserID: "user1",
 			savedSearch: backend.SavedSearch{
 				Name:        "test search",
-				Description: valuePtr("test description"),
+				Description: new("test description"),
 				Query:       "test query",
 			},
 			createCfg: &mockCreateNewUserSavedSearchConfig{
@@ -2773,18 +2773,18 @@ func TestCreateUserSavedSearch(t *testing.T) {
 					OwnerUserID: "user1",
 					Query:       "test query",
 					Name:        "test search",
-					Description: valuePtr("test description"),
+					Description: new("test description"),
 				},
-				result:        valuePtr("saved-search-id"),
+				result:        new("saved-search-id"),
 				returnedError: nil,
 			},
 			getCfg: &mockGetUserSavedSearchConfig{
-				expectedAuthenticatedUserID: valuePtr("user1"),
+				expectedAuthenticatedUserID: new("user1"),
 				expectedSavedSearchID:       "saved-search-id",
 				result: &gcpspanner.UserSavedSearch{
 					SavedSearch: gcpspanner.SavedSearch{
 						Name:        "test search",
-						Description: valuePtr("test description"),
+						Description: new("test description"),
 						Query:       "test query",
 						Scope:       gcpspanner.UserPublicScope,
 						AuthorID:    "user1",
@@ -2792,8 +2792,8 @@ func TestCreateUserSavedSearch(t *testing.T) {
 						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						ID:          "saved-search-id",
 					},
-					Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
-					IsBookmarked: valuePtr(true),
+					Role:         new(string(gcpspanner.SavedSearchOwner)),
+					IsBookmarked: new(true),
 				},
 				returnedError: nil,
 			},
@@ -2802,10 +2802,10 @@ func TestCreateUserSavedSearch(t *testing.T) {
 				CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Name:        "test search",
-				Description: valuePtr("test description"),
+				Description: new("test description"),
 				Query:       "test query",
 				Permissions: &backend.UserSavedSearchPermissions{
-					Role: valuePtr(backend.SavedSearchOwner),
+					Role: new(backend.SavedSearchOwner),
 				},
 				BookmarkStatus: &backend.UserSavedSearchBookmark{
 					Status: backend.BookmarkActive,
@@ -2818,7 +2818,7 @@ func TestCreateUserSavedSearch(t *testing.T) {
 			inputUserID: "user1",
 			savedSearch: backend.SavedSearch{
 				Name:        "test search",
-				Description: valuePtr("test description"),
+				Description: new("test description"),
 				Query:       "test query",
 			},
 			createCfg: &mockCreateNewUserSavedSearchConfig{
@@ -2826,7 +2826,7 @@ func TestCreateUserSavedSearch(t *testing.T) {
 					OwnerUserID: "user1",
 					Query:       "test query",
 					Name:        "test search",
-					Description: valuePtr("test description"),
+					Description: new("test description"),
 				},
 				result:        nil,
 				returnedError: gcpspanner.ErrOwnerSavedSearchLimitExceeded,
@@ -2840,7 +2840,7 @@ func TestCreateUserSavedSearch(t *testing.T) {
 			inputUserID: "user1",
 			savedSearch: backend.SavedSearch{
 				Name:        "test search",
-				Description: valuePtr("test description"),
+				Description: new("test description"),
 				Query:       "test query",
 			},
 			createCfg: &mockCreateNewUserSavedSearchConfig{
@@ -2848,7 +2848,7 @@ func TestCreateUserSavedSearch(t *testing.T) {
 					OwnerUserID: "user1",
 					Query:       "test query",
 					Name:        "test search",
-					Description: valuePtr("test description"),
+					Description: new("test description"),
 				},
 				result:        nil,
 				returnedError: testError,
@@ -2862,7 +2862,7 @@ func TestCreateUserSavedSearch(t *testing.T) {
 			inputUserID: "user1",
 			savedSearch: backend.SavedSearch{
 				Name:        "test search",
-				Description: valuePtr("test description"),
+				Description: new("test description"),
 				Query:       "test query",
 			},
 			createCfg: &mockCreateNewUserSavedSearchConfig{
@@ -2870,13 +2870,13 @@ func TestCreateUserSavedSearch(t *testing.T) {
 					OwnerUserID: "user1",
 					Query:       "test query",
 					Name:        "test search",
-					Description: valuePtr("test description"),
+					Description: new("test description"),
 				},
-				result:        valuePtr("saved-search-id"),
+				result:        new("saved-search-id"),
 				returnedError: nil,
 			},
 			getCfg: &mockGetUserSavedSearchConfig{
-				expectedAuthenticatedUserID: valuePtr("user1"),
+				expectedAuthenticatedUserID: new("user1"),
 				expectedSavedSearchID:       "saved-search-id",
 				result:                      nil,
 				returnedError:               testError,
@@ -2995,15 +2995,15 @@ func TestGetSavedSearch(t *testing.T) {
 	}{
 		{
 			name:          "success authenticated user",
-			userID:        valuePtr("user1"),
+			userID:        new("user1"),
 			savedSearchID: "saved-search-id",
 			cfg: &mockGetUserSavedSearchConfig{
-				expectedAuthenticatedUserID: valuePtr("user1"),
+				expectedAuthenticatedUserID: new("user1"),
 				expectedSavedSearchID:       "saved-search-id",
 				result: &gcpspanner.UserSavedSearch{
 					SavedSearch: gcpspanner.SavedSearch{
 						Name:        "test search",
-						Description: valuePtr("test description"),
+						Description: new("test description"),
 						Query:       "test query",
 						Scope:       gcpspanner.UserPublicScope,
 						AuthorID:    "user1",
@@ -3011,8 +3011,8 @@ func TestGetSavedSearch(t *testing.T) {
 						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						ID:          "saved-search-id",
 					},
-					Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
-					IsBookmarked: valuePtr(true),
+					Role:         new(string(gcpspanner.SavedSearchOwner)),
+					IsBookmarked: new(true),
 				},
 				returnedError: nil,
 			},
@@ -3022,12 +3022,12 @@ func TestGetSavedSearch(t *testing.T) {
 				UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Name:        "test search",
 				Query:       "test query",
-				Description: valuePtr("test description"),
+				Description: new("test description"),
 				BookmarkStatus: &backend.UserSavedSearchBookmark{
 					Status: backend.BookmarkActive,
 				},
 				Permissions: &backend.UserSavedSearchPermissions{
-					Role: valuePtr(backend.SavedSearchOwner),
+					Role: new(backend.SavedSearchOwner),
 				},
 			},
 			expectedError: nil,
@@ -3042,7 +3042,7 @@ func TestGetSavedSearch(t *testing.T) {
 				result: &gcpspanner.UserSavedSearch{
 					SavedSearch: gcpspanner.SavedSearch{
 						Name:        "test search",
-						Description: valuePtr("test description"),
+						Description: new("test description"),
 						Query:       "test query",
 						Scope:       gcpspanner.UserPublicScope,
 						AuthorID:    "user1",
@@ -3061,7 +3061,7 @@ func TestGetSavedSearch(t *testing.T) {
 				UpdatedAt:      time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Name:           "test search",
 				Query:          "test query",
-				Description:    valuePtr("test description"),
+				Description:    new("test description"),
 				BookmarkStatus: nil,
 				Permissions:    nil,
 			},
@@ -3140,7 +3140,7 @@ func TestListUserSavedSearches(t *testing.T) {
 						{
 							SavedSearch: gcpspanner.SavedSearch{
 								Name:        "z",
-								Description: valuePtr("test description"),
+								Description: new("test description"),
 								Query:       "test query",
 								Scope:       gcpspanner.UserPublicScope,
 								AuthorID:    "user1",
@@ -3148,7 +3148,7 @@ func TestListUserSavedSearches(t *testing.T) {
 								UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 								ID:          "saved-search-id-2",
 							},
-							IsBookmarked: valuePtr(true),
+							IsBookmarked: new(true),
 							Role:         nil,
 						},
 					},
@@ -3157,13 +3157,13 @@ func TestListUserSavedSearches(t *testing.T) {
 			},
 			expectedPage: &backend.UserSavedSearchPage{
 				Metadata: nil,
-				Data: valuePtr([]backend.SavedSearchResponse{
+				Data: new([]backend.SavedSearchResponse{
 					{
 						Id:          "saved-search-id-2",
 						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Name:        "z",
-						Description: valuePtr("test description"),
+						Description: new("test description"),
 						Query:       "test query",
 						Permissions: nil,
 						BookmarkStatus: &backend.UserSavedSearchBookmark{
@@ -3178,18 +3178,18 @@ func TestListUserSavedSearches(t *testing.T) {
 			name:      "success w/ page token",
 			userID:    "user1",
 			pageSize:  10,
-			pageToken: valuePtr("inputToken"),
+			pageToken: new("inputToken"),
 			cfg: &mockListUserSavedSearchesConfig{
 				expectedUserID:    "user1",
 				expectedPageSize:  10,
-				expectedPageToken: valuePtr("inputToken"),
+				expectedPageToken: new("inputToken"),
 				result: &gcpspanner.UserSavedSearchesPage{
-					NextPageToken: valuePtr("nextToken"),
+					NextPageToken: new("nextToken"),
 					Searches: []gcpspanner.UserSavedSearch{
 						{
 							SavedSearch: gcpspanner.SavedSearch{
 								Name:        "test search",
-								Description: valuePtr("test description"),
+								Description: new("test description"),
 								Query:       "test query",
 								Scope:       gcpspanner.UserPublicScope,
 								AuthorID:    "user1",
@@ -3197,13 +3197,13 @@ func TestListUserSavedSearches(t *testing.T) {
 								UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 								ID:          "saved-search-id",
 							},
-							Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
-							IsBookmarked: valuePtr(true),
+							Role:         new(string(gcpspanner.SavedSearchOwner)),
+							IsBookmarked: new(true),
 						},
 						{
 							SavedSearch: gcpspanner.SavedSearch{
 								Name:        "z",
-								Description: valuePtr("test description"),
+								Description: new("test description"),
 								Query:       "test query",
 								Scope:       gcpspanner.UserPublicScope,
 								AuthorID:    "user1",
@@ -3211,7 +3211,7 @@ func TestListUserSavedSearches(t *testing.T) {
 								UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 								ID:          "saved-search-id-2",
 							},
-							IsBookmarked: valuePtr(true),
+							IsBookmarked: new(true),
 							Role:         nil,
 						},
 					},
@@ -3220,18 +3220,18 @@ func TestListUserSavedSearches(t *testing.T) {
 			},
 			expectedPage: &backend.UserSavedSearchPage{
 				Metadata: &backend.PageMetadata{
-					NextPageToken: valuePtr("nextToken"),
+					NextPageToken: new("nextToken"),
 				},
-				Data: valuePtr([]backend.SavedSearchResponse{
+				Data: new([]backend.SavedSearchResponse{
 					{
 						Id:          "saved-search-id",
 						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Name:        "test search",
-						Description: valuePtr("test description"),
+						Description: new("test description"),
 						Query:       "test query",
 						Permissions: &backend.UserSavedSearchPermissions{
-							Role: valuePtr(backend.SavedSearchOwner),
+							Role: new(backend.SavedSearchOwner),
 						},
 						BookmarkStatus: &backend.UserSavedSearchBookmark{
 							Status: backend.BookmarkActive,
@@ -3242,7 +3242,7 @@ func TestListUserSavedSearches(t *testing.T) {
 						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						Name:        "z",
-						Description: valuePtr("test description"),
+						Description: new("test description"),
 						Query:       "test query",
 						Permissions: nil,
 						BookmarkStatus: &backend.UserSavedSearchBookmark{
@@ -3320,9 +3320,9 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		{
 			name: "success",
 			updateRequest: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test search name"),
-				Description: valuePtr("test desc"),
-				Query:       valuePtr("test query"),
+				Name:        new("test search name"),
+				Description: new("test desc"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3339,7 +3339,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 					},
 					Description: gcpspanner.OptionallySet[*string]{
 						IsSet: true,
-						Value: valuePtr("test desc"),
+						Value: new("test desc"),
 					},
 					Query: gcpspanner.OptionallySet[string]{
 						IsSet: true,
@@ -3349,21 +3349,21 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 				returnedError: nil,
 			},
 			mockGetCfg: &mockGetUserSavedSearchConfig{
-				expectedAuthenticatedUserID: valuePtr("test-user"),
+				expectedAuthenticatedUserID: new("test-user"),
 				expectedSavedSearchID:       "test-id",
 				result: &gcpspanner.UserSavedSearch{
 					SavedSearch: gcpspanner.SavedSearch{
 						ID:          "test-id",
 						Name:        "test search name",
-						Description: valuePtr("test desc"),
+						Description: new("test desc"),
 						Query:       "test query",
 						Scope:       gcpspanner.UserPublicScope,
 						AuthorID:    "test-user",
 						CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 						UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 					},
-					Role:         valuePtr(string(gcpspanner.SavedSearchOwner)),
-					IsBookmarked: valuePtr(true),
+					Role:         new(string(gcpspanner.SavedSearchOwner)),
+					IsBookmarked: new(true),
 				},
 				returnedError: nil,
 			},
@@ -3372,10 +3372,10 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 				CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Name:        "test search name",
-				Description: valuePtr("test desc"),
+				Description: new("test desc"),
 				Query:       "test query",
 				Permissions: &backend.UserSavedSearchPermissions{
-					Role: valuePtr(backend.SavedSearchOwner),
+					Role: new(backend.SavedSearchOwner),
 				},
 				BookmarkStatus: &backend.UserSavedSearchBookmark{
 					Status: backend.BookmarkActive,
@@ -3386,9 +3386,9 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		{
 			name: "get user saved search return no results",
 			updateRequest: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test search name"),
-				Description: valuePtr("test desc"),
-				Query:       valuePtr("test query"),
+				Name:        new("test search name"),
+				Description: new("test desc"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3405,7 +3405,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 					},
 					Description: gcpspanner.OptionallySet[*string]{
 						IsSet: true,
-						Value: valuePtr("test desc"),
+						Value: new("test desc"),
 					},
 					Query: gcpspanner.OptionallySet[string]{
 						IsSet: true,
@@ -3415,7 +3415,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 				returnedError: nil,
 			},
 			mockGetCfg: &mockGetUserSavedSearchConfig{
-				expectedAuthenticatedUserID: valuePtr("test-user"),
+				expectedAuthenticatedUserID: new("test-user"),
 				expectedSavedSearchID:       "test-id",
 				result:                      nil,
 				returnedError:               gcpspanner.ErrQueryReturnedNoResults,
@@ -3426,9 +3426,9 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		{
 			name: "get user saved search returns other error",
 			updateRequest: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test search name"),
-				Description: valuePtr("test desc"),
-				Query:       valuePtr("test query"),
+				Name:        new("test search name"),
+				Description: new("test desc"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3445,7 +3445,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 					},
 					Description: gcpspanner.OptionallySet[*string]{
 						IsSet: true,
-						Value: valuePtr("test desc"),
+						Value: new("test desc"),
 					},
 					Query: gcpspanner.OptionallySet[string]{
 						IsSet: true,
@@ -3455,7 +3455,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 				returnedError: nil,
 			},
 			mockGetCfg: &mockGetUserSavedSearchConfig{
-				expectedAuthenticatedUserID: valuePtr("test-user"),
+				expectedAuthenticatedUserID: new("test-user"),
 				expectedSavedSearchID:       "test-id",
 				result:                      nil,
 				returnedError:               errTest,
@@ -3466,9 +3466,9 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		{
 			name: "update user saved search return no results",
 			updateRequest: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test search name"),
-				Description: valuePtr("test desc"),
-				Query:       valuePtr("test query"),
+				Name:        new("test search name"),
+				Description: new("test desc"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3485,7 +3485,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 					},
 					Description: gcpspanner.OptionallySet[*string]{
 						IsSet: true,
-						Value: valuePtr("test desc"),
+						Value: new("test desc"),
 					},
 					Query: gcpspanner.OptionallySet[string]{
 						IsSet: true,
@@ -3501,9 +3501,9 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		{
 			name: "update user saved search return no required role error",
 			updateRequest: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test search name"),
-				Description: valuePtr("test desc"),
-				Query:       valuePtr("test query"),
+				Name:        new("test search name"),
+				Description: new("test desc"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3520,7 +3520,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 					},
 					Description: gcpspanner.OptionallySet[*string]{
 						IsSet: true,
-						Value: valuePtr("test desc"),
+						Value: new("test desc"),
 					},
 					Query: gcpspanner.OptionallySet[string]{
 						IsSet: true,
@@ -3536,9 +3536,9 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		{
 			name: "update user saved search return other error",
 			updateRequest: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test search name"),
-				Description: valuePtr("test desc"),
-				Query:       valuePtr("test query"),
+				Name:        new("test search name"),
+				Description: new("test desc"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3555,7 +3555,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 					},
 					Description: gcpspanner.OptionallySet[*string]{
 						IsSet: true,
-						Value: valuePtr("test desc"),
+						Value: new("test desc"),
 					},
 					Query: gcpspanner.OptionallySet[string]{
 						IsSet: true,
@@ -3731,9 +3731,9 @@ func TestBuildUpdateSavedSearchRequestForGCP(t *testing.T) {
 		{
 			name: "empty mask gives no update",
 			req: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test name"),
-				Description: valuePtr("test description"),
-				Query:       valuePtr("test query"),
+				Name:        new("test name"),
+				Description: new("test description"),
+				Query:       new("test query"),
 				UpdateMask:  []backend.SavedSearchUpdateRequestUpdateMask{},
 			},
 			want: gcpspanner.UpdateSavedSearchRequest{
@@ -3756,9 +3756,9 @@ func TestBuildUpdateSavedSearchRequestForGCP(t *testing.T) {
 		{
 			name: "update mask contains all fields updates all fields",
 			req: &backend.SavedSearchUpdateRequest{
-				Name:        valuePtr("test name"),
-				Description: valuePtr("test description"),
-				Query:       valuePtr("test query"),
+				Name:        new("test name"),
+				Description: new("test description"),
+				Query:       new("test query"),
 				UpdateMask: []backend.SavedSearchUpdateRequestUpdateMask{
 					backend.SavedSearchUpdateRequestMaskName,
 					backend.SavedSearchUpdateRequestMaskDescription,
@@ -3774,7 +3774,7 @@ func TestBuildUpdateSavedSearchRequestForGCP(t *testing.T) {
 				},
 				Description: gcpspanner.OptionallySet[*string]{
 					IsSet: true,
-					Value: valuePtr("test description"),
+					Value: new("test description"),
 				},
 				Query: gcpspanner.OptionallySet[string]{
 					IsSet: true,
@@ -3800,123 +3800,123 @@ func TestGetFeatureSearchSortOrder(t *testing.T) {
 	}{
 		{input: nil, want: gcpspanner.NewBaselineStatusSort(false)},
 		{
-			input: valuePtr[backend.ListFeaturesParamsSort](backend.NameAsc),
+			input: new(backend.NameAsc),
 			want:  gcpspanner.NewFeatureNameSort(true),
 		},
 		{
-			input: valuePtr[backend.ListFeaturesParamsSort](backend.NameDesc),
+			input: new(backend.NameDesc),
 			want:  gcpspanner.NewFeatureNameSort(false),
 		},
 		{
-			input: valuePtr[backend.ListFeaturesParamsSort](backend.BaselineStatusAsc),
+			input: new(backend.BaselineStatusAsc),
 			want:  gcpspanner.NewBaselineStatusSort(true),
 		},
 		{
-			input: valuePtr[backend.ListFeaturesParamsSort](backend.BaselineStatusDesc),
+			input: new(backend.BaselineStatusDesc),
 			want:  gcpspanner.NewBaselineStatusSort(false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalChromeAsc),
+			input: new(backend.ExperimentalChromeAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "chrome", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalChromeDesc),
+			input: new(backend.ExperimentalChromeDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "chrome", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalEdgeAsc),
+			input: new(backend.ExperimentalEdgeAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "edge", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalEdgeDesc),
+			input: new(backend.ExperimentalEdgeDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "edge", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalFirefoxAsc),
+			input: new(backend.ExperimentalFirefoxAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "firefox", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalFirefoxDesc),
+			input: new(backend.ExperimentalFirefoxDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "firefox", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalSafariAsc),
+			input: new(backend.ExperimentalSafariAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "safari", false),
 		},
 		{
-			input: valuePtr(backend.ExperimentalSafariDesc),
+			input: new(backend.ExperimentalSafariDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "safari", false),
 		},
 		{
-			input: valuePtr(backend.StableChromeAsc),
+			input: new(backend.StableChromeAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "chrome", true),
 		},
 		{
-			input: valuePtr(backend.StableChromeDesc),
+			input: new(backend.StableChromeDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "chrome", true),
 		},
 		{
-			input: valuePtr(backend.StableEdgeAsc),
+			input: new(backend.StableEdgeAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "edge", true),
 		},
 		{
-			input: valuePtr(backend.StableEdgeDesc),
+			input: new(backend.StableEdgeDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "edge", true),
 		},
 		{
-			input: valuePtr(backend.StableFirefoxAsc),
+			input: new(backend.StableFirefoxAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "firefox", true),
 		},
 		{
-			input: valuePtr(backend.StableFirefoxDesc),
+			input: new(backend.StableFirefoxDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "firefox", true),
 		},
 		{
-			input: valuePtr(backend.StableSafariAsc),
+			input: new(backend.StableSafariAsc),
 			want:  gcpspanner.NewBrowserImplSort(true, "safari", true),
 		},
 		{
-			input: valuePtr(backend.StableSafariDesc),
+			input: new(backend.StableSafariDesc),
 			want:  gcpspanner.NewBrowserImplSort(false, "safari", true),
 		},
 		{
-			input: valuePtr(backend.AvailabilityChromeAsc),
+			input: new(backend.AvailabilityChromeAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "chrome"),
 		},
 		{
-			input: valuePtr(backend.AvailabilityChromeDesc),
+			input: new(backend.AvailabilityChromeDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "chrome"),
 		},
 		{
-			input: valuePtr(backend.AvailabilityEdgeAsc),
+			input: new(backend.AvailabilityEdgeAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "edge"),
 		},
 		{
-			input: valuePtr(backend.AvailabilityEdgeDesc),
+			input: new(backend.AvailabilityEdgeDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "edge"),
 		},
 		{
-			input: valuePtr(backend.AvailabilityFirefoxAsc),
+			input: new(backend.AvailabilityFirefoxAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "firefox"),
 		},
 		{
-			input: valuePtr(backend.AvailabilityFirefoxDesc),
+			input: new(backend.AvailabilityFirefoxDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "firefox"),
 		},
 		{
-			input: valuePtr(backend.AvailabilitySafariAsc),
+			input: new(backend.AvailabilitySafariAsc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(true, "safari"),
 		},
 		{
-			input: valuePtr(backend.AvailabilitySafariDesc),
+			input: new(backend.AvailabilitySafariDesc),
 			want:  gcpspanner.NewBrowserFeatureSupportSort(false, "safari"),
 		},
 		{
-			input: valuePtr(backend.DeveloperSignalUpvotesAsc),
+			input: new(backend.DeveloperSignalUpvotesAsc),
 			want:  gcpspanner.NewDeveloperSignalUpvotesSort(true),
 		},
 		{
-			input: valuePtr(backend.DeveloperSignalUpvotesDesc),
+			input: new(backend.DeveloperSignalUpvotesDesc),
 			want:  gcpspanner.NewDeveloperSignalUpvotesSort(false),
 		},
 	}
@@ -3942,8 +3942,8 @@ func TestConvertFeatureResult(t *testing.T) {
 			featureResult: &gcpspanner.FeatureResult{
 				Name:                       "feature 1",
 				FeatureKey:                 "feature1",
-				Status:                     valuePtr("low"),
-				LowDate:                    valuePtr(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
+				Status:                     new("low"),
+				LowDate:                    new(time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)),
 				HighDate:                   nil,
 				SystemManagedSavedSearchID: nil,
 				StableMetrics: []*gcpspanner.FeatureResultMetric{
@@ -3970,8 +3970,8 @@ func TestConvertFeatureResult(t *testing.T) {
 
 			expectedFeature: &backend.Feature{
 				Baseline: &backend.BaselineInfo{
-					Status: valuePtr(backend.Newly),
-					LowDate: valuePtr(
+					Status: new(backend.Newly),
+					LowDate: new(
 						openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 					),
 					HighDate: nil,
@@ -3981,7 +3981,7 @@ func TestConvertFeatureResult(t *testing.T) {
 				Spec:      nil,
 				Usage: &backend.BrowserUsage{
 					Chrome: &backend.ChromeUsageInfo{
-						Daily: valuePtr[float64](0.08),
+						Daily: new(0.08),
 					},
 				},
 				Wpt:                        nil,
@@ -4039,7 +4039,7 @@ func TestCreateSavedSearchSubscription(t *testing.T) {
 						gcpspanner.SubscriptionTriggerBrowserImplementationAnyComplete},
 					Frequency: gcpspanner.SavedSearchSnapshotTypeImmediate,
 				},
-				result:        valuePtr(subID),
+				result:        new(subID),
 				returnedError: nil,
 			},
 			getCfg: &mockGetSavedSearchSubscriptionConfig{
@@ -4666,13 +4666,13 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 					RawValue: nil},
 				{IsUnknown: true,
 					Value:    string(backend.EnumUnknownValue),
-					RawValue: valuePtr("deprecated_trigger")},
+					RawValue: new("deprecated_trigger")},
 				{IsUnknown: false,
 					Value:    string(backend.SubscriptionTriggerFeatureBaselineRegressionToLimited),
 					RawValue: nil},
 				{IsUnknown: true,
 					Value:    string(backend.EnumUnknownValue),
-					RawValue: valuePtr("another_unknown")},
+					RawValue: new("another_unknown")},
 			},
 		},
 		{
@@ -4683,8 +4683,8 @@ func TestSpannerTriggersToBackendTriggers(t *testing.T) {
 				Value     string
 				RawValue  *string
 			}{
-				{IsUnknown: true, Value: string(backend.EnumUnknownValue), RawValue: valuePtr("unknown1")},
-				{IsUnknown: true, Value: string(backend.EnumUnknownValue), RawValue: valuePtr("unknown2")},
+				{IsUnknown: true, Value: string(backend.EnumUnknownValue), RawValue: new("unknown1")},
+				{IsUnknown: true, Value: string(backend.EnumUnknownValue), RawValue: new("unknown2")},
 			},
 		},
 		{

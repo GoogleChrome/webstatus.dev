@@ -436,27 +436,27 @@ func TestBuild(t *testing.T) {
 	testCases := []struct {
 		inputTestTree   TestTree
 		expectedClauses []string
-		expectedParams  map[string]interface{}
+		expectedParams  map[string]any
 	}{
 		{
 			inputTestTree: simpleAvailableOnQuery,
 			expectedClauses: []string{`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0)`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "chrome",
 			},
 		},
 		{
 			inputTestTree:   simpleNameQuery,
 			expectedClauses: []string{`(wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0)`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "%" + "css grid" + "%",
 			},
 		},
 		{
 			inputTestTree:   simpleNameByIDQuery,
 			expectedClauses: []string{`(wf.Name_Lowercase LIKE @param0 OR wf.FeatureKey_Lowercase LIKE @param0)`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "%" + "grid" + "%",
 			},
 		},
@@ -464,7 +464,7 @@ WHERE BrowserName = @param0)`},
 			inputTestTree: availableOnBaselineStatus,
 			expectedClauses: []string{`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0) AND fbs.Status = @param1`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "chrome",
 				"param1": "high",
 			},
@@ -473,7 +473,7 @@ WHERE BrowserName = @param0) AND fbs.Status = @param1`},
 			inputTestTree: availableOnBaselineStatusWithNegation,
 			expectedClauses: []string{`wf.ID NOT IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0) AND fbs.Status = @param1`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "chrome",
 				"param1": "high",
 			},
@@ -482,7 +482,7 @@ WHERE BrowserName = @param0) AND fbs.Status = @param1`},
 			inputTestTree: complexQuery,
 			expectedClauses: []string{`wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIKE @param2 OR wf.FeatureKey_Lowercase LIKE @param2)) OR (wf.Name_Lowercase LIKE @param3 OR wf.FeatureKey_Lowercase LIKE @param3)`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "chrome",
 				"param1": "high",
 				"param2": "%" + "avif" + "%",
@@ -494,7 +494,7 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIK
 			expectedClauses: []string{
 				`LowDate >= @param0 AND LowDate <= @param1`,
 			},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 				"param1": time.Date(2000, 12, 31, 0, 0, 0, 0, time.UTC),
 			},
@@ -504,7 +504,7 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIK
 			expectedClauses: []string{
 				`LowDate < @param0 OR LowDate > @param1`,
 			},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC),
 				"param1": time.Date(2000, 12, 31, 0, 0, 0, 0, time.UTC),
 			},
@@ -512,7 +512,7 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIK
 		{
 			inputTestTree:   repeatedSimpleTermQuery,
 			expectedClauses: []string{`(wf.FeatureKey_Lowercase = @param0) OR (wf.FeatureKey_Lowercase = @param1) OR (wf.FeatureKey_Lowercase = @param2) OR (wf.FeatureKey_Lowercase = @param3)`},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "html",
 				"param1": "css",
 				"param2": "typescript",
@@ -524,7 +524,7 @@ WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR (wf.Name_Lowercase LIK
 			expectedClauses: []string{`(wf.ID IN (SELECT WebFeatureID FROM BrowserFeatureAvailabilities
 WHERE BrowserName = @param0) AND (fbs.Status = @param1 OR fbs.Status = @param2)) OR (wf.Name_Lowercase LIKE @param3 OR wf.FeatureKey_Lowercase LIKE @param3)`,
 			},
-			expectedParams: map[string]interface{}{
+			expectedParams: map[string]any{
 				"param0": "chrome",
 				"param1": "high",
 				"param2": "none",

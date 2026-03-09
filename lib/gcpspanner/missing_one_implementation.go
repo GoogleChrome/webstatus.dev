@@ -251,7 +251,7 @@ func buildMissingOneImplTemplate(
 	excludedFeatureIDs []string,
 	tmpl MissingOneImplementationQuery,
 ) spanner.Statement {
-	params := map[string]interface{}{}
+	params := map[string]any{}
 	var allBrowsers []string
 	if targetMobileBrowser != nil {
 		allBrowsers = make([]string, len(otherBrowsers)+2)

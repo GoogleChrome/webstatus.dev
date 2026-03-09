@@ -48,7 +48,7 @@ func (c *Client) checkForSavedSearchRole(
 		SQL: `SELECT UserRole
 				  FROM SavedSearchUserRoles
 				  WHERE SavedSearchID = @savedSearchID AND UserID = @userID`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"savedSearchID": savedSearchID,
 			"userID":        userID,
 		},

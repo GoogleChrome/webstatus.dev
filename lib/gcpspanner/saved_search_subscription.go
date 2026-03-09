@@ -119,7 +119,7 @@ func (m savedSearchSubscriptionMapper) SelectOne(key string) spanner.Statement {
 	FROM %s
 	WHERE ID = @id
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"id": key,
 	}
 	stmt.Params = parameters
@@ -130,7 +130,7 @@ func (m savedSearchSubscriptionMapper) SelectOne(key string) spanner.Statement {
 func (m savedSearchSubscriptionMapper) SelectList(req ListSavedSearchSubscriptionsRequest) spanner.Statement {
 	// Join with NotificationChannels to filter by UserID.
 	var pageFilter string
-	params := map[string]interface{}{
+	params := map[string]any{
 		"userID":   req.UserID,
 		"pageSize": req.PageSize,
 	}
@@ -187,7 +187,7 @@ func (m savedSearchSubscriptionViewMapper) SelectOne(key string) spanner.Stateme
 	JOIN SavedSearches ss ON sc.SavedSearchID = ss.ID
 	WHERE sc.ID = @id
 	LIMIT 1`)
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"id": key,
 	}
 	stmt.Params = parameters
@@ -197,7 +197,7 @@ func (m savedSearchSubscriptionViewMapper) SelectOne(key string) spanner.Stateme
 
 func (m savedSearchSubscriptionViewMapper) SelectList(req ListSavedSearchSubscriptionsRequest) spanner.Statement {
 	var pageFilter string
-	params := map[string]interface{}{
+	params := map[string]any{
 		"userID":   req.UserID,
 		"pageSize": req.PageSize,
 	}
@@ -256,7 +256,7 @@ func (c *Client) checkNotificationChannelOwnershipBySubscriptionIDReadOnly(
 		JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
 		WHERE sc.ID = @subscriptionID AND nc.UserID = @userID
 		LIMIT 1`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"subscriptionID": subscriptionID,
 			"userID":         userID,
 		},
@@ -316,7 +316,7 @@ func (c *Client) createSavedSearchSubscription(
               FROM SavedSearchSubscriptions sc
               JOIN NotificationChannels nc ON sc.ChannelID = nc.ID
               WHERE nc.UserID = @userID`,
-			Params: map[string]interface{}{
+			Params: map[string]any{
 				"userID": req.UserID,
 			},
 		}
@@ -505,7 +505,7 @@ func (m readAllActivePushSubscriptionsMapper) SelectAllByKeys(key activePushSubs
 			AND sc.Frequency = @frequency
 			AND nc.Type IN UNNEST(@notificationTypes)
 			AND (cs.IsDisabledBySystem IS NULL OR cs.IsDisabledBySystem = FALSE)`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"savedSearchID":     key.SavedSearchID,
 			"frequency":         key.Frequency,
 			"notificationTypes": getAllNotificationTypes(),

@@ -28,7 +28,7 @@ func (m userSavedSearchListerMapper) Table() string {
 }
 
 func (m userSavedSearchListerMapper) SelectList(req ListUserSavedSearchesRequest) spanner.Statement {
-	params := map[string]interface{}{
+	params := map[string]any{
 		"userID":   req.UserID,
 		"pageSize": req.PageSize,
 	}

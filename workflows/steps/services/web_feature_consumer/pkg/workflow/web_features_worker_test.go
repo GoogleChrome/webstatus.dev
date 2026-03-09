@@ -274,7 +274,7 @@ func testFile(tag *string, contents string) *gh.ReleaseFile {
 func TestProcess(t *testing.T) {
 	// According https://pkg.go.dev/golang.org/x/mod/semver, the version must start with v
 	testFileFn := func() *gh.ReleaseFile {
-		return testFile(valuePtr(v3), "hi features")
+		return testFile(new(v3), "hi features")
 	}
 	// nolint: dupl
 	testCases := []struct {
@@ -1898,8 +1898,6 @@ func TestProcess(t *testing.T) {
 	}
 }
 
-func valuePtr[T any](in T) *T { return &in }
-
 func TestParseByVersion(t *testing.T) {
 	testCases := []struct {
 		name                string
@@ -1911,7 +1909,7 @@ func TestParseByVersion(t *testing.T) {
 	}{
 		{
 			name:                "v2.0.0 tag",
-			file:                testFile(valuePtr("v2.1.0"), ""),
+			file:                testFile(new("v2.1.0"), ""),
 			v3Parser:            nil,
 			expectedError:       ErrUnsupportedAssetVersion,
 			expectedV2CallCount: 0,
@@ -1927,7 +1925,7 @@ func TestParseByVersion(t *testing.T) {
 		},
 		{
 			name: "v3 parses successfully",
-			file: testFile(valuePtr(v3), ""),
+			file: testFile(new(v3), ""),
 			v3Parser: &mockAssetParser{
 				t: t,
 				mockParseCfg: mockParseConfig{
@@ -1943,7 +1941,7 @@ func TestParseByVersion(t *testing.T) {
 		},
 		{
 			name: "v3.1.0 parses successfully",
-			file: testFile(valuePtr("v3.1.0"), ""),
+			file: testFile(new("v3.1.0"), ""),
 			v3Parser: &mockAssetParser{
 				t: t,
 				mockParseCfg: mockParseConfig{
@@ -1959,7 +1957,7 @@ func TestParseByVersion(t *testing.T) {
 		},
 		{
 			name: "v3 parses unsuccessfully",
-			file: testFile(valuePtr(v3), ""),
+			file: testFile(new(v3), ""),
 			v3Parser: &mockAssetParser{
 				t: t,
 				mockParseCfg: mockParseConfig{
@@ -1975,7 +1973,7 @@ func TestParseByVersion(t *testing.T) {
 		},
 		{
 			name:                "unsupported tag",
-			file:                testFile(valuePtr("v4.0.0"), ""),
+			file:                testFile(new("v4.0.0"), ""),
 			v3Parser:            nil,
 			expectedError:       ErrUnsupportedAssetVersion,
 			expectedV2CallCount: 0,

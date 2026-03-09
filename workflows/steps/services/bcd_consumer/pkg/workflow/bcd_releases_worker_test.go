@@ -165,8 +165,6 @@ var (
 	errTestInsert = errors.New("test insert error")
 )
 
-func valuePtr[T any](in T) *T { return &in }
-
 func getSampleBCDData() *data.BCDData {
 	return &data.BCDData{
 		// nolint: exhaustruct // WONTFIX external struct
@@ -175,14 +173,14 @@ func getSampleBCDData() *data.BCDData {
 				"fooBrowser": {
 					Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
 						"0": {
-							ReleaseDate: valuePtr("2000-01-01"),
+							ReleaseDate: new("2000-01-01"),
 						},
 					},
 				},
 				"barBrowser": {
 					Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
 						"0": {
-							ReleaseDate: valuePtr("2000-01-02"),
+							ReleaseDate: new("2000-01-02"),
 						},
 					},
 				},

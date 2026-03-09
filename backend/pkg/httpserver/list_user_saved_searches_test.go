@@ -46,13 +46,13 @@ func TestListUserSavedSearches(t *testing.T) {
 				expectedPageToken: nil,
 				output: &backend.UserSavedSearchPage{
 					Metadata: nil,
-					Data: valuePtr([]backend.SavedSearchResponse{
+					Data: new([]backend.SavedSearchResponse{
 						{
 							Id:          "saved-search-id-2",
 							CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 							UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 							Name:        "z",
-							Description: valuePtr("test description"),
+							Description: new("test description"),
 							Query:       "test query",
 							Permissions: nil,
 							BookmarkStatus: &backend.UserSavedSearchBookmark{
@@ -65,7 +65,8 @@ func TestListUserSavedSearches(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/saved-searches", nil),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/users/me/saved-searches", nil),
 			expectedResponse: testJSONResponse(200, `
 {
 	"data":[
@@ -93,13 +94,13 @@ func TestListUserSavedSearches(t *testing.T) {
 					Metadata: &backend.PageMetadata{
 						NextPageToken: nextPageToken,
 					},
-					Data: valuePtr([]backend.SavedSearchResponse{
+					Data: new([]backend.SavedSearchResponse{
 						{
 							Id:          "saved-search-id-2",
 							CreatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 							UpdatedAt:   time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 							Name:        "z",
-							Description: valuePtr("test description"),
+							Description: new("test description"),
 							Query:       "test query",
 							Permissions: nil,
 							BookmarkStatus: &backend.UserSavedSearchBookmark{
@@ -112,7 +113,7 @@ func TestListUserSavedSearches(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				"/v1/users/me/saved-searches?page_size=50&page_token="+*inputPageToken,
 				nil,
@@ -148,7 +149,8 @@ func TestListUserSavedSearches(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/saved-searches", nil),
+			request: httptest.NewRequestWithContext(t.Context(),
+				http.MethodGet, "/v1/users/me/saved-searches", nil),
 			expectedResponse: testJSONResponse(500, `
 			{
 				"code":500,
@@ -166,7 +168,7 @@ func TestListUserSavedSearches(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet, "/v1/users/me/saved-searches?page_token="+*badPageToken, nil),
 			expectedResponse: testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
 		},

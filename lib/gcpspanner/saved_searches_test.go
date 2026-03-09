@@ -79,7 +79,7 @@ func TestGetUserSavedSearch(t *testing.T) {
 		Name:        "my little search",
 		Query:       "group:css",
 		OwnerUserID: "userID1",
-		Description: valuePtr("desc"),
+		Description: new("desc"),
 	})
 	if err != nil {
 		t.Errorf("expected nil error. received %s", err)
@@ -98,7 +98,7 @@ func TestGetUserSavedSearch(t *testing.T) {
 				Query:       "group:css",
 				Scope:       "USER_PUBLIC",
 				AuthorID:    "userID1",
-				Description: valuePtr("desc"),
+				Description: new("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -114,21 +114,21 @@ func TestGetUserSavedSearch(t *testing.T) {
 	})
 	t.Run("owner can access public search with roles and bookmark", func(t *testing.T) {
 		expectedSavedSearch := &UserSavedSearch{
-			IsBookmarked: valuePtr(true),
-			Role:         valuePtr(string(SavedSearchOwner)),
+			IsBookmarked: new(true),
+			Role:         new(string(SavedSearchOwner)),
 			SavedSearch: SavedSearch{
 				ID:          *savedSearchID,
 				Name:        "my little search",
 				Query:       "group:css",
 				Scope:       "USER_PUBLIC",
 				AuthorID:    "userID1",
-				Description: valuePtr("desc"),
+				Description: new("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
 			},
 		}
-		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, valuePtr("userID1"))
+		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, new("userID1"))
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
 		}
@@ -139,7 +139,7 @@ func TestGetUserSavedSearch(t *testing.T) {
 
 	t.Run("other user can access public search. But unassigned roles and false bookmark", func(t *testing.T) {
 		expectedSavedSearch := &UserSavedSearch{
-			IsBookmarked: valuePtr(false),
+			IsBookmarked: new(false),
 			Role:         nil,
 			SavedSearch: SavedSearch{
 				ID:          *savedSearchID,
@@ -147,13 +147,13 @@ func TestGetUserSavedSearch(t *testing.T) {
 				Query:       "group:css",
 				Scope:       "USER_PUBLIC",
 				AuthorID:    "userID1",
-				Description: valuePtr("desc"),
+				Description: new("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
 			},
 		}
-		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, valuePtr("otherUser"))
+		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, new("otherUser"))
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
 		}

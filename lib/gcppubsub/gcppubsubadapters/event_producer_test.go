@@ -184,7 +184,7 @@ func TestSubscribe_RoutesRefreshSearchCommand(t *testing.T) {
 		Frequency: "IMMEDIATE",
 		Timestamp: time.Time{},
 	}
-	ceWrapper := map[string]interface{}{
+	ceWrapper := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "RefreshSearchCommand",
 		"data":       refreshCmd,
@@ -218,7 +218,7 @@ func TestSubscribe_RoutesBatchUpdate(t *testing.T) {
 	batchTrig := batchrefreshv1.BatchRefreshTrigger{
 		Frequency: "WEEKLY",
 	}
-	ceWrapperBatch := map[string]interface{}{
+	ceWrapperBatch := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "BatchRefreshTrigger",
 		"data":       batchTrig,
@@ -248,7 +248,7 @@ func TestSubscribe_RoutesSearchConfigurationChanged(t *testing.T) {
 	defer env.stop()
 
 	// We construct the payload manually for the test execution
-	configEventPayload := map[string]interface{}{
+	configEventPayload := map[string]any{
 		"search_id":   "s2",
 		"query":       "q2",
 		"user_id":     "user-1",
@@ -257,7 +257,7 @@ func TestSubscribe_RoutesSearchConfigurationChanged(t *testing.T) {
 		"frequency":   "IMMEDIATE",
 	}
 
-	ceWrapperConfig := map[string]interface{}{
+	ceWrapperConfig := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "SearchConfigurationChangedEvent",
 		"data":       configEventPayload,
@@ -312,15 +312,15 @@ func TestPublisher_Publish(t *testing.T) {
 		t.Errorf("Topic mismatch: got %s, want topic-1", publisher.publishedTopic)
 	}
 
-	var actualEnvelope map[string]interface{}
+	var actualEnvelope map[string]any
 	if err := json.Unmarshal(publisher.publishedData, &actualEnvelope); err != nil {
 		t.Fatalf("Failed to unmarshal published data: %v", err)
 	}
 
-	expectedEnvelope := map[string]interface{}{
+	expectedEnvelope := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "FeatureDiffEvent",
-		"data": map[string]interface{}{
+		"data": map[string]any{
 			"event_id":  "evt-1",
 			"search_id": "search-1",
 			"query":     "query-1",
@@ -330,7 +330,7 @@ func TestPublisher_Publish(t *testing.T) {
 			"diff_id":         "diff-id-1",
 			"state_blob_path": "gs://bucket/state-blob",
 			"diff_blob_path":  "gs://bucket/diff-blob",
-			"reasons":         []interface{}{"DATA_UPDATED"},
+			"reasons":         []any{"DATA_UPDATED"},
 			"generated_at":    now.Format(time.RFC3339),
 			"frequency":       "IMMEDIATE",
 		},

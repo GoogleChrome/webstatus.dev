@@ -57,7 +57,7 @@ func (m baselineStatusMapper) SelectOne(id string) spanner.Statement {
 	FROM %s
 	WHERE WebFeatureID = @webFeatureID
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"webFeatureID": id,
 	}
 	stmt.Params = parameters

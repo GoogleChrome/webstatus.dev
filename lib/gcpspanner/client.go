@@ -1682,7 +1682,7 @@ func concurrentBatchWriteEntity[SpannerStruct any](
 	slog.InfoContext(ctx, "batch writer worker starting", "id", workerID, "table", table)
 	for {
 		batch := make([]*spanner.Mutation, 0, batchSize)
-		for i := 0; i < batchSize; i++ {
+		for range batchSize {
 			select {
 			case entity, isChannelStillOpen := <-entityChan:
 				// If the channel is closed, go ahead and apply what we have and return.

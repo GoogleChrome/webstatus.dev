@@ -217,7 +217,7 @@ func TestBearerTokenAuthenticationMiddleware(t *testing.T) {
 
 			handler := middleware(nextHandler)
 
-			req := createTestRequest(tc.authHeader, tc.authCtxKey, tc.optionalAuthCtxKey)
+			req := createTestRequest(t.Context(), tc.authHeader, tc.authCtxKey, tc.optionalAuthCtxKey)
 
 			rr := httptest.NewRecorder()
 			handler.ServeHTTP(rr, req)
@@ -240,8 +240,8 @@ func (m *mockBearerTokenAuthenticator) Authenticate(ctx context.Context, token s
 	return m.authenticateFn(ctx, token)
 }
 
-func createTestRequest(authHeader string, authCtxKey any, optionalAuthCtxKey any) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+func createTestRequest(ctx context.Context, authHeader string, authCtxKey any, optionalAuthCtxKey any) *http.Request {
+	req := httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil)
 	if authHeader != "" {
 		req.Header.Set("Authorization", authHeader)
 	}

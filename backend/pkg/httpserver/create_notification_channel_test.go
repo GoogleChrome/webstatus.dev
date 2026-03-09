@@ -172,7 +172,8 @@ func TestCreateNotificationChannel(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/v1/users/me/notification-channels", strings.NewReader(tc.requestBody))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost,
+				"/v1/users/me/notification-channels", strings.NewReader(tc.requestBody))
 			req.Header.Set("Content-Type", "application/json")
 
 			//nolint:exhaustruct

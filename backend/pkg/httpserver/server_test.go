@@ -37,8 +37,6 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-func valuePtr[T any](in T) *T { return &in }
-
 type MockGetFeatureMetadataConfig struct {
 	expectedFeatureID string
 	result            *backend.FeatureMetadata
@@ -968,9 +966,9 @@ func TestGetPageSizeOrDefault(t *testing.T) {
 		expected      int
 	}{
 		{"Nil input", nil, 100},
-		{"Input below min", valuePtr[int](0), 100},
-		{"Valid input (below max)", valuePtr[int](25), 25},
-		{"Input above max", valuePtr[int](100), 100},
+		{"Input below min", new(0), 100},
+		{"Valid input (below max)", new(25), 25},
+		{"Input above max", new(100), 100},
 	}
 
 	for _, tc := range testCases {
@@ -996,9 +994,9 @@ func createEmptyBodyResponse(status int) *http.Response {
 
 // nolint: gochecknoglobals
 var (
-	inputPageToken = valuePtr[string]("input-token")
-	nextPageToken  = valuePtr[string]("next-page-token")
-	badPageToken   = valuePtr[string]("")
+	inputPageToken = new("input-token")
+	nextPageToken  = new("next-page-token")
+	badPageToken   = new("")
 	errTest        = errors.New("test error")
 )
 
@@ -1064,7 +1062,7 @@ func assertResponseBody(t *testing.T, actual, expected io.Reader) {
 }
 
 func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
-	var actualObj, expectedObj interface{}
+	var actualObj, expectedObj any
 	err := json.Unmarshal(actualBody, &actualObj)
 	if err != nil {
 		t.Fatal("failed to parse json from actual response")
@@ -1093,8 +1091,8 @@ func assertMocksExpectations(t *testing.T, expectedCallCount, actualCallCount in
 //nolint:ireturn
 func getCreateNotificationChannelRequestCmpOption() cmp.Option {
 	return cmp.Transformer("NotificationChannelConfig",
-		func(in backend.CreateNotificationChannelRequest_Config) map[string]interface{} {
-			var out map[string]interface{}
+		func(in backend.CreateNotificationChannelRequest_Config) map[string]any {
+			var out map[string]any
 			b, _ := in.MarshalJSON()
 			_ = json.Unmarshal(b, &out)
 
@@ -1105,11 +1103,11 @@ func getCreateNotificationChannelRequestCmpOption() cmp.Option {
 //nolint:ireturn
 func getUpdateNotificationChannelRequestCmpOption() cmp.Option {
 	return cmp.Transformer("NotificationChannelUpdateConfig",
-		func(in *backend.UpdateNotificationChannelRequest_Config) map[string]interface{} {
+		func(in *backend.UpdateNotificationChannelRequest_Config) map[string]any {
 			if in == nil {
 				return nil
 			}
-			var out map[string]interface{}
+			var out map[string]any
 			b, _ := in.MarshalJSON()
 			_ = json.Unmarshal(b, &out)
 
@@ -1488,7 +1486,7 @@ func assertUserInCtx(ctx context.Context, t *testing.T, expectedUser *auth.User)
 }
 
 func submitRequest(t *testing.T, url string, method string) {
-	req, err := http.NewRequestWithContext(context.Background(), method, url, nil)
+	req, err := http.NewRequestWithContext(t.Context(), method, url, nil)
 	if err != nil {
 		t.Fatal(err)
 	}

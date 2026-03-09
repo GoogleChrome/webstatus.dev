@@ -33,7 +33,7 @@ func TestGetFeature(t *testing.T) {
 		t.Errorf("unexpected error. %s", err.Error())
 	}
 
-	expectedResult := valuePtr(getFeatureSearchTestFeature(FeatureSearchTestFId2))
+	expectedResult := new(getFeatureSearchTestFeature(FeatureSearchTestFId2))
 
 	stabilizeFeatureResult(*result)
 

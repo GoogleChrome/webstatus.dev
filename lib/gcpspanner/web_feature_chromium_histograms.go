@@ -63,7 +63,7 @@ func (m webFeaturesChromiumHistogramEnumSpannerMapper) SelectAllByKeys(id string
 		*
 	FROM WebFeatureChromiumHistogramEnumValues
 	WHERE WebFeatureID = @webFeatureID`)
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"webFeatureID": id,
 	}
 

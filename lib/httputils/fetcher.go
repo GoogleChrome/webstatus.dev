@@ -22,6 +22,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"slices"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/fetchtypes"
 )
@@ -123,14 +124,7 @@ func (f HTTPFetcher) Fetch(ctx context.Context, opts ...FetchOption) (io.ReadClo
 	}
 
 	// Apply response options
-	statusCodeMatch := false
-	for _, code := range options.Response.ExpectedStatusCodes {
-		if resp.StatusCode == code {
-			statusCodeMatch = true
-
-			break
-		}
-	}
+	statusCodeMatch := slices.Contains(options.Response.ExpectedStatusCodes, resp.StatusCode)
 
 	if !statusCodeMatch {
 		slog.ErrorContext(ctx, "bad status code while fetching", "status", resp.StatusCode, "url", f.endpoint.String())

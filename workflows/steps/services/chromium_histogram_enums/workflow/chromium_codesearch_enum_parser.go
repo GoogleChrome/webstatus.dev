@@ -87,7 +87,7 @@ func (p ChromiumCodesearchEnumParser) Parse(
 		var bucketIDToSkip *int64
 		switch histogramName {
 		case metricdatatypes.WebDXFeatureEnum:
-			bucketIDToSkip = valuePtr[int64](0)
+			bucketIDToSkip = new(int64(0))
 		}
 		enums := []metricdatatypes.HistogramEnumValue{}
 		for _, value := range histogram.Values {
@@ -118,5 +118,3 @@ func (p ChromiumCodesearchEnumParser) Parse(
 
 	return m, nil
 }
-
-func valuePtr[T any](in T) *T { return &in }

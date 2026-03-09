@@ -30,7 +30,7 @@ func TestDeleteUserSavedSearch(t *testing.T) {
 		Name:        "my little search",
 		Query:       "group:css",
 		OwnerUserID: "userID1",
-		Description: valuePtr("desc"),
+		Description: new("desc"),
 	})
 	if err != nil {
 		t.Errorf("expected nil error. received %s", err)
@@ -57,7 +57,7 @@ func TestDeleteUserSavedSearch(t *testing.T) {
 				Query:       "group:css",
 				Scope:       "USER_PUBLIC",
 				AuthorID:    "userID1",
-				Description: valuePtr("desc"),
+				Description: new("desc"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -102,7 +102,7 @@ func TestDeleteUserSavedSearch(t *testing.T) {
 		_, err := spannerClient.Apply(ctx, []*spanner.Mutation{
 			spanner.Insert("SavedSearches",
 				[]string{"ID", "Name", "Query", "Scope", "AuthorID", "CreatedAt", "UpdatedAt"},
-				[]interface{}{
+				[]any{
 					systemSearchID, "System Search", "id:foo", "SYSTEM_MANAGED",
 					"system", spanner.CommitTimestamp, spanner.CommitTimestamp}),
 		})

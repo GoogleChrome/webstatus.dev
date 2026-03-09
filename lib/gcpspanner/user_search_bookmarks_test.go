@@ -24,7 +24,7 @@ import (
 
 func assertUserSearchSearchWithBookmarkStatus(
 	ctx context.Context, t *testing.T, expectedSavedSearch *UserSavedSearch, savedSearchID *string, userID string) {
-	actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, valuePtr(userID))
+	actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, new(userID))
 	if err != nil {
 		t.Errorf("expected nil error. received %s", err)
 	}
@@ -70,7 +70,7 @@ func TestUserSearchBookmark(t *testing.T) {
 	const testUser = "test-user"
 	// user initially does not have a bookmark
 	expectedSavedSearchBeforeBookmark := &UserSavedSearch{
-		IsBookmarked: valuePtr(false),
+		IsBookmarked: new(false),
 		Role:         nil,
 		SavedSearch: SavedSearch{
 			ID:          *savedSearchID,
@@ -91,7 +91,7 @@ func TestUserSearchBookmark(t *testing.T) {
 	t.Run("the test user can bookmark it", func(t *testing.T) {
 		// user can successfully have a bookmark added
 		expectedSavedSearchAfter := &UserSavedSearch{
-			IsBookmarked: valuePtr(true),
+			IsBookmarked: new(true),
 			Role:         nil,
 			SavedSearch: SavedSearch{
 				ID:          *savedSearchID,
@@ -193,7 +193,7 @@ func TestUserSearchBookmark(t *testing.T) {
 		_, err := spannerClient.Apply(ctx, []*spanner.Mutation{
 			spanner.Insert("SavedSearches",
 				[]string{"ID", "Name", "Query", "Scope", "AuthorID", "CreatedAt", "UpdatedAt"},
-				[]interface{}{
+				[]any{
 					systemSearchID, "System Search", "id:feat", "SYSTEM_MANAGED",
 					"system", spanner.CommitTimestamp, spanner.CommitTimestamp}),
 		})

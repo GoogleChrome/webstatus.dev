@@ -26,7 +26,7 @@ import (
 
 type FeatureSearchFilterBuilder struct {
 	paramCounter int
-	params       map[string]interface{}
+	params       map[string]any
 }
 
 func NewFeatureSearchFilterBuilder() *FeatureSearchFilterBuilder {
@@ -37,11 +37,11 @@ func NewFeatureSearchFilterBuilder() *FeatureSearchFilterBuilder {
 }
 
 type FeatureSearchCompiledFilter struct {
-	params  map[string]interface{}
+	params  map[string]any
 	filters []string
 }
 
-func (f FeatureSearchCompiledFilter) Params() map[string]interface{} {
+func (f FeatureSearchCompiledFilter) Params() map[string]any {
 	return f.params
 }
 
@@ -51,7 +51,7 @@ func (f FeatureSearchCompiledFilter) Filters() []string {
 
 // addParamGetName adds a parameter to the map that will be used in the spanner params map.
 // Afterwards, get the name of the parameter. Then increment the counter.
-func (b *FeatureSearchFilterBuilder) addParamGetName(param interface{}) string {
+func (b *FeatureSearchFilterBuilder) addParamGetName(param any) string {
 	name := fmt.Sprintf("param%d", b.paramCounter)
 	b.params[name] = param
 
@@ -74,7 +74,7 @@ func (b *FeatureSearchFilterBuilder) Build(node *searchtypes.SearchNode) *Featur
 	}
 
 	//  Initialize the map and (re)set counter to 0
-	b.params = make(map[string]interface{})
+	b.params = make(map[string]any)
 	b.paramCounter = 0
 
 	generatedFilters := b.traverseAndGenerateFilters(node.Children[0])
@@ -90,7 +90,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 
 	switch {
 	case node.IsKeyword(): // Handle AND/OR keyword
-		var childFilters []string // Collect child filters first
+		childFilters := make([]string, 0, len(node.Children)) // Collect child filters first
 		for _, child := range node.Children {
 			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
 		}
@@ -111,7 +111,7 @@ func (b *FeatureSearchFilterBuilder) traverseAndGenerateFilters(node *searchtype
 
 	case node.Keyword == searchtypes.KeywordParens:
 		// Handle parenthesized sub-expressions.
-		var childFilters []string
+		childFilters := make([]string, 0, len(node.Children))
 		for _, child := range node.Children {
 			childFilters = append(childFilters, b.traverseAndGenerateFilters(child)...)
 		}
@@ -418,7 +418,7 @@ func defaultFeatureSearchFilters() []string {
 
 // Filterable modifies a query with a given filter.
 type Filterable interface {
-	Params() map[string]interface{}
+	Params() map[string]any
 	Clause() string
 }
 
@@ -432,7 +432,7 @@ type FeatureSearchQueryBuilder struct {
 
 func (q FeatureSearchQueryBuilder) CountQueryBuild(
 	filter *FeatureSearchCompiledFilter) spanner.Statement {
-	filterParams := make(map[string]interface{})
+	filterParams := make(map[string]any)
 	args := FeatureSearchCountArgs{
 		Filters: nil,
 	}
@@ -475,7 +475,7 @@ func (q FeatureSearchQueryBuilder) Build(
 		break // do nothing.
 	}
 
-	filterParams := make(map[string]interface{})
+	filterParams := make(map[string]any)
 	queryArgs := FeatureSearchQueryArgs{
 		MetricView:  q.wptMetricView,
 		Filters:     nil,

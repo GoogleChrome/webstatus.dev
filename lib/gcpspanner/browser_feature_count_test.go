@@ -113,7 +113,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		{
 			testName:                       "Test 1a. First Page",
 			targetBrowser:                  "chrome",
-			targetMobileBrowser:            valuePtr("chrome_android"),
+			targetMobileBrowser:            new("chrome_android"),
 			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
@@ -121,7 +121,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			pageSize:                       2,
 			inputCursor:                    nil,
 			expectedResult: &BrowserFeatureCountResultPage{
-				NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(
+				NextPageToken: new(encodeBrowserFeatureCountCursor(
 					time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 1)),
 				Metrics: []BrowserFeatureCountMetric{
 					{
@@ -138,13 +138,13 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 		{
 			testName:                       "Test 1b. Second Page",
 			targetBrowser:                  "chrome",
-			targetMobileBrowser:            valuePtr("chrome_android"),
+			targetMobileBrowser:            new("chrome_android"),
 			startAt:                        time.Date(2023, 12, 1, 0, 0, 0, 0, time.UTC),
 			endAt:                          time.Date(2024, 5, 1, 0, 0, 0, 0, time.UTC),
 			excludedFeatureKeysToInsert:    nil,
 			discouragedFeatureKeysToInsert: nil,
 			pageSize:                       2,
-			inputCursor: valuePtr(encodeBrowserFeatureCountCursor(
+			inputCursor: new(encodeBrowserFeatureCountCursor(
 				time.Date(2024, 1, 10, 0, 0, 0, 0, time.UTC), 1)),
 			expectedResult: &BrowserFeatureCountResultPage{
 				NextPageToken: nil,
@@ -216,7 +216,7 @@ func TestListBrowserFeatureCountMetric(t *testing.T) {
 			// Have overlap between excludedFeatureKeysToInsert and discouragedFeatureKeysToInsert
 			discouragedFeatureKeysToInsert: []string{"FeatureZ"},
 			expectedResult: &BrowserFeatureCountResultPage{
-				NextPageToken: valuePtr(encodeBrowserFeatureCountCursor(
+				NextPageToken: new(encodeBrowserFeatureCountCursor(
 					time.Date(2024, 4, 5, 0, 0, 0, 0, time.UTC), 2)),
 				Metrics: []BrowserFeatureCountMetric{
 					{

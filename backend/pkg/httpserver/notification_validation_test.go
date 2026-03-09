@@ -25,6 +25,7 @@ func TestValidateSlackWebhookURL(t *testing.T) {
 		url           string
 		expectedError error
 	}{
+		//nolint:gosec // WONTFIX: testing a webhook URL format, not a real webhook
 		{
 			name:          "Valid URL",
 			url:           "https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX",

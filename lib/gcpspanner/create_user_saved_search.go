@@ -76,7 +76,7 @@ func (c *Client) createNewUserSavedSearch(
 			SQL: fmt.Sprintf(`SELECT COUNT(*)
                   FROM %s
                   WHERE UserID = @OwnerID AND UserRole = @Role`, savedSearchUserRolesTable),
-			Params: map[string]interface{}{
+			Params: map[string]any{
 				"OwnerID": newSearch.OwnerUserID,
 				"Role":    SavedSearchOwner,
 			},

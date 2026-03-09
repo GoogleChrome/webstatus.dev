@@ -70,9 +70,9 @@ type ImplementationStatus struct {
 // FeatureResultMetric contains metric information for a feature result query.
 // Very similar to WPTRunFeatureMetric.
 type FeatureResultMetric struct {
-	BrowserName       string                 `spanner:"BrowserName"`
-	PassRate          *big.Rat               `spanner:"PassRate"`
-	FeatureRunDetails map[string]interface{} `spanner:"-"`
+	BrowserName       string         `spanner:"BrowserName"`
+	PassRate          *big.Rat       `spanner:"PassRate"`
+	FeatureRunDetails map[string]any `spanner:"-"`
 }
 
 type SpannerFeatureResultMetric struct {
@@ -286,7 +286,7 @@ func convertSpannerMetrics(spannerMetrics []*SpannerFeatureResultMetric) []*Feat
 			FeatureRunDetails: nil,
 		}
 		if metric.FeatureRunDetails.Valid {
-			var detailsMap map[string]interface{}
+			var detailsMap map[string]any
 			if err := json.Unmarshal([]byte(metric.FeatureRunDetails.String()), &detailsMap); err != nil {
 				slog.ErrorContext(context.TODO(), "Error unmarshalling FeatureRunDetails", "error", err)
 			} else {

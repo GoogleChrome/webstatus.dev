@@ -150,7 +150,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 				Added: []v1.FeatureAdded{
 					{ID: "1", Name: "A", Reason: v1.ReasonNewMatch, Docs: nil, QueryMatch: v1.QueryMatchMatch},
 					{ID: "2", Name: "B", Reason: v1.ReasonNewMatch, Docs: &v1.Docs{
-						MdnDocs: []v1.MdnDoc{{URL: "https://mdn.io/B", Title: generic.ValuePtr("B"), Slug: generic.ValuePtr("slug-b")}},
+						MdnDocs: []v1.MdnDoc{{URL: "https://mdn.io/B", Title: new("B"), Slug: new("slug-b")}},
 					}, QueryMatch: v1.QueryMatchMatch},
 				},
 				Removed: []v1.FeatureRemoved{
@@ -180,7 +180,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 							}, To: v1.BrowserState{
 								Status:  generic.SetOpt(v1.Available),
 								Date:    generic.SetOpt(&browserImplDate),
-								Version: generic.SetOpt(generic.ValuePtr("132")),
+								Version: generic.SetOpt(new("132")),
 							}},
 							v1.ChromeAndroid:  nil,
 							v1.Edge:           nil,
@@ -247,7 +247,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 							}, To: v1.BrowserState{
 								Status:  generic.SetOpt(v1.Available),
 								Date:    generic.SetOpt(&browserImplDate),
-								Version: generic.SetOpt(generic.ValuePtr("123")),
+								Version: generic.SetOpt(new("123")),
 							}},
 							v1.ChromeAndroid:  nil,
 							v1.Edge:           nil,
@@ -443,7 +443,7 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 
 func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
 	t.Helper()
-	var actualObj, expectedObj interface{}
+	var actualObj, expectedObj any
 	err := json.Unmarshal(actualBody, &actualObj)
 	if err != nil {
 		t.Fatal("failed to parse json from actual response")

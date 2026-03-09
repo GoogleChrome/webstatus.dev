@@ -71,7 +71,7 @@ func TestNew(t *testing.T) {
 	}
 
 	// Verify JSON structure manually
-	var raw map[string]interface{}
+	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
 		t.Fatalf("New generated invalid JSON: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestNew(t *testing.T) {
 		t.Errorf("expected apiVersion 'v1', got %v", raw["apiVersion"])
 	}
 
-	payloadData, ok := raw["data"].(map[string]interface{})
+	payloadData, ok := raw["data"].(map[string]any)
 	if !ok {
 		t.Fatalf("expected 'data' field to be an object")
 	}

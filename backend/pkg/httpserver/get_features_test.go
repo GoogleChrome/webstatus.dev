@@ -64,11 +64,11 @@ func TestListFeatures(t *testing.T) {
 					Data: []backend.Feature{
 						{
 							Baseline: &backend.BaselineInfo{
-								Status: valuePtr(backend.Widely),
-								LowDate: valuePtr(
+								Status: new(backend.Widely),
+								LowDate: new(
 									openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 								),
-								HighDate: valuePtr(
+								HighDate: new(
 									openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
 								),
 							},
@@ -79,15 +79,15 @@ func TestListFeatures(t *testing.T) {
 							Wpt:       nil,
 							BrowserImplementations: &map[string]backend.BrowserImplementation{
 								"browser1": {
-									Status:  valuePtr(backend.Available),
+									Status:  new(backend.Available),
 									Date:    nil,
-									Version: valuePtr("101"),
+									Version: new("101"),
 								},
 							},
 							DeveloperSignals:           nil,
 							Discouraged:                nil,
 							VendorPositions:            nil,
-							SystemManagedSavedSearchId: valuePtr("saved-search-1"),
+							SystemManagedSavedSearchId: new("saved-search-1"),
 						},
 					},
 				},
@@ -136,7 +136,7 @@ func TestListFeatures(t *testing.T) {
 	}
 }`,
 			),
-			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features", nil),
 		},
 		{
 			name:       "Success Case - no optional params - use defaults - cached",
@@ -180,7 +180,7 @@ func TestListFeatures(t *testing.T) {
 	}
 }`,
 			),
-			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features", nil),
 		},
 		{
 			name: "Success Case - include optional params",
@@ -227,7 +227,7 @@ func TestListFeatures(t *testing.T) {
 						},
 					},
 				},
-				expectedSortBy: valuePtr[backend.ListFeaturesParamsSort](backend.NameDesc),
+				expectedSortBy: new(backend.NameDesc),
 				page: &backend.FeaturePage{
 					Metadata: backend.PageMetadataWithTotal{
 						NextPageToken: nextPageToken,
@@ -236,11 +236,11 @@ func TestListFeatures(t *testing.T) {
 					Data: []backend.Feature{
 						{
 							Baseline: &backend.BaselineInfo{
-								Status: valuePtr(backend.Widely),
-								LowDate: valuePtr(
+								Status: new(backend.Widely),
+								LowDate: new(
 									openapi_types.Date{Time: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)},
 								),
-								HighDate: valuePtr(
+								HighDate: new(
 									openapi_types.Date{Time: time.Date(2001, time.January, 1, 0, 0, 0, 0, time.UTC)},
 								),
 							},
@@ -251,15 +251,15 @@ func TestListFeatures(t *testing.T) {
 							Wpt:       nil,
 							BrowserImplementations: &map[string]backend.BrowserImplementation{
 								"chrome": {
-									Status: valuePtr(backend.Available),
+									Status: new(backend.Available),
 									Date: &openapi_types.Date{
 										Time: time.Date(1999, time.January, 1, 0, 0, 0, 0, time.UTC)},
-									Version: valuePtr("101"),
+									Version: new("101"),
 								},
 							},
 							DeveloperSignals: &backend.FeatureDeveloperSignals{
-								Upvotes: valuePtr(int64(24)),
-								Link:    valuePtr("https://example.com"),
+								Upvotes: new(int64(24)),
+								Link:    new("https://example.com"),
 							},
 							Discouraged: &backend.FeatureDiscouragedInfo{
 								AccordingTo: &[]backend.FeatureDiscouragedAccordingTo{
@@ -270,7 +270,7 @@ func TestListFeatures(t *testing.T) {
 								},
 							},
 							VendorPositions:            nil,
-							SystemManagedSavedSearchId: valuePtr("saved-search-1"),
+							SystemManagedSavedSearchId: new("saved-search-1"),
 						},
 					},
 				},
@@ -337,7 +337,7 @@ func TestListFeatures(t *testing.T) {
 		}
 }`,
 			),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
 					*inputPageToken,
@@ -403,7 +403,7 @@ func TestListFeatures(t *testing.T) {
 	}
 }`,
 			),
-			request: httptest.NewRequest(
+			request: httptest.NewRequestWithContext(t.Context(),
 				http.MethodGet,
 				fmt.Sprintf("/v1/features?page_token=%s&page_size=50&q=%s&sort=name_desc&wpt_metric_view=subtest_counts",
 					*inputPageToken,
@@ -443,7 +443,7 @@ func TestListFeatures(t *testing.T) {
 			expectedResponse: testJSONResponse(500,
 				`{"code":500,"message":"unable to get list of features"}`,
 			),
-			request: httptest.NewRequest(http.MethodGet, "/v1/features", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features", nil),
 		},
 		{
 			name: "400 case - query string does not match grammar",
@@ -469,7 +469,7 @@ func TestListFeatures(t *testing.T) {
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"query string does not match expected grammar"}`,
 			),
-			request: httptest.NewRequest(http.MethodGet, "/v1/features?q=badterm:foo", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features?q=badterm:foo", nil),
 		},
 		{
 			name: "400 case - query string not safe",
@@ -495,7 +495,7 @@ func TestListFeatures(t *testing.T) {
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"query string cannot be decoded"}`,
 			),
-			request: httptest.NewRequest(http.MethodGet, "/v1/features?q="+url.QueryEscape("%"), nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features?q="+url.QueryEscape("%"), nil),
 		},
 		{
 			name: "400 case - invalid page token",
@@ -529,7 +529,7 @@ func TestListFeatures(t *testing.T) {
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"invalid page token"}`,
 			),
-			request: httptest.NewRequest(http.MethodGet, "/v1/features?page_token="+*badPageToken, nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/v1/features?page_token="+*badPageToken, nil),
 		},
 	}
 	for _, tc := range testCases {

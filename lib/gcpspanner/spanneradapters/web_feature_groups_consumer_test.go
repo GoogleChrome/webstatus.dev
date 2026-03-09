@@ -147,7 +147,7 @@ func TestInsertWebFeatureGroups(t *testing.T) {
 			groupData: map[string]webdxfeaturetypes.GroupData{
 				"group1": {Name: "Group 1", Parent: nil},
 				"group2": {Name: "Group 2", Parent: nil},
-				"child3": {Name: "Child 3", Parent: valuePtr("group1")},
+				"child3": {Name: "Child 3", Parent: new("group1")},
 			},
 			expectedError: nil,
 		},

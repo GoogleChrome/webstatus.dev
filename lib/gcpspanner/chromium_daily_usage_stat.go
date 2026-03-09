@@ -77,7 +77,7 @@ func (c *Client) ListChromeDailyUsageStatsForFeatureID(
 	pageToken *string,
 ) ([]ChromeDailyUsageStatWithDate, *string, error) {
 
-	params := map[string]interface{}{
+	params := map[string]any{
 		"featureKey": featureKey,
 		"startAt":    startAt,
 		"endAt":      endAt,

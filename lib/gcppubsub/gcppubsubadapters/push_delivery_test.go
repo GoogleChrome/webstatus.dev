@@ -127,20 +127,20 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 		t.Errorf("Topic mismatch: got %s, want email-topic", mockPub.publishedTopic)
 	}
 
-	var actualEnvelope map[string]interface{}
+	var actualEnvelope map[string]any
 	if err := json.Unmarshal(mockPub.publishedData, &actualEnvelope); err != nil {
 		t.Fatalf("Failed to unmarshal published data: %v", err)
 	}
 
-	expectedEnvelope := map[string]interface{}{
+	expectedEnvelope := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "EmailJobEvent",
-		"data": map[string]interface{}{
+		"data": map[string]any{
 			"subscription_id": "sub-1",
 			"recipient_email": "test@example.com",
 			"summary_raw":     base64.StdEncoding.EncodeToString([]byte(`{"text": "Test Body"}`)),
 			"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
-			"metadata": map[string]interface{}{
+			"metadata": map[string]any{
 				"event_id":     "event-1",
 				"search_id":    "search-1",
 				"query":        "query-string",
@@ -224,7 +224,7 @@ func TestPushDeliverySubscriber_RoutesFeatureDiffEvent(t *testing.T) {
 		Frequency:     featurediffv1.FrequencyMonthly,
 		Reasons:       []featurediffv1.Reason{featurediffv1.ReasonDataUpdated},
 	}
-	ceWrapper := map[string]interface{}{
+	ceWrapper := map[string]any{
 		"apiVersion": "v1",
 		"kind":       "FeatureDiffEvent",
 		"data":       featureDiffEvent,

@@ -280,7 +280,7 @@ func TestReleaseSavedSearchStateWorkerLock(t *testing.T) {
 		},
 		{
 			name:               "attempt to release a lock that does not exist",
-			otherSavedSearchID: valuePtr("non-existent-search"),
+			otherSavedSearchID: new("non-existent-search"),
 			snapshotType:       snapshotType,
 			workerID:           worker1,
 			expectedErr:        nil, // Should be a no-op
@@ -384,8 +384,8 @@ func TestGetAndUpdateSavedSearchState(t *testing.T) {
 		expectedState := SavedSearchState{
 			SavedSearchID:          savedSearchID,
 			SnapshotType:           snapshotType,
-			WorkerLockID:           valuePtr(workerID),
-			LastKnownStateBlobPath: valuePtr(updatedBlobPath),
+			WorkerLockID:           new(workerID),
+			LastKnownStateBlobPath: new(updatedBlobPath),
 			WorkerLockExpiresAt:    &expectedExpiration,
 		}
 		if diff := cmp.Diff(expectedState, *state); diff != "" {

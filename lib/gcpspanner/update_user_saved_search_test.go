@@ -30,7 +30,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		Name:        "my little search",
 		Query:       "group:css",
 		OwnerUserID: "userID1",
-		Description: valuePtr("initial description"),
+		Description: new("initial description"),
 	})
 	if err != nil {
 		t.Errorf("expected nil error. received %s", err)
@@ -41,15 +41,15 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 
 	t.Run("non-owner cannot edit", func(t *testing.T) {
 		expectedSavedSearch := &UserSavedSearch{
-			IsBookmarked: valuePtr(true),
-			Role:         valuePtr(string(SavedSearchOwner)),
+			IsBookmarked: new(true),
+			Role:         new(string(SavedSearchOwner)),
 			SavedSearch: SavedSearch{
 				ID:          *savedSearchID,
 				Name:        "my little search",
 				Query:       "group:css",
 				Scope:       "USER_PUBLIC",
 				AuthorID:    "userID1",
-				Description: valuePtr("initial description"),
+				Description: new("initial description"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -68,13 +68,13 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 			},
 			Description: OptionallySet[*string]{
 				IsSet: true,
-				Value: valuePtr("junkdesc"),
+				Value: new("junkdesc"),
 			},
 		})
 		if !errors.Is(err, ErrMissingRequiredRole) {
 			t.Errorf("expected error trying to update %s", err)
 		}
-		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, valuePtr("userID1"))
+		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, new("userID1"))
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
 		}
@@ -84,15 +84,15 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 	})
 	t.Run("owner can edit but leave optional values unchanged", func(t *testing.T) {
 		expectedSavedSearch := &UserSavedSearch{
-			IsBookmarked: valuePtr(true),
-			Role:         valuePtr(string(SavedSearchOwner)),
+			IsBookmarked: new(true),
+			Role:         new(string(SavedSearchOwner)),
 			SavedSearch: SavedSearch{
 				ID:          *savedSearchID,
 				Name:        "my little search",
 				Query:       "group:css",
 				Scope:       "USER_PUBLIC",
 				AuthorID:    "userID1",
-				Description: valuePtr("initial description"),
+				Description: new("initial description"),
 				// Don't actually compare the last two values.
 				CreatedAt: spanner.CommitTimestamp,
 				UpdatedAt: spanner.CommitTimestamp,
@@ -117,7 +117,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		if !errors.Is(err, nil) {
 			t.Errorf("expected nil error trying to update %s", err)
 		}
-		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, valuePtr("userID1"))
+		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, new("userID1"))
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
 		}
@@ -127,8 +127,8 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 	})
 	t.Run("owner can edit", func(t *testing.T) {
 		expectedSavedSearch := &UserSavedSearch{
-			IsBookmarked: valuePtr(true),
-			Role:         valuePtr(string(SavedSearchOwner)),
+			IsBookmarked: new(true),
+			Role:         new(string(SavedSearchOwner)),
 			SavedSearch: SavedSearch{
 				ID:          *savedSearchID,
 				Name:        "my new search",
@@ -160,7 +160,7 @@ func TestUpdateUserSavedSearch(t *testing.T) {
 		if !errors.Is(err, nil) {
 			t.Errorf("expected nil error trying to update %s", err)
 		}
-		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, valuePtr("userID1"))
+		actual, err := spannerClient.GetUserSavedSearch(ctx, *savedSearchID, new("userID1"))
 		if err != nil {
 			t.Errorf("expected nil error. received %s", err)
 		}

@@ -247,8 +247,8 @@ func TestReconcileHistory(t *testing.T) {
 						FeatureId: "removed-id",
 						Name:      "Removed Feature",
 						Baseline: &backend.BaselineInfo{
-							Status:   generic.ValuePtr(backend.Newly),
-							LowDate:  generic.ValuePtr(types.Date{Time: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}),
+							Status:   new(backend.Newly),
+							LowDate:  new(types.Date{Time: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}),
 							HighDate: nil,
 						},
 						BrowserImplementations:     nil,
@@ -277,7 +277,7 @@ func TestReconcileHistory(t *testing.T) {
 							},
 							To: BaselineState{
 								Status:   generic.SetOpt(Newly),
-								LowDate:  generic.SetOpt(generic.ValuePtr(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))),
+								LowDate:  generic.SetOpt(new(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))),
 								HighDate: generic.SetOpt[*time.Time](nil),
 							},
 						},
@@ -542,8 +542,8 @@ func TestReconcileHistory(t *testing.T) {
 						Baseline: &backend.BaselineInfo{
 							// This simulates a feature that still exists but has changed baseline status,
 							// so it should be reconciled as an unmatched removal with diff rather than a hard delete.
-							Status:   generic.ValuePtr(backend.Newly),
-							LowDate:  generic.ValuePtr(types.Date{Time: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}),
+							Status:   new(backend.Newly),
+							LowDate:  new(types.Date{Time: time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC)}),
 							HighDate: nil,
 						},
 						BrowserImplementations:     nil,
@@ -573,7 +573,7 @@ func TestReconcileHistory(t *testing.T) {
 							},
 							To: BaselineState{
 								Status:   generic.SetOpt(Newly),
-								LowDate:  generic.SetOpt(generic.ValuePtr(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))),
+								LowDate:  generic.SetOpt(new(time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC))),
 								HighDate: generic.SetOpt[*time.Time](nil),
 							},
 						},

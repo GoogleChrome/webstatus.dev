@@ -136,7 +136,7 @@ func testMissingOneImplSuite(
 ) {
 	t.Run("bazBrowser ", func(t *testing.T) {
 		targetBrowser := bazBrowser
-		targetMobileBrowser := valuePtr(quxBrowser)
+		targetMobileBrowser := new(quxBrowser)
 		otherBrowsers := []string{
 			fooBrowser,
 			barBrowser,

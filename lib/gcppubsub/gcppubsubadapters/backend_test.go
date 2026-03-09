@@ -117,13 +117,13 @@ func TestSearchConfigurationPublisherAdapter_Publish(t *testing.T) {
 			}
 
 			// Unmarshal actual data
-			var actual interface{}
+			var actual any
 			if err := json.Unmarshal(publisher.publishedData, &actual); err != nil {
 				t.Fatalf("failed to unmarshal published data: %v", err)
 			}
 
 			// Unmarshal expected data
-			var expected interface{}
+			var expected any
 			if err := json.Unmarshal([]byte(tc.expectedJSON), &expected); err != nil {
 				t.Fatalf("failed to unmarshal expected data: %v", err)
 			}

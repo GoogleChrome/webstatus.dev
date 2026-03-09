@@ -85,13 +85,13 @@ func TestFilterData(t *testing.T) {
 					Browsers: map[string]mdn__browser_compat_data.BrowserStatement{
 						"chrome": {
 							Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
-								"100.0.0": {ReleaseDate: valuePtr("2024-04-09")},
-								"101.0.0": {ReleaseDate: valuePtr("2024-05-12")},
+								"100.0.0": {ReleaseDate: new("2024-04-09")},
+								"101.0.0": {ReleaseDate: new("2024-05-12")},
 							},
 						},
 						"firefox": {
 							Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
-								"110.0": {ReleaseDate: valuePtr("2024-04-20")},
+								"110.0": {ReleaseDate: new("2024-04-20")},
 							},
 						},
 					},
@@ -113,7 +113,7 @@ func TestFilterData(t *testing.T) {
 					Browsers: map[string]mdn__browser_compat_data.BrowserStatement{
 						"firefox": {
 							Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
-								"100.0.0": {ReleaseDate: valuePtr("2024-04-09")},
+								"100.0.0": {ReleaseDate: new("2024-04-09")},
 							},
 						},
 					},
@@ -131,8 +131,8 @@ func TestFilterData(t *testing.T) {
 					Browsers: map[string]mdn__browser_compat_data.BrowserStatement{
 						"firefox": {
 							Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
-								"110.0": {ReleaseDate: valuePtr("2024-04-20")},
-								"111.0": {ReleaseDate: valuePtr("invalid-date")}, // Incorrect format
+								"110.0": {ReleaseDate: new("2024-04-20")},
+								"111.0": {ReleaseDate: new("invalid-date")}, // Incorrect format
 							},
 						},
 					},
@@ -150,7 +150,7 @@ func TestFilterData(t *testing.T) {
 					Browsers: map[string]mdn__browser_compat_data.BrowserStatement{
 						"firefox": {
 							Releases: map[string]mdn__browser_compat_data.ReleaseStatement{
-								"100.0.0": {ReleaseDate: valuePtr("2024-04-09")},
+								"100.0.0": {ReleaseDate: new("2024-04-09")},
 								"101.0.0": {ReleaseDate: nil}, // Missing date
 							},
 						},

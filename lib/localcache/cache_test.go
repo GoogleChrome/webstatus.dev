@@ -17,6 +17,7 @@ package localcache
 import (
 	"context"
 	"errors"
+	"maps"
 	"reflect"
 	"sync"
 	"testing"
@@ -122,9 +123,7 @@ func TestLocalDataCache_ConcurrentMapAccess(t *testing.T) {
 			return nil
 		}
 		out := make(map[string]int, len(in))
-		for k, v := range in {
-			out[k] = v
-		}
+		maps.Copy(out, in)
 
 		return out
 	}
@@ -142,10 +141,8 @@ func TestLocalDataCache_ConcurrentMapAccess(t *testing.T) {
 	numGoroutines := 100
 
 	// Start multiple goroutines to simulate concurrent access.
-	for i := 0; i < numGoroutines; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range numGoroutines {
+		wg.Go(func() {
 			// Each goroutine gets the map from the cache.
 			m, err := cache.Get(context.Background(), "test-map")
 			if err != nil {
@@ -157,7 +154,7 @@ func TestLocalDataCache_ConcurrentMapAccess(t *testing.T) {
 			// returns a direct reference to the underlying map, the race
 			// detector will report a data race on this line.
 			m["a"]++
-		}()
+		})
 	}
 
 	// Wait for all goroutines to complete. If there was a race condition,

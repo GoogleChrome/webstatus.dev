@@ -65,7 +65,7 @@ func (m featureDiscouragedDetailsSpannerMapper) SelectOne(id string) spanner.Sta
 	FROM %s
 	WHERE WebFeatureID = @webFeatureID
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"webFeatureID": id,
 	}
 	stmt.Params = parameters

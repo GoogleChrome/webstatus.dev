@@ -61,8 +61,8 @@ func createTestGithubResponse(nextPage int) *github.Response {
 func createTestGitHubUser(id int64, login string) *github.User {
 	// nolint:exhaustruct
 	return &github.User{
-		ID:    valuePtr(id),
-		Login: valuePtr(login),
+		ID:    new(id),
+		Login: new(login),
 	}
 }
 
@@ -104,7 +104,7 @@ func TestUserGitHubClient_GetCurrentUser(t *testing.T) {
 				// nolint:exhaustruct
 				user: &github.User{ // Keep this inline to test nil ID specifically
 					ID:    nil,
-					Login: valuePtr("testuser"),
+					Login: new("testuser"),
 				},
 				err: nil,
 			},
@@ -116,7 +116,7 @@ func TestUserGitHubClient_GetCurrentUser(t *testing.T) {
 			cfg: &mockGetCurrentUserConfig{
 				// nolint:exhaustruct
 				user: &github.User{ // Keep this inline to test nil Login specifically
-					ID:    valuePtr(int64(12345)),
+					ID:    new(int64(12345)),
 					Login: nil,
 				},
 				err: nil,

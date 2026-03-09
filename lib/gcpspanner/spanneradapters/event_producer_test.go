@@ -25,7 +25,6 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner"
 	"github.com/GoogleChrome/webstatus.dev/lib/gcpspanner/searchtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
-	"github.com/GoogleChrome/webstatus.dev/lib/generic"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 	"github.com/google/go-cmp/cmp"
 )
@@ -285,7 +284,7 @@ func TestEventProducer_PublishEvent(t *testing.T) {
 				GeneratedAt:   generatedAt,
 			},
 			mockPublishErr:  nil,
-			mockPublishResp: generic.ValuePtr("new-event-id"),
+			mockPublishResp: new("new-event-id"),
 			wantErr:         false,
 			expectCall:      true,
 			expectedReq: &expectedRequest{
@@ -617,7 +616,7 @@ func TestEventProducerDiffer_FetchFeatures(t *testing.T) {
 				*feature1,
 			},
 			Metadata: backend.PageMetadataWithTotal{
-				NextPageToken: generic.ValuePtr("token-1"),
+				NextPageToken: new("token-1"),
 				Total:         1000,
 			},
 		},

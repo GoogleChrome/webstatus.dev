@@ -62,7 +62,7 @@ func (m dailyChromiumHistogramEnumCapstonesSpannerMapper) SelectOne(
 	WHERE ChromiumHistogramEnumID = @chromiumHistogramEnumID AND Day = @day
 	LIMIT 1`,
 		m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"chromiumHistogramEnumID": key.ChromiumHistogramEnumID,
 		"day":                     key.Day,
 	}

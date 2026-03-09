@@ -60,7 +60,8 @@ func TestGetNotificationChannel(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/notification-channels/channel1", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
+				"/v1/users/me/notification-channels/channel1", nil),
 			expectedResponse: testJSONResponse(200, `
 {
 	"id": "channel1",
@@ -85,7 +86,8 @@ func TestGetNotificationChannel(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/notification-channels/channel1", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
+				"/v1/users/me/notification-channels/channel1", nil),
 			expectedResponse: testJSONResponse(404, `
 			{
 				"code":404,
@@ -102,7 +104,8 @@ func TestGetNotificationChannel(t *testing.T) {
 			},
 			expectedCallCount:    1,
 			authMiddlewareOption: withAuthMiddleware(mockAuthMiddleware(testUser)),
-			request:              httptest.NewRequest(http.MethodGet, "/v1/users/me/notification-channels/channel1", nil),
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
+				"/v1/users/me/notification-channels/channel1", nil),
 			expectedResponse: testJSONResponse(500, `
 			{
 				"code":500,

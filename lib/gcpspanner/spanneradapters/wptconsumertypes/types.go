@@ -25,7 +25,7 @@ type WPTFeatureMetric struct {
 	TestPass          *int64
 	TotalSubtests     *int64
 	SubtestPass       *int64
-	FeatureRunDetails map[string]interface{}
+	FeatureRunDetails map[string]any
 }
 
 // ErrInvalidDataFromWPT indicates that the data will not be stored because it

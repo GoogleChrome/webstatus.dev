@@ -47,7 +47,7 @@ func getAllUserNotificationChannels(
 				FROM NotificationChannels AS nc
 				LEFT JOIN NotificationChannelStates AS ncs ON nc.ID = ncs.ChannelID
 				WHERE nc.UserID = @userID AND nc.Type = "email"`,
-		Params: map[string]interface{}{
+		Params: map[string]any{
 			"userID": userID,
 		},
 	}

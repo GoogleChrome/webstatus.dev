@@ -58,7 +58,7 @@ func (p Pool[TJob]) Start(ctx context.Context, numWorkers int, processor JobProc
 
 	// Start the workers
 	wg.Add(numWorkers)
-	for i := 0; i < numWorkers; i++ {
+	for i := range numWorkers {
 		go p.StartWorker(ctx, processor, i, &wg, jobsChan, errChan)
 	}
 	// Send the job

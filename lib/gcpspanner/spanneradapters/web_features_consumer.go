@@ -309,12 +309,12 @@ func getBaselineStatusEnum(status webdxfeaturetypes.Status) *gcpspanner.Baseline
 	if status.Baseline.Enum != nil {
 		switch *status.Baseline.Enum {
 		case webdxfeaturetypes.High:
-			return valuePtr(gcpspanner.BaselineStatusHigh)
+			return new(gcpspanner.BaselineStatusHigh)
 		case webdxfeaturetypes.Low:
-			return valuePtr(gcpspanner.BaselineStatusLow)
+			return new(gcpspanner.BaselineStatusLow)
 		}
 	} else if status.Baseline.Bool != nil && !*status.Baseline.Bool {
-		return valuePtr(gcpspanner.BaselineStatusNone)
+		return new(gcpspanner.BaselineStatusNone)
 	}
 
 	return nil

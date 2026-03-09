@@ -324,7 +324,7 @@ func TestListSavedSearchSubscriptions(t *testing.T) {
 	}
 
 	// Create a few subscriptions to list
-	for i := 0; i < 3; i++ {
+	for range 3 {
 		_, err := spannerClient.CreateSavedSearchSubscription(ctx, baseCreateReq)
 		if err != nil {
 			t.Fatalf("failed to create subscription for list test: %v", err)
@@ -585,7 +585,7 @@ func TestCreateSavedSearchSubscriptionLimitExceeded(t *testing.T) {
 
 	// Create subscriptions up to the limit
 	limit := defaultMaxSubscriptionsPerUser
-	for i := 0; i < limit; i++ {
+	for i := range limit {
 		_, err := spannerClient.CreateSavedSearchSubscription(ctx, CreateSavedSearchSubscriptionRequest{
 			UserID:        userID,
 			ChannelID:     channelID,

@@ -803,7 +803,7 @@ func convertSavedSearchRoleFromGCP(role *string) *backend.UserSavedSearchPermiss
 	switch gcpspanner.SavedSearchRole(*role) {
 	case gcpspanner.SavedSearchOwner:
 		return &backend.UserSavedSearchPermissions{
-			Role: valuePtr(backend.SavedSearchOwner),
+			Role: new(backend.SavedSearchOwner),
 		}
 	}
 
@@ -981,8 +981,6 @@ func convertBaselineStatusBackendToSpanner(status backend.BaselineInfoStatus) gc
 	return ""
 }
 
-func valuePtr[T any](in T) *T { return &in }
-
 func convertBaselineSpannerToBackend(strStatus *string,
 	lowDate, highDate *time.Time) *backend.BaselineInfo {
 	var ret *backend.BaselineInfo
@@ -994,11 +992,11 @@ func convertBaselineSpannerToBackend(strStatus *string,
 	var backendStatus *backend.BaselineInfoStatus
 	switch status {
 	case gcpspanner.BaselineStatusHigh:
-		backendStatus = valuePtr(backend.Widely)
+		backendStatus = new(backend.Widely)
 	case gcpspanner.BaselineStatusLow:
-		backendStatus = valuePtr(backend.Newly)
+		backendStatus = new(backend.Newly)
 	case gcpspanner.BaselineStatusNone:
-		backendStatus = valuePtr(backend.Limited)
+		backendStatus = new(backend.Limited)
 	}
 	var retLowDate, retHighDate *openapi_types.Date
 	if lowDate != nil {

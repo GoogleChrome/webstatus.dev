@@ -196,7 +196,7 @@ func (m *Migrator) applyInternal(blob []byte, currentKind, currentVersion, targe
 	targetKey := makeKey(targetKind, targetVersion)
 
 	const maxDepth = 100
-	for i := 0; i < maxDepth; i++ {
+	for range maxDepth {
 		if currKey == targetKey {
 			return blob, currentKind, currentVersion, nil
 		}

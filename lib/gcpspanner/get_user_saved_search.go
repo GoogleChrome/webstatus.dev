@@ -52,7 +52,7 @@ func (m unauthenticatedUserSavedSearchMapper) SelectOne(
 		AND Scope = 'USER_PUBLIC'
 	LIMIT 1`,
 		savedSearchesTable))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"id": key,
 	}
 	stmt.Params = parameters
@@ -95,7 +95,7 @@ func (m authenticatedUserSavedSearchMapper) SelectOne(
 		AND s.Scope = 'USER_PUBLIC'
 	LIMIT 1`,
 		savedSearchesTable))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"id":     key.ID,
 		"userID": key.UserID,
 	}

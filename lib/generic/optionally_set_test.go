@@ -37,7 +37,7 @@ func TestOptionallySet_Scalars(t *testing.T) {
 			name: "All Set",
 			input: wrapper{
 				Str:    SetOpt("A"),
-				PtrStr: SetOpt(ValuePtr("B")),
+				PtrStr: SetOpt(new("B")),
 				Int:    SetOpt(1),
 			},
 			expectedJSON: `{"str":"A","ptr_str":"B","int":1}`,
@@ -91,9 +91,9 @@ func TestOptionallySet_Complex(t *testing.T) {
 			name: "Complex Types Set",
 			input: wrapper{
 				Slice:     OptionallySet[[]string]{Value: []string{"a", "b"}, IsSet: true},
-				PtrSlice:  OptionallySet[*[]string]{Value: ValuePtr([]string{"c"}), IsSet: true},
+				PtrSlice:  OptionallySet[*[]string]{Value: new([]string{"c"}), IsSet: true},
 				Map:       OptionallySet[map[string]int]{Value: map[string]int{"k": 1}, IsSet: true},
-				PtrMap:    OptionallySet[*map[string]int]{Value: ValuePtr(map[string]int{"k": 2}), IsSet: true},
+				PtrMap:    OptionallySet[*map[string]int]{Value: new(map[string]int{"k": 2}), IsSet: true},
 				Struct:    OptionallySet[inner]{Value: inner{ID: 10}, IsSet: true},
 				PtrStruct: OptionallySet[*inner]{Value: &inner{ID: 20}, IsSet: true},
 			},

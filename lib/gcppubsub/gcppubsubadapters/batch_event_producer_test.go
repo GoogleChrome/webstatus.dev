@@ -90,12 +90,12 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 func verifyJSONPayload(t *testing.T, actualBytes []byte, expectedJSON string) {
 	t.Helper()
 
-	var actual interface{}
+	var actual any
 	if err := json.Unmarshal(actualBytes, &actual); err != nil {
 		t.Fatalf("failed to unmarshal actual data: %v", err)
 	}
 
-	var expected interface{}
+	var expected any
 	if err := json.Unmarshal([]byte(expectedJSON), &expected); err != nil {
 		t.Fatalf("failed to unmarshal expected data: %v", err)
 	}

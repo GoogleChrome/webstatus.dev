@@ -148,7 +148,7 @@ func migrateWebFeaturesToMovedFeatures(
 	// Attempt to migrate web features.
 	for testName, featuresMap := range *data {
 
-		newFeaturesMap := make(map[string]interface{}, len(featuresMap))
+		newFeaturesMap := make(map[string]any, len(featuresMap))
 		for featureKey, featureKeyData := range featuresMap {
 			if movedFeatureData, found := movedWebFeatures[featureKey]; found {
 				if _, exists := allFeatureKeySet[movedFeatureData.RedirectTarget]; exists {

@@ -99,8 +99,8 @@ func testUserID1(t *testing.T, searches []SavedSearch) {
 		expectedSearchs[idx] = UserSavedSearch{
 			SavedSearch: search,
 			// userID1 should own and bookmark all of them
-			IsBookmarked: valuePtr(true),
-			Role:         valuePtr(string(SavedSearchOwner)),
+			IsBookmarked: new(true),
+			Role:         new(string(SavedSearchOwner)),
 		}
 	}
 	t.Run("list all the saved searches", func(t *testing.T) {
@@ -129,7 +129,7 @@ func testUserID1(t *testing.T, searches []SavedSearch) {
 	t.Run("paginated", func(t *testing.T) {
 		// Only request 2 results at a time
 		// First page
-		firstPageToken := valuePtr(encodeUserSavedSearchesCursor(searches[1].ID, searches[1].Name))
+		firstPageToken := new(encodeUserSavedSearchesCursor(searches[1].ID, searches[1].Name))
 		expectedPage := &UserSavedSearchesPage{
 			NextPageToken: firstPageToken,
 			// Only the first 2
@@ -149,7 +149,7 @@ func testUserID1(t *testing.T, searches []SavedSearch) {
 		assertSavedSearchName(t, "a", page.Searches[0])
 		assertSavedSearchName(t, "samename", page.Searches[1])
 		// Second page
-		secondPageToken := valuePtr(encodeUserSavedSearchesCursor(searches[3].ID, searches[3].Name))
+		secondPageToken := new(encodeUserSavedSearchesCursor(searches[3].ID, searches[3].Name))
 		expectedPage = &UserSavedSearchesPage{
 			NextPageToken: secondPageToken,
 			// Only the second 2
@@ -194,7 +194,7 @@ func testUserID2(t *testing.T, searches []SavedSearch) {
 	expectedSearchs[0] = UserSavedSearch{
 		SavedSearch: searches[0],
 		// userID2 should only have bookmark status for this search
-		IsBookmarked: valuePtr(true),
+		IsBookmarked: new(true),
 		// userID2 should have no role for this search
 		Role: nil,
 	}

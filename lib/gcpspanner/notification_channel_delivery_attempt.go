@@ -125,7 +125,7 @@ func (m notificationChannelDeliveryAttemptMapper) SelectOne(key deliveryAttemptK
 		SELECT ID, ChannelID, AttemptTimestamp, Status, Details
 		FROM NotificationChannelDeliveryAttempts
 		WHERE ID = @id AND ChannelID = @channelID`)
-	stmt.Params = map[string]interface{}{
+	stmt.Params = map[string]any{
 		"id":        key.ID,
 		"channelID": key.ChannelID,
 	}
@@ -136,7 +136,7 @@ func (m notificationChannelDeliveryAttemptMapper) SelectOne(key deliveryAttemptK
 func (m notificationChannelDeliveryAttemptMapper) SelectList(
 	req ListNotificationChannelDeliveryAttemptsRequest) spanner.Statement {
 	var pageFilter string
-	params := map[string]interface{}{
+	params := map[string]any{
 		"channelID": req.ChannelID,
 		"pageSize":  req.PageSize,
 	}

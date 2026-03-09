@@ -53,7 +53,7 @@ func (m browserReleaseSpannerMapper) SelectOne(key browserReleaseKey) spanner.St
 	FROM %s
 	WHERE BrowserName = @browserName AND BrowserVersion = @browserVersion
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"browserName":    key.BrowserName,
 		"browserVersion": key.BrowserVersion,
 	}

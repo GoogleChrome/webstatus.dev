@@ -62,7 +62,7 @@ func (m userSavedSearchBookmarkMapper) SelectOne(
 	WHERE UserID = @userID AND SavedSearchID = @savedSearchID
 	LIMIT 1`,
 		m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"userID":        key.UserID,
 		"savedSearchID": key.SavedSearchID,
 	}
@@ -108,7 +108,7 @@ func (c *Client) AddUserSearchBookmark(ctx context.Context, req UserSavedSearchB
 			LEFT JOIN %s sr ON us.SavedSearchID = sr.SavedSearchID AND us.UserID = sr.UserID
 			WHERE us.UserID = @UserID AND (sr.UserRole != @Role OR sr.UserRole IS NULL);
 		`, userSavedSearchBookmarksTable, savedSearchUserRolesTable),
-			Params: map[string]interface{}{
+			Params: map[string]any{
 				"UserID": req.UserID,
 				"Role":   SavedSearchOwner,
 			},
@@ -160,7 +160,7 @@ func (c *Client) DeleteUserSearchBookmark(ctx context.Context, req UserSavedSear
 					WHERE UserID = @UserID AND SavedSearchID = @SavedSearchID AND UserRole = @Role
 				)
 			`, savedSearchUserRolesTable),
-			Params: map[string]interface{}{
+			Params: map[string]any{
 				"UserID":        req.UserID,
 				"SavedSearchID": req.SavedSearchID,
 				"Role":          SavedSearchOwner,

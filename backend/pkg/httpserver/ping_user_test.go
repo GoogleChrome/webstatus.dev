@@ -80,7 +80,7 @@ func TestPingUser(t *testing.T) {
 			body: strings.NewReader(`{"github_token": "foo"}`),
 			authMiddleware: mockAuthMiddleware(&auth.User{
 				ID:           "hi",
-				GitHubUserID: valuePtr("123456"),
+				GitHubUserID: new("123456"),
 			}),
 			getCurrentUserCfg: &mockGetCurrentUserConfig{
 				err:  errTest,
@@ -98,7 +98,7 @@ func TestPingUser(t *testing.T) {
 			body: strings.NewReader(`{"github_token": "foo"}`),
 			authMiddleware: mockAuthMiddleware(&auth.User{
 				ID:           "hi",
-				GitHubUserID: valuePtr("123456"),
+				GitHubUserID: new("123456"),
 			}),
 			getCurrentUserCfg: &mockGetCurrentUserConfig{
 				err: nil,
@@ -119,7 +119,7 @@ func TestPingUser(t *testing.T) {
 			body: strings.NewReader(`{"github_token": "foo"}`),
 			authMiddleware: mockAuthMiddleware(&auth.User{
 				ID:           "hi",
-				GitHubUserID: valuePtr("123456"),
+				GitHubUserID: new("123456"),
 			}),
 			getCurrentUserCfg: &mockGetCurrentUserConfig{
 				err: nil,
@@ -140,7 +140,7 @@ func TestPingUser(t *testing.T) {
 			body: strings.NewReader(`{"github_token": "foo"}`),
 			authMiddleware: mockAuthMiddleware(&auth.User{
 				ID:           "hi",
-				GitHubUserID: valuePtr("123456"),
+				GitHubUserID: new("123456"),
 			}),
 			getCurrentUserCfg: &mockGetCurrentUserConfig{
 				err: nil,
@@ -164,7 +164,7 @@ func TestPingUser(t *testing.T) {
 			body: strings.NewReader(`{"github_token": "foo"}`),
 			authMiddleware: mockAuthMiddleware(&auth.User{
 				ID:           "hi",
-				GitHubUserID: valuePtr("123456"),
+				GitHubUserID: new("123456"),
 			}),
 			getCurrentUserCfg: &mockGetCurrentUserConfig{
 				err: nil,
@@ -211,7 +211,7 @@ func TestPingUser(t *testing.T) {
 			body: strings.NewReader(`{"github_token": "foo"}`),
 			authMiddleware: mockAuthMiddleware(&auth.User{
 				ID:           "hi",
-				GitHubUserID: valuePtr("123456"),
+				GitHubUserID: new("123456"),
 			}),
 			getCurrentUserCfg: &mockGetCurrentUserConfig{
 				err: nil,
@@ -270,7 +270,7 @@ func TestPingUser(t *testing.T) {
 				eventPublisher:          nil,
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/v1/users/me/ping", tc.body)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/v1/users/me/ping", tc.body)
 			req.Header.Set("Content-Type", "application/json")
 			assertTestServerRequest(t, &myServer, req, tc.expectedResponse, authMiddlewareOption)
 		})

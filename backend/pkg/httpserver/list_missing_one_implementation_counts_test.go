@@ -53,11 +53,11 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 					},
 					Data: []backend.BrowserReleaseFeatureMetric{
 						{
-							Count:     valuePtr[int64](10),
+							Count:     new(int64(10)),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 						},
 						{
-							Count:     valuePtr[int64](9),
+							Count:     new(int64(9)),
 							Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -99,7 +99,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10", nil),
@@ -136,7 +136,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10", nil),
@@ -145,7 +145,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 			name: "Success Case - include optional params",
 			mockConfig: &MockListMissingOneImplCountsConfig{
 				expectedTargetBrowser:       "chrome",
-				expectedTargetMobileBrowser: valuePtr("chrome_android"),
+				expectedTargetMobileBrowser: new("chrome_android"),
 				expectedOtherBrowsers:       []string{"firefox", "firefox_android", "safari", "safari_ios"},
 				expectedStartAt:             time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				expectedEndAt:               time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
@@ -158,11 +158,11 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 					},
 					Data: []backend.BrowserReleaseFeatureMetric{
 						{
-							Count:     valuePtr[int64](10),
+							Count:     new(int64(10)),
 							Timestamp: time.Date(2000, time.January, 10, 0, 0, 0, 0, time.UTC),
 						},
 						{
-							Count:     valuePtr[int64](9),
+							Count:     new(int64(9)),
 							Timestamp: time.Date(2000, time.January, 9, 0, 0, 0, 0, time.UTC),
 						},
 					},
@@ -208,7 +208,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 		"next_page_token":"next-page-token"
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=firefox&browser=safari&include_baseline_mobile_browsers=true&"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
@@ -247,7 +247,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 		"next_page_token":"next-page-token"
 	}
 }`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_size=50&page_token="+*inputPageToken, nil),
@@ -278,7 +278,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 			expectedCallCount:  1,
 			expectedResponse: testJSONResponse(
 				500, `{"code":500,"message":"unable to get missing one implementation metrics"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10", nil),
@@ -308,7 +308,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 			expectedCacheCalls: nil,
 			expectedCallCount:  1,
 			expectedResponse:   testJSONResponse(400, `{"code":400,"message":"invalid page token"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/chrome/missing_one_implementation_counts?"+
 					"browser=edge&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10&page_token"+*badPageToken, nil),
@@ -329,7 +329,7 @@ func TestListMissingOneImplementationCounts(t *testing.T) {
 			expectedCallCount:  0,
 			expectedResponse: testJSONResponse(400,
 				`{"code":400,"message":"browser does not have a matching mobile browser"}`),
-			request: httptest.NewRequest(http.MethodGet,
+			request: httptest.NewRequestWithContext(t.Context(), http.MethodGet,
 				"/v1/stats/features/browsers/edge/missing_one_implementation_counts?"+
 					"browser=chrome&browser=firefox&browser=safari&"+
 					"startAt=2000-01-01&endAt=2000-01-10&include_baseline_mobile_browsers=true", nil),

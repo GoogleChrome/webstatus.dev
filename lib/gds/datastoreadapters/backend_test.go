@@ -67,7 +67,7 @@ func TestGetFeatureMetadata(t *testing.T) {
 				err: nil,
 			},
 			expectedMetadata: &backend.FeatureMetadata{
-				Description: valuePtr("desc"),
+				Description: new("desc"),
 				CanIUse:     nil,
 			},
 			expectedErr: nil,
@@ -88,14 +88,14 @@ func TestGetFeatureMetadata(t *testing.T) {
 				err: nil,
 			},
 			expectedMetadata: &backend.FeatureMetadata{
-				Description: valuePtr("desc"),
+				Description: new("desc"),
 				CanIUse: &backend.CanIUseInfo{
 					Items: &[]backend.CanIUseItem{
 						{
-							Id: valuePtr("caniuse1"),
+							Id: new("caniuse1"),
 						},
 						{
-							Id: valuePtr("caniuse2"),
+							Id: new("caniuse2"),
 						},
 					},
 				},

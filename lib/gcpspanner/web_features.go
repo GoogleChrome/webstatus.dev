@@ -132,7 +132,7 @@ func (m webFeatureSpannerMapper) SelectOne(key string) spanner.Statement {
 	FROM %s
 	WHERE FeatureKey = @featureKey
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"featureKey": key,
 	}
 	stmt.Params = parameters
@@ -686,7 +686,7 @@ func (m webFeatureSpannerMapper) GetID(key string) spanner.Statement {
 	FROM %s
 	WHERE FeatureKey = @featureKey
 	LIMIT 1`, m.Table()))
-	parameters := map[string]interface{}{
+	parameters := map[string]any{
 		"featureKey": key,
 	}
 	stmt.Params = parameters
