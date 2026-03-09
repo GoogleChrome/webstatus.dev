@@ -554,14 +554,3 @@ download-playwright-report-from-run-%: check-gh-login
 	mkdir -p playwright-report
 	gh run download -R $(GH_REPO) $* -n playwright-report --dir playwright-report
 
-################################
-# Skills
-################################
-link-skills:
-	gemini skills link skills/webstatus-workers --consent
-	gemini skills link skills/webstatus-backend --consent
-	gemini skills link skills/webstatus-frontend --consent
-	gemini skills link skills/webstatus-e2e --consent
-	gemini skills link skills/webstatus-ingestion --consent
-	gemini skills link skills/webstatus-search-grammar --consent
-	gemini skills link skills/webstatus-maintenance --consent
