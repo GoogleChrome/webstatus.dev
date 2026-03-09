@@ -5,7 +5,11 @@ description: Use when upgrading toolchain versions (Go, Node.js, Terraform, Play
 
 # webstatus-maintenance
 
-This skill provides guidance for updating the core toolchain versions across the `webstatus.dev` repository. Because these tools are used in local development (DevContainer), CI pipelines (GitHub Actions), and production Docker images, updates must be synchronized across multiple files.
+This skill provides guidance for updating the core toolchain versions across the `webstatus.dev` repository.
+
+## Architecture
+
+For a technical overview of synchronized upgrades and infrastructure maintenance, see [references/architecture.md](references/architecture.md).
 
 ## Synchronized Upgrades
 

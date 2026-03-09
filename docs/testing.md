@@ -122,3 +122,21 @@ Given the `playwright-report` directory exists, run the following command: `make
    ```
 2. Open the [trace](https://playwright.dev/docs/trace-viewer#opening-the-trace): `npx playwright show-trace path/to/trace.zip`
    - Example: `npx playwright show-trace playwright-report/data/9bd87f9fe48efeb348ad4c6f05d01743b15501b8.zip`
+
+## Playwright Test Runner (VS Code)
+
+For the best developer experience when iterating on E2E tests, use the **Playwright Test** extension for VS Code.
+
+### Benefits
+
+- **Direct Execution**: Run or debug individual tests using code lens "play" buttons directly in the editor.
+- **Show Browser**: Control a live browser window while tests are running to inspect the UI state.
+- **Auto-Wait**: Benefit from Playwright's auto-waiting features which are easier to observe during live runs.
+
+### How to use
+
+1.  Open the **Testing** panel in the VS Code sidebar.
+2.  Ensure the "Playwright" tests are discovered.
+3.  Check the "Show Browser" box at the bottom of the testing panel.
+4.  Run a test; a Chromium window will launch showing the automated actions.
+5.  Set breakpoints in your `.spec.ts` files to pause execution and use the browser's DevTools to inspect elements.

@@ -7,6 +7,10 @@ description: Use when modifying the ANTLR search grammar, adding new search term
 
 This skill provides instructions for modifying the feature search syntax in `webstatus.dev`, which is built on ANTLR v4.
 
+## Architecture
+
+For a technical breakdown of the ANTLR grammar, search node transformation, and the `FeaturesSearchVisitor` implementation, see [references/architecture.md](references/architecture.md).
+
 ## Source of Truth
 
 - The canonical source of truth for the search syntax is `antlr/FeatureSearch.g4`.
@@ -21,7 +25,7 @@ This skill provides instructions for modifying the feature search syntax in `web
    - Run `make antlr-gen`. This will update the files in `lib/gen/featuresearch/parser/`.
 3. **Update Visitor (`lib/gcpspanner/searchtypes/`)**:
    - Add a new `SearchIdentifier` for your term in `searchtypes.go` (e.g., `IdentifierIsDiscouraged`).
-   - In `features_search_visitor.go`, implement the `VisitDiscouraged_termContext` method to create and return a `SearchNode` with the new identifier.
+   - In **[FeaturesSearchVisitor.go](../../lib/gcpspanner/searchtypes/features_search_visitor.go)**, implement the `VisitDiscouraged_termContext` method. This visitor is the **source-of-truth** for how grammar terms are translated into Spanner SQL.
 4. **Update Query Builder (`lib/gcpspanner/feature_search_query.go`)**:
    - In `FeatureSearchFilterBuilder.traverseAndGenerateFilters`, add a `case` for your new `SearchIdentifier`.
    - This case should generate the appropriate Spanner SQL `WHERE` clause for the filter.
