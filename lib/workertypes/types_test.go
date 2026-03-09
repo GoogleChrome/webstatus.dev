@@ -273,8 +273,9 @@ func TestGenerateJSONSummaryFeatureDiffV1(t *testing.T) {
 
 			expected: `{
     "schemaVersion": "v1",
-    "text": "Search criteria updated, 2 features added, 2 features removed, ` +
-				`1 features deleted, 1 features moved/renamed, 1 features split, 3 features updated",
+    "text": "Search criteria updated, 2 new features matched your search, 2 features no longer matched your search ` +
+				`(1 became Baseline newly available), 1 feature deleted, 1 feature moved/renamed, 1 feature split, ` +
+				`3 features updated (1 became Baseline newly available)",
     "categories": {
         "query_changed": 1,
         "added": 2,
@@ -455,5 +456,139 @@ func compareJSONBodies(t *testing.T, actualBody, expectedBody []byte) {
 
 	if diff := cmp.Diff(expectedObj, actualObj); diff != "" {
 		t.Errorf("JSON mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestGenerateCategoryDetails(t *testing.T) {
+	newlyDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	widelyDate := time.Date(2025, 6, 1, 0, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name          string
+		modifications []v1.FeatureModified
+		expected      []string
+	}{
+		{
+			name:          "Empty list",
+			modifications: []v1.FeatureModified{},
+			// generateCategoryDetails builds a slice, if empty conditions, it returns nil from buildBaselineDetails
+			expected: nil,
+		},
+		{
+			name: "Only Newly",
+			modifications: []v1.FeatureModified{
+				{
+					ID:             "1",
+					Name:           "A",
+					NameChange:     nil,
+					BrowserChanges: nil,
+					Docs:           nil,
+					DocsChange:     nil,
+					BaselineChange: &v1.Change[v1.BaselineState]{
+						From: v1.BaselineState{
+							Status:   generic.UnsetOpt[v1.BaselineInfoStatus](),
+							LowDate:  generic.UnsetOpt[*time.Time](),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+						To: v1.BaselineState{
+							Status:   generic.SetOpt(v1.Newly),
+							LowDate:  generic.SetOpt(&newlyDate),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+					},
+				},
+				{
+					ID:             "2",
+					Name:           "B",
+					NameChange:     nil,
+					BrowserChanges: nil,
+					Docs:           nil,
+					DocsChange:     nil,
+					BaselineChange: &v1.Change[v1.BaselineState]{
+						From: v1.BaselineState{
+							Status:   generic.UnsetOpt[v1.BaselineInfoStatus](),
+							LowDate:  generic.UnsetOpt[*time.Time](),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+						To: v1.BaselineState{
+							Status:   generic.SetOpt(v1.Newly),
+							LowDate:  generic.SetOpt(&newlyDate),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+					},
+				},
+			},
+			expected: []string{"2 became Baseline newly available"},
+		},
+		{
+			name: "Newly and Widely",
+			modifications: []v1.FeatureModified{
+				{
+					ID:             "3",
+					Name:           "C",
+					NameChange:     nil,
+					BrowserChanges: nil,
+					Docs:           nil,
+					DocsChange:     nil,
+					BaselineChange: &v1.Change[v1.BaselineState]{
+						From: v1.BaselineState{
+							Status:   generic.UnsetOpt[v1.BaselineInfoStatus](),
+							LowDate:  generic.UnsetOpt[*time.Time](),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+						To: v1.BaselineState{
+							Status:   generic.SetOpt(v1.Newly),
+							LowDate:  generic.SetOpt(&newlyDate),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+					},
+				},
+				{
+					ID:             "4",
+					Name:           "D",
+					NameChange:     nil,
+					BrowserChanges: nil,
+					Docs:           nil,
+					DocsChange:     nil,
+					BaselineChange: &v1.Change[v1.BaselineState]{
+						From: v1.BaselineState{
+							Status:   generic.UnsetOpt[v1.BaselineInfoStatus](),
+							LowDate:  generic.UnsetOpt[*time.Time](),
+							HighDate: generic.UnsetOpt[*time.Time](),
+						},
+						To: v1.BaselineState{
+							Status:   generic.SetOpt(v1.Widely),
+							LowDate:  generic.SetOpt(&newlyDate),
+							HighDate: generic.SetOpt(&widelyDate),
+						},
+					},
+				},
+			},
+			expected: []string{"1 became Baseline newly available", "1 became Baseline widely available"},
+		},
+		{
+			name: "No baseline changes",
+			modifications: []v1.FeatureModified{
+				{
+					ID:             "5",
+					Name:           "E",
+					NameChange:     &v1.Change[string]{From: "A", To: "B"},
+					BaselineChange: nil,
+					BrowserChanges: nil,
+					Docs:           nil,
+					DocsChange:     nil,
+				},
+			},
+			expected: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := generateCategoryDetails(tc.modifications)
+			if diff := cmp.Diff(tc.expected, got); diff != "" {
+				t.Errorf("generateCategoryDetails() mismatch (-want +got):\n%s", diff)
+			}
+		})
 	}
 }

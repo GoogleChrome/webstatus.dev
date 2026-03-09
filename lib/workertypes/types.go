@@ -271,6 +271,56 @@ func (g FeatureDiffV1SummaryGenerator) GenerateJSONSummary(
 	return b, nil
 }
 
+func pluralize(count int, singular, plural string) string {
+	if count == 1 {
+		return fmt.Sprintf("1 %s", singular)
+	}
+
+	return fmt.Sprintf("%d %s", count, plural)
+}
+
+func checkBaseline(change *v1.Change[v1.BaselineState], newlyCount, widelyCount *int) {
+	if change != nil && change.To.Status.IsSet {
+		switch change.To.Status.Value {
+		case v1.Newly:
+			*newlyCount++
+		case v1.Widely:
+			*widelyCount++
+		case v1.Limited:
+			// Do nothing for now.
+		}
+	}
+}
+
+func buildBaselineDetails(newlyCount, widelyCount int) []string {
+	var details []string
+	if newlyCount > 0 {
+		details = append(details, fmt.Sprintf("%d became Baseline newly available", newlyCount))
+	}
+	if widelyCount > 0 {
+		details = append(details, fmt.Sprintf("%d became Baseline widely available", widelyCount))
+	}
+
+	return details
+}
+
+func buildCategoryText(base string, details []string) string {
+	if len(details) > 0 {
+		return fmt.Sprintf("%s (%s)", base, strings.Join(details, ", "))
+	}
+
+	return base
+}
+
+func generateCategoryDetails(modifications []v1.FeatureModified) []string {
+	var newlyCount, widelyCount int
+	for _, m := range modifications {
+		checkBaseline(m.BaselineChange, &newlyCount, &widelyCount)
+	}
+
+	return buildBaselineDetails(newlyCount, widelyCount)
+}
+
 func (g FeatureDiffV1SummaryGenerator) calculateCategoriesAndText(d v1.FeatureDiff) (SummaryCategories, string) {
 	var c SummaryCategories
 	var parts []string
@@ -281,28 +331,49 @@ func (g FeatureDiffV1SummaryGenerator) calculateCategoriesAndText(d v1.FeatureDi
 		c.QueryChanged = 1
 	}
 	if len(d.Added) > 0 {
-		parts = append(parts, fmt.Sprintf("%d features added", len(d.Added)))
+		// NOTE: We do not currently track Baseline status transitions for "Added" features.
+		// Features in the "Added" list simply newly matched the query criteria.
+		// We do not diff them against a zero-state because that would falsely report that they
+		// "became" newly/widely available, when in reality they just entered the search results.
+		// Future iterations could potentially:
+		// 1. Inspect the event "trigger" (e.g., if a Baseline sync job triggered this event)
+		//    to infer intent, though broad triggers may lack determinism.
+		// 2. Pass the previous global state of all features to the differ, enabling us to
+		//    calculate true property transitions even if the feature was outside the old query snapshot.
+		//    However, we do not currently track the global state of all features for now.
+		base := pluralize(len(d.Added), "new feature matched your search", "new features matched your search")
+		parts = append(parts, base)
 		c.Added = len(d.Added)
 	}
 	if len(d.Removed) > 0 {
-		parts = append(parts, fmt.Sprintf("%d features removed", len(d.Removed)))
+		var removedMods []v1.FeatureModified
+		for _, r := range d.Removed {
+			if r.Diff != nil {
+				removedMods = append(removedMods, *r.Diff)
+			}
+		}
+		base := pluralize(len(d.Removed), "feature no longer matched your search",
+			"features no longer matched your search")
+		details := generateCategoryDetails(removedMods)
+		parts = append(parts, buildCategoryText(base, details))
 		c.Removed = len(d.Removed)
 	}
 	if len(d.Deleted) > 0 {
-		parts = append(parts, fmt.Sprintf("%d features deleted", len(d.Deleted)))
+		base := pluralize(len(d.Deleted), "feature deleted", "features deleted")
+		parts = append(parts, base)
 		c.Deleted = len(d.Deleted)
 	}
 	if len(d.Moves) > 0 {
-		parts = append(parts, fmt.Sprintf("%d features moved/renamed", len(d.Moves)))
+		base := pluralize(len(d.Moves), "feature moved/renamed", "features moved/renamed")
+		parts = append(parts, base)
 		c.Moved = len(d.Moves)
 	}
 	if len(d.Splits) > 0 {
-		parts = append(parts, fmt.Sprintf("%d features split", len(d.Splits)))
+		base := pluralize(len(d.Splits), "feature split", "features split")
+		parts = append(parts, base)
 		c.Split = len(d.Splits)
 	}
 	if len(d.Modified) > 0 {
-		parts = append(parts, fmt.Sprintf("%d features updated", len(d.Modified)))
-		c.Updated = len(d.Modified)
 		for _, m := range d.Modified {
 			if len(m.BrowserChanges) > 0 {
 				c.UpdatedImpl++
@@ -314,6 +385,11 @@ func (g FeatureDiffV1SummaryGenerator) calculateCategoriesAndText(d v1.FeatureDi
 				c.UpdatedBaseline++
 			}
 		}
+
+		base := pluralize(len(d.Modified), "feature updated", "features updated")
+		details := generateCategoryDetails(d.Modified)
+		parts = append(parts, buildCategoryText(base, details))
+		c.Updated = len(d.Modified)
 	}
 
 	text := "No changes detected"
