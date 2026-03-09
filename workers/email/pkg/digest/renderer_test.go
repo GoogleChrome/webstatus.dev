@@ -324,6 +324,66 @@ func TestRenderDigest_Golden(t *testing.T) {
 				Moved:      nil,
 				Split:      nil,
 			},
+			{
+				// Case 13: Browser implementation grouping (Desktop & Mobile)
+				Type:        workertypes.SummaryHighlightTypeChanged,
+				FeatureName: "grouped-browser-feature",
+				FeatureID:   "grouped-browser-feature",
+				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
+					workertypes.BrowserChrome: {
+						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnknown,
+							Version: nil, Date: nil},
+						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
+							Version: new("148"), Date: &newlyDate},
+					},
+					workertypes.BrowserChromeAndroid: {
+						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnknown,
+							Version: nil, Date: nil},
+						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
+							Version: new("148"), Date: &newlyDate},
+					},
+					workertypes.BrowserEdge:           nil,
+					workertypes.BrowserFirefox:        nil,
+					workertypes.BrowserFirefoxAndroid: nil,
+					workertypes.BrowserSafari:         nil,
+					workertypes.BrowserSafariIos:      nil,
+				},
+				NameChange:     nil,
+				BaselineChange: nil,
+				Moved:          nil,
+				Split:          nil,
+				Docs:           nil,
+			},
+			{
+				// Case 14: Browser implementation NOT grouping (Different Versions)
+				Type:        workertypes.SummaryHighlightTypeChanged,
+				FeatureName: "ungrouped-browser-feature",
+				FeatureID:   "ungrouped-browser-feature",
+				BrowserChanges: map[workertypes.BrowserName]*workertypes.Change[workertypes.BrowserValue]{
+					workertypes.BrowserChrome:         nil,
+					workertypes.BrowserChromeAndroid:  nil,
+					workertypes.BrowserEdge:           nil,
+					workertypes.BrowserFirefox:        nil,
+					workertypes.BrowserFirefoxAndroid: nil,
+					workertypes.BrowserSafari: {
+						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnknown,
+							Version: nil, Date: nil},
+						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
+							Version: new("17.0"), Date: &newlyDate},
+					},
+					workertypes.BrowserSafariIos: {
+						From: workertypes.BrowserValue{Status: workertypes.BrowserStatusUnknown,
+							Version: nil, Date: nil},
+						To: workertypes.BrowserValue{Status: workertypes.BrowserStatusAvailable,
+							Version: new("17.2"), Date: &newlyDate},
+					},
+				},
+				NameChange:     nil,
+				BaselineChange: nil,
+				Moved:          nil,
+				Split:          nil,
+				Docs:           nil,
+			},
 		},
 	}
 	summaryBytes, _ := json.Marshal(summary)
