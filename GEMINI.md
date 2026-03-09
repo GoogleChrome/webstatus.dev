@@ -31,11 +31,7 @@ This section describes the tools and commands for local development.
 
 Detailed architectural guidance, coding standards, and "how-to" guides for specific domains have been moved to **Gemini Skills**.
 
-To activate these rules in your session, run:
-
-```bash
-make link-skills
-```
+To activate these rules in your session, they are automatically loaded from the `.agent/skills` directory.
 
 The available skills are:
 
