@@ -107,6 +107,7 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 		Metadata: workertypes.DeliveryMetadata{
 			EventID:     "event-1",
 			SearchID:    "search-1",
+			SearchName:  "",
 			Query:       "query-string",
 			Frequency:   workertypes.FrequencyMonthly,
 			GeneratedAt: time.Date(2025, 1, 1, 12, 0, 0, 0, time.UTC),
@@ -143,6 +144,7 @@ func TestPushDeliveryPublisher_PublishEmailJob(t *testing.T) {
 			"metadata": map[string]any{
 				"event_id":     "event-1",
 				"search_id":    "search-1",
+				"search_name":  "",
 				"query":        "query-string",
 				"frequency":    "MONTHLY",
 				"generated_at": "2025-01-01T12:00:00Z",
@@ -214,6 +216,7 @@ func TestPushDeliverySubscriber_RoutesFeatureDiffEvent(t *testing.T) {
 	featureDiffEvent := featurediffv1.FeatureDiffEvent{
 		EventID:       "evt-1",
 		SearchID:      "s1",
+		SearchName:    "Search 1",
 		Query:         "q1",
 		Summary:       []byte(`{"added": 1}`),
 		StateID:       "state-id-1",
@@ -242,6 +245,7 @@ func TestPushDeliverySubscriber_RoutesFeatureDiffEvent(t *testing.T) {
 	expectedMetadata := workertypes.DispatchEventMetadata{
 		EventID:     "evt-1",
 		SearchID:    "s1",
+		SearchName:  "Search 1",
 		Query:       "q1",
 		Frequency:   workertypes.FrequencyMonthly,
 		GeneratedAt: now,

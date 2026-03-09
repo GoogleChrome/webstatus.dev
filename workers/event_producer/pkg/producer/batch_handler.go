@@ -62,10 +62,11 @@ func (h *BatchUpdateHandler) ProcessBatchUpdate(ctx context.Context, triggerID s
 	// 2. Fan-out
 	for _, search := range searches {
 		cmd := workertypes.RefreshSearchCommand{
-			SearchID:  search.ID,
-			Query:     search.Query,
-			Frequency: frequency,
-			Timestamp: h.now(),
+			SearchID:   search.ID,
+			SearchName: search.Name,
+			Query:      search.Query,
+			Frequency:  frequency,
+			Timestamp:  h.now(),
 		}
 
 		if err := h.publisher.PublishRefreshCommand(ctx, cmd); err != nil {

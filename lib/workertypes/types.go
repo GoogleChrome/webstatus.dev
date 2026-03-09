@@ -676,6 +676,7 @@ type PublishEventRequest struct {
 	DiffID        string
 	DiffBlobPath  string
 	SearchID      string
+	SearchName    string
 	Query         string
 	Summary       []byte
 	Reasons       []Reason
@@ -699,14 +700,16 @@ const (
 )
 
 type RefreshSearchCommand struct {
-	SearchID  string
-	Query     string
-	Frequency JobFrequency
-	Timestamp time.Time
+	SearchID   string
+	SearchName string
+	Query      string
+	Frequency  JobFrequency
+	Timestamp  time.Time
 }
 
 type SearchJob struct {
 	ID    string
+	Name  string
 	Query string
 }
 
@@ -739,6 +742,7 @@ type SubscriberSet struct {
 type DeliveryMetadata struct {
 	EventID     string
 	SearchID    string
+	SearchName  string
 	Query       string
 	Frequency   JobFrequency
 	GeneratedAt time.Time
@@ -747,6 +751,7 @@ type DeliveryMetadata struct {
 type DispatchEventMetadata struct {
 	EventID     string
 	SearchID    string
+	SearchName  string
 	Frequency   JobFrequency
 	Query       string
 	GeneratedAt time.Time

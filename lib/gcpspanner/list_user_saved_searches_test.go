@@ -298,7 +298,7 @@ func TestListAllSavedSearches(t *testing.T) {
 		// Build expected details list from created searches (which have generated IDs)
 		expectedDetails := make([]SavedSearchBriefDetails, len(searches))
 		for idx, search := range searches {
-			expectedDetails[idx] = SavedSearchBriefDetails{ID: search.ID, Query: search.Query}
+			expectedDetails[idx] = SavedSearchBriefDetails{ID: search.ID, Name: search.Name, Query: search.Query}
 		}
 
 		slices.SortFunc(expectedDetails, sortSavedSearchBriefDetails)

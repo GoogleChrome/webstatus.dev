@@ -170,12 +170,13 @@ func (c *Client) ListUserSavedSearches(
 
 type SavedSearchBriefDetails struct {
 	ID    string `spanner:"ID"`
+	Name  string `spanner:"Name"`
 	Query string `spanner:"Query"`
 }
 
 func (m userSavedSearchListerMapper) SelectAll() spanner.Statement {
 	return spanner.Statement{
-		SQL:    "SELECT ID, Query FROM SavedSearches",
+		SQL:    "SELECT ID, Name, Query FROM SavedSearches",
 		Params: nil,
 	}
 }

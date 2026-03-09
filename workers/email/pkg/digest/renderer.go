@@ -152,6 +152,7 @@ type BrowserChangeRenderData struct {
 type templateData struct {
 	Subject                   string
 	FullSubject               string
+	SearchName                string
 	Query                     string
 	SummaryText               string
 	BaselineNewlyChanges      []workertypes.SummaryHighlight
@@ -171,8 +172,8 @@ type templateData struct {
 // RenderDigest processes the delivery job and returns the subject and HTML body.
 func (r *HTMLRenderer) RenderDigest(job workertypes.IncomingEmailDeliveryJob) (string, string, error) {
 	// 1. Generate Subjects
-	subject := r.generateSubject(job.Metadata.Frequency, job.Metadata.Query, true)
-	fullSubject := r.generateSubject(job.Metadata.Frequency, job.Metadata.Query, false)
+	subject := r.generateSubject(job.Metadata.Frequency, job.Metadata.SearchName, job.Metadata.Query, true)
+	fullSubject := r.generateSubject(job.Metadata.Frequency, job.Metadata.SearchName, job.Metadata.Query, false)
 
 	// 2. Prepare Template Data using the visitor
 	generator := new(templateDataGenerator)
@@ -208,6 +209,7 @@ func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error 
 	g.data = templateData{
 		Subject:     g.subject,
 		FullSubject: g.fullSubject,
+		SearchName:  g.job.Metadata.SearchName,
 		Query:       g.job.Metadata.Query,
 		SummaryText: summary.Text,
 		Truncated:   summary.Truncated,
@@ -337,7 +339,7 @@ func filterHighlights(
 }
 
 func (r *HTMLRenderer) generateSubject(
-	frequency workertypes.JobFrequency, query string, truncate bool) string {
+	frequency workertypes.JobFrequency, searchName string, query string, truncate bool) string {
 	prefix := "Update:"
 	switch frequency {
 	case workertypes.FrequencyWeekly:
@@ -350,7 +352,11 @@ func (r *HTMLRenderer) generateSubject(
 		// Do nothing
 	}
 
-	displayQuery := query
+	displayQuery := searchName
+	if displayQuery == "" {
+		displayQuery = query
+	}
+
 	if truncate && len(displayQuery) > 50 {
 		displayQuery = displayQuery[:47] + "..."
 	}

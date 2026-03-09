@@ -30,7 +30,7 @@ const introTextComponent = `{{- define "intro_text" -}}
 <div style='{{- template "style_intro_wrapper" -}}'>
     <h2 style='{{- template "style_subject_header" -}}'>{{.FullSubject}}</h2>
     <div style='{{- template "style_query_text" -}}'>
-        Here is your update for the saved search <strong style='font-weight: bold;'>'{{.Query}}'</strong>.
+        Here is your update for the saved search <strong style='font-weight: bold;'>'{{if .SearchName}}{{.SearchName}}{{else}}{{.Query}}{{end}}'</strong>.
         {{.SummaryText}}.
     </div>
 </div>

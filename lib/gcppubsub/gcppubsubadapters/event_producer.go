@@ -27,7 +27,7 @@ import (
 )
 
 type EventProducerSearchMessageHandler interface {
-	ProcessSearch(ctx context.Context, searchID string, query string,
+	ProcessSearch(ctx context.Context, searchID string, searchName string, query string,
 		frequency workertypes.JobFrequency, triggerID string) error
 }
 
@@ -85,7 +85,7 @@ func (a *EventProducerSubscriberAdapter) processRefreshSearchCommand(ctx context
 	eventID string, event refreshv1.RefreshSearchCommand) error {
 	slog.InfoContext(ctx, "received refresh search command", "eventID", eventID, "event", event)
 
-	return a.searchEventHandler.ProcessSearch(ctx, event.SearchID, event.Query,
+	return a.searchEventHandler.ProcessSearch(ctx, event.SearchID, event.SearchName, event.Query,
 		event.Frequency.ToWorkerTypeJobFrequency(), eventID)
 }
 
@@ -93,7 +93,7 @@ func (a *EventProducerSubscriberAdapter) processSearchConfigurationChangedEvent(
 	eventID string, event searchconfigv1.SearchConfigurationChangedEvent) error {
 	slog.InfoContext(ctx, "received search configuration changed event", "eventID", eventID, "event", event)
 
-	return a.searchEventHandler.ProcessSearch(ctx, event.SearchID, event.Query,
+	return a.searchEventHandler.ProcessSearch(ctx, event.SearchID, event.SearchName, event.Query,
 		event.Frequency.ToWorkerTypeJobFrequency(), eventID)
 }
 
@@ -145,6 +145,7 @@ func (a *EventProducerPublisherAdapter) Publish(ctx context.Context,
 	b, err := event.New(featurediffv1.FeatureDiffEvent{
 		EventID:       req.EventID,
 		SearchID:      req.SearchID,
+		SearchName:    req.SearchName,
 		Query:         req.Query,
 		Summary:       req.Summary,
 		StateID:       req.StateID,

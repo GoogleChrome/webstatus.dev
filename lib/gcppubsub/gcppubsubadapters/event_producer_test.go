@@ -37,17 +37,18 @@ type mockSearchHandler struct {
 }
 
 type searchCall struct {
-	SearchID  string
-	Query     string
-	Frequency workertypes.JobFrequency
-	TriggerID string
+	SearchID   string
+	SearchName string
+	Query      string
+	Frequency  workertypes.JobFrequency
+	TriggerID  string
 }
 
-func (m *mockSearchHandler) ProcessSearch(_ context.Context, searchID, query string,
+func (m *mockSearchHandler) ProcessSearch(_ context.Context, searchID, searchName, query string,
 	freq workertypes.JobFrequency, triggerID string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.calls = append(m.calls, searchCall{searchID, query, freq, triggerID})
+	m.calls = append(m.calls, searchCall{searchID, searchName, query, freq, triggerID})
 
 	return m.err
 }
@@ -179,10 +180,11 @@ func TestSubscribe_RoutesRefreshSearchCommand(t *testing.T) {
 	defer env.stop()
 
 	refreshCmd := refreshv1.RefreshSearchCommand{
-		SearchID:  "s1",
-		Query:     "q1",
-		Frequency: "IMMEDIATE",
-		Timestamp: time.Time{},
+		SearchID:   "s1",
+		SearchName: "Name1",
+		Query:      "q1",
+		Frequency:  "IMMEDIATE",
+		Timestamp:  time.Time{},
 	}
 	ceWrapper := map[string]any{
 		"apiVersion": "v1",
@@ -200,10 +202,11 @@ func TestSubscribe_RoutesRefreshSearchCommand(t *testing.T) {
 	}
 
 	expectedCall := searchCall{
-		SearchID:  "s1",
-		Query:     "q1",
-		Frequency: workertypes.FrequencyImmediate,
-		TriggerID: "msg-1",
+		SearchID:   "s1",
+		SearchName: "Name1",
+		Query:      "q1",
+		Frequency:  workertypes.FrequencyImmediate,
+		TriggerID:  "msg-1",
 	}
 
 	if diff := cmp.Diff(expectedCall, env.searchHandler.calls[0]); diff != "" {
@@ -250,6 +253,7 @@ func TestSubscribe_RoutesSearchConfigurationChanged(t *testing.T) {
 	// We construct the payload manually for the test execution
 	configEventPayload := map[string]any{
 		"search_id":   "s2",
+		"search_name": "Name2",
 		"query":       "q2",
 		"user_id":     "user-1",
 		"timestamp":   "0001-01-01T00:00:00Z",
@@ -273,10 +277,11 @@ func TestSubscribe_RoutesSearchConfigurationChanged(t *testing.T) {
 	}
 
 	expectedCall := searchCall{
-		SearchID:  "s2",
-		Query:     "q2",
-		Frequency: workertypes.FrequencyImmediate,
-		TriggerID: "msg-3",
+		SearchID:   "s2",
+		SearchName: "Name2",
+		Query:      "q2",
+		Frequency:  workertypes.FrequencyImmediate,
+		TriggerID:  "msg-3",
 	}
 
 	if diff := cmp.Diff(expectedCall, env.searchHandler.calls[0]); diff != "" {
@@ -292,6 +297,7 @@ func TestPublisher_Publish(t *testing.T) {
 	req := workertypes.PublishEventRequest{
 		EventID:       "evt-1",
 		SearchID:      "search-1",
+		SearchName:    "Name-1",
 		Query:         "query-1",
 		Frequency:     workertypes.FrequencyImmediate,
 		Reasons:       []workertypes.Reason{workertypes.ReasonDataUpdated},
@@ -321,9 +327,10 @@ func TestPublisher_Publish(t *testing.T) {
 		"apiVersion": "v1",
 		"kind":       "FeatureDiffEvent",
 		"data": map[string]any{
-			"event_id":  "evt-1",
-			"search_id": "search-1",
-			"query":     "query-1",
+			"event_id":    "evt-1",
+			"search_id":   "search-1",
+			"search_name": "Name-1",
+			"query":       "query-1",
 			// go encodes/decodes []byte as base64 strings
 			"summary":         base64.StdEncoding.EncodeToString([]byte(`{"added": 1}`)),
 			"state_id":        "state-id-1",

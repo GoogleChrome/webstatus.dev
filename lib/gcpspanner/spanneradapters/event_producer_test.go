@@ -273,6 +273,7 @@ func TestEventProducer_PublishEvent(t *testing.T) {
 			req: workertypes.PublishEventRequest{
 				EventID:       "event-1",
 				SearchID:      "search-1",
+				SearchName:    "Search 1",
 				StateID:       "state-1",
 				StateBlobPath: "gs://bucket/state",
 				DiffID:        "diff-1",
@@ -312,6 +313,7 @@ func TestEventProducer_PublishEvent(t *testing.T) {
 			req: workertypes.PublishEventRequest{
 				EventID:       "event-1",
 				SearchID:      "search-1",
+				SearchName:    "Search 1",
 				StateID:       "state-1",
 				StateBlobPath: "gs://bucket/state",
 				DiffID:        "diff-1",
@@ -351,6 +353,7 @@ func TestEventProducer_PublishEvent(t *testing.T) {
 			req: workertypes.PublishEventRequest{
 				EventID:       "event-1",
 				SearchID:      "search-1",
+				SearchName:    "Search 1",
 				Summary:       []byte("invalid-json"),
 				Frequency:     workertypes.FrequencyWeekly,
 				StateID:       "",
@@ -684,11 +687,17 @@ func TestBatchEventProducer_ListAllSavedSearches(t *testing.T) {
 		wantErr        bool
 	}{
 		{
-			name:           "success with searches",
-			mockResp:       []gcpspanner.SavedSearchBriefDetails{{ID: "s1", Query: "q1"}, {ID: "s2", Query: "q2"}},
-			mockErr:        nil,
-			wantSearchJobs: []workertypes.SearchJob{{ID: "s1", Query: "q1"}, {ID: "s2", Query: "q2"}},
-			wantErr:        false,
+			name: "success with searches",
+			mockResp: []gcpspanner.SavedSearchBriefDetails{
+				{ID: "s1", Name: "Search 1", Query: "q1"},
+				{ID: "s2", Name: "Search 2", Query: "q2"},
+			},
+			mockErr: nil,
+			wantSearchJobs: []workertypes.SearchJob{
+				{ID: "s1", Name: "Search 1", Query: "q1"},
+				{ID: "s2", Name: "Search 2", Query: "q2"},
+			},
+			wantErr: false,
 		},
 		{
 			name:           "success empty list",

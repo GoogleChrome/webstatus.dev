@@ -51,6 +51,9 @@ type SearchConfigurationChangedEvent struct {
 	// SearchID is the target saved search.
 	SearchID string `json:"search_id"`
 
+	// SearchName is the user-provided name for the saved search.
+	SearchName string `json:"search_name"`
+
 	// Query is the NEW search filter.
 	Query string `json:"query"`
 

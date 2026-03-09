@@ -56,8 +56,8 @@ func TestProcessBatchUpdate(t *testing.T) {
 		{
 			name: "success with searches",
 			searches: []workertypes.SearchJob{
-				{ID: "s1", Query: "q=1"},
-				{ID: "s2", Query: "q=2"},
+				{ID: "s1", Name: "Search 1", Query: "q=1"},
+				{ID: "s2", Name: "Search 2", Query: "q=2"},
 			},
 			listerErr:      nil,
 			pubErr:         nil,
@@ -86,7 +86,7 @@ func TestProcessBatchUpdate(t *testing.T) {
 		{
 			name:           "publisher error",
 			listerErr:      nil,
-			searches:       []workertypes.SearchJob{{ID: "s1", Query: "q=1"}},
+			searches:       []workertypes.SearchJob{{ID: "s1", Name: "Search 1", Query: "q=1"}},
 			pubErr:         errors.New("pub error"),
 			wantErr:        true,
 			transient:      true,
@@ -102,29 +102,40 @@ func TestProcessBatchUpdate(t *testing.T) {
 
 			err := handler.ProcessBatchUpdate(context.Background(), "trigger-1", workertypes.FrequencyImmediate)
 
-			if (err != nil) != tc.wantErr {
-				t.Errorf("ProcessBatchUpdate() error = %v, wantErr %v", err, tc.wantErr)
-			}
-
-			if tc.wantErr && tc.transient {
-				if !errors.Is(err, event.ErrTransientFailure) {
-					t.Errorf("Expected error to be transient")
-				}
-			}
-
-			if len(pub.commands) != tc.expectPubCalls {
-				t.Errorf("Expected %d publish calls, got %d", tc.expectPubCalls, len(pub.commands))
-			}
-
-			// Verify command content for success case
-			if !tc.wantErr && len(tc.searches) > 0 {
-				if pub.commands[0].SearchID != "s1" {
-					t.Errorf("Command data mismatch")
-				}
-				if pub.commands[0].Frequency != workertypes.FrequencyImmediate {
-					t.Errorf("Frequency mismatch")
-				}
-			}
+			// Helper function to process assertions, reducing gocognit complexity
+			verifyBatchUpdateTest(t, err, pub, tc.wantErr, tc.transient, tc.expectPubCalls, len(tc.searches) > 0)
 		})
+	}
+}
+
+func verifyBatchUpdateTest(t *testing.T, err error, pub *mockCommandPublisher,
+	wantErr, transient bool, expectPubCalls int, hasSearches bool) {
+	t.Helper()
+
+	if (err != nil) != wantErr {
+		t.Errorf("ProcessBatchUpdate() error = %v, wantErr %v", err, wantErr)
+	}
+
+	if wantErr && transient {
+		if !errors.Is(err, event.ErrTransientFailure) {
+			t.Errorf("Expected error to be transient")
+		}
+	}
+
+	if len(pub.commands) != expectPubCalls {
+		t.Errorf("Expected %d publish calls, got %d", expectPubCalls, len(pub.commands))
+	}
+
+	// Verify command content for success case
+	if !wantErr && hasSearches {
+		if pub.commands[0].SearchID != "s1" {
+			t.Errorf("Command data mismatch: SearchID")
+		}
+		if pub.commands[0].SearchName != "Search 1" {
+			t.Errorf("Command data mismatch: SearchName")
+		}
+		if pub.commands[0].Frequency != workertypes.FrequencyImmediate {
+			t.Errorf("Frequency mismatch")
+		}
 	}
 }

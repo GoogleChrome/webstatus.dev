@@ -43,6 +43,8 @@ type FeatureDiffEvent struct {
 	EventID string `json:"event_id"`
 	// SearchID is the identifier of the saved search that was checked.
 	SearchID string `json:"search_id"`
+	// SearchName is the user-provided name for the saved search.
+	SearchName string `json:"search_name"`
 	// Query is the actual text of the query (e.g. "browsers:chrome").
 	// Provided here so consumers don't need to look it up.
 	Query string `json:"query"`
