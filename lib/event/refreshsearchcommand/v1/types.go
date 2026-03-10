@@ -51,6 +51,9 @@ type RefreshSearchCommand struct {
 	// SearchID is the target saved search to check.
 	SearchID string `json:"search_id"`
 
+	// SearchName is the user-provided name for the saved search.
+	SearchName string `json:"search_name"`
+
 	// Query is the current search filter (e.g. "browsers:chrome").
 	Query string `json:"query"`
 

@@ -57,6 +57,7 @@ func TestSearchConfigurationPublisherAdapter_Publish(t *testing.T) {
 				"kind": "SearchConfigurationChangedEvent",
 				"data": {
 					"search_id": "search-123",
+					"search_name": "",
 					"query": "group:css",
 					"user_id": "user-1",
 					"timestamp": "2025-01-01T00:00:00Z",
@@ -77,6 +78,7 @@ func TestSearchConfigurationPublisherAdapter_Publish(t *testing.T) {
 				"kind": "SearchConfigurationChangedEvent",
 				"data": {
 					"search_id": "search-456",
+					"search_name": "",
 					"query": "group:html",
 					"user_id": "user-1",
 					"timestamp": "2025-01-02T00:00:00Z",

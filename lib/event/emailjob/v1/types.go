@@ -41,6 +41,8 @@ type EmailJobEventMetadata struct {
 	EventID string `json:"event_id"`
 	// SearchID is the ID of the search that generated the event.
 	SearchID string `json:"search_id"`
+	// SearchName is the name of the search that generated the event.
+	SearchName string `json:"search_name"`
 	// Query is the query string used for the search.
 	Query string `json:"query"`
 	// Frequency is the frequency of the job (e.g., "daily", "weekly").

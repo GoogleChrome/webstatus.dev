@@ -35,10 +35,11 @@ func NewBatchFanOutPublisherAdapter(client EventPublisher, topicID string) *Batc
 func (a *BatchFanOutPublisherAdapter) PublishRefreshCommand(ctx context.Context,
 	cmd workertypes.RefreshSearchCommand) error {
 	evt := refreshv1.RefreshSearchCommand{
-		SearchID:  cmd.SearchID,
-		Query:     cmd.Query,
-		Frequency: refreshv1.JobFrequency(cmd.Frequency),
-		Timestamp: cmd.Timestamp,
+		SearchID:   cmd.SearchID,
+		SearchName: cmd.SearchName,
+		Query:      cmd.Query,
+		Frequency:  refreshv1.JobFrequency(cmd.Frequency),
+		Timestamp:  cmd.Timestamp,
 	}
 
 	msg, err := event.New(evt)

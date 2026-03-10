@@ -72,6 +72,7 @@ func (a *EmailWorkerSubscriberAdapter) handleEmailJobEvent(
 			Metadata: workertypes.DeliveryMetadata{
 				EventID:     event.Metadata.EventID,
 				SearchID:    event.Metadata.SearchID,
+				SearchName:  event.Metadata.SearchName,
 				Query:       event.Metadata.Query,
 				Frequency:   event.Metadata.Frequency.ToWorkerTypeJobFrequency(),
 				GeneratedAt: event.Metadata.GeneratedAt,

@@ -36,10 +36,11 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 		{
 			name: "success",
 			cmd: workertypes.RefreshSearchCommand{
-				SearchID:  "search-123",
-				Query:     "query=abc",
-				Frequency: workertypes.FrequencyImmediate,
-				Timestamp: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				SearchID:   "search-123",
+				SearchName: "Test Search",
+				Query:      "query=abc",
+				Frequency:  workertypes.FrequencyImmediate,
+				Timestamp:  time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			publishErr: nil,
 			wantErr:    false,
@@ -48,6 +49,7 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 				"kind": "RefreshSearchCommand",
 				"data": {
 					"search_id": "search-123",
+					"search_name": "Test Search",
 					"query": "query=abc",
 					"frequency": "IMMEDIATE",
 					"timestamp": "2025-01-01T00:00:00Z"
@@ -57,10 +59,11 @@ func TestBatchFanOutPublisherAdapter_PublishRefreshCommand(t *testing.T) {
 		{
 			name: "publish error",
 			cmd: workertypes.RefreshSearchCommand{
-				SearchID:  "search-123",
-				Query:     "query=abc",
-				Frequency: workertypes.FrequencyImmediate,
-				Timestamp: time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
+				SearchID:   "search-123",
+				SearchName: "Test Search",
+				Query:      "query=abc",
+				Frequency:  workertypes.FrequencyImmediate,
+				Timestamp:  time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 			},
 			publishErr:   errors.New("pubsub error"),
 			wantErr:      true,

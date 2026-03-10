@@ -41,6 +41,7 @@ func (p *BackendAdapter) PublishSearchConfigurationChanged(
 
 	evt := searchconfigv1.SearchConfigurationChangedEvent{
 		SearchID:   resp.Id,
+		SearchName: resp.Name,
 		Query:      resp.Query,
 		UserID:     userID,
 		Timestamp:  resp.UpdatedAt,

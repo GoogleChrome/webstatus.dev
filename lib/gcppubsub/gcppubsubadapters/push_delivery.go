@@ -45,6 +45,7 @@ func (p *PushDeliveryPublisher) PublishEmailJob(ctx context.Context, job workert
 		Metadata: v1.EmailJobEventMetadata{
 			EventID:     job.Metadata.EventID,
 			SearchID:    job.Metadata.SearchID,
+			SearchName:  job.Metadata.SearchName,
 			Query:       job.Metadata.Query,
 			Frequency:   v1.ToJobFrequency(job.Metadata.Frequency),
 			GeneratedAt: job.Metadata.GeneratedAt,
@@ -110,6 +111,7 @@ func (a *PushDeliverySubscriberAdapter) processFeatureDiffEvent(ctx context.Cont
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     event.EventID,
 		SearchID:    event.SearchID,
+		SearchName:  event.SearchName,
 		Query:       event.Query,
 		Frequency:   event.Frequency.ToWorkertypes(),
 		GeneratedAt: event.GeneratedAt,

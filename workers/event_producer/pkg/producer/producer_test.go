@@ -169,6 +169,7 @@ func TestProcessSearch_Success(t *testing.T) {
 			expectedReq: workertypes.PublishEventRequest{
 				EventID:       triggerID,
 				SearchID:      searchID,
+				SearchName:    "Search Name",
 				StateID:       "state-1",
 				StateBlobPath: "full-path/state-1.json",
 				DiffID:        "diff-1",
@@ -212,6 +213,7 @@ func TestProcessSearch_Success(t *testing.T) {
 			expectedReq: workertypes.PublishEventRequest{
 				EventID:       triggerID,
 				SearchID:      searchID,
+				SearchName:    "Search Name",
 				StateID:       "state-2",
 				StateBlobPath: "full-path/state-2.json",
 				DiffID:        "diff-2",
@@ -246,7 +248,7 @@ func TestProcessSearch_Success(t *testing.T) {
 
 			// Execute
 			producer := NewEventProducer(mocks.differ, mocks.blob, mocks.meta, mocks.pub)
-			err := producer.ProcessSearch(ctx, searchID, query, frequency, triggerID)
+			err := producer.ProcessSearch(ctx, searchID, "Search Name", query, frequency, triggerID)
 
 			// Verify
 			if err != nil {
@@ -283,7 +285,7 @@ func TestProcessSearch_NoChanges(t *testing.T) {
 	differMock.runReturns.err = differ.ErrNoChangesDetected
 
 	producer := NewEventProducer(differMock, blobMock, metaMock, pubMock)
-	err := producer.ProcessSearch(ctx, "search-id", "q=test", "asap", "trigger-id")
+	err := producer.ProcessSearch(ctx, "search-id", "Search Name", "q=test", "asap", "trigger-id")
 
 	if err != nil {
 		t.Fatalf("expected nil error for no changes, got %v", err)
@@ -413,7 +415,7 @@ func TestProcessSearch_Failures(t *testing.T) {
 			tc.setup(mocks)
 
 			producer := NewEventProducer(mocks.differ, mocks.blob, mocks.meta, mocks.pub)
-			err := producer.ProcessSearch(ctx, "search-abc", "q=test", "asap", "trigger-123")
+			err := producer.ProcessSearch(ctx, "search-abc", "Search Name", "q=test", "asap", "trigger-123")
 
 			if err == nil {
 				t.Error("ProcessSearch() expected error, got nil")

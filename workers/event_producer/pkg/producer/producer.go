@@ -86,7 +86,7 @@ func getDefaultLockTTL() time.Duration {
 
 // ProcessSearch is the main entry point triggered when a search query needs to be checked.
 // triggerID is the unique ID for this execution (e.g., from a Pub/Sub message).
-func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, query string,
+func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, searchName string, query string,
 	frequency workertypes.JobFrequency, triggerID string) error {
 	// 0. Acquire Lock
 	// TODO: For now, use the triggerID as the worker ID.
@@ -156,6 +156,7 @@ func (p *EventProducer) ProcessSearch(ctx context.Context, searchID string, quer
 	req := workertypes.PublishEventRequest{
 		EventID:       triggerID,
 		SearchID:      searchID,
+		SearchName:    searchName,
 		StateID:       result.State.ID,
 		StateBlobPath: statePath,
 		DiffID:        result.Diff.ID,

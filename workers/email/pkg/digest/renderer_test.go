@@ -395,6 +395,7 @@ func TestRenderDigest_Golden(t *testing.T) {
 			SubscriptionID: "sub-123",
 			ChannelID:      "chan-1",
 			Metadata: workertypes.DeliveryMetadata{
+				SearchName:  "My CSS Search",
 				Query:       "group:css",
 				Frequency:   workertypes.FrequencyWeekly,
 				EventID:     "evt-123",

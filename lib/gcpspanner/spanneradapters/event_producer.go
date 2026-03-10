@@ -252,7 +252,7 @@ func (b *BatchEventProducer) ListAllSavedSearches(ctx context.Context) ([]worker
 
 	jobs := make([]workertypes.SearchJob, 0, len(details))
 	for _, detail := range details {
-		jobs = append(jobs, workertypes.SearchJob{ID: detail.ID, Query: detail.Query})
+		jobs = append(jobs, workertypes.SearchJob{ID: detail.ID, Name: detail.Name, Query: detail.Query})
 	}
 
 	return jobs, nil

@@ -137,6 +137,7 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 	deliveryMetadata := workertypes.DeliveryMetadata{
 		EventID:     g.metadata.EventID,
 		SearchID:    g.metadata.SearchID,
+		SearchName:  g.metadata.SearchName,
 		Query:       g.metadata.Query,
 		Frequency:   g.metadata.Frequency,
 		GeneratedAt: g.metadata.GeneratedAt,

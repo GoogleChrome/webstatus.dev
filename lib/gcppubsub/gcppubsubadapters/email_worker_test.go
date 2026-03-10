@@ -107,6 +107,7 @@ func TestEmailWorkerSubscriberAdapter_RoutesEmailJobEvent(t *testing.T) {
 		Metadata: v1.EmailJobEventMetadata{
 			EventID:     "event-789",
 			SearchID:    "search-abc",
+			SearchName:  "My CSS Search",
 			Query:       "is:open",
 			Frequency:   v1.FrequencyMonthly,
 			GeneratedAt: now,
@@ -144,6 +145,7 @@ func TestEmailWorkerSubscriberAdapter_RoutesEmailJobEvent(t *testing.T) {
 			Metadata: workertypes.DeliveryMetadata{
 				EventID:     "event-789",
 				SearchID:    "search-abc",
+				SearchName:  "My CSS Search",
 				Query:       "is:open",
 				Frequency:   workertypes.FrequencyMonthly,
 				GeneratedAt: now,

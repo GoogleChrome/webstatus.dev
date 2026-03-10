@@ -103,6 +103,7 @@ func testMetadata() workertypes.DeliveryMetadata {
 	return workertypes.DeliveryMetadata{
 		EventID:     "event-1",
 		SearchID:    "search-1",
+		SearchName:  "My Search",
 		Query:       "query-string",
 		Frequency:   workertypes.FrequencyMonthly,
 		GeneratedAt: testGeneratedAt(),

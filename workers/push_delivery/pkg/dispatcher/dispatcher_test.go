@@ -124,6 +124,7 @@ func TestProcessEvent_Success(t *testing.T) {
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     eventID,
 		SearchID:    searchID,
+		SearchName:  "Test Search",
 		Query:       "q=test",
 		Frequency:   frequency,
 		GeneratedAt: generatedAt,
@@ -210,6 +211,7 @@ func TestProcessEvent_Success(t *testing.T) {
 		Metadata: workertypes.DeliveryMetadata{
 			EventID:     eventID,
 			SearchID:    searchID,
+			SearchName:  "Test Search",
 			Query:       "q=test",
 			Frequency:   frequency,
 			GeneratedAt: generatedAt,
@@ -234,6 +236,7 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     "evt-1",
 		SearchID:    "search-1",
+		SearchName:  "Test Search",
 		Frequency:   workertypes.FrequencyImmediate,
 		Query:       "",
 		GeneratedAt: time.Time{},
@@ -286,6 +289,7 @@ func TestProcessEvent_ParserError(t *testing.T) {
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     "",
 		SearchID:    "",
+		SearchName:  "",
 		Query:       "",
 		Frequency:   workertypes.FrequencyImmediate,
 		GeneratedAt: time.Time{},
@@ -312,6 +316,7 @@ func TestProcessEvent_FinderError(t *testing.T) {
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     "",
 		SearchID:    "",
+		SearchName:  "",
 		Query:       "",
 		Frequency:   "",
 		GeneratedAt: time.Time{},
@@ -363,6 +368,7 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     "",
 		SearchID:    "",
+		SearchName:  "",
 		Query:       "",
 		Frequency:   "",
 		GeneratedAt: time.Time{},
@@ -406,6 +412,7 @@ func TestProcessEvent_JobCount(t *testing.T) {
 	metadata := workertypes.DispatchEventMetadata{
 		EventID:     "",
 		SearchID:    "",
+		SearchName:  "",
 		Query:       "",
 		Frequency:   "",
 		GeneratedAt: time.Time{},
