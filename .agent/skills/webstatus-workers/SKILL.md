@@ -13,9 +13,15 @@ For a detailed breakdown of the notification pipeline architecture, including th
 
 For guidance on adding future integrations (like Webhooks), see [references/how-to-add-a-worker.md](references/how-to-add-a-worker.md).
 
-## Canonical Data Transport
+## Canonical Data Transport & Event Semantics
 
 Workers must use the shared structs in [lib/workertypes/types.go](../../lib/workertypes/types.go) for all incoming and outgoing messages. This ensures that a change in the Spanner schema or API doesn't immediately break the worker pipeline (decoupling).
+
+**Strict Rules for Data Sync:**
+
+- **Event Payload Purity**: Do not add display metadata (e.g., human-readable `SearchName` or user PII) to core data-sync pub/sub event schemas (e.g., `FeatureDiffEvent`, `RefreshSearchCommand`). Core events should represent the raw state change via canonical IDs (`SearchID`, `EventID`). Any display data needed for emails or UI should be fetched from Spanner at the last possible moment (Delivery/Render phase).
+- **Feature Differ "Added" Semantics**: Within a `FeatureDiff`, the `Added` array represents features that _newly matched_ the search query since the last run. It does NOT mean the feature just entered the web platform. **Do not attempt to calculate baseline or status transitions against a "zero state" for features in the `Added` array**, as this falsely reports them as "becoming" newly/widely available when they merely entered the search results.
+- **Browser Implementation Grouping**: When formatting browser data for consumption (like combining Chrome Desktop and Chrome Android into a single row), the two implementations can ONLY be grouped if their entire transition state is identical. You must verify that `From.Status`, `To.Status`, `To.Version`, and `To.Date` perfectly match before combining them.
 
 ## Local Development
 
@@ -32,6 +38,7 @@ All workers must be decoupled from GCP-specific SDKs.
 
 ## General Guidelines
 
+- **DO** cross-reference all code against the official Google Go Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
 - **DO** write tests for all new parsers, generators, and differ logic using table-driven tests.
 - **DO** use the `generic.OptionallySet[T]` pattern when defining blob structures or canonical in-memory state to handle forward/backward compatibility gracefully (quiet rollouts).
 - **DON'T** modify generated code.

@@ -32,6 +32,7 @@ Ingestion jobs must be decoupled from the core DB logic and the "Backend" API.
 
 ## General Do's and Don'ts
 
+- **DO** cross-reference all code against the official Google Go Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
 - **DO** use consumer-specific `spanneradapters` (e.g. `BCDConsumer`).
 - **DON'T** call the `Backend` spanner adapter from a workflow.
 - **DO** separate data fetching/parsing from the main workflow processor (use `pkg/data/downloader.go` and `parser.go`).
