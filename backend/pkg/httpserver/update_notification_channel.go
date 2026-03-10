@@ -23,6 +23,7 @@ import (
 	"github.com/GoogleChrome/webstatus.dev/lib/backendtypes"
 	"github.com/GoogleChrome/webstatus.dev/lib/gen/openapi/backend"
 	"github.com/GoogleChrome/webstatus.dev/lib/httpmiddlewares"
+	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 )
 
 func validateUpdateNotificationChannel(request *backend.UpdateNotificationChannelRequest) *fieldValidationErrors {
@@ -44,7 +45,7 @@ func validateUpdateNotificationChannel(request *backend.UpdateNotificationChanne
 			}
 
 			if cfg, err := request.Config.AsWebhookConfig(); err == nil && cfg.Type == backend.WebhookConfigTypeWebhook {
-				if err := validateSlackWebhookURL(cfg.Url); err != nil {
+				if err := httputils.ValidateSlackWebhookURL(cfg.Url); err != nil {
 					fieldErrors.addFieldError("config.url", err)
 				}
 			} else {

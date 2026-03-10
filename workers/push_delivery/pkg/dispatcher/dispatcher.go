@@ -31,6 +31,7 @@ type SubscriptionFinder interface {
 
 type DeliveryPublisher interface {
 	PublishEmailJob(ctx context.Context, job workertypes.EmailDeliveryJob) error
+	PublishWebhookJob(ctx context.Context, job workertypes.WebhookDeliveryJob) error
 }
 
 // SummaryParser abstracts the logic for parsing the event summary blob.
@@ -56,17 +57,19 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 	metadata workertypes.DispatchEventMetadata, summary []byte) error {
 	slog.InfoContext(ctx, "processing event", "event_id", metadata.EventID, "search_id", metadata.SearchID)
 
-	// 1. Generate Delivery Jobs from Event Summary
+	// 1. Generate Delivery Jobs from Event Summary.
 	gen := &deliveryJobGenerator{
 		finder:   d.finder,
 		metadata: metadata,
 		// We pass the raw summary bytes down so it can be attached to the jobs
 		// without needing to re-marshal the struct.
-		rawSummary: summary,
-		emailJobs:  nil,
+		rawSummary:  summary,
+		emailJobs:   nil,
+		webhookJobs: nil,
 	}
 
 	if err := d.parser(gen.rawSummary, gen); err != nil {
+
 		return fmt.Errorf("failed to parse event summary: %w", err)
 	}
 
@@ -79,11 +82,11 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 
 	slog.InfoContext(ctx, "dispatching jobs", "count", totalJobs)
 
-	// 2. Publish Delivery Jobs
+	// 2. Publish Delivery Jobs.
 	successCount := 0
 	failCount := 0
 
-	// Publish Email Jobs
+	// Publish Email Jobs.
 	for _, job := range gen.emailJobs {
 		if err := d.publisher.PublishEmailJob(ctx, job); err != nil {
 			slog.ErrorContext(ctx, "failed to publish email job",
@@ -94,8 +97,16 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 		}
 	}
 
-	// TODO: Webhook jobs would be published here similarly
-	// https://github.com/GoogleChrome/webstatus.dev/issues/1859
+	// Publish Webhook Jobs.
+	for _, job := range gen.webhookJobs {
+		if err := d.publisher.PublishWebhookJob(ctx, job); err != nil {
+			slog.ErrorContext(ctx, "failed to publish webhook job",
+				"subscription_id", job.SubscriptionID, "error", err)
+			failCount++
+		} else {
+			successCount++
+		}
+	}
 
 	slog.InfoContext(ctx, "dispatch complete",
 		"event_id", metadata.EventID,
@@ -112,10 +123,11 @@ func (d *Dispatcher) ProcessEvent(ctx context.Context,
 
 // deliveryJobGenerator implements workertypes.SummaryVisitor to generate jobs from V1 summaries.
 type deliveryJobGenerator struct {
-	finder     SubscriptionFinder
-	metadata   workertypes.DispatchEventMetadata
-	rawSummary []byte
-	emailJobs  []workertypes.EmailDeliveryJob
+	finder      SubscriptionFinder
+	metadata    workertypes.DispatchEventMetadata
+	rawSummary  []byte
+	emailJobs   []workertypes.EmailDeliveryJob
+	webhookJobs []workertypes.WebhookDeliveryJob
 }
 
 func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
@@ -127,6 +139,7 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 		g.metadata.SearchID,
 		g.metadata.Frequency)
 	if err != nil {
+
 		return fmt.Errorf("failed to find subscribers: %w", err)
 	}
 
@@ -144,7 +157,7 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 	}
 
 	// 2. Filter & Create Jobs
-	// Iterate Emails
+	// Iterate Emails.
 	for _, sub := range subscribers.Emails {
 		if !shouldNotifyV1(sub.Triggers, s) {
 			continue
@@ -159,17 +172,28 @@ func (g *deliveryJobGenerator) VisitV1(s workertypes.EventSummary) error {
 		})
 	}
 
-	// TODO: Iterate Webhooks when supported.
-	// https://github.com/GoogleChrome/webstatus.dev/issues/1859
+	// Iterate Webhooks.
+	for _, sub := range subscribers.Webhooks {
+		if !shouldNotifyV1(sub.Triggers, s) {
+			continue
+		}
+		g.webhookJobs = append(g.webhookJobs, workertypes.WebhookDeliveryJob{
+			SubscriptionID: sub.SubscriptionID,
+			WebhookURL:     sub.WebhookURL,
+			WebhookType:    sub.WebhookType,
+			SummaryRaw:     g.rawSummary,
+			Metadata:       deliveryMetadata,
+			ChannelID:      sub.ChannelID,
+			Triggers:       sub.Triggers,
+		})
+	}
 
 	return nil
 }
 
 // JobCount returns the total number of delivery jobs generated.
 func (g *deliveryJobGenerator) JobCount() int {
-	// TODO: When we add Webhook jobs, sum them here too.
-
-	return len(g.emailJobs)
+	return len(g.emailJobs) + len(g.webhookJobs)
 }
 
 // shouldNotifyV1 determines if the V1 event summary matches any of the user's triggers.
