@@ -56,6 +56,8 @@ variable "pubsub_details" {
     notification_subscription_id = string
     email_topic_id               = string
     email_subscription_id        = string
+    webhook_topic_id             = string
+    webhook_subscription_id      = string
   })
 }
 
@@ -65,6 +67,7 @@ variable "worker_instance_count" {
     event_producer_count = number
     push_delivery_count  = number
     email_count          = number
+    webhook_count        = number
   })
 }
 

@@ -59,6 +59,10 @@ resource "google_cloud_run_v2_worker_pool" "worker" {
         name  = "EMAIL_TOPIC_ID"
         value = var.email_topic_id
       }
+      env {
+        name  = "WEBHOOK_TOPIC_ID"
+        value = var.webhook_topic_id
+      }
     }
   }
 }

@@ -139,6 +139,7 @@ func TestSender_SendWebhook_Success(t *testing.T) {
 		WebhookDeliveryJob: workertypes.WebhookDeliveryJob{
 			ChannelID:      "chan-1",
 			WebhookURL:     "https://hooks.slack.com/services/123",
+			WebhookType:    workertypes.WebhookTypeSlack,
 			SummaryRaw:     summaryRaw,
 			SubscriptionID: "sub-1",
 			Triggers:       nil,
@@ -223,6 +224,7 @@ func TestSender_SendWebhook_HTTPFailure(t *testing.T) {
 		WebhookDeliveryJob: workertypes.WebhookDeliveryJob{
 			ChannelID:      "chan-1",
 			WebhookURL:     "https://hooks.slack.com/services/123",
+			WebhookType:    workertypes.WebhookTypeSlack,
 			SummaryRaw:     summaryRaw,
 			SubscriptionID: "sub-1",
 			Triggers:       nil,
