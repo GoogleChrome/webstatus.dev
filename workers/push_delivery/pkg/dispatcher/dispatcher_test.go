@@ -131,6 +131,7 @@ func TestProcessEvent_Success(t *testing.T) {
 
 	// Two subscribers: one matching trigger, one not.
 	subSet := &workertypes.SubscriberSet{
+		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{
 				SubscriptionID: "sub-1",
@@ -239,6 +240,7 @@ func TestProcessEvent_NoChanges_FiltersAll(t *testing.T) {
 	}
 
 	subSet := &workertypes.SubscriberSet{
+		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{
 				SubscriptionID: "sub-1",
@@ -326,6 +328,7 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 	ctx := context.Background()
 	// Two subscribers
 	subSet := &workertypes.SubscriberSet{
+		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{workertypes.FeaturePromotedToNewly},
 				UserID: "u1", EmailAddress: "e1", ChannelID: "chan-1"},
@@ -385,6 +388,7 @@ func TestProcessEvent_PublisherPartialFailure(t *testing.T) {
 func TestProcessEvent_JobCount(t *testing.T) {
 	// Verify that if no jobs are generated (e.g. no matching triggers), ProcessEvent returns early/cleanly.
 	subSet := &workertypes.SubscriberSet{
+		Webhooks: nil,
 		Emails: []workertypes.EmailSubscriber{
 			{SubscriptionID: "sub-1", Triggers: []workertypes.JobTrigger{}, EmailAddress: "e1", UserID: "u1",
 				ChannelID: "chan-1"}, // No match

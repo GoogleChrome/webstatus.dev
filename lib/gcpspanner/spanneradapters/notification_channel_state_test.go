@@ -23,7 +23,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 )
 
-type mockEmailWorkerSpannerClient struct {
+type mockChannelStateSpannerClient struct {
 	successCalled bool
 	successReq    struct {
 		ChannelID string
@@ -43,7 +43,7 @@ type mockEmailWorkerSpannerClient struct {
 	failureErr error
 }
 
-func (m *mockEmailWorkerSpannerClient) RecordNotificationChannelSuccess(
+func (m *mockChannelStateSpannerClient) RecordNotificationChannelSuccess(
 	_ context.Context, channelID string, timestamp time.Time, eventID string) error {
 	m.successCalled = true
 	m.successReq.ChannelID = channelID
@@ -53,7 +53,7 @@ func (m *mockEmailWorkerSpannerClient) RecordNotificationChannelSuccess(
 	return m.successErr
 }
 
-func (m *mockEmailWorkerSpannerClient) RecordNotificationChannelFailure(
+func (m *mockChannelStateSpannerClient) RecordNotificationChannelFailure(
 	_ context.Context, channelID, errorMsg string, timestamp time.Time, isPermanent bool, eventID string) error {
 	m.failureCalled = true
 	m.failureReq.ChannelID = channelID
@@ -66,8 +66,8 @@ func (m *mockEmailWorkerSpannerClient) RecordNotificationChannelFailure(
 }
 
 func TestRecordSuccess(t *testing.T) {
-	mock := new(mockEmailWorkerSpannerClient)
-	adapter := NewEmailWorkerChannelStateManager(mock)
+	mock := new(mockChannelStateSpannerClient)
+	adapter := NewNotificationChannelStateManager(mock)
 
 	ts := time.Now()
 	eventID := "evt-1"
@@ -96,11 +96,12 @@ func TestRecordSuccess(t *testing.T) {
 }
 
 func TestRecordFailure(t *testing.T) {
-	mock := new(mockEmailWorkerSpannerClient)
-	adapter := NewEmailWorkerChannelStateManager(mock)
+	mock := new(mockChannelStateSpannerClient)
+	adapter := NewNotificationChannelStateManager(mock)
 
 	testErr := errors.New("smtp error")
 	ts := time.Now()
+
 	eventID := "evt-2"
 	isPermanent := true
 

@@ -19,31 +19,36 @@ import (
 	"time"
 )
 
-type EmailWorkerSpannerClient interface {
+// NotificationChannelStateSpannerClient defines the Spanner methods needed for state management.
+type NotificationChannelStateSpannerClient interface {
 	RecordNotificationChannelSuccess(ctx context.Context, channelID string, timestamp time.Time, eventID string) error
 	RecordNotificationChannelFailure(ctx context.Context, channelID string, errorMsg string, timestamp time.Time,
 		isPermanent bool, eventID string) error
 }
 
-type EmailWorkerChannelStateManager struct {
-	client EmailWorkerSpannerClient
+// NotificationChannelStateManager provides methods to record delivery outcomes.
+type NotificationChannelStateManager struct {
+	client NotificationChannelStateSpannerClient
 }
 
-func NewEmailWorkerChannelStateManager(client EmailWorkerSpannerClient) *EmailWorkerChannelStateManager {
-	return &EmailWorkerChannelStateManager{client: client}
+// NewNotificationChannelStateManager creates a new state manager.
+func NewNotificationChannelStateManager(client NotificationChannelStateSpannerClient) *NotificationChannelStateManager {
+	return &NotificationChannelStateManager{client: client}
 }
 
-func (s *EmailWorkerChannelStateManager) RecordSuccess(ctx context.Context, channelID string,
+// RecordSuccess records a successful delivery attempt.
+func (s *NotificationChannelStateManager) RecordSuccess(ctx context.Context, channelID string,
 	timestamp time.Time, eventID string) error {
 	return s.client.RecordNotificationChannelSuccess(ctx, channelID, timestamp, eventID)
 }
 
-func (s *EmailWorkerChannelStateManager) RecordFailure(ctx context.Context, channelID string, err error,
-	timestamp time.Time, permanentUserFailure bool, emailEventID string) error {
+// RecordFailure records a failed delivery attempt.
+func (s *NotificationChannelStateManager) RecordFailure(ctx context.Context, channelID string, err error,
+	timestamp time.Time, isPermanent bool, eventID string) error {
 	msg := ""
 	if err != nil {
 		msg = err.Error()
 	}
 
-	return s.client.RecordNotificationChannelFailure(ctx, channelID, msg, timestamp, permanentUserFailure, emailEventID)
+	return s.client.RecordNotificationChannelFailure(ctx, channelID, msg, timestamp, isPermanent, eventID)
 }
