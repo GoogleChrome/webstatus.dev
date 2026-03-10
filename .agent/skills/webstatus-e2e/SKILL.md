@@ -19,11 +19,15 @@ For a detailed technical guide on the local development environment (Skaffold/Mi
 
 ## Guidelines (Do's and Don'ts)
 
+- **DO** cross-reference all code against the official Google TypeScript Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
 - **DO** add E2E tests for critical user journeys (e.g., login flows, complex search operations, saving a search).
 - **DON'T** write E2E tests for small component-level interactions; those belong in frontend unit tests (`frontend/src/**/*.test.ts`).
 - **DO** use resilient locators. Prefer using `data-testid` attributes (e.g., `page.getByTestId('submit-btn')`) over brittle CSS classes or XPath.
 - **DO** move the mouse to a neutral position (e.g., `page.mouse.move(0, 0)`) before taking visual snapshots to avoid flaky tests caused by unintended hover effects on UI elements.
 - **DO** use **Wiremock** (available at `localhost:8080` via port-forward) to mock GitHub API responses, such as user profiles and email lookups during login.
+- **DO** use `waitForChartCompletion` and `waitForTabbedChartCompletion` hooks (from `utils.ts`) for Google Charts instead of naive `.waitForSelector` to avoid timeout races.
+- **DO** use `toBeAttached()` instead of `toBeVisible()` to cleanly bypass WebKit strict-mode 0px bounding box quirks for inline host elements or absolutely positioned fragments.
+- **DO** explicitly use `await` on asynchronous Playwright matchers like `toBeChecked()` to prevent tests from skipping past Lit hydration cycles synchronously.
 
 ## Configuration & Stability
 

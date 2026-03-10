@@ -16,6 +16,10 @@ For a technical breakdown of the ANTLR grammar, search node transformation, and 
 - The canonical source of truth for the search syntax is `antlr/FeatureSearch.g4`.
 - **DON'T** edit the generated parser files in `lib/gen/featuresearch/parser/` directly.
 
+## General Guidelines
+
+- **DO** cross-reference all Go and test code against the official Google Go Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
+
 ## How to Add a New Search Term (e.g., `is:discouraged`)
 
 1. **Update Grammar (`antlr/FeatureSearch.g4`)**:

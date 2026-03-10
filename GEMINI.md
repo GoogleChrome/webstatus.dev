@@ -1,6 +1,6 @@
 # Gemini Code Assist Configuration for webstatus.dev
 
-<!-- Last analyzed commit: c3beadb0b4f8b7b6e38c089aa770a2123b4ee017 -->
+<!-- Last analyzed commit: 505072794fc44613c87cd35a31cb726cd795d55c -->
 
 This document provides context to Gemini Code Assist to help it generate more accurate and project-specific code suggestions.
 
@@ -41,6 +41,7 @@ The available skills are:
 - `webstatus-ingestion`: Scheduled data ingestion workflows.
 - `webstatus-workers`: Pub/Sub notification pipeline.
 - `webstatus-search-grammar`: ANTLR search query parsing.
+- `webstatus-pr-creation`: Agent workflows for creating PRs and commits.
 
 ## 4. Updating the Knowledge Base
 
@@ -58,6 +59,6 @@ When you give me this prompt, I will:
 
 1.  Read the `GEMINI.md` file to find the last analyzed commit SHA.
 2.  Use `git log` to find all the commits that have been made since that SHA.
-3.  Analyze the new commits, applying the "Verify, Don't Assume" principle by consulting relevant sources of truth (e.g., `openapi.yaml` for API changes, migration files for schema changes). Use the `get_pull_request` and `get_pull_request_comments` tools to get the pull request information for **every relevant PR** found in the commits. Read the comments to understand the context and architectural decisions.
+3.  Analyze the new commits, applying the "Verify, Don't Assume" principle by consulting relevant sources of truth (e.g., `openapi.yaml` for API changes, migration files for schema changes). Use the `get_pull_request` and `get_pull_request_comments` tools to get the pull request information for **every relevant PR** found in the commits. Read the comments and strictly pay attention to any **"Corrected Assumptions / Learnings"** section in the PR description or commit message to understand context and architectural decisions.
 4.  Update the relevant Skill files in `skills/` first.
 5.  Update the last analyzed commit SHA near the top of this file only after all other updates are complete.

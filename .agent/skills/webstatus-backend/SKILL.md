@@ -35,6 +35,7 @@ We use a Hexagonal-style **Adapter Pattern** to decouple application logic from 
 
 ## General Do's and Don'ts
 
+- **DO** cross-reference all code against the official Google Go Style Guide. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
 - **DO** use `spanneradapters` for DB interactions in the API.
 - **DON'T** call `gcpspanner.Client` directly from `httpserver` handlers.
 - **DO** use `row.ToStruct(&yourStruct)` instead of manual column scanning.

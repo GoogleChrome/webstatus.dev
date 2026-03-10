@@ -20,6 +20,7 @@ For a technical breakdown of the Lit component hierarchy, frontend identity flow
 
 ## Guidelines (Do's and Don'ts)
 
+- **DO** cross-reference all TypeScript and CSS against the official Google TypeScript/HTML/CSS Style Guides. If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
 - **DO** create new UI elements as custom elements extending Lit's `LitElement`.
 - **DO** leverage Shoelace components for common UI patterns.
 - **DON'T** introduce other UI frameworks like React or Vue.

@@ -11,6 +11,10 @@ This skill provides guidance for updating the core toolchain versions across the
 
 For a technical overview of synchronized upgrades and infrastructure maintenance, see [references/architecture.md](references/architecture.md).
 
+## General Guidelines
+
+- **DO** cross-reference all infrastructure/scripts against the official Google Style Guides (e.g. for Shell Scripts, YAML). If you are unsure about a specific style rule, DO NOT assume; you MUST ask the user for clarification.
+
 ## Synchronized Upgrades
 
 When asked to update a specific language or tool, you must update it in all of its respective locations to prevent environment drift.
