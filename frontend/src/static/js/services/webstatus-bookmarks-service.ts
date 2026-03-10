@@ -17,6 +17,7 @@
 import {customElement, state} from 'lit/decorators.js';
 import {ServiceElement} from './service-element.js';
 import {consume, provide} from '@lit/context';
+import {locationContext} from '../contexts/location-context.js';
 import {
   AppBookmarkInfo,
   SavedSearchError,
@@ -43,7 +44,7 @@ import {
   AppLocation,
   getCurrentLocation,
   navigateToUrl,
-} from '../utils/app-router.js';
+} from '../utils/router-utils.js';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {
   firebaseUserContext,
@@ -55,12 +56,12 @@ import {TaskTracker} from '../utils/task-tracker.js';
 import {Toast} from '../utils/toast.js';
 import {PropertyValueMap} from 'lit';
 
-interface GetLocationFunction {
-  (): AppLocation;
-}
-
 @customElement('webstatus-bookmarks-service')
 export class WebstatusBookmarksService extends ServiceElement {
+  @consume({context: locationContext, subscribe: true})
+  @state()
+  location: AppLocation = getCurrentLocation();
+
   @provide({context: appBookmarkInfoContext})
   appBookmarkInfo: AppBookmarkInfo = {
     userSavedSearchTask: {
@@ -294,7 +295,7 @@ export class WebstatusBookmarksService extends ServiceElement {
   }
 
   // Helper for testing.
-  getLocation: GetLocationFunction = getCurrentLocation;
+  getLocation: () => AppLocation = () => this.location;
   getSearchID: (location: AppLocation) => string = getSearchID;
   getSearchQuery: (location: {search: string}) => string = getSearchQuery;
   updatePageUrl: (

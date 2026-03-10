@@ -24,6 +24,8 @@ import '../services/webstatus-gcharts-loader-service.js';
 import '../services/webstatus-api-client-service.js';
 import '../services/webstatus-bookmarks-service.js';
 import '../services/webstatus-theme-service.js';
+import '../services/webstatus-router-service.js';
+import {Route} from '../utils/router-utils.js';
 
 /**
  * WebstatusServiceContainer: Centralized container for web status services.
@@ -46,6 +48,12 @@ import '../services/webstatus-theme-service.js';
 export class WebstatusServicesContainer extends LitElement {
   @property({type: Object})
   settings!: AppSettings;
+
+  @property({type: Array})
+  routes: Route[] = [];
+
+  @property({type: Object})
+  renderHost?: HTMLElement;
   protected render(): TemplateResult {
     return html`
       <webstatus-gcharts-loader-service>
@@ -59,7 +67,12 @@ export class WebstatusServicesContainer extends LitElement {
               >
                 <webstatus-bookmarks-service>
                   <webstatus-theme-service>
-                    <slot></slot>
+                    <webstatus-router-service
+                      .routes="${this.routes}"
+                      .host="${this.renderHost}"
+                    >
+                      <slot></slot>
+                    </webstatus-router-service>
                   </webstatus-theme-service>
                 </webstatus-bookmarks-service>
               </webstatus-firebase-auth-service>

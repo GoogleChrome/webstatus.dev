@@ -1,5 +1,5 @@
 /**
- * Copyright 2023 Google LLC
+ * Copyright 2026 Google LLC
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,11 +14,7 @@
  * limitations under the License.
  */
 
-import type {AnyObject, Router} from '@vaadin/router';
-
 import {createContext} from '@lit/context';
+import {AppLocation} from '../utils/router-utils.js';
 
-export type {Router} from '@vaadin/router';
-export const routerContext = createContext<
-  Router<AnyObject, AnyObject> | undefined
->('router');
+export const locationContext = createContext<AppLocation>('location');

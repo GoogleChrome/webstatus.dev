@@ -32,7 +32,7 @@ import {
   getPageSize,
   getPaginationStart,
 } from '../utils/urls.js';
-import {navigateToUrl} from '../utils/app-router.js';
+import {navigateToUrl} from '../utils/router-utils.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 
 @customElement('webstatus-overview-pagination')

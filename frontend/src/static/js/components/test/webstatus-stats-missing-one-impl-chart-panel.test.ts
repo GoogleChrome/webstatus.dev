@@ -20,6 +20,7 @@ import {WebstatusStatsMissingOneImplChartPanel} from '../webstatus-stats-missing
 import {APIClient, BrowserReleaseFeatureMetric} from '../../api/client.js';
 import {WebstatusLineChartPanel} from '../webstatus-line-chart-panel.js';
 import {ChartSelectPointEvent} from '../webstatus-gchart.js';
+import {taskUpdateComplete} from './test-helpers.js';
 
 import '../webstatus-stats-missing-one-impl-chart-panel.js';
 
@@ -49,6 +50,7 @@ describe('WebstatusStatsMissingOneImplChartPanel', () => {
     );
     el.apiClient = apiClientStub;
     await el.updateComplete;
+    await taskUpdateComplete();
   });
 
   afterEach(() => {

@@ -24,8 +24,9 @@ import {
   ChannelsParameter,
   FeatureWPTMetricViewType,
   STABLE_CHANNEL,
-  WPTRunMetric,
+  type WPTRunMetric,
 } from '../api/client.js';
+import {APIClient} from '../contexts/api-client-context.js';
 import {FetchFunctionConfig} from './webstatus-line-chart-panel.js';
 import {WebstatusLineChartTabbedPanel} from './webstatus-line-chart-tabbed-panel.js';
 
@@ -101,22 +102,24 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTab
     );
   }
 
-  createLoadingTask(): Task {
-    return new Task(this, {
-      args: () =>
-        [
-          this.dataFetchStartDate,
-          this.dataFetchEndDate,
-          this.featureId,
-          this.testView,
-        ] as [Date, Date, string, FeatureWPTMetricViewType],
-      task: async ([startDate, endDate, featureId, testView]: [
-        Date,
-        Date,
-        string,
-        FeatureWPTMetricViewType,
-      ]) => {
+  createLoadingTask(): Task<
+    [Date, Date, string, FeatureWPTMetricViewType, APIClient],
+    void
+  > {
+    return new Task<
+      [Date, Date, string, FeatureWPTMetricViewType, APIClient],
+      void
+    >(this, {
+      args: () => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+        this.featureId,
+        this.testView,
+        this.apiClient,
+      ],
+      task: async ([startDate, endDate, featureId, testView, apiClient]) => {
         if (
+          !apiClient ||
           featureId === undefined ||
           startDate === undefined ||
           endDate === undefined ||

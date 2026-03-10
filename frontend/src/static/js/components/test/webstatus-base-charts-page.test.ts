@@ -24,6 +24,7 @@ import {DateRangeChangeEvent} from '../webstatus-form-date-range-picker.js';
 import {customElement} from 'lit/decorators.js';
 import sinon from 'sinon';
 import '../webstatus-base-charts-page.js';
+import {AppLocation} from '../../utils/router-types.js';
 
 // Create a subclass for testing purposes
 @customElement('test-base-charts-page')
@@ -37,10 +38,11 @@ describe('BaseChartsPage', () => {
   const mockNow = new Date(2024, 5, 1).getTime(); // June 1, 2024
   const mockDefaultEndDate = new Date(mockNow);
   const mockDefaultStartDate = new Date(2023, 5, 2);
-  const location = {
+  const location: AppLocation = {
     params: {},
     search: '',
     pathname: '/some-path',
+    href: 'http://localhost/some-path',
   };
 
   let getDateRangeStub: sinon.SinonStub;

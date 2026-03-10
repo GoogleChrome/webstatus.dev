@@ -16,8 +16,8 @@
 
 import {consume} from '@lit/context';
 import {Task, TaskStatus} from '@lit/task';
-import {LitElement, type TemplateResult, html, PropertyValueMap} from 'lit';
-import {customElement, state, property} from 'lit/decorators.js';
+import {type TemplateResult, html, PropertyValueMap} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {
@@ -43,10 +43,14 @@ import {
   SavedSearchScope,
 } from '../contexts/app-bookmark-info-context.js';
 import {UserSavedSearch} from '../utils/constants.js';
+import {WebstatusBasePage} from './webstatus-base-page.js';
 
 @customElement('webstatus-overview-page')
-export class OverviewPage extends LitElement {
-  loadingTask: Task;
+export class OverviewPage extends WebstatusBasePage {
+  loadingTask: Task<
+    [APIClient | undefined, {search: string}, AppBookmarkInfo | undefined],
+    components['schemas']['FeaturePage']
+  >;
 
   @consume({context: apiClientContext})
   @state()
@@ -58,9 +62,6 @@ export class OverviewPage extends LitElement {
     error: undefined,
     data: undefined,
   };
-
-  @property({type: Object})
-  location!: {search: string}; // Set by router.
 
   @state()
   currentLocation?: {search: string};
@@ -74,7 +75,10 @@ export class OverviewPage extends LitElement {
   constructor() {
     super();
 
-    this.loadingTask = new Task(this, {
+    this.loadingTask = new Task<
+      [APIClient | undefined, {search: string}, AppBookmarkInfo | undefined],
+      components['schemas']['FeaturePage']
+    >(this, {
       autoRun: false,
       args: () =>
         [this.apiClient, this.location, this.appBookmarkInfo] as const,
@@ -130,7 +134,8 @@ export class OverviewPage extends LitElement {
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
     if (
       changedProperties.has('apiClient') ||
-      changedProperties.has('appBookmarkInfo')
+      changedProperties.has('appBookmarkInfo') ||
+      changedProperties.has('location')
     ) {
       if (this.apiClient === undefined) {
         return;
@@ -143,6 +148,7 @@ export class OverviewPage extends LitElement {
           : undefined;
       if (
         (this.currentLocation?.search !== this.location.search ||
+          changedProperties.has('location') ||
           this.areUserSavedSearchesDifferent(
             this._lastUserSavedSearch,
             userSavedSearch,
@@ -150,6 +156,7 @@ export class OverviewPage extends LitElement {
         !savedSearchHelpers.isBusyLoadingSavedSearchInfo(this.appBookmarkInfo)
       ) {
         this._lastUserSavedSearch = userSavedSearch;
+        this.currentLocation = this.location;
         void this.loadingTask.run();
       }
     }

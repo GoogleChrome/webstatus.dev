@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-import {CSSResultGroup, LitElement, css, html} from 'lit';
+import {CSSResultGroup, css, html} from 'lit';
 import {DateRange, getDateRange, updatePageUrl} from '../utils/urls.js';
 import {DateRangeChangeEvent} from './webstatus-form-date-range-picker.js';
 import './webstatus-form-date-range-picker.js';
-import {IndexedParams} from '@vaadin/router';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {state} from 'lit/decorators.js';
+import {WebstatusBasePage} from './webstatus-base-page.js';
 
 // Date.now()
 export const DEFAULT_END_DATE = new Date(Date.now());
@@ -46,15 +46,13 @@ const DEFAULT_MAXIMUM_DATE = new Date(
  * Notes:
  * - If a child class overrides firstUpdated, it must call super.firstUpdated() first.
  */
-export class BaseChartsPage extends LitElement {
+export class BaseChartsPage extends WebstatusBasePage {
   minDate: Date = DEFAULT_MINIMUM_DATE;
   maxDate: Date = DEFAULT_MAXIMUM_DATE;
   @state()
   startDate: Date = DEFAULT_START_DATE;
   @state()
   endDate: Date = DEFAULT_END_DATE;
-
-  location!: {params: IndexedParams; search: string; pathname: string}; // Set by router.
 
   // Members that are used for testing with sinon.
   _getDateRange: (options: {search: string}) => DateRange = getDateRange;

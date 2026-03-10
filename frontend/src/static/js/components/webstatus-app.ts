@@ -14,8 +14,6 @@
  * limitations under the License.
  */
 
-import {provide} from '@lit/context';
-import {type Router} from '@vaadin/router';
 import {
   type CSSResultGroup,
   LitElement,
@@ -24,11 +22,17 @@ import {
   html,
 } from 'lit';
 import {customElement, property, query} from 'lit/decorators.js';
-
 import {type AppSettings} from '../../../common/app-settings.js';
-import {routerContext} from '../contexts/router-context.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
-import {initRouter} from '../utils/app-router.js';
+import {type Route} from '../utils/router-utils.js';
+
+import './webstatus-overview-page.js';
+import './webstatus-feature-page.js';
+import './webstatus-stats-page.js';
+import './webstatus-notfound-error-page.js';
+import './webstatus-feature-gone-split-page.js';
+import './webstatus-notification-channels-page.js';
+import './webstatus-subscriptions-page.js';
 import './webstatus-header.js';
 import './webstatus-page.js';
 import './webstatus-services-container.js';
@@ -38,11 +42,39 @@ export class WebstatusApp extends LitElement {
   @query('webstatus-page')
   pageElement?: LitElement;
 
-  @provide({context: routerContext})
-  router?: Router;
-
   @property({type: Object})
   settings!: AppSettings;
+
+  private _routes: Route[] = [
+    {
+      component: 'webstatus-overview-page',
+      path: '/',
+    },
+    {
+      component: 'webstatus-feature-page',
+      path: '/features/:featureId',
+    },
+    {
+      component: 'webstatus-stats-page',
+      path: '/stats',
+    },
+    {
+      component: 'webstatus-notification-channels-page',
+      path: '/settings/notification-channels',
+    },
+    {
+      component: 'webstatus-subscriptions-page',
+      path: '/settings/subscriptions',
+    },
+    {
+      component: 'webstatus-feature-gone-split-page',
+      path: '/errors-410/feature-gone-split',
+    },
+    {
+      path: '*',
+      component: 'webstatus-notfound-error-page',
+    },
+  ];
 
   static get styles(): CSSResultGroup {
     return [
@@ -68,16 +100,17 @@ export class WebstatusApp extends LitElement {
   }
 
   firstUpdated(): void {
-    if (this.pageElement !== null) {
-      void initRouter(this.pageElement!).then((router: Router) => {
-        this.router = router;
-      });
-    }
+    this.requestUpdate();
   }
 
   protected render(): TemplateResult {
     return html`
-      <webstatus-services-container class="vbox" .settings="${this.settings}">
+      <webstatus-services-container
+        class="vbox"
+        .settings="${this.settings}"
+        .routes="${this._routes}"
+        .renderHost="${this.pageElement}"
+      >
         <webstatus-header></webstatus-header>
         <webstatus-page class="halign-stretch valign-stretch">
           <slot></slot>

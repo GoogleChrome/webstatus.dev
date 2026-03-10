@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-import {LitElement, html, type TemplateResult, CSSResultGroup, css} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {html, type TemplateResult, CSSResultGroup, css} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 import {getSearchQuery, formatFeaturePageUrl} from '../utils/urls.js';
@@ -23,16 +23,14 @@ import {consume} from '@lit/context';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {Task} from '@lit/task';
 import {FeatureSortOrderType} from '../api/client.js';
-import {Toast} from '../utils/toast.js';
+import {toast} from '../utils/toast.js';
+import {WebstatusBasePage} from './webstatus-base-page.js';
 
 type SimilarFeature = {name: string; url: string};
 
 @customElement('webstatus-notfound-error-page')
-export class WebstatusNotFoundErrorPage extends LitElement {
+export class WebstatusNotFoundErrorPage extends WebstatusBasePage {
   _similarResults?: Task<[APIClient, string], SimilarFeature[]>;
-
-  @property({type: Object})
-  location!: {search: string}; // Set by router.
 
   @consume({context: apiClientContext})
   @state()
@@ -43,7 +41,7 @@ export class WebstatusNotFoundErrorPage extends LitElement {
     this._similarResults = new Task<[APIClient, string], SimilarFeature[]>(
       this,
       {
-        args: () => [this.apiClient, getSearchQuery(this.location)],
+        args: () => [this.apiClient, getSearchQuery(this.location)] as const,
         task: async ([apiClient, featureId]) => {
           if (!featureId) return [];
           try {
@@ -66,7 +64,7 @@ export class WebstatusNotFoundErrorPage extends LitElement {
               error instanceof Error
                 ? error.message
                 : 'An unknown error occurred';
-            await new Toast().toast(message, 'danger', 'exclamation-triangle');
+            void toast(message, 'danger');
             return [];
           }
         },

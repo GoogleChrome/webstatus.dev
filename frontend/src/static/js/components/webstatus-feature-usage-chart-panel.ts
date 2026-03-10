@@ -27,6 +27,7 @@ import {
   BrowsersParameter,
   ChromeUsageStat,
 } from '../api/client.js';
+import {APIClient} from '../contexts/api-client-context.js';
 
 @customElement('webstatus-feature-usage-chart-panel')
 export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<BrowsersParameter> {
@@ -86,16 +87,17 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<Bro
     }));
   }
 
-  createLoadingTask(): Task {
-    return new Task(this, {
-      args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate, this.featureId] as [
-          Date,
-          Date,
-          string,
-        ],
-      task: async ([startDate, endDate, featureId]: [Date, Date, string]) => {
+  createLoadingTask(): Task<[Date, Date, string, APIClient], void> {
+    return new Task<[Date, Date, string, APIClient], void>(this, {
+      args: () => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+        this.featureId,
+        this.apiClient,
+      ],
+      task: async ([startDate, endDate, featureId, apiClient]) => {
         if (
+          !apiClient ||
           featureId === undefined ||
           startDate === undefined ||
           endDate === undefined

@@ -21,15 +21,17 @@ import sinon from 'sinon';
 import {WPTRunMetric} from '../../api/client.js';
 import {render} from 'lit';
 import {FeatureMovedError} from '../../api/errors.js';
+import {AppLocation} from '../../utils/router-types.js';
 
 describe('webstatus-feature-page', () => {
   let el: FeaturePage;
   let renderDescriptionSpy: sinon.SinonSpy;
   let getWPTMetricViewStub: sinon.SinonStub;
-  const location = {
+  const location: AppLocation = {
     params: {featureId: 'some-feature'},
     search: '',
     pathname: '/features/some-feature',
+    href: 'http://localhost/features/some-feature',
   };
   beforeEach(async () => {
     el = await fixture<FeaturePage>(
@@ -51,6 +53,7 @@ describe('webstatus-feature-page', () => {
   });
   it('builds the WPT link correctly when there are stable metrics with default metric view', async () => {
     const link = el.buildWPTLink({
+      name: 'declarative-shadow-dom',
       feature_id: 'declarative-shadow-dom',
       wpt: {stable: {}},
     });
@@ -63,6 +66,7 @@ describe('webstatus-feature-page', () => {
     getWPTMetricViewStub.returns('subtest_counts');
     await el.updateComplete;
     const link = el.buildWPTLink({
+      name: 'declarative-shadow-dom',
       feature_id: 'declarative-shadow-dom',
       wpt: {stable: {}},
     });
@@ -75,6 +79,7 @@ describe('webstatus-feature-page', () => {
     getWPTMetricViewStub.returns('test_counts');
     await el.updateComplete;
     const link = el.buildWPTLink({
+      name: 'declarative-shadow-dom',
       feature_id: 'declarative-shadow-dom',
       wpt: {stable: {}},
     });
@@ -85,12 +90,14 @@ describe('webstatus-feature-page', () => {
 
   it('builds a null WPT link correctly when there are no stable metrics', async () => {
     const noStableMetricsLink = el.buildWPTLink({
+      name: 'declarative-shadow-dom',
       feature_id: 'declarative-shadow-dom',
       wpt: {experimental: {}},
     });
     expect(noStableMetricsLink).to.eq(null);
 
     const missingWPTSectionLink = el.buildWPTLink({
+      name: 'declarative-shadow-dom',
       feature_id: 'declarative-shadow-dom',
     });
     expect(missingWPTSectionLink).to.eq(null);
@@ -509,7 +516,8 @@ describe('webstatus-feature-page', () => {
             params: {featureId: 'new-feature'},
             search: '?redirected_from=old-feature',
             pathname: '/features/new-feature',
-          }}
+            href: 'http://localhost/features/new-feature?redirected_from=old-feature',
+          } as AppLocation}
         ></webstatus-feature-page>`,
       );
       await redirectedEl.updateComplete;

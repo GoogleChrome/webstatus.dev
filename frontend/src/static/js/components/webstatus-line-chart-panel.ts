@@ -132,6 +132,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
    * @property
    * @type {Date}
    */
+  @state()
   dataFetchStartDate!: Date;
 
   /**
@@ -155,6 +156,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
    * @property
    * @type {Date}
    */
+  @state()
   dataFetchEndDate!: Date;
 
   /**
@@ -187,6 +189,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
    * @type {APIClient}
    */
   @consume({context: apiClientContext})
+  @state()
   apiClient!: APIClient;
 
   @consume({context: themeContext, subscribe: true})

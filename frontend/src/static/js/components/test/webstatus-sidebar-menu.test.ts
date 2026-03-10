@@ -18,6 +18,9 @@ import {expect, fixture, html} from '@open-wc/testing';
 import sinon from 'sinon';
 import {WebstatusSidebarMenu} from '../webstatus-sidebar-menu.js';
 import {SlTreeItem} from '@shoelace-style/shoelace';
+import '@shoelace-style/shoelace/dist/components/tree/tree.js';
+import '@shoelace-style/shoelace/dist/components/tree-item/tree-item.js';
+import '@shoelace-style/shoelace/dist/components/icon/icon.js';
 import '../webstatus-sidebar-menu.js';
 import {GlobalSavedSearch, UserSavedSearch} from '../../utils/constants.js';
 import {customElement, property} from 'lit/decorators.js';
@@ -28,7 +31,7 @@ import {
   appBookmarkInfoContext,
 } from '../../contexts/app-bookmark-info-context.js';
 import {TaskStatus} from '@lit/task';
-import {AppLocation} from '../../utils/app-router.js';
+import {AppLocation} from '../../utils/router-utils.js';
 
 const testGlobalSavedSearches: GlobalSavedSearch[] = [
   {

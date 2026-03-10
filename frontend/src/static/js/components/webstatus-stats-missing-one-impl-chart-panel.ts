@@ -16,6 +16,7 @@
 
 import {Task, TaskStatus} from '@lit/task';
 import {TemplateResult, html, nothing, css} from 'lit';
+import {state} from 'lit/decorators.js';
 import {type components} from 'webstatus.dev-backend';
 import {
   FetchFunctionConfig,
@@ -29,6 +30,7 @@ import {
   MissingOneImplFeaturesList,
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
+import {APIClient} from '../contexts/api-client-context.js';
 import {ChartSelectPointEvent} from './webstatus-gchart.js';
 import {customElement, property} from 'lit/decorators.js';
 import {formatOverviewPageUrl} from '../utils/urls.js';
@@ -60,9 +62,13 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
   @property({type: Boolean})
   isLoadingFeatures = false;
 
+  @state()
   missingFeaturesList: MissingOneImplFeaturesList = [];
+  @state()
   selectedBrowser: string = '';
+  @state()
   selectedDate: string = '';
+  @state()
   featureListHref: string = '';
 
   static get styles() {
@@ -122,11 +128,15 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     });
   }
 
-  createLoadingTask(): Task {
-    return new Task(this, {
-      args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
-      task: async ([startDate, endDate]: [Date, Date]) => {
+  createLoadingTask(): Task<[Date, Date, APIClient], void> {
+    return new Task<[Date, Date, APIClient], void>(this, {
+      args: () => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+        this.apiClient,
+      ],
+      task: async ([startDate, endDate, apiClient]) => {
+        if (!apiClient) return;
         const fetchFunctionConfigs = this._createFetchFunctionConfigs(
           startDate,
           endDate,
@@ -145,8 +155,13 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
     const selectedBrowsers = browsers;
     const seriesColors = [...selectedBrowsers].map(browser => {
-      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
-      return BROWSER_ID_TO_COLOR[browserKey];
+      const browserId = browser as string;
+      if (browserId in BROWSER_ID_TO_COLOR) {
+        return BROWSER_ID_TO_COLOR[
+          browserId as keyof typeof BROWSER_ID_TO_COLOR
+        ];
+      }
+      return '#ccc'; // Fallback color
     });
 
     return {
@@ -195,7 +210,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
       event.detail.label === 'Chrome/Edge' ? 'Chrome' : event.detail.label;
     const targetBrowser = BROWSER_LABEL_TO_ID[label];
     const otherBrowsers = this.getOtherBrowsersFromTargetBrowser(targetBrowser);
-    const task = new Task(this, {
+    const task = new Task<
+      [Date, BrowsersParameter],
+      components['schemas']['Feature'][]
+    >(this, {
       task: async ([date, browser]) => {
         const features =
           await this.apiClient.getMissingOneImplementationFeatures(

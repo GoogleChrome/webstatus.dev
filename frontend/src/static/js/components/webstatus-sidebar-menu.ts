@@ -23,18 +23,21 @@ import {
   PropertyValueMap,
   nothing,
 } from 'lit';
-import {customElement, state} from 'lit/decorators.js';
+import {customElement, state, property} from 'lit/decorators.js';
+import {consume} from '@lit/context';
+import {locationContext} from '../contexts/location-context.js';
+import {
+  AppLocation,
+  getCurrentLocation,
+  navigateToUrl,
+} from '../utils/router-utils.js';
+
 import {SlTree, SlTreeItem} from '@shoelace-style/shoelace';
 import {
   formatOverviewPageUrl,
   getSearchID,
   getSearchQuery,
 } from '../utils/urls.js';
-import {
-  AppLocation,
-  getCurrentLocation,
-  navigateToUrl,
-} from '../utils/app-router.js';
 
 import {
   GITHUB_REPO_ISSUE_LINK,
@@ -43,7 +46,7 @@ import {
   GlobalSavedSearch,
   UserSavedSearch,
 } from '../utils/constants.js';
-import {consume} from '@lit/context';
+
 import {
   AppBookmarkInfo,
   appBookmarkInfoContext,
@@ -90,14 +93,6 @@ const navigationMap: NavigationMap = {
     path: '/settings/notification-channels',
   },
 };
-
-interface GetLocationFunction {
-  (): AppLocation;
-}
-
-interface NavigateToUrlFunction {
-  (url: string, event?: MouseEvent): void;
-}
 
 type savedSearchIconType = 'bookmark' | 'bookmark-star';
 
@@ -149,16 +144,26 @@ export class WebstatusSidebarMenu extends LitElement {
     ];
   }
 
-  getLocation: GetLocationFunction = getCurrentLocation;
-  navigate: NavigateToUrlFunction = navigateToUrl;
+  @consume({context: locationContext, subscribe: true})
+  @state()
+  location: AppLocation = getCurrentLocation();
+
+  // Optional overrides for testing
+  @property({attribute: false})
+  getLocation: () => AppLocation = () => this.location;
+
+  @property({attribute: false})
+  navigate: (url: string, event?: MouseEvent) => void = navigateToUrl;
 
   constructor() {
     super();
   }
 
-  connectedCallback(): void {
+  @state()
+  activeQuery: string | null = null;
+
+  connectedCallback() {
     super.connectedCallback();
-    this.updateActiveStatus();
   }
 
   disconnectedCallback() {
@@ -168,9 +173,6 @@ export class WebstatusSidebarMenu extends LitElement {
   private handleBookmarkInfoUpdate() {
     this.updateActiveStatus();
   }
-
-  @state()
-  activeQuery: string | null = null;
 
   @consume({context: appBookmarkInfoContext, subscribe: true})
   @state()
@@ -203,8 +205,8 @@ export class WebstatusSidebarMenu extends LitElement {
       return;
     }
     // Reselect the sl-tree-item corresponding to the current URL path.
-    const currentUrl = new URL(this.getLocation().href);
-    const currentPath = currentUrl.pathname;
+    const loc = this.getLocation();
+    const currentPath = loc.pathname;
     const matchingNavItem = Object.values(navigationMap).find(
       item => item.path === currentPath,
     );
@@ -220,7 +222,10 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   protected willUpdate(changedProperties: PropertyValueMap<this>): void {
-    if (changedProperties.has('appBookmarkInfo')) {
+    if (
+      changedProperties.has('appBookmarkInfo') ||
+      changedProperties.has('location')
+    ) {
       this.handleBookmarkInfoUpdate();
     }
   }
@@ -298,7 +303,7 @@ export class WebstatusSidebarMenu extends LitElement {
     const icon = this.getSavedSearchIcon(isQueryActive);
 
     return html`
-      <sl-tree-item id=${savedSearchId} ?selected=${isQueryActive}>
+      <sl-tree-item id=${savedSearchId} .selected=${isQueryActive}>
         <a class="saved-search-link" href="${savedSearchUrl}">
           <sl-icon name="${icon}"></sl-icon> ${savedSearch.name}
         </a>
@@ -342,7 +347,7 @@ export class WebstatusSidebarMenu extends LitElement {
     const icon = this.getSavedSearchIcon(isQueryActive);
 
     return html`
-      <sl-tree-item id=${savedSearchId} ?selected=${isQueryActive}>
+      <sl-tree-item id=${savedSearchId} .selected=${isQueryActive}>
         <a class="saved-search-link" href="${savedSearchUrl}">
           <sl-icon name="${icon}"></sl-icon> ${savedSearch.name}
         </a>

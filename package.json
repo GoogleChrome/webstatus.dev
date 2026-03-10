@@ -33,8 +33,5 @@
     "whatwg-url": "^14.1.0",
     "uri-js": "npm:uri-js-replace",
     "tmp": "0.2.4"
-  },
-  "vaadin": {
-    "disableUsageStatistics": true
   }
 }

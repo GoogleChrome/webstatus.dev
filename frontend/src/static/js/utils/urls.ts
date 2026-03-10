@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import {FeatureWPTMetricViewType} from '../api/client.js';
 
 function getQueryParam(qs: string, paramName: string): string {
   const params = new URLSearchParams(qs);
@@ -39,8 +40,13 @@ export function getPaginationStart(location: {search: string}): number {
   return Number(getQueryParam(location.search, 'start'));
 }
 
-export function getWPTMetricView(location: {search: string}): string {
-  return getQueryParam(location.search, 'wpt_metric_view');
+export function getWPTMetricView(location: {
+  search: string;
+}): FeatureWPTMetricViewType {
+  return getQueryParam(
+    location.search,
+    'wpt_metric_view',
+  ) as FeatureWPTMetricViewType;
 }
 
 export function getSearchID(location: {search: string}): string {

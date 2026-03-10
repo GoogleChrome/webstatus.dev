@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-import {LitElement, html, TemplateResult, css} from 'lit';
+import {html, type TemplateResult, css} from 'lit';
 import {customElement, state, property} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 import {consume} from '@lit/context';
@@ -26,31 +26,33 @@ import {
 } from '../contexts/firebase-user-context.js';
 import {toast} from '../utils/toast.js';
 import {
-  SubscriptionSaveErrorEvent,
-  SubscriptionDeleteErrorEvent,
+  type SubscriptionSaveErrorEvent,
+  type SubscriptionDeleteErrorEvent,
 } from './webstatus-manage-subscriptions-dialog.js';
 import {type components} from 'webstatus.dev-backend';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {FREQUENCY_DISPLAY_NAMES} from '../utils/format.js';
+import {WebstatusBasePage} from './webstatus-base-page.js';
 
 interface GetLocationFunction {
   (): Location;
 }
 
 @customElement('webstatus-subscriptions-page')
-export class SubscriptionsPage extends LitElement {
+export class SubscriptionsPage extends WebstatusBasePage {
   static styles = [
     SHARED_STYLES,
     css`
       .subscription-list {
         display: flex;
         flex-direction: column;
-        gap: var(--sl-spacing-small);
+        gap: var(--sl-spacing-medium);
+        margin-top: var(--sl-spacing-large);
       }
       .subscription-item {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        gap: var(--sl-spacing-medium);
         padding: var(--sl-spacing-medium);
         border: 1px solid var(--sl-color-neutral-200);
         border-radius: var(--sl-border-radius-medium);
@@ -79,7 +81,7 @@ export class SubscriptionsPage extends LitElement {
     `,
   ];
 
-  _loadingTask: Task;
+  _loadingTask: Task<[APIClient, UserContext | null | undefined], void>;
 
   private renderSkeleton(): TemplateResult {
     return html`
@@ -160,8 +162,11 @@ export class SubscriptionsPage extends LitElement {
 
   constructor() {
     super();
-    this._loadingTask = new Task(this, {
-      args: () => [this.apiClient, this.userContext],
+    this._loadingTask = new Task<
+      [APIClient, UserContext | null | undefined],
+      void
+    >(this, {
+      args: () => [this.apiClient, this.userContext] as const,
       task: async ([apiClient, userContext]) => {
         if (!apiClient || !userContext) {
           return;

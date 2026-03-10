@@ -7,14 +7,15 @@
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law of a an "AS IS" BASIS,
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
 
 import {consume} from '@lit/context';
-import {LitElement, css, html} from 'lit';
+import {css, html} from 'lit';
 import {customElement, state} from 'lit/decorators.js';
 import {Task} from '@lit/task';
 
@@ -24,19 +25,20 @@ import {
 } from '../contexts/firebase-user-context.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import {APIClient} from '../api/client.js';
-import {components} from 'webstatus.dev-backend';
+import {type components} from 'webstatus.dev-backend';
 import {toast} from '../utils/toast.js';
-import {navigateToUrl} from '../utils/app-router.js';
+import {navigateToUrl} from '../utils/router-utils.js';
 
 import './webstatus-notification-email-channels.js';
 import './webstatus-notification-rss-channels.js';
 import './webstatus-notification-webhook-channels.js';
+import {WebstatusBasePage} from './webstatus-base-page.js';
 
 type NotificationChannelResponse =
   components['schemas']['NotificationChannelResponse'];
 
 @customElement('webstatus-notification-channels-page')
-export class WebstatusNotificationChannelsPage extends LitElement {
+export class WebstatusNotificationChannelsPage extends WebstatusBasePage {
   static styles = css`
     .container {
       display: flex;
@@ -56,32 +58,36 @@ export class WebstatusNotificationChannelsPage extends LitElement {
   @state()
   private emailChannels: NotificationChannelResponse[] = [];
 
-  private _channelsTask = new Task(this, {
-    task: async () => {
-      if (this.userContext === null) {
-        navigateToUrl('/');
-        void toast('You must be logged in to view this page.', 'danger');
-        return;
-      }
-      if (this.userContext === undefined) {
-        return;
-      }
+  private _channelsTask = new Task<[UserContext | null | undefined], void>(
+    this,
+    {
+      task: async ([userContext]) => {
+        if (userContext === null) {
+          navigateToUrl('/');
+          void toast('You must be logged in to view this page.', 'danger');
+          return;
+        }
+        if (userContext === undefined) {
+          return;
+        }
 
-      const token = await this.userContext.user.getIdToken();
-      const channels = await this.apiClient
-        .listNotificationChannels(token)
-        .catch(e => {
-          const errorMessage = e instanceof Error ? e.message : 'unknown error';
-          void toast(
-            `Failed to load notification channels: ${errorMessage}`,
-            'danger',
-          );
-          return [];
-        });
-      this.emailChannels = channels.filter(c => c.type === 'email');
+        const token = await userContext.user.getIdToken();
+        const channels = await this.apiClient
+          .listNotificationChannels(token)
+          .catch(e => {
+            const errorMessage =
+              e instanceof Error ? e.message : 'unknown error';
+            void toast(
+              `Failed to load notification channels: ${errorMessage}`,
+              'danger',
+            );
+            return [];
+          });
+        this.emailChannels = channels.filter(c => c.type === 'email');
+      },
+      args: () => [this.userContext] as const,
     },
-    args: () => [this.userContext],
-  });
+  );
 
   render() {
     return html`

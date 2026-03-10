@@ -43,7 +43,7 @@ import {
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
-import './webstatus-gchart';
+import './webstatus-gchart.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
 import './webstatus-feature-wpt-progress-chart-panel.js';
@@ -57,6 +57,7 @@ import {
 } from '../api/errors.js';
 import {formatDeveloperUpvotesMessages} from '../utils/format.js';
 import {VendorPositions} from '../utils/vendor-position.js';
+
 // CanIUseData is a slimmed down interface of the data returned from the API.
 interface CanIUseData {
   items?: {
@@ -66,9 +67,12 @@ interface CanIUseData {
 
 @customElement('webstatus-feature-page')
 export class FeaturePage extends BaseChartsPage {
-  _loadingTask?: Task;
+  _loadingTask?: Task<[APIClient, string], components['schemas']['Feature']>;
 
-  _loadingMetadataTask: Task;
+  _loadingMetadataTask: Task<
+    [APIClient, string],
+    components['schemas']['FeatureMetadata']
+  >;
 
   @consume({context: apiClientContext})
   @state()
@@ -230,9 +234,14 @@ export class FeaturePage extends BaseChartsPage {
 
   constructor() {
     super();
-    this._loadingTask = new Task(this, {
-      args: () => [this.apiClient, this.featureId],
-      task: async ([apiClient, featureId]) => {
+    this._loadingTask = new Task<
+      [APIClient, string],
+      components['schemas']['Feature']
+    >(this, {
+      args: () => [this.apiClient, this.featureId] as const,
+      task: async ([apiClient, featureId]): Promise<
+        components['schemas']['Feature']
+      > => {
         if (typeof apiClient !== 'object' || typeof featureId !== 'string') {
           return Promise.reject('api client and/or featureId not set');
         }
@@ -275,13 +284,18 @@ export class FeaturePage extends BaseChartsPage {
       },
     });
 
-    this._loadingMetadataTask = new Task(this, {
-      args: () => [this.apiClient, this.featureId],
-      task: async ([apiClient, featureId]) => {
+    this._loadingMetadataTask = new Task<
+      [APIClient, string],
+      components['schemas']['FeatureMetadata']
+    >(this, {
+      args: () => [this.apiClient, this.featureId] as const,
+      task: async ([apiClient, featureId]): Promise<
+        components['schemas']['FeatureMetadata']
+      > => {
         if (typeof apiClient === 'object' && typeof featureId === 'string') {
           this.featureMetadata = await apiClient.getFeatureMetadata(featureId);
         }
-        return this.featureMetadata;
+        return this.featureMetadata!;
       },
     });
   }
@@ -314,7 +328,7 @@ export class FeaturePage extends BaseChartsPage {
   override async firstUpdated(): Promise<void> {
     await super.firstUpdated();
     this.featureId =
-      this.location.params['featureId']?.toString() || 'undefined';
+      this.location.params!['featureId']?.toString() || 'undefined';
     const urlParams = new URLSearchParams(this.location.search);
     this.oldFeatureId = urlParams.get('redirected_from') || undefined;
   }
@@ -348,7 +362,7 @@ export class FeaturePage extends BaseChartsPage {
     const overviewUrl = formatOverviewPageUrl(this.location);
     const canonicalFeatureUrl = this.feature
       ? formatFeaturePageUrl(this.feature!)
-      : this.location;
+      : this.location.pathname;
     return html`
       <div class="crumbs">
         <a href=${overviewUrl}>Features overview</a>
@@ -435,6 +449,7 @@ export class FeaturePage extends BaseChartsPage {
   }
 
   buildWPTLink(feature?: {
+    name: string;
     feature_id: string;
     wpt?: {stable?: object; experimental?: object};
   }): string | null {

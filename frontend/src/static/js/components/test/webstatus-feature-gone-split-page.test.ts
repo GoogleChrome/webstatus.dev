@@ -20,6 +20,7 @@ import {WebstatusFeatureGoneSplitPage} from '../webstatus-feature-gone-split-pag
 import {Task} from '@lit/task';
 import {APIClient} from '../../contexts/api-client-context.js';
 import {GITHUB_REPO_ISSUE_LINK} from '../../utils/constants.js';
+import {AppLocation} from '../../utils/router-types.js';
 
 type NewFeature = {name: string; url: string};
 
@@ -33,7 +34,12 @@ describe('webstatus-feature-gone-split-page', () => {
   it('renders the correct error message', async () => {
     const component = await fixture<WebstatusFeatureGoneSplitPage>(
       html`<webstatus-feature-gone-split-page
-        .location=${{search: ''}}
+        .location=${{
+          search: '',
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-feature-gone-split-page>`,
     );
 
@@ -87,7 +93,12 @@ describe('webstatus-feature-gone-split-page', () => {
   it('renders action buttons', async () => {
     const component = await fixture<WebstatusFeatureGoneSplitPage>(html`
       <webstatus-feature-gone-split-page
-        .location=${{search: ''}}
+        .location=${{
+          search: '',
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-feature-gone-split-page>
     `);
 
@@ -100,7 +111,12 @@ describe('webstatus-feature-gone-split-page', () => {
   it('report issue button links to GitHub', async () => {
     const component = await fixture<WebstatusFeatureGoneSplitPage>(html`
       <webstatus-feature-gone-split-page
-        .location=${{search: ''}}
+        .location=${{
+          search: '',
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-feature-gone-split-page>
     `);
 
@@ -117,7 +133,12 @@ describe('webstatus-feature-gone-split-page', () => {
   ): Promise<WebstatusFeatureGoneSplitPage> {
     const component = await fixture<WebstatusFeatureGoneSplitPage>(html`
       <webstatus-feature-gone-split-page
-        .location=${{search: `?new_features=${newFeatureIds}`}}
+        .location=${{
+          search: `?new_features=${newFeatureIds}`,
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-feature-gone-split-page>
     `);
 

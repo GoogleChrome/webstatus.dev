@@ -286,6 +286,9 @@ export const VOCABULARY = [
   },
 ];
 
+export const OVERVIEW_TABLE_COLUMNS: string =
+  'name,baseline_status,availability_chrome,availability_edge,availability_firefox,availability_safari,stable_chrome,stable_edge,stable_firefox,stable_safari,chrome_usage';
+
 export const MISSING_ONE_TABLE_COLUMNS: string =
   'name,availability_chrome,availability_firefox,availability_safari,availability_chrome_android,availability_firefox_android,availability_safari_ios,chrome_usage';
 

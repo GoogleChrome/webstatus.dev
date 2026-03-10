@@ -20,6 +20,7 @@ import {WebstatusNotFoundErrorPage} from '../webstatus-notfound-error-page.js';
 import {Task} from '@lit/task';
 import {APIClient} from '../../contexts/api-client-context.js';
 import {GITHUB_REPO_ISSUE_LINK} from '../../utils/constants.js';
+import {AppLocation} from '../../utils/router-types.js';
 
 type SimilarFeature = {name: string; url: string};
 
@@ -33,7 +34,12 @@ describe('webstatus-notfound-error-page', () => {
   it('renders the correct error message when featureId is missing', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(
       html`<webstatus-notfound-error-page
-        .location=${{search: ''}}
+        .location=${{
+          search: '',
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-notfound-error-page>`,
     );
 
@@ -59,7 +65,12 @@ describe('webstatus-notfound-error-page', () => {
   it('renders correct message when featureId is provided', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
       <webstatus-notfound-error-page
-        .location=${{search: '?q=test-feature'}}
+        .location=${{
+          search: '?q=test-feature',
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-notfound-error-page>
     `);
 
@@ -100,7 +111,12 @@ describe('webstatus-notfound-error-page', () => {
   it('renders only two buttons when featureId does not exist', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
       <webstatus-notfound-error-page
-        .location=${{search: ''}}
+        .location=${{
+          search: '',
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-notfound-error-page>
     `);
 
@@ -143,7 +159,7 @@ describe('webstatus-notfound-error-page', () => {
   it('report issue button links to GitHub', async () => {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
       <webstatus-notfound-error-page
-        .location=${{search: ''}}
+        .location=${{search: '', pathname: '', href: '', params: {}}}
       ></webstatus-notfound-error-page>
     `);
 
@@ -160,7 +176,12 @@ describe('webstatus-notfound-error-page', () => {
   ): Promise<WebstatusNotFoundErrorPage> {
     const component = await fixture<WebstatusNotFoundErrorPage>(html`
       <webstatus-notfound-error-page
-        .location=${{search: `?q=${featureId}`}}
+        .location=${{
+          search: `?q=${featureId}`,
+          pathname: '',
+          href: '',
+          params: {},
+        } as AppLocation}
       ></webstatus-notfound-error-page>
     `);
 

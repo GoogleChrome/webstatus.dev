@@ -3,7 +3,6 @@
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- * You may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
@@ -15,8 +14,8 @@
  * limitations under the License.
  */
 
-import {LitElement, html, type TemplateResult, CSSResultGroup, css} from 'lit';
-import {customElement, property, state} from 'lit/decorators.js';
+import {html, type TemplateResult, CSSResultGroup, css} from 'lit';
+import {customElement, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 import {consume} from '@lit/context';
@@ -24,15 +23,13 @@ import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {Task} from '@lit/task';
 import {FeatureWPTMetricViewType} from '../api/client.js';
 import {formatFeaturePageUrl, getWPTMetricView} from '../utils/urls.js';
+import {WebstatusBasePage} from './webstatus-base-page.js';
 
 type NewFeature = {name: string; url: string};
 
 @customElement('webstatus-feature-gone-split-page')
-export class WebstatusFeatureGoneSplitPage extends LitElement {
+export class WebstatusFeatureGoneSplitPage extends WebstatusBasePage {
   _newFeatures?: Task<[APIClient, string], NewFeature[]>;
-
-  @property({type: Object})
-  location!: {search: string}; // Set by router.
 
   @consume({context: apiClientContext})
   @state()
@@ -44,7 +41,7 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
       args: () => {
         const params = new URLSearchParams(this.location.search);
         const newFeatures = params.get('new_features') || '';
-        return [this.apiClient, newFeatures];
+        return [this.apiClient, newFeatures] as const;
       },
       task: async ([apiClient, newFeatures]) => {
         if (!newFeatures) return [];
@@ -194,7 +191,7 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
     `;
   }
 
-  protected render(): TemplateResult {
+  render(): TemplateResult {
     return html`
       <div id="error-container">
         ${this._renderErrorHeader()}

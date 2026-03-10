@@ -27,6 +27,7 @@ import {
   BROWSER_ID_TO_COLOR,
   BROWSER_ID_TO_LABEL,
 } from '../api/client.js';
+import {APIClient} from '../contexts/api-client-context.js';
 import {customElement} from 'lit/decorators.js';
 
 @customElement('webstatus-stats-global-feature-chart-panel')
@@ -82,18 +83,24 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   createLoadingTask(): Task {
     return new Task(this, {
       args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
-      task: async ([startDate, endDate]: [Date, Date]) => {
+        [this.dataFetchStartDate, this.dataFetchEndDate, this.apiClient] as [
+          Date,
+          Date,
+          APIClient,
+        ],
+      task: async ([startDate, endDate, apiClient]: [
+        Date,
+        Date,
+        APIClient,
+      ]) => {
+        if (!apiClient) return;
         await this._populateDataForChart([
           ...this._createFetchFunctionConfigs(startDate, endDate),
           {
             // Additional fetch function config for the "Total" series
             label: 'Total number of Baseline features',
             fetchFunction: () =>
-              this.apiClient.listAggregatedBaselineStatusCounts(
-                startDate,
-                endDate,
-              ),
+              apiClient.listAggregatedBaselineStatusCounts(startDate, endDate),
             timestampExtractor: (dataPoint: BaselineStatusMetric) =>
               new Date(dataPoint.timestamp),
             valueExtractor: (dataPoint: BaselineStatusMetric) =>

@@ -62,7 +62,7 @@ import './webstatus-saved-search-controls.js';
 
 import {CSVUtils} from '../utils/csv.js';
 import {Toast} from '../utils/toast.js';
-import {navigateToUrl} from '../utils/app-router.js';
+import {navigateToUrl} from '../utils/router-utils.js';
 import {
   AppBookmarkInfo,
   savedSearchHelpers,
