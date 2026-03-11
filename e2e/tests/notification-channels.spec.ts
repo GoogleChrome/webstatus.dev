@@ -61,7 +61,7 @@ test.describe('Notification Channels Page', () => {
       'webstatus-notification-webhook-channels',
     );
     await expect(webhookPanel).toBeVisible();
-    await expect(webhookPanel).toContainText('Coming soon');
+    await expect(webhookPanel).toContainText('No webhook channels configured.');
 
     // Take a screenshot for visual regression
     const pageContainer = page.locator('.page-container');
@@ -70,5 +70,57 @@ test.describe('Notification Channels Page', () => {
       pageContainer,
       'notification-channels-authenticated',
     );
+  });
+
+  test('authenticated user can create and delete a slack webhook channel', async ({
+    page,
+  }) => {
+    const webhookName = 'My Slack Webhook';
+    const webhookUrl =
+      'https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX';
+
+    // Log in as a test user
+    await loginAsUser(page, 'test user 2');
+
+    // Navigate to the notification channels page
+    await page.goto(`${BASE_URL}/settings/notification-channels`);
+
+    // Verify initial state
+    const webhookPanel = page.locator(
+      'webstatus-notification-webhook-channels',
+    );
+    await expect(webhookPanel).toContainText('No webhook channels configured.');
+
+    // Click Create button
+    await webhookPanel
+      .getByRole('button', {name: 'Create Webhook channel'})
+      .click();
+
+    // Fill the dialog
+    const dialog = webhookPanel.locator('sl-dialog');
+    await expect(dialog).toBeVisible();
+
+    await dialog.getByRole('textbox', {name: 'Name'}).fill(webhookName);
+    await dialog.getByRole('textbox', {name: 'Slack Webhook URL'}).fill(webhookUrl);
+
+    await dialog.getByRole('button', {name: 'Create', exact: true}).click();
+
+    // Verify it's in the list
+    await expect(dialog).not.toBeVisible();
+    await expect(webhookPanel).toContainText(webhookName);
+    await expect(webhookPanel).toContainText(webhookUrl);
+
+    // Delete it - handle the browser confirm dialog
+    page.once('dialog', async dialog => {
+      expect(dialog.message()).toBe(
+        'Are you sure you want to delete this webhook channel?',
+      );
+      await dialog.accept();
+    });
+
+    await webhookPanel.locator('sl-button[variant="danger"]').click();
+
+    // Verify it's gone
+    await expect(webhookPanel).toContainText('No webhook channels configured.');
   });
 });
