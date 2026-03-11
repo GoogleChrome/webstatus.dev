@@ -15,16 +15,14 @@
 package webhook
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
@@ -52,97 +50,69 @@ func NewSender(httpClient HTTPClient, stateManager ChannelStateManager, frontend
 	}
 }
 
-type SlackPayload struct {
-	Text string `json:"text"`
+var (
+	// ErrTransientWebhook is a transient failure that should be retried.
+	ErrTransientWebhook = errors.New("transient webhook failure")
+	// ErrPermanentWebhook is a permanent failure that should not be retried.
+	ErrPermanentWebhook = errors.New("permanent webhook failure")
+)
+
+type webhookSender interface {
+	Send(ctx context.Context) error
 }
 
-type webhookPreparer interface {
-	Prepare(ctx context.Context, job workertypes.IncomingWebhookDeliveryJob) (*http.Request, error)
+// Manager wraps the type-specific webhook logic.
+type Manager struct {
+	sender webhookSender
 }
 
-type slackPreparer struct {
-	frontendBaseURL string
-}
+func (s *Sender) getManager(_ context.Context, job workertypes.IncomingWebhookDeliveryJob) (*Manager, error) {
+	switch job.WebhookType {
+	case workertypes.WebhookTypeSlack:
+		slack, err := newSlackSender(s.frontendBaseURL, s.httpClient, job)
+		if err != nil {
+			return nil, err
+		}
 
-func (s *slackPreparer) Prepare(
-	ctx context.Context, job workertypes.IncomingWebhookDeliveryJob) (*http.Request, error) {
-	parsedURL, err := url.Parse(job.WebhookURL)
-	if err != nil || parsedURL.Scheme != "https" || parsedURL.Host != "hooks.slack.com" {
-		// Record permanent failure due to invalid URL
-		return nil, fmt.Errorf("invalid webhook URL: %s", job.WebhookURL)
+		return &Manager{sender: slack}, nil
+	default:
+		return nil, fmt.Errorf("%w: unsupported type %v", ErrPermanentWebhook, job.WebhookType)
 	}
-
-	var summary workertypes.EventSummary
-	if err := json.Unmarshal(job.SummaryRaw, &summary); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal summary: %w", err)
-	}
-
-	resultsURL := fmt.Sprintf("%s/features?q=%s", s.frontendBaseURL, url.QueryEscape(job.Metadata.Query))
-
-	payload := SlackPayload{
-		Text: fmt.Sprintf("WebStatus.dev Notification: %s\nQuery: %s\nView Results: %s",
-			summary.Text, job.Metadata.Query, resultsURL),
-	}
-
-	payloadBytes, err := json.Marshal(payload)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal slack payload: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, job.WebhookURL, bytes.NewBuffer(payloadBytes))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	return req, nil
 }
 
 func (s *Sender) SendWebhook(ctx context.Context, job workertypes.IncomingWebhookDeliveryJob) error {
 	slog.InfoContext(ctx, "sending webhook", "channelID", job.ChannelID, "url", job.WebhookURL)
 
-	var preparer webhookPreparer
-	switch job.WebhookType {
-	case workertypes.WebhookTypeSlack:
-		preparer = &slackPreparer{frontendBaseURL: s.frontendBaseURL}
-	default:
-		err := fmt.Errorf("unsupported webhook type: %v", job.WebhookType)
-		_ = s.stateManager.RecordFailure(ctx, job.ChannelID, err, time.Now(), true, job.WebhookEventID)
+	mgr, err := s.getManager(ctx, job)
+	if err != nil {
+		// If we fail here, it's permanent when trying to get the manager.
+		s.recordFailure(ctx, job, err, true)
 
-		return err
+		return fmt.Errorf("failed to prepare webhook: %w", err)
 	}
 
-	req, err := preparer.Prepare(ctx, job)
-	if err != nil {
-		// Preparation failures (like invalid payload or URL format) are typically permanent
-		_ = s.stateManager.RecordFailure(ctx, job.ChannelID, err, time.Now(), true, job.WebhookEventID)
+	if err := mgr.sender.Send(ctx); err != nil {
+		isTransient := errors.Is(err, ErrTransientWebhook)
+		s.recordFailure(ctx, job, err, !isTransient)
 
-		return fmt.Errorf("failed to prepare webhook request: %w", err)
-	}
-
-	resp, err := s.httpClient.Do(req)
-	if err != nil {
-		// Transient error?
-		_ = s.stateManager.RecordFailure(ctx, job.ChannelID, err, time.Now(), false, job.WebhookEventID)
+		if isTransient {
+			return errors.Join(event.ErrTransientFailure, err)
+		}
 
 		return fmt.Errorf("failed to send webhook: %w", err)
 	}
-	defer resp.Body.Close()
 
-	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
-		// Success
-		_ = s.stateManager.RecordSuccess(ctx, job.ChannelID, time.Now(), job.WebhookEventID)
-
-		return nil
+	if err := s.stateManager.RecordSuccess(ctx, job.ChannelID, time.Now(), job.WebhookEventID); err != nil {
+		slog.WarnContext(ctx, "failed to record success", "error", err)
 	}
 
-	// Failure
-	errorMsg := fmt.Sprintf("webhook returned status code %d", resp.StatusCode)
-	webhookErr := errors.New(errorMsg)
-	isPermanent := resp.StatusCode == http.StatusNotFound || resp.StatusCode == http.StatusGone ||
-		resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusForbidden
+	return nil
+}
 
-	_ = s.stateManager.RecordFailure(ctx, job.ChannelID, webhookErr, time.Now(), isPermanent, job.WebhookEventID)
-
-	return fmt.Errorf("webhook failed: %s", errorMsg)
+func (s *Sender) recordFailure(ctx context.Context, job workertypes.IncomingWebhookDeliveryJob,
+	err error, permanent bool) {
+	if dbErr := s.stateManager.RecordFailure(ctx, job.ChannelID, err, time.Now(),
+		permanent, job.WebhookEventID); dbErr != nil {
+		slog.ErrorContext(ctx, "failed to record failure", "error", dbErr)
+	}
 }
