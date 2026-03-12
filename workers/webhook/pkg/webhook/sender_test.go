@@ -16,229 +16,176 @@ package webhook
 
 import (
 	"context"
-	"encoding/json"
-	"io"
+	"errors"
 	"net/http"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/GoogleChrome/webstatus.dev/lib/event"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
 )
 
-type mockHTTPClient struct {
-	doFunc func(req *http.Request) (*http.Response, error)
-}
-
-func (m *mockHTTPClient) Do(req *http.Request) (*http.Response, error) {
-	return m.doFunc(req)
-}
-
-type mockChannelStateManager struct {
-	successCalls []successCall
-	failureCalls []failureCall
-}
-
-type successCall struct {
-	channelID string
-	timestamp time.Time
-	eventID   string
-}
-
-type failureCall struct {
-	channelID   string
-	err         error
-	timestamp   time.Time
-	isPermanent bool
-	eventID     string
-}
-
-func (m *mockChannelStateManager) RecordSuccess(_ context.Context, channelID string,
-	timestamp time.Time, eventID string) error {
-	m.successCalls = append(m.successCalls, successCall{channelID, timestamp, eventID})
-
-	return nil
-}
-
-func (m *mockChannelStateManager) RecordFailure(_ context.Context, channelID string,
-	err error, timestamp time.Time, isPermanent bool, eventID string) error {
-	m.failureCalls = append(m.failureCalls, failureCall{channelID, err, timestamp, isPermanent, eventID})
-
-	return nil
-}
-
 func TestSender_SendWebhook_Success(t *testing.T) {
 	mockHTTP := &mockHTTPClient{
-		doFunc: func(req *http.Request) (*http.Response, error) {
-			if req.URL.String() != "https://hooks.slack.com/services/123" {
-				t.Errorf("unexpected URL: %s", req.URL.String())
-			}
-			if req.Method != http.MethodPost {
-				t.Errorf("unexpected method: %s", req.Method)
-			}
-			body, _ := io.ReadAll(req.Body)
-			var payload SlackPayload
-			if err := json.Unmarshal(body, &payload); err != nil {
-				t.Errorf("failed to unmarshal payload: %v", err)
-			}
-			if !strings.Contains(payload.Text, "Test Body") {
-				t.Errorf("payload does not contain expected text: %s", payload.Text)
-			}
-			expectedLink := "View Results: https://webstatus.dev/features?q=group%3Acss"
-			if !strings.Contains(payload.Text, expectedLink) {
-				t.Errorf("payload missing expected link. Got: %s", payload.Text)
-			}
-
-			return &http.Response{
-				StatusCode:       http.StatusOK,
-				Body:             io.NopCloser(strings.NewReader("ok")),
-				Status:           "200 OK",
-				Proto:            "HTTP/1.1",
-				ProtoMajor:       1,
-				ProtoMinor:       1,
-				Header:           make(http.Header),
-				ContentLength:    2,
-				TransferEncoding: nil,
-				Close:            false,
-				Uncompressed:     false,
-				Trailer:          nil,
-				Request:          nil,
-				TLS:              nil,
-			}, nil
+		doFunc: func(_ *http.Request) (*http.Response, error) {
+			return newTestResponse(http.StatusOK, "ok"), nil
 		},
 	}
 
 	mockState := &mockChannelStateManager{
 		successCalls: nil,
 		failureCalls: nil,
+		recordErr:    nil,
 	}
-	frontendBaseURL := "https://webstatus.dev"
-	sender := NewSender(mockHTTP, mockState, frontendBaseURL)
+	sender := NewSender(mockHTTP, mockState, "https://webstatus.dev")
 
-	summary := workertypes.EventSummary{
-		Text:          "Test Body",
-		SchemaVersion: "v1",
-		Categories: workertypes.SummaryCategories{
-			QueryChanged:    0,
-			Added:           0,
-			Removed:         0,
-			Deleted:         0,
-			Moved:           0,
-			Split:           0,
-			Updated:         0,
-			UpdatedImpl:     0,
-			UpdatedRename:   0,
-			UpdatedBaseline: 0,
-		},
-		Truncated:  false,
-		Highlights: nil,
-	}
-	summaryRaw, _ := json.Marshal(summary)
-
-	job := workertypes.IncomingWebhookDeliveryJob{
-		WebhookDeliveryJob: workertypes.WebhookDeliveryJob{
-			ChannelID:      "chan-1",
-			WebhookURL:     "https://hooks.slack.com/services/123",
-			WebhookType:    workertypes.WebhookTypeSlack,
-			SummaryRaw:     summaryRaw,
-			SubscriptionID: "sub-1",
-			Triggers:       nil,
-			Metadata: workertypes.DeliveryMetadata{
-				EventID:     "evt-1",
-				SearchID:    "search-1",
-				SearchName:  "",
-				Query:       "group:css",
-				Frequency:   workertypes.FrequencyImmediate,
-				GeneratedAt: time.Time{},
-			},
-		},
-		WebhookEventID: "evt-1",
-	}
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://hooks.slack.com/services/123", workertypes.WebhookTypeSlack, "group:css", []byte(`{"text":"test"}`))
 
 	err := sender.SendWebhook(context.Background(), job)
 	if err != nil {
 		t.Fatalf("SendWebhook failed: %v", err)
 	}
 
-	// Verify the payload text contains the link
-	// The mock doFunc already checked basic text, but let's verify exact format if needed.
-	// (Actual check is inside the mock doFunc redefined above if we want to be strict)
+	verifySuccess(t, mockState)
+}
 
-	if len(mockState.successCalls) != 1 {
-		t.Errorf("expected 1 success call, got %d", len(mockState.successCalls))
+func TestSender_SendWebhook_TransientFailure(t *testing.T) {
+	mockHTTP := &mockHTTPClient{
+		doFunc: func(_ *http.Request) (*http.Response, error) {
+			return nil, event.ErrTransientFailure
+		},
 	}
-	if mockState.successCalls[0].channelID != "chan-1" {
-		t.Errorf("unexpected channel ID: %s", mockState.successCalls[0].channelID)
+	mockState := &mockChannelStateManager{
+		successCalls: nil,
+		failureCalls: nil,
+		recordErr:    nil,
+	}
+	sender := NewSender(mockHTTP, mockState, "https://webstatus.dev")
+
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://hooks.slack.com/services/123", workertypes.WebhookTypeSlack, "group:css", []byte(`{"text":"test"}`))
+
+	err := sender.SendWebhook(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected transient failure error, got %v", err)
+	}
+
+	if len(mockState.failureCalls) != 1 {
+		t.Errorf("expected 1 failure call, got %d", len(mockState.failureCalls))
+	}
+	if mockState.failureCalls[0].isPermanent {
+		t.Error("expected transient failure recorded")
 	}
 }
 
 func TestSender_SendWebhook_HTTPFailure(t *testing.T) {
 	mockHTTP := &mockHTTPClient{
 		doFunc: func(_ *http.Request) (*http.Response, error) {
-			return &http.Response{
-				StatusCode:       http.StatusNotFound,
-				Body:             io.NopCloser(strings.NewReader("not found")),
-				Status:           "404 Not Found",
-				Proto:            "HTTP/1.1",
-				ProtoMajor:       1,
-				ProtoMinor:       1,
-				Header:           make(http.Header),
-				ContentLength:    9,
-				TransferEncoding: nil,
-				Close:            false,
-				Uncompressed:     false,
-				Trailer:          nil,
-				Request:          nil,
-				TLS:              nil,
-			}, nil
+			return nil, errors.New("network error")
 		},
 	}
-
 	mockState := &mockChannelStateManager{
 		successCalls: nil,
 		failureCalls: nil,
+		recordErr:    nil,
 	}
 	sender := NewSender(mockHTTP, mockState, "https://webstatus.dev")
 
-	summary := workertypes.EventSummary{
-		Text:          "Test Body",
-		SchemaVersion: "v1",
-		Categories: workertypes.SummaryCategories{
-			QueryChanged:    0,
-			Added:           0,
-			Removed:         0,
-			Deleted:         0,
-			Moved:           0,
-			Split:           0,
-			Updated:         0,
-			UpdatedImpl:     0,
-			UpdatedRename:   0,
-			UpdatedBaseline: 0,
-		},
-		Truncated:  false,
-		Highlights: nil,
-	}
-	summaryRaw, _ := json.Marshal(summary)
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://hooks.slack.com/services/123", workertypes.WebhookTypeSlack, "group:css", []byte(`{"text":"test"}`))
 
-	job := workertypes.IncomingWebhookDeliveryJob{
-		WebhookDeliveryJob: workertypes.WebhookDeliveryJob{
-			ChannelID:      "chan-1",
-			WebhookURL:     "https://hooks.slack.com/services/123",
-			WebhookType:    workertypes.WebhookTypeSlack,
-			SummaryRaw:     summaryRaw,
-			SubscriptionID: "sub-1",
-			Triggers:       nil,
-			Metadata: workertypes.DeliveryMetadata{
-				EventID:     "evt-1",
-				SearchID:    "search-1",
-				SearchName:  "",
-				Query:       "group:css",
-				Frequency:   workertypes.FrequencyImmediate,
-				GeneratedAt: time.Time{},
-			},
-		},
-		WebhookEventID: "evt-1",
+	err := sender.SendWebhook(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error, got nil")
 	}
+
+	if !errors.Is(err, event.ErrTransientFailure) {
+		t.Errorf("expected transient failure error, got %v", err)
+	}
+
+	if len(mockState.failureCalls) != 1 {
+		t.Errorf("expected 1 failure call, got %d", len(mockState.failureCalls))
+	}
+	if mockState.failureCalls[0].isPermanent {
+		t.Error("expected transient failure recorded")
+	}
+}
+
+func TestSender_SendWebhook_PermanentFailure(t *testing.T) {
+	mockHTTP := &mockHTTPClient{
+		doFunc: func(_ *http.Request) (*http.Response, error) {
+			return newTestResponse(http.StatusNotFound, "not found"), nil
+		},
+	}
+	mockState := &mockChannelStateManager{
+		successCalls: nil,
+		failureCalls: nil,
+		recordErr:    nil,
+	}
+	sender := NewSender(mockHTTP, mockState, "https://webstatus.dev")
+
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://hooks.slack.com/services/123", workertypes.WebhookTypeSlack, "group:css", []byte(`{"text":"test"}`))
+
+	err := sender.SendWebhook(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+
+	if errors.Is(err, event.ErrTransientFailure) {
+		t.Error("did not expect transient failure error")
+	}
+
+	if len(mockState.failureCalls) != 1 {
+		t.Errorf("expected 1 failure call, got %d", len(mockState.failureCalls))
+	}
+	if !mockState.failureCalls[0].isPermanent {
+		t.Error("expected permanent failure recorded")
+	}
+}
+
+func TestSender_SendWebhook_UnsupportedType(t *testing.T) {
+	mockState := &mockChannelStateManager{
+		successCalls: nil,
+		failureCalls: nil,
+		recordErr:    nil,
+	}
+	sender := NewSender(nil, mockState, "https://webstatus.dev")
+
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://example.com/webhook", "unknown", "group:css", nil)
+
+	err := sender.SendWebhook(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "unsupported type") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+
+	if len(mockState.failureCalls) != 1 {
+		t.Errorf("expected 1 failure call, got %d", len(mockState.failureCalls))
+	}
+	if !mockState.failureCalls[0].isPermanent {
+		t.Error("expected permanent failure for unsupported type")
+	}
+}
+
+func TestSender_SendWebhook_InvalidSlackURL(t *testing.T) {
+	mockState := &mockChannelStateManager{
+		successCalls: nil,
+		failureCalls: nil,
+		recordErr:    nil,
+	}
+	sender := NewSender(nil, mockState, "https://webstatus.dev")
+
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://not-slack.com/hook", workertypes.WebhookTypeSlack, "group:css", nil)
 
 	err := sender.SendWebhook(context.Background(), job)
 	if err == nil {
@@ -249,6 +196,38 @@ func TestSender_SendWebhook_HTTPFailure(t *testing.T) {
 		t.Errorf("expected 1 failure call, got %d", len(mockState.failureCalls))
 	}
 	if !mockState.failureCalls[0].isPermanent {
-		t.Error("expected permanent failure for 404")
+		t.Error("expected permanent failure for invalid URL")
+	}
+}
+
+func TestSender_SendWebhook_InvalidSummary(t *testing.T) {
+	mockState := &mockChannelStateManager{
+		successCalls: nil,
+		failureCalls: nil,
+		recordErr:    nil,
+	}
+	sender := NewSender(nil, mockState, "https://webstatus.dev")
+
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://hooks.slack.com/services/123", workertypes.WebhookTypeSlack, "group:css", nil)
+	job.SummaryRaw = []byte(`invalid json`)
+
+	err := sender.SendWebhook(context.Background(), job)
+	if err == nil {
+		t.Fatal("expected error, got nil")
+	}
+	if !strings.Contains(err.Error(), "failed to unmarshal summary") {
+		t.Errorf("unexpected error message: %v", err)
+	}
+}
+
+func verifySuccess(t *testing.T, mockState *mockChannelStateManager) {
+	t.Helper()
+	if len(mockState.successCalls) != 1 {
+		t.Errorf("expected 1 success call, got %d", len(mockState.successCalls))
+	} else if mockState.successCalls[0].channelID != "chan-1" {
+		t.Errorf("unexpected channel ID: %s", mockState.successCalls[0].channelID)
+	} else if mockState.successCalls[0].eventID != "evt-123" {
+		t.Errorf("unexpected event ID: %s", mockState.successCalls[0].eventID)
 	}
 }
