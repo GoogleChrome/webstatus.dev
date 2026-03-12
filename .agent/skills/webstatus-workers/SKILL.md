@@ -60,3 +60,9 @@ When you add a new worker, update the notification pipeline, or change data flow
 - Update `docs/ARCHITECTURE.md` to reflect the new pipeline step.
 - Trigger the "Updating the Knowledge Base" prompt in `GEMINI.md` to ensure I am aware of the changes.
 - Update these very skills files if you introduce new structural patterns or rules.
+
+## Critical Infrastructure Requirements
+
+When adding a new worker, you **MUST** ensure that the manual instance counts are updated across all environments.
+
+- **Strict Object Types**: The `worker_manual_instance_counts` variable in `infra/variables.tf` is an `object` type. This means that if you add a new field (e.g., `webhook`) to the object definition, **every** environment's `.tfvars` file (e.g., [`infra/.envs/staging.tfvars`](../../../infra/.envs/staging.tfvars), [`infra/.envs/prod.tfvars`](../../../infra/.envs/prod.tfvars)) **MUST** be updated to include that field, or Terraform execution will fail.

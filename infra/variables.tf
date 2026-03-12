@@ -18,13 +18,15 @@ variable "project_name" {
 }
 
 variable "spanner_region_override" {
-  type     = string
-  nullable = true
-  default  = null
+  type        = string
+  description = "Override for the Spanner regional location"
+  nullable    = true
+  default     = null
 }
 
 variable "spanner_processing_units" {
-  type = number
+  type        = number
+  description = "Number of processing units for the Spanner instance"
 }
 
 variable "deletion_protection" {
@@ -38,13 +40,15 @@ variable "env_id" {
 }
 
 variable "datastore_region_id" {
-  type = string
+  type        = string
+  description = "The region ID for the Datastore/Firestore instance"
 }
 
 variable "docker_repository_region_override" {
-  type     = string
-  nullable = true
-  default  = null
+  type        = string
+  description = "Override for the Docker Artifact Registry region"
+  nullable    = true
+  default     = null
 }
 
 locals {
@@ -62,6 +66,7 @@ variable "secret_ids" {
   type = object({
     github_token = string
   })
+  description = "Map of secret IDs stored in Secret Manager"
 }
 
 variable "projects" {
@@ -70,6 +75,7 @@ variable "projects" {
     internal = string
     public   = string
   })
+  description = "Map of Google Cloud project IDs for different project roles"
 }
 
 variable "region_information" {
@@ -83,14 +89,17 @@ variable "region_information" {
       })
     })
   }))
+  description = "Mapping of regions to their networking configuration"
 }
 
 variable "backend_api_url" {
-  type = string
+  type        = string
+  description = "The URL where the backend API is hosted"
 }
 
 variable "google_analytics_id" {
-  type = string
+  type        = string
+  description = "Google Analytics Measurement ID"
 }
 
 variable "frontend_docker_build_target" {
@@ -128,35 +137,43 @@ variable "backend_cache_settings" {
 }
 
 variable "backend_cors_allowed_origin" {
-  type = string
+  type        = string
+  description = "The origin allowed by CORS for the backend API"
 }
 
 variable "bcd_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for BCD ingestion, keyed by region"
 }
 
 variable "developer_signals_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for developer signals ingestion, keyed by region"
 }
 
 variable "wpt_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for WPT ingestion, keyed by region"
 }
 
 variable "uma_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for UMA ingestion, keyed by region"
 }
 
 variable "chromium_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for Chromium ingestion, keyed by region"
 }
 
 variable "web_features_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for Web Features ingestion, keyed by region"
 }
 
 variable "web_features_mapping_region_schedules" {
-  type = map(string)
+  type        = map(string)
+  description = "Cloud Scheduler cron schedules for Web Features mapping ingestion, keyed by region"
 }
 
 

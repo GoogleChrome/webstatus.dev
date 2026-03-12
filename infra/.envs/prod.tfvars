@@ -122,4 +122,5 @@ worker_manual_instance_counts = {
   event_producer = 4
   push_delivery  = 2
   email          = 2
+  webhook        = 2
 }
