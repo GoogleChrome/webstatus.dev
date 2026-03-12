@@ -68,7 +68,9 @@ Pull workers do not "send" data; they serve data on demand to clients who reques
        # ... other variables
      }
      ```
-   - **Environment Variables**: If the new worker requires manual instance counts or specific configurations, add corresponding fields to `worker_manual_instance_counts` (or other maps) in [`infra/.envs/staging.tfvars`](../../../infra/.envs/staging.tfvars) and [`infra/.envs/prod.tfvars`](../../../infra/.envs/prod.tfvars), and update the definitions in [`infra/main.tf`](../../../infra/main.tf) and [`infra/workers/variables.tf`](../../../infra/workers/variables.tf).
+   - **Environment Variables**: If the new worker requires manual instance counts or specific configurations, add corresponding fields to `worker_manual_instance_counts` (or other maps) in [`infra/.envs/staging.tfvars`](../../../../infra/.envs/staging.tfvars) and [`infra/.envs/prod.tfvars`](../../../../infra/.envs/prod.tfvars), and update the definitions in [`infra/main.tf`](../../../../infra/main.tf) and [`infra/workers/variables.tf`](../../../../infra/workers/variables.tf).
+     > [!IMPORTANT]
+     > **Strict Terraform Object Types**: The `worker_manual_instance_counts` variable is an `object` type. Adding a new field to this object in `variables.tf` makes it **mandatory** to update **all** `.tfvars` files simultaneously. Failure to do so will cause the Terraform deployment to fail with an "inappropriate value for variable" error.
 
 ## Verify, Don't Assume
 

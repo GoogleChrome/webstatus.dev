@@ -9,7 +9,9 @@ require (
 	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260304140458-b3ea38597351
 	github.com/brianvoe/gofakeit/v7 v7.14.1
 	github.com/golang-jwt/jwt/v5 v5.3.1
+	github.com/hashicorp/hcl/v2 v2.24.0
 	github.com/web-platform-tests/wpt.fyi v0.0.0-20260306183442-b5ec52684f5c
+	github.com/zclconf/go-cty v1.18.0
 	golang.org/x/text v0.34.0
 )
 
@@ -19,7 +21,9 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.55.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.55.0 // indirect
 	github.com/MicahParks/keyfunc v1.9.0 // indirect
+	github.com/agext/levenshtein v1.2.1 // indirect
 	github.com/apapsch/go-jsonmerge/v2 v2.0.0 // indirect
+	github.com/apparentlymart/go-textseg/v15 v15.0.0 // indirect
 	github.com/getkin/kin-openapi v0.133.0 // indirect
 	github.com/go-jose/go-jose/v4 v4.1.3 // indirect
 	github.com/go-openapi/jsonpointer v0.22.5 // indirect
@@ -29,6 +33,7 @@ require (
 	github.com/google/go-github/v82 v82.0.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.9.1 // indirect
+	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/oapi-codegen/runtime v1.2.0 // indirect
 	github.com/oasdiff/yaml v0.0.0-20250309154309-f31be36b4037 // indirect
@@ -36,6 +41,8 @@ require (
 	github.com/perimeterx/marshmallow v1.1.5 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.6.0 // indirect
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
+	golang.org/x/mod v0.33.0 // indirect
+	golang.org/x/tools v0.42.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 )
 

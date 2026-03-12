@@ -242,11 +242,16 @@ node-lint: node-install
 	npx prettier . --check
 
 # Need to clean out the .terraform directory before linting.
-tf-lint:
+tf-lint: tf-validate-vars
 	rm -rf infra/.terraform
+	cd infra && tflint --init && tflint
 	cd infra && terraform init -backend=false -reconfigure --var-file=.envs/staging.tfvars --backend-config=.envs/backend-staging.tfvars && terraform validate
 	cd infra && terraform init -backend=false -reconfigure --var-file=.envs/prod.tfvars --backend-config=.envs/backend-prod.tfvars && terraform validate
 	terraform fmt -recursive -check .
+
+tf-validate-vars: go-workspace-setup
+	go run util/cmd/check_tfvars/main.go -dir infra -vars .envs/staging.tfvars -backend-vars .envs/backend-staging.tfvars
+	go run util/cmd/check_tfvars/main.go -dir infra -vars .envs/prod.tfvars -backend-vars .envs/backend-prod.tfvars
 
 shell-lint:
 	shellcheck .devcontainer/*.sh
