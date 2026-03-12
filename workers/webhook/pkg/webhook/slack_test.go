@@ -41,7 +41,7 @@ func TestSlackSender_Send(t *testing.T) {
 			expectedPayload: &SlackPayload{
 				Text: "WebStatus.dev Notification: New feature landed\n" +
 					"Query: group:css\n" +
-					"View Results: https://webstatus.dev/features?q=group%3Acss",
+					"View Results: https://webstatus.dev/?q=group%3Acss",
 			},
 			expectedErr: nil,
 		},
@@ -58,7 +58,7 @@ func TestSlackSender_Send(t *testing.T) {
 			expectedPayload: &SlackPayload{
 				Text: "WebStatus.dev Notification: Test Body\n" +
 					"Query: id:\"anchor-positioning\"\n" +
-					"View Results: https://webstatus.dev/features?q=id%3A%22anchor-positioning%22",
+					"View Results: https://webstatus.dev/features/anchor-positioning",
 			},
 			expectedErr: nil,
 		},
@@ -88,7 +88,7 @@ func TestSlackSender_Send(t *testing.T) {
 			expectedPayload: &SlackPayload{
 				Text: "WebStatus.dev Notification: fail\n" +
 					"Query: \n" +
-					"View Results: https://webstatus.dev/features?q=",
+					"View Results: https://webstatus.dev/?q=",
 			},
 			expectedErr: ErrPermanentWebhook,
 		},
@@ -105,7 +105,7 @@ func TestSlackSender_Send(t *testing.T) {
 			expectedPayload: &SlackPayload{
 				Text: "WebStatus.dev Notification: retry\n" +
 					"Query: \n" +
-					"View Results: https://webstatus.dev/features?q=",
+					"View Results: https://webstatus.dev/?q=",
 			},
 			expectedErr: ErrTransientWebhook,
 		},
