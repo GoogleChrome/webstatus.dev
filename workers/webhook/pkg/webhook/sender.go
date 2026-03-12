@@ -81,7 +81,7 @@ func (s *Sender) getManager(_ context.Context, job workertypes.IncomingWebhookDe
 }
 
 func (s *Sender) SendWebhook(ctx context.Context, job workertypes.IncomingWebhookDeliveryJob) error {
-	slog.InfoContext(ctx, "sending webhook", "channelID", job.ChannelID, "url", job.WebhookURL)
+	slog.InfoContext(ctx, "sending webhook", "channelID", job.ChannelID)
 
 	mgr, err := s.getManager(ctx, job)
 	if err != nil {
