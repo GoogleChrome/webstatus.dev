@@ -445,6 +445,54 @@ export class APIClient {
     });
   }
 
+  public async createNotificationChannel(
+    token: string,
+    channel: components['schemas']['CreateNotificationChannelRequest'],
+  ): Promise<components['schemas']['NotificationChannelResponse']> {
+    const options: FetchOptions<
+      FilterKeys<paths['/v1/users/me/notification-channels'], 'post'>
+    > = {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: channel,
+      credentials: temporaryFetchOptions.credentials,
+    };
+    const response = await this.client.POST(
+      '/v1/users/me/notification-channels',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+    return response.data;
+  }
+
+  public async deleteNotificationChannel(token: string, channelId: string) {
+    const options = {
+      ...temporaryFetchOptions,
+      params: {
+        path: {
+          channel_id: channelId,
+        },
+      },
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    };
+    const response = await this.client.DELETE(
+      '/v1/users/me/notification-channels/{channel_id}',
+      options,
+    );
+    const error = response.error;
+    if (error !== undefined) {
+      throw createAPIError(error);
+    }
+
+    return response.data;
+  }
+
   public async pingUser(
     token: string,
     pingOptions?: {githubToken?: string},

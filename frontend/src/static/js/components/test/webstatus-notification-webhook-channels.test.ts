@@ -20,21 +20,22 @@ import '../../components/webstatus-notification-webhook-channels.js';
 import '../../components/webstatus-notification-panel.js';
 
 describe('webstatus-notification-webhook-channels', () => {
-  it('displays "Coming soon" message', async () => {
+  it('displays "No webhook channels configured." message', async () => {
     const el = await fixture<WebstatusNotificationWebhookChannels>(html`
       <webstatus-notification-webhook-channels></webstatus-notification-webhook-channels>
     `);
-
     const basePanel = el.shadowRoot!.querySelector(
       'webstatus-notification-panel',
     );
     assert.isNotNull(basePanel);
-
-    const comingSoonText = basePanel!.querySelector(
+    const noChannelsText = basePanel!.querySelector(
       '[slot="content"] p',
     ) as HTMLParagraphElement;
-    assert.isNotNull(comingSoonText);
-    assert.include(comingSoonText.textContent, 'Coming soon');
+    assert.isNotNull(noChannelsText);
+    assert.include(
+      noChannelsText.textContent,
+      'No webhook channels configured.',
+    );
   });
 
   it('displays "Create Webhook channel" button', async () => {
