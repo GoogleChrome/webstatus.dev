@@ -136,12 +136,12 @@ func TestPushDeliveryPublisher_PublishJobs(t *testing.T) {
 			},
 			expectedTopic: "email-topic",
 			expectedKind:  "EmailJobEvent",
-			expectedData: map[string]interface{}{
+			expectedData: map[string]any{
 				"subscription_id": "sub-1",
 				"recipient_email": "test@example.com",
 				"summary_raw":     encodedSummary,
 				"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"event_id":     "event-1",
 					"search_id":    "search-1",
 					"search_name":  "",
@@ -167,13 +167,13 @@ func TestPushDeliveryPublisher_PublishJobs(t *testing.T) {
 			},
 			expectedTopic: "webhook-topic",
 			expectedKind:  "WebhookJobEvent",
-			expectedData: map[string]interface{}{
+			expectedData: map[string]any{
 				"subscription_id": "sub-1",
 				"webhook_type":    "slack",
 				"webhook_url":     "https://hooks.slack.com/services/123",
 				"summary_raw":     encodedSummary,
 				"triggers":        []any{"FEATURE_PROMOTED_TO_NEWLY", "FEATURE_PROMOTED_TO_WIDELY"},
-				"metadata": map[string]interface{}{
+				"metadata": map[string]any{
 					"event_id":     "event-1",
 					"search_id":    "search-1",
 					"query":        "query-string",
