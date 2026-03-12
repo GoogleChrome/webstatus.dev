@@ -17,6 +17,7 @@ package webhook
 import (
 	"context"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -27,7 +28,13 @@ import (
 
 func TestSender_SendWebhook_Success(t *testing.T) {
 	mockHTTP := &mockHTTPClient{
-		doFunc: func(_ *http.Request) (*http.Response, error) {
+		doFunc: func(req *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(req.Body)
+			expectedLink := "View Results: https://webstatus.dev/?q=group%3Acss"
+			if !strings.Contains(string(body), expectedLink) {
+				t.Errorf("expected link %s not found in body", expectedLink)
+			}
+
 			return newTestResponse(http.StatusOK, "ok"), nil
 		},
 	}
@@ -81,6 +88,38 @@ func TestSender_SendWebhook_TransientFailure(t *testing.T) {
 	if mockState.failureCalls[0].isPermanent {
 		t.Error("expected transient failure recorded")
 	}
+}
+
+func TestSender_SendWebhook_FeatureDeepLink_Success(t *testing.T) {
+	mockHTTP := &mockHTTPClient{
+		doFunc: func(req *http.Request) (*http.Response, error) {
+			body, _ := io.ReadAll(req.Body)
+			expectedLink := "View Results: https://webstatus.dev/features/anchor-positioning"
+			if !strings.Contains(string(body), expectedLink) {
+				t.Errorf("expected link %s not found in body", expectedLink)
+			}
+
+			return newTestResponse(http.StatusOK, "ok"), nil
+		},
+	}
+
+	mockState := &mockChannelStateManager{
+		successCalls: nil,
+		failureCalls: nil,
+		recordErr:    nil,
+	}
+	sender := NewSender(mockHTTP, mockState, "https://webstatus.dev")
+
+	job := newTestIncomingWebhookDeliveryJob(
+		"https://hooks.slack.com/services/123", workertypes.WebhookTypeSlack,
+		"id:\"anchor-positioning\"", []byte(`{"text":"Test Body"}`))
+
+	err := sender.SendWebhook(context.Background(), job)
+	if err != nil {
+		t.Fatalf("SendWebhook failed: %v", err)
+	}
+
+	verifySuccess(t, mockState)
 }
 
 func TestSender_SendWebhook_HTTPFailure(t *testing.T) {
