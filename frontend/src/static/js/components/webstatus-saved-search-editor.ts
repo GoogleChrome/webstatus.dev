@@ -155,8 +155,8 @@ export class WebstatusSavedSearchEditor extends LitElement {
       this._currentTask = new Task(this, {
         autoRun: false,
         task: async ([name, description, query, userContext, apiClient]) => {
-          const token = await userContext!.user.getIdToken();
-          return apiClient!.createSavedSearch(token, {
+          const token = await userContext.user.getIdToken();
+          return apiClient.createSavedSearch(token, {
             name: name,
             description: description !== '' ? description : undefined,
             query: query,
@@ -179,7 +179,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
           );
           await this.close();
         },
-        onError: async (error: unknown) => {
+        onError: async (error: {} | null | undefined) => {
           let message: string;
           if (error instanceof ApiError) {
             message = error.message;
@@ -246,7 +246,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
                 : undefined,
             query: query !== savedSearch.query ? query : undefined,
           };
-          return apiClient!.updateSavedSearch(update, token);
+          return apiClient.updateSavedSearch(update, token);
         },
         args: () => [
           this.savedSearch!,
@@ -266,7 +266,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
           );
           await this.close();
         },
-        onError: async (error: unknown) => {
+        onError: async (error: {} | null | undefined) => {
           let message: string;
           if (error instanceof ApiError) {
             message = error.message;
@@ -288,8 +288,8 @@ export class WebstatusSavedSearchEditor extends LitElement {
     this._currentTask = new Task(this, {
       autoRun: false,
       task: async ([savedSearchID, userContext, apiClient]) => {
-        const token = await userContext!.user.getIdToken();
-        await apiClient!.removeSavedSearchByID(savedSearchID!, token);
+        const token = await userContext.user.getIdToken();
+        await apiClient.removeSavedSearchByID(savedSearchID!, token);
         return savedSearchID!;
       },
       args: () => [this.savedSearch?.id, this.userContext, this.apiClient],
@@ -303,7 +303,7 @@ export class WebstatusSavedSearchEditor extends LitElement {
         );
         await this.close();
       },
-      onError: async (error: unknown) => {
+      onError: async (error: {} | null | undefined) => {
         let message: string;
         if (error instanceof ApiError) {
           message = error.message;

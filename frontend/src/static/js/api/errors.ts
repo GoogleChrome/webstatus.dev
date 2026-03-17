@@ -16,19 +16,22 @@ import {type components} from 'webstatus.dev-backend';
  * limitations under the License.
  */
 
-export function createAPIError(error?: unknown): ApiError {
+export function createAPIError(
+  error?: {} | null | undefined,
+  statusCode?: number,
+): ApiError {
   let message = 'Unknown error';
-  let code = 500; // Default to Internal Server Error
+  let code = statusCode || 500; // Use provided status code as default
 
   if (
     error instanceof Object &&
     'message' in error &&
-    typeof error.message === 'string' &&
-    'code' in error &&
-    typeof error.code === 'number'
+    typeof error.message === 'string'
   ) {
     message = error.message;
-    code = error.code;
+    if ('code' in error && typeof error.code === 'number') {
+      code = error.code;
+    }
   } else if (error instanceof Error) {
     message = error.message;
   }

@@ -76,33 +76,37 @@ export class VendorPosition {
     this.url = url;
   }
 
-  static create(data: unknown): VendorPosition | null {
+  static create(data: {} | null | undefined): VendorPosition | null {
     if (typeof data !== 'object' || data === null) {
       return null;
     }
 
-    const record = data as Record<string, unknown>;
-
-    const {vendor, position, url} = record;
-
-    if (typeof vendor !== 'string' || vendor === '') {
+    if (
+      !('vendor' in data) ||
+      typeof data.vendor !== 'string' ||
+      data.vendor === ''
+    ) {
       return null;
     }
 
-    if (typeof position !== 'string' || position === '') {
+    if (
+      !('position' in data) ||
+      typeof data.position !== 'string' ||
+      data.position === ''
+    ) {
       return null;
     }
 
-    if (typeof url !== 'string' || url === '') {
+    if (!('url' in data) || typeof data.url !== 'string' || data.url === '') {
       return null;
     }
 
-    return new VendorPosition(vendor, position, url);
+    return new VendorPosition(data.vendor, data.position, data.url);
   }
 }
 
 export class VendorPositions {
-  static create(data: unknown): VendorPosition[] | null {
+  static create(data: {} | null | undefined): VendorPosition[] | null {
     if (Array.isArray(data)) {
       return data
         .map(item => VendorPosition.create(item))

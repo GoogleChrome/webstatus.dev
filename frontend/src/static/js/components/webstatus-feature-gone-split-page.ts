@@ -20,9 +20,14 @@ import {customElement, property, state} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {GITHUB_REPO_ISSUE_LINK} from '../utils/constants.js';
 import {consume} from '@lit/context';
-import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {Task} from '@lit/task';
-import {FeatureWPTMetricViewType} from '../api/client.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
+import {
+  isWPTMetricViewType,
+  APIClient,
+  DEFAULT_TEST_VIEW,
+  FeatureWPTMetricViewType,
+} from '../api/client.js';
 import {formatFeaturePageUrl, getWPTMetricView} from '../utils/urls.js';
 
 type NewFeature = {name: string; url: string};
@@ -49,9 +54,12 @@ export class WebstatusFeatureGoneSplitPage extends LitElement {
       task: async ([apiClient, newFeatures]) => {
         if (!newFeatures) return [];
         const featureIds = newFeatures.split(',');
-        const wptMetricView = getWPTMetricView(
-          this.location,
-        ) as FeatureWPTMetricViewType;
+        const viewInUrl = getWPTMetricView(this.location);
+        const wptMetricView: FeatureWPTMetricViewType = isWPTMetricViewType(
+          viewInUrl,
+        )
+          ? viewInUrl
+          : DEFAULT_TEST_VIEW;
         const features = await Promise.all(
           featureIds.map(id => apiClient.getFeature(id, wptMetricView)),
         );

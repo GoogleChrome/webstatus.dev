@@ -88,12 +88,11 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<Bro
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate, this.featureId] as [
-          Date,
-          Date,
-          string,
-        ],
+      args: (): [Date, Date, string] => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+        this.featureId,
+      ],
       task: async ([startDate, endDate, featureId]: [Date, Date, string]) => {
         if (
           featureId === undefined ||
@@ -126,17 +125,12 @@ export class WebstatusFeatureUsageChartPanel extends WebstatusLineChartPanel<Bro
     return html`${nothing}`;
   }
 
-  getDisplayDataChartOptionsInput<BrowsersParameter>(
-    series: BrowsersParameter[],
-  ): {
+  getDisplayDataChartOptionsInput(series: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const seriesColors = series.map(browser => {
-      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
-      return BROWSER_ID_TO_COLOR[browserKey];
-    });
+    const seriesColors = series.map(browser => BROWSER_ID_TO_COLOR[browser]);
 
     return {
       seriesColors: seriesColors,

@@ -105,9 +105,7 @@ export class WebstatusColumnsDialog extends LitElement {
       getColumnOptions(this.location),
     );
     const checkboxes: TemplateResult[] = [];
-    for (const enumKeyStr of Object.keys(ColumnKey)) {
-      const ck = enumKeyStr as keyof typeof ColumnKey;
-      const columnId = ColumnKey[ck];
+    for (const columnId of Object.values(ColumnKey)) {
       const displayName = CELL_DEFS[columnId].nameInDialog;
       const cellColumnOptions = CELL_DEFS[columnId].options.columnOptions;
       const checkbox = html`
@@ -115,7 +113,7 @@ export class WebstatusColumnsDialog extends LitElement {
           <sl-checkbox
             value="${columnId}"
             class="column"
-            ?checked=${columns.includes(ColumnKey[ck])}
+            ?checked=${columns.includes(columnId)}
           >
             ${displayName}
           </sl-checkbox>
@@ -125,7 +123,7 @@ export class WebstatusColumnsDialog extends LitElement {
                 <sl-checkbox
                   value=${option.columnOptionKey}
                   class="column-option"
-                  ?checked=${columns.includes(ColumnKey[ck]) &&
+                  ?checked=${columns.includes(columnId) &&
                   columnOptions.includes(option.columnOptionKey)}
                   >${option.nameInDialog}</sl-checkbox
                 >
@@ -167,9 +165,7 @@ export async function openColumnsDialog(location: {
   search: string;
 }): Promise<WebstatusColumnsDialog> {
   if (!columnsDialogEl) {
-    columnsDialogEl = document.createElement(
-      'webstatus-columns-dialog',
-    ) as WebstatusColumnsDialog;
+    columnsDialogEl = new WebstatusColumnsDialog();
     document.body.appendChild(columnsDialogEl);
     await columnsDialogEl.updateComplete;
   }

@@ -63,6 +63,15 @@ enum NavigationItemKey {
   NOTIFICATION_CHANNELS = 'notification-channels-item',
 }
 
+const NAVIGATION_ITEM_KEYS = new Set<string>(Object.values(NavigationItemKey));
+/**
+ * Type guard to safely validate if a value is a valid NavigationItemKey.
+ * This ensures that menu selection logic remains type-safe without unsafe casts.
+ */
+function isNavigationItemKey(value: string): value is NavigationItemKey {
+  return NAVIGATION_ITEM_KEYS.has(value);
+}
+
 interface NavigationItem {
   id: string;
   path: string;
@@ -195,7 +204,8 @@ export class WebstatusSidebarMenu extends LitElement {
   }
 
   getNavTree(): SlTree | undefined {
-    return this.shadowRoot!.querySelector('sl-tree') as SlTree;
+    const tree = this.shadowRoot?.querySelector('sl-tree');
+    return tree instanceof SlTree ? tree : undefined;
   }
 
   private highlightNavigationItem(tree: SlTree | undefined) {
@@ -210,10 +220,8 @@ export class WebstatusSidebarMenu extends LitElement {
     );
 
     if (matchingNavItem) {
-      const itemToSelect = tree.querySelector(
-        `#${matchingNavItem.id}`,
-      ) as SlTreeItem;
-      if (itemToSelect) {
+      const itemToSelect = tree.querySelector(`#${matchingNavItem.id}`);
+      if (itemToSelect instanceof SlTreeItem) {
         itemToSelect.selected = true;
       }
     }
@@ -233,14 +241,15 @@ export class WebstatusSidebarMenu extends LitElement {
 
     this.highlightNavigationItem(tree);
 
-    tree!.addEventListener('sl-selection-change', () => {
+    tree.addEventListener('sl-selection-change', () => {
       const selectedItems = tree.selectedItems;
       if (selectedItems.length <= 0) {
         return;
       }
-      const selectedItem = selectedItems[0];
-      const navigationItem =
-        navigationMap[selectedItem.id as NavigationItemKey];
+      const selectedItemId = selectedItems[0].id;
+      const navigationItem = isNavigationItemKey(selectedItemId)
+        ? navigationMap[selectedItemId]
+        : undefined;
       if (!navigationItem) {
         return;
       }

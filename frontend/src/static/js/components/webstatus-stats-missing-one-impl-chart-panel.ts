@@ -124,8 +124,10 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
+      args: (): [Date, Date] => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+      ],
       task: async ([startDate, endDate]: [Date, Date]) => {
         const fetchFunctionConfigs = this._createFetchFunctionConfigs(
           startDate,
@@ -136,18 +138,12 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
     });
   }
 
-  getDisplayDataChartOptionsInput<BrowsersParameter>(
-    browsers: BrowsersParameter[],
-  ): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = browsers;
-    const seriesColors = [...selectedBrowsers].map(browser => {
-      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
-      return BROWSER_ID_TO_COLOR[browserKey];
-    });
+    const seriesColors = browsers.map(browser => BROWSER_ID_TO_COLOR[browser]);
 
     return {
       seriesColors: seriesColors,
@@ -217,7 +213,7 @@ export class WebstatusStatsMissingOneImplChartPanel extends WebstatusLineChartPa
           data: features,
         };
       },
-      onError: async (error: unknown) => {
+      onError: async (error: {} | null | undefined) => {
         if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,

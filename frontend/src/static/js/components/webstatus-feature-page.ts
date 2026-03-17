@@ -23,6 +23,7 @@ import {SHARED_STYLES} from '../css/shared-css.js';
 import {type components} from 'webstatus.dev-backend';
 
 import {
+  isWPTMetricViewType,
   FeatureWPTMetricViewType,
   type APIClient,
   type WPTRunMetric,
@@ -99,7 +100,7 @@ export class FeaturePage extends BaseChartsPage {
 
   static get styles(): CSSResultGroup {
     return [
-      super.styles!,
+      super.styles,
       SHARED_STYLES,
       css`
         .crumbs {
@@ -233,19 +234,26 @@ export class FeaturePage extends BaseChartsPage {
     this._loadingTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
-        if (typeof apiClient !== 'object' || typeof featureId !== 'string') {
+        if (!apiClient || !featureId) {
           return Promise.reject('api client and/or featureId not set');
         }
+        const viewInUrl = getWPTMetricView(this.location);
+        const wptMetricView: FeatureWPTMetricViewType = isWPTMetricViewType(
+          viewInUrl,
+        )
+          ? viewInUrl
+          : DEFAULT_TEST_VIEW;
         try {
-          const wptMetricView = getWPTMetricView(
-            this.location,
-          ) as FeatureWPTMetricViewType;
           const feature = await apiClient.getFeature(featureId, wptMetricView);
           this.feature = feature;
           return feature;
         } catch (error) {
           if (error instanceof FeatureMovedError) {
-            this.handleMovedFeature(featureId, error);
+            this.handleMovedFeature(
+              featureId,
+              error.newFeatureId,
+              error.feature,
+            );
             // The task can now complete successfully with the new feature data.
             return error.feature;
           }
@@ -278,7 +286,7 @@ export class FeaturePage extends BaseChartsPage {
     this._loadingMetadataTask = new Task(this, {
       args: () => [this.apiClient, this.featureId],
       task: async ([apiClient, featureId]) => {
-        if (typeof apiClient === 'object' && typeof featureId === 'string') {
+        if (apiClient && featureId) {
           this.featureMetadata = await apiClient.getFeatureMetadata(featureId);
         }
         return this.featureMetadata;
@@ -286,10 +294,11 @@ export class FeaturePage extends BaseChartsPage {
     });
   }
 
-  handleMovedFeature(oldFeatureId: string, error: FeatureMovedError) {
-    const newFeature = error.feature;
-    const newFeatureId = error.newFeatureId;
-
+  handleMovedFeature(
+    oldFeatureId: string,
+    newFeatureId: string,
+    newFeature: components['schemas']['Feature'],
+  ) {
     // Set component state to render the new feature.
     this.feature = newFeature;
     this.featureId = newFeatureId;
@@ -347,7 +356,7 @@ export class FeaturePage extends BaseChartsPage {
   renderCrumbs(): TemplateResult {
     const overviewUrl = formatOverviewPageUrl(this.location);
     const canonicalFeatureUrl = this.feature
-      ? formatFeaturePageUrl(this.feature!)
+      ? formatFeaturePageUrl(this.feature)
       : this.location;
     return html`
       <div class="crumbs">

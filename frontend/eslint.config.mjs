@@ -49,6 +49,11 @@ export default defineConfig([
       '@typescript-eslint/space-before-function-paren': 'off',
       'node/no-unpublished-import': ['off'],
 
+      // Strict Type Safety
+      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-unsafe-type-assertion': 'error',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'error',
+
       '@typescript-eslint/no-unused-vars': [
         'error',
         {
@@ -71,6 +76,15 @@ export default defineConfig([
 
       // For CustomEvent. Remove once we upgrade to a LTS version of Node >= 22.1.0.
       'n/no-unsupported-features/node-builtins': 'off',
+      '@typescript-eslint/no-restricted-types': [
+        'error',
+        {
+          types: {
+            unknown:
+              'Prefer explicit types or type guards instead of unknown. Use unknown only in tests or where absolutely unavoidable.',
+          },
+        },
+      ],
     },
   },
   {
@@ -79,6 +93,10 @@ export default defineConfig([
     rules: {
       '@typescript-eslint/no-unused-expressions': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-type-assertion': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-restricted-types': 'off',
     },
   },
 ]);

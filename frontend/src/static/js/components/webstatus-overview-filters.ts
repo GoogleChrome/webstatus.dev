@@ -41,8 +41,8 @@ import {TaskStatus} from '@lit/task';
 
 import {
   type APIClient,
-  type FeatureSortOrderType,
-  FeatureWPTMetricViewType,
+  isFeatureSortOrderType,
+  isWPTMetricViewType,
   BROWSER_ID_TO_LABEL,
   CHANNEL_ID_TO_LABEL,
 } from '../api/client.js';
@@ -161,13 +161,14 @@ export class WebstatusOverviewFilters extends LitElement {
   }
 
   handleDocumentKeyUp = (e: KeyboardEvent) => {
-    const inInputContext = e
-      .composedPath()
-      .some(el =>
-        ['INPUT', 'TEXTAREA', 'SL-POPUP', 'SL-DIALOG'].includes(
-          (el as HTMLElement).tagName,
-        ),
-      );
+    const inInputContext = e.composedPath().some(el => {
+      if (el instanceof HTMLElement) {
+        return ['INPUT', 'TEXTAREA', 'SL-POPUP', 'SL-DIALOG'].includes(
+          el.tagName,
+        );
+      }
+      return false;
+    });
     if (e.key === '/' && !inInputContext) {
       e.preventDefault();
       e.stopPropagation();
@@ -188,10 +189,12 @@ export class WebstatusOverviewFilters extends LitElement {
       // Perform any initializations once the apiClient is passed to us via context.
       // TODO. allFeaturesFetcher should be moved to a separate task.
       this.allFeaturesFetcher = () => {
+        const sort = getSortSpec(this.location);
+        const wptMetricView = getWPTMetricView(this.location);
         return this.apiClient!.getAllFeatures(
           savedSearchHelpers.getCurrentQuery(this.appBookmarkInfo),
-          getSortSpec(this.location) as FeatureSortOrderType,
-          getWPTMetricView(this.location) as FeatureWPTMetricViewType,
+          isFeatureSortOrderType(sort) ? sort : undefined,
+          isWPTMetricViewType(wptMetricView) ? wptMetricView : undefined,
         );
       };
     }

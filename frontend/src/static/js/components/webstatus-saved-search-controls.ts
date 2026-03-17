@@ -141,7 +141,7 @@ export class WebstatusSavedSearchControls extends LitElement {
           );
         }
       },
-      async onError(error: unknown) {
+      async onError(error: {} | null | undefined) {
         let message: string;
         if (error instanceof ApiError) {
           message = error.message;

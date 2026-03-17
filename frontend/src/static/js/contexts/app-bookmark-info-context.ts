@@ -183,7 +183,7 @@ export class SavedSearchUnknownError extends Error {
    * @param {string} id - The ID of the saved search that caused the error.
    * @param {unknown} err - The unknown error.
    */
-  constructor(id: string, err: unknown) {
+  constructor(id: string, err: {} | null | undefined) {
     super(
       `Unknown error fetching saved search ID ${id}. Check console for details.`,
     );
@@ -212,7 +212,7 @@ export class UserSavedSearchesUnknownError extends Error {
    * Creates a new UserSavedSearchesUnknownError.
    * @param {unknown} err - The unknown error.
    */
-  constructor(err: unknown) {
+  constructor(err: {} | null | undefined) {
     super(
       'Unknown error fetching list of saved searches for user. Check console for details.',
     );

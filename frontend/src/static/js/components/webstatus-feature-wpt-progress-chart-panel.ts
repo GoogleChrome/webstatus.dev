@@ -103,13 +103,12 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTab
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () =>
-        [
-          this.dataFetchStartDate,
-          this.dataFetchEndDate,
-          this.featureId,
-          this.testView,
-        ] as [Date, Date, string, FeatureWPTMetricViewType],
+      args: (): [Date, Date, string, FeatureWPTMetricViewType] => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+        this.featureId,
+        this.testView,
+      ],
       task: async ([startDate, endDate, featureId, testView]: [
         Date,
         Date,
@@ -188,17 +187,13 @@ export class WebstatusFeatureWPTProgressChartPanel extends WebstatusLineChartTab
   }
 
   override readonly hasMax: boolean = true;
-  getDisplayDataChartOptionsInput<BrowsersParameter>(
-    browsers: BrowsersParameter[],
-  ): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const seriesColors = [...browsers, 'total'].map(browser => {
-      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
-      return BROWSER_ID_TO_COLOR[browserKey];
-    });
+    const keys: (BrowsersParameter | 'total')[] = [...browsers, 'total'];
+    const seriesColors = keys.map(browser => BROWSER_ID_TO_COLOR[browser]);
 
     return {
       seriesColors: seriesColors,

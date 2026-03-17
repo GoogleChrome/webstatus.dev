@@ -61,6 +61,12 @@ export interface SavedSearch {
   description?: string;
 }
 
+export function isUserSavedSearch(
+  value: {} | null | undefined,
+): value is UserSavedSearch {
+  return value !== undefined && value !== null;
+}
+
 export interface OpenSavedSearchEvent {
   type: SavedSearchOperationType;
   savedSearch?: UserSavedSearch;

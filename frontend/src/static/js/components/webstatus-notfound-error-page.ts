@@ -22,7 +22,6 @@ import {getSearchQuery, formatFeaturePageUrl} from '../utils/urls.js';
 import {consume} from '@lit/context';
 import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
 import {Task} from '@lit/task';
-import {FeatureSortOrderType} from '../api/client.js';
 import {Toast} from '../utils/toast.js';
 
 type SimilarFeature = {name: string; url: string};
@@ -49,7 +48,7 @@ export class WebstatusNotFoundErrorPage extends LitElement {
           try {
             const response = await apiClient.getFeatures(
               featureId,
-              '' as FeatureSortOrderType,
+              undefined,
               undefined,
               0,
               5,

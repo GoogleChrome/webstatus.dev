@@ -22,7 +22,6 @@ import {
   CSSResultGroup,
   LitElement,
   PropertyValues,
-  type TemplateResult,
   css,
   html,
   nothing,
@@ -102,10 +101,7 @@ export class WebstatusGChart extends LitElement {
   currentSelection: google.visualization.ChartSelection[] | undefined;
 
   @property({state: true, type: Object})
-  dataTable:
-    | google.visualization.DataTable
-    | google.visualization.DataView
-    | undefined;
+  dataTable: google.visualization.DataTable | undefined;
 
   @state()
   chartWrapper: google.visualization.ChartWrapper | undefined;
@@ -157,9 +153,12 @@ export class WebstatusGChart extends LitElement {
   private _resizeObserver: ResizeObserver | undefined;
 
   draw() {
-    if (this.chartWrapper) {
-      this.chartWrapper.draw();
-      this.chartWrapper?.getChart()?.setSelection(this.currentSelection);
+    if (this.chartWrapper && this.containerId) {
+      const container = this.shadowRoot?.getElementById(this.containerId);
+      if (container) {
+        this.chartWrapper.draw(container);
+        this.chartWrapper.getChart()?.setSelection(this.currentSelection);
+      }
     }
   }
 
@@ -307,18 +306,6 @@ export class WebstatusGChart extends LitElement {
 
       if (!this.chartWrapper) {
         this.chartWrapper = new google.visualization.ChartWrapper();
-
-        const extendedChartWrapper = this.chartWrapper as unknown as {
-          getContainer: () => Element;
-        };
-
-        // Since ChartWrapper wants to look up the container element by id,
-        // but it would fail to find it in the shadowDom, we have to replace the
-        // chartWrapper.getContainer method with a function that returns the div
-        // corresponding to this.containerId, which we know how to find.
-        extendedChartWrapper.getContainer = () => {
-          return this.shadowRoot!.getElementById(this.containerId!)!;
-        };
       }
     } else {
       // If the library is not loaded, store the updated dataObj
@@ -328,7 +315,7 @@ export class WebstatusGChart extends LitElement {
     }
   }
 
-  render(): TemplateResult {
+  override render() {
     const chartContainerClasses = classMap({
       chart_container: true,
       loading: this.isRendering,
@@ -369,9 +356,9 @@ export class WebstatusGChart extends LitElement {
       this.chartWrapper.setContainerId(this.containerId); // Still required?
       this.chartWrapper.setChartType(this.chartType);
       this.chartWrapper.setOptions(this.augmentOptions(this.options));
-      this.chartWrapper.setDataTable(
-        this.dataTable as google.visualization.DataTable,
-      );
+      if (this.dataTable) {
+        this.chartWrapper.setDataTable(this.dataTable);
+      }
       if (!this._chartClickListenerAdded) {
         // Check the flag
         google.visualization.events.addListener(

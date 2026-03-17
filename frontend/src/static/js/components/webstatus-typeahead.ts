@@ -151,7 +151,8 @@ export class WebstatusTypeahead extends LitElement {
 
   findPrefix() {
     const inputEl = this.slInputRef.value!.input;
-    const wholeStr = inputEl!.value;
+    if (!inputEl) return;
+    const wholeStr = inputEl.value;
     const caret = inputEl.selectionStart;
     if (caret === null || caret !== inputEl.selectionEnd) {
       // User has a range selected.
@@ -184,7 +185,7 @@ export class WebstatusTypeahead extends LitElement {
   }
 
   async handleCandidateSelected(e: {detail: {item: SlMenuItem}}) {
-    const candidateValue = e.detail!.item!.value;
+    const candidateValue = e.detail.item.value;
     const inputEl = this.slInputRef.value!.input;
     const wholeStr = inputEl.value;
     // Don't add a space after the completed value: let the user type it.
@@ -398,7 +399,7 @@ export class WebstatusTypeaheadDropdown extends SlDropdown {
 }
 
 @customElement('webstatus-typeahead-item')
-export class WebstatusTypeaheadItem extends LitElement {
+export class WebstatusTypeaheadItem extends SlMenuItem {
   @property()
   value: string;
 
@@ -463,11 +464,9 @@ export class WebstatusTypeaheadItem extends LitElement {
     ];
   }
 
-  handleMouseOver(event: Event) {
-    if (this.parentElement) {
-      (this.parentElement as SlMenu).setCurrentItem(
-        this as unknown as SlMenuItem,
-      );
+  handleItemMouseOver(event: Event) {
+    if (this.parentElement instanceof SlMenu) {
+      this.parentElement.setCurrentItem(this);
     }
     event.stopPropagation();
   }
@@ -481,13 +480,13 @@ export class WebstatusTypeaheadItem extends LitElement {
     return html`${before}<b>${matching}</b>${after}`;
   }
 
-  render(): TemplateResult {
+  override render(): TemplateResult<1> {
     const highlightedValue = this.highlight(this.value);
     const highlightedDoc = this.highlight(this.doc);
     return html`
       <div
         class="menu-item ${this.tabindex === '0' ? 'active' : ''}"
-        @mouseover=${this.handleMouseOver}
+        @mouseover=${this.handleItemMouseOver}
       >
         <span id="value"><code>${highlightedValue}</code></span>
         <span id="doc">${highlightedDoc}</span>
@@ -498,7 +497,7 @@ export class WebstatusTypeaheadItem extends LitElement {
 
 @customElement('webstatus-typeahead-invisible-item')
 export class WebstatusTypeaheadInvisibleItem extends WebstatusTypeaheadItem {
-  override render(): TemplateResult {
+  override render(): TemplateResult<1> {
     return html`${nothing}`;
   }
 }
