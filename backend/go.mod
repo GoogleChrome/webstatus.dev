@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	firebase.google.com/go/v4 v4.19.0
 	github.com/GoogleChrome/webstatus.dev/lib v0.0.0-20260304140458-b3ea38597351
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-00010101000000-000000000000
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251119220853-b545639c35ae
 	github.com/go-chi/cors v1.2.2
 	github.com/google/go-cmp v0.7.0
 	github.com/oapi-codegen/runtime v1.2.0
