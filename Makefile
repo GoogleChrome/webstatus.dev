@@ -41,7 +41,7 @@ build: gen go-build node-install
 
 clean: clean-gen clean-node port-forward-terminate minikube-delete
 
-precommit: license-check lint unstaged-changes test
+precommit: license-check  go-fix go-tidy lint test unstaged-changes
 
 ################################
 # Local Environment
@@ -352,7 +352,14 @@ license-fix: go-install-tools
 	go tool addlicense $(ADDLICENSE_ARGS) .
 
 unstaged-changes:
-	git diff --exit-code
+	@if ! git diff --exit-code; then \
+		echo -e "\n\n======================================================="; \
+		echo "ERROR: Unstaged changes detected in the workspace!"; \
+		echo "This often happens if 'go mod tidy', 'go fix', etc modified files during the precommit checks."; \
+		echo "Please review the git diff, commit the changes, and try again."; \
+		echo -e "=======================================================\n\n"; \
+		exit 1; \
+	fi
 
 ################################
 # Playwright
