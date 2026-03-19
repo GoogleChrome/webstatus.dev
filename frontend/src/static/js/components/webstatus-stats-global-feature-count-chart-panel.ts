@@ -35,18 +35,13 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
   // https://github.com/mdn/browser-compat-data/blob/92d6876b420b0e6e69eb61256ed04827c9889063/browsers/edge.json#L53-L66
   // Set offset to -500 days.
   override dataFetchStartDateOffsetMsec: number = -500 * 24 * 60 * 60 * 1000;
-  getDisplayDataChartOptionsInput<BrowsersParameter>(
-    browsers: BrowsersParameter[],
-  ): {
+  getDisplayDataChartOptionsInput(browsers: BrowsersParameter[]): {
     seriesColors: string[];
     vAxisTitle: string;
   } {
     // Compute seriesColors from selected browsers and BROWSER_ID_TO_COLOR
-    const selectedBrowsers = browsers;
-    const seriesColors = [...selectedBrowsers, 'total'].map(browser => {
-      const browserKey = browser as keyof typeof BROWSER_ID_TO_COLOR;
-      return BROWSER_ID_TO_COLOR[browserKey];
-    });
+    const seriesColors = browsers.map(browser => BROWSER_ID_TO_COLOR[browser]);
+    seriesColors.push(BROWSER_ID_TO_COLOR['total']);
 
     return {
       seriesColors: seriesColors,
@@ -81,8 +76,10 @@ export class WebstatusStatsGlobalFeatureCountChartPanel extends WebstatusLineCha
 
   createLoadingTask(): Task {
     return new Task(this, {
-      args: () =>
-        [this.dataFetchStartDate, this.dataFetchEndDate] as [Date, Date],
+      args: (): [Date, Date] => [
+        this.dataFetchStartDate,
+        this.dataFetchEndDate,
+      ],
       task: async ([startDate, endDate]: [Date, Date]) => {
         await this._populateDataForChart([
           ...this._createFetchFunctionConfigs(startDate, endDate),

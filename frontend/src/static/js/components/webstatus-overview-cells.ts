@@ -94,13 +94,10 @@ export enum ColumnKey {
   DeveloperSignalUpvotes = 'developer_signal_upvotes',
 }
 
-const columnKeyMapping = Object.entries(ColumnKey).reduce(
-  (mapping, [enumKey, enumValue]) => {
-    mapping[enumValue] = ColumnKey[enumKey as keyof typeof ColumnKey];
-    return mapping;
-  },
-  {} as Record<string, ColumnKey>,
-);
+const columnKeyMapping: Record<string, ColumnKey> = {};
+for (const val of Object.values(ColumnKey)) {
+  columnKeyMapping[val] = val;
+}
 
 type ColumnOptionDefinition = {
   nameInDialog: string;
@@ -112,14 +109,10 @@ export enum ColumnOptionKey {
   BaselineStatusLowDate = 'baseline_status_low_date',
 }
 
-const columnOptionKeyMapping = Object.entries(ColumnOptionKey).reduce(
-  (mapping, [enumKey, enumValue]) => {
-    mapping[enumValue] =
-      ColumnOptionKey[enumKey as keyof typeof ColumnOptionKey];
-    return mapping;
-  },
-  {} as Record<string, ColumnOptionKey>,
-);
+const columnOptionKeyMapping: Record<string, ColumnOptionKey> = {};
+for (const val of Object.values(ColumnOptionKey)) {
+  columnOptionKeyMapping[val] = val;
+}
 
 export const DEFAULT_COLUMNS = [
   ColumnKey.Name,
@@ -1033,7 +1026,9 @@ function renderInsufficentTestCoverage(): TemplateResult {
   </sl-tooltip>`;
 }
 
-export function didFeatureCrash(metadata?: {[key: string]: unknown}): boolean {
+export function didFeatureCrash(metadata?: {
+  [key: string]: {} | null | undefined;
+}): boolean {
   return !!metadata && 'status' in metadata && metadata['status'] === 'C';
 }
 

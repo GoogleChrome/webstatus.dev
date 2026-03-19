@@ -25,7 +25,6 @@ import {
 } from 'lit';
 import {TaskStatus} from '@lit/task';
 import {customElement, property, query, state} from 'lit/decorators.js';
-import {type components} from 'webstatus.dev-backend';
 
 import './webstatus-overview-data-loader.js';
 import './webstatus-overview-filters.js';
@@ -44,7 +43,11 @@ import {
   UserContext,
   firebaseUserContext,
 } from '../contexts/firebase-user-context.js';
-import {APIClient, apiClientContext} from '../contexts/api-client-context.js';
+import {apiClientContext} from '../contexts/api-client-context.js';
+import {
+  type APIClient,
+  type SuccessResponsePageableData,
+} from '../api/client.js';
 import {WebstatusSavedSearchEditor} from './webstatus-saved-search-editor.js';
 import {
   formatOverviewPageUrl,
@@ -61,7 +64,10 @@ import {
 @customElement('webstatus-overview-content')
 export class WebstatusOverviewContent extends LitElement {
   @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+  taskTracker: TaskTracker<
+    SuccessResponsePageableData<'/v1/features'>,
+    ApiError
+  > = {
     status: TaskStatus.INITIAL, // Initial state
     error: undefined,
     data: undefined,

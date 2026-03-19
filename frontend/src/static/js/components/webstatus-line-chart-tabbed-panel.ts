@@ -27,9 +27,12 @@ import {WebStatusDataObj} from './webstatus-gchart.js';
 /**
  * Extension of the WebstatusLineChartTabbedPanel abstract base class to add
  * tabbed functionality for multiple views.
+ *
+ * The generic 'S' is constrained to 'BrowsersParameter' to ensure that the
+ * chart series remains type-safe across inherited methods and components.
  */
 export abstract class WebstatusLineChartTabbedPanel<
-  S,
+  S extends BrowsersParameter,
 > extends WebstatusLineChartPanel<S> {
   /**
    * The processed data objects for each view of the chart, structured for `webstatus-gchart`.
@@ -51,7 +54,7 @@ export abstract class WebstatusLineChartTabbedPanel<
    * @abstract
    * @type {ArrayArray<<BrowsersParameter>>}
    */
-  abstract browsersByView: Array<Array<BrowsersParameter>>;
+  abstract browsersByView: Array<Array<S>>;
 
   _handleTabClick() {
     this.resetPointSelectedTask();

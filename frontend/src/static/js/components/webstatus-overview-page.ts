@@ -18,7 +18,6 @@ import {consume} from '@lit/context';
 import {Task, TaskStatus} from '@lit/task';
 import {LitElement, type TemplateResult, html, PropertyValueMap} from 'lit';
 import {customElement, state, property} from 'lit/decorators.js';
-import {type components} from 'webstatus.dev-backend';
 
 import {
   getPageSize,
@@ -28,8 +27,9 @@ import {
 } from '../utils/urls.js';
 import {
   type APIClient,
-  type FeatureSortOrderType,
-  FeatureWPTMetricViewType,
+  isFeatureSortOrderType,
+  isWPTMetricViewType,
+  type SuccessResponsePageableData,
 } from '../api/client.js';
 import {apiClientContext} from '../contexts/api-client-context.js';
 import './webstatus-overview-content.js';
@@ -53,7 +53,10 @@ export class OverviewPage extends LitElement {
   apiClient?: APIClient;
 
   @state()
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+  taskTracker: TaskTracker<
+    SuccessResponsePageableData<'/v1/features'>,
+    ApiError
+  > = {
     status: TaskStatus.INITIAL, // Initial state
     error: undefined,
     data: undefined,
@@ -79,7 +82,7 @@ export class OverviewPage extends LitElement {
       args: () =>
         [this.apiClient, this.location, this.appBookmarkInfo] as const,
       task: async ([apiClient, routerLocation, appBookmarkInfo]): Promise<
-        components['schemas']['FeaturePage']
+        SuccessResponsePageableData<'/v1/features'>
       > => {
         this.taskTracker = {
           status: TaskStatus.INITIAL,
@@ -96,7 +99,7 @@ export class OverviewPage extends LitElement {
           data: page,
         };
       },
-      onError: async (error: unknown) => {
+      onError: async (error: {} | null | undefined) => {
         if (error instanceof ApiError) {
           this.taskTracker = {
             status: TaskStatus.ERROR,
@@ -159,10 +162,10 @@ export class OverviewPage extends LitElement {
     apiClient: APIClient | undefined,
     routerLocation: {search: string},
     appBookmarkInfo?: AppBookmarkInfo,
-  ): Promise<components['schemas']['FeaturePage']> {
-    if (typeof apiClient !== 'object')
+  ): Promise<SuccessResponsePageableData<'/v1/features'>> {
+    if (!apiClient)
       return Promise.reject(new Error('APIClient is not initialized.'));
-    const sortSpec = getSortSpec(routerLocation) as FeatureSortOrderType;
+    const sort = getSortSpec(routerLocation);
     let searchQuery: string = '';
     const query = savedSearchHelpers.getCurrentQuery(appBookmarkInfo);
     if (query) {
@@ -170,13 +173,11 @@ export class OverviewPage extends LitElement {
     }
     const offset = getPaginationStart(routerLocation);
     const pageSize = getPageSize(routerLocation);
-    const wptMetricView = getWPTMetricView(
-      routerLocation,
-    ) as FeatureWPTMetricViewType;
+    const wptMetricView = getWPTMetricView(routerLocation);
     return apiClient.getFeatures(
       searchQuery,
-      sortSpec,
-      wptMetricView,
+      isFeatureSortOrderType(sort) ? sort : undefined,
+      isWPTMetricViewType(wptMetricView) ? wptMetricView : undefined,
       offset,
       pageSize,
     );

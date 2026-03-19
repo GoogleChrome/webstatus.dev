@@ -32,6 +32,7 @@ import {
   GlobalSavedSearch,
   SavedSearch,
   UserSavedSearch,
+  isUserSavedSearch,
 } from '../utils/constants.js';
 import {
   QueryStringOverrides,
@@ -132,7 +133,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       };
       this.refreshAppBookmarkInfo();
 
-      const savedSearch = await apiClient!.getSavedSearchByID(searchID!, token);
+      const savedSearch = await apiClient!.getSavedSearchByID(searchID, token);
       return {search: savedSearch, query: searchQuery};
     },
     onComplete: data => {
@@ -163,9 +164,9 @@ export class WebstatusBookmarksService extends ServiceElement {
       }
       this.refreshAppBookmarkInfo();
     },
-    onError: async (error: unknown) => {
+    onError: async (error: {} | null | undefined) => {
       // The task only runs with _currentSearchID being valid
-      const searchID = this._currentSearchID!;
+      const searchID = this._currentSearchID;
       let err: SavedSearchError;
       if (error instanceof NotFoundError) {
         err = new SavedSearchNotFoundError(searchID);
@@ -223,7 +224,7 @@ export class WebstatusBookmarksService extends ServiceElement {
       };
       this.refreshAppBookmarkInfo();
     },
-    onError: async (error: unknown) => {
+    onError: async (error: {} | null | undefined) => {
       let err: SavedSearchError;
       if (error instanceof ApiError) {
         err = new UserSavedSearchesInternalError(error.message);
@@ -377,9 +378,10 @@ export class WebstatusBookmarksService extends ServiceElement {
   }
 
   handleSavedSearchSaved = (e: Event) => {
-    // TODO: we should figure out a way to avoid the type assertion here.
-    const event = e as CustomEvent<UserSavedSearch>;
-    const savedSearch = event.detail;
+    if (!(e instanceof CustomEvent)) return;
+    const detail = e.detail;
+    if (!isUserSavedSearch(detail)) return;
+    const savedSearch = detail;
 
     if (
       this._userSavedSearchesTaskTracker === undefined ||
@@ -420,13 +422,15 @@ export class WebstatusBookmarksService extends ServiceElement {
       },
     );
     this._currentLocation = this.getLocation();
+
     this.refreshAppBookmarkInfo();
   };
 
   handleSavedSearchEdited = (e: Event) => {
-    // TODO: we should figure out a way to avoid the type assertion here.
-    const event = e as CustomEvent<UserSavedSearch>;
-    const editedSearch = event.detail;
+    if (!(e instanceof CustomEvent)) return;
+    const detail = e.detail;
+    if (!isUserSavedSearch(detail)) return;
+    const editedSearch = detail;
 
     if (this._userSavedSearchesTaskTracker?.data) {
       this._userSavedSearchesTaskTracker.data =
@@ -449,9 +453,10 @@ export class WebstatusBookmarksService extends ServiceElement {
   };
 
   handleSavedSearchDeleted = (e: Event) => {
-    // TODO: we should figure out a way to avoid the type assertion here.
-    const event = e as CustomEvent<string>;
-    const deletedSearchId = event.detail;
+    if (!(e instanceof CustomEvent)) return;
+    const detail = e.detail;
+    if (typeof detail !== 'string') return;
+    const deletedSearchId = detail;
     if (this._userSavedSearchesTaskTracker?.data) {
       this._userSavedSearchesTaskTracker.data =
         this._userSavedSearchesTaskTracker?.data?.filter(

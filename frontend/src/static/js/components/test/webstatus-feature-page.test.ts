@@ -539,7 +539,11 @@ describe('webstatus-feature-page', () => {
       };
       const fakeError = new FeatureMovedError('foo', 'new-feature', newFeature);
 
-      el.handleMovedFeature('old-feature', fakeError);
+      el.handleMovedFeature(
+        'old-feature',
+        fakeError.newFeatureId,
+        fakeError.feature,
+      );
 
       expect(el.featureId).to.equal('new-feature');
       expect(el.oldFeatureId).to.equal('old-feature');

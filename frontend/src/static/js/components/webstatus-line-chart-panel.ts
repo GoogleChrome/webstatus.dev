@@ -235,7 +235,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
    * @abstract
    * @returns {{seriesColors: Array<string>; vAxisTitle: string;}} Chart options input.
    */
-  abstract getDisplayDataChartOptionsInput<S>(series: S[]): {
+  abstract getDisplayDataChartOptionsInput(series: S[]): {
     seriesColors: Array<string>;
     vAxisTitle: string;
   };
@@ -398,7 +398,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
    * Renders an error message when an error occurs during data loading.
    * @returns {TemplateResult} The error message template.
    */
-  renderChartWhenError(error: unknown): TemplateResult {
+  renderChartWhenError(error: {} | null | undefined): TemplateResult {
     return html`<div
       id="${this.getPanelID()}-error"
       class="error-chart-panel chart-panel"
@@ -787,7 +787,7 @@ export abstract class WebstatusLineChartPanel<S> extends LitElement {
    * @param {unknown} error The error encountered while loading details.
    * @returns {TemplateResult} The rendered content for the failure state.
    */
-  _renderPointSelectFailure(error: unknown): TemplateResult {
+  _renderPointSelectFailure(error: {} | null | undefined): TemplateResult {
     return html`<div
       id="${this.getPanelID()}-datapoint-details-error"
       class="datapoint-details-panel"

@@ -14,12 +14,8 @@
  * limitations under the License.
  */
 
-import createClient, {
-  HeadersOptions,
-  type FetchOptions,
-  ParamsOption,
-  ParseAsResponse,
-} from 'openapi-fetch';
+import createClient, {type FetchOptions} from 'openapi-fetch';
+
 import {type components, type paths} from 'webstatus.dev-backend';
 import {
   createAPIError,
@@ -27,12 +23,7 @@ import {
   FeatureMovedError,
 } from './errors.js';
 
-import {
-  MediaType,
-  SuccessResponse,
-  ResponseObjectMap,
-  FilterKeys,
-} from 'openapi-typescript-helpers';
+import {FilterKeys} from 'openapi-typescript-helpers';
 
 export type FeatureSortOrderType = NonNullable<
   paths['/v1/features']['get']['parameters']['query']
@@ -51,30 +42,71 @@ export type FeatureWPTMetricViewType = Exclude<
 
 export type BrowsersParameter = components['parameters']['browserPathParam'];
 
+/**
+ * Union of API paths that support pagination.
+ * We explicitly list these to enable path-aware type inference for paginated data.
+ */
 type PageablePath =
   | '/v1/features'
   | '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}'
+  | '/v1/features/{feature_id}/stats/usage/chrome/daily_stats'
   | '/v1/users/me/notification-channels'
   | '/v1/stats/features/browsers/{browser}/feature_counts'
   | '/v1/users/me/saved-searches'
   | '/v1/users/me/subscriptions'
-  | '/v1/stats/baseline_status/low_date_feature_counts';
+  | '/v1/stats/baseline_status/low_date_feature_counts'
+  | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts'
+  | '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features';
 
-type SuccessResponsePageableData<
-  T,
-  Options,
-  Media extends MediaType,
-  Path extends PageablePath,
-> = ParseAsResponse<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  SuccessResponse<ResponseObjectMap<T> & Record<string | number, any>, Media>,
-  Options
-> & {
-  metadata: Path extends '/v1/features' ? PageMetadataWithTotal : PageMetadata;
-};
+/**
+ * Utility to extract the item type from a paginated API response.
+ *
+ * Uses 'infer' to automatically discover the array element type from the OpenAPI schema.
+ * If the path is not a valid paginated path, it resolves to 'never' to prevent unsafe usage.
+ */
+type PageItems<Path extends PageablePath> = paths[Path]['get'] extends {
+  responses: {
+    200: {
+      content: {
+        'application/json': {
+          data: (infer U)[];
+        };
+      };
+    };
+  };
+}
+  ? U
+  : never;
 
 type PageMetadata = components['schemas']['PageMetadata'];
 type PageMetadataWithTotal = components['schemas']['PageMetadataWithTotal'];
+
+export type AnyPageMetadata = PageMetadata & Partial<PageMetadataWithTotal>;
+
+export type SuccessResponsePageableData<Path extends PageablePath> = {
+  metadata: AnyPageMetadata;
+  data: PageItems<Path>[];
+};
+
+type ResponsesObject<
+  Path extends keyof paths,
+  Method extends keyof paths[Path],
+> = paths[Path][Method] extends {responses: infer R} ? R : never;
+
+/**
+ * Extracts the payload type for a specific status code of an API endpoint.
+ * This ensures that status code handlers receive the correctly typed data
+ * from the OpenAPI schema.
+ */
+type ResponsePayload<
+  Path extends keyof paths,
+  Method extends keyof paths[Path],
+  Status extends keyof ResponsesObject<Path, Method>,
+> = ResponsesObject<Path, Method>[Status] extends {
+  content: {'application/json': infer T};
+}
+  ? T
+  : undefined;
 
 type ManualOffsetPagination = (offset: number) => string;
 
@@ -114,12 +146,7 @@ export const BROWSER_ID_TO_LABEL: Record<BrowsersParameter, string> = {
 
 /** Map from label to browser id */
 export const BROWSER_LABEL_TO_ID: Record<string, BrowsersParameter> =
-  Object.fromEntries(
-    Object.entries(BROWSER_ID_TO_LABEL).map(([key, value]) => [
-      value,
-      key as BrowsersParameter,
-    ]),
-  );
+  Object.fromEntries(ALL_BROWSERS.map(key => [BROWSER_ID_TO_LABEL[key], key]));
 
 export const BROWSER_ID_TO_COLOR: Record<BrowsersParameter | 'total', string> =
   {
@@ -168,6 +195,61 @@ export const SUBTEST_COUNT_METRIC_VIEW: components['schemas']['WPTMetricView'] =
 export const DEFAULT_TEST_VIEW: components['schemas']['WPTMetricView'] =
   TEST_COUNT_METRIC_VIEW;
 
+export const DEFAULT_SORT_ORDER: FeatureSortOrderType = 'name_asc';
+
+export function isWPTMetricViewType(
+  val: string | null | undefined,
+): val is FeatureWPTMetricViewType {
+  return val === TEST_COUNT_METRIC_VIEW || val === SUBTEST_COUNT_METRIC_VIEW;
+}
+
+export function isFeatureSortOrderType(
+  val: string | null | undefined,
+): val is FeatureSortOrderType {
+  if (!val) return false;
+  return val.endsWith('_asc') || val.endsWith('_desc');
+}
+
+/**
+ * Type guard to verify if a response matches the expected paginated structure for a given path.
+ *
+ * This acts as a 'gatekeeper' between the raw API response and our typed internal logic,
+ * replacing the need for unsafe 'as' assertions.
+ */
+function isPageAtPath<Path extends PageablePath>(
+  val: {} | null | undefined,
+  _path: Path,
+): val is {metadata?: AnyPageMetadata; data?: PageItems<Path>[]} {
+  return (
+    val !== null &&
+    typeof val === 'object' &&
+    // Not all endpoints return a 'data' field, but if it does exist it must be an array.
+    (('data' in val && Array.isArray(val.data)) || !Object.hasOwn(val, 'data'))
+  );
+}
+
+function isFeatureGoneError(
+  val: {} | null | undefined,
+): val is components['schemas']['FeatureGoneError'] {
+  return (
+    val !== null &&
+    typeof val === 'object' &&
+    'new_features' in val &&
+    Array.isArray(val.new_features)
+  );
+}
+
+function isFeature(
+  val: {} | null | undefined,
+): val is components['schemas']['Feature'] {
+  return (
+    val !== null &&
+    typeof val === 'object' &&
+    'feature_id' in val &&
+    'name' in val
+  );
+}
+
 export type WPTRunMetric = components['schemas']['WPTRunMetric'];
 export type WPTRunMetricsPage = components['schemas']['WPTRunMetricsPage'];
 export type ChromeUsageStat = components['schemas']['ChromeUsageStat'];
@@ -187,15 +269,14 @@ export type MissingOneImplFeaturesList =
   components['schemas']['MissingOneImplFeature'][];
 export type SavedSearchResponse = components['schemas']['SavedSearchResponse'];
 
-// TODO. Remove once not behind UbP
-const temporaryFetchOptions: FetchOptions<unknown> = {
-  credentials: 'include',
-};
+const fetchOptions = {
+  // TODO. Remove once not behind UbP
+  credentials: 'include' as const,
+  // https://github.com/drwpow/openapi-typescript/issues/1431
 
-// TODO. Remove once not behind UbP
-// https://github.com/drwpow/openapi-typescript/issues/1431
-const temporaryHeaders: HeadersOptions = {
-  'Content-Type': null,
+  headers: {
+    'Content-Type': null,
+  },
 };
 
 // Create a base64 string that is URL safe.
@@ -211,7 +292,7 @@ export class APIClient {
   constructor(baseUrl: string) {
     this.client = createClient<paths>({
       baseUrl,
-      headers: temporaryHeaders,
+      ...fetchOptions,
     });
   }
 
@@ -225,22 +306,17 @@ export class APIClient {
   }
 
   /**
-   * Returns one page of data.
+   * Retrieves a single page of data with path-aware type inference.
+   *
+   * This method ensures that the returned data is perfectly synchronized with the OpenAPI
+   * schema for the specific path, eliminating the need for manual type casting.
    */
-  public async getPageOfData<
-    Path extends PageablePath,
-    ResponseData extends SuccessResponsePageableData<
-      paths[PageablePath]['get'],
-      ParamsOption<Path>,
-      'application/json',
-      Path
-    >,
-  >(
+  public async getPageOfData<Path extends PageablePath>(
     path: Path,
     params: FetchOptions<FilterKeys<paths[Path], 'get'>>,
     pageToken?: string,
     pageSize?: number,
-  ): Promise<ResponseData> {
+  ): Promise<SuccessResponsePageableData<Path>> {
     // Add the pagination parameters to the query
     if (params.params === undefined) params.params = {};
     if (params.params.query === undefined) params.params.query = {};
@@ -248,57 +324,138 @@ export class APIClient {
     params.params.query.page_token = pageToken;
     params.params.query.page_size = pageSize;
 
-    const options = {
-      ...temporaryFetchOptions,
-      ...params,
-    };
-    const {data, error} = await this.client.GET(path, options);
+    const result = await this.handleResponse(
+      this.client.GET(path, params),
+      path,
+      'get',
+    );
 
-    if (error !== undefined) {
-      throw createAPIError(error);
+    if (isPageAtPath(result, path)) {
+      return {
+        metadata: result.metadata ?? {},
+        data: result.data ?? [],
+      };
     }
 
-    if (data === undefined) {
-      throw createAPIError();
-    }
-
-    return data as ResponseData;
+    throw createAPIError(new Error('Response data missing data array'));
   }
 
   /** Returns all pages of data.  */
-  public async getAllPagesOfData<
-    Path extends PageablePath,
-    ResponseData extends SuccessResponsePageableData<
-      paths[PageablePath]['get'],
-      ParamsOption<Path>,
-      'application/json',
-      Path
-    >,
-  >(
+  public async getAllPagesOfData<Path extends PageablePath>(
     path: Path,
     params: FetchOptions<FilterKeys<paths[Path], 'get'>>,
     overridenOffsetPaginator?: ManualOffsetPagination,
-  ): Promise<ResponseData['data'][number][]> {
+  ): Promise<PageItems<Path>[]> {
     let offset = 0;
-    let nextPageToken;
-    const allData: ResponseData['data'][number][] = [];
+    let nextPageToken: string | undefined = undefined;
+    const allData: PageItems<Path>[] = [];
 
-    do {
-      const page: ResponseData = await this.getPageOfData<Path, ResponseData>(
+    while (true) {
+      const page: SuccessResponsePageableData<Path> = await this.getPageOfData(
         path,
         params,
-        overridenOffsetPaginator
-          ? overridenOffsetPaginator(offset)
-          : nextPageToken,
+        nextPageToken ||
+          (overridenOffsetPaginator && overridenOffsetPaginator(offset)),
         100,
       );
 
-      nextPageToken = page?.metadata?.next_page_token;
-      allData.push(...(page.data ?? []));
-      offset += (page.data || []).length;
-    } while (nextPageToken !== undefined);
+      nextPageToken = page.metadata.next_page_token;
+      allData.push(...page.data);
+      offset += page.data.length;
+      if (nextPageToken === undefined) {
+        break;
+      }
+    }
 
     return allData;
+  }
+
+  /**
+   * Returns an async iterable that yields pages of data.
+   */
+  public async *getAsyncIterableOfData<Path extends PageablePath>(
+    path: Path,
+    params: FetchOptions<FilterKeys<paths[Path], 'get'>>,
+    pageSize?: number,
+  ): AsyncIterable<PageItems<Path>[]> {
+    let nextPageToken: string | undefined = undefined;
+    while (true) {
+      const page: SuccessResponsePageableData<Path> = await this.getPageOfData(
+        path,
+        params,
+        nextPageToken,
+        pageSize,
+      );
+      yield page.data;
+      nextPageToken = page.metadata.next_page_token;
+      if (nextPageToken === undefined) {
+        break;
+      }
+    }
+  }
+
+  /**
+   * Type-safe error handler for any API response.
+   * Leverages openapi-fetch result types to ensure data extraction is safe and concise.
+   */
+  private async handleResponse<
+    T,
+    ErrorType,
+    Path extends keyof paths,
+    Method extends keyof paths[Path] & string,
+  >(
+    promise: Promise<{
+      data?: T;
+      error?: ErrorType;
+      response: Response;
+    }>,
+    _path: Path,
+    _method: Method,
+    options?: {
+      statusHandlers?: Partial<{
+        [K in keyof ResponsesObject<Path, Method>]: (
+          payload: ResponsePayload<Path, Method, K>,
+          data: T | undefined,
+          response: Response,
+        ) => void;
+      }>;
+    },
+  ): Promise<T> {
+    const result = await promise;
+
+    if (options?.statusHandlers) {
+      // Use Object.entries to safely iterate without needing narrow type assertions.
+      for (const [code, handler] of Object.entries(options.statusHandlers)) {
+        if (
+          Number(code) === result.response.status &&
+          typeof handler === 'function'
+        ) {
+          const payload =
+            result.response.status >= 200 && result.response.status < 300
+              ? result.data
+              : result.error;
+          handler.call(
+            options.statusHandlers,
+            payload,
+            result.data,
+            result.response,
+          );
+        }
+      }
+    }
+
+    if (result.error !== undefined) {
+      throw createAPIError(result.error, result.response.status);
+    }
+    if (!result.response.ok) {
+      throw createAPIError(undefined, result.response.status);
+    }
+
+    // Now we know it's a success response, and openapi-fetch guarantees data matches the success type.
+    // In case of 204 No Content, result.data is undefined and T is void/undefined.
+    // We use a non-null assertion here to bridge the gap between the complex union type and
+    // the generic return type T, following the restriction on 'as' assertions.
+    return result.data!;
   }
 
   public async getFeature(
@@ -308,55 +465,48 @@ export class APIClient {
     const qsParams: paths['/v1/features/{feature_id}']['get']['parameters']['query'] =
       {};
     if (wptMetricView) qsParams.wpt_metric_view = wptMetricView;
-    const resp = await this.client.GET('/v1/features/{feature_id}', {
-      ...temporaryFetchOptions,
-      params: {
-        path: {feature_id: featureId},
-        query: qsParams,
-      },
-    });
-    if (resp.error !== undefined) {
-      const data = resp.error;
-      if (resp.response.status === 410 && 'new_features' in data) {
-        // Type narrowing doesn't work.
-        // https://github.com/openapi-ts/openapi-typescript/issues/1723
-        // We have to force it.
-        const featureGoneData =
-          data as components['schemas']['FeatureGoneError'];
-        throw new FeatureGoneSplitError(
-          resp.error.message,
-          featureGoneData.new_features.map(f => f.id),
-        );
-      }
-      throw createAPIError(resp.error);
-    }
-    if (resp.response.redirected) {
-      const featureId = resp.response.url.split('/').pop() || '';
-      throw new FeatureMovedError(
-        'redirected to feature',
-        featureId,
-        resp.data,
-      );
-    }
-    return resp.data;
-  }
-
-  public async getFeatureMetadata(
-    featureId: string,
-  ): Promise<components['schemas']['FeatureMetadata']> {
-    const {data, error} = await this.client.GET(
-      '/v1/features/{feature_id}/feature-metadata',
-      {
-        ...temporaryFetchOptions,
+    return this.handleResponse(
+      this.client.GET('/v1/features/{feature_id}', {
         params: {
           path: {feature_id: featureId},
+          query: qsParams,
+        },
+      }),
+      '/v1/features/{feature_id}',
+      'get',
+      {
+        statusHandlers: {
+          200: (data, _d, response) => {
+            if (response.redirected && isFeature(data)) {
+              const newId = response.url.split('/').pop() || '';
+              throw new FeatureMovedError('Redirected', newId, data);
+            }
+          },
+          410: error => {
+            if (isFeatureGoneError(error)) {
+              throw new FeatureGoneSplitError(
+                error.message,
+                error.new_features.map(f => f.id),
+              );
+            }
+          },
         },
       },
     );
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return data;
+  }
+
+  public getFeatureMetadata(
+    featureId: string,
+  ): Promise<components['schemas']['FeatureMetadata']> {
+    return this.handleResponse(
+      this.client.GET('/v1/features/{feature_id}/feature-metadata', {
+        params: {
+          path: {feature_id: featureId},
+        },
+      }),
+      '/v1/features/{feature_id}/feature-metadata',
+      'get',
+    );
   }
 
   // Get one page of features
@@ -366,7 +516,7 @@ export class APIClient {
     wptMetricView?: FeatureWPTMetricViewType,
     offset?: number,
     pageSize?: number,
-  ): Promise<components['schemas']['FeaturePage']> {
+  ): Promise<SuccessResponsePageableData<'/v1/features'>> {
     const queryParams: paths['/v1/features']['get']['parameters']['query'] = {};
     if (q) queryParams.q = q;
     if (sort) queryParams.sort = sort;
@@ -393,10 +543,7 @@ export class APIClient {
     if (q) queryParams.q = q;
     if (sort) queryParams.sort = sort;
     if (wptMetricView) queryParams.wpt_metric_view = wptMetricView;
-    return this.getAllPagesOfData<
-      '/v1/features',
-      components['schemas']['FeaturePage']
-    >(
+    return this.getAllPagesOfData(
       '/v1/features',
       {params: {query: queryParams}},
       this.createOffsetPaginationTokenForGetFeatures,
@@ -407,16 +554,7 @@ export class APIClient {
   public async getAllUserSavedSearches(
     token: string,
   ): Promise<SavedSearchResponse[]> {
-    type SavedSearchResponsePage = SuccessResponsePageableData<
-      components['schemas']['SavedSearchResponse'][],
-      ParamsOption<'/v1/users/me/saved-searches'>,
-      'application/json',
-      '/v1/users/me/saved-searches'
-    >;
-    return this.getAllPagesOfData<
-      '/v1/users/me/saved-searches',
-      SavedSearchResponsePage
-    >('/v1/users/me/saved-searches', {
+    return this.getAllPagesOfData('/v1/users/me/saved-searches', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -426,19 +564,7 @@ export class APIClient {
   public async listNotificationChannels(
     token: string,
   ): Promise<components['schemas']['NotificationChannelResponse'][]> {
-    type NotificationChannelPage = SuccessResponsePageableData<
-      paths['/v1/users/me/notification-channels']['get'],
-      FetchOptions<
-        FilterKeys<paths['/v1/users/me/notification-channels'], 'get'>
-      >,
-      'application/json',
-      '/v1/users/me/notification-channels'
-    >;
-
-    return this.getAllPagesOfData<
-      '/v1/users/me/notification-channels',
-      NotificationChannelPage
-    >('/v1/users/me/notification-channels', {
+    return this.getAllPagesOfData('/v1/users/me/notification-channels', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -449,24 +575,21 @@ export class APIClient {
     token: string,
     pingOptions?: {githubToken?: string},
   ): Promise<void> {
-    const options: FetchOptions<
-      FilterKeys<paths['/v1/users/me/ping'], 'post'>
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: temporaryFetchOptions.credentials,
-      body: {
-        github_token: pingOptions?.githubToken,
-      },
-    };
-    const {error} = await this.client.POST('/v1/users/me/ping', options);
-    if (error) {
-      throw createAPIError(error);
-    }
+    await this.handleResponse(
+      this.client.POST('/v1/users/me/ping', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: {
+          github_token: pingOptions?.githubToken,
+        },
+      }),
+      '/v1/users/me/ping',
+      'post',
+    );
   }
 
-  public async *getFeatureStatsByBrowserAndChannel(
+  public getFeatureStatsByBrowserAndChannel(
     featureId: string,
     browser: BrowsersParameter,
     channel: ChannelsParameter,
@@ -474,345 +597,214 @@ export class APIClient {
     endAtDate: Date,
     metricView: components['schemas']['WPTMetricView'],
   ): AsyncIterable<WPTRunMetric[]> {
-    const startAt: string = startAtDate.toISOString().substring(0, 10);
-    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    const startAt = startAtDate.toISOString().substring(0, 10);
+    const endAt = endAtDate.toISOString().substring(0, 10);
 
-    let nextPageToken;
-    do {
-      const response = await this.client.GET(
-        '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {startAt, endAt, page_token: nextPageToken},
-            path: {
-              feature_id: featureId,
-              browser,
-              channel,
-              metric_view: metricView,
-            },
+    return this.getAsyncIterableOfData(
+      '/v1/features/{feature_id}/stats/wpt/browsers/{browser}/channels/{channel}/{metric_view}',
+      {
+        params: {
+          query: {startAt, endAt},
+          path: {
+            feature_id: featureId,
+            browser,
+            channel,
+            metric_view: metricView,
           },
         },
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: WPTRunMetricsPage = response.data as WPTRunMetricsPage;
-      nextPageToken = page?.metadata?.next_page_token;
-
-      yield page.data; // Yield the entire page
-    } while (nextPageToken !== undefined);
+      },
+    );
   }
 
-  public async *getChromeDailyUsageStats(
+  public getChromeDailyUsageStats(
     featureId: string,
     startAtDate: Date,
     endAtDate: Date,
   ): AsyncIterable<ChromeUsageStat[]> {
-    const startAt: string = startAtDate.toISOString().substring(0, 10);
-    const endAt: string = endAtDate.toISOString().substring(0, 10);
-    let nextPageToken;
-    do {
-      const response = await this.client.GET(
-        '/v1/features/{feature_id}/stats/usage/chrome/daily_stats',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {startAt, endAt, page_token: nextPageToken},
-            path: {
-              feature_id: featureId,
-            },
+    const startAt = startAtDate.toISOString().substring(0, 10);
+    const endAt = endAtDate.toISOString().substring(0, 10);
+    return this.getAsyncIterableOfData(
+      '/v1/features/{feature_id}/stats/usage/chrome/daily_stats',
+      {
+        params: {
+          query: {startAt, endAt},
+          path: {
+            feature_id: featureId,
           },
         },
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: ChromeDailyUsageStatsPage =
-        response.data as ChromeDailyUsageStatsPage;
-      nextPageToken = page?.metadata?.next_page_token;
-      yield page.data;
-    } while (nextPageToken !== undefined);
+      },
+    );
   }
 
   // Fetches feature counts for a browser in a date range
   // via "/v1/stats/features/browsers/{browser}/feature_counts"
-  public async *getFeatureCountsForBrowser(
+  public getFeatureCountsForBrowser(
     browser: BrowsersParameter,
     startAtDate: Date,
     endAtDate: Date,
   ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
-    const startAt: string = startAtDate.toISOString().substring(0, 10);
-    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    const startAt = startAtDate.toISOString().substring(0, 10);
+    const endAt = endAtDate.toISOString().substring(0, 10);
 
-    let nextPageToken;
-    do {
-      const response = await this.client.GET(
-        '/v1/stats/features/browsers/{browser}/feature_counts',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {
-              startAt,
-              endAt,
-              page_token: nextPageToken,
-              include_baseline_mobile_browsers: true,
-            },
-            path: {browser},
+    return this.getAsyncIterableOfData(
+      '/v1/stats/features/browsers/{browser}/feature_counts',
+      {
+        params: {
+          query: {
+            startAt,
+            endAt,
+            include_baseline_mobile_browsers: true,
           },
+          path: {browser},
         },
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: BrowserReleaseFeatureMetricsPage =
-        response.data as BrowserReleaseFeatureMetricsPage;
-      nextPageToken = page?.metadata?.next_page_token;
-      yield page.data; // Yield the entire page
-    } while (nextPageToken !== undefined);
+      },
+    );
   }
 
   // Returns the count of features supported that have reached baseline
   // via "/v1/stats/baseline_status/low_date_feature_counts"
-  public async *listAggregatedBaselineStatusCounts(
+  public listAggregatedBaselineStatusCounts(
     startAtDate: Date,
     endAtDate: Date,
   ): AsyncIterable<BaselineStatusMetric[]> {
-    const startAt: string = startAtDate.toISOString().substring(0, 10);
-    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    const startAt = startAtDate.toISOString().substring(0, 10);
+    const endAt = endAtDate.toISOString().substring(0, 10);
 
-    let nextPageToken;
-    do {
-      const response = await this.client.GET(
-        '/v1/stats/baseline_status/low_date_feature_counts',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {startAt, endAt, page_token: nextPageToken},
-          },
+    return this.getAsyncIterableOfData(
+      '/v1/stats/baseline_status/low_date_feature_counts',
+      {
+        params: {
+          query: {startAt, endAt},
         },
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: BaselineStatusMetricsPage =
-        response.data as BaselineStatusMetricsPage;
-      nextPageToken = page?.metadata?.next_page_token;
-      yield page.data; // Yield the entire page
-    } while (nextPageToken !== undefined);
+      },
+    );
   }
 
   // Fetches feature counts for a browser in a date range
   // via "/v1/stats/features/browsers/{browser}/feature_counts"
-  public async *getMissingOneImplementationCountsForBrowser(
+  public getMissingOneImplementationCountsForBrowser(
     browser: BrowsersParameter,
     otherBrowsers: BrowsersParameter[],
     startAtDate: Date,
     endAtDate: Date,
   ): AsyncIterable<BrowserReleaseFeatureMetric[]> {
-    const startAt: string = startAtDate.toISOString().substring(0, 10);
-    const endAt: string = endAtDate.toISOString().substring(0, 10);
+    const startAt = startAtDate.toISOString().substring(0, 10);
+    const endAt = endAtDate.toISOString().substring(0, 10);
 
-    let nextPageToken;
-    do {
-      const response = await this.client.GET(
-        '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {
-              startAt,
-              endAt,
-              page_token: nextPageToken,
-              browser: otherBrowsers,
-              include_baseline_mobile_browsers: true,
-            },
-            path: {browser},
+    return this.getAsyncIterableOfData(
+      '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts',
+      {
+        params: {
+          query: {
+            startAt,
+            endAt,
+            browser: otherBrowsers,
+            include_baseline_mobile_browsers: true,
           },
+          path: {browser},
         },
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: BrowserReleaseFeatureMetricsPage =
-        response.data as BrowserReleaseFeatureMetricsPage;
-      nextPageToken = page?.metadata?.next_page_token;
-      yield page.data; // Yield the entire page
-    } while (nextPageToken !== undefined);
+      },
+    );
   }
 
   // Fetches missing feature list for a browser for a give date
   // via "/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features"
-  public async getMissingOneImplementationFeatures(
+  public getMissingOneImplementationFeatures(
     targetBrowser: BrowsersParameter,
     otherBrowsers: BrowsersParameter[],
     date: Date,
   ): Promise<MissingOneImplFeaturesList> {
     const targetDate: string = date.toISOString().substring(0, 10);
-    let nextPageToken: string | undefined;
-    const allFeatures: MissingOneImplFeaturesList = [];
-
-    do {
-      const response = await this.client.GET(
-        '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features',
-        {
-          ...temporaryFetchOptions,
-          params: {
-            query: {
-              page_token: nextPageToken,
-              browser: otherBrowsers,
-              include_baseline_mobile_browsers: true,
-            },
-            path: {browser: targetBrowser, date: targetDate},
+    return this.getAllPagesOfData(
+      '/v1/stats/features/browsers/{browser}/missing_one_implementation_counts/{date}/features',
+      {
+        params: {
+          query: {
+            browser: otherBrowsers,
+            include_baseline_mobile_browsers: true,
           },
+          path: {browser: targetBrowser, date: targetDate},
         },
-      );
-      const error = response.error;
-      if (error !== undefined) {
-        throw createAPIError(error);
-      }
-      const page: MissingOneImplFeaturesPage =
-        response.data as MissingOneImplFeaturesPage;
-
-      if (page?.data) {
-        allFeatures.push(...page.data);
-      }
-
-      nextPageToken = page?.metadata?.next_page_token;
-    } while (nextPageToken !== undefined);
-
-    return allFeatures;
+      },
+    );
   }
 
-  public async getSavedSearchByID(
+  public getSavedSearchByID(
     searchID: string,
     token?: string,
   ): Promise<SavedSearchResponse> {
-    const options = {
-      ...temporaryFetchOptions,
-      params: {
-        path: {
-          search_id: searchID,
-        },
-      },
-    };
-    // If the token is there, add it to the options
-    if (token) {
-      options.headers = {
-        Authorization: `Bearer ${token}`,
-      };
-    }
-    const response = await this.client.GET(
+    return this.handleResponse(
+      this.client.GET('/v1/saved-searches/{search_id}', {
+        params: {path: {search_id: searchID}},
+        headers: token ? {Authorization: `Bearer ${token}`} : undefined,
+      }),
       '/v1/saved-searches/{search_id}',
-      options,
+      'get',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
-  public async removeSavedSearchByID(searchID: string, token: string) {
-    const options = {
-      ...temporaryFetchOptions,
-      params: {
-        path: {
-          search_id: searchID,
-        },
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-    const response = await this.client.DELETE(
+  public removeSavedSearchByID(searchID: string, token: string): Promise<void> {
+    return this.handleResponse(
+      this.client.DELETE('/v1/saved-searches/{search_id}', {
+        params: {path: {search_id: searchID}},
+        headers: {Authorization: `Bearer ${token}`},
+      }),
       '/v1/saved-searches/{search_id}',
-      options,
+      'delete',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
-  public async putUserSavedSearchBookmark(searchID: string, token: string) {
-    const options = {
-      ...temporaryFetchOptions,
-      params: {
-        path: {
-          search_id: searchID,
+  public putUserSavedSearchBookmark(
+    searchID: string,
+    token: string,
+  ): Promise<void> {
+    return this.handleResponse(
+      this.client.PUT(
+        '/v1/users/me/saved-searches/{search_id}/bookmark_status',
+        {
+          params: {path: {search_id: searchID}},
+          headers: {Authorization: `Bearer ${token}`},
         },
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-    const response = await this.client.PUT(
+      ),
       '/v1/users/me/saved-searches/{search_id}/bookmark_status',
-      options,
+      'put',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
-  public async removeUserSavedSearchBookmark(searchID: string, token: string) {
-    const options = {
-      ...temporaryFetchOptions,
-      params: {
-        path: {
-          search_id: searchID,
+  public removeUserSavedSearchBookmark(
+    searchID: string,
+    token: string,
+  ): Promise<void> {
+    return this.handleResponse(
+      this.client.DELETE(
+        '/v1/users/me/saved-searches/{search_id}/bookmark_status',
+        {
+          params: {path: {search_id: searchID}},
+          headers: {Authorization: `Bearer ${token}`},
         },
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-    const response = await this.client.DELETE(
+      ),
       '/v1/users/me/saved-searches/{search_id}/bookmark_status',
-      options,
+      'delete',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
-  public async createSavedSearch(
+  public createSavedSearch(
     token: string,
     savedSearch: components['schemas']['SavedSearch'],
   ): Promise<components['schemas']['SavedSearchResponse']> {
-    const options: FetchOptions<
-      FilterKeys<paths['/v1/saved-searches'], 'post'>
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: savedSearch,
-      credentials: temporaryFetchOptions.credentials,
-    };
-    const response = await this.client.POST('/v1/saved-searches', options);
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return response.data;
+    return this.handleResponse(
+      this.client.POST('/v1/saved-searches', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: savedSearch,
+      }),
+      '/v1/saved-searches',
+      'post',
+    );
   }
 
-  public async updateSavedSearch(
+  public updateSavedSearch(
     savedSearch: UpdateSavedSearchInput,
     token: string,
   ): Promise<components['schemas']['SavedSearchResponse']> {
@@ -831,127 +823,78 @@ export class APIClient {
       req.update_mask.push('query');
       req.query = savedSearch.query;
     }
-    const options: FetchOptions<
-      FilterKeys<paths['/v1/saved-searches/{search_id}'], 'patch'>
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      params: {
-        path: {
-          search_id: savedSearch.id,
+    return this.handleResponse(
+      this.client.PATCH('/v1/saved-searches/{search_id}', {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      },
-      body: req,
-      credentials: temporaryFetchOptions.credentials,
-    };
-    const response = await this.client.PATCH(
+        params: {
+          path: {
+            search_id: savedSearch.id,
+          },
+        },
+        body: req,
+      }),
       '/v1/saved-searches/{search_id}',
-      options,
+      'patch',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return response.data;
   }
 
-  public async getSubscription(
+  public getSubscription(
     subscriptionId: string,
     token: string,
   ): Promise<components['schemas']['SubscriptionResponse']> {
-    const options = {
-      ...temporaryFetchOptions,
-      params: {
-        path: {
-          subscription_id: subscriptionId,
-        },
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-    const response = await this.client.GET(
+    return this.handleResponse(
+      this.client.GET('/v1/users/me/subscriptions/{subscription_id}', {
+        params: {path: {subscription_id: subscriptionId}},
+        headers: {Authorization: `Bearer ${token}`},
+      }),
       '/v1/users/me/subscriptions/{subscription_id}',
-      options,
+      'get',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
-  public async deleteSubscription(subscriptionId: string, token: string) {
-    const options = {
-      ...temporaryFetchOptions,
-      params: {
-        path: {
-          subscription_id: subscriptionId,
-        },
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-    const response = await this.client.DELETE(
+  public deleteSubscription(
+    subscriptionId: string,
+    token: string,
+  ): Promise<void> {
+    return this.handleResponse(
+      this.client.DELETE('/v1/users/me/subscriptions/{subscription_id}', {
+        params: {path: {subscription_id: subscriptionId}},
+        headers: {Authorization: `Bearer ${token}`},
+      }),
       '/v1/users/me/subscriptions/{subscription_id}',
-      options,
+      'delete',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
   public async listSubscriptions(
     token: string,
   ): Promise<components['schemas']['SubscriptionResponse'][]> {
-    type SubscriptionPage = SuccessResponsePageableData<
-      paths['/v1/users/me/subscriptions']['get'],
-      ParamsOption<'/v1/users/me/subscriptions'>,
-      'application/json',
-      '/v1/users/me/subscriptions'
-    >;
-
-    return this.getAllPagesOfData<
-      '/v1/users/me/subscriptions',
-      SubscriptionPage
-    >('/v1/users/me/subscriptions', {
+    return this.getAllPagesOfData('/v1/users/me/subscriptions', {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
   }
 
-  public async createSubscription(
+  public createSubscription(
     token: string,
     subscription: components['schemas']['Subscription'],
   ): Promise<components['schemas']['SubscriptionResponse']> {
-    const options: FetchOptions<
-      FilterKeys<paths['/v1/users/me/subscriptions'], 'post'>
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: subscription,
-      credentials: temporaryFetchOptions.credentials,
-    };
-    const response = await this.client.POST(
+    return this.handleResponse(
+      this.client.POST('/v1/users/me/subscriptions', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: subscription,
+      }),
       '/v1/users/me/subscriptions',
-      options,
+      'post',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return response.data;
   }
 
-  public async updateSubscription(
+  public updateSubscription(
     subscriptionId: string,
     token: string,
     updates: {
@@ -970,28 +913,20 @@ export class APIClient {
       req.update_mask.push('frequency');
       req.frequency = updates.frequency;
     }
-    const options: FetchOptions<
-      FilterKeys<paths['/v1/users/me/subscriptions/{subscription_id}'], 'patch'>
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      params: {
-        path: {
-          subscription_id: subscriptionId,
+    return this.handleResponse(
+      this.client.PATCH('/v1/users/me/subscriptions/{subscription_id}', {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      },
-      body: req,
-      credentials: temporaryFetchOptions.credentials,
-    };
-    const response = await this.client.PATCH(
+        params: {
+          path: {
+            subscription_id: subscriptionId,
+          },
+        },
+        body: req,
+      }),
       '/v1/users/me/subscriptions/{subscription_id}',
-      options,
+      'patch',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return response.data;
   }
 }

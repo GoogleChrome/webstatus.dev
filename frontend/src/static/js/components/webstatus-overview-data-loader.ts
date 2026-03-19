@@ -34,11 +34,15 @@ import {
   CurrentSavedSearch,
   SavedSearchScope,
 } from '../contexts/app-bookmark-info-context.js';
+import {type SuccessResponsePageableData} from '../api/client.js';
 
 @customElement('webstatus-overview-data-loader')
 export class WebstatusOverviewDataLoader extends LitElement {
   @property({type: Object})
-  taskTracker: TaskTracker<components['schemas']['FeaturePage'], ApiError> = {
+  taskTracker: TaskTracker<
+    SuccessResponsePageableData<'/v1/features'>,
+    ApiError
+  > = {
     status: TaskStatus.INITIAL, // Initial state
     error: undefined,
     data: undefined,
@@ -109,20 +113,19 @@ export class WebstatusOverviewDataLoader extends LitElement {
     const columns: ColumnKey[] = parseColumnsSpec(
       getColumnsSpec(this.location),
     );
-    const sortSpec: string =
-      getSortSpec(this.location) || (DEFAULT_SORT_SPEC as string);
-    const groupCells = renderGroupCells(this.location, columns, sortSpec);
+    const location = this.location;
+    if (!location) return html``;
+    const sortSpec = getSortSpec(location) || DEFAULT_SORT_SPEC;
+    const groupCells = renderGroupCells(location, columns, sortSpec!);
     let headerCells: TemplateResult[] = [];
+    const search = this.savedSearch;
     if (
-      this.savedSearch?.scope === SavedSearchScope.GlobalSavedSearch &&
-      this.savedSearch.value?.is_ordered
+      search?.scope === SavedSearchScope.GlobalSavedSearch &&
+      search.value.is_ordered
     ) {
-      headerCells = renderSavedSearchHeaderCells(
-        this.savedSearch.value.name,
-        columns,
-      );
+      headerCells = renderSavedSearchHeaderCells(search.value.name, columns);
     } else {
-      headerCells = renderHeaderCells(this.location, columns, sortSpec);
+      headerCells = renderHeaderCells(location, columns, sortSpec!);
     }
 
     if (

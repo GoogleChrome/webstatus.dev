@@ -18,7 +18,6 @@ import {LitElement, type TemplateResult, html, CSSResultGroup, css} from 'lit';
 import {customElement} from 'lit/decorators.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
 import {DRAWER_WIDTH_PX, IS_MOBILE} from './utils.js';
-import SlDrawer from '@shoelace-style/shoelace/dist/components/drawer/drawer.js';
 import './webstatus-sidebar.js';
 
 @customElement('webstatus-page')
@@ -68,15 +67,17 @@ export class WebstatusPage extends LitElement {
   }
 
   firstUpdated(): void {
-    const sidebarDrawer = this.shadowRoot?.querySelector(
-      '#sidebar-drawer',
-    ) as SlDrawer | null;
-    if (!sidebarDrawer) {
+    const sidebarDrawer = this.shadowRoot?.querySelector('#sidebar-drawer');
+    if (!(sidebarDrawer instanceof HTMLElement)) {
       throw new Error('Sidebar Drawer is missing');
     }
 
     const showSidebarDrawer = () => {
-      void sidebarDrawer!.show();
+      if ('show' in sidebarDrawer && typeof sidebarDrawer.show === 'function') {
+        void sidebarDrawer.show();
+      } else {
+        sidebarDrawer.setAttribute('open', '');
+      }
     };
 
     if (!IS_MOBILE) {
@@ -84,8 +85,15 @@ export class WebstatusPage extends LitElement {
     }
 
     document.addEventListener('toggle-menu', () => {
-      if (sidebarDrawer.open === true) {
-        void sidebarDrawer.hide();
+      if (sidebarDrawer.hasAttribute('open')) {
+        if (
+          'hide' in sidebarDrawer &&
+          typeof sidebarDrawer.hide === 'function'
+        ) {
+          void sidebarDrawer.hide();
+        } else {
+          sidebarDrawer.removeAttribute('open');
+        }
       } else {
         showSidebarDrawer();
       }

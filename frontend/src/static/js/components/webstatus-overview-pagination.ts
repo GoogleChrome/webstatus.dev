@@ -34,6 +34,7 @@ import {
 } from '../utils/urls.js';
 import {navigateToUrl} from '../utils/app-router.js';
 import {SHARED_STYLES} from '../css/shared-css.js';
+import {SlSelect} from '@shoelace-style/shoelace';
 
 @customElement('webstatus-overview-pagination')
 export class WebstatusOverviewPagination extends LitElement {
@@ -168,10 +169,16 @@ export class WebstatusOverviewPagination extends LitElement {
   }
 
   setItemsPerPage(event: Event): void {
-    const target = event.target as HTMLInputElement;
-    const newSize = parseInt(target.value);
-    const url = formatOverviewPageUrl(this.location, {num: newSize});
-    navigateToUrl(url);
+    const target = event.target;
+    if (target instanceof SlSelect) {
+      const value = target.value;
+      if (typeof value !== 'string') {
+        return;
+      }
+      const newSize = parseInt(value);
+      const url = formatOverviewPageUrl(this.location, {num: newSize});
+      navigateToUrl(url);
+    }
   }
 
   renderItemsPerPage(): TemplateResult {
