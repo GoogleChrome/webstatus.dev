@@ -30,6 +30,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"maps"
 	"os"
 	"path/filepath"
 	"strings"
@@ -75,9 +76,7 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to load %s: %v", fullPath, err)
 		}
-		for k, v := range attrs {
-			allAttrs[k] = v
-		}
+		maps.Copy(allAttrs, attrs)
 	}
 
 	// 2. Validate all gathered attributes against schemas
