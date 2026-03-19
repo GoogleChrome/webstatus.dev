@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/spanner v1.88.0
 	cloud.google.com/go/storage v1.60.0
 	firebase.google.com/go/v4 v4.19.0
-	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20260304140458-b3ea38597351
+	github.com/GoogleChrome/webstatus.dev/lib/gen v0.0.0-20251119220853-b545639c35ae
 	github.com/GoogleChrome/webstatus.dev/workflows/steps/services/chromium_histogram_enums v0.0.0-20260309122642-8cb28dfdbf3d
 	github.com/GoogleChrome/webstatus.dev/workflows/steps/services/web_feature_consumer v0.0.0-20260309122642-8cb28dfdbf3d
 	github.com/antlr4-go/antlr/v4 v4.13.1
@@ -23,7 +23,7 @@ require (
 	go.opentelemetry.io/contrib/detectors/gcp v1.42.0
 	golang.org/x/mod v0.33.0
 	google.golang.org/api v0.269.0
-	google.golang.org/grpc v1.79.2
+	google.golang.org/grpc v1.79.3
 )
 
 require (
