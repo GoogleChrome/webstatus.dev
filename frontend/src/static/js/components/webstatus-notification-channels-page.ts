@@ -56,6 +56,9 @@ export class WebstatusNotificationChannelsPage extends LitElement {
   @state()
   private emailChannels: NotificationChannelResponse[] = [];
 
+  @state()
+  private webhookChannels: NotificationChannelResponse[] = [];
+
   private _channelsTask = new Task(this, {
     task: async () => {
       if (this.userContext === null) {
@@ -79,6 +82,7 @@ export class WebstatusNotificationChannelsPage extends LitElement {
           return [];
         });
       this.emailChannels = channels.filter(c => c.type === 'email');
+      this.webhookChannels = channels.filter(c => c.type === 'webhook');
     },
     args: () => [this.userContext],
   });
@@ -91,11 +95,11 @@ export class WebstatusNotificationChannelsPage extends LitElement {
             <webstatus-notification-email-channels .loading=${true}>
             </webstatus-notification-email-channels>
 
-            <webstatus-notification-rss-channels .loading=${true}>
-            </webstatus-notification-rss-channels>
-
             <webstatus-notification-webhook-channels .loading=${true}>
             </webstatus-notification-webhook-channels>
+
+            <webstatus-notification-rss-channels .loading=${true}>
+            </webstatus-notification-rss-channels>
           `,
 
           complete: () => html`
@@ -103,10 +107,13 @@ export class WebstatusNotificationChannelsPage extends LitElement {
               .channels=${this.emailChannels}
             >
             </webstatus-notification-email-channels>
+            <webstatus-notification-webhook-channels
+              .channels=${this.webhookChannels}
+              @channel-changed=${() => this._channelsTask.run()}
+            >
+            </webstatus-notification-webhook-channels>
             <webstatus-notification-rss-channels>
             </webstatus-notification-rss-channels>
-            <webstatus-notification-webhook-channels>
-            </webstatus-notification-webhook-channels>
           `,
           error: e => {
             const errorMessage =
