@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/GoogleChrome/webstatus.dev/lib/httputils"
 	"github.com/GoogleChrome/webstatus.dev/lib/workertypes"
@@ -56,9 +57,17 @@ func (s *slackSender) Send(ctx context.Context) error {
 		return fmt.Errorf("%w: failed to unmarshal summary: %w", ErrPermanentWebhook, err)
 	}
 
+	// Determine the correct results URL.
+	// 1. Check if it's a feature-specific query (id:"...")
 	query := s.job.Metadata.Query
-	// Default search results page
-	resultsURL := fmt.Sprintf("%s/features?q=%s", s.frontendBaseURL, url.QueryEscape(query))
+	var resultsURL string
+	if strings.HasPrefix(query, "id:\"") && strings.HasSuffix(query, "\"") {
+		featureKey := strings.TrimSuffix(strings.TrimPrefix(query, "id:\""), "\"")
+		resultsURL = fmt.Sprintf("%s/features/%s", s.frontendBaseURL, featureKey)
+	} else {
+		// 2. Default search results page (at the root)
+		resultsURL = fmt.Sprintf("%s/?q=%s", s.frontendBaseURL, url.QueryEscape(query))
+	}
 
 	payload := SlackPayload{
 		Text: fmt.Sprintf("WebStatus.dev Notification: %s\nQuery: %s\nView Results: %s",
