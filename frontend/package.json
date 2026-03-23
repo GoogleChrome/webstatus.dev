@@ -54,7 +54,7 @@
     "rollup": "^4.59.0",
     "rollup-plugin-copy": "^3.5.0",
     "rollup-plugin-css-only": "^4.5.5",
-    "sinon": "^21.0.2",
+    "sinon": "^21.0.3",
     "ts-lit-plugin": "^2.0.1",
     "typescript": "^5.9.3"
   },
