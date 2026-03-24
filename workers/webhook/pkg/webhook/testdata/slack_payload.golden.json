@@ -1,0 +1,172 @@
+{
+  "blocks": [
+    {
+      "text": {
+        "emoji": true,
+        "text": "Weekly digest: My CSS Search",
+        "type": "plain_text"
+      },
+      "type": "header"
+    },
+    {
+      "text": {
+        "text": "Here is your update for the saved search *'My CSS Search'*. \n*11 features changed.*",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "elements": [
+        {
+          "alt_text": "Newly Available",
+          "image_url": "https://webstatus.dev/public/img/email/newly.png",
+          "type": "image"
+        },
+        {
+          "text": "*Baseline: Newly available*",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    },
+    {
+      "text": {
+        "text": "\u003chttps://webstatus.dev/features/newly-feature|Newly Available Feature\u003e \n*Date:* 2025-01-01",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "elements": [
+        {
+          "alt_text": "Widely Available",
+          "image_url": "https://webstatus.dev/public/img/email/widely.png",
+          "type": "image"
+        },
+        {
+          "text": "*Baseline: Widely available*",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    },
+    {
+      "text": {
+        "text": "\u003chttps://webstatus.dev/features/container-queries|Container queries\u003e (\u003chttps://mdn.io|MDN\u003e) \n*Date:* 2025-12-27",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "*Regressed to limited availability*",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "elements": [
+        {
+          "alt_text": "Regressed",
+          "image_url": "https://webstatus.dev/public/img/email/limited.png",
+          "type": "image"
+        },
+        {
+          "text": "\u003chttps://webstatus.dev/features/regressed-feature|Regressed Feature\u003e _From Widely_",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    },
+    {
+      "elements": [
+        {
+          "alt_text": "Regressed",
+          "image_url": "https://webstatus.dev/public/img/email/limited.png",
+          "type": "image"
+        },
+        {
+          "text": "\u003chttps://webstatus.dev/features/removed-details|Removed With Details\u003e _From Widely_",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    },
+    {
+      "text": {
+        "text": "\u003chttps://webstatus.dev/features/removed-feature|Removed Feature\u003e \n_From Newly_ \n:warning: _This feature no longer matches your saved search._",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "*Browser support changed*",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "text": {
+        "text": "• Chrome: Available in 120 → *Unavailable* (\u003chttps://webstatus.dev/features/regressed-feature|Regressed Feature\u003e)\n• Safari iOS: *Became available in 17.2* (\u003chttps://webstatus.dev/features/content-visibility|content-visibility\u003e)\n• Chrome: *Became available* (\u003chttps://webstatus.dev/features/another-feature|another-feature\u003e)\n• Chrome: Available in 110 → *Unavailable* (\u003chttps://webstatus.dev/features/removed-details|Removed With Details\u003e)\n:warning: _This feature no longer matches your saved search._",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "*Added* \n_These features now match your search criteria._",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "text": {
+        "text": "• \u003chttps://webstatus.dev/features/new-feature|New Feature\u003e\n• \u003chttps://webstatus.dev/features/another-new-feature|Another New Feature\u003e",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "*Split* \n\u003chttps://webstatus.dev/features/feature-to-split|Feature To Split\u003e split into: \n• \u003chttps://webstatus.dev/features/sub-feature-1|Sub Feature 1\u003e\n• \u003chttps://webstatus.dev/features/sub-feature-2|Sub Feature 2\u003e :warning: _(No longer matches)_",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "type": "divider"
+    },
+    {
+      "text": {
+        "text": "*Moved/Renamed* \nRenamed from Old Name to \u003chttps://webstatus.dev/features/new-cool-name|New Cool Name\u003e :warning: _(No longer matches)_",
+        "type": "mrkdwn"
+      },
+      "type": "section"
+    },
+    {
+      "elements": [
+        {
+          "text": "You can \u003chttps://webstatus.dev/settings/subscriptions|unsubscribe\u003e on \u003chttps://webstatus.dev/settings/subscriptions|webstatus.dev\u003e",
+          "type": "mrkdwn"
+        }
+      ],
+      "type": "context"
+    }
+  ]
+}

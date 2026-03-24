@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 	"strings"
 	"time"
 
@@ -898,3 +899,20 @@ var (
 	// Examples: Bad email address.
 	ErrUnrecoverableUserFailureEmailSending = errors.New("unrecoverable user failure trying to send email")
 )
+
+// FilterHighlights filters highlights based on triggers.
+func FilterHighlights(highlights []SummaryHighlight, triggers []JobTrigger) []SummaryHighlight {
+	if len(triggers) == 0 {
+		return highlights
+	}
+
+	var filtered []SummaryHighlight
+	for _, h := range highlights {
+		matched := slices.ContainsFunc(triggers, h.MatchesTrigger)
+		if matched {
+			filtered = append(filtered, h)
+		}
+	}
+
+	return filtered
+}

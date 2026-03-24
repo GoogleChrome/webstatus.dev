@@ -592,3 +592,153 @@ func TestGenerateCategoryDetails(t *testing.T) {
 		})
 	}
 }
+
+func TestFilterHighlights(t *testing.T) {
+	newlyDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+	widelyDate := time.Date(2025, 12, 27, 0, 0, 0, 0, time.UTC)
+	availableDate := time.Date(2025, 12, 28, 0, 0, 0, 0, time.UTC)
+
+	// Reusable highlight definitions
+	hNewly := SummaryHighlight{
+		Type:        SummaryHighlightTypeChanged,
+		FeatureID:   "h1",
+		FeatureName: "Newly Feature",
+		BaselineChange: &Change[BaselineValue]{
+			From: BaselineValue{Status: BaselineStatusLimited, LowDate: nil, HighDate: nil},
+			To: BaselineValue{Status: BaselineStatusNewly, LowDate: &newlyDate,
+				HighDate: nil},
+		},
+		Docs:           nil,
+		NameChange:     nil,
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	}
+	hWidely := SummaryHighlight{
+		Type:        SummaryHighlightTypeChanged,
+		FeatureID:   "h2",
+		FeatureName: "Widely Feature",
+		BaselineChange: &Change[BaselineValue]{
+			From: BaselineValue{Status: BaselineStatusNewly, LowDate: &newlyDate,
+				HighDate: nil},
+			To: BaselineValue{Status: BaselineStatusWidely, LowDate: &newlyDate,
+				HighDate: &widelyDate},
+		},
+		Docs:           nil,
+		NameChange:     nil,
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	}
+	hRegression := SummaryHighlight{
+		Type:        SummaryHighlightTypeChanged,
+		FeatureID:   "h3",
+		FeatureName: "Regression Feature",
+		BaselineChange: &Change[BaselineValue]{
+			From: BaselineValue{Status: BaselineStatusWidely, LowDate: &newlyDate,
+				HighDate: &widelyDate},
+			To: BaselineValue{Status: BaselineStatusLimited, LowDate: nil, HighDate: nil},
+		},
+		Docs:           nil,
+		NameChange:     nil,
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	}
+	hBrowser := SummaryHighlight{
+		Type:        SummaryHighlightTypeChanged,
+		FeatureID:   "h4",
+		FeatureName: "Browser Feature",
+		BrowserChanges: map[BrowserName]*Change[BrowserValue]{
+			BrowserChrome: {
+				From: BrowserValue{Status: BrowserStatusUnavailable, Version: nil, Date: nil},
+				To:   BrowserValue{Status: BrowserStatusAvailable, Version: nil, Date: &availableDate},
+			},
+			BrowserEdge:           nil,
+			BrowserFirefox:        nil,
+			BrowserSafari:         nil,
+			BrowserChromeAndroid:  nil,
+			BrowserFirefoxAndroid: nil,
+			BrowserSafariIos:      nil,
+		},
+		BaselineChange: nil,
+		Docs:           nil,
+		NameChange:     nil,
+		Moved:          nil,
+		Split:          nil,
+	}
+	hGenericAdded := SummaryHighlight{
+		Type:           SummaryHighlightTypeAdded,
+		FeatureID:      "h5",
+		FeatureName:    "Generic Added",
+		Docs:           nil,
+		NameChange:     nil,
+		BaselineChange: nil,
+		BrowserChanges: nil,
+		Moved:          nil,
+		Split:          nil,
+	}
+
+	allHighlights := []SummaryHighlight{hNewly, hWidely, hRegression, hBrowser, hGenericAdded}
+
+	tests := []struct {
+		name     string
+		triggers []JobTrigger
+		wantIDs  []string
+	}{
+		{
+			name:     "No Triggers (Default) - Should Return All",
+			triggers: nil,
+			wantIDs:  []string{"h1", "h2", "h3", "h4", "h5"},
+		},
+		{
+			name:     "Empty Triggers List - Should Return All",
+			triggers: []JobTrigger{},
+			wantIDs:  []string{"h1", "h2", "h3", "h4", "h5"},
+		},
+		{
+			name:     "Newly Trigger",
+			triggers: []JobTrigger{FeaturePromotedToNewly},
+			wantIDs:  []string{"h1"},
+		},
+		{
+			name:     "Widely Trigger",
+			triggers: []JobTrigger{FeaturePromotedToWidely},
+			wantIDs:  []string{"h2"},
+		},
+		{
+			name:     "Regression Trigger",
+			triggers: []JobTrigger{FeatureRegressedToLimited},
+			wantIDs:  []string{"h3"},
+		},
+		{
+			name:     "Browser Implementation Trigger",
+			triggers: []JobTrigger{BrowserImplementationAnyComplete},
+			wantIDs:  []string{"h4"},
+		},
+		{
+			name: "Multiple Triggers",
+			triggers: []JobTrigger{
+				FeaturePromotedToNewly,
+				FeaturePromotedToWidely,
+			},
+			wantIDs: []string{"h1", "h2"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			got := FilterHighlights(allHighlights, tc.triggers)
+
+			if len(got) != len(tc.wantIDs) {
+				t.Errorf("Count mismatch: got %d, want %d", len(got), len(tc.wantIDs))
+			}
+
+			for i, h := range got {
+				if i < len(tc.wantIDs) && h.FeatureID != tc.wantIDs[i] {
+					t.Errorf("Index %d mismatch: got ID %s, want %s", i, h.FeatureID, tc.wantIDs[i])
+				}
+			}
+		})
+	}
+}

@@ -269,7 +269,7 @@ func (g *templateDataGenerator) VisitV1(summary workertypes.EventSummary) error 
 	}
 	// 2. Filter Content (Content Filtering)
 	// We only show highlights that match the user's specific triggers.
-	filteredHighlights := filterHighlights(summary.Highlights, g.job.Triggers)
+	filteredHighlights := workertypes.FilterHighlights(summary.Highlights, g.job.Triggers)
 	if len(filteredHighlights) != 0 {
 		// As long as we have some filtered highlights, override it.
 		// This should be the common case unless there's some logic error.
@@ -339,24 +339,6 @@ func (g *templateDataGenerator) processBaselineChange(highlight workertypes.Summ
 	case workertypes.BaselineStatusUnknown:
 		// Do nothing
 	}
-}
-
-func filterHighlights(
-	highlights []workertypes.SummaryHighlight, triggers []workertypes.JobTrigger) []workertypes.SummaryHighlight {
-	// If no triggers are specified (e.g. legacy or "all"), return everything.
-	if len(triggers) == 0 {
-		return highlights
-	}
-
-	var filtered []workertypes.SummaryHighlight
-	for _, h := range highlights {
-		matched := slices.ContainsFunc(triggers, h.MatchesTrigger)
-		if matched {
-			filtered = append(filtered, h)
-		}
-	}
-
-	return filtered
 }
 
 func (r *HTMLRenderer) generateSubject(
