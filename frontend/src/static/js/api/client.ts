@@ -117,6 +117,11 @@ export type UpdateSavedSearchInput = {
   query?: string;
 };
 
+export type UpdateNotificationChannelInput = {
+  name?: string;
+  config?: components['schemas']['WebhookConfig'];
+};
+
 /**
  * Iterable list of browsers we have data for.
  * This is the same as the items in the BrowsersParameter enum,
@@ -571,85 +576,73 @@ export class APIClient {
     });
   }
 
-  public async createNotificationChannel(
+  public createNotificationChannel(
     token: string,
     channel: components['schemas']['CreateNotificationChannelRequest'],
   ): Promise<components['schemas']['NotificationChannelResponse']> {
-    const options: FetchOptions<
-      FilterKeys<paths['/v1/users/me/notification-channels'], 'post'>
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      body: channel,
-      credentials: fetchOptions.credentials,
-    };
-    const response = await this.client.POST(
+    return this.handleResponse(
+      this.client.POST('/v1/users/me/notification-channels', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: channel,
+      }),
       '/v1/users/me/notification-channels',
-      options,
+      'post',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-    return response.data;
   }
 
-  public async updateNotificationChannel(
+  public updateNotificationChannel(
     token: string,
     channelId: string,
-    request: components['schemas']['UpdateNotificationChannelRequest'],
+    updates: UpdateNotificationChannelInput,
   ): Promise<components['schemas']['NotificationChannelResponse']> {
-    const options: FetchOptions<
-      FilterKeys<
-        paths['/v1/users/me/notification-channels/{channel_id}'],
-        'patch'
-      >
-    > = {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      params: {
-        path: {
-          channel_id: channelId,
-        },
-      },
-      body: request,
-      credentials: fetchOptions.credentials,
+    const req: components['schemas']['UpdateNotificationChannelRequest'] = {
+      update_mask: [],
     };
-    const response = await this.client.PATCH(
-      '/v1/users/me/notification-channels/{channel_id}',
-      options,
-    );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
+    if (updates.name !== undefined) {
+      req.update_mask.push('name');
+      req.name = updates.name;
     }
-    return response.data;
+    if (updates.config !== undefined) {
+      req.update_mask.push('config');
+      req.config = updates.config;
+    }
+    return this.handleResponse(
+      this.client.PATCH('/v1/users/me/notification-channels/{channel_id}', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        params: {
+          path: {
+            channel_id: channelId,
+          },
+        },
+        body: req,
+      }),
+      '/v1/users/me/notification-channels/{channel_id}',
+      'patch',
+    );
   }
 
-  public async deleteNotificationChannel(token: string, channelId: string) {
-    const options = {
-      ...fetchOptions,
-      params: {
-        path: {
-          channel_id: channelId,
+  public deleteNotificationChannel(
+    token: string,
+    channelId: string,
+  ): Promise<void> {
+    return this.handleResponse(
+      this.client.DELETE('/v1/users/me/notification-channels/{channel_id}', {
+        params: {
+          path: {
+            channel_id: channelId,
+          },
         },
-      },
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    };
-    const response = await this.client.DELETE(
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }),
       '/v1/users/me/notification-channels/{channel_id}',
-      options,
+      'delete',
     );
-    const error = response.error;
-    if (error !== undefined) {
-      throw createAPIError(error);
-    }
-
-    return response.data;
   }
 
   public async pingUser(
