@@ -147,15 +147,10 @@ export class WebstatusNotificationWebhookChannels extends LitElement {
         );
         void toast(`Created webhook channel "${resp.name}".`, 'success');
       } else {
-        const updateRequest: components['schemas']['UpdateNotificationChannelRequest'] =
-          {
-            ...updates,
-            update_mask: e.detail.mask,
-          };
         const resp = await this.apiClient.updateNotificationChannel(
           token,
           channelId,
-          updateRequest,
+          updates,
         );
         void toast(`Updated webhook channel "${resp.name}".`, 'success');
       }
