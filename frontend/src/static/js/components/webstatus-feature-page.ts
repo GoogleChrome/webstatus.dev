@@ -44,7 +44,7 @@ import {
   renderBrowserQuality,
 } from './webstatus-overview-cells.js';
 
-import './webstatus-gchart';
+import './webstatus-gchart.js';
 import {BaseChartsPage} from './webstatus-base-charts-page.js';
 
 import './webstatus-feature-wpt-progress-chart-panel.js';
